@@ -3021,6 +3021,11 @@ export function createBuildMode(host) {
     get docId() {
       return doc ? doc.id : null;
     },
+    /* The track itself, for the medal times its test laps set (main.js
+     * publishBuiltTrack); read, never changed, by the host. */
+    get doc() {
+      return doc;
+    },
     /* True while the builder's own camera is the one drawn. */
     get cameraLive() {
       return state === 'building';

@@ -33,7 +33,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { noise2, smoothstep } from './noise.js';
+import { noise2, smoothstep } from '../../render/library/noise.js';
 import { ribbon, ribbonCentre } from './ribbon.js';
 import {
   FIELD, HALF, STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
@@ -41,7 +41,7 @@ import {
 } from './terrain.js';
 import { makeWaves, patchGeometry, placePatch, injectWaves, starLoops, outlineBox, probeSurface } from '../../render/lakewaves.js';
 import { buildSpray } from '../../render/spray.js';
-import { recordAt, flatTop } from './roofs.js';
+import { recordAt, flatTop } from '../../render/library/roofs.js';
 import { setSolidSurface } from '../../game/crashworld.js';
 
 /* The valley is cut into this many bands along z; every instanced thing
@@ -601,7 +601,7 @@ export function buildReeds(ctx, sites) {
  * from where the road ends to the jetty's foot. ROAD_END is where
  * village.js stops the road.
  *
- * The deck is ground a craft lands on, a roof on posts (alps/roofs.js),
+ * The deck is ground a craft lands on, a roof on posts (library/roofs.js),
  * which is returned for the map's roofs; its posts and bollard and both
  * boats are solid.
  */

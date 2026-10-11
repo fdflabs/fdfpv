@@ -7,7 +7,9 @@
  * on a pusher), the motor or the engine comes out of the nose after it,
  * and the pack or the tank drops out of the fuselage below. A thin mint
  * line runs from each part back to where it lives. Leaving the tab puts
- * everything back.
+ * everything back. The Parts tab pulls it apart too, and on either tab
+ * each part out is a target (partAt): the hangar lights its card under the
+ * pointer and goes to it on a click.
  *
  * WHAT MOVES IS THE MODEL WHERE THE MODEL HAS IT. Every plane's prop is
  * its own group (the builders' blades, whose parent is the prop mount),
@@ -53,6 +55,8 @@ const PACK_DOWN = 0.06;
 const PACK_AT = 0.4;
 /* The explosion's spring, radians a second, and the new part's pop. */
 const OMEGA = 6;
+/* How far apart the parts must be before they are targets. */
+const PICK_FROM = 0.5;
 
 const METAL = { color: 0x9aa4a8, rim: 0.3, spec: 0.5, specWidth: 0.02 };
 const ANODISED = { color: 0x2c3a44, rim: 0.3, spec: 0.35 };
@@ -393,5 +397,48 @@ export function createExploder() {
     return z < 0 ? -z / m.noseZ : z / m.tailZ;
   }
 
-  return { update, rest, propAlong };
+  /* Which part out of the model a ray meets first: 'prop', 'motor',
+   * 'engine', 'pack' or 'tank', or null. Only while it is pulled apart
+   * far enough to tell the parts from the airframe. Against each part's
+   * box, not its triangles: a turning prop is a disc to the eye, and a
+   * part a few pixels across is still a target. */
+  const box = new THREE.Box3();
+  const at = new THREE.Vector3();
+  function partAt(m, ray) {
+    const r = rigs.get(m);
+    if (!r || r.e.x < PICK_FROM) {
+      return null;
+    }
+    const targets = [];
+    if (r.prop) {
+      targets.push(['prop', r.prop.o]);
+    }
+    for (const mv of r.engines) {
+      targets.push([r.kind === 'glow' ? 'engine' : 'motor', mv.o]);
+    }
+    for (const mv of r.packs) {
+      targets.push([r.kind === 'glow' ? 'tank' : 'pack', mv.o]);
+    }
+    for (const p of r.parts) {
+      targets.push([p.kind, p.obj]);
+    }
+    let best = null;
+    let near = Infinity;
+    for (const [kind, o] of targets) {
+      if (!o.visible) {
+        continue;
+      }
+      box.setFromObject(o);
+      if (ray.ray.intersectBox(box, at)) {
+        const d = at.distanceTo(ray.ray.origin);
+        if (d < near) {
+          near = d;
+          best = kind;
+        }
+      }
+    }
+    return best;
+  }
+
+  return { update, rest, propAlong, partAt };
 }

@@ -32,6 +32,7 @@ import {
   createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, STORY_STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB, BED_FADE_MS,
 } from '../src/render/warradio.js';
 import { KINDS } from '../src/share/war/routes.js';
+import { FILMS } from '../src/share/war/films/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -66,11 +67,15 @@ check('the go', same(say([{ type: 'state', to: 'live' }], v0), ['start']));
 const radioOf = (m) => ({
   brief: m.radio?.brief ?? [`brief-${m.id}-1`, `brief-${m.id}-2`], win: m.radio?.win ?? `debrief-${m.id}-win`, lose: m.radio?.lose ?? `debrief-${m.id}-lose`,
 });
+/* A mission with an outro film says its win in the film, the debrief its
+ * first line (the owner, 2026-10-08): the radio says nothing over it. */
 for (const m of Object.values(MISSIONS)) {
   const r = radioOf(m);
-  check(`${m.id}: its briefing over the countdown, its debrief at the end`,
+  const win = m.outro ? [] : [r.win];
+  check(`${m.id}: its briefing over the countdown, its debrief at the end${m.outro ? ' (the win in its outro)' : ''}`,
     same(say([{ type: 'state', to: 'countdown' }], { ...v0, state: 'countdown', mission: m.id }), r.brief)
-    && same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won', mission: m.id }), [r.win])
+    && same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won', mission: m.id }), win)
+    && (!m.outro || FILMS[m.outro].shots[0].lines[0].line === r.win)
     && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output', mission: m.id }), [r.lose]));
 }
 check('First Light\'s briefing is CREST\'s then TALLER\'s, its own', same(radioOf(MISSIONS['itaipu-1']).brief, ['itaipu-1-s0-brief', 'itaipu-1-s0-rules']));

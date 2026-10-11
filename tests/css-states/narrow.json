@@ -19,6 +19,7 @@
   "(min-width: 861px) and (min-height: 1000px)": false,
   "(min-width: 861px) and (min-height: 521px)": false,
   "(min-width: 861px) and (min-height: 900px)": false,
+  "(min-width: 900px)": false,
   "(orientation: portrait)": false,
   "(pointer: coarse)": false,
   "(prefers-reduced-motion: reduce)": false

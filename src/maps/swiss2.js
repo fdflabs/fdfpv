@@ -66,7 +66,7 @@ import { qualityFor } from '../render/quality.js';
 import { thermalShader } from '../render/thermal.js';
 import { shareInstancedDepth } from '../render/shell.js';
 import { str } from '../strings/index.js';
-import { makeRng } from './alps/noise.js';
+import { makeRng } from '../render/library/noise.js';
 import {
   HALF, CELL, CELLS, groundPaths, buildHeightfield,
 } from './alps/terrain.js';
@@ -77,8 +77,8 @@ import {
   natureSites, buildShore, buildReeds, buildDrifts,
 } from './alps/nature.js';
 import { ribbon } from './alps/ribbon.js';
-import { standWalls } from './alps/roofs.js';
-import { PAINT } from './alps/vehicles.js';
+import { standWalls } from '../render/library/roofs.js';
+import { PAINT } from '../render/library/vehicles/vehicles.js';
 import {
   loadTerrainArrays, loadSurface, loadSky, loadMark, SURFACES, SKY_K, SKY_SPAN_DEG,
 } from './swiss2/assets.js';
@@ -97,7 +97,7 @@ import { swissBuildings } from './swiss2/buildings/index.js';
 import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
 import { buildLakeside } from './swiss2/props/lakeside.js';
-import { makeBake } from './alps/kit.js';
+import { makeBake } from '../render/library/kit.js';
 import { photoCraftLook } from './swiss2/craftlook.js';
 import { buildPeople } from './swiss2/village/people.js';
 import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
@@ -382,7 +382,7 @@ function photoStyle() {
        * them on the way in changes nothing else. */
       const addBox = colliders.addBox.bind(colliders);
       /* A roofed building notes its whole footprint once and then puts
-       * up the walls under its roofs with `noted` set (alps/roofs.js
+       * up the walls under its roofs with `noted` set (library/roofs.js
        * standWalls), so the footprints are the ones they always were. */
       colliders.noteFootprint = (x0, z0, x1, z1) => {
         stage.footprints.push({ minX: Math.min(x0, x1), minZ: Math.min(z0, z1), maxX: Math.max(x0, x1), maxZ: Math.max(z0, z1) });
@@ -660,6 +660,8 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      map.setWet = post.setWet;
       /* The post chain that draws this scene, for the sensor checks, as
        * Itaipu's and the Interior's (scripts/thermal-physics-check.js). */
       map.scene.userData.post = post;

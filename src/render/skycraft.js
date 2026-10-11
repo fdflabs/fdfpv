@@ -70,6 +70,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { plateGeometry, spinnerProfile } from './kitshapes.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -602,6 +603,9 @@ export function buildSkyCraft(opts = {}) {
   const propMat = cel({ color: 0x2c302c, rim: 0.26, spec: 0.30 });
   const antenna = cel({ color: 0x1a241c, rim: 0.22 });
   const ink = 0x0c120e;
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from. */
+  const kit = opts.kit ?? {};
 
   /* The measurement box, hidden, on the contract with verify's check 15 (tests/lib/checks.js). */
   if (opts.measure) {
@@ -631,6 +635,18 @@ export function buildSkyCraft(opts = {}) {
       const top = wingAt(x)(0.46, 1);
       parts.push(bake(new THREE.BoxGeometry(0.052, 0.003, 0.038), top.x, top.y + 0.0005, top.z,
         0, 0, sign * DIHEDRAL));
+      /* A kit's winglets: a swept foam plate up off each turned up tip,
+       * inside the span, lower than the fins. */
+      if (kit.wingtips === 'winglet') {
+        const le = wingAt(sign * 0.872)(0.08, 1);
+        const te = wingAt(sign * 0.872)(0.96, 1);
+        parts.push(plateGeometry([
+          [le.x, le.y, le.z],
+          [te.x, te.y, te.z],
+          [sign * 0.885, te.y + 0.085, te.z + 0.006],
+          [sign * 0.885, te.y + 0.085, te.z - 0.045],
+        ], [sign, 0, 0], 0.005));
+      }
     }
     const airframe = new THREE.Mesh(merged(parts), foam);
     airframe.name = 'sky-airframe';
@@ -799,9 +815,18 @@ export function buildSkyCraft(opts = {}) {
     propMount.add(rotor);
     const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.0100, 0.0100, 0.0080, lite ? 8 : 12), hubMat);
     rotor.add(hub);
-    const nut = new THREE.Mesh(new THREE.ConeGeometry(0.0060, 0.012, lite ? 6 : 10), ring);
-    nut.position.y = 0.010;
-    rotor.add(nut);
+    /* A kit's bullet spinner on the pusher, in the pod's colour, pointing
+     * aft from the hub: the mount's +y is forward, so it is turned over. */
+    if (kit.spinner === 'bullet') {
+      const cone = new THREE.Mesh(new THREE.LatheGeometry(spinnerProfile('bullet', 0.016, 0, 0.040, lite ? 4 : 7), lite ? 8 : 14), podMat);
+      cone.rotation.x = Math.PI;
+      cone.name = 'spinner';
+      rotor.add(cone);
+    } else {
+      const nut = new THREE.Mesh(new THREE.ConeGeometry(0.0060, 0.012, lite ? 6 : 10), ring);
+      nut.position.y = 0.010;
+      rotor.add(nut);
+    }
     const bladeGeo = bladeGeometry(lite ? 5 : 8);
     bladeGeo.rotateX(-Math.PI / 2);
     const bladeParts = [bladeGeo, bladeGeo.clone().rotateY(Math.PI)];

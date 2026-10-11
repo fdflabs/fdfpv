@@ -345,3 +345,17 @@ charlie and wide is a tan band, not the references' dark reflective
 water; low-canada's creek and the sky's cut-out clouds at low-pista
 and low-canada; the camp at the orbits is a pale spot, not the mock's
 lit clearing.
+
+### Round 7, the pasture's green (2026-10-07, wave 3/4 photoreal lane)
+
+One change, `inPasture` in `src/maps/interior/ground.js`: the paddocks'
+grass at a measured grass reflectance (0.05, 0.1, 0.03) with most
+paddocks green and about a third gone to straw, where it was nearly red
+equal to green and printed as dead brown under the 16:40 sun and the
+grade. Renders `~/.cache/fdfpv-w34-photoreal/pasture2/` against
+`base/interior/` (main d1dc5113). Scored against round 6's merged
+scores: zoom-colonia-500 3.5 to 3.75, low-colonia 3 to 3.25,
+survey-bridge-800 3.75 to 4, survey-bravo-1000 3.5 to 3.75; no view lower, the rest unchanged. Mean
+3.61 to about 3.66. Budget: interior:views PASS, calls and triangles
+unchanged. Perf (interior-ops, 30 s, quiet GPU): main 5.90 avg / gpu
+4.78, branch 5.90 / 4.77.

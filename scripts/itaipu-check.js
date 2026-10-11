@@ -485,7 +485,7 @@ async function edgesCheck(page, dam, hero, buildings, cutHero) {
   const drawn = JSON.parse(await page.evaluate('JSON.stringify(window.__mapScene().userData.itaipu.water)'));
   const pts = gapPoints(drawn, dam, hero);
   /* Per point the ground, and the highest of the dam's tops over it (its
-   * roof records, as alps/roofs.js roofTop reads them), or null: water
+   * roof records, as library/roofs.js roofTop reads them), or null: water
    * whose edge runs under a crest or a floor is hidden by it. */
   const got = JSON.parse(await page.evaluate(`JSON.stringify((() => {
     const t = window.__mapScene().userData.itaipu.terrain;
@@ -802,7 +802,7 @@ async function main() {
         await page.evaluate(`window.__setCam(${cx}, ${gy + 120}, ${cz}, ${cx + 1}, ${gy}, ${cz + 1})`);
         await settle(page);
         /* The bare ground: height() asked from far below every roof record
-         * (src/maps/alps/roofs.js offers a roof only within a step of the
+         * (src/render/library/roofs.js offers a roof only within a step of the
          * height it is asked from), so a point under a building's roof, the
          * dam's crest or a bridge deck reads the terrain and the water the
          * tiles hold, not the roof over it. */

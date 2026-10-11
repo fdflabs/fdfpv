@@ -75,6 +75,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { spinnerProfile, wheelPantGeometry } from './kitshapes.js';
 
 const IN = 0.0254;
 const CG_S = 16.0;
@@ -543,6 +544,9 @@ export function buildUglystikCraft(opts = {}) {
   const engineMat = cel({ color: 0xb4b2ac, rim: 0.30, spec: 0.65, specWidth: 0.022 });
   const engineBlack = cel({ color: 0x202022, rim: 0.26, spec: 0.35 });
   const tyre = cel({ color: 0x1b1b1d, rim: 0.30, spec: 0.20 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from. */
+  const kit = opts.kit ?? {};
   const hub = cel({ color: 0xd8d4c8, rim: 0.28, spec: 0.35 });
   const camBody = cel({ color: 0x141c16, rim: 0.26, spec: 0.35 });
   const lens = cel({
@@ -803,6 +807,15 @@ export function buildUglystikCraft(opts = {}) {
     mainTyres.castShadow = shade;
     group.add(mainTyres);
     group.add(Object.assign(new THREE.Mesh(merged(hubs), hub), { name: 'uglystik-hubs' }));
+    /* A kit's wheel pants on the mains, in the fuselage's red, the tyres'
+     * bottoms showing under them. */
+    if (kit.wheels === 'pants') {
+      const pants = [-1, 1].map((sign) => wheelPantGeometry(MAIN_R, WHEEL_W / 2 + 0.005, seg + 2)
+        .translate(sign * MAIN_AXLE[0], MAIN_AXLE[1], MAIN_AXLE[2]));
+      const pantMesh = new THREE.Mesh(merged(pants), fuseMat);
+      pantMesh.castShadow = shade;
+      group.add(pantMesh);
+    }
     const noseTyre = new THREE.Mesh(wheel(NOSE_R, 0, NOSE_AXLE[1], 0), tyre);
     noseTyre.name = 'tyre-nose';
     noseTyre.castShadow = shade;
@@ -949,9 +962,16 @@ export function buildUglystikCraft(opts = {}) {
     propMount.position.set(0, ht(THRUST_H), st(0));
     propMount.rotation.x = -Math.PI / 2;
     group.add(propMount);
-    const nut = new THREE.Mesh(new THREE.ConeGeometry(0.45 * IN, 0.8 * IN, lite ? 8 : 14), metal);
-    nut.position.set(0, 0.3 * IN, 0);
-    nut.rotation.x = Math.PI;
+    /* A kit's bullet spinner in the fuselage's red, inside the nut's
+     * length and radius. */
+    const bullet = kit.spinner === 'bullet';
+    const nut = bullet
+      ? new THREE.Mesh(new THREE.LatheGeometry(spinnerProfile('bullet', 0.45 * IN, -0.1 * IN, 0.7 * IN, lite ? 4 : 7), lite ? 8 : 14), fuseMat)
+      : new THREE.Mesh(new THREE.ConeGeometry(0.45 * IN, 0.8 * IN, lite ? 8 : 14), metal);
+    if (!bullet) {
+      nut.position.set(0, 0.3 * IN, 0);
+      nut.rotation.x = Math.PI;
+    }
     nut.name = 'spinner';
     nut.castShadow = shade;
     propMount.add(nut);

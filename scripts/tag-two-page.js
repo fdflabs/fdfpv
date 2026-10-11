@@ -176,8 +176,7 @@ try {
   const spot = { A: { ...m, z: m.z + 30 }, B: m, C: { ...m, z: m.z - 30 } };
   await Promise.all(pages.map((p, i) => hold(p, spot[names[i]])));
   /* The room takes a throw for a teleport and keeps the seat untouchable
-   * for SPAWN_MS (edge/rooms/safety.js); the page its own five seconds and
-   * until 30 m from where it started. */
+   * for SPAWN_MS (edge/rooms/safety.js); the page its own five seconds. */
   for (const p of pages) {
     await p.until('window.__rooms().spawning === false', 15000);
   }
@@ -297,6 +296,16 @@ try {
   check(`the match ends by itself at ${GOAL} points, A first`, v.state === 'results' && v.winner === seats[0] && win.ms === GOAL * 1000,
     `winner ${seatName(v.winner)} with ${win && win.ms} ms`);
   check('and every page shows the same results', end.every((t) => JSON.stringify(t.view) === JSON.stringify(v)), v.scores.map((r) => `${seatName(r.seat)} ${r.ms}`).join(', '));
+  /* Each pilot's own record of the match (src/share/pilotcounts.js),
+   * from the room's standings: one played, the win on A only, the best
+   * its own points. */
+  const kept = await Promise.all(pages.map((p) => p.evaluate(`(() => {
+    const t = window.__roomTag();
+    const mine = t.standings.find((r) => r.seat === window.__rooms().seat);
+    return { seat: window.__rooms().seat, points: mine ? mine.points : null, slots: Object.values(window.__ui.settings.pilotCounts || {}).map((x) => x.tag || {}) };
+  })()`)));
+  check('each page kept the match: played once, won on A only, its best its own points', kept.every((k) => k.slots.length === 1
+    && k.slots[0].played === 1 && (k.slots[0].won || 0) === (k.seat === v.winner ? 1 : 0) && (k.slots[0].best || 0) === k.points), JSON.stringify(kept));
   await shot(a, 'a-results');
   await shot(b, 'b-results');
   await shot(c, 'c-results');

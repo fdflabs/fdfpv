@@ -132,6 +132,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
  *             0.902 m out, so the width and the reach this file measures
  *             are both the rudder's, 2139 mm, and the kit's 71 in span is
  *             held by src/render/tigermothcraft.js TIGERMOTH_DIMS.
+ *   extra3d1308 E-flite's 1308 mm Extra 300 3D, whose rudder also reaches
+ *             further from the CG than its tips: its trailing edge is
+ *             0.926 m aft, E-flite's 1260 mm length less the CG's 0.337 m
+ *             behind the spinner, and the tips 0.654 m out, so the width
+ *             and the reach this file measures are both 1852 mm and
+ *             E-flite's 1308 mm span is held by the half span of
+ *             src/render/extracraft.js EXTRA_DIMS.
  *   uglystik1567 RCM's 62 in Das Ugly Stik, whose rudder's trailing edge,
  *             0.884 m behind the CG on the plan (station 50.82 against the
  *             CG's 16.00), reaches further than its tips, 0.784 m out, so
@@ -184,6 +191,7 @@ const REAL = {
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
+  extra3d1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
   '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
   interceptor: { spanMm: 417.8, sweepMm: 490.2, tolMm: 6, wheelbaseMm: 312.4 },

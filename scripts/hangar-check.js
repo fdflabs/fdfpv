@@ -326,9 +326,11 @@ async function partsCheck(page) {
     `the Parts tab offers the Cub's props and its add-ons, and the floats are not a part: ${cards.join(', ')}`);
   const toggle = await page.evaluate(`(() => {
     const b = document.querySelector('.hangar-facts [data-key="floats"]');
-    return b ? { on: b.getAttribute('aria-checked'), beside: [...b.parentNode.children].filter((c) => c.classList.contains('carousel-fact')).length } : null;
+    /* The milestone pips share the facts' pill (hangar.js) but are not a
+     * fact: the toggle sits beside the span and the weight. */
+    return b ? { on: b.getAttribute('aria-checked'), beside: [...b.parentNode.children].filter((c) => c.classList.contains('carousel-fact') && !c.classList.contains('hangar-milestones')).map((c) => c.textContent) } : null;
   })()`);
-  say(Boolean(toggle) && toggle.on === 'false' && toggle.beside === 2,
+  say(Boolean(toggle) && toggle.on === 'false' && same(toggle.beside, [sizeText(id), weightText(id)]),
     `the Cub on its wheels has the Floats toggle, off, beside its span and weight: ${JSON.stringify(toggle)}`);
   for (const a of fit) {
     await page.evaluate(click(`addon-${a}`));
@@ -388,7 +390,7 @@ async function partsCheck(page) {
   /* The hangar from the pause menu: the wing broken on the model. */
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'paused'", 10000);
-  const row = await page.evaluate("window.__ui.items().findIndex((it) => it.action === 'customise')");
+  const row = await pauseCustomiseRow(page);
   await page.evaluate(`window.__ui.setCursor(${row}); true`);
   await page.tap('Enter');
   await page.until('window.__ui.hangar.isOpen', 10000);
@@ -429,6 +431,19 @@ function wantBlock(settings) {
   return Array.from(tuneBlock('timber1500', normalizeEntry('timber1500', settings.tuning.timber1500, set.limits), set.massKg, set.packKg));
 }
 
+/* Paused, open the Flight panel and find its Customise row, where it lives since the short
+ * first screen (#898, src/ui/items.js quickRows): its index, or -1. */
+async function pauseCustomiseRow(page) {
+  const flight = await page.evaluate("window.__ui.items().findIndex((it) => it.action === 'quick')");
+  if (flight < 0) {
+    return -1;
+  }
+  await page.evaluate(`window.__ui.setCursor(${flight}); true`);
+  await page.tap('Enter');
+  await page.until("window.__ui.items().some((it) => it.action === 'customise')", 10000);
+  return page.evaluate("window.__ui.items().findIndex((it) => it.action === 'customise')");
+}
+
 async function tuningCheck(page) {
   console.log('6. the Timber\'s Tuning tab, its test stand, Save, fly, reload');
   await openHangarFromPicker(page, 'timber1500');
@@ -450,7 +465,7 @@ async function tuningCheck(page) {
   const surf = await page.evaluate(`${TUNING_TAB}.surfaces`);
   say(Array.isArray(surf) && surf.length === 4, `the Rates page sweeps the model's surfaces: ${JSON.stringify(surf && surf.map((x) => +x.toFixed(3)))}`);
   const st = await page.evaluate(TUNE_STATE);
-  say(same(st.entry, { packMm: 10, ballastG: 20, rate: 'low', expo: { a: 30, e: 35, r: 30 }, trimDeg: 1, flapStart: 1, flapMix: false }),
+  say(same(st.entry, { packMm: 10, ballastG: 20, rate: 'low', expo: { a: 30, e: 35, r: 30 }, trimDeg: 1, flapStart: 1, flapMix: false, elevFlap: 0 }),
     `the tab holds the setup: ${JSON.stringify(st.entry)}`);
 
   await page.evaluate(click('tuning-stand'));
@@ -523,7 +538,7 @@ async function flyTimber(page) {
  * swung round to the view: a frame on this rasteriser is slow, and the
  * camera's springs step on the frame's clock. */
 async function placeDecal(page, kind, view, facing) {
-  await page.evaluate(click(`view-${view}`));
+  await page.evaluate(click(`decal-view-${view}`));
   const before = await page.evaluate('(window.__ui.hangar.entry.decals || []).length');
   await page.evaluate(click('decal-add'));
   await page.evaluate(click(`kind-${kind}`));
@@ -1184,8 +1199,8 @@ async function main() {
     await page.until("window.__craft().run === 'kadet1981'", 30000);
     await page.tap('Escape');
     await page.until("window.__ui.screen === 'paused'", 10000);
-    const row = await page.evaluate("window.__ui.items().findIndex((it) => it.action === 'customise')");
-    say(row >= 0, `the pause menu has Customise for the seated Kadet, row ${row}`);
+    const row = await pauseCustomiseRow(page);
+    say(row >= 0, `the pause menu's Flight panel has Customise for the seated Kadet, row ${row}`);
     await page.evaluate(`window.__ui.setCursor(${row}); true`);
     await page.tap('Enter');
     await page.until('window.__ui.hangar.isOpen', 10000);

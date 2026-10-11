@@ -271,10 +271,15 @@ function flaperonHinge(sign) {
 
 /* The pod: elliptic rings from the nose to the boom, its top flat under
  * the wing. x0 to x1 is the part of it drawn. */
-function podRing(x, m) {
+function podRing(x, m, needle = false) {
   const len = POD_NOSE - POD_TAIL;
   const u = (POD_NOSE - x) / len;
-  const nose = Math.sqrt(Math.min(1, u / 0.30));
+  /* A kit's long pointed cone: straight sided to the same point, meeting
+   * the stock ring at the cone's joint so the pod is untouched. */
+  const uc = (POD_NOSE - CONE_X) / len;
+  const nose = needle && u < uc
+    ? Math.sqrt(uc / 0.30) * (u / uc) ** 1.15
+    : Math.sqrt(Math.min(1, u / 0.30));
   const tail = u > 0.7 ? 1 - 0.55 * ((u - 0.7) / 0.3) : 1;
   const w = Math.max(0.0008, POD_W * nose * tail);
   const zc = (POD_TOP + POD_BELLY) / 2;
@@ -286,10 +291,10 @@ function podRing(x, m) {
   }
   return ring;
 }
-function podGeometry(x0, x1, steps, m) {
+function podGeometry(x0, x1, steps, m, needle = false) {
   const secs = [];
   for (let i = 0; i <= steps; i += 1) {
-    secs.push(podRing(x0 + ((x1 - x0) * i) / steps, m));
+    secs.push(podRing(x0 + ((x1 - x0) * i) / steps, m, needle));
   }
   return loft(secs);
 }
@@ -450,7 +455,8 @@ export function buildDlgCraft(opts = {}) {
     pod.castShadow = shade;
     if (inkOn) outlineHull(pod, 1.04, ink);
     group.add(pod);
-    const cone = new THREE.Mesh(podGeometry(POD_NOSE - 0.0002, CONE_X, 10, m), nose);
+    const needle = (opts.kit ?? {}).nose === 'pointed';
+    const cone = new THREE.Mesh(podGeometry(POD_NOSE - 0.0002, CONE_X, 10, m, needle), nose);
     cone.name = 'dlg-nose';
     cone.castShadow = shade;
     if (inkOn) outlineHull(cone, 1.04, ink);

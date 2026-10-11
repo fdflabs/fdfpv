@@ -65,10 +65,22 @@ const PINNED = {
   'trace.baseline.1000.10.v0': '793fc5e55f9746c83b70da9fea15e666bfa18d44f0cb255e4720e9f0cc0de0aa',
   'trace.baseline.2400.10': '4458a33d2e47833754ccfa09548cc5cb7b9654be8026a7902a76c71dee84ba2a',
   'trace.baseline.30.7.vnull': '0cbbaec9f1eebc99a4843b25f453f161af329d5b76e4f74b6b8bcb6445744c78',
-  'trace.wing.60.10': 'e64fe348cd9c35730fc0ab52e7acf31d36b90f26dab781b069f78e1564787a4d',
-  'trace.wing.50.10.v3.9': 'e64fe348cd9c35730fc0ab52e7acf31d36b90f26dab781b069f78e1564787a4d',
-  'trace.sky.60.10': 'ee4a13a82bfcd75dcc972303326fc921aaefcd3bd0090a731f67589e462fc14d',
-  'trace.p51.72.25': '79a9f65f36aabf831e734eb98e284f0a7428f405156e25fc31ca9442f7a466ad',
+  /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
+  'trace.wing.60.10': 'cbd00b931d38ed0b88e838f3dcc64aa8de1c3ca579d28a27ef2ef66f87f79dc7',
+  'trace.wing.50.10.v3.9': 'cbd00b931d38ed0b88e838f3dcc64aa8de1c3ca579d28a27ef2ef66f87f79dc7',
+  /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: the Skyhunter's wash (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
+  'trace.sky.60.10': '293ece906687ed1f24985bfad2a2e805167b63c3be2d1224bfd225301e886fcf',
+  /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
+  'trace.p51.72.25': '7f1b2d054bfdd0e91fbcf09baac86c8b620844ab807830f4be1e83e26b18a494',
   'sched.synth.7.3': '270520e4786599629a80707ecea1fc770ba7ab7b506ca9c7891cca558b6255c7',
   'sched.synth.2400.10': 'ad13aaf94ed8f5acb03d5bc84802b3443853414269abcb78feb1521001782948',
   'sched.synth.60.10.one': 'c7b0d1d856cfdc00c800f8192e144d73df5243b9610b43180cd93b45c97433ce',

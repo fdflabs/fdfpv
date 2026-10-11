@@ -49,7 +49,7 @@ globalThis.window = win;
 const api = await import('../src/share/api.js');
 const { roomsOrigin } = await import('../src/share/rooms.js');
 const { tracksOrigin } = await import('../src/share/cloud.js');
-const { boardOrigin, PRODUCTION_BOARD_ORIGIN } = await import('../src/share/board.js');
+const { boardConfigured, boardOrigin, PRODUCTION_BOARD_ORIGIN } = await import('../src/share/board.js');
 const front = (await import('../edge/rooms/front.js')).default;
 const { originAllowed } = await import('../edge/rooms/front.js');
 
@@ -83,6 +83,12 @@ for (const host of ['paraguayandronecombatsimulator.com', 'www.paraguayandroneco
 at('127.0.0.1');
 check('on loopback: no rooms, no tracks, the local board', roomsOrigin() === null && tracksOrigin() === '' && boardOrigin() === 'http://127.0.0.1:3180',
   `${roomsOrigin()} ${tracksOrigin()} ${boardOrigin()}`);
+for (const host of ['pr-12.fdfpv-preview.pages.dev', 'example.com']) {
+  at(host);
+  check(`on ${host} (a preview): no rooms, no tracks or accounts, no board`,
+    roomsOrigin() === null && tracksOrigin() === '' && !boardConfigured(),
+    `${roomsOrigin()} ${tracksOrigin()} ${boardOrigin()}`);
+}
 check('the board constant is the name\'s /board', PRODUCTION_BOARD_ORIGIN === `${NAME}/board`);
 
 console.log('the address');
@@ -114,6 +120,7 @@ const refused = [
   'https://evil.paraguayandronecombatsimulator.com',
   'https://api.paraguayandronecombatsimulator.com',
   'https://example.com',
+  'https://pr-12.fdfpv-preview.pages.dev',
 ];
 for (const origin of allowed) {
   const res = await front.fetch(new Request('https://api.paraguayandronecombatsimulator.com/v2/create', { method: 'OPTIONS', headers: { origin } }), {});

@@ -60,9 +60,10 @@ import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
 import {
-  DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
+  DECAL_KINDS, DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
 } from '../../configs/paint.js';
 import { ACT1, INTERIOR, MAX_STARS } from './campaign.js';
+import { MEDAL_STEPS, newSteps } from './medals.js';
 import { LESSONS } from './training.js';
 
 const { POWER } = powerConfig;
@@ -77,6 +78,10 @@ const LEVEL_TAIL = 800;
  * time a lap closes on a course. */
 export const LAP_XP = { casual: 50, built: 40, map: 40 };
 export const FIRST_LAP_XP = 40;
+/* Each medal step on a course pays once, the first time it is reached, on
+ * the first lap's scale: a gold straight away is all three. The amount is
+ * the progression lane's to tune (docs/FLIGHTCLUB-PROGRESSION.md). */
+export const MEDAL_XP = 40;
 
 /* The planes a new pilot has, and the level each other one opens at.
  * Float planes go with their land plane. Quads are never locked, and nor
@@ -116,8 +121,10 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'strike
  * the Extra 300, the Pitts S-1S, the Wot 4 and the Quickie 500 held 10,
  * 9, 8, 4 and 7 until they were removed on 2026-09-29 at the owner's
  * request; the F-16 stays at 11 rather than move, since where a plane
- * opens is the owner's call, so 8 to 10 open no plane. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, f16878: 11 };
+ * opens is the owner's call. The Extra 300 3D came back on 2026-10-08
+ * (docs/FLIGHTMODEL.md) at its old 9: a hover and a torque roll are
+ * skills the P-51 does not teach. 8 and 10 open no plane. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, extra3d1308: 9, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;
@@ -182,7 +189,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, lessonsFlown: {}, medals: {}, unlockAll };
 }
 
 /*
@@ -273,8 +280,25 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     casual: flags(p.casual, 500),
     firsts: flags(p.firsts, 2000),
     lessons: passes(p.lessons),
+    lessonsFlown: flags(p.lessonsFlown, 200),
+    medals: medalMap(p.medals),
     unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,
   };
+}
+
+/* A course key to the best medal reached on it, unknown medals dropped.
+ * Additive inside the stored version: an older profile reads as none. */
+export function medalMap(o) {
+  const out = {};
+  if (!isRecord(o)) {
+    return out;
+  }
+  for (const [k, v] of Object.entries(o).slice(0, 2000)) {
+    if (k.length <= 120 && MEDAL_STEPS.includes(v)) {
+      out[k] = v;
+    }
+  }
+  return out;
 }
 
 /* Other modules' items: registerUnlockables([{ kind, id, airframe, level, name }]). */
@@ -383,7 +407,7 @@ export function unlockables() {
       add({ key: itemKey('finish', f), kind: 'finish', id: f, airframe: null, level: 1 + i, name: `hangar.finish_${f}` });
     }
   });
-  DECAL_KIND_IDS.filter((k) => !SHOP_DECALS.includes(k)).forEach((k, i) => {
+  DECAL_KIND_IDS.filter((k) => !SHOP_DECALS.includes(k) && !DECAL_KINDS[k].free).forEach((k, i) => {
     if (i >= FREE_DECALS) {
       add({ key: itemKey('decal', k), kind: 'decal', id: k, airframe: null, level: 2 + Math.floor((i - FREE_DECALS) / 2), name: `hangar.decal_${k}` });
     }
@@ -464,6 +488,20 @@ export function awardLap(progress, course) {
   return addXp(progress, base + (first ? FIRST_LAP_XP : 0), { kind: 'lap', course, first: Boolean(first) });
 }
 
+/*
+ * A lap that reached `medal` on the course `key`: the medal kept if it
+ * is better than the one held, and MEDAL_XP for each step newly reached.
+ * The same medal again, or a lower one, pays nothing.
+ */
+export function awardMedal(progress, key, medal) {
+  const steps = newSteps(progress.medals[key] ?? null, medal);
+  if (!key || !steps.length) {
+    return [];
+  }
+  progress.medals[key] = medal;
+  return [{ type: 'medal', key, medal }, ...addXp(progress, MEDAL_XP * steps.length, { kind: 'medal', key, medal })];
+}
+
 /* A challenge done: its XP once, and nothing the second time. */
 export function awardChallenge(progress, id) {
   const c = challengeById(id);
@@ -494,10 +532,18 @@ const MISSION_IDS = new Set([...ACT1, ...INTERIOR].map((m) => m.id));
 const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) => af.id);
 
 /* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
-export function firstsOf({ campaign = null, seconds = {}, lessons = {} } = {}) {
+/*
+ * A LESSON PAYS ONLY IF IT WAS FLOWN (lead decision 2026-10-07): "I fly
+ * already" (src/game/training.js SKIPS) marks the lessons it covers passed
+ * in `lessons` without their being flown; the lesson actually flown is
+ * also flagged in `lessonsFlown`, and only a flagged one is a first, so a
+ * skip is no shortcut to XP or tokens. A covered lesson flown later is
+ * flagged then and pays then.
+ */
+export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {} } = {}) {
   const out = [];
   for (const l of LESSONS) {
-    if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0) {
+    if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0 && isRecord(flown) && flown[l.id] === true) {
       out.push({ key: `lesson:${l.id}`, xp: FIRST_XP.lesson });
     }
   }
@@ -537,6 +583,7 @@ export function everyFirst() {
     campaign: { missions: Object.fromEntries([...MISSION_IDS].map((id) => [id, { won: true, stars: MAX_STARS }])) },
     seconds: Object.fromEntries(MASTERED.map((id) => [id, MILESTONE_S.hour])),
     lessons: Object.fromEntries(LESSONS.map((l) => [l.id, 1])),
+    flown: Object.fromEntries(LESSONS.map((l) => [l.id, true])),
   });
 }
 

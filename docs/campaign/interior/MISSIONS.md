@@ -209,6 +209,11 @@ Shared lines, every mission:
 | int-lost-aircraft | a platform destroyed while others remain | FERRER | all | (new) We lost that aircraft. Bring up another. |
 | int-fail-function | a mission fail for lost capability | VEGA | all | (new) We've lost the picture. We go again. |
 | int-take-role | a pilot took a free role | FERRER | that pilot | (new) Feed's yours. |
+| int-spot-warn | `looking` (people under the aircraft look up, CONTRACT-SPOTTED.md) | IBARRA | all | (new) You're too low. Climb. |
+| int-spot-seen | `spotted`, before its advice | IBARRA | all | (new) They've seen you. |
+| int-spot-low | spotted, advice: too low | VEGA | all | (new) You came in too low. Stay high and use the zoom. |
+| int-spot-over | spotted, advice: straight over them | VEGA | all | (new) You flew straight over them. Offset and orbit wide. |
+| int-spot-loud | spotted, advice: full power close by | VEGA | all | (new) Full power that close, they heard you. Throttle back on the approach. |
 
 The guide's lines, every mission (src/share/ops/guide.js; the owner,
 2026-10-06: "no voice telling me what to do, no arrows pointing"). They
@@ -712,7 +717,7 @@ The intro and outro (M2_00, M2_10) are films (INTROS M2).
 | int2-s3-quiet | after s3-movement | IBARRA | RECON | (new) Stay where he can't see you. Let him come. |
 | int2-s3-seen | `alert(property, high)` | IBARRA | all | (new) He saw you. He's running. Stay on him. |
 | int2-s4-radio | `discovered(claro-nuevo)` | FERRER | all | That's a newer radio. |
-| int2-s4-newer | after s4-radio | IBARRA | all | Everything here is newer. |
+| int2-s4-newer | after s4-radio | IBARRA | all | Everything in this camp is newer. |
 | int2-s4-replacement | after s4-newer | ROJAS | all | Replacement camp? |
 | int2-s4-people | after s4-replacement; group NEW COLUMN (UNCONFIRMED) | IBARRA | all | Replacement people. |
 | int2-s4-hold | the old courier enters | IBARRA | all | Hold. |
@@ -725,6 +730,14 @@ The intro and outro (M2_00, M2_10) are films (INTROS M2).
 | int2-s4-routes | after s4-orgs | IBARRA | all | Same routes. Same symbols. Different people. |
 | int2-tr-zone | a TRACKER dealt a zone | IBARRA | TRACKER | (new) Take that zone. Look for someone who isn't working. |
 | int2-tr-other | a TRACKER on the contact nobody chose | IBARRA | TRACKER | (new) You take the other one. Both of them matter. |
+| int2-g-inspect | stage 1, inspect the camp | IBARRA | that pilot | (new) Claro Viejo is empty. Take the quad in close: the fire, the cable, the marks, the tracks and the board. |
+| int2-g-posts | stage 1, the observation posts | IBARRA | that pilot | (new) Three search areas. Look for a man who is watching the road. |
+| int2-g-follow | stage 2, follow the watcher | IBARRA | that pilot | (new) Stay on the motorcycle from high up. Don't crowd him. |
+| int2-g-choose | stage 2, the choice | IBARRA | that pilot | (new) Two contacts. Box the one you follow. |
+| int2-g-property | stage 3, inspect the property | IBARRA | that pilot | (new) The house. Take the quad inside: the batteries, the radio, the notes. |
+| int2-g-observe | stage 3, observe the contact | IBARRA | that pilot | (new) Watch him from cover. Away from the gate, and keep him in frame. |
+| int2-g-document | stage 4, document the second group | IBARRA | that pilot | (new) Document the second camp from high up. The people, the vehicles, the radio, the whole camp. |
+| int2-g-meeting | stage 4, the meeting | IBARRA | that pilot | (new) Someone's coming in. Keep the frame on him until he's gone. |
 
 Spanish: in the same rows when generated; ustedes to the players;
 "Gracias, Sofía." takes no verb form, so it is safe for the checker.
@@ -858,7 +871,7 @@ The intro and outro (M3_00, M3_09) are films.
 | int3-s2-contact | the hostile action | ROJAS | all | We have contact. |
 | int3-s2-pilot | after s2-contact; card CONFIRM IDENTIFICATION | VEGA | all | Pilot? |
 | int3-s2-cleared | CONFIRM IDENTIFICATION on the right contact | VEGA | all | Cleared. |
-| int3-s2-stopped | the strike's white out ends | ROJAS | all | Threat stopped. |
+| int3-s2-stopped | the strike's white out ends | ROJAS | all | Threat's stopped. (the script's "Threat stopped.": spoken, it was always heard as one word) |
 | int3-s2-continue | after s2-stopped | VEGA | all | Continue observing. |
 | int3-s2-pressed | `post(pressed)` | ROJAS | all | (new) They're closing on the post. I need eyes on the tree line. |
 | int3-s2-notyet | CONFIRM IDENTIFICATION before the evidence | IBARRA | all | (new) We don't have that yet. |
@@ -893,6 +906,15 @@ The intro and outro (M3_00, M3_09) are films.
 | int3-re-volume | the RELAY role's volume shown | FERRER | RELAY | (new) That box is where you live now. Don't leave it. |
 | int3-st-ready | the strike role unlocked | ROJAS | STRIKE | (new) You're the one they'll call. Not before. |
 | int3-in-launch | the interceptor role opens | FERRER | INTERCEPTOR | (new) Small, slow, curious. Stay on it. |
+| int3-g-classify | CLASSIFY KEY CONTACTS the screen's objective | IBARRA | ISR, TRACKER, RECON, RELAY | (new) Five contacts around the post. Watch each until it tells you what it is. |
+| int3-g-strike-wait | stages 1 and 3 on the STRIKE role's screen | IBARRA | STRIKE | (new) Nothing for you yet. Help them watch. |
+| int3-g-threats | IDENTIFY THREATS the screen's objective | IBARRA | ISR, TRACKER, RECON, RELAY | (new) The tree line round the post. Find who is still there. |
+| int3-g-strike | IDENTIFY THREATS on the STRIKE role's screen | IBARRA | STRIKE | (new) Hold near the gate. You go when Vega clears it. |
+| int3-g-pickups | TRACK DEPARTING VEHICLES the screen's objective | IBARRA | ISR, TRACKER, RECON, RELAY | (new) Three pickups. Stay on each until it shows you something. |
+| int3-g-relay | RESTORE DRONE NETWORK LINK, any role but RELAY | IBARRA | ISR, TRACKER, RECON, STRIKE | (new) The relay goes in the box first. Then the command site. |
+| int3-g-relay-hold | RESTORE DRONE NETWORK LINK on the RELAY role's screen | IBARRA | RELAY | (new) Into the box and stay there. |
+| int3-g-command | DOCUMENT THE COMMAND SITE the screen's objective | IBARRA | ISR, TRACKER, RECON, STRIKE | (new) Radio, shelter, motorcycles, the markers on the route. |
+| int3-g-north | FOLLOW THE NORTHERN VEHICLE the screen's objective | IBARRA | all | (new) Stay on it. Do not cross the line. |
 
 Spanish: in the same rows; ustedes; Vega's "Autorizado." for "Cleared."
 and "Amenaza neutralizada." for "Threat stopped." (BIBLE 11).

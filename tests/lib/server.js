@@ -27,10 +27,12 @@
  */
 
 import { createServer } from 'node:http';
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFileSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { extname, join, normalize, resolve } from 'node:path';
+
+import { POLICY_PAGES, pagePolicy } from '../../scripts/csp.js';
 
 /* The Itaipu data set is built outside the repository (docs/ITAIPU-PLAN.md)
  * and the map fetches it from itaipu-data/ beside the page, so that prefix
@@ -57,6 +59,25 @@ const TYPES = {
   '.webm': 'video/webm',
 };
 const BYTES = 'application/octet-stream';
+
+/* SIM_CSP=report or SIM_CSP=enforce: the pages pilots open carry the
+ * deployed Content-Security-Policy (scripts/csp.js) as a header, Report-Only
+ * or enforced, so any browser check run that way meets what the deployed
+ * meta enforces. The checks' own servers live on loopback ports, so those
+ * stand in for the API origin. */
+const CSP_MODE = process.env.SIM_CSP || '';
+if (CSP_MODE && !['report', 'enforce'].includes(CSP_MODE)) {
+  throw new Error(`SIM_CSP=${CSP_MODE}: report or enforce`);
+}
+const LOOPBACK = ['http://127.0.0.1:*', 'ws://127.0.0.1:*'];
+const LOCAL_SOURCES = { 'connect-src': LOOPBACK, 'img-src': LOOPBACK, 'media-src': LOOPBACK };
+function cspHeader(rel, file) {
+  if (!CSP_MODE || !POLICY_PAGES.includes(rel)) {
+    return {};
+  }
+  const name = CSP_MODE === 'report' ? 'content-security-policy-report-only' : 'content-security-policy';
+  return { [name]: pagePolicy(readFileSync(file, 'utf8'), LOCAL_SOURCES) };
+}
 
 /* render.yaml serves assets/music/* immutable for a year and the rest
  * no-store, and music.js warms the next track through a second element
@@ -129,6 +150,7 @@ async function answer(rootDir, req, res) {
     'content-type': TYPES[extname(where.file)] ?? BYTES,
     'cache-control': where.rel.startsWith(MUSIC_PREFIX) ? YEAR_IMMUTABLE : 'no-store',
     'accept-ranges': 'bytes',
+    ...cspHeader(where.rel, where.file),
   };
   const range = byteRange(req.headers.range, info.size);
   if (range?.unsatisfiable) {

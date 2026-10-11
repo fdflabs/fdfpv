@@ -50,7 +50,7 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadSim, SIM_OK } from '../../tests/lib/simmod.js';
 import { airframeById, BRAMOR_CATAPULT, DEFAULT_AIRFRAME, STRIKER_RAIL } from '../../configs/airframes.js';
 import { seatStriker, attitude } from '../../scripts/lib/strikerpilot.js';
@@ -511,7 +511,10 @@ export async function flyAll() {
   return { rate: TRACE_HZ, cols: COLS, hover: +hover.toFixed(4), flights };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/* pathToFileURL, not a template: argv[1] holds a raw path, and a space
+ * (the owner's "FDFPV TEMP" folder) is %20 in import.meta.url, so the
+ * template never matched and the script exited 0 doing nothing. */
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const data = await flyAll();
   const text = `${JSON.stringify(data)}\n`;
   for (const [id, f] of Object.entries(data.flights)) {

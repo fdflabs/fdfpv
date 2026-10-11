@@ -1,0 +1,1272 @@
+{
+ "cars": [
+  [
+   "hatch",
+   {
+    "parts": {
+     "ref": "g0",
+     "type": "BufferGeometry",
+     "attrs": {
+      "position": {
+       "n": 2184,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "57a4678f",
+       "inst": false
+      },
+      "normal": {
+       "n": 2184,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "12bd842c",
+       "inst": false
+      },
+      "uv": {
+       "n": 2184,
+       "size": 2,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "206c8e98",
+       "inst": false
+      },
+      "color": {
+       "n": 2184,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "09e84d65",
+       "inst": false
+      }
+     },
+     "morph": [],
+     "index": null,
+     "groups": [],
+     "drawRange": [
+      0,
+      "all"
+     ],
+     "userData": []
+    },
+    "size": {
+     "L": 4.25,
+     "W": 1.78,
+     "H": 1.48
+    },
+    "wheels": [
+     {
+      "x": 1.35,
+      "z": -0.805,
+      "r": 0.31,
+      "w": 0.2
+     },
+     {
+      "x": 1.35,
+      "z": 0.805,
+      "r": 0.31,
+      "w": 0.2
+     },
+     {
+      "x": -1.25,
+      "z": -0.805,
+      "r": 0.31,
+      "w": 0.2
+     },
+     {
+      "x": -1.25,
+      "z": 0.805,
+      "r": 0.31,
+      "w": 0.2
+     }
+    ]
+   }
+  ],
+  [
+   "estate",
+   {
+    "parts": {
+     "ref": "g0",
+     "type": "BufferGeometry",
+     "attrs": {
+      "position": {
+       "n": 2328,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "b85eceda",
+       "inst": false
+      },
+      "normal": {
+       "n": 2328,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "b5684d9c",
+       "inst": false
+      },
+      "uv": {
+       "n": 2328,
+       "size": 2,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "8f363118",
+       "inst": false
+      },
+      "color": {
+       "n": 2328,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "824418c5",
+       "inst": false
+      }
+     },
+     "morph": [],
+     "index": null,
+     "groups": [],
+     "drawRange": [
+      0,
+      "all"
+     ],
+     "userData": []
+    },
+    "size": {
+     "L": 4.82,
+     "W": 1.84,
+     "H": 1.69
+    },
+    "wheels": [
+     {
+      "x": 1.42,
+      "z": -0.835,
+      "r": 0.34,
+      "w": 0.2
+     },
+     {
+      "x": 1.42,
+      "z": 0.835,
+      "r": 0.34,
+      "w": 0.2
+     },
+     {
+      "x": -1.42,
+      "z": -0.835,
+      "r": 0.34,
+      "w": 0.2
+     },
+     {
+      "x": -1.42,
+      "z": 0.835,
+      "r": 0.34,
+      "w": 0.2
+     }
+    ]
+   }
+  ],
+  [
+   "van",
+   {
+    "parts": {
+     "ref": "g0",
+     "type": "BufferGeometry",
+     "attrs": {
+      "position": {
+       "n": 2184,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "5874a731",
+       "inst": false
+      },
+      "normal": {
+       "n": 2184,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "2d78454c",
+       "inst": false
+      },
+      "uv": {
+       "n": 2184,
+       "size": 2,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "206c8e98",
+       "inst": false
+      },
+      "color": {
+       "n": 2184,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "62c906c5",
+       "inst": false
+      }
+     },
+     "morph": [],
+     "index": null,
+     "groups": [],
+     "drawRange": [
+      0,
+      "all"
+     ],
+     "userData": []
+    },
+    "size": {
+     "L": 5.9,
+     "W": 2,
+     "H": 2.55
+    },
+    "wheels": [
+     {
+      "x": 2,
+      "z": -0.915,
+      "r": 0.37,
+      "w": 0.2
+     },
+     {
+      "x": 2,
+      "z": 0.915,
+      "r": 0.37,
+      "w": 0.2
+     },
+     {
+      "x": -1.7,
+      "z": -0.915,
+      "r": 0.37,
+      "w": 0.2
+     },
+     {
+      "x": -1.7,
+      "z": 0.915,
+      "r": 0.37,
+      "w": 0.2
+     }
+    ]
+   }
+  ]
+ ],
+ "constants": {
+  "PAINT": {
+   "postYellow": 15909144,
+   "cream": 15985881,
+   "white": 15658730,
+   "silver": 12567752,
+   "red": 12071466,
+   "blue": 2968198,
+   "green": 4024904,
+   "anthracite": 4672338,
+   "black": 1842721,
+   "dark": 2895411,
+   "glass": 2570315,
+   "tyre": 2500395,
+   "rim": 11843772,
+   "chrome": 14080476,
+   "lampF": 16773828,
+   "lampR": 13777455,
+   "cubYellow": 15777322,
+   "hay": 14205040
+  },
+  "CAR_COLOURS": [
+   15658730,
+   15658730,
+   12567752,
+   12567752,
+   12071466,
+   2968198,
+   4672338,
+   4024904
+  ],
+  "CARS": {
+   "hatch": {
+    "L": 4.25,
+    "W": 1.78,
+    "R": 0.31,
+    "axle": [
+     1.35,
+     -1.25
+    ],
+    "sill": 0.34,
+    "waist": 0.95,
+    "roof": 1.48,
+    "cab": [
+     -1.98,
+     0.85
+    ],
+    "rakeF": 0.65,
+    "rakeR": 0.42,
+    "pillars": [
+     0.05,
+     -0.85
+    ],
+    "handles": [
+     -0.25,
+     -1.15
+    ]
+   },
+   "estate": {
+    "L": 4.82,
+    "W": 1.84,
+    "R": 0.34,
+    "axle": [
+     1.42,
+     -1.42
+    ],
+    "sill": 0.42,
+    "waist": 1.02,
+    "roof": 1.62,
+    "cab": [
+     -2.2,
+     1
+    ],
+    "rakeF": 0.7,
+    "rakeR": 0.22,
+    "pillars": [
+     0.15,
+     -0.9,
+     -1.85
+    ],
+    "handles": [
+     -0.15,
+     -1.2
+    ],
+    "rails": true,
+    "cladding": true
+   },
+   "van": {
+    "L": 5.9,
+    "W": 2,
+    "R": 0.37,
+    "axle": [
+     2,
+     -1.7
+    ],
+    "sill": 0.42,
+    "waist": 1.15,
+    "roof": 2.55,
+    "cab": [
+     -2.9,
+     2.2
+    ],
+    "rakeF": 0.55,
+    "rakeR": 0.05,
+    "side": [
+     1,
+     2.3
+    ],
+    "pillars": [
+     1.05
+    ],
+    "handles": [
+     1.3
+    ],
+    "seams": [
+     -2.85,
+     0.2,
+     -1.4
+    ]
+   }
+  },
+  "TRAILER_HITCH": 3.4
+ },
+ "exports": {
+  "vehicles": [
+   [
+    "CARS",
+    "object"
+   ],
+   [
+    "CAR_COLOURS",
+    "object"
+   ],
+   [
+    "PAINT",
+    "object"
+   ],
+   [
+    "TRAILER_HITCH",
+    "number"
+   ],
+   [
+    "buildAircraft",
+    "function"
+   ],
+   [
+    "buildCar",
+    "function"
+   ],
+   [
+    "buildMotorbike",
+    "function"
+   ],
+   [
+    "buildPostbus",
+    "function"
+   ],
+   [
+    "buildTractor",
+    "function"
+   ],
+   [
+    "buildTrailer",
+    "function"
+   ],
+   [
+    "wheelGeometry",
+    "function"
+   ]
+  ],
+  "parts": [
+   [
+    "bakeParts",
+    "function"
+   ],
+   [
+    "box",
+    "function"
+   ],
+   [
+    "boxUp",
+    "function"
+   ],
+   [
+    "cylZ",
+    "function"
+   ],
+   [
+    "extrudeZ",
+    "function"
+   ],
+   [
+    "instanced",
+    "function"
+   ],
+   [
+    "makeParts",
+    "function"
+   ],
+   [
+    "panel",
+    "function"
+   ],
+   [
+    "partsMaterial",
+    "function"
+   ],
+   [
+    "placeParts",
+    "function"
+   ],
+   [
+    "shade",
+    "function"
+   ]
+  ]
+ },
+ "kit": {
+  "material": {
+   "ref": "m0",
+   "type": "MeshToonMaterial",
+   "name": "",
+   "transparent": false,
+   "opacity": 1,
+   "depthWrite": true,
+   "depthTest": true,
+   "side": 0,
+   "fog": true,
+   "blending": 1,
+   "vertexColors": true,
+   "alphaTest": 0,
+   "polygonOffset": false,
+   "polygonOffsetFactor": 0,
+   "polygonOffsetUnits": 0,
+   "colorWrite": true,
+   "toneMapped": true,
+   "wireframe": false,
+   "emissiveIntensity": 1,
+   "dithering": false,
+   "premultipliedAlpha": false,
+   "visible": true,
+   "stencilWrite": false,
+   "alphaToCoverage": false,
+   "color": "ffffff",
+   "emissive": "000000",
+   "gradientMap": {
+    "ref": "t1",
+    "type": "DataTexture",
+    "size": [
+     64,
+     1,
+     null
+    ],
+    "data": "218347ef",
+    "wrap": [
+     1001,
+     1001
+    ],
+    "filter": [
+     1006,
+     1006
+    ],
+    "mips": false,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": false,
+    "anisotropy": 1
+   },
+   "defines": {
+    "TOON": ""
+   },
+   "onBeforeCompile": true,
+   "cacheKey": "cel",
+   "userData": [
+    "cel",
+    "celKey"
+   ]
+  },
+  "materialTuned": {
+   "ref": "m2",
+   "type": "MeshToonMaterial",
+   "name": "",
+   "transparent": false,
+   "opacity": 1,
+   "depthWrite": true,
+   "depthTest": true,
+   "side": 0,
+   "fog": true,
+   "blending": 1,
+   "vertexColors": true,
+   "alphaTest": 0,
+   "polygonOffset": false,
+   "polygonOffsetFactor": 0,
+   "polygonOffsetUnits": 0,
+   "colorWrite": true,
+   "toneMapped": true,
+   "wireframe": false,
+   "emissiveIntensity": 1,
+   "dithering": false,
+   "premultipliedAlpha": false,
+   "visible": true,
+   "stencilWrite": false,
+   "alphaToCoverage": false,
+   "color": "ffffff",
+   "emissive": "000000",
+   "gradientMap": "t1",
+   "defines": {
+    "TOON": ""
+   },
+   "onBeforeCompile": true,
+   "cacheKey": "cel",
+   "userData": [
+    "cel",
+    "celKey"
+   ]
+  },
+  "panel": {
+   "ref": "g3",
+   "type": "BufferGeometry",
+   "attrs": {
+    "position": {
+     "n": 36,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "f0e77647",
+     "inst": false
+    },
+    "normal": {
+     "n": 36,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "e0910ce5",
+     "inst": false
+    },
+    "uv": {
+     "n": 36,
+     "size": 2,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "61c33725",
+     "inst": false
+    },
+    "color": {
+     "n": 36,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "f7624f0d",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": null,
+   "groups": [],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  },
+  "box": {
+   "ref": "g4",
+   "type": "BoxGeometry",
+   "attrs": {
+    "position": {
+     "n": 24,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "d3ca9685",
+     "inst": false
+    },
+    "normal": {
+     "n": 24,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "bef39205",
+     "inst": false
+    },
+    "uv": {
+     "n": 24,
+     "size": 2,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "d0f0da45",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": {
+    "n": 36,
+    "type": "Uint16Array",
+    "hash": "b6dbda65"
+   },
+   "groups": [
+    [
+     0,
+     6,
+     0
+    ],
+    [
+     6,
+     6,
+     1
+    ],
+    [
+     12,
+     6,
+     2
+    ],
+    [
+     18,
+     6,
+     3
+    ],
+    [
+     24,
+     6,
+     4
+    ],
+    [
+     30,
+     6,
+     5
+    ]
+   ],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  },
+  "boxUp": {
+   "ref": "g5",
+   "type": "BoxGeometry",
+   "attrs": {
+    "position": {
+     "n": 24,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "f7b95645",
+     "inst": false
+    },
+    "normal": {
+     "n": 24,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "bef39205",
+     "inst": false
+    },
+    "uv": {
+     "n": 24,
+     "size": 2,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "d0f0da45",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": {
+    "n": 36,
+    "type": "Uint16Array",
+    "hash": "b6dbda65"
+   },
+   "groups": [
+    [
+     0,
+     6,
+     0
+    ],
+    [
+     6,
+     6,
+     1
+    ],
+    [
+     12,
+     6,
+     2
+    ],
+    [
+     18,
+     6,
+     3
+    ],
+    [
+     24,
+     6,
+     4
+    ],
+    [
+     30,
+     6,
+     5
+    ]
+   ],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  },
+  "cylZ": {
+   "ref": "g6",
+   "type": "CylinderGeometry",
+   "attrs": {
+    "position": {
+     "n": 76,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "7e9ce74d",
+     "inst": false
+    },
+    "normal": {
+     "n": 76,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "9432cce9",
+     "inst": false
+    },
+    "uv": {
+     "n": 76,
+     "size": 2,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "91e6e2d4",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": {
+    "n": 144,
+    "type": "Uint16Array",
+    "hash": "f5301389"
+   },
+   "groups": [
+    [
+     0,
+     72,
+     0
+    ],
+    [
+     72,
+     36,
+     1
+    ],
+    [
+     108,
+     36,
+     2
+    ]
+   ],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  },
+  "extrudeZ": {
+   "ref": "g7",
+   "type": "ExtrudeGeometry",
+   "attrs": {
+    "position": {
+     "n": 24,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "8e41e135",
+     "inst": false
+    },
+    "uv": {
+     "n": 24,
+     "size": 2,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "75056d7c",
+     "inst": false
+    },
+    "normal": {
+     "n": 24,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "62044fa5",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": null,
+   "groups": [
+    [
+     0,
+     6,
+     0
+    ],
+    [
+     6,
+     18,
+     1
+    ]
+   ],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  },
+  "shade": [
+   6052956,
+   16749568
+  ]
+ },
+ "others": {
+  "postbus": {
+   "parts": {
+    "ref": "g0",
+    "type": "BufferGeometry",
+    "attrs": {
+     "position": {
+      "n": 3348,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "5cffb9b9",
+      "inst": false
+     },
+     "normal": {
+      "n": 3348,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "93a2fe75",
+      "inst": false
+     },
+     "uv": {
+      "n": 3348,
+      "size": 2,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "a131d423",
+      "inst": false
+     },
+     "color": {
+      "n": 3348,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "aa8892c5",
+      "inst": false
+     }
+    },
+    "morph": [],
+    "index": null,
+    "groups": [],
+    "drawRange": [
+     0,
+     "all"
+    ],
+    "userData": []
+   },
+   "size": {
+    "L": 10.6,
+    "W": 2.5,
+    "H": 3.6
+   },
+   "wheels": [
+    {
+     "x": 3.2,
+     "z": -1.115,
+     "r": 0.5,
+     "w": 0.3
+    },
+    {
+     "x": 3.2,
+     "z": 1.115,
+     "r": 0.5,
+     "w": 0.3
+    },
+    {
+     "x": -2.7,
+     "z": -1.115,
+     "r": 0.5,
+     "w": 0.3
+    },
+    {
+     "x": -2.7,
+     "z": 1.115,
+     "r": 0.5,
+     "w": 0.3
+    }
+   ]
+  },
+  "tractor": {
+   "parts": {
+    "ref": "g0",
+    "type": "BufferGeometry",
+    "attrs": {
+     "position": {
+      "n": 1092,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "4bf12a63",
+      "inst": false
+     },
+     "normal": {
+      "n": 1092,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "aa695664",
+      "inst": false
+     },
+     "uv": {
+      "n": 1092,
+      "size": 2,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "dfd1ddd5",
+      "inst": false
+     },
+     "color": {
+      "n": 1092,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "30372bc5",
+      "inst": false
+     }
+    },
+    "morph": [],
+    "index": null,
+    "groups": [],
+    "drawRange": [
+     0,
+     "all"
+    ],
+    "userData": []
+   },
+   "size": {
+    "L": 3.9,
+    "W": 2.4,
+    "H": 3.1
+   },
+   "wheels": [
+    {
+     "x": -0.9,
+     "z": -0.95,
+     "r": 0.85,
+     "w": 0.5
+    },
+    {
+     "x": 1.25,
+     "z": -0.72,
+     "r": 0.45,
+     "w": 0.26
+    },
+    {
+     "x": -0.9,
+     "z": 0.95,
+     "r": 0.85,
+     "w": 0.5
+    },
+    {
+     "x": 1.25,
+     "z": 0.72,
+     "r": 0.45,
+     "w": 0.26
+    }
+   ]
+  },
+  "trailer": {
+   "parts": {
+    "ref": "g0",
+    "type": "BufferGeometry",
+    "attrs": {
+     "position": {
+      "n": 828,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "79e1d287",
+      "inst": false
+     },
+     "normal": {
+      "n": 828,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "eb85b70e",
+      "inst": false
+     },
+     "uv": {
+      "n": 828,
+      "size": 2,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "3cbc6550",
+      "inst": false
+     },
+     "color": {
+      "n": 828,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "de3533d5",
+      "inst": false
+     }
+    },
+    "morph": [],
+    "index": null,
+    "groups": [],
+    "drawRange": [
+     0,
+     "all"
+    ],
+    "userData": []
+   },
+   "size": {
+    "L": 3.7,
+    "W": 1.9,
+    "H": 2.2
+   },
+   "wheels": [
+    {
+     "x": 0,
+     "z": 0.82,
+     "r": 0.45,
+     "w": 0.26
+    },
+    {
+     "x": 0,
+     "z": -0.82,
+     "r": 0.45,
+     "w": 0.26
+    }
+   ]
+  },
+  "motorbike": {
+   "parts": {
+    "ref": "g0",
+    "type": "BufferGeometry",
+    "attrs": {
+     "position": {
+      "n": 1056,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "cfa9141a",
+      "inst": false
+     },
+     "normal": {
+      "n": 1056,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "b7b279e2",
+      "inst": false
+     },
+     "uv": {
+      "n": 1056,
+      "size": 2,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "ef6b9eec",
+      "inst": false
+     },
+     "color": {
+      "n": 1056,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "d149f775",
+      "inst": false
+     }
+    },
+    "morph": [],
+    "index": null,
+    "groups": [],
+    "drawRange": [
+     0,
+     "all"
+    ],
+    "userData": []
+   },
+   "size": {
+    "L": 2.1,
+    "W": 0.8,
+    "H": 1.65
+   },
+   "wheels": [
+    {
+     "x": 0.72,
+     "z": 0,
+     "r": 0.32,
+     "w": 0.12
+    },
+    {
+     "x": -0.72,
+     "z": 0,
+     "r": 0.32,
+     "w": 0.14
+    }
+   ]
+  },
+  "aircraft": {
+   "geometry": {
+    "ref": "g0",
+    "type": "BufferGeometry",
+    "attrs": {
+     "position": {
+      "n": 1770,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "41863853",
+      "inst": false
+     },
+     "normal": {
+      "n": 1770,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "eb6d3fc1",
+      "inst": false
+     },
+     "uv": {
+      "n": 1770,
+      "size": 2,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "c7e789fe",
+      "inst": false
+     },
+     "color": {
+      "n": 1770,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "98aa471d",
+      "inst": false
+     }
+    },
+    "morph": [],
+    "index": null,
+    "groups": [],
+    "drawRange": [
+     0,
+     "all"
+    ],
+    "userData": []
+   },
+   "size": {
+    "L": 8.3,
+    "W": 10.7,
+    "H": 2.6
+   }
+  }
+ },
+ "wheel": {
+  "ref": "g0",
+  "type": "BufferGeometry",
+  "attrs": {
+   "position": {
+    "n": 312,
+    "size": 3,
+    "norm": false,
+    "type": "Float32Array",
+    "hash": "3f4d225c",
+    "inst": false
+   },
+   "normal": {
+    "n": 312,
+    "size": 3,
+    "norm": false,
+    "type": "Float32Array",
+    "hash": "ee925f66",
+    "inst": false
+   },
+   "uv": {
+    "n": 312,
+    "size": 2,
+    "norm": false,
+    "type": "Float32Array",
+    "hash": "11cce800",
+    "inst": false
+   },
+   "color": {
+    "n": 312,
+    "size": 3,
+    "norm": false,
+    "type": "Float32Array",
+    "hash": "06cc71a5",
+    "inst": false
+   }
+  },
+  "morph": [],
+  "index": null,
+  "groups": [],
+  "drawRange": [
+   0,
+   "all"
+  ],
+  "userData": []
+ }
+}
