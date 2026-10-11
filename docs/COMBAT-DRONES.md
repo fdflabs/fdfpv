@@ -546,11 +546,11 @@ them onto another's (`configs/combat.js` `masses`).
 | inertia Ixx, Iyy, Izz | 1.646, 9.498, 11.03 kg m^2 | 1.619, 5.592, 7.064 kg m^2 |
 | static thrust, bare thrust to weight | 283 N, 2.09 | 140 N, 1.06 |
 | CD0 | 0.0238 (the uncowled twin 0.020 m^2 of drag area) | 0.0190 (the nacelle 0.010 m^2) |
-| cruise, 60 percent of the stick, no warhead (the bay's trim lead aboard) | 18.1 m/s | 44.8 m/s |
-| top speed, level, no warhead | 26.8 m/s, just over the raid's Strikers' 26.6 | 66.3 m/s |
-| best climb, no warhead | 12.0 m/s at 14.3 m/s | 22.1 m/s at 38 m/s |
-| trimmed stall, no warhead and with the standard warhead | 12.9 and 13.0 m/s | 14.0 and 14.1 m/s |
-| roll, full stick at cruise | 79 deg/s (7 deg of aileron) | 113 deg/s (4 deg) |
+| cruise, 60 percent of the stick, no warhead (the bay's trim lead aboard) | 23.5 m/s (18.1 on the straight line thrust law; APC's 27 x 13E curve, docs/FLIGHTMODEL.md "The prop's curves") | 44.8 m/s |
+| top speed, level, no warhead | 34.2 m/s (26.8, just over the raid's Strikers' 26.6, on the straight line) | 66.3 m/s |
+| best climb, no warhead | 19.7 m/s at 18.8 m/s | 22.1 m/s at 38 m/s |
+| trimmed stall, no warhead and with the standard warhead | 13.4 and 13.5 m/s (the reflex re-rigged for the faster cruise) | 14.0 and 14.1 m/s |
+| roll, full stick at cruise | 104 deg/s (7 deg of aileron) | 113 deg/s (4 deg) |
 | engine response | the stick's, at once; idles at a quarter of its rpm | spools idle to 90 percent of full in 4.5 s; idles at 4 percent of full thrust, never stops; run up to full on the rail before the shot |
 
 The wing, both: the drawing's cranked delta, 2.47 m tip to tip at the
