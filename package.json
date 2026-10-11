@@ -142,6 +142,7 @@
     "crash:feel": "node scripts/crash-feel.js",
     "crash:stand-fault": "node scripts/stand-fault-check.js",
     "reset:check": "node scripts/reset-check.js",
+    "reset:determinism": "node scripts/reset-determinism-selftest.js",
     "results:layout": "node scripts/results-layout-check.js",
     "score:selftest": "node scripts/score-selftest.js",
     "debrief:selftest": "node scripts/debrief-selftest.js",

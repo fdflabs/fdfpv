@@ -217,6 +217,7 @@ jobs:
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
+      - run: npm run reset:determinism
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
