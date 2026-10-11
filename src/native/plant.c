@@ -1699,6 +1699,65 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { -0.95, 0.0, -0.12 }, .r = 0.0, .k = 6000.0, .c = 120.0, .mu_roll = 0.60, .mu_side = 0.60, .steer = 0.0 },
   },
 },
+/*
+ * Extreme Flight's 67 in CAP 580, docs/CAP580-STAGE1.md: 3.63 kg (the
+ * data sheet's 8 lb) on a 6S 4500, an 18 x 8 0.56 m ahead of the CG on a
+ * thrust line through it. The hull is only what a crash lands on: the
+ * belly 0.13 m under the CG, the canopy's top 0.15 over it, the half span
+ * wide. The camera sits at the canopy's front. Every figure here from npm
+ * run cap580:derive unless its line says otherwise.
+ */
+[SIM_AIRFRAME_CAP1702] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 3.6287,        /* the data sheet's 8 lb, docs/CAP580-STAGE1.md */
+  .inertia = { 0.1399, 0.5496, 0.6575 }, /* npm run cap580:derive, built up from the parts */
+  .gravity = 9.81, /* docs/CAP580-STAGE1.md, the plant's g */
+  .cells = 6.0,             /* docs/CAP580-STAGE1.md: T-Motor's 6S, the AM670's pack */
+  .r_cell = 0.00346,        /* npm run cap580:derive: the bench source's sag over six cells */
+  /* The 6S 4500, docs/CAP580-STAGE1.md. */
+  .pack_c = 4500.0 * 3.6,
+  .lvc = 3.0,               /* FITTED: the AM116A's cutoff is unpublished; a hobby ESC's usual 3.0 V a cell */
+  .rho = 1.225, /* docs/CAP580-STAGE1.md, ISA sea level */
+  .prop_r = 0.2286,         /* the 18 in prop, docs/CAP580-STAGE1.md */
+  .spin = { -1.0, 0.0, 0.0, 0.0 }, /* clockwise seen from behind, docs/CAP580-STAGE1.md */
+  .pos_x = { 0.560, 0.0, 0.0, 0.0 }, /* npm run cap580:derive: the disc ahead of the CG */
+  /* The hull, off the outline in docs/CAP580-STAGE1.md: the fuselage's
+   * length about the CG, the half span, the belly and the canopy. */
+  .hull_hx = 0.47,          /* docs/CAP580-STAGE1.md */
+  .hull_hy = 0.851,         /* docs/CAP580-STAGE1.md, the half span */
+  .hull_hz_down = 0.13,     /* docs/CAP580-STAGE1.md */
+  .hull_hz_up = 0.15,       /* docs/CAP580-STAGE1.md */
+  .contact_patch_r = 0.10,  /* FITTED: the Extra's 0.08 grown with the fuselage's width */
+  .contact_arm_max = 1.08,  /* docs/CAP580-STAGE1.md: the rudder's trailing edge behind the CG */
+  .vib_ref_w = 1000.0,      /* FITTED: the other fixed wings' reference */
+  .camera_x = 0.10,         /* docs/CAP580-STAGE1.md: the canopy's front */
+  .camera_y = 0.0, /* docs/CAP580-STAGE1.md, on the centreline */
+  .camera_z = 0.12,         /* docs/CAP580-STAGE1.md */
+  .fw = &FW_CAP1702, /* docs/CAP580-STAGE1.md */
+  /*
+   * The gear off Extreme Flight's side photograph (npm run cap580:derive):
+   * the main axles 0.12 m ahead of the CG and 0.31 m under it on a 0.38 m
+   * track with 2.5 in wheels, the tailwheel's axle 0.941 m behind and
+   * 0.127 m under with a 22 mm wheel. Each axle is lowered by its 5 mm of
+   * static deflection, so the plant settles onto the photographed pose:
+   * 10.9 deg nose up, the CG 0.313 m over the grass, 16.9 percent of the
+   * weight on the tail. Stiffness for that, damping at 0.6 of critical.
+   * The tailwheel steers off the rudder through its springs as the
+   * Extra's does.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    /* npm run cap580:derive */
+    { .pos = { 0.1200, 0.1900, -0.3150 }, .r = 0.0318, .k = 2959.1, .c = 87.93, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    /* npm run cap580:derive */
+    { .pos = { 0.1200, -0.1900, -0.3150 }, .r = 0.0318, .k = 2959.1, .c = 87.93, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    /* npm run cap580:derive; steered at 0.45 of the rudder, the Extra's (docs/EXTRA-STAGE1.md) */
+    { .pos = { -0.9410, 0.0000, -0.1320 }, .r = 0.0110, .k = 1201.5, .c = 31.52, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.45, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.2286 m under the hub on the thrust
+     * line through the CG, docs/CAP580-STAGE1.md. */
+    { .pos = { 0.560, 0.0, -0.2286 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 
 };
 
