@@ -212,7 +212,7 @@ Stick's in proportion about the derived figure unless it says otherwise.
 | S12 throttle to idle from cruise | glides | pitch within 30 deg for 3 s |
 | S13 a hand throw at 8.5 m/s, sticks centred | flies level | under 1 m lost, over 6.4 m/s after 3 s |
 | S14 standing on its wheels and skid | the drawn pose: 8.50 deg, CG 0.1318 m, 14.0 percent on the skid | 8.0 to 9.0 deg, 0.127 to 0.137 m, 10 to 18 percent, no hull |
-| S15 take off, sticks centred | 17.2 m to 8.0 m/s | 12.2 to 26.3 m, 6.9 to 9.2 m/s |
+| S15 take off, the line held on the rudder (the handbook's, docs/FLIGHTMODEL.md) | 17.2 m to 8.0 m/s | 12.2 to 26.3 m, 6.9 to 9.2 m/s, rudder short of full |
 | S16 a landing | touches under 1.1 V_s by the Slow Stick's margin | under 8.0 m/s, at rest within 1.5 deg of S14, no hull or prop |
 | S17 every other aircraft unmoved | their recorded trace hashes on main's module | identical |
 | S18 Node and Chrome agree on a Bombshell trace that takes off | SHA-256 | identical |

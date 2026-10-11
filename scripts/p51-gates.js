@@ -36,6 +36,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { planeTable } from './lib/wash.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -235,15 +236,28 @@ check: {
    * deg of bank in the time its first 1.76 s is at the kit's span and
    * speed (b/V), both read off the scan and banded by half again either
    * way. docs/P51-STAGE1.md.
+   *
+   * A full scale stall carries the airframe's aero by b/V, not a model's
+   * gyroscope: the closed throttle's free prop windmills, and its J omega q
+   * in that time unit is two to three orders of magnitude larger on the
+   * 1.45 m model than on the 11 m aircraft (docs/FLIGHTMODEL.md "The
+   * prop's torque, from the drive"). So the XP-51's band is held by the
+   * aero part, the same pull with the prop's gyroscope taken out
+   * (sim_wing_set_gyro, a measurement switch); P19g holds the gyroscope's
+   * own term to J omega q at the windmilling prop, from the table's J and
+   * the rotor's measured speed; and the whole pull, gyroscope in, must
+   * still drop a wing at least as the XP-51 did at its band's floor.
    */
-  {
+  const pull = (gyro) => {
     const t19 = th.p19_slow_pull;
     clockMs = flyUp(sim, { duty: 0.8, vTarget: t19.entry, seconds: 30, guard: false, speed0: t19.entry, start: STILL_AIR }).endMs;
+    must(sim.e.sim_wing_set_gyro(gyro), 'sim_wing_set_gyro');
     const rows = [];
     for (let ms = 0; ms < 11000; ms += RC_STEP_MS) {
       const o = step(sim, [0, Math.min(1, ms / (t19.rampS * 1000)), 0, 0]);
       rows.push({ ms, bank: fullBank(o.s) * DEG, p: o.s[11], v: speed(o.s) });
     }
+    must(sim.e.sim_wing_set_gyro(1), 'sim_wing_set_gyro');
     const helix = (x) => x.p * 1.450 / (2 * x.v);
     const on = rows.find((x) => Math.abs(helix(x)) > t19.onsetPb2v);
     let peak = 0;
@@ -255,9 +269,37 @@ check: {
         bankMax = Math.max(bankMax, Math.abs(x.bank - on.bank));
       }
     }
-    gate('P19', 'slow pull to full up over 8 s: the wing drops sharply', on !== undefined && peak >= t19.min && peak <= t19.max && bankMax >= t19.bankMin && bankMax <= t19.bankMax,
-      on === undefined ? 'no roll off' : `onset ${(on.ms / 1000).toFixed(2)} s at ${on.v.toFixed(2)} m/s, ${on.p < 0 ? 'left' : 'right'} wing; first 1 s: peak pb/2V ${peak.toFixed(4)} (${(peak * 2 * on.v / 1.45 * DEG).toFixed(0)} deg/s), bank ${bankMax.toFixed(1)} deg`,
-      `pb/2V ${band(t19)}, bank ${t19.bankMin} to ${t19.bankMax} deg (XP-51: ${t19.reference}, ${t19.bankRef})`);
+    const said = on === undefined ? 'no roll off' : `onset ${(on.ms / 1000).toFixed(2)} s at ${on.v.toFixed(2)} m/s, ${on.p < 0 ? 'left' : 'right'} wing; first 1 s: peak pb/2V ${peak.toFixed(4)} (${(peak * 2 * on.v / 1.45 * DEG).toFixed(0)} deg/s), bank ${bankMax.toFixed(1)} deg`;
+    return { on, peak, bankMax, said };
+  };
+  {
+    const t19 = th.p19_slow_pull;
+    const aero = pull(0);
+    gate('P19', 'slow pull to full up over 8 s, the aero part: the wing drops sharply', aero.on !== undefined && aero.peak >= t19.min && aero.peak <= t19.max && aero.bankMax >= t19.bankMin && aero.bankMax <= t19.bankMax,
+      aero.said, `pb/2V ${band(t19)}, bank ${t19.bankMin} to ${t19.bankMax} deg (XP-51: ${t19.reference}, ${t19.bankRef})`);
+    const whole = pull(1);
+    gate('P19w', 'the same pull, the windmilling prop\'s gyroscope in: still a sharp drop', whole.on !== undefined && whole.peak >= t19.min && whole.bankMax >= t19.bankMin,
+      whole.said, `pb/2V over ${t19.min}, bank over ${t19.bankMin} deg (the XP-51's floor; no model scale stall gives a ceiling)`);
+    /* The gyroscope's own term at the windmilling prop: the glide, then
+     * the same step with a pitch rate of +-0.5 rad/s set; the yaw moment
+     * moves by J omega q and nothing else in the step reads q in yaw. */
+    clockMs = flyUp(sim, { duty: 0.8, vTarget: t19.entry, seconds: 30, guard: false, speed0: t19.entry, start: STILL_AIR }).endMs;
+    for (let ms = 0; ms < 3000; ms += RC_STEP_MS) step(sim, [0, 0, 0, 0]);
+    const s0 = sim.readState().state;
+    const yawAt = (q) => {
+      must(sim.e.sim_set_velocity(s0[4], s0[5], s0[6], 0, q, 0), 'sim_set_velocity');
+      must(sim.input(clockMs / 1000, 0, 0, 0, 0), 'sim_input');
+      must(sim.step(1), 'sim_step');
+      return { mz: wingDebug(sim)[14], rpm: sim.readState().state[14] };
+    };
+    const up = yawAt(0.5);
+    const dn = yawAt(-0.5);
+    const omega = 0.5 * (up.rpm + dn.rpm) * 2 * Math.PI / 60;
+    const measured = (up.mz - dn.mz) / 1.0;
+    const jProp = planeTable('FW_P51D1450').fw.j_prop;
+    const expect = jProp * omega;
+    gate('P19g', 'the windmilling prop\'s gyroscope is J omega q', omega > 0 && Math.abs(measured - expect) <= 0.01 * expect,
+      `${measured.toFixed(5)} N m per rad/s at ${(omega * 60 / (2 * Math.PI)).toFixed(0)} rpm`, `J omega ${expect.toFixed(5)}, within 1 percent (J ${jProp}, the table's)`);
   }
 
   /* P9: the phugoid, level cruise at 75 percent, gear up, a second of a

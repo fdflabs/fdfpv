@@ -177,13 +177,14 @@ function trimAlpha(fw, q, T, sh = [0, 0]) {
 }
 
 /* plant_wing.c's motor: the stick to thrust along body x at forward speed u. */
-/* The windmill's thrust share, plant_wing.c's cp_of_ct: Cp over its
- * static value is CP_OF_CT[0] + CP_OF_CT_TAIL ct past zero thrust, zero
- * (the free rotor's torque gone) at ct = -CP_OF_CT[0] / CP_OF_CT_TAIL. */
+/* The windmill, plant_wing.c's free rotor: Cp over its static value is
+ * CP_OF_CT[0] + CP_OF_CT_TAIL ct past zero thrust, and the air's torque
+ * on it balances the motor's friction, PROP_FRICTION of the static
+ * torque. */
 const WING_SRC = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
 const CP0 = Number(/static const double CP_OF_CT\[CP_OF_CT_N\] = \{\s*([-\d.]+)/.exec(WING_SRC)[1]);
 const CP_TAIL = Number(/#define CP_OF_CT_TAIL ([-\d.]+)/.exec(WING_SRC)[1]);
-const CT_WINDMILL = -CP0 / CP_TAIL;
+const FRICTION = Number(/#define PROP_FRICTION ([\d.]+)/.exec(WING_SRC)[1]);
 
 function thrust(fw, stick, u) {
   /* No motor at all (the DLG): no thrust, as the plant has it. */
@@ -192,13 +193,16 @@ function thrust(fw, stick, u) {
   let duty = fw.throttle_idle > 0 ? fw.throttle_idle + (1 - fw.throttle_idle) * stick : stick;
   duty = Math.min(1, Math.max(0, duty));
   /* An electric prop at zero duty free wheels and windmills (plant_wing.c
-   * prop_free): it settles where its torque is zero, n = u / (V_p (1 -
-   * ct_w)), and drags there, T_s n^2 ct_w. A fan, or a table with no
-   * rotor, stops. */
+   * prop_free): it settles where the air's torque meets the motor's
+   * friction, n^2 (CP0 + TAIL ct) + f = 0 with ct = 1 - u / (V_p n), the
+   * larger root, and drags there, T_s n^2 ct; under the speed that turns
+   * it at all it stops. A fan, or a table with no rotor, stops. */
   if (!(duty > 0)) {
     if (!(fw.current_full > 0) || !(fw.j_prop > 0) || fw.fan_tau > 0 || !(u > 0)) return 0;
-    const n = u / (fw.pitch_speed * (1 - CT_WINDMILL));
-    return fw.thrust_static * n * n * CT_WINDMILL;
+    const a = CP0 + CP_TAIL, bq = CP_TAIL * u / fw.pitch_speed, disc = bq * bq - 4 * a * FRICTION;
+    if (!(disc > 0)) return 0;
+    const n = (bq + Math.sqrt(disc)) / (2 * a);
+    return fw.thrust_static * n * n * (1 - u / (fw.pitch_speed * n));
   }
   const t = fw.thrust_static * duty * duty * (1 - Math.max(0, u) / (fw.pitch_speed * duty));
   return fw.fold_duty === 0 && t < 0 ? 0 : t;

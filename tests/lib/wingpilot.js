@@ -625,6 +625,21 @@ export function rudderHold(s) {
  * with the rudder and not the ailerons, which near the stall take the
  * down going wing deeper into it). The rudder only aircraft's wings level
  * law, -1.2 bank - 0.12 p, on the yaw stick. */
+/*
+ * A pilot's take off roll, as the handbook flies one (FAA-H-8083-3C ch. 6,
+ * https://www.faasafety.gov/files/events/SO/SO15/2022/SO15112841/Chapter6TakeoffsAndDepartureClimbs.pdf):
+ * the throttle advanced "smoothly and continuously" to full, here over
+ * the first second (FITTED: the handbook gives no time), because "an
+ * abrupt application of power may cause the airplane to yaw sharply to
+ * the left because of the torque effects"; the line held on the rudder
+ * (rudderHold); and on an aircraft with ailerons, the wings held level on
+ * them. ms is the time since the roll began.
+ */
+export function takeoffRoll(s, ms, { ailerons = true } = {}) {
+  const roll = ailerons ? Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11])) : 0;
+  return [roll, 0, rudderHold(s), Math.min(1, ms / 1000)];
+}
+
 export function rudderLevel(s) {
   return Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11]));
 }

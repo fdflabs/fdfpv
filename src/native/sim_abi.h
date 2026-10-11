@@ -621,6 +621,12 @@ double sim_boost(void);
  * swirl's sideways speed over the fin (m/s), for the gates that take one
  * term of the moment alone. Zeros on an aircraft without a wash.
  * Additive, version unchanged.
+ * sim_wing_set_gyro(on): a measurement switch for a gate that takes the
+ * airframe's own aero apart from its prop's gyroscope (p51 P19, a full
+ * scale stall anchor that cannot carry a model's gyroscope, docs/
+ * FLIGHTMODEL.md): 0 takes the prop's gyroscopic moment out of the step,
+ * 1 puts it back, and every reset puts it back. The shell never calls it;
+ * a flight never flies without it. Additive, version unchanged.
  */
 int sim_wing_launch(double speed);
 /* THE DISCUS LAUNCH, docs/DLG-STAGE1.md, on an aircraft thrown by its
@@ -638,6 +644,7 @@ int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
 int sim_wing_slip(double *out);
+int sim_wing_set_gyro(int on);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an

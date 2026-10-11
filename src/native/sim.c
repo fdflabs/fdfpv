@@ -2864,6 +2864,11 @@ SIM_EXPORT int sim_wing_biplane(double *out) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wing_set_gyro(int on) {
+  plant_wing_set_gyro(on);
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_wing_slip(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;

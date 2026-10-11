@@ -53,7 +53,7 @@ import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import {
   BOMBSHELL_AIRFRAME, fly, wingDebug, wheelLoads, attitude, must, bombshellGroundPrelude, slowstickGroundPrelude, skyPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
-  timberFloatRecPrelude, RC_STEP_MS, wingSlip, rudderLevel,
+  timberFloatRecPrelude, RC_STEP_MS, wingSlip, rudderLevel, takeoffRoll,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -411,8 +411,13 @@ check: {
       `${r14.pitchMin} to ${r14.pitchMax} deg, ${r14.zMin} to ${r14.zMax} m, ${r14.tailMin * 100} to ${r14.tailMax * 100} percent, no hull`);
   }
 
-  /* S15: full throttle from standing, every stick centred; liftoff is the
-   * last step on the wheels before 200 ms clear of them. */
+  /* S15: full throttle from standing, flown as the handbook flies a take
+   * off (takeoffRoll: the throttle advanced over a second, the line held
+   * on the rudder; it has no ailerons) and the elevator left alone, so the
+   * tail comes up by itself; liftoff is the last step on the wheels before
+   * 200 ms clear of them. Sticks centred, which no pilot does, the prop's
+   * torque and swirl ground loop it (bombshell:stab); the derivation's
+   * roll is the straight one the rudder holds. */
   {
     const t15 = th.s15_takeoff;
     onStrip();
@@ -422,8 +427,11 @@ check: {
     let off = 0;
     let lof = null;
     let worstBank = 0;
+    let rudPeak = 0;
     for (let ms = 0; ms < 8000 && !lof; ms += RC_STEP_MS) {
-      const o = step(sim, [0, 0, 0, 1]);
+      const sticks = takeoffRoll(sim.readState().state, ms, { ailerons: false });
+      rudPeak = Math.max(rudPeak, Math.abs(sticks[2]));
+      const o = step(sim, sticks);
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));
       if (o.loaded) {
         last = { dist: o.s[1] - x0, v: speed(o.s), t: ms / 1000, heading: heading(o.s) * DEG };
@@ -433,9 +441,9 @@ check: {
         if (off >= 200) lof = last;
       }
     }
-    gate('S15', 'takes off, sticks centred, tail up by itself', lof != null && lof.dist >= t15.distMin && lof.dist <= t15.distMax && lof.v >= t15.vMin && lof.v <= t15.vMax,
-      lof == null ? 'never left the ground' : `${lof.dist.toFixed(2)} m to liftoff at ${lof.v.toFixed(2)} m/s, ${lof.t.toFixed(2)} s, heading ${lof.heading.toFixed(1)} deg, bank under ${worstBank.toFixed(1)}`,
-      `${t15.distMin} to ${t15.distMax} m, ${t15.vMin} to ${t15.vMax} m/s`);
+    gate('S15', 'takes off, the line held on the rudder, tail up by itself', lof != null && lof.dist >= t15.distMin && lof.dist <= t15.distMax && lof.v >= t15.vMin && lof.v <= t15.vMax && rudPeak < 1,
+      lof == null ? 'never left the ground' : `${lof.dist.toFixed(2)} m to liftoff at ${lof.v.toFixed(2)} m/s, ${lof.t.toFixed(2)} s, heading ${lof.heading.toFixed(1)} deg, bank under ${worstBank.toFixed(1)}, rudder peak ${rudPeak.toFixed(2)}`,
+      `${t15.distMin} to ${t15.distMax} m, ${t15.vMin} to ${t15.vMax} m/s, rudder short of full`);
   }
 
   /* S16: a glide from 3 m at cruise, the nose held level on the elevator

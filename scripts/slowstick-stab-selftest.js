@@ -39,7 +39,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import { attitude, must, slowstickPrelude, slowstickGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS } from '../tests/lib/wingpilot.js';
+import { attitude, must, slowstickPrelude, slowstickGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, takeoffRoll } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -298,18 +298,42 @@ for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   check('and no wind up: released, every surface is back at zero on the next step', sf.every((x) => x === 0), sf.map(deg).join(' '));
 }
 
+/* The take off roll at full throttle. Sticks centred the prop's torque
+ * and swirl swing it left (FAA-H-8083-3C ch. 6, the left turning
+ * tendency); the handbook's take off (takeoffRoll: the throttle advanced
+ * smoothly, the line held on the rudder; it has no ailerons) tracks. */
 for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']]) {
-  onGround(mode);
-  roll(() => [0, 0, 0, 0], 1);
-  const run = roll(() => [0, 0, 0, 1], 8, { untilAirborneMs: 2000 });
-  const lof = run.liftoff;
-  check(`${name}, full throttle and the sticks centred: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
-  if (!lof) continue;
-  check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
-  check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
-  if (mode === 2) {
-    const after = roll(() => [0, 0, 0, 1], 2);
-    check('and Acro holds the attitude it lifted off in, pitch within 4 degrees 2 s later', Math.abs((attitude(after.s).pitch - lof.pitch) * DEG) < 4, `${deg(lof.pitch)} -> ${deg(attitude(after.s).pitch)} deg`);
+  for (const feet of [false, true]) {
+    onGround(mode);
+    roll(() => [0, 0, 0, 0], 1);
+    let rudPeak = 0, rudSum = 0, rudN = 0, turned = 0, lastH = heading(sim.readState().state);
+    const run = roll((ms) => {
+      if (!feet) {
+      /* The heading's change, unwrapped: a ground loop goes past 180. */
+      const h = heading(sim.readState().state);
+      turned += Math.atan2(Math.sin(h - lastH), Math.cos(h - lastH));
+      lastH = h;
+      return [0, 0, 0, 1];
+    }
+      const st = takeoffRoll(sim.readState().state, ms, { ailerons: false });
+      rudPeak = Math.max(rudPeak, Math.abs(st[2])); rudSum += st[2]; rudN += 1;
+      return st;
+    }, 8, { untilAirborneMs: 2000 });
+    const lof = run.liftoff;
+    if (!feet) {
+      const h = turned;
+      check(`${name}, full throttle, the sticks centred: it swings left off the line`, h * DEG > 0, `turned ${deg(h)} deg left${lof ? `, off at ${lof.x.toFixed(1)} m` : ', a ground loop'}`);
+      continue;
+    }
+    check(`${name}, full throttle, the handbook's take off: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
+    if (!lof) continue;
+    check('with the rudder short of full: the line is held with authority to spare', rudPeak < 1, `peak ${rudPeak.toFixed(2)}, mean ${(rudSum / rudN).toFixed(2)} right`);
+    check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
+    check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
+    if (mode === 2) {
+      const after = roll(() => [0, 0, 0, 1], 2);
+      check('and Acro holds the attitude it lifted off in, pitch within 4 degrees 2 s later', Math.abs((attitude(after.s).pitch - lof.pitch) * DEG) < 4, `${deg(lof.pitch)} -> ${deg(attitude(after.s).pitch)} deg`);
+    }
   }
 }
 
