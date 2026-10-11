@@ -27,6 +27,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -170,7 +172,10 @@ const Izz = 85552 / (9299 * 15.03 * 15.03) * m * 1.25 * 1.25;
 const T0 = 2.400 * 9.80665, rpmNL = 2210 * 3.7 * 6, rpm = 0.85 * rpmNL, D = mm(69);
 const J0 = 0.313 + 1.248 / 0.9675;
 const Vz = J0 * (rpm / 60) * D;
-const T = (V, n = 1) => (n > 0 ? Math.max(0, T0 * n * n * (1 - V / (Vz * n))) : 0);
+/* The thrust on the curve the plant flies, its axial_curve: for the fan
+ * that line again, on the table's pitch_speed, Vz to two places. */
+const fan = wingProp('FW_F16878');
+const T = (V, n = 1) => Math.max(0, fan.thrust(T0, V, n));
 /* Its static efflux speed through 90 percent of the swept annulus (a 30
  * mm hub): the momentum thrust's jet, for the ideal power it asks. */
 const Aexit = 0.9 * Math.PI / 4 * (D * D - 0.030 * 0.030);
