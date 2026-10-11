@@ -25,8 +25,10 @@
  */
 
 import * as THREE from 'three';
-import * as camp from '../../../src/render/interior/camp.js';
-import { NUEVO_PROPS } from '../../../src/share/interior/places.js';
+import * as camp from '../../../src/render/library/camp/camp.js';
+import { CAMP_PROPS, NUEVO_PROPS } from '../../../src/share/interior/places.js';
+import { ROUTES } from '../../../src/share/interior/routes.js';
+import { markPixels, MARK_PX } from '../../../src/render/interior/mark.js';
 import { describeObject, makeTable, hashText, describeValue } from '../render-golden-lib.js';
 
 const sig = (v) => (typeof v === 'number' ? Number(v.toPrecision(12)) + 0 : v);
@@ -81,7 +83,15 @@ function build(props, name) {
   const colliders = recorder();
   const roofs = [];
   const c = camp.buildCamp({
-    THREE, world, colliders, roofs, ...(props ? { props, name } : {}),
+    THREE,
+    world,
+    colliders,
+    roofs,
+    props: props || CAMP_PROPS,
+    routes: Object.fromEntries(Object.entries(ROUTES).map(([id, r]) => [id, r.pts])),
+    worn: Object.keys(ROUTES).filter((id) => id.startsWith('camp-') && id.endsWith('-loop')),
+    mark: { pixels: markPixels(), px: MARK_PX },
+    ...(props ? { name } : {}),
   });
   return { c, colliders, roofs };
 }

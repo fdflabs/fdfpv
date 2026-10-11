@@ -39,12 +39,13 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { makeRoutes } from '../../share/interior/routes.js';
+import { makeRoutes, ROUTES } from '../../share/interior/routes.js';
 import { CAMP_PROPS, NUEVO_PROPS } from '../../share/interior/places.js';
 import { hash01 } from '../../share/interior/canopy.js';
 import { makeFigures } from '../../render/library/people/figures.js';
 import { makeVehicles } from '../../render/interior/vehicles.js';
-import { buildCamp } from '../../render/interior/camp.js';
+import { buildCamp } from '../../render/library/camp/camp.js';
+import { markPixels, MARK_PX } from '../../render/interior/mark.js';
 import { buildAmbient } from '../../render/interior/ambient.js';
 
 /* Shirts, linear: faded olive, khaki and grey work shirts, a washed
@@ -70,8 +71,13 @@ export function buildLife({
   const routes = makeRoutes(world);
   const figures = makeFigures(THREE);
   const vehicles = makeVehicles(THREE);
+  /* The camps' clutter keeps off the authored routes and their own
+   * loops are worn into the floor; the Column's mark goes under the
+   * marked shelter's roof. */
+  const campRoutes = Object.fromEntries(Object.entries(ROUTES).map(([id, r]) => [id, r.pts]));
+  const worn = Object.keys(ROUTES).filter((id) => id.startsWith('camp-') && id.endsWith('-loop'));
   const camp = buildCamp({
-    THREE, world, colliders, roofs,
+    THREE, world, colliders, roofs, props: CAMP_PROPS, routes: campRoutes, worn, mark: { pixels: markPixels(), px: MARK_PX },
   });
   /* Claro Nuevo, Mission 2's second camp: built with the map so its
    * solids are in the colliders' build, shown and made solid only while a
@@ -79,7 +85,7 @@ export function buildLife({
    * unseen shelter. */
   const nuevoFrom = colliders.ax.length;
   const nuevo = buildCamp({
-    THREE, world, colliders, roofs, props: NUEVO_PROPS, name: 'interior-camp-nuevo',
+    THREE, world, colliders, roofs, props: NUEVO_PROPS, routes: campRoutes, worn, mark: { pixels: markPixels(), px: MARK_PX }, name: 'interior-camp-nuevo',
   });
   const nuevoTo = colliders.ax.length;
   nuevo.setCamp({ mark: null });

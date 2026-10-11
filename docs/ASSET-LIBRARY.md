@@ -76,7 +76,7 @@ after pictures.
 | Fences | `kit.js` `fence` (cel) | also `swiss2/village/pieces.js`, `interior/yards.js` | one each |
 | Cel vehicles and the parts kit | `vehicles/vehicles.js`, `vehicles/parts.js` | the Alps' life, the Swiss valley's vehicles (which refinish them) | Alps, Swiss valley |
 | Interior vehicles (motorcycles, pickup) | not yet | `src/render/interior/vehicles.js` | Interior |
-| Camp and props | not yet | `src/render/interior/camp.js`, `swiss2/props/`, `kit.js` (bench, fountain, sign) | one each |
+| Insurgent camp (shelters and tarps, mast, fire and smoke, lookout, stores, clutter, the clearing's light) | `camp/camp.js`, `camp/camplight.js`, `camp/dressing.js` | placed by `interior/life.js` (Claro Viejo and Claro Nuevo). The Swiss valley's lakeside and roadside props (`swiss2/props/`) are its own scenery; the cel bench, fountain and sign are `kit.js`'s | Interior |
 | Lit materials (one sun from the shadow cascades) | `lit.js` `makeLit` | Itaipu's look, the Interior's look and crowns | Itaipu, Interior |
 | Lit materials with the Alps terrain shadow and cloud deck | not yet | `swiss2/light.js` `makeLit` | Swiss valley |
 
@@ -258,6 +258,36 @@ hair, with skin and boots their own. Warm in the thermal picture.
 - **Perf**: one draw a pose and kit with anyone in it, plus the poles;
   a mesh nobody is in is not drawn. Program key `interior-slot-tint`.
 - **Golden**: `tests/browser/render-golden/people.js`.
+
+## Camp (`src/render/library/camp/`)
+
+The Interior's insurgent camp, built from a layout record: four
+shelters of poles and sagging tarps, a lattice mast with a dish on guy
+wires that can come down, a solar panel, crates, drums, jerrycans,
+sacks, a table, hammocks, the cooking fire with its smoke, the lookout's
+tree platform, the trodden paths and the clearing's lamps and fill
+light.
+
+- **Inputs**: `buildCamp({ THREE, world, colliders, roofs, props,
+  routes, worn, mark, name })`: `world.groundAt`; the map's collider list
+  (`add`, `addPost`, `addTurnedBox`, `retire`, `restore`, `ax`) and roof
+  records; the layout (`props`: middle, shelters, mast, fire, solar,
+  crates, drums, hammocks, lookout, as the Interior's `CAMP_PROPS`); the
+  routes people walk by id, which the clutter keeps off, and which of
+  them are the camp's own loops (`worn`); the mark under a shelter's
+  roof as `{ pixels, px }`.
+- **Outputs**: `{ group, setCamp({ mark, tarp, mast, cold }),
+  update(seconds), state(), frames, light, stats(), dispose() }`;
+  `light.patch(material)` lights a map's own material (ground, people)
+  by the camp's fill and lamps.
+- **Shape**: solid as drawn: every pole a post, every roof a roof record,
+  boxes for the solid stores; cloth, ropes and smoke are nothing a craft
+  meets. The mast's solids are retired while it is down.
+  `interior:collide` holds it (every drawn point within 0.3 m of a solid).
+- **Perf**: a handful of draws a camp (solid, cloth, wear, mast, dish,
+  fire, smoke puffs, ropes); up to eight lamps in one shader chunk.
+- **Golden**: `tests/browser/render-golden/camp.js`, both camps,
+  colliders and roofs included.
 
 ## Placing an asset on a map
 
