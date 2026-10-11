@@ -44,12 +44,15 @@ export function attitudeQuat(pitch = 0, roll = 0) {
  * the nose), world: [vx,vy,vz] (overrides), keepVel (the velocity held
  * from the segment's first step), worldRate: [wx,wy,wz] (rad/s about
  * world axes, added to the body rates), aboutVel (rad/s about the
- * velocity, with keepVel), dSpeed: m/s per s }.
+ * velocity, with keepVel), dSpeed: m/s per s, dBeta: rad/s of sideslip,
+ * the velocity turned off the nose toward the right wing (-l), held across
+ * segments like the speed }.
  */
 export function flyPath(segments, each, start = {}) {
   let [w, x, y, z] = start.q ?? [1, 0, 0, 0];
   let px = 0, py = 0, pz = start.z ?? 100;
   let speed = start.speed ?? 20;
+  let beta = 0;
   let t = 0;
   const dt = 0.001;
   const st = new Array(14).fill(0);
@@ -79,6 +82,7 @@ export function flyPath(segments, each, start = {}) {
       const m = Math.hypot(w, x, y, z);
       w /= m; x /= m; y /= m; z /= m;
       if (seg.dSpeed) speed = Math.max(0, speed + seg.dSpeed * dt);
+      if (seg.dBeta) beta += seg.dBeta * dt;
       let v;
       if (seg.keepVel && t > 0) {
         v = [st[4], st[5], st[6]];
@@ -87,9 +91,10 @@ export function flyPath(segments, each, start = {}) {
       } else {
         const n = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
         const u = [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
+        const l = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
         const a = seg.alpha ?? 0;
-        const ca = Math.cos(a), sa = Math.sin(a);
-        v = [speed * (ca * n[0] - sa * u[0]), speed * (ca * n[1] - sa * u[1]), speed * (ca * n[2] - sa * u[2])];
+        const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(beta), sb = Math.sin(beta);
+        v = [0, 1, 2].map((i) => speed * (cb * (ca * n[i] - sa * u[i]) - sb * l[i]));
       }
       px += v[0] * dt; py += v[1] * dt; pz += v[2] * dt;
       t += dt;

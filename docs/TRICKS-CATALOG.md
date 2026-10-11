@@ -278,6 +278,16 @@ none a loosening (the synthetic suite still passes 100 of 100):
 - **A point is a stop**: a pause counts as a point only if the roll rate
   fell under 0.35 rad/s for 0.1 s. A barrel roll's sagging rate was read
   as a 2-point roll.
+- **A knife edge is the wing in the vertical plane** (2026-10-11): the
+  judge took the span within 26 deg of vertical (|l_z| > 0.9), which
+  counts the sideslip that holds a knife edge up as a bank error. The
+  Extra's E12 knife edge at 15 m/s holds 33 deg and the CAP's C12 at
+  20 m/s 30 deg, so neither was named. The rule is the wing's (FAI
+  F3P-AA 23: "During the knife edge the wing must be in the vertical
+  plane"): the wing's normal against the path's horizontal normal, the
+  same 26 deg tolerance (no source for it beyond the old choice), and the
+  pass's grade off the same measure. `npm run figures:knife` flies E12's
+  knife edge and must name it.
 
 ## Owner questions (recommendation first)
 
