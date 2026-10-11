@@ -1854,6 +1854,7 @@ export default {
   "main.drop_open_doors": "Abre primero la rampa (O)",
   "main.drop_field_full": "El campo está lleno: ya hay {n} cargas en tierra",
   "main.drop_away": "Carga {n} lanzada",
+  "rooms.refused_drops_full": "El campo está lleno: la sala guarda 300 cargas",
   "ui.gear_moving": "Tren en movimiento",
   "main.throttle_down_to_start": "Baja el acelerador para empezar",
   "main.throttle_up_on_the_water": "A flote en el lago. Sube el acelerador con la palanca atrás para ponerlo en el escalón, déjalo correr y tira para volar. El timón lo guía en el agua; F pone los flaps, C cambia la cámara.",

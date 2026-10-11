@@ -142,6 +142,8 @@ checks it, numbers it, keeps it under `drops` in its storage and sends
   it lands on the ground or the water under it.
 - A landed load is not pushed by later wind or by other aircraft.
 - Nothing is kept after the room closes or the session ends.
+- Another pilot's ramp is not drawn moving: the pose stream has no field
+  for it, and the drops themselves are what the room shares.
 
 ## PRs (stacked, in this order)
 

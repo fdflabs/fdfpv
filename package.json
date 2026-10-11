@@ -345,6 +345,8 @@
     "hercules:derive": "node scripts/hercules-derive.js",
     "paradrop:selftest": "node scripts/paradrop-selftest.js",
     "hercules:keys": "node scripts/hercules-keys.js",
+    "hercules:room": "node scripts/hercules-room.js",
+    "hercules:perf": "node scripts/hercules-perf.js",
     "stab:hold": "node scripts/stab-hold-derive.js --check",
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "hover:probe": "node scripts/hover-probe.js",
