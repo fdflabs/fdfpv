@@ -36,6 +36,7 @@
  */
 
 import { derivatives, lattice } from './lib/lattice.js';
+import { wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -216,7 +217,8 @@ const torqueArm = Kt * (ampsStatic - i0) / Ts;  /* shaft torque per newton */
 const jProp = 2 * 0.004 * propR * propR / 3 + 0.025 * 0.006 * 0.006 / 2;
 
 /* Performance, the plant's own motor and drag model. */
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+const prop = wingProp('FW_ZAGI1219');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 const Dr = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let ok = false;

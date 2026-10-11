@@ -29,6 +29,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { planeTable } from './lib/wash.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, kadetPrelude, kadetGroundPrelude, kadetTakeoffSticks, wheelLoads, wingDebug, RC_STEP_MS } from '../tests/lib/wingpilot.js';
@@ -133,14 +134,19 @@ const deg = (x) => (x * DEG).toFixed(1);
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
 throwAt(30, 14.5);
-const level = fly(0, 0, 0, 0.75, 10);
+/* Centred sticks at the stick that flies it level, the table's
+ * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
+ * prop curves gave the prop its thrust at speed. */
+const level = fly(0, 0, 0, planeTable('FW_KADET1981').fw.stab_trim_throttle, 10);
+/* The pitch Stabilised holds level, the table's stab_trim_pitch. */
+const TRIM_PITCH = planeTable('FW_KADET1981').fw.stab_trim_pitch;
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
-check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
+check('and hold the trim pitch within 4 degrees', Math.abs((level.pitch - TRIM_PITCH) * DEG) < 4, `${deg(level.pitch)} deg`);
 /* The Bombshell's 10 m over its 80 m of flight, in proportion to the
  * Kadet's 145 m. */
 check('and straight: under 18 m off the line after 10 s', Math.abs(level.y) < 18, `${level.y.toFixed(1)} m`);
-check('at the Kadet\'s cruise, S1\'s band', level.v > 12.54 && level.v < 16.99, `${level.v.toFixed(1)} m/s`);
+check('at the Kadet\'s cruise, S1\'s band', level.v > 16.00 && level.v < 21.67, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 1 m/s', Math.abs(level.vz) < 1, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.9, 5);
 check('full right roll stick banks right on the rudder, 35 to 50 degrees', banked.bank * DEG > 35 && banked.bank * DEG < 50, `${deg(banked.bank)} deg`);
@@ -155,7 +161,7 @@ const nosedUp = fly(0, 0.6, 0, 1.0, 2);
  * 14: the band is the Bombshell's in proportion about what it asks for. */
 check('up stick lifts the nose, 6.6 to 24 degrees, no tumble', nosedUp.pitch * DEG > 6.6 && nosedUp.pitch * DEG < 24 && nosedUp.worstBank * DEG < 15, `${deg(nosedUp.pitch)} deg, bank ${deg(nosedUp.worstBank)}`);
 const settled = fly(0, 0, 0, 0.75, 5);
-check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
+check('and centring brings it back to trim', Math.abs((settled.pitch - TRIM_PITCH) * DEG) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
 const yawed = fly(0, 0, 1, 0.75, 1);
 /* The yaw stick and the level hold share the one surface here, so the hold
  * takes back much of the yaw stick's rudder to keep the wings level; the
@@ -215,8 +221,8 @@ fly(0, 0, 0, 0.75, 2);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full roll stick banks it right on the rudder, past 20 degrees', manual.endBank * DEG > 20, `${deg(manual.endBank)} deg in 1.5 s`);
 const selfLevel = fly(0, 0, 0, 0.75, 8);
-/* The spiral at cruise halves a bank in 10.6 s (kadet:derive), so 8 s
- * after the stick is let go 0.59 of the bank is left: under 0.8 of it and
+/* The spiral at cruise halves a bank in 9.9 s (kadet:derive), so 8 s
+ * after the stick is let go 0.57 of the bank is left: under 0.8 of it and
  * over 0.3, the same side, no roll through. */
 const left = selfLevel.endBank / manual.endBank;
 check('and let go, the dihedral levels it: 0.3 to 0.8 of the bank 8 s later, no roll through', left > 0.3 && left < 0.8, `${deg(selfLevel.endBank)} deg, ${left.toFixed(2)} of it`);

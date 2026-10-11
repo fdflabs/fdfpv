@@ -23,6 +23,7 @@
  */
 
 import { wingLift } from './lib/liftcurve.js';
+import { wingProp } from './lib/propcurve.js';
 import { planeTable, propMoments } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -104,7 +105,10 @@ const ClrPerCL = 0.25, CnpPerCL = -0.125;
 const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+/* Thrust on the prop's APC curve as the plant flies it (plant_wing.c
+ * prop_curve, scripts/lib/propcurve.js). */
+const prop = wingProp('FW_SLOWSTICK1180');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 3, hi = 20;
@@ -187,7 +191,10 @@ function solve3(A, bb) {
 }
 function longitudinalModes(V) {
   const res = (p) => { const r = deriv([V * Math.cos(p[0]), -V * Math.sin(p[0]), 0, p[0]], p[1], p[2]); return [r[0], r[1], r[2]]; };
-  let p = [0.02, 0, 0.5];
+  /* Started at full duty: on the curve a low duty at cruise speed is past
+   * the prop's zero thrust, where the clipped thrust has no slope and the
+   * step is singular. */
+  let p = [0.02, 0, 1.0];
   for (let it = 0; it < 60; it += 1) {
     const r = res(p);
     const J = [0, 1, 2].map((j) => { const pp = p.slice(); pp[j] += 1e-7; const rr = res(pp); return rr.map((v, i) => (v - r[i]) / 1e-7); });
@@ -195,13 +202,30 @@ function longitudinalModes(V) {
     p = p.map((v, i) => v + dx[i]);
   }
   const x0 = [V * Math.cos(p[0]), -V * Math.sin(p[0]), 0, p[0]];
+  return { thetaDeg: p[0] * DEG, deDeg: p[1] * DEG, duty: p[2], ...modesAt(x0, p[1], p[2]) };
+}
+function modesAt(x0, de, d) {
   const A = [0, 1, 2, 3].map((i) => [0, 1, 2, 3].map((j) => {
     const xp = x0.slice(), xm = x0.slice(); xp[j] += 1e-6; xm[j] -= 1e-6;
-    return (deriv(xp, p[1], p[2])[i] - deriv(xm, p[1], p[2])[i]) / 2e-6;
+    return (deriv(xp, de, d)[i] - deriv(xm, de, d)[i]) / 2e-6;
   }));
   const modes = roots(charPoly(A)).filter((r) => r.im > 1e-6).map((r) => { const wn = Math.hypot(r.re, r.im); return { period: 2 * Math.PI / r.im, zeta: -r.re / wn }; });
   modes.sort((x, y) => y.period - x.period);
-  return { thetaDeg: p[0] * DEG, deDeg: p[1] * DEG, duty: p[2], phugoid: modes[0], short: modes[1] };
+  return { phugoid: modes[0], short: modes[1] };
+}
+/* The stick left alone, the elevator and the duty fixed: where it
+ * settles (theta, the flight path and the speed unknown) and its modes. */
+function handsOffModes(de, d) {
+  const state = (p) => [p[2] * Math.cos(p[0] - p[1]), -p[2] * Math.sin(p[0] - p[1]), 0, p[0]];
+  const res = (p) => deriv(state(p), de, d).slice(0, 3);
+  let p = [0.1, 0.05, 5.5];
+  for (let it = 0; it < 60; it += 1) {
+    const r = res(p);
+    const J = [0, 1, 2].map((j) => { const pp = p.slice(); pp[j] += 1e-7; const rr = res(pp); return rr.map((v, i) => (v - r[i]) / 1e-7); });
+    const dx = solve3([0, 1, 2].map((i) => [0, 1, 2].map((j) => J[j][i])), r.map((v) => -v));
+    p = p.map((v, i) => v + dx[i]);
+  }
+  return { V: p[2], thetaDeg: p[0] * DEG, gammaDeg: p[1] * DEG, ...modesAt(state(p), de, d) };
 }
 
 /*
@@ -453,6 +477,12 @@ const rows = [
 const lm = longitudinalModes(Vcruise);
 rows.push(['trim at the 75 percent speed', `theta ${f(lm.thetaDeg, 2)} de ${f(lm.deDeg, 2)} duty ${f(lm.duty)}`]);
 rows.push(['   phugoid s, zeta; short period s, zeta', `${f(lm.phugoid && lm.phugoid.period, 2)} ${f(lm.phugoid && lm.phugoid.zeta)}; ${f(lm.short && lm.short.period, 2)} ${f(lm.short && lm.short.zeta)}`]);
+/* Hands off at 75 percent, the elevator neutral, as S10 and S19 fly it:
+ * the neutral elevator trims the 5.5 m/s glide's lift coefficient, so on
+ * the curve it climbs at about that speed and not at the level cruise. */
+const ho = handsOffModes(0, 0.75);
+rows.push(['hands off at 75 percent, elevator neutral', `V ${f(ho.V, 2)} theta ${f(ho.thetaDeg, 2)} gamma ${f(ho.gammaDeg, 2)}`]);
+rows.push(['   phugoid s, zeta; short period s, zeta', `${f(ho.phugoid && ho.phugoid.period, 2)} ${f(ho.phugoid && ho.phugoid.zeta)}; ${f(ho.short && ho.short.period, 2)} ${f(ho.short && ho.short.zeta)}`]);
 const lmT = longitudinalModes(Vtrim);
 rows.push([`trim at ${Vtrim} m/s`, `theta ${f(lmT.thetaDeg, 2)} de ${f(lmT.deDeg, 2)} duty ${f(lmT.duty)}, stick ${f(stickFor(lmT.deDeg / DEG, throwE))}`]);
 /* Full up elevator: where the linear pitching moment trims, as an angle of
@@ -463,10 +493,11 @@ rows.push(['stall arms ac, cp (per chord)', `${f(armAc, 4)} ${f(armCp, 4)}`]);
 rows.push(['full up mush', JSON.stringify(mush(throwE), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 90 percent', JSON.stringify(levelTurn(45 / DEG, 0.9), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DEG, 1.0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
-/* A straight pass at cruise through the core of the strongest thermal,
- * plant_wing.c's 2.5 m/s over 45 m: the aircraft rises with the air, so
- * its gain is the air's rise integrated over the time it spends in it. */
-rows.push(['thermal pass at cruise: gain m', f(2.5 * (16 / 15) * 45 / Vcruise, 1)]);
+/* A straight pass at 75 percent through the core of the strongest thermal,
+ * plant_wing.c's 2.5 m/s over 45 m, the pitch stick centred, so at the
+ * hands off speed: the aircraft rises with the air, so its gain is the
+ * air's rise integrated over the time it spends in it. */
+rows.push(['thermal pass, pitch stick centred: gain m', f(2.5 * (16 / 15) * 45 / ho.V, 1)]);
 rows.push(['level turn at 30 deg, 75 percent', JSON.stringify(levelTurn(30 / DEG, 0.75), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(48)} ${v}`);

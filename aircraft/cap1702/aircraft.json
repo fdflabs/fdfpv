@@ -113,7 +113,7 @@
         "thrustN": 94.31,
         "currentA": 111.11,
         "rpmNoLoad": 10160,
-        "pitchSpeedMs": 40.37,
+        "pitchSpeedMs": 29.247,
         "lvcV": 3,
         "rpmFull": 8636,
         "massKg": 3.6287,
@@ -145,12 +145,12 @@
     "estimates": {
       "stock": {
         "6s4000": {
-          "topSpeed": 32.25,
-          "minutes": 21.3
+          "topSpeed": 32.28,
+          "minutes": 22.7
         },
         "6s4500": {
-          "topSpeed": 32.34,
-          "minutes": 23.1
+          "topSpeed": 32.37,
+          "minutes": 24.6
         }
       }
     }

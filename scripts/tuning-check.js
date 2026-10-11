@@ -76,6 +76,7 @@ import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, stockEntry, tuneBl
 import { TestStand } from '../src/game/teststand.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const WING_C = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
 
 let failed = 0;
 let passed = 0;
@@ -385,8 +386,14 @@ for (const id of ids) {
    * kinds (a glow option's rpmNoLoad is its full rpm over 0.85). */
   const rpmFull = 0.85 * opt.rpmNoLoad;
   const n = r.rpm / rpmFull;
+  /* An engine with a torque map (engine_q, the Slick's DA-120) settles
+   * where the map's torque meets the prop's static load: the measured full
+   * rpm by construction, to the map's 0.001 N m rounding, 1e-4 of the
+   * speed. A motor's law holds it at or under full exactly. */
+  const own = new RegExp(`const FixedWingParams FW_${id.toUpperCase()} = \\{([\\s\\S]*?)\\n\\};`).exec(WING_C);
+  const nMax = own && own[1].includes('.engine_q = ') ? 1 + 1e-4 : 1 + 1e-9;
   check(`U7 ${id} the stand reads the plant's static thrust, rpm and current at full throttle once it has spun up`,
-    n > 0.95 && n <= 1 + 1e-9 && Math.abs(r.thrustN / (opt.thrustN * n * n) - 1) < 1e-9
+    n > 0.95 && n <= nMax && Math.abs(r.thrustN / (opt.thrustN * n * n) - 1) < 1e-9
       && (electric || opt.fan ? Math.abs(r.currentA / (opt.currentA * n * n * n) - 1) < 0.05 : r.currentA === 0),
     `${f2(r.thrustN)} N, ${r.rpm.toFixed(0)} rpm (${n.toFixed(4)} of full), ${f2(r.currentA)} A`);
   stand.seat(TABLE[id].simId, null, block({ ballastG: lead }));

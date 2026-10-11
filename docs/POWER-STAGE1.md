@@ -57,12 +57,10 @@ pack empties the thrust (speed squared) and the pitch speed (speed) fall.
 
 **Current.** The table's full throttle current is the static current. At a
 duty the motor's current goes as the speed squared and the pack's, through
-the ESC's switching, as the cube. In flight the prop unloads: the plant's
-thrust law has the thrust coefficient fall as 1 - V / pitch speed, and APC's
-published data give how the power coefficient goes with it (`CP_OF_CT`,
-from the APC 11 x 7E at 9,000 rpm, https://www.apcprop.com/files/PER3_11x7E.dat;
-the 8 x 4E, 12 x 6 and 13 x 8E agree within a few percent): flat until the
-thrust has fallen by a third, a fifth of static where it is gone. The same
+the ESC's switching, as the cube. In flight the prop unloads as its own
+APC curve says, the table's torque_curve at the advance ratio
+(docs/FLIGHTMODEL.md "The prop's curves"; until 2026-10-11 one APC 11 x 7E
+table, CP_OF_CT, through the straight line thrust law's share). The same
 power off a sagged pack is more current. An earlier draft used momentum
 theory, which leaves out the blades' own drag and put full throttle current
 in flight at half the static; the APC shape is measured.
@@ -176,11 +174,15 @@ Each alternative's figures and derivation are beside it in
 - **Radian.** Stock only: E-flite 480 960 kV, 9.75 x 7.5 folding, 30 A.
   Packs 3S 1300, 1500, 1800, 2200 (the Night Radian's range on the same
   system). No motor alternative with figures was found.
-- **Bramor C4EYE.** Stock only. C-Astral publishes no pack; 6S 22000 is
+- **Bramor C4EYE.** Stock only. C-Astral publishes no pack; 6S 11000 is
   derived so that cruise at the published 16 m/s lasts the published 3 h on
-  this plant. That is 488 Wh against the 330 Wh the drag estimate needs,
-  which says this plant's cruise power is high (its estimated 45 A full
-  throttle current is the likeliest cause).
+  this plant. Re-derived 2026-10-11 on the prop curves (w35-prop-ctj): the
+  plant cruises at 16 m/s on a mean 3.68 A, so 22000 mAh lasted 358 min
+  and 11000 lasts 179.2. That is 244 Wh against the 330 Wh the drag
+  estimate's 0.65 prop and 0.82 motor need. It was 22000, 488 Wh, when
+  the full throttle current was an estimated 45 A and the static thrust 35 N;
+  both now come from the published climb and APC's 12 x 8E
+  (scripts/bramor-derive.js).
 - **Slow Stick.** Sold without power. Stock: GWS EPS-300C D on the EP1180,
   2S 1300. Alternatives, each GWS's own full throttle row with rpm: the
   brushless 2212/13T on an EP1047 and on an EP1060 (2S 1300 or 2200), and
@@ -234,7 +236,7 @@ airspeed, throttle on the height) and at full throttle, to LOW BATTERY
 | Cub floats | 8.2 | 15.4 | as above | timer |
 | Skyhunter | 17.0 | 46.0 at 15 | Model Aviation "10 minutes and longer" | at least 10 |
 | Radian | 5.9 (motor run) | 68.8 at 7.7 | "over 30 min" with limited motor run, not comparable | runs out sooner flat out |
-| Bramor | 75.6 | 176.7 at 16 | C-Astral 3 h (the capacity is derived from it) | within 5 percent |
+| Bramor | 53.3 | 179.2 at 16 | C-Astral 3 h (the capacity is derived from it) | within 5 percent |
 | Slow Stick | 23.3 | 38.5 at 5.5 | none | runs out sooner flat out |
 | 1000 mm wing | 9.8 | 28.9 at 15 | none | runs out sooner flat out |
 | Bombshell | 4.6 | 5.4 at 8 | none (Menon's flow gives 4 to 4.6 min at full throttle) | runs out sooner flat out |

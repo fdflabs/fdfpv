@@ -118,7 +118,7 @@
         "blades": 2,
         "thrustN": 304.11,
         "rpmNoLoad": 7705.9,
-        "pitchSpeedMs": 46.588,
+        "pitchSpeedMs": 27.728,
         "idle": 0.1985,
         "flowFullM3s": 0.0000014066666666666668,
         "leanFrac": 0.05,
@@ -147,8 +147,8 @@
     "estimates": {
       "stock": {
         "1006cc": {
-          "topSpeed": 42.47,
-          "minutes": 23.8
+          "topSpeed": 41.66,
+          "minutes": 33.2
         }
       }
     }

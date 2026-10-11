@@ -47,6 +47,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
 import { wingLift } from './lib/liftcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -120,6 +121,7 @@ async function tables() {
     if (!key || !(key[1] in ids)) throw new Error(`${m[1]}: no airframe id for its plant.c entry`);
     for (const l of loadsOf(ids[key[1]], own.mass_kg)) {
       const fw = fields(m[2]);
+      if (fw.thrust_static > 0) fw.prop = wingProp(m[1]);
       /* An engine's dyno curve (throttle_rpm), which fields() leaves out as
        * a list: the stick to its speed over full, straight between tenths. */
       const curve = m[2].match(/\.throttle_rpm = \{ ([^}]*) \}/);
@@ -181,14 +183,33 @@ function trimAlpha(fw, q, T, sh = [0, 0]) {
 }
 
 /* plant_wing.c's motor: the stick to thrust along body x at forward speed u. */
-/* The windmill, plant_wing.c's free rotor: Cp over its static value is
- * CP_OF_CT[0] + CP_OF_CT_TAIL ct past zero thrust, and the air's torque
- * on it balances the motor's friction, PROP_FRICTION of the static
+/* The windmill, plant_wing.c's free rotor: past its windmill the prop's
+ * torque curve (torque_curve, propcurve.js) is negative, and the air's
+ * torque on it balances the motor's friction, PROP_FRICTION of the static
  * torque. */
 const WING_SRC = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
-const CP0 = Number(/static const double CP_OF_CT\[CP_OF_CT_N\] = \{\s*([-\d.]+)/.exec(WING_SRC)[1]);
-const CP_TAIL = Number(/#define CP_OF_CT_TAIL ([-\d.]+)/.exec(WING_SRC)[1]);
 const FRICTION = Number(/#define PROP_FRICTION ([\d.]+)/.exec(WING_SRC)[1]);
+
+/* The free rotor's speed at airspeed u: the fastest n where the air's
+ * torque, n^2 cp(u / (V_p n)), holds the friction; 0 where none does.
+ * Down from the speed whose torque is zero, in steps, then halved. */
+function windmill(fw, u) {
+  const g = (n) => n * n * fw.prop.cp(u / (fw.pitch_speed * n)) + FRICTION;
+  let mu0 = 0;
+  while (mu0 < 4 && fw.prop.cp(mu0) > 0) mu0 += 0.001;
+  let hi = u / (fw.pitch_speed * mu0);
+  for (let lo = hi * 0.99; lo > 1e-4; lo *= 0.99) {
+    if (g(lo) < 0) {
+      for (let k = 0; k < 60; k += 1) {
+        const mid = (lo + hi) / 2;
+        if (g(mid) < 0) lo = mid; else hi = mid;
+      }
+      return hi;
+    }
+    hi = lo;
+  }
+  return 0;
+}
 
 function thrust(fw, stick, u, curve = null) {
   /* No motor at all (the DLG): no thrust, as the plant has it. */
@@ -203,21 +224,19 @@ function thrust(fw, stick, u, curve = null) {
   duty = Math.min(1, Math.max(0, duty));
   /* An electric prop at zero duty free wheels and windmills (plant_wing.c
    * prop_free): it settles where the air's torque meets the motor's
-   * friction, n^2 (CP0 + TAIL ct) + f = 0 with ct = 1 - u / (V_p n), the
-   * larger root, and drags there, T_s n^2 ct; under the speed that turns
-   * it at all it stops. A fan, or a table with no rotor, stops. */
+   * friction, n^2 cp(mu) + f = 0 at mu = u / (V_p n), the fastest such
+   * speed, and drags there, T_s n^2 ct(mu); under the speed that turns it
+   * at all it stops. A fan, or a table with no rotor, stops. */
   if (!(duty > 0)) {
     if (!(fw.current_full > 0) || !(fw.j_prop > 0) || fw.fan_tau > 0 || !(u > 0)) return 0;
-    const a = CP0 + CP_TAIL, bq = CP_TAIL * u / fw.pitch_speed, disc = bq * bq - 4 * a * FRICTION;
-    if (!(disc > 0)) return 0;
-    const n = (bq + Math.sqrt(disc)) / (2 * a);
-    return fw.thrust_static * n * n * (1 - u / (fw.pitch_speed * n));
+    const n = windmill(fw, u);
+    return n > 0 ? fw.prop.thrust(fw.thrust_static, u, n) : 0;
   }
   /* The prop's speed at the duty: an electric motor's own law (plant_wing.c
    * prop_spool), n^2 + K_M n = (K_M + 1) d; an engine's, and a fan's (fan_spool), is the duty. */
   const KM = 0.85 / 0.15;
   const n = fw.current_full > 0 && !(fw.fan_tau > 0) ? (-KM + Math.sqrt(KM * KM + 4 * (KM + 1) * duty)) / 2 : duty;
-  const t = fw.thrust_static * n * n * (1 - Math.max(0, u) / (fw.pitch_speed * n));
+  const t = fw.prop.thrust(fw.thrust_static, u, n);
   return fw.fold_duty === 0 && t < 0 ? 0 : t;
 }
 

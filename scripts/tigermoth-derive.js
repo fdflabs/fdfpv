@@ -30,6 +30,7 @@
  */
 
 import { biplaneCell } from './lib/biplane.js';
+import { wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -277,7 +278,11 @@ const idle = 2000 / rpmLoaded;
 const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * IN * 0.85;
 const dutyOf = (stick) => idle + (1 - idle) * stick;
-const T = (V, stick) => { const d = dutyOf(stick); return Math.max(0, Ts * d * d * (1 - V / (Vp * d))); };
+/* The thrust on APC's curve the plant flies (scripts/lib/propcurve.js),
+ * whose pitch speed is this one: the prop's geometric pitch at full rpm. */
+const prop = wingProp('FW_TIGERMOTH1803');
+if (Math.abs(prop.pitchSpeed - Vp) > 0.01) throw new Error(`tigermoth-derive: the plant's pitch speed ${prop.pitchSpeed} is not V_p ${Vp}`);
+const T = (V, stick) => Math.max(0, prop.thrust(Ts, V, dutyOf(stick)));
 
 /*
  * MASS AND INERTIA, ESTIMATED from the parts, x forward of the CG and z
