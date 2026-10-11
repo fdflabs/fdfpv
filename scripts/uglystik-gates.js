@@ -54,6 +54,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude,
+  loopHold,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -241,8 +242,11 @@ check: {
       `${Math.abs(invRoll.rateDegS).toFixed(0)} against ${Math.abs(u6.rateDegS).toFixed(0)} deg/s`, `within ${u8.rollPct} percent`);
   }
 
-  /* U9: a loop. Level at full throttle, then half up stick held with the
-   * ailerons and rudder centred until the flight path has gone once round
+  /* U9: a loop. Level at full throttle, then half up stick held, the
+   * wings and the nose kept in the loop's plane on the ailerons and the
+   * rudder as a pilot keeps them (wingpilot.js loopHold; the prop's
+   * torque and swirl at the loop's speed turn it out of the plane with
+   * them centred, docs/FLIGHTMODEL.md), until the flight path has gone once round
    * in the vertical plane it started in, the derivation's point mass's
    * own end: the path's angle, unwrapped, from the velocity. */
   {
@@ -255,7 +259,8 @@ check: {
     let t = 0;
     let path = Math.atan2(s0[6], s0[4]);
     for (; t < 20000 && turned < 2 * Math.PI; t += RC_STEP_MS) {
-      o = step(sim, [0, t9.stick, 0, 1]);
+      const [rollStick, yawStick] = loopHold(o.s);
+      o = step(sim, [rollStick, t9.stick, yawStick, 1]);
       const now = Math.atan2(o.s[6], o.s[4]);
       turned += wrap(now - path);
       path = now;

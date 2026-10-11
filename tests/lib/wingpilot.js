@@ -626,6 +626,31 @@ export function rudderHold(s) {
  * down going wing deeper into it). The rudder only aircraft's wings level
  * law, -1.2 bank - 0.12 p, on the yaw stick. */
 /*
+ * A pilot flying a loop straight, as a real one does on the ailerons and
+ * the rudder (the take offs' handbook pilot, the air's): the wings held
+ * across the loop's plane, the left wing on world +y the whole way round
+ * as an inside loop keeps it, and the nose in that plane. The roll error
+ * is the angle about the body's x that brings its y axis onto world y,
+ * on the wings' level law (-1.2 rad, -0.12 p); the yaw error the nose's
+ * heading off the loop's line, on rudderHold's law (6.0, 0.6 r). Returns [roll,
+ * yaw] sticks.
+ */
+export function loopHold(s) {
+  const [w, x, y, z] = [s[7], s[8], s[9], s[10]];
+  const xb = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+  const yb = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
+  /* (yb x world y) . xb: the signed angle about x that takes yb onto y. */
+  const c = [-yb[2], 0, yb[0]];
+  const theta = Math.asin(Math.max(-1, Math.min(1, c[0] * xb[0] + c[2] * xb[2])));
+  const roll = Math.max(-1, Math.min(1, 1.2 * theta - 0.12 * s[11]));
+  /* The nose's heading off the loop's line where the nose has one, the
+   * out of plane angle where it is near the vertical. */
+  const off = Math.abs(xb[0]) > 0.3 ? Math.atan2(xb[1], Math.abs(xb[0])) : Math.asin(Math.max(-1, Math.min(1, xb[1])));
+  const yaw = Math.max(-1, Math.min(1, 6.0 * off + 0.6 * s[13]));
+  return [roll, yaw];
+}
+
+/*
  * A pilot's take off roll, as the handbook flies one (FAA-H-8083-3C ch. 6,
  * https://www.faasafety.gov/files/events/SO/SO15/2022/SO15112841/Chapter6TakeoffsAndDepartureClimbs.pdf):
  * the throttle advanced "smoothly and continuously" to full, here over
