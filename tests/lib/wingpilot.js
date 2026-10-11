@@ -453,7 +453,7 @@ export function chuteTest(sim, { height = 60, speed = 16, duty = 0.667, cruiseMs
   const end = sim.readState().state;
   return {
     sink: -mean('vz'), upzMean: mean('upz'), upzWorst: Math.max(...before.map((o) => o.upz)),
-    peakG, touchdown, rest: { z: end[3], upz: upz(end), v: Math.hypot(end[4], end[5], end[6]), w: Math.hypot(end[11], end[12], end[13]) },
+    peakG, touchdown, end, rest: { z: end[3], upz: upz(end), v: Math.hypot(end[4], end[5], end[6]), w: Math.hypot(end[11], end[12], end[13]) },
     rpmAfter: trace.length > 250 ? trace[250].rpm : null, drift: Math.hypot(end[1] - pulledAt[1], end[2] - pulledAt[2]),
     open: sim.e.sim_wing_chute_open(),
   };
