@@ -222,6 +222,10 @@ static double g_esc_ramp = 0.0;
  * next step takes it at the duty's as a launch does. */
 static double g_prop_n = 0.0;
 static int g_prop_hot = 0;
+/* The prop's speed's rate over the last step, per second, of full: the
+ * rotor's acceleration, whose torque the drive also puts on the airframe.
+ * Zero on the step a launch starts the prop at its duty. */
+static double g_prop_dn = 0.0;
 
 /* A fan that idles is a turbine: a ducted fan's table with an idle. No
  * table had both before the Striker's, so this is false on every other. */
@@ -488,18 +492,40 @@ static const double CP_OF_CT[CP_OF_CT_N] = {
   0.187, 0.358, 0.517, 0.661, 0.789, 0.901, 0.994, 1.064, 1.099, 1.088, 1.000,
 };
 
+/* Past APC's last row, where the thrust is gone and the prop still takes
+ * power, Cp goes on falling straight with Ct: near zero thrust the blades
+ * are near zero lift and the power is the thrust's, J Ct, plus the
+ * blades' profile drag, which hardly changes over the last rows. The 11 x
+ * 7E's last three rows (J 0.71 to 0.77 at 9,000 rpm, PER3_11x7E.dat) fall
+ * 1.676 in Cp over its static value per unit of Ct over its, so Cp is
+ * zero at Ct over its static value -0.113: the prop windmills there, the
+ * air turning it with nothing to drive it. scripts/cp-tail-derive.js
+ * prints it and the 8 x 4E's, 12 x 6's, 13 x 6.5E's, 13 x 8E's, 12 x 8E's,
+ * 11 x 5.5E's and 12 x 6E's, 1.38 to 1.83. FITTED: a straight line past
+ * the data's end; a prop well past its windmill stalls its blades the
+ * other way, which no row we hold reaches. */
+#define CP_OF_CT_TAIL 1.676
+
+/* Cp over its static value at the thrust law's ct, CP_OF_CT and its tail. */
+static double cp_of_ct(double ct) {
+  if (!(ct < 1.0)) {
+    return CP_OF_CT[CP_OF_CT_N - 1];
+  }
+  if (ct < 0.0) {
+    return CP_OF_CT[0] + CP_OF_CT_TAIL * ct;
+  }
+  const double x = ct * (double)(CP_OF_CT_N - 1);
+  const int i = (int)x;
+  return CP_OF_CT[i] + (x - (double)i) * (CP_OF_CT[i + 1] - CP_OF_CT[i]);
+}
+
 static double power_current(const FixedWingParams *fw, double de, double ct, double r_v) {
   if (!(fw->current_full > 0.0) || !(ct > 0.0)) {
     return 0.0;
   }
   /* A ducted fan's power is its speed's cube whatever the airspeed, so
    * its ratio stays the static one, CP_OF_CT's last. */
-  double g = CP_OF_CT[CP_OF_CT_N - 1];
-  if (ct < 1.0 && !(fw->fan_tau > 0.0)) {
-    const double x = ct * (double)(CP_OF_CT_N - 1);
-    const int i = (int)x;
-    g = CP_OF_CT[i] + (x - (double)i) * (CP_OF_CT[i + 1] - CP_OF_CT[i]);
-  }
+  const double g = fw->fan_tau > 0.0 ? CP_OF_CT[CP_OF_CT_N - 1] : cp_of_ct(ct);
   return fw->current_full * de * de * de * g / r_v;
 }
 
@@ -790,6 +816,7 @@ void plant_wing_reset(void) {
   g_fan_v = 0.0;
   g_esc_ramp = 0.0;
   g_prop_n = 0.0;
+  g_prop_dn = 0.0;
   /* A motor is stopped at a reset; an engine is already idling. */
   g_prop_hot = PLANT.fw->current_full > 0.0 ? 0 : 1;
   g_discus = 0;
@@ -881,20 +908,46 @@ static int prop_spools(const FixedWingParams *fw) {
   return fw->j_prop > 0.0 && !(fw->fan_tau > 0.0) && fw->thrust_static > 0.0;
 }
 
-static double prop_spool(const FixedWingParams *fw, double de, int off) {
+/* An electric motor at zero duty is not driven at all: the ESC stops
+ * switching, and Spektrum's Avian ESCs ship with the brake off, "Motor
+ * will free wheel when throttle position is zero" (SmartLink ESC
+ * instructions, https://www.astramodel.cz/manualy/S/Spektrum_SmartLink_ESC_Instructions.pdf).
+ * Its rotor neither drives nor brakes, and the airframe meets no torque
+ * from it. Above zero the ESC holds the duty, braking a faster rotor
+ * (the damped light the spool's K_M term is). A folding prop's ESC brakes
+ * it to fold (FixedWingParams.fold_duty), which plant_wing_step takes. */
+static int prop_free(const FixedWingParams *fw, double de) {
+  return fw->current_full > 0.0 && !(de > 0.0);
+}
+
+static double prop_spool(const FixedWingParams *fw, double de, int off, double u_pos) {
+  int hot = 0;
   if (g_prop_hot) {
     g_prop_hot = 0;
     g_prop_n = de;
+    hot = 1;
   }
   const double w_f = 0.85 * fw->rpm_no_load * 2.0 * WING_PI / 60.0;
   const double q_f = fw->torque_arm * fw->thrust_static;
   const double n = g_prop_n;
   const double electric = fw->current_full > 0.0 ? PROP_K_M * (de - n) : 0.0;
-  const double drive = off ? 0.0 : electric + de * de;
-  g_prop_n = n + SIM_DT * q_f * (drive - n * n) / (fw->j_prop * w_f);
+  const int free = off || prop_free(fw, de);
+  const double drive = free ? 0.0 : electric + de * de;
+  /* A driven rotor's load is taken at its static torque, so that it holds
+   * n = d at any airspeed and the trims stay the table's (the motor's
+   * unloading at speed is left out, docs/FLIGHTMODEL.md). A free rotor has
+   * nothing but the air: its torque at the advance ratio it turns at,
+   * cp_of_ct's, falls as the air speeds it and past the windmill turns it,
+   * so it settles where Cp is zero, spinning with the airspeed. */
+  double load = n * n;
+  if (free && n > 0.0) {
+    load = n * n * cp_of_ct(1.0 - u_pos / (fw->pitch_speed * SIM_BOOST * n));
+  }
+  g_prop_n = n + SIM_DT * q_f * (drive - load) / (fw->j_prop * w_f);
   if (g_prop_n < 0.0) {
     g_prop_n = 0.0;
   }
+  g_prop_dn = hot ? 0.0 : (g_prop_n - n) / SIM_DT;
   return g_prop_n;
 }
 
@@ -1936,7 +1989,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (fan) {
     n = fan_spool(fw, throttle, duty_e, dead || g_chute);
   } else if (prop_spools(fw)) {
-    n = prop_spool(fw, duty_e, dead || g_chute);
+    n = prop_spool(fw, duty_e, dead || g_chute, u > 0.0 ? u : 0.0);
   }
   const double u_pos = u > 0.0 ? u : 0.0;
   /* A fan or a prop at rest makes nothing, where 0 / 0 would be a NaN. */
@@ -1950,7 +2003,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const int folded = fw->fold_duty > 0.0 && throttle < fw->fold_duty;
   if (folded) {
     thrust = 0.0;
-  } else if (fw->fold_duty == 0.0 && thrust < 0.0) {
+  } else if (fw->fold_duty == 0.0 && thrust < 0.0 && !(prop_spools(fw) && prop_free(fw, duty_e))) {
+    /* A fixed prop the drive holds slower than the air stops at zero, as
+     * it always did; a free one windmills, and drags. */
     thrust = 0.0;
   }
   if (g_chute) thrust = 0.0; /* the motor is cut with the pull */
@@ -1962,6 +2017,33 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* The chase boost's faster prop, last; exact at 1.0 (sim_set_boost). */
   thrust *= SIM_BOOST * SIM_BOOST;
   F[0] += thrust;
+  /*
+   * THE PROP'S TORQUE AND ITS ROTOR, docs/FLIGHTMODEL.md "The prop's
+   * torque, from the drive". q_air is the torque the prop puts into the
+   * air, the wash's swirl: its static torque times n^2 times Cp over its
+   * static value at this step's ct (cp_of_ct, APC's), where it was the
+   * thrust's share: at the pitch speed, where the thrust is gone, the
+   * blades' drag still takes a fifth of the static torque, and past the
+   * windmill the air turns the prop. q_react is what the drive puts on the
+   * airframe through the motor's mount: the prop's torque and the rotor's
+   * own acceleration, J w_f n', so the rotor's angular momentum comes out
+   * of the airframe's as it spins up and goes back as it is braked. A
+   * motor that is not driving (folded, cut, flat, dead) puts nothing on
+   * the airframe, and its rotor coasts on: w_rot, the rotor's speed, which
+   * the gyroscope below takes. A table with no rotor keeps the thrust's
+   * share and the reported speed.
+   */
+  double q_air = fw->torque_arm * thrust;
+  double q_react = q_air;
+  double w_rot = -1.0;
+  if (prop_spools(fw)) {
+    const double w_f = 0.85 * fw->rpm_no_load * 2.0 * WING_PI / 60.0;
+    const int driven = !folded && !g_chute && !dead && !prop_free(fw, duty_e);
+    const double kt = CRASH.active ? CRASH.kt[0] : 1.0;
+    q_air = driven ? fw->torque_arm * fw->thrust_static * n * n * cp_of_ct(ct) * kt * SIM_BOOST * SIM_BOOST : 0.0;
+    q_react = driven ? q_air + fw->j_prop * w_f * g_prop_dn : 0.0;
+    w_rot = (folded || !(kt > 0.0)) ? 0.0 : n * w_f;
+  }
   /*
    * THE SLIPSTREAM over the tail and the ailerons, where the table has one
    * (FixedWingParams.slip_r). Momentum theory: the disc's pressure jump
@@ -2014,7 +2096,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * Interference, TU Delft 2005: the wing recovers a significant part of
      * the swirl). SWIRL_KEEP of the swirl reaches the fin; the rest is the
      * root's. */
-    const double q_prop = fw->torque_arm * thrust;
+    const double q_prop = q_air;
     const double mdot = PLANT.rho * WING_PI * fw->slip_r * fw->slip_r * (u_pos + vi);
     const double keep = fw->slip_pusher ? 1.0 : SWIRL_KEEP;
     const double xs = keep * q_prop * (up - dn) / (mdot * rw * rw);
@@ -2167,7 +2249,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
                                  add_term(fw->cm_dcl_f * dcl_f, -(fw->cg_shift / fw->chord) * CL));
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
-  M[0] = l_aero - fw->torque_arm * thrust; /* the prop turns one way; the airframe answers the other */
+  M[0] = l_aero - q_react; /* the prop turns one way; the airframe answers the other */
   /* A thrust line off the CG pitches with power, (0, z, 0) x (T, 0, 0).
    * P factor: at an angle of attack the descending blade meets the air
    * harder than the rising one, which moves the thrust off the axis toward
@@ -2221,7 +2303,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * (q positive) yaws the nose left and a yaw rate nose right pitches it
    * down, for a prop turning clockwise seen from behind. */
   if (fw->j_prop > 0.0) {
-    const double H = fw->j_prop * s->motor_omega[0];
+    const double H = fw->j_prop * (w_rot < 0.0 ? s->motor_omega[0] : w_rot);
     M[1] -= s->omega[2] * H;
     M[2] += s->omega[1] * H;
   }

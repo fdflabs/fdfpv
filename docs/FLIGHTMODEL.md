@@ -1211,3 +1211,104 @@ is re-derived on the stall's own CL max, 0.898 at 1.7e5: 8.54 m/s, band
 8.03 to 9.73 (was 8.31, 7.81 to 9.47, on the estimated 0.95); the plant
 reads 8.75. A half stick pull at 16 m/s now breaks at 15.2 deg (13.8
 before).
+
+## The prop's torque, from the drive (BLOCKED on gates, not merged)
+
+The propulsion lane's items 2 and 4 (w35-prop-torque), one branch because
+they cannot be separated: both need the electric ESC at zero throttle to
+free wheel, which escstop's own source says and its spool did not do (at
+zero duty prop_spool's K_M term still braked the rotor to a stop in a few
+tenths of a second, a regenerative brake the Avian's "Motor will free
+wheel when throttle position is zero" does not have).
+
+**What was there.** The airframe's roll against the prop was torque_arm
+times the thrust: the torque fell with the thrust, to nothing at the pitch
+speed; the swirl was the same number; the gyroscope took the reported
+motor speed, zero the moment a motor was cut though its rotor coasts; a
+throttle punch spun the rotor up and put none of its angular momentum
+into the airframe.
+
+**What the branch does.**
+
+- The airframe meets what the drive puts on it through the motor's mount,
+  Newton's third law: the prop's torque and the rotor's own acceleration,
+  J w_f n'. A rotor spinning up takes its angular momentum out of the
+  airframe's; a braked one gives it back. A motor that is not driving
+  (zero duty on a free wheeling ESC, folded, cut, flat, dead) puts nothing
+  on the airframe.
+- The prop's torque is APC's at the step's thrust share, cp_of_ct (the
+  CP_OF_CT table the pack's current already used, APC's 11 x 7E): at half
+  the thrust 0.90 of the static torque, at the pitch speed 0.19, where the
+  thrust law gave 0.5 and 0. Past APC's last row it goes on straight
+  (CP_OF_CT_TAIL 1.676, the 11 x 7E's last three rows; `npm run cp:tail`
+  prints it and seven more props, 1.38 to 1.83), to zero at a thrust share
+  of -0.112, the windmill, and below it the air drives the prop. FITTED:
+  the straight line past the data's end.
+- The swirl is the prop's torque, the angular momentum the wash carries.
+- The gyroscope takes the rotor's speed, so a cut motor's coasting prop
+  still precesses.
+- A free rotor (an electric ESC at zero duty) has nothing on it but the
+  air: it windmills where its torque is zero, n = u / (1.112 V_p), and its
+  thrust there is negative, the windmill's drag. A driven rotor keeps the
+  static load, so it holds n = d and the trims stay the tables': the
+  motor's unloading at speed (a few percent more rpm in cruise) is left
+  out, as is a driven prop's negative thrust past its pitch speed (still
+  held at zero).
+
+**Measured against its sources** (the Extra; scripts in the lane's
+scratch, numbers here):
+
+- Punch from the hover throttle to full, hanging: the roll acceleration
+  jumps -39.9 rad/s^2 in the first millisecond (the batch's -3.0, the
+  aero alone); J w_f n' / Ixx from the spool's own equation is -38.6, 3
+  percent.
+- Power off glide at 10.4 m/s, 3 s after the chop: the prop windmills at
+  3,648 rpm against the Cp tail's 3,690; its drag 0.478 N, 0.084 of the
+  dynamic pressure on its disc, against Hoerner's freely windmilling
+  prop's about a tenth (Fluid Dynamic Drag, ch. 13, docs/GLIDER-STAGE1.md).
+  The batch's stopped prop: 0 rpm, no drag.
+
+**The gates it fails, each by the sub-change that moves it** (knockout
+builds: the old torque law, no J w_f n', no gyroscope, no windmill):
+
+ Gate | Measured, batch to branch | Moved by | Kind
+ --- | --- | --- | ---
+ p51 P19, the slow power off pull's wing drop | pb/2V 0.104 to 0.160 (band 0.04 to 0.118) | the windmilling prop's gyroscope (without it 0.0839, the XP-51's 0.079) | real data, full scale
+ bombshell S15 and bombshell:stab, sticks centred take off | lifts off at 16.9 m to never, ground loops | the swirl at the APC torque | premise
+ slowstick:stab take off tracking | heading 3.6 to 5.2 deg (5) | the APC torque | premise
+ extra:stab take off roll, wings within 5 deg | 2.7 to 11.1 deg | the punch's J w_f n' (5.7 without), the APC torque (6.8 without) | premise
+ bombshell S6, slowstick S6, the self level from 30 deg | 5.2 to 1.8 deg at 6 s (3.6 to 12.1); 7.5 to 5.7 (6 to 20) | the APC torque | derivation without torque
+ slowstick S9b, full up power on | bank 10.4 to 11.5 (under 15), yaw 18.6 to 20.2 deg/s (20) | the APC torque | marginal
+ uglystik U9, the loop | out -8.7 to -9.3 m (-11.6 to ...) | the APC torque | marginal
+ p51:stab, Stabilised on full flaps | bank 1.7 to 3.5 deg (3) | the APC torque | marginal
+ p51 P18, the full flap landing | hull or prop 0 to 1 | the windmill | marginal
+ timber T12, the landing roll | 23.6 to 26.8 m (25) | the windmill (a free rotor's stored speed pushes) | marginal
+ stab:chop sky, bramor, nighttimber, the power off glide | sink over the derived band | the windmill's drag | derivation without it
+
+- **P19 is the one real data gate.** Its band is the XP-51's full scale
+  stall (NACA, 1943); without the gyroscope the branch reads 0.0839
+  against the XP-51's 0.079, so the stall model matches and the model
+  scale gyroscope is what moves it. The gyroscope's yaw acceleration,
+  J omega q / I_z, in the time unit b/V the band is scaled by, is two to
+  three orders of magnitude larger on a 1.45 m model than on an 11 m
+  aircraft (an estimate: the full scale prop's inertia is not in the
+  report), so a full scale stall cannot carry a model's gyroscope. No
+  model scale windmilling stall data was found to re-derive it from.
+- **The take off gates' premise** (sticks centred, straight) is what
+  PR 2 already moved the Ugly Stik and the river pilots off ("hold the
+  line on the rudder as every other take off pilot does"); several stab
+  tests carry the rudder flown variant beside it.
+- **The Bramor's prop folds** (docs/BRAMOR-STAGE1.md, "Its prop folds back
+  along the tail cone when the plant stops the motor") but its table has
+  no fold_duty, so on this branch it windmills; the table needs its fold
+  before stab:chop's Bramor row means anything.
+- **Mechanical once the physics is accepted**, not done here: the AS3X
+  rows of 16 tables (as3x:derive), configs/power-estimates.js (power:check
+  P8), tools/audio/flights.json, replaylib's wing and Skyhunter traces,
+  simmod's transcript, and stab-glide-derive's thrust with the windmill.
+  Every "unmoved" hash list is re-pinned on the branch already.
+
+This is not done and is not presented as done: the physics is measured
+against its sources, and eleven gates across six aircraft disagree with
+it. Each needs its re-derivation decided, with a source, before the
+branch can land.
