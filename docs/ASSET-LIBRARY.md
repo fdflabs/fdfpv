@@ -65,7 +65,7 @@ after pictures.
 | Tree impostors (far trees) | `vegetation/impostor.js` | baked and placed by the same two | Swiss valley, Itaipu |
 | Far forest canopy surface | not yet | `src/maps/itaipu/vegetation/draw.js` `canopyShell` | Itaipu |
 | Grass and leaf atlas | `vegetation/atlas.js` | loaded by each map's vegetation | Swiss valley, Itaipu, Interior |
-| Turf and near grass | not yet | `swiss2/vegetation/grass.js`, `itaipu/look/ground.js` `makeTurf`, `interior/nearfield.js` | one each |
+| Near grass, weeds, reeds and bushes as layers of crossed cards | `vegetation/cards.js` | placed by `interior/nearfield.js`. The Swiss valley's meadow (`swiss2/vegetation/grass.js`, its material reads the valley's ground paint) and Itaipu's turf (`itaipu/look/ground.js` `makeTurf`, a mesh the ground's textures displace) stay their own | Interior |
 | Ground cover materials | not yet | each map's `ground.js` / `look/ground.js` | one each |
 | Water surface (lake, pool, stream), wave texture, stream ribbons and gravel bars, planar mirror | `water/surface.js`, `water/waves.js`, `water/stream.js`, `water/mirror.js` | placed by `swiss2/water/` and `swiss2/props/` (bars); Itaipu's reservoir and river (`itaipu/water/index.js`) draw with the material, texture and mirror. The Interior's silty river and banks (`interior/ribbons.js`) and the Alps' cel water (`alps/nature.js`) stay their own | Swiss valley, Itaipu |
 | Scanned rocks (boulders and stones: scans, material, colliders, levels) | `rocks.js` | placed by `swiss2/vegetation/rocks.js`; the Alps keep their cel boulders (`alps/nature.js`), the carved cliffs stay with the Swiss valley's terrain (`swiss2/rock/`) | Swiss valley |
@@ -195,6 +195,31 @@ the bed in the shallows, shore and rapids foam, a planar mirror).
   on High and Medium, scissored to the texels the water reads
   (`perf-mirror-check.js`). Program keys `swiss2-water-*`.
 - **Golden**: `tests/browser/render-golden/water.js`.
+
+## Card layers (`src/render/library/vegetation/cards.js`)
+
+The Interior's near field: grass, weeds and reeds from the grass atlas
+and bushes from the foliage atlas, three cards crossed a clump, one
+instanced mesh a layer, refilled from tiles round the camera.
+
+- **Inputs**: `cardLayer(THREE, { atlas, regions, cap, radius, tip,
+  tints, name, rough })`: the atlas, its uv rectangles, the most cards,
+  the reach, how far the normals lean to the cards, the tints (linear
+  multipliers), a name, the roughness. Cards are `STRIDE` floats: foot,
+  yaw, height, width, region, tint.
+- **Outputs**: `{ mesh, fill(tiles), uniforms, dispose() }`; `fill` takes
+  the map's tiles (Float32Arrays of cards) and returns how many it drew;
+  `uniforms.uNfReach` the inner and outer edge the clumps grow in and
+  shrink out over.
+- **Shape**: none; cards are not collided. The Interior keeps them under
+  a person's chest along its routes, so they hide no one the room calls
+  seen (`canopy:los`, `people:route`).
+- **Perf**: one draw a layer, 6 triangles a clump; the Interior's four
+  layers at High hold up to 146 000 clumps and draw only while the camera
+  is under 50 m (`npm run interior:views`). Program keys
+  `interior-near-<name>`.
+- **Golden**: `tests/browser/render-golden/near-grass.js`, through the
+  Interior's `buildNearField`.
 
 ## Placing an asset on a map
 
