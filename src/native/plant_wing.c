@@ -2339,7 +2339,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
       /* No flap span given (no flaps), the strips take the wing's. */
       const double fs = fa > 0.0 ? cov[i] / fa : 1.0;
-      const double as_i = add_term(alpha_strip, (fs - 1.0) * dclmax_f / fw->cl_alpha);
+      const double as_i = add_term(alpha_strip, (fs - 1.0) * dclmax_f / wing_cla(fw));
       const double st0 = kmin > 0.0 ? as_i * (fw->strip_k[i] / rr[i]) / kmin : as_i * rmax / rr[i];
       const double st = add_term(st0, fw->washout * (0.125 + 0.25 * i));
       const double dcl_i = fs * dcl_f;
@@ -2599,6 +2599,7 @@ const FixedWingParams FW_SKY1800 = {
   .area = 0.36,
   .chord = 0.20,
   .cl_alpha = 5.52,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 5.141, /* the wing alone, a_w, scripts/stall-derive.js */
   .cl_max = 1.10,
   /* The zero lift line 4 degrees under the body axis: incidence and a
    * cambered section. sin and cos of minus 4 degrees, to 17 digits. */
@@ -2690,6 +2691,7 @@ const FixedWingParams FW_CUB1400 = {
   .area = 0.28,
   .chord = 0.20,
   .cl_alpha = 5.21,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 4.887, /* the wing alone, a_w, scripts/cub-derive.js */
   .cl_max = 1.15,
   /* The zero lift line 5 degrees under the body axis: a flat bottomed
    * section of the USA 35B class set at about 1.5 degrees of incidence.
@@ -2785,6 +2787,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .area = 0.355,
   .chord = 0.1866,        /* the mean aerodynamic chord of the drawn planform */
   .cl_alpha = 5.709,      /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 5.336, /* the wing alone, a_w, scripts/glider-derive.js */
   .cl_max = 1.05,
   /* The zero lift line 5 degrees under the body axis: a cambered glider
    * section at about 1.5 degrees of incidence. sin and cos of minus 5
@@ -2844,7 +2847,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
   .as3x_k = { 0.0596, 0.1703, 0.5504 }, /* npm run as3x:derive */
   .as3x_kh = { 0.5319, 1.5199, 4.9123 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.297, -0.978, -0.611 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.297, -0.986, -0.611 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -2887,6 +2890,7 @@ const FixedWingParams FW_NRJ1490 = {
   .area = 0.190,
   .chord = 0.1378,        /* the mean aerodynamic chord of the elliptic planform */
   .cl_alpha = 5.657,      /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 5.365, /* the wing alone, a_w, scripts/dlg-derive.js */
   .cl_max = 0.95,
   /* The zero lift line 3 degrees under the body axis: a thin, lightly
    * cambered section at about 1 degree of incidence. sin and cos of minus
@@ -3081,6 +3085,7 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .area = 0.3264,
   .chord = 0.2776,        /* S/b */
   .cl_alpha = 4.58,       /* wing and tail, Nelson eq. 2.52, DATCOM downwash */
+  .cl_alpha_wing = 4.268, /* the wing alone, a_w, scripts/slowstick-derive.js */
   .cl_max = 1.05,
   /* The zero lift line 6.06 degrees under the stick: a flat bottomed
    * section on the saddles at 3 degrees of incidence, less the tail's
@@ -3138,7 +3143,7 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
   .as3x_k = { 0, 0.2815, 1.054 }, /* npm run as3x:derive */
   .as3x_kh = { 0, 2.5124, 9.4069 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.602, -1.082, -0.625 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.602, -1.081, -0.626 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3182,6 +3187,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .area = 0.361,
   .chord = 0.2322,        /* S/b */
   .cl_alpha = 5.25,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 4.838, /* the wing alone, a_w, scripts/timber-derive.js */
   .cl_max = 1.15,         /* clean, without the slats */
   /* The zero lift line 5 degrees under the body axis, the Cub's: a thick
    * semi symmetric section at 1.5 degrees of incidence. */
@@ -3236,7 +3242,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
   .as3x_k = { 0.0458, 0.0918, 0.4276 }, /* npm run as3x:derive */
   .as3x_kh = { 0.4088, 0.8193, 3.8163 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.532, -1.664, -0.974 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.532, -1.663, -0.974 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3298,6 +3304,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .area = 0.361,
   .chord = 0.2322,        /* S/b */
   .cl_alpha = 5.25,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 4.838, /* the wing alone, a_w, scripts/timber-derive.js */
   .cl_max = 1.15,         /* clean, without the slats */
   /* The zero lift line 5 degrees under the body axis, the Cub's: a thick
    * semi symmetric section at 1.5 degrees of incidence. */
@@ -3352,7 +3359,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
   .as3x_k = { 0.0605, 0.1174, 0.4916 }, /* npm run as3x:derive */
   .as3x_kh = { 0.54, 1.0478, 4.3875 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.65, -1.724, -1.176 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.65, -1.723, -1.176 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3408,6 +3415,7 @@ const FixedWingParams FW_CUB1400F = {
   .area = 0.28,
   .chord = 0.20,
   .cl_alpha = 5.21,       /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 4.887, /* the wing alone, a_w, scripts/cub-derive.js */
   .cl_max = 1.15,
   /* The zero lift line 5 degrees under the body axis: a flat bottomed
    * section of the USA 35B class set at about 1.5 degrees of incidence.
@@ -3463,7 +3471,7 @@ const FixedWingParams FW_CUB1400F = {
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
   .as3x_k = { 0.0998, 0.2362, 1.072 }, /* npm run as3x:derive */
   .as3x_kh = { 0.8907, 2.1081, 9.5676 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.441, -1.463, -0.681 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.441, -1.462, -0.681 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3507,6 +3515,7 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .area = 0.212903,       /* BMJR, 330 sq in */
   .chord = 0.1905,        /* S/b */
   .cl_alpha = 4.991,      /* wing (its panels' cos^2) and tail, DATCOM downwash */
+  .cl_alpha_wing = 4.453, /* the wing alone, a_w, scripts/bombshell-derive.js */
   .cl_max = 1.0,
   /* The zero lift line 5.02 degrees under the thrust line: a flat bottomed
    * section at the plan's 2 degrees of incidence, less the tail's share.
@@ -3561,9 +3570,9 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stab_trim_throttle = 0.732, /* the stick that flies it level, elevator neutral */
   .acro_roll_rate = 45.0 * WING_PI / 180.0,
   .acro_pitch_rate = 30.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.1985, 0.962 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 1.7716, 8.5858 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.951, -0.731, -0.683 }, /* npm run as3x:derive */
+  .as3x_k = { 0, 0.1985, 0.9619 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 1.7716, 8.5849 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.951, -0.73, -0.683 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3626,6 +3635,7 @@ const FixedWingParams FW_KADET1981 = {
   .area = 0.741934,       /* SIG, 1150 sq in */
   .chord = 0.374487,      /* S/b */
   .cl_alpha = 5.029,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
+  .cl_alpha_wing = 4.533, /* the wing alone, a_w, scripts/kadet-derive.js */
   .cl_max = 1.15,
   /* The zero lift line 4.62 degrees under the thrust line: a flat bottomed
    * section at SIG's 1.5 degrees of incidence, less the tail's share. sin
@@ -3734,6 +3744,7 @@ const FixedWingParams FW_P51D1450 = {
   .area = 0.354,          /* FMS, 35.4 dm^2 */
   .chord = 0.24413793103448276, /* S/b */
   .cl_alpha = 4.960,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
+  .cl_alpha_wing = 4.665, /* the wing alone, a_w, scripts/p51-derive.js */
   .cl_max = 1.05,         /* the laminar section at 2e5, ESTIMATED */
   /* The zero lift line 1.28 degrees under the thrust line: a 6 series
    * section's 1.3 deg under its chord at the wing's mean incidence of 0.13
@@ -3861,6 +3872,7 @@ const FixedWingParams FW_F16878 = {
   .area = 0.21484,        /* Model Aviation, 333 sq in */
   .chord = 0.2856,        /* the manual's top view: the trapezoid's mean chord */
   .cl_alpha = 3.310,      /* Helmbold's swept wing and the stabilators, Nelson's downwash */
+  .cl_alpha_wing = 3.142, /* the wing alone, a_w, scripts/f16-derive.js */
   .cl_max = 1.10,
   /* The zero lift line 1.03 degrees under the body axis: the 64A204's
    * camber at no incidence, less the tail's share. sin and cos of minus
@@ -3918,7 +3930,7 @@ const FixedWingParams FW_F16878 = {
   .acro_pitch_rate = 120.0 * WING_PI / 180.0,
   .as3x_k = { 0.039, 0.1061, 0.2497 }, /* npm run as3x:derive */
   .as3x_kh = { 0.3481, 0.9469, 2.2286 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.544, -3.134, -1.219 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.544, -3.133, -1.219 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 8.0,
@@ -4063,6 +4075,7 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .area = 0.51055,        /* the plan: 731 sq in to the hinge line, 60 of strip ailerons */
   .chord = 0.3256,        /* S/b */
   .cl_alpha = 4.824,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
+  .cl_alpha_wing = 4.427, /* the wing alone, a_w, scripts/uglystik-derive.js */
   .cl_max = 0.95,         /* a 16 percent near symmetric section at 2.3e5, ESTIMATED */
   /* The zero lift line 0.43 degrees under the thrust line: the section's
    * zero at the plan's half degree of incidence, less the tail's share.
@@ -4663,6 +4676,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .area = 0.2866,         /* E-flite's 34 dm^2 is with the slats: 0.243 of 0.288 of it */
   .chord = 0.2388,        /* S/b, a constant chord */
   .cl_alpha = 4.9038,     /* wing and tail, Nelson eq. 2.52 */
+  .cl_alpha_wing = 4.494, /* the wing alone, a_w, scripts/nighttimber-derive.js */
   .cl_max = 1.15,         /* clean, the Turbo Timber's thick semi symmetric section */
   /* The zero lift line 5 degrees under the body axis, the Turbo Timber's. */
   .alpha_zl = -5.0 * WING_PI / 180.0,
@@ -4727,9 +4741,9 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_roll_ki = 4.0,
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
-  .as3x_k = { 0.0902, 0.233, 0.6616 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.805, 2.0795, 5.9048 }, /* npm run as3x:derive */
-  .as3x_rate = { 7.34, -5.245, -2.677 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0905, 0.2102, 0.6621 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.8077, 1.876, 5.9092 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.346, -5.912, -2.659 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's

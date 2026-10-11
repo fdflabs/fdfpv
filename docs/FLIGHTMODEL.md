@@ -1292,3 +1292,31 @@ fed the downwash on its own tail, and the Extra's pitch control power
 reads 330 rad/s^2 per rad against 301 (as3x:derive re-derives its gains).
 On a table without hi_alpha the sin cos share stands until that table
 gets the tail's own angle (the fleet's wing slope work).
+
+### The stall angle on the wing's own slope, fleet wide (2026-10-11)
+
+#935 put the Extra's stall angle on the wing's own lift slope, a_w, with
+the tail's share of CLa lifting on past it. Fourteen tailed tables now
+carry it, each a_w its derivation's (cl_alpha_wing, cited on the line):
+the Sky, Cub (and floats), Radian, Slow Stick, Timber (and floats),
+Bombshell, Kadet, F-16, Ugly Stik, NRJ, P-51 and Night Timber. Left out:
+the Hercules (another lane's; its derivation prints no a_w), the Tiger
+Moth (a biplane, bip_r) and the flying wings (no tail).
+
+The rule, written once for every stall gate: alphaStall is CLmax over
+a_w, and the plant's stall CL is the wing's CLmax plus the tail's lift at
+that angle, in the form that table's tail has: (CLa - a_w) sin a cos a
+without hi_alpha, and on the tail's own angle with it (the Extra, the
+Night Timber; the tail's own stall above). Each formula stall band moves
+by sqrt(CLw / (CLw + tail)), checked against the plant before and after
+to within 0.7 percent; the Night Timber's N2b, the video's own 6.7 to
+8.0 m/s, is not rescaled and reads 7.30. The Extra's E2 takes its
+Reynolds CLmax, 0.898. The Bombshell's U2 margin is re-derived in
+bombshell-derive.js (0.2881: over U2's span the lift slope is a_w plus
+the tail's sin cos share, a shade under CLa).
+
+Measured on it: the P-51's P8 wing drop 24.3 deg (NACA's XP-51; 28.2
+before this chain, 18.9 with the slope on the old plate). Still a gap:
+without hi_alpha a tail's lift has no stall and no moment of its own;
+the fleet's tail angle goes with the knife edge work, whose fin half
+needs its own sources. Not started: the Reynolds CLmax per aircraft.

@@ -1,8 +1,8 @@
 {
   "_doc": "FMS P-51D Mustang 1450, docs/P51-STAGE1.md. Every band is the derived figure's (scripts/p51-derive.js) in the Kadet's and the Timber's proportions, never widened to pass.",
   "p1_level_75": { "duty": 0.75, "derived": 15.06, "min": 13.25, "max": 16.87 },
-  "p2_stall": { "derived": 10.06, "alphaStall": 0.21169, "min": 9.46, "max": 11.47 },
-  "p2_stall_flaps": { "derived": 8.41, "alphaStall": 0.18528, "min": 7.91, "max": 9.59 },
+  "p2_stall": { "derived": 9.77, "alphaStall": 0.22508, "min": 9.18, "max": 11.13, "source": "Re-derived 2026-10-11: alphaStall over the wing's own slope, a_w 4.665 (scripts/p51-derive.js), not the wing and tail's 4.96: the stall angle is the wing's and the tail's share lifts on past it, as the Extra's (#935); was 0.21169. And the band with it: the plant's CLmax is the wing's 1.050 plus the tail's share at that angle, (CLa - a_w) sin a cos a = 0.064, so the formula's speeds go by sqrt(1.050 / 1.114) = 0.9708."},
+  "p2_stall_flaps": { "derived": 8.26, "alphaStall": 0.197, "min": 7.76, "max": 9.41, "source": "Re-derived 2026-10-11: alphaStall over the wing's own slope, a_w 4.665 (scripts/p51-derive.js), not the wing and tail's 4.96: the stall angle is the wing's and the tail's share lifts on past it, as the Extra's (#935); was 0.18528. And the band with it: the plant's CLmax is the wing's 1.502 plus the tail's share at that angle, (CLa - a_w) sin a cos a = 0.057, so the formula's speeds go by sqrt(1.502 / 1.558) = 0.9817."},
   "p3_glide": { "speed": 13, "derived": 11.13, "min": 9.91, "max": 12.47 },
   "p4_top": { "duty": 1, "derived": 20.64, "min": 18.78, "max": 23.12 },
   "p4_gear_delta": { "derived": 0.452, "min": 0.2, "max": 0.8 },
@@ -24,15 +24,15 @@
   "s17_unmoved": {
     "quad": "9fdc42323baad668",
     "wing": "6a42b768ca1b2948",
-    "sky": "a8a190cfd1b7ae0e",
-    "cub": "a59215ce8e1f2acd",
-    "glider": "42f88ab9aedd5907",
+    "sky": "6f1fe4f8b72322f7",
+    "cub": "a5a442ecb66db327",
+    "glider": "ca4375d4fcda760f",
     "bramor": "0bad67078ace5f4e",
     "bramorChute": "9c4fdc8488dad15e",
-    "slowstick": "5faeb0cd9d7c8b75",
-    "bombshell": "6c451348cbdb3b9e",
-    "timber": "feefb8057db570f1",
-    "timberf": "bf72c18da4b99011",
-    "kadet": "57f75604c69cfcbd"
+    "slowstick": "db765bee86eede2d",
+    "bombshell": "9ff9721070f281c0",
+    "timber": "6f34086cf6488875",
+    "timberf": "461e001d4087a38a",
+    "kadet": "72f6521f4a7d7b42"
   }
 }

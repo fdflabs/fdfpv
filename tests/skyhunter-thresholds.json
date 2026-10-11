@@ -1,7 +1,7 @@
 {
   "note": "The bands the Skyhunter plant has to land in, from docs/SKYHUNTER-STAGE1.md, which derives each from published figures for the X-UAV Skyhunter 1800. Never widened to pass; argue in the derivation instead.",
   "s1_level_65": { "duty": 0.65, "min": 13.0, "max": 17.0, "unit": "m/s", "source": "level speed at 65 percent throttle, derived 14.9" },
-  "s2_stall": { "alphaStall": 0.19927536231884058, "min": 8.6, "max": 10.4, "unit": "m/s", "source": "sqrt(2W / rho S CLmax), derived 9.2; alphaStall is CLmax / CLalpha, 1.10 / 5.52, of the zero lift line" },
+  "s2_stall": { "alphaStall": 0.21397, "min": 8.31, "max": 10.05, "unit": "m/s", "source": "sqrt(2W / rho S CLmax), derived 9.2; alphaStall is CLmax / CLalpha, 1.10 / 5.52, of the zero lift line Re-derived 2026-10-11: alphaStall over the wing's own slope, a_w 5.141 (scripts/stall-derive.js), not the wing and tail's 5.52: the stall angle is the wing's and the tail's share lifts on past it, as the Extra's (#935); was 0.19927536231884058. And the band with it: the plant's CLmax is the wing's 1.100 plus the tail's share at that angle, (CLa - a_w) sin a cos a = 0.079, so the formula's speeds go by sqrt(1.100 / 1.179) = 0.9661." },
   "s3_glide": { "speed": 11, "min": 11.5, "max": 14.5, "source": "L/D at 11 m/s, derived 13.0" },
   "s4_top": { "duty": 1.0, "min": 21.5, "max": 26.5, "unit": "m/s", "source": "level speed at full throttle, derived 23.5" },
   "s5_roll": { "duty": 0.85, "min": 100, "max": 190, "unit": "deg/s", "source": "full aileron at about 20 m/s, derived 141; 85 percent is the throttle that holds 20 m/s level" },

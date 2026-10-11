@@ -197,7 +197,9 @@ export const TUNING = {
     flaps: { mix: -0.183531, angles: [0, 0.31376497222433070, 0.57058379792549596], source: `E-flite manual p. 3: half 20 mm, full 35 mm; "Flap/Down-Elevator Compensation 16% 30%"; ${TIMBER_MANUAL}` },
   },
   bombshell1118: {
-    chord: 0.1905, area: 0.212903, margin: 0.287,
+    /* The margin U2 reads with the wing's own stall slope and the tail's
+     * share on sin cos, 0.2881 (scripts/bombshell-derive.js); linear, 0.287. */
+    chord: 0.1905, area: 0.212903, margin: 0.288,
     cg: { mm: 62.9, datum: 'tuning.datum.le', range: [55.2, 81.9], source: `the plan's "BALANCE POINT RANGE" bracket, which carries no number, measured at 29 to 43 percent of the chord (docs/BOMBSHELL-STAGE1.md); ${BOMBSHELL_PLAN}` },
     packKg: 0.07, nose: 0.107, tail: -0.58,
     throws: { high: [0, 15, 20], low: [0, 10.5, 14], source: `high: ESTIMATED, no throws published (docs/BOMBSHELL-STAGE1.md); ${LOW_70}` },
