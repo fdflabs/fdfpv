@@ -537,6 +537,8 @@
     "modes:selftest": "node scripts/modes-selftest.js",
     "lint:dashes": "node scripts/dash-lint.js",
     "lint:owner-rules": "node scripts/owner-rules-lint.js",
+    "lint:physics-sources": "node scripts/physics-sources-lint.js",
+    "physics-sources:selftest": "node scripts/physics-sources-selftest.js",
     "daytime:selftest": "node scripts/daytime-selftest.js",
     "briefing:selftest": "node scripts/briefing-selftest.js",
     "sky:smooth": "node scripts/sky-smooth-check.js",

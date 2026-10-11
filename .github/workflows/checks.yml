@@ -426,6 +426,12 @@ jobs:
       # outside vendor/.
       - run: npm run lint:dashes
       - run: npm run lint:owner-rules
+      # A new or changed constant in the C plant carries its source where it
+      # is defined (CLAUDE.md owner rule 2); today's uncited ones are a
+      # baseline that only shrinks (scripts/physics-sources-lint.js). The
+      # lint runs first so a lane sees its whole list in one run.
+      - run: npm run lint:physics-sources
+      - run: npm run physics-sources:selftest
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest
