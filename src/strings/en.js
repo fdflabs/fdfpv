@@ -4397,6 +4397,8 @@ export default {
   "ui.plane_rate_pick_note": "The {plane}'s throws at full stick, aileron, elevator and rudder, as its manual gives them. Low is the manual's low rate, or 70 percent of high where it gives none; Mid is halfway, a three position switch's middle.",
   "ui.plane_expo": "{surface} expo",
   "ui.plane_expo_note": "Softens the stick around centre without changing full stick's throw: 0 is straight, 100 all curve.",
+  "ui.plane_elev_flap": "Elevator to flap mix",
+  "ui.plane_elev_flap_note": "A radio mix 3D pilots set for the harrier: up elevator lowers the flaps too, by this much of their full travel at full stick, on top of the flap switch. Off as the plane ships.",
   "main.control_recording_saved_s": "Control recording saved.\n{secs} s of sticks, surfaces and attitude.",
   "ui.download_control_recording": "Download control recording",
   "ui.download_control_recording_note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
