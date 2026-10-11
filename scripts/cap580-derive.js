@@ -269,9 +269,24 @@ function benchThrottleFor(grams) {
   }
   return 1;
 }
-/* The rpm fraction against the throttle the bench gives, against the
- * plant's steady n = duty (plant_wing.c prop_spool). */
+/* The rpm fraction against the throttle the bench gives. */
 const benchRpmFrac = BENCH.map((r) => [r[0] / 100, r[4] / nStatic]);
+/*
+ * THE THROTTLE CURVE, measured (FixedWingParams.throttle_rpm): the steady
+ * speed over full at the stick's 0, 0.1, ... 1, which the plant turns into
+ * the ESC duty Drela's motor settles on (plant_wing.c). 0.4 to 1 are the
+ * bench's rows (0.9 its 90 percent row, 0.95 not needed). Under 40 percent
+ * T-Motor measured nothing: FITTED, a straight line from the ESC's stop at
+ * 0 to the 40 percent row, so the hover (about 0.53) and everything flown
+ * over 0.4 is measured.
+ */
+const benchAt = (pct) => BENCH.find((r) => r[0] === pct)[4] / nStatic;
+const THROTTLE_RPM = [0, benchAt(40) / 4, 2 * benchAt(40) / 4, 3 * benchAt(40) / 4, benchAt(40), benchAt(50), benchAt(60), benchAt(70), benchAt(80), benchAt(90), 1];
+const curve = (t) => { const x = Math.max(0, Math.min(1, t)) * 10, i = Math.min(9, Math.floor(x)); return THROTTLE_RPM[i] + (x - i) * (THROTTLE_RPM[i + 1] - THROTTLE_RPM[i]); };
+const stickFor = (n) => { let lo = 0, hi = 1; for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (curve(mid) < n) lo = mid; else hi = mid; } return lo; };
+/* Right thrust, 2.5 deg (the 67 in line's build guide and air-rc), the
+ * plant's thrust_yaw. */
+const THRUST_YAW = 2.5 / DEG;
 
 /*
  * APC's PER3_18x8E (the stand in for the AMZ carbon 18 x 8 in forward
@@ -370,7 +385,9 @@ Ixx += 0.180 * (O.track / 2) ** 2;
 
 /* Performance, the plant's polar. */
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
-const level = (d) => {
+/* Level at a stick: the prop at the curve's speed for it. */
+const level = (stick) => {
+  const d = curve(stick);
   let lo = 9, hi = 50;
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d) > D(mid)) lo = mid; else hi = mid; }
   return lo;
@@ -383,7 +400,9 @@ const rollAt = (V) => pb2v * 2 * V / b;
 /* THE 3D REGIME, as the Extra's derivation takes it. The plant's hover
  * stick is sqrt(W / Ts) (its thrust goes as the duty squared standing);
  * the bench's is where its thrust meets the weight. */
-const hoverDuty = Math.sqrt(W / Ts);
+/* The prop speed that holds the weight is sqrt(W / Ts) of full; the
+ * stick that turns it there is the curve's, the bench's own rows. */
+const hoverDuty = stickFor(Math.sqrt(W / Ts));
 const hoverBench = benchThrottleFor(W / G0 * 1000);
 let vClimb = 0;
 for (let V = 0; V < 40; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
@@ -513,7 +532,7 @@ function harrier(alphaDeg) {
   };
   let dLo = -throwE, dHi = throwE;
   for (let i = 0; i < 60; i += 1) { const mid = (dLo + dHi) / 2; if (cm(mid) < 0) dLo = mid; else dHi = mid; }
-  return { alphaDeg, V, thrust, duty, deOfThrow: dLo / throwE, cmAtFull: cm(throwE) };
+  return { alphaDeg, V, thrust, duty: stickFor(duty), deOfThrow: dLo / throwE, cmAtFull: cm(throwE) };
 }
 /* The knife edge, the Extra's derivation's. */
 function knifeEdge(V) {
@@ -536,7 +555,7 @@ function knifeEdge(V) {
     if (side * cb + thrust * sb >= W) {
       let lo = 0, hi = 1;
       for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(u, mid) < thrust) lo = mid; else hi = mid; }
-      return { V, betaDeg: bDeg, duty: lo, thrust, drOfThrow: Math.abs(dr) / throwR };
+      return { V, betaDeg: bDeg, duty: stickFor(lo), thrust, drOfThrow: Math.abs(dr) / throwR };
     }
   }
   return null;
@@ -576,6 +595,7 @@ export const FW = {
   throw_a: deg(throwA), throw_e: deg(throwE), throw_r: deg(throwR), surface_max: deg(throwA), expo: r(EXPO, 2),
   thrust_static: r(Ts, 2), pitch_speed: r(Vp, 2), rpm_no_load: r(rpmNL, 1), torque_arm: r(torqueArm, 5),
   current_full: r(Is, 2), jet_kj: '0.80', prop_x: r(propX, 3),
+  throttle_rpm: arr(THROTTLE_RPM, 4), thrust_yaw: deg(THRUST_YAW),
   stall_arm_ac: r(armAc, 4), stall_arm_cp: r(armCp, 4), stall_dw: r(stallDw, 4), stall_k: r(stallK, 2),
   stall_top: deg(stallTop, 1), strip_c: arr(stripC, 3),
   slip_r: r(propR, 4), slip_yh: r(bh / 2, 4), slip_hv: arr([hvUp, hvDn], 3), slip_ya: arr([ailIn, aileronOut], 4),
@@ -628,7 +648,8 @@ const rows = [
   ['C3 L/D at 15 m/s', f(ld(15), 2)],
   ['C4 top speed', f(level(1), 2)],
   ['C5 roll pb/2V, deg/s at 18 m/s', `${f(pb2v, 4)} ${f(rollAt(18) * DEG, 0)}`],
-  ['C6 hover: plant stick sqrt(W/Ts); the bench\'s throttle', `${f(hoverDuty, 4)}; ${f(hoverBench, 4)}`],
+  ['C6 hover: the stick the curve turns sqrt(W/Ts) at; the bench\'s', `${f(hoverDuty, 4)}; ${f(hoverBench, 4)}`],
+  ['throttle_rpm', J(THROTTLE_RPM, 4)],
   ['   wash dp, v_i, rw, fh fv fa', `${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
   ['C7 vertical climb speed, full throttle', f(vClimb, 2)],
   ['C8 torque at hover N m; root, fin free, fin with the rudder held; net; torque roll deg/s', `${f(Qprop, 4)}; ${f((1 - SWIRL_KEEP) * Qprop, 4)} ${f(SWIRL_KEEP * finSwirl, 4)} ${f(finHeld, 4)}; ${f(Qhover, 4)}; ${f(torqueRoll * DEG, 0)}`],
@@ -677,7 +698,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       ['c3_glide', 'derived', D.ld15, 2, 'min', 'max', 0.88, 1.12],
       ['c4_top', 'derived', D.top, 2, 'min', 'max', 0.90, 1.10],
       ['c5_roll', 'derived', D.pb2v, 4, 'min', 'max', 0.75, 1.25, 2],
-      ['c6_hover', 'derived', D.hoverDuty, 4, 'min', 'max', 0.95, 1.05, 3],
+      ['c6_hover', 'derived', D.hoverDuty, 4, null, null],
       ['c7_vertical', 'derived', D.vClimb, 2, 'min', 'max', 0.90, 1.10],
       ['c8_torque_roll', 'derived', D.torqueRoll, 0, 'min', 'max', 0.75, 1.25],
       ['c9_aileron_hover', 'derived', D.aileronRollNet, 0, 'min', 'max', 0.60, 1.40],
@@ -693,12 +714,17 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       const g = th[gate];
       const was = g[key];
       g[key] = fix(value, n);
+      if (lo === null) continue;
       g[lo] = up(value * fl, nb ?? n);
       g[hi] = dn(value * fh, nb ?? n);
       if (g.source && was !== g[key]) g.source = g.source.replace(String(was), String(g[key]));
     }
     th.c2_stall.alphaStall = fix(D.CLmax / D.aw, 5);
+    /* The hover is gated on the measurement: the bench's throttle, 5
+     * percent either way (the Extra's E6 width). */
     th.c6_hover.bench = fix(D.hoverBench, 4);
+    th.c6_hover.min = up(D.hoverBench * 0.95, 3);
+    th.c6_hover.max = dn(D.hoverBench * 1.05, 3);
     /* The rest pose: half a degree, 5 mm and 3.5 points either way. */
     const r13 = th.c13_rest;
     r13.pitchDerived = fix(D.restPitchDeg, 2); r13.pitchMin = up(D.restPitchDeg - 0.5, 2); r13.pitchMax = dn(D.restPitchDeg + 0.5, 2);

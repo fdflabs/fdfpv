@@ -1232,6 +1232,116 @@ is re-derived on the stall's own CL max, 0.898 at 1.7e5: 8.54 m/s, band
 reads 8.75. A half stick pull at 16 m/s now breaks at 15.2 deg (13.8
 before).
 
+## The prop's torque, from the drive
+
+The propulsion lane's items 2 and 4 (w35-prop-torque), for the batch after
+2026-10-11. One branch because they cannot be separated: both need the
+electric ESC at zero throttle to free wheel, which escstop's own source
+says and its spool did not do (at zero duty prop_spool's K_M term still
+braked the rotor to a stop in a few tenths of a second, a regenerative
+brake the Avian's "Motor will free wheel when throttle position is zero"
+does not have).
+
+**What was there.** The airframe's roll against the prop was torque_arm
+times the thrust: the torque fell with the thrust, to nothing at the
+pitch speed; the swirl was the same number; the gyroscope took the
+reported motor speed, zero the moment a motor was cut though its rotor
+coasts; a throttle punch spun the rotor up and put none of its angular
+momentum into the airframe.
+
+**What the plant does now.**
+
+- The airframe meets what the drive puts on it through the motor's mount,
+  Newton's third law: the prop's torque and the rotor's own acceleration,
+  J w_f n'. A rotor spinning up takes its angular momentum out of the
+  airframe's; a braked one gives it back. A motor that is not driving
+  (zero duty on a free wheeling ESC, folded, cut, flat, dead) puts nothing
+  on the airframe.
+- The prop's torque is APC's at the step's thrust share, cp_of_ct (the
+  CP_OF_CT table the pack's current already used, APC's 11 x 7E): at half
+  the thrust 0.90 of the static torque, at the pitch speed 0.19, where the
+  thrust law gave 0.5 and 0. Past APC's last row it goes on straight
+  (CP_OF_CT_TAIL 1.676, the 11 x 7E's last three rows; `npm run cp:tail`
+  prints it and seven more props, 1.38 to 1.83), to zero at a thrust share
+  of -0.112, and below it the air drives the prop. FITTED: the straight
+  line past the data's end.
+- The swirl is the prop's torque, the angular momentum the wash carries.
+- The gyroscope takes the rotor's speed, so a cut motor's coasting prop
+  still precesses.
+- A free rotor (an electric ESC at zero duty) has the air and its motor's
+  friction on it: it windmills where they balance, and drags there. The
+  friction is the no load current's torque, I0 Kt (Drela): the Extra's
+  E-flite Power 32 draws 2.4 A at Kt 0.0105 N m/A, 0.0387 of the prop's
+  static torque (PROP_FRICTION, FITTED for every electric rotor: no other
+  table has its motor's I0). It stops a coasting prop on the ground in
+  seconds.
+- A driven rotor keeps the static load, so it holds n = d and the trims
+  stay the tables': the motor's unloading at speed (a few percent more
+  rpm in cruise) is left out, as is a driven prop's negative thrust past
+  its pitch speed (still held at zero).
+- The Bramor's prop folds (docs/BRAMOR-STAGE1.md: back along the tail cone
+  when the motor stops): fold_duty 0.05, the Radian's, FITTED.
+
+**Measured against its sources** (the Extra):
+
+- Punch from the hover throttle to full, hanging: the roll acceleration
+  jumps -39.9 rad/s^2 in the first millisecond (the batch's -3.0, the
+  aero alone); J w_f n' / Ixx from the spool's own equation is -38.6, 3
+  percent.
+- Power off glide at 10.4 m/s, 3 s after the chop, before the friction:
+  the prop windmilled at 3,648 rpm against the Cp tail's 3,690, its drag
+  0.084 of the dynamic pressure on its disc against Hoerner's freely
+  windmilling prop's about a tenth (Fluid Dynamic Drag, ch. 13, docs/
+  GLIDER-STAGE1.md).
+- The P-51's windmilling prop's gyroscope, p51 P19g: 0.45286 N m per rad/s
+  of pitch rate at 3,696 rpm against J omega's 0.45285.
+
+**The gates, decided by the lead's rule** (physics follows reality; a
+gate that contradicts reality is re-derived to it, the reasoning written):
+
+- **The take offs** (bombshell S15, the bombshell, slowstick and extra
+  stab rolls): sticks centred a tractor swings left, and the Bombshell
+  ground loops, as the handbook says a tractor will ("an abrupt
+  application of power may cause the airplane to yaw sharply to the left
+  because of the torque effects", FAA-H-8083-3C ch. 6,
+  https://www.faasafety.gov/files/events/SO/SO15/2022/SO15112841/Chapter6TakeoffsAndDepartureClimbs.pdf).
+  The handbook's take off (tests/lib/wingpilot.js takeoffRoll): the
+  throttle advanced "smoothly and continuously", over 1 s (FITTED), the
+  line on the rudder, the wings on the ailerons where there are any. The
+  sticks centred runs check the swing left; the handbook's runs check the
+  take off, the track, the wings, and that the rudder it takes is short
+  of full: peak 0.06 to 0.11 of the stick on the Extra, 0.29 on the
+  Bombshell, 0.19 to 0.27 on the Slow Stick. A full throttle punch from
+  standing, with the wings held on the ailerons, still banks the Extra 5.3
+  deg on its gear: the rotor's angular momentum, 0.28 N m s, taken out of
+  the airframe in a tenth of a second.
+- **S6, the self level** (bombshell, slowstick): the four state lateral
+  model now has the prop's torque and swirl at cruise as a constant input
+  (scripts/lib/wash.js propMoments): derived 1.0 deg at 6 s on the
+  Bombshell (7.8 without; band 0 to 5.3, its old width in degrees) and
+  7.9 on the Slow Stick (12.9; band 3.7 to 12.2, its old proportion).
+- **stab:chop and stab:glide**: the glide derivation takes the windmill's
+  drag (with the friction); eleven stab_pitch_down re-derived (the Extra
+  8.72 to 14.73 deg).
+- **P19**: the XP-51's full scale band holds the aero part
+  (sim_wing_set_gyro, a measurement switch the shell never calls, takes
+  the gyroscope out): pb/2V 0.088, bank 27.0. P19g holds the gyroscope's
+  own term to J omega q. P19w holds the whole pull to a drop at least the
+  XP-51's floor: 0.164, 59 deg.
+
+**Still failing, diagnosed, a decision each:**
+
+ Gate | Batch to branch | Cause
+ --- | --- | ---
+ uglystik U9, the loop | heading 6.4 to 24.0 deg (15), wings 4.1 to 15.5 (15); height, length, speed and exit in band | the APC torque at the loop's speed, about twice the thrust law's; the band's lateral part is a premise of a longitudinal derivation with no prop in it, flown with the ailerons and rudder centred
+ slowstick S9b, full up power on | yaw 18.6 to 20.2 deg/s (20), bank 10.4 to 11.5 (15) | the APC torque's swirl at the mush; 20 deg/s is the "not a spin" line, a spin at this size turns over 90
+ p51:stab, Stabilised on full flaps | bank 1.7 to 3.4 deg (3) | the stronger torque at flap speed against a self level loop with no integral: its steady bank error doubles
+ bombshell:stab, Stabilised level, straight | 4.9 to 10.2 m off the line in 10 s (10) | the same: the bank it holds goes from -0.8 to -1.7 deg, and that bank's turn is the drift; 3 deg, the check's own band, would be 25 m
+ p51 P18, the full flap landing | hull contact 0 to 1 | the windmill's drag in the flare: it touches at 8.48 m/s (7.78) and bounces, the tail strikes at 12.6 deg 0.17 s after the touch; the scripted flare was tuned to a braked prop
+
+Every "unmoved" hash list, the AS3X rows (15 tables), the power
+estimates, the audio flights, replaylib's traces and simmod's transcript
+are re-derived on the branch.
 ## The Slick's DA-120
 
 The Slick 580 (its own lane, w35-slick580) flies on a Desert Aircraft
@@ -1546,3 +1656,106 @@ before this chain, 18.9 with the slope on the old plate). Still a gap:
 without hi_alpha a tail's lift has no stall and no moment of its own;
 the fleet's tail angle goes with the knife edge work, whose fin half
 needs its own sources. Not started: the Reynolds CLmax per aircraft.
+
+
+## Right thrust
+
+The Slick's data sheet has "Right thrust: 3 deg", the CAP 580's 2.5: the
+engine mounted turned right of the axis, the aerobat's built in answer to
+its torque, swirl and P factor. The table field `thrust_yaw` (rad, right
+positive) turns the thrust line: its axial part along body x, its
+sideways part at the disc, prop_x ahead of the CG, so it yaws the nose
+right. The line's height over the CG was already there, `thrust_z`. Zero
+on every table, which keeps the thrust on the axis to the bit; the Slick
+and CAP lanes set it with prop_x.
+
+Measured in a proof build (the Extra given 3 deg, not committed), held
+still at full throttle: the axial force 37.370 N against T cos 3 deg's
+37.371, the side force moved by -1.9585 N against -T sin 3 deg's -1.9585,
+the yaw moment by -0.59146 N m against -prop_x T sin 3 deg's -0.59147.
+
+## The electric throttle
+
+The plant took an electric prop's speed as the stick's share exactly, n =
+d, by giving the motor's drive a d^2 it does not have. A motor on a PWM
+ESC (BLHeli and AM32 run the duty straight with the stick) has Drela's
+torque ("First-Order DC Electric Motor Model", MIT 16.50, 2007), straight
+in the duty and the speed, which with the plant's own full point (0.85 of
+no load at full duty) is Q_f (d - 0.85 n) / 0.15, so at rest
+
+  n^2 + 5.667 n = 6.667 d
+
+full at full, and over its share of the stick below: measured on the
+Extra held still, 0.437 at 0.4, 0.537 at 0.5, 0.634 at 0.6, 0.728 at 0.7,
+0.819 at 0.8 (the law's 0.437, 0.537, 0.635, 0.730, 0.822; the pack's sag
+the rest), where the plant held 0.400 ... 0.797. T-Motor's measured AM670
+on its 18 x 8 (the CAP lane's) sits higher still, 0.50, 0.60, 0.70, 0.79
+and 0.88: a table with its own motor's measured curve sets throttle_rpm,
+and the plant takes the duty that settles on it, (n^2 + 5.667 n) / 6.667.
+
+**Which aircraft change**: every electric prop, the 1000 mm wing, the
+Skyhunter, the Cub and the Cub on floats, the Radian, the Bramor, the Slow
+Stick, the Timber and the Timber on floats, the P-51, the Zagi, the Extra,
+the Night Timber and the Hercules. Not the F-16's fan (its own spool), the
+glow and petrol engines, or the gliders.
+
+**Re-derived with it**, each in its old proportion: the Extra's E1 (18.77
+m/s at 75 percent, was 18.11), E6 (the hover's 0.5904 duty for the prop's
+0.6255, band 0.561 to 0.620), E11 and E12's throttles (0.568, 0.749); the
+Night Timber's N6 (0.7776, band 0.739 to 0.817); every electric table's
+stab_trim_throttle (stab:glide; the Extra 0.624 to 0.589); the Extra's
+taxi duty for the Cub's 1.65 N (0.184, was 0.21), with its heading now
+summed through half a circle; the Timber's T13 at the duty that turns the
+prop at 0.3 of full, as the gate was written for (0.2685).
+
+**The lead's decisions on what was left, 2026-10-11:**
+
+- **Stabilised's steady bank** (bombshell:stab drift, p51:stab on full
+  flaps): Spektrum publishes nothing of SAFE's law; ArduPilot, the
+  controller the plant's Stabilised is modelled on (stab_pitch_down is its
+  adjust_nav_pitch_throttle), trims a steady roll error with an
+  integrator (https://ardupilot.org/plane/docs/roll-pitch-controller-tuning.html:
+  "slowly trim the aileron demand to remove the steady error"; RLL2SRV_I
+  0.05, TCONST 0.5 s from AP_RollController.cpp, IMAX a third of the
+  travel), held while the pilot's roll stick is in (ArduPlane
+  Attitude.cpp stabilize_roll). Added: the drift 10.2 to 6.4 m, the flaps'
+  bank 3.4 to 0.9 deg.
+- **U9, the loop**: flown with the wings and the nose held in the loop's
+  plane (wingpilot.js loopHold, the take offs' pilot laws); in band,
+  heading within 8.6 deg, wings within 2.7.
+- **S9's 20 deg/s** had no source; re-derived from a spin's definition,
+  autorotation: inside the bank limit the aircraft only turns, at
+  g tan(bank) / V, so the limit is that turn at the mush's speed (31 to
+  32 deg/s on the Slow Stick); the Bombshell, Kadet, Ugly Stik, Tiger
+  Moth and F-16 take the same limit (tests/lib/wingpilot.js
+  turnYawLimitDeg), so no unsourced 20 deg/s is left.
+- **P18, the full flap landing**: the scripted pilot pulled full up for
+  1.5 s once a wheel touched, and with the windmill's drag the P-51
+  touched on its mains, skipped, and the tail met the grass 0.31 s later.
+  Now flown as the handbook's three point landing (FAA-H-8083-3C ch. 14,
+  https://www.faa.gov/sites/faa.gov/files/regulations_policies/handbooks_manuals/aviation/airplane_handbook/15_afh_ch14.pdf):
+  "a gentle increase in AOA to maintain flight while slowing" to the three
+  point attitude (P13's rest), a main wheel first a skip "easily managed
+  by re-flaring", and "once the tailwheel makes contact, the elevator
+  control should be eased fully back". Touched at 8.19 m/s, no hull or
+  prop, at rest on three points; the bands as they were.
+- **P19 on the law**: the first second's bank followed the rotor's speed
+  at the chop from cruise (30.9, 24.9, 17.2, 14.6 deg from duty 0.76 to
+  0.82). Now entered as the XP-51's was, a gliding stall: the throttle
+  closed and the glide settled at 15.6 m/s on the elevator with the wings
+  held, 8 s, the prop at its windmill, then the controls fixed and the
+  elevator run from the glide's to full. Aero part pb/2V 0.0994, bank
+  36.4 (XP-51 0.079, 39); with the gyroscope 0.0905, 30.8.
+- **power:check P2's flat out premise** ("even flat out the pack outlasts
+  the maker's timer") read a mixed throttle timer as a full throttle
+  endurance. Re-derived for the timer kind: cruise outlasts the timer,
+  and flat out lasts at least the capacity drawn to LOW BATTERY over the
+  plant's static full throttle current, which no flight at full throttle
+  exceeds as the prop unloads. The Timber on floats: 90.5 percent of its
+  3200 mAh to LOW BATTERY over 43.9 A static (the review's bench figure,
+  44 A), at least 4.0 min; it flies 6.8. The Cub 4.5 (9.1), the Timber
+  4.0 (7.8), the Extra 1.9 (4.6), the Night Timber 3.3 (10.0). The share
+  drawn by LOW BATTERY, 90 to 94 percent, is the plant's LiPo curve and
+  the OSD's 3.5 V a cell. T-Motor's AM670 bench (the CAP lane's) holds
+  the plant's current form, power as the speed cubed over the loaded
+  voltage, within 7 percent from 40 to 100 percent throttle.

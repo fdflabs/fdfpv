@@ -111,10 +111,16 @@ function seat(id, tune = null, power = null) {
 }
 
 /* Level at `speed`, body along the path at angle of attack `alpha`, high
- * over the field. */
+ * over the field, its motor running as an aircraft in flight's is: a
+ * launch starts the prop at the duty it is given (plant_wing.c g_prop_hot),
+ * where a reset leaves an electric motor stopped, and a rotor spun up from
+ * rest puts its angular momentum into the airframe's roll (docs/
+ * FLIGHTMODEL.md "The prop's torque, from the drive"), which no aircraft
+ * at cruise has. */
 function place(speed, alpha = 0) {
   must(sim.reset(), 'reset');
   must(sim.e.sim_set_pose(0, 0, HIGH, 1, 0, 0, 0), 'pose');
+  must(sim.e.sim_wing_launch(speed), 'launch');
   must(sim.e.sim_set_velocity(speed * Math.cos(alpha), 0, -speed * Math.sin(alpha), 0, 0, 0), 'velocity');
 }
 

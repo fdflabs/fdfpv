@@ -67,15 +67,15 @@ const PINNED = {
   'trace.baseline.30.7.vnull': '0cbbaec9f1eebc99a4843b25f453f161af329d5b76e4f74b6b8bcb6445744c78',
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
-  'trace.wing.60.10': '7d838bb6dd376d5532dd6dbdb31392db3bae4226318ed88a056336cefa81b29c',
-  'trace.wing.50.10.v3.9': '7d838bb6dd376d5532dd6dbdb31392db3bae4226318ed88a056336cefa81b29c',
+  'trace.wing.60.10': '6406ca0cc095b1e84c9ed750fdf5d1a9709b35883e26618b68d9c9aa867c09cb',
+  'trace.wing.50.10.v3.9': '6406ca0cc095b1e84c9ed750fdf5d1a9709b35883e26618b68d9c9aa867c09cb',
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the Skyhunter's wash (docs/FLIGHTMODEL.md). */
   /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
   /* Re-pinned: no built in stall side on any aircraft (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': 'f30b00daf02ff7188a6a53c4168593bb66d23b89cfa956666027af27f594b1fd',
+  'trace.sky.60.10': 'f62fb4a4a44cd4c0f5d437e706bd82eb820649e10107bea6c6025f699aaac582',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */

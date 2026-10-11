@@ -57,6 +57,10 @@ mkdirSync(out, { recursive: true });
 const HANGAR = { x: 44, z: -70, half: 12 };
 const PACE_TOL = 0.07;
 const EYE_TOL = 0.02;
+/* ms: every wait on the shell, the load budget. On GitHub's two core
+ * SwiftShader runner swiss2 draws a frame every few seconds, so a wait is
+ * for a state the game reaches, never a fixed stretch of wall time. */
+const BUDGET = 300000;
 
 let failed = 0;
 let passed = 0;
@@ -110,23 +114,30 @@ async function shot(page, name) {
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   writeFileSync(join(out, `${name}.png`), Buffer.from(data, 'base64'));
 }
+/* How far the heading turned from a to b, however it wrapped. */
+const turned = (a, b) => Math.abs(Math.atan2(Math.sin(b.heading - a.heading), Math.cos(b.heading - a.heading)));
 const towardHangar = (w) => Math.atan2(HANGAR.x - w.x, -(HANGAR.z - w.z));
 
-/* Pace over a window after the ramp, on the walk's own clock and on the
- * wall's (which a frame capped at 100 ms would make short). */
-async function measurePace(page, keys, ms) {
+/* Until the walk's own clock (seconds stepped) has run `s` past `from`. */
+async function walkFor(page, from, s) {
+  await page.until(`window.__foot.state().walker.t >= ${from + s}`, BUDGET);
+  return (await footState(page)).walker;
+}
+
+/* Pace over `s` seconds of the walk's own clock, after its half second
+ * ramp, so a slow machine's frame rate changes nothing measured. */
+async function measurePace(page, keys, s) {
   const key = (type, code) => page.cdp.send('Input.dispatchKeyEvent', { type, ...keyInfo(code) }, page.sessionId);
+  const t0 = (await footState(page)).walker.t;
   for (const k of keys) {
     await key('keyDown', k);
   }
-  await page.sleep(1200);
-  const a = (await footState(page)).walker;
-  await page.sleep(ms);
-  const b = (await footState(page)).walker;
+  const a = await walkFor(page, t0, 1.2);
+  const b = await walkFor(page, a.t, s);
   for (const k of keys.slice().reverse()) {
     await key('keyUp', k);
   }
-  await page.sleep(800);
+  await page.until('(() => { const w = window.__foot.state().walker; return w.vx === 0 && w.vz === 0; })()', BUDGET);
   return (b.odo - a.odo) / (b.t - a.t);
 }
 
@@ -141,7 +152,7 @@ async function keyboardCase() {
 
     /* Rolling: refused. */
     await page.evaluate('window.__stick(0, 0, 0, 0.8)');
-    await page.until('!window.__craftState().landed', 15000).catch(() => {});
+    await page.until('!window.__craftState().landed', BUDGET).catch(() => {});
     await page.sleep(300);
     await page.tap('Digit1');
     await page.sleep(300);
@@ -150,32 +161,38 @@ async function keyboardCase() {
     check('rolling under power, the foot key is refused', !f.on && !rolling.landed, `speed ${rolling.speed.toFixed(2)}, "${rolling.notice}"`);
     await page.evaluate('window.__stick()');
     await page.tap('KeyR');
-    await page.until('window.__craftState().landed && window.__foot.state().could', 20000);
+    await page.until('window.__craftState().landed && window.__foot.state().could', BUDGET);
     await page.sleep(500);
 
     /* Out. */
-    const parked = await craft(page);
     const framesOut = await frames(page);
     await page.tap('Digit1');
-    await page.until('window.__foot.state().on', 5000);
+    await page.until(`(() => { const s = window.__foot.state();
+      return s.on && s.fov === 70 && Math.abs(s.camera[1] - s.eye) < 1e-9 && s.source === 'the pilot on foot'; })()`, BUDGET).catch(() => {});
     f = await footState(page);
+    /* Read once the step out's frame is drawn: a slow runner shows the
+     * reset's spot a frame late. */
+    const parked = await craft(page);
     check('stopped, the foot key steps out onto the pilot\'s spot', Math.hypot(f.walker.x - f.spot.x, f.walker.z - f.spot.z) < 0.01,
       `at ${f.walker.x.toFixed(2)}, ${f.walker.z.toFixed(2)}`);
     check('the camera is the pilot\'s eye, 1.64 m over the ground', Math.abs(f.camera[1] - f.ground - EYE_HEIGHT) < 1e-6 && f.fov === 70,
       `eye ${(f.camera[1] - f.ground).toFixed(3)} m, fov ${f.fov}`);
     check('the sticks are the walk\'s, not the aircraft\'s', f.source === 'the pilot on foot', f.source);
     await shot(page, 'stepped-out');
-    await page.sleep(1000);
+    await walkFor(page, f.walker.t, 0.5);
     const framesOn = await frames(page);
     check('the crash cam\'s clip ends at the step out', framesOn - framesOut <= 2, `${framesOn - framesOut} frames recorded on foot`);
 
-    /* Pace. */
+    /* Pace and the walk to the hangar, with the picture off (the frame
+     * loop, the walk and the camera run as ever): a software rasteriser
+     * draws swiss2 a few frames a second, too slow to walk 70 m in. */
+    await page.evaluate('window.__drawOff(true)');
     await page.evaluate(`window.__foot.face(${towardHangar(f.walker)})`);
-    const walk = await measurePace(page, ['KeyW'], 4000);
+    const walk = await measurePace(page, ['KeyW'], 4);
     check(`held W walks ${WALK_SPEED} m/s within 7 %`, Math.abs(walk / WALK_SPEED - 1) <= PACE_TOL, `${walk.toFixed(3)} m/s`);
     f = await footState(page);
     await page.evaluate(`window.__foot.face(${towardHangar(f.walker)})`);
-    const run = await measurePace(page, ['ShiftLeft', 'KeyW'], 4000);
+    const run = await measurePace(page, ['ShiftLeft', 'KeyW'], 4);
     check(`Shift W runs ${RUN_SPEED} m/s within 7 %`, Math.abs(run / RUN_SPEED - 1) <= PACE_TOL, `${run.toFixed(3)} m/s`);
 
     /* At the hangar, the eye on the terrain all the way. */
@@ -183,25 +200,30 @@ async function keyboardCase() {
     const odo0 = f.walker.odo;
     let worstEye = 0;
     let samples = 0;
-    let lastOdo = -1;
-    let stalledMs = 0;
+    /* Stopped: under 5 cm walked over a second of the walk's clock. */
+    let mark = f.walker;
     await key('keyDown', 'ShiftLeft');
     await key('keyDown', 'KeyW');
     const t0 = Date.now();
-    while (Date.now() - t0 < 120000 && stalledMs < 1500) {
+    while (Date.now() - t0 < BUDGET) {
       f = await footState(page);
       await page.evaluate(`window.__foot.face(${towardHangar(f.walker)})`);
       if (f.walker.vy === 0) {
         worstEye = Math.max(worstEye, Math.abs(f.camera[1] - f.ground - EYE_HEIGHT));
         samples += 1;
       }
-      stalledMs = f.walker.odo - lastOdo < 0.02 ? stalledMs + 200 : 0;
-      lastOdo = f.walker.odo;
-      await page.sleep(200);
+      if (f.walker.t - mark.t >= 1) {
+        if (f.walker.odo - mark.odo < 0.05) {
+          break;
+        }
+        mark = f.walker;
+      }
+      await page.sleep(100);
     }
     await key('keyUp', 'KeyW');
     await key('keyUp', 'ShiftLeft');
-    await page.sleep(500);
+    await page.until('(() => { const w = window.__foot.state().walker; return w.vx === 0 && w.vz === 0; })()', BUDGET).catch(() => {});
+    await page.evaluate('window.__drawOff(false)');
     f = await footState(page);
     const path = f.walker.odo;
     check('the eye stays 1.64 m over the terrain on the way', worstEye <= EYE_TOL && samples > 50,
@@ -213,17 +235,21 @@ async function keyboardCase() {
 
     /* Pause on foot. */
     await page.tap('Escape');
-    const paused = await page.until("window.__ui.screen === 'paused'", 5000).then(() => true, () => false);
+    const paused = await page.until("window.__ui.screen === 'paused'", BUDGET).then(() => true, () => false);
     await page.tap('Escape');
-    const back = await page.until("window.__ui.screen === 'flight'", 5000).then(() => true, () => false);
+    const back = await page.until("window.__ui.screen === 'flight'", BUDGET).then(() => true, () => false);
     check('Escape on foot pauses, and resumes on foot', paused && back && (await footState(page)).on);
 
     /* Fly again from here. */
     const stood = (await footState(page)).walker;
     const framesBefore = await ringFrames(page);
     await page.tap('Digit1');
-    await page.until('!window.__foot.state().on', 5000);
-    await page.sleep(800);
+    await page.until('!window.__foot.state().on', BUDGET);
+    /* The frame after: the pilot view's camera placed, the sticks the
+     * keyboard's, a new clip begun. */
+    await page.until(`(() => { const c = window.__craftState().camera;
+      return Math.hypot(c.x - ${stood.x}, c.z - ${stood.z}) < 1e-6 && window.__foot.state().source !== 'the pilot on foot'
+        && window.__crashCam.stats().ringFrames < ${framesBefore}; })()`, BUDGET).catch(() => {});
     f = await footState(page);
     const again = await craft(page);
     check('the foot key flies again with the aircraft as it was left',
@@ -234,7 +260,7 @@ async function keyboardCase() {
     const framesAfter = await ringFrames(page);
     check('flying again starts a new clip', framesAfter < framesBefore, `${framesBefore} rows at the step out, ${framesAfter} now`);
     await page.evaluate(`window.__respawn(${parked.x + 30}, ${parked.z - 20}, 1.0)`);
-    await page.sleep(800);
+    await page.until(`Math.hypot(window.__craftState().worldX - ${parked.x}, window.__craftState().worldZ - ${parked.z}) > 20`, BUDGET).catch(() => {});
     const moved = await craft(page);
     check('a recovery of the craft leaves the pilot where they stood (the teleport, main.js:12626)',
       Math.hypot(moved.camera.x - stood.x, moved.camera.z - stood.z) < 1e-6 && Math.hypot(moved.x - parked.x, moved.z - parked.z) > 20,
@@ -255,22 +281,24 @@ async function padCase() {
   try {
     await fly(page);
     await holdB(true);
-    const out = await page.until('window.__foot.state().on', 5000).then(() => true, () => false);
+    const out = await page.until('window.__foot.state().on', BUDGET).then(() => true, () => false);
     await holdB(false);
     check('B held steps out', out);
     if (!out) {
       return;
     }
+    await page.evaluate('window.__drawOff(true)');
     const a = (await footState(page)).walker;
     await axes([0, -1, 1, 0]);
-    await page.sleep(2000);
+    await walkFor(page, a.t, 2);
     await axes([0, 0, 0, 0]);
-    await page.sleep(600);
+    await page.until('(() => { const w = window.__foot.state().walker; return w.vx === 0 && w.vz === 0; })()', BUDGET).catch(() => {});
+    await page.evaluate('window.__drawOff(false)');
     const b = (await footState(page)).walker;
-    check('the left stick walks and the right stick turns', b.odo - a.odo > 1 && Math.abs(b.heading - a.heading) > 1,
-      `${(b.odo - a.odo).toFixed(2)} m, turned ${(b.heading - a.heading).toFixed(2)} rad`);
+    check('the left stick walks and the right stick turns', b.odo - a.odo > 1 && turned(a, b) > 0.5,
+      `${(b.odo - a.odo).toFixed(2)} m, turned ${turned(a, b).toFixed(2)} rad`);
     await holdB(true);
-    const back = await page.until('!window.__foot.state().on', 5000).then(() => true, () => false);
+    const back = await page.until('!window.__foot.state().on', BUDGET).then(() => true, () => false);
     await holdB(false);
     check('B held again flies', back);
     const faults = page.errors.filter((e) => !e.startsWith('network:'));
@@ -302,11 +330,12 @@ async function touchCase() {
   try {
     await fly(page);
     const said = await tapChip();
-    const out = await page.until('window.__foot.state().on', 5000).then(() => true, () => false);
+    const out = await page.until('window.__foot.state().on', BUDGET).then(() => true, () => false);
     check('the Step out chip steps out', out && said === 'Bajarse', `chip "${said}"`);
     if (!out) {
       return;
     }
+    await page.evaluate('window.__drawOff(true)');
     const a = (await footState(page)).walker;
     /* Left thumb up, right thumb right, together. */
     await finger('touchStart', [{ x: 150, y: 250, id: 1 }, { x: 690, y: 250, id: 2 }]);
@@ -314,15 +343,16 @@ async function touchCase() {
       await finger('touchMove', [{ x: 150, y: 250 - k * 20, id: 1 }, { x: 690 + k * 15, y: 250, id: 2 }]);
       await page.sleep(40);
     }
-    await page.sleep(2000);
+    await walkFor(page, a.t, 2);
     await finger('touchEnd', []);
-    await page.sleep(600);
+    await page.until('(() => { const w = window.__foot.state().walker; return w.vx === 0 && w.vz === 0; })()', BUDGET).catch(() => {});
+    await page.evaluate('window.__drawOff(false)');
     const b = (await footState(page)).walker;
-    check('the left thumb walks and the right thumb turns', b.odo - a.odo > 1 && b.heading - a.heading > 0.5,
-      `${(b.odo - a.odo).toFixed(2)} m, turned ${(b.heading - a.heading).toFixed(2)} rad`);
+    check('the left thumb walks and the right thumb turns', b.odo - a.odo > 1 && turned(a, b) > 0.5,
+      `${(b.odo - a.odo).toFixed(2)} m, turned ${turned(a, b).toFixed(2)} rad`);
     await shot(page, 'touch-on-foot');
     const fly2 = await tapChip();
-    const back = await page.until('!window.__foot.state().on', 5000).then(() => true, () => false);
+    const back = await page.until('!window.__foot.state().on', BUDGET).then(() => true, () => false);
     check('the Fly chip flies again', back && fly2 === 'Volar', `chip "${fly2}"`);
     const faults = page.errors.filter((e) => !e.startsWith('network:'));
     check('no console error', faults.length === 0, faults[0] || '');

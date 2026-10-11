@@ -68,7 +68,7 @@ export const FIGURES = [
   fig('rolling_circle', 'turns', 46, ['2.4.2.1'], 'unproven'),
   /* Families 5 and 6, stall turns and tail slides. */
   fig('hammerhead', 'stall_turns', 17, ['5.2.1.1'], 'unproven'),
-  fig('tailslide', 'tail_slides', 15, ['6.2.1.1'], 'unproven'),
+  fig('tailslide', 'tail_slides', 15, ['6.2.1.1'], 'flown'),
   /* Family 7, loops and eights. */
   fig('loop', 'loops', 10, ['7.4.1.1'], 'flown'),
   fig('outside_loop', 'loops', 15, ['7.4.1.2'], 'flown'),

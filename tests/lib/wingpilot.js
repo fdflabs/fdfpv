@@ -625,6 +625,59 @@ export function rudderHold(s) {
  * with the rudder and not the ailerons, which near the stall take the
  * down going wing deeper into it). The rudder only aircraft's wings level
  * law, -1.2 bank - 0.12 p, on the yaw stick. */
+/*
+ * A stall's no spin yaw limit, deg/s, re-derived 2026-10-11 from what a
+ * spin is (docs/FLIGHTMODEL.md): autorotation, the dropping wing rolling
+ * on with the yaw coming with it. With the wings inside the bank limit
+ * (the wing drop's) the aircraft only turns, and a turn at bank phi and
+ * speed V yaws at g tan(phi) / V; a yaw past the turn the bank limit
+ * allows at the mush's speed is a rotation no turn makes. It replaces an
+ * unsourced 20 deg/s.
+ */
+export function turnYawLimitDeg(maxBankDeg, v) {
+  return 9.81 * Math.tan(maxBankDeg * Math.PI / 180) / v * 180 / Math.PI;
+}
+
+/*
+ * A pilot flying a loop straight, as a real one does on the ailerons and
+ * the rudder (the take offs' handbook pilot, the air's): the wings held
+ * across the loop's plane, the left wing on world +y the whole way round
+ * as an inside loop keeps it, and the nose in that plane. The roll error
+ * is the angle about the body's x that brings its y axis onto world y,
+ * on the wings' level law (-1.2 rad, -0.12 p); the yaw error the nose's
+ * heading off the loop's line, on rudderHold's law (6.0, 0.6 r). Returns [roll,
+ * yaw] sticks.
+ */
+export function loopHold(s) {
+  const [w, x, y, z] = [s[7], s[8], s[9], s[10]];
+  const xb = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+  const yb = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
+  /* (yb x world y) . xb: the signed angle about x that takes yb onto y. */
+  const c = [-yb[2], 0, yb[0]];
+  const theta = Math.asin(Math.max(-1, Math.min(1, c[0] * xb[0] + c[2] * xb[2])));
+  const roll = Math.max(-1, Math.min(1, 1.2 * theta - 0.12 * s[11]));
+  /* The nose's heading off the loop's line where the nose has one, the
+   * out of plane angle where it is near the vertical. */
+  const off = Math.abs(xb[0]) > 0.3 ? Math.atan2(xb[1], Math.abs(xb[0])) : Math.asin(Math.max(-1, Math.min(1, xb[1])));
+  const yaw = Math.max(-1, Math.min(1, 6.0 * off + 0.6 * s[13]));
+  return [roll, yaw];
+}
+
+/*
+ * A pilot's take off roll, as the handbook flies one (FAA-H-8083-3C ch. 6,
+ * https://www.faasafety.gov/files/events/SO/SO15/2022/SO15112841/Chapter6TakeoffsAndDepartureClimbs.pdf):
+ * the throttle advanced "smoothly and continuously" to full, here over
+ * the first second (FITTED: the handbook gives no time), because "an
+ * abrupt application of power may cause the airplane to yaw sharply to
+ * the left because of the torque effects"; the line held on the rudder
+ * (rudderHold); and on an aircraft with ailerons, the wings held level on
+ * them. ms is the time since the roll began.
+ */
+export function takeoffRoll(s, ms, { ailerons = true } = {}) {
+  const roll = ailerons ? Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11])) : 0;
+  return [roll, 0, rudderHold(s), Math.min(1, ms / 1000)];
+}
+
 export function rudderLevel(s) {
   return Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11]));
 }
