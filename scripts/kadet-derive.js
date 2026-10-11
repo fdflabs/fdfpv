@@ -416,7 +416,10 @@ function cmAt(alpha, de) {
   return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
 }
 function mush(de) {
-  let lo = 0.05, hi = 1.2;
+  /* The bracket has to hold the root: a trim under 0.05 rad, the Kadet's
+   * glide on the prop curves' Cm0, came back as the bracket's end. */
+  let lo = -0.1, hi = 1.2;
+  if (!(cmAt(lo, de) > 0 && cmAt(hi, de) < 0)) throw new Error(`mush: no trim between ${lo} and ${hi} rad at de ${de}`);
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (cmAt(mid, de) > 0) lo = mid; else hi = mid; }
   const alpha = lo;
   const CL = stalledAt(alpha, de).CL;
