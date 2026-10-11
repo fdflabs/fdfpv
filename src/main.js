@@ -70,6 +70,7 @@ import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { translate as translateKey } from './input/keybinds.js';
+import { PAD_BUTTONS as PB } from './input/padbuttons.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
 import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js';
 import { PLANE_REACH, Race } from './game/race.js';
@@ -1091,11 +1092,11 @@ export async function boot({
     const at = (i) => Boolean(gp.buttons[i] && gp.buttons[i].pressed);
     const val = (i) => (gp.buttons[i] ? gp.buttons[i].value || 0 : 0);
     return {
-      pan: Number(at(15)) - Number(at(14)),
-      tilt: Number(at(12)) - Number(at(13)),
-      zoom: val(7) - val(6),
-      capture: at(10),
-      lock: at(11),
+      pan: Number(at(PB.right)) - Number(at(PB.left)),
+      tilt: Number(at(PB.up)) - Number(at(PB.down)),
+      zoom: val(PB.rt) - val(PB.lt),
+      capture: at(PB.ls),
+      lock: at(PB.rs),
     };
   }
 

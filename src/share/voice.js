@@ -79,13 +79,14 @@
 import {
   RELAY_NONE, RELAY_TCP, RELAY_UDP, VOICE_LINK_MAX,
 } from './roomwire.js';
+import { PAD_BUTTONS } from '../input/padbuttons.js';
 
 /* The keyboard key and the standard pad button held to talk. Not V: V and
  * the pad's X open the crash replay in flight (src/replay/crashcam.js). The
  * pad's is the left trigger, which nothing in flight reads, and only on a
  * standard pad: a radio reports its switches as buttons, latched. */
 export const PTT_KEY = 'KeyN';
-export const PTT_PAD = 6;
+export const PTT_PAD = PAD_BUTTONS.lt;
 
 /* Public STUN, for finding this pilot's own address. */
 export const STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }];

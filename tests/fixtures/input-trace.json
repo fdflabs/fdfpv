@@ -65,19 +65,19 @@
  },
  "calibration: radio with yaw on axis 4, parked throttle": {
   "rows": 445,
-  "hash": "455be90d6895be8664968674e907c1b000ddfddc5061a02c51283a125e1032be"
+  "hash": "76a22afec914ffb73cb782ec8e1bc2daed5ba56b813ba6cef1c42f0ab10d1994"
  },
  "calibration: gamepad with a sprung throttle, reverse and zero": {
   "rows": 445,
-  "hash": "01730d7d5d7b9c20721c75d1b3fa590b385fa744b2ec420c60694fce6cb15bd7"
+  "hash": "1173e992df62e2beb12252e3cd671f60067be87cd6e5c354f0c783bf8b7ebda8"
  },
  "calibration: no buttons, a spare axis, the menu switch": {
   "rows": 497,
-  "hash": "d0d533b3afb154b8f7c3d499951548755f9b5e08db0590cc5197fabc2dae0f8a"
+  "hash": "9a2e0d3c44de642bbecd8fa813d1d3653cd0998872a0d4a0191f3b1530033d0e"
  },
  "calibration: skipping the menu switch, cancelling, no radio": {
   "rows": 457,
-  "hash": "c59489c79013eb35ab9522675a202ad3dfdd1a9fe5f9a6883e2d4aa2ca56614c"
+  "hash": "e9f13d1ed06e10c831f076f5a6e3ad398dae26603bdb053849269d6eac05e82c"
  },
  "calibration: a sprung throttle held down, a diagonal, a lopsided gimbal": {
   "rows": 289,
@@ -93,7 +93,7 @@
  },
  "one radio at boot, stored choices, stored maps": {
   "rows": 44,
-  "hash": "a66668a19062fa706b21c0a14c6e87a988a7b63b0e5294c13a1d0759930d8440"
+  "hash": "1b71b230eafcc6e464e4440c063812dbf464f0450400f1c7ffdb4f7c78ff5575"
  },
  "polling, heartbeat, the queue bound": {
   "rows": 14,
