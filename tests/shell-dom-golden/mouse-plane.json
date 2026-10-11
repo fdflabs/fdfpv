@@ -948,7 +948,7 @@
         ],
         "on": [
          [
-          36,
+          33,
           "click"
          ]
         ]
@@ -994,7 +994,7 @@
         ],
         "on": [
          [
-          35,
+          32,
           "click"
          ]
         ],
@@ -2197,569 +2197,6 @@
         "kids": [
          {
           "t": "A browser FPV racing simulator. The track language comes from Track Draw."
-         }
-        ]
-       },
-       {
-        "tag": "section",
-        "attrs": [
-         [
-          "class",
-          "credit-block"
-         ]
-        ],
-        "kids": [
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-kicker"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "span",
-            "kids": [
-             {
-              "t": "Beta test pilots"
-             }
-            ]
-           }
-          ]
-         },
-         {
-          "tag": "h3",
-          "kids": [
-           {
-            "t": "They flew it until it felt like a quad."
-           }
-          ]
-         },
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-row pilots"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/asylum.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    12,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "01"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@AsylumFpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "Asylum"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@AsylumFpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face is-blank"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "span",
-                  "attrs": [
-                   [
-                    "class",
-                    "credit-face-mark"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "JA"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "02"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "t": "Jannes"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/lestar.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    13,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "03"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@lestarfpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "LeStar"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@lestarfpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/crapshack.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    14,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "04"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@Z_CrapShack"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "CrapShack"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@Z_CrapShack"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           }
-          ]
          }
         ]
        },
@@ -4791,6 +4228,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Rates"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "How far the surfaces move at full stick, as the manual sets the radio up. Changes fly at once."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-rates screen-pids"
      ],
      [
@@ -5420,7 +4971,7 @@
         ],
         "on": [
          [
-          15,
+          12,
           "click"
          ]
         ],
@@ -5444,7 +4995,7 @@
         ],
         "on": [
          [
-          16,
+          13,
           "click"
          ]
         ],
@@ -5841,7 +5392,7 @@
         ],
         "on": [
          [
-          17,
+          14,
           "click"
          ]
         ],
@@ -5869,7 +5420,7 @@
         ],
         "on": [
          [
-          18,
+          15,
           "click"
          ]
         ],
@@ -5897,7 +5448,7 @@
         ],
         "on": [
          [
-          19,
+          16,
           "click"
          ]
         ],
@@ -5925,7 +5476,7 @@
         ],
         "on": [
          [
-          20,
+          17,
           "click"
          ]
         ],
@@ -5953,7 +5504,7 @@
         ],
         "on": [
          [
-          21,
+          18,
           "click"
          ]
         ],
@@ -5981,7 +5532,7 @@
         ],
         "on": [
          [
-          22,
+          19,
           "click"
          ]
         ],
@@ -6129,7 +5680,7 @@
         ],
         "on": [
          [
-          23,
+          20,
           "click"
          ]
         ],
@@ -6153,7 +5704,7 @@
         ],
         "on": [
          [
-          24,
+          21,
           "click"
          ]
         ],
@@ -6177,7 +5728,7 @@
         ],
         "on": [
          [
-          25,
+          22,
           "click"
          ]
         ],
@@ -6675,23 +6226,23 @@
     ],
     "on": [
      [
-      26,
+      23,
       "pointerdown"
      ],
      [
-      27,
+      24,
       "pointermove"
      ],
      [
-      28,
+      25,
       "wheel"
      ],
      [
-      29,
+      26,
       "pointerup"
      ],
      [
-      30,
+      27,
       "pointercancel"
      ]
     ],
@@ -6782,7 +6333,7 @@
     ],
     "on": [
      [
-      31,
+      28,
       "click"
      ]
     ],
@@ -6814,7 +6365,7 @@
     ],
     "on": [
      [
-      32,
+      29,
       "click"
      ]
     ],
@@ -6846,7 +6397,7 @@
     ],
     "on": [
      [
-      33,
+      30,
       "click"
      ]
     ],
@@ -6882,7 +6433,7 @@
     ],
     "on": [
      [
-      34,
+      31,
       "click"
      ]
     ]
@@ -6943,11 +6494,11 @@
       ],
       "on": [
        [
-        37,
+        34,
         "mousedown"
        ],
        [
-        41,
+        38,
         "click"
        ]
       ],
@@ -6983,11 +6534,11 @@
       ],
       "on": [
        [
-        39,
+        36,
         "mousedown"
        ],
        [
-        40,
+        37,
         "click"
        ]
       ]
@@ -7014,11 +6565,11 @@
       ],
       "on": [
        [
-        38,
+        35,
         "mousedown"
        ],
        [
-        42,
+        39,
         "click"
        ]
       ],
@@ -7073,11 +6624,11 @@
     ],
     "on": [
      [
-      60,
+      57,
       "click"
      ],
      [
-      61,
+      58,
       "keydown"
      ]
     ],
@@ -7140,7 +6691,7 @@
             ],
             "on": [
              [
-              43,
+              40,
               "click"
              ]
             ],
@@ -7168,7 +6719,7 @@
             ],
             "on": [
              [
-              44,
+              41,
               "click"
              ]
             ],
@@ -7196,7 +6747,7 @@
             ],
             "on": [
              [
-              45,
+              42,
               "click"
              ]
             ],
@@ -7224,7 +6775,7 @@
             ],
             "on": [
              [
-              46,
+              43,
               "click"
              ]
             ],
@@ -7252,23 +6803,23 @@
         ],
         "on": [
          [
-          49,
+          46,
           "pointerdown"
          ],
          [
-          50,
+          47,
           "pointermove"
          ],
          [
-          51,
+          48,
           "pointerup"
          ],
          [
-          52,
+          49,
           "pointercancel"
          ],
          [
-          53,
+          50,
           "wheel"
          ]
         ],
@@ -7291,7 +6842,7 @@
           ],
           "on": [
            [
-            47,
+            44,
             "click"
            ]
           ],
@@ -7319,7 +6870,7 @@
           ],
           "on": [
            [
-            48,
+            45,
             "click"
            ]
           ],
@@ -7415,7 +6966,7 @@
             ],
             "on": [
              [
-              54,
+              51,
               "click"
              ]
             ],
@@ -7454,7 +7005,7 @@
             ],
             "on": [
              [
-              55,
+              52,
               "click"
              ]
             ],
@@ -7482,7 +7033,7 @@
             ],
             "on": [
              [
-              56,
+              53,
               "click"
              ]
             ],
@@ -7555,7 +7106,7 @@
             ],
             "on": [
              [
-              57,
+              54,
               "click"
              ]
             ],
@@ -7579,7 +7130,7 @@
             ],
             "on": [
              [
-              59,
+              56,
               "click"
              ]
             ],
@@ -7603,7 +7154,7 @@
             ],
             "on": [
              [
-              58,
+              55,
               "click"
              ]
             ],
@@ -7652,11 +7203,11 @@
     ],
     "on": [
      [
-      105,
+      102,
       "click"
      ],
      [
-      106,
+      103,
       "keydown"
      ]
     ],
@@ -7671,7 +7222,7 @@
       ],
       "on": [
        [
-        100,
+        97,
         "focusin"
        ]
       ],
@@ -7753,27 +7304,27 @@
           ],
           "on": [
            [
-            70,
+            67,
             "pointerdown"
            ],
            [
-            71,
+            68,
             "wheel"
            ],
            [
-            72,
+            69,
             "pointermove"
            ],
            [
-            73,
+            70,
             "pointerup"
            ],
            [
-            74,
+            71,
             "pointercancel"
            ],
            [
-            75,
+            72,
             "pointerleave"
            ]
           ],
@@ -7809,11 +7360,11 @@
             ],
             "on": [
              [
-              76,
+              73,
               "pointerdown"
              ],
              [
-              77,
+              74,
               "click"
              ]
             ],
@@ -7854,11 +7405,11 @@
               ],
               "on": [
                [
-                78,
+                75,
                 "pointerdown"
                ],
                [
-                79,
+                76,
                 "click"
                ]
               ],
@@ -7890,11 +7441,11 @@
               ],
               "on": [
                [
-                80,
+                77,
                 "pointerdown"
                ],
                [
-                81,
+                78,
                 "click"
                ]
               ],
@@ -7926,11 +7477,11 @@
               ],
               "on": [
                [
-                82,
+                79,
                 "pointerdown"
                ],
                [
-                83,
+                80,
                 "click"
                ]
               ],
@@ -7962,11 +7513,11 @@
               ],
               "on": [
                [
-                84,
+                81,
                 "pointerdown"
                ],
                [
-                85,
+                82,
                 "click"
                ]
               ],
@@ -7998,11 +7549,11 @@
               ],
               "on": [
                [
-                86,
+                83,
                 "pointerdown"
                ],
                [
-                87,
+                84,
                 "click"
                ]
               ],
@@ -8034,11 +7585,11 @@
               ],
               "on": [
                [
-                88,
+                85,
                 "pointerdown"
                ],
                [
-                89,
+                86,
                 "click"
                ]
               ],
@@ -8085,11 +7636,11 @@
             ],
             "on": [
              [
-              90,
+              87,
               "pointerdown"
              ],
              [
-              91,
+              88,
               "click"
              ]
             ],
@@ -8126,19 +7677,19 @@
             ],
             "on": [
              [
-              101,
+              98,
               "pointerdown"
              ],
              [
-              102,
+              99,
               "pointermove"
              ],
              [
-              103,
+              100,
               "pointerup"
              ],
              [
-              104,
+              101,
               "pointercancel"
              ]
             ],
@@ -8300,7 +7851,7 @@
             ],
             "on": [
              [
-              62,
+              59,
               "click"
              ]
             ],
@@ -8332,7 +7883,7 @@
             ],
             "on": [
              [
-              63,
+              60,
               "click"
              ]
             ],
@@ -8364,7 +7915,7 @@
             ],
             "on": [
              [
-              64,
+              61,
               "click"
              ]
             ],
@@ -8396,7 +7947,7 @@
             ],
             "on": [
              [
-              65,
+              62,
               "click"
              ]
             ],
@@ -8428,7 +7979,7 @@
             ],
             "on": [
              [
-              66,
+              63,
               "click"
              ]
             ],
@@ -8460,7 +8011,7 @@
             ],
             "on": [
              [
-              67,
+              64,
               "click"
              ]
             ],
@@ -8492,7 +8043,7 @@
             ],
             "on": [
              [
-              68,
+              65,
               "click"
              ]
             ],
@@ -8524,7 +8075,7 @@
             ],
             "on": [
              [
-              69,
+              66,
               "click"
              ]
             ],
@@ -8546,7 +8097,7 @@
           ],
           "on": [
            [
-            92,
+            89,
             "pointerleave"
            ]
           ]
@@ -8607,7 +8158,7 @@
               ],
               "on": [
                [
-                93,
+                90,
                 "click"
                ]
               ],
@@ -8639,7 +8190,7 @@
               ],
               "on": [
                [
-                94,
+                91,
                 "click"
                ]
               ],
@@ -8671,7 +8222,7 @@
               ],
               "on": [
                [
-                95,
+                92,
                 "click"
                ]
               ],
@@ -8710,7 +8261,7 @@
               ],
               "on": [
                [
-                98,
+                95,
                 "click"
                ]
               ],
@@ -8738,7 +8289,7 @@
               ],
               "on": [
                [
-                96,
+                93,
                 "click"
                ]
               ],
@@ -8766,7 +8317,7 @@
               ],
               "on": [
                [
-                97,
+                94,
                 "click"
                ]
               ],
@@ -8823,7 +8374,7 @@
         "value": "#000000",
         "on": [
          [
-          99,
+          96,
           "input"
          ]
         ]
@@ -9800,7 +9351,7 @@
         ],
         "on": [
          [
-          36,
+          33,
           "click"
          ]
         ]
@@ -9846,7 +9397,7 @@
         ],
         "on": [
          [
-          35,
+          32,
           "click"
          ]
         ],
@@ -11049,569 +10600,6 @@
         "kids": [
          {
           "t": "A browser FPV racing simulator. The track language comes from Track Draw."
-         }
-        ]
-       },
-       {
-        "tag": "section",
-        "attrs": [
-         [
-          "class",
-          "credit-block"
-         ]
-        ],
-        "kids": [
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-kicker"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "span",
-            "kids": [
-             {
-              "t": "Beta test pilots"
-             }
-            ]
-           }
-          ]
-         },
-         {
-          "tag": "h3",
-          "kids": [
-           {
-            "t": "They flew it until it felt like a quad."
-           }
-          ]
-         },
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-row pilots"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/asylum.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    12,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "01"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@AsylumFpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "Asylum"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@AsylumFpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face is-blank"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "span",
-                  "attrs": [
-                   [
-                    "class",
-                    "credit-face-mark"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "JA"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "02"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "t": "Jannes"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/lestar.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    13,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "03"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@lestarfpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "LeStar"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@lestarfpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/crapshack.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    14,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "04"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@Z_CrapShack"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "CrapShack"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@Z_CrapShack"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           }
-          ]
          }
         ]
        },
@@ -13643,6 +12631,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Rates"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "How far the surfaces move at full stick, as the manual sets the radio up. Changes fly at once."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-rates screen-pids"
      ],
      [
@@ -14272,7 +13374,7 @@
         ],
         "on": [
          [
-          15,
+          12,
           "click"
          ]
         ],
@@ -14296,7 +13398,7 @@
         ],
         "on": [
          [
-          16,
+          13,
           "click"
          ]
         ],
@@ -14693,7 +13795,7 @@
         ],
         "on": [
          [
-          17,
+          14,
           "click"
          ]
         ],
@@ -14721,7 +13823,7 @@
         ],
         "on": [
          [
-          18,
+          15,
           "click"
          ]
         ],
@@ -14749,7 +13851,7 @@
         ],
         "on": [
          [
-          19,
+          16,
           "click"
          ]
         ],
@@ -14777,7 +13879,7 @@
         ],
         "on": [
          [
-          20,
+          17,
           "click"
          ]
         ],
@@ -14805,7 +13907,7 @@
         ],
         "on": [
          [
-          21,
+          18,
           "click"
          ]
         ],
@@ -14833,7 +13935,7 @@
         ],
         "on": [
          [
-          22,
+          19,
           "click"
          ]
         ],
@@ -14981,7 +14083,7 @@
         ],
         "on": [
          [
-          23,
+          20,
           "click"
          ]
         ],
@@ -15005,7 +14107,7 @@
         ],
         "on": [
          [
-          24,
+          21,
           "click"
          ]
         ],
@@ -15029,7 +14131,7 @@
         ],
         "on": [
          [
-          25,
+          22,
           "click"
          ]
         ],
@@ -15527,23 +14629,23 @@
     ],
     "on": [
      [
-      26,
+      23,
       "pointerdown"
      ],
      [
-      27,
+      24,
       "pointermove"
      ],
      [
-      28,
+      25,
       "wheel"
      ],
      [
-      29,
+      26,
       "pointerup"
      ],
      [
-      30,
+      27,
       "pointercancel"
      ]
     ],
@@ -15634,7 +14736,7 @@
     ],
     "on": [
      [
-      31,
+      28,
       "click"
      ]
     ],
@@ -15666,7 +14768,7 @@
     ],
     "on": [
      [
-      32,
+      29,
       "click"
      ]
     ],
@@ -15698,7 +14800,7 @@
     ],
     "on": [
      [
-      33,
+      30,
       "click"
      ]
     ],
@@ -15734,7 +14836,7 @@
     ],
     "on": [
      [
-      34,
+      31,
       "click"
      ]
     ]
@@ -15795,11 +14897,11 @@
       ],
       "on": [
        [
-        37,
+        34,
         "mousedown"
        ],
        [
-        41,
+        38,
         "click"
        ]
       ],
@@ -15835,11 +14937,11 @@
       ],
       "on": [
        [
-        39,
+        36,
         "mousedown"
        ],
        [
-        40,
+        37,
         "click"
        ]
       ]
@@ -15866,11 +14968,11 @@
       ],
       "on": [
        [
-        38,
+        35,
         "mousedown"
        ],
        [
-        42,
+        39,
         "click"
        ]
       ],
@@ -15925,11 +15027,11 @@
     ],
     "on": [
      [
-      60,
+      57,
       "click"
      ],
      [
-      61,
+      58,
       "keydown"
      ]
     ],
@@ -15992,7 +15094,7 @@
             ],
             "on": [
              [
-              43,
+              40,
               "click"
              ]
             ],
@@ -16020,7 +15122,7 @@
             ],
             "on": [
              [
-              44,
+              41,
               "click"
              ]
             ],
@@ -16048,7 +15150,7 @@
             ],
             "on": [
              [
-              45,
+              42,
               "click"
              ]
             ],
@@ -16076,7 +15178,7 @@
             ],
             "on": [
              [
-              46,
+              43,
               "click"
              ]
             ],
@@ -16104,23 +15206,23 @@
         ],
         "on": [
          [
-          49,
+          46,
           "pointerdown"
          ],
          [
-          50,
+          47,
           "pointermove"
          ],
          [
-          51,
+          48,
           "pointerup"
          ],
          [
-          52,
+          49,
           "pointercancel"
          ],
          [
-          53,
+          50,
           "wheel"
          ]
         ],
@@ -16143,7 +15245,7 @@
           ],
           "on": [
            [
-            47,
+            44,
             "click"
            ]
           ],
@@ -16171,7 +15273,7 @@
           ],
           "on": [
            [
-            48,
+            45,
             "click"
            ]
           ],
@@ -16267,7 +15369,7 @@
             ],
             "on": [
              [
-              54,
+              51,
               "click"
              ]
             ],
@@ -16306,7 +15408,7 @@
             ],
             "on": [
              [
-              55,
+              52,
               "click"
              ]
             ],
@@ -16334,7 +15436,7 @@
             ],
             "on": [
              [
-              56,
+              53,
               "click"
              ]
             ],
@@ -16407,7 +15509,7 @@
             ],
             "on": [
              [
-              57,
+              54,
               "click"
              ]
             ],
@@ -16431,7 +15533,7 @@
             ],
             "on": [
              [
-              59,
+              56,
               "click"
              ]
             ],
@@ -16455,7 +15557,7 @@
             ],
             "on": [
              [
-              58,
+              55,
               "click"
              ]
             ],
@@ -16504,11 +15606,11 @@
     ],
     "on": [
      [
-      105,
+      102,
       "click"
      ],
      [
-      106,
+      103,
       "keydown"
      ]
     ],
@@ -16523,7 +15625,7 @@
       ],
       "on": [
        [
-        100,
+        97,
         "focusin"
        ]
       ],
@@ -16605,27 +15707,27 @@
           ],
           "on": [
            [
-            70,
+            67,
             "pointerdown"
            ],
            [
-            71,
+            68,
             "wheel"
            ],
            [
-            72,
+            69,
             "pointermove"
            ],
            [
-            73,
+            70,
             "pointerup"
            ],
            [
-            74,
+            71,
             "pointercancel"
            ],
            [
-            75,
+            72,
             "pointerleave"
            ]
           ],
@@ -16661,11 +15763,11 @@
             ],
             "on": [
              [
-              76,
+              73,
               "pointerdown"
              ],
              [
-              77,
+              74,
               "click"
              ]
             ],
@@ -16706,11 +15808,11 @@
               ],
               "on": [
                [
-                78,
+                75,
                 "pointerdown"
                ],
                [
-                79,
+                76,
                 "click"
                ]
               ],
@@ -16742,11 +15844,11 @@
               ],
               "on": [
                [
-                80,
+                77,
                 "pointerdown"
                ],
                [
-                81,
+                78,
                 "click"
                ]
               ],
@@ -16778,11 +15880,11 @@
               ],
               "on": [
                [
-                82,
+                79,
                 "pointerdown"
                ],
                [
-                83,
+                80,
                 "click"
                ]
               ],
@@ -16814,11 +15916,11 @@
               ],
               "on": [
                [
-                84,
+                81,
                 "pointerdown"
                ],
                [
-                85,
+                82,
                 "click"
                ]
               ],
@@ -16850,11 +15952,11 @@
               ],
               "on": [
                [
-                86,
+                83,
                 "pointerdown"
                ],
                [
-                87,
+                84,
                 "click"
                ]
               ],
@@ -16886,11 +15988,11 @@
               ],
               "on": [
                [
-                88,
+                85,
                 "pointerdown"
                ],
                [
-                89,
+                86,
                 "click"
                ]
               ],
@@ -16937,11 +16039,11 @@
             ],
             "on": [
              [
-              90,
+              87,
               "pointerdown"
              ],
              [
-              91,
+              88,
               "click"
              ]
             ],
@@ -16978,19 +16080,19 @@
             ],
             "on": [
              [
-              101,
+              98,
               "pointerdown"
              ],
              [
-              102,
+              99,
               "pointermove"
              ],
              [
-              103,
+              100,
               "pointerup"
              ],
              [
-              104,
+              101,
               "pointercancel"
              ]
             ],
@@ -17152,7 +16254,7 @@
             ],
             "on": [
              [
-              62,
+              59,
               "click"
              ]
             ],
@@ -17184,7 +16286,7 @@
             ],
             "on": [
              [
-              63,
+              60,
               "click"
              ]
             ],
@@ -17216,7 +16318,7 @@
             ],
             "on": [
              [
-              64,
+              61,
               "click"
              ]
             ],
@@ -17248,7 +16350,7 @@
             ],
             "on": [
              [
-              65,
+              62,
               "click"
              ]
             ],
@@ -17280,7 +16382,7 @@
             ],
             "on": [
              [
-              66,
+              63,
               "click"
              ]
             ],
@@ -17312,7 +16414,7 @@
             ],
             "on": [
              [
-              67,
+              64,
               "click"
              ]
             ],
@@ -17344,7 +16446,7 @@
             ],
             "on": [
              [
-              68,
+              65,
               "click"
              ]
             ],
@@ -17376,7 +16478,7 @@
             ],
             "on": [
              [
-              69,
+              66,
               "click"
              ]
             ],
@@ -17398,7 +16500,7 @@
           ],
           "on": [
            [
-            92,
+            89,
             "pointerleave"
            ]
           ]
@@ -17459,7 +16561,7 @@
               ],
               "on": [
                [
-                93,
+                90,
                 "click"
                ]
               ],
@@ -17491,7 +16593,7 @@
               ],
               "on": [
                [
-                94,
+                91,
                 "click"
                ]
               ],
@@ -17523,7 +16625,7 @@
               ],
               "on": [
                [
-                95,
+                92,
                 "click"
                ]
               ],
@@ -17562,7 +16664,7 @@
               ],
               "on": [
                [
-                98,
+                95,
                 "click"
                ]
               ],
@@ -17590,7 +16692,7 @@
               ],
               "on": [
                [
-                96,
+                93,
                 "click"
                ]
               ],
@@ -17618,7 +16720,7 @@
               ],
               "on": [
                [
-                97,
+                94,
                 "click"
                ]
               ],
@@ -17675,7 +16777,7 @@
         "value": "#000000",
         "on": [
          [
-          99,
+          96,
           "input"
          ]
         ]
@@ -17701,10 +16803,10 @@
  },
  "fields": {
   "announcer": {
-   "node": "#ui.27"
+   "node": "#ui.28"
   },
   "banner": {
-   "node": "#ui.28"
+   "node": "#ui.29"
   },
   "barStopCount": 0,
   "boardNote": {
@@ -17714,59 +16816,59 @@
    "node": "#ui.4.0.0.0.1"
   },
   "bugChip": {
-   "node": "#ui.29"
+   "node": "#ui.30"
   },
   "calAxes": {
-   "node": "#ui.21.5"
+   "node": "#ui.22.5"
   },
   "calAxisCells": [],
   "calCanSave": false,
   "calCanSkip": false,
   "calCancelBtn": {
-   "node": "#ui.21.7.0"
+   "node": "#ui.22.7.0"
   },
   "calHint": {
-   "node": "#ui.21.3"
+   "node": "#ui.22.3"
   },
   "calKicker": {
-   "node": "#ui.21.1"
+   "node": "#ui.22.1"
   },
   "calList": {
-   "node": "#ui.21.6"
+   "node": "#ui.22.6"
   },
   "calModeBtn": {
-   "node": "#ui.21.7.4"
+   "node": "#ui.22.7.4"
   },
   "calPrompt": {
-   "node": "#ui.21.2"
+   "node": "#ui.22.2"
   },
   "calRevBtn": {
-   "node": "#ui.21.7.3"
+   "node": "#ui.22.7.3"
   },
   "calSaveBtn": {
-   "node": "#ui.21.7.5"
+   "node": "#ui.22.7.5"
   },
   "calSkipBtn": {
-   "node": "#ui.21.7.1"
+   "node": "#ui.22.7.1"
   },
   "calStickLeft": {
    "keys": [
     [
      "box",
      {
-      "node": "#ui.21.4.0"
+      "node": "#ui.22.4.0"
      }
     ],
     [
      "nub",
      {
-      "node": "#ui.21.4.0.0.2"
+      "node": "#ui.22.4.0.0.2"
      }
     ],
     [
      "cap",
      {
-      "node": "#ui.21.4.0.1"
+      "node": "#ui.22.4.0.1"
      }
     ]
    ]
@@ -17776,35 +16878,35 @@
     [
      "box",
      {
-      "node": "#ui.21.4.1"
+      "node": "#ui.22.4.1"
      }
     ],
     [
      "nub",
      {
-      "node": "#ui.21.4.1.0.2"
+      "node": "#ui.22.4.1.0.2"
      }
     ],
     [
      "cap",
      {
-      "node": "#ui.21.4.1.1"
+      "node": "#ui.22.4.1.1"
      }
     ]
    ]
   },
   "calZeroBtn": {
-   "node": "#ui.21.7.2"
+   "node": "#ui.22.7.2"
   },
   "carousel": {
    "instance": "Carousel"
   },
   "checkVersion": "function",
   "controlsHelp": {
-   "node": "#ui.19.2.1"
+   "node": "#ui.20.2.1"
   },
   "controlsMenu": {
-   "node": "#ui.19.2.0"
+   "node": "#ui.20.2.0"
   },
   "courseCardHost": {
    "node": "#ui.8.2.1"
@@ -17843,34 +16945,34 @@
    "node": "#ui.2.0"
   },
   "fcAttitude": {
-   "node": "#ui.20.2.1.2"
+   "node": "#ui.21.2.1.2"
   },
   "fcDirty": {
-   "node": "#ui.20.0.0.3"
+   "node": "#ui.21.0.0.3"
   },
   "fcExit": {
-   "node": "#ui.20.1"
+   "node": "#ui.21.1"
   },
   "fcExitCopy": {
-   "node": "#ui.20.1.2.1"
+   "node": "#ui.21.1.2.1"
   },
   "fcHelp": {
-   "node": "#ui.20.2.1.1.1"
+   "node": "#ui.21.2.1.1.1"
   },
   "fcLeave": {
-   "node": "#ui.20.1.1"
+   "node": "#ui.21.1.1"
   },
   "fcMenu": {
-   "node": "#ui.20.2.1.1.0"
+   "node": "#ui.21.2.1.1.0"
   },
   "fcPages": {
-   "node": "#ui.20.2.1.0"
+   "node": "#ui.21.2.1.0"
   },
   "fcSaveExit": {
-   "node": "#ui.20.1.0"
+   "node": "#ui.21.1.0"
   },
   "fcTabs": {
-   "node": "#ui.20.2.0"
+   "node": "#ui.21.2.0"
   },
   "firstNote": {
    "node": "#ui.4.0.0.0.5"
@@ -18047,19 +17149,19 @@
    "node": "detached div.map-cards"
   },
   "musicDock": {
-   "node": "#ui.34"
+   "node": "#ui.35"
   },
   "musicNext": {
-   "node": "#ui.34.2"
+   "node": "#ui.35.2"
   },
   "musicPrev": {
-   "node": "#ui.34.0"
+   "node": "#ui.35.0"
   },
   "musicTitle": {
-   "node": "#ui.34.1"
+   "node": "#ui.35.1"
   },
   "nameDialog": {
-   "node": "#ui.35"
+   "node": "#ui.36"
   },
   "osd": {
    "node": "#ui.0"
@@ -18200,10 +17302,10 @@
    "map": []
   },
   "padCards": {
-   "node": "#ui.22.4"
+   "node": "#ui.23.4"
   },
   "padHint": {
-   "node": "#ui.22.3"
+   "node": "#ui.23.3"
   },
   "padInfo": {
    "keys": [
@@ -18218,46 +17320,46 @@
    ]
   },
   "padKicker": {
-   "node": "#ui.22.1"
+   "node": "#ui.23.1"
   },
   "padNoBtn": {
-   "node": "#ui.22.5.1"
+   "node": "#ui.23.5.1"
   },
   "padPickPhase": "wiggle",
   "padPickReason": "boot",
   "padPrompt": {
-   "node": "#ui.22.2"
+   "node": "#ui.23.2"
   },
   "padSkipBtn": {
-   "node": "#ui.22.5.2"
+   "node": "#ui.23.5.2"
   },
   "padYesBtn": {
-   "node": "#ui.22.5.0"
+   "node": "#ui.23.5.0"
   },
   "pauseChip": {
-   "node": "#ui.30"
+   "node": "#ui.31"
   },
   "pausedHelp": {
-   "node": "#ui.23.1.1"
+   "node": "#ui.24.1.1"
   },
   "pausedMenu": {
-   "node": "#ui.23.1.0"
+   "node": "#ui.24.1.0"
   },
   "pidsHelp": {
-   "node": "#ui.18.2.2"
+   "node": "#ui.19.2.2"
   },
   "pidsHint": {
-   "node": "#ui.18.3.1"
+   "node": "#ui.19.3.1"
   },
   "pidsMenu": {
-   "node": "#ui.18.2.1"
+   "node": "#ui.19.2.1"
   },
   "pidsPanel": {
    "keys": [
     [
      "root",
      {
-      "node": "#ui.18.2.0"
+      "node": "#ui.19.2.0"
      }
     ],
     [
@@ -18272,6 +17374,12 @@
   "pilotMenu": {
    "node": "#ui.11.2.0"
   },
+  "planeratesHelp": {
+   "node": "#ui.18.2.1"
+  },
+  "planeratesMenu": {
+   "node": "#ui.18.2.0"
+  },
   "progress": {
    "instance": "Progress"
   },
@@ -18282,10 +17390,10 @@
    "node": "#ui.10.2.1"
   },
   "quickHelp": {
-   "node": "#ui.24.1.1"
+   "node": "#ui.25.1.1"
   },
   "quickMenu": {
-   "node": "#ui.24.1.0"
+   "node": "#ui.25.1.0"
   },
   "ratesHelp": {
    "node": "#ui.17.2.2"
@@ -18315,37 +17423,37 @@
    ]
   },
   "resultsBody": {
-   "node": "#ui.25.0.0.3"
+   "node": "#ui.26.0.0.3"
   },
   "resultsFacts": {
-   "node": "#ui.23.1"
+   "node": "#ui.26.1"
   },
   "resultsHead": {
-   "node": "#ui.25.0.0.1"
+   "node": "#ui.26.0.0.1"
   },
   "resultsHelp": {
-   "node": "#ui.25.0.1.0.1"
+   "node": "#ui.26.0.1.0.1"
   },
   "resultsHero": {
-   "node": "#ui.25.0.0.2"
+   "node": "#ui.26.0.0.2"
   },
   "resultsHeroCap": {
-   "node": "#ui.25.0.0.2.0"
+   "node": "#ui.26.0.0.2.0"
   },
   "resultsHeroMeta": {
-   "node": "#ui.25.0.0.2.2"
+   "node": "#ui.26.0.0.2.2"
   },
   "resultsHeroTime": {
-   "node": "#ui.25.0.0.2.1"
+   "node": "#ui.26.0.0.2.1"
   },
   "resultsKicker": {
-   "node": "#ui.25.0.0.0"
+   "node": "#ui.26.0.0.0"
   },
   "resultsMenu": {
-   "node": "#ui.25.0.1.0.0"
+   "node": "#ui.26.0.1.0.0"
   },
   "resultsNote": {
-   "node": "#ui.25.0.0.4"
+   "node": "#ui.26.0.0.4"
   },
   "roomBar": {
    "node": "#ui.3.2"
@@ -18501,66 +17609,72 @@
      }
     ],
     [
-     "pids",
+     "planerates",
      {
       "node": "#ui.18"
      }
     ],
     [
-     "controls",
+     "pids",
      {
       "node": "#ui.19"
      }
     ],
     [
-     "fc",
+     "controls",
      {
       "node": "#ui.20"
      }
     ],
     [
-     "calibrate",
+     "fc",
      {
       "node": "#ui.21"
      }
     ],
     [
-     "padpick",
+     "calibrate",
      {
       "node": "#ui.22"
      }
     ],
     [
-     "paused",
+     "padpick",
      {
       "node": "#ui.23"
      }
     ],
     [
-     "quick",
+     "paused",
      {
       "node": "#ui.24"
      }
     ],
     [
-     "results",
+     "quick",
      {
       "node": "#ui.25"
      }
     ],
     [
-     "walk",
+     "results",
      {
       "node": "#ui.26"
+     }
+    ],
+    [
+     "walk",
+     {
+      "node": "#ui.27"
      }
     ]
    ]
   },
   "signinChip": {
-   "node": "#ui.32"
+   "node": "#ui.33"
   },
   "signinPanel": {
-   "node": "#ui.33"
+   "node": "#ui.34"
   },
   "standingsHelp": {
    "node": "#ui.15.2.2"
@@ -18575,7 +17689,7 @@
    "node": "#ui.15.2.0"
   },
   "swapChip": {
-   "node": "#ui.31"
+   "node": "#ui.32"
   },
   "titleBest": {
    "node": "#ui.4.0.0.0.3"
@@ -18622,10 +17736,10 @@
    "node": "#ui.3.3.1"
   },
   "walkPrompt": {
-   "node": "#ui.26.0"
+   "node": "#ui.27.0"
   },
   "walkPromptLabel": {
-   "node": "#ui.26.0.1"
+   "node": "#ui.27.0.1"
   },
   "warLobbyEl": {
    "node": "#ui.12.2"
