@@ -1,0 +1,1109 @@
+{
+ "lists": {
+  "LAYERS": [
+   "meadow",
+   "pasture",
+   "forest",
+   "scree",
+   "rock",
+   "snow",
+   "shore",
+   "path",
+   "alpine"
+  ],
+  "SURFACES": [
+   "boards",
+   "render",
+   "stone",
+   "shingle",
+   "slate",
+   "asphalt",
+   "gravel",
+   "cobble",
+   "concrete",
+   "metal"
+  ]
+ },
+ "surfaces": {
+  "boards": {
+   "arm": {
+    "file": "/assets/swiss2/boards_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/boards_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/boards_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "render": {
+   "arm": {
+    "file": "/assets/swiss2/render_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/render_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/render_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "stone": {
+   "arm": {
+    "file": "/assets/swiss2/stone_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/stone_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/stone_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "shingle": {
+   "arm": {
+    "file": "/assets/swiss2/shingle_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/shingle_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/shingle_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "slate": {
+   "arm": {
+    "file": "/assets/swiss2/slate_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/slate_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/slate_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "asphalt": {
+   "arm": {
+    "file": "/assets/swiss2/asphalt_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/asphalt_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/asphalt_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "gravel": {
+   "arm": {
+    "file": "/assets/swiss2/gravel_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/gravel_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/gravel_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "cobble": {
+   "arm": {
+    "file": "/assets/swiss2/cobble_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/cobble_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/cobble_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "concrete": {
+   "arm": {
+    "file": "/assets/swiss2/concrete_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/concrete_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/concrete_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  },
+  "metal": {
+   "arm": {
+    "file": "/assets/swiss2/metal_arm.jpg",
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     256,
+     256,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "col": {
+    "file": "/assets/swiss2/metal_col.jpg",
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   },
+   "nrm": {
+    "file": "/assets/swiss2/metal_nrm.jpg",
+    "ref": "t2",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 8
+   }
+  }
+ },
+ "terrain": {
+  "keys": [
+   "col",
+   "nrh"
+  ],
+  "col": {
+   "ref": "t0",
+   "type": "DataArrayTexture",
+   "size": [
+    64,
+    64,
+    9
+   ],
+   "data": "f5fea4e8",
+   "wrap": [
+    1000,
+    1000
+   ],
+   "filter": [
+    1006,
+    1008
+   ],
+   "mips": true,
+   "format": 1023,
+   "dataType": 1009,
+   "colorSpace": "srgb",
+   "repeat": [
+    1,
+    1
+   ],
+   "offset": [
+    0,
+    0
+   ],
+   "flipY": false,
+   "anisotropy": 4
+  },
+  "nrh": {
+   "ref": "t1",
+   "type": "DataArrayTexture",
+   "size": [
+    64,
+    64,
+    9
+   ],
+   "data": "36e8d390",
+   "wrap": [
+    1000,
+    1000
+   ],
+   "filter": [
+    1006,
+    1008
+   ],
+   "mips": true,
+   "format": 1023,
+   "dataType": 1009,
+   "colorSpace": "",
+   "repeat": [
+    1,
+    1
+   ],
+   "offset": [
+    0,
+    0
+   ],
+   "flipY": false,
+   "anisotropy": 4
+  }
+ }
+}
