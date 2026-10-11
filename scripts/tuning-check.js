@@ -14,16 +14,24 @@
  *   U3 the stall, the documented direction (FAA, Pilot's Handbook of
  *      Aeronautical Knowledge, Weight and Balance, "Effects of Adverse
  *      Balance": a forward CG is more stable and harder to raise the nose,
- *      an aft CG less stable, quicker to stall and harder to recover): full
- *      up elevator from level flight at cruise, power off, stalls sooner
- *      (the first stall strip separating, sim_wing_strips, within 3 s) and
- *      pitches up faster in its first second tail heavy than stock, and
- *      stock than nose heavy. Not the peak angle in a fixed first second:
- *      a nose heavy glider holds its angle low until its speed bleeds off,
- *      then stalls inside the window while stock is already falling from
- *      its break, which read as nose heavy higher (2026-10-11). The pitch
- *      rate in the first second, because after it the speed a power off
- *      pull up has bled away sets it more than the balance does.
+ *      an aft CG less stable, quicker to stall and harder to recover):
+ *      with full up elevator the angle the aircraft can be held at, the
+ *      zero lift line's angle at which the pitching moment at cruise
+ *      speed, held still, first turns nose down, is higher tail heavy
+ *      than stock and stock than nose heavy; and full up from level flight
+ *      at cruise, power off, pitches up faster in its first second in the
+ *      same order. The held angle, not a flight's: two transient measures
+ *      were tried and both read the step response rather than the
+ *      balance. The peak angle in a fixed first second read a nose heavy
+ *      glider (the NRJ) higher than stock, since it holds its angle low
+ *      until its speed bleeds off and then departs inside the window
+ *      while stock is already past its break. The time to the first
+ *      stall strip separating tied on the CAP and inverted by a fraction
+ *      of a millisecond, since moving the CG forward lengthens the tail's
+ *      arm and a 50 deg elevator then pitches it harder before the static
+ *      margin counts (2026-10-11). The pitch rate in the first second,
+ *      because after it the speed a power off pull up has bled away sets
+ *      it more than the balance does.
  *   U4 the rates: full aileron (the rudder on a plane without ailerons)
  *      rolls faster, and full elevator pitches faster, on high than mid
  *      than low.
@@ -92,7 +100,6 @@ must(standSim.init(diff), 'stand init');
 const stand = new TestStand(standSim);
 
 const HIGH = 400;
-const stripPtr = sim.e.malloc(8 * 8);
 
 
 function seat(id, tune = null, power = null) {
@@ -164,14 +171,35 @@ function stall(id, tune) {
   seat(id, tune);
   place(TABLE[id].cruiseMs);
   let q = 0;
-  let onset = null;
-  flyFor(3000, () => [0, 1, 0, 0], (t) => {
-    if (t < 1000) q = Math.max(q, -sim.readState().state[12]);
-    if (onset !== null) return;
-    must(sim.e.sim_wing_strips(stripPtr), 'sim_wing_strips');
-    if (new Float64Array(sim.e.memory.buffer, stripPtr, 8).some((x) => Math.abs(x) > 1e-3)) onset = t;
+  flyFor(1000, () => [0, 1, 0, 0], () => {
+    q = Math.max(q, -sim.readState().state[12]);
   });
-  return { onset, q };
+  return { q, held: heldAngle(id, tune) };
+}
+
+/* Full up elevator, cruise speed, power off: the zero lift line's angle,
+ * deg, at which the pitching moment, the body held still at each angle,
+ * first turns nose down (body y positive), stepping the body's angle a
+ * quarter degree to 60. Null when it never does. */
+function heldAngle(id, tune) {
+  for (let deg10 = 0; deg10 <= 600; deg10 += 2.5) {
+    const a = deg10 / 10 / 180 * Math.PI;
+    seat(id, tune);
+    must(sim.reset(), 'reset');
+    let m = 0;
+    let alpha = 0;
+    for (let ms = 0; ms < 150; ms += 1) {
+      must(sim.e.sim_set_pose(0, 0, HIGH, Math.cos(a / 2), 0, -Math.sin(a / 2), 0), 'pose');
+      must(sim.e.sim_set_velocity(TABLE[id].cruiseMs, 0, 0, 0, 0, 0), 'velocity');
+      must(sim.input(ms / 1000, 0, 1, 0, 0), 'input');
+      must(sim.step(1), 'step');
+      const d = wingDebug(sim);
+      m = d[13];
+      alpha = d[0];
+    }
+    if (m > 0) return deg(alpha);
+  }
+  return null;
 }
 
 /* Peak body rate from a stick step at cruise, 1 s: axis 11 roll, 12
@@ -267,12 +295,10 @@ for (const id of ids) {
   const sF = stall(id, cgOnly(d));
   const s0 = stall(id, null);
   const sA = stall(id, cgOnly(-d));
-  const ms = (x) => (x === null ? 'never' : `${x} ms`);
-  check(`U3 ${id} full up elevator: tail heavy stalls sooner than stock, stock than nose heavy`,
-    /* Nose heavy may not stall at all in 3 s: the FAA's harder to raise
-     * the nose, later than any time. */
-    sA.onset !== null && s0.onset !== null && sA.onset < s0.onset && s0.onset < (sF.onset ?? Infinity),
-    `CG ${f2(d * 1000)} mm each way: the first strip separates at ${ms(sA.onset)}, ${ms(s0.onset)}, ${ms(sF.onset)}`);
+  const held = (x) => (x === null ? 'never' : f2(x));
+  check(`U3 ${id} full up elevator: tail heavy is held at a higher angle of attack than stock, stock than nose heavy`,
+    sA.held !== null && s0.held !== null && sF.held !== null && sA.held > s0.held && s0.held > sF.held,
+    `CG ${f2(d * 1000)} mm each way: ${held(sA.held)}, ${held(s0.held)}, ${held(sF.held)} deg`);
   check(`U3 ${id} and pitches up faster`, sA.q > s0.q && s0.q > sF.q,
     `${f2(deg(sA.q))}, ${f2(deg(s0.q))}, ${f2(deg(sF.q))} deg/s`);
 

@@ -1487,11 +1487,13 @@ What moved, re-derived on it rather than widened:
   fully separated plate at 30 deg on Ostowari and Naik's AR 6 1.32 (4.25
   m/s); the plant mushes at 1.86. The balloon and the break within 3 s
   are the CRRC's and hold (2.36 s).
-- tuning:check U3 now times the stall's onset (the first strip to
-  separate) instead of the peak angle in a fixed first second, which read
-  a nose heavy glider still departing as higher than stock already past
-  its break: aft stalls first and nose heavy last (or not in 3 s) on every
-  aircraft.
+- tuning:check U3 now reads the angle full up elevator holds, the
+  pitching moment at cruise speed with the body held still, rather than a
+  flight's transient: the peak angle in a fixed first second read a nose
+  heavy glider still departing as higher than stock, and the time to the
+  first stall strip (tried next) tied on the CAP, whose forward CG
+  lengthens a 50 deg elevator's arm. Aft is held highest and nose heavy
+  lowest on every aircraft (FAA, Effects of Adverse Balance).
 
 A BIG FAILURE this does not fix, measured: the Timber does not reach its
 harrier. harrier-flap-probe.js, full up held: pitch 7 to 26 deg at 8 to
