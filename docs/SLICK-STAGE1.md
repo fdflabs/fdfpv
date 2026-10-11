@@ -281,7 +281,21 @@ it out: the first second holds the wings on the wings' level law
 (wingpilot.js loopHold's), and the pull flies on that aileron, frozen
 (stick -0.007, a check of its own). Then the quarter pull holds 2.2 deg,
 the half pull drops the right wing 27 deg, the rudder touches 22 and 32.
-Acro and AS3X fly centred: their sticks are rates. With the right thrust
+Acro and AS3X fly centred: their sticks are rates.
+
+**What AS3X does through the idle stall.** The half stick pull is a zoom:
+the nose passes 60 deg and the speed goes at the top, where the wing
+drops. On the merged plant with the aero lane's lateral model (w34-3d-
+batchlat 39f64822), scratch builds split the cause: with `j_prop` zeroed
+and the driven idle's torque clipped every mode stayed level to 0.0 deg;
+with either one alone the drop was right in every mode. Acro holds the
+rate until the ailerons run out of air, then drops 12 deg in the last half
+second; AS3X also holds the attitude (Spektrum's heading hold,
+`as3x_kh`) and its drop has only begun by the end, 2.4 deg. The check
+holds what the physics gives: right, the gyroscope's and the torque's
+side, and less than Acro's. The 9 deg it read before, and the 3 deg it
+was held over, came from AS3X fighting a strip aileron reversal in the
+stall that NACA TR 419 says does not happen. With the right thrust
 the take off with the sticks centred still swings left, by 1.1 deg at
 liftoff where it was 12.8: the thrust line takes out most of the swirl's
 and the P factor's turn, which is what EF builds it in for.
