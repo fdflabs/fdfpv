@@ -182,6 +182,13 @@ At the hover (T = W = 14.81 N, no airspeed): dp 173 Pa, v_i 8.40 m/s, the
 wash contracted to 0.117 m, which covers 47 percent of the stabiliser, 69
 percent of the fin and rudder and 1.8 percent of the ailerons' moment.
 
+The wing's root in the wash, outside the fuselage, is its own stator
+(`slip_root`, docs/FLIGHTMODEL.md "The swirl over the wing's root"): each
+side meets the swirl at its own angle, so the root's share of the torque
+is Selig's at the hover, twice that in level flight, where more of the
+wing is in a wider wash, and less in the harrier, where the left root
+saturates first.
+
 ### 2. Past the linear angles (`hi_alpha`, `tail_*`, `side_cda`)
 
 A 3D aircraft flies at every angle, and three of the plant's linear terms

@@ -1229,3 +1229,91 @@ is re-derived on the stall's own CL max, 0.898 at 1.7e5: 8.54 m/s, band
 8.03 to 9.73 (was 8.31, 7.81 to 9.47, on the estimated 0.95); the plant
 reads 8.75. A half stick pull at 16 m/s now breaks at 15.2 deg (13.8
 before).
+
+## The swirl over the wing's root
+
+SWIRL_KEEP took the wing root's share of a tractor's swirl as a fixed
+(1 - K) of the prop's torque, 0.26 at K = 0.74, at every speed, power and
+angle: a stator with no geometry. The root is a wing in the wash, and how
+much of the swirl it turns back depends on how much wing is in the wash
+outside the fuselage and on the angle that wing already meets.
+
+**The model** (plant_wing.c root_swirl, the table's `slip_root` and
+`slip_root_eta`). The wash turns as a solid body at Omega, Q = mdot Omega
+rw² / 2 (momentum theory, as the fin's swirl already took it), so at y
+out along the span it blows across the chord at Omega y, at any height:
+up on the left of a prop turning clockwise from behind, down on the
+right. Each side's root, from the fuselage's side out to where the wing
+leaves the contracted wash, sqrt(rw² - h²) with h the wing's distance
+from the thrust line, meets that on top of the angle the whole stream
+crosses it at, the free stream's crossflow over the wash's axial speed
+u + 2 v_i. Its normal force is the wing's slope saturating on a flat
+plate's 1.17 (Hoerner), plate_ratio, the form the tail already has in the
+wash. The roll the prop's way is the two sides' difference, so:
+
+- at small angles each side is linear and the difference is the strip
+  theory stator, which grows with the span of wing in the wash: at the
+  hover the wash has contracted to 0.117 m and only 0.075 to 0.093 m of
+  each side is in it; in level flight at 15 m/s it is 0.075 to 0.144 m;
+- near the stall the upwash side saturates first and the root gives back
+  less of the swirl: what the left wing cannot lift is the shortfall,
+  and the airframe meets more of the torque, which is the Extra's
+  left/right asymmetry at low speed and high power.
+
+The fin meets what the root leaves, 1 - root / Q, so the angular momentum
+the prop puts in the wash is still accounted once.
+
+**Its one fitted number.** No measurement gives a wing's lift in a stream
+as narrow as a model prop's wash (the jet's boundary takes much of it;
+Veldhuis, Propeller Wing Aerodynamic Interference, TU Delft 2005, finds
+the recovery "significant" without a share a plant can take).
+`slip_root_eta`, the share of the strip lift the root makes, is FITTED so
+that at the hover the root gives back exactly what SWIRL_KEEP's Selig
+anchor gave it, (1 - 0.74) of the torque (Selig, AIAA 2010-7938: the
+swirl's net roll on an aerobatic aircraft in a hover is near 40 percent
+of the torque): 0.414 (`npm run extra:derive`). Everywhere else geometry
+and the stream decide it. The Extra's geometry: the fuselage's side
+0.075 m out (E-flite's top view, src/render/extracraft.js), the wing
+0.070 m under the thrust line (its front photograph), the chord there
+0.347 m.
+
+**Only the Extra has it.** Every other tractor keeps SWIRL_KEEP's fixed
+share, bit for bit: their wing heights and fuselage widths at the root are
+not measured yet, and a high wing (the Cub's, the Timber's, the Kadet's)
+sits at the top of the wash or above it, where the fuselage, not the wing,
+is the stator, which this form does not cover.
+
+**Measured** (scripts/extra-derive.js for the root's share; the harrier
+is E11's pilot, the last 5 s of 20, Manual):
+
+ Condition | root's share of the torque, before | after
+ --- | --- | ---
+ Hover, hanging still | 0.260 | 0.260 (Selig's, by construction)
+ Level, 15 m/s | 0.260 | 0.522
+ Harrier 35, 40, 45 deg | 0.260 | 0.199, 0.195, 0.196
+
+ Harrier, E11's pilot | right aileron to hold the wings, before | after
+ --- | --- | ---
+ 30 deg | 0.116 | 0.128
+ 40 deg | 0.231 | 0.251
+ 50 deg | 0.377 | 0.401
+
+In level flight the root takes twice the torque it did, so the fin meets
+0.48 of the swirl (was 0.74); in the harrier the left root saturates and the pilot holds 8 to 9
+percent more right aileron. Every E gate holds; E14's take off, 3.98 m to
+3.93 m, 0.08 to 0.07 m off the line.
+
+**Changed with it.** The Extra's recorded flight hash, 8fb879543a8cef72
+on batch/2026-10-11 at 6476da48e to e68b6bd6c7f97153, re-pinned in
+nighttimber N15 and hercules H7 (its recording is kept: it flies the same
+sticks). The AS3X rows re-derived by `npm run as3x:derive`, whose top
+speed the plant now flies at 23.86 m/s (24.08): as3x_k 0.0518, 0.2393,
+0.3643; as3x_kh 0.9246, 4.2715, 6.5027; as3x_rate 6.529, -4.142, -4.763.
+
+**Not modelled, said plainly.** The root band's own extra lift in the
+wash (the symmetric part, the wing's lift with power) and its damping of
+a roll rate in the wash: both are real and both are left as they were,
+the plant's wing still sees only the free stream. The section's peak and
+drop past CL max in the wash: the plate's saturation has no peak, so the
+asymmetry is the milder of the two; the free stream strips keep their
+measured stall.

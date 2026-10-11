@@ -585,6 +585,44 @@ static double plate_ratio(double x, double cn) {
   return 1.0 / sim_sqrt(sim_sqrt(1.0 + n * n * n * n));
 }
 
+/*
+ * THE SWIRL OVER THE WING'S ROOT (FixedWingParams.slip_root), its roll
+ * moment, N m, the prop's way. The wash turns as a solid body at om, so at
+ * y out along the span, at any height, it blows across the chord at om y:
+ * up on the left of a prop turning clockwise from behind, down on the
+ * right. Each side's root, from the fuselage's side out to where the wing
+ * leaves the wash, meets it on top of the angle xw / vw the whole stream
+ * crosses the wing at, and its normal force there is the wing's slope
+ * saturating as a flat plate's does, plate_ratio, the tail's form in the
+ * wash. The roll is the two sides' difference: at a small angle each side
+ * is linear and the difference is the strip theory stator, which grows
+ * with the span of wing in the wash; near the stall the upwash side
+ * saturates first and the root gives back less of the swirl, the left
+ * wing's lift the shortfall. Four point Gauss-Legendre over each side.
+ */
+static double root_swirl(const FixedWingParams *fw, double xw, double vw, double om, double rw) {
+  static const double GX[4] = { -0.86113631159405258, -0.33998104358485626, 0.33998104358485626, 0.86113631159405258 };
+  static const double GW[4] = { 0.34785484513745386, 0.65214515486254614, 0.65214515486254614, 0.34785484513745386 };
+  const double yf = fw->slip_root[0], h = fw->slip_root[1];
+  if (!(rw > h) || !(vw > 0.0)) {
+    return 0.0;
+  }
+  const double yw = sim_sqrt(rw * rw - h * h);
+  if (!(yw > yf)) {
+    return 0.0;
+  }
+  const double cla = wing_cla(fw);
+  const double mid = 0.5 * (yw + yf), hw = 0.5 * (yw - yf);
+  double sum = 0.0;
+  for (int i = 0; i < 4; i += 1) {
+    const double y = mid + hw * GX[i];
+    const double xp = cla * (xw + om * y) / vw;
+    const double xm = cla * (xw - om * y) / vw;
+    sum += GW[i] * y * (xp * plate_ratio(xp, fw->tail_cn) - xm * plate_ratio(xm, fw->tail_cn));
+  }
+  return fw->slip_root_eta * 0.5 * PLANT.rho * vw * vw * fw->slip_root[2] * hw * sum;
+}
+
 /* Cubic smoothstep from 0 at a to 1 at b. */
 static double smoothstep(double a, double b, double x) {
   if (x <= a) {
@@ -2020,10 +2058,22 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * against the torque reaction (Veldhuis, Propeller Wing Aerodynamic
      * Interference, TU Delft 2005: the wing recovers a significant part of
      * the swirl). SWIRL_KEEP of the swirl reaches the fin; the rest is the
-     * root's. */
+     * root's. Where the table measures its root (slip_root) the root's
+     * share is the wing's own lift in the swirl, root_swirl above, and the
+     * fin meets what the root leaves. */
     const double q_prop = fw->torque_arm * thrust;
     const double mdot = PLANT.rho * WING_PI * fw->slip_r * fw->slip_r * (u_pos + vi);
-    const double keep = fw->slip_pusher ? 1.0 : SWIRL_KEEP;
+    double keep = fw->slip_pusher ? 1.0 : SWIRL_KEEP;
+    double root = (1.0 - keep) * q_prop;
+    if (fw->slip_root_eta > 0.0 && q_prop > 0.0) {
+      const double om = 2.0 * q_prop / (mdot * rw * rw);
+      const double xw = -w * fw->cos_zl - u * fw->sin_zl;
+      root = root_swirl(fw, xw, u_pos + 2.0 * vi, om, rw);
+      if (root > q_prop) {
+        root = q_prop;
+      }
+      keep = 1.0 - root / q_prop;
+    }
     const double xs = keep * q_prop * (up - dn) / (mdot * rw * rw);
     const double xb = add_term(-v, -xs);
     /* With hi_alpha each surface's share in the wash saturates as its
@@ -2048,7 +2098,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
              (kv * (fw->slip_cn_b * xb + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
     l_slip = fw->area * fw->span *
              (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * fw->cl_da * delta_a);
-    l_slip = add_term(l_slip, (1.0 - keep) * q_prop);
+    l_slip = add_term(l_slip, root);
     g_slip[0] = l_slip;
     g_slip[1] = -m_slip;
     g_slip[2] = -n_slip;
@@ -4560,9 +4610,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0508, 0.2369, 0.3611 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.9068, 4.2287, 6.4456 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.529, -4.14, -4.775 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0518, 0.2393, 0.3643 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.9246, 4.2715, 6.5027 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.529, -4.142, -4.763 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -4594,6 +4644,14 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .slip_cy_b = -0.4631,
   .slip_cl_b = -0.0212,
   .strip_tau = { 0.378, 0.378, 0.378, 0.378 }, /* the ailerons run from 0.077 m to the tip */
+  /* The swirl over the wing's root, scripts/extra-derive.js: the fuselage's
+   * side 0.075 m out (E-flite's top view), the wing 0.070 m under the
+   * thrust line (its front photograph), the chord there. */
+  .slip_root = { 0.075, 0.070, 0.3474 },
+  /* FITTED: no measurement gives a wing's lift in a stream this narrow;
+   * the share that gives back Selig's 40 percent of the torque at the
+   * hover, with SWIRL_KEEP's fin, npm run extra:derive. */
+  .slip_root_eta = 0.414,
   .hi_alpha = 1,
   .tail_at = 3.699,
   .tail_av = 3.715,
