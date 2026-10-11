@@ -1476,28 +1476,39 @@ which lifts the tip out of the turf. The plough can only stop a slide,
 and a part gets it once a batch (`crash_contact_grip`, called from the
 solver's friction clamp with the damage mode on only).
 
-**A FINDING, 2026-10-01, NOT YET EXPLAINED: a resting slide grips harder
-than its face grip, on every ground.** Measured with motors off, the five
-inch settled flat on the ground and then given 1 m/s sideways. The grip
-is the friction over the real normal force, m |a_h| / (m (g + a_z)),
-taken over the longest stretch in which the normal force holds within 5
-percent of the weight (crash:core's drop scenario, scripts/lib/
-crash-scenarios.js):
+**A resting slide was charged against a load the ground did not carry**
+(found 2026-10-01, explained and fixed 2026-10-11). Settled flat and given
+1 m/s sideways, the five inch slid harder than its face grip on every
+ground, and more on a stiffer one. It was not the plough (with TURF_PLOUGH
+set to 0 grass still read 0.524). The hull corners' impulses overshoot:
+on grass they gave 7.24 N a step where the ground carries 6.30 N (the
+weight less the idle rotors' 9.5 percent), and `ground_settle` then
+strips the outbound kick that leaves, 1.33 mm/s a step. Each corner had
+already charged its friction, mu times its impulse, against all of it:
+0.45 x 7.24 over 6.30 is the 0.52 measured. With the damage mode on, the
+settle now gives back the share of that step's corner friction that went
+with the stripped part (sim.c, ground_settle). It cannot reverse a slide,
+and with the mode off nothing changes (crash:identity, off identical to
+main on every script). Measured on the same drop, the grip being the
+friction over the real normal force (m (g + a_z) less the rotors' kt w^2,
+crash:core's method), idle rotors:
 
-| ground | spring k, N/m | face grip | measured |
-| --- | --- | --- | --- |
-| snow | 1e4 | 0.20 | 0.224 (+12%) |
-| grass | 5e4 | 0.45 | 0.519 (+15%) |
-| sand | 1e5 | 0.60 | 0.728 (+21%) |
-| pvc | 2e5 | 0.30 | 0.362 (+21%) |
-| dirt | 2e5 | 1.00 | 1.383 (+38%) |
+| ground | spring k, N/m | face grip | main | now |
+| --- | --- | --- | --- | --- |
+| snow | 1e4 | 0.20 | 0.228 | 0.205 |
+| grass | 5e4 | 0.45 | 0.524 | 0.456 |
+| sand | 1e5 | 0.60 | 0.772 | 0.646 (+8%) |
+| pvc | 2e5 | 0.30 | 0.404 | 0.343 (+14%) |
+| dirt | 2e5 | 1.00 | 1.391 | 1.009 |
 
-It is not the plough: a part flat on a face does not plough by the rule
-above, and only grass and the default ground have one. The excess grows
-with the ground spring's stiffness, which points at the damage mode's
-spring contact adding tangential resistance beyond Coulomb. crash:core's
-grip row holds the sled's 0.45 and fails on it (0.524) until the solver
-is investigated; nothing in crash.c is changed for it.
+The grass row's 0.006 left is the rotors' own drag at 1 m/s (the
+deceleration falls with the speed through the slide). **Still wrong, left
+loud: sand and pvc.** There the settled craft's idle rotors carry 21 to 24
+percent of its weight, the corners carry less than the full weight, and
+`crash_settle_share` adds Coulomb friction for the difference, because it
+compares the corners' impulse with the whole weight, not with the weight
+less the thrust. That is a second fix (the same load feeds the spin
+friction), not done here.
 
 The 0.7 MPa is DERIVED from two studs 13 mm long, each 170 mm^2 in side
 profile, under 350 N on a sand based natural turf pitch's samples. Fully
@@ -1974,6 +1985,12 @@ one place: `sim_set_cell_voltage` after `sim_reset` leaves the first step's
 loaded pack voltage at the pack's before (the plant rewrites it every
 step), so a fresh module, whose pack is 4.2 V at the reset inside
 `sim_init`, is matched only by a reset from 4.2 V.
+
+With the resting slide's grip charged once (2026-10-11), the mode on leg
+of wing:contact goes from 19 to 22 failing checks, a shuffle of passes and
+fails among the nose ins at 10 to 13 m/s, the cause named above (a crushed
+nose is in the ground by the depth it crushed, and a box that lost parts
+is not the aircraft); every off leg is still identical to main.
 
 `score:selftest` exits 1 on base as well as here: a failure on main that
 predates this work, reported and not touched. So do slowstick:gates and

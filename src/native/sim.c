@@ -85,6 +85,11 @@ static int g_ground_near = 0;
  * two doubles, so nothing a host that never names one does can move. */
 static double g_gmu = 1.40;
 static double g_ge = 0.0;
+/* What this step's hull corner impulses did to the velocity: along the
+ * ground's normal, and across it (their friction). ground_settle reads
+ * them to charge friction only against the load the ground really took. */
+static double g_corner_dvn = 0.0;
+static double g_corner_dvt[3] = { 0.0, 0.0, 0.0 };
 
 /* The hull half extents are the airframe's now. The five inch's are the
  * numbers that used to be here; the whoop's are a third of them, which is
@@ -557,7 +562,14 @@ static int ground_hit_at(const double r[3], const double vs[3]) {
     return 0;
   }
   const double use_p = pen > 0.0 ? pen : 0.0;
+  const double v0[3] = { S.vel[0], S.vel[1], S.vel[2] };
   contact_impulse(g_ground_n, r, vs, g_ge, g_gmu, use_p);
+  const double dv[3] = { S.vel[0] - v0[0], S.vel[1] - v0[1], S.vel[2] - v0[2] };
+  const double dvn = dv[0] * g_ground_n[0] + dv[1] * g_ground_n[1] + dv[2] * g_ground_n[2];
+  g_corner_dvn += dvn;
+  for (int a = 0; a < 3; a += 1) {
+    g_corner_dvt[a] += dv[a] - dvn * g_ground_n[a];
+  }
   if (pen > CONTACT_SLOP && !(SIM_DAMAGE && crash_last_capped())) {
     const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
     S.pos[0] += g_ground_n[0] * push;
@@ -692,6 +704,26 @@ static void ground_settle(double upz, double vn_plant) {
     S.vel[0] -= nx * vn;
     S.vel[1] -= ny * vn;
     S.vel[2] -= nz * vn;
+    /* That kick was normal impulse the corners gave beyond the load the
+     * ground carries, and each corner charged its friction, mu times its
+     * impulse, against all of it. With the damage mode on the share of
+     * the corners' friction that went with the stripped part is given
+     * back, so a slide is held at mu times the real load: a settled five
+     * inch slid at 1 m/s on grass read 0.524 against the sled's 0.45
+     * (Linthorne and Cooper 2013, crash.c SURF), its corners pushing
+     * 7.24 N with 6.30 N to carry. It only returns friction already
+     * taken this step, so it cannot reverse a slide. It scales the
+     * corners' whole tangential change, a plough's share included, which a
+     * flat slide does not have; the spin their friction gave is left. */
+    if (SIM_DAMAGE && g_corner_dvn > 0.0) {
+      double share = vn / g_corner_dvn;
+      if (share > 1.0) {
+        share = 1.0;
+      }
+      S.vel[0] -= g_corner_dvt[0] * share;
+      S.vel[1] -= g_corner_dvt[1] * share;
+      S.vel[2] -= g_corner_dvt[2] * share;
+    }
     vn = 0.0;
   }
 
@@ -1213,6 +1245,10 @@ static int ground_wheels(void) {
 }
 
 static void ground_apply(void) {
+  g_corner_dvn = 0.0;
+  g_corner_dvt[0] = 0.0;
+  g_corner_dvt[1] = 0.0;
+  g_corner_dvt[2] = 0.0;
   g_ground_hits = 0;
   g_ground_projected = 0;
   g_ground_near = 0;

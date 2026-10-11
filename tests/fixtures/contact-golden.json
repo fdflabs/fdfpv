@@ -49,9 +49,9 @@
  "quad-wall-glance": {
   "what": "the interceptor glancing along an Alps wall at 12 m/s, throttle up",
   "steps": 1500,
-  "pre": "ee2df5c979a1aed2ec35e629",
-  "plane": "53df2b9fcf761a7d8c6be8ea",
-  "post": "b74a5236f83c7d892ed7fe3f",
+  "pre": "6ed175e6f641a067c66cfa00",
+  "plane": "532b6e9494ce7d82dd1f39a8",
+  "post": "3566572bf38f6ed036ae3633",
   "throw": {
    "x": 26,
    "y": 2,
@@ -115,9 +115,9 @@
  "quad-pole": {
   "what": "the interceptor into a swiss2 power pole at 15 m/s",
   "steps": 1500,
-  "pre": "67212cb013525a7f6fe41727",
-  "plane": "aaad5626cca1a4838740d512",
-  "post": "abd59b06c22748ab88644c97",
+  "pre": "dba4be59a3903bc4a6cc7e74",
+  "plane": "173d6acd5ff05b205cdbf53b",
+  "post": "7d01b6914628a5f63dbba252",
   "throw": {
    "x": 41,
    "y": 2.2,
@@ -158,9 +158,9 @@
  "quad-roof": {
   "what": "the interceptor dropped onto a swiss2 roof at 8 m/s, 35 degrees down",
   "steps": 1500,
-  "pre": "3a8669b9f52993b5f9d37c3d",
-  "plane": "a956f3f667e439d6f8bd6b44",
-  "post": "1f213e4f5ecf203816c8f893",
+  "pre": "308e82764e48f3132868c23c",
+  "plane": "9526d471c6eb6f655d36de75",
+  "post": "09248cb76eece218510d5577",
   "throw": {
    "x": -48.41424594319382,
    "y": 3.863259449943706,
@@ -191,9 +191,9 @@
  "quad-ground-skid": {
   "what": "the interceptor skidding into the swiss2 grass at 18 m/s, 15 degrees down",
   "steps": 1500,
-  "pre": "e485cd57ac6859f2306f729d",
-  "plane": "b814181ee03d8b2ca9c30f4b",
-  "post": "dd1b4e8dd227194108343c66",
+  "pre": "a31e0d240444d74b276d61bb",
+  "plane": "3aeb17a1306faf886d20f80a",
+  "post": "e83b24c0cbec3fd804c11da2",
   "throw": {
    "x": 25,
    "y": 1.5,
@@ -243,12 +243,12 @@
    "contactEvents": 54,
    "damage": [],
    "pass": {
-    "resolved": 53,
+    "resolved": 54,
     "resting": 0,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 53,
+    "inbound": 54,
     "outbound": 0,
     "plantHeld": 0,
     "unheld": 0
@@ -273,15 +273,15 @@
   },
   "met": {
    "obstacleEvents": 0,
-   "contactEvents": 25,
+   "contactEvents": 24,
    "damage": [],
    "pass": {
-    "resolved": 25,
+    "resolved": 24,
     "resting": 0,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 25,
+    "inbound": 24,
     "outbound": 0,
     "plantHeld": 0,
     "unheld": 0
