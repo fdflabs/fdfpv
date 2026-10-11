@@ -73,6 +73,8 @@ export const ITEMS = [
   { id: 'finish:pearl', kind: 'finish', paint: 'pearl', price: 500 },
   { id: 'finish:candy', kind: 'finish', paint: 'candy', price: 600 },
   { id: 'finish:gold', kind: 'finish', paint: 'gold', earn: 'challenges' },
+  { id: 'finish:flake', kind: 'finish', paint: 'flake', price: 500 },
+  { id: 'finish:brushed', kind: 'finish', paint: 'brushed', price: 400 },
   { id: 'decal:ribbon', kind: 'decal', paint: 'ribbon', earn: 'three_stars' },
   ...kitItems(),
 ];
