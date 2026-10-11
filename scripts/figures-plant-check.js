@@ -88,12 +88,28 @@ const LAG = 100;
 const EVERY = 50;
 const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
 const quant = (x) => clamp(Math.round(x * 50) / 50);
-/* The vertical lines' gains, figures-plant-sweep.js's LINE_GAINS (a rate
- * gain of 0.5 rings against this person's lag; 0.3 holds the line). */
-const LINE_GAINS = { kp: 4, kr: 0.3 };
+/* The vertical lines' gains: the nose's error to a rate (kp, 1/s) and the
+ * rate's error to the stick (kr, s). With this person's 0.2 s lag 0.5
+ * rang on every plant, and on the prop curves (91061d8cb, the elevator in
+ * a stronger slipstream) 0.3 rings too: the Extra's up line weaved 0.22
+ * rms in its up component with the elevator stop to stop. Measured over kp
+ * 1 to 4 and kr 0.1 to 0.3 there, 2026-10-12: kr 0.2 is the calmest at
+ * every kp (0.11 at kp 4). figures-plant-sweep.js keeps its own. */
+const LINE_GAINS = { kp: 4, kr: 0.2 };
 const UP = [0, 0, 1];
 const DOWN = [0, 0, -1];
-const holdLine = (d, target, thr) => [...hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS }).map(quant), thr];
+/* A person holding a line also settles their hand on what holds it: the
+ * proportional hold alone left the Extra's nose 8 deg past the vertical as
+ * it slowed on the prop curves (91061d8cb), and at 5 m/s that much bends
+ * the path off the line before the slide. ki per second, on the stick the
+ * hold asks for; each line starts its own. */
+const LINE_KI = 1;
+const holdLine = (d, target, thr, trim) => {
+  const [r, p, y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  trim.pitch = clamp(trim.pitch + LINE_KI * p * EVERY / 1000, 0.5);
+  trim.yaw = clamp(trim.yaw + LINE_KI * y * EVERY / 1000, 0.5);
+  return [quant(r), quant(clamp(p + trim.pitch)), quant(clamp(y + trim.yaw)), thr];
+};
 
 let pass = 0;
 let fail = 0;
@@ -138,6 +154,8 @@ async function flight() {
   let holdMs = 0;
   let line0 = null;
   let back = false;
+  const upTrim = { pitch: 0, yaw: 0 };
+  const downTrim = { pitch: 0, yaw: 0 };
   let st = [0, 0, 0, 0.75];
   for (let ms = 0; ms < 90000 && phase < program.length; ms += MS) {
     const o = see(sim.readState().state);
@@ -170,21 +188,26 @@ async function flight() {
         st = [0, plane.loopPull, 0, name === 'pullup' ? 1 : 0.6];
         if (turned > Math.PI / 2 - Math.abs(d.q) * 0.25) { phase += 1; phaseMs = 0; turned = 0; marks.push(ms); }
       } else if (name === 'up') {
-        st = holdLine(d, UP, 0.4);
+        st = holdLine(d, UP, 0.4, upTrim);
         if (phaseMs >= 4000 || d.v < 4) { phase += 1; phaseMs = 0; marks.push(ms); }
       } else if (name === 'slide') {
         back = back || d.along < -1;
-        st = back ? [0, 0, 0, 0] : holdLine(d, UP, 0);
+        st = back ? [0, 0, 0, 0] : holdLine(d, UP, 0, upTrim);
         if (phaseMs > 600 && d.nz < -0.3) { phase += 1; phaseMs = 0; marks.push(ms); }
       } else if (name === 'down') {
-        st = holdLine(d, DOWN, 0.3);
+        st = holdLine(d, DOWN, 0.3, downTrim);
         if (phaseMs >= 1500) { phase += 1; phaseMs = 0; turned = 0; marks.push(ms); }
       } else if (name === 'points') {
         if (line0 === null) {
           const hv = Math.hypot(d.s[4], d.s[5]);
           line0 = [d.s[4] / hv, d.s[5] / hv];
         }
-        /* Four quarters, each held a beat. */
+        /* Four quarters, each held a beat. The person counts the roll they
+         * see all the way, the run on past each let go included: counting
+         * only while the stick is in lost what each hold carried on, and
+         * once the roll ran faster (the prop curves) a quarter came out
+         * an eighth long and the last point was rolled through. */
+        turned += d.p * h;
         if (holdMs > 0) {
           holdMs -= EVERY;
           /* Top rudder on the knife edge holds the nose up (a yaw about
@@ -197,7 +220,6 @@ async function flight() {
           const line = Math.abs(d.lz) > 0.5 ? quant(1.2 * (line0[0] * d.up[0] + line0[1] * d.up[1])) : 0;
           st = [0, clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75];
         } else {
-          turned += d.p * h;
           st = [0.5, 0.05, 0, 0.75];
           if (turned > (quarter + 1) * Math.PI / 2 - d.p * 0.6) {
             quarter += 1;
