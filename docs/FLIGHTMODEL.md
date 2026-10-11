@@ -1502,15 +1502,53 @@ taxi duty for the Cub's 1.65 N (0.184, was 0.21), with its heading now
 summed through half a circle; the Timber's T13 at the duty that turns the
 prop at 0.3 of full, as the gate was written for (0.2685).
 
-**Still failing on the law, diagnosed**, beside the five of "The prop's
-torque, from the drive":
+**The lead's decisions on what was left, 2026-10-11:**
 
-- p51 P19, the aero part: pb/2V 0.0813 in the XP-51's band, but the bank
-  in the first second 17.2 deg against its 20 floor (27.0 before the law).
-  The pull starts from level at duty 0.8, where the prop now turns at
-  0.82 of full, not 0.80; the chopped rotor's speed and the entry trim
-  differ, and the first second's bank is sensitive to both.
-- power:check P2 on the Timber on floats: 6.8 min flat out against E-flite's
-  7 min timer (7.9 before). On a sagged pack the motor's law turns the
-  prop over the duty the sag leaves, and the pack's current goes with its
-  speed cubed.
+- **Stabilised's steady bank** (bombshell:stab drift, p51:stab on full
+  flaps): Spektrum publishes nothing of SAFE's law; ArduPilot, the
+  controller the plant's Stabilised is modelled on (stab_pitch_down is its
+  adjust_nav_pitch_throttle), trims a steady roll error with an
+  integrator (https://ardupilot.org/plane/docs/roll-pitch-controller-tuning.html:
+  "slowly trim the aileron demand to remove the steady error"; RLL2SRV_I
+  0.05, TCONST 0.5 s from AP_RollController.cpp, IMAX a third of the
+  travel), held while the pilot's roll stick is in (ArduPlane
+  Attitude.cpp stabilize_roll). Added: the drift 10.2 to 6.4 m, the flaps'
+  bank 3.4 to 0.9 deg.
+- **U9, the loop**: flown with the wings and the nose held in the loop's
+  plane (wingpilot.js loopHold, the take offs' pilot laws); in band,
+  heading within 8.6 deg, wings within 2.7.
+- **S9's 20 deg/s** had no source; re-derived from a spin's definition,
+  autorotation: inside the bank limit the aircraft only turns, at
+  g tan(bank) / V, so the limit is that turn at the mush's speed (31 to
+  32 deg/s on the Slow Stick). The Bombshell, Kadet, Ugly Stik, Tiger Moth
+  and F-16 carry the same unsourced 20 and pass it.
+- **P18, the full flap landing, still failing.** The contact is not the
+  flare: 0.31 s after the main wheels touch, at the rest pitch (13.1 deg)
+  with the tailwheel unloaded and the tail coming down at 0.87 rad/s, the
+  tail's hull meets the grass. The scripted pilot pulls full up over 1.5
+  s after the touch; over 3.5 s it passes, over 2.5 it does not, and
+  earlier flares (2.0, 2.5 m) or power held into the flare move the touch
+  but not the tail. The gate sits on the scripted pilot's edge. The
+  handbook (FAA-H-8083-3C ch. 9) says a steeper descent wants an earlier,
+  slower roundout and idle in it; it gives no post touchdown elevator
+  rate. Not changed: tuning the script until it passes is not a
+  derivation.
+- **P19 on the law, still failing.** The first second's bank falls with
+  the rotor's speed at the chop: entering at duty 0.76, 0.78, 0.80 and
+  0.82 (the prop at 0.78 to 0.84 of full) it is 30.9, 24.9, 17.2 and 14.6
+  deg. The gate chops from cruise and pulls while the free rotor runs
+  down; the XP-51's was a gliding stall, its prop at its windmill. At the
+  rotor speed the gate was written for (0.80 of full, duty 0.78) it holds
+  the band. A settled power off glide before the pull is the faithful
+  entry; a first attempt (a 4 s glide with the wings held, then the
+  controls fixed) rolled at the hand over and is not committed.
+- **power:check P2, the Timber on floats, still failing**: 6.8 min flat out
+  against E-flite's 7 min timer (7.1 before the law). It is not a cruise
+  over draw: cruise is unchanged, 25.1 min. Flat out on a sagged pack the
+  motor's law turns the prop over the sag's share of full (Drela's
+  model), and the pack's current goes as the power, n^3 over the loaded
+  voltage. T-Motor's AM670 bench (the CAP lane's) holds that form: its
+  electrical power over full is the speed's cube within 7 percent from 40
+  to 100 percent throttle, where the duty times the speed squared falls 3
+  to 18 percent short. E-flite publishes no throttle curve or current
+  table for the Timber's motor, so its mapping is the default law's.
