@@ -438,7 +438,10 @@ export async function openPage({
   /* The loading screen stays 400 ms past the first frame and fades 400
    * more, over the title and whatever is open on it. A key reaches the page
    * through it; a click lands on it, so a click waits for this. */
-  const loaded = (timeoutMs = 15000) => until("document.getElementById('pdcs-loader').hidden", timeoutMs);
+  /* The loader comes back for every world load after the shell is up, and
+   * on CI's software rasteriser a map load takes longer than a frame-paced
+   * wait: the same budget the checks give the shell itself (300 s). */
+  const loaded = (timeoutMs = 300000) => until("document.getElementById('pdcs-loader').hidden", timeoutMs);
 
   /* A left click at the middle of the first element `selector` matches,
    * scrolled into view; false when nothing matches. Counted in page.clicks

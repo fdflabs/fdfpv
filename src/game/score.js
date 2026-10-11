@@ -148,16 +148,20 @@ export class FreestyleScore {
     const landed = this.#landedByName.get(name) ?? 0;
     const repeat = repeatTrickFactor(landed);
     const b2b = backToBackFactor(run);
-    const raw = base * grade.points * repeat * b2b * obstacle;
+    /* A judged figure (figuredetect.js) carries its 0 to 10 grade, which
+     * stands in for the sheet's execution factor; tricks without one score
+     * exactly as the workbook says. */
+    const exec = typeof trick.grade === 'number' ? trick.grade / 10 : grade.points;
+    const raw = base * exec * repeat * b2b * obstacle;
     const net = raw * this.streak;
-    if (grade.points > 0) this.#landedByName.set(name, landed + 1);
+    if (exec > 0) this.#landedByName.set(name, landed + 1);
     this.#since = { name, run, group: group0, onGroup, raw };
 
     const record = {
       name,
       execution,
       base,
-      exec: grade.points,
+      exec,
       repeat,
       b2b,
       obstacle,
@@ -167,12 +171,22 @@ export class FreestyleScore {
       atMs,
       turns: trick.turns ?? 0,
     };
+    /* Only a judged figure carries these, so every quad record keeps the
+     * shape the goldens pin. */
+    if (typeof trick.grade === 'number') {
+      record.grade = trick.grade;
+      record.figure = trick.figure;
+    }
     this.tricks.push(record);
     this.#netSum += net;
     if (execution === 'BUMP') this.#bumps += 1;
     if (net > this.#bestNet) this.#bestNet = net;
 
     const event = { kind: 'trick', name, points: net, execution };
+    if (record.grade !== undefined) {
+      event.grade = record.grade;
+      event.figure = record.figure;
+    }
     if (!this.#combos) {
       this.#banked += net;
       this.#queue.push(event);
