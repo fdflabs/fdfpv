@@ -577,7 +577,6 @@ typedef struct FixedWingParams {
                          * which is a prop turning clockwise seen from behind.
                          * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
-  double duty_min;
   /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
   double stab_bank_max;
   double stab_pitch_max;
@@ -620,7 +619,17 @@ typedef struct FixedWingParams {
    * distance ahead of the CG, m. Zero k_j leaves it out. */
   double jet_kj;
   double prop_x;
+  /* The surfaces' servos' rate, rad/s; zero moves them in the step. */
+  double servo_rate;
   double as3x_k[3];
+  /* The heading hold on top (mode 3), a heading lock gyro's: surface per
+   * rad the aircraft has turned beyond the rate its stick asks for, and
+   * that rate, rad/s per unit stick, signed as the body rate the stick
+   * gives. Zero as3x_kh leaves the damper alone. scripts/as3x-derive.js. */
+  double as3x_kh[3];
+  double as3x_rate[3];
+  /* The gyro's servo frame, s; zero is Spektrum's default, 22 ms. */
+  double as3x_frame;
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
@@ -712,6 +721,12 @@ typedef struct FixedWingParams {
   double clmax_df;        /* CLmax per rad of flap */
   double cd_df2;          /* drag per rad^2 of flap */
   double cm_dcl_f;        /* pitching moment per unit of flap lift, nose up + */
+  /* Where the flaps are along each half, inner and outer edge over the
+   * semispan. The wing's flap lift (cl_df) and CLmax (clmax_df) are the
+   * whole wing's, area weighted; the stall strips take them where the
+   * flaps are and nowhere else, so a part span flap stalls its own strips
+   * first and leaves the rest flying. Zero on a table without flaps. */
+  double flap_eta[2];
   double de_df;           /* the radio's mix: elevator rad per rad of flap */
   /* The radio's elevator to flap mix, sim_wing_set_tune: flap, as a share
    * of flap_full, per unit of up elevator stick. Zero on every table. */
@@ -1098,6 +1113,7 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
+void plant_wing_strips(double out[8]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any

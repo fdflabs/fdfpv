@@ -284,6 +284,7 @@ jobs:
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses
+      - run: npm run stall-side:check
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
@@ -368,6 +369,7 @@ jobs:
       - run: npm run f16:gates
       - run: npm run f16:stab
       - run: npm run p51:gates
+      - run: npm run flapstrip:check
       - run: npm run p51:stab
       - run: npm run zagi:gates
       - run: npm run zagi:stab

@@ -4,7 +4,7 @@
  * page. On swiss2 (the Free Flight card's home), each from lying on the
  * grass at the spawn:
  *
- *   launch   on nrj-acro, the default: the throttle stick up throws it (the
+ *   launch   on nrj-manual, the default: the throttle stick up throws it (the
  *            pad's binding for L), the sticks centred through the turn and
  *            the zoom. The HUD's cue says the spin, the release and the top,
  *            and the height it names is the height it reached, inside
@@ -57,7 +57,7 @@ const th = JSON.parse(await readFile(join(root, 'tests/dlg-thresholds.json'), 'u
 const AF = 'nrj1490';
 const MODES = (process.argv[2] ?? 'launch,catch').split(',');
 const MAP = process.argv[3] ?? 'swiss2';
-const TUNE = { launch: 'nrj-acro', catch: 'nrj-stab' };
+const TUNE = { launch: 'nrj-manual', catch: 'nrj-stab' };
 
 /*
  * The pilot, in the page, once a frame. Three.js space for the attitude

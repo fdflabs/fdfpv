@@ -45,4 +45,4 @@ for (const id of [...R.TUNES.map((tune) => tune.id), R.CUSTOM_TUNE.id, 'betaflig
   });
 }
 
-t.finish('configs/registry.js', 'aa2f0e958f4a45f69674480c9527726a6fb67fa94495adec959cbd4721c246cd');
+t.finish('configs/registry.js', 'e1718aff366094d65268d6af9768d7a63169112a73a0a023957751b865216929');

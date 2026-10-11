@@ -13,7 +13,7 @@
  *   line's moment included; the aero force and what the closed throttle
  *   still pulls carry the weight, and the body's pitch is the zero lift
  *   line's alpha, less its angle under the body axis, less the glide
- *   path's. A propeller pulls nothing there (every prop's idle or duty_min
+ *   path's. A propeller pulls nothing there (every prop's idle, or none
  *   pitch speed is under its glide, which is checked); a turbine idles
  *   rather than stops (fan_tau, the Striker's jet), and its idle thrust is
  *   in the balance.
@@ -181,7 +181,8 @@ function thrust(fw, stick, u) {
   if (!(fw.thrust_static > 0)) return 0;
   if (fw.fold_duty > 0 && stick < fw.fold_duty) return 0;
   let duty = fw.throttle_idle > 0 ? fw.throttle_idle + (1 - fw.throttle_idle) * stick : stick;
-  duty = Math.min(1, Math.max(fw.duty_min, duty));
+  duty = Math.min(1, Math.max(0, duty));
+  if (!(duty > 0)) return 0;
   const t = fw.thrust_static * duty * duty * (1 - Math.max(0, u) / (fw.pitch_speed * duty));
   return fw.fold_duty === 0 && t < 0 ? 0 : t;
 }
