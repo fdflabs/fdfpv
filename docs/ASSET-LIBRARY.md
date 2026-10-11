@@ -75,7 +75,7 @@ after pictures.
 | Other building models | not yet | `interior/built.js`, `itaipu/town/` | one each |
 | Fences | `kit.js` `fence` (cel) | also `swiss2/village/pieces.js`, `interior/yards.js` | one each |
 | Cel vehicles and the parts kit | `vehicles/vehicles.js`, `vehicles/parts.js` | the Alps' life, the Swiss valley's vehicles (which refinish them) | Alps, Swiss valley |
-| Interior vehicles (motorcycles, pickup) | not yet | `src/render/interior/vehicles.js` | Interior |
+| Low instanced vehicles (motorcycles, pickup; paint tinted per instance) | `vehicles/instanced.js` | placed by `interior/life.js` | Interior |
 | Insurgent camp (shelters and tarps, mast, fire and smoke, lookout, stores, clutter, the clearing's light) | `camp/camp.js`, `camp/camplight.js`, `camp/dressing.js` | placed by `interior/life.js` (Claro Viejo and Claro Nuevo). The Swiss valley's lakeside and roadside props (`swiss2/props/`) are its own scenery; the cel bench, fountain and sign are `kit.js`'s | Interior |
 | Lit materials (one sun from the shadow cascades) | `lit.js` `makeLit` | Itaipu's look, the Interior's look and crowns | Itaipu, Interior |
 | Lit materials with the Alps terrain shadow and cloud deck | not yet | `swiss2/light.js` `makeLit` | Swiss valley |
@@ -288,6 +288,24 @@ light.
   fire, smoke puffs, ropes); up to eight lamps in one shader chunk.
 - **Golden**: `tests/browser/render-golden/camp.js`, both camps,
   colliders and roofs included.
+
+## Low instanced vehicles (`src/render/library/vehicles/instanced.js`)
+
+The Interior's motorcycles and pickup: built to read from the air
+through a camera ball (round wheels with dark tyres, a painted tank, a
+long seat, the engine and pipe; a pickup's cab and bed), one instanced
+mesh a kind, only the paint taking the instance's colour (`tint.js`),
+the engine warm in the thermal picture.
+
+- **Inputs**: `makeVehicles(THREE, { cap })`; `set(list)` with `{ kind,
+  x, y, z, heading, tint }`, kind `motorcycle` or `pickup` (any other is
+  skipped), heading clockwise from north.
+- **Outputs**: `{ group, meshes, set, stats(), dispose() }`.
+- **Shape**: none; the map collides what it needs (the Interior: none,
+  they are small and moving).
+- **Perf**: one draw a kind with any in it. Program key
+  `interior-slot-tint`, shared with the people.
+- **Golden**: `tests/browser/render-golden/interior-vehicles.js`.
 
 ## Placing an asset on a map
 

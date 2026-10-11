@@ -1,9 +1,11 @@
 /*
- * vehicles.js: the Interior's motorcycles and its pickup (TECH-NEEDS N4,
+ * instanced.js: the asset library's low instanced vehicles, first the
+ * Interior's motorcycles and its pickup (placed by
+ * src/maps/interior/life.js; TECH-NEEDS N4,
  * M1: the camp's three or four old motorcycles, the one passing through
  * Sector Bravo, the pickup at the colonia's store), low and instanced as
  * the people are (figures.js): the engine warm in the thermal picture,
- * the rider or driver drawn by figures.js when there is one.
+ * the rider or driver drawn by people/figures.js when there is one.
  *
  * A motorcycle has to read as one from the air through the camera ball:
  * two round wheels with dark tyres, a fork and bars, a painted tank and
@@ -28,10 +30,10 @@
  */
 
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { thermalKind } from '../thermal.js';
+import { thermalKind } from '../../thermal.js';
 import {
   slotTint, addSlotTints, setSlotTints, slotTintsChanged,
-} from '../library/tint.js';
+} from '../tint.js';
 
 const TYRE = [0.025, 0.025, 0.025];
 const RIM = [0.32, 0.32, 0.33];

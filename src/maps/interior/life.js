@@ -43,7 +43,7 @@ import { makeRoutes, ROUTES } from '../../share/interior/routes.js';
 import { CAMP_PROPS, NUEVO_PROPS } from '../../share/interior/places.js';
 import { hash01 } from '../../share/interior/canopy.js';
 import { makeFigures } from '../../render/library/people/figures.js';
-import { makeVehicles } from '../../render/interior/vehicles.js';
+import { makeVehicles } from '../../render/library/vehicles/instanced.js';
 import { buildCamp } from '../../render/library/camp/camp.js';
 import { markPixels, MARK_PX } from '../../render/interior/mark.js';
 import { buildAmbient } from '../../render/interior/ambient.js';

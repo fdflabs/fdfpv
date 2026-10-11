@@ -1,7 +1,7 @@
 /*
  * render-golden/interior-vehicles.js: the Interior's motorcycles and
  * pickup (low and instanced, the paint tinted per instance:
- * src/render/interior/vehicles.js when this was recorded), pinned before
+ * src/render/library/vehicles/instanced.js when this was recorded), pinned before
  * they move into the shared asset library (docs/ASSET-LIBRARY.md), so
  * the move is proved to change nothing: both bodies, the material and its
  * shader text, and a set of vehicles placed twice.
@@ -23,7 +23,7 @@
  */
 
 import * as THREE from 'three';
-import * as vehicles from '../../../src/render/interior/vehicles.js';
+import * as vehicles from '../../../src/render/library/vehicles/instanced.js';
 import { describeObject, makeTable, hashText } from '../render-golden-lib.js';
 
 function patched(m) {
