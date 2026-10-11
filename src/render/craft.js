@@ -37,6 +37,7 @@ import { buildKadetCraft } from './kadetcraft.js';
 import { buildUglystikCraft } from './uglystikcraft.js';
 import { buildTigermothCraft } from './tigermothcraft.js';
 import { buildExtraCraft } from './extracraft.js';
+import { buildHerculesCraft } from './herculescraft.js';
 import { buildDlgCraft } from './dlgcraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
@@ -109,6 +110,7 @@ const BUILDERS = {
   uglystik1567: buildUglystikCraft,
   tigermoth1803: buildTigermothCraft,
   extra3d1308: buildExtraCraft,
+  hercules3077: buildHerculesCraft,
   nrj1490: buildDlgCraft,
   p51d1450: buildP51Craft,
   zagi1219: buildZagiCraft,

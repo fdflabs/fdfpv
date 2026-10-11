@@ -139,6 +139,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
  *             and the reach this file measures are both 1852 mm and
  *             E-flite's 1308 mm span is held by the half span of
  *             src/render/extracraft.js EXTRA_DIMS.
+ *   hercules3077 AeroTetris's 3077 mm C-130 Hercules: its tips, 1.5385 m
+ *             out, reach further than its nose (0.924 m) or its tail
+ *             (1.326 m), so the width is the kit's span; the sweep is a
+ *             tip's trailing corner, 0.239 m aft at the tip, 1557 mm out.
+ *             src/render/herculescraft.js draws it.
  *   uglystik1567 RCM's 62 in Das Ugly Stik, whose rudder's trailing edge,
  *             0.884 m behind the CG on the plan (station 50.82 against the
  *             CG's 16.00), reaches further than its tips, 0.784 m out, so
@@ -192,6 +197,7 @@ const REAL = {
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
   extra3d1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
+  hercules3077: { spanMm: 3077.0, sweepMm: 3114.0, tolMm: 6 },
   '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
   '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
   interceptor: { spanMm: 417.8, sweepMm: 490.2, tolMm: 6, wheelbaseMm: 312.4 },
