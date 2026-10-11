@@ -106,6 +106,14 @@ const Cma = -CLa * SM;
 const a0w = alphaZLwing - incidence;
 const tailK = at * (Sh / S) * eta;
 const alphaZL = (aw * a0w + tailK * (-deda * a0w)) / (aw + tailK * (1 - deda));
+/* The margin tuning:check U2 reads off the plant: -dCm/dCL at cruise,
+ * the body at 0 and 0.03 rad, the zero lift line 5 deg up. The plant's
+ * stall angle is the wing's own slope's (cl_alpha_wing, a_w) and the
+ * tail's share of the lift goes as sin cos past it (#935), so over that
+ * span the lift slope is a_w plus the tail's share times the secant of
+ * sin a cos a, a shade under CLa; the moment is Cma alpha. */
+const sc = (x) => Math.sin(x) * Math.cos(x);
+const SMplant = -Cma * 0.03 / (aw * 0.03 + (CLa - aw) * (sc(-alphaZL + 0.03) - sc(-alphaZL)));
 const Cmq = -2 * eta * at * VH * lh / c;
 const Cmde = eta * VH * at * tauE, CLde = -eta * (Sh / S) * at * tauE;
 const av = 2 * Math.PI * arV / (arV + 2), VV = Sv * lv / (S * b);
@@ -484,6 +492,7 @@ const rows = [
   ['a_w, a_t, a_v /rad', `${f(aw)} ${f(at)} ${f(av)}`],
   ['dε/dα DATCOM (Nelson), V_H, V_V', `${f(deda)} (${f(dedaNelson)}) ${f(VH)} ${f(VV, 4)}`],
   ['CLα, h_n from ac, static margin', `${f(CLa)} ${f(hn)} ${f(SM)}`],
+  ['static margin the plant reads (U2\'s span, the tail on sin cos)', `${f(SMplant, 4)}`],
   ['zero lift line deg', f(alphaZL * DEG, 2)],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
