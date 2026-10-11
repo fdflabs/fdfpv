@@ -9,7 +9,8 @@
  * stabiliser and elevator's quarter chord at their mid height. A swept
  * wing's boxes run from the root's leading edge to the tip's trailing
  * edge, so its point is ESTIMATED; only a table's height and its tail arm
- * matter to the term.
+ * matter to the term. A float plane's are its land plane's raised as
+ * crash.c raises its parts over the lower CG.
  *
  * It also checks the term against the reports it comes from: Report 738's
  * worked example (flaps up: the image takes 3.3 of the plain wing's 5.8
@@ -42,6 +43,7 @@ import { sigmaOf, tailR } from './lib/groundeffect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const parts = readFileSync(join(root, 'src/native/crash_parts.h'), 'utf8');
+const crashC = readFileSync(join(root, 'src/native/crash.c'), 'utf8');
 const wingC = readFileSync(join(root, 'src/native/plant_wing.c'), 'utf8');
 const check = process.argv.includes('--check');
 
@@ -96,9 +98,18 @@ function quarterChord(pts) {
   return [rle + f * (tle - rle) - cbar / 4, 0, z];
 }
 
+/* A float plane's parts are its land plane's raised by the CG's drop
+ * (crash.c table_floats, its dz). */
+function floatsOf(name) {
+  const m = new RegExp(`table_floats\\(&T\\[SIM_AIRFRAME_${name}\\], PARTS_(\\w+), COUNT\\(PARTS_\\w+\\),\\s*SIM_AIRFRAME_\\w+, (-?[\\d.]+),`).exec(crashC);
+  if (!m) return null;
+  const dz = Number(m[2]);
+  return partsOf(m[1]).map((p) => ({ kind: p.kind, pts: p.pts.map((q) => [q[0], q[1], q[2] + dz]) }));
+}
+
 /* The surfaces' points for a table whose parts are drawn. */
 function derive(name) {
-  const ps = partsOf(name);
+  const ps = partsOf(name) ?? floatsOf(name);
   if (!ps) return null;
   const wing = ps.filter((p) => p.kind === 'WING').flatMap((p) => p.pts);
   const tail = ps.filter((p) => p.kind === 'HSTAB' || p.kind === 'ELEVATOR').flatMap((p) => p.pts);
@@ -112,19 +123,19 @@ console.log('ge:derive, the lifting surfaces over the CG, m (src/native/crash_pa
 console.log('table                 wing x, z          tail x, z          tail arm   ge');
 for (const t of wingC.matchAll(/const FixedWingParams (FW_\w+) = \{([\s\S]*?)\n\};/g)) {
   const [, table, body] = t;
-  const name = partsOf(table.slice(3)) ? table.slice(3) : table.slice(3).replace(/F$/, '');
-  const d = derive(name);
+  const d = derive(table.slice(3));
   const on = /\.ground_effect = 1/.test(body);
   if (!d) { console.log(`${table.padEnd(21)} no drawn parts`); continue; }
   const w = d.wing.map(r4), tl = d.tail.map(r4);
   console.log(`${table.padEnd(21)} ${String(w[0]).padStart(8)} ${String(w[2]).padStart(8)}  ${String(tl[0]).padStart(8)} ${String(tl[2]).padStart(8)}  ${(tl[0] ? r4(w[0] - tl[0]) : 0).toString().padStart(8)}   ${on ? 'on' : '-'}`);
   if (!on) continue;
-  const gw = vec(body, 'ge_wing'), gt = vec(body, 'ge_tail');
+  const gw = vec(body, 'ge_wing'), gt = vec(body, 'ge_tail') ?? [0, 0, 0];
   const same = (a, b) => a && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 5e-5);
-  /* A tail's term reads the table's own d eps / d alpha. */
-  if (tl[0] < 0 && !(num(body, 'tail_deda') > 0)) {
+  /* A tail's term reads the table's own d eps / d alpha, and its share of
+   * the lift slope over the wing's own (cl_alpha_wing). */
+  if (tl[0] < 0 && !(num(body, 'tail_deda') > 0 && num(body, 'cl_alpha_wing') > 0)) {
     bad += 1;
-    console.log(`  ${table} takes the term with a tail and no tail_deda`);
+    console.log(`  ${table} takes the term with a tail and no tail_deda or cl_alpha_wing`);
   }
   /* The linear tail's moment per rad of its angle is its lift share at
    * its arm; a hi_alpha table's is slip_cm_a / (1 - d eps / d alpha): at
