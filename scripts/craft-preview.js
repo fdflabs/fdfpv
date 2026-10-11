@@ -10,6 +10,7 @@
  * triangles.
  *
  *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|f16|zagi|nighttimber|cap] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|f16|zagi|nighttimber|slick] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).

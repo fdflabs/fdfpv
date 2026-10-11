@@ -37,6 +37,7 @@ import { buildZagiCraft, ZAGI_DIMS } from '../../src/render/zagicraft.js';
 import { buildP51Craft, P51_DIMS } from '../../src/render/p51craft.js';
 import { buildNightTimberCraft, NIGHTTIMBER_DIMS } from '../../src/render/nighttimbercraft.js';
 import { buildCapCraft, CAP_DIMS } from '../../src/render/capcraft.js';
+import { buildSlickCraft, SLICK_DIMS } from '../../src/render/slickcraft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
  * and its rest the floats', its nose the floats' bows where they reach
@@ -53,6 +54,7 @@ const BUILDERS = {
   p51: buildP51Craft,
   nighttimber: buildNightTimberCraft,
   cap: buildCapCraft,
+  slick: buildSlickCraft,
 };
 const DIMS = {
   sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
@@ -65,6 +67,7 @@ const DIMS = {
   p51: P51_DIMS,
   nighttimber: NIGHTTIMBER_DIMS,
   cap: CAP_DIMS,
+  slick: SLICK_DIMS,
 };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';

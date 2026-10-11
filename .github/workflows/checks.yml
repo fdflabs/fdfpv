@@ -309,6 +309,13 @@ jobs:
       # again from where the pilot stands, pad and touch.
       - run: npm run foot:node
       - run: npm run foot:walk
+      # Extreme Flight's 105.5 in Slick 580 (docs/SLICK-STAGE1.md): its
+      # table, plant row and bands against the derivation, its gates and
+      # its stabiliser.
+      - run: npm run slick:derive -- --check
+      - run: npm run slick:gates
+      - run: npm run slick:stab
+      - run: npm run slick:figures
 
   shard-3:
     runs-on: ubuntu-latest

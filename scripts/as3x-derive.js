@@ -85,6 +85,7 @@ const AS3X = {
   FW_NIGHTTIMBER1200: { sim: 30, level: [16, 0.624] },
   FW_HERCULES3077: { sim: 31 },
   FW_CAP1702: { sim: 32 },
+  FW_SLICK2680: { sim: 33 },
 };
 
 async function planeSim(id) {
@@ -273,6 +274,9 @@ function kickLeft(sim, V, k) {
 }
 const KICK_MAX = 0.05;
 const DIVE = 35 / 24.08;
+/* sim_wing_launch takes 60 m/s at most (src/native/sim.c): the Slick's
+ * dive, 1.45 times its 42 m/s, is flown at that. */
+const diveOf = (V) => Math.min(60, DIVE * V);
 
 const r3 = (x) => Number(x.toFixed(3));
 const r4 = (x) => Number(x.toFixed(4));
@@ -289,9 +293,9 @@ for (const [name, a] of Object.entries(AS3X)) {
   const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
   const rate = slopes(sim, levelOf(a, body)).map(r3);
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
-  const left = kickLeft(sim, DIVE * V, k);
+  const left = kickLeft(sim, diveOf(V), k);
   const settles = left.every((x) => x < KICK_MAX);
-  console.log(`${name.padEnd(18)} at ${(DIVE * V).toFixed(1)} m/s a 1 rad/s kick leaves ${left.map((x) => x.toFixed(3)).join(', ')} rad/s 1 s on${settles ? '' : '  OSCILLATES'}`);
+  console.log(`${name.padEnd(18)} at ${diveOf(V).toFixed(1)} m/s a 1 rad/s kick leaves ${left.map((x) => x.toFixed(3)).join(', ')} rad/s 1 s on${settles ? '' : '  OSCILLATES'}`);
   if (!settles) bad += 1;
   console.log(`${name.padEnd(18)} top speed ${V.toFixed(2)} m/s, control power ${M.map((m) => m.toFixed(1)).join(' ')} rad/s^2 per rad: as3x_k ${k.join(', ')}, as3x_kh ${kh.join(', ')}, as3x_rate ${rate.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);
   if (!ok) bad += 1;

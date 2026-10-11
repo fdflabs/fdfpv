@@ -73,6 +73,7 @@ const AIRFRAMES = [
   ['bombshell1118', 11], ['kadet1981', 12], ['p51d1450', 15], ['f16878', 16], ['zagi1219', 17],
   ['uglystik1567', 19], ['nrj1490', 21], ['tigermoth1803', 23], ['extra3d1308', 29], ['nighttimber1200', 30], ['hercules3077', 31],
   ['cap1702', 32],
+  ['slick2680', 33],
 ];
 
 const GATE = KINDS.indexOf('gate');

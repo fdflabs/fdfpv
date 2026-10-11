@@ -197,4 +197,4 @@ t.note('seated at end', canon(seated()) === canon(FIVE_INCH));
 
 /* Re-pinned 2026-10-11 for bodyPush's five answer fields (the pilot on
  * foot); every other record is unchanged. */
-t.finish('collide state', '379a802c73b3558920ef5f6b563652ffd1202b44aa307021003334988f566251');
+t.finish('collide state', '48e1c2581629e5eed2d9ab509513b92d62f9baeb7e52ec465104216f9717e903');

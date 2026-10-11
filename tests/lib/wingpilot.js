@@ -2234,3 +2234,89 @@ export function recordCapFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * Extreme Flight's 105.5 in Slick 580, airframe 33, docs/SLICK-STAGE1.md:
+ * a taildragger standing 9.38 deg nose up on its wheels, the CG 0.4082 m
+ * up, as the sheet's side view has it (npm run slick:derive), or thrown at
+ * its sport pace.
+ */
+export const SLICK_AIRFRAME = 33;
+export const SLICK_REST = { z: 0.4082, pitchDeg: 9.38 };
+export function slickPrelude(sim) {
+  must(sim.e.sim_set_airframe(SLICK_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(22), 'sim_wing_launch');
+}
+export function slickGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(SLICK_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = SLICK_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, SLICK_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/*
+ * The Slick's take off, the Extra's at its own speeds: the tail held down
+ * to 8 m/s on the elevator, eased up to 2 deg, and at 15 m/s, 1.1 of its
+ * stall, the nose to 8 deg. The wings on the ailerons, the heading on the
+ * rudder. Returns roll, pitch and yaw sticks.
+ */
+export function slickTakeoffSticks(s, { vTail = 8, vRotate = 15 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+  const pitchT = (v < vTail ? SLICK_REST.pitchDeg : (v < vRotate ? 2 : 8)) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -0.6 * bank - 0.06 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 1.5 * (pitchT - pitch) - 0.12 * qAero));
+  const yaw = Math.max(-1, Math.min(1, 1.5 * heading + 0.2 * s[13]));
+  return [roll, pitchStick, yaw];
+}
+
+/*
+ * The Slick's recording for the cross-host check, the Extra's flight on
+ * this aircraft: from standing on the strip, a second at idle, the take
+ * off at full throttle, a climb, a pull to the vertical, hanging on the
+ * prop with the throttle holding height and the ailerons the torque, two
+ * seconds of torque roll with them let go, full throttle out of it and
+ * back to level, and a second of full rudder: twenty four seconds, the
+ * engine's spool, the slipstream and the gyroscope in the hashed trace.
+ */
+export function recordSlickFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  slickGroundPrelude(sim);
+  const samples = [];
+  let iT = 0.6;
+  for (let ms = 0; ms < 24000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -0.6 * (bank - b) - 0.06 * p));
+    const nose = (t) => Math.max(-1, Math.min(1, 1.5 * (t - pitch) - 0.12 * qAero));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 7000) {
+      sticks = [...slickTakeoffSticks(s), 1];
+    } else if (ms < 10000) {
+      sticks = [hold(0), nose(ms < 8500 ? 0.2 : 1.4), 0, 1];
+    } else if (ms < 18000) {
+      iT += 0.0008 * (0 - vz);
+      iT = Math.max(0.3, Math.min(1, iT));
+      const thr = Math.max(0, Math.min(1, iT - 0.08 * vz));
+      sticks = [...hangSticks(s, { rollRate: ms < 16000 ? 0 : null }), ms < 12000 ? 0.75 : thr];
+    } else if (ms < 22000) {
+      sticks = [hold(0), nose(0.1), 0, 1];
+    } else {
+      sticks = [hold(0), nose(0.1), ms < 23000 ? 1 : 0, 0.6];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

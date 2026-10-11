@@ -118,7 +118,11 @@ async function tables() {
     const key = /\[(SIM_AIRFRAME_\w+)\]\s*=\s*\{/.exec(plant.slice(start, at));
     if (!key || !(key[1] in ids)) throw new Error(`${m[1]}: no airframe id for its plant.c entry`);
     for (const l of loadsOf(ids[key[1]], own.mass_kg)) {
-      planes.push({ name: m[1], fw: fields(m[2]), m: own.mass_kg + l.dm, g: own.gravity, rho: own.rho, ...l });
+      const fw = fields(m[2]);
+      /* An engine's dyno curve (throttle_rpm), which fields() leaves out as
+       * a list: the stick to its speed over full, straight between tenths. */
+      const curve = m[2].match(/\.throttle_rpm = \{ ([^}]*) \}/);
+      planes.push({ name: m[1], fw, curve: curve ? curve[1].split(',').map(Number) : null, m: own.mass_kg + l.dm, g: own.gravity, rho: own.rho, ...l });
     }
   }
   return planes;
@@ -176,11 +180,16 @@ function trimAlpha(fw, q, T, sh = [0, 0]) {
 }
 
 /* plant_wing.c's motor: the stick to thrust along body x at forward speed u. */
-function thrust(fw, stick, u) {
+function thrust(fw, stick, u, curve = null) {
   /* No motor at all (the DLG): no thrust, as the plant has it. */
   if (!(fw.thrust_static > 0)) return 0;
   if (fw.fold_duty > 0 && stick < fw.fold_duty) return 0;
   let duty = fw.throttle_idle > 0 ? fw.throttle_idle + (1 - fw.throttle_idle) * stick : stick;
+  if (curve) {
+    const x = Math.min(1, Math.max(0, stick)) * 10;
+    const i = Math.min(9, Math.floor(x));
+    duty = curve[i] + (x - i) * (curve[i + 1] - curve[i]);
+  }
   duty = Math.min(1, Math.max(0, duty));
   if (!(duty > 0)) return 0;
   const t = fw.thrust_static * duty * duty * (1 - Math.max(0, u) / (fw.pitch_speed * duty));
@@ -198,7 +207,7 @@ function glide(p) {
     for (let it = 0; it < 60; it += 1) {
       alpha = trimAlpha(fw, q, T, p.sh);
       if (alpha === null) return null;
-      T = thrust(fw, 0, V * Math.cos(alpha + fw.alpha_zl));
+      T = thrust(fw, 0, V * Math.cos(alpha + fw.alpha_zl), p.curve);
     }
     const ab = alpha + fw.alpha_zl;
     const { CL, CD } = coeffs(fw, alpha);
@@ -245,11 +254,11 @@ function levelAt(p, V) {
     const { CD } = coeffs(fw, alpha);
     T = q * fw.area * CD / Math.cos(ab);
     const u = V * Math.cos(ab);
-    if (thrust(fw, 1, u) < T) return null;
+    if (thrust(fw, 1, u, p.curve) < T) return null;
     let lo = 0, hi = 1;
     for (let i = 0; i < 60; i += 1) {
       const mid = (lo + hi) / 2;
-      if (thrust(fw, mid, u) < T) lo = mid; else hi = mid;
+      if (thrust(fw, mid, u, p.curve) < T) lo = mid; else hi = mid;
     }
     stick = hi;
   }

@@ -65,6 +65,9 @@ const HERCULES = [slot('spinner', 'twotone'), slot('canopy', 'smoke')];
 /* The CAP 580's side force generators are stock on its tips, so no
  * wingtips slot; its spats are stock, so no wheels slot (the Extra's). */
 const CAP = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold')];
+/* The Slick's: its pants are stock, so no wheels slot, and EF sells side
+ * force generators for its tips. */
+const SLICK = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold'), slot('wingtips', 'sfg')];
 const P51 = [
   slot('spinner', 'twotone', 'striped'),
   slot('exhausts', 'dampers'),
@@ -112,6 +115,7 @@ export const KITS = {
   nighttimber1200: TIMBER,
   hercules3077: HERCULES,
   cap1702: CAP,
+  slick2680: SLICK,
   p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
@@ -126,7 +130,7 @@ export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', '
   'radian2000', 'nrj1490', 'zagi1219', 'bramor2300',
   'p51d1450', 'tigermoth1803', 'bombshell1118',
   'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500', 'extra3d1308', 'nighttimber1200',
-  'cap1702']);
+  'cap1702', 'slick2680']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];

@@ -418,6 +418,33 @@ export const TUNES = [
     wingStab: 1,
   },
   {
+    /* The Slick is an ARF that ships with no electronics: its builder fits
+     * a receiver, and a 35 percent aerobat flown 3D usually carries a
+     * heading gyro (owner rule 2026-10-08: any real gyro). Its default is
+     * the Extra's: a Spektrum AR637T's AS3X rate damper, which levels
+     * nothing and caps nothing; Manual is the receiver without it; SAFE
+     * Select its self levelling bind. On its wheels every mode flies as
+     * Manual. */
+    id: 'slick-as3x',
+    airframe: 'slick2680',
+    name: 'AS3X',
+    note: 'A Spektrum AR637T fitted by the builder, its AS3X rate damper on: the sticks are the surfaces at the sheet\'s 3D throws, and the gyro damps the bumps and the torque\'s kicks against the rate it turns at, fading out as the stick leaves centre. Nothing levels it and nothing caps a rate.',
+    wingStab: 3,
+  },
+  {
+    id: 'slick-manual',
+    airframe: 'slick2680',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at Extreme Flight\'s 3D throws. It is twelve and a half kilograms: it starts and stops turning slowly, so lead every input, and hold the torque on the ailerons when it hangs.',
+  },
+  {
+    id: 'slick-stab',
+    airframe: 'slick2680',
+    name: 'SAFE Select',
+    note: 'The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.',
+    wingStab: 1,
+  },
+  {
     /* The P-51, FMS's V8 PNP: no gyro (FMS sells a Reflex version
      * apart), Manual. G works the retracts, F the flaps, in every mode;
      * on its wheels every mode flies as Manual. */

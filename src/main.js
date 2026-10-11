@@ -267,6 +267,7 @@ import {
 } from './share/daytime.js';
 import { CAP_MOUNT_FORWARD, CAP_MOUNT_UP } from './render/capcraft.js';
 import { HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP } from './render/herculescraft.js';
+import { SLICK_MOUNT_FORWARD, SLICK_MOUNT_UP } from './render/slickcraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -290,6 +291,7 @@ const WING_MOUNTS = {
   nighttimber1200: [NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP],
   cap1702: [CAP_MOUNT_FORWARD, CAP_MOUNT_UP],
   hercules3077: [HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP],
+  slick2680: [SLICK_MOUNT_FORWARD, SLICK_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
@@ -448,6 +450,10 @@ const INTRO_APPROACH_RADIUS = 0.40;
 const INTRO_APPROACH_HEIGHT = 0.14;
 const INTRO_FOV = 40;
 const INTRO_FLOOR_CLEAR = 0.12;
+/* The orbit's radii and heights are for a craft up to this wide, world
+ * metres; a wider one takes them in proportion, or the lens orbits inside
+ * its wing (the Kadet's 1.98 m, the Hercules' 3.08). */
+const INTRO_SPAN = 1.5;
 /* The closing shot: off the FPV lens to a three-quarter view of the frozen
  * craft, in world metres, then a slow sway. (The FPV lens keeps its own
  * floor, fpvLensClear in src/render/lens.js.) */
@@ -18594,8 +18600,9 @@ export async function boot({
     const approachU = introEase((introMs - INTRO_ORBIT) / INTRO_APPROACH);
     const zoomU = introEase((introMs - INTRO_FLY) / INTRO_ZOOM);
     const theta = INTRO_THETA0 - INTRO_ORBIT_SPAN * orbitU;
-    const radius = INTRO_ORBIT_RADIUS + (INTRO_APPROACH_RADIUS - INTRO_ORBIT_RADIUS) * approachU;
-    const height = INTRO_ORBIT_HEIGHT + (INTRO_APPROACH_HEIGHT - INTRO_ORBIT_HEIGHT) * approachU;
+    const wide = Math.max(1, airframeById(runAirframe).dims.bodyWidth / INTRO_SPAN);
+    const radius = wide * (INTRO_ORBIT_RADIUS + (INTRO_APPROACH_RADIUS - INTRO_ORBIT_RADIUS) * approachU);
+    const height = wide * (INTRO_ORBIT_HEIGHT + (INTRO_APPROACH_HEIGHT - INTRO_ORBIT_HEIGHT) * approachU);
     introFwd.copy(camFwd);
     introFwd.y = 0;
     if (introFwd.lengthSq() < 1e-6) {

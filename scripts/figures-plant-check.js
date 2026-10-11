@@ -14,13 +14,16 @@
  * perfect, nor useless); the 4-point roll, whose holds this person lets
  * sag, named and graded under the roll; nothing else may be named, so the
  * level passes name nothing. The same flight run twice must give the same figures.
+ * --plane slick flies the same program on the Slick 580 (docs/SLICK-STAGE1.md),
+ * thrown at its own sport pace.
  *
- *   node scripts/figures-plant-check.js [extra|cap]
+ *   node scripts/figures-plant-check.js [extra|cap|slick]
+ *   node scripts/figures-plant-check.js --plane extra|cap|slick
  *
- * The same person flies the Extra 300 3D by default, or with `cap` the
- * Extreme Flight 67 in CAP 580 (docs/CAP580-STAGE1.md), heavier and
- * faster, at the same launch speed and sticks but for the loop's pull
- * (PLANES below): the judge must name the same three figures on it.
+ * The same person flies the Extra 300 3D by default, the Extreme Flight 67
+ * in CAP 580 with `cap` (docs/CAP580-STAGE1.md), heavier and faster, at the
+ * same launch speed and sticks but for the loop's pull (PLANES below), or
+ * the Slick with `slick`: the judge must name the same three figures on each.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -43,22 +46,30 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, EXTRA_AIRFRAME, CAP_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { must, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 
-/* The loop's pull is the person's for the aircraft: a round IMAC loop is
- * flown short of the wing's stall. On the Extra 0.55; on the CAP, whose
- * elevator has 50 deg of throw over a tail volume half again the Extra's,
- * 0.55 takes the wing to 15 deg of alpha, past its 11.7 (CL max over the
- * wing's slope, npm run cap580:derive), and 0.35 holds it at 9. */
-const PLANES = { extra: { sim: EXTRA_AIRFRAME, name: 'Extra', loopPull: 0.55 }, cap: { sim: CAP_AIRFRAME, name: 'CAP', loopPull: 0.35 } };
-const plane = PLANES[process.argv[2] || 'extra'];
+/* Each aircraft, the speed it is thrown at and the loop's pull, the
+ * person's for the aircraft: a round IMAC loop is flown short of the
+ * wing's stall. The Extra at 22 m/s and 0.55; the CAP, whose elevator has
+ * 50 deg of throw over a tail volume half again the Extra's, at 0.35, since
+ * 0.55 takes its wing to 15 deg of alpha, past its 11.7 (CL max over the
+ * wing's slope, npm run cap580:derive); the Slick at its trimmed sport
+ * pace, 22 m/s too (npm run slick:derive), at the Extra's pull. */
+const PLANES = {
+  extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55 },
+  cap: { sim: CAP_AIRFRAME, name: 'the CAP', launch: 22, loopPull: 0.35 },
+  slick: { sim: SLICK_AIRFRAME, name: 'the Slick', launch: 22, loopPull: 0.55 },
+};
+const at = process.argv.indexOf('--plane');
+const asked = at > 0 ? process.argv[at + 1] : (process.argv[2] || 'extra');
+const plane = PLANES[asked];
 if (!plane) {
-  console.log(`figures plant check: no plane ${process.argv[2]}; one of ${Object.keys(PLANES).join(', ')}`);
+  console.log(`figures plant check: no plane ${asked}; one of ${Object.keys(PLANES).join(', ')}`);
   process.exit(2);
 }
 
@@ -92,7 +103,7 @@ async function flight() {
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 120, 1, 0, 0, 0), 'sim_set_pose');
-  must(sim.e.sim_wing_launch(22), 'sim_wing_launch');
+  must(sim.e.sim_wing_launch(plane.launch), 'sim_wing_launch');
   const figures = [];
   const marks = [];
   const det = new FigureDetector((f) => figures.push({ ...f, atMs: f.endMs }));
@@ -162,7 +173,7 @@ console.log(`flown: ${names || 'nothing'}`);
 const want = ['loop', 'aileron_roll', 'four_point_roll'];
 for (const id of want.slice(0, 2)) {
   const f = a.figures.find((g) => g.figure === id);
-  check(`a person's ${id} on the ${plane.name} is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
+  check(`a person's ${id} on ${plane.name} is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
 }
 /* This person's points sag: the nose falls about a third of a turn over
  * the four holds, which a judge marks hard (a point per 15 deg off the

@@ -132,8 +132,14 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'strike
  * the Extra (2026-10-11): the Extra's hover, torque roll and harrier on a
  * balsa IMAC airframe 2.4 times its mass and 1.6 times its wing loading,
  * faster and heavier in every figure, so after the Extra at 9 and before
- * the F-16 at 11. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, cap1702: 10, f16878: 11 };
+ * the F-16 at 11. The Slick 580
+ * (docs/SLICK-STAGE1.md) opens last, at 12, its lane's call by analogy for the
+ * biggest and most advanced: the Extra's hover and torque roll with
+ * twelve and a half kilograms of momentum, and its maker asks for
+ * experience, "If this is your first aerobatic RC aircraft, it is highly
+ * recommended that you recruit an experienced giant scale RC enthusiast"
+ * (the 120cc build guide), as Motion RC asks of the F-16's. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, cap1702: 10, f16878: 11, slick2680: 12 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

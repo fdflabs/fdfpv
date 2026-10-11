@@ -40,6 +40,7 @@ import { buildExtraCraft } from './extracraft.js';
 import { buildNightTimberCraft } from './nighttimbercraft.js';
 import { buildCapCraft } from './capcraft.js';
 import { buildHerculesCraft } from './herculescraft.js';
+import { buildSlickCraft } from './slickcraft.js';
 import { buildDlgCraft } from './dlgcraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
@@ -115,6 +116,7 @@ const BUILDERS = {
   nighttimber1200: buildNightTimberCraft,
   cap1702: buildCapCraft,
   hercules3077: buildHerculesCraft,
+  slick2680: buildSlickCraft,
   nrj1490: buildDlgCraft,
   p51d1450: buildP51Craft,
   zagi1219: buildZagiCraft,

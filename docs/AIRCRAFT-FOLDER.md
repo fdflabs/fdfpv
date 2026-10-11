@@ -25,7 +25,8 @@ ten single-field changes made in memory each fail.
 
 ## Covered
 
-The P-51 (`p51d1450`) and the CAP 580 (`cap1702`, generated from its hand rows when it was added, 2026-10-11). Values are the evaluated rows: source strings built from shared constants and
+The P-51 (`p51d1450`), the CAP 580 (`cap1702`, generated from its hand rows when it was added, 2026-10-11), and the Slick 580 (`slick2680`, docs/SLICK-STAGE1.md), which was born with its
+folder on 2026-10-11 (strings: its carousel note, blurb, power option and three schemes). Values are the evaluated rows: source strings built from shared constants and
 template literals in the hand modules are stored as their full text, and the kv650's `massKg` (written
 `2.35 + 0.045`) as 2.395, which is the same double.
 

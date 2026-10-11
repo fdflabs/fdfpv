@@ -1121,6 +1121,7 @@ thrust's change, ms, nose up and held still:
  tigermoth1803 (glow) | 319/625 | 262/609 | 436/728
  extra3d1308 | 60/103 | 27/48 | 100/182
  hercules3077 (four props as one) | 64/133 | 37/81 | 85/156
+ slick2680 (petrol, its dyno curve, docs/SLICK-STAGE1.md) | 398/861 | 371/912 | 619/1115
  cap1702 | 48/84 | 26/48 | 81/148
  p51d1450 | 274/555 | 158/375 | 363/640
  f16878 (its fan_tau, unchanged) | 195/337 | 147/277 | 415/561
@@ -1241,6 +1242,11 @@ never stops under, a rotor whose inertia the engine's torque spins up,
 J w_f n' = Q_f (d^2 - n^2), with that torque flat in speed, and a tank.
 `npm run da120:derive` (scripts/da120-derive.js) derives every number the
 Slick's table takes, with its source, and prints the table's lines.
+FW_SLICK2680 takes this section's throttle curve method, rotor and fuel
+figure, but a different full throttle point: Falcon's own test chart's
+measured 6,550 rpm and 31.0 kg for the DA-120 on its 28 x 10, against
+HFE's simulated thrust and a forum tachometer here, and the curve scaled
+to it; docs/SLICK-STAGE1.md and scripts/slick-derive.js have it.
 
 **The full throttle point.** A Falcon 28 x 10 on a DA-120 tachometered at
 6,850 rpm (rc-network.de thread 388921, 2014-05-06). HFE's DA120 data

@@ -434,6 +434,14 @@ export const ESTIMATES = {
       }
     }
   },
+  slick2680: {
+    stock: {
+      '1006cc': {
+        topSpeed: 42.53,
+        minutes: 24.1
+      }
+    }
+  },
   f16878: {
     stock: {
       '6s4000': {
