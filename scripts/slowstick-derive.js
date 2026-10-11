@@ -165,7 +165,12 @@ function charPoly(A) {
 }
 
 /* The longitudinal model, the plant's equations, trimmed and linearised. */
-function deriv(x, de, d, phi = 0) {
+/* phi and r, the bank and the body yaw rate of a turn flown with it: q is
+ * the body's pitch rate, which in a turn carries the turn's share (Etkin
+ * and Reid ch. 4: q = psi' sin(phi) cos(theta)), so the pitch damping
+ * meets it and the pitch attitude goes as q cos(phi) - r sin(phi); the
+ * weight's share across the body is g cos(theta) cos(phi). */
+function deriv(x, de, d, phi = 0, rTurn = 0) {
   const [u, w, q, thp] = x;
   const V = Math.hypot(u, w);
   const a = Math.atan2(-w, u) - alphaZL;
@@ -176,7 +181,7 @@ function deriv(x, de, d, phi = 0) {
   const Fx = L * (-w / V) - Dr * u / V + Tt;
   const Fz = L * (u / V) - Dr * w / V;
   const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt;
-  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) * Math.cos(phi) - q * u, My / Iyy, q];
+  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) * Math.cos(phi) - q * u, My / Iyy, q * Math.cos(phi) - rTurn * Math.sin(phi)];
 }
 function solve3(A, bb) {
   const M = A.map((r, i) => [...r, bb[i]]);
@@ -317,9 +322,14 @@ function bankAfterFlown(duty, phi0, tEnd, force = () => [0, 0, 0, 0], withWash =
       lat.A[2][0] += wf.Nb;
       lat.A[2][2] += wf.Nr;
     }
-    const dl = deriv(xl, 0, duty, xa[3]);
+    const dl = deriv(xl, 0, duty, xa[3], xa[2]);
     const f = force(V);
     const dx = lat.A.map((row, i) => row.reduce((sum, v, j) => sum + v * xa[j], 0) + f[i]);
+    /* The bank's rate is not the roll rate alone once the nose is up: phi'
+     * = p + tan(theta) (q sin(phi) + r cos(phi)) (Etkin and Reid ch. 4),
+     * the linear model's phi' = p at level; here the pitch climbs past 10
+     * deg in a turn, where the turn's yaw rate holds the bank on. */
+    dx[3] += Math.tan(th) * (xl[2] * Math.sin(xa[3]) + xa[2] * Math.cos(xa[3]));
     xl = xl.map((v, i) => v + dl[i] * dt);
     xa = xa.map((v, i) => v + dx[i] * dt);
   }
