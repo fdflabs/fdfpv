@@ -55,7 +55,16 @@ const RECORD = join(root, 'tests', 'fixtures', 'contact-golden.json');
 const RECORD_RUNS = Number(process.env.RECORD_RUNS) || 3;
 const STEPS = 1500;
 const WAIT = 300000;
+/* Each drawn frame steps FRAME_MS of sim time (window.__frameMs). */
+const FRAME_MS = 100;
+const STALL_FRAMES = 20;
 const recording = process.argv.includes('--record');
+
+/* Every plan searches from the map's spawn, a constant, never from the
+ * craft: after R the craft hovers and drifts for as long as the page takes
+ * to ask, so a search from where it is found a different pole from run to
+ * run and the same inputs gave a different throw. */
+const SPAWN_JS = 'const SPAWN = () => { const p = window.__map().spawn; return { worldX: p.x, worldZ: p.z }; };';
 
 /*
  * The throws. Each `plan` runs in the page and returns the throw (world
@@ -69,7 +78,7 @@ const THROWS = [
     airframe: 'interceptor',
     map: 'alps',
     plan: `
-      const s = window.__craftState();
+      const s = SPAWN();
       const w = window.__crashSolids(s.worldX, s.worldZ, 600, 'wall').find((c) => {
         if (!c.box || c.b[0] - c.a[0] < 4) return false;
         const x = (c.a[0] + c.b[0]) / 2;
@@ -90,7 +99,7 @@ const THROWS = [
     airframe: 'interceptor',
     map: 'alps',
     plan: `
-      const s = window.__craftState();
+      const s = SPAWN();
       const w = window.__crashSolids(s.worldX, s.worldZ, 600, 'wall').find((c) => {
         if (!c.box || c.b[0] - c.a[0] < 8) return false;
         const x = (c.a[0] + c.b[0]) / 2;
@@ -106,7 +115,7 @@ const THROWS = [
     airframe: 'interceptor',
     map: 'swiss2',
     plan: `
-      const s = window.__craftState();
+      const s = SPAWN();
       for (const p of window.__crashSolids(s.worldX, s.worldZ, 800, 'pole')) {
         if (p.r < 0.1) continue;
         const g = window.__heightAt(p.a[0], p.a[2]);
@@ -132,7 +141,7 @@ const THROWS = [
     airframe: 'interceptor',
     map: 'swiss2',
     plan: `
-      const s = window.__craftState();
+      const s = SPAWN();
       const roofs = (window.__roofs() || []).slice()
         .sort((u, v) => Math.hypot(u.x - s.worldX, u.z - s.worldZ) - Math.hypot(v.x - s.worldX, v.z - s.worldZ));
       const a = 35 * Math.PI / 180;
@@ -150,7 +159,7 @@ const THROWS = [
     airframe: 'interceptor',
     map: 'swiss2',
     plan: `
-      const s = window.__craftState();
+      const s = SPAWN();
       const x = s.worldX + 25, z = s.worldZ + 12, y = window.__heightAt(x, z) + 1.5;
       const a = 15 * Math.PI / 180;
       return { throw: { x, y, z, yaw: 90, pitch: -15, vx: -18 * Math.cos(a), vy: -18 * Math.sin(a), vz: 0 }, stick: [0, 0, 0, 0] };`,
@@ -168,7 +177,7 @@ THROWS.push({
   map: 'alps',
   damage: false,
   plan: `
-    const s = window.__craftState();
+    const s = SPAWN();
     const a = 4 * Math.PI / 180;
     for (const c of window.__crashSolids(s.worldX, s.worldZ, 800, 'wall')) {
       if (!c.box || c.turned || c.b[0] - c.a[0] < 14) continue;
@@ -193,7 +202,7 @@ THROWS.push({
   map: 'alps',
   damage: false,
   plan: `
-    const s = window.__craftState();
+    const s = SPAWN();
     const k = Math.SQRT1_2;
     for (const c of window.__crashSolids(s.worldX, s.worldZ, 800, 'wall')) {
       if (!c.box || c.turned) continue;
@@ -250,7 +259,7 @@ async function stage(page, th) {
   await page.tap('KeyR');
   await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
   await page.sleep(300);
-  const plan = await page.evaluate(`JSON.stringify((() => { ${th.plan} })())`).then(JSON.parse);
+  const plan = await page.evaluate(`JSON.stringify((() => { ${SPAWN_JS} ${th.plan} })())`).then(JSON.parse);
   if (!plan) {
     throw new Error('no spot on the map fits the throw');
   }
@@ -265,16 +274,29 @@ async function stage(page, th) {
   const passBefore = await page.evaluate(PASS);
   await page.evaluate('window.__releasePose()');
   /* Until the trace is long enough, or the plant has stopped (a wreck at
-   * rest is no longer stepped). */
+   * rest is no longer stepped). Stopped is counted in the page's frames,
+   * not in wall time: a 2 core runner on SwiftShader drew no frame for over
+   * 4 s after a swiss2 throw, and a wall clock wait cut that trace at 0 to
+   * 300 steps. STALL_FRAMES frames of FRAME_MS are 2 s of the sim's time. */
+  await page.evaluate(`(() => {
+    if (window.__goldenFrames !== undefined) return;
+    window.__goldenFrames = 0;
+    const tick = () => { window.__goldenFrames += 1; requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  })()`);
   let lastN = -1;
-  let since = Date.now();
+  let since = 0;
+  const giveUp = Date.now() + WAIT;
   for (;;) {
-    const n = await page.evaluate('window.__stepTrace().n');
+    if (Date.now() > giveUp) {
+      throw new Error(`${th.id}: the page drew no ${STALL_FRAMES} frames in ${WAIT} ms`);
+    }
+    const { n, frames } = await page.evaluate('JSON.stringify({ n: window.__stepTrace().n, frames: window.__goldenFrames })').then(JSON.parse);
     if (n >= STEPS) break;
     if (n !== lastN) {
       lastN = n;
-      since = Date.now();
-    } else if (Date.now() - since > 4000) {
+      since = frames;
+    } else if (frames - since > STALL_FRAMES) {
       break;
     }
     await page.sleep(100);
@@ -319,6 +341,9 @@ async function sample() {
       await page.evaluate('(() => { const s = window.__craftState(); window.__placeCraft(s.worldX, s.worldY, s.worldZ); })()');
       await page.until("window.__mode === 'flight'", 60000);
       await page.evaluate('window.__drawOff(true)');
+      /* A frame of a fixed 100 ms, so the shell's once a frame decisions (a
+       * perch) act at the same step every run (window.__frameMs). */
+      await page.evaluate(`window.__frameMs(${FRAME_MS})`);
       for (const th of list) {
         out[th.id] = await stage(page, th);
       }
