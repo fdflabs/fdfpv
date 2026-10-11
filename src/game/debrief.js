@@ -174,6 +174,18 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
  * when the run was sent ({ score, improved }), else null: the board holds
  * the pilot's best, so the record line is its answer, not a local copy.
  */
+/* The record with the board's answer to a posted run as its record line,
+ * which arrives after the screen is up. The board answers with its kept
+ * score: this run's when it improved (the old best is not sent back), the
+ * standing best when it did not. Pure: a new record. */
+export function withPosted(d, posted) {
+  if (!posted || !Number.isFinite(posted.score)) {
+    return d;
+  }
+  const line = { what: 'debrief.run_best', now: d.score, before: posted.score, improved: posted.improved !== false };
+  return { ...d, records: [line, ...d.records.filter((r) => r.what !== 'debrief.run_best')] };
+}
+
 export function fromFree({ aircraft, fixedWing = false, summary, flightMs, totalS, route = null, replay, landed = null, posted = null }) {
   const scored = summary.timed !== false;
   const kind = summary.tricks > 0 ? 'complete' : 'ended';
@@ -188,6 +200,7 @@ export function fromFree({ aircraft, fixedWing = false, summary, flightMs, total
   }
   return {
     activity: 'free',
+    score: summary.total,
     aircraft,
     fixedWing,
     result: { kind, landed: fixedWing ? landed : null },
