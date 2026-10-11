@@ -2413,6 +2413,9 @@ export async function boot({
       } else {
         loadPhotoWall(walkRoom.view);
       }
+      if (ui.walk.mine) {
+        walkRoom.view.setBays(ui.walk.mine.bays.map((b) => ({ airframe: b.airframe, craft: bayCraft(b) })));
+      }
     }
     const id = ui.settings.airframe;
     const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
@@ -2425,6 +2428,7 @@ export async function boot({
      * same each visit (src/game/progress.js firsts). */
     const state = ui.progress ? ui.progress.state : {};
     walkRoom.view.setTrophies(visit ? visit.firsts : trophyKeys(state.firsts, state.medals));
+    walkRoom.view.setChart(ui.walk.mine ? ui.walk.mine.chart : null);
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
@@ -2521,6 +2525,25 @@ export async function boot({
     const entry = PROPS[id] ? normalisePlane(id, visit.parts) : null;
     if (entry) {
       dressParts(craft, id, { entry: { ...entry, damage: null }, option: null });
+    }
+    return craft;
+  }
+
+  /* An aircraft for a bay of the pilot's own hangar (src/game/hangarmine.js
+   * bayFill): a saved build in its own fit, as the picker draws its card
+   * (src/ui/ui.js pickerLook), or a stock aircraft in the pilot's own
+   * paint and parts, as the main stand's. */
+  function bayCraft({ airframe, build }) {
+    const craft = craftBuilderFor(airframe)({ name: 'bay-craft', fog: false });
+    const b = build ? ui.myBuilds.find((x) => x.id === build) : null;
+    if (!b) {
+      return dressParts(dressLivery(craft, airframe), airframe);
+    }
+    dressLivery(craft, airframe, lookFor(airframe, b.fit.livery));
+    if (PROPS[airframe]) {
+      const entry = { prop: 'stock', addons: [], damage: null, ...b.fit.parts };
+      const option = POWER[airframe] ? powerOption(airframe, powerChoice(airframe, { [airframe]: b.fit.power }).option) : null;
+      dressParts(craft, airframe, { entry, option });
     }
     return craft;
   }
@@ -19200,7 +19223,7 @@ export async function boot({
   /* The exploded part at client pixels on the hangar's model, for a check. */
   window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
   window.__walkStats = () => (ui.walk ? {
-    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, lineup: ui.walk.roomLineup ? ui.walk.roomLineup.map((e) => e.airframe) : null, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
+    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, mine: ui.walk.mine, lineup: ui.walk.roomLineup ? ui.walk.roomLineup.map((e) => e.airframe) : null, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);

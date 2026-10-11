@@ -30,13 +30,14 @@ import {
   ROOMS, LAYOUTS, tierFor, occupancy, stations, startPose, walk, stationNear,
 } from '../game/hangarroom.js';
 import { levelOf } from '../game/progress.js';
+import { bayCount, bayFill, paintChart, unlockedPlanes } from '../game/hangarmine.js';
 import { str } from '../strings/index.js';
-import { customisable } from './builds.js';
+import { customisable, fittedBuild } from './builds.js';
 import { airframeById } from '../../configs/airframes.js';
 import { flightTotals } from '../share/flighttime.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { listClips } from '../replay/store.js';
-import { fetchHangar } from '../share/account.js';
+import { fetchHangar, fetchWallet, readWallet, signedIn } from '../share/account.js';
 import { hubWays } from './ways.js';
 
 /*
@@ -155,10 +156,33 @@ export const walkMethods = {
       photo: null,
       /* The lineup before launch: null, or { action, t } while it runs. */
       lineup: null,
+      /* What makes it this pilot's (src/game/hangarmine.js): { bays,
+       * chart }, from their own data, or null in a room that is not theirs
+       * (a visit, the field hangar, the room's lineup). Decided as the
+       * room opens: a build saved or a level reached shows the next time
+       * the pilot walks in, never by moving a stand under their feet. */
+      mine: visit || tier === 'field' ? null : {
+        bays: bayFill(bayCount(tier), {
+          seated: this.settings.airframe,
+          worn: fittedBuild(this.settings, this.settings.airframe),
+          builds: this.myBuilds,
+          planes: unlockedPlanes(p),
+        }),
+        chart: paintChart(readWallet()),
+      },
     };
     /* How many clips the TV has to play; read once a visit. */
     const w = this.walk;
     listClips().then((rows) => { w.clips = rows.length; w.promptKey = null; }, () => { w.clips = 0; });
+    /* The wallet as the server holds it now: the chart hangs what was last
+     * known until it answers, and keeps it if it cannot. */
+    if (w.mine && signedIn()) {
+      fetchWallet().then((wallet) => {
+        if (w.mine) {
+          w.mine.chart = paintChart(wallet);
+        }
+      }, (err) => console.warn('hangar paint chart:', err.message));
+    }
     this.show('walk');
     renderPrompt(this);
   },
@@ -271,6 +295,7 @@ export const walkMethods = {
     w.occ = occupancy(w.room, w.layout);
     w.stations = [];
     w.hub = null;
+    w.mine = null;
     w.roomLineup = list;
     this.walkPrompt.hidden = true;
     this.walkLineupName.textContent = str('walk.lineup_room');

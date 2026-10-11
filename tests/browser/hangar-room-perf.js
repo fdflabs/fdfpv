@@ -60,6 +60,12 @@ window.__run = async ({ preset, tier, naive = false, craft = 'cub1400', frames =
   view.setRoom(tier);
   const model = craft ? dressLivery(craftBuilderFor(craft)({ name: 'room-craft', fog: false }), craft) : null;
   view.setCraft(model);
+  /* Every bay filled with the same aircraft, and every paint chip the shop
+   * sells hung: the most a pilot's own hangar holds (hangarmine.js). */
+  const bayCrafts = craft ? LAYOUTS[tier].filter((it) => it.kind === 'bay')
+    .map(() => ({ airframe: craft, craft: dressLivery(craftBuilderFor(craft)({ name: 'bay-craft', fog: false }), craft) })) : [];
+  view.setBays(bayCrafts);
+  view.setChart({ finishes: ['satin', 'pearl', 'candy', 'gold', 'flake', 'brushed'], decals: ['ribbon'] });
   /* A full trophy wall, every slot taken. */
   view.setTrophies(Array.from({ length: 18 }, (_, i) => `mission:m${i}:win`));
   /* And a full photo wall: six pictures, the size the shell makes them. */
@@ -108,6 +114,7 @@ window.__run = async ({ preset, tier, naive = false, craft = 'cub1400', frames =
     collect(gpu);
   }
   const mem = { ...renderer.info.memory, programs: renderer.info.programs.length };
+  const shown = view.stats();
   let png = null;
   if (shot) {
     view.draw();
@@ -125,6 +132,7 @@ window.__run = async ({ preset, tier, naive = false, craft = 'cub1400', frames =
     calls: Math.max(...calls), tris: Math.max(...tris),
     textures: mem.textures, geometries: mem.geometries, programs: mem.programs,
     gpuMs: med(gpu), gpuP95: p95(gpu), gpuN: gpu.length, cpuMs: med(cpu),
+    bays: shown.bays, chart: shown.chart,
     png,
   };
 };
@@ -135,6 +143,23 @@ window.__craftCalls = (ids) => ids.map((id) => {
   m.group.traverse((o) => { if (o.isMesh && o.visible) n += 1; });
   return { id, meshes: n };
 });
+/* Every airframe baked onto a workshop bay, alone: how many stood. A
+ * builder whose parts do not bake shows here as 0, not as a room that
+ * will not open for the pilot who has that aircraft. */
+window.__bakeEvery = (ids) => {
+  const view = createRoomView(renderer, { graphics: qualityFor('low') });
+  view.setRoom('workshop');
+  const out = ids.map((id) => {
+    try {
+      view.setBays([{ airframe: id, craft: dressLivery(craftBuilderFor(id)({ name: 'bay-craft', fog: false }), id) }]);
+      return { id, bays: view.stats().bays };
+    } catch (err) {
+      return { id, bays: 0, error: err.message };
+    }
+  });
+  view.dispose();
+  return out;
+};
 window.__gpuName = () => {
   const d = gl.getExtension('WEBGL_debug_renderer_info');
   return { renderer: d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : 'unknown', timer: Boolean(timer) };

@@ -1,6 +1,7 @@
 /*
  * hangar-room-check.js: the walkable hangar's floor plans and walk
- * (src/game/hangarroom.js, docs/HANGAR-ROOM.md), in plain Node. Run with
+ * (src/game/hangarroom.js, docs/HANGAR-ROOM.md), and what goes in a
+ * pilot's own room (src/game/hangarmine.js), in plain Node. Run with
  * npm run hangar:room.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -22,6 +23,9 @@
 import {
   CELL, ROOMS, ROOM_IDS, LAYOUTS, TIER_LEVELS, tierFor, checkLayout, occupancy, stations, startPose, walk, stationNear, reachable, BODY_R,
 } from '../src/game/hangarroom.js';
+import { bayCount, bayFill, paintChart, unlockedPlanes } from '../src/game/hangarmine.js';
+import { LEVEL_XP, STARTER_PLANES, PLANE_LEVELS } from '../src/game/progress.js';
+import { liveryKey } from '../configs/liveries.js';
 
 const words = (p) => p.map((x) => `${x.kind} at ${x.at.join(',')} ${x.problem}${x.other ? ` ${x.other}` : ''}`).join('; ');
 
@@ -90,6 +94,44 @@ for (const tier of ROOM_IDS) {
     tierFor(1) === 'garage' && tierFor(TIER_LEVELS.workshop - 1) === 'garage' && tierFor(TIER_LEVELS.workshop) === 'workshop'
     && tierFor(TIER_LEVELS.airfield - 1) === 'workshop' && tierFor(TIER_LEVELS.airfield) === 'airfield', seen.join(' '));
   check('unlock all opens the airfield hangar at level 1', tierFor(1, true) === 'airfield', tierFor(1, true));
+}
+
+/* The room holds more of the pilot's aircraft as it grows: with the main
+ * stand, 1, 2 and 4 (docs/HANGAR-ROOM.md, a hangar that's yours). */
+{
+  const counts = ['garage', 'workshop', 'airfield'].map(bayCount);
+  check('bays: none in the garage corner, 1 in the workshop, 3 in the airfield hangar', counts.join(' ') === '0 1 3', counts.join(' '));
+  check('the field hangar has no bays: it is the war\'s, not the pilot\'s', bayCount('field') === 0, String(bayCount('field')));
+}
+
+/* Which aircraft stand on the bays. */
+{
+  const at = (lv) => ({ xp: LEVEL_XP[lv - 1] });
+  check('a level 1 pilot has the starters only', unlockedPlanes(at(1)).join(' ') === STARTER_PLANES.join(' '), unlockedPlanes(at(1)).join(' '));
+  const seven = unlockedPlanes(at(7));
+  const lv = (id) => PLANE_LEVELS[id] ?? 1;
+  check('the planes a level opened come newest first, nothing above the level',
+    seven.every((id, i) => i === 0 || lv(seven[i - 1]) >= lv(id) || STARTER_PLANES.includes(id)) && seven.every((id) => lv(id) <= 7) && seven[0] === 'p51d1450',
+    seven.slice(0, 4).join(' '));
+  const builds = [
+    { id: 'old', airframe: 'cub1400', created: 1, updated: 2 },
+    { id: 'new', airframe: 'timber1500', created: 3, updated: 9 },
+    { id: 'worn', airframe: 'striker2500', created: 4, updated: 10 },
+  ];
+  const fill = bayFill(3, { seated: 'striker2500', worn: 'worn', builds, planes: seven });
+  check('builds first, the last changed first, the one worn left to the main stand, then the newest plane',
+    JSON.stringify(fill) === JSON.stringify([{ airframe: 'timber1500', build: 'new' }, { airframe: 'cub1400', build: 'old' }, { airframe: 'p51d1450', build: null }]), JSON.stringify(fill));
+  const planesOnly = bayFill(3, { seated: 'p51d1450', planes: seven });
+  check('a plane family stands once: never the seated one again', planesOnly.every((b) => liveryKey(b.airframe) !== 'p51d1450') && new Set(planesOnly.map((b) => liveryKey(b.airframe))).size === 3, JSON.stringify(planesOnly));
+  check('no bays, nothing on them', bayFill(0, { seated: 'cub1400', builds, planes: seven }).length === 0, '0');
+  check('more bays than aircraft leaves the rest empty', bayFill(9, { seated: 'cub1400', planes: STARTER_PLANES }).length === STARTER_PLANES.length - 1, String(bayFill(9, { seated: 'cub1400', planes: STARTER_PLANES }).length));
+}
+
+/* The paint chart: what the wallet owns of the shop's paint, nothing else. */
+{
+  const chart = paintChart({ balance: 0, owned: { 'finish:gold': 'earned', 'finish:pearl': 'bought', 'decal:ribbon': 'earned', 'kit:7inch:x:y': 'bought' } });
+  check('the chart hangs the owned finishes and decals in the shop\'s order, no kits', JSON.stringify(chart) === JSON.stringify({ finishes: ['pearl', 'gold'], decals: ['ribbon'] }), JSON.stringify(chart));
+  check('signed out, the chart is bare', JSON.stringify(paintChart(null)) === JSON.stringify({ finishes: [], decals: [] }), JSON.stringify(paintChart(null)));
 }
 
 /* A layout the check must refuse. */
