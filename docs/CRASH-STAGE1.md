@@ -1477,38 +1477,62 @@ and a part gets it once a batch (`crash_contact_grip`, called from the
 solver's friction clamp with the damage mode on only).
 
 **A resting slide was charged against a load the ground did not carry**
-(found 2026-10-01, explained and fixed 2026-10-11). Settled flat and given
-1 m/s sideways, the five inch slid harder than its face grip on every
-ground, and more on a stiffer one. It was not the plough (with TURF_PLOUGH
-set to 0 grass still read 0.524). The hull corners' impulses overshoot:
-on grass they gave 7.24 N a step where the ground carries 6.30 N (the
-weight less the idle rotors' 9.5 percent), and `ground_settle` then
-strips the outbound kick that leaves, 1.33 mm/s a step. Each corner had
-already charged its friction, mu times its impulse, against all of it:
-0.45 x 7.24 over 6.30 is the 0.52 measured. With the damage mode on, the
-settle now gives back the share of that step's corner friction that went
-with the stripped part (sim.c, ground_settle). It cannot reverse a slide,
-and with the mode off nothing changes (crash:identity, off identical to
-main on every script). Measured on the same drop, the grip being the
-friction over the real normal force (m (g + a_z) less the rotors' kt w^2,
-crash:core's method), idle rotors:
+(found 2026-10-01, explained and fixed 2026-10-11 in two parts). Settled
+flat and given 1 m/s sideways, the five inch slid harder than its face
+grip on every ground, and more on a stiffer one. It was not the plough
+(with TURF_PLOUGH set to 0 grass still read 0.524). Coulomb's law holds
+friction to mu times the normal force the ground really gives, and the
+solver charged it against more than that, twice over:
 
-| ground | spring k, N/m | face grip | main | now |
-| --- | --- | --- | --- | --- |
-| snow | 1e4 | 0.20 | 0.228 | 0.205 |
-| grass | 5e4 | 0.45 | 0.524 | 0.456 |
-| sand | 1e5 | 0.60 | 0.772 | 0.646 (+8%) |
-| pvc | 2e5 | 0.30 | 0.404 | 0.343 (+14%) |
-| dirt | 2e5 | 1.00 | 1.391 | 1.009 |
+1. The hull corners' impulses overshoot: on grass they gave 7.24 N a step
+   where the ground carries 6.30 N (the weight less the idle rotors' 9.5
+   percent), and `ground_settle` strips the outbound kick that leaves,
+   1.33 mm/s a step. Each corner had already charged its friction, mu
+   times its impulse, against all of it: 0.45 x 7.24 over 6.30 is the
+   0.52 measured. The settle now gives back the share of that step's
+   corner friction that went with the stripped part.
+2. The settle's own friction, for the load the corners did not carry,
+   took that load as the whole weight less the corners' gross impulse.
+   With idle rotors carrying a fifth of the weight (sand, pvc) the
+   corners carry less than the weight and the settle added friction for
+   the rotors' share. The settle's load is now what the plant itself
+   drove into the ground this step (gravity less thrust and lift, from
+   the plant's own velocity change) less what the corners carried net of
+   the stripped kick. The spin friction takes the same load.
 
-The grass row's 0.006 left is the rotors' own drag at 1 m/s (the
-deceleration falls with the speed through the slide). **Still wrong, left
-loud: sand and pvc.** There the settled craft's idle rotors carry 21 to 24
-percent of its weight, the corners carry less than the full weight, and
-`crash_settle_share` adds Coulomb friction for the difference, because it
-compares the corners' impulse with the whole weight, not with the weight
-less the thrust. That is a second fix (the same load feeds the spin
-friction), not done here.
+Both act with the damage mode on only; with it off nothing changes
+(crash:identity, off identical to main on every script). Measured on the
+same drop, the grip being the friction over the real normal force (m (g +
+a_z) less the rotors' kt w^2, crash:core's method), idle rotors:
+
+| ground | spring k, N/m | face grip | main | part 1 | part 2 |
+| --- | --- | --- | --- | --- | --- |
+| snow | 1e4 | 0.20 | 0.228 | 0.205 | 0.205 |
+| grass | 5e4 | 0.45 | 0.524 | 0.456 | 0.456 |
+| sand | 1e5 | 0.60 | 0.772 | 0.646 | 0.610 |
+| pvc | 2e5 | 0.30 | 0.404 | 0.343 | 0.311 |
+| dirt | 2e5 | 1.00 | 1.391 | 1.009 | 1.009 |
+
+What is left, 0.005 to 0.011, is the rotors' own drag at 1 m/s: the
+deceleration falls with the speed through the slide, which Coulomb
+friction does not.
+
+The spin friction takes the same load. A settled five inch given 3 rad/s
+of yaw on its belly stops in 17, 15 and 20 ms on grass, sand and pvc
+with part 1, and 18, 16 and 21 ms with part 2 (turning 1.6, 1.5 and 1.9
+degrees): the corners' own friction carries nearly all of it, so the
+settle's share was small either way.
+
+**Open, not sourced: the five inch's grip with the damage mode off.** The
+same settled slide reads 3.43 g with the mode off (measured 2026-10-11,
+idle rotors), 2.45 times the shell's grass mu of 1.40, so the mode off
+contact also charges friction beyond its own mu; the share of the corners
+and of the settle in it has not been separated. No source supports either
+number: 1.40 was never measured, and the only turf measurement this
+project cites, Linthorne and Cooper's, is 0.45 for a smooth sled and
+about 0.6 on uneven turf. Nothing asserts it. It is left as it is, loud
+here, until the mode off contact is either retired or given a measured
+grip.
 
 The 0.7 MPa is DERIVED from two studs 13 mm long, each 170 mm^2 in side
 profile, under 350 N on a sand based natural turf pitch's samples. Fully

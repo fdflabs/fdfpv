@@ -90,6 +90,11 @@ static double g_ge = 0.0;
  * them to charge friction only against the load the ground really took. */
 static double g_corner_dvn = 0.0;
 static double g_corner_dvt[3] = { 0.0, 0.0, 0.0 };
+/* This step's velocity and rate change from the plant alone (gravity,
+ * thrust, the air), before any contact. Written by the step loop just
+ * before ground_apply, its one caller, so ground_settle reads this step's. */
+static double g_plant_dv[3];
+static double g_plant_dw[3];
 
 /* The hull half extents are the airframe's now. The five inch's are the
  * numbers that used to be here; the whoop's are a third of them, which is
@@ -696,6 +701,7 @@ static void ground_settle(double upz, double vn_plant) {
   const double ny = g_ground_n[1];
   const double nz = g_ground_n[2];
   double vn = S.vel[0] * nx + S.vel[1] * ny + S.vel[2] * nz;
+  double stripped = 0.0;
 
   /* Strip an outbound kick the contact just invented (Baumgarte, a
    * residual bounce). Leave a climb the plant already had: killing
@@ -724,6 +730,7 @@ static void ground_settle(double upz, double vn_plant) {
       S.vel[1] -= g_corner_dvt[1] * share;
       S.vel[2] -= g_corner_dvt[2] * share;
     }
+    stripped = vn;
     vn = 0.0;
   }
 
@@ -742,11 +749,19 @@ static void ground_settle(double upz, double vn_plant) {
       || (SIM_DAMAGE && crash_crushing());
   /* With the damage mode on, the grip of the part the craft lies on. */
   const double settle_mu = SIM_DAMAGE ? crash_settle_mu(&S, g_ground_n, g_gmu) : g_gmu;
-  /* And the share of the weight this step's corner impulses did not
-   * already carry, with their own friction: the ground's grip counted once. */
-  const double settle_share = SIM_DAMAGE
-      ? crash_settle_share(PLANT.mass_kg * PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0) * SIM_DT)
-      : 1.0;
+  /* The load the settle carries, per unit mass. With the damage mode off it is the weight's share
+   * along the normal. With it on it is what the plant drove into the
+   * ground this step (gravity less the rotors' thrust and the air's lift,
+   * so a craft whose idle props carry a fifth of it is pressed by four
+   * fifths) less what the corners' impulses already carried with their
+   * own friction, net of the kick stripped above: the ground's grip
+   * counted once, against the load it really takes. */
+  double rest_load = PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
+  if (SIM_DAMAGE) {
+    const double plant_in = -(g_plant_dv[0] * nx + g_plant_dv[1] * ny + g_plant_dv[2] * nz);
+    const double left = plant_in - (g_corner_dvn - stripped);
+    rest_load = left > 0.0 ? left / SIM_DT : 0.0;
+  }
 
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
@@ -830,8 +845,7 @@ static void ground_settle(double upz, double vn_plant) {
       S.vel[2] = 0.0;
     }
   } else {
-    const double load = settle_share * PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
-    double dv = settle_mu * load * SIM_DT;
+    double dv = settle_mu * rest_load * SIM_DT;
     const double vtm = sim_sqrt(vt2);
     if (dv > vtm) {
       dv = vtm;
@@ -863,7 +877,9 @@ static void ground_settle(double upz, double vn_plant) {
       const double i_eff = ux * ux * PLANT.inertia[0]
           + uy * uy * PLANT.inertia[1]
           + uz * uz * PLANT.inertia[2];
-      const double load = settle_share * PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
+      const double load = SIM_DAMAGE
+          ? PLANT.mass_kg * rest_load
+          : PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
       const double tau = settle_mu * load * CONTACT_PATCH_R;
       double dw = (i_eff > 1e-12) ? (tau / i_eff) * SIM_DT : wm;
       if (dw > wm) {
@@ -916,8 +932,6 @@ static double g_wheel_load[SIM_WHEELS_MAX];
 /* What the plant's own forces did to the velocity this step, world, and
  * to the body rates, body frame: the wheels' friction holds a point
  * against the next step's push as well as this one's (wheels_friction). */
-static double g_plant_dv[3];
-static double g_plant_dw[3];
 
 static void contact_point_vel(const double r[3], double out[3]) {
   double w[3];
