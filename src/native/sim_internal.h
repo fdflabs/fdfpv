@@ -616,6 +616,14 @@ typedef struct FixedWingParams {
    * distance ahead of the CG, m. Zero k_j leaves it out. */
   double jet_kj;
   double prop_x;
+  /* The thrust line's angle right of the body's axis, rad, seen from
+   * above: an engine mounted with right thrust, as an aerobat's is against
+   * its torque, swirl and P factor (the Slick's data sheet's "Right
+   * thrust: 3 deg"). The thrust's sideways part acts at prop_x ahead of the
+   * CG, so it yaws the nose right. Zero on every table without, which
+   * keeps the thrust along the axis exactly. The thrust line's height over
+   * the CG is thrust_z. */
+  double thrust_yaw;
   /* The surfaces' servos' rate, rad/s; zero moves them in the step. */
   double servo_rate;
   double as3x_k[3];

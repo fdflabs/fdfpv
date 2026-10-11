@@ -1449,3 +1449,19 @@ step and gives the rotor 8 s before the step and 4 s after. Its numbers
  striker2500 (petrol) | 357/741 | 316/817 | 480/881
 
 Nothing in the plant moved for it; only the measurement did.
+
+## Right thrust
+
+The Slick's data sheet has "Right thrust: 3 deg", the CAP 580's 2.5: the
+engine mounted turned right of the axis, the aerobat's built in answer to
+its torque, swirl and P factor. The table field `thrust_yaw` (rad, right
+positive) turns the thrust line: its axial part along body x, its
+sideways part at the disc, prop_x ahead of the CG, so it yaws the nose
+right. The line's height over the CG was already there, `thrust_z`. Zero
+on every table, which keeps the thrust on the axis to the bit; the Slick
+and CAP lanes set it with prop_x.
+
+Measured in a proof build (the Extra given 3 deg, not committed), held
+still at full throttle: the axial force 37.370 N against T cos 3 deg's
+37.371, the side force moved by -1.9585 N against -T sin 3 deg's -1.9585,
+the yaw moment by -0.59146 N m against -prop_x T sin 3 deg's -0.59147.

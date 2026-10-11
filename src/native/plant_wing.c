@@ -2048,7 +2048,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   }
   /* The chase boost's faster prop, last; exact at 1.0 (sim_set_boost). */
   thrust *= SIM_BOOST * SIM_BOOST;
-  F[0] += thrust;
+  /* Right thrust: the line turned thrust_yaw right of the axis, its
+   * sideways part at the disc, prop_x ahead of the CG (thrust_yaw). */
+  double m_thrust_yaw = 0.0;
+  if (fw->thrust_yaw != 0.0) {
+    const double fy = -thrust * sim_sin_small(fw->thrust_yaw);
+    F[0] += thrust * sim_cos_small(fw->thrust_yaw);
+    F[1] += fy;
+    m_thrust_yaw = fw->prop_x * fy;
+  } else {
+    F[0] += thrust;
+  }
   /*
    * THE PROP'S TORQUE AND ITS ROTOR, docs/FLIGHTMODEL.md "The prop's
    * torque, from the drive". q_air is the torque the prop puts into the
@@ -2289,7 +2299,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * alpha = -w, over the blade speed. Both are zero on an airframe whose
    * table leaves them out, and add_term keeps its arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
-  M[2] = -n_aero;
+  M[2] = add_term(-n_aero, m_thrust_yaw);
   /* The open ramp's moment, nose up positive as cm_0's, so the body's
    * pitch takes it negated as m_aero is. */
   if (fw->door_time > 0.0) {
