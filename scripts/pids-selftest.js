@@ -38,7 +38,7 @@ for (const name of Object.keys(P).sort()) t.note(`export ${name}`, P[name]);
 // A fixed list rather than the registry's, so adding a tune elsewhere does
 // not move this digest. The order is deliberately not registry order.
 // Callers only ever pass registry ids; 'bogus' stands for a retired one.
-const TUNES = ['custom', 'betaflight-interceptor', 'zagi-acro', 'betaflight-7inch', 'wing-stab', 'bogus'];
+const TUNES = ['custom', 'betaflight-interceptor', 'zagi-manual', 'betaflight-7inch', 'wing-stab', 'bogus'];
 const VALUES = [undefined, null, '', NaN, Infinity, -1, -0, 0, 0.5, 1, 29, 30, 31, 99.5, 100, 185, 199.6, 200,
   201, 249, 250, 251, 999, 1000, 1001, '120', ' 45 ', 'abc', true, [], {}];
 const SLIDER_NAMES = [...P.SLIDER_KEYS, 'bogus', 'constructor'];
@@ -135,4 +135,4 @@ for (const target of [undefined, null, 'x', 5]) {
   t.rec(`clearPidsFor ${canon(target)}`, () => P.clearPidsFor(target, 'custom'));
 }
 
-t.finish('configs/pids.js', '7ef119a69d4a1cb24ff65868da52f59b8bf3c59fa588cb80611508ac5a6bb17f');
+t.finish('configs/pids.js', 'bd541c73a5e1e2a7d5fd4f725c168d3caf86db42f363a431dee85c08a858c751');
