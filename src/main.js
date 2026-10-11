@@ -126,7 +126,8 @@ import {
 } from './ui/roomhud.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, normaliseRoomName, streamerColour,
+  FLAG_SPAWNING, FOOT_HANGAR, FOOT_ON, checkCrashTable, checkWhack, decodeFootRelay, decodePartsRelay, encodePose, normaliseCode,
+  normaliseRoomName, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import {
@@ -138,6 +139,7 @@ import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
 import { createRain } from './render/rain.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
+import { createFootTrack } from './share/roomfoot.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
 import { createCombatHud } from './ui/combathud.js';
@@ -3960,6 +3962,15 @@ export async function boot({
       if (roomWar.onBinary(bytes) || roomCombat.onBinary(bytes)) {
         return;
       }
+      const foot = decodeFootRelay(bytes);
+      if (foot) {
+        const walking = roomPeers.get(foot.seat);
+        if (walking) {
+          walking.foot ??= createFootTrack();
+          walking.foot.push(foot, performance.now());
+        }
+        return;
+      }
       const got = decodePartsRelay(bytes);
       const peer = got ? roomPeers.get(got.seat) : null;
       if (peer) {
@@ -6948,11 +6959,46 @@ export async function boot({
     peer.rig.group.visible = true;
     peer.rig.pose(roomDrawn, peer.last, dt, simT, shell.canvas.clientHeight || 720, shell.camera.fov);
     roomPeerWreck(peer, scene);
-    const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
-    peer.figure.group.position.set(st.x, groundAt(st.x, st.z), st.z);
-    peer.figure.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
-    peer.figure.group.visible = true;
-    peer.figure.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
+    roomPlaceFigure(peer, label, dt);
+  }
+
+  /*
+   * A PEER'S PILOT, WHERE THEY STAND (src/share/roomfoot.js). On foot,
+   * walked to a spot, or gone into the hangar, the pilot says where with
+   * FOOT, and the figure stands there: walking between samples, facing
+   * the way they walk, and watching their aircraft once still. Inside the
+   * hangar the body is put away and the name, saying so, stays over the
+   * door they went in by. A pilot who sends no FOOT (at the station, or a
+   * build from before it) stands at their station as always.
+   */
+  function roomPlaceFigure(peer, label, dt) {
+    const fig = peer.figure;
+    /* On the page's clock, as the FOOT_RELAY was taken (onBinary). */
+    const at = peer.foot ? peer.foot.draw(performance.now()) : null;
+    fig.group.visible = true;
+    if (!at) {
+      const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
+      fig.group.position.set(st.x, groundAt(st.x, st.z), st.z);
+      fig.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
+      fig.setBodyVisible(true);
+      fig.stride(0, dt);
+      fig.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
+      return;
+    }
+    fig.group.position.set(at.x, at.y, at.z);
+    /* The walk's heading is clockwise from -z (src/game/onfoot.js); the
+     * figure faces -z at rotation 0, and a rotation turns it the other way. */
+    fig.group.rotation.y = -at.heading;
+    const inside = (at.flags & FOOT_HANGAR) !== 0 || peer.profile.status === 'hangar';
+    fig.setBodyVisible(!inside);
+    if (inside) {
+      fig.setLabel(label && str('rooms.in_hangar', { name: label }));
+      return;
+    }
+    fig.stride(at.moved, dt);
+    if (!(at.flags & FOOT_ON) || at.moved === 0) {
+      fig.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
+    }
   }
 
   /*
@@ -7085,6 +7131,13 @@ export async function boot({
         paint: p.rig ? p.rig.paint() : null,
         decals: p.rig ? p.rig.decals() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
+        /* Where the figure is drawn and how: on foot from FOOT, its body
+         * shown or put away in the hangar, its legs' swing (rad). */
+        figureShown: Boolean(p.figure && p.figure.group.visible && p.figure.bodyVisible()),
+        figureYaw: p.figure ? p.figure.group.rotation.y : null,
+        figureLabel: p.figure ? p.figure.label() : null,
+        figureSwing: p.figure ? p.figure.swing() : null,
+        foot: p.foot ? p.foot.drawn() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
         flags: p.last ? p.last.flags : null,

@@ -82,9 +82,10 @@ export function createFootSender(link, source) {
 
 /*
  * A peer's feet as drawn: push(sample, wallMs) on each FOOT_RELAY,
- * draw(wallMs) once a frame. draw returns null when no FOOT is fresh (the
- * figure stands at its station), else { x, y, z, heading, flags, moved },
- * moved being the metres walked since the last draw.
+ * draw(wallMs) once a frame, drawn() for a check. draw returns null when
+ * no FOOT is fresh (the figure stands at its station), else { x, y, z,
+ * heading, flags, moved }, moved being the metres walked since the last
+ * draw.
  */
 export function createFootTrack() {
   let last = null;
@@ -137,5 +138,8 @@ export function createFootTrack() {
     return drawn;
   }
 
-  return { push, draw, clear: () => { last = null; shown = false; } };
+  /* As last drawn, a copy, or null; for a check. */
+  const peek = () => (shown ? { ...drawn } : null);
+
+  return { push, draw, drawn: peek };
 }

@@ -430,12 +430,14 @@ export function buildPilotFigure(figure) {
   return {
     group,
     setLabel: tag.set,
+    label: tag.get,
     lookAt,
     stride,
     swing: () => swing,
     setBodyVisible(on) {
       body.visible = on;
     },
+    bodyVisible: () => body.visible,
     dispose() {
       group.removeFromParent();
       release(group);
