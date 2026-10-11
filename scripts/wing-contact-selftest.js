@@ -64,8 +64,13 @@ const PLANES = [
    * (bombshell:derive, roll out: 14.33 s, the plant 14.7, within 3
    * percent), with a stated 10 percent more for what the derivation leaves
    * out (the touchdown's bounce, the struts' compliance): 16.2 s, where the
-   * file's 12 s default had no source. */
-  { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, rollMs: 16200, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
+   * file's 12 s default had no source. With the ground effect (plant_wing.c
+   * GROUND EFFECT) the derivation's roll out is 15.26 s, 16.8 s with the
+   * same 10 percent; the plant, its tail held off the skid longer by the
+   * ground's nose down moment, swings round on its mains hands off at 4.5
+   * s and stops at 11.8, which bombshell:derive, straight line only, does
+   * not model. */
+  { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, rollMs: 16800, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
   /* The Zagi's throw is flown as zagi-gates' Z11 thrower flies it, the
    * climb out held at 20 deg by hand and trimmed (wingpilot.js zagiHold),
    * not a fixed 0.05 of up no source held; its prop at 0.7 of full, as the
