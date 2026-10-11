@@ -300,7 +300,7 @@ jobs:
       # step out, pace, the eye over the terrain, the hangar wall, fly
       # again from where the pilot stands, pad and touch.
       - run: npm run foot:node
-      - run: npm run foot:walk -- /tmp/foot-walk
+      - run: npm run foot:walk
 
   shard-3:
     runs-on: ubuntu-latest
