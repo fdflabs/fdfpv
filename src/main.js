@@ -55,7 +55,7 @@ import { PerfOverlay } from './ui/perfoverlay.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
-import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
+import { bodyPosToModel, simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
@@ -309,6 +309,8 @@ import {
 } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
+import { createParadrops } from './render/paradrops.js';
+import { fall as paradropFall, SOLO_CAP as PARADROP_SOLO_CAP, ROOM_CAP as PARADROP_ROOM_CAP } from './game/paradrop.js';
 import { createBreakage } from './render/breakage.js';
 import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
@@ -11735,6 +11737,94 @@ export async function boot({
    * Once a frame, right after the craft is posed: read the damage, draw
    * the pieces, judge the wreck. Render and rules; the plant has moved on.
    */
+  /*
+   * THE PARADROP, docs/HERCULES-CONTRACT.md: P on an aircraft with a ramp
+   * drops a load off its lip while the doors are fully open. The fall is
+   * src/game/paradrop.js's, a pure function of the drop's record and the
+   * air, worked out once at release; drawing it is reading it at the time
+   * since. Solo, the loads stay for the session, each on its own map; at
+   * the cap P refuses and nothing is taken away. The lip is the ramp's
+   * end, 0.844 m behind the CG and 0.17 m under it (herculescraft.js).
+   */
+  const paradrops = createParadrops(Math.max(PARADROP_SOLO_CAP, PARADROP_ROOM_CAP));
+  const paradropRecords = [];
+  const RAMP_LIP = [-0.844, 0, -0.17];
+  const lipQ = new THREE.Quaternion();
+  const lipP = new THREE.Vector3();
+  const lipV = new THREE.Vector3();
+  function paradropWorld(rec) {
+    const air = rec.air ? makeWeather(rec.air.map, rec.air.preset, rec.air.seed) : null;
+    return {
+      weather: air,
+      surface: (x, z) => {
+        const ground = view.height(x, z, Infinity);
+        const body = waterAt(x, z);
+        const water = body ? surfaceAt(body, x, z) : -Infinity;
+        return water > ground ? { y: water, wet: true } : { y: ground, wet: false };
+      },
+    };
+  }
+  function paradropSeat(rec, startS) {
+    const f = paradropFall(rec, paradropWorld(rec));
+    paradrops.add({ id: rec.id, map: rec.map, f, startS });
+    return f;
+  }
+  function paradropNow() {
+    return performance.now() / 1000;
+  }
+  function dropLoad() {
+    if (landed || wrecked) {
+      return false;
+    }
+    if (!(sim.e.sim_wing_door() >= 1)) {
+      notice = { text: str('main.drop_open_doors'), untilMs: performance.now() + 2200 };
+      return false;
+    }
+    const mine = paradropRecords.filter((r) => r.map === view.id).length;
+    if (mine >= PARADROP_SOLO_CAP) {
+      notice = { text: str('main.drop_field_full', { n: PARADROP_SOLO_CAP }), untilMs: performance.now() + 2600 };
+      return false;
+    }
+    const st = readState();
+    poseFromState(st, lipP);
+    simQuatToThree(st[7], st[8], st[9], st[10], lipQ).premultiply(qSpawn);
+    const [bx, by, bz] = bodyPosToModel(...RAMP_LIP);
+    const lip = new THREE.Vector3(bx, by, bz).applyQuaternion(lipQ).add(lipP);
+    simPosToThree(st[4], st[5], st[6], lipV).applyQuaternion(qSpawn);
+    const rec = {
+      id: paradropRecords.length + 1,
+      map: view.id,
+      af: runAirframe,
+      t: weatherT0 + st[0],
+      tp: st[0],
+      p: [lip.x, lip.y, lip.z],
+      v: [lipV.x, lipV.y, lipV.z],
+      air: weatherFlown,
+    };
+    const f = paradropSeat(rec, paradropNow());
+    rec.rest = f.rest;
+    rec.wet = f.wet;
+    paradropRecords.push(rec);
+    notice = { text: str('main.drop_away', { n: mine + 1 }), untilMs: performance.now() + 1400 };
+    return true;
+  }
+  /* The drops in this session, for a check. */
+  window.__paradrops = () => paradropRecords.map((r) => ({ ...r }));
+  /* Each drop fallen again from its record alone, and the doors' and the
+   * chute's state, for scripts/hercules-keys.js. */
+  window.__paradropRefall = () => paradropRecords.map((r) => paradropFall(r, paradropWorld(r)).rest);
+  window.__wingDoor = () => ({
+    door: sim.e.sim_wing_door(),
+    chute: typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0,
+  });
+  function paradropFrame() {
+    const parent = shell.quad.parent;
+    if (parent && paradrops.group.parent !== parent) {
+      parent.add(paradrops.group);
+    }
+    paradrops.update(paradropNow(), view.id);
+  }
+
   function crashFrame(nowWall, dt) {
     const parent = shell.quad.parent;
     if (parent && wreckRig.group.parent !== parent) {
@@ -15361,6 +15451,12 @@ export async function boot({
       }
       return;
     }
+    /* P on an aircraft with a ramp drops a load (THE PARADROP), and only
+     * there: on the Bramor P is still its recovery chute. */
+    if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).ramp) {
+      dropLoad();
+      return;
+    }
     if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).chute) {
       pullChute();
       return;
@@ -17167,6 +17263,7 @@ export async function boot({
     shell.quad.quaternion.copy(qPrev);
     if (mode !== 'replay') {
       crashFrame(fr.wall, fr.dt);
+      paradropFrame();
     }
     smokeFrame();
     if (crashCam) {

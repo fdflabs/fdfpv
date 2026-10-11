@@ -206,6 +206,7 @@ jobs:
       - run: npm run extra:stab
       - run: npm run nighttimber:gates
       - run: npm run hercules:gates
+      - run: npm run paradrop:selftest
       - run: npm run figures:plant
       - run: npm run combat:gates
       - run: npm run input:selftest
