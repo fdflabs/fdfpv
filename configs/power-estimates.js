@@ -426,7 +426,7 @@ export const ESTIMATES = {
     stock: {
       '1006cc': {
         topSpeed: 42.53,
-        minutes: 26.7
+        minutes: 24.1
       }
     }
   },

@@ -4941,7 +4941,7 @@ const FixedWingParams FW_SLICK2680 = {
   .stab_pitch_kp = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .stab_pitch_kd = 0.2, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .stab_pitch_down = 2.47 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.423, /* the stick that flies it level, elevator neutral, npm run stab:glide */
+  .stab_trim_throttle = 0.306, /* the stick that flies it level, elevator neutral, npm run stab:glide */
   .acro_roll_rate = 360.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .acro_expo = 0.30, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
@@ -4959,17 +4959,23 @@ const FixedWingParams FW_SLICK2680 = {
    * the disc 0.609 m ahead of the CG, the drawing's, scripts/slick-derive.js. */
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* scripts/slick-derive.js */
-  .as3x_k = { 0.0459, 0.232, 0.4065 }, /* npm run as3x:derive */
+  .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
+  .as3x_k = { 0.0855, 0.4556, 0.8044 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.5262, 8.1324, 14.3585 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.684, -2.617, -2.424 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
-  /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md. */
+  /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
+   * the stick's curve HFE's part throttle dyno against this prop, scaled to
+   * Falcon's full throttle point (scripts/slick-derive.js, the propulsion
+   * lane's method, docs/FLIGHTMODEL.md "The Slick's DA-120"). */
   .throttle_idle = 0.1985, /* scripts/slick-derive.js */
+  .throttle_rpm = { 0.1985, 0.3182, 0.4379, 0.5306, 0.6426, 0.7653, 0.8727, 0.9133, 0.966, 0.9798, 1 }, /* scripts/slick-derive.js */ /* scripts/slick-derive.js */
   /* The tank, the sheet's 34 oz FlowMaster; the flow at full the shaft power
-   * at Moulton's 0.797 lb/hp h, FITTED: a measured petrol twin two stroke's
-   * at its peak power, scripts/slick-derive.js; the lean run the
-   * Bombshell's, docs/POWER-STAGE1.md. */
+   * at HFE's DA120 data sheet's 575 g/kWh, scripts/slick-derive.js; the lean
+   * run the Bombshell's, docs/POWER-STAGE1.md. */
   .tank_m3 = 1005.5e-6, /* scripts/slick-derive.js */
-  .flow_full = 71.2e-6 / 60.0, /* scripts/slick-derive.js */
-  .flow_idle = 0.1985 * (71.2e-6 / 60.0), /* scripts/slick-derive.js */
+  .flow_full = 84.4e-6 / 60.0, /* scripts/slick-derive.js */
+  .flow_idle = 0.1985 * (84.4e-6 / 60.0), /* scripts/slick-derive.js */
   .lean_frac = 0.05, /* the Bombshell's lean run, docs/POWER-STAGE1.md */
   .lean_gain = 0.05, /* the Bombshell's lean run, docs/POWER-STAGE1.md */
   /* Past the stall, docs/SLICK-STAGE1.md: a 12 percent section stalls from
@@ -5006,5 +5012,5 @@ const FixedWingParams FW_SLICK2680 = {
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
   .side_cda = 0.4914, /* scripts/slick-derive.js */
   .rot_k = { 0.3889, 0.9415, 0.782 }, /* scripts/slick-derive.js */
-  .j_prop = 0.00681,      /* ESTIMATED: a 190 g carbon blade and the DA's crank, scripts/slick-derive.js */
+  .j_prop = 0.00931,      /* the listed 28 x 10 blades' masses and the crank, ESTIMATED, scripts/slick-derive.js */
 };

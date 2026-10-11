@@ -387,27 +387,92 @@ const Vp = J0 * (nFull / 60) * D;
 const VpGeo = nFull / 60 * 10 * IN;
 /* The idle: DA's lowest, 1,300 rpm, of the full 6,550. */
 const idle = 1300 / nFull;
+/*
+ * THE THROTTLE, the propulsion lane's method (scripts/da120-derive.js,
+ * docs/FLIGHTMODEL.md "The Slick's DA-120"): HFE International's DA120
+ * EFI data sheet (HFEDCN0810 Rev A, fig. 3) measures the torque at 20 to
+ * 100 percent throttle on an eddy current dyno, and each throttle settles
+ * where its torque meets the prop's, which goes with the speed squared.
+ * Taken against Falcon's measured full throttle point: the dyno's full
+ * throttle torque at 6,550 rpm, 10.08 N m, is 7 percent over this prop's
+ * 9.38 (inside the dyno's own +/-10 percent; an EFI engine against a
+ * carburettor's), so every row is scaled by their ratio and full throttle
+ * settles at 6,550 by construction. The stick's tenth, under the dyno's
+ * 2,000 rpm, halfway from the idle to the 20 percent crossing, FITTED as
+ * the propulsion lane's; a crossing under the one below it (the dyno's
+ * scatter) takes the one below's.
+ */
+const DYNO_RPM = [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000];
+const DYNO = {
+  1.0: [8.0, 8.4, 8.7, 9.3, 9.6, 9.9, 10.3, 10.2, null, 10.1, 9.8, 9.4, 8.8],
+  0.9: [7.3, 8.1, 8.3, 8.9, 9.0, 9.1, 9.2, 9.3, null, 9.7, 9.2, 9.0, 8.6],
+  0.8: [7.2, 8.1, 8.2, 8.8, 8.9, 9.1, 9.1, 8.9, null, 9.5, 9.1, 8.7, 8.2],
+  0.7: [7.2, 7.9, 8.0, 8.4, 8.4, 8.5, 8.6, 8.4, null, 8.4, 8.3, 7.9, 7.5],
+  0.6: [6.9, 7.4, 7.4, 7.5, 7.4, 7.6, 7.6, 7.8, null, 7.2, 7.2, 6.5, null],
+  0.5: [6.4, 6.5, 6.3, 5.9, 5.7, 5.8, 5.9, 5.8, null, 5.4, 5.0, null, null],
+  0.4: [5.8, 5.9, 5.2, 4.5, 4.2, 4.1, 4.4, 3.2, null, null, null, null, null],
+  0.3: [4.3, 4.9, 3.5, 2.8, 2.5, 3.1, 2.5, null, null, null, null, null, null],
+  0.2: [2.4, 2.3, 1.8, 1.5, 1.5, null, null, null, null, null, null, null, null],
+};
+function dynoAt(th, rpm) {
+  const pts = DYNO_RPM.map((r, i) => [r, DYNO[th][i]]).filter((q) => q[1] != null);
+  for (let i = 1; i < pts.length; i += 1) {
+    if (rpm <= pts[i][0]) return pts[i - 1][1] + (rpm - pts[i - 1][0]) * (pts[i][1] - pts[i - 1][1]) / (pts[i][0] - pts[i - 1][0]);
+  }
+  return null;
+}
+const dynoScale = Qs / dynoAt(1.0, nFull);
+function steadyRpm(th) {
+  const qp = (r) => Qs * (r / nFull) ** 2;
+  let lo = 2000, hi = 8000;
+  if (dynoScale * dynoAt(th, lo) < qp(lo)) return null;
+  for (let i = 0; i < 60; i += 1) {
+    const mid = (lo + hi) / 2;
+    const q = dynoAt(th, mid);
+    if (q != null && dynoScale * q > qp(mid)) lo = mid; else hi = mid;
+  }
+  return lo;
+}
+const throttleCurve = [];
+for (let i = 0; i <= 10; i += 1) {
+  let r;
+  if (i === 0) r = 1300;
+  else if (i === 10) r = nFull;
+  else if (i === 1) r = (1300 + steadyRpm(0.2)) / 2;
+  else r = Math.min(nFull, steadyRpm(i / 10));
+  throttleCurve.push(r / nFull);
+}
+for (let i = 1; i < throttleCurve.length; i += 1) throttleCurve[i] = Math.max(throttleCurve[i], throttleCurve[i - 1]);
+const curveR = throttleCurve.map((v) => Number(v.toFixed(4)));
 /* The tank and the fuel flow: 34 oz (the sheet's FlowMaster); the flow at
- * full the shaft power at a brake specific consumption of 0.797 lb/hp h,
- * measured at peak power on 3W's 100i-B2 twin petrol two stroke (Moulton,
- * Performance Measurement and Simulation of a Small Internal Combustion
- * Engine, University of Maryland, 2007), at 0.73 kg/l, FITTED; linear in
- * the rpm through zero as every glow table's. */
+ * full the shaft power at the DA120's own brake specific consumption, HFE's
+ * data sheet's "575 g/kWh", at 0.73 kg/l; linear in the rpm through zero
+ * as every glow table's. */
 const tankM3 = 34 * 29.5735e-6;
-const bsfc = 0.797 * 0.45359 / 0.74570; /* kg per kW h */
+const bsfc = 0.575; /* kg per kW h */
 const flowFull = bsfc * shaftW / 1000 / 3600 / 0.73 / 1000; /* m^3/s */
-/* The prop's inertia, ESTIMATED: a 28 in carbon blade of about 190 g as
- * 0.7 of a rod's m D^2 / 12, the spinner, hub and the DA's crank, flywheel
- * magnet and twin rods. */
-const propJ = 0.7 * 0.19 * D * D / 12 + 0.0012;
+/* The rotor, the propulsion lane's (scripts/da120-derive.js): the listed
+ * 28 x 10 masses, Biela 322 g and Mejzlik 288 and 276 g, their mean as
+ * 0.7 of a rod's m D^2 / 12, and the crank, the ignition's rotor and the
+ * spinner, ESTIMATED at 0.0006 kg m^2. */
+const propJ = 0.7 * ((0.322 + 0.288 + 0.276) / 3) * D * D / 12 + 0.0006;
 const spoolTau = propJ * omegaFull / (2 * Qs);
 
 /* Performance, the plant's polar and its thrust line. The throttle stick
  * runs the engine's rpm from the idle to full, linearly (plant_wing.c,
  * throttle_idle): the thrust goes with that rpm's square, so a stick is
  * converted to the rpm share T reads, and a share back to a stick. */
-const rpmOf = (stick) => idle + (1 - idle) * stick;
-const stickOf = (share) => (share - idle) / (1 - idle);
+const rpmOf = (stick) => {
+  const x = Math.max(0, Math.min(1, stick)) * 10;
+  const i = Math.min(9, Math.floor(x));
+  return curveR[i] + (x - i) * (curveR[i + 1] - curveR[i]);
+};
+const stickOf = (share) => {
+  for (let i = 0; i < 10; i += 1) {
+    if (share <= curveR[i + 1] || i === 9) return (i + (share - curveR[i]) / (curveR[i + 1] - curveR[i])) / 10;
+  }
+  return 1;
+};
 const T = (V, d) => Math.max(0, Ts * d * d * (1 - Math.max(0, V) / (Vp * d)));
 const Dr = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + kInd * CL * CL); };
 const level = (d) => {
@@ -708,7 +773,7 @@ export const TABLE = {
   cn_beta: r(Cnb, 4), cn_r: r(Cnr, 4), cn_dr: r(Cndr, 4),
   throw_a: r(throwA * DEG, 2), throw_e: r(throwE * DEG, 2), throw_r: r(throwR * DEG, 2), expo: expoAE,
   thrust_static: r(Ts, 2), pitch_speed: r(Vp, 3), rpm_no_load: r(rpmNL, 1), torque_arm: r(torqueArm, 5), thrust_z: r(thrustZ, 4),
-  throttle_idle: r(idle, 4), tank_m3: r(tankM3 * 1e6, 1), flow_full: r(flowFull * 1e6 * 60, 1),
+  throttle_idle: curveR[0], tank_m3: r(tankM3 * 1e6, 1), flow_full: r(flowFull * 1e6 * 60, 1),
   prop_x: r(propX, 4),
   stall_arm_ac: r(hCG - 0.25, 4), stall_arm_cp: r(armCp, 4), stall_dw: r(stallDw, 4),
   stall_k: stallK, stall_top: 1.0,
@@ -718,6 +783,7 @@ export const TABLE = {
   j_prop: r(propJ, 5),
 };
 export const TABLE_PAIRS = {
+  throttle_rpm: curveR,
   stall_re: secRe, stall_clmax: clmaxW.map((v) => r(v, 4)), stall_peak: peakW.map((v) => r(v, 4)),
   slip_hv: [r(hvUpT, 3), r(hvDnT, 3)], slip_ya: [r(aileronIn, 3), r(aileronOut, 3)],
   strip_c: stripC.map((v) => r(v, 3)), strip_tau: stripTau.map((v) => r(v, 3)),
@@ -768,6 +834,7 @@ const rows = [
   ['inertia Ixx Iyy Izz', `${f(Ixx, 3)} ${f(Iyy, 3)} ${f(Izz, 3)}`],
   ['engine: rpm, thrust N, T/W, torque N m, arm m', `${nFull} ${f(Ts, 2)} ${f(Ts / W, 3)} ${f(Qs, 3)} ${f(torqueArm, 5)}`],
   ['   shaft power W (hp), Falcon Ct, APC Cp/Ct', `${f(shaftW, 0)} (${f(shaftW / 745.7, 2)}) ${f(ctFalcon, 4)} ${f(cpA / ctA, 4)}`],
+  ['   the stick\'s curve (rpm over full at 0, 0.1, ... 1); dyno scale', `${curveR.join(' ')}; ${f(dynoScale, 4)}`],
   ['   rpm NL (glow rule), J0, pitch speed (geometric), idle', `${f(rpmNL, 1)} ${f(J0, 4)} ${f(Vp, 3)} (${f(VpGeo, 2)}) ${f(idle, 4)}`],
   ['   tank cc, flow full cc/min, minutes at full', `${f(tankM3 * 1e6, 1)} ${f(flowFull * 1e6 * 60, 1)} ${f(tankM3 / flowFull / 60, 1)}`],
   ['   prop J kg m2, spool tau at full s', `${f(propJ, 5)} ${f(spoolTau, 3)}`],

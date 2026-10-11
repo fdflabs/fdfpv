@@ -124,18 +124,20 @@ FlyingGiants and RCU read 6,300 to 7,200 on a 28 x 10, which brackets it.
 | Full rpm | 6,550 | Falcon; `rpm_no_load` 7,705.9 is it over 0.85, the glow rule |
 | Torque, torque arm | 9.38 N m, 0.03083 m | **FITTED**: APC publishes no 28 x 10; the file nearest in shape is PER3_22x8 (pitch over diameter 0.364 against 0.357), whose static Cp / Ct at 6,000 and 7,000 rpm (0.0182 / 0.0665, 0.0184 / 0.0678) carries to the 28 x 10, Q = T D Cp / (2 pi Ct). Falcon's own Ct, 0.081, is above APC's 0.067 (a wider 3D blade), which moves Ct and Cp together and leaves their ratio. The shaft power it gives, 6.43 kW (8.6 hp), is under DA's rated 11.7 hp, as a static prop below the top of the 6,900 rpm range should be. The research's PER3_27x13E would give a 9 percent longer arm |
 | Pitch speed | 46.59 m/s | where the plant's straight thrust line reaches zero: APC's 22 x 8 pulls to J 0.53, 1.5 times its pitch over diameter; the least squares J0 of a straight line through its static Ct over its Ct(J) at 6,000 rpm, 0.600, times n D. The Ugly Stik's rule, the geometric rpm times pitch, would give 27.7 m/s and a 60 mph top speed for a 35 percent aerobat |
-| Idle | 0.1985 of full | DA's lowest, 1,300 rpm |
-| Fuel flow | 71.2 cc/min at full, 14 minutes of the tank | **FITTED**: the shaft power at 0.797 lb/hp h, the brake specific consumption measured at peak power on 3W's 100i-B2 petrol twin two stroke (Moulton, University of Maryland, 2007), at 0.73 kg/l, linear in the rpm through zero as every glow table's |
-| Prop inertia | 0.00681 kg m² | ESTIMATED: a 28 in carbon blade of about 190 g as 0.7 of a rod's m D² / 12, and the crank, flywheel magnet and rods |
+| Idle and the stick's curve | 0.1985 of full at the stop; 0.32, 0.44, 0.53, 0.64, 0.77, 0.87, 0.91, 0.97, 0.98 and 1 at its tenths (`throttle_rpm`) | DA's lowest, 1,300 rpm; the rest the propulsion lane's method (scripts/da120-derive.js, docs/FLIGHTMODEL.md "The Slick's DA-120"): HFE's DA120 EFI data sheet's part throttle dyno (fig. 3, 20 to 100 percent throttle) against this prop's speed squared load, every row scaled by 0.931 so its full throttle settles at Falcon's 6,550 (the dyno reads 10.08 N m there against this prop's 9.38: 7 percent, inside its own +/-10, an EFI engine against a carburettor's); the tenth under the dyno's 2,000 rpm FITTED halfway. Half stick is 5,010 rpm, not the straight line's 3,930 |
+| Fuel flow | 84.4 cc/min at full, 12 minutes of the tank | the shaft power at HFE's DA120 data sheet's 575 g/kWh, at 0.73 kg/l, linear in the rpm through zero as every glow table's (Moulton's measured 3W 100i-B2 at its peak power, 0.797 lb/hp h or 486 g/kWh, is a fifth under it) |
+| Prop inertia | 0.00931 kg m² | the propulsion lane's: the listed 28 x 10 masses (Biela 322 g, Mejzlik 288 and 276 g), their mean as 0.7 of a rod's m D² / 12, and the crank, ignition rotor and spinner ESTIMATED at 0.0006 |
 
-**The engine rides today's engine path**, the Ugly Stik's: the glow
-throttle (`throttle_idle`: the stick runs the rpm from the idle to full,
-linearly, and the engine never stops), the tank and its lean run, and
-`prop_spool`'s flat torque (Heywood), which answers a step in 0.25 s at
-full. A petrol engine's own throttle response (its torque curve, the
-carburettor's delay) is the propulsion lane's model; the hook is this
-table's `throttle_idle`, `j_prop` and `torque_arm`, which that model would
-read, and nothing in the shared plant is changed here.
+**The engine** rides the glow method with the propulsion lane's dyno
+throttle (a54c0fa30, merged here): the stick runs the engine along
+`throttle_rpm` and it never stops; the tank and its lean run; and
+`prop_spool`'s flat torque (Heywood, checked within 6 percent on HFE's
+curve), which answers a step in 0.34 s at full (spool:derive: idle to full
+619/1115 ms to 63/90 percent of the thrust). The propulsion lane derives a
+different full throttle point, 320.9 N at 6,850 rpm (HFE's simulated 73.2
+lb at 6,900 and a forum tachometer); this table keeps Falcon's, a
+measurement of the same engine on the same prop, and says why in the lead's
+plan. The carburettor's own delay is not modelled.
 
 ## The coefficients
 
@@ -176,29 +178,29 @@ the Extra's width for the same reason (docs/EXTRA-STAGE1.md). **17 of
 
 | Gate | What | Derived | Band | Measured |
 | --- | --- | --- | --- | --- |
-| S1 | level at 75 percent of the stick | 33.91 m/s | 29.84 to 37.98 | 33.90 |
+| S1 | level at 75 percent of the stick (0.94 of the rpm) | 39.95 m/s | 35.15 to 44.74 | 39.92 |
 | S2 | stall, power off | 13.88 m/s | 13.05 to 15.82 | 13.67 |
 | S3 | glide ratio at 1.4 Vs, 19.4 m/s | 14.06 | 12.38 to 15.75 | 14.17 |
 | S4 | top speed | 42.54 m/s | 38.28 to 46.79 | 42.53 |
-| S5 | roll, full aileron, pb/2V | 0.370 | 0.277 to 0.462 | 0.365 (422 deg/s at 27.1 m/s) |
-| S6 | hover stick, height held | 0.5438 (an rpm share of 0.6343 over the idle) | 0.517 to 0.571 | 0.5445, within 0.03 m |
+| S5 | roll, full aileron, pb/2V | 0.370 | 0.277 to 0.462 | 0.367 (549 deg/s at 35.0 m/s) |
+| S6 | hover stick, height held | 0.3926 (an rpm share of 0.6343 on the curve) | 0.373 to 0.412 | 0.3929, within 0.01 m |
 | S7 | vertical climb, full throttle | 26.33 m/s | 23.70 to 28.96 | 26.07 |
 | S8 | torque roll, ailerons let go | 154 deg/s left | 115 to 192 | 170 left |
-| S9 | full right aileron, hanging | 119 deg/s right | 72 to 167 | 128 right |
+| S9 | full right aileron, hanging | 119 deg/s right | 72 to 167 | 129 right |
 | S10 | full elevator at zero airspeed | 12.05 rad/s² | 9.04 to 15.06; at idle under 0.147 of it | 10.5; at idle 1.04 |
 | S10b | full rudder at zero airspeed | 7.99 rad/s² | 5.99 to 9.98; the same | 7.2; at idle 0.71 |
-| S11 | harrier at 40 deg of alpha | 9.30 m/s at a stick of 0.475, elevator 57 percent | 7.44 to 11.16, 0.404 to 0.546, short of full | 10.21 at 0.450, stick 0.81 |
-| S12 | knife edge at 30 m/s | 24.8 deg of sideslip at 0.792, rudder 82 percent | 18.6 to 31.1, 0.673 to 0.911, short of full | 24.2 at 0.790, stick -0.89 |
+| S11 | harrier at 40 deg of alpha | 9.30 m/s at a stick of 0.343, elevator 57 percent | 7.44 to 11.16, 0.292 to 0.395, short of full | 10.03 at 0.348, stick 0.79, within 0.03 m |
+| S12 | knife edge at 30 m/s | 24.8 deg of sideslip at 0.563, rudder 82 percent | 18.6 to 31.1, 0.479 to 0.648, short of full | 24.3 at 0.563, stick -0.89 |
 | S13 | standing on its wheels, engine idling | 9.38 deg, 0.4082 m, 10.9 percent on the tail | half a degree, 5 mm, 3.5 points | 9.36, 0.4088, 10.9 |
-| S14 | take off roll | 7.64 m | 4.58 to 12.22 | 11.28 |
+| S14 | take off roll | 8.25 m | 4.95 to 13.20 | 11.99 |
 | S15 | every other aircraft unmoved | main's hashes (extra-thresholds E15) | identical | identical |
 | S16 | Node and Chrome agree | | identical | identical |
 
 Where this derivation goes further than the Extra's, and why:
 
-- **S6, S11, S12: sticks, not rpm shares.** A petrol engine's stick runs
-  the rpm from the idle (plant_wing.c `throttle_idle`), so the hover's rpm
-  share sqrt(W / T) is a stick of (0.6343 - 0.1985) / (1 - 0.1985).
+- **S1, S6, S11, S12: sticks, not rpm shares.** A petrol engine's stick
+  runs the rpm along its dyno curve (`throttle_rpm`), so the hover's rpm
+  share sqrt(W / T), 0.6343, is a stick of 0.3926.
 - **S8: the heading held.** The Extra's E8 counted the fin's roll in the
   swirl against the torque. The gate's pilot holds the nose on the rudder,
   and the rudder's side force is on the same fin at the same height, so
@@ -215,9 +217,11 @@ Where this derivation goes further than the Extra's, and why:
   copy gave 0.90), Selig's jet normal force at the prop (jet_kj), the
   thrust line 39 mm over the CG and the jet force's arm in the moment. The
   gate's pilot is the Extra's with slower hands on the throttle and more
-  pitch damping: with the Extra's it rode a phugoid of 6 to 19 m/s on an
-  aircraft of thirty times its pitch inertia. Its throttle stick is held to
-  0 to 1, as a stick is.
+  pitch damping, flying the nose's attitude (level, the angle of attack)
+  as a harrier pilot does: chasing the measured alpha through the stalled
+  wing's rock rode a phugoid of 7 to 14 m/s on an aircraft of thirty times
+  the Extra's pitch inertia. Its throttle stick is held to 0 to 1, as a
+  stick is.
 - **S13: the idling engine.** Its 12 N along the thrust line pitches the
   aircraft forward on its mains and takes 2.6 points off the tail (13.5
   with the engine stopped).
@@ -232,15 +236,24 @@ aircraft: **a power off pull through the stall drops the right wing.** The
 DA-120 idles at 1,300 rpm, so its prop keeps J Omega = 0.93 N m s, and
 pitching up at q yaws the nose right by J Omega q (a prop turning
 clockwise from behind); at the break that yaw drops the right wing, 10 deg
-in Manual, 11 in Acro, 6 in AS3X. The check that showed it: with `j_prop`
+in Manual, 11 in Acro, 5 in AS3X. The check that showed it: with `j_prop`
 set to nearly zero in a scratch build, the same pulls stayed level within
-3 deg in every mode, and a touch of rudder dropped 5 to 13 deg either
+3 deg in every mode, and a touch of rudder dropped 9 to 28 deg either
 way. The checks now hold the drop to the right and a touch of rudder
-moving it the way it yaws. Short of the stall nothing picks a side.
+moving it the way it yaws. Short of the stall nothing picks a side in
+Manual and Acro; AS3X, whose heading hold answers the precession's yaw on
+the rudder, rolls right 7 deg there (level within 3 deg with `j_prop`
+zeroed). Its level flight is flown at the stabiliser's trim stick, 0.306
+(a three quarter stick is 94 percent of the engine and climbs), and its
+taxi on the idle's 12 N, turning over 26 deg in 4 s: the Extra's 45 on
+its 0.98 m wheelbase at this one's 1.69.
 
 Stabilised and AS3X use the Extra's loops; `stab_pitch_down` 2.47 deg and
-`stab_trim_throttle` 0.423 from `npm run stab:glide`, `as3x_k` from `npm
-run as3x:derive`; `stab:chop` holds its power off glide.
+`stab_trim_throttle` 0.306 from `npm run stab:glide` (which now reads an
+engine's `throttle_rpm`), `as3x_k`, `as3x_kh` and `as3x_rate` from `npm
+run as3x:derive` (its dive check flown at sim_wing_launch's 60 m/s cap,
+under this aircraft's 1.45 times 42 m/s), `as3x_frame` 11 ms for the
+sheet's digital servos; `stab:chop` holds its power off glide.
 
 ## What is not modelled, and waits on the physics lanes
 
@@ -253,8 +266,8 @@ Reported plainly, per the owner's rule:
   m. Without it the Slick swings left under power more than the real one
   and the pilot holds more right rudder. The CAP 580 lane needs the same
   (2.5 deg); a shared plant field for both is the lead's to schedule.
-- **A petrol engine's throttle response** (its torque curve, the
-  carburettor): the propulsion lane's; today's flat torque spool stands in.
+- **The carburettor's own delay**: not modelled; the dyno's throttle curve
+  and the flat torque spool are.
 - **The thrust past the static point** is a straight line to its pitch
   speed; a real prop's Ct(J) curve and the rpm a petrol engine gains as
   its prop unloads in flight are not in it.
@@ -310,7 +323,7 @@ INTRO_SPAN), or its lens would orbit inside this wing.
   2026-10-08, any real gyro), the Extra's three.
 - Power (configs/power.js): the DA-120 on the 28 x 10 and the sheet's
   34 oz tank of petrol at 0.73 g/cc; the hangar's estimate flies 42.53
-  m/s and 26.7 minutes at its 22 m/s cruise (`power:check`). No other
+  m/s and 24.1 minutes at its 22 m/s cruise (`power:check`). No other
   prop yet: APC measures no 27 or 28 in two blade, and Falcon's chart (its
   27 x 11 and 28 x 9.5 on the DA-120) wants a measured prop kind of its own.
 - Tuning (configs/tuning.js): the sheet's CG range on the tube, its throws
@@ -330,8 +343,8 @@ INTRO_SPAN), or its lens would orbit inside this wing.
 - `aircraft/slick2680/aircraft.json`, born with its folder: `npm run
   aircraft:folder` holds it equal to every hand row (foundations item 5).
 - The figures: `npm run slick:figures` flies figures-plant-check.js's
-  person paced pilot on it (loop 7, aileron roll 9, a sagging 4-point roll
-  6, nothing else named); `callouts:check -- --airframe=slick2680` passes
+  person paced pilot on it (loop 7, aileron roll 8.5, a sagging 4-point
+  roll 6.5, nothing else named); `callouts:check -- --airframe=slick2680` passes
   32 of 32 with it seated in Free Flight. Trick Battle's runner scores with
   the same detector and scorer.
 
@@ -339,11 +352,11 @@ INTRO_SPAN), or its lens would orbit inside this wing.
 
 Everything happens slower to start and longer to stop than on the Extra:
 it is eight times the mass at twice the size. Pull it vertical and bring
-the stick back to a little over half: it hangs, and turns left about its
+the stick back to about 40 percent: it hangs, and turns left about its
 nose at about half a turn a second until the ailerons hold it; more
 aileron and it turns back. At walking pace with the nose 40 deg up and the
-stick near half it mushes along. Full aileron at a sport pace rolls it
-about 420 deg/s. Close the throttle and pull hard: the right wing drops at
+stick near a third it mushes along. Full aileron at 35 m/s rolls it about 550
+deg/s. Close the throttle and pull hard: the right wing drops at
 the break, the idling prop's gyroscope. On the ground the engine idles and
 the tail is light; under power it swings left and wants right rudder (more
 than the real one, which has 3 deg of right thrust the plant cannot yet
@@ -365,6 +378,8 @@ engine stopping on the stick.
   https://extremeflightrc.com/cdn/shop/files/120cc_build_guide.pdf
 - The V2/V3 hardware bag: https://extremeflightrc.com/products/105-v2-slick-580-hardware-bag
 - Desert Aircraft DA-120: https://www.desertaircraft.com/products/da-120
+- HFE International, DA120 EFI Data Sheet, HFEDCN0810 Rev A (the part
+  throttle dyno, 575 g/kWh): https://hfe.aero/wp-content/uploads/2025/11/DA120-Data-Sheet.pdf
 - Falcon Propeller test chart (the DA 120CC column):
   https://www.falconpropellers.com/wp-content/uploads/2020/04/Falcon-Propeller-Test-Chart.pdf
   (and its .xlsx); the chart's page https://www.falconpropellers.com/prop-chart/

@@ -157,7 +157,7 @@ check: {
   {
     const t6 = th.s6_hover;
     hanging(sim);
-    const thr = heightHold(0.54);
+    const thr = heightHold(th.s6_hover.derived);
     let sum = 0;
     let n = 0;
     let z3 = null;
@@ -193,7 +193,7 @@ check: {
    * aileron: the mean roll rate over 3 to 6 s (right positive). */
   const rollHanging = (rollStick) => {
     hanging(sim);
-    const thr = heightHold(0.54);
+    const thr = heightHold(th.s6_hover.derived);
     let s = sim.readState().state;
     let sum = 0;
     let n = 0;
@@ -230,8 +230,8 @@ check: {
       for (let ms = 0; ms < 20; ms += RC_STEP_MS) s = step(sim, [...sticks, throttle]);
       return { q: -s[12] / 0.020, r: -s[13] / 0.020 };
     };
-    /* The stick that hangs it: the rpm share sqrt(W / T) over the idle's. */
-    const hoverDuty = (Math.sqrt(12.474 * 9.81 / 304.11) - 0.1985) / (1 - 0.1985);
+    /* The stick that hangs it: the rpm share sqrt(W / T) on the throttle's curve. */
+    const hoverDuty = th.s6_hover.derived;
     const up = kick([0, 1, 0], hoverDuty);
     const upDead = kick([0, 1, 0], 0);
     const right = kick([0, 0, 1], hoverDuty);
@@ -248,22 +248,23 @@ check: {
    * heading on the rudder, each with an integral as a pilot's hands hold
    * a trim, for 30 s. The Extra's pilot with slower hands on the throttle
    * and more pitch damping, for an aircraft of thirty times its pitch
-   * inertia: with the Extra's it rode a phugoid of 6 to 19 m/s. The wing
-   * rocks as it goes into the stall, which is what a harrier does; the
-   * mean of the last 5 s. */
+   * inertia, and flying the nose's attitude, which level is the angle of
+   * attack, as a harrier pilot does: chasing the measured alpha through
+   * the stalled wing's rock on this aircraft rode a phugoid of 7 to 14
+   * m/s. The mean of the last 5 s, its alpha as the plant reads it. */
   {
     const t11 = th.s11_harrier;
     const r = fly(sim, { duty: 0.4, vzTarget: 0, seconds: 8, speed0: 18, ...slow });
     clockMs = r.endMs;
     const target = t11.alphaDeg / DEG;
-    const thr = heightHold(0.45, 0.001, 0.2);
+    const thr = heightHold(th.s11_harrier.dutyDerived, 0.001, 0.2);
     let iP = 0;
     let iB = 0;
     let s = sim.readState().state;
     const psi0 = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
     let sv = 0, sd = 0, se = 0, n = 0, worstBank = 0, zMin = Infinity, zMax = -Infinity, sa = 0;
     for (let ms = 0; ms < 30000; ms += RC_STEP_MS) {
-      const alpha = wingDebug(sim)[0];
+      const alpha = attitude(s).pitch;
       const bank = fullBank(s);
       const psi = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
       const at = Math.min(target, 0.1 + target * ms / 10000);
@@ -300,7 +301,7 @@ check: {
     const r = fly(sim, { duty: 0.6, vTarget: t12.speed, seconds: 10, speed0: t12.speed, ...slow });
     clockMs = r.endMs;
     let s = sim.readState().state;
-    let iA = 0, iH = 0, iB = 0, iT = 0.75;
+    let iA = 0, iH = 0, iB = 0, iT = th.s12_knife_edge.dutyDerived;
     const psi0 = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
     let sb = 0, sd = 0, sr = 0, n = 0, zMin = Infinity, zMax = -Infinity, worstBank = 0;
     for (let ms = 0; ms < 15000; ms += RC_STEP_MS) {
