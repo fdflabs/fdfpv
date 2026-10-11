@@ -296,6 +296,7 @@ jobs:
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
       - run: npm run hercules:gates
+      - run: npm run paradrop:selftest
 
   shard-3:
     runs-on: ubuntu-latest
