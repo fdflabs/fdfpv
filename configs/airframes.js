@@ -928,6 +928,56 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * E-flite's Night Timber X 1.2m, EFL13850 and EFL13875,
+     * docs/NIGHTTIMBER-STAGE1.md: the Timber X's STOL high wing with its
+     * oversized surfaces and factory LED lights, 1.70 kg on 4S, simId 30
+     * on the fixed wing plant. Its thrust is about one and a half times
+     * its weight, so it hangs on its prop, the flaps mixed in as full
+     * span ailerons reaching the slipstream. A taildragger on tundra
+     * tyres; `gear` is the plant's settled pose, which the drawn wheels in
+     * src/render/nighttimbercraft.js match: the CG 0.2569 m over the
+     * ground and 4.63 degrees nose up (nighttimber:gates N13). `flaps`:
+     * F sets them.
+     */
+    id: 'nighttimber1200',
+    simId: 30,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/nighttimber-thresholds.json n2_stall. */
+    stall: 9.08,
+    /* Level speed at full throttle, m/s: tests/nighttimber-thresholds.json n4_top, derived. */
+    topSpeed: 17.10,
+    gear: { restHeight: 0.2569, restPitch: 4.63 * Math.PI / 180 },
+    flaps: true,
+    name: 'Night Timber X',
+    short: 'Night Timber',
+    blurb: 'A 1200 mm E-flite Night Timber X on 4S: the Timber X\'s STOL wing and big surfaces, with LEDs inside the airframe. Full flaps and it is off the strip in a few metres; flaps mixed into the ailerons, it hangs on the prop and torque rolls. F sets the flaps.',
+    facts: ['4S', '1200 mm', 'STOL', '3D'],
+    sizeMm: 1200,
+    grams: 1698,
+    trackClass: 'wing',
+    cells: 4,
+    ...packStates(),
+    defaultTune: 'nighttimber-as3x',
+    gravityBase: 1.0,
+    rates: stockRates(),
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/nighttimbercraft.js NIGHTTIMBER_DIMS:
+     * the furthest reach in plan is the rudder's trailing edge, 0.716 m
+     * aft, further than the tips; the highest the prop's tip. */
+    dims: {
+      arm: 0,
+      propR: 0.1651,
+      hullR: 0.716,
+      vHalfDown: 0.2695,
+      vHalfUp: 0.1651,
+      bodyLength: 1.055,
+      bodyWidth: 1.200,
+      bodyHeight: 0.4346,
+    },
+  },
+  {
+    /*
      * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
      * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
      * plant, with ailerons, an elevator, a rudder, plain flaps and electric

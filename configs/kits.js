@@ -95,6 +95,7 @@ export const KITS = {
   sky1800: SKY, cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
   uglystik1567: UGLYSTIK, timber1500: TIMBER,
   extra3d1308: EXTRA,
+  nighttimber1200: [],
   p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
