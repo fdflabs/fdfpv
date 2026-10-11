@@ -810,7 +810,7 @@ export function createCrashCam(host) {
     for (const g of host.liveGroups) {
       g.visible = false;
     }
-    editor.open(S.clip.meta.name);
+    editor.open(S.clip.meta.name, host.exitLabel ? host.exitLabel() : null);
     return true;
   }
 
