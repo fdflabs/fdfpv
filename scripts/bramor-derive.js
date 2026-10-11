@@ -22,6 +22,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -145,8 +147,11 @@ const kv = 470;
 const rpmNoLoad = kv * vPack;
 const vPitch = rpmNoLoad / 60 * pitchIn * 0.0254 * 0.85;
 const thrustZ = 0.087; /* the drawn hub over the CG, on the raised tail cone */
+/* Thrust on APC's 12 x 8 folding curve as the plant flies it (plant_wing.c
+ * prop_curve, scripts/lib/propcurve.js). */
+const prop = wingProp('FW_BRAMOR2300');
 function climbAt(V, Ts, d = 1) {
-  const T = Math.max(0, Ts * d * d * (1 - V / (vPitch * d)));
+  const T = Math.max(0, prop.thrust(Ts, V, d));
   return (T - dragAt(V)) * V / W;
 }
 function bestClimb(Ts) {
@@ -169,7 +174,7 @@ const levelSpeed = (d) => {
   let a = 8, z = 40;
   for (let i = 0; i < 80; i += 1) {
     const V = (a + z) / 2;
-    const T = Math.max(0, thrustStatic * d * d * (1 - V / (vPitch * d)));
+    const T = Math.max(0, prop.thrust(thrustStatic, V, d));
     if (T > dragAt(V)) a = V; else z = V;
   }
   return (a + z) / 2;
