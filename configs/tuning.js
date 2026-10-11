@@ -225,7 +225,9 @@ export const TUNING = {
     flaps: null,
   },
   nighttimber1200: {
-    chord: 0.2388, area: 0.2866, margin: 0.068,
+    /* The margin U2 reads off the hi_alpha plant at the zero lift line's 5 deg, 0.0666
+     * (scripts/nighttimber-derive.js); the linear h_n's is 0.068. */
+    chord: 0.2388, area: 0.2866, margin: 0.067,
     expo: 0, /* the manual sets none, "after first flights, you may adjust expo", as FW_NIGHTTIMBER1200 flies */
     cg: { mm: 89, datum: 'tuning.datum.root_le', range: [86, 105], source: `E-flite manual p. 8, "89mm +/- 3mm back from the leading edge with the carbon joiner" or "102mm +/- 3mm ... with the steel joiner for maximum 3D performance", without the slats (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
     packKg: 0.27, nose: 0.339, tail: -0.716,
