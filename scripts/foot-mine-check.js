@@ -243,7 +243,8 @@ try {
     const want = [
       { airframe: 'bramor2300', build: 'kitebramor' },
       { airframe: 'timber1500', build: 'kitetimber' },
-      { airframe: 'f16878', build: null },
+      /* The highest unlock level (src/game/hangarmine.js): the Slick's 12. */
+      { airframe: 'slick2680', build: null },
     ];
     check('Kite: his builds on the bays, the last saved first, then the newest plane Unlock all opened',
       same(s.mine.bays, want) && same(s.view.bayAirframes, want.map((b) => b.airframe)), `${JSON.stringify(s.mine.bays)}, drawn ${JSON.stringify(s.view.bayAirframes)}`);
