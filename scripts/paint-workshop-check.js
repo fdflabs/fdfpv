@@ -34,7 +34,9 @@
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
- * The pictures go to the directory given as the first argument.
+ * The pictures go to the directory given as the first argument; with
+ * none, none are taken. Nothing reads them on CI, and about eighty of them
+ * on its software rasteriser cost minutes.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -62,8 +64,10 @@ import { PATTERNS } from '../configs/paint.js';
 import { coloursFor, liveryKey, paintable } from '../configs/liveries.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const outDir = resolve(process.argv[2] || join(root, 'tmp', 'paint-workshop-check'));
-await mkdir(outDir, { recursive: true });
+const outDir = process.argv[2] ? resolve(process.argv[2]) : null;
+if (outDir) {
+  await mkdir(outDir, { recursive: true });
+}
 
 let failed = 0;
 let passed = 0;
@@ -107,6 +111,9 @@ new MutationObserver((list) => {
 }).observe(document, { childList: true, subtree: true });`];
 
 async function shot(page, name) {
+  if (!outDir) {
+    return;
+  }
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   await writeFile(join(outDir, `${name}.png`), Buffer.from(data, 'base64'));
 }
@@ -619,7 +626,7 @@ async function main() {
   } finally {
     await page.close();
   }
-  console.log(`\n${passed} passed, ${failed} failed; pictures in ${outDir}`);
+  console.log(`\n${passed} passed, ${failed} failed${outDir ? `; pictures in ${outDir}` : ''}`);
   process.exit(failed ? 1 : 0);
 }
 
