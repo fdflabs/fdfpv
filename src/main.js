@@ -79,7 +79,7 @@ import { TrickDetector } from './game/trickdetect.js';
 import { FigureDetector } from './game/figuredetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
-import { createRoute, fromRace, replayState } from './game/debrief.js';
+import { createRoute, fromFree, fromRace, replayState } from './game/debrief.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -214,6 +214,7 @@ import { createCarouselStage } from './render/carousel3d.js';
 import { createRoomView, PHOTO_FRAMES } from './render/hangarroomview.js';
 import { listClips, downloadBlob, stampedName } from './replay/store.js';
 import { listPhotos, putPhoto } from './ui/photostore.js';
+import { LINEUP_S } from './ui/hangarwalk.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
@@ -2357,7 +2358,11 @@ export async function boot({
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
-    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, photo);
+    /* The lineup sweeps the stand from the door's side, the pilot gone
+     * out to the field ahead of their aircraft. */
+    const lineup = ui.walk.lineup;
+    const shot = photo || (lineup ? { yaw: LINEUP_SWEEP_FROM + (lineup.t / LINEUP_S) * -2 * LINEUP_SWEEP_FROM, zoom: 0.85 } : null);
+    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, shot);
     if (photo && photo.shoot) {
       photo.shoot = false;
       const view = walkRoom.view;
@@ -2382,6 +2387,9 @@ export async function boot({
    * slower frame rate, never a shorter turn.
    */
   const TURNTABLE_S = 6;
+  /* Where the lineup's sweep starts, radians from the door's side; it
+   * ends as far the other way. */
+  const LINEUP_SWEEP_FROM = 0.55;
   function turntableStep(photo) {
     const tt = photo && photo.turntable;
     if (!tt) {
@@ -14017,7 +14025,20 @@ export async function boot({
    */
   function endFreestyleRun() {
     leaveFlightForResults();
-    ui.showFreestyleResults(score.summary());
+    const summary = score.summary();
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
+    ui.showFreestyleResults(summary, fromFree({
+      aircraft: runAirframe,
+      fixedWing,
+      summary,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: replayState(crashCam ? crashCam.span() : null, false),
+      /* Down and whole when the run ends: a plane put on the ground, not
+       * one still in the air or in pieces when the horn went. */
+      landed: fixedWing ? landed && !crashed && !wrecked : null,
+    }));
   }
 
   /* Puts the flight down. A craft left parked upside down (waiting for the
