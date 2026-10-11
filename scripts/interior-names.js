@@ -7,8 +7,9 @@
  *     node scripts/interior-names.js
  *
  * What it checks, over every file of the Interior's world (src/maps/interior,
- * src/share/interior, src/render/interior, tools/interior, the world's
- * scripts and docs/campaign/interior/WORLD.md), tracked or new:
+ * src/share/interior, src/render/interior, tools/interior, the asset
+ * library's files that came from them, the world's scripts and
+ * docs/campaign/interior/WORLD.md), tracked or new:
  *
  *   names       every name src/share/interior/places.js gives a player
  *               (its NAMES) is on BIBLE.md section 2's list of invented
@@ -59,6 +60,17 @@ const SOURCE = 'tools/interior/source.py';
 const PREFIXES = ['src/maps/interior/', 'src/share/interior/', 'src/render/interior/', 'tools/interior/'];
 const FILES = [
   'src/maps/interior.js',
+  /* The asset library's assets that came out of the Interior's folders,
+   * which the Interior still places: they stay under this check. */
+  'src/render/library/camp/camp.js',
+  'src/render/library/camp/camplight.js',
+  'src/render/library/camp/dressing.js',
+  'src/render/library/people/figures.js',
+  'src/render/library/tint.js',
+  'src/render/library/vehicles/instanced.js',
+  'src/render/library/vegetation/cards.js',
+  'src/render/library/crowns.js',
+  'src/render/library/crownshape.js',
   'docs/campaign/interior/WORLD.md',
   'scripts/interior-views.js',
   'scripts/interior-collide.js',

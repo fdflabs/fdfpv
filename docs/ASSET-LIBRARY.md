@@ -277,7 +277,9 @@ light.
   crates, drums, hammocks, lookout, as the Interior's `CAMP_PROPS`); the
   routes people walk by id, which the clutter keeps off, and which of
   them are the camp's own loops (`worn`); the mark under a shelter's
-  roof as `{ pixels, px }`.
+  roof as `{ pixels, px }`; `name` names the group (it defaults to the
+  Interior's `interior-camp`, kept from before the move; another map
+  passes its own).
 - **Outputs**: `{ group, setCamp({ mark, tarp, mast, cold }),
   update(seconds), state(), frames, light, stats(), dispose() }`;
   `light.patch(material)` lights a map's own material (ground, people)
@@ -366,6 +368,11 @@ Import it from `src/render/library/`, turn the map's own records into its
 inputs, add what it returns to the map's scene, and dispose it with the
 map. Then add the map's view of it to the family's golden, and run the
 map's views and gameplay checks.
+
+An asset that came out of the Interior's folders stays under the
+Interior's names lint (`npm run lint:interior-names`, its FILES list):
+the owner's rule that no real place, person or coordinate appears in the
+Interior's world holds for what it places from the library too.
 
 For example, a map that wants the scanned rocks decides where they lie by
 its own rules and hands the library records:
