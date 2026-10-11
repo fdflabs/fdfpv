@@ -4,7 +4,7 @@
  *
  * The Colours tab (src/ui/hangar.js) opens on PAINT, the schemes and each
  * region's colour, and this adds the region's FINISH under its colours and
- * two more pages beside it, on a switch at the top of the tab:
+ * three more pages beside it, on a switch at the top of the tab:
  *
  *   DECALS    race numbers, stripes, checks, chevrons, stars, roundels and
  *             generic sponsor style marks (configs/paint.js), each put on
@@ -17,6 +17,8 @@
  *             the cursor starts on is Keep); and the livery on the plane
  *             as a code to copy, or a code pasted in and checked field by
  *             field before anything of it is used.
+ *   GALLERY   the liveries other pilots published for this plane
+ *             (src/ui/hangar-gallery.js, docs/LIVERY-GALLERY.md).
  *
  * The racing games' livery editors are the model: the camera turns to the
  * side being worked on, the plane holds still under the aim, the decal
@@ -48,15 +50,17 @@
  */
 
 import {
-  DECAL_FONTS, DECAL_KINDS, DECAL_KIND_IDS, DECAL_LIMITS, FINISHES, MAX_DECALS, MAX_SAVED, TEXT_MAX,
+  DECAL_FONTS, DECAL_KINDS, DECAL_KIND_IDS, DECAL_LIMITS, FINISHES, LAYER_FINISHES, MAX_DECALS, OPACITY_STEP, MAX_SAVED, TEXT_MAX,
   checkDecal, cleanName, cleanText, encodeLivery, finishOf, newDecal, numberAspect, textAspect,
 } from '../../configs/paint.js';
 import { PALETTE, normaliseEntry, readCode } from '../../configs/liveries.js';
 import { drawDecal } from '../render/decalart.js';
+import { readPilotName } from '../share/pilot.js';
 import { str } from '../strings/index.js';
 import { el } from './dom.js';
+import { Gallery } from './hangar-gallery.js';
 
-export const PAINT_PAGES = ['paint', 'decals', 'saved'];
+export const PAINT_PAGES = ['paint', 'decals', 'saved', 'gallery'];
 
 /* The camera's views for decal work (src/render/hangarstage.js). */
 const DECAL_VIEWS = ['top', 'side_left', 'side_right', 'nose', 'tail'];
@@ -69,6 +73,34 @@ const CLICK_SLOP = 6;
  * degrees. */
 const SIZE_STEP = 1.12;
 const TURN_STEP = 15;
+/* A layer's lean and opacity change by these a press: degrees, percent. */
+const SKEW_STEP = 5;
+const OPACITY_STEPS = 2 * OPACITY_STEP;
+/* The aim snaps to the centreline, and to another layer's centre, within
+ * this many metres: a stripe down the spine lands on it exactly. */
+const SNAP = 0.012;
+/* What a group's members share when one of them changes: the factor of a
+ * size or stretch, the change of a turn or lean, the rest as set. */
+const GROUP_SCALED = ['s', 'a'];
+const GROUP_ADDED = ['r', 'x'];
+const GROUP_SET = ['o', 'fi', 'c', 'c2', 'm', 'h'];
+
+/* A hit on the model snapped (docs/redesign/LIVERY-LAYERS.md section 2):
+ * onto another layer's centre if one is that near, else onto the
+ * centreline. `others` the layers not being placed. */
+export function snapHit(hit, others) {
+  if (!hit) {
+    return hit;
+  }
+  const near = others.find((d) => Math.hypot(d.p[0] - hit.p[0], d.p[1] - hit.p[1], d.p[2] - hit.p[2]) < SNAP);
+  if (near) {
+    return { ...hit, p: [...near.p], n: [...near.n], snap: 'layer' };
+  }
+  if (Math.abs(hit.p[0]) < SNAP) {
+    return { ...hit, p: [0, hit.p[1], hit.p[2]], n: [0, hit.n[1], hit.n[2]], snap: 'centre' };
+  }
+  return hit;
+}
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -82,7 +114,7 @@ const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
 const DECAL_COLOURS = PALETTE.filter((c) => !c.film);
 
 /* A small picture of a decal, drawn by the renderer's own art. */
-function thumb(d, w = 54, h = 34) {
+export function thumb(d, w = 54, h = 34) {
   const c = el('canvas', 'paint-thumb');
   const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
   c.width = Math.round(w * dpr);
@@ -118,7 +150,192 @@ export class PaintShop {
     this.reticle = el('div', 'paint-reticle');
     this.reticle.hidden = true;
     hangar.stage.append(this.reticle);
+    this.buildGizmo(hangar.stage);
+    this.gallery = new Gallery(this);
     this.reset();
+  }
+
+  /*
+   * THE TRANSFORM HANDLES on the model (docs/redesign/LIVERY-LAYERS.md
+   * section 2): the chosen layer's outline as the renderer places it each
+   * frame (gizmoAt), its body dragged to move it over the skin (the aim
+   * the Move button uses, following the pointer), a corner to size it, the
+   * right edge's handle to stretch it, the handle over its top to turn it,
+   * the one off its top edge's right half to lean it.
+   * A drag shows on the model as it goes and is one change when let go,
+   * so a group follows it and Undo takes it back whole. A locked layer
+   * shows its outline and no handles.
+   */
+  buildGizmo(stage) {
+    const NS = 'http://www.w3.org/2000/svg';
+    this.gizmo = el('div', 'paint-gizmo');
+    this.gizmo.hidden = true;
+    this.gizmoSvg = document.createElementNS(NS, 'svg');
+    this.gizmoBody = document.createElementNS(NS, 'polygon');
+    this.gizmoBody.dataset.key = 'gizmo-move';
+    this.gizmoBody.classList.add('paint-gizmo-body');
+    this.gizmoSvg.append(this.gizmoBody);
+    this.gizmo.append(this.gizmoSvg);
+    this.gizmoHandles = {};
+    for (const key of ['scale-0', 'scale-1', 'scale-2', 'scale-3', 'stretch', 'turn', 'skew']) {
+      const h = el('div', `paint-gizmo-handle paint-gizmo-${key.split('-')[0]}`);
+      h.dataset.key = `gizmo-${key}`;
+      this.gizmoHandles[key] = h;
+      this.gizmo.append(h);
+    }
+    stage.append(this.gizmo);
+    this.gizmo.addEventListener('pointerdown', (e) => this.gizmoDown(e));
+    this.gizmo.addEventListener('pointermove', (e) => this.gizmoMove(e));
+    this.gizmo.addEventListener('pointerup', (e) => this.gizmoUp(e, true));
+    this.gizmo.addEventListener('pointercancel', (e) => this.gizmoUp(e, false));
+    this.gizmoDrag = null;
+    this.gizmoShape = null;
+  }
+
+  /* The layer the handles are for, or null: the chosen one on the Decals
+   * page while nothing else holds the pointer. */
+  gizmoLayer() {
+    if (this.gizmoDrag && this.gizmoDrag.mode !== 'move') {
+      return this.decals[this.sel] ?? null;
+    }
+    if (this.page !== 'decals' || this.placing || this.adding || this.sel < 0) {
+      return null;
+    }
+    const d = this.decals[this.sel];
+    return d && !d.h ? d : null;
+  }
+
+  /* The renderer's outline of gizmoLayer() in client pixels, or null. */
+  gizmoAt(o) {
+    /* Moving, the aim's reticle shows where it goes; the handles keep the
+     * pointer, out of sight, until it is let go. */
+    this.gizmo.classList.toggle('moving', Boolean(this.gizmoDrag && this.gizmoDrag.mode === 'move'));
+    if (this.gizmoDrag && this.gizmoDrag.mode === 'move') {
+      return;
+    }
+    const d = this.gizmoLayer();
+    if (!o || !d || !this.h.isOpen) {
+      this.gizmo.hidden = true;
+      this.gizmoShape = null;
+      return;
+    }
+    const r = this.h.stage.getBoundingClientRect();
+    const local = (q) => ({ x: q.x - r.left, y: q.y - r.top });
+    const c = local(o.centre);
+    const top = local(o.top);
+    const right = local(o.right);
+    this.gizmoShape = { centre: o.centre, right: o.right, top: o.top };
+    this.gizmo.hidden = false;
+    this.gizmo.classList.toggle('locked', Boolean(d.l));
+    this.gizmoBody.setAttribute('points', o.corners.map(local).map((q) => `${q.x},${q.y}`).join(' '));
+    const at = (h, q) => {
+      h.style.transform = `translate(${q.x}px, ${q.y}px)`;
+    };
+    o.corners.map(local).forEach((q, k) => at(this.gizmoHandles[`scale-${k}`], q));
+    /* The edge's handle stands off the right edge, and the lean's off the
+     * top edge's right half, so on a layer drawn thin on the screen neither
+     * sits on a corner's and takes its drags. */
+    const off = (from, q, px) => {
+      const l = Math.hypot(q.x - from.x, q.y - from.y) || 1;
+      return { x: q.x + ((q.x - from.x) / l) * px, y: q.y + ((q.y - from.y) / l) * px };
+    };
+    at(this.gizmoHandles.stretch, off(c, right, 22));
+    const topRight = { x: top.x + (right.x - c.x) * 0.5, y: top.y + (right.y - c.y) * 0.5 };
+    at(this.gizmoHandles.skew, off({ x: topRight.x - (top.x - c.x), y: topRight.y - (top.y - c.y) }, topRight, 22));
+    /* The turn handle stands off the top edge, away from the middle. */
+    const len = Math.hypot(top.x - c.x, top.y - c.y) || 1;
+    at(this.gizmoHandles.turn, { x: top.x + ((top.x - c.x) / len) * 22, y: top.y + ((top.y - c.y) / len) * 22 });
+  }
+
+  gizmoDown(e) {
+    const key = e.target.dataset && e.target.dataset.key;
+    const d = this.decals[this.sel];
+    if (!key || !d || d.l || !this.gizmoShape) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    this.gizmo.setPointerCapture(e.pointerId);
+    const mode = { 'gizmo-move': 'move', 'gizmo-turn': 'turn', 'gizmo-stretch': 'stretch', 'gizmo-skew': 'skew' }[key] ?? 'scale';
+    this.gizmoDrag = { id: e.pointerId, mode, d0: d, list0: this.decals, x0: e.clientX, y0: e.clientY, ...this.gizmoShape };
+    if (mode === 'move') {
+      this.startPlacing(d, this.sel);
+      this.placing.aim = { x: e.clientX, y: e.clientY };
+      this.moveReticle();
+    }
+  }
+
+  gizmoMove(e) {
+    const g = this.gizmoDrag;
+    if (!g || e.pointerId !== g.id) {
+      return;
+    }
+    if (g.mode === 'move') {
+      if (this.placing) {
+        this.placing.aim = { x: e.clientX, y: e.clientY };
+        this.moveReticle();
+      }
+      return;
+    }
+    const c = g.centre;
+    const d0 = g.d0;
+    let patch;
+    if (g.mode === 'scale') {
+      const k = Math.hypot(e.clientX - c.x, e.clientY - c.y) / Math.max(1, Math.hypot(g.x0 - c.x, g.y0 - c.y));
+      patch = { s: clamp(d0.s * k, DECAL_LIMITS.size) };
+    } else if (g.mode === 'stretch') {
+      const ax = g.right.x - c.x;
+      const ay = g.right.y - c.y;
+      const along = (x, y) => ((x - c.x) * ax + (y - c.y) * ay) / Math.max(1, ax * ax + ay * ay);
+      const k = along(e.clientX, e.clientY) / Math.max(0.05, along(g.x0, g.y0));
+      patch = { a: clamp(d0.a * Math.max(0.05, k), DECAL_LIMITS.aspect) };
+    } else if (g.mode === 'skew') {
+      /* The lean: how far along the layer's right the pointer has gone,
+       * against the layer's half height on the screen, as an angle. */
+      const rx = g.right.x - c.x;
+      const ry = g.right.y - c.y;
+      const rl = Math.hypot(rx, ry) || 1;
+      const along = ((e.clientX - g.x0) * rx + (e.clientY - g.y0) * ry) / rl;
+      const half = Math.max(4, Math.hypot(g.top.x - c.x, g.top.y - c.y));
+      const by = Math.round((Math.atan2(along, half) * 180) / Math.PI);
+      patch = { x: clamp((d0.x ?? 0) + by, DECAL_LIMITS.skew) };
+    } else {
+      /* Screen y runs down, so a turn the pointer makes clockwise on the
+       * screen is a negative angle about the layer's normal, which faces
+       * the camera. Whole degrees, 15 at a time with Shift. */
+      const a = (Math.atan2(e.clientY - c.y, e.clientX - c.x) - Math.atan2(g.y0 - c.y, g.x0 - c.x)) * (180 / Math.PI);
+      const by = e.shiftKey ? Math.round(-a / TURN_STEP) * TURN_STEP : Math.round(-a);
+      patch = { r: this.turned(d0.r, by) };
+    }
+    const d = checkDecal({ ...d0, ...patch }).decal;
+    if (!d) {
+      return;
+    }
+    g.list = this.withGroup(g.list0, this.sel, d0, d);
+    this.h.entry = { ...this.h.entry, decals: g.list };
+    this.h.preview();
+  }
+
+  gizmoUp(e, done) {
+    const g = this.gizmoDrag;
+    if (!g || e.pointerId !== g.id) {
+      return;
+    }
+    this.gizmoDrag = null;
+    if (g.mode === 'move') {
+      if (done && this.placing && this.placing.hit) {
+        this.place();
+      } else {
+        this.stopPlacing();
+        this.h.changed(`decal-${this.sel}`, 'back');
+      }
+      return;
+    }
+    if (!done || !g.list) {
+      this.setDecals(g.list0, `decal-${this.sel}`, 'back');
+      return;
+    }
+    this.setDecals(g.list, `decal-${this.sel}`, 'adjust');
   }
 
   /* Back to the start, for a hangar just opened. `library` is the saved
@@ -193,6 +410,9 @@ export class PaintShop {
     this.page = p;
     this.form = null;
     this.adding = false;
+    if (p === 'gallery') {
+      this.gallery.open();
+    }
     this.h.changed(`page-${p}`, 'adjust');
   }
 
@@ -213,7 +433,16 @@ export class PaintShop {
 
   /* The page's body when it is not Paint, which hangar.js draws itself. */
   body() {
+    if (this.page === 'gallery') {
+      return this.gallery.page();
+    }
     return this.page === 'decals' ? this.decalsPage() : this.savedPage();
+  }
+
+  /* A shared code's entry when it is for this plane, to try on. */
+  tryEntry(code) {
+    const got = readCode(code);
+    return !got.error && got.family === this.h.family ? got.entry : null;
   }
 
   /* THE FINISH, under the region's colours on the Paint page. */
@@ -292,7 +521,9 @@ export class PaintShop {
     list.forEach((d, i) => {
       const b = button(`paint-decal${i === this.sel ? ' on' : ''}`);
       b.dataset.key = `decal-${i}`;
-      b.append(thumb(d), el('span', 'paint-decal-name', this.decalName(d)));
+      const marks = [d.g ? str('hangar.decal_in_group', { g: d.g }) : '', d.h ? str('hangar.decal_hidden') : '', d.l ? str('hangar.decal_locked') : ''].filter(Boolean).join(', ');
+      b.append(thumb(d), el('span', 'paint-decal-name', marks ? `${this.decalName(d)} (${marks})` : this.decalName(d)));
+      b.classList.toggle('hidden-layer', Boolean(d.h));
       b.setAttribute('aria-pressed', String(i === this.sel));
       b.addEventListener('click', () => this.select(i));
       row.append(b);
@@ -356,7 +587,7 @@ export class PaintShop {
   kindsBox() {
     const box = el('div', 'paint-kinds');
     DECAL_KIND_IDS.forEach((k, i) => {
-      const sample = newDecal(k, [0, 0, 0], [0, 1, 0], this.style);
+      const sample = k === 'text' ? this.callsignText() : newDecal(k, [0, 0, 0], [0, 1, 0], this.style);
       const b = button('paint-kind');
       b.dataset.key = `kind-${k}`;
       b.style.setProperty('--i', String(i));
@@ -366,6 +597,15 @@ export class PaintShop {
       box.append(b);
     });
     return box;
+  }
+
+  /* A new words layer, its words the pilot's callsign where the lettering
+   * can draw it (and the word filter passes it), else the kind's own. */
+  callsignText() {
+    const d = newDecal('text', [0, 0, 0], [0, 1, 0], this.style);
+    /* A handle may hold an underscore, which the lettering has not got. */
+    const t = cleanText((readPilotName() || '').replace(/_/g, ' '));
+    return (t && checkDecal({ ...d, t, a: textAspect(t) }).decal) || d;
   }
 
   /* PLACING: the aim over the plane, a decal under it. `index` is the
@@ -431,6 +671,7 @@ export class PaintShop {
     if (!p) {
       return;
     }
+    hit = snapHit(hit, this.decals.filter((_, k) => k !== p.index));
     const same = JSON.stringify(hit) === JSON.stringify(p.hit);
     p.hit = hit;
     this.reticle.classList.toggle('on', Boolean(hit));
@@ -453,10 +694,16 @@ export class PaintShop {
     if (!d) {
       return;
     }
-    const list = [...this.decals];
+    let list = [...this.decals];
     let at = p.index;
     if (at >= 0) {
+      const was = list[at];
       list[at] = d;
+      /* A group moves as one: the others by the same step. */
+      if (was.g) {
+        const step = d.p.map((v, k) => v - was.p[k]);
+        list = list.map((o, k) => (k === at || o.g !== was.g || o.l ? o : checkDecal({ ...o, p: o.p.map((v, j) => v + step[j]) }).decal ?? o));
+      }
     } else {
       list.push(d);
       at = list.length - 1;
@@ -576,7 +823,12 @@ export class PaintShop {
       ['size', { s: clamp(d.s * SIZE_STEP, DECAL_LIMITS.size) }, { s: clamp(d.s / SIZE_STEP, DECAL_LIMITS.size) }, `${Math.round(d.s * 1000)} mm`],
       ['stretch', { a: clamp(d.a * SIZE_STEP, DECAL_LIMITS.aspect) }, { a: clamp(d.a / SIZE_STEP, DECAL_LIMITS.aspect) }, `${d.a.toFixed(2)}`],
       ['turn', { r: this.turned(d.r, TURN_STEP) }, { r: this.turned(d.r, -TURN_STEP) }, `${d.r}°`],
+      ['skew', { x: clamp((d.x ?? 0) + SKEW_STEP, DECAL_LIMITS.skew) }, { x: clamp((d.x ?? 0) - SKEW_STEP, DECAL_LIMITS.skew) }, `${d.x ?? 0}°`],
+      ['opacity', { o: clamp((d.o ?? 100) + OPACITY_STEPS, DECAL_LIMITS.opacity) }, { o: clamp((d.o ?? 100) - OPACITY_STEPS, DECAL_LIMITS.opacity) }, `${d.o ?? 100}%`],
     ];
+    /* A locked layer keeps its place, size and shape: only its look and
+     * its lock change. */
+    const locked = Boolean(d.l);
     const grid = el('div', 'paint-steps');
     for (const [id, up, down, value] of steps) {
       grid.append(el('span', 'paint-label', str(`hangar.decal_${id}`)));
@@ -584,15 +836,51 @@ export class PaintShop {
       minus.dataset.key = `${id}-down`;
       minus.setAttribute('aria-label', str(`hangar.decal_${id}_down`));
       this.h.trial(minus, { decal: i, patch: down }, this.view);
+      minus.disabled = locked && id !== 'opacity';
       minus.addEventListener('click', () => this.patch(down, `${id}-down`, 'adjust'));
       const plus = button('paint-step', '+');
       plus.dataset.key = `${id}-up`;
       plus.setAttribute('aria-label', str(`hangar.decal_${id}_up`));
       this.h.trial(plus, { decal: i, patch: up }, this.view);
+      plus.disabled = locked && id !== 'opacity';
       plus.addEventListener('click', () => this.patch(up, `${id}-up`, 'adjust'));
       grid.append(minus, el('span', 'paint-value', value), plus);
     }
     box.append(grid);
+
+    const finishes = el('div', 'paint-row');
+    finishes.append(el('span', 'paint-label', str('hangar.decal_finish')));
+    for (const fi of LAYER_FINISHES) {
+      const on = (d.fi ?? 'gloss') === fi;
+      const b = button(`paint-chip${on ? ' on' : ''}`, str(`hangar.finish_${fi}`));
+      b.dataset.key = `lfinish-${fi}`;
+      b.setAttribute('aria-pressed', String(on));
+      this.h.trial(b, { decal: i, patch: { fi } }, this.view);
+      b.addEventListener('click', () => this.patch({ fi }, `lfinish-${fi}`));
+      finishes.append(b);
+    }
+    box.append(finishes);
+
+    const order = el('div', 'paint-row paint-acts');
+    const chip = (key, text, on, fn, disabled = false) => {
+      const b = button(`paint-chip${on ? ' on' : ''}`, text);
+      b.dataset.key = key;
+      if (on !== null) {
+        b.setAttribute('aria-pressed', String(on));
+      }
+      b.disabled = disabled;
+      b.addEventListener('click', fn);
+      return b;
+    };
+    order.append(
+      chip('layer-hide', str('hangar.decal_hide'), Boolean(d.h), () => this.patch({ h: !d.h }, 'layer-hide')),
+      chip('layer-lock', str('hangar.decal_lock'), locked, () => this.patch({ l: !d.l }, 'layer-lock')),
+      chip('layer-up', str('hangar.decal_raise'), null, () => this.moveLayer(i, 1), i >= this.decals.length - 1),
+      chip('layer-down', str('hangar.decal_lower'), null, () => this.moveLayer(i, -1), i <= 0),
+      chip('layer-dup', str('hangar.decal_duplicate'), null, () => this.duplicateLayer(i), this.decals.length >= MAX_DECALS),
+      chip('layer-group', str(d.g ? 'hangar.decal_ungroup' : 'hangar.decal_group'), Boolean(d.g), () => this.toggleGroup(i), !d.g && i === 0),
+    );
+    box.append(order);
 
     const acts = el('div', 'paint-row paint-acts');
     const mirror = button(`paint-chip${d.m ? ' on' : ''}`, str('hangar.decal_mirror'));
@@ -601,12 +889,15 @@ export class PaintShop {
     mirror.addEventListener('click', () => this.patch({ m: !d.m }, 'mirror'));
     const move = button('paint-chip', str('hangar.decal_move'));
     move.dataset.key = 'move';
+    move.disabled = locked;
     move.addEventListener('click', () => this.startPlacing(d, i));
     const del = button('paint-chip paint-danger', str('hangar.decal_delete'));
     del.dataset.key = 'decal-delete';
+    del.disabled = locked;
     del.addEventListener('click', () => this.removeDecal(i));
     acts.append(mirror, move, del);
     box.append(acts);
+    box.append(el('p', 'hangar-source', str('hangar.decal_keys')));
     return box;
   }
 
@@ -692,6 +983,7 @@ export class PaintShop {
   }
 
   patch(patch, focusKey, sound = 'select') {
+    const was = this.decals[this.sel];
     const d = this.patched(this.sel, patch);
     if (!d) {
       return;
@@ -702,9 +994,64 @@ export class PaintShop {
     if (patch.c2) {
       this.style.c2 = patch.c2;
     }
-    const list = [...this.decals];
-    list[this.sel] = d;
+    const list = this.withGroup(this.decals, this.sel, was, d);
     this.setDecals(list, focusKey, sound);
+  }
+
+  /* The list with layer i changed from `was` to `d`, and the rest of its
+   * group (unlocked) changed the same way. */
+  withGroup(decals, i, was, d) {
+    const list = [...decals];
+    list[i] = d;
+    if (!was.g) {
+      return list;
+    }
+    return list.map((o, k) => {
+      if (k === i || o.g !== was.g || o.l) {
+        return o;
+      }
+      const next = { ...o };
+      for (const key of GROUP_SCALED) {
+        next[key] = o[key] * (d[key] / was[key]);
+      }
+      for (const key of GROUP_ADDED) {
+        next[key] = ((o[key] ?? 0) + (d[key] ?? 0) - (was[key] ?? 0));
+      }
+      next.r = ((next.r + 540) % 360) - 180;
+      next.x = clamp(next.x, DECAL_LIMITS.skew);
+      next.s = clamp(next.s, DECAL_LIMITS.size);
+      next.a = clamp(next.a, DECAL_LIMITS.aspect);
+      for (const key of GROUP_SET) {
+        if (d[key] !== was[key]) {
+          next[key] = d[key];
+        }
+      }
+      return checkDecal(next).decal ?? o;
+    });
+  }
+
+  /* Group a layer with the one under it, or take it out of its group (and
+   * end a group left with one layer). */
+  toggleGroup(i) {
+    const list = [...this.decals];
+    const d = list[i];
+    const ungrouped = (o) => {
+      const out = { ...o };
+      delete out.g;
+      return out;
+    };
+    if (d.g) {
+      list[i] = ungrouped(d);
+      const left = list.filter((o) => o.g === d.g);
+      if (left.length === 1) {
+        list[list.indexOf(left[0])] = ungrouped(left[0]);
+      }
+    } else if (i > 0) {
+      const g = list[i - 1].g ?? 1 + Math.max(0, ...list.map((o) => o.g ?? 0));
+      list[i - 1] = { ...list[i - 1], g };
+      list[i] = { ...d, g };
+    }
+    this.setDecals(list, 'layer-group');
   }
 
   setColour(hex) {
@@ -743,6 +1090,31 @@ export class PaintShop {
     const n = (Number(d.t) + by + 1000) % 1000;
     this.setNumber(String(n));
     this.h.focusKey(by > 0 ? 'digits-up' : 'digits-down');
+  }
+
+  /* A layer one place up the stack (drawn later, over the others) for
+   * by = 1, down for -1; the selection goes with it. */
+  moveLayer(i, by) {
+    const j = i + by;
+    const list = [...this.decals];
+    if (j < 0 || j >= list.length) {
+      return;
+    }
+    [list[i], list[j]] = [list[j], list[i]];
+    this.sel = j;
+    this.setDecals(list, by > 0 ? 'layer-up' : 'layer-down', 'move');
+  }
+
+  /* A copy of a layer straight over it, unlocked, and chosen. */
+  duplicateLayer(i) {
+    const list = [...this.decals];
+    if (list.length >= MAX_DECALS || !list[i]) {
+      return;
+    }
+    const { l, ...copy } = list[i];
+    list.splice(i + 1, 0, copy);
+    this.sel = i + 1;
+    this.setDecals(list, 'layer-dup');
   }
 
   removeDecal(i) {
@@ -1053,12 +1425,48 @@ export class PaintShop {
       }
       return true;
     }
+    const shaped = this.page === 'decals' && !typing && !this.form && !this.adding && this.shapeKey(code);
+    if (shaped) {
+      return true;
+    }
     if (code === 'Escape' && this.adding) {
       this.adding = false;
       this.h.changed('decal-add', 'back');
       return true;
     }
     return false;
+  }
+
+  /*
+   * The chosen layer's shape from the keyboard, the mouse hand staying on
+   * the model: [ and ] turn it, - and = size it, comma and full stop lean
+   * it, Page Up and Page Down move it up and down the stack. A locked
+   * layer keeps its shape. Returns whether the key was one of these.
+   */
+  shapeKey(code) {
+    const d = this.decals[this.sel];
+    if (!d) {
+      return false;
+    }
+    if (code === 'PageUp' || code === 'PageDown') {
+      this.moveLayer(this.sel, code === 'PageUp' ? 1 : -1);
+      return true;
+    }
+    const patch = {
+      BracketLeft: { r: this.turned(d.r, -TURN_STEP) },
+      BracketRight: { r: this.turned(d.r, TURN_STEP) },
+      Minus: { s: clamp(d.s / SIZE_STEP, DECAL_LIMITS.size) },
+      Equal: { s: clamp(d.s * SIZE_STEP, DECAL_LIMITS.size) },
+      Comma: { x: clamp((d.x ?? 0) - SKEW_STEP, DECAL_LIMITS.skew) },
+      Period: { x: clamp((d.x ?? 0) + SKEW_STEP, DECAL_LIMITS.skew) },
+    }[code];
+    if (!patch) {
+      return false;
+    }
+    if (!d.l) {
+      this.patch(patch, `decal-${this.sel}`, 'adjust');
+    }
+    return true;
   }
 
   /* The stick while placing: held directions move the aim every poll, A

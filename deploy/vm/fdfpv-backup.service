@@ -1,0 +1,34 @@
+# fdfpv-backup.service: the nightly backup of the VM, pulled to the owner's
+# DESKTOP (a systemd --user unit there, not on the VM). Runs backup.sh as
+# installed by the commands in README.md "Backups", with the deploy's SSH
+# key. Run by fdfpv-backup.timer.
+#
+# Measured 2026-10-08: one run took 3.1 s wall clock for a 5.0 MB backup
+# (board.dump 3.5 MB, metrics.db 5.4 MB before gzip). No memory ceiling:
+# the local work is tar, gzip and pg_restore --list on files this small.
+#
+# This file is part of the Paraguayan Drone Combat Simulator.
+#
+# The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+Description=FDFPV: pull the VM's nightly backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/lib/fdfpv-backup/backup.sh
+Nice=10
+TimeoutStartSec=15min

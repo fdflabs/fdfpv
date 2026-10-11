@@ -56,7 +56,7 @@ import {
   classify, membersOf, move, spawn,
 } from './contacts.js';
 import { rank } from './capture.js';
-import { holds } from './roles.js';
+import { holds, roleOf } from './roles.js';
 import { sight } from './sight.js';
 
 /* A camera held on a place has it within this of the picture's centre
@@ -160,9 +160,15 @@ function pointOf(mission, name) {
   return pt;
 }
 
-/* The pilots (at the frontier) holding one of `roles`, all without. */
+/* The pilots (at the frontier) holding one of `roles`, all without. An
+ * aircraft that names its role (the room's pilotsAt: the one flown and
+ * each on a hold, CONTRACT-HOLDS.md) counts for that role only. */
 function withRoles(ctx, roles) {
-  return roles == null ? ctx.pilots : ctx.pilots.filter((q) => holds(ctx.roles, q.seat, roles));
+  if (roles == null) {
+    return ctx.pilots;
+  }
+  const want = [roles].flat();
+  return ctx.pilots.filter((q) => (q.role != null ? want.includes(roleOf(q.role)) : holds(ctx.roles, q.seat, roles)));
 }
 
 /* The ops triggers (the table in the file's head and CONTRACT-P0.md 9):
@@ -204,6 +210,10 @@ export function trigger(trig, ctx) {
   }
   if (trig.alert != null) {
     return after(m.sites[trig.alert]?.at[trig.level] ?? null);
+  }
+  if (trig.looking != null || trig.spotted != null) {
+    const id = trig.looking ?? trig.spotted;
+    return after(m.spot?.[id]?.at[trig.looking != null ? 'looking' : 'spotted'] ?? null);
   }
   if (trig.route != null) {
     const ts = membersOf(m.contacts, trig.route).map((c) => c.reached[trig.point]).filter((t) => t != null);

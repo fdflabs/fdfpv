@@ -23,7 +23,7 @@ main room with the pilot second, the war field hangar third.
 | stand | the aircraft picker (`hangar-aircraft`) | this lane | yes |
 | bench | paint and parts (`customise`) | paint lane, parts lane | yes, today's hangar tabs |
 | shelf | parts bench | parts lane | no: `customise` until it lands |
-| shop | the shop | progression lane | no: drawn, no prompt until it lands |
+| shop | the hangar on its Shop tab (`hangar-shop`) | progression lane | yes |
 | trophy wall | campaign progress and records | progression lane | no: drawn, no prompt until it lands |
 | tv | replays | this lane later (item 28) | no: drawn, no prompt until it lands |
 | door | Fly (`fly`, the same as the launch card) | existing | yes |
@@ -37,18 +37,25 @@ main room with the pilot second, the war field hangar third.
   in its livery (src/render/livery.js and the decals, finish and parts
   dressing carousel3d.js already applies).
 - **Space tiers**: garage corner (6 by 5 m), workshop (10 by 8 m),
-  airfield hangar (20 by 14 m). What unlocks a tier is the progression
-  lane's rule and an owner decision (see Questions); until then the room
-  is the garage corner.
+  airfield hangar (20 by 14 m), opened by the pilot's level from flying
+  (src/game/progress.js): the workshop at level 4, the airfield hangar at
+  level 7 (TIER_LEVELS), all of them with Unlock all. Never bought (lead
+  decision 2026-10-07). The room is the biggest tier opened.
 - **Grid furniture**: the floor is a 0.5 m grid. Furniture is a list of
   `{ kind, at: [i, j], rot }` (rot in quarter turns), each kind a
   footprint in cells; nothing overlaps and nothing leaves the room, held
   by a Node check over every layout. Each tier has a default layout.
   Moving furniture by hand is not in this item (see Questions).
-- **War field hangar** (third PR): a second room, a tent over a dirt
-  floor with sandbags and crates, entered from the war's own lobby, its
-  door flying the war sortie. Same code, its own layout and palette. No
-  real insignia, no flags on walls (the flag is always horizontal).
+- **War field hangar** (third PR): a second room, `field` in ROOMS (10 by
+  7 m, a tent over a dirt floor, timber poles, sandbags along its sides,
+  crates), opened from a **Field hangar** card under Operations. Same code,
+  its own layout and palette. Its door reads "To the front" and opens the
+  first Operations card the pilot could open from the hub (it needs a
+  rooms server; without one the door gives no prompt); Escape returns to
+  Operations. No real insignia, no flags on walls (the flag is always
+  horizontal). Measured within the same budget: 17 calls at Low, 32 at
+  Medium and High, 8.4 k to 13.8 k triangles (hangar:perf), 30 calls in
+  the real shell.
 
 ## Look
 
@@ -84,12 +91,16 @@ largest tier, aircraft and pilot in it, shadow pass included:
 
 | Preset | Draw calls | Triangles | Textures | GPU ms, median (this box) |
 | --- | --- | --- | --- | --- |
-| low | 40 | 150 k | 2 | 2.0 |
-| medium | 60 | 150 k | 3 | 3.0 |
-| high | 70 | 150 k | 3 | 4.0 |
+| low | 40 | 150 k | 3 | 2.0 |
+| medium | 60 | 150 k | 4 | 3.0 |
+| high | 70 | 150 k | 4 | 4.0 |
 
-Textures: the room itself uses none (vertex colours); the count is the
-render target and the shadow map. The GPU column is a small share of the
+Textures: the furniture uses none (vertex colours); the count is the
+render target, the shadow map and, since item 28's photo wall
+(docs/SHOW-IT-OFF.md), one atlas of the newest six photos, 1536 by 576,
+3.5 MB, made only when there is a photo. The texture column went up by
+that one on purpose, written here before it was measured; nothing else
+in the budget moved. The GPU column is a small share of the
 frame on purpose: a Low machine (Steam Deck class) is several times
 slower than this box's RTX 3060 Ti. `npm run hangar:perf` fails a run
 over the budget.
@@ -145,7 +156,5 @@ shop, trophy or replay screens (other lanes' and item 28's).
 
 ## Questions for the owner
 
-1. What opens the workshop and the airfield hangar tiers? Recommended:
-   the pilot's level from flying (PROGRESSION.md XP), never bought.
-2. Moving furniture by hand: in this item or later? Recommended: later,
-   after the shop has furniture to place.
+Answered 2026-10-07 (lead): the tiers open by level from flying, never
+bought; moving furniture comes later, with the shop's furniture.

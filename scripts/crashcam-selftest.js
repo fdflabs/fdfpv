@@ -973,7 +973,7 @@ function file() {
     check(JSON.stringify(worn.meta.paint) === JSON.stringify(garage), 'carbon, aluminium, words and wear come back with the clip');
   }
   refused(withHeader((h) => { h.meta.paint = { decals: [], wear: 2 }; }), 'a wear past battle worn');
-  refused(withHeader((h) => { h.meta.paint = { finishes: { wing: 'gold' }, decals: [] }; }), 'a finish that is not one');
+  refused(withHeader((h) => { h.meta.paint = { finishes: { wing: 'velvet' }, decals: [] }; }), 'a finish that is not one');
   refused(withHeader((h) => { h.meta.paint = { decals: [{ k: 'num', url: 'x' }] }; }), 'a decal that is not one');
   refused(withHeader((h) => { h.meta.paint = { decals: [], script: 1 }; }), 'an unknown paint field');
   try {

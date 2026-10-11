@@ -89,6 +89,7 @@ import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { buildFloatSet } from './floatset.js';
 import { paintRegions } from './livery.js';
+import { spinnerFor } from './kitshapes.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -149,6 +150,9 @@ const SPINNER_BASE_S = 0.047;
 const MAIN_X = 0.150;
 const MAIN_S = 0.268;
 const MAIN_Y = -0.173;
+/* A kit's window tints (configs/kits.js): smoked and a gold film. */
+const TINTS = { smoke: 0x3c454c, gold: 0x9a8248 };
+
 const MAIN_R = 0.054;
 const MAIN_W = 0.038;
 const TAIL_PIVOT_S = 0.955;
@@ -857,7 +861,12 @@ export function buildTimberCraft(opts = {}) {
   const tyreBlack = cel({ color: 0x17191b, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 });
   const foam = cel({ color: 0x232426, rim: 0.22, spec: 0.08, specWidth: 0.010 });
   const metal = cel({ color: 0xc2c5c8, rim: 0.30, spec: 0.75, specWidth: 0.022 });
-  const glass = cel({ color: 0x8c9aa3, rim: 0.40, spec: 0.55, specWidth: 0.020, specColor: 0xf3ead4 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from.
+   * The glass is not a paint region, so a tint is its own colour. */
+  const kit = opts.kit ?? {};
+  const tint = TINTS[kit.canopy];
+  const glass = cel({ color: tint ?? 0x8c9aa3, rim: 0.40, spec: tint ? 0.75 : 0.55, specWidth: 0.020, specColor: 0xf3ead4 });
   const stator = cel({ color: 0x2a2c2e, rim: 0.24, spec: 0.20 });
   const camBody = cel({ color: 0x141c16, rim: 0.26, spec: 0.35 });
   const lens = cel({
@@ -1180,7 +1189,7 @@ export function buildTimberCraft(opts = {}) {
       const r = Math.max(0.0012, SPINNER_R * Math.sqrt(1 - u * u));
       prof.push(new THREE.Vector2(r, back + 0.004 + (len - back - 0.004) * u));
     }
-    const spinner = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 10 : 16), propMat);
+    const spinner = new THREE.Mesh(new THREE.LatheGeometry(spinnerFor(kit.spinner, prof, SPINNER_R, back, len, m), lite ? 10 : 16), propMat);
     spinner.name = 'spinner';
     spinner.castShadow = shade;
     propMount.add(spinner);

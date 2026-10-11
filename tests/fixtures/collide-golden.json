@@ -1,5 +1,5 @@
 {
- "commit": "b3fb1ba671680391df92137e7e21df9054bd9983",
+ "commit": "54e6e8ba91d5f36fa9abbd60c95b9defb94ab192",
  "cases": {
   "initial-bindings": "0c67a77bf8991fa50b35d3715e9ee79b38fd5650355a35b3db6f6285563d4ef2",
   "exports": "75b277cdca292c324d671d246735c4a52768b549110f37fc3279d58b4a66151b",
@@ -57,6 +57,7 @@
   "airframe-kadet1981": "022b895556982157ff711d9bd5ee0a40a05b6fa5fa6610134ec2379cac73ff25",
   "airframe-uglystik1567": "f51b38c2387b16750be3eab63ee744e803f76c67d139baef8c44a12cae2ba7ff",
   "airframe-tigermoth1803": "759ca7fcd451209c0f2e8a60ef800f026e36aa81f9efa5b5f02352df46d8e315",
+  "airframe-extra3d1308": "9e6dd2bfd8ce541ca5f4aa012b403b2ff3fb703f0f8424385526f77b87c267c3",
   "airframe-p51d1450": "b79e7fd3004913aff7f1d7c64b1e8b2d553cb3f0f1e7d17c991eaf217737a653",
   "airframe-f16878": "2d0dbf4efb2e6709fec4a698a67919b97cea100c6a718bfae9cb9799fb466a97",
   "airframe-zagi1219": "da8ae05826205cf166c2145262d4bdbccb48bbe57ffe7cd2f09d825570dbb2ef",

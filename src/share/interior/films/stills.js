@@ -655,6 +655,75 @@ export const STILLS = {
       finish(ctx, w, h, 'recent', r);
     },
   },
+  /* Mission 2 (INTROS.md M2). Claro Viejo the morning after, from the
+   * camera ball: the same clearing, the shelters' frames left, no tarps,
+   * no motorcycles, nobody; the cold fire's ash a pale smear. */
+  'int2-empty': {
+    kind: 'rec',
+    people: 0,
+    draw(ctx, w, h) {
+      const r = rng('int2-empty');
+      ctx.fillStyle = grey(70);
+      ctx.fillRect(0, 0, w, h);
+      canopy(ctx, r, w, h, 0, 0, 1, 1, w * 0.03, 500);
+      ctx.fillStyle = grey(135);
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 0.5, w * 0.26, h * 0.34, 0.2, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = grey(70);
+      ctx.lineWidth = Math.max(1, w / 500);
+      for (const [x, y, a] of [[0.4, 0.38, 0.4], [0.6, 0.36, -0.3], [0.62, 0.62, 0.6], [0.4, 0.63, 0.1]]) {
+        ctx.save();
+        ctx.translate(w * x, h * y);
+        ctx.rotate(a);
+        ctx.strokeRect(-w * 0.06, -h * 0.05, w * 0.12, h * 0.1);
+        ctx.restore();
+      }
+      ctx.fillStyle = grey(175, 0.7);
+      ctx.beginPath();
+      ctx.ellipse(w * 0.51, h * 0.49, w * 0.02, h * 0.02, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      finish(ctx, w, h, 'rec', r);
+      ballFrame(ctx, w, h);
+    },
+  },
+  /* Claro Nuevo from the standoff, when nobody captured it: a wider,
+   * tidier clearing, four shelters squared to each other, three bikes in
+   * a row, the taller mast, six people. */
+  'rec:nuevo_overview': {
+    kind: 'rec',
+    people: 0.03,
+    draw(ctx, w, h) {
+      const r = rng('rec:nuevo_overview');
+      ctx.fillStyle = grey(72);
+      ctx.fillRect(0, 0, w, h);
+      canopy(ctx, r, w, h, 0, 0, 0.35, 1, w * 0.03, 260);
+      ctx.fillStyle = grey(140);
+      ctx.fillRect(w * 0.36, h * 0.2, w * 0.5, h * 0.62);
+      for (const [x, y] of [[0.4, 0.26], [0.74, 0.26], [0.74, 0.62], [0.42, 0.6]]) {
+        ctx.fillStyle = grey(200);
+        ctx.fillRect(w * x, h * y, w * 0.1, h * 0.09);
+      }
+      for (let i = 0; i < 3; i += 1) {
+        ctx.fillStyle = grey(35);
+        ctx.fillRect(w * (0.56 + i * 0.025), h * 0.66, w * 0.012, h * 0.07);
+      }
+      ctx.strokeStyle = grey(30);
+      ctx.lineWidth = Math.max(2, w / 200);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.6, h * 0.26);
+      ctx.lineTo(w * 0.64, h * 0.08);
+      ctx.stroke();
+      for (const [x, y] of [[0.5, 0.42], [0.56, 0.5], [0.62, 0.4], [0.66, 0.52], [0.52, 0.58], [0.7, 0.46]]) {
+        ctx.fillStyle = grey(30);
+        ctx.beginPath();
+        ctx.arc(w * x, h * y, h * 0.012, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      finish(ctx, w, h, 'rec', r);
+      ballFrame(ctx, w, h);
+    },
+  },
   'rec:bridge': {
     kind: 'rec',
     people: 0,
@@ -780,6 +849,86 @@ export const STILLS = {
         ctx.fill();
       }
       finish(ctx, w, h, 'rec', r);
+      ballFrame(ctx, w, h);
+    },
+  },
+  /* Mission 3's northern vehicle (INTROS.md M3 outro): from above, a
+   * pickup newer than anything the Column had, two commercial containers
+   * strapped in its bed and a whip antenna; the analyst's frame when
+   * nobody captured it. */
+  'rec:north_vehicle': {
+    kind: 'rec',
+    people: 0,
+    draw(ctx, w, h) {
+      const r = rng('rec:north_vehicle');
+      field(ctx, r, w, h, 110);
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.5);
+      ctx.rotate(-0.35);
+      ctx.fillStyle = grey(70, 0.45);
+      ctx.fillRect(-w * 0.17 + 8, -h * 0.11 + 10, w * 0.34, h * 0.22);
+      ctx.fillStyle = grey(200);
+      ctx.fillRect(-w * 0.17, -h * 0.11, w * 0.34, h * 0.22);
+      ctx.fillStyle = grey(40);
+      ctx.fillRect(w * 0.07, -h * 0.09, w * 0.07, h * 0.18);
+      /* The bed: two boxed containers with strap lines. */
+      ctx.fillStyle = grey(150);
+      ctx.fillRect(-w * 0.15, -h * 0.09, w * 0.09, h * 0.08);
+      ctx.fillRect(-w * 0.15, h * 0.01, w * 0.09, h * 0.08);
+      ctx.strokeStyle = grey(60);
+      ctx.lineWidth = Math.max(1, w / 400);
+      for (const y of [-0.05, 0.05]) {
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.16, h * y);
+        ctx.lineTo(-w * 0.05, h * y);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = grey(25);
+      ctx.lineWidth = Math.max(2, w / 220);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.05, -h * 0.1);
+      ctx.lineTo(w * 0.02, -h * 0.3);
+      ctx.stroke();
+      ctx.restore();
+      finish(ctx, w, h, 'rec', r);
+      ballFrame(ctx, w, h);
+    },
+  },
+  /* The same vehicle closer, from its side: the containers' stencilled
+   * panels and a dish on the cab, gear the Column never carried. */
+  'int3-north-close': {
+    kind: 'recent',
+    people: 0,
+    draw(ctx, w, h) {
+      const r = rng('int3-north-close');
+      sky(ctx, w, h, 0.28, '#3a4450', '#59626a');
+      ctx.fillStyle = '#3d4236';
+      ctx.fillRect(0, h * 0.28, w, h);
+      treeLine(ctx, r, w, h, h * 0.29, h * 0.06, '#20261c');
+      /* Cab and bed in profile, low sun gone: the camera's night grade. */
+      ctx.fillStyle = '#c8ccc8';
+      ctx.fillRect(w * 0.18, h * 0.5, w * 0.64, h * 0.16);
+      ctx.fillRect(w * 0.56, h * 0.38, w * 0.22, h * 0.13);
+      ctx.fillStyle = '#20262a';
+      ctx.fillRect(w * 0.6, h * 0.41, w * 0.15, h * 0.07);
+      ctx.fillStyle = '#16191b';
+      for (const x of [0.28, 0.7]) {
+        ctx.beginPath();
+        ctx.arc(w * x, h * 0.67, h * 0.055, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#8e948f';
+      ctx.fillRect(w * 0.2, h * 0.36, w * 0.15, h * 0.14);
+      ctx.fillRect(w * 0.36, h * 0.38, w * 0.15, h * 0.12);
+      ctx.fillStyle = '#5c625e';
+      for (const [x, y] of [[0.22, 0.39], [0.38, 0.41]]) {
+        ctx.fillRect(w * x, h * y, w * 0.1, h * 0.025);
+      }
+      ctx.fillStyle = '#d9ddd8';
+      ctx.beginPath();
+      ctx.ellipse(w * 0.67, h * 0.35, w * 0.035, h * 0.02, -0.3, 0, 2 * Math.PI);
+      ctx.fill();
+      finish(ctx, w, h, 'recent', r);
       ballFrame(ctx, w, h);
     },
   },

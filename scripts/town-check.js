@@ -93,7 +93,7 @@ import { embankmentCrests, embankmentSection, junctionRims } from '../src/maps/i
 import {
   planTown, WALLS_R, FINE_R, MOVE,
 } from '../src/maps/itaipu/town/model.js';
-import { roofTop } from '../src/maps/alps/roofs.js';
+import { roofTop } from '../src/render/library/roofs.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));

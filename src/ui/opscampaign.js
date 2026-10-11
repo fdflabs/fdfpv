@@ -87,7 +87,11 @@ export function missionState(m, dev = false) {
 export function createOpsCampaignScreen({
   ui, campaign, missions, devMissions = false, consented, play,
 }) {
-  const store = createCampaignStore(ui.settings, () => ui.persistSettings());
+  /* A result recorded may be a first (progress-ui.js checkFirsts). */
+  const store = createCampaignStore(ui.settings, () => {
+    ui.persistSettings();
+    ui.progress.checkFirsts();
+  });
   const cur = () => store.load();
   const k = (rest) => `ops.campaign.${campaign.id}.${rest}`;
   let isOpen = false;

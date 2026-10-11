@@ -852,8 +852,9 @@
     "> focus <div.row \"Laps\">",
     "syncCursor false",
     "> focus <div.row \"Laps\">",
-    "> mousemove <div.row.row-link \"Board\">",
-    "hoverCursor [event mousemove on <div.row.row-link \"Board\">] 2",
+    "> pointermove <div.row \"Air mode\">",
+    "> pointermove <div.row.row-link \"Board\">",
+    "hoverCursor [event pointermove on <div.row.row-link \"Board\">] 2",
     "> click <div.row.row-nav \"Rates\">",
     "closeDrop",
     "syncCursor false",
@@ -2070,6 +2071,9 @@
         {
          "tag": "BUTTON",
          "cls": "legend-act",
+         "dataset": {
+          "action": "back"
+         },
          "type": "button",
          "children": [
           {
@@ -10003,6 +10007,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -10113,6 +10120,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -10224,6 +10234,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -11234,8 +11247,9 @@
     "> focus <div.row \"Laps\">",
     "syncCursor false",
     "> focus <div.row \"Laps\">",
-    "> mousemove <div.row.row-link \"Board\">",
-    "hoverCursor [event mousemove on <div.row.row-link \"Board\">] 2",
+    "> pointermove <div.row \"Air mode\">",
+    "> pointermove <div.row.row-link \"Board\">",
+    "hoverCursor [event pointermove on <div.row.row-link \"Board\">] 2",
     "> click <div.row.row-nav \"Rates\">",
     "closeDrop",
     "syncCursor false",
@@ -12452,6 +12466,9 @@
         {
          "tag": "BUTTON",
          "cls": "legend-act",
+         "dataset": {
+          "action": "back"
+         },
          "type": "button",
          "children": [
           {
@@ -20385,6 +20402,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -20495,6 +20515,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -20606,6 +20629,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {

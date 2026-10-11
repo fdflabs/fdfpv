@@ -54,6 +54,7 @@
  */
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
@@ -289,14 +290,36 @@ function buildElevon(sign, material, shade) {
 /* A winglet: a flat 1.5 mm plate, the root on the tip's chord from its
  * leading edge, swept back, straight up, its outer face on the half span,
  * so the drawn span is Zagi's 48 in. */
-function wingletGeometry(sign) {
-  const t = 0.00075;
+function wingletGeometry(sign, style = 'stock') {
   const base = MID_Y;
   const le0 = leZ(HALF);
-  const pts = [
-    [le0, base], [le0 + WINGLET.root, base],
-    [le0 + WINGLET.sweep + WINGLET.top, base + WINGLET.h], [le0 + WINGLET.sweep, base + WINGLET.h],
-  ];
+  const { root, top, h, sweep } = WINGLET;
+  /* A kit's winglets keep the stock root, height and aftmost corner,
+   * which bound the drawn span, height and length: raked closes the top
+   * to a third of its chord along a steeper leading edge; split is two
+   * blades with a slot between, the front one shorter. */
+  if (style === 'raked') {
+    return wingletPlate(sign, [
+      [le0, base], [le0 + root, base], [le0 + sweep + top, base + h], [le0 + sweep + top * 0.65, base + h],
+    ]);
+  }
+  if (style === 'split') {
+    return mergeGeometries([
+      wingletPlate(sign, [
+        [le0, base], [le0 + root * 0.42, base], [le0 + sweep + top * 0.25, base + h * 0.72], [le0 + sweep * 0.80, base + h * 0.72],
+      ]),
+      wingletPlate(sign, [
+        [le0 + root * 0.56, base], [le0 + root, base], [le0 + sweep + top, base + h], [le0 + sweep + top * 0.45, base + h],
+      ]),
+    ], false);
+  }
+  return wingletPlate(sign, [
+    [le0, base], [le0 + root, base],
+    [le0 + sweep + top, base + h], [le0 + sweep, base + h],
+  ]);
+}
+function wingletPlate(sign, pts) {
+  const t = 0.00075;
   const shape = new THREE.Shape();
   shape.moveTo(pts[0][0], pts[0][1]);
   for (let i = 1; i < pts.length; i += 1) {
@@ -375,6 +398,10 @@ export function buildZagiCraft(opts = {}) {
   const glass = cel({ color: 0x241c2c, rim: 0.40, spec: 0.95, specWidth: 0.03, specColor: 0xe8c8ff });
   const stator = cel({ color: 0x2a2e31, rim: 0.24, spec: 0.20 });
 
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from. */
+  const kit = opts.kit ?? {};
+
   /* The measurement box, on the contract with verify's check 15 (tests/lib/checks.js). */
   if (opts.measure) {
     const body = new THREE.Mesh(
@@ -403,7 +430,7 @@ export function buildZagiCraft(opts = {}) {
   group.add(right.pivot);
 
   for (const sign of [-1, 1]) {
-    const winglet = new THREE.Mesh(wingletGeometry(sign), wingletMat);
+    const winglet = new THREE.Mesh(wingletGeometry(sign, kit.winglets), wingletMat);
     winglet.castShadow = shade;
     group.add(winglet);
   }
@@ -436,6 +463,16 @@ export function buildZagiCraft(opts = {}) {
     lens.rotation.y = Math.PI;
     lens.position.set(0, ZAGI_MOUNT_UP, -ZAGI_MOUNT_FORWARD - 0.0005);
     group.add(lens);
+    /* A kit's camera bubble: a clear moulded dome over the camera, the
+     * kind sold to keep grass out of the lens on a belly landing. */
+    if (kit.nose === 'bubble') {
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.019, seg, seg >> 1, 0, Math.PI * 2, 0, Math.PI / 2),
+        cel({ color: 0xbfd8e8, rim: 0.55, spec: 0.95, specWidth: 0.03, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+      dome.rotation.x = -Math.PI / 2;
+      dome.scale.set(1, 1.15, 1);
+      dome.position.set(0, ZAGI_MOUNT_UP, -ZAGI_MOUNT_FORWARD + 0.016);
+      group.add(dome);
+    }
   }
   const cameraMount = new THREE.Group();
   cameraMount.position.set(0, ZAGI_MOUNT_UP, -ZAGI_MOUNT_FORWARD);

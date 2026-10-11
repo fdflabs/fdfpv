@@ -86,6 +86,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { filmMaterial, filmMap, filmMapOf } from './filmmat.js';
 import { WORLD_SCALE } from './frame.js';
+import { spinnerFor, wheelPantGeometry } from './kitshapes.js';
 
 const R = (inches) => inches * 0.0254;
 
@@ -977,7 +978,12 @@ export function buildKadetCraft(opts = {}) {
   const metal = cel({ color: 0xc2c6ca, rim: 0.30, spec: 0.75, specWidth: 0.022 });
   const tyre = cel({ color: 0x1b1b1d, rim: 0.30, spec: 0.20 });
   const hub = cel({ color: 0xd8d4c8, rim: 0.28, spec: 0.35 });
-  const glass = cel({ color: 0x3a5064, rim: 0.40, spec: 0.60, specWidth: 0.020, specColor: 0xf3ead4 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from.
+   * The glass is not a paint region, so a tint is its own colour. */
+  const kit = opts.kit ?? {};
+  const tint = { smoke: 0x1e262e, gold: 0x8a7440 }[kit.canopy];
+  const glass = cel({ color: tint ?? 0x3a5064, rim: 0.40, spec: tint ? 0.80 : 0.60, specWidth: 0.020, specColor: 0xf3ead4 });
   const frame = cel({ color: 0xc8a676, rim: 0.28, spec: 0.20 });
   const stator = cel({ color: 0x9a9ea2, rim: 0.28, spec: 0.55, specWidth: 0.02 });
   const engineBlack = cel({ color: 0x202022, rim: 0.26, spec: 0.35 });
@@ -1171,6 +1177,15 @@ export function buildKadetCraft(opts = {}) {
     mainTyres.name = 'kadet-tyres';
     mainTyres.castShadow = shade;
     group.add(mainTyres);
+    /* A kit's wheel pants on the mains, in the spinner's red, the tyres'
+     * bottoms showing under them. */
+    if (kit.wheels === 'pants') {
+      const pants = [-1, 1].map((sign) => wheelPantGeometry(MAIN_R, WHEEL_W / 2 + 0.005, seg + 2)
+        .translate(sign * MAIN_AXLE[0], MAIN_AXLE[1], MAIN_AXLE[2]));
+      const pantMesh = new THREE.Mesh(merged(pants), spinnerMat);
+      pantMesh.castShadow = shade;
+      group.add(pantMesh);
+    }
     group.add(Object.assign(new THREE.Mesh(merged(hubs), hub), { name: 'kadet-hubs' }));
     const noseTyre = new THREE.Mesh(wheel(NOSE_R, 0, NOSE_AXLE[1], 0), tyre);
     noseTyre.name = 'tyre-nose';
@@ -1315,7 +1330,7 @@ export function buildKadetCraft(opts = {}) {
       const u = i / m;
       prof.push(new THREE.Vector2(Math.max(0.0004, SPINNER_R * Math.sqrt(Math.max(0, 1 - u * u))), back + 0.001 + 0.045 * u));
     }
-    const spinner = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 10 : 18), spinnerMat);
+    const spinner = new THREE.Mesh(new THREE.LatheGeometry(spinnerFor(kit.spinner, prof, SPINNER_R, back, back + 0.046, m), lite ? 10 : 18), spinnerMat);
     spinner.name = 'spinner';
     spinner.castShadow = shade;
     propMount.add(spinner);

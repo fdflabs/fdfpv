@@ -689,7 +689,7 @@ for (const af of strikers) {
     report(`${tag} the rail's release is 1.3 times every load's stall`, rows.every((r) => af.catapult.speed >= 1.3 * r.stallV), `${af.catapult.speed} m/s`);
 
     /* ---- the engine: a turbine's spool lags the stick by seconds and it
-     * idles with the stick closed; a piston's thrust is the stick's ---- */
+     * idles with the stick closed; a piston's prop spins up ---- */
     {
       const sim = await seat(load('standard'));
       const trace = [];
@@ -709,7 +709,19 @@ for (const af of strikers) {
         report(`${tag} idles with the stick closed`, idle[2] > 0.1 * d.engine.rpmNoLoad && idle[1] > 0, `${idle[2].toFixed(0)} rpm, ${idle[1].toFixed(1)} N after 5 s closed`,
           'a turbine is held at its idle, never stopped');
       } else {
-        report(`${tag} the thrust is the stick's`, t90 < 0.05, `${(t90 * 1000).toFixed(0)} ms to 90 percent`, 'a piston engine on a fixed prop has no spool');
+        /* A piston engine spins its prop up against the rotor's inertia
+         * on a torque that changes little with speed (prop_spool,
+         * docs/FLIGHTMODEL.md): n' = (1 - n^2) / T, T = j_prop w_f / Q_f,
+         * 0.55 s on the boxer's 30 in prop, which takes 1.37 T, 0.75 s,
+         * from its 0.25 idle to 90 percent of full rpm; the band is a third
+         * either side of that. Was "the
+         * thrust is the stick's", under 50 ms, before the rotor had any
+         * inertia. */
+        const r0 = idle[2];
+        const rf = trace[trace.length - 1][2];
+        const hitR = trace.find(([ms, , r]) => ms >= 5000 && r >= r0 + 0.9 * (rf - r0));
+        const r90 = hitR ? (hitR[0] - 5000) / 1000 : NaN;
+        report(`${tag} the engine spins up on its rotor's inertia`, r90 >= 0.5 && r90 <= 1.0, `${(r90 * 1000).toFixed(0)} ms to 90 percent of full rpm`, 'band 0.5 to 1.0 s about the 0.75 s analysis');
       }
     }
 

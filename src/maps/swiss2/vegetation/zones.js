@@ -32,7 +32,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { noise2, smoothstep } from '../../alps/noise.js';
+import { noise2, smoothstep } from '../../../render/library/noise.js';
 import { RUNWAY_HALF, APRON } from '../ground.js';
 import {
   STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL, FIELD, HALF,

@@ -60,6 +60,8 @@
 import { POWER, SIM_POWER } from './power.js';
 import { PART_KINDS } from './parts.js';
 import { PROP_ESTIMATES } from './prop-estimates.js';
+import { MOTORS, hasMotors } from './motors.js';
+import { normaliseWearRecord } from './wear.js';
 
 /* sim_abi.h's SIM_ADDON_* layout. */
 export const SIM_ADDON = { MASS: 0, CG: 1, CDA: 4, DRAG: 5, WHEEL_R: 8, ROLL_K: 9 };
@@ -77,7 +79,7 @@ const APC_OZ = {
   '11x7E-3': 1.09, '11x7E': 0.81, '10x7E': 0.71, '11x55E': 0.81, '11x8E': 0.81, '12x6E': 0.95,
   '13x8E': 1.09, '12x6': 1.62, '12x7': 1.52, '12x8': 1.69, '11x6': 1.41, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
   '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
-  '10x6E': 0.71, '12x8E': 0.92,
+  '10x6E': 0.71, '12x8E': 0.92, '13x65E': 1.06,
 };
 
 /*
@@ -94,6 +96,7 @@ const PROXY = {
   '11/5.5/2/electric': '11x55E',
   '12/6/2/electric': '12x6E',
   '13/8/2/electric': '13x8E',
+  '13/6/2/electric': '13x65E',
   '11/8/2/electric': '11x8E',
   '10/4.7/2/electric': '10x47SF',
   '10/6/2/electric': '10x6E',
@@ -117,7 +120,7 @@ export function propProxy(option) {
 }
 
 /* APC's product pages spell a decimal pitch with a hyphen. */
-const APC_SLUG = { '11x55E': '11x5-5e', '11x47SF': '11x4-7sf', '10x38SF': '10x3-8sf', '10x47SF': '10x4-7sf' };
+const APC_SLUG = { '13x65E': '13x6-5e', '11x55E': '11x5-5e', '11x47SF': '11x4-7sf', '10x38SF': '10x3-8sf', '10x47SF': '10x4-7sf' };
 function apcProp(id, apc, propIn, pitchIn, blades) {
   return { id, name: `parts.prop.${id}`, apc, propIn, pitchIn, blades, massKg: APC_OZ[apc] * OZ, source: [`${APC}${APC_SLUG[apc] ?? apc.toLowerCase()}/`, `${APC_DATA}${apc}.dat`] };
 }
@@ -143,6 +146,7 @@ export const PROPS = {
   kadet1981: [STOCK, apcProp('12x8', '12x8', 12, 8, 2), apcProp('11x7', '11x7', 11, 7, 2)],
   uglystik1567: [STOCK, apcProp('12x7', '12x7', 12, 7, 2), apcProp('12x8', '12x8', 12, 8, 2)],
   tigermoth1803: [STOCK, apcProp('13x6', '13x6', 13, 6, 2), apcProp('12x8', '12x8', 12, 8, 2)],
+  extra3d1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   radian2000: [STOCK],
   bramor2300: [STOCK],
   /* A fan is its duct's: Freewing sells the one rotor for it. */
@@ -188,6 +192,7 @@ export const ANCHORS = {
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
   uglystik1567: { prop: [0.4064, 0, -0.0043], belly: [0, 0, -0.053], tail: [-0.785, 0, -0.053], tank: [-0.01, 0, -0.03], led: [[0.117, 0.15, 0.045], [0.117, 0.70, 0.082]] },
   tigermoth1803: { prop: [0.3808, 0, 0.0074], belly: [0, 0, -0.122], tail: [-1.035, 0, -0.073], tank: [-0.01, 0, -0.04], led: [[0.17, 0.15, 0.215], [0.12, 0.80, 0.245]] },
+  extra3d1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
   zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },
 };
@@ -378,19 +383,23 @@ export function partSubtree(damage, i) {
   return out;
 }
 
-/* One plane's entry, valid, or null for nothing fitted and nothing broken. */
+/* One plane's entry, valid, or null for nothing fitted, nothing broken
+ * and nothing worn. `wear` is career and war's (configs/wear.js), left
+ * out when there is none; a quad has an entry for its wear alone. */
 export function normalisePlane(id, e) {
-  if (!PROPS[id] || !e || typeof e !== 'object' || Array.isArray(e)) {
+  if (!(PROPS[id] || hasMotors(id)) || !e || typeof e !== 'object' || Array.isArray(e)) {
     return null;
   }
-  const prop = PROPS[id].some((p) => p.id === e.prop) ? e.prop : 'stock';
+  const props = PROPS[id] || [STOCK];
+  const prop = props.some((p) => p.id === e.prop) ? e.prop : 'stock';
   const fit = addonsFor(id);
   const addons = Array.isArray(e.addons) ? fit.filter((a) => e.addons.includes(a)) : [];
-  const damage = normaliseDamage(e.damage);
-  if (prop === 'stock' && !addons.length && !damage) {
+  const damage = PROPS[id] ? normaliseDamage(e.damage) : null;
+  const wear = normaliseWearRecord(e.wear);
+  if (prop === 'stock' && !addons.length && !damage && !wear) {
     return null;
   }
-  return { prop, addons, damage };
+  return wear ? { prop, addons, damage, wear } : { prop, addons, damage };
 }
 
 /* A stored settings.parts map, validated. */
@@ -399,7 +408,7 @@ export function normaliseParts(stored) {
   if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
     return out;
   }
-  for (const id of PARTS_PLANES) {
+  for (const id of [...PARTS_PLANES, ...Object.keys(MOTORS)]) {
     const e = normalisePlane(id, stored[id]);
     if (e) {
       out[id] = e;

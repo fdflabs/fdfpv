@@ -56,7 +56,7 @@ import * as mod from '../tests/lib/simmod.js';
 import { decodeRec } from '../tests/lib/recfile.js';
 import { transcript } from './lib/transcript.js';
 
-const PINNED = 'd77d9402c66e3e4adb6deedffd993879d4fb0ee9fe242adf8b572c6ab1d39db6';
+const PINNED = 'b47bc43adac046491e8108a2616e4acd50c667f6f05ba2f4597aa312c26f1d53';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));

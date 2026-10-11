@@ -106,6 +106,43 @@ export function damagedPart(flags) {
 }
 
 /*
+ * WEAR THE PILOT READS (configs/wear.js holds it, career and war only):
+ * a worn part's w, 0 new to 1 spent, in three bands, the contract's
+ * (docs/TRAINING-DAMAGE-CONTRACT.md): good under 0.5, worn under 0.85,
+ * needs repair from there.
+ */
+export const WEAR_BANDS = { worn: 0.5, repair: 0.85 };
+
+export function wearBand(w) {
+  if (w >= WEAR_BANDS.repair) {
+    return 'repair';
+  }
+  return w >= WEAR_BANDS.worn ? 'worn' : 'good';
+}
+
+/* A part kind's OSD word (osd.part_<name>), the part table's kinds folded
+ * onto the words the damage line already has. */
+const WEAR_WORD = {
+  fuselage: 'frame', duct: 'frame', hstab: 'tail', fin: 'tail', boom: 'tail',
+  aileron: 'surface', elevator: 'surface', rudder: 'surface', elevon: 'surface',
+};
+
+/* The most worn part past the worn band, { i, w, band, part }, or null:
+ * `record` a wear record ({ parts: { [i]: w } }), `kinds` the module's
+ * part table's kind ids by index. */
+export function worstWorn(record, kinds) {
+  let worst = null;
+  for (const [k, w] of Object.entries(record && record.parts ? record.parts : {})) {
+    const i = Number(k);
+    if (wearBand(w) !== 'good' && (!worst || w > worst.w) && kinds && kinds[i] != null) {
+      const kind = PART_KINDS[kinds[i]] ?? 'frame';
+      worst = { i, w, band: wearBand(w), part: WEAR_WORD[kind] ?? kind };
+    }
+  }
+  return worst;
+}
+
+/*
  * A reader over one loaded module (tests/lib/simmod.js Sim). `available` is
  * false on a dist/sim.wasm older than the crash ABI, and then every read
  * answers "intact" so the shell behaves exactly as it did before it.

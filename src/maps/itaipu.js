@@ -46,7 +46,7 @@ import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { uploadHiddenTextures } from '../render/prewarm.js';
 import { str } from '../strings/index.js';
-import { makeRoofs } from './alps/roofs.js';
+import { makeRoofs } from '../render/library/roofs.js';
 import { HERO_HALF } from './itaipu/terrain/frame.js';
 import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
 import { conformBound, fillUnder, offCut } from './itaipu/terrain/conform.js';
@@ -404,7 +404,7 @@ async function buildItaipu(shell, progress, q, time) {
   /* The drawn ground, and over the water its still surface, so a craft
    * rests on the water it sees whether or not
    * the shell has declared the bodies to the plant; then the roofs, the
-   * highest within a step of fromY (alps/roofs.js). Water is water where
+   * highest within a step of fromY (library/roofs.js). Water is water where
    * either the drawn ground or the data's (the lake's bed) is under the
    * surface: for a few frames after a respawn the engine draws the new
    * spot from a coarse node, and in the river's canyon that node stands

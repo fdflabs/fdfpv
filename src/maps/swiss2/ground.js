@@ -42,7 +42,7 @@ import {
 import { LAYERS, SUN_U } from './assets.js';
 import { CLIFF_LOW, CLIFF_HIGH, LOW_HALF, LOW_GATE } from './rock/carve.js';
 import { apronAt, wallRise } from './terrain.js';
-import { noise2, smoothstep } from '../alps/noise.js';
+import { noise2, smoothstep } from '../../render/library/noise.js';
 import { thermalKind } from '../../render/thermal.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on

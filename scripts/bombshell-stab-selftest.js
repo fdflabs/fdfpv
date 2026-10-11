@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import { attitude, must, bombshellPrelude, bombshellGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS } from '../tests/lib/wingpilot.js';
+import { attitude, must, bombshellPrelude, bombshellGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -302,41 +302,58 @@ for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   check('and no wind up: released, every surface is back at zero on the next step', sf.every((x) => x === 0), sf.map(deg).join(' '));
 }
 
+/* The take off roll at full throttle. On its wheels every mode flies as
+ * Manual, so with the rudder left alone the prop's swirl on the fin swings
+ * it left in each (docs/FLIGHTMODEL.md); with the pilot's right rudder
+ * holding the runway's heading (rudderHold) it tracks. */
 for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']]) {
-  onGround(mode);
-  roll(() => [0, 0, 0, 0], 1);
-  const run = roll(() => [0, 0, 0, 1], 8, { untilAirborneMs: 2000 });
-  const lof = run.liftoff;
-  check(`${name}, full throttle and the sticks centred: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
-  if (!lof) continue;
-  check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
-  check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
-  if (mode === 2) {
-    const after = roll(() => [0, 0, 0, 1], 2);
-    check('and Acro holds the attitude it lifted off in, pitch within 4 degrees 2 s later', Math.abs((attitude(after.s).pitch - lof.pitch) * DEG) < 4, `${deg(lof.pitch)} -> ${deg(attitude(after.s).pitch)} deg`);
+  for (const feet of [false, true]) {
+    onGround(mode);
+    roll(() => [0, 0, 0, 0], 1);
+    const run = roll(() => [0, 0, feet ? rudderHold(sim.readState().state) : 0, 1], 8, { untilAirborneMs: 2000 });
+    const lof = run.liftoff;
+    check(`${name}, full throttle, ${feet ? 'the heading held on the rudder' : 'the sticks centred'}: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
+    if (!lof) continue;
+    if (!feet) {
+      check('it swings left: heading left of the runway at liftoff', lof.heading * DEG > 0, `heading ${deg(lof.heading)} deg`);
+      continue;
+    }
+    check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
+    check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
+    if (mode === 2) {
+      const after = roll(() => [0, 0, 0, 1], 2);
+      check('and Acro holds the attitude it lifted off in, pitch within 4 degrees 2 s later', Math.abs((attitude(after.s).pitch - lof.pitch) * DEG) < 4, `${deg(lof.pitch)} -> ${deg(attitude(after.s).pitch)} deg`);
+    }
   }
 }
 
-/* The tail skid is wire, not a wheel, and nothing steers it: on the grass
- * with the throttle at half and full right stick held, the rudder turns
- * the aircraft only as far as the air over it lets it, which at a walk is
- * not at all. The Slow Stick's tailwheel turns it past 45 degrees in the
- * same 4 s. */
+/* The tail skid is wire, not a wheel, and nothing steers it but the air
+ * over the rudder. At idle there is none at a walk, and full right stick
+ * turns it under 10 degrees in 4 s. At half throttle the prop's wash over
+ * the rudder (docs/FLIGHTMODEL.md) is that air, and it steers right, as a
+ * skid taildragger is taxied on a burst of power; docs/BOMBSHELL-STAGE1.md
+ * names the wash as what the plant was missing. */
 for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']]) {
-  onGround(mode);
-  roll(() => [0, 0, 0, 0.5], 2);
-  let prev = heading(sim.readState().state);
-  let turned = 0;
-  let allLoaded = true;
-  for (let k = 0; k < 40; k += 1) {
-    const taxi = roll(() => [1, 0, 0, 0.5], 0.1);
-    const h = heading(taxi.s);
-    turned += Math.atan2(Math.sin(h - prev), Math.cos(h - prev)) * DEG;
-    prev = h;
-    allLoaded = allLoaded && wheelLoads(sim).slice(0, 3).every((f) => f > 0);
+  for (const thr of [0, 0.5]) {
+    onGround(mode);
+    roll(() => [0, 0, 0, thr], 2);
+    let prev = heading(sim.readState().state);
+    let turned = 0;
+    let allLoaded = true;
+    for (let k = 0; k < 40; k += 1) {
+      const taxi = roll(() => [1, 0, 0, thr], 0.1);
+      const h = heading(taxi.s);
+      turned += Math.atan2(Math.sin(h - prev), Math.cos(h - prev)) * DEG;
+      prev = h;
+      allLoaded = allLoaded && wheelLoads(sim).slice(0, 3).every((f) => f > 0);
+    }
+    const v = Math.hypot(sim.readState().state[4], sim.readState().state[5]);
+    if (thr === 0) {
+      check(`${name}, taxiing at idle: full right stick on a skid turns it under 10 degrees in 4 s`, Math.abs(turned) < 10 && allLoaded, `${turned.toFixed(1)} deg at ${v.toFixed(1)} m/s`);
+    } else {
+      check(`${name}, taxiing at half throttle: full right stick steers it right on the wash over the rudder, over 45 degrees in 4 s`, turned < -45 && allLoaded, `${turned.toFixed(1)} deg at ${v.toFixed(1)} m/s`);
+    }
   }
-  const v = Math.hypot(sim.readState().state[4], sim.readState().state[5]);
-  check(`${name}, taxiing: full right stick on a skid turns it under 10 degrees in 4 s`, Math.abs(turned) < 10 && allLoaded, `${turned.toFixed(1)} deg at ${v.toFixed(1)} m/s`);
 }
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);

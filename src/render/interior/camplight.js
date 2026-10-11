@@ -259,19 +259,30 @@ export function makeCampLight(THREE, {
   mesh.name = 'interior-camp-glow';
   mesh.renderOrder = 3;
 
+  /* Lit, or out: a camp its people have left (Mission 2's Claro Viejo). */
+  let lit = 1;
+  let last = 0;
   function update(seconds) {
+    last = seconds;
     uTime.value = seconds;
     lamps.forEach((l, k) => {
-      const s = l.strength * steady(k, seconds);
+      const s = l.strength * steady(k, seconds) * lit;
       uLampCol.value[k].set(l.colour[0] * s, l.colour[1] * s, l.colour[2] * s);
     });
   }
   update(0);
   setSun(0);
 
+  function setLit(on) {
+    lit = on ? 1 : 0;
+    mesh.visible = on;
+    update(last);
+  }
+
   return {
     patch,
     setSun,
+    setLit,
     mesh,
     update,
     dispose() {

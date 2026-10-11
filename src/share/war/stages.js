@@ -55,7 +55,7 @@
  *               got. With show (a trigger) it is not in the view, and is
  *               neither done nor failed, until that fires: a twist's own
  *               objective, which would give the twist away from the entry
- *   cues        [{ at | when, radio | music | cutaway | text }]: told to
+ *   cues        [{ at | when, skip?, radio | music | cutaway | text }]: told to
  *               every screen when due, `at` seconds (or a window [lo, hi])
  *               after the entry, or after the trigger `when` fires:
  *                 radio    a voice line's id (assets/audio/war/lines.json)
@@ -63,6 +63,8 @@
  *                 cutaway  { target | at: [x, y, z], from?, fov?, ms? }: a
  *                          short look at a place (src/render/warcutaway.js)
  *                 text     a string key for the HUD's stage line
+ *               skip, a trigger: a cue not yet told when it has fired is
+ *               dropped (a guide line about an objective already settled)
  *   exits       [{ when, to, after?, result?, clear?, why? }], below
  *   worth       { set: factor }: the set's targets cost the output their
  *               mw times factor when hit in this stage (T1.9: the working
@@ -816,6 +818,12 @@ export function dueCues(ctx) {
   const out = [];
   for (const [i, c] of (stagesOf(ctx.mission)[st.idx].cues ?? []).entries()) {
     if (st.cued.includes(i)) {
+      continue;
+    }
+    /* A cue whose skip has fired before it was said is dropped: a guide
+     * line about a scout already down is wrong, not late. */
+    if (c.skip && fired(c.skip, ctx) != null) {
+      st.cued.push(i);
       continue;
     }
     const base = c.when ? fired(c.when, ctx) : st.at;

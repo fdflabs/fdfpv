@@ -174,6 +174,7 @@ const pilotKey = (p) => p.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stri
 
 const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
 const sorted = (o) => Object.fromEntries(Object.entries(o ?? {}).sort(([x], [y]) => x.localeCompare(y)));
+const RECORD = 'webfpv.best.1a2b3c4d.16.80.timber1500';
 const builds = (p) => p.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(BUILDS_KEY)}) || '{}').builds) || []`);
 const JET = airframeById('striker2500').combat.propulsion.find((x) => x.id === 'jet');
 const LOADOUT = { payload: 'wide', accessories: ['pack2'] };
@@ -270,8 +271,12 @@ try {
     ui.setStockLoadout('striker2500', { payload: 'standard', accessories: [], propulsion: 'jet' });
     return { bush: bush.id, range: range.id };
   })`);
+  /* A best lap as src/game/race.js writes it: a key from before records
+   * synced, which the next sync must carry up (src/share/records.js). */
+  await a.evaluate(`localStorage.setItem(${JSON.stringify(RECORD)}, '41234'); true`);
   await a.evaluate('window.__accountSync()');
   held = (await fetch(`${T}/api/account/progress`, { headers: { authorization: `Bearer ${acc.session}` } }).then((r) => r.json())).progress;
+  check('A\'s best lap went up to the account', held.data.records && held.data.records[RECORD] === 41234, JSON.stringify(held.data.records));
   check('both builds and the Striker\'s turbojet went up to the account',
     held.data.builds && held.data.builds[made.bush] && held.data.builds[made.range] && held.data.combat && held.data.combat.striker2500.propulsion === 'jet'
     && Number.isFinite(held.stamps[`builds/${made.bush}`]),
@@ -339,6 +344,8 @@ try {
   const cBuilds = await builds(c);
   check('both builds arrived, named as A named them', same(cBuilds.map((x) => x.name).sort(), ['Bush', 'Long range']) && same(cBuilds.map((x) => x.id).sort(), [made.bush, made.range].sort()),
     JSON.stringify(cBuilds.map((x) => x.name)));
+  await c.until(`localStorage.getItem(${JSON.stringify(RECORD)}) === '41234'`, 20000).catch(() => {});
+  check('and A\'s best lap, where race.js reads it', (await c.evaluate(`localStorage.getItem(${JSON.stringify(RECORD)})`)) === '41234');
   let cs = await c.evaluate('window.__ui.settings');
   check('and the Striker\'s turbojet with them', cs.combat && cs.combat.striker2500 && cs.combat.striker2500.propulsion === 'jet', JSON.stringify(cs.combat));
   check('C wears no build until it chooses one', same(cs.buildFits, {}), JSON.stringify(cs.buildFits));

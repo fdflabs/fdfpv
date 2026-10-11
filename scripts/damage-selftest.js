@@ -22,7 +22,8 @@
  */
 
 import { DAMAGE_FLAGS } from '../configs/parts.js';
-import { conditionOf, damagedPart, isWreck } from '../src/game/damage.js';
+import { PART_KINDS } from '../configs/parts.js';
+import { WEAR_BANDS, conditionOf, damagedPart, isWreck, wearBand, worstWorn } from '../src/game/damage.js';
 import { FpvOsd } from '../src/ui/fpvhud.js';
 import { useLocale } from '../src/strings/index.js';
 
@@ -84,6 +85,23 @@ for (const bit of Object.values(DAMAGE_FLAGS)) {
   const w = warning(osd(), bit, true);
   expect(`OSD fits a row: ${w}`, w.length <= 28, true);
 }
+/* Wear (career and war): the bands, the worst part past them, and the
+ * disarmed line, under every warning and never once armed or flown. */
+expect('0.49 is good', wearBand(0.49), 'good');
+expect('0.5 is worn', wearBand(WEAR_BANDS.worn), 'worn');
+expect('0.85 needs repair', wearBand(WEAR_BANDS.repair), 'repair');
+const K = (name) => PART_KINDS.indexOf(name);
+const kinds = [K('frame'), K('arm'), K('motor'), K('prop'), K('elevon')];
+expect('nothing worn past the band', worstWorn({ parts: { 2: 0.3 } }, kinds), null);
+expect('the most worn wins', JSON.stringify(worstWorn({ parts: { 1: 0.6, 2: 0.9, 3: 0.7 } }, kinds)), JSON.stringify({ i: 2, w: 0.9, band: 'repair', part: 'motor' }));
+expect('an elevon reads as a control surface', worstWorn({ parts: { 4: 0.55 } }, kinds).part, 'surface');
+expect('no part table, no word', worstWorn({ parts: { 2: 0.9 } }, null), null);
+const disarmed = (worn, extra = {}) => osd().warningFor({ launchState: 0 }, { armed: false, flown: false, crashFlip: false, cells: 4, worn, ...extra }).warning;
+expect('disarmed on a worn motor', disarmed({ part: 'motor', band: 'worn' }), 'WORN: MOTOR');
+expect('disarmed on a spent prop', disarmed({ part: 'prop', band: 'repair' }), 'REPAIR: PROP');
+expect('nothing worn: nothing', disarmed(null), '');
+expect('armed: not said', osd().warningFor({ launchState: 0 }, { armed: true, flown: false, cells: 4, worn: { part: 'motor', band: 'worn' } }).warning, '');
+expect('flown: not said', osd().warningFor({ launchState: 0 }, { armed: false, flown: true, cells: 4, worn: { part: 'motor', band: 'worn' } }).warning, '');
 await useLocale('es');
 expect('OSD es', warning(osd(), DAMAGE_FLAGS.propChipped), 'AVERIA: HELICE');
 

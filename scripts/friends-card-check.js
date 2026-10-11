@@ -9,13 +9,13 @@
  *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
  *   node scripts/friends-card-check.js http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: home is three hubs, and Flight Club's four cards
- * have no Fly with friends among them. Flight Club's rooms panel's Make a
+ * Page A, 1280 by 720: home is three hubs, and Flight Club's six cards
+ * (NAMES below) have no Fly with friends among them. Flight Club's rooms panel's Make a
  * room, one click, then private (Friends with the code) and
  * Make the room: A is in the room's lobby, free flight, its invite code
  * there to read out, Ready under the cursor. R: A flies, in the room.
  *
- * Page B, 390 by 844, a phone held upright: Flight Club's four cards
+ * Page B, 390 by 844, a phone held upright: Flight Club's six cards
  * stacked inside the window, and at 360 by 640 and 844 by 390 too. The
  * panel's All rooms, one click, then Join with a code, a second, the code typed: B is in A's room
  * on seat 2, and in the air with A, the room's flight being on. Escape
@@ -127,7 +127,7 @@ async function arrowTo(page, want) {
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`a private room by its code, rooms at ${rooms}`);
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
+const NAMES = ['Track Day', 'Free Flight', 'Streamer Combat', 'Catch the Ace!', 'Trick Battle', 'Learn to fly'];
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
 const FLYING = "window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'";
 const a = await openPage({ root, url, width: 1280, height: 720 });
@@ -138,14 +138,14 @@ try {
     await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000);
     /* Flight Club, where the rooms panel is, by a click on its card. */
     await p.click('.gate-card-hub-club .gate-card-name');
-    await p.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length === 4", 10000).catch(() => {});
+    await p.until(`window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length === ${NAMES.length}`, 10000).catch(() => {});
     await p.until(`${CARDS}.every((c) => c.loaded)`, 30000);
   }
 
-  /* FLIGHT CLUB AT 1280 BY 720: four cards, no Fly with friends. */
+  /* FLIGHT CLUB AT 1280 BY 720: its cards, no Fly with friends. */
   const cards = await a.evaluate(CARDS);
   const view = await a.evaluate(VIEW);
-  check('Flight Club\'s four cards, no Fly with friends (the owner, 2026-10-02)', cards.map((c) => c.name).join() === NAMES, cards.map((c) => c.name).join());
+  check(`Flight Club's ${NAMES.length} cards, no Fly with friends (the owner, 2026-10-02)`, cards.map((c) => c.name).join() === NAMES.join(), cards.map((c) => c.name).join());
   const tops = cards.map((c) => c.box[1]);
   check('side by side in one row, inside the window, tags clear of the bar, none overlapping, no sideways scroll',
     inside(cards, view) && apart(cards) && Math.max(...tops) - Math.min(...tops) <= 4 && view.sw <= view.w,
@@ -177,7 +177,7 @@ try {
   const flying = await a.evaluate("({ mode: window.__craftState().mode, map: window.__map().id, phase: window.__rooms().phase })");
   check('R: five seconds, and A flies, in the Swiss valley, in the room', flying.mode === 'flight' && flying.map === 'swiss2' && flying.phase === 'open', JSON.stringify(flying));
 
-  /* THE PHONE: Flight Club's four cards stacked, at three sizes. */
+  /* THE PHONE: Flight Club's cards stacked, at three sizes. */
   for (const [w, h, row] of [[390, 844, false], [360, 640, false], [844, 390, true]]) {
     await resize(b, w, h);
     const c = await b.evaluate(CARDS);
@@ -185,8 +185,8 @@ try {
     const laid = row
       ? Math.max(...c.map((x) => x.box[1])) - Math.min(...c.map((x) => x.box[1])) <= 4
       : c.every((x, i) => i === 0 || x.box[1] >= c[i - 1].box[3]);
-    check(`${w} by ${h}: four cards ${row ? 'in a row' : 'stacked'} inside the window, tags clear of the bar, no sideways scroll`,
-      c.length === 4 && laid && inside(c, v) && apart(c) && v.sw <= v.w,
+    check(`${w} by ${h}: ${NAMES.length} cards ${row ? 'in a row' : 'stacked'} inside the window, tags clear of the bar, no sideways scroll`,
+      c.length === NAMES.length && laid && inside(c, v) && apart(c) && v.sw <= v.w,
       `${JSON.stringify(c.map((x) => [...x.box, x.factsBottom]))} bar at ${v.bar}, scroll ${v.sw}`);
     await shot(b, `b-0-gate-${w}x${h}`);
   }
@@ -228,7 +228,11 @@ try {
   const titled = await b.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
   check('Leave is the title, out of the room', titled.screen === 'title' && titled.phase === 'idle', JSON.stringify(titled));
 
-  const errs = [...a.errors, ...b.errors];
+  /* A loopback page asks the development board on 3180 (src/share/board.js)
+   * for the weekly event and the flight totals; no board runs here, so its
+   * refused connection is the one network error expected (as in
+   * base-path-check). Anything else, a script error included, still fails. */
+  const errs = [...a.errors, ...b.errors].filter((e) => e !== 'network: Failed to load resource: net::ERR_CONNECTION_REFUSED');
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
   await a.close();
