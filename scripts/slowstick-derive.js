@@ -165,7 +165,7 @@ function charPoly(A) {
 }
 
 /* The longitudinal model, the plant's equations, trimmed and linearised. */
-function deriv(x, de, d) {
+function deriv(x, de, d, phi = 0) {
   const [u, w, q, thp] = x;
   const V = Math.hypot(u, w);
   const a = Math.atan2(-w, u) - alphaZL;
@@ -176,7 +176,7 @@ function deriv(x, de, d) {
   const Fx = L * (-w / V) - Dr * u / V + Tt;
   const Fz = L * (u / V) - Dr * w / V;
   const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt;
-  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) - q * u, My / Iyy, q];
+  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) * Math.cos(phi) - q * u, My / Iyy, q];
 }
 function solve3(A, bb) {
   const M = A.map((r, i) => [...r, bb[i]]);
@@ -233,14 +233,14 @@ function handsOffModes(de, d) {
  * The lateral model at a speed, Nelson ch. 5, states beta, p, r, phi in
  * the aero convention: the spiral, the roll subsidence and the Dutch roll.
  */
-function lateral(V) {
-  const q = 0.5 * rho * V * V, CL = W / (q * S);
+function lateral(V, CLflown = null, theta = 0) {
+  const q = 0.5 * rho * V * V, CL = CLflown ?? W / (q * S);
   const bv = b / (2 * V);
   const Yb = q * S * CYb / m, Ydr = q * S * CYdr / m;
   const Lb = q * S * b * Clb / Ixx, Lp = q * S * b * Clp * bv / Ixx, Lr = q * S * b * ClrPerCL * CL * bv / Ixx, Ldr = q * S * b * Cldr / Ixx;
   const Nb = q * S * b * Cnb / Izz, Np = q * S * b * CnpPerCL * CL * bv / Izz, Nr = q * S * b * Cnr * bv / Izz, Ndr = q * S * b * Cndr / Izz;
   const A = [
-    [Yb / V, 0, -1, g / V],
+    [Yb / V, 0, -1, g * Math.cos(theta) / V],
     [Lb, Lp, Lr, 0],
     [Nb, Np, Nr, 0],
     [0, 1, 0, 0],
@@ -270,6 +270,35 @@ function bankAfter(lat, phi0, tEnd, force = [0, 0, 0, 0]) {
     x = x.map((v, i) => v + dx[i] * dt);
   }
   return x[3];
+}
+
+/*
+ * The hands off levelling as the gate flies it: level at the throttle's
+ * cruise, the elevator at that trim, then rolled to phi0 and every stick
+ * let go. The elevator going to neutral and the bank's lost lift change
+ * the speed and the pitch as the bank comes off (the aircraft slows to
+ * its hands off trim and pitches up), so the longitudinal model (deriv)
+ * runs alongside, the bank taking cos(phi) off the lift it needs, and
+ * the lateral model is taken at each step's speed, lift and pitch.
+ */
+function bankAfterFlown(duty, phi0, tEnd, force = () => [0, 0, 0, 0]) {
+  const V0 = level(duty);
+  const th0 = longitudinalModes(V0).thetaDeg / DEG;
+  let xl = [V0 * Math.cos(th0), -V0 * Math.sin(th0), 0, th0];
+  let xa = [0, 0, 0, phi0];
+  const dt = 0.001;
+  for (let t = 0; t < tEnd; t += dt) {
+    const [u, w, , th] = xl;
+    const V = Math.hypot(u, w);
+    const a = Math.atan2(-w, u) - alphaZL;
+    const lat = lateral(V, CLa * a, th);
+    const dl = deriv(xl, 0, duty, xa[3]);
+    const f = force(V);
+    const dx = lat.A.map((row, i) => row.reduce((sum, v, j) => sum + v * xa[j], 0) + f[i]);
+    xl = xl.map((v, i) => v + dl[i] * dt);
+    xa = xa.map((v, i) => v + dx[i] * dt);
+  }
+  return { phi: xa[3], V: Math.hypot(xl[0], xl[1]), thetaDeg: xl[3] * DEG };
 }
 
 /* The linear lateral model from level with the rudder held at dr (aero
@@ -467,6 +496,8 @@ const rows = [
   ['   roll tau s, Dutch roll wn zeta period', `${f(lat.roll.tau)} ${lat.dutch ? `${f(lat.dutch.wn, 2)} ${f(lat.dutch.zeta)} ${f(lat.dutch.period, 2)}` : 'none'}`],
   ['   30 deg bank, hands off: bank after 2, 4, 6 s', `${f(bankAfter(lat, 30 / DEG, 2) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6) * DEG, 1)}`],
   ['   the same with the prop\'s torque and swirl (Q, L, N at cruise)', `${f(bankAfter(lat, 30 / DEG, 2, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6, propForce) * DEG, 1)} (${f(propAt.Q, 4)} ${f(propAt.L, 4)} ${f(propAt.N, 4)})`],
+  ['   flown: the speed and pitch with it, bank after 2, 4, 6 s, speed and pitch at 6 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), electricN(0.75), V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt, fz)); return `${r.map((x) => f(x.phi * DEG, 1)).join(' ')}; ${f(r[2].V, 2)} m/s, ${f(r[2].thetaDeg, 1)} deg`; })()],
+  ['   flown, without the prop', (() => { const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt)); return r.map((x) => f(x.phi * DEG, 1)).join(' '); })()],
   ['lateral at 1.2 Vs: spiral root, t_half', `${f(latS.spiral.root, 4)} ${f(latS.spiral.tHalf, 1)}`],
   ['full right rudder from cruise, after 1 s', JSON.stringify(rudderStep(lat, -throwR, 1), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['   after 2 s', JSON.stringify(rudderStep(lat, -throwR, 2), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
