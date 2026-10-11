@@ -31,7 +31,8 @@
     "arm rear left:break",
     "arm front right:settle",
     "arm front left:settle",
-    "camera:settle"
+    "camera:settle",
+    "battery:settle"
    ],
    "pass": {
     "resolved": 0,
@@ -97,7 +98,8 @@
     "prop rear left:chip",
     "motor front right:settle",
     "camera:settle",
-    "arm front left:settle"
+    "arm front left:settle",
+    "arm rear right:settle"
    ],
    "pass": {
     "resolved": 0,
@@ -140,7 +142,8 @@
     "arm front right:break",
     "arm front left:break",
     "camera:break",
-    "battery:crack"
+    "battery:crack",
+    "camera:settle"
    ],
    "pass": {
     "resolved": 0,
@@ -223,10 +226,10 @@
  },
  "quad-wall-skate-nodamage": {
   "what": "the interceptor skating along an Alps wall, 4 degrees into it at 10 m/s, rolled into it, crash damage off",
-  "steps": 899,
-  "pre": "fc43af61e18c9f5275e1a9ce",
-  "plane": "e18d4af9a303b37a1c30cda0",
-  "post": "f3d9881db30df509abf8715e",
+  "steps": 1500,
+  "pre": "f2447a5a543136f7b0df9ae9",
+  "plane": "86b75bf1536a54eb079c32d2",
+  "post": "4e3edd6d129f24ff6eb0583f",
   "throw": {
    "x": 30.5,
    "y": 1.5,
@@ -240,15 +243,15 @@
   },
   "met": {
    "obstacleEvents": 0,
-   "contactEvents": 54,
+   "contactEvents": 50,
    "damage": [],
    "pass": {
-    "resolved": 53,
-    "resting": 0,
+    "resolved": 49,
+    "resting": 1,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 53,
+    "inbound": 50,
     "outbound": 0,
     "plantHeld": 0,
     "unheld": 0
@@ -257,10 +260,10 @@
  },
  "quad-corner-nodamage": {
   "what": "the interceptor into the corner of an Alps building on the diagonal at 12 m/s, crash damage off",
-  "steps": 599,
-  "pre": "5c274498bb59223e9975240d",
-  "plane": "71e9ce26b590b6d65174e826",
-  "post": "082e134c0096a86f2a919391",
+  "steps": 1500,
+  "pre": "5d8c3cbd85250de614674e2e",
+  "plane": "255c80f53e835c1dd90dc5f4",
+  "post": "fe56d322c48ebd40c01ef66d",
   "throw": {
    "x": -47.093159483779154,
    "y": 1.6,
@@ -273,16 +276,16 @@
   },
   "met": {
    "obstacleEvents": 0,
-   "contactEvents": 25,
+   "contactEvents": 50,
    "damage": [],
    "pass": {
-    "resolved": 25,
-    "resting": 0,
+    "resolved": 46,
+    "resting": 4,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 25,
-    "outbound": 0,
+    "inbound": 49,
+    "outbound": 1,
     "plantHeld": 0,
     "unheld": 0
    }
@@ -291,9 +294,9 @@
  "quad-wall-nodamage": {
   "what": "the interceptor into the face of an Alps wall at 25 m/s, crash damage off",
   "steps": 1500,
-  "pre": "86e8f66c7be6f181de30c32b",
-  "plane": "88c4a6e0fc5b95e325c8bb73",
-  "post": "7ec7f809bb8d4454ef6678b9",
+  "pre": "608c994566f6f679becd98a7",
+  "plane": "db23f190a8dc60a66af389f4",
+  "post": "b6f0f259e603d38937e92fa3",
   "throw": {
    "x": 44,
    "y": 1.6,
@@ -323,10 +326,10 @@
  },
  "quad-wall-glance-nodamage": {
   "what": "the interceptor glancing along an Alps wall at 12 m/s, throttle up, crash damage off",
-  "steps": 766,
-  "pre": "536f8d2beb2d6d75924cbd2b",
-  "plane": "740276654c916c1d69946710",
-  "post": "c487b1de8f2af7aaeb389302",
+  "steps": 800,
+  "pre": "c0d853c32022ea0592273b75",
+  "plane": "0c01056f23acc9a9b25fd6d5",
+  "post": "1e06bffe482c9a710d8ea76f",
   "throw": {
    "x": 26,
    "y": 2,
@@ -356,10 +359,10 @@
  },
  "quad-pole-nodamage": {
   "what": "the interceptor into a swiss2 power pole at 15 m/s, crash damage off",
-  "steps": 499,
-  "pre": "0fbb79446fc5485484f2124f",
-  "plane": "3e1c372b8aca10d8ca13a2b3",
-  "post": "22c36a33b7f73a2edadd21a5",
+  "steps": 1500,
+  "pre": "3431ae09587542620dbfa36e",
+  "plane": "c9660d9934b6be810775a986",
+  "post": "6a7e73a93cbad313a2815d45",
   "throw": {
    "x": 41,
    "y": 2.2,
@@ -372,16 +375,16 @@
   },
   "met": {
    "obstacleEvents": 0,
-   "contactEvents": 33,
+   "contactEvents": 29,
    "damage": [],
    "pass": {
-    "resolved": 33,
+    "resolved": 29,
     "resting": 0,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 33,
-    "outbound": 0,
+    "inbound": 25,
+    "outbound": 3,
     "plantHeld": 0,
     "unheld": 0
    }
