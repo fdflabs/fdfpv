@@ -361,7 +361,8 @@ function takeoff() {
  * that adds 4 per rad per second), turning about the main wheels: the
  * aero moment about the CG (Cm0, Cm alpha, Cm de, Cmq), the lift and the
  * weight at the CG's 0.08 m ahead of the mains, the thrust's line and the
- * drag at their heights over the wheels' contact, on Iyy plus the CG's
+ * drag at their heights over the wheels' contact, the CG's inertia as it
+ * accelerates (the load shifting aft), on Iyy plus the CG's
  * offset from the contact squared; the nose leg holds it until that
  * moment lifts it. Lift off where the lift carries the weight. Returns the
  * lift-off's speed, distance and time, the time from VR to it, and when
@@ -388,14 +389,16 @@ function rotation() {
     if (L >= W) return { V, x, t, fromVR: t - tVR, tAtt: tAtt === null ? null : tAtt - tVR, attitudeDeg: th * DEG };
     const aZ = th - alphaZl;
     const mCG = q * S * c * (Cm0 + Cma * aZ + Cmde * de + (V > 1 ? Cmq * qr * c / (2 * V) : 0));
-    const mMain = mCG + (L - W) * (-mainX) - Tn * (hC + zThrust) + D * hC;
+    const acc = (Tn - D - 0.08 * Math.max(0, W - L)) / m;
+    /* About the wheels, which accelerate with it, the CG's own inertia
+     * (m a at its height over them, the load shifting aft) lifts the nose. */
+    const mMain = mCG + (L - W) * (-mainX) - Tn * (hC + zThrust) + D * hC + m * acc * hC;
     if (th > restPitchDeg / DEG + 1e-9 || mMain > 0) {
       qr += mMain / Im * dt;
       th += qr * dt;
       if (th < restPitchDeg / DEG) { th = restPitchDeg / DEG; qr = 0; }
     }
     if (tAtt === null && tVR !== null && th >= liftoffPitch) tAtt = t;
-    const acc = (Tn - D - 0.08 * Math.max(0, W - L)) / m;
     V += acc * dt; x += V * dt; t += dt;
   }
   return null;
