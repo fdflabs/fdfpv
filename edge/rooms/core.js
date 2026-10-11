@@ -60,7 +60,9 @@ import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
 import { RoomDrops } from './drops.js';
 import { RoomOps } from './ops.js';
-import { RoomGameLobby } from './gamelobby.js';
+import { RoomGameLobby, warMission } from './gamelobby.js';
+import { TIME_NAMES, clockOfTime } from '../../src/share/daytime.js';
+import { MISSIONS, missionTime } from '../../src/share/war/missions/index.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
 import { RoomBots } from './roombots.js';
 
@@ -297,6 +299,8 @@ export class RoomCore {
     this.bots = new RoomBots(meta); /* AI pilots, edge/rooms/roombots.js */
     /* game id -> room ms since it has had too few players. Memory only. */
     this.abandoned = new Map();
+    /* The game clock last told the room (daytimeNews), memory only. */
+    this.daytimeTold = null;
   }
 
   /*
@@ -800,6 +804,7 @@ export class RoomCore {
           mode: this.meta.mode ?? null,
           mission: this.meta.mission ?? null,
           map: this.meta.map,
+          daytime: this.daytime(),
           peers: this.peerList(null),
         }),
       },
@@ -946,6 +951,7 @@ export class RoomCore {
         mission: this.meta.mission ?? null,
         map: this.meta.map,
         weather: this.meta.weather ?? CALM,
+        daytime: this.daytime(),
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
@@ -971,7 +977,15 @@ export class RoomCore {
     return actions;
   }
 
+  /* Any text can move the room's game clock (a host's time, a war or an
+   * ops mission started, the lobby's mission picked): its news follows
+   * the message's own. A pose never can. */
   message(conn, data, now, address = '', newToken = null, callsign = null, account = null) {
+    const out = this.said(conn, data, now, address, newToken, callsign, account);
+    return typeof data === 'string' ? [...out, ...this.daytimeNews()] : out;
+  }
+
+  said(conn, data, now, address, newToken, callsign, account) {
     const w = this.watchers.get(conn);
     if (w) {
       return this.watcherSaid(conn, w, data, now);
@@ -1048,6 +1062,9 @@ export class RoomCore {
     }
     if (msg.type === 'weather') {
       return this.weather(conn, s, msg);
+    }
+    if (msg.type === 'daytime') {
+      return this.setDaytime(conn, s, msg);
     }
     if (msg.type === 'drop') {
       return this.drops.message(this, conn, s, msg);
@@ -1187,6 +1204,63 @@ export class RoomCore {
     ];
   }
 
+  /*
+   * THE ROOM'S GAME CLOCK (docs/DAYTIME-CONTRACT.md, owner 2026-10-10:
+   * one game time per room, shared by all its players): a clock
+   * { hour, rate, at } on the room's ms, or null for each world's own
+   * time (src/share/daytime.js). A mission's time is the room's while
+   * its game is the room's: an ops match's clock (its sun moves from the
+   * go), a war's mission time, from its lobby on so every screen builds
+   * the mission's world before the briefing (war.js WORLD_LEAD_MS). Any
+   * other room flies the time its host set. Handed to joiners in the
+   * welcome and told as { type: 'daytime', daytime } whenever it changes
+   * (daytimeNews), which a build from before it passes over.
+   */
+  daytime() {
+    const ops = this.ops.match ? this.ops.missions[this.ops.match.mission] : null;
+    if (ops) {
+      const c = ops.clock;
+      const goAt = this.ops.match.goAt;
+      return c ? { hour: c.startHour, rate: goAt == null ? 0 : c.rate, at: goAt ?? 0 } : null;
+    }
+    if (this.war.on()) {
+      return clockOfTime(missionTime(this.war.mission()));
+    }
+    if (this.meta.mode === 'war') {
+      const id = warMission(this);
+      return clockOfTime(id ? missionTime(MISSIONS[id]) : null);
+    }
+    return clockOfTime(this.meta.daytime ?? null);
+  }
+
+  /* The clock told to the room when it is not the one last told. The
+   * first call after a load tells it once more, which a pilot already
+   * holding it reads as no change. */
+  daytimeNews() {
+    const daytime = this.daytime();
+    const text = JSON.stringify(daytime);
+    if (text === this.daytimeTold) {
+      return [];
+    }
+    this.daytimeTold = text;
+    return this.roster(null, JSON.stringify({ type: 'daytime', daytime }));
+  }
+
+  /* The host sets the room's time of day: { type: 'daytime', time }, a
+   * name of src/share/daytime.js TIME_NAMES or null for each world's own.
+   * Kept with the meta like the weather; a mission's time still governs
+   * while its game is the room's. */
+  setDaytime(conn, s, msg) {
+    if (!(msg.time === null || TIME_NAMES.includes(msg.time))) {
+      return [];
+    }
+    if (s.seat !== this.host()) {
+      return [{ send: conn, data: JSON.stringify({ type: 'refused', why: 'host' }) }];
+    }
+    this.meta.daytime = msg.time;
+    return [{ store: 'meta', value: this.meta }];
+  }
+
   /* A host's kick: gone for the room's life, which is what the token and
    * the token is held against, in memory, for KICK_MS (keepOut). */
   kick(seat, now) {
@@ -1315,6 +1389,8 @@ export class RoomCore {
         owed = true;
       }
     }
+    /* A war's or a mission's state moves on the tick too. */
+    out.push(...this.daytimeNews());
     this.ticking = owed || this.waiting();
     return this.ticking ? [...out, { tick: true }] : out;
   }

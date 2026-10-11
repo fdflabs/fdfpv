@@ -32,6 +32,7 @@
 
 import * as THREE from 'three';
 import { setWeather, setMotorHeat } from '../render/thermal.js';
+import { daytimeNow } from '../share/daytime.js';
 import {
   createSensorView, INSET_SIZES, THERMAL_PALETTES, setThermalPalette,
 } from '../render/sensorview.js';
@@ -54,9 +55,6 @@ const STAB_CROP = 1.08;
  * the moon, about a twentieth of what a detector wants. */
 const LIGHT = { day: 1, night: 0.06 };
 const ZOOM_NOISE = 0.06;
-/* How often the map's clock is read again, seconds: the sun moves over
- * minutes, so once a second is cheap and never late. */
-const WEATHER_REREAD_S = 1;
 
 const RED = '#ff3b30';
 
@@ -95,7 +93,6 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
   let snow = 0;
   let tracks = null;
   let weatherScene = null;
-  let weatherWallS = 0;
   const view = renderer ? createSensorView(renderer, { onInset: drawBoxes }) : null;
 
   /* The smoothed camera the stabilisation draws from, and the rotation
@@ -108,26 +105,20 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
   const m4 = new THREE.Matrix4();
   const dir = new THREE.Vector3();
 
-  /* The map's time of day and its sun, into the thermal model, when the
-   * scene changes (maps swap scenes). Between changes the time of day is
-   * read again once a second: the Interior's sun moves, and its scene's
-   * userData.timeOfDay moves with it. */
+  /* The time of day, every call, from the frame's one daytime
+   * (src/share/daytime.js daytimeNow, published from the map's own flag,
+   * which the Interior's moving sun keeps current); and with the sun, into
+   * the thermal model, when the scene changes (maps swap scenes). */
   function weather() {
     const s = scene();
     if (!s) {
       return;
     }
-    const wallS = performance.now() / 1000;
+    state.timeOfDay = daytimeNow().night ? 'night' : 'day';
     if (s === weatherScene) {
-      if (wallS - weatherWallS >= WEATHER_REREAD_S) {
-        weatherWallS = wallS;
-        state.timeOfDay = s.userData.timeOfDay === 'night' ? 'night' : 'day';
-      }
       return;
     }
     weatherScene = s;
-    weatherWallS = wallS;
-    state.timeOfDay = s.userData.timeOfDay === 'night' ? 'night' : 'day';
     let sun = 1;
     s.traverse((o) => {
       if (o.isDirectionalLight && o.castShadow) {

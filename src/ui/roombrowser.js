@@ -44,6 +44,7 @@ import { ROOM_MODES, ROOM_NAME_REPORT, normaliseRoomName } from '../share/roomwi
 import { closesInMin, createRoomList } from '../share/roomlist.js';
 import { MAPS, mapById } from '../maps/registry.js';
 import { plural, str } from '../strings/index.js';
+import { chosenTime } from './settings.js';
 
 const ROOM_ACTION = 'friends-room-';
 /* The watch seat's way into a listed room (docs/FLIGHTCLUB-PROGRESSION.md
@@ -405,7 +406,9 @@ export function createRoomBrowser({
           draft = null;
         }
       } else {
-        const code = await link.create(draft.map, false, { public: draft.public, name: draft.name, mode: draft.mode });
+        const code = await link.create(draft.map, false, {
+          public: draft.public, name: draft.name, mode: draft.mode, daytime: chosenTime(ui.settings),
+        });
         joined = draft.public ? code : null;
         draft = null;
         link.join(code);

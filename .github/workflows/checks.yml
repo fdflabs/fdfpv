@@ -437,6 +437,11 @@ jobs:
       # The shared time of day agrees with the maps and missions that ship
       # (src/share/daytime.js, docs/DAYTIME-CONTRACT.md).
       - run: npm run daytime:selftest
+      # The frame's one daytime in the real shell: detection's light and the
+      # world's sounds turn with the sky (scripts/daytime-frame-check.js),
+      # and two pilots in one room see the room's time (daytime-room-check.js).
+      - run: npm run daytime:frame
+      - run: npm run daytime:room
       - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest

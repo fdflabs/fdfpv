@@ -204,6 +204,10 @@ async function buildInterior(shell, progress, q, hours) {
     /* The room's contacts and the camp's state, drawn (life.js). */
     setContacts: (list, roomMs) => life.setContacts(list, roomMs),
     setCamp: (state) => life.setCamp(state),
+    /* The hour it was built at, and its own hour when there is no game
+     * clock (src/main.js daytimeFrame tells setLocalTime either). */
+    builtHour: hours,
+    ownHour: hourFor(null),
     /* The room's clock moves the sun (look.js). */
     setLocalTime(h) {
       const sun = look.setLocalTime(h);
