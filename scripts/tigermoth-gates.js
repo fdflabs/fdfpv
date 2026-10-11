@@ -55,7 +55,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
-  turnYawLimitDeg, personWingsHold, rollMode,
+  turnYawLimitDeg, personWingsHold, rollMode, CROSSOVER_RAD_S,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -202,11 +202,11 @@ check: {
   }
 
   /* T8: full up held from level at 1.2 Vs, the wings held on the
-   * ailerons as a pilot does, the rudder centred: power off, and at half
-   * throttle. T8c the same power off with the ailerons let go too,
+   * ailerons as a pilot does, the rudder centred, power off (T8b, at half
+   * throttle, is below). T8c the same power off with the ailerons let go too,
    * recorded: held there, both wings deep in their stall, it rolls off
    * slowly (docs/TIGERMOTH-STAGE1.md). */
-  for (const [id, t8, duty, hold] of [['T8a', th.t8_stall_power_off, 0, true], ['T8b', th.t8_stall_power_on, th.t8_stall_power_on.duty, true], ['T8c', th.t8_stall_power_off, 0, false]]) {
+  for (const [id, t8, duty, hold] of [['T8a', th.t8_stall_power_off, 0, true], ['T8c', th.t8_stall_power_off, 0, false]]) {
     /* The power is set during the entry, as the FAA's power-on stall is
      * flown (Airplane Flying Handbook ch. 5: set the power, then raise the
      * nose): the engine is up to speed before the pull, which since the
@@ -256,6 +256,67 @@ check: {
         && worstP <= t8.maxRollRateDegS && ailMean <= t8.maxAileron,
       said,
       `stalled, bank ${t8.maxBankDeg}, pitch over ${t8.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s, roll under ${t8.maxRollRateDegS} deg/s, ailerons under ${t8.maxAileron}`);
+  }
+
+  /* T8b: the power on stall, judged on what the period's text says a
+   * stalled aeroplane does, not on a held wing: "one of the wings will
+   * eventually drop and the machine will begin to go into a spin ... the
+   * effect of the ailerons has gone completely ... [the wings] cannot be
+   * brought level until speed is regained" ("Learning to Fly - 2:
+   * Instruction in the Air", Wonders of World Aviation, 1938). Its earlier
+   * form held the wings within 15 deg on the ailerons, a premise that text
+   * contradicts. Full up held 10 s at half throttle from 1.2 Vs, the
+   * person (wingpilot.js personWingsHold, McRuer's crossover on the roll
+   * mode measured at the entry) trying on the ailerons, the yaw rate on
+   * the rudder as Great Planes' manual says: a wing drops (past the
+   * gate's 15 deg) and is never on its back. The text says the machine
+   * "will begin to go into a spin", so an incipient spin is not judged a
+   * failure; its yaw rate against the turn its bank allows (turnYawLimitDeg)
+   * is reported. What bounds it is the recovery: a developed spin does not
+   * come out on the elevator alone with the rudder only damping the yaw
+   * (NACA TR 441, the NY-1's spin ends with the rudder neutral only once
+   * the elevator leaves full up), so the wings coming level after it is
+   * the proof it stayed incipient. Then
+   * the back pressure let go (elevator neutral, the power kept): the speed
+   * comes back to the entry's, and the same person brings the wings within
+   * 15 deg by 4 / wc after it (the closed loop's settling at its crossover,
+   * wc = 3 rad/s) and holds them there to the end. */
+  {
+    const t8 = th.t8_stall_power_on;
+    const duty = t8.duty;
+    const rudderOf = (s) => Math.max(-1, Math.min(1, 0.6 * s[13]));
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    const mode = rollMode((sticks) => step(sim, sticks).s, duty);
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    const person = personWingsHold(mode);
+    let o = { s: sim.readState().state };
+    let worstBank = 0, inverted = false, alphaMax = 0, yawSum = 0, bankSum = 0, vSum = 0, n = 0;
+    for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
+      o = step(sim, [person(o.s), 1, rudderOf(o.s), duty]);
+      const bank = fullBank(o.s);
+      worstBank = Math.max(worstBank, Math.abs(bank * DEG));
+      inverted = inverted || Math.abs(bank) > Math.PI / 2;
+      alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
+      if (ms >= t8.seconds * 1000 - 2000) { yawSum += Math.abs(o.s[13]) * DEG; bankSum += Math.abs(bank * DEG); vSum += speed(o.s); n += 1; }
+    }
+    const yawMean = yawSum / n;
+    const yawMax = turnYawLimitDeg(Math.min(89, bankSum / n), vSum / n);
+    const settle = 4 / CROSSOVER_RAD_S;
+    let tSpeed = null, tLevel = null, worstAfter = 0;
+    for (let ms = 0; ms < t8.recoverSeconds * 1000; ms += RC_STEP_MS) {
+      o = step(sim, [person(o.s), 0, rudderOf(o.s), duty]);
+      const t = ms / 1000;
+      const bank = Math.abs(fullBank(o.s) * DEG);
+      if (tSpeed === null && speed(o.s) >= t8.entry) tSpeed = t;
+      if (tLevel === null && bank <= t8.maxBankDeg) tLevel = t;
+      if (tSpeed !== null && t >= tSpeed + settle) worstAfter = Math.max(worstAfter, bank);
+    }
+    const dropped = worstBank > t8.maxBankDeg && alphaMax > th.t2_stall.alphaStall;
+    const recovered = tSpeed !== null && tLevel !== null && tLevel <= tSpeed + settle && worstAfter <= t8.maxBankDeg;
+    gate('T8b', 'full up held, half throttle: a wing drops; unstalled, the wings come level',
+      dropped && !inverted && recovered,
+      `held: bank up to ${worstBank.toFixed(1)}, yaw ${yawMean.toFixed(1)} deg/s over the last 2 s at bank ${(bankSum / n).toFixed(1)}, alpha up to ${(alphaMax * DEG).toFixed(1)}, gain ${person.gain.toFixed(2)} per rad; let go: ${t8.entry} m/s back at ${tSpeed === null ? 'never' : `${tSpeed.toFixed(2)} s`}, within ${t8.maxBankDeg} deg at ${tLevel === null ? 'never' : `${tLevel.toFixed(2)} s`}, then under ${worstAfter.toFixed(1)}`,
+      `a drop past ${t8.maxBankDeg}, never on its back (the turn at its bank ${yawMax.toFixed(1)} deg/s, reported); level by ${settle.toFixed(2)} s after the speed and held`);
   }
 
   /* T9: the phugoid: level at the trim, a second of a little up stick,

@@ -1541,8 +1541,9 @@ export function edgeRoll(s, b = 0) {
  * of aileron for 0.2 s from the state the gate is in, its roll rate p(t) =
  * A (1 - exp(-a t)) read at 0.1 and 0.2 s, giving the roll damping a
  * (1/s, the roll subsidence) and the aileron's roll acceleration per unit
- * stick, L = A a / 0.2. stepFn(sticks) steps the gate's sim one RC step
- * and returns the state; throttle is the gate's own.
+ * stick, L = A a / 0.2, at the speed v0 it was measured at. stepFn(sticks)
+ * steps the gate's sim one RC step and returns the state; throttle is the
+ * gate's own.
  */
 export function rollMode(stepFn, throttle) {
   const n1 = Math.round(100 / RC_STEP_MS);
@@ -1555,7 +1556,7 @@ export function rollMode(stepFn, throttle) {
   const e = Math.min(0.99, Math.max(0.01, p2 / p1 - 1));
   const a = -Math.log(e) / 0.1;
   const A = p1 / (1 - e);
-  return { a, L: A * a / 0.2 };
+  return { a, L: A * a / 0.2, v0: Math.hypot(s[4], s[5], s[6]) };
 }
 
 /*
@@ -1568,22 +1569,29 @@ export function rollMode(stepFn, throttle) {
  * an attitude task at, where the 0.2 s delay leaves about 50 deg of phase
  * margin. With phi / stick = L / (s (s + a)), the gain is wc sqrt(wc^2 +
  * a^2) / L stick per radian of bank, with an integral as a hand trims a
- * steady torque. Returns a function of the state, called every RC_STEP_MS,
- * that gives the aileron stick; .gain is the gain chosen.
+ * steady torque. The person keeps adapting as the speed changes (the
+ * crossover model's adaptation): L goes with the dynamic pressure and a
+ * with the speed, from the mode measured at v0. Returns a function of the
+ * state, called every RC_STEP_MS, that gives the aileron stick; .gain is
+ * the gain at v0.
  */
 export const CROSSOVER_RAD_S = 3;
-export function personWingsHold({ a, L }) {
+export function personWingsHold({ a, L, v0 }) {
   const wc = CROSSOVER_RAD_S;
-  const k = wc * Math.sqrt(wc * wc + a * a) / L;
+  const gainAt = (v) => {
+    const r = v0 > 0 && v > 0 ? v / v0 : 1;
+    return wc * Math.sqrt(wc * wc + a * a * r * r) / (L * r * r);
+  };
+  const k = gainAt(v0);
   const seen = [];
   const lag = Math.round(200 / RC_STEP_MS);
   let stick = 0, iBank = 0, ms = 0;
   const hold = (s) => {
-    seen.push(fullBank(s));
+    seen.push({ bank: fullBank(s), v: Math.hypot(s[4], s[5], s[6]) });
     if (ms % 100 === 0 && seen.length > lag) {
-      const bank = seen[seen.length - 1 - lag];
-      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * bank * 0.1));
-      const raw = Math.max(-1, Math.min(1, -k * bank + iBank));
+      const d = seen[seen.length - 1 - lag];
+      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * d.bank * 0.1));
+      const raw = Math.max(-1, Math.min(1, -gainAt(d.v) * d.bank + iBank));
       stick = Math.round(raw * 50) / 50;
     }
     ms += RC_STEP_MS;
