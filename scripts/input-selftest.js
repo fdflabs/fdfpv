@@ -1207,6 +1207,18 @@ heading('a standard pad steers the menus four ways');
   check('a pad with no standard layout (a radio) gets none', padDirections({ mapping: '', axes: [1, 0], buttons: [] }) === null);
 }
 
+heading('the standard pad\'s buttons by name are the W3C numbers, as every reader used them');
+{
+  const { PAD_BUTTONS } = await import('../src/input/padbuttons.js');
+  const { PTT_PAD } = await import('../src/share/voice.js');
+  /* w3.org/TR/gamepad, Standard Gamepad: buttons[0] bottom face ... [15] d-pad right. */
+  const W3C = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'back', 'start', 'ls', 'rs', 'up', 'down', 'left', 'right'];
+  check('sixteen names, each at its W3C index', show(Object.keys(PAD_BUTTONS)) === show(W3C)
+    && W3C.every((name, i) => PAD_BUTTONS[name] === i), show(PAD_BUTTONS));
+  check('push to talk is still the left trigger, button 6', PTT_PAD === 6);
+  check('the table cannot be changed at run time', Object.isFrozen(PAD_BUTTONS));
+}
+
 heading('every device keeps its own calibration, and the one map from before keeps its pilot');
 {
   /* Two EdgeTX radios: the same USB ids, told apart by name. */

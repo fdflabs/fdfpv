@@ -115,6 +115,7 @@
 
 import * as THREE from 'three';
 import { str } from '../strings/index.js';
+import { PAD_BUTTONS as PAD } from '../input/padbuttons.js';
 import en from '../strings/en.js';
 import { readPilotName } from '../share/pilot.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
@@ -309,12 +310,6 @@ function arrowGeometry() {
   geo.computeBoundingSphere();
   return geo;
 }
-
-/* Standard gamepad buttons and axes (the W3C mapping). */
-const PAD = {
-  a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8, start: 9, ls: 10, rs: 11,
-  up: 12, down: 13, left: 14, right: 15,
-};
 
 function readStore(key, fallback) {
   try {
