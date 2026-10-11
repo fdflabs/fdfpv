@@ -58,7 +58,13 @@ const PLANES = [
   { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
   { name: 'kadet', id: 12, hx: 0.45, hy: 0.9906, down: 0.163, up: 0.119, land: 8, rollMs: 30000, nose: 11, toss: 12, tossSticks: [0, 0.3, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.3072 } },
   { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
-  { name: 'zagi', id: 17, hx: 0.23, hy: 0.6096, down: 0.012, up: 0.127, land: 8, nose: 10, toss: 10.3, tossSticks: [0, 0.05, 0, 0.7] },
+  /* The Zagi's throw turns its prop at 0.7 of full, as it was written for:
+   * on the electric motor's own law (plant_wing.c prop_spool, n^2 + 5.667 n
+   * = 6.667 d) that is a duty of 0.6685; at the stick's 0.7 the prop turns
+   * at 0.73, and the thrust line 52 mm over the CG pitches the shoulder
+   * height throw, which cleared the grass by 0.23 m, into it. Its manual's
+   * own launch, motor off, is zagi:gates Z11. */
+  { name: 'zagi', id: 17, hx: 0.23, hy: 0.6096, down: 0.012, up: 0.127, land: 8, nose: 10, toss: 10.3, tossSticks: [0, 0.05, 0, 0.6685] },
   { name: 'timber', id: 7, hx: 0.30, hy: 0.60, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 11.81, restZ: 0.2117 } },
   /* The Ugly Stik stands 2.06 deg nose down idling; it arrives at 11 m/s
    * and its 2,000 rpm idle pushes 1.22 N against the grass's 2.14, so it
