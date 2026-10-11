@@ -62,6 +62,8 @@ const FINISHES = {
   satin: { roughness: 0.45, metalness: 0, clearcoat: 0.4, clearcoatRoughness: 0.35 },
   pearl: { roughness: 0.3, metalness: 0.25, clearcoat: 1, clearcoatRoughness: 0.06 },
   candy: { roughness: 0.2, metalness: 0.6, clearcoat: 1, clearcoatRoughness: 0.03 },
+  flake: { roughness: 0.38, metalness: 0.7, clearcoat: 1, clearcoatRoughness: 0.02 },
+  brushed: { roughness: 0.3, metalness: 1, grain: 0.04 },
   /* Gold whatever the region's paint (finish.js). */
   gold: { roughness: 0.22, metalness: 1, color: 0xd9a441 },
 };
