@@ -323,6 +323,32 @@ function rollTo(Vend) {
 /* The glide gate: L/D and the sink at 1.25 Vs, power off. */
 const vGlide = 1.25 * Vs;
 const ldGlide = ld(vGlide), sinkGlide = vGlide / ldGlide;
+/*
+ * THE OPEN RAMP, ESTIMATED (docs/HERCULES-CONTRACT.md). The full size's
+ * ramp opening, 3.02 m wide by 2.77 m high (Wikipedia's C-130H specs: the
+ * hold's 9 ft 11 in by 9 ft, the ramp 119 in wide), at 1:13.13 is 0.230 by
+ * 0.211 m: open, a blunt base in the tail cone's flow, C_D 0.25 on it
+ * (Hoerner, Fluid-Dynamic Drag, a blunt base behind a body). The ramp
+ * itself, 0.238 by 0.230 m, hangs 28 deg below the floor into the stream
+ * the tail cone shelters: a flat plate's normal force, 1.17 (Hoerner),
+ * times its drag share sin 28 deg and half for the shelter. The drag acts
+ * at the ramp, under the CG by the belly's depth less a third of the
+ * opening: a nose down moment. The full size flies its airdrops with the
+ * ramp open and trims for it; the lift a hanging ramp makes is left out.
+ */
+const rampOpenA = 0.230 * 0.211, rampPlateA = 0.238 * 0.230;
+const cdDoorA = 0.25 * rampOpenA + 0.5 * 1.17 * Math.sin(28 * Math.PI / 180) * rampPlateA;
+const cdDoor = cdDoorA / S;
+const zDoor = -(hbCG - 0.211 / 3);
+const cmDoor = cdDoor * zDoor / c;
+const doorTime = 4.0;
+/* Level at 75 percent with the ramp open. */
+const levelDoor = (d) => {
+  const Dd = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + cdDoor + kInd * CL * CL); };
+  let lo = 9, hi = 45;
+  for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d) > Dd(mid)) lo = mid; else hi = mid; }
+  return lo;
+};
 /* The cm_0 that trims the cruise with the elevator neutral. */
 const CLcruise = 2 * W / (rho * Vcruise * Vcruise * S);
 const alphaCruise = CLcruise / CLa;
@@ -339,7 +365,7 @@ const out = {
   CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
-  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
+  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, cdDoor, cmDoor, zDoor, doorTime, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
   kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
   fusW, fusH, propR, yInboard, yOutboard, aileronIn, aileronOut, throwA, throwE, throwR, xCG, xMACle, kitLength, k, washout,
 };

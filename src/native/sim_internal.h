@@ -990,6 +990,17 @@ typedef struct FixedWingParams {
   double tail_deda;
   double tail_cn;
   double rot_k[3];
+  /*
+   * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
+   * open in flight, sim_wing_set_door. door_time is their travel each way,
+   * s; cd_door the drag they add fully open, on the wing's area; cm_door
+   * the pitching moment they add, on its area and chord, nose up positive.
+   * Both go with how far open they are. Zero door_time is an aircraft
+   * without, and then nothing is read.
+   */
+  double door_time;
+  double cd_door;
+  double cm_door;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -1125,6 +1136,13 @@ double plant_wing_gear(void);
 int plant_wing_gear_selected(void);
 int plant_wing_gear_down(void);
 void plant_wing_gear_reset(void);
+/* The cargo doors (FixedWingParams.door_time): selected open (1) or shut
+ * (0); where they are, 0 shut to 1 open. A reset and an airframe change
+ * shut them. */
+int plant_wing_set_door(int open);
+double plant_wing_door(void);
+int plant_wing_door_selected(void);
+void plant_wing_door_reset(void);
 
 /*
  * WATER, src/native/water.c: the bodies of water a host declares, still

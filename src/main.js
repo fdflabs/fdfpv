@@ -15348,6 +15348,19 @@ export async function boot({
       }
       return;
     }
+    /* THE CARGO DOORS, on an aircraft that has them (airframes.js `ramp`,
+     * the Hercules): O opens and shuts the ramp and door, ahead of O's
+     * smoke, which a Hercules with smoke fitted gives up while it flies
+     * (docs/HERCULES-CONTRACT.md). The switch is the plant's, which a reset
+     * shuts, so it is read back rather than kept here. */
+    if (code === 'KeyO' && ui.screen === 'flight' && airframeById(runAirframe).ramp
+      && typeof sim.e.sim_wing_set_door === 'function') {
+      const open = sim.e.sim_wing_door_selected() ? 0 : 1;
+      if (sim.e.sim_wing_set_door(open) === SIM_OK) {
+        notice = { text: open ? str('ui.doors_open') : str('ui.doors_shut'), untilMs: performance.now() + 1600 };
+      }
+      return;
+    }
     if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).chute) {
       pullChute();
       return;
@@ -17489,6 +17502,9 @@ export async function boot({
     }
     if (shell.setGear && typeof sim.e.sim_wing_gear === 'function') {
       shell.setGear(sim.e.sim_wing_gear());
+    }
+    if (shell.setRamp && typeof sim.e.sim_wing_door === 'function') {
+      shell.setRamp(sim.e.sim_wing_door());
     }
   }
 

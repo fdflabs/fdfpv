@@ -771,6 +771,20 @@ int sim_wing_flaps_settle(void);
 int sim_wing_set_gear(int up);
 double sim_wing_gear(void);
 int sim_wing_gear_selected(void);
+/*
+ * sim_wing_set_door(open): the cargo ramp and door of an aircraft that has
+ * them (docs/HERCULES-CONTRACT.md), 1 open and 0 shut; they travel at the
+ * aircraft's own rate, and open they add their drag and pitching moment.
+ * A reset and sim_set_airframe shut them. SIM_ERR_BAD_ARG for 1 on an
+ * aircraft without, or anything but 0 or 1.
+ * sim_wing_door(): where they are, 0 shut to 1 open.
+ * sim_wing_door_selected(): the switch.
+ * Additive, version unchanged: an aircraft without doors reads none of it
+ * and its trace is bit identical.
+ */
+int sim_wing_set_door(int open);
+double sim_wing_door(void);
+int sim_wing_door_selected(void);
 int sim_wing_set_slats(int fitted);
 
 /*

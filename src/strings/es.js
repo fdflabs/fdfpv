@@ -1849,6 +1849,8 @@ export default {
   "ui.flaps_full": "Flaps completos",
   "ui.gear_up": "Tren arriba",
   "ui.gear_down": "Tren abajo",
+  "ui.doors_open": "Abriendo la rampa",
+  "ui.doors_shut": "Cerrando la rampa",
   "ui.gear_moving": "Tren en movimiento",
   "main.throttle_down_to_start": "Baja el acelerador para empezar",
   "main.throttle_up_on_the_water": "A flote en el lago. Sube el acelerador con la palanca atrás para ponerlo en el escalón, déjalo correr y tira para volar. El timón lo guía en el agua; F pone los flaps, C cambia la cámara.",

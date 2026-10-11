@@ -941,6 +941,9 @@ export const AIRFRAMES = [
     id: 'hercules3077',
     simId: 31,
     fixedWing: true,
+    /* A rear ramp and cargo door the plant opens in flight (O), and the
+     * paradrop out of it (P): docs/HERCULES-CONTRACT.md. */
+    ramp: true,
     voice: 'wing',
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/hercules-thresholds.json h1_stall. */
     stall: 9.67,
