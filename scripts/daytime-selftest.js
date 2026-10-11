@@ -221,6 +221,10 @@ const lastClock = (so) => {
   hello(room, b);
   check('a room is made at its creator\'s time, and welcomes pilots into it',
     same(got(host, 'welcome')[0].daytime, clockOfTime('golden')) && same(got(b, 'welcome')[0].daytime, clockOfTime('golden')));
+  run(room.tick(saidAt += 33));
+  say(room, b, { type: 'profile', profile });
+  check('nothing changed, nobody is told: no message beyond the welcomes, which would be noise on every link (combat:harness)',
+    got(host, 'daytime').length === 0 && got(b, 'daytime').length === 0);
   say(room, b, { type: 'daytime', time: 'night' });
   check('only the host sets it', meta.daytime === 'golden' && got(b, 'refused').some((m) => m.why === 'host'));
   say(room, host, { type: 'daytime', time: 'dusk' });

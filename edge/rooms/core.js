@@ -807,7 +807,7 @@ export class RoomCore {
           mode: this.meta.mode ?? null,
           mission: this.meta.mission ?? null,
           map: this.meta.map,
-          daytime: this.daytime(),
+          daytime: this.daytimeWelcome(),
           peers: this.peerList(null),
         }),
       },
@@ -954,7 +954,7 @@ export class RoomCore {
         mission: this.meta.mission ?? null,
         map: this.meta.map,
         weather: this.meta.weather ?? CALM,
-        daytime: this.daytime(),
+        daytime: this.daytimeWelcome(),
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
@@ -1245,12 +1245,24 @@ export class RoomCore {
     return clockOfTime(this.meta.daytime ?? null);
   }
 
+  /* The clock for a welcome, which tells it as well as a message would. */
+  daytimeWelcome() {
+    const daytime = this.daytime();
+    this.daytimeTold ??= JSON.stringify(daytime);
+    return daytime;
+  }
+
   /* The clock told to the room when it is not the one last told. The
-   * first call after a load tells it once more, which a pilot already
-   * holding it reads as no change. */
+   * first call after a load only records it: every pilot here has it
+   * already, from its welcome or, after a restart, from the same stored
+   * meta and games, so a message then would be noise on every link. */
   daytimeNews() {
     const daytime = this.daytime();
     const text = JSON.stringify(daytime);
+    if (this.daytimeTold === null) {
+      this.daytimeTold = text;
+      return [];
+    }
     if (text === this.daytimeTold) {
       return [];
     }
