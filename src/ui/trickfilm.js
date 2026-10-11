@@ -65,6 +65,9 @@ const MS_PER_TURN = 1500;
 const END_PAUSE_MS = 700;
 
 /* Read once, at load, in whatever language is current then. */
+/* A trick's level, in the pilot's language: the sheet keeps its English. */
+export const trickLevel = (level) => (level ? str(`tricks.level.${level.toLowerCase()}`) : '');
+
 export const VIEW_LABEL = {
   side: str('trickfilm.seen_from_the_side'),
   above: str('trickfilm.seen_from_above'),
@@ -144,7 +147,7 @@ function lapClause(step) {
   const extras = Object.entries(step.rot || {})
     .filter(([, n]) => n !== 0)
     .map(([axis, n]) => str('trickfilm.of', { turnWords: countWords(n), v2: AXIS_NAME[axis] }));
-  const carrying = extras.length ? str('trickfilm.carrying', { v1: extras.join(' and ') }) : '';
+  const carrying = extras.length ? str('trickfilm.carrying', { v1: extras.join(str('trickfilm.and')) }) : '';
   return size + qualify(step, LAP_QUALIFIERS) + carrying;
 }
 

@@ -57,7 +57,7 @@ import {
 } from '../trackbuilder/storage.js';
 import { formatDay, formatTime } from './format.js';
 import { paintPilotStats, pilotStats } from './pilotstats.js';
-import { filmFor, VIEW_LABEL } from './trickfilm.js';
+import { filmFor, trickLevel, VIEW_LABEL } from './trickfilm.js';
 import { scoreableTricks, trickStatus } from './trickslist.js';
 /* A cycle: ui.js installs this module. These are read only inside methods,
  * after both modules have run, never at this module's top level. */
@@ -476,7 +476,7 @@ export const cardMethods = {
     const say = this.constructor.text;
     say(this.trickName, trick.name);
     const points = plural('count.points', trick.points, { n: formatScore(trick.points) });
-    say(this.trickMeta, [str('ui.points', { points, difficulty: trick.difficulty }), trick.category, trick.status.tag].join(SEP));
+    say(this.trickMeta, [str('ui.points', { points, difficulty: trickLevel(trick.difficulty) }), trick.category, trick.status.tag].join(SEP));
     say(this.trickHow, `${trick.how} ${trick.status.line}`);
     /* The camera's side, said: a roll seen side on looks like a craft not
      * moving at all, so the reader must know which angle they are shown. */
