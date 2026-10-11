@@ -137,6 +137,15 @@ static int g_stab = 0;
  * on the first acro step after a reset or a mode change. */
 static double g_acro_q[4] = { 1.0, 0.0, 0.0, 0.0 };
 static int g_acro_held = 0;
+/* Stabilised's roll integrator, stick units; its rate per rad of bank
+ * rate error a second over the roll surface's throw, the bank error's
+ * rate time constant, and its limit, ArduPilot's RLL2SRV_I,
+ * RLL2SRV_TCONST and RLL2SRV_IMAX's third of the travel,
+ * https://ardupilot.org/plane/docs/roll-pitch-controller-tuning.html. */
+#define STAB_ROLL_I 0.05
+#define STAB_ROLL_TCONST 0.5 /* AP_RollController.cpp 2SRV_TCONST default, https://github.com/ArduPilot/ardupilot */
+#define STAB_ROLL_IMAX (1.0 / 3.0) /* RLL2SRV_IMAX 1500 of 4500, https://ardupilot.org/plane/docs/roll-pitch-controller-tuning.html */
+static double g_stab_roll_i = 0.0;
 /* Mode 3's state: the rotation beyond what the sticks asked, per axis,
  * the surfaces' offsets the receiver last wrote, and the time to its next
  * frame. */
@@ -790,6 +799,7 @@ void plant_wing_set_gyro(int on) {
 
 void plant_wing_reset(void) {
   g_gyro_on = 1;
+  g_stab_roll_i = 0.0;
   for (int i = 0; i < 4; i += 1) {
     g_surf[i] = 0.0;
   }
@@ -1667,7 +1677,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     yaw = 0.0;
   } else if (g_on_wheels && g_stab != 0) {
     g_acro_held = 0;
+    g_stab_roll_i = 0.0;
   } else if (g_stab == 2) {
+    g_stab_roll_i = 0.0;
     /* Acro leaves the yaw stick as the rudder alone. The owner flew the
      * Cub with the turn coordinator on (2026-09-25): every bank brought
      * its own yaw, and the damper pulled the yaw rate back onto the
@@ -1689,7 +1701,29 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     if (throttle < fw->stab_trim_throttle) {
       pitch_t -= fw->stab_pitch_down * (fw->stab_trim_throttle - throttle) / fw->stab_trim_throttle;
     }
-    roll = clamp1(-fw->stab_roll_kp * (bank - bank_t) - fw->stab_roll_kd * s->omega[0]);
+    /* The bank loop trims out a steady roll error as ArduPilot's roll
+     * controller does (https://ardupilot.org/plane/docs/roll-pitch-controller-tuning.html):
+     * an integrator "to slowly trim the aileron demand to remove the
+     * steady error", RLL2SRV_I 0.05 ("will work for most models") on the
+     * error between the roll rate its RLL2SRV_TCONST of 0.5 s asks for the
+     * bank error and the rate flown, so it winds nothing up while a roll
+     * tracks and trims 0.1 of a held error a second; RLL2SRV_IMAX's
+     * default lets it take "up to 1/3 of the total aileron travel". In
+     * stick, over the roll surface's throw, held to a third. */
+    const double roll_throw = fw->mix == FW_MIX_RUDDER ? fw->throw_r : fw->throw_a;
+    /* ArduPlane's stabilize_roll holds the integrator while the pilot's
+     * roll stick is in (Attitude.cpp, "disable_integrator = true" when
+     * channel_roll's input is not zero, as the yaw loop's is for the
+     * rudder stick): it trims what the airframe does, not the pilot. On a
+     * rudder only aircraft the yaw stick moves the same surface. */
+    const int pilot = deadband1(roll, fw->stab_deadband) != 0.0 ||
+                      (fw->mix == FW_MIX_RUDDER && deadband1(yaw, fw->stab_deadband) != 0.0);
+    if (roll_throw > 0.0 && !pilot) {
+      g_stab_roll_i += STAB_ROLL_I * (-(bank - bank_t) / STAB_ROLL_TCONST - s->omega[0]) / roll_throw * WING_DT;
+      if (g_stab_roll_i > STAB_ROLL_IMAX) g_stab_roll_i = STAB_ROLL_IMAX;
+      if (g_stab_roll_i < -STAB_ROLL_IMAX) g_stab_roll_i = -STAB_ROLL_IMAX;
+    }
+    roll = clamp1(add_term(-fw->stab_roll_kp * (bank - bank_t) - fw->stab_roll_kd * s->omega[0], g_stab_roll_i));
     pitch = clamp1(fw->stab_pitch_kp * (pitch_t - pitch_att) - fw->stab_pitch_kd * (-s->omega[1]));
     yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
   }
