@@ -1347,9 +1347,9 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Its stall, m/s, trimmed with the standard warhead in the nose:
      * combat-derive's, which npm run combat:gates holds the module to. */
-    stall: 12.98,
+    stall: 13.53,
     /* Level at full throttle, m/s, combat-derive's, held the same way. */
-    topSpeed: 26.8,
+    topSpeed: 34.2,
     catapult: STRIKER_RAIL,
     voice: 'glow2',
     name: 'Striker',
@@ -1386,7 +1386,7 @@ export const AIRFRAMES = [
     combat: {
       frame: 'striker',
       propulsion: [
-        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 12.98, topSpeed: 26.8, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
+        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 13.53, topSpeed: 34.2, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
         { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 14.07, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
       ],
       payloads: [
