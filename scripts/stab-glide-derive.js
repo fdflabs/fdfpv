@@ -13,8 +13,9 @@
  *   line's moment included; the aero force and what the closed throttle
  *   still pulls carry the weight, and the body's pitch is the zero lift
  *   line's alpha, less its angle under the body axis, less the glide
- *   path's. A propeller pulls nothing there (every prop's idle, or none
- *   pitch speed is under its glide, which is checked); a turbine idles
+ *   path's. A propeller pulls nothing there (every engine's idle pitch
+ *   speed is under its glide, which is checked), and an electric one free
+ *   wheels and windmills, dragging (thrust() below); a turbine idles
  *   rather than stops (fan_tau, the Striker's jet), and its idle thrust is
  *   in the balance.
  *
@@ -176,13 +177,29 @@ function trimAlpha(fw, q, T, sh = [0, 0]) {
 }
 
 /* plant_wing.c's motor: the stick to thrust along body x at forward speed u. */
+/* The windmill's thrust share, plant_wing.c's cp_of_ct: Cp over its
+ * static value is CP_OF_CT[0] + CP_OF_CT_TAIL ct past zero thrust, zero
+ * (the free rotor's torque gone) at ct = -CP_OF_CT[0] / CP_OF_CT_TAIL. */
+const WING_SRC = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
+const CP0 = Number(/static const double CP_OF_CT\[CP_OF_CT_N\] = \{\s*([-\d.]+)/.exec(WING_SRC)[1]);
+const CP_TAIL = Number(/#define CP_OF_CT_TAIL ([-\d.]+)/.exec(WING_SRC)[1]);
+const CT_WINDMILL = -CP0 / CP_TAIL;
+
 function thrust(fw, stick, u) {
   /* No motor at all (the DLG): no thrust, as the plant has it. */
   if (!(fw.thrust_static > 0)) return 0;
   if (fw.fold_duty > 0 && stick < fw.fold_duty) return 0;
   let duty = fw.throttle_idle > 0 ? fw.throttle_idle + (1 - fw.throttle_idle) * stick : stick;
   duty = Math.min(1, Math.max(0, duty));
-  if (!(duty > 0)) return 0;
+  /* An electric prop at zero duty free wheels and windmills (plant_wing.c
+   * prop_free): it settles where its torque is zero, n = u / (V_p (1 -
+   * ct_w)), and drags there, T_s n^2 ct_w. A fan, or a table with no
+   * rotor, stops. */
+  if (!(duty > 0)) {
+    if (!(fw.current_full > 0) || !(fw.j_prop > 0) || fw.fan_tau > 0 || !(u > 0)) return 0;
+    const n = u / (fw.pitch_speed * (1 - CT_WINDMILL));
+    return fw.thrust_static * n * n * CT_WINDMILL;
+  }
   const t = fw.thrust_static * duty * duty * (1 - Math.max(0, u) / (fw.pitch_speed * duty));
   return fw.fold_duty === 0 && t < 0 ? 0 : t;
 }
@@ -307,9 +324,11 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       bad += 1;
       continue;
     }
-    if (gl.idleThrust !== 0 && !(fw.fan_tau > 0)) {
+    if (gl.idleThrust > 0 && !(fw.fan_tau > 0)) {
       console.log(`${name.padEnd(20)} the closed throttle still pulls ${f(gl.idleThrust, 3)} N in the glide, and it is a propeller`);
       bad += 1;
+    } else if (gl.idleThrust < 0) {
+      console.log(`${name.padEnd(20)} a free prop: it glides against its windmill's ${f(-gl.idleThrust, 3)} N`);
     } else if (gl.idleThrust !== 0) {
       console.log(`${name.padEnd(20)} a turbine: it glides on its idle's ${f(gl.idleThrust, 3)} N`);
     }
