@@ -41,7 +41,8 @@
  *
  * THE EXPO is the plant's cubic, x (1 - e) + x^3 e, the curve EdgeTX and
  * OpenTX call expo; 30 percent is every table's, one figure for all three
- * surfaces.
+ * surfaces, unless an entry's `expo` gives the plant table's own (the Night
+ * Timber's manual sets none, so its table flies 0).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -225,6 +226,7 @@ export const TUNING = {
   },
   nighttimber1200: {
     chord: 0.2388, area: 0.2866, margin: 0.068,
+    expo: 0, /* the manual sets none, "after first flights, you may adjust expo", as FW_NIGHTTIMBER1200 flies */
     cg: { mm: 89, datum: 'tuning.datum.root_le', range: [86, 105], source: `E-flite manual p. 8, "89mm +/- 3mm back from the leading edge with the carbon joiner" or "102mm +/- 3mm ... with the steel joiner for maximum 3D performance", without the slats (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
     packKg: 0.27, nose: 0.339, tail: -0.716,
     throws: { high: [28.92, 35.81, 33.75], low: [22.13, 28.60, 23.82], source: `E-flite manual p. 3: high 45, 55 and 55 mm, low 35, 45 and 40 mm, at the surfaces' widest chords, 93, 94 and 99 mm (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
@@ -272,7 +274,7 @@ export function tuningFor(airframeId) {
 /* The stock setup's fields. */
 export function stockEntry(airframeId) {
   const t = tuningFor(airframeId);
-  const x = STOCK_EXPO;
+  const x = t?.expo ?? STOCK_EXPO;
   return {
     packMm: 0,
     ballastG: 0,
