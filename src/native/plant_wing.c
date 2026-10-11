@@ -1536,8 +1536,20 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
    * stability axis rates), so a stalled strip takes both back. */
   const double ref = r * cla * add_term(alpha, dcl_f / cla) + cla * (da + dr);
   const double past_on = ail == 0.0 ? past : smoothstep(stall, stall + fw->stall_blend, sim_fabs(aa_on));
-  out[0] = past_on * (blended - ref);
-  out[1] = past_on * sigma * (plate_cn(fw) * sp * sp + (cp > 0.0 ? b2 * cp : 0.0) - fw->k_induced * cl_lin * cl_lin);
+  /* The rates tilt the strip's own air by dc, so its lift and drag,
+   * across and along that air, turn by dc against the wing's: the extra
+   * the stalled strip's drag (its own, not the excess over the linear
+   * wing's, whose tilt the linear cl_p leaves out) pushes a strip going
+   * down up, strip theory's drag share of the roll damping (Cl_p in
+   * CL_alpha + CD), which past the
+   * stall is most of it, as TR 419's rotation tests read (table IV:
+   * damped again at 30 to 40 deg). The lift's tilt into drag is not
+   * taken here: the linear cn_p already rides on the wing's stalled CL. */
+  const double dl = past_on * (blended - ref);
+  const double cd_st = past_on * sigma * (plate_cn(fw) * sp * sp + (cp > 0.0 ? b2 * cp : 0.0));
+  const double dd = cd_st - past_on * sigma * fw->k_induced * cl_lin * cl_lin;
+  out[0] = add_term(dl, cd_st * dc);
+  out[1] = dd;
 }
 
 /*
@@ -2678,7 +2690,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     double ml = 0.0, mn = 0.0;
     for (int i = 0; i < 4; i += 1) {
       const double y = (0.125 + 0.25 * i) * half;
-      const double da = p * y / Vrate;
+      /* The roll rate moves the strip across the body, p y, which is a
+       * change of its angle of attack only in the part normal to the air,
+       * u / V of it; the yaw rate moves it along the chord (dr). Together
+       * they are the stability axis roll rate ps the linear cl_p damps,
+       * so what a stalled strip takes back is what the linear wing gave. */
+      const double da = (u / V) * p * y / Vrate;
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
       /* No flap span given (no flaps), the strips take the wing's. */
       const double fs = fa > 0.0 ? cov[i] / fa : 1.0;
@@ -2719,8 +2736,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       mn += arm * (g_sep[i][0][1] - g_sep[i][1][1]);
     }
     const double k = qbar * kr * fre;
-    M[0] = add_term(M[0], k * (u / Vxz) * ml);
-    M[2] = add_term(M[2], k * (u / V) * mn);
+    /* A strip's lift and drag act across and along the air, the
+     * stability axes, so they turn into the body's through the angle of
+     * attack as the linear moments above do (Etkin and Reid's stability to
+     * body transformation): the down going wing's extra drag damps the
+     * body roll, and a lift difference, tilted forward, yaws, which also
+     * takes back the yaw share of the linear cl_p the strips take back. */
+    M[0] = add_term(M[0], k * ((u / Vxz) * ml + (-w / Vxz) * mn));
+    M[2] = add_term(M[2], k * ((u / V) * mn - (-w / V) * ml));
   } else {
     for (int i = 0; i < 4; i += 1) {
       for (int j = 0; j < 2; j += 1) {
@@ -5569,7 +5592,7 @@ const FixedWingParams FW_SLICK2680 = {
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0843, 0.4171, 0.7963 }, /* npm run as3x:derive */
   .as3x_kh = { 1.5048, 7.4452, 14.2139 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.687, -2.516, -1.366 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.687, -2.767, -1.818 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
