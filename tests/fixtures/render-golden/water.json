@@ -1,0 +1,5388 @@
+{
+ "exports": {
+  "surface": [
+   [
+    "bedMaterial",
+    "function"
+   ],
+   [
+    "waterMaterial",
+    "function"
+   ]
+  ],
+  "waves": [
+   [
+    "waveTexture",
+    "function"
+   ]
+  ],
+  "stream": [
+   [
+    "STREAM_LIFT",
+    "number"
+   ],
+   [
+    "gravelBarGeometry",
+    "function"
+   ],
+   [
+    "streamGeometry",
+    "function"
+   ],
+   [
+    "streamSurface",
+    "function"
+   ]
+  ],
+  "lift": 0.16
+ },
+ "materials": {
+  "plain": {
+   "water": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.04,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "597c95",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-env-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "waterShaders": {
+    "vertex": "52e218f7",
+    "fragment": "2f401bc0",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uBedPass",
+      0
+     ],
+     [
+      "uBoat",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uClarity",
+      0.4
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      null
+     ],
+     [
+      "uRipple",
+      1
+     ],
+     [
+      "uShallow",
+      "#000000"
+     ],
+     [
+      "uShoreFoam",
+      1
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-env-calm-sheet"
+   },
+   "waterUniforms": [
+    "uAbsorb",
+    "uBedPass",
+    "uBoat",
+    "uClarity",
+    "uDeep",
+    "uDepth",
+    "uDepthGrid",
+    "uFoamAt",
+    "uInflow",
+    "uReflMatrix",
+    "uReflect",
+    "uRipple",
+    "uShallow",
+    "uShoreFoam",
+    "uTime",
+    "uWaveRes",
+    "uWaves",
+    "uWidth",
+    "uWind"
+   ],
+   "bed": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": false,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 5,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.04,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "597c95",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-env-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "bedShaders": {
+    "vertex": "52e218f7",
+    "fragment": "2f401bc0",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0.45,
+       0.09,
+       0.05
+      ]
+     ],
+     [
+      "uBedPass",
+      1
+     ],
+     [
+      "uBoat",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uClarity",
+      0.4
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      null
+     ],
+     [
+      "uRipple",
+      1
+     ],
+     [
+      "uShallow",
+      "#000000"
+     ],
+     [
+      "uShoreFoam",
+      1
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-env-calm-sheet"
+   },
+   "bedBlend": [
+    5,
+    100,
+    200,
+    202,
+    200,
+    201,
+    1,
+    [
+     0.45,
+     0.09,
+     0.05
+    ]
+   ]
+  },
+  "lake": {
+   "water": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.03,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-planar-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "waterShaders": {
+    "vertex": "497fea8f",
+    "fragment": "4cc08028",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uBedPass",
+      0
+     ],
+     [
+      "uBoat",
+      [
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     [
+      "uClarity",
+      0.6
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       10,
+       20,
+       30,
+       0.5
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uRipple",
+      0.3
+     ],
+     [
+      "uShallow",
+      "#305d50"
+     ],
+     [
+      "uShoreFoam",
+      0.08
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t1",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-planar-calm-sheet"
+   },
+   "waterUniforms": [
+    "uAbsorb",
+    "uBedPass",
+    "uBoat",
+    "uClarity",
+    "uDeep",
+    "uDepth",
+    "uDepthGrid",
+    "uFoamAt",
+    "uInflow",
+    "uReflMatrix",
+    "uReflect",
+    "uRipple",
+    "uShallow",
+    "uShoreFoam",
+    "uTime",
+    "uWaveRes",
+    "uWaves",
+    "uWidth",
+    "uWind"
+   ],
+   "bed": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": false,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 5,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.03,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-planar-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "bedShaders": {
+    "vertex": "497fea8f",
+    "fragment": "4cc08028",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0.45,
+       0.09,
+       0.05
+      ]
+     ],
+     [
+      "uBedPass",
+      1
+     ],
+     [
+      "uBoat",
+      [
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     [
+      "uClarity",
+      0.6
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       10,
+       20,
+       30,
+       0.5
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uRipple",
+      0.3
+     ],
+     [
+      "uShallow",
+      "#305d50"
+     ],
+     [
+      "uShoreFoam",
+      0.08
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t1",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-planar-calm-sheet"
+   },
+   "bedBlend": [
+    5,
+    100,
+    200,
+    202,
+    200,
+    201,
+    1,
+    [
+     0.45,
+     0.09,
+     0.05
+    ]
+   ]
+  },
+  "lakeWaves": {
+   "water": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.03,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-planar-waves-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "waterShaders": {
+    "vertex": "56eec171",
+    "fragment": "52e48816",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uBedPass",
+      0
+     ],
+     [
+      "uBoat",
+      [
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     [
+      "uClarity",
+      0.6
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       10,
+       20,
+       30,
+       0.5
+      ]
+     ],
+     [
+      "uPatch",
+      [
+       0,
+       0,
+       1,
+       -1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uRipple",
+      0.3
+     ],
+     [
+      "uShallow",
+      "#305d50"
+     ],
+     [
+      "uShoreFoam",
+      0.08
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveK",
+      [
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ]
+      ]
+     ],
+     [
+      "uWaveN",
+      0
+     ],
+     [
+      "uWaveO",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaveT",
+      0
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t1",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-planar-waves-sheet"
+   },
+   "waterUniforms": [
+    "uAbsorb",
+    "uBedPass",
+    "uBoat",
+    "uClarity",
+    "uDeep",
+    "uDepth",
+    "uDepthGrid",
+    "uFoamAt",
+    "uInflow",
+    "uPatch",
+    "uReflMatrix",
+    "uReflect",
+    "uRipple",
+    "uShallow",
+    "uShoreFoam",
+    "uTime",
+    "uWaveK",
+    "uWaveN",
+    "uWaveO",
+    "uWaveRes",
+    "uWaveT",
+    "uWaves",
+    "uWidth",
+    "uWind"
+   ],
+   "bed": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": false,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 5,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.03,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-planar-waves-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "bedShaders": {
+    "vertex": "56eec171",
+    "fragment": "52e48816",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0.45,
+       0.09,
+       0.05
+      ]
+     ],
+     [
+      "uBedPass",
+      1
+     ],
+     [
+      "uBoat",
+      [
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     [
+      "uClarity",
+      0.6
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       10,
+       20,
+       30,
+       0.5
+      ]
+     ],
+     [
+      "uPatch",
+      [
+       0,
+       0,
+       1,
+       -1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uRipple",
+      0.3
+     ],
+     [
+      "uShallow",
+      "#305d50"
+     ],
+     [
+      "uShoreFoam",
+      0.08
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveK",
+      [
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ]
+      ]
+     ],
+     [
+      "uWaveN",
+      0
+     ],
+     [
+      "uWaveO",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaveT",
+      0
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t1",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-planar-waves-sheet"
+   },
+   "bedBlend": [
+    5,
+    100,
+    200,
+    202,
+    200,
+    201,
+    1,
+    [
+     0.45,
+     0.09,
+     0.05
+    ]
+   ]
+  },
+  "lakePatch": {
+   "water": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.03,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-planar-waves-patch",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "waterShaders": {
+    "vertex": "d379ad5d",
+    "fragment": "b4632fca",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uBedPass",
+      0
+     ],
+     [
+      "uBoat",
+      [
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     [
+      "uClarity",
+      0.6
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uDepthGrid",
+      [
+       -10,
+       -20,
+       0.2,
+       0
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       10,
+       20,
+       30,
+       0.5
+      ]
+     ],
+     [
+      "uPatch",
+      [
+       0,
+       0,
+       1,
+       -1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      {
+       "ref": "t1",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uRipple",
+      0.3
+     ],
+     [
+      "uShallow",
+      "#305d50"
+     ],
+     [
+      "uShoreFoam",
+      0.08
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveK",
+      [
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ]
+      ]
+     ],
+     [
+      "uWaveN",
+      0
+     ],
+     [
+      "uWaveO",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaveT",
+      0
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t2",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-planar-waves-patch"
+   },
+   "waterUniforms": [
+    "uAbsorb",
+    "uBedPass",
+    "uBoat",
+    "uClarity",
+    "uDeep",
+    "uDepth",
+    "uDepthGrid",
+    "uFoamAt",
+    "uInflow",
+    "uPatch",
+    "uReflMatrix",
+    "uReflect",
+    "uRipple",
+    "uShallow",
+    "uShoreFoam",
+    "uTime",
+    "uWaveK",
+    "uWaveN",
+    "uWaveO",
+    "uWaveRes",
+    "uWaveT",
+    "uWaves",
+    "uWidth",
+    "uWind"
+   ],
+   "bed": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": false,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 5,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.03,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-planar-waves-patch",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "bedShaders": {
+    "vertex": "d379ad5d",
+    "fragment": "b4632fca",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0.45,
+       0.09,
+       0.05
+      ]
+     ],
+     [
+      "uBedPass",
+      1
+     ],
+     [
+      "uBoat",
+      [
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     [
+      "uClarity",
+      0.6
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uDepthGrid",
+      [
+       -10,
+       -20,
+       0.2,
+       0
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       10,
+       20,
+       30,
+       0.5
+      ]
+     ],
+     [
+      "uPatch",
+      [
+       0,
+       0,
+       1,
+       -1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       0.5,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      {
+       "ref": "t1",
+       "type": "DataTexture",
+       "size": [
+        4,
+        4,
+        null
+       ],
+       "data": "21a49bc5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uRipple",
+      0.3
+     ],
+     [
+      "uShallow",
+      "#305d50"
+     ],
+     [
+      "uShoreFoam",
+      0.08
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveK",
+      [
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ],
+       [
+        0,
+        0,
+        0,
+        1
+       ]
+      ]
+     ],
+     [
+      "uWaveN",
+      0
+     ],
+     [
+      "uWaveO",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaveT",
+      0
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t2",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-planar-waves-patch"
+   },
+   "bedBlend": [
+    5,
+    100,
+    200,
+    202,
+    200,
+    201,
+    1,
+    [
+     0.45,
+     0.09,
+     0.05
+    ]
+   ]
+  },
+  "stream": {
+   "water": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": false,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.06,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "3f5950",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-flow-env-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "waterShaders": {
+    "vertex": "0c2c1a9b",
+    "fragment": "1c3163ec",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uBedPass",
+      0
+     ],
+     [
+      "uBoat",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uClarity",
+      3
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      null
+     ],
+     [
+      "uRipple",
+      0.6
+     ],
+     [
+      "uShallow",
+      "#000000"
+     ],
+     [
+      "uShoreFoam",
+      1
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-flow-env-calm-sheet"
+   },
+   "waterUniforms": [
+    "uAbsorb",
+    "uBedPass",
+    "uBoat",
+    "uClarity",
+    "uDeep",
+    "uDepth",
+    "uDepthGrid",
+    "uFoamAt",
+    "uInflow",
+    "uReflMatrix",
+    "uReflect",
+    "uRipple",
+    "uShallow",
+    "uShoreFoam",
+    "uTime",
+    "uWaveRes",
+    "uWaves",
+    "uWidth",
+    "uWind"
+   ],
+   "bed": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": false,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 5,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.06,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "3f5950",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-flow-env-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "bedShaders": {
+    "vertex": "0c2c1a9b",
+    "fragment": "1c3163ec",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0.45,
+       0.09,
+       0.05
+      ]
+     ],
+     [
+      "uBedPass",
+      1
+     ],
+     [
+      "uBoat",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uClarity",
+      3
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       0,
+       0,
+       -1,
+       0
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      null
+     ],
+     [
+      "uRipple",
+      0.6
+     ],
+     [
+      "uShallow",
+      "#000000"
+     ],
+     [
+      "uShoreFoam",
+      1
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-flow-env-calm-sheet"
+   },
+   "bedBlend": [
+    5,
+    100,
+    200,
+    202,
+    200,
+    201,
+    1,
+    [
+     0.45,
+     0.09,
+     0.05
+    ]
+   ]
+  },
+  "pool": {
+   "water": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.05,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-env-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "waterShaders": {
+    "vertex": "52e218f7",
+    "fragment": "2f401bc0",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0,
+       0,
+       0
+      ]
+     ],
+     [
+      "uBedPass",
+      0
+     ],
+     [
+      "uBoat",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uClarity",
+      0.5
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       5,
+       6,
+       14,
+       1
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      null
+     ],
+     [
+      "uRipple",
+      0.8
+     ],
+     [
+      "uShallow",
+      "#000000"
+     ],
+     [
+      "uShoreFoam",
+      1
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-env-calm-sheet"
+   },
+   "waterUniforms": [
+    "uAbsorb",
+    "uBedPass",
+    "uBoat",
+    "uClarity",
+    "uDeep",
+    "uDepth",
+    "uDepthGrid",
+    "uFoamAt",
+    "uInflow",
+    "uReflMatrix",
+    "uReflect",
+    "uRipple",
+    "uShallow",
+    "uShoreFoam",
+    "uTime",
+    "uWaveRes",
+    "uWaves",
+    "uWidth",
+    "uWind"
+   ],
+   "bed": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": true,
+    "opacity": 1,
+    "depthWrite": false,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 5,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.05,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": true,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "275559",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-water-still-env-calm-sheet",
+    "userData": [
+     "thermal",
+     "water"
+    ]
+   },
+   "bedShaders": {
+    "vertex": "52e218f7",
+    "fragment": "2f401bc0",
+    "added": [
+     [
+      "uAbsorb",
+      [
+       0.45,
+       0.09,
+       0.05
+      ]
+     ],
+     [
+      "uBedPass",
+      1
+     ],
+     [
+      "uBoat",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uClarity",
+      0.5
+     ],
+     [
+      "uDeep",
+      "#000000"
+     ],
+     [
+      "uDepth",
+      null
+     ],
+     [
+      "uDepthGrid",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uFoamAt",
+      [
+       5,
+       6,
+       14,
+       1
+      ]
+     ],
+     [
+      "uInflow",
+      [
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflMatrix",
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ]
+     ],
+     [
+      "uReflect",
+      null
+     ],
+     [
+      "uRipple",
+      0.8
+     ],
+     [
+      "uShallow",
+      "#000000"
+     ],
+     [
+      "uShoreFoam",
+      1
+     ],
+     [
+      "uTime",
+      0
+     ],
+     [
+      "uWaveRes",
+      5
+     ],
+     [
+      "uWaves",
+      {
+       "ref": "t0",
+       "type": "DataTexture",
+       "size": [
+        8,
+        8,
+        null
+       ],
+       "data": "d65095c5",
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1003,
+        1003
+       ],
+       "mips": false,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": false,
+       "anisotropy": 1
+      }
+     ],
+     [
+      "uWidth",
+      4
+     ],
+     [
+      "uWind",
+      [
+       0.8,
+       -0.6
+      ]
+     ]
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 2
+    },
+    "key": "swiss2-water-still-env-calm-sheet"
+   },
+   "bedBlend": [
+    5,
+    100,
+    200,
+    202,
+    200,
+    201,
+    1,
+    [
+     0.45,
+     0.09,
+     0.05
+    ]
+   ]
+  }
+ },
+ "mirror": {
+  "keys": [
+   "dispose",
+   "matrix",
+   "render",
+   "setLevel",
+   "share",
+   "texture"
+  ],
+  "whole": [
+   true,
+   [
+    -0.503203170019,
+    -0.0219895104392,
+    -0.0326718432036,
+    -0.0326685760192,
+    0.0980057280577,
+    -0.751220173457,
+    0.196031059221,
+    0.196011456115,
+    -0.473799677555,
+    -0.659685313177,
+    -0.980155296107,
+    -0.980057280577,
+    17.2916914856,
+    7.83700515132,
+    32.1391213554,
+    32.6359074432
+   ],
+   1,
+   [
+    160,
+    90
+   ],
+   true
+  ],
+  "bounded": [
+   true,
+   [
+    -0.503203170019,
+    -0.0219895104392,
+    -0.0326718432036,
+    -0.0326685760192,
+    0.0980057280577,
+    -0.751220173457,
+    0.196031059221,
+    0.196011456115,
+    -0.473799677555,
+    -0.659685313177,
+    -0.980155296107,
+    -0.980057280577,
+    17.2916914856,
+    7.83700515132,
+    32.1391213554,
+    32.6359074432
+   ],
+   0.455555555556
+  ],
+  "under": [
+   false,
+   0.455555555556
+  ],
+  "defaultScale": [
+   true,
+   [
+    160,
+    90
+   ],
+   1016,
+   false
+  ]
+ },
+ "stream": {
+  "ribbon": {
+   "ref": "g0",
+   "type": "BufferGeometry",
+   "attrs": {
+    "position": {
+     "n": 1620,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "6e20c56e",
+     "inst": false
+    },
+    "normal": {
+     "n": 1620,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "155af725",
+     "inst": false
+    },
+    "aWater": {
+     "n": 1620,
+     "size": 4,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "8be1d7c1",
+     "inst": false
+    },
+    "aFlow": {
+     "n": 1620,
+     "size": 2,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "adb0d100",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": {
+    "n": 7752,
+    "type": "Uint16Array",
+    "hash": "a05bc954"
+   },
+   "groups": [],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  },
+  "lifted": {
+   "ref": "g1",
+   "type": "BufferGeometry",
+   "attrs": {
+    "position": {
+     "n": 520,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "28317964",
+     "inst": false
+    },
+    "normal": {
+     "n": 520,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "cef75785",
+     "inst": false
+    },
+    "aWater": {
+     "n": 520,
+     "size": 4,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "f25e7827",
+     "inst": false
+    },
+    "aFlow": {
+     "n": 520,
+     "size": 2,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "8d90188b",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": {
+    "n": 2472,
+    "type": "Uint16Array",
+    "hash": "6d70b907"
+   },
+   "groups": [],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  },
+  "surface": [
+   {
+    "x": 0,
+    "y": 100.46,
+    "z": 0
+   },
+   {
+    "x": 1.33333333333,
+    "y": 100.764066253,
+    "z": 1.4905905371
+   },
+   {
+    "x": 2.66666666667,
+    "y": 100.955453936,
+    "z": 2.9811810742
+   },
+   {
+    "x": 4,
+    "y": 100.966440204,
+    "z": 4.47177161131
+   },
+   {
+    "x": 5.33333333333,
+    "y": 100.76980435,
+    "z": 5.96236214841
+   },
+   {
+    "x": 6.66666666667,
+    "y": 100.386007476,
+    "z": 7.45295268551
+   },
+   {
+    "x": 8,
+    "y": 99.8790197557,
+    "z": 8.94354322261
+   },
+   {
+    "x": 9.6,
+    "y": 99.7130184846,
+    "z": 8.91356987725
+   },
+   {
+    "x": 11.2,
+    "y": 99.5574251217,
+    "z": 8.88359653188
+   },
+   {
+    "x": 12.8,
+    "y": 99.4207128698,
+    "z": 8.85362318651
+   },
+   {
+    "x": 14.4,
+    "y": 99.309436495,
+    "z": 8.82364984114
+   },
+   {
+    "x": 16,
+    "y": 99.227566747,
+    "z": 8.79367649578
+   },
+   {
+    "x": 17.6,
+    "y": 99.0688589797,
+    "z": 9.17084268238
+   },
+   {
+    "x": 19.2,
+    "y": 98.9373874953,
+    "z": 9.54800886899
+   },
+   {
+    "x": 20.8,
+    "y": 98.8297619504,
+    "z": 9.9251750556
+   },
+   {
+    "x": 22.4,
+    "y": 98.7402154086,
+    "z": 10.3023412422
+   },
+   {
+    "x": 24,
+    "y": 98.6613251592,
+    "z": 10.6795074288
+   },
+   {
+    "x": 25.1428571429,
+    "y": 98.3758955104,
+    "z": 12.0863702956
+   },
+   {
+    "x": 26.2857142857,
+    "y": 98.219534842,
+    "z": 13.4932331625
+   },
+   {
+    "x": 27.4285714286,
+    "y": 98.223857273,
+    "z": 14.9000960293
+   },
+   {
+    "x": 28.5714285714,
+    "y": 98.3844572502,
+    "z": 16.3069588961
+   },
+   {
+    "x": 29.7142857143,
+    "y": 98.6613996009,
+    "z": 17.713821763
+   },
+   {
+    "x": 30.8571428571,
+    "y": 98.987473976,
+    "z": 19.1206846298
+   },
+   {
+    "x": 32,
+    "y": 99.2824505659,
+    "z": 20.5275474966
+   },
+   {
+    "x": 33.6,
+    "y": 99.3705124759,
+    "z": 21.5018888066
+   },
+   {
+    "x": 35.2,
+    "y": 99.3662872819,
+    "z": 22.4762301165
+   },
+   {
+    "x": 36.8,
+    "y": 99.2616893546,
+    "z": 23.4505714265
+   },
+   {
+    "x": 38.4,
+    "y": 99.0590607947,
+    "z": 24.4249127364
+   },
+   {
+    "x": 40,
+    "y": 98.7709498801,
+    "z": 25.3992540464
+   },
+   {
+    "x": 41.6,
+    "y": 98.6771442795,
+    "z": 24.8083293959
+   },
+   {
+    "x": 43.2,
+    "y": 98.5687177194,
+    "z": 24.2174047454
+   },
+   {
+    "x": 44.8,
+    "y": 98.451638572,
+    "z": 23.6264800949
+   },
+   {
+    "x": 46.4,
+    "y": 98.3308552464,
+    "z": 23.0355554444
+   },
+   {
+    "x": 48,
+    "y": 98.2097479986,
+    "z": 22.4446307939
+   },
+   {
+    "x": 49.6,
+    "y": 98.2009266682,
+    "z": 22.9778648208
+   },
+   {
+    "x": 51.2,
+    "y": 98.1941730617,
+    "z": 23.5110988478
+   },
+   {
+    "x": 52.8,
+    "y": 98.183100783,
+    "z": 24.0443328747
+   },
+   {
+    "x": 54.4,
+    "y": 98.1599971152,
+    "z": 24.5775669017
+   },
+   {
+    "x": 56,
+    "y": 98.1166286013,
+    "z": 25.1108009287
+   },
+   {
+    "x": 57.3333333333,
+    "y": 97.9064350087,
+    "z": 26.3581314906
+   },
+   {
+    "x": 58.6666666667,
+    "y": 97.605347801,
+    "z": 27.6054620526
+   },
+   {
+    "x": 60,
+    "y": 97.2598546056,
+    "z": 28.8527926145
+   },
+   {
+    "x": 61.3333333333,
+    "y": 96.9225873432,
+    "z": 30.1001231764
+   },
+   {
+    "x": 62.6666666667,
+    "y": 96.6429920065,
+    "z": 31.3474537384
+   },
+   {
+    "x": 64,
+    "y": 96.4586674347,
+    "z": 32.5947843003
+   },
+   {
+    "x": 65.6,
+    "y": 96.3515885399,
+    "z": 32.3781898184
+   },
+   {
+    "x": 67.2,
+    "y": 96.2226835557,
+    "z": 32.1615953365
+   },
+   {
+    "x": 68.8,
+    "y": 96.0782341637,
+    "z": 31.9450008545
+   },
+   {
+    "x": 70.4,
+    "y": 95.9264866471,
+    "z": 31.7284063726
+   },
+   {
+    "x": 72,
+    "y": 95.7768057799,
+    "z": 31.5118118906
+   },
+   {
+    "x": 73.6,
+    "y": 95.7917096986,
+    "z": 30.4127792655
+   },
+   {
+    "x": 75.2,
+    "y": 95.892810108,
+    "z": 29.3137466404
+   },
+   {
+    "x": 76.8,
+    "y": 96.0538768382,
+    "z": 28.2147140153
+   },
+   {
+    "x": 78.4,
+    "y": 96.2414670702,
+    "z": 27.1156813902
+   },
+   {
+    "x": 80,
+    "y": 96.4195108703,
+    "z": 26.016648765
+   },
+   {
+    "x": 81.6,
+    "y": 96.283041159,
+    "z": 26.4885277139
+   },
+   {
+    "x": 83.2,
+    "y": 96.1604256952,
+    "z": 26.9604066628
+   },
+   {
+    "x": 84.8,
+    "y": 96.0475927363,
+    "z": 27.4322856117
+   },
+   {
+    "x": 86.4,
+    "y": 95.9388336494,
+    "z": 27.9041645606
+   },
+   {
+    "x": 88,
+    "y": 95.8276057548,
+    "z": 28.3760435095
+   },
+   {
+    "x": 89.6,
+    "y": 95.6791216276,
+    "z": 28.9564536886
+   },
+   {
+    "x": 91.2,
+    "y": 95.519146427,
+    "z": 29.5368638678
+   },
+   {
+    "x": 92.8,
+    "y": 95.3463931658,
+    "z": 30.117274047
+   },
+   {
+    "x": 94.4,
+    "y": 95.1616553147,
+    "z": 30.6976842262
+   },
+   {
+    "x": 96,
+    "y": 94.9680480267,
+    "z": 31.2780944053
+   },
+   {
+    "x": 97.3333333333,
+    "y": 95.0739047528,
+    "z": 30.1309560348
+   },
+   {
+    "x": 98.6666666667,
+    "y": 95.2295002377,
+    "z": 28.9838176643
+   },
+   {
+    "x": 100,
+    "y": 95.3987189786,
+    "z": 27.8366792937
+   },
+   {
+    "x": 101.333333333,
+    "y": 95.5424857437,
+    "z": 26.6895409232
+   },
+   {
+    "x": 102.666666667,
+    "y": 95.6247633567,
+    "z": 25.5424025526
+   },
+   {
+    "x": 104,
+    "y": 95.6181567807,
+    "z": 24.3952641821
+   },
+   {
+    "x": 105.333333333,
+    "y": 95.509539904,
+    "z": 23.2969505966
+   },
+   {
+    "x": 106.666666667,
+    "y": 95.3080747159,
+    "z": 22.1986370111
+   },
+   {
+    "x": 108,
+    "y": 95.0281192108,
+    "z": 21.1003234256
+   },
+   {
+    "x": 109.333333333,
+    "y": 94.695472642,
+    "z": 20.0020098401
+   },
+   {
+    "x": 110.666666667,
+    "y": 94.3441306756,
+    "z": 18.9036962547
+   },
+   {
+    "x": 112,
+    "y": 94.0118684521,
+    "z": 17.8053826692
+   },
+   {
+    "x": 113.6,
+    "y": 94.0641992257,
+    "z": 18.1223856832
+   },
+   {
+    "x": 115.2,
+    "y": 94.1413924163,
+    "z": 18.4393886972
+   },
+   {
+    "x": 116.8,
+    "y": 94.2349876774,
+    "z": 18.7563917112
+   },
+   {
+    "x": 118.4,
+    "y": 94.3349692995,
+    "z": 19.0733947252
+   },
+   {
+    "x": 120,
+    "y": 94.4306982132,
+    "z": 19.3903977392
+   },
+   {
+    "x": 121.6,
+    "y": 94.3155309773,
+    "z": 18.9593724005
+   },
+   {
+    "x": 123.2,
+    "y": 94.178819704,
+    "z": 18.5283470618
+   },
+   {
+    "x": 124.8,
+    "y": 94.0170348119,
+    "z": 18.0973217231
+   },
+   {
+    "x": 126.4,
+    "y": 93.829334987,
+    "z": 17.6662963844
+   },
+   {
+    "x": 128,
+    "y": 93.6178410492,
+    "z": 17.2352710457
+   },
+   {
+    "x": 129.142857143,
+    "y": 93.2444315801,
+    "z": 15.7387272765
+   },
+   {
+    "x": 130.285714286,
+    "y": 93.0268980973,
+    "z": 14.2421835072
+   },
+   {
+    "x": 131.428571429,
+    "y": 92.9948309624,
+    "z": 12.745639738
+   },
+   {
+    "x": 132.571428571,
+    "y": 93.1308145977,
+    "z": 11.2490959688
+   },
+   {
+    "x": 133.714285714,
+    "y": 93.3752602098,
+    "z": 9.75255219958
+   },
+   {
+    "x": 134.857142857,
+    "y": 93.6415805974,
+    "z": 8.25600843036
+   },
+   {
+    "x": 136,
+    "y": 93.8379745945,
+    "z": 6.75946466114
+   },
+   {
+    "x": 137.6,
+    "y": 93.8208358669,
+    "z": 5.671603163
+   },
+   {
+    "x": 139.2,
+    "y": 93.7271193863,
+    "z": 4.58374166487
+   },
+   {
+    "x": 140.8,
+    "y": 93.5570819916,
+    "z": 3.49588016674
+   },
+   {
+    "x": 142.4,
+    "y": 93.3216950467,
+    "z": 2.4080186686
+   },
+   {
+    "x": 144,
+    "y": 93.0412925268,
+    "z": 1.32015717047
+   },
+   {
+    "x": 145.6,
+    "y": 93.0702585687,
+    "z": 1.52435973326
+   },
+   {
+    "x": 147.2,
+    "y": 93.1176231829,
+    "z": 1.72856229605
+   },
+   {
+    "x": 148.8,
+    "y": 93.1749740975,
+    "z": 1.93276485883
+   },
+   {
+    "x": 150.4,
+    "y": 93.2326895357,
+    "z": 2.13696742162
+   },
+   {
+    "x": 152,
+    "y": 93.2808950839,
+    "z": 2.34116998441
+   },
+   {
+    "x": 153.6,
+    "y": 93.010140122,
+    "z": 1.15279435917
+   },
+   {
+    "x": 155.2,
+    "y": 92.6695622422,
+    "z": -0.0355812660679
+   },
+   {
+    "x": 156.8,
+    "y": 92.3021220755,
+    "z": -1.22395689131
+   },
+   {
+    "x": 158.4,
+    "y": 91.95342917,
+    "z": -2.41233251655
+   },
+   {
+    "x": 160,
+    "y": 91.6645673333,
+    "z": -3.60070814178
+   },
+   {
+    "x": 161.142857143,
+    "y": 91.5161293456,
+    "z": -5.10948748125
+   },
+   {
+    "x": 162.285714286,
+    "y": 91.5533470902,
+    "z": -6.61826682071
+   },
+   {
+    "x": 163.428571429,
+    "y": 91.7421468544,
+    "z": -8.12704616017
+   },
+   {
+    "x": 164.571428571,
+    "y": 92.0093736506,
+    "z": -9.63582549963
+   },
+   {
+    "x": 165.714285714,
+    "y": 92.2615450311,
+    "z": -11.1446048391
+   },
+   {
+    "x": 166.857142857,
+    "y": 92.4086860492,
+    "z": -12.6533841786
+   },
+   {
+    "x": 168,
+    "y": 92.3873070865,
+    "z": -14.162163518
+   },
+   {
+    "x": 169.6,
+    "y": 92.230495116,
+    "z": -14.5731303871
+   },
+   {
+    "x": 171.2,
+    "y": 92.0833277082,
+    "z": -14.9840972563
+   },
+   {
+    "x": 172.8,
+    "y": 91.950700548,
+    "z": -15.3950641254
+   },
+   {
+    "x": 174.4,
+    "y": 91.8348411831,
+    "z": -15.8060309945
+   },
+   {
+    "x": 176,
+    "y": 91.7351412407,
+    "z": -16.2169978637
+   },
+   {
+    "x": 177.6,
+    "y": 91.7572898534,
+    "z": -16.012390309
+   },
+   {
+    "x": 179.2,
+    "y": 91.7938287352,
+    "z": -15.8077827543
+   },
+   {
+    "x": 180.8,
+    "y": 91.8358703812,
+    "z": -15.6031751997
+   },
+   {
+    "x": 182.4,
+    "y": 91.873662669,
+    "z": -15.398567645
+   },
+   {
+    "x": 184,
+    "y": 91.8975667147,
+    "z": -15.1939600903
+   },
+   {
+    "x": 185.333333333,
+    "y": 91.7149294115,
+    "z": -16.4185170469
+   },
+   {
+    "x": 186.666666667,
+    "y": 91.4199463535,
+    "z": -17.6430740035
+   },
+   {
+    "x": 188,
+    "y": 91.0537077511,
+    "z": -18.8676309601
+   },
+   {
+    "x": 189.333333333,
+    "y": 90.6671580063,
+    "z": -20.0921879167
+   },
+   {
+    "x": 190.666666667,
+    "y": 90.3126031806,
+    "z": -21.3167448733
+   },
+   {
+    "x": 192,
+    "y": 90.035134389,
+    "z": -22.5413018298
+   },
+   {
+    "x": 193.333333333,
+    "y": 89.8646694736,
+    "z": -23.7222388965
+   },
+   {
+    "x": 194.666666667,
+    "y": 89.8043717633,
+    "z": -24.9031759631
+   },
+   {
+    "x": 196,
+    "y": 89.8474157797,
+    "z": -26.0841130297
+   },
+   {
+    "x": 197.333333333,
+    "y": 89.9705920044,
+    "z": -27.2650500964
+   },
+   {
+    "x": 198.666666667,
+    "y": 90.1383115155,
+    "z": -28.445987163
+   },
+   {
+    "x": 200,
+    "y": 90.3085128712,
+    "z": -29.6269242296
+   },
+   {
+    "x": 201.6,
+    "y": 90.0378956826,
+    "z": -29.1028365784
+   },
+   {
+    "x": 203.2,
+    "y": 89.787060198,
+    "z": -28.5787489271
+   },
+   {
+    "x": 204.8,
+    "y": 89.5636051547,
+    "z": -28.0546612759
+   },
+   {
+    "x": 206.4,
+    "y": 89.3721740098,
+    "z": -27.5305736246
+   },
+   {
+    "x": 208,
+    "y": 89.2142855134,
+    "z": -27.0064859734
+   },
+   {
+    "x": 209.6,
+    "y": 89.1417658124,
+    "z": -26.7180263143
+   },
+   {
+    "x": 211.2,
+    "y": 89.087285479,
+    "z": -26.4295666553
+   },
+   {
+    "x": 212.8,
+    "y": 89.0422669105,
+    "z": -26.1411069962
+   },
+   {
+    "x": 214.4,
+    "y": 88.9975653539,
+    "z": -25.8526473372
+   },
+   {
+    "x": 216,
+    "y": 88.9444490353,
+    "z": -25.5641876782
+   },
+   {
+    "x": 217.333333333,
+    "y": 89.1315231254,
+    "z": -26.6038146203
+   },
+   {
+    "x": 218.666666667,
+    "y": 89.350416507,
+    "z": -27.6434415624
+   },
+   {
+    "x": 220,
+    "y": 89.5686119956,
+    "z": -28.6830685045
+   },
+   {
+    "x": 221.333333333,
+    "y": 89.7526846318,
+    "z": -29.7226954467
+   },
+   {
+    "x": 222.666666667,
+    "y": 89.8722443681,
+    "z": -30.7623223888
+   },
+   {
+    "x": 224,
+    "y": 89.9035901758,
+    "z": -31.8019493309
+   },
+   {
+    "x": 225.6,
+    "y": 89.7676787757,
+    "z": -32.0555891524
+   },
+   {
+    "x": 227.2,
+    "y": 89.6135424075,
+    "z": -32.309228974
+   },
+   {
+    "x": 228.8,
+    "y": 89.4503987104,
+    "z": -32.5628687955
+   },
+   {
+    "x": 230.4,
+    "y": 89.2878541056,
+    "z": -32.816508617
+   },
+   {
+    "x": 232,
+    "y": 89.134920143,
+    "z": -33.0701484385
+   },
+   {
+    "x": 233.333333333,
+    "y": 88.9728226567,
+    "z": -31.9062589549
+   },
+   {
+    "x": 234.666666667,
+    "y": 88.7184734136,
+    "z": -30.7423694712
+   },
+   {
+    "x": 236,
+    "y": 88.3977903033,
+    "z": -29.5784799875
+   },
+   {
+    "x": 237.333333333,
+    "y": 88.0481739801,
+    "z": -28.4145905039
+   },
+   {
+    "x": 238.666666667,
+    "y": 87.7129738803,
+    "z": -27.2507010202
+   },
+   {
+    "x": 240,
+    "y": 87.4349535146,
+    "z": -26.0868115365
+   },
+   {
+    "x": 241.6,
+    "y": 87.3721643926,
+    "z": -25.7412282808
+   },
+   {
+    "x": 243.2,
+    "y": 87.3284496691,
+    "z": -25.395645025
+   },
+   {
+    "x": 244.8,
+    "y": 87.295083892,
+    "z": -25.0500617692
+   },
+   {
+    "x": 246.4,
+    "y": 87.2630574709,
+    "z": -24.7044785134
+   },
+   {
+    "x": 248,
+    "y": 87.2240480767,
+    "z": -24.3588952577
+   },
+   {
+    "x": 249.6,
+    "y": 87.2570672551,
+    "z": -25.0371943613
+   },
+   {
+    "x": 251.2,
+    "y": 87.2973250159,
+    "z": -25.7154934649
+   },
+   {
+    "x": 252.8,
+    "y": 87.337807324,
+    "z": -26.3937925684
+   },
+   {
+    "x": 254.4,
+    "y": 87.3730302028,
+    "z": -27.072091672
+   },
+   {
+    "x": 256,
+    "y": 87.3992529948,
+    "z": -27.7503907756
+   },
+   {
+    "x": 257.6,
+    "y": 86.9912287086,
+    "z": -26.7805670067
+   },
+   {
+    "x": 259.2,
+    "y": 86.6133141628,
+    "z": -25.8107432378
+   },
+   {
+    "x": 260.8,
+    "y": 86.2961776603,
+    "z": -24.8409194689
+   },
+   {
+    "x": 262.4,
+    "y": 86.0641911639,
+    "z": -23.8710956999
+   },
+   {
+    "x": 264,
+    "y": 85.9329251985,
+    "z": -22.901271931
+   },
+   {
+    "x": 265.142857143,
+    "y": 85.9948556311,
+    "z": -21.565137628
+   },
+   {
+    "x": 266.285714286,
+    "y": 86.1940534878,
+    "z": -20.2290033249
+   },
+   {
+    "x": 267.428571429,
+    "y": 86.4779488098,
+    "z": -18.8928690218
+   },
+   {
+    "x": 268.571428571,
+    "y": 86.7796546616,
+    "z": -17.5567347188
+   },
+   {
+    "x": 269.714285714,
+    "y": 87.0310352103,
+    "z": -16.2206004157
+   },
+   {
+    "x": 270.857142857,
+    "y": 87.1759016781,
+    "z": -14.8844661126
+   },
+   {
+    "x": 272,
+    "y": 87.1807666588,
+    "z": -13.5483318096
+   },
+   {
+    "x": 273.6,
+    "y": 87.1722785008,
+    "z": -13.2963671891
+   },
+   {
+    "x": 275.2,
+    "y": 87.1661381832,
+    "z": -13.0444025687
+   },
+   {
+    "x": 276.8,
+    "y": 87.1528368625,
+    "z": -12.7924379482
+   },
+   {
+    "x": 278.4,
+    "y": 87.1230948527,
+    "z": -12.5404733278
+   },
+   {
+    "x": 280,
+    "y": 87.0688214644,
+    "z": -12.2885087073
+   },
+   {
+    "x": 281.6,
+    "y": 87.0277017148,
+    "z": -12.3058092478
+   },
+   {
+    "x": 283.2,
+    "y": 86.9568942801,
+    "z": -12.3231097883
+   },
+   {
+    "x": 284.8,
+    "y": 86.8557331574,
+    "z": -12.3404103288
+   },
+   {
+    "x": 286.4,
+    "y": 86.7266319069,
+    "z": -12.3577108692
+   },
+   {
+    "x": 288,
+    "y": 86.5748385962,
+    "z": -12.3750114097
+   },
+   {
+    "x": 289.142857143,
+    "y": 86.2051606865,
+    "z": -11.0664780902
+   },
+   {
+    "x": 290.285714286,
+    "y": 85.753060526,
+    "z": -9.75794477066
+   },
+   {
+    "x": 291.428571429,
+    "y": 85.2833861572,
+    "z": -8.44941145114
+   },
+   {
+    "x": 292.571428571,
+    "y": 84.8641450224,
+    "z": -7.14087813162
+   },
+   {
+    "x": 293.714285714,
+    "y": 84.5542499892,
+    "z": -5.83234481211
+   },
+   {
+    "x": 294.857142857,
+    "y": 84.392950203,
+    "z": -4.52381149259
+   },
+   {
+    "x": 296,
+    "y": 84.3929018213,
+    "z": -3.21527817307
+   },
+   {
+    "x": 297.333333333,
+    "y": 84.5545969353,
+    "z": -1.7750371003
+   },
+   {
+    "x": 298.666666667,
+    "y": 84.8378511763,
+    "z": -0.334796027523
+   },
+   {
+    "x": 300,
+    "y": 85.1624356627,
+    "z": 1.10544504525
+   },
+   {
+    "x": 301.333333333,
+    "y": 85.4420698007,
+    "z": 2.54568611802
+   },
+   {
+    "x": 302.666666667,
+    "y": 85.6037742126,
+    "z": 3.98592719079
+   },
+   {
+    "x": 304,
+    "y": 85.6039945965,
+    "z": 5.42616826357
+   },
+   {
+    "x": 305.6,
+    "y": 85.6183871609,
+    "z": 5.37502949215
+   },
+   {
+    "x": 307.2,
+    "y": 85.6368350971,
+    "z": 5.32389072073
+   },
+   {
+    "x": 308.8,
+    "y": 85.6496340447,
+    "z": 5.2727519493
+   },
+   {
+    "x": 310.4,
+    "y": 85.6476301341,
+    "z": 5.22161317788
+   },
+   {
+    "x": 312,
+    "y": 85.6231492936,
+    "z": 5.17047440646
+   },
+   {
+    "x": 313.6,
+    "y": 85.5383020822,
+    "z": 5.66294476405
+   },
+   {
+    "x": 315.2,
+    "y": 85.4027475928,
+    "z": 6.15541512163
+   },
+   {
+    "x": 316.8,
+    "y": 85.2183229198,
+    "z": 6.64788547921
+   },
+   {
+    "x": 318.4,
+    "y": 84.9904035642,
+    "z": 7.1403558368
+   },
+   {
+    "x": 320,
+    "y": 84.7274981928,
+    "z": 7.63282619438
+   },
+   {
+    "x": 321.142857143,
+    "y": 84.2416331622,
+    "z": 9.0985756114
+   },
+   {
+    "x": 322.285714286,
+    "y": 83.7327501318,
+    "z": 10.5643250284
+   },
+   {
+    "x": 323.428571429,
+    "y": 83.2941278555,
+    "z": 12.0300744454
+   },
+   {
+    "x": 324.571428571,
+    "y": 83.0027585814,
+    "z": 13.4958238625
+   },
+   {
+    "x": 325.714285714,
+    "y": 82.9019701898,
+    "z": 14.9615732795
+   },
+   {
+    "x": 326.857142857,
+    "y": 82.9918846159,
+    "z": 16.4273226965
+   },
+   {
+    "x": 328,
+    "y": 83.2299142401,
+    "z": 17.8930721135
+   },
+   {
+    "x": 329.6,
+    "y": 83.3834506356,
+    "z": 18.8608894637
+   },
+   {
+    "x": 331.2,
+    "y": 83.5670904659,
+    "z": 19.8287068139
+   },
+   {
+    "x": 332.8,
+    "y": 83.7536494258,
+    "z": 20.7965241641
+   },
+   {
+    "x": 334.4,
+    "y": 83.9156903882,
+    "z": 21.7643415143
+   },
+   {
+    "x": 336,
+    "y": 84.0283476212,
+    "z": 22.7321588645
+   },
+   {
+    "x": 337.6,
+    "y": 83.9947002247,
+    "z": 22.2259311872
+   },
+   {
+    "x": 339.2,
+    "y": 83.9412824003,
+    "z": 21.7197035098
+   },
+   {
+    "x": 340.8,
+    "y": 83.8604134955,
+    "z": 21.2134758324
+   },
+   {
+    "x": 342.4,
+    "y": 83.7458418057,
+    "z": 20.7072481551
+   },
+   {
+    "x": 344,
+    "y": 83.5935594002,
+    "z": 20.2010204777
+   },
+   {
+    "x": 345.6,
+    "y": 83.6883414268,
+    "z": 20.9152571772
+   },
+   {
+    "x": 347.2,
+    "y": 83.7239871275,
+    "z": 21.6294938768
+   },
+   {
+    "x": 348.8,
+    "y": 83.6946806131,
+    "z": 22.3437305763
+   },
+   {
+    "x": 350.4,
+    "y": 83.5995724534,
+    "z": 23.0579672759
+   },
+   {
+    "x": 352,
+    "y": 83.4426234816,
+    "z": 23.7722039754
+   },
+   {
+    "x": 353.333333333,
+    "y": 83.1969012252,
+    "z": 25.0948443185
+   },
+   {
+    "x": 354.666666667,
+    "y": 82.8173168387,
+    "z": 26.4174846616
+   },
+   {
+    "x": 356,
+    "y": 82.3541615719,
+    "z": 27.7401250047
+   },
+   {
+    "x": 357.333333333,
+    "y": 81.8743356962,
+    "z": 29.0627653478
+   },
+   {
+    "x": 358.666666667,
+    "y": 81.449185078,
+    "z": 30.3854056909
+   },
+   {
+    "x": 360,
+    "y": 81.1413986599,
+    "z": 31.708046034
+   },
+   {
+    "x": 361.6,
+    "y": 81.0733087774,
+    "z": 31.5281347011
+   },
+   {
+    "x": 363.2,
+    "y": 81.0381594951,
+    "z": 31.3482233682
+   },
+   {
+    "x": 364.8,
+    "y": 81.0337158161,
+    "z": 31.1683120353
+   },
+   {
+    "x": 366.4,
+    "y": 81.0548659376,
+    "z": 30.9884007023
+   },
+   {
+    "x": 368,
+    "y": 81.0941310451,
+    "z": 30.8084893694
+   },
+   {
+    "x": 369.6,
+    "y": 81.3035686696,
+    "z": 29.8631900722
+   },
+   {
+    "x": 371.2,
+    "y": 81.5499882741,
+    "z": 28.917890775
+   },
+   {
+    "x": 372.8,
+    "y": 81.8009643874,
+    "z": 27.9725914778
+   },
+   {
+    "x": 374.4,
+    "y": 82.0236602357,
+    "z": 27.0272921806
+   },
+   {
+    "x": 376,
+    "y": 82.188086112,
+    "z": 26.0819928833
+   },
+   {
+    "x": 377.6,
+    "y": 81.9700981772,
+    "z": 26.7366885055
+   },
+   {
+    "x": 379.2,
+    "y": 81.7032668016,
+    "z": 27.3913841277
+   },
+   {
+    "x": 380.8,
+    "y": 81.3978923977,
+    "z": 28.0460797498
+   },
+   {
+    "x": 382.4,
+    "y": 81.0675931389,
+    "z": 28.700775372
+   },
+   {
+    "x": 384,
+    "y": 80.7283617641,
+    "z": 29.3554709941
+   },
+   {
+    "x": 385.6,
+    "y": 80.401333886,
+    "z": 29.9925295102
+   },
+   {
+    "x": 387.2,
+    "y": 80.0983639783,
+    "z": 30.6295880262
+   },
+   {
+    "x": 388.8,
+    "y": 79.8346202106,
+    "z": 31.2666465422
+   },
+   {
+    "x": 390.4,
+    "y": 79.6227262063,
+    "z": 31.9037050582
+   },
+   {
+    "x": 392,
+    "y": 79.4717503498,
+    "z": 32.5407635743
+   },
+   {
+    "x": 393.333333333,
+    "y": 79.5002111334,
+    "z": 31.4363897724
+   },
+   {
+    "x": 394.666666667,
+    "y": 79.6429047104,
+    "z": 30.3320159705
+   },
+   {
+    "x": 396,
+    "y": 79.873077362,
+    "z": 29.2276421687
+   },
+   {
+    "x": 397.333333333,
+    "y": 80.1534936926,
+    "z": 28.1232683668
+   },
+   {
+    "x": 398.666666667,
+    "y": 80.4412464164,
+    "z": 27.0188945649
+   },
+   {
+    "x": 400,
+    "y": 80.6932511754,
+    "z": 25.914520763
+   },
+   {
+    "x": 401.6,
+    "y": 80.8794346153,
+    "z": 24.7597510436
+   },
+   {
+    "x": 403.2,
+    "y": 80.9514190744,
+    "z": 23.6049813241
+   },
+   {
+    "x": 404.8,
+    "y": 80.8909573832,
+    "z": 22.4502116046
+   },
+   {
+    "x": 406.4,
+    "y": 80.6984959123,
+    "z": 21.2954418851
+   },
+   {
+    "x": 408,
+    "y": 80.3927736215,
+    "z": 20.1406721656
+   },
+   {
+    "x": 409.6,
+    "y": 80.4067286737,
+    "z": 20.5752676499
+   },
+   {
+    "x": 411.2,
+    "y": 80.3819701375,
+    "z": 21.0098631341
+   },
+   {
+    "x": 412.8,
+    "y": 80.3203303232,
+    "z": 21.4444586184
+   },
+   {
+    "x": 414.4,
+    "y": 80.2264954828,
+    "z": 21.8790541027
+   },
+   {
+    "x": 416,
+    "y": 80.1073927944,
+    "z": 22.3136495869
+   },
+   {
+    "x": 417.6,
+    "y": 79.8770275607,
+    "z": 21.8721228667
+   },
+   {
+    "x": 419.2,
+    "y": 79.6400968413,
+    "z": 21.4305961464
+   },
+   {
+    "x": 420.8,
+    "y": 79.4069438115,
+    "z": 20.9890694261
+   },
+   {
+    "x": 422.4,
+    "y": 79.186480312,
+    "z": 20.5475427058
+   },
+   {
+    "x": 424,
+    "y": 78.985425553,
+    "z": 20.1060159856
+   },
+   {
+    "x": 425.142857143,
+    "y": 78.5518843191,
+    "z": 18.6345367277
+   },
+   {
+    "x": 426.285714286,
+    "y": 78.1471286166,
+    "z": 17.1630574699
+   },
+   {
+    "x": 427.428571429,
+    "y": 77.8570789269,
+    "z": 15.691578212
+   },
+   {
+    "x": 428.571428571,
+    "y": 77.7432101197,
+    "z": 14.2200989542
+   },
+   {
+    "x": 429.714285714,
+    "y": 77.8277147468,
+    "z": 12.7486196964
+   },
+   {
+    "x": 430.857142857,
+    "y": 78.0878114466,
+    "z": 11.2771404385
+   },
+   {
+    "x": 432,
+    "y": 78.4605643842,
+    "z": 9.80566118067
+   },
+   {
+    "x": 433.6,
+    "y": 78.7331692125,
+    "z": 8.83204819673
+   },
+   {
+    "x": 435.2,
+    "y": 78.9796186125,
+    "z": 7.85843521278
+   },
+   {
+    "x": 436.8,
+    "y": 79.1660730457,
+    "z": 6.88482222884
+   },
+   {
+    "x": 438.4,
+    "y": 79.2649039395,
+    "z": 5.9112092449
+   },
+   {
+    "x": 440,
+    "y": 79.257558896,
+    "z": 4.93759626095
+   },
+   {
+    "x": 441.6,
+    "y": 79.1527653388,
+    "z": 5.1497444727
+   },
+   {
+    "x": 443.2,
+    "y": 79.015460017,
+    "z": 5.36189268444
+   },
+   {
+    "x": 444.8,
+    "y": 78.850477474,
+    "z": 5.57404089619
+   },
+   {
+    "x": 446.4,
+    "y": 78.6650852899,
+    "z": 5.78618910793
+   },
+   {
+    "x": 448,
+    "y": 78.4682530121,
+    "z": 5.99833731968
+   },
+   {
+    "x": 449.333333333,
+    "y": 78.3935322997,
+    "z": 4.93624011141
+   },
+   {
+    "x": 450.666666667,
+    "y": 78.2267571445,
+    "z": 3.87414290315
+   },
+   {
+    "x": 452,
+    "y": 77.9765406345,
+    "z": 2.81204569488
+   },
+   {
+    "x": 453.333333333,
+    "y": 77.6624823784,
+    "z": 1.74994848662
+   },
+   {
+    "x": 454.666666667,
+    "y": 77.3129613436,
+    "z": 0.687851278351
+   },
+   {
+    "x": 456,
+    "y": 76.9617788981,
+    "z": -0.374245929914
+   },
+   {
+    "x": 457.142857143,
+    "y": 76.5486933742,
+    "z": -1.88213263685
+   },
+   {
+    "x": 458.285714286,
+    "y": 76.2665749851,
+    "z": -3.39001934379
+   },
+   {
+    "x": 459.428571429,
+    "y": 76.1767268042,
+    "z": -4.89790605073
+   },
+   {
+    "x": 460.571428571,
+    "y": 76.2954889451,
+    "z": -6.40579275766
+   },
+   {
+    "x": 461.714285714,
+    "y": 76.5897674934,
+    "z": -7.9136794646
+   },
+   {
+    "x": 462.857142857,
+    "y": 76.984678738,
+    "z": -9.42156617154
+   },
+   {
+    "x": 464,
+    "y": 77.3814460033,
+    "z": -10.9294528785
+   },
+   {
+    "x": 465.6,
+    "y": 77.478972024,
+    "z": -11.3103999284
+   },
+   {
+    "x": 467.2,
+    "y": 77.5558670522,
+    "z": -11.6913469782
+   },
+   {
+    "x": 468.8,
+    "y": 77.602878896,
+    "z": -12.0722940281
+   },
+   {
+    "x": 470.4,
+    "y": 77.6130348079,
+    "z": -12.453241078
+   },
+   {
+    "x": 472,
+    "y": 77.5822540511,
+    "z": -12.8341881279
+   }
+  ],
+  "surfaceLifted": [
+   {
+    "x": 40,
+    "y": 98.9109498801,
+    "z": 25.3992540464
+   },
+   {
+    "x": 41.6,
+    "y": 98.8171442795,
+    "z": 24.8083293959
+   },
+   {
+    "x": 43.2,
+    "y": 98.7087177194,
+    "z": 24.2174047454
+   },
+   {
+    "x": 44.8,
+    "y": 98.591638572,
+    "z": 23.6264800949
+   },
+   {
+    "x": 46.4,
+    "y": 98.4708552464,
+    "z": 23.0355554444
+   },
+   {
+    "x": 48,
+    "y": 98.3497479986,
+    "z": 22.4446307939
+   },
+   {
+    "x": 49.6,
+    "y": 98.3409266682,
+    "z": 22.9778648208
+   },
+   {
+    "x": 51.2,
+    "y": 98.3341730617,
+    "z": 23.5110988478
+   },
+   {
+    "x": 52.8,
+    "y": 98.323100783,
+    "z": 24.0443328747
+   },
+   {
+    "x": 54.4,
+    "y": 98.2999971152,
+    "z": 24.5775669017
+   },
+   {
+    "x": 56,
+    "y": 98.2566286013,
+    "z": 25.1108009287
+   },
+   {
+    "x": 57.3333333333,
+    "y": 98.0464350087,
+    "z": 26.3581314906
+   },
+   {
+    "x": 58.6666666667,
+    "y": 97.745347801,
+    "z": 27.6054620526
+   },
+   {
+    "x": 60,
+    "y": 97.3998546056,
+    "z": 28.8527926145
+   },
+   {
+    "x": 61.3333333333,
+    "y": 97.0625873432,
+    "z": 30.1001231764
+   },
+   {
+    "x": 62.6666666667,
+    "y": 96.7829920065,
+    "z": 31.3474537384
+   },
+   {
+    "x": 64,
+    "y": 96.5986674347,
+    "z": 32.5947843003
+   },
+   {
+    "x": 65.6,
+    "y": 96.4915885399,
+    "z": 32.3781898184
+   },
+   {
+    "x": 67.2,
+    "y": 96.3626835557,
+    "z": 32.1615953365
+   },
+   {
+    "x": 68.8,
+    "y": 96.2182341637,
+    "z": 31.9450008545
+   },
+   {
+    "x": 70.4,
+    "y": 96.0664866471,
+    "z": 31.7284063726
+   },
+   {
+    "x": 72,
+    "y": 95.9168057799,
+    "z": 31.5118118906
+   },
+   {
+    "x": 73.6,
+    "y": 95.9317096986,
+    "z": 30.4127792655
+   },
+   {
+    "x": 75.2,
+    "y": 96.032810108,
+    "z": 29.3137466404
+   },
+   {
+    "x": 76.8,
+    "y": 96.1938768382,
+    "z": 28.2147140153
+   },
+   {
+    "x": 78.4,
+    "y": 96.3814670702,
+    "z": 27.1156813902
+   },
+   {
+    "x": 80,
+    "y": 96.5595108703,
+    "z": 26.016648765
+   },
+   {
+    "x": 81.6,
+    "y": 96.423041159,
+    "z": 26.4885277139
+   },
+   {
+    "x": 83.2,
+    "y": 96.3004256952,
+    "z": 26.9604066628
+   },
+   {
+    "x": 84.8,
+    "y": 96.1875927363,
+    "z": 27.4322856117
+   },
+   {
+    "x": 86.4,
+    "y": 96.0788336494,
+    "z": 27.9041645606
+   },
+   {
+    "x": 88,
+    "y": 95.9676057548,
+    "z": 28.3760435095
+   },
+   {
+    "x": 89.6,
+    "y": 95.8191216276,
+    "z": 28.9564536886
+   },
+   {
+    "x": 91.2,
+    "y": 95.659146427,
+    "z": 29.5368638678
+   },
+   {
+    "x": 92.8,
+    "y": 95.4863931658,
+    "z": 30.117274047
+   },
+   {
+    "x": 94.4,
+    "y": 95.3016553147,
+    "z": 30.6976842262
+   },
+   {
+    "x": 96,
+    "y": 95.1080480267,
+    "z": 31.2780944053
+   },
+   {
+    "x": 97.3333333333,
+    "y": 95.2139047528,
+    "z": 30.1309560348
+   },
+   {
+    "x": 98.6666666667,
+    "y": 95.3695002377,
+    "z": 28.9838176643
+   },
+   {
+    "x": 100,
+    "y": 95.5387189786,
+    "z": 27.8366792937
+   },
+   {
+    "x": 101.333333333,
+    "y": 95.6824857437,
+    "z": 26.6895409232
+   },
+   {
+    "x": 102.666666667,
+    "y": 95.7647633567,
+    "z": 25.5424025526
+   },
+   {
+    "x": 104,
+    "y": 95.7581567807,
+    "z": 24.3952641821
+   },
+   {
+    "x": 105.333333333,
+    "y": 95.649539904,
+    "z": 23.2969505966
+   },
+   {
+    "x": 106.666666667,
+    "y": 95.4480747159,
+    "z": 22.1986370111
+   },
+   {
+    "x": 108,
+    "y": 95.1681192108,
+    "z": 21.1003234256
+   },
+   {
+    "x": 109.333333333,
+    "y": 94.835472642,
+    "z": 20.0020098401
+   },
+   {
+    "x": 110.666666667,
+    "y": 94.4841306756,
+    "z": 18.9036962547
+   },
+   {
+    "x": 112,
+    "y": 94.1518684521,
+    "z": 17.8053826692
+   }
+  ],
+  "bars": {
+   "ref": "g2",
+   "type": "BufferGeometry",
+   "attrs": {
+    "position": {
+     "n": 657,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "dfb947ba",
+     "inst": false
+    },
+    "normal": {
+     "n": 657,
+     "size": 3,
+     "norm": false,
+     "type": "Float32Array",
+     "hash": "a8f71b45",
+     "inst": false
+    }
+   },
+   "morph": [],
+   "index": {
+    "n": 2520,
+    "type": "Uint16Array",
+    "hash": "01cbbd5b"
+   },
+   "groups": [],
+   "drawRange": [
+    0,
+    "all"
+   ],
+   "userData": []
+  }
+ },
+ "waveTexture": {
+  "full": {
+   "ref": "t0",
+   "type": "DataTexture",
+   "size": [
+    512,
+    512,
+    null
+   ],
+   "data": "b2559a62",
+   "wrap": [
+    1000,
+    1000
+   ],
+   "filter": [
+    1006,
+    1008
+   ],
+   "mips": true,
+   "format": 1023,
+   "dataType": 1009,
+   "colorSpace": "",
+   "repeat": [
+    1,
+    1
+   ],
+   "offset": [
+    0,
+    0
+   ],
+   "flipY": false,
+   "anisotropy": 8
+  },
+  "small": {
+   "ref": "t1",
+   "type": "DataTexture",
+   "size": [
+    64,
+    64,
+    null
+   ],
+   "data": "ab57e06c",
+   "wrap": [
+    1000,
+    1000
+   ],
+   "filter": [
+    1006,
+    1008
+   ],
+   "mips": true,
+   "format": 1023,
+   "dataType": 1009,
+   "colorSpace": "",
+   "repeat": [
+    1,
+    1
+   ],
+   "offset": [
+    0,
+    0
+   ],
+   "flipY": false,
+   "anisotropy": 8
+  }
+ }
+}
