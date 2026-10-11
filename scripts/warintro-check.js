@@ -336,6 +336,11 @@ try {
     row('crest: the line of aircraft', ['ten', 'q1', 'int'].every((n) => shot('crest').cast.includes(n)), shot('crest').cast.join(' '));
     row('gates: no title card while The Spillway is held', shot('gates').titles.length === 0, shot('gates').titles.join(' | '));
   }
+  if (FILM.id === 'spillway-outro') {
+    row('outro: no attacker in any shot (the fight is over)', SHOTS.every((x) => Object.values(shot(x.id).drawn).every((n) => !n)), SHOTS.map((x) => JSON.stringify(shot(x.id).drawn)).join(' '));
+    row('pier: the ten inch home', shot('pier').cast.includes('ten'), shot('pier').cast.join(' '));
+    row('yard: no title card while Lights Out is held', shot('yard').titles.length === 0, shot('yard').titles.join(' | '));
+  }
   if (FILM.id === 'spillway') {
     row('water and skin: the reservoir and the gate, no attacker', Object.values(shot('water').drawn).every((n) => !n) && Object.values(shot('skin').drawn).every((n) => !n),
       `${JSON.stringify(shot('water').drawn)} ${JSON.stringify(shot('skin').drawn)}`);

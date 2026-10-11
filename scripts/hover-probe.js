@@ -15,7 +15,11 @@
  * vertical and the height within 10 m, and the best one's figures. It
  * measures, it does not judge.
  *
- *   node scripts/hover-probe.js [--only key,...]
+ *   node scripts/hover-probe.js [--only key,...] [--lag seconds]
+ *
+ * --lag replaces the pilot's 0.2 s delay: 0.2 is a person looking at a
+ * real aircraft, so 0.2 plus the sim's stick to picture time (docs/PERF.md,
+ * the tail under a busy GPU) is the same person flying the sim.
  *
  * Per aircraft, in Manual and in the mode its default tune flies:
  *
@@ -62,7 +66,7 @@ const MS = 4;
 const NOSE_UP = [Math.SQRT1_2, 0, -Math.SQRT1_2, 0];
 
 /* The pilot's limits and the grid of pilots. */
-const LAG_S = 0.2;
+const LAG_DEFAULT_S = 0.2;
 const EVERY_MS = 100;
 const STEPS = 50;
 const SECONDS = 10;
@@ -73,6 +77,10 @@ const arg = (k) => {
   return i > 0 ? process.argv[i + 1] : null;
 };
 const only = arg('--only') ? new Set(arg('--only').split(',')) : null;
+const LAG_S = arg('--lag') === null ? LAG_DEFAULT_S : Number(arg('--lag'));
+if (!(LAG_S >= 0 && LAG_S <= 1)) {
+  throw new Error(`hover-probe: --lag wants seconds from 0 to 1, got ${arg('--lag')}`);
+}
 
 const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
 const quant = (x) => clamp(Math.round(x * STEPS) / STEPS);
@@ -192,7 +200,7 @@ for (const af of planes()) {
   if (!(ratio > 0)) {
     continue;
   }
-  console.log(`${af.id}  TW ${f(ratio, 2)}`);
+  console.log(`${af.id}  TW ${f(ratio, 2)}  pilot delay ${LAG_S} s`);
   for (const [mode, name] of modes) {
     let n = 0, best = null;
     for (const g of pilots) {
