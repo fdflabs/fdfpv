@@ -271,6 +271,15 @@ export const LIVERIES = {
       { id: 'timberx', source: src('E-flite Timber X 1.2m, EFL38500: white, red and black', 'https://www.horizonhobby.com/product/timber-x-1.2m-bnf-basic-with-as3x-and-safe-select/EFL38500.html'), colours: { trim: '#d5271f', grey: '#5a5f63' } },
     ],
   },
+  hercules3077: {
+    /* The USAF airlifter's overall grey, FS 36173, the radome a darker
+     * grey as the dielectric paint weathers, the props black; no
+     * insignia (the non goals). */
+    regions: [r('fuselage', '#61686c'), r('wing', '#61686c'), r('tail', '#61686c'), r('radome', '#3e4347'), r('spinners', '#61686c'), r('props', '#1c1d1f'), r('trim', '#2b2e31')],
+    schemes: [
+      { id: 'stock', source: src('USAF SIG, Authentic Decals 72-51, C-130 Hercules USAF cargo versions: "painted in overall AMC Battle Grey (FS36173)"', 'https://usaf-sig.org/index.php/references/reviews/118-decal-reviews/431-authentic-decals-72-51-c-130-hercules-usaf-cargo-versions'), colours: {} },
+    ],
+  },
 
   p51d1450: {
     /* FMS's natural metal P-51 as its manual photographs it: silver all

@@ -257,6 +257,7 @@ import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothc
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP } from './render/nighttimbercraft.js';
 import { setWorldNight, worldNight } from './render/worldlight.js';
+import { HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP } from './render/herculescraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -278,6 +279,7 @@ const WING_MOUNTS = {
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
   extra3d1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   nighttimber1200: [NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP],
+  hercules3077: [HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],

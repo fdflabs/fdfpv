@@ -73,6 +73,7 @@ export const SIM_TUNE_DOUBLES = 12;
  * the high rate is the very double the table holds. */
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
+const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -238,6 +239,13 @@ export const TUNING = {
     packKg: 0.27, nose: 0.339, tail: -0.716,
     throws: { high: [28.92, 35.81, 33.75], low: [22.13, 28.60, 23.82], source: `E-flite manual p. 3: high 45, 55 and 55 mm, low 35, 45 and 40 mm, at the surfaces' widest chords, 93, 94 and 99 mm (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
     flaps: { mix: -0.212333, angles: [0, 0.328206, 0.632256], source: `E-flite manual pp. 3 and 4: half 30 mm, full 55 mm; the flap mix 14 percent of the elevator at half and 20 at full; ${NIGHTTIMBER_MANUAL}` },
+  },
+  hercules3077: {
+    chord: 0.3564, area: 1.0486, margin: 0.16,
+    cg: { mm: 145, datum: 'tuning.datum.root_le', range: [145, 173.5], source: `AeroTetris, "CG (16%): 923.8 mm" and "CG (8%): 952.3 mm" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
+    packKg: 1.64, nose: 0.92, tail: -1.20, /* the lead inside the tail cone, ahead of its post */
+    throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
+    flaps: null,
   },
 
   p51d1450: {

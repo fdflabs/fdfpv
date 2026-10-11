@@ -295,6 +295,7 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
+      - run: npm run hercules:gates
 
   shard-3:
     runs-on: ubuntu-latest

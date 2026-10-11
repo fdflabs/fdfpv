@@ -59,6 +59,9 @@ const SKY = [slot('spinner', 'bullet'), slot('wingtips', 'winglet')];
 /* The Extra's spats are stock, so no wheels slot; side force generators
  * are the aerobatic tip it is known for. */
 const EXTRA = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold'), slot('wingtips', 'sfg')];
+/* The Hercules' four spinners and its flight deck's glazing; its gear is
+ * in sponsons, so no wheels slot. */
+const HERCULES = [slot('spinner', 'twotone'), slot('canopy', 'smoke')];
 const P51 = [
   slot('spinner', 'twotone', 'striped'),
   slot('exhausts', 'dampers'),
@@ -104,6 +107,7 @@ export const KITS = {
   uglystik1567: UGLYSTIK, timber1500: TIMBER,
   extra3d1308: EXTRA,
   nighttimber1200: TIMBER,
+  hercules3077: HERCULES,
   p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,

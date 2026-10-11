@@ -42,7 +42,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, extraGroundPrelude, nighttimberGroundPrelude, uglystikGroundPrelude, zagiPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, extraGroundPrelude, herculesGroundPrelude, nighttimberGroundPrelude, uglystikGroundPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -63,6 +63,7 @@ const PLANES = {
   dlg: { rec: '/tests/inputs/dlg-baseline.rec', prelude: dlgRecPrelude },
   tigermoth: { rec: '/tests/inputs/tigermoth-baseline.rec', prelude: (sim) => tigermothGroundPrelude(sim) },
   extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
+  hercules: { rec: '/tests/inputs/hercules-baseline.rec', prelude: (sim) => herculesGroundPrelude(sim) },
   nighttimber: { rec: '/tests/inputs/nighttimber-baseline.rec', prelude: (sim) => nighttimberGroundPrelude(sim, { flaps: 1 }) },
   f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
