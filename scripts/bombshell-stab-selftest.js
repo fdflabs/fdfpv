@@ -28,6 +28,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { planeTable } from './lib/wash.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, bombshellPrelude, bombshellGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll } from '../tests/lib/wingpilot.js';
@@ -132,7 +133,11 @@ const deg = (x) => (x * DEG).toFixed(1);
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
 throwAt(30, 8.5);
-const level = fly(0, 0, 0, 0.75, 10);
+/* Centred sticks at the stick that flies it level, the table's
+ * stab_trim_throttle (npm run stab:glide), as the Kadet's and the
+ * Stik's: a fixed 0.75 was that stick on the straight line thrust law. */
+const TRIM = planeTable('FW_BOMBSHELL1118').fw.stab_trim_throttle;
+const level = fly(0, 0, 0, TRIM, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
@@ -142,26 +147,26 @@ check('with the climb rate under 1 m/s', Math.abs(level.vz) < 1, `${level.vz.toF
 const banked = fly(1, 0, 0, 0.9, 5);
 check('full right roll stick banks right on the rudder, 35 to 50 degrees', banked.bank * DEG > 35 && banked.bank * DEG < 50, `${deg(banked.bank)} deg`);
 check('and the rudder is what did it: no aileron moved', surfaces()[0] === 0 && surfaces()[1] === 0, surfaces().map(deg).join(' '));
-const rolledBack = fly(0, 0, 0, 0.75, 4);
+const rolledBack = fly(0, 0, 0, TRIM, 4);
 check('letting go levels it within 4 s', Math.abs(rolledBack.bank * DEG) < 5, `${deg(rolledBack.bank)} deg`);
-const leftBank = fly(-0.5, 0, 0, 0.75, 5);
+const leftBank = fly(-0.5, 0, 0, TRIM, 5);
 check('half left stick banks left about 20 degrees', leftBank.bank * DEG < -13 && leftBank.bank * DEG > -28, `${deg(leftBank.bank)} deg`);
-fly(0, 0, 0, 0.75, 4);
+fly(0, 0, 0, TRIM, 4);
 const nosedUp = fly(0, 0.6, 0, 1.0, 2);
 /* The pitch asked for is the trim's 2 degrees and 0.6 of the 12 the
  * Bombshell's table allows, 9.2: a Texaco .049 climbs it at 6 degrees of
  * path, so more would be a stall and not a climb. The band is the Slow
  * Stick's in proportion about what it asks for. */
 check('up stick lifts the nose, 4.3 to 16 degrees, no tumble', nosedUp.pitch * DEG > 4.3 && nosedUp.pitch * DEG < 16 && nosedUp.worstBank * DEG < 15, `${deg(nosedUp.pitch)} deg, bank ${deg(nosedUp.worstBank)}`);
-const settled = fly(0, 0, 0, 0.75, 5);
+const settled = fly(0, 0, 0, TRIM, 5);
 check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
-const yawed = fly(0, 0, 1, 0.75, 1);
+const yawed = fly(0, 0, 1, TRIM, 1);
 /* The yaw stick and the level hold share the one surface here, so the hold
  * takes back much of the yaw stick's rudder to keep the wings level; the
  * stick still wins, by less than on an aircraft with ailerons. */
 check('full right yaw stick is rudder too, and wins over the level hold: right of a quarter of its throw', surfaces()[3] * DEG < -5, `rudder ${deg(surfaces()[3])} deg`);
 check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
-const unyawed = fly(0, 0, 0, 0.75, 5);
+const unyawed = fly(0, 0, 0, TRIM, 5);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
 
 console.log('acro');
