@@ -54,8 +54,9 @@ function block(text, key) {
   return lines.slice(at + 1, end < 0 ? lines.length : end);
 }
 
-/* Each job's check name: its `name:` when it has one, else its id. */
-function jobs(text) {
+/* Each job's id, its lines, and its check name: its `name:` when it has
+ * one, else its id. */
+function jobList(text) {
   const lines = block(text, 'jobs') || [];
   const out = [];
   for (let i = 0; i < lines.length; i += 1) {
@@ -63,16 +64,19 @@ function jobs(text) {
     if (!id) {
       continue;
     }
-    let name = id[1];
-    for (let j = i + 1; j < lines.length && !/^ {2}\S/.test(lines[j]); j += 1) {
-      const n = lines[j].match(/^ {4}name:\s*(.+?)\s*$/);
-      if (n) {
-        name = n[1].replace(/^['"]|['"]$/g, '');
-      }
+    let j = i + 1;
+    while (j < lines.length && !/^ {2}\S/.test(lines[j])) {
+      j += 1;
     }
-    out.push(name);
+    const body = lines.slice(i + 1, j);
+    const n = body.map((l) => l.match(/^ {4}name:\s*(.+?)\s*$/)).filter(Boolean).pop();
+    out.push({ id: id[1], name: n ? n[1].replace(/^['"]|['"]$/g, '') : id[1], lines: body });
   }
   return out;
+}
+
+function jobs(text) {
+  return jobList(text).map((j) => j.name);
 }
 
 function triggers(text) {
@@ -107,6 +111,27 @@ for (const context of required) {
   check(`"${context}" runs on merge_group`, Boolean(w) && w.on.includes('merge_group'), w ? `${w.file}: ${w.on.join(' ')}` : '');
   check(`"${context}" runs on pull_request`, Boolean(w) && w.on.includes('pull_request'), w ? `${w.file}: ${w.on.join(' ')}` : '');
 }
+
+/* checks.yml's steps run in shards side by side and the job named node,
+ * the required check, only gathers them. A shard node does not wait on
+ * would fail without blocking a merge, and a node skipped because a shard
+ * failed counts as passed, so node needs every other job and always runs. */
+console.log('node in checks.yml gathers every shard');
+const checks = jobList(readFileSync(join(dir, 'checks.yml'), 'utf8'));
+const node = checks.find((j) => j.id === 'node');
+const shards = checks.filter((j) => j !== node).map((j) => j.id);
+const needs = ((node?.lines.map((l) => l.match(/^ {4}needs:\s*\[(.*)\]\s*$/)).find(Boolean) || [])[1] || '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+check('node needs every other job in checks.yml', shards.length > 0
+  && [...shards].sort().join(' ') === [...needs].sort().join(' '), `shards: ${shards.join(' ')}; needs: ${needs.join(' ')}`);
+check('node runs when a shard fails', Boolean(node) && node.lines.some((l) => /^ {4}if:\s*always\(\)\s*$/.test(l)));
+check('node fails unless every shard succeeded', Boolean(node) && node.lines.some((l) => l.includes('join(needs.*.result'))
+  && node.lines.some((l) => l.includes('[ "$r" = success ] || exit 1')));
+/* A step in two shards is run twice; the step lists of the old single job
+ * and the shards were compared by name when it was split (2026-10-11). */
+const steps = checks.flatMap((j) => j.lines.map((l) => l.match(/^\s+(?:- run: )?(npm run .+?)\s*$/)).filter(Boolean).map((m) => m[1]));
+const twice = steps.filter((s, i) => steps.indexOf(s) !== i);
+check('no npm run step is in two shards', steps.length > 0 && twice.length === 0, `${steps.length} steps${twice.length ? `; twice: ${twice.join(', ')}` : ''}`);
 
 console.log('the reader sees the workflows');
 check('every workflow has triggers and jobs', workflows.every((w) => w.on.length > 0 && w.jobs.length > 0),
