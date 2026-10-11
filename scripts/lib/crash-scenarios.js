@@ -1290,8 +1290,13 @@ export const CRASH_SCENARIOS = [
   {
     /*
      * The same clip with the host the shell now is for a fixed wing: its
-     * hull the parts' own boxes (src/game/airframehull.js), met every
-     * 4 ms, naming the part it met (sim_contact_part) at the point on it.
+     * hull the parts' own boxes (src/game/airframehull.js), swept over
+     * each 4 ms step from the pose and the parts it began with, as the
+     * shell's collider sweeps a frame, naming the part it met
+     * (sim_contact_part) at the point on it. Sampled only at the step's
+     * end it can miss the contact: the plant meets the pole it was told of
+     * with the parts themselves, and a panel that reaches the pole and
+     * breaks inside one step has left the hull by the step's end.
      * On the disc the Slow Stick's contact went to its motor and the
      * Bramor's to its nose, and the Bramor stopped dead (docs/CRASH-STAGE1.md
      * section 3). Now a pole 60 percent of the half span out meets the wing
@@ -1316,50 +1321,53 @@ export const CRASH_SCENARIOS = [
         let firstPart = -1;
         let firstY = 0;
         let keepAt = null;
+        const ps = new Float64Array(r.n * PART_STATE_DOUBLES);
         for (let ms = 0; ms < 1200; ms += 4) {
-          /* The prop at 0.75 of full, as written, on the motor's own law. */
-          r.run(4, [0, 0, 0, 0.7219]);
-          if (first !== null && keepAt === null && Math.round(r.state()[0] * 1000) >= first + 150) {
-            keepAt = speedOf(r.state()) / v0;
-          }
-          const s = r.state();
-          const st = r.sim.readState().state;
-          const ps = new Float64Array(r.n * PART_STATE_DOUBLES);
+          const s0 = r.state();
           r.partsState().forEach((p, i) => {
             ps[i * PART_STATE_DOUBLES] = p.status;
             ps[i * PART_STATE_DOUBLES + 2] = p.pos[0];
             ps[i * PART_STATE_DOUBLES + 3] = p.pos[1];
             ps[i * PART_STATE_DOUBLES + 4] = p.pos[2];
           });
-          hullFromPartsState(hull, ps, PART_STATE_DOUBLES, 0, 2, st);
-          bodyAxes(s[8], s[9], s[10], s[7], ax);
+          hullFromPartsState(hull, ps, PART_STATE_DOUBLES, 0, 2, s0);
+          bodyAxes(s0[8], s0[9], s0[10], s0[7], ax);
+          /* The prop at 0.75 of full, as written, on the motor's own law. */
+          r.run(4, [0, 0, 0, 0.7219]);
+          const s = r.state();
+          if (first !== null && keepAt === null && Math.round(s[0] * 1000) >= first + 150) {
+            keepAt = speedOf(s) / v0;
+          }
+          const d = [s[1] - s0[1], s[2] - s0[2], s[3] - s0[3]];
           let best = null;
           for (let k = 0; k < hull.n; k += 1) {
             if (!hull.live[k]) {
               continue;
             }
-            const t = sweepPartCapsule(hull, k, ax, s[1], s[2], s[3], 0, 0, 0, pole[0], pole[1], 0, pole[0], pole[1], 30, pole[2], got);
-            if (t >= 0 && (!best || got.depth > best.depth)) {
+            const t = sweepPartCapsule(hull, k, ax, s0[1], s0[2], s0[3], d[0], d[1], d[2], pole[0], pole[1], 0, pole[0], pole[1], 30, pole[2], got);
+            if (t >= 0 && (!best || got.t < best.t || (got.t === best.t && got.depth > best.depth))) {
               best = { ...got };
             }
           }
-          if (!best || s[4] * best.nx + s[5] * best.ny + s[6] * best.nz > -0.05) {
+          if (!best || s0[4] * best.nx + s0[5] * best.ny + s0[6] * best.nz > -0.05) {
             continue;
           }
+          /* Where the craft stood when its hull met the pole. */
+          const c = [s0[1] + d[0] * best.t, s0[2] + d[1] * best.t, s0[3] + d[2] * best.t];
           if (first === null) {
-            first = Math.round(s[0] * 1000);
+            first = Math.round((s0[0] + (s[0] - s0[0]) * best.t) * 1000);
             firstPart = best.part;
-            const dx = best.px - s[1];
-            const dy = best.py - s[2];
-            const dz = best.pz - s[3];
+            const dx = best.px - c[0];
+            const dy = best.py - c[1];
+            const dz = best.pz - c[2];
             /* The contact point's body y, level and heading along x. */
-            firstY = 2 * (s[8] * s[9] - s[7] * s[10]) * dx + (1 - 2 * (s[8] * s[8] + s[10] * s[10])) * dy + 2 * (s[9] * s[10] + s[7] * s[8]) * dz;
+            firstY = 2 * (s0[8] * s0[9] - s0[7] * s0[10]) * dx + (1 - 2 * (s0[8] * s0[8] + s0[10] * s0[10])) * dy + 2 * (s0[9] * s0[10] + s0[7] * s0[8]) * dz;
           }
           const sep = best.depth + 0.008;
           r.sim.e.sim_contact_part(best.part);
           r.sim.e.sim_contact_at_mat(best.nx, best.ny, best.nz, SURFACE.wood,
-            s[1] + best.nx * sep, s[2] + best.ny * sep, s[3] + best.nz * sep,
-            0, 0, 0, best.px - s[1], best.py - s[2], best.pz - s[3]);
+            c[0] + best.nx * sep, c[1] + best.ny * sep, c[2] + best.nz * sep,
+            0, 0, 0, best.px - c[0], best.py - c[1], best.pz - c[2]);
           r.prev = r.state();
         }
         const panel = r.parts[firstPart];
