@@ -27,6 +27,7 @@
  */
 
 import { wash } from './lib/wash.js';
+import { wingProp } from './lib/propcurve.js';
 import { wingLift } from './lib/liftcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
 
@@ -145,7 +146,11 @@ const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 const dutyOf = (stick) => idle + (1 - idle) * stick;
-const T = (V, stick) => { const d = dutyOf(stick); return Math.max(0, Ts * d * d * (1 - V / (Vp * d))); };
+/* The thrust on APC's curve the plant flies (scripts/lib/propcurve.js),
+ * whose pitch speed is this one: the prop's geometric pitch at full rpm. */
+const prop = wingProp('FW_KADET1981');
+if (Math.abs(prop.pitchSpeed - Vp) > 0.01) throw new Error(`kadet-derive: the plant's pitch speed ${prop.pitchSpeed} is not V_p ${Vp}`);
+const T = (V, stick) => Math.max(0, prop.thrust(Ts, V, dutyOf(stick)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 3, hi = 30;
@@ -558,9 +563,14 @@ rows.push(['alpha trim at full up, linear moment; alpha stall (deg)', `${f((Cm0 
 rows.push(['plant CL max on the unstalled branch, its stall m/s', `${f(plantCLmax)} ${f(Math.sqrt(2 * W / (rho * S * plantCLmax)), 2)}`]);
 rows.push(['stall arms ac, cp (per chord)', `${f(armAc, 4)} ${f(armCp, 4)}`]);
 rows.push(['full up mush', JSON.stringify(mush(throwE), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
+/* The power on stall's throttle: under the mush's drag at the 9 m/s it
+ * is flown into, so the aircraft mushes rather than hanging on its prop. */
+const mushCD = mush(throwE).CD, dragMush9 = 0.5 * rho * 81 * S * mushCD;
+rows.push(['at 9 m/s: mush drag N; thrust N at stick 0.35, 0.5', `${f(dragMush9, 2)}; ${f(T(9, 0.35), 2)} ${f(T(9, 0.5), 2)}`]);
 /* The same balance with the elevator neutral is the throttle chop with the
- * sticks let go: the idle's thrust is nil over its pitch speed, so the
- * aircraft settles on the glide its pitching moment trims. */
+ * sticks let go: the idle's thrust is nil past 1.36 times its pitch speed,
+ * 7.9 m/s, where the 12 x 6's curve crosses zero, so the aircraft settles
+ * on the glide its pitching moment trims. */
 rows.push(['hands off glide, throttle closed', JSON.stringify(mush(0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 90 percent', JSON.stringify(levelTurn(45 / DEG, 0.9), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DEG, 1.0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);

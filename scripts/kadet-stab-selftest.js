@@ -140,7 +140,7 @@ check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2
 /* The Bombshell's 10 m over its 80 m of flight, in proportion to the
  * Kadet's 145 m. */
 check('and straight: under 18 m off the line after 10 s', Math.abs(level.y) < 18, `${level.y.toFixed(1)} m`);
-check('at the Kadet\'s cruise, S1\'s band', level.v > 12.54 && level.v < 16.99, `${level.v.toFixed(1)} m/s`);
+check('at the Kadet\'s cruise, S1\'s band', level.v > 16.00 && level.v < 21.67, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 1 m/s', Math.abs(level.vz) < 1, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.9, 5);
 check('full right roll stick banks right on the rudder, 35 to 50 degrees', banked.bank * DEG > 35 && banked.bank * DEG < 50, `${deg(banked.bank)} deg`);
@@ -215,8 +215,8 @@ fly(0, 0, 0, 0.75, 2);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full roll stick banks it right on the rudder, past 20 degrees', manual.endBank * DEG > 20, `${deg(manual.endBank)} deg in 1.5 s`);
 const selfLevel = fly(0, 0, 0, 0.75, 8);
-/* The spiral at cruise halves a bank in 10.6 s (kadet:derive), so 8 s
- * after the stick is let go 0.59 of the bank is left: under 0.8 of it and
+/* The spiral at cruise halves a bank in 9.9 s (kadet:derive), so 8 s
+ * after the stick is let go 0.57 of the bank is left: under 0.8 of it and
  * over 0.3, the same side, no roll through. */
 const left = selfLevel.endBank / manual.endBank;
 check('and let go, the dihedral levels it: 0.3 to 0.8 of the bank 8 s later, no roll through', left > 0.3 && left < 0.8, `${deg(selfLevel.endBank)} deg, ${left.toFixed(2)} of it`);
