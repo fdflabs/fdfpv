@@ -197,7 +197,16 @@ check('and holds that bank, no levelling, within 4 degrees over 3 s', stop.endBa
 throwAt(120, 18);
 fly(0, 0, 0, 0.9, 1);
 const pulling = fly(0, 1, 0, 0.9, 0.5);
-check('full up stick pitches at 60 to 95 degrees a second', pulling.q * DEG > 60 && pulling.q * DEG < 95, `${deg(pulling.q)} deg/s`);
+/* INAV's Acro asks 200 deg/s at full stick (its default pitch_rate), more
+ * than the elevator reaches, so full stick is full elevator as in Manual:
+ * no cap below what the aircraft can do (OWNER 2026-10-08). This gate was
+ * 60 to 95 deg/s against the old 80 deg/s cap. */
+must(sim.e.sim_wing_set_stab(0), 'manual for the comparison');
+throwAt(120, 18);
+fly(0, 0, 0, 0.9, 1);
+const pullingManual = fly(0, 1, 0, 0.9, 0.5);
+must(sim.e.sim_wing_set_stab(2), 'back to acro');
+check('full up stick pitches as Manual\'s full up stick does, within 10 percent', Math.abs(pulling.q - pullingManual.q) < 0.1 * Math.abs(pullingManual.q), `${deg(pulling.q)} vs ${deg(pullingManual.q)} deg/s`);
 throwAt(120, 18);
 fly(0, 0, 0, 0.9, 1);
 fly(0, 0.5, 0, 0.9, 0.3);
