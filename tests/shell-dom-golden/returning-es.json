@@ -219,7 +219,7 @@
         ],
         "kids": [
          {
-          "t": "Throttle"
+          "t": "Acelerador"
          }
         ]
        },
@@ -1544,7 +1544,7 @@
         ],
         "kids": [
          {
-          "t": "Launch control"
+          "t": "Control de lanzamiento"
          }
         ]
        }
@@ -8638,7 +8638,7 @@
         ],
         "kids": [
          {
-          "t": "Throttle"
+          "t": "Acelerador"
          }
         ]
        },
@@ -9963,7 +9963,7 @@
         ],
         "kids": [
          {
-          "t": "Launch control"
+          "t": "Control de lanzamiento"
          }
         ]
        }
