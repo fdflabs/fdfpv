@@ -140,6 +140,7 @@ jobs:
       # the ones a branch happened to add: these six were in package.json and
       # never in CI, so their regressions went unseen (2026-10-11). About
       # 17 s together, measured locally, on the lightest shard.
+      - run: npm run lint:ci-coverage
       - run: npm run bombshell:gates
       - run: npm run bombshell:stab
       - run: npm run bramor:gates
