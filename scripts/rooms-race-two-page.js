@@ -7,6 +7,11 @@
  *   npx wrangler dev --config edge/rooms/wrangler.toml --port 8797
  *   SIM_GPU=1 node scripts/rooms-race-two-page.js http://127.0.0.1:8797 [outdir]
  *
+ * or, with no Worker, on the VM's server run in this process
+ * (edge/rooms/node.js) on a scratch database:
+ *
+ *   SIM_GPU=1 node scripts/rooms-race-two-page.js local [outdir]
+ *
  * Page A flies the five inch and makes the room, page B the Cub and joins
  * it. A plays a three gate track hung over the Swiss valley's field (a
  * gate, a sky hoop, a gate) and sends it to the room; B's world stands it
@@ -16,7 +21,8 @@
  * this machine's one wall clock, is printed. Then each is thrown through
  * its gates in order (window.__crashThrow, real physics carrying it
  * through each opening), A quicker than B, and both results screens must
- * show the same order and the same times. Then A races again (the
+ * show the same order and the same times, and each its debrief
+ * (docs/DEBRIEF.md): its place, and the replay row. Then A races again (the
  * rematch) and ends it early. Pictures in outdir, which is not in the
  * repository: a picture is evidence for one round.
  *
@@ -38,7 +44,8 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
@@ -46,7 +53,13 @@ import { slotSpawn } from '../src/game/slots.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rooms = process.argv[2] || 'http://127.0.0.1:8797';
+let rooms = process.argv[2] || 'http://127.0.0.1:8797';
+let localRooms = null;
+if (rooms === 'local') {
+  const { startRooms } = await import('../edge/rooms/node.js');
+  localRooms = await startRooms({ db: join(await mkdtemp(join(tmpdir(), 'fdfpv-racetwo-')), 'rooms.db'), port: 0 });
+  rooms = `http://127.0.0.1:${localRooms.port}`;
+}
 const outDir = process.argv[3] || join(root, 'build', 'rooms-race-two-page');
 
 let failed = 0;
@@ -246,6 +259,21 @@ try {
   const quad = ra.standings.find((r) => r.seat === 1);
   check('the Cub\'s points came with it, the quad has none', cub.points > 0 && quad.points === 0, `${cub.points} ${quad.points}`);
   await a.sleep(800);
+  /* Each page's debrief: its own place in the room's order, and the
+   * replay of its own flight offered among the room's rows. */
+  const DEBRIEF = `(() => {
+    const dts = [...document.querySelectorAll('.results-facts dt')].map((n) => n.textContent);
+    const dds = [...document.querySelectorAll('.results-facts dd')].map((n) => n.textContent);
+    const place = dds[dts.indexOf('Place')] ?? null;
+    const items = window.__ui.items().map((it) => it.action);
+    return JSON.stringify({ dts, place, replay: items.indexOf('watchreplay'), flyOn: items.indexOf('restart'), items });
+  })()`;
+  const da = JSON.parse(await a.evaluate(DEBRIEF));
+  const db = JSON.parse(await b.evaluate(DEBRIEF));
+  check('A\'s debrief: first of two, with its time in the air', da.place === '1 of 2' && da.dts.includes('In the air'), JSON.stringify(da));
+  check('B\'s debrief: second of two', db.place === '2 of 2', JSON.stringify(db));
+  check('the replay sits right under Fly on, on both', da.flyOn >= 0 && da.replay === da.flyOn + 1 && db.flyOn >= 0 && db.replay === db.flyOn + 1,
+    `A ${da.items.join(',')} B ${db.items.join(',')}`);
   await shot(a, '4-a-results');
   await shot(b, '5-b-results');
 
@@ -255,7 +283,7 @@ try {
     await p.until("window.__roomRace().role === 'countdown' && window.__roomRace().race.laps === 2", 15000);
   }
   const m = await state(b);
-  check('race again: both back on the line for a second race', m.race.id === ra.race.id + 1 && m.run === m.race.id);
+  check('race again: both back on the line for a second race', m.race.id === ra.race.id + 1 && m.run === m.race.id, JSON.stringify({ id: m.race.id, was: ra.race.id, run: m.run, role: m.role }));
   await a.until("window.__roomRace().role === 'racing'", 15000);
   await throwThrough(a);
   await a.evaluate("window.__roomRaceDo('race-end'); true");
@@ -271,6 +299,9 @@ try {
 } finally {
   await a.close();
   await b.close();
+  if (localRooms) {
+    await localRooms.stop();
+  }
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
