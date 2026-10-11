@@ -232,17 +232,45 @@ const AXES = ['roll', 'pitch', 'yaw'];
  * named part broken (the left panel for 'wing') 300 ms before each stick
  * is held at half one way and then the other for 300 ms. moved[a] is the
  * mean body rate the axis a stick moved, plus minus; surf[a] the surfaces
- * at the end of each of the two holds.
+ * at the end of each of the two holds; speed the airspeed as the holds
+ * begin, the same in each since the sticks are the only difference.
  */
-/* The Cub's cruise duty: the prop at 0.6 of full, as these scenarios were
- * written for, which the electric motor's own law (plant_wing.c
- * prop_spool, n^2 + 5.667 n = 6.667 d) turns at a duty of 0.5642. */
+/* The Cub's cruise duty: the prop at CUB_CRUISE_N of full, as these
+ * scenarios were written for, which the electric motor's own law
+ * (plant_wing.c prop_spool, n^2 + 5.667 n = 6.667 d) turns at a duty of
+ * 0.5642. */
+const CUB_CRUISE_N = 0.6;
 const CUB_CRUISE = 0.5642;
+
+/*
+ * What a control gives gliding against what it gave in the prop's wash,
+ * per axis (roll, pitch, yaw), derived as scripts/lib/wash.js and
+ * docs/FLIGHTMODEL.md (PR 2) take the wash: each surface meets the free
+ * stream's q and, on its share of the wash, the disc's pressure jump dp
+ * (momentum theory, dp = T / A), so its moment goes as q + dp share. T is
+ * APC's curve at the cruise's n and the whole aircraft's airspeed
+ * (scripts/lib/propcurve.js). Over a 300 ms hold the rate is still
+ * rising (the Cub's yaw ends at 1.5 times its mean), so the mean rate goes
+ * with the control's moment, and the ratio is the gliding q over the
+ * powered q + dp share. The wash's damping, which grows only as
+ * 1 + 2 v_i share / V, is left out: it slows the powered aircraft's rate,
+ * so the plant's gliding share sits above this, not below. Node only: it
+ * reads the table from plant_wing.c, and the Chrome run of this file
+ * keeps only the digests (tests/browser/crash-harness.js).
+ */
+async function cubControlRatios(vWhole, vGlide) {
+  const { planeTable, wash, gain } = await import('./wash.js');
+  const { wingProp } = await import('./propcurve.js');
+  const { fw } = planeTable('FW_CUB1400');
+  const w = wash(fw, wingProp('FW_CUB1400').thrust(fw.thrust_static, vWhole, CUB_CRUISE_N), vWhole);
+  return [w.fa, w.fh, w.fv].map((share) => (vGlide * vGlide) / (vWhole * vWhole * gain(w.dp, share, vWhole)));
+}
 
 async function cubStickRates(mk, kind) {
   const moved = [];
   const surf = [];
   const rigs = [];
+  let speed = 0;
   for (let a = 0; a < 3; a += 1) {
     const mean = [];
     surf.push([]);
@@ -255,6 +283,7 @@ async function cubStickRates(mk, kind) {
       r.run(1500, [0, 0, 0, CUB_CRUISE]);
       if (kind) r.sim.e.sim_part_break(r.index(kind, (p) => kind !== 'wing' || p.cg[1] > 0));
       r.run(300, [0, 0, 0, CUB_CRUISE]);
+      speed = speedOf(r.state());
       const stick = [0, 0, 0, CUB_CRUISE];
       stick[a] = 0.5 * sign;
       const acc = [0, 0, 0];
@@ -264,7 +293,7 @@ async function cubStickRates(mk, kind) {
     }
     moved.push(mean[0].map((v, k) => v - mean[1][k]));
   }
-  return { moved, surf, rigs };
+  return { moved, surf, rigs, speed };
 }
 
 /*
@@ -916,13 +945,14 @@ export const CRASH_SCENARIOS = [
       const off = await cubStickRates(mk, 'prop');
       const thrust = off.rigs[0].motors()[0].thrust;
       const out = [{ name: 'the prop gives no thrust', ok: thrust === 0, detail: `${thrust}` }];
+      const ratio = globalThis.process?.versions?.node ? await cubControlRatios(intact.speed, off.speed) : null;
       for (let a = 0; a < 3; a += 1) {
-        const want = intact.moved[a][a];
+        const want = ratio ? intact.moved[a][a] * ratio[a] : NaN;
         const got = off.moved[a][a];
         out.push({
-          name: `the ${AXES[a]} stick moves its rate as it did with the prop on, within 20%`,
+          name: `the ${AXES[a]} stick moves its rate as the wash it lost says, within 20%`,
           ok: Math.sign(got) === Math.sign(want) && Math.abs(got - want) < 0.2 * Math.abs(want),
-          detail: `${want.toFixed(3)} rad/s whole, ${got.toFixed(3)} gliding`,
+          detail: `${intact.moved[a][a].toFixed(3)} rad/s whole at ${intact.speed.toFixed(2)} m/s, ${got.toFixed(3)} gliding at ${off.speed.toFixed(2)}, derived ${want.toFixed(3)} (x ${ratio ? ratio[a].toFixed(3) : '-'})`,
         });
       }
       return out;

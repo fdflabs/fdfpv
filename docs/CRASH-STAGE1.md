@@ -525,6 +525,41 @@ its props and arms break and the frame, 5e6 N/m against concrete's 5e7, is
 a spring of half a millisecond, inside one step; a frame that crushes needs
 a crush in the tables.
 
+**The parts' hull test sweeps the step** (w35, the prop curves). On APC's
+curves the Slow Stick reaches the pole about 2 percent faster, and the
+plant, meeting the pole with the panel itself, reaches it and breaks the
+panel at 474 to 475 ms, inside one 4 ms step. `crash:core`'s "a pole met
+by the parts' hull" looked for overlap only at each step's end, when the
+panel had already left the hull, and read no contact. It now sweeps the
+hull it began the step with over the step's displacement
+(`sweepPartCapsule`, as the shell's collider sweeps a frame) and takes the
+point where the craft stood when the hull met the pole: the panel at 473
+ms, body y -0.357 against the pole's -0.353; on d01c08cfe's wasm, 491 ms
+and -0.356. Its three assertions are the same.
+
+**A Cub whose prop breaks: what the wash it lost says** (w35). The check
+held each stick's gliding rate to the powered one within 20 percent. With
+the prop on, each surface meets the free stream's q and, on its share of
+the wash, the disc's pressure jump dp = T / A (momentum theory,
+docs/FLIGHTMODEL.md PR 2, `scripts/lib/wash.js`), so its moment goes as
+q + dp share. On the curves the cruise prop (0.6 of full, 12.15 m/s) pushes
+2.08 N (APC's 11 x 7, `scripts/lib/propcurve.js`; the plant's own wash
+reads 33.90 Pa, the curve 33.88), dp 33.9 Pa: the fin's share 0.860 lifts
+the rudder's moment 1.322 times, the stabiliser's 0.708 the elevator's
+1.264 times, and the ailerons stand outside it. Over the 300 ms hold the
+rate is still rising (the yaw ends at 1.5 times its mean), so the mean
+goes with the moment, and gliding at 11.69 m/s each stick should give
+(11.69 / 12.15)^2 / gain of its powered rate: roll 0.925, pitch 0.732, yaw
+0.700. The plant gives 0.922, 0.833 and 0.727. The check now holds each to
+that derived figure within the same 20 percent. The wash's damping, which
+grows only as 1 + 2 v_i share / V (1.15 on the fin), is left out; it slows
+the powered rate, so the plant sits above the derivation, not below, and
+most on pitch, whose short period settles inside the hold so that the
+stabiliser's damping and stiffness in the wash count against the elevator's
+gain. On the straight line the same arithmetic with the plant's 16.7 Pa
+gave yaw 0.808 against the plant's 0.821, which is why equality passed
+before.
+
 **A wreck on its side, and on its back** (round 5, `sim.c`, mode on only).
 A craft between upright and inverted met the ground at one support vertex,
 a rule from the rigid contact so that four coplanar contacts could not
