@@ -118,6 +118,9 @@ jobs:
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
       - run: npm run render:golden
+      # The scoring chain end to end, the real aircraft flying the tricks
+      # (a powerloop round a rail by a closed loop pilot) included.
+      - run: npm run score:selftest
 
   shard-2:
     runs-on: ubuntu-latest
