@@ -252,7 +252,7 @@ export const TUNING = {
     chord: 0.4577, area: 1.150, margin: 0.185,
     expo: 55, /* the sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies */
     cg: { mm: 169, datum: 'tuning.datum.root_le', range: [160, 179], source: `EF's data sheet, "Center of main wing tube to rear of main wing tube as starting position": the 38 mm tube's centre at 28 percent of the drawn 570 mm root, 160 mm, to its rear, 179; the middle taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
-    packKg: 0.30, nose: 0.48, tail: -1.50, /* the receiver's two packs; the lead at the firewall or ahead of the tail post */
+    packKg: 0.30, nose: 0.48, tail: -1.30, /* the receiver's two packs; the lead at the firewall or in the aft fuselage ahead of the stabiliser, where 8 percent of the mass moves the CG under the plant's 0.1 m */
     throws: { high: [37.5, 47.5, 45], low: [20, 11, 20], source: `EF's data sheet and 120cc build guide, in degrees: aileron 38 up and 37 down high, 20 low; elevator 45 to 50 for 3D, 10 to 12 low; rudder 45 and more high, 20 low; the middles taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
     flaps: null,
   },
