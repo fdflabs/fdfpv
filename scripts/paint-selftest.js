@@ -259,5 +259,16 @@ console.log('8. the swatch library');
   check('two computers merge to the newer library', same(mergeBlobs(a, b).data.swatches, { list: ['#222222'] }) && same(mergeBlobs(b, a).data.swatches, { list: ['#222222'] }));
 }
 
+console.log('10. flake and brushed (docs/redesign/MATERIALS.md)');
+{
+  const old = { regions: { wing: '#112233' }, finishes: { wing: 'chrome', fuselage: 'gloss', tail: 'carbon' }, wear: 10 };
+  check('an entry from before flake and brushed reads exactly as it did', same(normaliseEntry('timber1500', old), old));
+  const e = normaliseEntry('timber1500', { finishes: { wing: 'flake', fuselage: 'brushed' } });
+  check('flake and brushed are kept per region', same(e, { finishes: { wing: 'flake', fuselage: 'brushed' } }));
+  const back = readCode(encodeLivery('timber1500', 'Flake', e));
+  check('a flake and brushed livery comes back whole through a code', same(back.entry, e), back.error ?? '');
+  check('a finish this client does not know is counted as dropped, as an older client counts flake', entryDrops('timber1500', { finishes: { wing: 'sparkle' } }) === 1);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;

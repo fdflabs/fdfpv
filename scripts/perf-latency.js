@@ -159,10 +159,23 @@ const INSTRUMENT = /* js */ `(() => {
   window.requestAnimationFrame = (cb) => nativeRaf((ts) => {
     if (!L.on || cb.name !== 'frame') { return cb(ts); }
     if (L.pilot) { try { L.pilot(); } catch (e) { L.pilot = null; L.err = e.message; } }
-    const f = { ts, entry: now(), tIn: -1, tStep: -1, tRender: -1, exit: 0, simT: NaN, inputs: [] };
+    const heap = performance.memory ? performance.memory.usedJSHeapSize : NaN;
+    const f = { ts, entry: now(), tIn: -1, tStep: -1, tRender: -1, exit: 0, simT: NaN, inputs: [], heap };
     L.frame = f;
     try { return cb(ts); } finally { f.exit = now(); L.frame = null; L.frames.push(f); }
   });
+
+  /* Long tasks (over 50 ms) on the main thread, with where the browser
+   * says they ran: the hitches' census, apart from the frames. */
+  L.long = [];
+  try {
+    new PerformanceObserver((list) => {
+      if (!L.on) { return; }
+      for (const e of list.getEntries()) {
+        L.long.push({ start: e.startTime, dur: e.duration, name: e.name, where: (e.attribution || []).map((a) => a.containerType + ':' + (a.containerSrc || a.containerName || '')).join(',') });
+      }
+    }).observe({ type: 'longtask', buffered: false });
+  } catch (e) { L.long = null; }
 
   L.hookThree = async () => {
     const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
@@ -203,11 +216,12 @@ const INSTRUMENT = /* js */ `(() => {
   L.record = (seconds, period) => new Promise((done) => {
     L.frames.length = 0;
     L.events.length = 0;
+    if (L.long) { L.long.length = 0; }
     L.on = true;
     const end = now() + seconds * 1000;
     let k = 0;
     const next = () => {
-      if (now() > end) { L.on = false; done({ frames: L.frames, events: L.events, err: L.err || null }); return; }
+      if (now() > end) { L.on = false; done({ frames: L.frames, events: L.events, long: L.long, err: L.err || null }); return; }
       k += 1;
       L.yaw = k % 2 ? ${YAW[1]} : ${YAW[0]};
       L.events.push({ tSet: now(), yaw: L.yaw });
@@ -286,12 +300,45 @@ function analyse(raw) {
       slotLate: ts * 1000 - setSim,
       framesLater: j - i,
       beforeFrameStart: fi.ts - ev.tSet,
+      /* The interval ending at the frame that took it: a step that met a
+       * hitch says so here. */
+      hitch: i > 0 ? fi.ts - frames[i - 1].ts : NaN,
     });
   }
   const iv = [];
   for (let k = 1; k < frames.length; k += 1) {
     iv.push(frames[k].ts - frames[k - 1].ts);
   }
+  /*
+   * The hitches: every interval over twice the median, split by where the
+   * time went. Before the callback (the page busy with something other
+   * than this frame: a GC, a long task, the GPU process holding the
+   * previous swap), in the callback before the plant stepped, the plant
+   * and the shell's per step work, and from render start to return (the
+   * draw's CPU side, where a shader compile or a texture upload lands).
+   * A heap that shrank across the interval had a GC in it.
+   */
+  const medIv = pct(iv, 0.5);
+  const hitches = [];
+  for (let k = 1; k < frames.length; k += 1) {
+    const a = frames[k - 1];
+    const b = frames[k];
+    const gap = b.ts - a.ts;
+    if (!(gap > 2 * medIv)) {
+      continue;
+    }
+    hitches.push({
+      gap,
+      prevCallback: a.exit - a.entry,
+      idleToEntry: b.entry - a.exit,
+      preStep: b.tStep >= 0 ? b.tStep - b.entry : NaN,
+      stepToRender: b.tRender >= 0 && b.tStep >= 0 ? b.tRender - b.tStep : NaN,
+      render: b.tRender >= 0 ? b.exit - b.tRender : NaN,
+      gc: Number.isFinite(a.heap) && Number.isFinite(b.heap) && b.heap < a.heap,
+    });
+  }
+  hitches.sort((x, y) => y.gap - x.gap);
+  const long = raw.long || [];
   const entry = frames.map((fr) => fr.entry - fr.ts);
   const step = frames.map((fr) => (fr.tStep >= 0 ? fr.tStep - fr.ts : NaN));
   const render = frames.map((fr) => (fr.tRender >= 0 ? fr.tRender - fr.ts : NaN));
@@ -309,16 +356,18 @@ function analyse(raw) {
     frames: frames.length,
     steps: steps.length,
     events: raw.events.length,
-    interval: { mean: mean(iv), p95: pct(iv, 0.95) },
+    interval: { mean: mean(iv), p50: medIv, p95: pct(iv, 0.95), p99: pct(iv, 0.99), max: pct(iv, 1) },
+    hitches: { count: hitches.length, gc: hitches.filter((h) => h.gc).length, worst: hitches.slice(0, 8) },
+    longTasks: raw.long ? { count: long.length, total: long.reduce((x, e) => x + e.dur, 0), max: long.reduce((x, e) => Math.max(x, e.dur), 0) } : null,
     afterTs: {
       entry: { mean: mean(entry), p95: pct(entry, 0.95), jitter: jitter(entry) },
       step: { mean: mean(step), p95: pct(step, 0.95), jitter: jitter(step) },
       render: { mean: mean(render), p95: pct(render, 0.95), jitter: jitter(render) },
       cb: { mean: mean(cb), p95: pct(cb, 0.95) },
     },
-    latency: Object.fromEntries(['toPlant', 'toRender', 'toSubmit', 'slotLate', 'beforeFrameStart', 'framesLater'].map((k) => {
+    latency: Object.fromEntries(['toPlant', 'toRender', 'toSubmit', 'slotLate', 'beforeFrameStart', 'framesLater', 'hitch'].map((k) => {
       const a = steps.map((s) => s[k]);
-      return [k, { mean: mean(a), p50: pct(a, 0.5), p95: pct(a, 0.95), min: pct(a, 0), max: pct(a, 1) }];
+      return [k, { mean: mean(a), p50: pct(a, 0.5), p95: pct(a, 0.95), p99: pct(a, 0.99), min: pct(a, 0), max: pct(a, 1) }];
     })),
   };
 }
@@ -378,13 +427,13 @@ try {
 
 const r = result;
 console.log(`perf-latency  map ${opts.map}  latencyMode ${r.latencyMode ?? 'default'}  beat ${opts.hz ? `${opts.hz} Hz, timers` : 'the browser\'s'}  ${r.frames} frames, ${r.steps} of ${r.events} steps traced`);
-console.log(`  frame interval ${f(r.interval.mean)} ms (p95 ${f(r.interval.p95)})  callback ${f(r.afterTs.cb.mean)} ms (p95 ${f(r.afterTs.cb.p95)})`);
+console.log(`  frame interval ${f(r.interval.mean)} ms (p50 ${f(r.interval.p50)} p95 ${f(r.interval.p95)} p99 ${f(r.interval.p99)} max ${f(r.interval.max)})  callback ${f(r.afterTs.cb.mean)} ms (p95 ${f(r.afterTs.cb.p95)})`);
 console.log('  after the frame\'s timestamp (ms)   mean    p95   frame to frame sd');
 for (const k of ['entry', 'step', 'render']) {
   const a = r.afterTs[k];
   console.log(`    ${k.padEnd(31)} ${f(a.mean).padStart(6)} ${f(a.p95).padStart(6)} ${f(a.jitter).padStart(8)}`);
 }
-console.log('  per stick step (ms)                 mean    p50    p95    min    max');
+console.log('  per stick step (ms)                 mean    p50    p95    p99    min    max');
 const label = {
   beforeFrameStart: 'step to next frame timestamp',
   toPlant: 'step to sim_input',
@@ -392,10 +441,16 @@ const label = {
   toRender: 'step to render start',
   toSubmit: 'step to frame submitted',
   framesLater: 'frames from sim_input to shown',
+  hitch: 'interval of the frame taking it',
 };
 for (const k of Object.keys(label)) {
   const a = r.latency[k];
-  console.log(`    ${label[k].padEnd(31)} ${f(a.mean).padStart(6)} ${f(a.p50).padStart(6)} ${f(a.p95).padStart(6)} ${f(a.min).padStart(6)} ${f(a.max).padStart(6)}`);
+  console.log(`    ${label[k].padEnd(31)} ${f(a.mean).padStart(6)} ${f(a.p50).padStart(6)} ${f(a.p95).padStart(6)} ${f(a.p99).padStart(6)} ${f(a.min).padStart(6)} ${f(a.max).padStart(6)}`);
+}
+console.log(`  hitches (interval over 2x the median): ${r.hitches.count}, ${r.hitches.gc} with a GC in them; long tasks ${r.longTasks ? `${r.longTasks.count}, ${f(r.longTasks.total, 0)} ms in all, longest ${f(r.longTasks.max, 0)}` : 'not observable'}`);
+console.log('    worst (ms)   gap  prev cb  idle  pre-step  step..render  render  gc');
+for (const h of r.hitches.worst) {
+  console.log(`              ${f(h.gap, 1).padStart(6)} ${f(h.prevCallback, 1).padStart(7)} ${f(h.idleToEntry, 1).padStart(5)} ${f(h.preStep, 1).padStart(8)} ${f(h.stepToRender, 1).padStart(12)} ${f(h.render, 1).padStart(6)}  ${h.gc ? 'yes' : ''}`);
 }
 console.log(`  state ${JSON.stringify(r.state)}  gpu ${r.load.before.gpus.map((g) => `${g[0]}:${g[1]}%`).join(' ')} host ${r.load.before.load[0]}`);
 await writeFile(join(outDir, `perf-latency-${opts.late ? 'low' : 'default'}${opts.hz ? `-${opts.hz}hz` : ''}.json`), JSON.stringify(r, null, 1));
