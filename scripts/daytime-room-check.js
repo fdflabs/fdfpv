@@ -70,23 +70,34 @@ const daytime = async (p) => JSON.parse(await p.evaluate('JSON.stringify(window.
 /* The world standing, built at `look`, a few frames on so every reader
  * has had a frame of it. */
 const settled = async (p, look) => {
-  await p.until(`(() => { const d = window.__daytime(); return d.ready && d.map === 'itaipu' && d.look === '${look}'; })()`, 400000);
+  await p.until(`(() => { const d = window.__daytime(); return d.ready && d.map === 'itaipu' && d.look === '${look}'; })()`, 180000);
   await p.evaluate('new Promise((r) => { let n = 0; const f = () => (++n >= 5 ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); })');
   return daytime(p);
 };
 const fly = async (p) => {
   await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-  await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await p.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
 };
 const show = (d) => `clock ${JSON.stringify(d.clock)}, look ${d.look}, flag ${d.flag}, light ${d.light}, audio ${d.audio}`;
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}&map=itaipu`;
 const a = await openPage({ root, url, width: 960, height: 540, seed: seedFor('night') });
 const b = await openPage({ root, url, width: 960, height: 540, seed: seedFor('own') });
+/* A hard limit on the whole check, so a world that never builds fails it
+ * rather than holding its slot: four Itaipu builds and a room, measured
+ * at about 4 min on a quiet machine, given 12. The browsers and the
+ * server are closed first, so nothing outlives it. */
+const LIMIT_MS = 12 * 60000;
+setTimeout(async () => {
+  console.log(`  FAIL  the check ran past its hard limit of ${LIMIT_MS / 60000} min`);
+  setTimeout(() => process.exit(1), 10000).unref();
+  await Promise.allSettled([a.close(), b.close(), server.stop()]);
+  process.exit(1);
+}, LIMIT_MS).unref();
 try {
   for (const p of [a, b]) {
-    await p.until('window.__shellReady === true', 300000);
-    await p.until("window.__map && window.__map().ready && window.__map().id === 'itaipu'", 400000);
+    await p.until('window.__shellReady === true', 180000);
+    await p.until("window.__map && window.__map().ready && window.__map().id === 'itaipu'", 180000);
   }
   const solo = [await daytime(a), await daytime(b)];
   check('solo, each page flies its own setting: the host night, the guest the world\'s own day',

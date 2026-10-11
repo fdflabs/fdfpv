@@ -80,12 +80,25 @@ const show = (d) => (d ? `flag ${d.flag}, light ${d.light}, audio ${d.audio}, ti
 
 const boot = async (url, map, timeOfDay) => {
   const p = await openPage({ root, url, width: 960, height: 540, seed: seedFor(map, timeOfDay) });
-  await p.until('window.__shellReady === true', 300000);
-  await p.until(`window.__map && window.__map().ready && window.__map().id === '${map}'`, 400000);
+  open = p;
+  await p.until('window.__shellReady === true', 180000);
+  await p.until(`window.__map && window.__map().ready && window.__map().id === '${map}'`, 180000);
   await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-  await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await p.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
   return p;
 };
+
+/* A hard limit on the whole check, so a world that never builds fails it
+ * rather than holding its slot: three boots, about 3 min on a quiet
+ * machine, given 12. The open page is closed first. */
+const LIMIT_MS = 12 * 60000;
+let open = null;
+setTimeout(async () => {
+  console.log(`  FAIL  the check ran past its hard limit of ${LIMIT_MS / 60000} min`);
+  setTimeout(() => process.exit(1), 10000).unref();
+  await Promise.allSettled([open && open.close()]);
+  process.exit(1);
+}, LIMIT_MS).unref();
 
 const refused = /^network: .*ERR_CONNECTION_REFUSED/;
 const quiet = (p) => p.errors.filter((e) => !refused.test(e));
