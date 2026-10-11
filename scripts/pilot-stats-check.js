@@ -176,9 +176,6 @@ async function resize(page, width, height) {
 
 async function toClub(page) {
   await page.until('window.__shellReady === true', 300000);
-  /* The shell is up a frame before the map's world load shows the loader
-   * again; on a software rasteriser that load outlasts click()'s 15 s wait. */
-  await page.loaded(300000);
   await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000);
   await page.click('.gate-card-hub-club .gate-card-name');
   await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length >= 6", 30000).catch(async (e) => {
