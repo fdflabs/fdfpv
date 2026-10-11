@@ -3503,6 +3503,32 @@
      }
     },
     {
+     "id": "freestyle:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Back",
      "action": "back",
@@ -3782,6 +3808,32 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -28074,6 +28126,32 @@
      }
     },
     {
+     "id": "freestyle:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "Off",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Volver",
      "action": "back",
@@ -28353,6 +28431,32 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "Off",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }

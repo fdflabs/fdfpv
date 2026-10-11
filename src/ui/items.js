@@ -265,6 +265,12 @@ const crashDamageRow = (s) => toggle(str('ui.crash_damage'), str('ui.crash_damag
   s.crashDamage = Boolean(v);
 });
 
+/* Stock control surfaces only, in a room this pilot hosts: every pilot's
+ * next run flies stock surfaces (edge/rooms/core.js stockSurfaces). */
+const stockSurfacesRow = (s) => toggle(str('ui.stock_surfaces'), str('ui.stock_surfaces_note'), s.roomStockSurfaces === true, (v) => {
+  s.roomStockSurfaces = Boolean(v);
+});
+
 /* The air: the preset's own note, and in a room the host's choice is the
  * room's (docs/WEATHER-CONTRACT.md). */
 const weatherRow = (s) => choice(
@@ -574,6 +580,7 @@ function freestyleRows(ui, s) {
     crashDamageRow(s),
     weatherRow(s),
     daytimeRow(s),
+    stockSurfacesRow(s),
     backRow(),
   ];
 }

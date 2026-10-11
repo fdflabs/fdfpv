@@ -216,3 +216,83 @@ export function pointsInertia(pts) {
   }
   return I;
 }
+
+/* The unlockable id of a surface's tier: 'a-sport', 'e-3d', 'r-extreme'.
+ * Stock is never locked. A tier opens this many levels after its plane. */
+export const unlockId = (key, tier) => `${key}-${tier}`;
+export const TIER_LEVEL_STEP = { sport: 1, '3d': 2, extreme: 3 };
+
+/* The lockable tiers, for src/game/progress.js unlockables(): each
+ * { id, airframe, step, name } where the plane's level plus `step` is the
+ * level it opens at. */
+export function tierUnlockables() {
+  const out = [];
+  for (const id of TIERED) {
+    for (const key of SURFACE_KEYS) {
+      if (!SURFACE_TIERS[id].offered[key]) {
+        continue;
+      }
+      for (const tier of TIERS.slice(1)) {
+        out.push({ id: unlockId(key, tier), airframe: id, step: TIER_LEVEL_STEP[tier], name: `surfaces.unlock_${key}_${tier}` });
+      }
+    }
+  }
+  return out;
+}
+
+/* What the plant flies for a pilot's stored tiers: each surface the tier
+ * stored, or stock where it is not offered, not yet earned (`locked(id,
+ * unlockId)` true), or the room flies stock only. */
+export function flownTiers(id, stored, { locked = () => false, stockOnly = false } = {}) {
+  const t = normaliseTiers(stored, id);
+  if (stockOnly) {
+    return { a: 'stock', e: 'stock', r: 'stock' };
+  }
+  for (const k of SURFACE_KEYS) {
+    if (t[k] !== 'stock' && locked(id, unlockId(k, t[k]))) {
+      t[k] = 'stock';
+    }
+  }
+  return t;
+}
+
+/* settings.surfaces, validated: { [airframeId]: { a, e, r } } for the
+ * aircraft with tiers, stock entries dropped, so an empty map is every
+ * aircraft as it comes. */
+export function normaliseSurfaces(stored) {
+  const out = {};
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+    return out;
+  }
+  for (const id of TIERED) {
+    const t = normaliseTiers(stored[id], id);
+    if (!isStock(t, id)) {
+      out[id] = t;
+    }
+  }
+  return out;
+}
+
+/* One stored entry's shape, for the account blob (src/share/progressmerge.js):
+ * a record whose a, e and r, where present, are tier names. */
+export function tiersShape(e) {
+  return Boolean(e) && typeof e === 'object' && !Array.isArray(e)
+    && Object.keys(e).every((k) => SURFACE_KEYS.includes(k) && TIERS.includes(e[k]));
+}
+
+/* How much bigger each surface is drawn, { a, e, r }: the tier's chord
+ * fraction over stock, which the craft builders take as `opts.surfaces`
+ * and grow each surface's chord by, its hinge line moving forward. Null
+ * for stock, so a stock model is built exactly as before. */
+export function surfaceGrowth(id, tiers) {
+  const t = normaliseTiers(tiers, id);
+  if (!SURFACE_TIERS[id] || isStock(t, id)) {
+    return null;
+  }
+  const out = {};
+  for (const k of SURFACE_KEYS) {
+    const rows = SURFACE_TIERS[id][k];
+    out[k] = rows[TIERS.indexOf(t[k])].cf / rows[0].cf;
+  }
+  return out;
+}

@@ -124,9 +124,18 @@ function chordLE(ax) {
   const u = Math.min(1, ax / HALF);
   return { c: ROOT_C + (TIP_C - ROOT_C) * u, le: st(ROOT_LE_S + 0.072 * ax) };
 }
+/*
+ * The bigger control surfaces (configs/surfaces.js surfaceGrowth): each
+ * surface's chord times grow.a, .e or .r, its hinge line moving forward on
+ * the same wing, stabiliser or fin, as the plant flies it. Set by the
+ * builder from opts.surfaces before anything is lofted and read by the
+ * hinge functions below; every build sets it, so one model's never
+ * reaches the next.
+ */
+let grow = { a: 1, e: 1, r: 1 };
 function ailHinge(ax) {
   const u = Math.min(1, Math.max(0, (ax - AIL_IN) / (HALF - AIL_IN)));
-  return AIL_HINGE_ROOT + (AIL_HINGE_TIP - AIL_HINGE_ROOT) * u;
+  return 1 - (1 - (AIL_HINGE_ROOT + (AIL_HINGE_TIP - AIL_HINGE_ROOT) * u)) * grow.a;
 }
 
 /* The NACA four digit thickness, half of it, at chord fraction t. */
@@ -159,7 +168,7 @@ function stabPlan(ax) {
   const u = Math.min(1, ax / STAB_HALF);
   const le = STAB_ROOT_LE_S + (STAB_TIP_LE_S - STAB_ROOT_LE_S) * u;
   const c = STAB_ROOT_C + (STAB_TIP_C - STAB_ROOT_C) * u;
-  return { le: st(le), hinge: st(le + ELEV_F * c), te: st(le + c) };
+  return { le: st(le), hinge: st(le + (1 - (1 - ELEV_F) * grow.e) * c), te: st(le + c) };
 }
 function stabAt(x, le, c) {
   return (t, side) => new THREE.Vector3(x, STAB_Y + side * c * naca(t, STAB_T), le + t * c);
@@ -576,6 +585,9 @@ export const EXTRA_MOUNT_UP = 0.070;
 export const EXTRA_PROP_SPIN = [1, 0, 0, 0];
 
 export function buildExtraCraft(opts = {}) {
+  /* The rudder is not offered on the Extra (configs/surfaces.js): its
+   * fin is drawn as built. */
+  grow = { a: 1, e: 1, r: 1, ...(opts.surfaces ?? {}) };
   const fog = opts.fog !== false;
   const lite = Boolean(opts.lite);
   const inkOn = !lite;

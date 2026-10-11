@@ -56,6 +56,7 @@ import { choosesPower, powerChoice } from '../../configs/power.js';
 import { hasMotors } from '../../configs/motors.js';
 import { normalizeEntry, setupFor, tuningFor } from '../../configs/tuning.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
+import { SURFACES, isStock as tiersStock, normaliseTiers } from '../../configs/surfaces.js';
 import { cleanName } from '../../configs/paint.js';
 import { combatChoice } from '../../configs/combat.js';
 import { badWordIn } from '../../tracks-api/words.js';
@@ -92,12 +93,14 @@ export function normaliseFit(id, fit) {
     ? normalizeEntry(id, f.tuning, setupFor(id, powerChoice(id, power ? { [id]: power } : {})).limits)
     : null;
   const combat = airframeById(id).combat && isRecord(f.combat) ? combatChoice(airframeById(id), f.combat) : null;
+  const surfaces = SURFACES[id] && !tiersStock(f.surfaces, id) ? normaliseTiers(f.surfaces, id) : null;
   return {
     livery: normaliseEntry(liveryKey(id), f.livery) ?? null,
     power,
     parts: plane ? { prop: plane.prop, addons: plane.addons } : null,
     tuning: tuning ?? null,
     combat,
+    surfaces,
   };
 }
 
@@ -109,6 +112,7 @@ export function fitOf(s, id) {
     parts: s.parts && s.parts[id],
     tuning: s.tuning && s.tuning[id],
     combat: s.combat && s.combat[id],
+    surfaces: s.surfaces && s.surfaces[id],
   });
 }
 
@@ -137,6 +141,9 @@ export function putFit(s, id, fit) {
   }
   if (airframeById(id).combat) {
     s.combat = withEntry(s.combat, id, fit.combat);
+  }
+  if (SURFACES[id]) {
+    s.surfaces = withEntry(s.surfaces, id, fit.surfaces ?? null);
   }
   return s;
 }

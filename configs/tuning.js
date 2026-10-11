@@ -324,15 +324,19 @@ export function stockEntry(airframeId) {
 }
 
 /* The throws a rate gives, degrees [a, e, r]. */
-export function throwsFor(airframeId, rate) {
+export function throwsFor(airframeId, rate, high = null) {
   const t = tuningFor(airframeId).throws;
+  /* A bigger surface's own high throws (configs/surfaces.js tierThrowsDeg):
+   * low keeps the manual's share of high. */
+  const hi = high ?? t.high;
+  const low = t.low.map((l, i) => (high ? l * hi[i] / t.high[i] : l));
   if (rate === 'low') {
-    return t.low.slice();
+    return low.slice();
   }
   if (rate === 'mid') {
-    return t.high.map((h, i) => (h + t.low[i]) / 2);
+    return hi.map((h, i) => (h + low[i]) / 2);
   }
-  return t.high.slice();
+  return hi.slice();
 }
 
 /*
@@ -465,14 +469,14 @@ export function isStock(airframeId, entry) {
  * The sim_wing_set_tune block for a (normalised) entry, or null for the
  * stock setup. massKg and packKg as balance() takes them.
  */
-export function tuneBlock(airframeId, entry, massKg, packKg) {
-  if (isStock(airframeId, entry)) {
+export function tuneBlock(airframeId, entry, massKg, packKg, high = null) {
+  if (isStock(airframeId, entry) && !high) {
     return null;
   }
   const t = tuningFor(airframeId);
   const e = fullEntry(airframeId, entry);
   const b = balance(airframeId, entry, massKg, packKg);
-  const th = throwsFor(airframeId, e.rate);
+  const th = throwsFor(airframeId, e.rate, high);
   const out = new Float64Array(SIM_TUNE_DOUBLES);
   out[SIM_TUNE.CG_SHIFT] = b.shift;
   out[SIM_TUNE.BALLAST_KG] = b.ballastKg;

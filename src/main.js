@@ -60,7 +60,7 @@ import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle,
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
-import { courseKind } from './game/progress.js';
+import { courseKind, lockOf } from './game/progress.js';
 import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
 import { createGlidePath } from './render/glidepath.js';
 import { createGateCue } from './ui/gatecue.js';
@@ -235,6 +235,7 @@ import { ESTIMATES } from '../configs/power-estimates.js';
 import { MOTORS, choiceKey, hasMotors, motorChoice, motorStats, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
+import { flownTiers, pointsInertia, surfaceGrowth, tierBlock, tierPoints, tierThrowsDeg } from '../configs/surfaces.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import {
@@ -242,6 +243,7 @@ import {
 } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
+import { drawnChords, setSurfacesSource, surfacesFor } from './render/surfacesource.js';
 import { setAtlasPreset } from './render/decals.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normalisePlane, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
@@ -2425,7 +2427,7 @@ export async function boot({
         /* This pilot's own aircraft as the shell dresses it, the others'
          * from their room profiles as a visit's are. */
         walkRoom.view.setLineup(ui.walk.roomLineup.map((e) => (e.own
-          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false }), e.airframe), e.airframe)
+          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false, surfaces: surfacesFor(e.airframe) ?? undefined }), e.airframe), e.airframe)
           : visitCraft(e))));
         walkRoom.view.setCraft(null);
         walkRoom.craftKey = 'lineup';
@@ -2540,7 +2542,9 @@ export async function boot({
    * account's, so a colour or a part this build does not know is dropped. */
   function visitCraft(visit) {
     const id = airframeById(currentAirframeId(visit.airframe)).id;
-    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false });
+    /* The surface tiers they fly, in their parts (configs/surfaces.js). */
+    const surfaces = surfaceGrowth(id, visit.parts && visit.parts.surfaces);
+    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false, surfaces: surfaces ?? undefined });
     if (paintable(id)) {
       dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), visit.look)));
     }
@@ -2556,8 +2560,11 @@ export async function boot({
    * (src/ui/ui.js pickerLook), or a stock aircraft in the pilot's own
    * paint and parts, as the main stand's. */
   function bayCraft({ airframe, build }) {
-    const craft = craftBuilderFor(airframe)({ name: 'bay-craft', fog: false });
     const b = build ? ui.myBuilds.find((x) => x.id === build) : null;
+    /* A build's own surfaces; the stock aircraft's the pilot's, through
+     * src/render/surfacesource.js as the main stand's. */
+    const surfaces = b ? surfaceGrowth(airframe, b.fit.surfaces) : surfacesFor(airframe);
+    const craft = craftBuilderFor(airframe)({ name: 'bay-craft', fog: false, surfaces: surfaces ?? undefined });
     if (!b) {
       return dressParts(dressLivery(craft, airframe), airframe);
     }
@@ -3783,6 +3790,14 @@ export async function boot({
   function roomHereText(text, bots) {
     return bots ? `${text}, ${plural('count.ai_pilots_extra', bots)}` : text;
   }
+  /* The surface tiers this pilot flies on `id`, for the room's lineup
+   * and the others' drawings: the seated ones on the aircraft in the air
+   * (a change waits for the next run, as the plant's does), none when
+   * stock, and so none in a stock only room. */
+  function profileTiers(id) {
+    const key = id === runAirframe ? runTierKey : tierKeyOf(ui.settings, id);
+    return key === 'null' ? {} : { surfaces: JSON.parse(key) };
+  }
   function roomProfile() {
     const status = roomStatus();
     /* Off the air in a war room (its lobby, its briefing) the aircraft the
@@ -3798,7 +3813,7 @@ export async function boot({
       /* Packed (configs/paint.js packEntry), so MAX_DECALS layers fit the
        * room's PROFILE_MAX_BYTES. */
       livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) ? packEntry(ui.settings.livery[liveryKey(id)]) : null,
-      parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
+      parts: parts ? { prop: parts.prop, addons: parts.addons, ...profileTiers(id) } : null,
       ...(ui.roomGame ? { game: ui.roomGame } : {}),
       ...(status ? { status } : {}),
     };
@@ -7219,6 +7234,8 @@ export async function boot({
       mode: st.welcome ? st.welcome.mode ?? null : null,
       lobby: st.welcome && st.welcome.lobby ? { ...st.welcome.lobby } : null,
       host: st.welcome ? st.welcome.host : null,
+      /* The host's stock surfaces only (edge/rooms/core.js stockSurfaces). */
+      stockSurfaces: Boolean(st.welcome && st.welcome.stockSurfaces),
       /* The watch seat: the pilot the camera follows, and how far the
        * camera is from where that pilot is drawn, metres. */
       watch: Boolean(st.welcome && st.welcome.watch),
@@ -7234,6 +7251,7 @@ export async function boot({
         airframe: p.profile.airframe,
         map: p.profile.map,
         livery: p.profile.livery,
+        parts: p.profile.parts ?? null,
         drawn: Boolean(p.rig && p.rig.group.visible),
         drawnAirframe: p.rig ? p.rig.airframe : null,
         at: p.rig ? p.rig.group.position.toArray() : null,
@@ -7506,9 +7524,11 @@ export async function boot({
     if (roomLinkState.state().phase !== 'open') {
       return [];
     }
-    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true };
+    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true, surfaces: profileTiers(runAirframe).surfaces ?? null };
     const others = [...roomPeers.values()].filter((p) => p.profile && p.profile.airframe)
-      .map((p) => ({ name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts }));
+      .map((p) => ({
+        name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts, surfaces: (p.profile.parts && p.profile.parts.surfaces) ?? null,
+      }));
     return [own, ...others];
   };
   ui.friendsRows = () => {
@@ -10100,6 +10120,7 @@ export async function boot({
   /* The model drawn: TITLE_CRAFT on the title, else the seated aircraft. */
   let drawnCraft = DEFAULT_AIRFRAME;
   let drawnCombat = null;
+  let drawnTiers = 'null';
   /* The camera mount in the seated aircraft's frame: lens.js's for the
    * quad, the pod's nose for a wing. */
   let camMountFwd = CAMERA_MOUNT_FORWARD;
@@ -10935,12 +10956,45 @@ export async function boot({
     const parts = partsEntry(s.parts, af.id);
     /* The Hercules' cargo still aboard rides as add-ons too (THE HOLD). */
     const cargo = af.ramp ? holdPoints(holdLeft) : [];
-    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS], cargo);
+    /* The bigger surfaces' servos (configs/surfaces.js), the pair of
+     * aileron servos' spread handed over as the add-ons' own inertia. */
+    const servos = tierPoints(af.id, seatedTiers(s, af.id));
+    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS], [...cargo, ...servos]);
     const code = block ? sim.setAddons(block) : sim.clearAddons();
-    if (code !== SIM_OK) {
-      throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
+    const spread = code === SIM_OK && block && servos.length ? sim.setAddonInertia(Float64Array.from(pointsInertia(servos))) : code;
+    if (spread !== SIM_OK) {
+      throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(spread)}`);
     }
   }
+
+  /*
+   * THE CONTROL SURFACE TIERS (configs/surfaces.js, the hangar's Surfaces
+   * tab): what the plane flies is the pilot's stored tiers, less any not
+   * yet earned, and stock in a room whose host asked for stock only
+   * (roomStockOnly). applyTuning seats the plant's block and the tiers'
+   * throws, applyParts their servos; runTierKey is what was seated.
+   */
+  let runTierKey = 'null';
+  /* A room whose host set stock surfaces only (edge/rooms/core.js
+   * stockSurfaces); off outside a room. */
+  function roomStockOnly() {
+    const w = roomLinkState.state().welcome;
+    return roomLinkState.state().phase === 'open' && Boolean(w && w.stockSurfaces);
+  }
+  function seatedTiers(s, id) {
+    const progress = s.progress;
+    return flownTiers(id, s.surfaces && s.surfaces[id], {
+      locked: (af, unlock) => lockOf(progress, 'surface', unlock, af) !== null,
+      stockOnly: roomStockOnly(),
+    });
+  }
+  /* What runTierKey holds for these settings: 'null' for stock. */
+  function tierKeyOf(s, id) {
+    const tiers = seatedTiers(s, id);
+    return tierBlock(id, tiers) ? JSON.stringify(tiers) : 'null';
+  }
+  /* Every model of a plane is drawn with the surfaces it flies. */
+  setSurfacesSource((id) => surfaceGrowth(id, seatedTiers(ui.settings, id)));
 
   /* A combat quad's payload and accessories, on the hangar parts' path and
    * rule: one lumped mass and its spread, laid over the table between
@@ -10980,11 +11034,23 @@ export async function boot({
     const af = airframeById(runAirframe);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
+      runTierKey = 'null';
       return;
     }
     const set = setupFor(af.id, powerChoice(af.id, s.power));
     const entry = normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits);
-    const block = tuneBlock(af.id, entry, set.massKg, set.packKg);
+    /* Mid run the tiers in the air stay (they wait for the next run, with
+     * their servos and their drawing); only the tune is laid again. */
+    const tiers = midRun ? (runTierKey === 'null' ? null : JSON.parse(runTierKey)) : seatedTiers(s, af.id);
+    const tierSet = tiers ? tierBlock(af.id, tiers) : null;
+    if (!midRun) {
+      const tierCode = tierSet ? sim.setTiers(tierSet) : sim.clearTiers();
+      if (tierCode !== SIM_OK) {
+        throw new Error(`sim_wing_set_tiers refused ${JSON.stringify(tiers)} on ${af.id}: ${simErrorName(tierCode)}`);
+      }
+      runTierKey = tierKeyOf(s, af.id);
+    }
+    const block = tuneBlock(af.id, entry, set.massKg, set.packKg, tierSet ? tierThrowsDeg(af.id, tiers) : null);
     const code = block ? sim.setTune(block) : sim.clearTune();
     if (code !== SIM_OK) {
       throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
@@ -12723,6 +12789,10 @@ export async function boot({
     if (roomHost(w) && w.weather && w.weather.preset !== s.weather) {
       roomLinkState.sendWeather(s.weather);
     }
+    /* And stock surfaces only, the same way, at the same moment. */
+    if (roomHost(w) && Boolean(w.stockSurfaces) !== (s.roomStockSurfaces === true)) {
+      roomLinkState.sendStockSurfaces(s.roomStockSurfaces === true);
+    }
   }
   /* And the room's time of day, at the same moment, a run's start: told
    * once per welcome and setting, since the room's clock may be a
@@ -14081,13 +14151,17 @@ export async function boot({
      * which is between runs. */
     const combat = !airframeById(want).combat ? null
       : want === runAirframe ? combatSeatKey : JSON.stringify(combatSeated(want));
-    if ((want === drawnCraft && combat === drawnCombat) || typeof shell.swapCraft !== 'function') {
+    /* And a plane whose surface tiers were seated since: their size is
+     * in the drawing (src/render/surfacesource.js). */
+    const tiers = want === runAirframe ? runTierKey : 'null';
+    if ((want === drawnCraft && combat === drawnCombat && tiers === drawnTiers) || typeof shell.swapCraft !== 'function') {
       return;
     }
     shell.swapCraft(want);
     prewarm([shell.quad]);
     drawnCraft = want;
     drawnCombat = combat;
+    drawnTiers = tiers;
   }
 
   /*
@@ -14267,6 +14341,8 @@ export async function boot({
       return;
     }
     const set = setupFor(af.id, powerChoice(af.id, s.power));
+    /* Not the surface tiers: they are mass and aero and wait for the
+     * next run, which seats them with their servos and draws them. */
     if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
       applyTuning(s, true);
     }
@@ -14854,8 +14930,9 @@ export async function boot({
     }
     const partsChanged = Boolean(res.settings && res.settings.parts);
     /* The tuning is the plane's own, not its family's. */
-    const tuned = id === runAirframe && res.settings && res.settings.tuning
-      && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
+    const tuned = id === runAirframe && res.settings && (
+      (res.settings.tuning && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey)
+      || (res.settings.surfaces && tierKeyOf(ui.settings, id) !== runTierKey));
     /* And a combat quad's loadout is the quad's own (src/ui/hangar-combat.js). */
     const loaded = id === runAirframe && Boolean(res.settings && res.settings.combat)
       && JSON.stringify(combatSeated(id)) !== combatSeatKey;
@@ -19652,6 +19729,7 @@ export async function boot({
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
+  window.__carouselChords = (id) => pickStage.chords(id);
   /* The exploded part at client pixels on the hangar's model, for a check. */
   window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
   window.__walkStats = () => (ui.walk ? {
@@ -19707,6 +19785,10 @@ export async function boot({
       smoke: { on: smokeOn, puffs: smoke.live() },
       bladeScale: audio.bladeScale,
       tune: af.fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
+      /* The surface tiers seated (sim_wing_tiers) and how big each moving
+       * surface is drawn: its box along the chord, metres. */
+      tiers: af.fixedWing && typeof sim.e.sim_wing_tiers === 'function' ? Array.from(sim.tiers()) : null,
+      surfaceChords: drawnChords(shell.quad),
       flapNotch,
       /* A Night Timber's factory lights, drawn or not, and the world's
        * night they follow (nighttimber:lights). */
@@ -21209,7 +21291,12 @@ export async function boot({
     /* The hangar parts it flies with, as a saved replay keeps them. */
     fit: () => {
       const f = partsFor(runAirframe);
-      return f && f.entry ? { entry: f.entry, option: f.option ? f.option.id : null } : null;
+      if (!f || !f.entry) {
+        return null;
+      }
+      /* The surfaces it flew with, so the replay draws them that size. */
+      const tiers = seatedTiers(ui.settings, runAirframe);
+      return { entry: f.entry, option: f.option ? f.option.id : null, ...(surfaceGrowth(runAirframe, tiers) ? { surfaces: tiers } : {}) };
     },
   });
   crashCam.tap(debris);

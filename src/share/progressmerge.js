@@ -95,11 +95,12 @@
 import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
 import { retiredAirframe } from '../../configs/airframes.js';
+import { tiersShape } from '../../configs/surfaces.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import { cleanPilotCounts, mergePilotCounts } from './pilotcounts.js';
 import { cleanRecords, mergeRecords } from './records.js';
 import {
-  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX,
+  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX, SURFACES_MAX_ENTRIES,
 } from '../../tracks-api/limits.js';
 
 export const SYNCED_SECTIONS = {
@@ -110,6 +111,8 @@ export const SYNCED_SECTIONS = {
   parts: 'keyed',
   power: 'keyed',
   tuning: 'keyed',
+  /* The control surface tiers (configs/surfaces.js), by airframe. */
+  surfaces: 'keyed',
   tuneFor: 'keyed',
   pids: 'keyed',
   floats: 'keyed',
@@ -157,6 +160,7 @@ const ENTRY_SHAPES = {
     && typeof b.airframe === 'string' && ID_RE.test(b.airframe) && isRecord(b.fit) && when(b.created) && when(b.updated),
   /* configs/wear.js holds the fields; the server holds the shape. */
   packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
+  surfaces: (key, e) => ID_RE.test(key) && tiersShape(e),
 };
 
 /*
@@ -165,7 +169,7 @@ const ENTRY_SHAPES = {
  * 2026-10-03) is dropped from a clean blob: its motors, props, packs,
  * parts and tune were that aircraft's, and its successor has its own.
  */
-const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'tuneFor', 'floats', 'combat'];
+const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'floats', 'combat'];
 
 /*
  * A build as this build of the game holds it: one made on a retired
@@ -191,7 +195,7 @@ export function currentBuild(b) {
  */
 export function blobRefusal(raw) {
   const data = isRecord(raw) && isRecord(raw.data) ? raw.data : {};
-  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES, packs: PACKS_MAX };
+  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES, packs: PACKS_MAX, surfaces: SURFACES_MAX_ENTRIES };
   for (const [section, shape] of Object.entries(ENTRY_SHAPES)) {
     const value = data[section];
     if (value === undefined) {
