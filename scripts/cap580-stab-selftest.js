@@ -362,15 +362,26 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
 }
 
 /* Taxiing on the Cub's taxi thrust, 1.65 N, scaled by the weight (3.6
- * against the Cub's 1.32 kg): 4.5 N, 0.22 of the CAP's throttle. */
+ * against the Cub's 1.32 kg): 4.5 N, the prop at sqrt(4.5 / 94.31), 0.218
+ * of full, which the bench's measured curve (throttle_rpm,
+ * docs/CAP580-STAGE1.md) turns at a stick of 0.175. The heading's change
+ * is summed step by step, as the Extra's: past half a circle the end
+ * points wrap. */
 for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
-  roll(() => [0, 0, 0, 0.22], 2);
-  const h0 = heading(sim.readState().state);
-  const taxi = roll(() => [0, 0, 1, 0.22], 4);
-  const turned = (heading(taxi.s) - h0) * DEG;
+  roll(() => [0, 0, 0, 0.175], 2);
+  let last = heading(sim.readState().state);
+  let turnedRad = 0;
+  roll(() => {
+    const h = heading(sim.readState().state);
+    turnedRad += Math.atan2(Math.sin(h - last), Math.cos(h - last));
+    last = h;
+    return [0, 0, 1, 0.175];
+  }, 4);
+  const turned = turnedRad * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);
 }
+
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);
