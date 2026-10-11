@@ -538,7 +538,7 @@ async function flyTimber(page) {
  * swung round to the view: a frame on this rasteriser is slow, and the
  * camera's springs step on the frame's clock. */
 async function placeDecal(page, kind, view, facing) {
-  await page.evaluate(click(`view-${view}`));
+  await page.evaluate(click(`decal-view-${view}`));
   const before = await page.evaluate('(window.__ui.hangar.entry.decals || []).length');
   await page.evaluate(click('decal-add'));
   await page.evaluate(click(`kind-${kind}`));
