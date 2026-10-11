@@ -948,7 +948,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/hercules-thresholds.json h1_stall. */
     stall: 9.67,
     /* Level speed at full throttle, m/s: tests/hercules-thresholds.json h4_top, derived. */
-    topSpeed: 22.57,
+    topSpeed: 23.46,
     gear: { restHeight: 0.2604, restPitch: 0 },
     name: 'C-130 Hercules',
     short: 'Hercules',
