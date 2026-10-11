@@ -257,6 +257,16 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a pass banked 55 deg is no knife edge', !lean.some((g) => g.figure === 'knife_edge_pass'),
     lean.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
 }
+/* A point the wings rock back from (0.5 rad/s against the roll, as the
+ * Extra's knife edge does on the lateral model) is still a point, and a
+ * rock back after the last starts no fifth. */
+{
+  const q = roll(4, 0.25, V);
+  const back = { p: -0.5, ms: 300, speed: V };
+  const got = detect([lead, q, straight(300, V), q, straight(300, V), q, back, q, back, tail]);
+  check('a 4-point roll whose wings rock back on its points is named a 4-point roll', got.some((g) => g.figure === 'four_point_roll'),
+    got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+}
 /* A crash in the middle forgets the figure. */
 {
   const got = [];
