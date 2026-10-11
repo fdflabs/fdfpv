@@ -3,7 +3,7 @@
  * foot-walk-check.js: `npm run foot:walk`, the pilot on foot in the real
  * shell, headless, on swiss2 in free flight (docs/ON-FOOT.md).
  *
- *     SIM_GPU=1 node scripts/foot-walk-check.js [OUT_DIR]
+ *     SIM_GPU=1 node scripts/foot-walk-check.js [OUT_DIR] [--only=keyboard,pad,touch]
  *
  * keyboard  An Extra parked at the spawn. Rolling, the foot key is
  *           refused. Stopped, it steps out onto the pilot's spot: the
@@ -49,7 +49,7 @@ import { airframeById } from '../configs/airframes.js';
 import { EYE_HEIGHT, RUN_SPEED, WALK_SPEED } from '../src/game/human.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const out = process.argv[2] || join(tmpdir(), 'foot-walk-check');
+const out = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : join(tmpdir(), 'foot-walk-check');
 mkdirSync(out, { recursive: true });
 
 /* The swiss2 field hangar's centre and its footprint's smaller half
@@ -331,11 +331,21 @@ async function touchCase() {
   }
 }
 
-const only = process.argv.slice(3);
-for (const [id, run] of [['keyboard', keyboardCase], ['pad', padCase], ['touch', touchCase]]) {
-  if (!only.length || only.includes(id)) {
+/* Cases by --only=keyboard,pad, never by position: a folder path with a
+ * space, split by a shell, once made its second half a case filter that
+ * matched nothing and passed. */
+const CASES = [['keyboard', keyboardCase], ['pad', padCase], ['touch', touchCase]];
+const onlyArg = process.argv.find((a) => a.startsWith('--only='));
+const only = onlyArg ? onlyArg.slice('--only='.length).split(',') : CASES.map(([id]) => id);
+const unknown = only.filter((id) => !CASES.some(([c]) => c === id));
+if (unknown.length) {
+  console.error(`foot-walk-check: no case ${unknown.join(', ')}`);
+  process.exit(1);
+}
+for (const [id, run] of CASES) {
+  if (only.includes(id)) {
     await run();
   }
 }
 console.log(`foot-walk-check: ${passed} passed, ${failed} failed; pictures in ${out}`);
-process.exit(failed ? 1 : 0);
+process.exit(failed || !passed ? 1 : 0);

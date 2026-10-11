@@ -15619,7 +15619,6 @@ export async function boot({
   const footEuler = new THREE.Euler(0, 0, 0, 'YXZ');
   let footPadMs = 0;
   let footPadFired = false;
-  let footCouldWas = false;
 
   /* A free flight, flown here and now by this pilot, not a war, a
    * mission, a watcher's seat or the builder. */
@@ -15704,8 +15703,9 @@ export async function boot({
     return walker !== null && code !== 'KeyR';
   }
 
-  /* Once a frame, before the camera: the pad's B, the thumbs' chip,
-   * the hint on stopping, and the walk itself. */
+  /* Once a frame, before the camera: the pad's B, the thumbs' chip and
+   * the walk itself. No banner says a step out is possible: a notice on
+   * every landing took the banner from the turtle's and the race's own. */
   function walkFrame() {
     if (walker !== null && (mode === 'title' || mode === 'results')) {
       leaveFoot();
@@ -15726,11 +15726,6 @@ export async function boot({
     if (touch) {
       touch.setFoot(!flying ? null : walker !== null ? str('foot.chip_fly') : could ? str('foot.chip_out') : null);
     }
-    /* Said after a landing, not at every spawn, where the pilot came to fly. */
-    if (could && !footCouldWas && flownThisRun) {
-      flashNotice(str('foot.can_step_out', { key: footKeyLabel() }), 2600);
-    }
-    footCouldWas = could;
     if (walker === null || !flying) {
       return;
     }

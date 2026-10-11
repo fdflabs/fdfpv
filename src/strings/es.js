@@ -564,7 +564,6 @@ export default {
   "ui.howto_mouse_mode": "El ratón es un stick proporcional de verdad, así que vuela el Modo de vuelo que esté en Quad, como una radio. En un quad en Acro el stick vuelve al centro, así que mover el ratón gira el quad y parar mantiene la actitud. En Angle y en todos los aviones se queda donde lo pones.",
   "input.the_keyboard": "el teclado",
   "input.on_foot": "el piloto a pie",
-  "foot.can_step_out": "Aterrizado y detenido: {key} para bajarte.",
   "foot.stepped_out": "A pie. WASD para caminar, Shift para correr, el ratón para mirar; {key} para volver a volar desde aquí.",
   "foot.flying_again": "Vuelas desde donde estás parado.",
   "foot.land_first": "Aterriza y detente primero, motor apagado, para bajarte.",
