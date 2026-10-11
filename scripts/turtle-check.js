@@ -73,7 +73,9 @@ const seed = [`try {
  * One letter per flag, read every animation frame and kept only when it
  * changed: w wait, f flip, r recover (stick ignored until centred), t the
  * shell's crashflip latch, m the held T, c Betaflight's crashflip running,
- * l landed, h motors held at zero by the shell. A flip lasts a few frames,
+ * l landed, h motors held at zero by the shell, then the banner and, after
+ * a glitch catch, its kind (beginClipCrash), so a Crashed in a trail says
+ * which test fired. A flip lasts a few frames,
  * so a poll from Node could step over it; a page side recorder cannot.
  */
 const RECORDER = `(() => {
@@ -82,7 +84,8 @@ const RECORDER = `(() => {
     const k = window.__crash();
     return (s.turtleWait ? 'w' : '-') + (s.turtleFlip ? 'f' : '-') + (s.turtleRecover ? 'r' : '-')
       + (s.turtle ? 't' : '-') + (s.manualFlip ? 'm' : '-') + (s.crashflipActive ? 'c' : '-')
-      + (s.landed ? 'l' : '-') + (k.motorsHeld ? 'h' : '-') + ' ' + s.banner;
+      + (s.landed ? 'l' : '-') + (k.motorsHeld ? 'h' : '-') + ' ' + s.banner
+      + (s.clipCrashKind ? ' (' + s.clipCrashKind + ')' : '');
   };
   window.__turtleTrail = [];
   window.__turtleFrames = 0;
