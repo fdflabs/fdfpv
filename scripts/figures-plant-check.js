@@ -93,7 +93,9 @@ function see(s) {
   const nz = 2 * (x * z - w * y);
   const lz = 2 * (y * z + w * x);
   const uz = 1 - 2 * (x * x + y * y);
-  return { s, nz, lz, uz, p: s[11], q: s[12], v: Math.hypot(s[4], s[5], s[6]) };
+  /* The body's up axis, world: what a pitch of the nose moves it toward. */
+  const up = [2 * (x * z + w * y), 2 * (y * z - w * x), uz];
+  return { s, nz, lz, uz, up, p: s[11], q: s[12], v: Math.hypot(s[4], s[5], s[6]) };
 }
 
 async function flight() {
@@ -115,6 +117,7 @@ async function flight() {
   let turned = 0;
   let quarter = 0;
   let holdMs = 0;
+  let line0 = null;
   let st = [0, 0, 0, 0.75];
   for (let ms = 0; ms < 60000 && phase < program.length; ms += MS) {
     const o = see(sim.readState().state);
@@ -142,12 +145,22 @@ async function flight() {
          * they have not seen yet (0.2 s) and the roll's own run on. */
         if (turned > 2 * Math.PI - d.p * 0.35) { phase += 1; phaseMs = 0; marks.push(ms); }
       } else if (name === 'points') {
+        if (line0 === null) {
+          const hv = Math.hypot(d.s[4], d.s[5]);
+          line0 = [d.s[4] / hv, d.s[5] / hv];
+        }
         /* Four quarters, each held a beat. */
         if (holdMs > 0) {
           holdMs -= EVERY;
           /* Top rudder on the knife edge holds the nose up (a yaw about
            * the body's up turns the nose along the raised wing). */
-          st = [0, d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0, Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75];
+          /* And the line on the elevator, as a person flies a point: on
+           * the knife edge the elevator moves the nose across the ground,
+           * so it puts it back toward the heading the roll began on (the
+           * prop's gyroscope pitches it off the line as the rudder yaws
+           * the nose up, docs/FLIGHTMODEL.md). */
+          const line = Math.abs(d.lz) > 0.5 ? quant(1.2 * (line0[0] * d.up[0] + line0[1] * d.up[1])) : 0;
+          st = [0, clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75];
         } else {
           turned += d.p * h;
           st = [0.5, 0.05, 0, 0.75];
