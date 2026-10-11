@@ -47,6 +47,7 @@ import {
   whenVisible, withCaptureLock,
 } from '../share/orbitcache.js';
 import { readPilotName } from '../share/pilot.js';
+import { readWallet } from '../share/account.js';
 import {
   readBind, readEditKey, readShareImport, writeShareImport,
 } from '../share/session.js';
@@ -432,7 +433,7 @@ export const cardMethods = {
     if (!show) {
       return;
     }
-    const st = pilotStats(this.settings);
+    const st = pilotStats(this.settings, readWallet());
     const shape = `${currentLocale()}|${JSON.stringify(st)}`;
     if (this.titleStatsKey !== shape) {
       this.titleStatsKey = shape;
