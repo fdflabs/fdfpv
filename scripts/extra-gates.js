@@ -257,10 +257,13 @@ check: {
    * the throttle holding the height, the wings on the ailerons and the
    * heading on the rudder, each with an integral as a pilot's hands hold
    * a trim, for 20 s. The wing rocks as it goes into the stall, which is
-   * what a harrier does; the mean of the last 5 s. */
+   * what a harrier does; the mean of the last 5 s. The entry's throttle
+   * is the one that holds 12 m/s level, 0.384 on the prop's curve (npm run
+   * extra:derive, E11 entry); it was 0.5 when the straight line put that
+   * at 12.5 m/s, and on the curve 0.5 entered at 16 m/s. */
   {
     const t11 = th.e11_harrier;
-    const r = fly(sim, { duty: 0.5, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
+    const r = fly(sim, { duty: 0.384, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
     clockMs = r.endMs;
     const target = t11.alphaDeg / DEG;
     const thr = heightHold(0.55);

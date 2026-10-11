@@ -205,6 +205,12 @@ const level = (d) => {
   return lo;
 };
 const Vs = Math.sqrt(2 * W / (rho * S * CLmax));
+/* The throttle that holds a level speed: E11's entry, level at 12 m/s. */
+const levelDuty = (V) => {
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(V, mid) < D(V)) lo = mid; else hi = mid; }
+  return hi;
+};
 const ld = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return CL / (CD0 + k * CL * CL); };
 /* The roll rate, steady, pb/2V = Clda da / -Clp, at full aileron. */
 const pb2v = Clda * throwA / -Clp;
@@ -564,6 +570,7 @@ const rows = [
   ['E9 full aileron in the wash N m, net roll deg/s', `${f(aileronHover, 4)} ${f(aileronRollNet * DEG, 0)}`],
   ['E10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],
   ['   prop angular momentum at hover N m s', f(hHover, 4)],
+  ['E11 entry: the throttle level at 12 m/s', f(levelDuty(12), 3)],
   ['E11 harrier at 35, 40, 45 deg', ''],
   ['   35', J(harrier(35))],
   ['   40', J(harrier(40))],
