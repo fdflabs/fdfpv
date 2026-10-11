@@ -1567,10 +1567,14 @@ export function zagiPrelude(sim, { mu = 1.4, e = 0 } = {}) {
 
 /* Wings level on the roll stick, and the nose held at a pitch on the
  * elevons, gently: the Zagi answers a tenth of its stick. */
-export function zagiHold(s, { bank = 0, pitch = 0 } = {}) {
+/* trim, when given ({ i: 0 }, kept by the caller): the hand that trims a
+ * steady moment out, as personWingsHold's, 0.2 of stick per radian of
+ * error a second; without it the hold is the proportional one it was. */
+export function zagiHold(s, { bank = 0, pitch = 0, trim = null } = {}) {
   const a = attitude(s);
   const roll = Math.max(-1, Math.min(1, -1.0 * (a.bank - bank) - 0.08 * s[11]));
-  const pitchStick = Math.max(-1, Math.min(1, 1.2 * (pitch - a.pitch) - 0.10 * -s[12]));
+  if (trim) trim.i = Math.max(-1, Math.min(1, trim.i + 0.2 * (pitch - a.pitch) * RC_STEP_MS / 1000));
+  const pitchStick = Math.max(-1, Math.min(1, 1.2 * (pitch - a.pitch) - 0.10 * -s[12] + (trim ? trim.i : 0)));
   return [roll, pitchStick];
 }
 

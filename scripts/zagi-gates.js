@@ -264,10 +264,15 @@ const sim = await zagiSim();
   must(sim.reset(), 'sim_reset');
   zagiPrelude(sim, { mu: GROUND_MU, e: GROUND_E });
   let low = ZAGI_THROW.height, touched = false;
+  /* The thrower holds the climb out as a person does, trimming out the
+   * motor's nose down moment (its line 52 mm over the CG, ESTIMATED) with
+   * the hand (zagiHold's trim); a proportional hold alone left a steady
+   * error that, at the prop curve's thrust, put it on the grass. */
+  const trim = { i: 0 };
   for (let ms = 0; ms < t.afterS * 1000; ms += RC_STEP_MS) {
     const s = sim.readState().state;
     const motor = ms >= t.motorOffS * 1000;
-    const [roll, pitch] = zagiHold(s, { pitch: motor ? 0.35 : 0.03 });
+    const [roll, pitch] = zagiHold(s, { pitch: motor ? 0.35 : 0.03, trim });
     must(sim.input(ms / 1000, roll, pitch, 0, motor ? 1 : 0), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');
     low = Math.min(low, sim.readState().state[3]);
