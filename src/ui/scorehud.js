@@ -43,7 +43,8 @@
  */
 
 import { formatScore } from '../game/score.js';
-import { str } from '../strings/index.js';
+import { figureIdOfTrick, gradeWordKey } from '../game/figures.js';
+import { currentLocale, str } from '../strings/index.js';
 
 /* Six rows is what fits beside the quad at 720p without reaching the pack
  * readout. A longer chain loses its oldest names, not its count: the combo
@@ -62,10 +63,10 @@ const LIFE_MS = { row: 2600, burst: 900, ring: 1200 };
  * language.
  */
 const TIER_WORDS = [
-  { at: 5, en: 'Perfect', jp: '最高' },
-  { at: 4, en: 'Wild', jp: 'やばい' },
-  { at: 3, en: 'Sweet', jp: 'すごい' },
-  { at: 2, en: 'Nice', jp: 'いいね' },
+  { at: 5, key: 'scorehud.tier_perfect', jp: '最高' },
+  { at: 4, key: 'scorehud.tier_wild', jp: 'やばい' },
+  { at: 3, key: 'scorehud.tier_sweet', jp: 'すごい' },
+  { at: 2, key: 'scorehud.tier_nice', jp: 'いいね' },
 ];
 
 const tierWord = (mult) => TIER_WORDS.find((w) => mult >= w.at) ?? null;
@@ -83,6 +84,18 @@ const EXECUTION_LOOK = {
 };
 const PLAIN_LOOK = { cls: null, ink: 'var(--cream)' };
 
+/* A trick's name as the pilot reads it: an aerobatic figure's in the
+ * pilot's language (it travels as fig:<id>), anything else as named. */
+export function trickTitle(name) {
+  const id = figureIdOfTrick(name);
+  return id ? str(`aerobatic.${id}`) : name;
+}
+
+/* The judge's grade and its word, "SHARP 8.5" ("FINO 8,5"). */
+export function gradeText(grade) {
+  return str('aerobatic.grade_of', { word: str(gradeWordKey(grade)), grade: grade.toLocaleString(currentLocale()) });
+}
+
 function node(tag, cls, text) {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
@@ -91,16 +104,19 @@ function node(tag, cls, text) {
 }
 
 /*
- * Puts child under parent until its animation ends or ms pass, whichever is
- * first. The event bubbles, so an animation inside child ending also counts:
- * a name row goes when the first of its own animations finishes.
+ * Puts child under parent until its own animation ends or ms pass,
+ * whichever is first. Only the child's own: animationend bubbles, and a
+ * name row used to leave with its 480 ms burst, half a second on screen
+ * for a 2.2 s keyframe, too quick to read a figure's name and grade.
  */
 function fleeting(parent, child, ms) {
   parent.append(child);
   const leave = () => {
     if (child.parentNode === parent) parent.removeChild(child);
   };
-  child.addEventListener('animationend', leave, { once: true });
+  child.addEventListener('animationend', (e) => {
+    if (e.target === child) leave();
+  });
   setTimeout(leave, ms);
 }
 
@@ -155,9 +171,18 @@ export class ScoreHud {
     root.append(this.el);
 
     this.visible = false;
+    this.calloutsOnly = false;
     /* What the screen currently says, so a frame that changes nothing
      * writes nothing. null means "not on screen, write the next value". */
     this.drawn = { total: null, points: null, mult: null, tier: null };
+  }
+
+  /* Callouts without the score: the names, the chain and its verdict, no
+   * total (a zero that never moves reads as a fault). */
+  setCalloutsOnly(on) {
+    if (on === this.calloutsOnly) return;
+    this.calloutsOnly = on;
+    this.paintFrame();
   }
 
   setVisible(on) {
@@ -177,6 +202,7 @@ export class ScoreHud {
     const word = this.drawn.mult === null ? null : tierWord(this.drawn.mult);
     let cls = 'score-hud';
     if (word && word.at >= SPEED_LINES_FROM) cls += ` tier-${word.at}`;
+    if (this.calloutsOnly) cls += ' is-callouts';
     if (!this.visible) cls += ' is-off';
     this.el.className = cls;
   }
@@ -244,7 +270,7 @@ export class ScoreHud {
   showBadge(word) {
     this.badge.hidden = !word;
     if (!word) return;
-    this.badgeEn.textContent = word.en;
+    this.badgeEn.textContent = str(word.key);
     this.badgeJp.textContent = word.jp;
     replay(this.badge, () => { this.badge.style.animation = 'none'; }, () => { this.badge.style.animation = ''; });
   }
@@ -271,15 +297,20 @@ export class ScoreHud {
    * trick watches its value shrink. The burst behind the name goes in the
    * row first, so it moves with the row and the text paints over it.
    */
-  addRow({ name, points, execution }) {
-    const look = EXECUTION_LOOK[execution] ?? PLAIN_LOOK;
+  addRow({ name, points, execution, grade }) {
+    /* A judged figure (fixed wing) is bigger and says its grade, the way
+     * a skate game shouts how the trick was landed. */
+    const judged = typeof grade === 'number';
+    const look = EXECUTION_LOOK[judged && grade < 6 ? 'SLOPPY' : execution] ?? PLAIN_LOOK;
     const row = node('div', 'score-name score-cut');
     if (look.cls) row.classList.add(look.cls);
+    if (judged) row.classList.add('is-figure');
     const burst = node('div', 'score-burst');
     burst.style.setProperty('--burst', look.ink);
     fleeting(row, burst, LIFE_MS.burst);
-    row.append(node('span', 'score-name-text', name), node('span', 'score-name-points', formatScore(points)));
-    if (execution !== 'CLEAN') row.append(node('span', 'score-name-tag', execution.toLowerCase()));
+    row.append(node('span', 'score-name-text', trickTitle(name)), node('span', 'score-name-points', formatScore(points)));
+    if (judged) row.append(node('span', 'score-name-tag is-grade', gradeText(grade)));
+    else if (execution !== 'CLEAN') row.append(node('span', 'score-name-tag', execution.toLowerCase()));
     fleeting(this.rows, row, LIFE_MS.row);
     while (this.rows.childElementCount > MAX_ROWS) this.rows.removeChild(this.rows.firstChild);
   }

@@ -274,6 +274,9 @@ const CLICKS = {
 const BLIPS = {
   land: { hz: 400, dur: 0.16, rise: 0 },
   takeoff: { hz: 620, dur: 0.14, rise: 1.6 },
+  /* A trick or figure landed clean: the takeoff's rise, higher and a
+   * touch longer, so it reads as a reward and not as the aircraft. */
+  trick: { hz: 880, dur: 0.18, rise: 1.5 },
 };
 const BLIP_OTHER = { hz: 620, dur: 0.14, rise: 0 };
 const BLIP_PEAK = 0.62;
@@ -1277,8 +1280,8 @@ export class MotorAudio {
   }
 
   /*
-   * A race cue: 'crash', 'gate', 'clip', 'land' or 'takeoff' (any other
-   * kind blips). Safe before attach. It makes no node; every cue is
+   * A race cue: 'crash', 'gate', 'clip', 'land', 'takeoff' or 'trick'
+   * (any other kind blips). Safe before attach. It makes no node; every cue is
    * envelopes on a voice that exists already (buildCueVoices). Each one
    * ducks the flight and the bed under it, which is how it stays audible
    * with every slider at the top.

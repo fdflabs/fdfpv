@@ -111,6 +111,9 @@ const NEXT = {
   roomrace: ['room', 'replay', 'title'],
   tag: ['room', 'replay', 'title'],
   combat: ['room', 'replay', 'title'],
+  /* The ops debrief's own buttons: Again from the checkpoint (the host,
+   * after a loss), the replay, Continue. */
+  ops: ['again', 'replay', 'continue'],
 };
 
 export function nextActions(activity) {
@@ -210,6 +213,36 @@ export function fromRoom({ activity, aircraft, fixedWing = false, place, of, fin
     records: timeRecord(totalS, flightMs),
     replay,
     next: nextActions(activity),
+  };
+}
+
+/*
+ * An ops mission's end (src/ui/debrief.js). won and ended as the room
+ * judged them; items the debrief's frames ({ required, kind }: 'mine' and
+ * 'squad' are captured); stars { got, of }; flight this pilot's own
+ * { aircraft, fixedWing, flightMs, totalS, route, replay }.
+ */
+export function fromOps({ won, ended, items, stars, flight }) {
+  const required = items.filter((f) => f.required);
+  const captured = (list) => list.filter((f) => f.kind === 'mine' || f.kind === 'squad').length;
+  const accuracy = [];
+  if (required.length) {
+    accuracy.push({ what: 'debrief.items_required', n: captured(required), of: required.length });
+  }
+  if (stars && stars.of > 0) {
+    accuracy.push({ what: 'debrief.stars', n: stars.got, of: stars.of });
+  }
+  return {
+    activity: 'ops',
+    aircraft: flight.aircraft,
+    fixedWing: Boolean(flight.fixedWing),
+    result: { kind: won ? 'won' : ended ? 'ended' : 'lost', landed: null },
+    route: flight.route ?? null,
+    time: { flightMs: flight.flightMs, runMs: null },
+    accuracy,
+    records: timeRecord(flight.totalS, flight.flightMs),
+    replay: flight.replay ?? null,
+    next: nextActions('ops'),
   };
 }
 
