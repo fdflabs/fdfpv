@@ -948,7 +948,7 @@
         ],
         "on": [
          [
-          32,
+          34,
           "click"
          ]
         ]
@@ -994,7 +994,7 @@
         ],
         "on": [
          [
-          31,
+          33,
           "click"
          ]
         ],
@@ -1288,6 +1288,15 @@
            ]
           ]
          }
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "gate-stats"
+         ]
         ]
        },
        {
@@ -2196,569 +2205,6 @@
         "kids": [
          {
           "t": "A browser FPV racing simulator. The track language comes from Track Draw."
-         }
-        ]
-       },
-       {
-        "tag": "section",
-        "attrs": [
-         [
-          "class",
-          "credit-block"
-         ]
-        ],
-        "kids": [
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-kicker"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "span",
-            "kids": [
-             {
-              "t": "Beta test pilots"
-             }
-            ]
-           }
-          ]
-         },
-         {
-          "tag": "h3",
-          "kids": [
-           {
-            "t": "They flew it until it felt like a quad."
-           }
-          ]
-         },
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-row pilots"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/asylum.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    13,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "01"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@AsylumFpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "Asylum"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@AsylumFpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face is-blank"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "span",
-                  "attrs": [
-                   [
-                    "class",
-                    "credit-face-mark"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "JA"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "02"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "t": "Jannes"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/lestar.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    14,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "03"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@lestarfpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "LeStar"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@lestarfpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/crapshack.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    15,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "04"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@Z_CrapShack"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "CrapShack"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@Z_CrapShack"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           }
-          ]
          }
         ]
        },
@@ -4790,6 +4236,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Rates"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "How far the surfaces move at full stick, as the manual sets the radio up. Changes fly at once."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-rates screen-pids"
      ],
      [
@@ -5187,6 +4747,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot screen-controls"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Controls"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-fc"
      ],
      [
@@ -5305,7 +4979,7 @@
         ],
         "on": [
          [
-          16,
+          13,
           "click"
          ]
         ],
@@ -5329,7 +5003,7 @@
         ],
         "on": [
          [
-          17,
+          14,
           "click"
          ]
         ],
@@ -5726,7 +5400,7 @@
         ],
         "on": [
          [
-          18,
+          15,
           "click"
          ]
         ],
@@ -5754,7 +5428,7 @@
         ],
         "on": [
          [
-          19,
+          16,
           "click"
          ]
         ],
@@ -5782,7 +5456,7 @@
         ],
         "on": [
          [
-          20,
+          17,
           "click"
          ]
         ],
@@ -5810,7 +5484,7 @@
         ],
         "on": [
          [
-          21,
+          18,
           "click"
          ]
         ],
@@ -5838,7 +5512,7 @@
         ],
         "on": [
          [
-          22,
+          19,
           "click"
          ]
         ],
@@ -5866,7 +5540,7 @@
         ],
         "on": [
          [
-          23,
+          20,
           "click"
          ]
         ],
@@ -6014,7 +5688,7 @@
         ],
         "on": [
          [
-          24,
+          21,
           "click"
          ]
         ],
@@ -6038,7 +5712,7 @@
         ],
         "on": [
          [
-          25,
+          22,
           "click"
          ]
         ],
@@ -6062,7 +5736,7 @@
         ],
         "on": [
          [
-          26,
+          23,
           "click"
          ]
         ],
@@ -6221,6 +5895,106 @@
         "kids": [
          {
           "t": "Resumes. Resume is also the first row."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
+      "screen screen-modal"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Flight"
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Back to the pause menu."
          }
         ]
        }
@@ -6450,6 +6224,75 @@
     "tag": "div",
     "attrs": [
      [
+      "class",
+      "screen screen-walk"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "on": [
+     [
+      24,
+      "pointerdown"
+     ],
+     [
+      25,
+      "pointermove"
+     ],
+     [
+      26,
+      "wheel"
+     ],
+     [
+      27,
+      "pointerup"
+     ],
+     [
+      28,
+      "pointercancel"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "walk-prompt"
+       ],
+       [
+        "hidden",
+        ""
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "kbd",
+        "kids": [
+         {
+          "t": "E"
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "walk-prompt-label"
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
       "aria-atomic",
       "true"
      ],
@@ -6498,7 +6341,7 @@
     ],
     "on": [
      [
-      27,
+      29,
       "click"
      ]
     ],
@@ -6530,7 +6373,7 @@
     ],
     "on": [
      [
-      28,
+      30,
       "click"
      ]
     ],
@@ -6562,7 +6405,7 @@
     ],
     "on": [
      [
-      29,
+      31,
       "click"
      ]
     ],
@@ -6598,7 +6441,7 @@
     ],
     "on": [
      [
-      30,
+      32,
       "click"
      ]
     ]
@@ -6659,11 +6502,11 @@
       ],
       "on": [
        [
-        33,
+        35,
         "mousedown"
        ],
        [
-        37,
+        39,
         "click"
        ]
       ],
@@ -6699,11 +6542,11 @@
       ],
       "on": [
        [
-        35,
+        37,
         "mousedown"
        ],
        [
-        36,
+        38,
         "click"
        ]
       ]
@@ -6730,11 +6573,11 @@
       ],
       "on": [
        [
-        34,
+        36,
         "mousedown"
        ],
        [
-        38,
+        40,
         "click"
        ]
       ],
@@ -6789,11 +6632,11 @@
     ],
     "on": [
      [
-      56,
+      58,
       "click"
      ],
      [
-      57,
+      59,
       "keydown"
      ]
     ],
@@ -6856,7 +6699,7 @@
             ],
             "on": [
              [
-              39,
+              41,
               "click"
              ]
             ],
@@ -6884,7 +6727,7 @@
             ],
             "on": [
              [
-              40,
+              42,
               "click"
              ]
             ],
@@ -6912,7 +6755,7 @@
             ],
             "on": [
              [
-              41,
+              43,
               "click"
              ]
             ],
@@ -6940,7 +6783,7 @@
             ],
             "on": [
              [
-              42,
+              44,
               "click"
              ]
             ],
@@ -6968,23 +6811,23 @@
         ],
         "on": [
          [
-          45,
+          47,
           "pointerdown"
          ],
          [
-          46,
+          48,
           "pointermove"
          ],
          [
-          47,
+          49,
           "pointerup"
          ],
          [
-          48,
+          50,
           "pointercancel"
          ],
          [
-          49,
+          51,
           "wheel"
          ]
         ],
@@ -7007,7 +6850,7 @@
           ],
           "on": [
            [
-            43,
+            45,
             "click"
            ]
           ],
@@ -7035,7 +6878,7 @@
           ],
           "on": [
            [
-            44,
+            46,
             "click"
            ]
           ],
@@ -7131,7 +6974,7 @@
             ],
             "on": [
              [
-              50,
+              52,
               "click"
              ]
             ],
@@ -7170,7 +7013,7 @@
             ],
             "on": [
              [
-              51,
+              53,
               "click"
              ]
             ],
@@ -7198,7 +7041,7 @@
             ],
             "on": [
              [
-              52,
+              54,
               "click"
              ]
             ],
@@ -7271,7 +7114,7 @@
             ],
             "on": [
              [
-              53,
+              55,
               "click"
              ]
             ],
@@ -7295,7 +7138,7 @@
             ],
             "on": [
              [
-              55,
+              57,
               "click"
              ]
             ],
@@ -7319,7 +7162,7 @@
             ],
             "on": [
              [
-              54,
+              56,
               "click"
              ]
             ],
@@ -7368,11 +7211,11 @@
     ],
     "on": [
      [
-      78,
+      103,
       "click"
      ],
      [
-      79,
+      104,
       "keydown"
      ]
     ],
@@ -7387,7 +7230,7 @@
       ],
       "on": [
        [
-        77,
+        98,
         "focusin"
        ]
       ],
@@ -7469,24 +7312,28 @@
           ],
           "on": [
            [
-            64,
+            68,
             "pointerdown"
            ],
            [
-            65,
+            69,
             "wheel"
            ],
            [
-            66,
+            70,
             "pointermove"
            ],
            [
-            67,
+            71,
             "pointerup"
            ],
            [
-            68,
+            72,
             "pointercancel"
+           ],
+           [
+            73,
+            "pointerleave"
            ]
           ],
           "kids": [
@@ -7521,11 +7368,11 @@
             ],
             "on": [
              [
-              69,
+              74,
               "pointerdown"
              ],
              [
-              70,
+              75,
               "click"
              ]
             ],
@@ -7540,12 +7387,430 @@
             "attrs": [
              [
               "class",
+              "hangar-views"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-top"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                76,
+                "pointerdown"
+               ],
+               [
+                77,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Top"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-bottom"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                78,
+                "pointerdown"
+               ],
+               [
+                79,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Bottom"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-left"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                80,
+                "pointerdown"
+               ],
+               [
+                81,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Left"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-right"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                82,
+                "pointerdown"
+               ],
+               [
+                83,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Right"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-front"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                84,
+                "pointerdown"
+               ],
+               [
+                85,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Front"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-rear"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                86,
+                "pointerdown"
+               ],
+               [
+                87,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Rear"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "hangar-hover-label"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "aria-pressed",
+              "false"
+             ],
+             [
+              "class",
+              "hangar-flip hangar-stock"
+             ],
+             [
+              "data-key",
+              "ab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              88,
+              "pointerdown"
+             ],
+             [
+              89,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Stock"
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
               "paint-reticle"
              ],
              [
               "hidden",
               ""
              ]
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "paint-gizmo"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ],
+            "on": [
+             [
+              99,
+              "pointerdown"
+             ],
+             [
+              100,
+              "pointermove"
+             ],
+             [
+              101,
+              "pointerup"
+             ],
+             [
+              102,
+              "pointercancel"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "svg",
+              "kids": [
+               {
+                "tag": "polygon",
+                "attrs": [
+                 [
+                  "class",
+                  "paint-gizmo-body"
+                 ],
+                 [
+                  "data-key",
+                  "gizmo-move"
+                 ]
+                ]
+               }
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-0"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-1"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-2"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-3"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-stretch"
+               ],
+               [
+                "data-key",
+                "gizmo-stretch"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-turn"
+               ],
+               [
+                "data-key",
+                "gizmo-turn"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-skew"
+               ],
+               [
+                "data-key",
+                "gizmo-skew"
+               ]
+              ]
+             }
             ]
            }
           ]
@@ -7594,7 +7859,7 @@
             ],
             "on": [
              [
-              58,
+              60,
               "click"
              ]
             ],
@@ -7626,7 +7891,7 @@
             ],
             "on": [
              [
-              59,
+              61,
               "click"
              ]
             ],
@@ -7658,7 +7923,7 @@
             ],
             "on": [
              [
-              60,
+              62,
               "click"
              ]
             ],
@@ -7690,13 +7955,45 @@
             ],
             "on": [
              [
-              61,
+              63,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Parts"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-shop"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              64,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Shop"
              }
             ]
            },
@@ -7722,13 +8019,45 @@
             ],
             "on": [
              [
-              62,
+              65,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Loadout"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-kit"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              66,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Kit"
              }
             ]
            },
@@ -7754,7 +8083,7 @@
             ],
             "on": [
              [
-              63,
+              67,
               "click"
              ]
             ],
@@ -7776,7 +8105,7 @@
           ],
           "on": [
            [
-            71,
+            90,
             "pointerleave"
            ]
           ]
@@ -7811,30 +8140,105 @@
           ],
           "kids": [
            {
-            "tag": "button",
+            "tag": "div",
             "attrs": [
              [
               "class",
-              "hangar-reset"
-             ],
-             [
-              "data-key",
-              "reset"
-             ],
-             [
-              "type",
-              "button"
-             ]
-            ],
-            "on": [
-             [
-              72,
-              "click"
+              "hangar-buttons-left"
              ]
             ],
             "kids": [
              {
-              "t": "Reset to stock"
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset"
+               ],
+               [
+                "data-key",
+                "reset"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                91,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Reset to stock"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "undo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                92,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Undo"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "redo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                93,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Redo"
+               }
+              ]
              }
             ]
            },
@@ -7865,7 +8269,7 @@
               ],
               "on": [
                [
-                75,
+                96,
                 "click"
                ]
               ],
@@ -7893,7 +8297,7 @@
               ],
               "on": [
                [
-                73,
+                94,
                 "click"
                ]
               ],
@@ -7921,7 +8325,7 @@
               ],
               "on": [
                [
-                74,
+                95,
                 "click"
                ]
               ],
@@ -7978,7 +8382,7 @@
         "value": "#000000",
         "on": [
          [
-          76,
+          97,
           "input"
          ]
         ]
@@ -8955,7 +9359,7 @@
         ],
         "on": [
          [
-          32,
+          34,
           "click"
          ]
         ]
@@ -9001,7 +9405,7 @@
         ],
         "on": [
          [
-          31,
+          33,
           "click"
          ]
         ],
@@ -9295,6 +9699,15 @@
            ]
           ]
          }
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "gate-stats"
+         ]
         ]
        },
        {
@@ -10203,569 +10616,6 @@
         "kids": [
          {
           "t": "A browser FPV racing simulator. The track language comes from Track Draw."
-         }
-        ]
-       },
-       {
-        "tag": "section",
-        "attrs": [
-         [
-          "class",
-          "credit-block"
-         ]
-        ],
-        "kids": [
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-kicker"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "span",
-            "kids": [
-             {
-              "t": "Beta test pilots"
-             }
-            ]
-           }
-          ]
-         },
-         {
-          "tag": "h3",
-          "kids": [
-           {
-            "t": "They flew it until it felt like a quad."
-           }
-          ]
-         },
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-row pilots"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/asylum.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    13,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "01"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@AsylumFpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "Asylum"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@AsylumFpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face is-blank"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "span",
-                  "attrs": [
-                   [
-                    "class",
-                    "credit-face-mark"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "JA"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "02"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "t": "Jannes"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/lestar.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    14,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "03"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@lestarfpv"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "LeStar"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@lestarfpv"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "article",
-            "attrs": [
-             [
-              "class",
-              "credit person pilot is-link"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-stack"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-face"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "img",
-                  "attrs": [
-                   [
-                    "alt",
-                    ""
-                   ],
-                   [
-                    "decoding",
-                    "async"
-                   ],
-                   [
-                    "height",
-                    "240"
-                   ],
-                   [
-                    "loading",
-                    "lazy"
-                   ],
-                   [
-                    "src",
-                    "<origin>/assets/credits/crapshack.jpg"
-                   ],
-                   [
-                    "width",
-                    "240"
-                   ]
-                  ],
-                  "on": [
-                   [
-                    15,
-                    "error"
-                   ]
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "aria-hidden",
-                  "true"
-                 ],
-                 [
-                  "class",
-                  "credit-slot"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "04"
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "div",
-              "attrs": [
-               [
-                "class",
-                "credit-copy"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "h4",
-                "kids": [
-                 {
-                  "tag": "a",
-                  "attrs": [
-                   [
-                    "href",
-                    "https://www.youtube.com/@Z_CrapShack"
-                   ],
-                   [
-                    "rel",
-                    "noopener noreferrer"
-                   ],
-                   [
-                    "target",
-                    "_blank"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "CrapShack"
-                   }
-                  ]
-                 }
-                ]
-               },
-               {
-                "tag": "span",
-                "attrs": [
-                 [
-                  "class",
-                  "credit-handle"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "t": "youtube.com/@Z_CrapShack"
-                 }
-                ]
-               }
-              ]
-             }
-            ]
-           }
-          ]
          }
         ]
        },
@@ -12797,6 +12647,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Rates"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "How far the surfaces move at full stick, as the manual sets the radio up. Changes fly at once."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-rates screen-pids"
      ],
      [
@@ -13194,6 +13158,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot screen-controls"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Controls"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-fc"
      ],
      [
@@ -13312,7 +13390,7 @@
         ],
         "on": [
          [
-          16,
+          13,
           "click"
          ]
         ],
@@ -13336,7 +13414,7 @@
         ],
         "on": [
          [
-          17,
+          14,
           "click"
          ]
         ],
@@ -13733,7 +13811,7 @@
         ],
         "on": [
          [
-          18,
+          15,
           "click"
          ]
         ],
@@ -13761,7 +13839,7 @@
         ],
         "on": [
          [
-          19,
+          16,
           "click"
          ]
         ],
@@ -13789,7 +13867,7 @@
         ],
         "on": [
          [
-          20,
+          17,
           "click"
          ]
         ],
@@ -13817,7 +13895,7 @@
         ],
         "on": [
          [
-          21,
+          18,
           "click"
          ]
         ],
@@ -13845,7 +13923,7 @@
         ],
         "on": [
          [
-          22,
+          19,
           "click"
          ]
         ],
@@ -13873,7 +13951,7 @@
         ],
         "on": [
          [
-          23,
+          20,
           "click"
          ]
         ],
@@ -14021,7 +14099,7 @@
         ],
         "on": [
          [
-          24,
+          21,
           "click"
          ]
         ],
@@ -14045,7 +14123,7 @@
         ],
         "on": [
          [
-          25,
+          22,
           "click"
          ]
         ],
@@ -14069,7 +14147,7 @@
         ],
         "on": [
          [
-          26,
+          23,
           "click"
          ]
         ],
@@ -14228,6 +14306,106 @@
         "kids": [
          {
           "t": "Resumes. Resume is also the first row."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
+      "screen screen-modal"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Flight"
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Back to the pause menu."
          }
         ]
        }
@@ -14457,6 +14635,75 @@
     "tag": "div",
     "attrs": [
      [
+      "class",
+      "screen screen-walk"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "on": [
+     [
+      24,
+      "pointerdown"
+     ],
+     [
+      25,
+      "pointermove"
+     ],
+     [
+      26,
+      "wheel"
+     ],
+     [
+      27,
+      "pointerup"
+     ],
+     [
+      28,
+      "pointercancel"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "walk-prompt"
+       ],
+       [
+        "hidden",
+        ""
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "kbd",
+        "kids": [
+         {
+          "t": "E"
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "walk-prompt-label"
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
       "aria-atomic",
       "true"
      ],
@@ -14505,7 +14752,7 @@
     ],
     "on": [
      [
-      27,
+      29,
       "click"
      ]
     ],
@@ -14537,7 +14784,7 @@
     ],
     "on": [
      [
-      28,
+      30,
       "click"
      ]
     ],
@@ -14569,7 +14816,7 @@
     ],
     "on": [
      [
-      29,
+      31,
       "click"
      ]
     ],
@@ -14605,7 +14852,7 @@
     ],
     "on": [
      [
-      30,
+      32,
       "click"
      ]
     ]
@@ -14666,11 +14913,11 @@
       ],
       "on": [
        [
-        33,
+        35,
         "mousedown"
        ],
        [
-        37,
+        39,
         "click"
        ]
       ],
@@ -14706,11 +14953,11 @@
       ],
       "on": [
        [
-        35,
+        37,
         "mousedown"
        ],
        [
-        36,
+        38,
         "click"
        ]
       ]
@@ -14737,11 +14984,11 @@
       ],
       "on": [
        [
-        34,
+        36,
         "mousedown"
        ],
        [
-        38,
+        40,
         "click"
        ]
       ],
@@ -14796,11 +15043,11 @@
     ],
     "on": [
      [
-      56,
+      58,
       "click"
      ],
      [
-      57,
+      59,
       "keydown"
      ]
     ],
@@ -14863,7 +15110,7 @@
             ],
             "on": [
              [
-              39,
+              41,
               "click"
              ]
             ],
@@ -14891,7 +15138,7 @@
             ],
             "on": [
              [
-              40,
+              42,
               "click"
              ]
             ],
@@ -14919,7 +15166,7 @@
             ],
             "on": [
              [
-              41,
+              43,
               "click"
              ]
             ],
@@ -14947,7 +15194,7 @@
             ],
             "on": [
              [
-              42,
+              44,
               "click"
              ]
             ],
@@ -14975,23 +15222,23 @@
         ],
         "on": [
          [
-          45,
+          47,
           "pointerdown"
          ],
          [
-          46,
+          48,
           "pointermove"
          ],
          [
-          47,
+          49,
           "pointerup"
          ],
          [
-          48,
+          50,
           "pointercancel"
          ],
          [
-          49,
+          51,
           "wheel"
          ]
         ],
@@ -15014,7 +15261,7 @@
           ],
           "on": [
            [
-            43,
+            45,
             "click"
            ]
           ],
@@ -15042,7 +15289,7 @@
           ],
           "on": [
            [
-            44,
+            46,
             "click"
            ]
           ],
@@ -15138,7 +15385,7 @@
             ],
             "on": [
              [
-              50,
+              52,
               "click"
              ]
             ],
@@ -15177,7 +15424,7 @@
             ],
             "on": [
              [
-              51,
+              53,
               "click"
              ]
             ],
@@ -15205,7 +15452,7 @@
             ],
             "on": [
              [
-              52,
+              54,
               "click"
              ]
             ],
@@ -15278,7 +15525,7 @@
             ],
             "on": [
              [
-              53,
+              55,
               "click"
              ]
             ],
@@ -15302,7 +15549,7 @@
             ],
             "on": [
              [
-              55,
+              57,
               "click"
              ]
             ],
@@ -15326,7 +15573,7 @@
             ],
             "on": [
              [
-              54,
+              56,
               "click"
              ]
             ],
@@ -15375,11 +15622,11 @@
     ],
     "on": [
      [
-      78,
+      103,
       "click"
      ],
      [
-      79,
+      104,
       "keydown"
      ]
     ],
@@ -15394,7 +15641,7 @@
       ],
       "on": [
        [
-        77,
+        98,
         "focusin"
        ]
       ],
@@ -15476,24 +15723,28 @@
           ],
           "on": [
            [
-            64,
+            68,
             "pointerdown"
            ],
            [
-            65,
+            69,
             "wheel"
            ],
            [
-            66,
+            70,
             "pointermove"
            ],
            [
-            67,
+            71,
             "pointerup"
            ],
            [
-            68,
+            72,
             "pointercancel"
+           ],
+           [
+            73,
+            "pointerleave"
            ]
           ],
           "kids": [
@@ -15528,11 +15779,11 @@
             ],
             "on": [
              [
-              69,
+              74,
               "pointerdown"
              ],
              [
-              70,
+              75,
               "click"
              ]
             ],
@@ -15547,12 +15798,430 @@
             "attrs": [
              [
               "class",
+              "hangar-views"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-top"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                76,
+                "pointerdown"
+               ],
+               [
+                77,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Top"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-bottom"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                78,
+                "pointerdown"
+               ],
+               [
+                79,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Bottom"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-left"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                80,
+                "pointerdown"
+               ],
+               [
+                81,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Left"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-right"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                82,
+                "pointerdown"
+               ],
+               [
+                83,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Right"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-front"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                84,
+                "pointerdown"
+               ],
+               [
+                85,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Front"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-rear"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                86,
+                "pointerdown"
+               ],
+               [
+                87,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Rear"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "hangar-hover-label"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "aria-pressed",
+              "false"
+             ],
+             [
+              "class",
+              "hangar-flip hangar-stock"
+             ],
+             [
+              "data-key",
+              "ab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              88,
+              "pointerdown"
+             ],
+             [
+              89,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Stock"
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
               "paint-reticle"
              ],
              [
               "hidden",
               ""
              ]
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "paint-gizmo"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ],
+            "on": [
+             [
+              99,
+              "pointerdown"
+             ],
+             [
+              100,
+              "pointermove"
+             ],
+             [
+              101,
+              "pointerup"
+             ],
+             [
+              102,
+              "pointercancel"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "svg",
+              "kids": [
+               {
+                "tag": "polygon",
+                "attrs": [
+                 [
+                  "class",
+                  "paint-gizmo-body"
+                 ],
+                 [
+                  "data-key",
+                  "gizmo-move"
+                 ]
+                ]
+               }
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-0"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-1"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-2"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-3"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-stretch"
+               ],
+               [
+                "data-key",
+                "gizmo-stretch"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-turn"
+               ],
+               [
+                "data-key",
+                "gizmo-turn"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-skew"
+               ],
+               [
+                "data-key",
+                "gizmo-skew"
+               ]
+              ]
+             }
             ]
            }
           ]
@@ -15601,7 +16270,7 @@
             ],
             "on": [
              [
-              58,
+              60,
               "click"
              ]
             ],
@@ -15633,7 +16302,7 @@
             ],
             "on": [
              [
-              59,
+              61,
               "click"
              ]
             ],
@@ -15665,7 +16334,7 @@
             ],
             "on": [
              [
-              60,
+              62,
               "click"
              ]
             ],
@@ -15697,13 +16366,45 @@
             ],
             "on": [
              [
-              61,
+              63,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Parts"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-shop"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              64,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Shop"
              }
             ]
            },
@@ -15729,13 +16430,45 @@
             ],
             "on": [
              [
-              62,
+              65,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Loadout"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-kit"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              66,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Kit"
              }
             ]
            },
@@ -15761,7 +16494,7 @@
             ],
             "on": [
              [
-              63,
+              67,
               "click"
              ]
             ],
@@ -15783,7 +16516,7 @@
           ],
           "on": [
            [
-            71,
+            90,
             "pointerleave"
            ]
           ]
@@ -15818,30 +16551,105 @@
           ],
           "kids": [
            {
-            "tag": "button",
+            "tag": "div",
             "attrs": [
              [
               "class",
-              "hangar-reset"
-             ],
-             [
-              "data-key",
-              "reset"
-             ],
-             [
-              "type",
-              "button"
-             ]
-            ],
-            "on": [
-             [
-              72,
-              "click"
+              "hangar-buttons-left"
              ]
             ],
             "kids": [
              {
-              "t": "Reset to stock"
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset"
+               ],
+               [
+                "data-key",
+                "reset"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                91,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Reset to stock"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "undo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                92,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Undo"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "redo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                93,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Redo"
+               }
+              ]
              }
             ]
            },
@@ -15872,7 +16680,7 @@
               ],
               "on": [
                [
-                75,
+                96,
                 "click"
                ]
               ],
@@ -15900,7 +16708,7 @@
               ],
               "on": [
                [
-                73,
+                94,
                 "click"
                ]
               ],
@@ -15928,7 +16736,7 @@
               ],
               "on": [
                [
-                74,
+                95,
                 "click"
                ]
               ],
@@ -15985,7 +16793,7 @@
         "value": "#000000",
         "on": [
          [
-          76,
+          97,
           "input"
          ]
         ]
@@ -16011,10 +16819,10 @@
  },
  "fields": {
   "announcer": {
-   "node": "#ui.24"
+   "node": "#ui.28"
   },
   "banner": {
-   "node": "#ui.25"
+   "node": "#ui.29"
   },
   "barStopCount": 0,
   "boardNote": {
@@ -16024,59 +16832,59 @@
    "node": "#ui.4.0.0.0.1"
   },
   "bugChip": {
-   "node": "#ui.26"
+   "node": "#ui.30"
   },
   "calAxes": {
-   "node": "#ui.20.5"
+   "node": "#ui.22.5"
   },
   "calAxisCells": [],
   "calCanSave": false,
   "calCanSkip": false,
   "calCancelBtn": {
-   "node": "#ui.20.7.0"
+   "node": "#ui.22.7.0"
   },
   "calHint": {
-   "node": "#ui.20.3"
+   "node": "#ui.22.3"
   },
   "calKicker": {
-   "node": "#ui.20.1"
+   "node": "#ui.22.1"
   },
   "calList": {
-   "node": "#ui.20.6"
+   "node": "#ui.22.6"
   },
   "calModeBtn": {
-   "node": "#ui.20.7.4"
+   "node": "#ui.22.7.4"
   },
   "calPrompt": {
-   "node": "#ui.20.2"
+   "node": "#ui.22.2"
   },
   "calRevBtn": {
-   "node": "#ui.20.7.3"
+   "node": "#ui.22.7.3"
   },
   "calSaveBtn": {
-   "node": "#ui.20.7.5"
+   "node": "#ui.22.7.5"
   },
   "calSkipBtn": {
-   "node": "#ui.20.7.1"
+   "node": "#ui.22.7.1"
   },
   "calStickLeft": {
    "keys": [
     [
      "box",
      {
-      "node": "#ui.20.4.0"
+      "node": "#ui.22.4.0"
      }
     ],
     [
      "nub",
      {
-      "node": "#ui.20.4.0.0.2"
+      "node": "#ui.22.4.0.0.2"
      }
     ],
     [
      "cap",
      {
-      "node": "#ui.20.4.0.1"
+      "node": "#ui.22.4.0.1"
      }
     ]
    ]
@@ -16086,30 +16894,36 @@
     [
      "box",
      {
-      "node": "#ui.20.4.1"
+      "node": "#ui.22.4.1"
      }
     ],
     [
      "nub",
      {
-      "node": "#ui.20.4.1.0.2"
+      "node": "#ui.22.4.1.0.2"
      }
     ],
     [
      "cap",
      {
-      "node": "#ui.20.4.1.1"
+      "node": "#ui.22.4.1.1"
      }
     ]
    ]
   },
   "calZeroBtn": {
-   "node": "#ui.20.7.2"
+   "node": "#ui.22.7.2"
   },
   "carousel": {
    "instance": "Carousel"
   },
   "checkVersion": "function",
+  "controlsHelp": {
+   "node": "#ui.20.2.1"
+  },
+  "controlsMenu": {
+   "node": "#ui.20.2.0"
+  },
   "courseCardHost": {
    "node": "#ui.8.2.1"
   },
@@ -16147,34 +16961,34 @@
    "node": "#ui.2.0"
   },
   "fcAttitude": {
-   "node": "#ui.19.2.1.2"
+   "node": "#ui.21.2.1.2"
   },
   "fcDirty": {
-   "node": "#ui.19.0.0.3"
+   "node": "#ui.21.0.0.3"
   },
   "fcExit": {
-   "node": "#ui.19.1"
+   "node": "#ui.21.1"
   },
   "fcExitCopy": {
-   "node": "#ui.19.1.2.1"
+   "node": "#ui.21.1.2.1"
   },
   "fcHelp": {
-   "node": "#ui.19.2.1.1.1"
+   "node": "#ui.21.2.1.1.1"
   },
   "fcLeave": {
-   "node": "#ui.19.1.1"
+   "node": "#ui.21.1.1"
   },
   "fcMenu": {
-   "node": "#ui.19.2.1.1.0"
+   "node": "#ui.21.2.1.1.0"
   },
   "fcPages": {
-   "node": "#ui.19.2.1.0"
+   "node": "#ui.21.2.1.0"
   },
   "fcSaveExit": {
-   "node": "#ui.19.1.0"
+   "node": "#ui.21.1.0"
   },
   "fcTabs": {
-   "node": "#ui.19.2.0"
+   "node": "#ui.21.2.0"
   },
   "firstNote": {
    "node": "#ui.4.0.0.0.5"
@@ -16213,10 +17027,13 @@
    "node": "#ui.12.3.0"
   },
   "gateCards": {
-   "node": "#ui.4.0.1"
+   "node": "#ui.4.0.2"
   },
   "gateRooms": {
    "node": "#ui.4.0.0.1"
+  },
+  "gateStats": {
+   "node": "#ui.4.0.1"
   },
   "hangar": {
    "instance": "Hangar"
@@ -16354,19 +17171,19 @@
    "node": "detached div.map-cards"
   },
   "musicDock": {
-   "node": "#ui.31"
+   "node": "#ui.35"
   },
   "musicNext": {
-   "node": "#ui.31.2"
+   "node": "#ui.35.2"
   },
   "musicPrev": {
-   "node": "#ui.31.0"
+   "node": "#ui.35.0"
   },
   "musicTitle": {
-   "node": "#ui.31.1"
+   "node": "#ui.35.1"
   },
   "nameDialog": {
-   "node": "#ui.32"
+   "node": "#ui.36"
   },
   "osd": {
    "node": "#ui.0"
@@ -16507,10 +17324,10 @@
    "map": []
   },
   "padCards": {
-   "node": "#ui.21.4"
+   "node": "#ui.23.4"
   },
   "padHint": {
-   "node": "#ui.21.3"
+   "node": "#ui.23.3"
   },
   "padInfo": {
    "keys": [
@@ -16525,46 +17342,46 @@
    ]
   },
   "padKicker": {
-   "node": "#ui.21.1"
+   "node": "#ui.23.1"
   },
   "padNoBtn": {
-   "node": "#ui.21.5.1"
+   "node": "#ui.23.5.1"
   },
   "padPickPhase": "wiggle",
   "padPickReason": "boot",
   "padPrompt": {
-   "node": "#ui.21.2"
+   "node": "#ui.23.2"
   },
   "padSkipBtn": {
-   "node": "#ui.21.5.2"
+   "node": "#ui.23.5.2"
   },
   "padYesBtn": {
-   "node": "#ui.21.5.0"
+   "node": "#ui.23.5.0"
   },
   "pauseChip": {
-   "node": "#ui.27"
+   "node": "#ui.31"
   },
   "pausedHelp": {
-   "node": "#ui.22.1.1"
+   "node": "#ui.24.1.1"
   },
   "pausedMenu": {
-   "node": "#ui.22.1.0"
+   "node": "#ui.24.1.0"
   },
   "pidsHelp": {
-   "node": "#ui.18.2.2"
+   "node": "#ui.19.2.2"
   },
   "pidsHint": {
-   "node": "#ui.18.3.1"
+   "node": "#ui.19.3.1"
   },
   "pidsMenu": {
-   "node": "#ui.18.2.1"
+   "node": "#ui.19.2.1"
   },
   "pidsPanel": {
    "keys": [
     [
      "root",
      {
-      "node": "#ui.18.2.0"
+      "node": "#ui.19.2.0"
      }
     ],
     [
@@ -16579,6 +17396,12 @@
   "pilotMenu": {
    "node": "#ui.11.2.0"
   },
+  "planeratesHelp": {
+   "node": "#ui.18.2.1"
+  },
+  "planeratesMenu": {
+   "node": "#ui.18.2.0"
+  },
   "progress": {
    "instance": "Progress"
   },
@@ -16587,6 +17410,12 @@
   },
   "quadMenu": {
    "node": "#ui.10.2.1"
+  },
+  "quickHelp": {
+   "node": "#ui.25.1.1"
+  },
+  "quickMenu": {
+   "node": "#ui.25.1.0"
   },
   "ratesHelp": {
    "node": "#ui.17.2.2"
@@ -16616,37 +17445,37 @@
    ]
   },
   "resultsBody": {
-   "node": "#ui.23.0.0.3"
+   "node": "#ui.26.0.0.3"
   },
   "resultsFacts": {
-   "node": "#ui.23.1"
+   "node": "#ui.26.1"
   },
   "resultsHead": {
-   "node": "#ui.23.0.0.1"
+   "node": "#ui.26.0.0.1"
   },
   "resultsHelp": {
-   "node": "#ui.23.0.1.0.1"
+   "node": "#ui.26.0.1.0.1"
   },
   "resultsHero": {
-   "node": "#ui.23.0.0.2"
+   "node": "#ui.26.0.0.2"
   },
   "resultsHeroCap": {
-   "node": "#ui.23.0.0.2.0"
+   "node": "#ui.26.0.0.2.0"
   },
   "resultsHeroMeta": {
-   "node": "#ui.23.0.0.2.2"
+   "node": "#ui.26.0.0.2.2"
   },
   "resultsHeroTime": {
-   "node": "#ui.23.0.0.2.1"
+   "node": "#ui.26.0.0.2.1"
   },
   "resultsKicker": {
-   "node": "#ui.23.0.0.0"
+   "node": "#ui.26.0.0.0"
   },
   "resultsMenu": {
-   "node": "#ui.23.0.1.0.0"
+   "node": "#ui.26.0.1.0.0"
   },
   "resultsNote": {
-   "node": "#ui.23.0.0.4"
+   "node": "#ui.26.0.0.4"
   },
   "roomBar": {
    "node": "#ui.3.2"
@@ -16802,48 +17631,72 @@
      }
     ],
     [
-     "pids",
+     "planerates",
      {
       "node": "#ui.18"
      }
     ],
     [
-     "fc",
+     "pids",
      {
       "node": "#ui.19"
      }
     ],
     [
-     "calibrate",
+     "controls",
      {
       "node": "#ui.20"
      }
     ],
     [
-     "padpick",
+     "fc",
      {
       "node": "#ui.21"
      }
     ],
     [
-     "paused",
+     "calibrate",
      {
       "node": "#ui.22"
      }
     ],
     [
-     "results",
+     "padpick",
      {
       "node": "#ui.23"
+     }
+    ],
+    [
+     "paused",
+     {
+      "node": "#ui.24"
+     }
+    ],
+    [
+     "quick",
+     {
+      "node": "#ui.25"
+     }
+    ],
+    [
+     "results",
+     {
+      "node": "#ui.26"
+     }
+    ],
+    [
+     "walk",
+     {
+      "node": "#ui.27"
      }
     ]
    ]
   },
   "signinChip": {
-   "node": "#ui.29"
+   "node": "#ui.33"
   },
   "signinPanel": {
-   "node": "#ui.30"
+   "node": "#ui.34"
   },
   "standingsHelp": {
    "node": "#ui.15.2.2"
@@ -16858,19 +17711,19 @@
    "node": "#ui.15.2.0"
   },
   "swapChip": {
-   "node": "#ui.28"
+   "node": "#ui.32"
   },
   "titleBest": {
    "node": "#ui.4.0.0.0.3"
   },
   "titleHelp": {
-   "node": "#ui.4.0.2.1.1"
+   "node": "#ui.4.0.3.1.1"
   },
   "titleHint": {
-   "node": "#ui.4.0.2.0"
+   "node": "#ui.4.0.3.0"
   },
   "titleMenu": {
-   "node": "#ui.4.0.2.1.0"
+   "node": "#ui.4.0.3.1.0"
   },
   "trickCanvas": {
    "node": "#ui.6.2.0"
@@ -16903,6 +17756,12 @@
   "updateReady": false,
   "updateReload": {
    "node": "#ui.3.3.1"
+  },
+  "walkPrompt": {
+   "node": "#ui.27.0"
+  },
+  "walkPromptLabel": {
+   "node": "#ui.27.0.1"
   },
   "warLobbyEl": {
    "node": "#ui.12.2"

@@ -406,6 +406,10 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
+      # The page build() draws, node for node (scripts/shell-dom-golden.js).
+      # Outside CI it went red for a day of merged features and hid a moved
+      # hangar tab among them; a UI change re-records it in its PR.
+      - run: npm run ui:domgolden
       # A deploy under an open tab: every module and the wasm at the
       # page's version, the new-version bar held off the flight screen and
       # shown on Paused and the title, its Reload landing on the new deploy
