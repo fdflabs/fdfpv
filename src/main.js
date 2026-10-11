@@ -439,6 +439,10 @@ const INTRO_APPROACH_RADIUS = 0.40;
 const INTRO_APPROACH_HEIGHT = 0.14;
 const INTRO_FOV = 40;
 const INTRO_FLOOR_CLEAR = 0.12;
+/* The orbit's radii and heights are for a craft up to this wide, world
+ * metres; a wider one takes them in proportion, or the lens orbits inside
+ * its wing (the Kadet's 1.98 m, the Hercules' 3.08). */
+const INTRO_SPAN = 1.5;
 /* The closing shot: off the FPV lens to a three-quarter view of the frozen
  * craft, in world metres, then a slow sway. (The FPV lens keeps its own
  * floor, fpvLensClear in src/render/lens.js.) */
@@ -18144,8 +18148,9 @@ export async function boot({
     const approachU = introEase((introMs - INTRO_ORBIT) / INTRO_APPROACH);
     const zoomU = introEase((introMs - INTRO_FLY) / INTRO_ZOOM);
     const theta = INTRO_THETA0 - INTRO_ORBIT_SPAN * orbitU;
-    const radius = INTRO_ORBIT_RADIUS + (INTRO_APPROACH_RADIUS - INTRO_ORBIT_RADIUS) * approachU;
-    const height = INTRO_ORBIT_HEIGHT + (INTRO_APPROACH_HEIGHT - INTRO_ORBIT_HEIGHT) * approachU;
+    const wide = Math.max(1, airframeById(runAirframe).dims.bodyWidth / INTRO_SPAN);
+    const radius = wide * (INTRO_ORBIT_RADIUS + (INTRO_APPROACH_RADIUS - INTRO_ORBIT_RADIUS) * approachU);
+    const height = wide * (INTRO_ORBIT_HEIGHT + (INTRO_APPROACH_HEIGHT - INTRO_ORBIT_HEIGHT) * approachU);
     introFwd.copy(camFwd);
     introFwd.y = 0;
     if (introFwd.lengthSq() < 1e-6) {
