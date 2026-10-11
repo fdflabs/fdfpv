@@ -76,8 +76,8 @@ function faults(page) {
 }
 
 const firsts = (n) => Object.fromEntries(everyFirst().slice(0, n).map((f) => [f.key, true]));
-const progress = (xp, n, challenges = {}) => ({
-  v: 2, xp, courses: {}, challenges, seen: {}, casual: {}, firsts: firsts(n), unlockAll: false,
+const progress = (xp, n, challenges = {}, unlockAll = false) => ({
+  v: 2, xp, courses: {}, challenges, seen: {}, casual: {}, firsts: firsts(n), unlockAll,
 });
 const build = (id, name, airframe, scheme, at) => ({
   id, name, airframe, fit: { livery: { scheme } }, created: at, updated: at,
@@ -86,7 +86,8 @@ const build = (id, name, airframe, scheme, at) => ({
 /*
  * THE PILOTS. Wren: below the workshop's level (a garage corner, no
  * bays) once the shell has paid her mission's firsts, one build, a
- * mission flown to three stars (the ribbon decal, earned). Kite: level 8 (the airfield hangar, three bays), two builds,
+ * mission flown to three stars (the ribbon decal, earned). Kite: level 8 with Unlock all (the airfield hangar,
+ * three bays, the newest plane of all on one), two builds,
  * every challenge done (the gold finish, earned, and the 350 tokens that
  * buy the satin, 300).
  */
@@ -103,7 +104,7 @@ const KITE = {
   callsign: 'Kite',
   seated: 'striker2500',
   graphics: 'medium',
-  progress: progress(LEVEL_XP[7], 6, Object.fromEntries(CHALLENGES.map((c) => [c.id, true]))),
+  progress: progress(LEVEL_XP[7], 6, Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), true),
   campaign: null,
   builds: [
     build('kitetimber', 'Kite Timber', 'timber1500', 'timber_x', 1760000000000),
@@ -242,9 +243,9 @@ try {
     const want = [
       { airframe: 'bramor2300', build: 'kitebramor' },
       { airframe: 'timber1500', build: 'kitetimber' },
-      { airframe: 'hercules3077', build: null },
+      { airframe: 'f16878', build: null },
     ];
-    check('Kite: his builds on the bays, the last saved first, then the newest plane his level opened',
+    check('Kite: his builds on the bays, the last saved first, then the newest plane Unlock all opened',
       same(s.mine.bays, want) && same(s.view.bayAirframes, want.map((b) => b.airframe)), `${JSON.stringify(s.mine.bays)}, drawn ${JSON.stringify(s.view.bayAirframes)}`);
     check('Kite: the chart hangs his wallet, the satin and the gold', same(s.mine.chart, { finishes: ['satin', 'gold'], decals: [] }) && s.view.chart === 2, `${JSON.stringify(s.mine.chart)}, ${s.view.chart} chip(s)`);
     check('Kite: the trophy wall holds his own firsts and medals', s.view.trophies === me.firsts + me.medals && s.view.trophies >= 6, `${s.view.trophies} cups, ${me.firsts} firsts, ${me.medals} medals`);

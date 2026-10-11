@@ -35,6 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { bayCount } from '../src/game/hangarmine.js';
 import { ROOM_BUDGET } from '../src/game/hangarroom.js';
+import { AIRFRAMES } from '../configs/airframes.js';
 import { ITEMS } from '../src/game/economy.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -114,6 +115,9 @@ try {
     const n = rows.find((x) => x.preset === preset && x.naive);
     check(`${preset}: merging saves draw calls`, r.calls < n.calls, `merged ${r.calls}, naive ${n.calls}`);
   }
+  const baked = await page.evaluate(`window.__bakeEvery(${JSON.stringify(AIRFRAMES.map((a) => a.id))})`);
+  const bad = baked.filter((b) => b.bays !== 1);
+  check('every airframe stands on a bay', bad.length === 0, bad.length ? JSON.stringify(bad.slice(0, 5)) : `${baked.length} airframes`);
   check('no page errors', page.errors.length === 0, page.errors.slice(0, 3).join(' | ') || 'none');
 } finally {
   await page.close();

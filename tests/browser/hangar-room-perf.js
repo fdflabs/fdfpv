@@ -143,6 +143,23 @@ window.__craftCalls = (ids) => ids.map((id) => {
   m.group.traverse((o) => { if (o.isMesh && o.visible) n += 1; });
   return { id, meshes: n };
 });
+/* Every airframe baked onto a workshop bay, alone: how many stood. A
+ * builder whose parts do not bake shows here as 0, not as a room that
+ * will not open for the pilot who has that aircraft. */
+window.__bakeEvery = (ids) => {
+  const view = createRoomView(renderer, { graphics: qualityFor('low') });
+  view.setRoom('workshop');
+  const out = ids.map((id) => {
+    try {
+      view.setBays([{ airframe: id, craft: dressLivery(craftBuilderFor(id)({ name: 'bay-craft', fog: false }), id) }]);
+      return { id, bays: view.stats().bays };
+    } catch (err) {
+      return { id, bays: 0, error: err.message };
+    }
+  });
+  view.dispose();
+  return out;
+};
 window.__gpuName = () => {
   const d = gl.getExtension('WEBGL_debug_renderer_info');
   return { renderer: d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : 'unknown', timer: Boolean(timer) };
