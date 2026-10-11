@@ -505,12 +505,12 @@ export class PaintShop {
     views.append(el('span', 'paint-label', str('hangar.decal_view')));
     for (const v of DECAL_VIEWS) {
       const b = button(`paint-chip paint-view${v === this.view ? ' on' : ''}`, str(`hangar.view_${v}`));
-      b.dataset.key = `view-${v}`;
+      b.dataset.key = `decal-view-${v}`;
       b.dataset.focus = v;
       b.addEventListener('click', () => {
         this.view = v;
         this.h.focus = v;
-        this.h.changed(`view-${v}`, 'move');
+        this.h.changed(`decal-view-${v}`, 'move');
       });
       views.append(b);
     }

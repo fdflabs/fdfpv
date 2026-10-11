@@ -3004,15 +3004,6 @@ double crash_contact_grip(const SimState *s, double mu, double jn, const double 
   return g_grip_jmax + left;
 }
 
-static double g_ground_jn = 0.0; /* this step's normal impulse on the ground */
-
-double crash_settle_share(double w) {
-  if (!(w > 0.0) || !(g_ground_jn < w)) {
-    return 0.0;
-  }
-  return 1.0 - g_ground_jn / w;
-}
-
 /* A craft lying still has no groove in front of it: the resting slide is
  * the sled's, whatever part it lies on. */
 double crash_settle_mu(const SimState *s, const double n[3], double mu) {
@@ -3062,9 +3053,6 @@ void crash_contact_post(const SimState *s, const double r[3], const double n[3],
   Hit *h = hit_get(g_att_part, 0);
   if (!h) {
     return;
-  }
-  if (g_surf_ground && g_from_step) {
-    g_ground_jn += jn;
   }
   if (g_sever_now && g_sever_rho > h->srho) {
     h->sever = g_sever_j + 1;
@@ -3166,7 +3154,6 @@ void crash_batch_begin(const SimState *s, int from_step) {
   g_batch_fold = 0;
   g_from_step = from_step;
   if (from_step) {
-    g_ground_jn = 0.0;
     for (int i = 0; i < SIM_PARTS_MAX; i += 1) {
       g_spring_npts_last[i] = g_spring_npts[i];
       g_spring_npts[i] = 0;

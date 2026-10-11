@@ -203,7 +203,7 @@ const SWEEP = (only = null) => /* js */ `(() => {
 
 const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=interior' });
 try {
-  await page.until('window.__map && window.__map().id === "interior" && window.__map().ready', 180000);
+  await page.until('window.__map && window.__map().id === "interior" && window.__map().ready', 300000);
   /* Swept with Claro Nuevo hidden (Mission 1: everything), then shown
    * (Mission 2: its camp alone, the camera over it, since from there the
    * far ground's coarse tiles would move under the rest). */

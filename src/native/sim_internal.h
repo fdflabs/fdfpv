@@ -718,6 +718,9 @@ typedef struct FixedWingParams {
   double cd_df2;          /* drag per rad^2 of flap */
   double cm_dcl_f;        /* pitching moment per unit of flap lift, nose up + */
   double de_df;           /* the radio's mix: elevator rad per rad of flap */
+  /* The radio's elevator to flap mix, sim_wing_set_tune: flap, as a share
+   * of flap_full, per unit of up elevator stick. Zero on every table. */
+  double elev_flap;
   /* Fixed leading edge slats, fitted or not (sim_wing_set_slats): the
    * CLmax they add, which moves the stall to a higher alpha on the same
    * lift curve, and the drag they cost. Zero on an aircraft without. */
@@ -1251,9 +1254,6 @@ double crash_settle_mu(const SimState *s, const double n[3], double mu);
  * unit), from the solver's mu jn: on turf an edge that is in the ground
  * also ploughs. Damage mode only. */
 double crash_contact_grip(const SimState *s, double mu, double jn, const double t[3]);
-/* Of the normal impulse the weight asks of the ground in this step, w, the
- * fraction the step's ground contacts have not already given. */
-double crash_settle_share(double w);
 /* How far the next contact's point is past the surface, m, the ground
  * plane's; called before crash_contact_pre. */
 void crash_contact_depth(double pen);

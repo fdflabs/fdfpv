@@ -49,6 +49,7 @@ import { ObstacleField, OB_BAR, OB_POLE, deriveObstacles, sameAxis } from '../sr
 import { FreestyleScore, formatScore, RUN_MS } from '../src/game/score.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { simPosToThree } from '../src/render/frame.js';
+import { RATE_DEFAULTS } from '../configs/rates.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TURN = 6.283185307179586;
@@ -851,7 +852,10 @@ section('obstacle tricks on constructed paths');
   {
     const p = new Path(barField());
     p.approach(BAR, 4, 0, 500, 8, false);
-    p.arcBar(BAR, 4, 0, -1, 1400, [0, 0, 0], 0);
+    /* Nose along the rail, so the lap turns the body once about it on roll
+     * and the craft is inverted over the top: thrust has to point at the
+     * middle of a circle to fly one (trickdetect.js, Maverick Loop). */
+    p.arcBar(BAR, 4, 0, -1, 1400, [1, 0, 0], 1);
     p.cruise(900, -8);
     const got = p.finish();
     check('the same lap without the flip is a Maverick Loop', got === 'Maverick Loop');
@@ -1172,29 +1176,153 @@ if (!existsSync(wasmPath)) {
     note(`flown ${formatScore(s.total())} from ${got.length} tricks, all CLEAN ${got.every((t) => t.execution === 'CLEAN')}`);
   }
 
-  // Dive to speed, pull a full pitch loop under power, and (with a rail) keep pulling until below it.
-  async function flyLoop(field, barY) {
+  /*
+   * A powerloop round a rail, flown by a closed loop pilot on position. The
+   * rail goes in first, across the loop's plane at LOOP_C (plant frame),
+   * and the pilot flies a level line LOOP_R under it at LOOP_V, a circle of
+   * LOOP_R round it, and the line again. A fixed stick script cannot: since
+   * the props' measured thrust curves (#330) the same sticks flew a 13 by
+   * 19 m climbing egg, and the name changed with every stick setting.
+   *
+   * Like hover-probe's pilot it sees the craft LOOP_LAG_MS late and moves
+   * the sticks every LOOP_EVERY_MS. Each move asks an acceleration of the
+   * craft (back onto the path and along it, plus the circle's centripetal
+   * one), adds gravity's to get the thrust it needs, and asks the pitch
+   * rate that turns the thrust there; the stick for a rate is Betaflight's
+   * Actual rates curve inverted, the throttle the hover stick scaled by
+   * the root of the thrust asked (thrust goes about as the square of the
+   * stick). The gains are the pilot's, set until the flown path was a
+   * circle round the rail (checked below), before the detector was asked.
+   * A 200 ms lag, a person's, does not hold a 4 m loop on feedback alone;
+   * a pilot flies one on a practised stick, which this is not.
+   */
+  const LOOP_C = { x: 20, z: 4 };
+  const LOOP_R = 4;
+  const LOOP_V = 10;
+  const LOOP_LAG_MS = 50;
+  const LOOP_EVERY_MS = 20;
+  /* docs/STOCK-5INCH.md, check 5: the five inch hovers at 0.2578. */
+  const HOVER_STICK = 0.258;
+  const G = 9.80665;
+  const ACTUAL = 3;
+  const clampStick = (v) => (v < -1 ? -1 : (v > 1 ? 1 : v));
+  const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+  /* Betaflight's applyActualRates, in deg/s, and the stick that asks a rate
+   * in rad/s (the curve rises monotonically, so halving finds it). */
+  function actualRate(stick, { rcRate, srate, expo }) {
+    const abs = Math.abs(stick);
+    const e = expo / 100;
+    const bent = abs * (stick ** 5 * e + stick * (1 - e));
+    const centre = rcRate * 10;
+    return stick * centre + Math.max(0, srate * 10 - centre) * bent;
+  }
+  function stickForRate(rad, axisRates) {
+    const want = Math.abs(rad) * (180 / Math.PI);
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 30; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (actualRate(mid, axisRates) < want) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return Math.sign(rad) * hi;
+  }
+
+  async function flyCircle(field, exitMs = 0) {
     const f = await rig(field);
-    f.hold(250, 0.5);
-    for (let i = 0; i < 4000; i += 1) {
+    const mod = await loadSim(wasmBytes);
+    mod.init(diffText);
+    /* The module reports its rate type and roll's rate only; pitch is
+     * assumed the same profile, as RATE_DEFAULTS has it. */
+    if (mod.e.sim_bf_debug(41) !== ACTUAL || mod.e.sim_bf_debug(42) !== RATE_DEFAULTS.roll.srate
+      || RATE_DEFAULTS.pitch.srate !== RATE_DEFAULTS.roll.srate) {
+      throw new Error('the pilot inverts Actual rates at configs/rates.js RATE_DEFAULTS; the module flies others');
+    }
+    const seen = [];
+    let sticks = [0, 0, 0, HOVER_STICK];
+    let phase = 'line';
+    let lineMs = 0;
+    let lineI = 0;
+    let radiusI = 0;
+    let swept = 0;
+    let lastAngle = 0;
+    const radii = [];
+    const circle = [];
+    for (let ms = 0; ms < 15000; ms += 1) {
       const st = f.state();
-      if (Math.sqrt(st[4] * st[4] + st[5] * st[5] + st[6] * st[6]) >= 12) {
+      seen.push(st);
+      const rx = st[1] - LOOP_C.x;
+      const rz = st[3] - LOOP_C.z;
+      const angle = Math.atan2(rz, rx);
+      if (phase === 'line' && lineMs > 1000 && st[1] >= LOOP_C.x) {
+        phase = 'loop';
+        lastAngle = angle;
+      } else if (phase === 'loop') {
+        swept += wrapAngle(angle - lastAngle);
+        lastAngle = angle;
+        radii.push(Math.sqrt(rx * rx + rz * rz));
+        circle.push(f.track.length);
+        if (swept >= TURN) {
+          phase = 'out';
+          lineMs = 0;
+        }
+      }
+      if (phase !== 'loop') {
+        lineMs += 1;
+      }
+      /* Out along the line until the rail is behind the detector's reach
+       * for a bar (obstacles.js REACH, 14 m), so the loop is judged whole,
+       * or for exitMs when the caller flies on from there itself. */
+      if (phase === 'out' && (exitMs > 0 ? lineMs > exitMs : st[1] - LOOP_C.x > 16)) {
         break;
       }
-      f.ms(0, -0.30, 0, 0.80);
-    }
-    f.hold(160, 0.55, 0, 0.20, 0);
-    const mark = f.track.length;
-    let acc = 0;
-    for (let i = 0; i < 6000; i += 1) {
-      const st = f.ms(0, 0.60, 0, 1.0);
-      acc += st[12] * 0.001;
-      if (Math.abs(acc) >= TURN && (barY === null || f.track[f.track.length - 1][1] < barY)) {
-        break;
+      if (ms % LOOP_EVERY_MS === 0 && seen.length > LOOP_LAG_MS) {
+        const d = seen[seen.length - 1 - LOOP_LAG_MS];
+        const dt = LOOP_EVERY_MS / 1000;
+        let ax;
+        let az;
+        if (phase === 'loop') {
+          const ux = d[1] - LOOP_C.x;
+          const uz = d[3] - LOOP_C.z;
+          const r = Math.sqrt(ux * ux + uz * uz) || 1;
+          const nx = ux / r;
+          const nz = uz / r;
+          radiusI += (LOOP_R - r) * dt;
+          const out = 2 * (LOOP_R - r) + 2 * radiusI;
+          const centripetal = (LOOP_V * LOOP_V) / LOOP_R;
+          ax = -centripetal * nx + 3 * (-LOOP_V * nz + out * nx - d[4]);
+          az = -centripetal * nz + 3 * (LOOP_V * nx + out * nz - d[6]);
+        } else {
+          const lineZ = LOOP_C.z - LOOP_R;
+          lineI += (lineZ - d[3]) * dt;
+          ax = 1.5 * (LOOP_V - d[4]);
+          az = 4 * (lineZ - d[3]) - 3 * d[6] + 2 * lineI;
+        }
+        const fx = ax;
+        const fz = az + G;
+        const [w, x, y, z] = [d[7], d[8], d[9], d[10]];
+        /* Body z's world tilt toward +x; a positive q turns it that way. */
+        const tilt = Math.atan2(2 * (x * z + w * y), 1 - 2 * (x * x + y * y));
+        const off = wrapAngle(Math.atan2(fx, fz) - tilt);
+        const q = 12 * off + (phase === 'loop' ? -LOOP_V / LOOP_R : 0);
+        const thrust = Math.sqrt(fx * fx + fz * fz) * Math.max(0.2, Math.cos(off));
+        /* World y of body z, and of body x: the bank and the heading off. */
+        const bank = 2 * (y * z - w * x);
+        const heading = 2 * (x * y + w * z);
+        sticks = [
+          clampStick(3 * bank - 0.05 * d[11]),
+          -stickForRate(q, RATE_DEFAULTS.pitch),
+          clampStick(2 * heading + 0.05 * d[13]),
+          Math.max(0.02, Math.min(1, HOVER_STICK * Math.sqrt(thrust / G))),
+        ];
       }
+      f.ms(...sticks);
     }
-    f.hold(900, 0.5);
-    return { f, mark, pitchTurns: acc / TURN };
+    return { f, radii, swept: swept / TURN, from: circle[0], to: circle[circle.length - 1] };
   }
 
   // Winding in the y-z plane, in turns, summed as sines of the step angles.
@@ -1215,47 +1343,45 @@ if (!existsSync(wasmPath)) {
     return a / TURN;
   }
 
-  const first = await flyLoop(null, null);
-  const pts = first.f.track.slice(first.mark);
+  const rail = { set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
+  simPosToThree(LOOP_C.x, 0, LOOP_C.z, rail);
+  const railField = fieldOf((fl) => fl.add(OB_BAR, rail.x, rail.y, rail.z, 1, 0, 0, 8));
+  const loop = await flyCircle(railField);
+  const off = loop.radii.map((r) => Math.abs(r - LOOP_R));
+  const worst = off.length ? Math.max(...off) : Infinity;
+  const rms = Math.sqrt(off.reduce((a, e) => a + e * e, 0) / Math.max(1, off.length));
+  check('the flown loop is a circle round the rail: within a quarter of its 4 m radius all the way round',
+    loop.swept >= 1 && worst < LOOP_R / 4);
+  const pts = loop.f.track.slice(loop.from, loop.to + 1);
   let minY = Infinity;
   let maxY = -Infinity;
   let minZ = Infinity;
   let maxZ = -Infinity;
-  let sumX = 0;
-  for (const [x, y, z] of pts) {
+  for (const [, y, z] of pts) {
     minY = Math.min(minY, y);
     maxY = Math.max(maxY, y);
     minZ = Math.min(minZ, z);
     maxZ = Math.max(maxZ, z);
-    sumX += x;
   }
   check('the flown loop is over 6 m tall and 6 m long', maxY - minY > 6 && maxZ - minZ > 6);
-
-  // Both steps accumulate by addition, so the grid's end points carry float drift; that is part of the stimulus.
-  let best = null;
-  for (let fy = 0.05; fy <= 0.35; fy += 0.02) {
-    for (let fz = 0.1; fz <= 0.9; fz += 0.02) {
-      const cy = minY + (maxY - minY) * fy;
-      const cz = minZ + (maxZ - minZ) * fz;
-      const w = windAbout(pts, cy, cz);
-      if (Number.isNaN(w)) {
-        continue;
-      }
-      const err = Math.abs(Math.abs(w) - 1);
-      if (best === null || err < best.err) {
-        best = { w, cy, cz, err };
-      }
-    }
-  }
-  check('some point inside the loop is wound about once', best !== null && Math.abs(Math.abs(best.w) - 1) < 0.15);
-
-  // With no candidate, best.cy throws here: a missing rail is a fault, not a skip.
-  const railField = fieldOf((f) => f.add(OB_BAR, sumX / pts.length, best.cy, best.cz, 1, 0, 0, 8));
-  const second = await flyLoop(railField, best.cy);
-  const loopNames = names(second.f.done());
+  const wound = windAbout(pts, rail.y, rail.z);
+  check('the flown path winds about the rail once', Math.abs(Math.abs(wound) - 1) < 0.15);
+  const loopNames = names(loop.f.done());
   check('a flown powerloop around a real rail is a Powerloop', loopNames === 'Powerloop');
-  note(`rail at y ${best.cy.toFixed(1)} z ${best.cz.toFixed(1)}, wound ${best.w.toFixed(2)} turns, `
-    + `pitch ${first.pitchTurns.toFixed(2)}, named "${loopNames || 'nothing'}"`);
+  note(`rail at y ${rail.y.toFixed(1)} z ${rail.z.toFixed(1)}, radius off by ${rms.toFixed(2)} m rms, `
+    + `${worst.toFixed(2)} m at worst, wound ${wound.toFixed(2)} turns, named "${loopNames || 'nothing'}"`);
+  {
+    /* Out of the loop 9 m past the rail and straight up, still inside the
+     * rail's reach, then away: the climb sweeps an angle round the rail and
+     * crosses its height, which once made the lap one and a half and named
+     * the loop a 3/4 Flip. */
+    const climb = await flyCircle(railField, 900);
+    climb.f.hold(700, 0.5);
+    climb.f.hold(4000, 0.3);
+    const climbNames = names(climb.f.done());
+    check('a flown powerloop with a climb out past the rail is still a Powerloop', climbNames === 'Powerloop');
+    note(`climbed out, named "${climbNames || 'nothing'}"`);
+  }
 }
 
 console.log(failures === 0 ? '\nall passed' : `\n${failures} FAILED`);
