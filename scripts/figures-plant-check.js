@@ -71,7 +71,7 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * the Slick the pull out is named a parachute too: their own lanes' to
  * fly, so not yet asked of them here. */
 const PLANES = {
-  extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55, tailslide: true },
+  extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55, tailslide: true, sagPair: true },
   cap: { sim: CAP_AIRFRAME, name: 'the CAP', launch: 22, loopPull: 0.35 },
   slick: { sim: SLICK_AIRFRAME, name: 'the Slick', launch: 22, loopPull: 0.55 },
 };
@@ -132,7 +132,7 @@ function see(s) {
   return { s, nz, lz, uz, up, along, p: s[11], q: s[12], v: Math.hypot(s[4], s[5], s[6]) };
 }
 
-async function flight() {
+async function flight({ sag = false } = {}) {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
   must(sim.e.sim_set_airframe(plane.sim), 'sim_set_airframe');
@@ -217,7 +217,7 @@ async function flight() {
            * so it puts it back toward the heading the roll began on (the
            * prop's gyroscope pitches it off the line as the rudder yaws
            * the nose up, docs/FLIGHTMODEL.md). */
-          const line = Math.abs(d.lz) > 0.5 ? quant(1.2 * (line0[0] * d.up[0] + line0[1] * d.up[1])) : 0;
+          const line = !sag && Math.abs(d.lz) > 0.5 ? quant(1.2 * (line0[0] * d.up[0] + line0[1] * d.up[1])) : 0;
           st = [0, clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75];
         } else {
           st = [0.5, 0.05, 0, 0.75];
@@ -245,10 +245,22 @@ for (const id of want.filter((id) => id !== 'four_point_roll')) {
   const f = a.figures.find((g) => g.figure === id);
   check(`a person's ${id} on ${plane.name} is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
 }
-/* This person's points sag: the nose falls about a third of a turn over
- * the four holds, which a judge marks hard (a point per 15 deg off the
- * line). Named, and graded under the roll, is the sensible answer. */
-{
+/* The judge's sag deduction, apart from how well this person flies: on
+ * the Extra the same 4-point roll is flown twice, clean (the line held on
+ * the elevator through each point, as a person does, eb3ba037f) and as the
+ * person flew it before, the elevator left alone so the nose falls off the
+ * line over the four holds. Both must be named, the clean one graded 4 to
+ * 10 and the sagging one under it (a point per 15 deg off the line). On the
+ * other aircraft the clean program's points still sag, and are graded
+ * under the aileron roll. */
+if (plane.sagPair) {
+  const sagging = await flight({ sag: true });
+  const pts = a.figures.find((g) => g.figure === 'four_point_roll');
+  const low = sagging.figures.find((g) => g.figure === 'four_point_roll');
+  check(`a person's 4-point roll on ${plane.name} is named and graded 4 to 10`, pts && pts.grade >= 4 && pts.grade <= 10, pts ? `grade ${pts.grade}` : 'not named');
+  check('the same 4-point roll left to sag is named and graded under it', pts && low && low.grade > 0 && low.grade < pts.grade,
+    low ? `grade ${low.grade} against ${pts ? pts.grade : '-'}; flown ${sagging.figures.map((f) => `${f.figure} ${f.grade}`).join(', ')}` : 'not named');
+} else {
   const pts = a.figures.find((g) => g.figure === 'four_point_roll');
   const ail = a.figures.find((g) => g.figure === 'aileron_roll');
   check('a person\'s sagging 4-point roll is named and graded under their aileron roll', pts && ail && pts.grade > 0 && pts.grade < ail.grade,
