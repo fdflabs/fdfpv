@@ -49,17 +49,24 @@ async function planeSim(af) {
   return sim;
 }
 
-/* Thrust after each 1 ms, the stick at `from` for 3 s then `to` for 1 s;
- * held in place each step so the airspeed stays nothing. */
+/* Thrust after each 1 ms, the stick at `from` for 8 s then `to` for 4 s,
+ * long enough for the slowest rotor here (the Slick's DA-120, about a
+ * second idle to full) to settle both ways;
+ * held in place and at rest each step so the airspeed stays nothing
+ * (sim_set_pose keeps the velocity; sim_rest zeroes it and the rates and
+ * keeps the rotor's speed). Without the rest an aircraft whose thrust
+ * passes its weight climbed away on its own prop and the thrust it read
+ * fell with the airspeed it gained, not with the rotor. */
 function step(sim, from, to) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   const out = [];
-  for (let ms = 0; ms < 4000; ms += MS) {
+  for (let ms = 0; ms < 12000; ms += MS) {
     must(sim.e.sim_set_pose(0, 0, 300, ...NOSE_UP), 'sim_set_pose');
-    must(sim.input(ms / 1000, 0, 0, 0, ms < 3000 ? from : to), 'sim_input');
+    must(sim.e.sim_rest(), 'sim_rest');
+    must(sim.input(ms / 1000, 0, 0, 0, ms < 8000 ? from : to), 'sim_input');
     must(sim.step(MS), 'sim_step');
-    if (ms >= 2999) out.push(wingDebug(sim)[8]);
+    if (ms >= 7999) out.push(wingDebug(sim)[8]);
   }
   return out;
 }
