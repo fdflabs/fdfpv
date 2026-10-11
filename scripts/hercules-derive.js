@@ -159,9 +159,52 @@ const tauA = tauOf(cfA), tauE = tauOf(cfE), tauR = tauOf(cfR);
 /* The section: CLmax of an 18 percent 6 series section at the model's
  * Reynolds number, 2.9e5 at 12 m/s on the mean chord, ESTIMATED from the
  * 64A-series' 1.2 at 6e6 (Abbott and von Doenhoff) less the low Reynolds
- * number's loss; the parasite drag a component build up, ESTIMATED: the
- * deep fuselage, four nacelles, fixed gear and its sponsons. */
-const CLmax = 1.10, CD0 = 0.045, e = 0.80, kInd = 1 / (Math.PI * e * AR);
+ * number's loss. */
+const CLmax = 1.10;
+/*
+ * THE PARASITE DRAG, a component build up off the kit's geometry
+ * (Raymer, Aircraft Design: A Conceptual Approach, 6th ed., sec. 12.5):
+ * each part's skin friction Cf on its wetted area, times its form factor
+ * FF and its interference Q, over the reference area, at the cruise's
+ * Reynolds numbers (15.5 m/s, nu 1.46e-5). A glassed, painted balsa model
+ * at 2e5 to 2e6 runs laminar over part of each surface: Cf is taken as the
+ * mean of Blasius's laminar 1.328 / sqrt(Re) and the turbulent
+ * 0.455 / (log10 Re)^2.58 (eq. 12.27), and the band of the result runs
+ * from all laminar to all turbulent. The C-130's upswept tail adds its
+ * own (eq. 12.36, 3.83 u^2.5 A_max, the upsweep u 15 deg, 12 to 18 for the
+ * band). Wheels and struts: the exposed tyres and the nose leg's wire.
+ * Leaks and protuberances: 10 percent (Raymer's 5 to 15 for a propeller
+ * aircraft). The Oswald factor of a straight wing (eq. 12.48):
+ * 1.78 (1 - 0.045 A^0.68) - 0.64.
+ */
+const NU = 1.46e-5, Vref = 15.5;
+const cfLam = (L) => 1.328 / Math.sqrt(Vref * L / NU);
+const cfTurb = (L) => 0.455 / Math.log10(Vref * L / NU) ** 2.58;
+function buildup(mix, upsweepDeg) {
+  const cf = (L) => mix * cfTurb(L) + (1 - mix) * cfLam(L);
+  const wingSwet = 0.876 * (1.977 + 0.52 * 0.15);
+  const wing = cf(MAC) * (1 + 0.6 / 0.4 * 0.15 + 100 * 0.15 ** 4) * wingSwet;
+  const dEq = Math.sqrt(fusW * fusH), f = kitLength / dEq;
+  const fus = cf(kitLength) * (1 + 60 / f ** 3 + f / 400) * Math.PI * dEq * kitLength * 0.8;
+  const u = upsweepDeg / DEG;
+  const upsweep = 3.83 * u ** 2.5 * (fusW * fusH * 0.78);
+  const tailFF = 1 + 0.6 / 0.3 * 0.10 + 100 * 0.10 ** 4;
+  const tail = 1.04 * tailFF * (cf(Sh / bh) * 2.04 * (Sh - fusW * Sh / bh) + cf(Sv / hFin) * 2.04 * Sv);
+  const nacD = 0.075, nacL = 0.30, nf = nacL / nacD;
+  const nacelles = 4 * 1.3 * cf(nacL) * (1 + 0.35 / nf) * Math.PI * nacD * nacL * 0.8;
+  const spD = 0.08, spL = 0.5, sf = spL / spD;
+  const sponsons = 2 * 1.3 * cf(spL) * (1 + 60 / sf ** 3 + sf / 400) * Math.PI * spD * spL * 0.8;
+  const gear = 3 * 0.25 * 0.055 * 0.02 * 0.5 + 1.2 * 0.004 * 0.10;
+  const parts = { wing, fus, upsweep, tail, nacelles, sponsons, gear };
+  const sum = Object.values(parts).reduce((a, b) => a + b, 0);
+  return { cd0: 1.10 * sum / S, parts: Object.fromEntries(Object.entries(parts).map(([k, v]) => [k, v / S])) };
+}
+const drag = buildup(0.5, 15);
+const dragLo = buildup(0, 12);
+const dragHi = buildup(1, 18);
+const CD0 = Number(drag.cd0.toFixed(4));
+const e = Number((1.78 * (1 - 0.045 * AR ** 0.68) - 0.64).toFixed(3));
+const kInd = 1 / (Math.PI * e * AR);
 const blend = 4 / DEG;
 const eta = 0.9;
 
@@ -349,6 +392,36 @@ const levelDoor = (d) => {
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d) > Dd(mid)) lo = mid; else hi = mid; }
   return lo;
 };
+/*
+ * THE FLIGHT TIME, from the drag. Steady level cruise at 1.6 Vs: the
+ * drag times the speed is the thrust power; over the prop's 0.55 (APC's
+ * 12 x 8E near J 0.5), the motor's 0.80 and the ESC's 0.95 it is the
+ * packs' power, drawn from four 3S 5000s' 222 Wh to 80 percent. The band:
+ * the drag's band and a prop from 0.45 to 0.65. The cross check is
+ * Paschaloudis's 11 ft C-130, 18 minutes on four 5S 5000s (370 Wh): the
+ * same aircraft scaled to its 3.35 m span, the weight its packs and size
+ * imply (ESTIMATED 10 kg), and the same lift coefficient, so its cruise
+ * is faster by the root of its wing loading's ratio and its drag in
+ * proportion to its weight.
+ */
+const cruisePower = (cd0v, etaProp) => {
+  const V = Vcruise, q = 0.5 * rho * V * V, CL = W / (q * S);
+  return q * S * (cd0v + kInd * CL * CL) * V / (etaProp * 0.80 * 0.95);
+};
+const packWh = 4 * 3 * 3.7 * 5.0 * 0.8;
+const minutesOf = (P) => packWh / P * 60;
+const endurance = {
+  minutes: minutesOf(cruisePower(CD0, 0.55)),
+  lo: minutesOf(cruisePower(dragHi.cd0, 0.45)),
+  hi: minutesOf(cruisePower(dragLo.cd0, 0.65)),
+};
+const big = { span: 3.35, m: 10 };
+big.S = S * (big.span / b) ** 2;
+big.V = Vcruise * Math.sqrt((big.m / big.S) / (m / S));
+big.P = cruisePower(CD0, 0.55) * (big.m / m) * (big.V / Vcruise);
+big.minutes = 4 * 5 * 3.7 * 5.0 * 0.8 / big.P * 60;
+/* The power its 18 minutes average, over its cruise's. */
+big.flownOverCruise = (4 * 5 * 3.7 * 5.0 * 0.8 / (18 / 60)) / big.P;
 /* The cm_0 that trims the cruise with the elevator neutral. */
 const CLcruise = 2 * W / (rho * Vcruise * Vcruise * S);
 const alphaCruise = CLcruise / CLa;
@@ -365,7 +438,7 @@ const out = {
   CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
-  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, cdDoor, cmDoor, zDoor, doorTime, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
+  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
   kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
   fusW, fusH, propR, yInboard, yOutboard, aileronIn, aileronOut, throwA, throwE, throwR, xCG, xMACle, kitLength, k, washout,
 };
