@@ -26,6 +26,7 @@
     "combat:shell": "node scripts/combat-shell.js",
     "perf": "node scripts/perf-play.js",
     "hangar:perf": "node scripts/hangar-room-perf.js",
+    "xbrowser:check": "node scripts/xbrowser-check.js",
     "hangar:room": "node scripts/hangar-room-check.js",
     "hangar:walk": "node scripts/hangar-walk-check.js",
     "pids:selftest": "node scripts/pids-selftest.js",
@@ -141,6 +142,7 @@
     "score:selftest": "node scripts/score-selftest.js",
     "debrief:selftest": "node scripts/debrief-selftest.js",
     "debrief:race": "node scripts/debrief-race-check.js",
+    "debrief:free": "node scripts/debrief-free-check.js",
     "score:golden": "node scripts/score-golden.js",
     "scorehud:golden": "node scripts/scorehud-golden.js",
     "tricks:golden": "node scripts/tricks-golden.js",
@@ -543,6 +545,8 @@
     "modes:selftest": "node scripts/modes-selftest.js",
     "lint:dashes": "node scripts/dash-lint.js",
     "lint:owner-rules": "node scripts/owner-rules-lint.js",
+    "lint:physics-sources": "node scripts/physics-sources-lint.js",
+    "physics-sources:selftest": "node scripts/physics-sources-selftest.js",
     "daytime:selftest": "node scripts/daytime-selftest.js",
     "briefing:selftest": "node scripts/briefing-selftest.js",
     "sky:smooth": "node scripts/sky-smooth-check.js",
@@ -556,5 +560,8 @@
   "dependencies": {
     "nodemailer": "10.0.15",
     "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
   }
 }

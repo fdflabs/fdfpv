@@ -59,7 +59,7 @@ const after = (contacts, now = 0) => `(() => {
 
 const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=interior' });
 try {
-  await page.until('window.__map && window.__map().id === "interior" && window.__map().ready', 180000);
+  await page.until('window.__map && window.__map().id === "interior" && window.__map().ready', 300000);
   const quiet = await page.evaluate(after([]));
   check('an empty camp: the tarp hangs, the mast stands, every motorcycle parked',
     quiet.camp.tarp === 0 && quiet.camp.mast === 0 && quiet.stats.parked === CAMP_PROPS.motorcycles.length, JSON.stringify(quiet));

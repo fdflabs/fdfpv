@@ -29,7 +29,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { currentLocale } from '../strings/index.js';
+import { currentLocale, str } from '../strings/index.js';
 
 /* Only a finite number is a time: no coercion of strings or null. */
 const isTime = (ms) => Number.isFinite(ms);
@@ -41,6 +41,9 @@ export function formatTime(ms) {
   const rest = (seconds - minutes * 60).toFixed(2);
   return minutes > 0 ? `${minutes}:${rest.padStart(5, '0')}` : rest;
 }
+
+/* A distance flown: metres under a kilometre, else kilometres to one place. */
+export const lengthText = (m) => (m < 1000 ? str('debrief.metres', { m: Math.round(m) }) : str('debrief.km', { km: (m / 1000).toFixed(1) }));
 
 export function formatDelta(ms) {
   if (!isTime(ms)) return '';

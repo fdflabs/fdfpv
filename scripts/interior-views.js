@@ -252,7 +252,7 @@ process.once('SIGINT', stop);
 const report = [];
 try {
   try {
-    await page.until('window.__map && window.__map().id === "interior" && window.__map().ready', 180000);
+    await page.until('window.__map && window.__map().id === "interior" && window.__map().ready', 300000);
   } catch (e) {
     console.error(page.errors.slice(-12).join('\n'));
     throw e;

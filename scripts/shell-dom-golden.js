@@ -19,6 +19,10 @@
  *           every other field. A rewrite that puts two look-alike nodes
  *           (the two osd-best lines, the six calibrate buttons) on the
  *           wrong fields draws the same tree and fails here.
+ * Each tree is kept as one record per region, a child of #ui, and a field
+ * that points into the tree names its region, not its index (byRegion), so
+ * a change to one part of the shell changes that part's records only
+ * (docs/GOLDENS.md).
  * Listeners build() adds on window and document are recorded with the
  * second build, in order, as are nodes given a listener but never put in
  * the tree.
@@ -108,6 +112,17 @@ const SEED = `(() => {
     return tree;
   };
   g.describe = describe;
+  /* The key of each child of the root: its tag and classes, and ~n for the
+   * nth repeat of the same, so a region keeps its key when another is added. */
+  g.regionKeys = (top) => {
+    const seen = new Map();
+    return Array.from(top.childNodes).map((n) => {
+      const base = n.nodeType === 1 ? describe(n) : '#' + n.nodeType;
+      const k = seen.get(base) || 0;
+      seen.set(base, k + 1);
+      return k ? base + '~' + k : base;
+    });
+  };
   EventTarget.prototype.addEventListener = function (type, fn, opts) {
     const capture = typeof opts === 'boolean' ? opts : Boolean(opts && opts.capture);
     let l = lists.get(this);
@@ -118,7 +133,7 @@ const SEED = `(() => {
     if (g.watch) { g.watch.push([k, this]); }
     if (this === window && type === SYNC && !g.first) {
       const r = document.getElementById('ui');
-      if (r && r.querySelector('.osd')) { g.first = JSON.stringify(g.snapshot(r, 0)); }
+      if (r && r.querySelector('.osd')) { g.first = JSON.stringify({ tree: g.snapshot(r, 0), keys: g.regionKeys(r) }); }
     }
     return add.call(this, type, fn, opts);
   };
@@ -153,7 +168,10 @@ const AGAIN = `(() => {
       steps.push(Array.prototype.indexOf.call(up.childNodes, at));
       at = up;
     }
-    return '#ui' + (steps.length ? '.' + steps.reverse().join('.') : '');
+    if (!steps.length) { return '#ui'; }
+    steps.reverse();
+    const region = g.regionKeys(r)[steps[0]];
+    return '#ui/' + region + (steps.length > 1 ? '.' + steps.slice(1).join('.') : '');
   };
   const isNode = (v) => v && typeof v === 'object' && typeof v.nodeType === 'number';
   const value = (v, depth) => {
@@ -179,8 +197,38 @@ const AGAIN = `(() => {
     if (t === window || t === document) { outside.push([t === window ? 'window' : 'document', (g.lists.get(t).find(([n]) => n === k) || [])[1]]); continue; }
     if (isNode(t) && !r.contains(t)) { outside.push([pathOf(t), (g.lists.get(t).find(([n]) => n === k) || [])[1]]); }
   }
-  return JSON.stringify({ again: tree, fields, outside });
+  return JSON.stringify({ again: tree, keys: g.regionKeys(r), fields, outside });
 })()`;
+
+/*
+ * A tree as one record per region (a child of #ui), each with the key of
+ * the region before it, so a pull request that adds or changes one region
+ * changes that region's record and its neighbour's `after`, not every
+ * fixture's whole tree. Listener ranks are taken again inside each region
+ * (the order they were attached in, among that region's own), because a
+ * rank across the page moves whenever any region gains a listener.
+ */
+function byRegion({ tree, keys }) {
+  const out = {};
+  (tree.kids || []).forEach((kid, i) => {
+    const ranks = [];
+    const collect = (o) => {
+      if (o.on) { for (const [k] of o.on) { ranks.push(k); } }
+      if (o.kids) { o.kids.forEach(collect); }
+    };
+    const copy = JSON.parse(JSON.stringify(kid));
+    collect(copy);
+    ranks.sort((a, b) => a - b);
+    const rank = new Map(ranks.map((k, j) => [k, j]));
+    const relabel = (o) => {
+      if (o.on) { o.on = o.on.map(([k, t]) => [rank.get(k), t]); }
+      if (o.kids) { o.kids.forEach(relabel); }
+    };
+    relabel(copy);
+    out[keys[i]] = { after: i ? keys[i - 1] : null, tree: copy };
+  });
+  return { root: { tag: tree.tag, attrs: tree.attrs ?? null, on: tree.on ?? null }, regions: out };
+}
 
 function seedFor(fx) {
   const lines = [SEED];
@@ -203,7 +251,13 @@ for (const fx of FIXTURES) {
     if (!first) {
       throw new Error(`${fx.name}: the first build was never caught`);
     }
-    got = { first: JSON.parse(first), ...JSON.parse(await page.evaluate(AGAIN)) };
+    const again = JSON.parse(await page.evaluate(AGAIN));
+    got = {
+      first: byRegion(JSON.parse(first)),
+      again: byRegion({ tree: again.again, keys: again.keys }),
+      fields: again.fields,
+      outside: again.outside,
+    };
   } finally {
     await page.close();
   }
@@ -222,9 +276,18 @@ for (const fx of FIXTURES) {
   }
   const want = JSON.parse(await readFile(file, 'utf8'));
   const diffs = [];
-  for (const part of ['first', 'again', 'outside']) {
-    if (JSON.stringify(want[part]) !== JSON.stringify(got[part])) {
-      diffs.push(part);
+  if (JSON.stringify(want.outside) !== JSON.stringify(got.outside)) {
+    diffs.push('outside');
+  }
+  for (const part of ['first', 'again']) {
+    if (JSON.stringify(want[part]?.root) !== JSON.stringify(got[part].root)) {
+      diffs.push(`${part}.root`);
+    }
+    const w = want[part]?.regions ?? {};
+    for (const k of new Set([...Object.keys(w), ...Object.keys(got[part].regions)])) {
+      if (JSON.stringify(w[k]) !== JSON.stringify(got[part].regions[k])) {
+        diffs.push(`${part}.${k}`);
+      }
     }
   }
   for (const k of new Set([...Object.keys(want.fields), ...Object.keys(got.fields)])) {
