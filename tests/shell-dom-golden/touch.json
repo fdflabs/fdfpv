@@ -6657,6 +6657,15 @@
         ]
        }
       ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "results-facts"
+       ]
+      ]
      }
     ]
    },
@@ -15508,6 +15517,15 @@
         ]
        }
       ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "results-facts"
+       ]
+      ]
      }
     ]
    },
@@ -18320,6 +18338,9 @@
   },
   "resultsBody": {
    "node": "#ui.25.0.0.3"
+  },
+  "resultsFacts": {
+   "node": "#ui.23.1"
   },
   "resultsHead": {
    "node": "#ui.25.0.0.1"

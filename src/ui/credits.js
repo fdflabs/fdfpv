@@ -42,46 +42,6 @@ import { str } from '../strings/index.js';
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * The beta roll. Slot numbers are a start list's: the order they turned
- * up, not a ranking.
- *
- * Jannes has no channel to link. His row carries the same slot and the
- * same weight as the other three, with initials where a face would be,
- * because the roll is a record of who flew it and not a list of who
- * posts about it.
- */
-const PILOTS = [
-  {
-    slot: '01',
-    name: 'Asylum',
-    face: 'asylum.jpg',
-    channel: 'https://www.youtube.com/@AsylumFpv',
-    handle: 'youtube.com/@AsylumFpv',
-  },
-  {
-    slot: '02',
-    name: 'Jannes',
-    face: null,
-    channel: null,
-    handle: null,
-  },
-  {
-    slot: '03',
-    name: 'LeStar',
-    face: 'lestar.jpg',
-    channel: 'https://www.youtube.com/@lestarfpv',
-    handle: 'youtube.com/@lestarfpv',
-  },
-  {
-    slot: '04',
-    name: 'CrapShack',
-    face: 'crapshack.jpg',
-    channel: 'https://www.youtube.com/@Z_CrapShack',
-    handle: 'youtube.com/@Z_CrapShack',
-  },
-];
-
 function el(tag, cls, text) {
   const n = document.createElement(tag);
   if (cls) {
@@ -147,51 +107,6 @@ function logo(src, alt, well, decorative) {
   return box;
 }
 
-function initials(name) {
-  const parts = name.replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/);
-  const letters = parts.length > 1
-    ? parts.map((p) => p[0]).join('').slice(0, 2)
-    : name.slice(0, 2);
-  return letters.toUpperCase();
-}
-
-/*
- * A channel picture in a square plate. The name is already the heading
- * beside it, so the plate is decorative and stays out of the accessible
- * tree: a screen reader that reads the picture as well would announce
- * every pilot twice. A picture that fails to load falls back to the
- * initials plate, which is also what Jannes gets, so a missing file
- * never leaves a hole where a person should be.
- */
-function face(src, name) {
-  const box = el('span', 'credit-face');
-  box.setAttribute('aria-hidden', 'true');
-  if (!src) {
-    box.classList.add('is-blank');
-    box.append(el('span', 'credit-face-mark', initials(name)));
-    return box;
-  }
-  const img = new Image(240, 240);
-  img.src = src;
-  img.alt = '';
-  img.loading = 'lazy';
-  img.decoding = 'async';
-  img.addEventListener('error', () => {
-    img.remove();
-    box.classList.add('is-blank');
-    box.append(el('span', 'credit-face-mark', initials(name)));
-  });
-  box.append(img);
-  return box;
-}
-
-/* The small mono line that says where the link goes. The play triangle
-   in front of it is drawn in CSS, so nothing here borrows a trademark to
-   say the word video. */
-function handleLine(text) {
-  return el('span', 'credit-handle', text);
-}
-
 /*
  * A project card: the mark across the top, and copy under it.
  *
@@ -235,41 +150,6 @@ function projectCard({ src, alt, well, title, href, body, wordmark = true }) {
   return n;
 }
 
-/*
- * A person card: face and slot number down the left, name and link down
- * the right, and the whole card is the hit target when there is a
- * channel to open.
- */
-function personCard({ cls, src, slot, name, channel, handle }) {
-  const n = el('article', cls ? `credit person ${cls}` : 'credit person');
-  const stack = el('div', 'credit-stack');
-  stack.append(face(src, name));
-  if (slot) {
-    const num = el('span', 'credit-slot', slot);
-    num.setAttribute('aria-hidden', 'true');
-    stack.append(num);
-  }
-  n.append(stack);
-
-  const copy = el('div', 'credit-copy');
-  const h = el('h4', null, null);
-  const label = document.createTextNode(name);
-  if (channel) {
-    const a = link(channel, null);
-    a.append(label);
-    h.append(a);
-    n.classList.add('is-link');
-  } else {
-    h.append(label);
-  }
-  copy.append(h);
-  if (handle) {
-    copy.append(handleLine(handle));
-  }
-  n.append(copy);
-  return n;
-}
-
 function section(kicker, heading) {
   const n = el('section', 'credit-block');
   const k = el('div', 'credit-kicker');
@@ -298,21 +178,6 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
 
   const lede = el('p', 'credits-lede', str('credits.a_browser_fpv_racing_simulator_the'));
   host.append(lede);
-
-  const pilots = section(str('credits.beta_test_pilots'), str('credits.they_flew_it_until_it_felt'));
-  const row = el('div', 'credit-row pilots');
-  for (const p of PILOTS) {
-    row.append(personCard({
-      cls: 'pilot',
-      src: p.face ? src(p.face) : null,
-      slot: p.slot,
-      name: p.name,
-      channel: p.channel,
-      handle: p.handle,
-    }));
-  }
-  pilots.append(row);
-  host.append(pilots);
 
   /*
    * The controller's GPLv3 attribution, and the only place in the game

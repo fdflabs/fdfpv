@@ -752,7 +752,49 @@
    "far": 9911,
    "built": 378,
    "pending": 0
-  }
+  },
+  "depth": [
+   [
+    "interior-crowns-near",
+    "MeshDepthMaterial",
+    "interior-crown-depth",
+    {
+     "vertex": "fcc8354c",
+     "fragment": "ab947b93",
+     "added": [
+      "uCrFit",
+      "uCrLobes"
+     ],
+     "defines": {
+      "CROWN_MODE": 0,
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "vCrW",
+      "CROWN_CENTRE": "vCrC",
+      "CROWN_RADII": "vCrR"
+     }
+    }
+   ]
+  ]
+ },
+ "lobes": {
+  "exports": [
+   "LOBES",
+   "LOBE_DATA",
+   "TEMPLATES",
+   "lobesHit",
+   "lobesTop",
+   "templateOf"
+  ],
+  "LOBES": 7,
+  "TEMPLATES": 12,
+  "data": "b7b7b6b0",
+  "templates": [
+   0,
+   3,
+   6,
+   11
+  ]
  },
  "lobes": {
   "exports": [
