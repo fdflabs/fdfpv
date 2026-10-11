@@ -98,7 +98,9 @@ const PINNED = {
   'sched.real.144.7': 'b0f7d9c437008bf40dc804f82bae41d63fcc90cb2f3665a3e998cbc693b84f85',
   'script.fake.onstep': '8a0d0b56cf43028093ddd65733263debdf84f701e969e0595765e7a7d02db256',
   'script.fake.silent': 'd68e1a6ae877a297cbf895499964fc9d38ce1cdb2bdb3baf5b97a0307e6204b1',
-  'script.real': '4ea9d60c79bb86a820684788adc963e02694253036e2db91b2ba6452c4761ee6',
+  /* Re-pinned: its first 50 ms at zero throttle hold the I term at zero,
+   * Betaflight's airmode start throttle (bf_glue.c bf_airmode_latch). */
+  'script.real': 'ad919494f33627ddb52357e160d9d9d339969825eda50577aa5417e6b5363dff',
   'must.codes': 'f898483a4aed452cac3fbb8f03200e9805447a167ee567c2e0f46781f8ea4c57',
   'sha256.chunks': 'eee950733a3d409c9c55da61fe66390b89d6b031f58f0739a2365a7021f64ac2',
   'st': 'bceac134e553c23ea84317029ee8c2255dd5bcc145e47bdb12c026fd649a6b7a',

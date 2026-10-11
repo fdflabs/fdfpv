@@ -1550,17 +1550,42 @@ this project cites is Linthorne and Cooper's, 0.45 for a smooth sled and
 about 0.6 on uneven turf. That is an open question for the mode off
 ground, which the mode on answers with the sled's grip.
 
-**Not a grip measurement: a settled five inch on snow or sand.** After
-the 1.5 m drop with the sticks at rest the controller (airmode, its I
-term) winds two diagonal motors up, to 9,500 rpm on snow and 12,000 on
-sand with the mode off, about 6,000 with it on, where grass leaves them
-near idle. Those rotors then carry from a fifth to most of the weight,
-the normal force is small, and the ratio crash:core's method takes is the
-thrust estimate's error as much as the grip: the mode off snow and sand
-rows (0.234 and 0.752) are not read as grips here, and the mode on rows
-in the table above (sand 0.610, pvc 0.311) carry that too. Whether a real
-Betaflight quad armed in airmode at zero throttle winds up like this on
-the ground is a controller question for the stage 1 harness, left open.
+**The settled five inch's spun up motors were the bridge, not Betaflight**
+(found and fixed 2026-10-11). After the 1.5 m drop with the sticks at rest
+two diagonal motors wound up, to 9,500 rpm on snow and 12,000 on sand with
+the mode off and about 6,000 with it on, so the rotors carried up to most
+of the weight and the snow, sand and pvc rows above measured the thrust
+estimate as much as the grip. The cause was a stub: `isAirmodeActivated`
+returned true from arming. In Betaflight (fc/core.c processRx, vendor
+77d01ba3, lines 778 to 795) airmode latches only once the throttle stick
+reaches airmode_start_throttle_percent (25 by default, pg/rx.c) and holds
+until disarm; before that a throttle under min_check (1050) resets the I
+term every loop, the PID still stabilising (pid_at_min_throttle ON). The
+bridge now runs that block where processRx would (bf_glue.c
+bf_airmode_latch). A craft that never left zero throttle keeps its four
+motors at idle, 2,215 rpm, on every ground. One that has flown (a 150 ms
+punch at 40 percent before the same drop) has the latch set and winds up
+on the ground as a real armed quad in airmode does, 6,600 rpm on sand: the
+fix for that on a real quad is the pilot's, disarming. Runaway takeoff
+prevention (core.c, on by default, armed only until the first takeoff:
+it disarms on a PID sum over 60 percent for 75 ms) is not compiled here;
+with the I term held at zero the dropped craft's PID sum stays far under
+it, and crash recovery is off by default (pid.c). Neither acts on a craft
+lying still that never took off.
+
+Measured again with the latch, the same drop and method, idle rotors:
+
+| ground | face grip | mode on, #956 | mode on, now | mode off, now |
+| --- | --- | --- | --- | --- |
+| snow | 0.20 | 0.205 | 0.204 | 0.204 |
+| grass | 0.45 / 1.40 | 0.456 | 0.454 | 1.403 |
+| sand | 0.60 | 0.610 | 0.604 | 0.604 |
+| pvc | 0.30 | 0.311 | 0.304 | 0.304 |
+| dirt | 1.00 | 1.009 | 1.004 | 1.004 |
+
+#956's sand and pvc rows (0.610, 0.311) were measured with the spun up
+rotors and are superseded by these. Every ground is now within one percent
+of its face grip, the rest the rotors' drag at 1 m/s.
 
 The 0.7 MPa is DERIVED from two studs 13 mm long, each 170 mm^2 in side
 profile, under 350 N on a sand based natural turf pitch's samples. Fully
