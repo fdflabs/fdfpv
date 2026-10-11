@@ -49,7 +49,7 @@
 
 import * as THREE from 'three';
 import { loadSurface, SURFACES } from '../../render/library/surfaces.js';
-import { makePhotoLook, finishScene } from '../swiss2/look.js';
+import { makePhotoLook, finishScene } from '../../render/library/photolook.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { buildPhotoComposer } from '../swiss2/post.js';
 import { makeClouds } from '../swiss2/clouds.js';
@@ -213,7 +213,7 @@ const ENV_PX = 256;
 const ENV_STEP = 0.018;
 
 /*
- * A directional sun of two cascades, as swiss2/light.js makeSun, whose
+ * A directional sun of two cascades, as library/sun.js makeSun, whose
  * direction is read every update rather than fixed when it was made.
  */
 function makeSunRig(scene, q, dir, light) {
@@ -471,7 +471,7 @@ export async function makeLook({
       thermal: { kind: thermalKind, shader: thermalShader },
     },
     /* The ground's heights on a grid for the kit's walls, which weather
-     * by their height over the ground (swiss2/look.js). */
+     * by their height over the ground (library/photolook.js). */
     setHeights(height, half, cell) {
       const n = Math.round((2 * half) / cell) + 1;
       const data = new Float32Array(n * n);

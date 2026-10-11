@@ -94,7 +94,7 @@ export const DRESSED = {
 };
 
 /* Paint over the asphalt, metres over the ground (under LIFT_MAX), and
- * its lines' widths and colours: swiss2/look.js's white road paint, and
+ * its lines' widths and colours: library/photolook.js's white road paint, and
  * its lineYellow's colour in that paint's finish. */
 const LIFT_PAINT = 0.075;
 const LINE = 0.12;
@@ -175,7 +175,7 @@ function distanceTo(points, x, z) {
   return best;
 }
 
-/* The surface key (swiss2/look.js) a paving is drawn with. */
+/* The surface key (library/photolook.js) a paving is drawn with. */
 const KEY = { asphalt: 'asphalt', cobble: 'cobble', earth: 'pathGravel' };
 
 /*

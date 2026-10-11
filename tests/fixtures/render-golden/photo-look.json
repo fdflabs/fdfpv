@@ -3626,9 +3626,9 @@
    ]
   ],
   "missing": [
-   "swiss2 look: no material named nope; say what it is made of in src/maps/swiss2/look.js",
-   "swiss2 look: no parts material named nope; say what it is made of in src/maps/swiss2/look.js",
-   "swiss2 look: no building finish named nope; say what it is made of in src/maps/swiss2/look.js"
+   "swiss2 look: no material named nope; say what it is made of in src/render/library/photolook.js",
+   "swiss2 look: no parts material named nope; say what it is made of in src/render/library/photolook.js",
+   "swiss2 look: no building finish named nope; say what it is made of in src/render/library/photolook.js"
   ]
  },
  "sun": {

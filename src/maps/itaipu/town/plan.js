@@ -48,7 +48,7 @@ const RECT_CORNERS = 8;
 /*
  * The styles: the roof, its slope (rise over run: clay tile at 20
  * degrees, fibre cement at 10, sheet at 8), the eaves' overhang and the
- * roof's thickness in metres, and the surfaces (swiss2/look.js building
+ * roof's thickness in metres, and the surfaces (library/photolook.js building
  * keys, whose group and finish the mesh takes; the tint is ours).
  */
 export const ROOFS = {

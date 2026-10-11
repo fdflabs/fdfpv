@@ -5,8 +5,8 @@
  *
  * From swiss2, unchanged and shared: the terrain photographs and the
  * surfaces (src/render/library/surfaces.js), the material kit every part is handed
- * (swiss2/look.js makePhotoLook, as ctx.mats), the
- * sun's shadow cascades (swiss2/light.js makeSun, which takes its
+ * (library/photolook.js makePhotoLook, as ctx.mats), the
+ * sun's shadow cascades (library/sun.js makeSun, which takes its
  * direction), the post chain (swiss2/post.js: occlusion, aerial
  * perspective, the metered exposure, AgX, FXAA) and the photographed
  * craft (swiss2/craftlook.js).
@@ -58,8 +58,8 @@
 
 import * as THREE from 'three';
 import { loadSurface, SURFACES } from '../../../render/library/surfaces.js';
-import { makeSun } from '../../swiss2/light.js';
-import { makePhotoLook, finishScene } from '../../swiss2/look.js';
+import { makeSun } from '../../../render/library/sun.js';
+import { makePhotoLook, finishScene } from '../../../render/library/photolook.js';
 import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
@@ -78,7 +78,7 @@ import { thermalKind, thermalShader } from '../../../render/thermal.js';
 export const CAMERA_FAR = 90000;
 
 /*
- * THE FAR SHADOW MAP IS SIZED TO THE VIEW. swiss2's makeSun keeps its far
+ * THE FAR SHADOW MAP IS SIZED TO THE VIEW. The library's makeSun (sun.js) keeps its far
  * map 700 m either side of a point ahead of the camera, which from the
  * craft is the whole shadowed world; from 600 m up (the aerial views) it
  * was a patch near the frame's foot, and the dam's buttresses, the
@@ -121,7 +121,7 @@ const DAY_SUN_SIN = sunDirection('day').y;
 const LOW_SUN_ONE_MAP = 0.3;
 
 /* A cascade's frame: `half` across the sun's azimuth, that times its
- * squash (above) along it. swiss2's makeSun snaps both axes to one texel,
+ * squash (above) along it. The library's makeSun (sun.js) snaps both axes to one texel,
  * so the finer of the two. */
 function shape(light, half) {
   const up = half * light.userData.squash;
@@ -218,7 +218,7 @@ export async function makeLook({
     noise,
   });
   /* The ground's heights on the hero's 10 m grid, for the kit's walls,
-   * which weather by their height over the ground (swiss2/look.js
+   * which weather by their height over the ground (library/photolook.js
    * WEATHER_BODY): filled by setHeights once the terrain is in. */
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector3() } };
   /* The blades round the camera (ground.js makeTurf), standing on those

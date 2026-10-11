@@ -63,7 +63,7 @@ after pictures.
 | Seeded random and value noise | `noise.js` (was `alps/noise.js`), `hash.js` | everywhere | all four |
 | Broadleaf and conifer models, leaf cards | `vegetation/species.js`, `vegetation/plantmat.js` | placed by `swiss2/vegetation/forest.js`, `itaipu/vegetation/draw.js` | Swiss valley, Itaipu |
 | Tree impostors (far trees) | `vegetation/impostor.js` | baked and placed by the same two | Swiss valley, Itaipu |
-| Far forest canopy surface | not yet | `src/maps/itaipu/vegetation/draw.js` `canopyShell` | Itaipu |
+| Far forest canopy surface | stays Itaipu's: its colour is Itaipu's satellite picture graded as Itaipu's ground (`FOREST_GRADE`, the ground's noise texture) so the forest's edge meets that ground unseen, over the hero square. No other map has one to give it; the Interior's far forest is crown points (`crowns.js`), the Swiss valley's impostors | `src/maps/itaipu/vegetation/draw.js` `canopyShell` | Itaipu |
 | Grass and leaf atlas | `vegetation/atlas.js` | loaded by each map's vegetation | Swiss valley, Itaipu, Interior |
 | Near grass, weeds, reeds and bushes as layers of crossed cards | `vegetation/cards.js` | placed by `interior/nearfield.js`. The Swiss valley's meadow (`swiss2/vegetation/grass.js`, its material reads the valley's ground paint) and Itaipu's turf (`itaipu/look/ground.js` `makeTurf`, a mesh the ground's textures displace) stay their own | Interior |
 | Photographed ground layers and surfaces (terrain layer arrays; boards, render, stone, shingle, slate, asphalt, gravel, cobble, concrete, metal) | `surfaces.js` | layers blended by `swiss2/ground.js`; surfaces finished on by `swiss2.js`, `itaipu/look/index.js`, `interior/look.js`. The ground materials themselves stay each map's (`swiss2/ground.js` masks, Itaipu's satellite colour, the Interior's land cover): they are the map's data, not an asset | layers: Swiss valley; surfaces: all three photographic maps |
@@ -78,7 +78,9 @@ after pictures.
 | Low instanced vehicles (motorcycles, pickup; paint tinted per instance) | `vehicles/instanced.js` | placed by `interior/life.js` | Interior |
 | Insurgent camp (shelters and tarps, mast, fire and smoke, lookout, stores, clutter, the clearing's light) | `camp/camp.js`, `camp/camplight.js`, `camp/dressing.js` | placed by `interior/life.js` (Claro Viejo and Claro Nuevo). The Swiss valley's lakeside and roadside props (`swiss2/props/`) are its own scenery; the cel bench, fountain and sign are `kit.js`'s | Interior |
 | Lit materials (one sun from the shadow cascades) | `lit.js` `makeLit` | Itaipu's look, the Interior's look and crowns | Itaipu, Interior |
-| Lit materials with the Alps terrain shadow and cloud deck | not yet | `swiss2/light.js` `makeLit` | Swiss valley |
+| Lit materials with the Alps terrain shadow and cloud deck | stays the Swiss valley's: the terrain shadow and the cloud deck are the Alps field's 6 km square; `lit.js` is its library form (one sun, no field) | `swiss2/light.js` `makeLit` | Swiss valley |
+| Photographic material kit (village, building groups and finishes, named and parts materials, metre uvs, finishScene) | `photolook.js` | the Swiss valley's builders, Itaipu's and the Interior's looks | Swiss valley, Itaipu, Interior |
+| The sun and its shadow cascades | `sun.js` `makeSun` | `swiss2.js`, `itaipu/look/index.js` (the Interior has its own, `interior/look.js`) | Swiss valley, Itaipu |
 
 The Alps keep their cel look by decision (2026-10-07). Their kit, roofs,
 vehicles and noise, the base the Swiss valley is built on, are library
@@ -328,6 +330,35 @@ any map with footprint polygons can. Pure, no THREE.
   roof is ground. `npm run itaipu:collide` holds it on every building of
   Itaipu's extract.
 - **Golden**: `tests/browser/render-golden/footprint-buildings.js`.
+
+## Photographic look and sun (`src/render/library/photolook.js`, `sun.js`)
+
+The material kit every photographed map answers its builders with, and
+the sun its shadows come from.
+
+- **Inputs**: `makePhotoLook({ surfaces, marks, ground, heights })`:
+  the loaded surfaces (`surfaces.js` `loadSurface`, by name), marks by
+  name (the Swiss valley's lanpy; `{}` for a map with none), a ground
+  material factory (or one that throws, for a map whose ground is its
+  terrain's own), the heights' `{ texture, grid }` uniforms for the
+  walls' weather. `makeSun(scene, q, dir, { color, irradiance })`: the
+  quality tier (`shadows`, `id`, `field.shadowMap`, `field.shadowHalf`),
+  the sun's direction, colour (linear) and irradiance.
+- **Outputs**: the look's `material(name)`, `parts(name)`, `village()`,
+  `buildingFinish(key)`, `buildingGroups({ glass, water })`; `worldUv`
+  gives a geometry uvs in metres along its faces; `finishScene(scene,
+  lit)` does that for every textured mesh and passes every material
+  through the map's light injector. `makeSun` adds one light (two on
+  High, the far one following the camera) to the scene and returns `{
+  lights, update(focus, camera) }`, which snaps both to their texels.
+- **Needs**: the kit's materials read `vS2World`, which a light injector
+  declares: the Swiss valley's `makeLit`, or `lit.js`'s for a map with one
+  sun (Itaipu, the Interior).
+- **Errors**: a name nobody has said the finish of throws, naming this
+  file, rather than drawing three's default white.
+- **Program keys**: `s2-painted` and the rest the kit had before the
+  move.
+- **Golden**: `tests/browser/render-golden/photo-look.js`.
 
 ## Placing an asset on a map
 

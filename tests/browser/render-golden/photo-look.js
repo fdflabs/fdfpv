@@ -26,8 +26,9 @@
  */
 
 import * as THREE from 'three';
-import * as look from '../../../src/maps/swiss2/look.js';
-import { makeSun } from '../../../src/maps/swiss2/light.js';
+import * as look from '../../../src/render/library/photolook.js';
+import { makeSun } from '../../../src/render/library/sun.js';
+import { SUN_COLOR, SUN_IRRADIANCE } from '../../../src/maps/swiss2/light.js';
 import { SURFACES } from '../../../src/render/library/surfaces.js';
 import {
   describeGeometry, describeMaterial, describeObject, makeTable, hashText, describeValue,
@@ -140,7 +141,7 @@ export function cases() {
       const out = {};
       for (const [id, q] of [['high', { id: 'high', shadows: true, field: { shadowMap: 4096, shadowHalf: 90 } }], ['low', { id: 'low', shadows: false, field: {} }]]) {
         const scene = new THREE.Scene();
-        const sun = makeSun(scene, q, new THREE.Vector3(0.3, 0.8, -0.5), id === 'low' ? { color: new THREE.Color(1, 0.9, 0.8), irradiance: 2 } : undefined);
+        const sun = makeSun(scene, q, new THREE.Vector3(0.3, 0.8, -0.5), id === 'low' ? { color: new THREE.Color(1, 0.9, 0.8), irradiance: 2 } : { color: SUN_COLOR, irradiance: SUN_IRRADIANCE });
         const camera = new THREE.PerspectiveCamera(60, 1.5, 1, 9000);
         camera.position.set(10, 50, 30);
         camera.lookAt(200, 0, -400);

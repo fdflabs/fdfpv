@@ -4,7 +4,7 @@
  * triangles a view, shadow maps and mirror included).
  *
  * Every face names a building key of swiss2's photographic kit
- * (swiss2/look.js buildingFinish: a photographed surface and its finish)
+ * (library/photolook.js buildingFinish: a photographed surface and its finish)
  * and a tint of its own. The tint rides in the vertex colour and the
  * finish in s2Finish, so a white wall and a brick one are one material,
  * as swiss2's village bakes by group (swiss2/buildings/bake.js).
@@ -20,11 +20,11 @@
  *
  * The chunks' vertices are in the world, with the batch at the origin
  * and every instance matrix the identity: the lit and weather shaders
- * (itaipu/look/light.js, swiss2/look.js) take the world position from
+ * (itaipu/look/light.js, library/photolook.js) take the world position from
  * modelMatrix alone, not the batch's per chunk matrix. A float holds a
  * point 5 120 m out to half a millimetre.
  *
- * Texture coordinates are metres along the face, as swiss2/look.js
+ * Texture coordinates are metres along the face, as library/photolook.js
  * worldUv gives them: across a wall and up it, and on a face near level
  * (or on a road, whatever its slope) in plan, so a road's asphalt runs on
  * across a change of grade without a seam.
