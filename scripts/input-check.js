@@ -14,7 +14,9 @@
  * over navigator.getGamepads before the shell starts, yaw on axis 4 and a
  * still slider on axis 3: the radio AETR gets wrong, because one it gets
  * right exercises none of this. The second boots as a touch device. The
- * third boots with an Xbox pad reporting the standard layout.
+ * third boots with an Xbox pad reporting the standard layout. The fourth
+ * boots with two EdgeTX radios and the one stick map an older build saved,
+ * and reloads, to see each radio keep its own calibration.
  *
  * Not part of npm run verify; it says nothing about the flight model. Run
  * it on a change to src/input, the calibrate screen, the Settings room or
@@ -43,6 +45,7 @@ import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
+import { deviceKey } from '../src/input/padprofiles.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -102,6 +105,35 @@ const XBOX = padSeed(`{
   axes: [0, 0, 0, 0],
   buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })),
 }`);
+
+/* Two EdgeTX radios: the same USB ids, so only the name tells them apart.
+ * Each reports six axes and four buttons, throttle parked on 2. The page's
+ * first load also finds the one stick map an older build saved (yaw on 4,
+ * the Pocket's) with the Pocket chosen; a reload must not seed it again,
+ * so the seed marks the tab. */
+const RADIO = (id, index) => `{
+  index: ${index}, id: ${show(id)}, connected: true, mapping: '', timestamp: 1,
+  axes: [0, 0, -1, 0, 0, -1],
+  buttons: [0, 1, 2, 3].map(() => ({ pressed: false, touched: false, value: 0 })),
+}`;
+const POCKET = 'Radiomaster Pocket Joystick (Vendor: 1209 Product: 4f54)';
+const TX16S = 'TX16S Joystick (Vendor: 1209 Product: 4f54)';
+const OLD_MAP = {
+  roll: { axis: 0, center: 0, pos: 1, neg: -1 },
+  pitch: { axis: 1, center: 0, pos: -1, neg: 1 },
+  yaw: { axis: 4, center: 0, pos: 1, neg: -1 },
+  throttle: { axis: 2, low: -1, high: 1 },
+};
+const TWO_RADIOS = `window.__pads = [${RADIO(POCKET, 0)}, ${RADIO(TX16S, 1)}];
+window.__pad = window.__pads[0];
+navigator.getGamepads = () => window.__pads;
+try {
+  if (!sessionStorage.getItem('selftest.old-map')) {
+    sessionStorage.setItem('selftest.old-map', '1');
+    localStorage.setItem('fdfpv.stick_map.v1', ${show(show(OLD_MAP))});
+    localStorage.setItem('fdfpv.pad.v1', ${show(show({ kind: 'pad', id: POCKET, index: 0 }))});
+  }
+} catch (e) { /* storage refused; the checks below say so */ }`;
 
 /* Every walk starts past the gate: the menus these checks are about sit
  * behind it. */
@@ -846,6 +878,87 @@ async function xbox(page, ev) {
   await ev("ui.onAction('title', ui.settings); return true;");
 }
 
+/* ------------------------------------------------------ two radios */
+
+/* Picks radio `i` with the picker the way a pilot does: waits for the
+ * picker, moves one of that radio's sticks until it is the candidate,
+ * lets go, then presses its A. */
+const PICK = (i) => `(async () => {
+  const pad = window.__pads[${i}];
+  const im = window.__input;
+  const nap = (ms) => new Promise((r) => setTimeout(r, ms));
+  const wait = async (ok, limit = 8000) => {
+    const t0 = performance.now();
+    while (performance.now() - t0 < limit) {
+      if (ok()) { return true; }
+      await nap(20);
+    }
+    return false;
+  };
+  const touch = () => { pad.timestamp += 1; };
+  if (!await wait(() => window.__ui.screen === 'padpick' && im.padPick)) { return 'no picker'; }
+  pad.axes[0] = 0.8; touch();
+  if (!await wait(() => im.padPick && im.padPick.phase === 'confirm')) { return 'never the candidate'; }
+  pad.axes[0] = 0; touch();
+  await nap(150);
+  pad.buttons[0] = { pressed: true, touched: true, value: 1 }; touch();
+  const left = await wait(() => window.__ui.screen !== 'padpick');
+  pad.buttons[0] = { pressed: false, touched: false, value: 0 }; touch();
+  return left ? 'picked' : 'picker never closed';
+})()`;
+
+async function reloadShell(page) {
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await page.until('window.__shellReady === true', 90000);
+  await page.until('!!window.__ui && !!window.__input', 10000);
+}
+
+/* Foundations #9: a calibration belongs to the radio it was made on. */
+async function twoRadios(page, ev) {
+  heading('two radios: the old single map goes to the radio that was chosen');
+  const store = () => json(ev(`return JSON.stringify({
+    v1: localStorage.getItem('fdfpv.stick_map.v1'), v2: JSON.parse(localStorage.getItem('fdfpv.stick_maps.v2') || 'null'),
+    using: input.firstGamepad() ? input.firstGamepad().id : null, stored: input.map.stored, yaw: input.map.yaw.axis });`));
+  const boot1 = await store();
+  check('the old map is moved into the per-device store under the Pocket, as it was written',
+    boot1.v1 === null && boot1.v2 && show(boot1.v2.maps[deviceKey(POCKET)]) === show(OLD_MAP)
+    && Object.keys(boot1.v2.maps).length === 1 && boot1.v2.orphan === null, show(boot1));
+  check('and the Pocket, the radio in use, flies it', boot1.using === POCKET && boot1.stored && boot1.yaw === 4, show(boot1));
+
+  const toTx = await page.evaluate(PICK(1));
+  check('the picker takes the TX16S when its stick moves and its A is pressed', toTx === 'picked', toTx);
+  const onTx = await store();
+  check('the TX16S does not fly the Pocket\'s map', onTx.using === TX16S && onTx.stored === false, show(onTx));
+
+  heading('two radios: calibrating the TX16S leaves the Pocket\'s map alone');
+  await page.evaluate('window.__pad = window.__pads[1]; true');
+  await ev(`${PAST_GATE} ui.show('pilot'); ui.act('calibrate');`);
+  const opened = await came(page, "window.__ui.screen === 'calibrate' && !!window.__input.calibration", 5000);
+  check('the wizard opens on the TX16S', opened);
+  const log = await page.evaluate(WIZARD({ roll: 0, pitch: 1, yaw: 3, thr: 2, thrReturn: -1 }));
+  check('every flight channel identified and released', log[log.length - 1] === 'done', log.join(' | '));
+  await came(page, onCalStep('confirm'), 3000);
+  await came(page, '!window.__ui.calSaveBtn.disabled', 3000);
+  await page.tap('Enter');
+  check('Enter saves', await came(page, "window.__ui.screen === 'pilot' && window.__input.calibration === null", 3000));
+  const saved = await store();
+  check('two maps stored: the TX16S with yaw on 3, the Pocket\'s untouched',
+    saved.stored && saved.yaw === 3 && saved.v2 && saved.v2.maps[deviceKey(TX16S)]?.yaw.axis === 3
+    && show(saved.v2.maps[deviceKey(POCKET)]) === show(OLD_MAP), show(saved.v2));
+
+  heading('two radios: after a reload each still has its own');
+  await reloadShell(page);
+  await came(page, "window.__ui.screen === 'padpick'", 5000);
+  const boot2 = await store();
+  check('the TX16S, still the chosen one, flies its own map', boot2.using === TX16S && boot2.stored && boot2.yaw === 3, show(boot2));
+  check('the old map was not seeded again, and was not lost', boot2.v1 === null && boot2.v2
+    && show(boot2.v2.maps[deviceKey(POCKET)]) === show(OLD_MAP), show(boot2.v2));
+  const toPocket = await page.evaluate(PICK(0));
+  check('the picker takes the Pocket', toPocket === 'picked', toPocket);
+  const onPocket = await store();
+  check('and the Pocket flies its own map again, yaw on 4', onPocket.using === POCKET && onPocket.stored && onPocket.yaw === 4, show(onPocket));
+}
+
 /* --------------------------------------------------------------- the run */
 
 const PAGES = [
@@ -853,6 +966,7 @@ const PAGES = [
     [signposts, hover, noYawRow, wizardNoButtons, throttleZero, checkSticks, padEdges, frameFault, mouseFlight]],
   ['booting the shell as a touch device', 'the touch page', { touch: true }, SIX_AXIS_RADIO, [touchModes]],
   ['booting the shell with an Xbox pad', 'the Xbox page', {}, XBOX, [xbox]],
+  ['booting the shell with two radios and an old stick map', 'the two radio page', {}, TWO_RADIOS, [twoRadios]],
 ];
 
 async function main() {
