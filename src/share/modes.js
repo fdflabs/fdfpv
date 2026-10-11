@@ -77,6 +77,8 @@ export const ROUND_MINUTES = [3, 5];
  *                 back to its lobby when a round ends (combat.js)
  *   makeable      offered on Make a room's Game row as is (the war has its
  *                 own rule there: only on its map)
+ *   onFoot        a landed and stopped pilot may step out and walk
+ *                 (docs/ON-FOOT.md); free flight only
  */
 export const MODES = [
   {
@@ -97,6 +99,7 @@ export const MODES = [
     publicOnlyWhenMadeFor: false,
     straightToLobby: false,
     makeable: true,
+    onFoot: false,
   },
   {
     id: 'tag',
@@ -116,6 +119,7 @@ export const MODES = [
     publicOnlyWhenMadeFor: false,
     straightToLobby: false,
     makeable: true,
+    onFoot: false,
   },
   {
     id: 'combat',
@@ -135,6 +139,7 @@ export const MODES = [
     publicOnlyWhenMadeFor: false,
     straightToLobby: true,
     makeable: true,
+    onFoot: false,
   },
   {
     id: 'jam',
@@ -156,6 +161,7 @@ export const MODES = [
     publicOnlyWhenMadeFor: false,
     straightToLobby: false,
     makeable: true,
+    onFoot: false,
   },
   {
     id: 'war',
@@ -175,6 +181,7 @@ export const MODES = [
     publicOnlyWhenMadeFor: true,
     straightToLobby: false,
     makeable: false,
+    onFoot: false,
   },
   {
     id: 'free',
@@ -194,6 +201,7 @@ export const MODES = [
     publicOnlyWhenMadeFor: false,
     straightToLobby: false,
     makeable: false,
+    onFoot: true,
   },
 ];
 
