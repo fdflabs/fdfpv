@@ -960,6 +960,19 @@ typedef struct FixedWingParams {
    * fins). */
   int slip_pusher;
   /*
+   * THE SWIRL OVER THE WING'S ROOT, docs/FLIGHTMODEL.md. Where
+   * slip_root_eta is set, the root's share of a tractor's swirl is the lift
+   * the swirl's upwash and downwash make on the wing inside the wash and
+   * outside the fuselage, each side at its own angle, instead of a fixed
+   * (1 - SWIRL_KEEP) of the torque. slip_root: the fuselage's half width at
+   * the wing, the wing's distance from the thrust line, and the root's
+   * chord, m. slip_root_eta: the share of that strip lift a wing makes in
+   * a stream as narrow as the wash. Zero on a table without, which keeps
+   * SWIRL_KEEP's arithmetic exactly.
+   */
+  double slip_root[3];
+  double slip_root_eta;
+  /*
    * THE FUSELAGE IN A CROSSFLOW, docs/FLIGHTMODEL.md. side_cda: the side
    * view's crossflow drag area, m^2, eta Cdc S_side, Allen and Perkins'
    * viscous crossflow (NACA TR 1048) with Jorgensen's eta for a body's
