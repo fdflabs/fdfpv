@@ -138,9 +138,11 @@ throwAt(30, 14.5);
  * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
  * prop curves gave the prop its thrust at speed. */
 const level = fly(0, 0, 0, planeTable('FW_KADET1981').fw.stab_trim_throttle, 10);
+/* The pitch Stabilised holds level, the table's stab_trim_pitch. */
+const TRIM_PITCH = planeTable('FW_KADET1981').fw.stab_trim_pitch;
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
-check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
+check('and hold the trim pitch within 4 degrees', Math.abs((level.pitch - TRIM_PITCH) * DEG) < 4, `${deg(level.pitch)} deg`);
 /* The Bombshell's 10 m over its 80 m of flight, in proportion to the
  * Kadet's 145 m. */
 check('and straight: under 18 m off the line after 10 s', Math.abs(level.y) < 18, `${level.y.toFixed(1)} m`);
@@ -159,7 +161,7 @@ const nosedUp = fly(0, 0.6, 0, 1.0, 2);
  * 14: the band is the Bombshell's in proportion about what it asks for. */
 check('up stick lifts the nose, 6.6 to 24 degrees, no tumble', nosedUp.pitch * DEG > 6.6 && nosedUp.pitch * DEG < 24 && nosedUp.worstBank * DEG < 15, `${deg(nosedUp.pitch)} deg, bank ${deg(nosedUp.worstBank)}`);
 const settled = fly(0, 0, 0, 0.75, 5);
-check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
+check('and centring brings it back to trim', Math.abs((settled.pitch - TRIM_PITCH) * DEG) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
 const yawed = fly(0, 0, 1, 0.75, 1);
 /* The yaw stick and the level hold share the one surface here, so the hold
  * takes back much of the yaw stick's rudder to keep the wings level; the
