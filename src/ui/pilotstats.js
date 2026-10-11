@@ -3,13 +3,15 @@
  * 2026-10-08: "i need prominently to see the game stats, played hours in
  * total etc"). docs/PILOT-STATS.md is the contract.
  *
- * Nothing here is tracked anew. Every number is read from what the
- * settings already carry and the account already syncs: the time in the
- * air (src/share/flighttime.js, the record the firsts are paid from), the
- * XP and medals and tracks lapped (src/game/progress.js), and the war
- * campaign (src/game/campaign.js). So a sync that brings another
- * computer's progress changes these numbers by the same renderMenu that
- * repaints the rest of the page.
+ * Every number is read from what the settings carry and the account
+ * syncs: the time in the air (src/share/flighttime.js, the record the
+ * firsts are paid from), the flights and the room games' results
+ * (src/share/pilotcounts.js), the XP and medals and tracks lapped
+ * (src/game/progress.js), and the war campaign (src/game/campaign.js). So
+ * a sync that brings another computer's progress changes these numbers by
+ * the same renderMenu that repaints the rest of the page. The tokens are
+ * the wallet the server last answered with (src/share/account.js
+ * readWallet), handed in: painting never asks the server.
  *
  * Reading it is split from painting it so the panel is rebuilt only when
  * a number it shows has changed: renderMenu runs on every key press.
@@ -35,13 +37,13 @@ import { cleanCampaign, MAX_STARS, ACT1, INTERIOR } from '../game/campaign.js';
 import { MEDAL_STEPS } from '../game/medals.js';
 import { levelInfo } from '../game/progress.js';
 import { flightTotals } from '../share/flighttime.js';
-import { currentLocale, str } from '../strings/index.js';
+import { countTotals } from '../share/pilotcounts.js';
+import { currentLocale, plural, str } from '../strings/index.js';
 import { flightTimeText } from './carousel.js';
 import { el } from './dom.js';
 
 /* The Flight Club modes whose time is shown, each under its card's name.
- * Trick Battle and Catch the Ace keep no result once a round ends, so
- * their time in the air is what the page can say about them. */
+ * Catch the Ace! and Trick Battle add their matches won and best score. */
 const MODE_TIME = [
   ['race', 'ui.track_mode'],
   ['free', 'ui.free_flight_card'],
@@ -61,11 +63,13 @@ function planeName(id) {
   return gone ? gone.name : null;
 }
 
-/* The numbers, from the settings alone. Plain data, so its JSON is the
- * key the panel is rebuilt on. */
-export function pilotStats(settings) {
+/* The numbers, from the settings and the wallet last held (null when
+ * signed out or never answered). Plain data, so its JSON is the key the
+ * panel is rebuilt on. */
+export function pilotStats(settings, wallet = null) {
   const s = settings || {};
   const total = flightTotals(s.flightTime);
+  const counts = countTotals(s.pilotCounts);
   const byPlane = {};
   for (const [id, secs] of Object.entries(total.byAirframe)) {
     const land = landPlaneOf(id);
@@ -98,6 +102,9 @@ export function pilotStats(settings) {
     stars: missions.reduce((n, m) => n + m.stars, 0),
     starsMax: (ACT1.length + INTERIOR.length) * MAX_STARS,
     modes: MODE_TIME.map(([id]) => total.byActivity[id] || 0),
+    flights: counts.flights,
+    games: { tag: counts.tag, jam: counts.jam },
+    tokens: wallet && Number.isFinite(wallet.balance) ? wallet.balance : null,
   };
 }
 
@@ -124,6 +131,16 @@ export function paintPilotStats(host, st) {
     el('span', 'gate-stats-time', st.seconds > 0 ? flightTimeText(st.seconds) : str('stats.zero_time')),
     el('span', 'gate-stats-time-label', str('stats.total_time')),
   );
+  const extra = el('span', 'gate-stats-extra');
+  const flights = el('span', 'gate-stats-flights', plural('stats.flights', st.flights, { n: num(st.flights) }));
+  flights.dataset.stat = 'flights';
+  extra.append(flights);
+  if (st.tokens !== null) {
+    const tokens = el('span', 'gate-stats-tokens', str('shop.tokens', { n: num(st.tokens) }));
+    tokens.dataset.stat = 'tokens';
+    extra.append(tokens);
+  }
+  head.append(extra);
   const level = tile('level', str('stats.level'), num(st.level), str('progress.xp_of', { xp: num(st.xp), to: num(st.to) }));
   const bar = el('span', 'gate-stat-bar');
   bar.style.setProperty('--frac', String(Math.max(0, Math.min(1, st.frac))));
@@ -152,6 +169,10 @@ export function paintPilotStats(host, st) {
     const m = el('span', 'gate-stats-mode');
     m.dataset.mode = id;
     m.append(el('span', 'gate-stats-mode-name', str(key)), el('span', 'gate-stats-mode-time', st.modes[i] > 0 ? flightTimeText(st.modes[i]) : '0'));
+    const game = st.games[id];
+    if (game && game.played > 0) {
+      m.append(el('span', 'gate-stats-mode-game', str('stats.game', { won: num(game.won), played: num(game.played), best: num(game.best) })));
+    }
     modes.append(m);
   });
   host.append(head, tiles, modes);

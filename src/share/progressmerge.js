@@ -56,6 +56,10 @@
  *              browser, merged counter by counter to the larger, so two
  *              computers flying offline both keep their time and a slot
  *              sent twice is counted once. Stamps play no part.
+ *   counts     pilotCounts, the flights flown and the Catch the Ace!
+ *              and Trick Battle results (src/share/pilotcounts.js):
+ *              the same grow only slot per browser as devices, merged
+ *              the same way. Stamps play no part.
  *   best       records, the best laps (src/share/records.js): per key
  *              the lower lap. Stamps play no part.
  *
@@ -92,6 +96,7 @@ import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
 import { retiredAirframe } from '../../configs/airframes.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
+import { cleanPilotCounts, mergePilotCounts } from './pilotcounts.js';
 import { cleanRecords, mergeRecords } from './records.js';
 import {
   BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX,
@@ -117,6 +122,7 @@ export const SYNCED_SECTIONS = {
   packs: 'keyed',
   voiceReplayAck: 'flag',
   flightTime: 'devices',
+  pilotCounts: 'counts',
   records: 'best',
 };
 
@@ -210,6 +216,14 @@ export function blobRefusal(raw) {
   if (isRecord(flight) && Object.keys(flight).length > FLIGHT_DEVICES_MAX) {
     return { status: 413, section: 'flightTime', why: 'count', limit: FLIGHT_DEVICES_MAX };
   }
+  const tally = data.pilotCounts;
+  if (tally !== undefined && !isRecord(tally)) {
+    return { status: 422, section: 'pilotCounts', why: 'map' };
+  }
+  /* One slot per browser, as flightTime: the same ceiling. */
+  if (isRecord(tally) && Object.keys(tally).length > FLIGHT_DEVICES_MAX) {
+    return { status: 413, section: 'pilotCounts', why: 'count', limit: FLIGHT_DEVICES_MAX };
+  }
   return null;
 }
 
@@ -235,6 +249,12 @@ export function cleanBlob(raw) {
     if (kind === 'devices') {
       if (isRecord(value)) {
         out.data[section] = cleanFlightTime(value);
+      }
+      continue;
+    }
+    if (kind === 'counts') {
+      if (isRecord(value)) {
+        out.data[section] = cleanPilotCounts(value);
       }
       continue;
     }
@@ -351,6 +371,8 @@ export function mergeBlobs(incoming, held) {
       merged = av === undefined && bv === undefined ? undefined : av === true || bv === true;
     } else if (kind === 'devices') {
       merged = av === undefined && bv === undefined ? undefined : mergeFlightTime(av, bv);
+    } else if (kind === 'counts') {
+      merged = av === undefined && bv === undefined ? undefined : mergePilotCounts(av, bv);
     } else if (kind === 'best') {
       merged = av === undefined && bv === undefined ? undefined : mergeRecords(av, bv);
     } else if (kind === 'whole') {

@@ -5,12 +5,18 @@
  *   node scripts/pilot-stats-check.js [outdir]
  *
  * Page EN, signed in to an accounts server of its own, 1280 by 720, a
- * profile seeded with known hours on four aircraft over two computers, a
+ * profile from before the counts were kept (the migration: its hours and
+ * level as ever, nought flights, no room game line) seeded with known hours on four aircraft over two computers, a
  * level, medals, tracks lapped and two campaign wins: every number on the
  * panel is the one the seed makes. The arrows still walk the cards, Tab
  * never lands in the panel, and a click on it reaches nothing. Then a
  * second computer's hour goes up to the account, a sync runs, and the
- * total and the most flown aircraft move by that hour.
+ * total and the most flown aircraft move by that hour. The flights and
+ * the Catch the Ace! and Trick Battle results of two computers reach it
+ * by a sync first (page ES has them in its own storage), a third
+ * computer's arrive by the later sync and add to them (its best score the
+ * new best), and the tokens are the wallet the account server answered
+ * with.
  *
  * Page ES, the same seed with ?lang=es: the same numbers in Spanish.
  *
@@ -83,6 +89,12 @@ const FLIGHT = {
   home0001: { by: { bramor2300: { free: 22200, race: 1800 }, interceptor: { race: 3600, combat: 1200 }, cub1400: { tag: 600, jam: 900 } }, first: '2026-09-01' },
   laptop01: { by: { sky1800: { free: 300 } }, first: '2026-09-10' },
 };
+/* 42 flights; Catch the Ace! 1 of 5 won, best 9 points; Trick Battle 2
+ * of 3 won, best 1,250. */
+const COUNTS = {
+  home0001: { flights: { free: 30, race: 10 }, tag: { played: 4, won: 1, best: 7 }, jam: { played: 3, won: 2, best: 1250 } },
+  laptop01: { flights: { free: 2 }, tag: { played: 1, best: 9 } },
+};
 const CAMPAIGN = {
   missions: {
     'itaipu-1': { stars: 3, won: true, credits: 300 },
@@ -113,7 +125,8 @@ const seed = (settings) => `try {
     localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, ${JSON.stringify(JSON.stringify(settings))});
   }
 } catch (e) { /* storage refused: the check fails on the numbers */ }`;
-const SEEDED = seed({ flightTime: FLIGHT, progress: PROGRESS, campaign: CAMPAIGN });
+const SEEDED = seed({ flightTime: FLIGHT, progress: PROGRESS, campaign: CAMPAIGN, pilotCounts: COUNTS });
+const SEEDED_OLD = seed({ flightTime: FLIGHT, progress: PROGRESS, campaign: CAMPAIGN });
 
 const WANT = {
   en: {
@@ -121,12 +134,14 @@ const WANT = {
     planes: '4', top: 'Most flown: Bramor C4EYE, 6 h 40 min',
     medals: '4', medalsSub: '2 Gold · 1 Silver · 1 Bronze', tracks: '3', won: '2', stars: '6 of 36 stars',
     modes: ['Track Day 1 h 30 min', 'Free Flight 6 h 15 min', 'Streamer Combat 20 min', 'Catch the Ace! 10 min', 'Trick Battle 15 min'],
+    flights: '42 flights', games: { tag: '1/5 won · best 9', jam: '2/3 won · best 1,250' },
   },
   es: {
     time: '8 h 30 min', label: 'Tiempo total de vuelo', level: '5', xp: '700 de 900 XP',
     planes: '4', top: 'La más volada: Bramor C4EYE, 6 h 40 min',
     medals: '4', medalsSub: '2 Oro · 1 Plata · 1 Bronce', tracks: '3', won: '2', stars: '6 de 36 estrellas',
     modes: ['Día de pista 1 h 30 min', 'Vuelo Libre 6 h 15 min', 'Combate de serpentinas 20 min', '¡Atrapa al As! 10 min', 'Batalla de Trucos 15 min'],
+    flights: '42 vuelos', games: { tag: '1/5 ganadas · mejor 9', jam: '2/3 ganadas · mejor 1250' },
   },
 };
 
@@ -143,6 +158,9 @@ const READ = `(() => {
     medals: tile('medals', 'value'), medalsSub: tile('medals', 'sub'),
     tracks: tile('tracks', 'value'), won: tile('war', 'value'), stars: tile('war', 'sub'),
     modes: [...host.querySelectorAll('.gate-stats-mode')].map((m) => m.querySelector('.gate-stats-mode-name').textContent + ' ' + m.querySelector('.gate-stats-mode-time').textContent),
+    flights: q('[data-stat="flights"]'), tokens: q('[data-stat="tokens"]'),
+    games: Object.fromEntries([...host.querySelectorAll('.gate-stats-mode')].filter((m) => m.querySelector('.gate-stats-mode-game'))
+      .map((m) => [m.dataset.mode, m.querySelector('.gate-stats-mode-game').textContent])),
   };
 })()`;
 
@@ -216,15 +234,39 @@ function numbers(got, want, tag) {
 console.log('Flight Club\'s pilot stats');
 const rooms = await roomsServer('', 'pilotstats');
 const at = (lang) => `/index.html?lang=${lang}&rooms=${encodeURIComponent(rooms.url)}`;
-const en = await openPage({ root, url: at('en'), width: 1280, height: 720, seed: [SEEDED], account: 'StatsPilot' });
+const en = await openPage({ root, url: at('en'), width: 1280, height: 720, seed: [SEEDED_OLD], account: 'StatsPilot' });
 try {
   await toClub(en);
+  /* AN OLD PROFILE: the hours and the level as before, the counts start
+   * at nought, and no room game line where no match was ever kept. */
+  const was = await en.evaluate(READ);
+  numbers(was, {
+    time: WANT.en.time, level: WANT.en.level, modes: WANT.en.modes, flights: '0 flights', games: {},
+  }, 'old profile:');
+  const kept = await en.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}')`);
+  check('old profile: its hours are untouched by the load', flightTotals(kept.flightTime).seconds === flightTotals(FLIGHT).seconds);
+  await shot(en, 'old-en-1280x720');
+  /* The two computers' counts, put to the account, reach it by a sync. */
+  await en.until('window.__accountSync !== undefined', 10000);
+  await en.evaluate('window.__accountSync()');
+  const { accounts, account } = en;
+  const first = (await accounts.api('GET', '/api/account/progress', undefined, account.session)).progress;
+  await accounts.api('PUT', '/api/account/progress', { progress: { v: 1, data: { ...first.data, pilotCounts: COUNTS }, stamps: first.stamps || {} } }, account.session);
+  await en.evaluate('window.__accountSync()');
+  await en.until(`(document.querySelector('[data-stat="flights"]') || {}).textContent === ${JSON.stringify(WANT.en.flights)}`, 20000).catch(() => {});
   const got = await en.evaluate(READ);
   check('en: the panel is up on Flight Club', got.shown);
   const names = await en.evaluate("[...document.querySelectorAll('.screen-title .gate-card-name')].map((n) => n.textContent)");
   check('en: Flight Club shows its room modes too, as on the site', ['Streamer Combat', 'Catch the Ace!', 'Trick Battle'].every((n) => names.includes(n)), names.join());
   numbers(got, WANT.en, 'en:');
   check('en: no nudge for a pilot with hours', got.nudge === null, got.nudge);
+  /* THE TOKENS are the wallet the account server answered the sign in's
+   * sync with, read from what the page holds: painting asks nothing. */
+  const wallet = (await en.accounts.api('GET', '/api/account/wallet', undefined, en.account.session)).wallet;
+  const tokensWant = `${wallet.balance.toLocaleString('en')} tokens`;
+  await en.until(`(document.querySelector('[data-stat="tokens"]') || {}).textContent === ${JSON.stringify(tokensWant)}`, 20000).catch(() => {});
+  const tokens = (await en.evaluate(READ)).tokens;
+  check(`en: tokens read the account's wallet, ${JSON.stringify(tokensWant)}`, tokens === tokensWant, tokens);
   const l = await en.evaluate(LAYOUT);
   check('en 1280 by 720: the panel between the brand and the cards, on no card, tags clear of the bar',
     l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.panel[3] <= Math.min(...l.cards.map((c) => c.box[1])) && l.sw <= l.w,
@@ -263,17 +305,21 @@ try {
 
   /* A SYNC BRINGS ANOTHER COMPUTER'S HOUR: an hour on the Interceptor,
    * Track Day, from the office, put to the account; then this page syncs. */
-  await en.until('window.__accountSync !== undefined', 10000);
-  await en.evaluate('window.__accountSync()');
-  const { accounts, account } = en;
   const held = (await accounts.api('GET', '/api/account/progress', undefined, account.session)).progress;
-  const data = { ...held.data, flightTime: { ...held.data.flightTime, office01: { by: { interceptor: { race: 3600 } }, first: '2026-09-20' } } };
+  const data = {
+    ...held.data,
+    flightTime: { ...held.data.flightTime, office01: { by: { interceptor: { race: 3600 } }, first: '2026-09-20' } },
+    pilotCounts: { ...held.data.pilotCounts, office01: { flights: { race: 5 }, jam: { played: 1, won: 1, best: 2000 } } },
+  };
   await accounts.api('PUT', '/api/account/progress', { progress: { v: 1, data, stamps: held.stamps || {} } }, account.session);
   await en.evaluate('window.__accountSync()');
   await en.until("document.querySelector('.gate-stats-time').textContent === '9 h 30 min'", 20000).catch(() => {});
   const synced = await en.evaluate(READ);
   check('en: after a sync the office\'s hour is on the panel', synced.time === '9 h 30 min'
     && synced.modes[0] === 'Track Day 2 h 30 min' && synced.top === 'Most flown: Bramor C4EYE, 6 h 40 min', JSON.stringify([synced.time, synced.modes[0], synced.top]));
+  check('en: and its counts add to this one\'s, its best the new best, nothing counted twice',
+    synced.flights === '47 flights' && synced.games.jam === '3/4 won · best 2,000' && synced.games.tag === '1/5 won · best 9', JSON.stringify([synced.flights, synced.games]));
+  await shot(en, 'en-1280x720-synced');
   await phones(en, 'en');
   check('en: no page error', errorsOf(en).length === 0, errorsOf(en).slice(0, 3).join(' | '));
 } finally {
@@ -286,12 +332,15 @@ try {
   const got = await es.evaluate(READ);
   check('es: the panel is up on Flight Club', got.shown);
   numbers(got, WANT.es, 'es:');
+  check('es: signed out, no tokens line', got.tokens === null, got.tokens);
   const l = await es.evaluate(LAYOUT);
   check('es 1280 by 720: the panel on no card, every card\'s tags clear of the bar, no sideways scroll',
     l.cards.length >= 6 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
     `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
   await shot(es, 'es-1280x720');
   await resize(es, 1920, 1080);
+  const shown = await es.evaluate("[...document.querySelectorAll('.gate-stats-mode-game, .gate-stats-title')].map((n) => n.getBoundingClientRect().height > 0)");
+  check('es 1920 by 1080: the title and both room games\' results are on screen', shown.length === 3 && shown.every(Boolean), JSON.stringify(shown));
   await shot(es, 'es-1920x1080');
   await resize(es, 1280, 720);
   await phones(es, 'es');
@@ -301,8 +350,8 @@ try {
 }
 
 const NUDGE = {
-  en: { xp: '0 of 60 XP', top: 'None yet', nudge: 'Take off on any card below and your hours start counting here.' },
-  es: { xp: '0 de 60 XP', top: 'Ninguna todavía', nudge: 'Despega en cualquier tarjeta de abajo y tus horas empiezan a contar aquí.' },
+  en: { flights: '0 flights', xp: '0 of 60 XP', top: 'None yet', nudge: 'Take off on any card below and your hours start counting here.' },
+  es: { flights: '0 vuelos', xp: '0 de 60 XP', top: 'Ninguna todavía', nudge: 'Despega en cualquier tarjeta de abajo y tus horas empiezan a contar aquí.' },
 };
 for (const lang of ['en', 'es']) {
   const fresh = await openPage({ root, url: at(lang), width: 1280, height: 720 });
@@ -310,7 +359,7 @@ for (const lang of ['en', 'es']) {
     await toClub(fresh);
     const got = await fresh.evaluate(READ);
     numbers(got, {
-      time: '0 h 0 min', level: '1', planes: '0', medals: '0', tracks: '0', won: '0', ...NUDGE[lang],
+      time: '0 h 0 min', level: '1', planes: '0', medals: '0', tracks: '0', won: '0', tokens: null, ...NUDGE[lang],
     }, `empty ${lang}:`);
     const l = await fresh.evaluate(LAYOUT);
     check(`empty ${lang} 1280 by 720: the panel on no card, every card's tags clear of the bar`,
