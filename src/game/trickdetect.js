@@ -330,6 +330,13 @@ const LAP_HOLD_MS = 220;
 const LAP_REVERSE = 0.08;
 const LAP_MAX_MS = 20000;
 const LAP_MIN_SWEEP = 0.375;
+/* A lap round a rail ends where the craft leaves the band it was circling
+ * in: past this many times the lap's mean radius so far, a straight line
+ * away (a climb out of a powerloop 16 m past the rail) still sweeps an
+ * angle round the rail, and crossing the rail's height there flipped the
+ * lap's end to "over". The mean, not the tightest: a pass close to the
+ * rail on the way in would shrink the band to nothing. */
+const LAP_BAND = 2;
 const MAX_LAPS = 32;
 const TRACK_COS = 0.55;
 /* The history a lap is backdated from holds this many samples, plus the one
@@ -926,7 +933,8 @@ export class TrickDetector {
     const now = this.nowMs;
     if (going) {
       run.tailMs = now;
-      if ((run.windTotal - run.startWind) * run.dir > (run.lastWind - run.startWind) * run.dir) {
+      const inBand = ob.kind !== OB_BAR || run.sumR === 0 || nowLen * run.counted <= run.sumR * LAP_BAND;
+      if (inBand && (run.windTotal - run.startWind) * run.dir > (run.lastWind - run.startWind) * run.dir) {
         run.lastWind = run.windTotal;
         run.lastSide = side;
         run.lastMs = now;
@@ -934,6 +942,7 @@ export class TrickDetector {
         run.lastAxis = run.axisTurns;
       }
       run.counted += 1;
+      run.sumR += nowLen;
       if (nowLen < run.minR) run.minR = nowLen;
       if (nowLen > run.maxR) run.maxR = nowLen;
       if (upZ < 0) run.belly += 1;
@@ -991,6 +1000,7 @@ export class TrickDetector {
     run.magPerp = 0;
     run.alignN = 0;
     run.counted = 0;
+    run.sumR = 0;
     run.belly = 0;
     run.tracked = 0;
     run.noseSeen = false;

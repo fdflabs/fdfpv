@@ -11,11 +11,11 @@
  *             path-check, orbit-check) run as they are, with every detector
  *             they make tapped by scripts/lib/trickdetect-tap.js: each
  *             detector's calls, returns and tricks, in order, as a digest,
- *             plus the check's own output and exit code. Two of those
- *             checks fail today (score-selftest 2, path-check 5); the record
- *             holds them failing the same way, because the rewrite must
- *             reproduce the old outputs, wrong ones included, and fixing
- *             them is a separate change.
+ *             plus the check's own output and exit code. One of those
+ *             checks fails today (path-check 5); the record holds it
+ *             failing the same way, because the rewrite must reproduce the
+ *             old outputs, wrong ones included, and fixing it is a
+ *             separate change.
  *   fuzz      seeded flights the checks never fly: rolls, flips and yaw
  *             spins of every quarter count at many rates, with overshoot
  *             and cross axis wobble, mixed axes, loops round rails and
