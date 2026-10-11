@@ -1,7 +1,7 @@
 /*
  * render-golden/people.js: the Interior's people (a body of tapered
  * limbs in each pose and kit, instanced, coloured per slot:
- * src/render/interior/figures.js and tint.js when this was recorded),
+ * src/render/library/people/figures.js and tint.js when this was recorded),
  * pinned before they move into the shared asset library
  * (docs/ASSET-LIBRARY.md), so the move is proved to change nothing: every
  * pose's body, the material and its shader text, and a crowd in every
@@ -24,8 +24,8 @@
  */
 
 import * as THREE from 'three';
-import * as figures from '../../../src/render/interior/figures.js';
-import * as tint from '../../../src/render/interior/tint.js';
+import * as figures from '../../../src/render/library/people/figures.js';
+import * as tint from '../../../src/render/library/tint.js';
 import { describeObject, makeTable, hashText } from '../render-golden-lib.js';
 
 const ACTIONS = ['walk', 'carryLong', 'stand', 'lookUp', 'sit', 'crouchTarp', 'takeDownAntenna', 'pushMotorcycle', 'ride', 'unknown'];

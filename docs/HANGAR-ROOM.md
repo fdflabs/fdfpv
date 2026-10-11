@@ -106,7 +106,7 @@ Bramor (the most meshes) and every chip hung, in the table below.
 
 The game's own: flat shaded low poly, vertex colours, no textures, the
 pale sky and olive ground of the worlds outside the door, the Interior's
-people (src/render/interior/figures.js) for the pilot's body. No face, no
+people (src/render/library/people/figures.js) for the pilot's body. No face, no
 rank, no insignia.
 
 ## Data and storage
@@ -125,7 +125,7 @@ rank, no insignia.
 - `src/main.js` drawFrame: the world's draw is skipped while the room is
   open, as it already is for the hangar.
 - `src/render/quality.js` presets: pixel ratio and shadows per preset.
-- `src/render/interior/figures.js` makeFigures: the pilot, one instance.
+- `src/render/library/people/figures.js` makeFigures: the pilot, one instance.
 - `src/render/craft.js` craftBuilderFor and livery.js: the aircraft.
 
 ## Perf budget

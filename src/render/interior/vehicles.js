@@ -31,7 +31,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { thermalKind } from '../thermal.js';
 import {
   slotTint, addSlotTints, setSlotTints, slotTintsChanged,
-} from './tint.js';
+} from '../library/tint.js';
 
 const TYRE = [0.025, 0.025, 0.025];
 const RIM = [0.32, 0.32, 0.33];

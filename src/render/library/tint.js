@@ -1,7 +1,7 @@
 /*
  * tint.js: per instance colours that reach only the parts they belong to,
- * for the Interior's instanced people and vehicles (figures.js,
- * vehicles.js). three's instanceColor multiplies every vertex of an
+ * for the asset library's instanced people (people/figures.js) and the
+ * Interior's vehicles (src/render/interior/vehicles.js). three's instanceColor multiplies every vertex of an
  * instance, so a dark olive shirt would darken the face and the boots
  * with it and a red tank would redden the tyres. Here each vertex says
  * which slot paints it (its `slot` attribute: 0 its own colour only, 1

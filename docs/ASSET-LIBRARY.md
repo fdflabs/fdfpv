@@ -69,7 +69,7 @@ after pictures.
 | Photographed ground layers and surfaces (terrain layer arrays; boards, render, stone, shingle, slate, asphalt, gravel, cobble, concrete, metal) | `surfaces.js` | layers blended by `swiss2/ground.js`; surfaces finished on by `swiss2.js`, `itaipu/look/index.js`, `interior/look.js`. The ground materials themselves stay each map's (`swiss2/ground.js` masks, Itaipu's satellite colour, the Interior's land cover): they are the map's data, not an asset | layers: Swiss valley; surfaces: all three photographic maps |
 | Water surface (lake, pool, stream), wave texture, stream ribbons and gravel bars, planar mirror | `water/surface.js`, `water/waves.js`, `water/stream.js`, `water/mirror.js` | placed by `swiss2/water/` and `swiss2/props/` (bars); Itaipu's reservoir and river (`itaipu/water/index.js`) draw with the material, texture and mirror. The Interior's silty river and banks (`interior/ribbons.js`) and the Alps' cel water (`alps/nature.js`) stay their own | Swiss valley, Itaipu |
 | Scanned rocks (boulders and stones: scans, material, colliders, levels) | `rocks.js` | placed by `swiss2/vegetation/rocks.js`; the Alps keep their cel boulders (`alps/nature.js`), the carved cliffs stay with the Swiss valley's terrain (`swiss2/rock/`) | Swiss valley |
-| People and postures | not yet | `src/render/interior/figures.js`, `swiss2/village/people.js`, `alps/fauna.js` | one each |
+| People and postures (instanced posed bodies, slot tints) | `people/figures.js`, `tint.js` | placed by `interior/life.js` and the hangar room (`src/render/hangarroomview.js`). The Swiss valley's café people (`swiss2/village/people.js`, built on its vehicle kit) and the Alps' cel animals (`alps/fauna.js`) stay their own | Interior, hangar room |
 | Roofs as ground (records, solids under them) | `roofs.js` | used by `kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
 | Cel building kit (chalet, barn, farmhouse, gasthof, shop, church, hangar, bridge, street furniture, fence) | `kit.js` | the Alps' village; the Swiss valley's buildings remake its builders photographically | Alps, Swiss valley |
 | Other building models | not yet | `interior/built.js`, `itaipu/town/` | one each |
@@ -237,6 +237,27 @@ with its source) under `assets/swiss2/`.
 - **Perf**: nine layers in two samplers, however many a ground blends.
 - **Golden**: `tests/browser/render-golden/photo-materials.js`: the
   arrays to the byte and every surface's files and settings.
+
+## People (`src/render/library/people/figures.js`)
+
+The Interior's people: a body of tapered limbs, chest, head and a cap or
+a wide hat and pack, built once per pose and kit and drawn instanced,
+each part coloured by its slot (`tint.js`): shirt, trousers, hat or
+hair, with skin and boots their own. Warm in the thermal picture.
+
+- **Inputs**: `makeFigures(THREE, { cap })`; then `set(list, ms)` with
+  `{ x, y, z, heading, action, tint, seed, scale }` per person (heading
+  clockwise from north, `action` one of walk, carryLong, stand, lookUp,
+  sit, crouchTarp, takeDownAntenna, pushMotorcycle, ride; `seed` picks
+  the kit, trousers and hat) and the clock in ms for the strides.
+- **Outputs**: `{ group, meshes, set, stats(), dispose() }`; the map adds
+  `group` to its scene.
+- **Shape**: none drawn is collided; a person is what the room's line of
+  sight looks for, and the Interior's checks (`people:route`) hold where
+  they stand, not how they are drawn.
+- **Perf**: one draw a pose and kit with anyone in it, plus the poles;
+  a mesh nobody is in is not drawn. Program key `interior-slot-tint`.
+- **Golden**: `tests/browser/render-golden/people.js`.
 
 ## Placing an asset on a map
 
