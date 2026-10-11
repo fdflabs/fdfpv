@@ -626,6 +626,49 @@ keyboard's spring and the mouse's ran backwards for it) and the frame's
 reading was stamped older than the reading queued before it. Stamps are
 now never earlier than the last one.
 
+### The tail, under a busy GPU (2026-10-09, control feel lane)
+
+The question: hover analysis pass 2 found pilot delay outweighs every plant term, and saw a stick to
+frame outlier of 222 ms. Is the sim adding lag a real radio (about 20 to 30 ms radio to servo) does
+not? `perf:latency` now prints p99 and worst on every row, the frame interval's tail, and every hitch
+(an interval over twice the median) split by where its time went, with a GC flag (the JS heap shrank
+across it) and the main thread's long tasks.
+
+Two numbers answer two questions:
+- **stick to plant**: the wall time from the stick moving to the frame that hands it to sim_input
+  (`step to sim_input`). On the sim clock the reading lands at its true moment
+  (`slot after the step, sim clock`), so the plant never sees a stick late against what is drawn.
+- **stick to picture**: to the frame's submit. This is frame bound: the plant is drawn when the frame
+  runs, so no change to the input path moves it. Only frame time does.
+
+180 s each, swiss2, High, 1600 by 900, headless with the GPU, GPU 0 at 95 to 96 % (the desktop's
+Chrome and other lanes' pages), host load about 45 on 20 threads:
+
+| per stick step (ms) | Low (the default): p50 / p95 / p99 / max | Standard: p50 / p95 / p99 / max |
+| --- | --- | --- |
+| to sim_input (stick to plant) | 11.4 / **21.3 / 24.6** / 30.9 | 23.5 / 38.4 / 43.0 / 230.9 |
+| slot after the step, sim clock | -4.3 / 3.4 / 3.9 / 4.1 | 4.4 / 6.1 / 8.4 / 121.1 |
+| to frame submitted (stick to picture, less the compositor) | 16.2 / 26.5 / 30.4 / 35.8 | 28.3 / 43.4 / 48.5 / 237.6 |
+| frame interval, all frames | 16.7 / 33.4 / 33.4 / 50.1 | 16.7 / 33.4 / 33.4 / 1133.3 |
+
+Hitches: Low 15 (2 with a GC), Standard 26 (7 with a GC). In every one the time is **before the
+callback** (the page idle while the browser or the GPU process held the frame), not in the shell:
+the callback is 6.4 ms at p95, the draw's CPU side 2 to 5 ms, the plant under 4, and the main thread
+logged no long task in Low and one of 54 ms in Standard. The 1133 ms frame was 1131 ms of that idle.
+
+**Built nothing, and why.** The gate set for this lane (stick to plant p95 under 25 ms and p99 under
+50 on the busy GPU run) already passes on main in the default Low mode. What the brief proposed is
+already in the tree: the pad is polled on its own 2 ms timer and every reading stamped
+(src/input/input.js startPolling); readings are applied on the sim clock at the moment they were taken
+(main.js stampSticks); the deadband is a 1.2 % hard cut with no smoothing (src/input/padmap.js), so the
+shell's input adds no filter lag. Stepping the plant from a timer between frames would make the
+stick to plant number smaller without showing the pilot anything sooner. The remaining tail is not in
+the shell's JS or the draw's CPU side. This method cannot tell the GPU busy with other processes from
+the GPU busy with this page's own work (a shader compile, an upload), since both show as idle before
+the next callback; with 95 % of GPU 0 taken by other processes, contention is the likely one, and an
+uncontended run would settle it. Headless has no compositor or vsync; on a 60 Hz desktop
+add one to two frames to the submit column, the same for any input path.
+
 ## P7, feel: the other pilots in a room
 
 2026-10-05. `SIM_GPU=1 npm run perf:peers -- OUT_DIR` (scripts/perf-peers.js)
