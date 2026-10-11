@@ -153,6 +153,7 @@ class Prim {
     this.uzSum = 0;
     this.lzSum = 0;
     this.lzMax = 0;
+    this.knifeSum = 0;
     this.alphaSum = 0;
     this.stalled = 0;
     this.pauses = 0;
@@ -188,6 +189,7 @@ class Prim {
     this.uzSum += s.u[2];
     this.lzSum += abs(s.l[2]);
     if (abs(s.l[2]) > this.lzMax) this.lzMax = abs(s.l[2]);
+    this.knifeSum += s.knifeCos;
     this.alphaSum += s.alphaPos ? 1 : -1;
     if (s.stalled) this.stalled += 1;
     if (s.speed < this.sMin) this.sMin = s.speed;
@@ -412,7 +414,7 @@ const TABLE = [
   ['inverted_harrier', [kind('harrier', (p) => p.ms >= 3000 && p.frac(p.uzSum) < 0)], ([h]) => holdDeduction(h)],
   ['harrier', [kind('harrier', (p) => p.ms >= 3000)], ([h]) => holdDeduction(h)],
   ['knife_edge_pass', [kind('knife', (p) => p.ms >= 2000)],
-    ([k]) => lineDeduction(k, 'level') + bandDeduction(k.frac(k.lzSum)) + bandDeduction(headingCos(k.d0, k.d1))],
+    ([k]) => lineDeduction(k, 'level') + bandDeduction(k.frac(k.knifeSum)) + bandDeduction(headingCos(k.d0, k.d1))],
   ['elevator', [kind('elevator', (p) => p.ms >= 2000)], ([e]) => holdDeduction(e)],
   ['lomcevak', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && abs(p.roll) >= 0.5)], ([t]) => stopDeduction(t.pitch)],
   ['tumble', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && p.maxQ >= 6)], ([t]) => stopDeduction(t.pitch)],
@@ -520,10 +522,18 @@ export class FigureDetector {
       if (h0 > 0.3 && h1 > 0.3) headRad = (prev.d[0] * d[1] - prev.d[1] * d[0]) / (h0 * h1);
     }
     const cosA = speed > 1 ? dot3(n, d) : 1;
+    /* How near the wing is to the vertical plane along the path, as a
+     * judge sees a knife edge (FAI F3P-AA 23: "During the knife edge the
+     * wing must be in the vertical plane"): the cosine between the wing's
+     * normal and the path's horizontal normal. Sideslip yaws the nose up
+     * inside that plane and leaves it 1; a bank short of 90 takes it to
+     * the cosine of the shortfall. */
+    const hd = Math.sqrt(d[0] * d[0] + d[1] * d[1]);
+    const knifeCos = hd > 0.3 ? abs(u[0] * d[1] - u[1] * d[0]) / hd : 0;
     const s = {
       t: this.nowMs, x: st[1], y: st[2], z: st[3], n, l, u, d, speed, p, q, r, wzWorld,
       pathRad, pathRate: pathRad / (SAMPLE_MS / 1000), headRad,
-      alphaPos: dot3(d, u) <= 0, stalled: speed > 1 && cosA < COS25, cosA,
+      alphaPos: dot3(d, u) <= 0, stalled: speed > 1 && cosA < COS25, cosA, knifeCos,
       tot: this.tot.slice(),
     };
     this.advance(s, this.token(s));
@@ -547,7 +557,9 @@ export class FigureDetector {
     if (d[2] * speed < -2 && speed < 12 && cosA < COS45 && u[2] > 0.7) return 'elevator';
     /* Slow, nose high over a level path: a harrier, wings level or rolling. */
     if (speed >= 1 && speed < 10 && cosA < COS30 && abs(d[2]) < 0.5 && (ap >= ROLL_ON || (n[2] > 0.1 && abs(l[2]) < 0.6))) return 'harrier';
-    if (abs(l[2]) > 0.9 && abs(d[2]) < SIN15 && speed >= 5 && ap < 1 && s.pathRate < ARC_OFF) return 'knife';
+    /* Within 26 deg of the vertical plane: cos 26 deg, the bank the span's
+     * own |l_z| > 0.9 allowed before, now measured so sideslip is free. */
+    if (s.knifeCos > 0.9 && abs(d[2]) < SIN15 && speed >= 5 && ap < 1 && s.pathRate < ARC_OFF) return 'knife';
     if (ap >= ROLL_ON) return 'roll';
     const arcing = this.open && this.open.kind === 'arc' ? s.pathRate >= ARC_OFF : s.pathRate >= ARC_ON;
     return arcing ? 'arc' : 'line';
