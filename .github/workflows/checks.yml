@@ -303,6 +303,9 @@ jobs:
       - run: npm run cap580:gates
       - run: npm run cap580:figures
       - run: npm run cap580:stab
+      # The control surface tiers: derived numbers, then the plant flies each tier (docs/SURFACES-STAGE1.md).
+      - run: npm run surfaces:derive
+      - run: npm run surfaces:gates
       - run: npm run paradrop:selftest
       # The pilot on foot (docs/ON-FOOT.md): the walk never ends inside a
       # solid, steps and slopes, pace; then on swiss2 in the real shell,

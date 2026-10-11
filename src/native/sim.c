@@ -2654,6 +2654,30 @@ SIM_EXPORT int sim_wing_tune_clear(void) {
   return SIM_OK;
 }
 
+/* The surface tiers, sim_abi.h. Like the tuning, they move no energy. */
+SIM_EXPORT int sim_wing_set_tiers(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  const int rc = plant_set_tiers(in);
+  contact_build_corners();
+  return rc;
+}
+
+SIM_EXPORT int sim_wing_tiers_clear(void) {
+  plant_tiers_clear();
+  contact_build_corners();
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wing_tiers(double *out) {
+  if (out == 0 || PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_tiers_read(out);
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_wing_tune(double *out) {
   if (out == 0 || PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0) {
     return SIM_ERR_BAD_ARG;

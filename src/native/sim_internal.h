@@ -1061,6 +1061,13 @@ typedef struct FixedWingParams {
   double door_time;
   double cd_door;
   double cm_door;
+  /*
+   * THE SURFACE TIERS' DRAG, sim_wing_set_tiers: the drag a deflected
+   * surface adds over the table's, on the wing's area, per unit of
+   * SURF_DRAG's shape (plant_wing.c), aileron, elevator and rudder. Zero
+   * on every table; only the copy a seated tier builds sets it.
+   */
+  double surf_cd[3];
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -1119,6 +1126,13 @@ void plant_addons_clear(void);
  * power option, tuning and add-ons all. */
 int plant_set_tune(const double *in);
 void plant_tune_clear(void);
+/* THE SURFACE TIERS, sim_wing_set_tiers in sim_abi.h: seated between
+ * the power option and the tuning, SIM_OK or SIM_ERR_BAD_ARG;
+ * plant_tiers_clear takes them off; plant_tiers_read fills the
+ * block in force, ones and zeros where none is seated. */
+int plant_set_tiers(const double *in);
+void plant_tiers_clear(void);
+void plant_tiers_read(double *out);
 void plant_tune_read(double *out);
 int plant_tune_on(void);
 void plant_reseat(void);
