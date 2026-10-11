@@ -243,6 +243,9 @@ jobs:
       # tests/inputs/baseline.rec byte for byte and refuses to overwrite it.
       - run: npm run genbaseline:selftest
       - run: npm run score:golden
+      # The scoring chain end to end, the real aircraft flying the tricks
+      # (a powerloop round a rail by a closed loop pilot) included.
+      - run: npm run score:selftest
       - run: npm run scorehud:golden
       - run: npm run debrief:selftest
       - run: npm run tricks:golden
