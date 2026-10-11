@@ -55,6 +55,9 @@ const RECORD = join(root, 'tests', 'fixtures', 'contact-golden.json');
 const RECORD_RUNS = Number(process.env.RECORD_RUNS) || 3;
 const STEPS = 1500;
 const WAIT = 300000;
+/* Each drawn frame steps FRAME_MS of sim time (window.__frameMs). */
+const FRAME_MS = 100;
+const STALL_FRAMES = 20;
 const recording = process.argv.includes('--record');
 
 /* Every plan searches from the map's spawn, a constant, never from the
@@ -271,16 +274,25 @@ async function stage(page, th) {
   const passBefore = await page.evaluate(PASS);
   await page.evaluate('window.__releasePose()');
   /* Until the trace is long enough, or the plant has stopped (a wreck at
-   * rest is no longer stepped). */
+   * rest is no longer stepped). Stopped is counted in the page's frames,
+   * not in wall time: a 2 core runner on SwiftShader drew no frame for over
+   * 4 s after a swiss2 throw, and a wall clock wait cut that trace at 0 to
+   * 300 steps. STALL_FRAMES frames of FRAME_MS are 2 s of the sim's time. */
+  await page.evaluate(`(() => {
+    if (window.__goldenFrames !== undefined) return;
+    window.__goldenFrames = 0;
+    const tick = () => { window.__goldenFrames += 1; requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  })()`);
   let lastN = -1;
-  let since = Date.now();
+  let since = 0;
   for (;;) {
-    const n = await page.evaluate('window.__stepTrace().n');
+    const { n, frames } = await page.evaluate('JSON.stringify({ n: window.__stepTrace().n, frames: window.__goldenFrames })').then(JSON.parse);
     if (n >= STEPS) break;
     if (n !== lastN) {
       lastN = n;
-      since = Date.now();
-    } else if (Date.now() - since > 4000) {
+      since = frames;
+    } else if (frames - since > STALL_FRAMES) {
       break;
     }
     await page.sleep(100);
@@ -327,7 +339,7 @@ async function sample() {
       await page.evaluate('window.__drawOff(true)');
       /* A frame of a fixed 100 ms, so the shell's once a frame decisions (a
        * perch) act at the same step every run (window.__frameMs). */
-      await page.evaluate('window.__frameMs(100)');
+      await page.evaluate(`window.__frameMs(${FRAME_MS})`);
       for (const th of list) {
         out[th.id] = await stage(page, th);
       }

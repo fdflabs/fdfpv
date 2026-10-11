@@ -9508,7 +9508,10 @@ export async function boot({
   /* Contacts bounced off this run, counted up; a readback, nothing spends
    * it. */
   let bounceCount = 0;
-  let bounceAtWall = 0;
+  /* On the sim clock: the bounce it gates strikes the props
+   * (feelImpact, sim_prop_strike), and a wall clock cooldown made the
+   * flight depend on how long the page took to draw. */
+  let bounceAtSimMs = -Infinity;
   /* T held: Betaflight's own crashflip, not the scripted turtle's flag. */
   let manualFlip = false;
   /*
@@ -12266,7 +12269,7 @@ export async function boot({
     lastHitIndex = -1;
     groundCueAtWall = -1e9;
     bounceCount = 0;
-    bounceAtWall = 0;
+    bounceAtSimMs = -Infinity;
     groundBounceAtWall = 0;
     releasePress();
     raceHasPrev = false;
@@ -17212,14 +17215,14 @@ export async function boot({
       trickDetector.bump(closing);
     }
     if (obsImpulse > 0) {
-      if (nowWall - bounceAtWall >= BOUNCE_COOLDOWN_MS || obsImpulse > lastImpulse * 1.6) {
+      if (simTimeMs - bounceAtSimMs >= BOUNCE_COOLDOWN_MS || obsImpulse > lastImpulse * 1.6) {
         bounceCount += 1;
         feelImpact(obsImpulse, obsImpulseKind);
-        bounceAtWall = nowWall;
+        bounceAtSimMs = simTimeMs;
         view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
       }
       lastImpulse = obsImpulse;
-    } else if (nowWall - bounceAtWall > BOUNCE_COOLDOWN_MS) {
+    } else if (simTimeMs - bounceAtSimMs > BOUNCE_COOLDOWN_MS) {
       lastImpulse = 0;
     }
     obsContact = false;

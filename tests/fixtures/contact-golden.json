@@ -32,8 +32,7 @@
     "arm front right:settle",
     "arm front left:settle",
     "camera:settle",
-    "battery:settle",
-    "arm rear left:settle"
+    "battery:settle"
    ],
    "pass": {
     "resolved": 0,
@@ -144,8 +143,7 @@
     "arm front left:break",
     "camera:break",
     "battery:crack",
-    "camera:settle",
-    "arm front left:settle"
+    "camera:settle"
    ],
    "pass": {
     "resolved": 0,
@@ -229,9 +227,9 @@
  "quad-wall-skate-nodamage": {
   "what": "the interceptor skating along an Alps wall, 4 degrees into it at 10 m/s, rolled into it, crash damage off",
   "steps": 1500,
-  "pre": "4e121334fbda50a967f233a0",
-  "plane": "f5ce70dcc927f6f1f4a3563f",
-  "post": "1129952c2b2571b48887020f",
+  "pre": "f2447a5a543136f7b0df9ae9",
+  "plane": "86b75bf1536a54eb079c32d2",
+  "post": "4e3edd6d129f24ff6eb0583f",
   "throw": {
    "x": 30.5,
    "y": 1.5,
@@ -245,15 +243,15 @@
   },
   "met": {
    "obstacleEvents": 0,
-   "contactEvents": 64,
+   "contactEvents": 50,
    "damage": [],
    "pass": {
-    "resolved": 65,
+    "resolved": 49,
     "resting": 1,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 66,
+    "inbound": 50,
     "outbound": 0,
     "plantHeld": 0,
     "unheld": 0
@@ -263,9 +261,9 @@
  "quad-corner-nodamage": {
   "what": "the interceptor into the corner of an Alps building on the diagonal at 12 m/s, crash damage off",
   "steps": 1500,
-  "pre": "b5ffc60d1ffaf7ff51f999b7",
-  "plane": "20eeada82f3c925da8a6df76",
-  "post": "372d78a0160dd7d8455faa5a",
+  "pre": "5d8c3cbd85250de614674e2e",
+  "plane": "255c80f53e835c1dd90dc5f4",
+  "post": "fe56d322c48ebd40c01ef66d",
   "throw": {
    "x": -47.093159483779154,
    "y": 1.6,
@@ -281,13 +279,13 @@
    "contactEvents": 50,
    "damage": [],
    "pass": {
-    "resolved": 47,
-    "resting": 3,
+    "resolved": 46,
+    "resting": 4,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
     "inbound": 49,
-    "outbound": 0,
+    "outbound": 1,
     "plantHeld": 0,
     "unheld": 0
    }
@@ -362,9 +360,9 @@
  "quad-pole-nodamage": {
   "what": "the interceptor into a swiss2 power pole at 15 m/s, crash damage off",
   "steps": 1500,
-  "pre": "79d1bd8462c910a09b87159f",
-  "plane": "d88660960319929246e74ca2",
-  "post": "0bd5f39600509077807b7591",
+  "pre": "3431ae09587542620dbfa36e",
+  "plane": "c9660d9934b6be810775a986",
+  "post": "6a7e73a93cbad313a2815d45",
   "throw": {
    "x": 41,
    "y": 2.2,
@@ -377,15 +375,15 @@
   },
   "met": {
    "obstacleEvents": 0,
-   "contactEvents": 30,
+   "contactEvents": 29,
    "damage": [],
    "pass": {
-    "resolved": 30,
+    "resolved": 29,
     "resting": 0,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 27,
+    "inbound": 25,
     "outbound": 3,
     "plantHeld": 0,
     "unheld": 0
