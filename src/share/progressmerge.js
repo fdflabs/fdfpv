@@ -123,6 +123,10 @@ export const SYNCED_SECTIONS = {
   voiceReplayAck: 'flag',
   flightTime: 'devices',
   pilotCounts: 'counts',
+  /* The walkable hangar's visits switch and the aircraft it shows
+   * (src/share/hangarvisit.js). Absent, as in every blob before it, is
+   * closed: no migration step needed, the absence already means off. */
+  hangarVisit: 'whole',
   records: 'best',
 };
 
