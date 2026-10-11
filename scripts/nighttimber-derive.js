@@ -24,6 +24,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
 import { shares, wash as washOf } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -286,7 +287,8 @@ for (let it = 0; it < 400; it += 1) {
 const Qs = apcAt(nStatic, 1), Ts = apcAt(nStatic, 2), Is = Qs / kt + i0;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 4 * 0.0254;
 const torqueArm = Qs / Ts;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - Math.max(0, V) / (Vp * d)));
+const prop = wingProp('FW_NIGHTTIMBER1200');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 /* The prop's inertia, ESTIMATED: a 13 in prop of about 25 g, a tapered
  * blade's 0.7 of a rod's m D^2 / 12, and the BL10's can. */
 const propJ = 0.7 * 0.025 * (2 * propR) ** 2 / 12 + 0.04 * 0.017 * 0.017;
