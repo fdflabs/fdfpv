@@ -65,6 +65,7 @@ import { familyFitted, normaliseBuildFits } from './builds.js';
 import { normaliseProgress } from '../game/progress.js';
 import { cleanCampaign } from '../game/campaign.js';
 import { cleanFlightTime } from '../share/flighttime.js';
+import { cleanPilotCounts } from '../share/pilotcounts.js';
 import { MAPS } from '../maps/registry.js';
 import { retiredMap } from '../maps/retired.js';
 
@@ -186,6 +187,7 @@ export const DEFAULTS = {
   warAirframe: '',
   voiceReplayAck: false,
   flightTime: {},
+  pilotCounts: {},
   /* The tune last flown on each aircraft, restored when it is seated. */
   tuneFor: {},
   livery: {},
@@ -559,6 +561,7 @@ export function loadSettings() {
   s.swatches = normaliseSwatches(s.swatches);
   s.campaign = cleanCampaign(s.campaign);
   s.flightTime = cleanFlightTime(s.flightTime);
+  s.pilotCounts = cleanPilotCounts(s.pilotCounts);
 
   /* Rates: an object is today's shape; without one, the flat fields of an
    * old profile are converted; a profile with neither on a touch screen

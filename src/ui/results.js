@@ -34,6 +34,7 @@ import { inspectCourse } from '../share/listing.js';
 import { writePendingTime } from '../share/session.js';
 import { formatScore } from '../game/score.js';
 import { str, plural } from '../strings/index.js';
+import { withPosted } from '../game/debrief.js';
 import { splitDuration } from '../share/flighttime.js';
 import { formatDelta, formatRunClock, formatTime } from './format.js';
 import { el } from './widgets.js';
@@ -161,6 +162,9 @@ function hoursText(s) {
 function recordText(r) {
   if (r.what === 'debrief.aircraft_time') {
     return hoursText(r.now);
+  }
+  if (r.what === 'debrief.run_best' && r.improved) {
+    return str('debrief.board_best_new', { now: formatScore(r.now) });
   }
   const unit = r.what === 'debrief.track_record' ? formatTime : formatScore;
   if (r.before == null) {
@@ -383,10 +387,12 @@ export const resultsMethods = {
    * v = { kicker, head, heroCap, heroTime, heroMeta, win, rows: [{ label,
    * time, tag, me, out }] }, all written by the shell. Nothing is posted.
    */
-  showRoomResults(v) {
+  showRoomResults(v, debrief = null) {
     this.roomResults = true;
     const first = this.screen !== 'results';
     resetScreen(this, Boolean(v.win), false, false);
+    this.resultsDebrief = debrief;
+    fillFacts(this.resultsFacts, debrief);
     this.resultsKicker.textContent = v.kicker;
     this.resultsHead.textContent = v.head;
     this.resultsHeroCap.textContent = v.heroCap;
@@ -412,6 +418,12 @@ export const resultsMethods = {
    * report the outcome instead of repeating the verb. */
   markRunPosted(posted) {
     this.runPosted = posted || { ok: true };
+    /* The board's answer is the freestyle record line (docs/DEBRIEF.md). */
+    if (this.resultsDebrief && this.resultsDebrief.activity === 'free') {
+      this.resultsDebrief = withPosted(this.resultsDebrief, posted);
+      this.resultsFacts.textContent = '';
+      fillFacts(this.resultsFacts, this.resultsDebrief);
+    }
     if (this.screen === 'results') {
       this.renderMenu();
     }
@@ -422,12 +434,14 @@ export const resultsMethods = {
    * number, and the rows are the tricks landed, biggest earner first, each
    * barred against the top one.
    */
-  showFreestyleResults(summary) {
+  showFreestyleResults(summary, debrief = null) {
     this.roomResults = false;
     this.freestyleRun = summary;
     this.runPosted = null;
     const clean = summary.crashes === 0 && summary.tricks > 0;
     resetScreen(this, clean, !summary.tricks, true);
+    this.resultsDebrief = debrief;
+    fillFacts(this.resultsFacts, debrief);
     const free = summary.timed === false;
     this.resultsKicker.textContent = str(free ? 'ui.freestyle_results_free_flight' : 'ui.freestyle_results');
     let head = 'ui.run_ended';
