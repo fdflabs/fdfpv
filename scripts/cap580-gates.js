@@ -354,23 +354,19 @@ check: {
     }
     return { bm: sb / n * DEG, d: sd / n, rd: sr / n, drift: zMax - zMin, worstBank };
   };
+  /* C12's knife edge is also C17's: the judge names it by the wing in
+   * the vertical plane (FAI F3P-AA 23), whatever sideslip holds it up. */
+  watch();
+  const k12 = knifeEdge(th.c12_knife_edge.speed);
+  unwatch();
   {
     const t12 = th.c12_knife_edge;
-    watch();
-    const k = knifeEdge(t12.speed);
-    unwatch();
+    const k = k12;
     const { bm, d, rd, worstBank } = k;
     gate('C12', 'knife edge: rolled to 90 deg, the rudder holding height', bm >= t12.betaMin && bm <= t12.betaMax && d >= t12.dutyMin && d <= t12.dutyMax && Math.abs(rd) < 1 && k.drift <= t12.maxHeightDrift,
       `sideslip ${bm.toFixed(1)} deg at throttle ${d.toFixed(3)}, rudder stick ${rd.toFixed(2)}, bank off 90 by under ${worstBank.toFixed(1)}, height within ${k.drift.toFixed(2)} m`,
       `${t12.betaMin} to ${t12.betaMax} deg, ${t12.dutyMin} to ${t12.dutyMax}, rudder short of full, within ${t12.maxHeightDrift} m`);
   }
-  /* The judge's knife edge wants the wings within 26 deg of vertical
-   * (figuredetect.js, |l_z| > 0.9), and a knife edge at C12's 20 m/s holds
-   * 30 deg of sideslip, which leans them past it: listed for the tricks
-   * lane. Flown faster, where the sideslip is under it, it is named. */
-  watch();
-  const kFast = knifeEdge(th.c17_figures.knifeSpeed);
-  unwatch();
   /* C13: on the strip at the drawn pose, 3 s with every stick centred. */
   const onStrip = () => {
     must(sim.reset(), 'sim_reset');
@@ -424,7 +420,7 @@ check: {
     const want = th.c17_figures.named;
     const got = want.map((id) => named.includes(id));
     gate('C17', 'the figure judge names its 3D figures', got.every(Boolean),
-      `named ${named.join(', ') || 'nothing'} (the fast pass at ${th.c17_figures.knifeSpeed} m/s held ${kFast.bm.toFixed(1)} deg of sideslip)`, want.join(', '));
+      `named ${named.join(', ') || 'nothing'} (the knife edge at ${th.c12_knife_edge.speed} m/s held ${k12.bm.toFixed(1)} deg of sideslip)`, want.join(', '));
   }
 }
 

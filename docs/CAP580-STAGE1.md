@@ -223,10 +223,12 @@ Notes on the derivations:
   WAIT, not counted as a pass.
 - **C12 and C17, the knife edge and the judge.** At 20 m/s the CAP holds
   its knife edge at 30 deg of sideslip. The judge
-  (src/game/figuredetect.js) names a knife edge only with the wings within
-  about 26 deg of vertical (|l_z| > 0.9), so this one is not named; flown at
-  26 m/s, where the sideslip is 22 deg, it is. A real knife edge pass is
-  flown at either; listed for the tricks lane.
+  (src/game/figuredetect.js) names a knife edge by the wing in the vertical
+  plane along the line (FAI F3P-AA 23), which sideslip leaves alone, so C17
+  judges C12's own knife edge (until 2026-10-11 it took the span within
+  26 deg of vertical and C17 flew a 26 m/s pass instead; the tricks lane
+  fixed the judge, docs/TRICKS-CATALOG.md). `npm run figures:knife` flies
+  it too.
 - **Everything else** is the Extra's derivation's arithmetic on this
   aircraft's numbers.
 
@@ -251,8 +253,7 @@ Not built here: this lane adds rows only, no shared plant code.
    duty_min); windmilling waits on the propulsion lane, as on every table.
 6. **The thrust line's height over the CG**, taken 0 (above, the crash
    parts' check); a balance of the real model would settle it.
-7. **Tricks lane: the judge's knife edge** needs the wings within 26 deg of
-   vertical, which a knife edge at 30 deg of sideslip is not (C17 above).
+7. **Tricks lane: the judge's knife edge**: done 2026-10-11 (C17 above).
 8. **Snaps, spins, blenders, the elevator and the parachute** wait on the 3D
    lane's stall and spin work, as on the Extra (docs/TRICKS-CATALOG.md:
    `physics: 'waits'`).

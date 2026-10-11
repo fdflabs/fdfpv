@@ -287,7 +287,7 @@ none a loosening (the synthetic suite still passes 100 of 100):
   plane"): the wing's normal against the path's horizontal normal, the
   same 26 deg tolerance (no source for it beyond the old choice), and the
   pass's grade off the same measure. `npm run figures:knife` flies E12's
-  knife edge and must name it.
+  and C12's knife edges and must name both.
 
 ## Owner questions (recommendation first)
 
