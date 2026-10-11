@@ -68,7 +68,7 @@ after pictures.
 | Turf and near grass | not yet | `swiss2/vegetation/grass.js`, `itaipu/look/ground.js` `makeTurf`, `interior/nearfield.js` | one each |
 | Ground cover materials | not yet | each map's `ground.js` / `look/ground.js` | one each |
 | Water edges, streams, silt | not yet | `interior/ribbons.js`, `swiss2/water/`, `itaipu/water/`, `alps/nature.js` | one each |
-| Rocks | not yet | `swiss2/vegetation/rocks.js`, `swiss2/rock/`, `alps/nature.js` | Swiss valley, Alps |
+| Scanned rocks (boulders and stones: scans, material, colliders, levels) | `rocks.js` | placed by `swiss2/vegetation/rocks.js`; the Alps keep their cel boulders (`alps/nature.js`), the carved cliffs stay with the Swiss valley's terrain (`swiss2/rock/`) | Swiss valley |
 | People and postures | not yet | `src/render/interior/figures.js`, `swiss2/village/people.js`, `alps/fauna.js` | one each |
 | Roofs as ground (records, solids under them) | `roofs.js` | used by `kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
 | Cel building kit (chalet, barn, farmhouse, gasthof, shop, church, hangar, bridge, street furniture, fence) | `kit.js` | the Alps' village; the Swiss valley's buildings remake its builders photographically | Alps, Swiss valley |
@@ -139,9 +139,61 @@ eleven variants), built as leaf cards from the atlas round a bark trunk.
   budget (300 calls, 2.5 M triangles at High).
 - **Golden**: `tests/browser/render-golden/tree-models.js`.
 
+## Scanned rocks (`src/render/library/rocks.js`)
+
+The Swiss valley's boulders and stones: four CC0 photogrammetry scans,
+each at two levels (900 and 160 triangles), with a banded standard
+material that dissolves across its distance band.
+
+- **Inputs**: rocks as records `{ x, y, z, q, s, sy, shape }` (foot,
+  quaternion, size in metres, height factor, index into `SHAPES`); the
+  near band's edge and fade; an environment map or null; a name for the
+  meshes.
+- **Outputs**: `loadRocks()` the scans, their vertices and maps;
+  `rockColliders(rock, scans, ground)` a placed rock's colliders as the
+  map's collider calls; `rockLevels(...)` the meshes (near scan, far scan,
+  small stones), `update(camera)` that refills them from what the camera
+  sees, and `dispose()`.
+- **Shape**: a stone between 0.45 m and `STONE` (1.1 m) is one sphere; a
+  boulder up to three capsules fitted to both its scans, the drawn rock
+  at most 0.35 m outside them but at its knobs (the swept audit allows
+  0.5 m). `check:collide-audit` holds it on the Swiss valley.
+- **Perf**: nine draw calls (four near, four far, one for stones), refilled
+  only when the camera moves 3 m or turns 2 degrees; stones cast no
+  shadow. Program key `swiss2-rock`.
+- **Golden**: `tests/browser/render-golden/rocks.js`, through the Swiss
+  valley's `buildRocks` and `waterStones`, colliders included.
+
 ## Placing an asset on a map
 
 Import it from `src/render/library/`, turn the map's own records into its
 inputs, add what it returns to the map's scene, and dispose it with the
 map. Then add the map's view of it to the family's golden, and run the
 map's views and gameplay checks.
+
+For example, a map that wants the scanned rocks decides where they lie by
+its own rules and hands the library records:
+
+```js
+import { SHAPES, loadRocks, rockColliders, rockLevels } from '../../render/library/rocks.js';
+
+const loaded = await loadRocks();
+const rocks = myBoulderSites().map(({ x, z, size }, k) => ({
+  x, y: groundAt(x, z) - 0.1 * size, z,
+  q: new THREE.Quaternion().setFromAxisAngle(UP, k * 2.4),
+  s: size, sy: 1, shape: k % SHAPES.length,
+}));
+for (const r of rocks) {
+  for (const [kind, ...c] of rockColliders(r, loaded.scans, groundAt)) {
+    if (kind === 'sphere') colliders.addSphere('rock', ...c);
+    else colliders.add('rock', ...c);
+  }
+}
+const levels = rockLevels({ loaded, rocks, nearR: 160, fade: 12, envMap, name: 'mymap' });
+group.add(...levels.meshes);
+// every frame: levels.update(camera); with the map: levels.dispose()
+```
+
+The map owns the sites, the ground, the collider list and the scene
+graph; the library owns what a rock looks like, how it is drawn and the
+shape a pilot can hit.
