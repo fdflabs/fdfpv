@@ -78,7 +78,8 @@ import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
-import { createRoute, fromRace, replayState } from './game/debrief.js';
+import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
+import { formatRunClock, lengthText } from './ui/format.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -100,6 +101,7 @@ import { createFlightStats, pingVisit } from './share/stats.js';
 import {
   addFlight, createFlightClock, deviceId, flightTotals, mergeFlightTime, stepsAreFlight,
 } from './share/flighttime.js';
+import { addFlightCount, addGameResult, mergePilotCounts } from './share/pilotcounts.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
@@ -213,6 +215,7 @@ import { createCarouselStage } from './render/carousel3d.js';
 import { createRoomView, PHOTO_FRAMES } from './render/hangarroomview.js';
 import { listClips, downloadBlob, stampedName } from './replay/store.js';
 import { listPhotos, putPhoto } from './ui/photostore.js';
+import { LINEUP_S } from './ui/hangarwalk.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
@@ -2215,6 +2218,8 @@ export async function boot({
     }
   })());
   let flightClockFlew = false;
+  /* Whether this run has been counted as a flight yet. */
+  let flightCounted = false;
   /* This run's own share of that clock and its route, for the debrief
    * (src/game/debrief.js, docs/DEBRIEF.md); reset() clears both. */
   let runAirMs = 0;
@@ -2236,8 +2241,29 @@ export async function boot({
       record = addFlight(record, flightDevice, g.airframe, g.activity, g.seconds, day);
     }
     ui.settings.flightTime = record;
+    /* The run's first whole second airborne makes it a flight
+     * (src/share/pilotcounts.js): counted once, here, from the clock
+     * that counts the hours. */
+    if (!flightCounted) {
+      flightCounted = true;
+      ui.settings.pilotCounts = addFlightCount(mergePilotCounts(ui.settings.pilotCounts, storedCounts()), flightDevice, got[0].activity);
+    }
     ui.persistSettings();
     ui.progress.checkFirsts();
+  }
+  /* What a second tab in this browser has written to the counts. */
+  function storedCounts() {
+    try {
+      return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').pilotCounts;
+    } catch (e) {
+      return null;
+    }
+  }
+  /* A Catch the Ace! or Trick Battle match this pilot had a seat in, from
+   * the room's final standings. */
+  function recordGameResult(game, result) {
+    ui.settings.pilotCounts = addGameResult(mergePilotCounts(ui.settings.pilotCounts, storedCounts()), flightDevice, game, result);
+    ui.persistSettings();
   }
   /* A profile from before firsts is paid for what it already holds. */
   ui.progress.checkFirsts();
@@ -2358,7 +2384,11 @@ export async function boot({
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
-    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, photo);
+    /* The lineup sweeps the stand from the door's side, the pilot gone
+     * out to the field ahead of their aircraft. */
+    const lineup = ui.walk.lineup;
+    const shot = photo || (lineup ? { yaw: LINEUP_SWEEP_FROM + (lineup.t / LINEUP_S) * -2 * LINEUP_SWEEP_FROM, zoom: 0.85 } : null);
+    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, shot);
     if (photo && photo.shoot) {
       photo.shoot = false;
       const view = walkRoom.view;
@@ -2383,6 +2413,9 @@ export async function boot({
    * slower frame rate, never a shorter turn.
    */
   const TURNTABLE_S = 6;
+  /* Where the lineup's sweep starts, radians from the door's side; it
+   * ends as far the other way. */
+  const LINEUP_SWEEP_FROM = 0.55;
   function turntableStep(photo) {
     const tt = photo && photo.turntable;
     if (!tt) {
@@ -4028,7 +4061,7 @@ export async function boot({
       combatHudAt = wallMs + 200;
       /* Not over the crash cam's replay, which is another moment. */
       combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
-        paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow);
+        paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow, debriefCardLine());
     }
     if (!roomCombat.out()) {
       if (combatLayer.count()) {
@@ -5899,7 +5932,7 @@ export async function boot({
     /* Under the outro the film has the screen; the end card comes after. */
     const hudOn = mode === 'flight' && ui.screen === 'flight' && !warOutroOn(v);
     warHud.update(hudOn ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
-    warRoundCard.update(hudOn ? v : null, now);
+    warRoundCard.update(hudOn ? v : null, now, debriefCardLine());
   }
 
   /* The war's guide nudge (src/share/war/nudge.js), for a mission that
@@ -7899,6 +7932,39 @@ export async function boot({
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : str('roomrace.gone');
   }
+  /*
+   * A room match's debrief (src/game/debrief.js fromRoom) from the room's
+   * order: rows of { seat, place, points? }. The replay is offered only
+   * when this pilot's own flight is what ended here (mode 'results'); a
+   * pilot who was on a room screen has no flight of theirs to replay.
+   */
+  function roomDebrief(activity, rows, seat, final) {
+    const me = rows.find((row) => row.seat === seat) || null;
+    return fromRoom({
+      activity,
+      aircraft: runAirframe,
+      fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+      place: me ? me.place : null,
+      of: rows.length,
+      final,
+      points: me && activity !== 'roomrace' ? me.points : null,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: mode === 'results' ? replayState(crashCam ? crashCam.span() : null, false) : null,
+    });
+  }
+  /*
+   * The debrief on a card shown in flight (the war's round, a combat
+   * round's results): the pilot flies on, so no screen of facts, one line
+   * and the key that opens the replay (docs/DEBRIEF.md).
+   */
+  function debriefCardLine() {
+    const route = runRoute.snapshot();
+    return str('debrief.card_line', {
+      air: formatRunClock(runAirMs), dist: lengthText(route ? route.distanceM : 0), key: crashCam ? crashCam.replayKey() : 'V',
+    });
+  }
   /* The results screen, from the room's order; again as it changes. */
   function roomShowResults() {
     const view = resultsView(roomRace, roomSeatName);
@@ -7908,7 +7974,7 @@ export async function boot({
     }
     roomResultsKey = key;
     roomResultsOf = 'race';
-    ui.showRoomResults(view);
+    ui.showRoomResults(view, roomDebrief('roomrace', roomRace.standings(), roomRace.seat(), roomRace.race().state === 'results'));
   }
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
@@ -8197,13 +8263,18 @@ export async function boot({
     }
     roomTagOrbAt = roomTag.orb() || (crown ? null : roomTagOrbAt);
     const done = roomTag.takeResults();
+    /* Kept whatever screen is up: the room's standings are the result. */
+    const mine = done && roomTag.standings().find((row) => row.seat === roomTag.seat());
+    if (mine) {
+      recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
+    }
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
       }
       roomTagRunId = null;
       roomResultsOf = 'tag';
-      ui.showRoomResults(tagResultsView(roomTag, roomSeatName));
+      ui.showRoomResults(tagResultsView(roomTag, roomSeatName), roomDebrief('tag', roomTag.standings(), roomTag.seat(), true));
     }
     if (wallMs < roomTagHudAt) {
       return;
@@ -8254,6 +8325,11 @@ export async function boot({
       }
     }
     const done = roomJam.takeResults();
+    const seat = roomJam.seat();
+    if (done && roomJam.standings().some((row) => row.seat === seat)) {
+      const best = (done.runs || []).filter((r) => r.seat === seat).reduce((a, r) => Math.max(a, r.total), 0);
+      recordGameResult('jam', { won: (done.winners || []).includes(seat), score: best });
+    }
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
@@ -12282,8 +12358,11 @@ export async function boot({
     if (lcArmed && ui.settings.launchControl) {
       applyLaunchSwitch(true);
     }
-    /* Parked again, so the takeoff hint is due again. */
+    /* Parked again, so the takeoff hint is due again. The run before
+     * is committed first, so its seconds count it and not this one. */
     flownThisRun = false;
+    commitFlightTime();
+    flightCounted = false;
     /* The terrain under the spawn was asked once, for startY; asking again
      * is how two answers for one point drift apart. */
     groundY = startY;
@@ -13983,7 +14062,20 @@ export async function boot({
    */
   function endFreestyleRun() {
     leaveFlightForResults();
-    ui.showFreestyleResults(score.summary());
+    const summary = score.summary();
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
+    ui.showFreestyleResults(summary, fromFree({
+      aircraft: runAirframe,
+      fixedWing,
+      summary,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: replayState(crashCam ? crashCam.span() : null, false),
+      /* Down and whole when the run ends: a plane put on the ground, not
+       * one still in the air or in pieces when the horn went. */
+      landed: fixedWing ? landed && !crashed && !wrecked : null,
+    }));
   }
 
   /* Puts the flight down. A craft left parked upside down (waiting for the

@@ -111,7 +111,11 @@ async function quadTop(boost) {
     const vz = s[6];
     target = Math.max(-1.52, Math.min(0, target - 0.00002 * vz));
     const pt = ms < 1000 ? 0 : target - 0.03 * vz;
-    const pitchStick = Math.max(-1, Math.min(1, 2.0 * (pt - pitch) - 0.08 * s[12]));
+    /* q (s[12]) is positive nose down in the plant's Z-up body frame, so
+     * the nose's rate up is -q and damping it adds +q. With -q the term
+     * fed the rate back: a 6.7 Hz cycle between -0.95 and -1.55 rad with
+     * the stick pinned at both ends, at 42 m/s, read as the top speed. */
+    const pitchStick = Math.max(-1, Math.min(1, 2.0 * (pt - pitch) + 0.08 * s[12]));
     const roll = Math.max(-1, Math.min(1, -2.0 * bank - 0.08 * s[11]));
     must(sim.input((ms + 1) / 1000, roll, pitchStick, 0, ms < 1000 ? 0.4 : 1), 'sim_input');
     must(sim.step(1), 'sim_step');

@@ -56,7 +56,7 @@ import * as mod from '../tests/lib/simmod.js';
 import { decodeRec } from '../tests/lib/recfile.js';
 import { transcript } from './lib/transcript.js';
 
-const PINNED = '53a1614c131ba989ea382576503adffd2d41a3022e8424c6f263e63ba2eda790';
+const PINNED = 'ee50b8b360ce7915fdb3406b6e944d1626e07a458e61f3eb31cee3238fa4b06e';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));
@@ -478,7 +478,9 @@ const PROP_PACK_7IN = f64(0.0000029498, 3.7348e-8, 0.014149, 0.55, 6, 0.01699999
   0.7317, 0.6534, 0.5664, 0.4725, 0.3736, 0.271, 0.1662, 0.0615, 0, 0, 1, 1.0186, 1.0281, 1.0281, 1.0145, 0.9858, 0.9368, 0.8725,
   0.787, 0.6868, 0.5662, 0.435, 0.2892, 0, 0);
 const ADDONS = f64(0.05, 0.02, 0, -0.01, 0.001, 0.02, 0, -0.01, 0, 0);
-const TUNE_WING = f64(0, 0, 0, 0.4363323129985824, 0.20943951023931953, 0, 0.3, 0.3, 0.3, 0, 0);
+/* All SIM_TUNE_DOUBLES (12, sim_abi.h): the module reads every one, and a
+ * short block hands it whatever the heap held past the end. */
+const TUNE_WING = f64(0, 0, 0, 0.4363323129985824, 0.20943951023931953, 0, 0.3, 0.3, 0.3, 0, 0, 0);
 
 R('quad: powerState stock', () => sim.powerState());
 R('quad: addonsState stock', () => sim.addonsState());
