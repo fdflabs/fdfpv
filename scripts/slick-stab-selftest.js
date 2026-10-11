@@ -145,9 +145,9 @@ console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
 throwAt(3, V_LEVEL);
 /* At the stick FW_SLICK2680's stabiliser trims for (stab_trim_throttle,
- * npm run stab:glide): on the DA-120's dyno curve a three quarter stick
- * is 94 percent of the engine and climbs. */
-const level = fly(0, 0, 0, 0.306, 10);
+ * npm run stab:glide): the engine floats on its map, so at 22 m/s a stick
+ * of 0.155 turns the prop at the speed that holds it level. */
+const level = fly(0, 0, 0, 0.155, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);

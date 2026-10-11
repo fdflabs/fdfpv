@@ -157,7 +157,11 @@ check: {
   {
     const t6 = th.s6_hover;
     hanging(sim);
-    const thr = heightHold(th.s6_hover.derived);
+    /* Half the integral of the other holds: on the engine's map the stick
+     * moves the hover's rpm 1.24 times as much as the throttle curve did
+     * and the rotor answers 1.18 times slower (slick:derive's S6 lines), and
+     * the full integral hunted the height in a growing 3 s swing. */
+    const thr = heightHold(th.s6_hover.derived, 0.0004);
     let sum = 0;
     let n = 0;
     let z3 = null;

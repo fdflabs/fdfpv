@@ -59,3 +59,62 @@ export function wingProp(table) {
     thrust: (Ts, V, n) => (n > 0 ? Ts * n * n * at(axial, Math.max(0, V) / (Number(vp[1]) * n)) : 0),
   };
 }
+
+/*
+ * A mapped engine (FixedWingParams.engine_q, plant_wing.c engine_torque and
+ * prop_spool): its torque at the stick and the speed it turns, nothing past
+ * engine_rpm_max but the idle stop's, against the air's on the prop, Q_f n^2
+ * torque_curve(mu) times the tips' Mach load over the full point's
+ * (CP_MACH, APC's 22x8 static rows). Null where the table has no map.
+ * net(stick, V, n) is the rotor's net torque over Q_f; nAt(stick, V) the
+ * speed share it settles at, the first one up from a near stop where the
+ * net turns from driving to braking, as the spool from rest finds it.
+ */
+const CP_MACH = [1.000, 1.011, 1.049, 1.191, 1.532, 1.941];
+const cpMach = (m) => {
+  const x = (m - 0.5) / 0.1;
+  if (!(x > 0)) return CP_MACH[0];
+  if (x >= CP_MACH.length - 1) return CP_MACH[CP_MACH.length - 1];
+  const i = Math.floor(x);
+  return CP_MACH[i] + (x - i) * (CP_MACH[i + 1] - CP_MACH[i]);
+};
+
+export function wingEngine(table) {
+  const src = readFileSync(WING_C, 'utf8');
+  const body = new RegExp(`const FixedWingParams ${table} = \\{([\\s\\S]*?)\\n\\};`).exec(src)[1];
+  const map = /\.engine_q = \{([\s\S]*?)\n {2}\}/.exec(body);
+  if (!map) return null;
+  const q = map[1].replace(/\/\*[\s\S]*?\*\//g, '').split('}')
+    .map((row) => row.replace(/[{\s]/g, '').split(',').filter((x) => x !== '').map(Number))
+    .filter((row) => row.length === 15);
+  const num = (name) => Number(new RegExp(`\\.${name} = ([\\d.]+)`).exec(body)[1]);
+  const rpmMax = num('engine_rpm_max'), rpmFull = 0.85 * num('rpm_no_load');
+  const qf = num('torque_arm') * num('thrust_static');
+  const tipF = Math.PI * 2 * num('slip_r') * rpmFull / 60 / 340;
+  const prop = wingProp(table);
+  const torque = (stick, rpm) => {
+    const st = rpm > rpmMax ? 0 : Math.max(0, Math.min(1, stick));
+    const xr = st <= 0.2 ? st / 0.2 : 1 + (st - 0.2) / 0.1;
+    const r = xr >= 9 ? 8 : Math.floor(xr), fr = xr - r;
+    const xc = (rpm - 1000) / 500;
+    const c = xc < 0 ? 0 : (xc >= 14 ? 13 : Math.floor(xc)), fc = xc - c;
+    const q0 = q[r][c] + fc * (q[r][c + 1] - q[r][c]);
+    const q1 = q[r + 1][c] + fc * (q[r + 1][c + 1] - q[r + 1][c]);
+    return q0 + fr * (q1 - q0);
+  };
+  const net = (stick, V, n) => torque(stick, n * rpmFull) / qf
+    - n * n * prop.cp(Math.max(0, V) / (prop.pitchSpeed * n)) * cpMach(tipF * n) / cpMach(tipF);
+  const nAt = (stick, V) => {
+    let prev = 0.02;
+    for (let n = 0.025; n <= 1.6; n += 0.005) {
+      if (net(stick, V, n) <= 0) {
+        let lo = prev, hi = n;
+        for (let i = 0; i < 50; i += 1) { const mid = (lo + hi) / 2; if (net(stick, V, mid) > 0) lo = mid; else hi = mid; }
+        return lo;
+      }
+      prev = n;
+    }
+    return 1.6;
+  };
+  return { torque, net, nAt, rpmFull, rpmMax, qf };
+}
