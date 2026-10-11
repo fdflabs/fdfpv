@@ -115,7 +115,7 @@ window.__T = { log: [], done: false };
     } else if (phase === 'settle') {
       const vT = '${mode}' === 'harrier' ? 12 : ${th.e12_knife_edge.speed};
       s = level(c, dt, vT);
-      if (t > 8) { iT = '${mode}' === 'harrier' ? 0.55 : iT; iP = 0; iB = 0; iA = 0; iH = 0; hT = c.worldY; psiT = psiOf(c); enter('${mode}', now); }
+      if (t > 8) { iT = '${mode}' === 'harrier' ? 0.55 : iT; iP = 0; iB = 0; iA = 0; iH = 0; hT = c.worldY; psiT = psiOf(c); enter('${mode}'.startsWith('pulloff') ? 'pulloff' : '${mode}', now); }
     } else if (phase === 'pull') {
       /* Up to the vertical at full throttle, then hanging. */
       const human = '${mode}'.startsWith('human') || '${mode}'.startsWith('video');
@@ -185,6 +185,13 @@ window.__T = { log: [], done: false };
         T.human = { held: T.heldS - SETTLE, worst: T.worst, swing: swing * 180 / Math.PI, path: T.path, thr: hs[3] };
         phase = 'end';
       }
+    } else if (phase === 'pulloff') {
+      /* The owner's pull: level, the throttle closed for a second, then
+       * half up elevator held 2.5 s, nothing else. */
+      const st = t < 1 ? 0 : 0.5;
+      s = [0, st, 0, 0];
+      (T.sticks = T.sticks || []).push([+t.toFixed(3), ...s, +(c.rates.p * 180 / Math.PI).toFixed(1), +(bankOf(c) * 180 / Math.PI).toFixed(1)]);
+      if (t > 3.5) { T.pull = { bank: bankOf(c) * 180 / Math.PI }; phase = 'end'; }
     } else if (phase === 'harrier') {
       const target = ${th.e11_harrier.alphaDeg} * Math.PI / 180;
       const alpha = alphaOf(c), bank = bankOf(c);
@@ -225,7 +232,7 @@ window.__T = { log: [], done: false };
     if (c.crashed) phase = 'end';
     if (phase === 'end') {
       T.done = true;
-      T.res = { lift: T.lift, crashed: c.crashed, hover: T.hover, human: T.human, torque: T.torque, harrier: T.harrier, knife: T.knife, at: T.at };
+      T.res = { lift: T.lift, crashed: c.crashed, hover: T.hover, human: T.human, pull: T.pull, torque: T.torque, harrier: T.harrier, knife: T.knife, at: T.at };
       window.__stick(0, 0, 0, 0);
       return;
     }

@@ -16,9 +16,10 @@
  *   stall_dw      eta V_H a_t (d eps/d alpha) / a_w: the tail's moment per
  *                 unit of wing lift lost, the downwash being proportional
  *                 to the lift (Nelson eq. 2.22). Zero without a tail.
- *   stall_asym    how much sooner the left panel stalls: 1 mm of trailing
- *                 edge over the chord, ESTIMATED as a foam or composite
- *                 kit's build tolerance at the panel joint.
+ *   stall_asym    how much sooner the left panel stalls: none. A kit's
+ *                 build tolerance has a side, but which is unknown, and a
+ *                 fixed left made every power off stall drop the left wing
+ *                 (2026-10-09, docs/STALL-STAGE1.md).
  *   strip_c       the chord of each of the four strips a half wing is
  *                 taken in, at an eighth, three, five and seven eighths of
  *                 the semispan, over the mean chord S/b, from the drawn
@@ -53,7 +54,6 @@
 
 const DEG = 180 / Math.PI;
 const H_CP = 0.40;
-const TE_TOLERANCE = 0.001;
 const lift = (ar) => 2 * Math.PI * ar / (ar + 2);
 
 /* A conventional tail, Nelson's forms as every derivation here uses them.
@@ -68,7 +68,7 @@ function tailed({ b, S, c, hCG, hAC = 0.25, Sh, lh, bh, eta = 0.9, deda = null }
     arm_ac: hCG - hAC,
     arm_cp: H_CP - hCG,
     dw: eta * VH * at * dd / aw,
-    asym: TE_TOLERANCE / c,
+    asym: 0,
     note: `a_w ${aw.toFixed(3)}, a_t ${at.toFixed(3)}, V_H ${VH.toFixed(3)}, deps/dalpha ${dd.toFixed(3)}, h_cg ${hCG.toFixed(3)}`,
   };
 }
@@ -82,7 +82,7 @@ function tailless({ c, clAlpha, cmAlpha }) {
     arm_ac: -SM,
     arm_cp: H_CP - hCG,
     dw: 0,
-    asym: TE_TOLERANCE / c,
+    asym: 0,
     note: `static margin ${SM.toFixed(4)}, h_cg ${hCG.toFixed(3)}`,
   };
 }
@@ -176,7 +176,7 @@ planes.FW_BOMBSHELL1118 = {
   arm_ac: 0.0761,
   arm_cp: 0.0703,
   dw: 0.9 * 0.680 * 4.013 * 0.341 / 4.453,
-  asym: TE_TOLERANCE / 0.1905,
+  asym: 0,
   note: 'a_w 4.453, a_t 4.013, V_H 0.680, deps/dalpha 0.341 (DATCOM), its own arms',
 };
 planes.FW_CUB1400F = planes.FW_CUB1400;
@@ -189,7 +189,7 @@ planes.FW_KADET1981 = {
   arm_ac: 0.0128,
   arm_cp: 0.1372,
   dw: 0.9 * 0.549 * 4.154 * 0.380 / 4.533,
-  asym: TE_TOLERANCE / 0.374487,
+  asym: 0,
   note: 'a_w 4.533, a_t 4.154, V_H 0.549, deps/dalpha 0.380 (DATCOM), its own arms',
 };
 
@@ -202,7 +202,7 @@ planes.FW_F16878 = {
   arm_ac: -0.0552,
   arm_cp: 0.2052,
   dw: 0.9 * 0.2942 * 2.644 * 0.647 / 3.142,
-  asym: TE_TOLERANCE / 0.2856,
+  asym: 0,
   note: 'a_w 3.142, a_t 2.644, V_H 0.294, deps/dalpha 0.647 (Nelson), its own arms',
 };
 
@@ -215,7 +215,7 @@ planes.FW_UGLYSTIK1567 = {
   arm_ac: 0.0991,
   arm_cp: 0.0610,
   dw: 0.9 * 0.435 * 3.880 * 0.416 / 4.427,
-  asym: TE_TOLERANCE / 0.3256,
+  asym: 0,
   note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
 };
 
@@ -234,7 +234,7 @@ planes.FW_TIGERMOTH1803 = {
   arm_ac: 0.1068,
   arm_cp: 0.0432,
   dw: 0.9 * 0.3477 * 4.0977 * 0.4416 / 4.4036,
-  asym: TE_TOLERANCE / 0.2683,
+  asym: 0,
   note: 'a_w 4.404 (the cell), a_t 4.098, V_H 0.348, deps/dalpha 0.442 (DATCOM), its own arms',
 };
 
