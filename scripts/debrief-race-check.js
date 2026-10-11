@@ -110,6 +110,11 @@ async function playRing(page, track) {
   await choose(page, 'card-fly');
   await page.until(`window.__ui.screen === 'launch' && window.__map().ready && window.__race().gates.length === ${n}`, 600000);
   await choose(page, 'launch-go');
+  /* Nothing the laps assert is a pixel, and on a software rasteriser a
+   * frame of this world takes seconds, so the countdown and every gate's
+   * three frames waited on draws nobody reads (most of this check's time
+   * on CI). On again before the results: the replay draws. */
+  await page.evaluate('window.__drawOff(true)');
   await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
   await page.until("!/^[123]$/.test(window.__craftState().banner || '')", 30000);
   await frames(page, 10);
@@ -182,6 +187,7 @@ async function run(lang, track) {
       }
     }
     await through(page, G[0]);
+    await page.evaluate('window.__drawOff(false)');
     await page.until("window.__craftState().mode === 'results' && window.__ui.screen === 'results'", 30000).catch(async (e) => {
       console.log(await page.evaluate("JSON.stringify({ laps: window.__race().laps, log: window.__race().log, mode: window.__craftState().mode, screen: window.__ui.screen, want: window.__ui.settings.laps })"));
       throw e;

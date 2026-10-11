@@ -74,6 +74,7 @@ import {
 } from '../share/progressmerge.js';
 import { tracksOrigin } from '../share/cloud.js';
 import { SETTINGS_KEY, loadSettings, saveSettings } from './settings.js';
+import { keepRecords, readRecords } from '../share/records.js';
 import {
   buildsBlob, buildsFromBlob, fitBuild, saveBuilds, stockView, unfitFamily,
 } from './builds.js';
@@ -406,7 +407,7 @@ export function createAccountUi({ ui, identity, say }) {
   /* What a sync carries: the settings as they are with every build taken
    * off, and the builds themselves. */
   function syncedView() {
-    return { ...stockView(ui.settings), builds: buildsBlob(ui.myBuilds) };
+    return { ...stockView(ui.settings), builds: buildsBlob(ui.myBuilds), records: readRecords() };
   }
 
   /* The merge applied: every synced section put in ui.settings, the whole
@@ -443,8 +444,11 @@ export function createAccountUi({ ui, identity, say }) {
     for (const land of Object.keys(s.buildFits || {})) {
       unfitFamily(s, land);
     }
-    const { builds, ...data } = merged.data;
+    const { builds, records, ...data } = merged.data;
     let changed = false;
+    if (records !== undefined) {
+      keepRecords(records);
+    }
     if (builds !== undefined) {
       const list = buildsFromBlob(builds);
       if (JSON.stringify(list) !== JSON.stringify(ui.myBuilds)) {
@@ -488,6 +492,10 @@ export function createAccountUi({ ui, identity, say }) {
       view[k] = answer.data[k];
     }
     settled(view, answer);
+    if (changed) {
+      /* Another computer's war or flight time may hold a first not paid here. */
+      ui.progress.checkFirsts();
+    }
     return changed;
   }
 

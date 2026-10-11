@@ -117,6 +117,32 @@ const hashed = {};
 /* Hand written profiles, kept in full. */
 const defaults = loaded().settings;
 const KEYS = Object.keys(defaults).sort();
+
+/*
+ * Every record but `defaults` holds a loaded profile as its difference from
+ * the defaults: the fields it changed, and '<missing>' for a default it
+ * lacks. The defaults + the record is the whole profile, so nothing is lost,
+ * and a pull request adding a setting moves `defaults`, `constants` and the
+ * records about its own key, not every record (docs/GOLDENS.md).
+ */
+full.defaults = defaults;
+function delta(settings) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings) || 'threw' in settings) {
+    return settings;
+  }
+  const out = {};
+  for (const k of Object.keys(settings)) {
+    if (text(settings[k]) !== text(defaults[k])) out[k] = settings[k];
+  }
+  for (const k of KEYS) {
+    if (!(k in settings)) out[k] = '<missing>';
+  }
+  return out;
+}
+const loadedDelta = (opts) => {
+  const l = loaded(opts);
+  return { ...l, settings: delta(l.settings) };
+};
 const CASES = {
   'empty': {},
   'no-profile': undefined,
@@ -170,14 +196,14 @@ for (const [name, c] of Object.entries(CASES)) {
     const { opts: _, ...rest } = c;
     profile = Object.keys(rest).length ? rest : undefined;
   }
-  full[`load:${name}`] = loaded({ ...opts, profile });
+  full[`load:${name}`] = loadedDelta({ ...opts, profile });
 }
 
 /* Every key of the defaults given a value of each wrong type. */
 const WRONG = [null, 0, 1.5, -1, '', 'x', true, false, [], {}, [1], { a: 1 }];
 for (const k of KEYS) {
   WRONG.forEach((w, i) => {
-    hashed[`wrongtype:${k}:${i}`] = hash(loaded({ profile: { airframeAsked: true, [k]: w } }).settings);
+    hashed[`wrongtype:${k}:${i}`] = hash(loadedDelta({ profile: { airframeAsked: true, [k]: w } }).settings);
   });
 }
 
@@ -185,35 +211,42 @@ for (const k of KEYS) {
  * and not, then reseated straight back. */
 for (const from of AIRFRAME_IDS) {
   const base = loaded({ profile: { airframeAsked: true, airframe: from } }).settings;
-  hashed[`loadas:${from}`] = hash(base);
+  hashed[`loadas:${from}`] = hash(delta(base));
   for (const to of AIRFRAME_IDS) {
     const s = JSON.parse(JSON.stringify(base));
     ui.seatAirframe(s, to);
-    const there = text(s);
+    const there = text(delta(s));
     ui.seatAirframe(s, from);
-    hashed[`seat:${from}>${to}`] = hash({ there, back: s });
+    hashed[`seat:${from}>${to}`] = hash({ there, back: delta(s) });
   }
 }
 /* Seating from a profile carrying power, parts and tuning for the plane,
  * the case that carries them across a float version. */
 for (const [from, to] of [['timber1500', 'timber1500f'], ['timber1500f', 'timber1500'], ['cub1400', 'cub1400f'], ['cub1400f', 'cub1400']]) {
   const s = loaded({ profile: { airframeAsked: true, airframe: from, tuneFor: { [to]: 'zzz' } } }).settings;
-  full[`seatfloat:${from}>${to}`] = ui.seatAirframe(s, to);
+  full[`seatfloat:${from}>${to}`] = delta(ui.seatAirframe(s, to));
 }
 
 /* Random profiles: a mix of real values from other airframes' loaded
  * profiles and wrong ones, key by key. */
 const pool = AIRFRAME_IDS.map((id) => loaded({ profile: { airframeAsked: true, airframe: id } }).settings);
-const r = rng(20261006);
+/* One generator per profile and key, so a new key changes only the
+ * profiles that draw it, not every later draw. */
+const seedOf = (label) => {
+  let h = 20261006;
+  for (let i = 0; i < label.length; i += 1) h = Math.imul(h ^ label.charCodeAt(i), 0x01000193) >>> 0;
+  return h;
+};
 for (let n = 0; n < 300; n += 1) {
   const p = {};
   for (const k of KEYS) {
+    const r = rng(seedOf(`${n}:${k}`));
     const roll = r();
     if (roll < 0.45) continue;
     if (roll < 0.85) p[k] = pool[Math.floor(r() * pool.length)][k];
     else p[k] = WRONG[Math.floor(r() * WRONG.length)];
   }
-  hashed[`random:${n}`] = hash(loaded({ profile: p, touch: r() < 0.2 ? 5 : 0 }));
+  hashed[`random:${n}`] = hash(loadedDelta({ profile: p, touch: rng(seedOf(`${n}:touch`))() < 0.2 ? 5 : 0 }));
 }
 
 /* The exported helpers over their ranges. */

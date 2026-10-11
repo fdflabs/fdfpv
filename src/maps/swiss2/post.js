@@ -61,6 +61,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 import { makeSharpenPass, sizeSharpenPass } from '../../render/post.js';
+import { rainBeta } from '../../render/rainair.js';
 
 /*
  * The air. Extinction at the valley floor per metre, per channel: blue is
@@ -870,11 +871,52 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds, air 
     photo.material.uniforms.uCloudTexel.value.set(1 / Math.max(1, Math.floor(width * p)), 1 / Math.max(1, Math.floor(height * p)));
   }
 
+  /* Every veil of the air: the picture's, the meter's (so the exposure
+   * sees the rain it is metering), and the clouds' march. */
+  const veils = [photo.material.uniforms, meter?.tapMat.uniforms, clouds?.uniforms].filter((u) => u?.uBeta);
+  /* The dry numbers while it rains, as the look last set them (the
+   * Interior's hour sets its own mie), null while dry. */
+  let dry = null;
+  /*
+   * Rain thickens the air: its extinction (render/rainair.js) added to
+   * the dry air's. The shader thins the air with height (uScaleH); rain
+   * falls alike at every height under its cloud, so the added part is
+   * scaled up by the camera's height to read rainBeta along a level
+   * look. And the sun's forward glow in the air (uMie) is direct
+   * sunlight's, which the shower's cloud hides: it fades out with the
+   * rain, or a rain shaft would shine white. 0 puts the dry numbers
+   * back, the same values, so a dry frame is the look from before to the
+   * pixel.
+   */
+  function setWet(wet) {
+    if (!(wet > 0)) {
+      if (dry) {
+        veils.forEach((u, i) => {
+          u.uBeta.value.copy(dry[i].beta);
+          u.uMie.value = dry[i].mie;
+        });
+        dry = null;
+      }
+      return;
+    }
+    if (!dry) {
+      dry = veils.map((u) => ({ beta: u.uBeta.value.clone(), mie: u.uMie.value }));
+    }
+    const w = wet < 1 ? wet : 1;
+    const add = rainBeta(w) * Math.exp(Math.max(camera.position.y, -50) / air.scaleHeight);
+    veils.forEach((u, i) => {
+      const b = dry[i].beta;
+      u.uBeta.value.set(b.x + add, b.y + add, b.z + add);
+      u.uMie.value = dry[i].mie * (1 - w);
+    });
+  }
+
   return {
     render() {
       composer.render();
     },
     setSize,
+    setWet,
     sharpen,
     /* The pass materials as well as the targets: three frees a compiled
      * program only when the material that owns it is disposed. The

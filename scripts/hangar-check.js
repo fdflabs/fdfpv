@@ -326,9 +326,11 @@ async function partsCheck(page) {
     `the Parts tab offers the Cub's props and its add-ons, and the floats are not a part: ${cards.join(', ')}`);
   const toggle = await page.evaluate(`(() => {
     const b = document.querySelector('.hangar-facts [data-key="floats"]');
-    return b ? { on: b.getAttribute('aria-checked'), beside: [...b.parentNode.children].filter((c) => c.classList.contains('carousel-fact')).length } : null;
+    /* The milestone pips share the facts' pill (hangar.js) but are not a
+     * fact: the toggle sits beside the span and the weight. */
+    return b ? { on: b.getAttribute('aria-checked'), beside: [...b.parentNode.children].filter((c) => c.classList.contains('carousel-fact') && !c.classList.contains('hangar-milestones')).map((c) => c.textContent) } : null;
   })()`);
-  say(Boolean(toggle) && toggle.on === 'false' && toggle.beside === 2,
+  say(Boolean(toggle) && toggle.on === 'false' && same(toggle.beside, [sizeText(id), weightText(id)]),
     `the Cub on its wheels has the Floats toggle, off, beside its span and weight: ${JSON.stringify(toggle)}`);
   for (const a of fit) {
     await page.evaluate(click(`addon-${a}`));

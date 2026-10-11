@@ -13,7 +13,9 @@
  * the other seat's spawn slot, as its own airframe, in its own colours,
  * with its pilot standing at its station. B's aircraft can be named, so
  * each new airframe is seen drawn as a peer: `zagi1219` puts B in a Zagi. Then B is put 40 m up ahead of
- * A and A must see it there, moving. Pictures of each in outdir, which is
+ * A and A must see it there, moving. B also wears MAX_DECALS layers
+ * (docs/redesign/LIVERY-LAYERS.md), packed into its profile, and A must
+ * draw every one that is not hidden. Pictures of each in outdir, which is
  * not in the repository: a picture is evidence for one round.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -39,6 +41,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { regionsFor } from '../configs/liveries.js';
+import { MAX_DECALS, newDecal } from '../configs/paint.js';
 import { slotSpawn } from '../src/game/slots.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -68,6 +71,13 @@ function painted(paint, id, colour) {
   const own = regionsFor(id).map((r) => r.id).filter((r) => SEEDED.includes(r));
   return Boolean(paint) && own.length > 0 && own.every((r) => paint[r] === colour);
 }
+/* B's layers: every one a full one, words at their longest, so the packed
+ * profile is near its largest; the last one hidden. */
+const LAYERS = Array.from({ length: MAX_DECALS }, (_, i) => ({
+  ...newDecal('text', [0.02 * (i % 8) - 0.07, 0.05, 0.03 * Math.floor(i / 8) - 0.05], [0, 1, 0]),
+  t: 'PARAGUAY FPV 7', a: 8.68, x: 20, o: 85, fi: 'metallic', g: 1 + (i % 9), ...(i === MAX_DECALS - 1 ? { h: true } : {}),
+}));
+
 function seedFor(id, colour, addons) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
@@ -76,7 +86,7 @@ function seedFor(id, colour, addons) {
   s.flightMode = 'angle';
   s.fpsCap = 0;
   s.airframeAsked = true;
-  s.livery = { [id]: { regions: Object.fromEntries(SEEDED.map((r) => [r, colour])) } };
+  s.livery = { [id]: { regions: Object.fromEntries(SEEDED.map((r) => [r, colour])), ...(id === B_AF ? { decals: LAYERS } : {}) } };
   s.parts = addons.length ? { [id]: { prop: 'stock', addons } } : {};
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
@@ -138,12 +148,17 @@ try {
   for (const p of [a, b]) {
     await p.until('window.__rooms().peers[0].drawn', 30000);
   }
+  await a.until(`(window.__rooms().peers[0].decals || {}).decals === ${MAX_DECALS - 1}`, 30000).catch(() => {});
   const pa = (await a.evaluate('window.__rooms()')).peers[0];
   const pb = (await b.evaluate('window.__rooms()')).peers[0];
   check(`A draws B as a ${B_NAME}`, pa.drawnAirframe === B_AF, pa.drawnAirframe);
   check('B draws A as a Cub', pb.drawnAirframe === 'cub1400', pb.drawnAirframe);
   check('in B\'s blue', painted(pa.paint, B_AF, BLUE), JSON.stringify(pa.paint));
   check('in A\'s red', painted(pb.paint, 'cub1400', RED), JSON.stringify(pb.paint));
+  check(`A draws B's ${MAX_DECALS - 1} shown layers of ${MAX_DECALS}`, Boolean(pa.decals) && pa.decals.decals === MAX_DECALS - 1 && pa.decals.triangles > 0, JSON.stringify(pa.decals));
+  /* Spread over frames (dressDecalsLater): no one frame of it past 50 ms,
+   * the longest a frame may stall before a pilot feels it. */
+  check('B\'s layers were dressed over several frames, none long', Boolean(pa.decals && pa.decals.spread) && pa.decals.spread.frames > 1 && pa.decals.spread.worstMs < 50, JSON.stringify(pa.decals && pa.decals.spread));
   const spawn = await a.evaluate('window.__craftState().spawn || null');
   const mapSpawn = await a.evaluate('(() => { const m = window.__map(); return m.spawn || null; })()');
   const sp = mapSpawn || spawn;

@@ -198,7 +198,7 @@ export function buildFrame(shell) {
 
 /*
  * THE TITLE. A copy column: the brand and the gate's rooms panel on one
- * row, the gate's cards, and a foot with the key hint and the menu. The
+ * row, Flight Club's pilot stats, the gate's cards, and a foot with the key hint and the menu. The
  * cards and the panel are hidden outside the gate, which leaves the column
  * its two children spaced apart. The craft canvas is made here and shown
  * in the quad's showcase.
@@ -229,7 +229,10 @@ function titleScreen(shell) {
   foot.append(shell.titleHint, block.stage);
 
   const column = el('div', 'title-copy');
-  column.append(top, keep(shell, 'gateCards', 'div', 'gate-cards'), foot);
+  /* Flight Club's pilot stats (src/ui/pilotstats.js) sit in the room
+   * between the brand and the cards. Not a menu item: the arrows, a pad
+   * and Tab walk past it to the cards exactly as before. */
+  column.append(top, keep(shell, 'gateStats', 'div', 'gate-stats'), keep(shell, 'gateCards', 'div', 'gate-cards'), foot);
   shell.craftCanvas = el('canvas', 'craft-view');
   shell.craftCanvas.setAttribute('aria-hidden', 'true');
   const screen = el('div', 'screen screen-title');
@@ -402,11 +405,28 @@ const PAGES = {
     seat: quadShowcase,
     hint: ESC_STORED,
   },
+  /* A plane's rates: the manual's throws and the expo, rows only. */
+  planerates: {
+    classes: 'screen-page screen-pilot',
+    title: 'ui.rates',
+    lede: ['rates-lede', 'ui.plane_rates_lede'],
+    menu: 'planerates',
+    scroll: true,
+    hint: ESC_STORED,
+  },
   pilot: {
     classes: 'screen-page screen-pilot',
     title: 'ui.settings',
     lede: ['rates-lede', 'ui.you_and_your_sticks_rates_are'],
     menu: 'pilot',
+    scroll: true,
+    hint: ESC_STORED,
+  },
+  controls: {
+    classes: 'screen-page screen-pilot screen-controls',
+    title: 'keybinds.title',
+    lede: ['rates-lede', 'keybinds.lede'],
+    menu: 'controls',
     scroll: true,
     hint: ESC_STORED,
   },
@@ -496,6 +516,12 @@ const PAGES = {
     title: 'ui.paused',
     menu: 'paused',
     hint: [['Esc'], 'ui.resumes_resume_is_also_the_first'],
+  },
+  quick: {
+    classes: 'screen-modal',
+    title: 'pause.flight',
+    menu: 'quick',
+    hint: [['Esc'], 'pause.quick_hint'],
   },
 };
 
@@ -718,16 +744,49 @@ function resultsScreen(shell) {
   return ['results', screen];
 }
 
+/* The walkable hangar (src/ui/hangarwalk.js): nothing over the room but
+ * the prompt of the station in front of the pilot; the keys are in the
+ * command bar (nav.js legendFor). A drag
+ * on it turns the camera round the pilot. */
+function walkScreen(shell) {
+  const screen = el('div', 'screen screen-walk');
+  const prompt = keep(shell, 'walkPrompt', 'div', 'walk-prompt', '');
+  prompt.hidden = true;
+  prompt.append(el('kbd', null, 'E'), keep(shell, 'walkPromptLabel', 'span', 'walk-prompt-label', ''));
+  screen.append(prompt);
+  let from = null;
+  screen.addEventListener('pointerdown', (e) => {
+    from = e.clientX;
+    screen.setPointerCapture(e.pointerId);
+  });
+  screen.addEventListener('pointermove', (e) => {
+    if (from != null) {
+      shell.walkDrag(e.clientX - from);
+      from = e.clientX;
+    }
+  });
+  screen.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    shell.walkWheel(e.deltaY);
+  }, { passive: false });
+  const up = () => { from = null; };
+  screen.addEventListener('pointerup', up);
+  screen.addEventListener('pointercancel', up);
+  return ['walk', screen];
+}
+
 /* Every screen, in the order this.screens holds them and the document
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'pids'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,
   menuPage('paused'),
+  menuPage('quick'),
   resultsScreen,
+  walkScreen,
 ];
 
 /* Makes the screens into shell.screens; mountPage puts them in the page. */

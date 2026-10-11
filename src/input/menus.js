@@ -66,9 +66,39 @@ export function altButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, 2);
 }
 
+/* Start (Menu on an Xbox pad): pause in flight, resume from the pause
+ * menu. Standard pads only, as the other extras: on a radio a button
+ * number can be the arm switch. */
+export function startButton(gp) {
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 9);
+}
+
 /* Y, which the aircraft picker takes as its Floats switch. */
 export function floatsButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, 3);
+}
+
+/* The four ways on a standard pad, as levels: `dpad` the d-pad (buttons
+ * 12 to 15), `stick` the left stick, y down positive as the Gamepad API
+ * reports it. Null on anything else, which the menus steer as a radio.
+ * Without this a pad nobody set a mapping up for had no d-pad at all, and
+ * its left stick pushed right moved the cursor up (the radio's any-axis
+ * rule, PadMenus.cursor). */
+export function padDirections(gp) {
+  if (!standard(gp) || !gp.buttons) {
+    return null;
+  }
+  const x = (gp.axes && gp.axes[0]) || 0;
+  const y = (gp.axes && gp.axes[1]) || 0;
+  return {
+    dpad: { up: pressed(gp, 12), down: pressed(gp, 13), left: pressed(gp, 14), right: pressed(gp, 15) },
+    stick: { up: y < -NAV_DEFLECT, down: y > NAV_DEFLECT, left: x < -NAV_DEFLECT, right: x > NAV_DEFLECT },
+  };
+}
+
+/* The right stick pressed in (R3), which the hangar takes as Flip. */
+export function lookClick(gp) {
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 11);
 }
 
 /* The right stick, right and down positive, for orbiting the hangar. */

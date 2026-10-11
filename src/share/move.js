@@ -104,6 +104,7 @@ export const EXCLUDED = new Set([
   'fdfpv.board.origin',
   'webfpv.account.v1',
   'webfpv.account.synced.v1',
+  'webfpv.account.wallet.v1',
   'webfpv.probe',
 ]);
 const ACCOUNT_KEY = 'webfpv.account.v1';

@@ -261,6 +261,11 @@ flow. When it lands, the P-51's swing grows and P14 and P15 will need
 their pilot's anticipation reconsidered; their bands are signs and a
 lower bound, so they should hold.
 
+It has landed (docs/FLIGHTMODEL.md, PR 2 of the flight model lane): the
+wash and its swirl swing the P-51 37.5 deg left by liftoff with the rudder
+left alone, and the take off pilot's heading gain went from 2.0 to 6.0 to
+hold it within 2.7 deg; both bands held.
+
 How much each gives on the take off roll (`p51:derive`, "roll yaw"): at
 5 m/s tail down P factor is 0.061 N m nose left against full rudder's
 0.161; at 8 m/s 0.082 against 0.41; the torque's load on the left wheel,

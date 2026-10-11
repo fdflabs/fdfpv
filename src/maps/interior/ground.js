@@ -67,7 +67,7 @@ import { thermalKind } from '../../render/thermal.js';
 const CLASS = [];
 CLASS[LAND.water] = { col: [0.1, 0.075, 0.05], layer: 3 };
 CLASS[LAND.forest] = { col: [0.034, 0.052, 0.02], layer: 0 };
-CLASS[LAND.pasture] = { col: [0.085, 0.088, 0.04], layer: 1 };
+CLASS[LAND.pasture] = { col: [0.06, 0.098, 0.034], layer: 1 };
 CLASS[LAND.crop] = { col: [0.11, 0.085, 0.05], layer: 2 };
 CLASS[LAND.shrub] = { col: [0.06, 0.068, 0.03], layer: 2 };
 CLASS[LAND.wetland] = { col: [0.05, 0.07, 0.038], layer: 1 };
@@ -315,10 +315,13 @@ vec3 inCrop(InField f, vec2 w, float fp) {
  * across it, bare ground at the gate, termite mounds. */
 vec3 inPasture(InField f, vec2 w, float fp) {
   float h = inHash(f.id + 29.0);
-  vec3 green = vec3(0.07, 0.092, 0.036);
+  /* Most paddocks green, a third going to straw: under the 16:40 sun
+   * and the grade's warm middle tones a grass with red near green
+   * printed as dead brown, where the photographs' pasture is green. */
+  vec3 green = vec3(0.05, 0.1, 0.03);
   vec3 straw = vec3(0.12, 0.105, 0.058);
   float big = inFbm(w, 47.0);
-  vec3 col = mix(green, straw, clamp(h * 1.1 - 0.15 + (big - 0.5) * 1.1, 0.0, 1.0));
+  vec3 col = mix(green, straw, clamp(h * 0.9 - 0.45 + (big - 0.5) * 1.0, 0.0, 1.0));
   col *= 0.88 + 0.24 * inTex(w, 3.1, 0.41).b;
   col *= inPatches(f, w) * inMottle(w, fp);
   /* Tufts and scrub: the tussocks the cattle leave, darker and greener,

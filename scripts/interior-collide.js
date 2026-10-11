@@ -11,7 +11,7 @@
  *
  *   drawn     drawn but not solid: points on every triangle of every
  *             solid mesh the map draws (the walls, the roofs, the
- *             concrete: built.js; the camp's props when they land), one a
+ *             concrete: built.js; the camps' props), one a
  *             square metre, each within TOL of a collider, a roof or the
  *             ground. A point further is a fly through.
  *   phantom   solid but not drawn: points on every collider's outside, a
@@ -45,7 +45,9 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
-import { BRIDGES, BUILDINGS, CAMP_PROPS } from '../src/share/interior/places.js';
+import {
+  BRIDGES, BUILDINGS, CAMP_PROPS, NUEVO_PROPS,
+} from '../src/share/interior/places.js';
 import { RIVER } from '../src/share/interior/hydro.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -61,14 +63,21 @@ const fail = (m) => {
   console.log(`  FAIL ${m}`);
 };
 
-const SWEEP = /* js */ `(() => {
+/* The sweep, over every solid mesh drawn, or only those under the group
+ * named `only`. */
+const SWEEP = (only = null) => /* js */ `(() => {
+  const ONLY = ${JSON.stringify(only)};
   const SOLID = ${JSON.stringify(SOLID_MESHES)};
   const TOL = ${TOL};
   const NEAR = ${NEAR};
   const col = window.__mapScene().userData.interior.colliders;
   const scene = window.__mapScene();
   const meshes = [];
-  scene.traverse((o) => { if (o.isMesh && SOLID.includes(o.name)) meshes.push(o); });
+  /* A camp a mission does not show (Claro Nuevo, life.js setCamp) is
+   * hidden and its colliders sunk: its meshes are not drawn then. */
+  const shown = (o) => { for (let q = o; q; q = q.parent) { if (q.name === 'interior-camp-nuevo' && !q.visible) return false; } return true; };
+  const under = (o) => { for (let q = o; q; q = q.parent) { if (q.name === ONLY) return true; } return false; };
+  scene.traverse((o) => { if (o.isMesh && SOLID.includes(o.name) && shown(o) && (!ONLY || under(o))) meshes.push(o); });
   /* Every drawn triangle, world, in a 4 m bucket grid for the nearest. */
   const tris = [];
   for (const m of meshes) {
@@ -151,7 +160,10 @@ const SWEEP = /* js */ `(() => {
   const TURNED = 2;
   let phantomPts = 0;
   const phantoms = [];
+  /* Swept for one group: only the colliders round its drawn meshes. */
+  const box = ONLY ? tris.reduce((b, t) => { for (const q of t.slice(0, 3)) { b[0] = Math.min(b[0], q[0]); b[1] = Math.min(b[1], q[2]); b[2] = Math.max(b[2], q[0]); b[3] = Math.max(b[3], q[2]); } return b; }, [Infinity, Infinity, -Infinity, -Infinity]) : null;
   const test = (p) => {
+    if (box && (p[0] < box[0] - 5 || p[0] > box[2] + 5 || p[2] < box[1] - 5 || p[2] > box[3] + 5)) return;
     if (col.gapAt(p[0], p[1], p[2], 0.01) <= 0.01) return;
     if (surface(p[0], p[2], 1e9) >= p[1]) return;
     phantomPts += 1;
@@ -192,21 +204,39 @@ const SWEEP = /* js */ `(() => {
 const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=interior' });
 try {
   await page.until('window.__map && window.__map().id === "interior" && window.__map().ready', 180000);
-  const r = await page.evaluate(SWEEP);
-  console.log(`solid meshes ${r.meshes.join(', ')}: ${r.tris} triangles, ${r.colliders} colliders`);
-  console.log(`drawn: ${r.drawnPts} points on drawn triangles, ${r.misses} further than ${TOL} m from any solid, roof or ground`);
-  for (const m of r.missList) {
-    console.log(`    ${m.name} at ${m.p.join(', ')}`);
-  }
-  if (r.misses) {
-    fail(`${r.misses} drawn points a craft would fly through`);
-  }
-  console.log(`phantom: ${r.phantomPts} points on colliders' outsides, ${r.phantoms} further than ${NEAR} m from anything drawn`);
-  for (const p of r.phantomList) {
-    console.log(`    at ${p.p.join(', ')}, ${p.d} m from a drawn triangle`);
-  }
-  if (r.phantoms) {
-    fail(`${r.phantoms} collider points with nothing drawn within ${NEAR} m: invisible walls`);
+  /* Swept with Claro Nuevo hidden (Mission 1: everything), then shown
+   * (Mission 2: its camp alone, the camera over it, since from there the
+   * far ground's coarse tiles would move under the rest). */
+  for (const nuevo of [false, true]) {
+    await page.evaluate(`(window.__mapScene().userData.interior.life.setCamp({ nuevo: ${nuevo} }), "")`);
+    if (nuevo) {
+      /* The ground under it as the page draws it near, not a far tile's
+       * coarse level: the camera parked over the clearing, settled. */
+      const [nx, nz] = NUEVO_PROPS.middle;
+      await page.evaluate(`(window.__setCam(${nx + 60}, window.__heightAt(${nx}, ${nz}) + 120, ${nz + 60}, ${nx}, window.__heightAt(${nx}, ${nz}), ${nz}, 60), "")`);
+      for (let k = 0; k < 2; k += 1) {
+        await page.evaluate('window.__cf = window.__boot().frames');
+        await page.until('window.__boot().frames > window.__cf + 2', 60000);
+        await page.until('(() => { const u = window.__mapScene().userData.interior; const t = u.terrain.stats(); return t.queuedBuilds === 0 && !u.terrain.job; })()', 120000);
+      }
+    }
+    console.log(`Claro Nuevo ${nuevo ? 'shown' : 'hidden'}`);
+    const r = await page.evaluate(SWEEP(nuevo ? 'interior-camp-nuevo' : null));
+    console.log(`solid meshes ${r.meshes.join(', ')}: ${r.tris} triangles, ${r.colliders} colliders`);
+    console.log(`drawn: ${r.drawnPts} points on drawn triangles, ${r.misses} further than ${TOL} m from any solid, roof or ground`);
+    for (const m of r.missList) {
+      console.log(`    ${m.name} at ${m.p.join(', ')}`);
+    }
+    if (r.misses) {
+      fail(`${r.misses} drawn points a craft would fly through`);
+    }
+    console.log(`phantom: ${r.phantomPts} points on colliders' outsides, ${r.phantoms} further than ${NEAR} m from anything drawn`);
+    for (const p of r.phantomList) {
+      console.log(`    at ${p.p.join(', ')}, ${p.d} m from a drawn triangle`);
+    }
+    if (r.phantoms) {
+      fail(`${r.phantoms} collider points with nothing drawn within ${NEAR} m: invisible walls`);
+    }
   }
   /* ROOFS. */
   const roofs = await page.evaluate(`(${JSON.stringify(BUILDINGS.map((b) => ({ id: b.id, at: b.at, kind: b.kind })))}).map((b) => ({ ...b, top: window.__surface(b.at[0], b.at[1], 1e9), ground: window.__surface(b.at[0], b.at[1], -1e9) }))`);

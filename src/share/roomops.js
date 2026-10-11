@@ -181,6 +181,13 @@ export function createRoomOps(send) {
     active(key) {
       say('active', { key });
     },
+    /* An aircraft left on a hold: where, at room ms t, and its camera's
+     * aim if it holds one (CONTRACT-HOLDS.md 4.3). */
+    hold(key, t, pose, cam) {
+      say('hold', {
+        key, t, pose, cam,
+      });
+    },
     swap(other, give, take) {
       say('swap', { seat: other, give: give ?? null, take: take ?? null });
     },

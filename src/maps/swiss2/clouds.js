@@ -344,7 +344,7 @@ const MarchShader = {
         vec2 fn = texture(uNoise, q * 3.7 + vec3(0.21, 0.0, 0.53)).rg;
         vec2 wisp = texture(uNoise, q * vec3(9.0, 15.0, 9.0) + vec3(0.37)).rg;
         /* The base sags into rags a few tens of metres deep. */
-        h += (fn.r - 0.55) * 0.3 * (1.0 - smoothstep(0.0, 0.35, h));
+        h += (fn.r - 0.55) * 0.5 * (1.0 - smoothstep(0.0, 0.35, h));
         d = body - dome(h);
         float up = smoothstep(0.1, 0.5, h) * heaped;
         float e = mix(fn.r * 0.55 + wisp.r * 0.45, fn.g * 0.7 + wisp.g * 0.3, up);
@@ -543,7 +543,7 @@ const MarchShader = {
          * green and shade. The mist sits in the forest and sees half the
          * sky. */
         float up = (bk.x * bk.y + st.x * st.y + ms * 0.6) / sigma;
-        vec3 amb = uSkyRad * mix(0.3, 1.0, smoothstep(0.0, 0.85, up)) + uSunRad * vec3(0.022, 0.028, 0.018) * (1.0 - up);
+        vec3 amb = uSkyRad * mix(0.16, 1.0, smoothstep(0.0, 0.85, up * up)) + uSunRad * vec3(0.022, 0.028, 0.018) * (1.0 - up);
         /* Seen with the sun behind, a cloud's creases and thin edges are
          * darker than its heaped body: light enters a thin part and
          * mostly leaves it on the far side (the "powder" term). Toward

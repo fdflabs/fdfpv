@@ -150,7 +150,7 @@ globalThis.localStorage = {
 };
 globalThis.document = { createElement: (tag) => new FakeElement(tag), activeElement: null };
 globalThis.window = {
-  location: { href: 'https://example.test/?map=track', search: '', hostname: 'example.test', origin: 'https://example.test' },
+  location: { href: 'https://example.test/?map=track', search: '', hostname: 'paraguayandronecombatsimulator.com', origin: 'https://example.test' },
   innerWidth: 1600,
   innerHeight: 900,
   devicePixelRatio: 2,
@@ -173,6 +173,7 @@ globalThis.fetch = async (url, init) => {
 
 const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS } = await import('../src/ui/settings.js');
+const { storeView } = await import('../tests/lib/golden-settings.js');
 const { crashRecord } = await import('../src/share/crashrecord.js');
 const { useLocale } = await import('../src/strings/index.js');
 
@@ -286,7 +287,7 @@ function recorder(ui) {
           feelAsked: ui.settings.feelAsked,
         },
         posts: posts.splice(0),
-        store: Object.fromEntries(store),
+        store: storeView(store),
       });
     },
   };

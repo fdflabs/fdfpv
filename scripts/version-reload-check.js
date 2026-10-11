@@ -91,7 +91,13 @@ function pagesServer(site) {
       }
       let body;
       if (rel === 'version.json' && site.stamped) {
-        body = Buffer.from(`${JSON.stringify({ version: site.version })}\n`);
+        /* The answer is the version at the time of the ask: a slow answer
+         * must not carry a deploy that landed while it was on its way. */
+        const { version } = site;
+        if (site.slowMs) {
+          await new Promise((r) => setTimeout(r, site.slowMs));
+        }
+        body = Buffer.from(`${JSON.stringify({ version })}\n`);
       } else if (rel.endsWith('.html') && site.stamped && ['index.html', 'src/share/orbit.html'].includes(rel)) {
         body = Buffer.from(stampPage(root, rel, site.version).html);
       } else {
@@ -136,9 +142,16 @@ const SERVED = `(() => {
   const by = {};
   for (const u of urls) { by[s[u]] = (by[s[u]] || 0) + 1; }
   return { n: urls.length, by, unversioned: urls.filter((u) => !/[?]v=/.test(u)).length,
-    versions: [...new Set(urls.map((u) => (u.match(/[?]v=([^&]+)/) || [])[1] || ''))],
-    wasm: performance.getEntriesByType('resource').map((e) => e.name).filter((n) => n.includes('sim.wasm')) };
+    versions: [...new Set(urls.map((u) => (u.match(/[?]v=([^&]+)/) || [])[1] || ''))] };
 })()`;
+
+/* The wasm URLs a site was asked for since request number `from`. Read off
+ * the server and not the page's resource timing, whose buffer keeps 250
+ * entries: the shell loads over 400 modules first, so sim.wasm fell off the
+ * end and the wasm checks failed with an empty list. */
+function wasmAsked(site, from) {
+  return site.requests.slice(from).filter((u) => u.includes('sim.wasm'));
+}
 
 async function navigate(page, url) {
   await page.cdp.send('Page.navigate', { url }, page.sessionId);
@@ -184,6 +197,7 @@ try {
   servers.push(s.server);
   await navigate(page, `${s.origin}/`);
   const before = await page.evaluate(SERVED);
+  before.wasm = wasmAsked(stamped, 0);
   check('every module loads through the map at ?v=A', before.n > 50 && before.unversioned === 0
     && before.versions.length === 1 && before.versions[0] === 'aaaaaaaaaaaa' && before.by.aaaaaaaaaaaa === before.n,
   `${before.n} modules, ${before.unversioned} unversioned`);
@@ -210,8 +224,10 @@ try {
   await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
 
   await page.evaluate("sessionStorage.setItem('fdfpv.room', 'K7PZ2M'); true");
+  const reloadFrom = stamped.requests.length;
   await reloadAndWait(page, "document.querySelector('.update-bar:not(.room-bar) .update-reload').click(); true");
   const after = await page.evaluate(SERVED);
+  after.wasm = wasmAsked(stamped, reloadFrom);
   check('after Reload every module is the new deploy\'s', after.n > 50 && after.unversioned === 0
     && after.by.bbbbbbbbbbbb === after.n && after.versions.join() === 'bbbbbbbbbbbb',
   `${after.n} modules, ${JSON.stringify(after.by)}`);
@@ -222,6 +238,23 @@ try {
     await page.evaluate("sessionStorage.getItem('fdfpv.room') === 'K7PZ2M'"));
   const polls = stamped.requests.filter((u) => u.startsWith('/version.json')).length;
   check('version.json was asked for', polls >= 2, `${polls} requests`);
+
+  /* The 2026-10-09 CI red: a focus that arrives while an answer is still on
+   * its way was dropped, so the deploy was not seen until the next poll,
+   * three minutes out, and the check's 20 s wait expired. Here the answer
+   * takes 3 s, the deploy lands and a focus asks again inside that window;
+   * the deploy must be seen well before any poll. */
+  console.log('3. a focus while an answer is still on its way');
+  stamped.slowMs = 3000;
+  await page.evaluate('window.dispatchEvent(new Event("focus")); true');
+  await page.sleep(500);
+  stamped.version = 'cccccccccccc';
+  await page.evaluate("window.__ui.show('title'); window.dispatchEvent(new Event('focus')); true");
+  const t0 = Date.now();
+  await page.until('window.__ui.updateReady', 20000);
+  check('the deploy under the in-flight answer is seen by the ask that followed it',
+    await page.evaluate('!window.__ui.updateBar.hidden'), `${Date.now() - t0} ms`);
+  stamped.slowMs = 0;
   if (page.errors.length) {
     console.log(`  note  ${page.errors.length} page errors, first: ${page.errors.slice(0, 3).join(' | ')}`);
   }

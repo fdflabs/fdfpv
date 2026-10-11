@@ -16,9 +16,9 @@
  *   under the crowns  (a trunk's foot by each concealment route between
  *                     its openings, 25 m from any of them) blocked from
  *                     every pose at 75 degrees and over and from all but
- *                     two of the 60 (the forest is 93 % closed, as a real
- *                     one is not quite, and a rare low line threads its
- *                     natural gaps);
+ *                     UNDER_SEEN of the 60 (the forest is 93 % closed,
+ *                     as a real one is not quite, and a rare low line
+ *                     threads the gaps between the crowns' lobes);
  *   in a gap          (each route's two, 7 to 9 m) open from overhead
  *                     (88 degrees) from every bearing, and hidden from
  *                     most bearings at 30;
@@ -43,13 +43,16 @@
  * the digest is printed, and with --browser the page computes it again
  * with the same modules and must match it to the bit.
  *
- * THE DRAWN CROWNS (--browser). The map is built, the camera parked over
- * the camp, and 3000 lines from 60 to 250 m up to the ground round it
- * are cast at the drawn crowns (three's Raycaster on the near and mid
- * tiers' instanced meshes) and asked of canopyBlocks. A disagreement is
- * allowed only where the line passes within SKIN_M of a crown's true
- * surface (the drawn polyhedron straddles the ellipsoid, trees.js fitOf):
- * any other fails the run, and the agreement must be at least AGREE.
+ * THE DRAWN CROWNS (--browser). The map is built and the camera parked
+ * 120 m over the camp. The near and mid tiers are drawn alone, by their
+ * own shaders (which cut each crown to its lobes, crownshape.js), and
+ * 3000 lines from the eye to a person's chest on the ground round the
+ * camp are asked of the pixel each lands on and of canopyBlocks. A
+ * disagreement is allowed only where the line passes within SKIN_M of a
+ * lobe's surface (the clumps' hollows, a pixel's width): any other fails
+ * the run, and the agreement must be at least AGREE. It is the drawn
+ * picture that is tested, so a gap a pilot sees through is one the room
+ * leaves open.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -77,11 +80,17 @@ import {
   landEdit, OPENINGS, PLACES, opened,
 } from '../src/share/interior/places.js';
 import { makeCanopy, hash01 } from '../src/share/interior/canopy.js';
+import { LOBES, LOBE_DATA } from '../src/render/library/crownshape.js';
 import { makeRoutes, ROUTES, CONCEAL_POINTS } from '../src/share/interior/routes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const browser = process.argv.includes('--browser');
 const SKIN_M = 0.6;
+/* How many of the 60 orbit poses may see a point under the crowns: the
+ * 7 % the forest is open, of 60, rounded down. It was 2 while a crown
+ * was a whole ellipsoid; lobed crowns (crownshape.js) open their edges
+ * as a real crown's are, and a low look threads them a little more. */
+const UNDER_SEEN = 4;
 const AGREE = 0.97;
 const CHEST = 1.2;
 const SLANT = 900;
@@ -162,7 +171,7 @@ for (const k of ['west', 'mid', 'east']) {
 }
 
 const EXPECT = {
-  under: (n) => (DEPS.reduce((a, d) => a + n[d], 0) <= 2 && n[75] === 0 && n[88] === 0) || 'seen from more than 2 of the 60 poses, or from overhead',
+  under: (n) => (DEPS.reduce((a, d) => a + n[d], 0) <= UNDER_SEEN && n[75] === 0 && n[88] === 0) || `seen from more than ${UNDER_SEEN} of the 60 poses, or from overhead`,
   gap: (n) => (n[88] === BEARINGS && n[30] <= BEARINGS / 2) || 'not open overhead, or open from most bearings at 30 degrees',
   clearing: (n) => (n[60] === BEARINGS && n[75] === BEARINGS && n[88] === BEARINGS) || 'not open from every bearing at 60 degrees and over',
   camp: (n) => [45, 60, 75, 88].every((d) => n[d] === BEARINGS) || 'not open from every bearing at 45 degrees and over',
@@ -261,65 +270,90 @@ if (browser) {
     if (pageDigest !== digest) {
       fail(`the page's canopy answers differ from Node's (${pageDigest} against ${digest})`);
     }
-    /* The drawn crowns, the camera parked over the camp. */
+    /* The drawn crowns, the camera parked over the camp: the near and mid
+     * tiers drawn alone by their own shaders, which cut each crown to its
+     * lobes, and every line from the eye to a point on the ground asked
+     * of the pixel it lands on and of canopyBlocks. */
     const [cx, cz] = PLACES.claroViejo.at;
     const cy = world.groundAt(cx, cz);
-    await page.evaluate(`(window.__setCam(${cx}, ${cy + 120}, ${cz + 40}, ${cx}, ${cy}, ${cz}, 44), "")`);
+    const eye = [cx, cy + 120, cz + 40];
+    await page.evaluate(`(window.__setCam(${eye[0]}, ${eye[1]}, ${eye[2]}, ${cx}, ${cy}, ${cz}, 44), "")`);
     await page.until(`(() => { const u = window.__mapScene().userData.interior; return u.trees.stats().pending === 0 && u.trees.stats().near > 0; })()`, 60000);
     await page.sleep(1000);
     const rays = [];
     for (let k = 0; k < 3000; k += 1) {
-      const tx = cx + (hash01(k, 11, 5) - 0.5) * 300;
-      const tz = cz + (hash01(k, 12, 5) - 0.5) * 300;
-      const ty = world.groundAt(tx, tz) + CHEST;
-      const fx = tx + (hash01(k, 13, 5) - 0.5) * 160;
-      const fz = tz + (hash01(k, 14, 5) - 0.5) * 160;
-      const fy = ty + 60 + 190 * hash01(k, 15, 5);
-      rays.push([[fx, fy, fz], [tx, ty, tz]]);
+      const tx = cx + (hash01(k, 11, 5) - 0.5) * 180;
+      const tz = cz + (hash01(k, 12, 5) - 0.5) * 160;
+      rays.push([eye, [tx, world.groundAt(tx, tz) + CHEST, tz]]);
     }
     const drawn = await page.evaluate(`(async () => {
       const THREE = await import('three');
       const u = window.__mapScene().userData.interior;
-      /* An instanced mesh caches its bounds the first time it is asked;
-       * these tiers are refilled as the camera moves, so ask again. */
-      for (const m of [u.trees.near, u.trees.mid]) {
-        m.updateMatrixWorld();
-        m.boundingSphere = null;
-        m.computeBoundingSphere();
+      const W = 1280;
+      const H = 720;
+      const canvas = document.createElement('canvas');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+      renderer.setSize(W, H, false);
+      renderer.setClearColor(0xff00ff, 1);
+      const camera = new THREE.PerspectiveCamera(44, W / H, 0.5, 4000);
+      camera.position.set(${eye.join(', ')});
+      camera.lookAt(${cx}, ${cy}, ${cz});
+      camera.updateMatrixWorld();
+      const scene = new THREE.Scene();
+      const tiers = [u.trees.near, u.trees.mid];
+      const homes = tiers.map((m) => m.parent);
+      for (const m of tiers) {
+        scene.add(m);
       }
-      const rc = new THREE.Raycaster();
-      const out = [];
-      for (const [a, b] of ${JSON.stringify(rays)}) {
-        const o = new THREE.Vector3(...a);
-        const d = new THREE.Vector3(...b).sub(o);
-        const len = d.length();
-        rc.set(o, d.normalize());
-        rc.far = len;
-        out.push(rc.intersectObjects([u.trees.near, u.trees.mid], false).length > 0 ? 1 : 0);
-      }
-      return out;
+      const target = new THREE.WebGLRenderTarget(W, H);
+      renderer.setRenderTarget(target);
+      renderer.render(scene, camera);
+      const px = new Uint8Array(W * H * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, W, H, px);
+      renderer.setRenderTarget(null);
+      tiers.forEach((m, i) => homes[i].add(m));
+      target.dispose();
+      renderer.dispose();
+      const v = new THREE.Vector3();
+      return ${JSON.stringify(rays)}.map(([, b]) => {
+        v.set(...b).project(camera);
+        if (Math.abs(v.x) > 0.98 || Math.abs(v.y) > 0.98 || v.z > 1) {
+          return -1;
+        }
+        const x = Math.round((v.x * 0.5 + 0.5) * (W - 1));
+        const y = Math.round((v.y * 0.5 + 0.5) * (H - 1));
+        const i = (y * W + x) * 4;
+        return px[i] === 255 && px[i + 1] === 0 && px[i + 2] === 255 ? 0 : 1;
+      });
     })()`);
-    /* How close a line comes to a crown's true skin, metres. */
+    /* How close a line comes to a crown's lobes' skin, metres. */
     const skin = ([a, b]) => {
       let best = Infinity;
       const xs = [a[0], b[0]];
       const zs = [a[2], b[2]];
       for (const t of canopy.treesIn(Math.min(...xs) - 8, Math.min(...zs) - 8, Math.max(...xs) + 8, Math.max(...zs) + 8, [])) {
-        let lo = Infinity;
         for (let s = 0; s <= 400; s += 1) {
-          const u = s / 400;
-          const qx = (a[0] + (b[0] - a[0]) * u - t.x) / t.r;
-          const qy = (a[1] + (b[1] - a[1]) * u - t.cy) / t.ry;
-          const qz = (a[2] + (b[2] - a[2]) * u - t.z) / t.r;
-          lo = Math.min(lo, Math.sqrt(qx * qx + qy * qy + qz * qz));
+          const f = s / 400;
+          const qx = (a[0] + (b[0] - a[0]) * f - t.x) / t.r;
+          const qy = (a[1] + (b[1] - a[1]) * f - t.cy) / t.ry;
+          const qz = (a[2] + (b[2] - a[2]) * f - t.z) / t.r;
+          for (let k = 0; k < LOBES; k += 1) {
+            const i = (t.lobe * LOBES + k) * 4;
+            const d = Math.hypot(qx - LOBE_DATA[i], qy - LOBE_DATA[i + 1], qz - LOBE_DATA[i + 2]) - LOBE_DATA[i + 3];
+            best = Math.min(best, Math.abs(d) * Math.min(t.r, t.ry));
+          }
         }
-        best = Math.min(best, Math.abs(lo - 1) * Math.min(t.r, t.ry));
       }
       return best;
     };
     let agree = 0;
     let hard = 0;
+    let asked = 0;
     rays.forEach((ray, k) => {
+      if (drawn[k] < 0) {
+        return;
+      }
+      asked += 1;
       const room = canopy.canopyBlocks(ray[0], ray[1]) ? 1 : 0;
       if (room === drawn[k]) {
         agree += 1;
@@ -333,8 +367,8 @@ if (browser) {
         }
       }
     });
-    const share = agree / rays.length;
-    console.log(`drawn crowns: ${(100 * share).toFixed(1)} % of ${rays.length} lines agree with canopyBlocks; ${hard} disagree away from a crown's skin`);
+    const share = agree / asked;
+    console.log(`drawn crowns: ${(100 * share).toFixed(1)} % of ${asked} lines in view agree with canopyBlocks; ${hard} disagree away from a crown's skin`);
     if (share < AGREE) {
       fail(`only ${(100 * share).toFixed(1)} % of lines agree with the drawn crowns, under ${100 * AGREE} %`);
     }

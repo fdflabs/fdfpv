@@ -228,6 +228,9 @@ function seed(airframe, map, damage) {
     graphicsAuto: false,
     crashDamage: damage,
     sound: false,
+    /* CONTACT_LIVERY: a livery map to fly the throws in, held to the same
+     * stock record (scripts/kits-replay.js: a visual kit is pixels only). */
+    ...(process.env.CONTACT_LIVERY ? { livery: JSON.parse(process.env.CONTACT_LIVERY) } : {}),
   };
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};

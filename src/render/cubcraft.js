@@ -103,6 +103,7 @@ import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { buildFloatSet } from './floatset.js';
 import { paintRegions } from './livery.js';
+import { spinnerFor } from './kitshapes.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -828,6 +829,10 @@ export function buildCubCraft(opts = {}) {
   const fog = opts.fog !== false;
   const lite = Boolean(opts.lite);
   const onFloats = Boolean(opts.floats);
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from.
+   * On floats there are no wheels, so the wheels slot draws nothing. */
+  const kit = opts.kit ?? {};
   const inkOn = !lite;
   const shade = !lite;
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
@@ -955,7 +960,10 @@ export function buildCubCraft(opts = {}) {
         new THREE.Vector3().lerpVectors(root, axle, 0.62),
         0.0056, rodSeg,
       ));
-      const tyre = new THREE.TorusGeometry(MAIN_R - 0.011, 0.011, 6, lite ? 16 : 20);
+      /* A kit's tundra tyres: the same diameter, so the Cub sits where it
+       * did, on a balloon half as wide again. */
+      const tube = kit.wheels === 'tundra' ? 0.0165 : 0.011;
+      const tyre = new THREE.TorusGeometry(MAIN_R - tube, tube, 6, lite ? 16 : 20);
       tyre.rotateY(Math.PI / 2);
       tyre.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
       parts.push(tyre);
@@ -1132,7 +1140,7 @@ export function buildCubCraft(opts = {}) {
       const r = Math.max(0.0005, SPINNER_R * Math.sqrt(1 - u * u));
       prof.push(new THREE.Vector2(r, back + 0.004 + (len - back - 0.004) * u));
     }
-    const spinner = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 10 : 14), metal);
+    const spinner = new THREE.Mesh(new THREE.LatheGeometry(spinnerFor(kit.spinner, prof, SPINNER_R, back, len, m), lite ? 10 : 14), metal);
     spinner.name = 'spinner';
     spinner.castShadow = shade;
     propMount.add(spinner);

@@ -29,7 +29,10 @@
  * the war's with its mission, a quick join on its world never handed it,
  * and a public room not made for the war still refuses the war. Its
  * lobby: in the welcome, two pilots ready, both told the five seconds, and
- * the room starting the drill's briefing on its own.
+ * the room starting the drill's briefing on its own, a watcher there
+ * counted in nobody's ready. The watch seat: the private room full, a
+ * watcher seated anyway with every pilot's pose, its own pose and chat
+ * relayed to nobody, never announced, capped at WATCH_CAP.
  *
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
@@ -75,7 +78,7 @@ import WebSocket from 'ws';
 import {
   ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
-import { ABANDON_MS, TEXT_CLOSE_PER_S } from '../edge/rooms/core.js';
+import { ABANDON_MS, TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
 import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
@@ -449,6 +452,49 @@ check('a hidden tab that answers pings and sends nothing is still seated after 6
   hidden.closed === null && !a.text('leave').some((m) => m.seat === hidden.welcome.seat), JSON.stringify(hidden.closed));
 hidden.ws.close(1000);
 
+console.log('the watch seat (docs/FLIGHTCLUB-PROGRESSION.md section 3)');
+/* The room filled to its cap of eight with pilots: a ninth pilot is
+ * refused, a watcher is seated all the same, and so are up to WATCH_CAP. */
+const fillers = [];
+for (let i = 0; i < 6; i += 1) {
+  fillers.push(await seat(`room/${code}`, { name: [5, 6, 20 + i] }));
+}
+const ninth = await seat(`room/${code}`, { name: [5, 6, 30] });
+check('a room at its cap refuses a ninth pilot', Boolean(ninth.closed) && ninth.closed.code === CLOSE.full, JSON.stringify(ninth.closed));
+const joinsBefore = a.text('join').length;
+const w = await seat(`room/${code}`, { name: [8, 9, 10], watch: true });
+check('but seats a watcher: not counted against the cap, seat 0, every pilot in its welcome', Boolean(w.welcome) && !w.closed
+  && w.welcome.watch === true && w.welcome.seat === 0 && w.welcome.peers.length === 8, JSON.stringify(w.welcome && { seat: w.welcome.seat, peers: w.welcome.peers.length }));
+a.ws.send(pose(a, 30));
+const watched = await w.until((x) => x.got.find((m) => m instanceof Uint8Array && decodeBatch(m)?.poses.some((q) => q.seat === 1)));
+check('the watcher gets the pilots\' poses', Boolean(watched));
+const batchesBefore = b.got.filter((m) => m instanceof Uint8Array).length;
+w.ws.send(pose(w, 40));
+w.say({ type: 'event', kind: 'chat', id: 1 });
+await sleep(400);
+const fromWatcher = b.got.filter((m) => m instanceof Uint8Array).slice(batchesBefore).some((m) => decodeBatch(m)?.poses.some((q) => q.seat === 0));
+check('a pose from the watcher reaches nobody, nor a chat', !fromWatcher && !b.text('event').some((m) => m.kind === 'chat' && m.seat === 0));
+check('and the pilots were never told a watcher came', a.text('join').length === joinsBefore, `${a.text('join').length - joinsBefore} joins`);
+const watchers = [w];
+for (let i = 1; i < WATCH_CAP; i += 1) {
+  watchers.push(await seat(`room/${code}`, { name: [8, 9, 10 + i], watch: true }));
+}
+check(`${WATCH_CAP} watchers are seated`, watchers.every((x) => x.welcome && x.welcome.watch === true && !x.closed));
+const tooMany = await seat(`room/${code}`, { name: [8, 9, 30], watch: true });
+check('one more watcher is refused full', Boolean(tooMany.closed) && tooMany.closed.code === CLOSE.full, JSON.stringify(tooMany.closed));
+fillers[0].ws.close(1000);
+check('a pilot leaving is news to the watcher', Boolean(await w.until((x) => x.text('leave').find((m) => m.seat === fillers[0].welcome.seat))));
+const leavesBefore = a.text('leave').length;
+for (const x of watchers) {
+  x.ws.close(1000);
+}
+await sleep(300);
+check('watchers leaving tell the pilots nothing', a.text('leave').length === leavesBefore);
+for (const x of fillers.slice(1)) {
+  x.ws.close(1000);
+}
+await sleep(200);
+
 console.log('a room made for the war');
 await sleep(Math.max(0, 61000 - (Date.now() - minuteFrom)));
 check('the private room made for nothing says no game and no mission', a.welcome.mode === null && a.welcome.mission === null,
@@ -499,9 +545,19 @@ if (pub.open) {
   const pw2 = await seat(`room/${pubWar}`, { war: WAR_JOIN, name: [3, 6, 41] });
   check('its lobby is in the welcome: the drill, nobody ready', pw2.welcome && pw2.welcome.lobby && pw2.welcome.lobby.mission === 'itaipu-drill'
     && JSON.stringify(pw2.welcome.lobby.ready) === '{}', JSON.stringify(pw2.welcome && pw2.welcome.lobby));
+  /* A watcher in the lobby: its ready is nobody's, and everyone ready
+   * is the two pilots alone. */
+  const pww = await seat(`room/${pubWar}`, { war: WAR_JOIN, name: [3, 7, 41], watch: true });
+  pww.say({ type: 'lobby', op: 'ready', ready: true });
+  await sleep(300);
+  check('a watcher in the war\'s lobby is seated, and its ready counts for nobody', Boolean(pww.welcome && pww.welcome.watch)
+    && !pw.text('lobby').some((m) => Object.keys(m.lobby.ready).length), JSON.stringify(pw.text('lobby').map((m) => m.lobby.ready)));
   pw.say({ type: 'lobby', op: 'ready', ready: true });
   pw2.say({ type: 'lobby', op: 'ready', ready: true });
   const counting = await pw2.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt !== null && m.lobby.ready['1'] && m.lobby.ready['2']));
+  check('the two pilots ready start the five seconds with the watcher there, never counted', Boolean(counting)
+    && JSON.stringify(Object.keys(counting.lobby.ready).sort()) === '["1","2"]', JSON.stringify(counting && counting.lobby.ready));
+  pww.ws.close(1000);
   check('both say ready: both are told the five seconds', Boolean(counting && await pw.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt === counting.lobby.countdownAt))),
     JSON.stringify(counting && counting.lobby));
   check('and the room starts the drill\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'briefing'), 9000)

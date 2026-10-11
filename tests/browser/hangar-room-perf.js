@@ -60,6 +60,17 @@ window.__run = async ({ preset, tier, naive = false, craft = 'cub1400', frames =
   view.setRoom(tier);
   const model = craft ? dressLivery(craftBuilderFor(craft)({ name: 'room-craft', fog: false }), craft) : null;
   view.setCraft(model);
+  /* A full trophy wall, every slot taken. */
+  view.setTrophies(Array.from({ length: 18 }, (_, i) => `mission:m${i}:win`));
+  /* And a full photo wall: six pictures, the size the shell makes them. */
+  const pics = await Promise.all(Array.from({ length: 6 }, (_, i) => {
+    const c = new OffscreenCanvas(512, 288);
+    const g = c.getContext('2d');
+    g.fillStyle = `hsl(${i * 60}, 50%, 50%)`;
+    g.fillRect(0, 0, 512, 288);
+    return createImageBitmap(c);
+  }));
+  view.setPhotos(pics);
   const room = ROOMS[tier];
   const occ = occupancy(room, LAYOUTS[tier]);
   let pose = startPose(room);

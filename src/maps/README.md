@@ -65,9 +65,9 @@ argument; it takes it anyway so `main.js` has one call shape.
 
 ### Roofs on alps and swiss2
 
-Every roof a map draws is ground (`alps/roofs.js`). A roof is recorded as
-its drawn upper faces: a roof shell a village frame puts, a lean-to, the
-bus shelter, a gondola station's slabs, a spire, a dormer, a garden shed,
+Every roof a map draws is ground (`src/render/library/roofs.js`, the asset
+library's). A roof is recorded as its drawn upper faces: a roof shell a
+village frame puts, a lean-to, the bus shelter, a gondola station's slabs, a spire, a dormer, a garden shed,
 a hut, a boathouse, the lake hamlet's houses and church, the ticket hut on
 the landing stage. `height(x, z, fromY)` offers the highest roof
 within the same 0.55 m step of `fromY` as a deck, so the plant's own ground

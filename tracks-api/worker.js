@@ -84,6 +84,7 @@ import {
 } from './http.js';
 import { accountRoute, isAdminToken, waitlistRoute } from './accounts.js';
 import { waitlistAdmin } from './waitlist.js';
+import { adminGalleryList, adminGallerySet, listGallery } from './gallery.js';
 import { adminAccounts, adminOverview, adminServer, adminServerSample } from './admin.js';
 
 const TRACK_ID_RE = /^trk-[0-9a-f]{8}$/;
@@ -376,6 +377,16 @@ async function route(request, env) {
   }
   if (path === '/api/tracks' && method === 'GET') {
     return listTracks(env, url);
+  }
+  if (path === '/api/gallery' && method === 'GET') {
+    return listGallery(env, url);
+  }
+  if (path === '/api/admin/gallery' && method === 'GET') {
+    return (await isAdmin(env, request)) ? adminGalleryList(env) : refuse(401, 'Not an admin.');
+  }
+  const adminLivery = path.match(/^\/api\/admin\/gallery\/([^/]+)$/);
+  if (adminLivery && method === 'POST') {
+    return (await isAdmin(env, request)) ? adminGallerySet(env, request, decodeURIComponent(adminLivery[1])) : refuse(401, 'Not an admin.');
   }
   if (path === '/api/account' || path.startsWith('/api/account/')) {
     return accountRoute(env, request, path);

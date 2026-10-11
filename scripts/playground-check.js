@@ -125,8 +125,8 @@ check('every component in the plan is in the playground', notDrawn.length === 0,
 check('every component in the playground is in the plan', notPlanned.length === 0, notPlanned.join(', '));
 
 console.log('playground: not for players');
-const pages = await read('.github/workflows/pages.yml');
-check('Pages leaves tests/browser out of the site', /--exclude\s+'tests\/browser'/.test(pages));
+const pages = await read('scripts/stage-site.sh');
+check('the staged site (Pages and previews) leaves tests/browser out of the site', /--exclude\s+'tests\/browser'/.test(pages));
 const served = ['index.html', 'privacy.html', 'terms.html', 'src/trackbuilder/index.html'];
 async function walk(dir) {
   const out = [];

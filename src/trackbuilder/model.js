@@ -38,6 +38,7 @@ import {
 } from './elements.js';
 import { apertureFrame, wrapAngle } from './geometry.js';
 import { str } from '../strings/index.js';
+import { cleanMedals } from '../game/medals.js';
 
 /* What a field track is written as. Version 2 stopped writing the single
  * branding.logo; 3 added trackClass. normalize() reads 1 and 2 as well. */
@@ -625,6 +626,10 @@ export function normalize(raw) {
   if (onMap) {
     doc.map = src.map;
   }
+  const medals = cleanMedals(src.medals);
+  if (medals) {
+    doc.medals = medals;
+  }
   return { doc, repairs };
 }
 
@@ -701,6 +706,12 @@ export function toPlain(doc) {
   out.credit = doc.credit ?? null;
   out.elements = doc.elements.map((el) => plainElement(el, onMap));
   out.sequence = doc.sequence.map(plainEntry);
+  /* Written only when set, so a course without medals serialises as it
+   * always did. */
+  const medals = cleanMedals(doc.medals);
+  if (medals) {
+    out.medals = medals;
+  }
   return out;
 }
 
@@ -730,6 +741,8 @@ export function duplicateTrack(doc, name) {
   const now = utcNow();
   copy.createdUtc = now;
   copy.modifiedUtc = now;
+  /* Medals are the maker's pace, and a copy's maker has not flown it. */
+  delete copy.medals;
   return copy;
 }
 

@@ -26,8 +26,11 @@
  * THE RULES, by section kind:
  *
  *   progress   XP is the higher of the two; courses flown, challenges
- *              done and the rest are flags, and a flag set on either side
- *              is set; Unlock all is on if either turned it on.
+ *              done, firsts paid and the rest are flags, and a flag set on
+ *              either side is set; Unlock all is on if either turned it
+ *              on; lessons passed are the union at the earlier pass
+ *              time; medals per course the better of the two; the
+ *              version is the newer of the two.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
  *   keyed      one entry per plane (or per tune, or per build), the newer
@@ -38,7 +41,8 @@
  *              that syncs a month late would bring the build back.
  *              combat is a combat aircraft's stock loadout by airframe id;
  *              builds is My Hangar by build id.
- *   whole      the section as one value, the newer stamp wins.
+ *   whole      the section as one value, the newer stamp wins: the tune,
+ *              the rates, and the pilot's swatch library ({ list }).
  *   flag       a yes the pilot gave, true once either side is: the
  *              replay notice for voice chat (voiceReplayAck,
  *              src/ui/voiceui.js), read and accepted on one computer,
@@ -52,6 +56,8 @@
  *              browser, merged counter by counter to the larger, so two
  *              computers flying offline both keep their time and a slot
  *              sent twice is counted once. Stamps play no part.
+ *   best       records, the best laps (src/share/records.js): per key
+ *              the lower lap. Stamps play no part.
  *
  * AT A TIE the account's value wins over the one just sent, and the one
  * just sent fills in where the account has none. A tie is nearly always
@@ -83,15 +89,18 @@
  */
 
 import { mergeCampaign } from '../game/campaign.js';
+import { betterMedal } from '../game/medals.js';
 import { retiredAirframe } from '../../configs/airframes.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
+import { cleanRecords, mergeRecords } from './records.js';
 import {
-  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS,
+  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX,
 } from '../../tracks-api/limits.js';
 
 export const SYNCED_SECTIONS = {
   progress: 'progress',
   liverySaves: 'union',
+  swatches: 'whole',
   livery: 'keyed',
   parts: 'keyed',
   power: 'keyed',
@@ -101,14 +110,17 @@ export const SYNCED_SECTIONS = {
   floats: 'keyed',
   tune: 'whole',
   rates: 'whole',
+  keybinds: 'whole',
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
+  packs: 'keyed',
   voiceReplayAck: 'flag',
   flightTime: 'devices',
+  records: 'best',
 };
 
-const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual'];
+const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts', 'lessonsFlown'];
 
 function isRecord(o) {
   return Boolean(o) && typeof o === 'object' && !Array.isArray(o);
@@ -133,6 +145,8 @@ const ENTRY_SHAPES = {
   builds: (key, b) => BUILD_ID_RE.test(key) && isRecord(b) && (b.id === undefined || b.id === key)
     && typeof b.name === 'string' && b.name.length >= 1 && b.name.length <= 40
     && typeof b.airframe === 'string' && ID_RE.test(b.airframe) && isRecord(b.fit) && when(b.created) && when(b.updated),
+  /* configs/wear.js holds the fields; the server holds the shape. */
+  packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
 };
 
 /*
@@ -167,7 +181,7 @@ export function currentBuild(b) {
  */
 export function blobRefusal(raw) {
   const data = isRecord(raw) && isRecord(raw.data) ? raw.data : {};
-  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES };
+  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES, packs: PACKS_MAX };
   for (const [section, shape] of Object.entries(ENTRY_SHAPES)) {
     const value = data[section];
     if (value === undefined) {
@@ -224,6 +238,12 @@ export function cleanBlob(raw) {
       }
       continue;
     }
+    if (kind === 'best') {
+      if (isRecord(value)) {
+        out.data[section] = cleanRecords(value);
+      }
+      continue;
+    }
     if (!(kind === 'whole' ? (value === null || typeof value === 'object' ? isRecord(value) : typeof value === 'string') : isRecord(value))) {
       continue;
     }
@@ -259,7 +279,30 @@ function mergeProgress(a, b) {
   for (const k of FLAG_MAPS) {
     out[k] = { ...(isRecord(b[k]) ? b[k] : {}), ...(isRecord(a[k]) ? a[k] : {}) };
   }
+  out.medals = {};
+  for (const k of new Set([...Object.keys(isRecord(a.medals) ? a.medals : {}), ...Object.keys(isRecord(b.medals) ? b.medals : {})])) {
+    const best = betterMedal(a.medals?.[k], b.medals?.[k]);
+    if (best) {
+      out.medals[k] = best;
+    }
+  }
   out.unlockAll = a.unlockAll === true || b.unlockAll === true;
+  /* Lessons passed: every lesson either passed, at the earlier pass. */
+  const la = isRecord(a.lessons) ? a.lessons : {};
+  const lb = isRecord(b.lessons) ? b.lessons : {};
+  out.lessons = {};
+  for (const id of [...new Set([...Object.keys(la), ...Object.keys(lb)])].sort()) {
+    const t = [la[id], lb[id]].filter((v) => Number.isFinite(v) && v > 0);
+    if (t.length) {
+      out.lessons[id] = Math.min(...t);
+    }
+  }
+  /* The newer shape of the two (progress.js PROGRESS_VERSION): an older
+   * build's sync must not mark merged progress as its own older version,
+   * or the next load would migrate it again. */
+  const va = Number.isInteger(a.v) ? a.v : 1;
+  const vb = Number.isInteger(b.v) ? b.v : 1;
+  out.v = Math.max(va, vb);
   return out;
 }
 
@@ -308,6 +351,8 @@ export function mergeBlobs(incoming, held) {
       merged = av === undefined && bv === undefined ? undefined : av === true || bv === true;
     } else if (kind === 'devices') {
       merged = av === undefined && bv === undefined ? undefined : mergeFlightTime(av, bv);
+    } else if (kind === 'best') {
+      merged = av === undefined && bv === undefined ? undefined : mergeRecords(av, bv);
     } else if (kind === 'whole') {
       merged = pick(stampOf(a.stamps, section), stampOf(b.stamps, section), av !== undefined, av, bv !== undefined, bv);
     } else {

@@ -37,7 +37,7 @@
  *
  * What is drawn is read from the page, not from the colliders: every
  * broadleaf the forest has drawn round the craft (its instance's matrix
- * and its variant's clumps, src/maps/swiss2/vegetation/species.js
+ * and its variant's clumps, src/render/library/vegetation/species.js
  * crownClumps, CLUMP_REACH), its drawn bark, and the drawn craft's own
  * vertices.
  *
@@ -151,7 +151,7 @@ function seeds(airframe) {
 /* Installed once in the page: the drawn broadleaves round a point and the
  * drawn craft's vertices, world frame. */
 const HELPERS = `(async () => {
-  const sp = await import('/src/maps/swiss2/vegetation/species.js');
+  const sp = await import('/src/render/library/vegetation/species.js');
   const THREE = window.__three;
   const broad = new Map(sp.VARIANTS.filter((v) => v.kind === 'beech' || v.kind === 'maple').map((v) => [v.name, v]));
   const clumpsOf = new Map([...broad].map(([n, v]) => [n, sp.crownClumps(v).clumps]));

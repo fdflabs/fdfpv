@@ -64,15 +64,19 @@ Proposed, as a sibling keyed the same way:
 entry.wear = { v: 1, parts: { [i]: w } }   // w in [0, 1]: 0 new, 1 worn out
 ```
 
-and three display bands, exported by the parts lane next to the shape:
-`w < 0.5` good, `0.5 <= w < 0.85` worn, `w >= 0.85` needs repair. Wear
-exists only in career and war (owner 2026-10-05); casual modes read no
-wear. Until the parts lane confirms or changes this in the plan file, the
-in-flight and debrief wear display is built against a fixture of this
-shape and not wired.
+and three display bands: `w < 0.5` good, `0.5 <= w < 0.85` worn, `w >= 0.85`
+needs repair. Adopted by the lead 2026-10-07; the parts lane's
+configs/wear.js holds the record (`wearRecordOf`), and src/game/damage.js
+holds the bands (`WEAR_BANDS`, `wearBand`) and `worstWorn(record, kinds)`,
+the one part the pilot is told about. Wear exists only in career and war
+(owner 2026-10-05); casual modes read no wear.
 
-In flight, wear is shown once, before arming: the disarmed row reads
-`WORN MOTOR` for the worst part past the worn band. Wear changes nothing
+In flight, wear is shown before arming: the OSD's warning row reads
+`WORN: MOTOR` (or `REPAIR: MOTOR` past the repair band) for the worst part,
+and the Avionics HUD's DMG row reads WORN or REPAIR with the part. The
+shell hands it as the OSD context's `worn`, set from the career or war
+sortie (the parts lane's wiring); with no sortie it is null and nothing
+shows. Wear changes nothing
 in the physics from this lane; whether wear changes thrust or strength is
 the parts lane's call and its own determinism check.
 
