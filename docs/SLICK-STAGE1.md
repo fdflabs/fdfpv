@@ -345,8 +345,10 @@ INTRO_SPAN), or its lens would orbit inside this wing.
 - The figures: `npm run slick:figures` flies figures-plant-check.js's
   person paced pilot on it (loop 7, aileron roll 8.5, a sagging 4-point
   roll 6.5, nothing else named); `callouts:check -- --airframe=slick2680` passes
-  32 of 32 with it seated in Free Flight. Trick Battle's runner scores with
-  the same detector and scorer.
+  32 of 32 with it seated in Free Flight. Trick Battle was NOT run on it
+  (`jam:twopage` throws a quad with no forward speed); its runner scores
+  with the same figure detector and scorer the Free Flight callouts
+  exercised.
 
 ## What the owner should feel flying it
 
