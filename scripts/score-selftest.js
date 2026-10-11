@@ -1236,7 +1236,10 @@ if (!existsSync(wasmPath)) {
     const f = await rig(field);
     const mod = await loadSim(wasmBytes);
     mod.init(diffText);
-    if (mod.e.sim_bf_debug(41) !== ACTUAL || mod.e.sim_bf_debug(42) !== RATE_DEFAULTS.roll.srate) {
+    /* The module reports its rate type and roll's rate only; pitch is
+     * assumed the same profile, as RATE_DEFAULTS has it. */
+    if (mod.e.sim_bf_debug(41) !== ACTUAL || mod.e.sim_bf_debug(42) !== RATE_DEFAULTS.roll.srate
+      || RATE_DEFAULTS.pitch.srate !== RATE_DEFAULTS.roll.srate) {
       throw new Error('the pilot inverts Actual rates at configs/rates.js RATE_DEFAULTS; the module flies others');
     }
     const seen = [];
