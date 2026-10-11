@@ -140,3 +140,30 @@ Add a section per phase or mission (newest last) with:
 7. **For Itaipu:** the war's HUD can take the quiet HUD's one rule
    (`markOf`, a mark only for what the room has said) as a mode, and the
    room's `sight()` is the right basis for any sensor a room judges.
+
+## Mission 2
+
+### Lane interior2 (2026-10-07 to 2026-10-08)
+
+1. **What landed:** Mission 2's data, routes and places (#786: CONTRACT-M2.md
+   lists each gap and its status), its radio and films voiced, its camps
+   on the map, the debrief row; holds (N15) in their own PRs (#827, #836
+   and after).
+2. **Measured, not guessed:** every place in MISSIONS 1.9's first layout
+   was under the canopy on the real land (a watcher there is never seen,
+   from the side or overhead): each was moved to the nearest ground open
+   from seven of eight sides at 250 m. A scripted solo run took 39 to 43
+   min with 1.9's zones against the script's 25 to 35; with the zones
+   within 2 km of the property, 30 and 34. The collide sweep must judge a
+   far camp with the camera over it: the LOD ground there is up to 3 m off
+   the true one.
+3. **Campaign agnostic, and where not:** nothing in src/share/ops/ names
+   Mission 2. The map grew a second camp from the same builder (camp.js
+   takes its layout) shown per mission (`camp.world`), and film.js a line
+   said instead when a campaign flag is not set (`or`), both general.
+4. **Roles at scale:** not flown with a squad yet.
+5. **Guides:** eight briefs (int2-g-*), one per primary objective.
+6. **The owner's flight:** none yet.
+7. **For Itaipu:** lay a mission's places on the land before writing its
+   data, and time a scripted pilot at the real aircraft's speed against
+   the script's length before anything else.

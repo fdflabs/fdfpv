@@ -11,9 +11,9 @@
  * lighter and yellower at the crown's rim where the sun comes through
  * the outer leaves, so a forest is many greens and not one.
  *
- * THE FAR TREES, past the models' band: swiss2's impostors
- * (swiss2/vegetation/impostor.js), every kind photographed from 24 sides
- * at load and drawn as one camera facing quad a tree, all kinds in one
+ * THE FAR TREES, past the models' band: the library's impostors
+ * (src/render/library/vegetation/impostor.js), every kind photographed
+ * from 24 sides at load and drawn as one camera facing quad a tree, all kinds in one
  * draw. They carry on where nothing else draws a tree: the fields', the
  * parks', the eucalyptus rows, the forest's edge and its emergents
  * standing over the canopy, to FAR. The closed forest's inside stops at
@@ -54,13 +54,13 @@
  */
 
 import * as THREE from 'three';
-import { makeRng } from '../../alps/noise.js';
-import { REGIONS } from '../../swiss2/vegetation/atlas.js';
+import { makeRng } from '../../../render/library/noise.js';
+import { REGIONS } from '../../../render/library/vegetation/atlas.js';
 import {
   buildVariant, crownClumps, triangles, CLUMP_REACH,
-} from '../../swiss2/vegetation/species.js';
-import { plantMaterial, plantDepthMaterial } from '../../swiss2/vegetation/plantmat.js';
-import { bakeImpostors, impostorMaterial, impostorDepthMaterial } from '../../swiss2/vegetation/impostor.js';
+} from '../../../render/library/vegetation/species.js';
+import { plantMaterial, plantDepthMaterial } from '../../../render/library/vegetation/plantmat.js';
+import { bakeImpostors, impostorMaterial, impostorDepthMaterial } from '../../../render/library/vegetation/impostor.js';
 import {
   HALF, KINDS, YAW_COS, YAW_SIN,
 } from './plant.js';
@@ -427,8 +427,8 @@ function bakeFar(builds, atlases, frame = 128) {
  * number arrives a hair under the whole number it was: at a frame on the
  * atlas's left edge (every seventeenth) the floor lands a row short, and
  * the far crowns were black bands. Here the number is rounded first, in
- * the drawn and the shadow material alike. swiss2/vegetation/impostor.js
- * has the same line.
+ * the drawn and the shadow material alike.
+ * src/render/library/vegetation/impostor.js has the same line.
  */
 const FRAME_CELL = /vec2 cell = vec2\(mod\(f, (\d+)\.0\), floor\(f \/ \d+\.0\)\);/;
 function roundFrames(mat) {

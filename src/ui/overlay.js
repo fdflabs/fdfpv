@@ -55,7 +55,7 @@ const RUN_LATE_MS = 10_000;
 
 /* String keys, resolved per frame through str() so a locale change reads
  * right on the next frame. */
-const FLIGHT_MODE_KEYS = { angle: 'ui.angle', stab: 'ui.stabilised', manual: 'ui.manual' };
+const FLIGHT_MODE_KEYS = { angle: 'ui.angle', stab: 'ui.stabilised', manual: 'ui.manual', as3x: 'ui.as3x' };
 const FLAP_KEYS = ['ui.flaps_up', 'ui.flaps_half', 'ui.flaps_full'];
 const GEAR_KEYS = { up: 'ui.gear_up', down: 'ui.gear_down' };
 

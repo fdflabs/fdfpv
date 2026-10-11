@@ -35,6 +35,7 @@
  */
 
 import { stickChannels } from './stickmode.js';
+import { profileFor } from './padprofiles.js';
 
 export const FLIGHT_CHANNELS = ['roll', 'pitch', 'yaw', 'throttle'];
 
@@ -63,8 +64,6 @@ const ELRS_BLE_MAP = {
   yaw: centred(4, 1),
   throttle: throttleOn(3, -1, 1),
 };
-const ELRS_BLE = 'elrs-bluetooth';
-const ELRS_BLE_NAME = /^ExpressLRS Joystick/;
 
 /* W3C standard gamepad: left stick on axes 0 and 1, right on 2 and 3,
  * right and down positive. */
@@ -92,16 +91,14 @@ export function standardPadMap(mode) {
  * Which built-in layout a device vouches for: the stick mode for a
  * standard gamepad, a name for a recognised radio, 0 when AETR is only a
  * guess. Truthy means known; a change means the map has to be rebuilt.
+ * Which devices are known is padprofiles.js.
  */
 export function builtInKind(gp, mode) {
-  if (!gp) {
+  const profile = profileFor(gp);
+  if (!profile.vouched) {
     return 0;
   }
-  if (gp.mapping === 'standard') {
-    return mode;
-  }
-  const named = ELRS_BLE_NAME.test(gp.id || '');
-  return named && gp.axes.length > 4 ? ELRS_BLE : 0;
+  return profile.key === 'standard' ? mode : profile.key;
 }
 
 export function builtInMap(gp, mode) {
@@ -109,7 +106,7 @@ export function builtInMap(gp, mode) {
   if (!kind) {
     return AETR_MAP;
   }
-  return kind === ELRS_BLE ? ELRS_BLE_MAP : standardPadMap(mode);
+  return kind === 'elrs-bluetooth' ? ELRS_BLE_MAP : standardPadMap(mode);
 }
 
 /* All four flips, as booleans, whatever came in. */

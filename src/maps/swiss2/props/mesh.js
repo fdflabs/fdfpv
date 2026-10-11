@@ -20,7 +20,7 @@
  */
 
 import * as THREE from 'three';
-import { roofTop } from '../../alps/roofs.js';
+import { roofTop } from '../../../render/library/roofs.js';
 
 export const UP = new THREE.Vector3(0, 1, 0);
 
@@ -143,7 +143,7 @@ export function albedoOf(key) {
  * in the props' one static mesh at every distance, so a building whose
  * kit geometry is drawn only near (bake.js) is still there from afar and
  * casts its shadow, for no draw of its own. It is made from the
- * building's roof record (alps/roofs.js), whose walls are the roof's own
+ * building's roof record (library/roofs.js), whose walls are the roof's own
  * rectangle: the walls `inset` inside it, from `low` to a hand under the
  * roof's underside, and the roof's upper faces lowered into the drawn
  * roof's thickness (and by its sag) and drawn upward only. So wherever

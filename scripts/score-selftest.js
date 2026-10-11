@@ -851,7 +851,10 @@ section('obstacle tricks on constructed paths');
   {
     const p = new Path(barField());
     p.approach(BAR, 4, 0, 500, 8, false);
-    p.arcBar(BAR, 4, 0, -1, 1400, [0, 0, 0], 0);
+    /* Nose along the rail, so the lap turns the body once about it on roll
+     * and the craft is inverted over the top: thrust has to point at the
+     * middle of a circle to fly one (trickdetect.js, Maverick Loop). */
+    p.arcBar(BAR, 4, 0, -1, 1400, [1, 0, 0], 1);
     p.cruise(900, -8);
     const got = p.finish();
     check('the same lap without the flip is a Maverick Loop', got === 'Maverick Loop');

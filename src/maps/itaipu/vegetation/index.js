@@ -44,8 +44,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { loadAtlases } from '../../swiss2/vegetation/atlas.js';
-import { windUniforms } from '../../swiss2/vegetation/plantmat.js';
+import { loadAtlases } from '../../../render/library/vegetation/atlas.js';
+import { windUniforms } from '../../../render/library/vegetation/plantmat.js';
 import {
   CROWN_SPHERES, DENSE_M, FILL_SLICE_TREES, HALF, KINDS, NEAR_MOVE, NEAR_R,
   addTree, canopyHeight, decodePng, heroCanopy, keepOff, makeCanopyAt, nearTrees, onCut, plantHero,

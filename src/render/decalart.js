@@ -253,6 +253,21 @@ const DRAW = {
     tongues(1, 1, d.c);
     tongues(0.62, 0.5, d.c2);
   },
+  ribbon(g, d, w) {
+    /* A campaign ribbon bar (economy.js, earned with three stars): the
+     * bar in c, a broad centre band and a thin stripe near each end in
+     * c2, edged in c2. Plain bands, no insignia (non-goals). */
+    g.fillStyle = d.c;
+    g.fillRect(0.04, 0.12, w - 0.08, 0.76);
+    g.fillStyle = d.c2;
+    g.fillRect(w * 0.42, 0.12, w * 0.16, 0.76);
+    for (const x of [0.16, 0.8]) {
+      g.fillRect(w * x, 0.12, w * 0.04, 0.76);
+    }
+    g.lineWidth = 0.06;
+    g.strokeStyle = d.c2;
+    g.strokeRect(0.04, 0.12, w - 0.08, 0.76);
+  },
   shield(g, d, w) {
     const k = w / 0.84;
     const outline = [[0.06, 0.04], [0.78, 0.04], [0.78, 0.5], [0.42, 0.97], [0.06, 0.5]].map(([x, y]) => [x * k, y]);
@@ -394,6 +409,145 @@ const DRAW = {
     g.fill();
   },
 };
+
+/* The shape library's kinds: a filled outline in `c`, edged in `c2`. */
+function edged(g, d, path) {
+  g.lineJoin = 'miter';
+  path();
+  g.lineWidth = 0.06;
+  g.strokeStyle = d.c2;
+  g.stroke();
+  g.fillStyle = d.c;
+  g.fill();
+}
+
+function ellipse(g, cx, cy, rx, ry) {
+  g.beginPath();
+  g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+}
+
+Object.assign(DRAW, {
+  circle(g, d, w) {
+    edged(g, d, () => ellipse(g, w / 2, 0.5, w * 0.46, 0.46));
+  },
+  ring(g, d, w) {
+    ellipse(g, w / 2, 0.5, w * 0.42, 0.42);
+    g.lineWidth = 0.16;
+    g.strokeStyle = d.c2;
+    g.stroke();
+    g.lineWidth = 0.1;
+    g.strokeStyle = d.c;
+    g.stroke();
+  },
+  triangle(g, d, w) {
+    edged(g, d, () => fillPath(g, [[w / 2, 0.05], [w * 0.96, 0.95], [w * 0.04, 0.95]]));
+  },
+  diamond(g, d, w) {
+    edged(g, d, () => fillPath(g, [[w / 2, 0.04], [w * 0.96, 0.5], [w / 2, 0.96], [w * 0.04, 0.5]]));
+  },
+  block(g, d, w) {
+    edged(g, d, () => fillPath(g, [[0.04, 0.06], [w - 0.04, 0.06], [w - 0.04, 0.94], [0.04, 0.94]]));
+  },
+  arrow(g, d, w) {
+    const head = Math.min(w * 0.45, 0.9);
+    edged(g, d, () => fillPath(g, [[0.04, 0.32], [w - head, 0.32], [w - head, 0.06], [w - 0.04, 0.5], [w - head, 0.94], [w - head, 0.68], [0.04, 0.68]]));
+  },
+  hexagon(g, d, w) {
+    const pts = [];
+    for (let i = 0; i < 6; i += 1) {
+      const a = (i * Math.PI) / 3;
+      pts.push([w / 2 + Math.cos(a) * w * 0.47, 0.5 + Math.sin(a) * 0.46]);
+    }
+    edged(g, d, () => fillPath(g, pts));
+  },
+  swoosh(g, d, w) {
+    edged(g, d, () => {
+      g.beginPath();
+      g.moveTo(0.04, 0.9);
+      g.quadraticCurveTo(w * 0.5, 0.05, w - 0.04, 0.12);
+      g.quadraticCurveTo(w * 0.45, 0.8, 0.04, 0.9);
+      g.closePath();
+    });
+  },
+  crosshair(g, d, w) {
+    const cx = w / 2;
+    const r = Math.min(w, 1) * 0.36;
+    for (const [col, lw] of [[d.c2, 0.14], [d.c, 0.07]]) {
+      g.strokeStyle = col;
+      g.lineWidth = lw;
+      ellipse(g, cx, 0.5, r, r);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx - r * 1.3, 0.5);
+      g.lineTo(cx + r * 1.3, 0.5);
+      g.moveTo(cx, 0.5 - r * 1.3);
+      g.lineTo(cx, 0.5 + r * 1.3);
+      g.stroke();
+    }
+  },
+  propeller(g, d, w) {
+    const cx = w / 2;
+    for (let i = 0; i < 3; i += 1) {
+      const a = (i * 2 * Math.PI) / 3 - Math.PI / 2;
+      const c = Math.cos(a);
+      const s2 = Math.sin(a);
+      edged(g, d, () => {
+        g.beginPath();
+        g.ellipse(cx + c * 0.24, 0.5 + s2 * 0.24, 0.24, 0.08, a, 0, Math.PI * 2);
+      });
+    }
+    edged(g, { ...d, c: d.c2, c2: d.c }, () => ellipse(g, cx, 0.5, 0.08, 0.08));
+  },
+  drone(g, d, w) {
+    const cx = w / 2;
+    g.lineCap = 'round';
+    for (const [col, lw] of [[d.c2, 0.16], [d.c, 0.09]]) {
+      g.strokeStyle = col;
+      g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(cx - 0.3, 0.2);
+      g.lineTo(cx + 0.3, 0.8);
+      g.moveTo(cx + 0.3, 0.2);
+      g.lineTo(cx - 0.3, 0.8);
+      g.stroke();
+    }
+    for (const [x, y] of [[-0.3, 0.2], [0.3, 0.2], [-0.3, 0.8], [0.3, 0.8]]) {
+      ellipse(g, cx + x, y, 0.15, 0.15);
+      g.lineWidth = 0.05;
+      g.strokeStyle = d.c;
+      g.stroke();
+    }
+    edged(g, d, () => fillPath(g, [[cx - 0.1, 0.36], [cx + 0.1, 0.36], [cx + 0.1, 0.64], [cx - 0.1, 0.64]]));
+  },
+  tally(g, d, w) {
+    const n = 5;
+    const step = w / (n + 1);
+    g.lineCap = 'round';
+    for (const [col, lw] of [[d.c2, 0.16], [d.c, 0.09]]) {
+      g.strokeStyle = col;
+      g.lineWidth = lw;
+      g.beginPath();
+      for (let i = 1; i < n; i += 1) {
+        g.moveTo(i * step, 0.15);
+        g.lineTo(i * step, 0.85);
+      }
+      g.moveTo(step * 0.4, 0.75);
+      g.lineTo(step * (n - 0.4), 0.25);
+      g.stroke();
+    }
+  },
+  sun(g, d, w) {
+    const cx = w / 2;
+    const pts = [];
+    for (let i = 0; i < 32; i += 1) {
+      const a = (i * Math.PI) / 16;
+      const r = i % 2 ? 0.3 : 0.46;
+      pts.push([cx + r * Math.cos(a), 0.5 + r * Math.sin(a)]);
+    }
+    edged(g, d, () => fillPath(g, pts));
+    edged(g, { ...d, c: d.c2, c2: d.c }, () => ellipse(g, cx, 0.5, 0.18, 0.18));
+  },
+});
 
 /*
  * Draw decal `d` (its kind, colours, number and lettering) into a box

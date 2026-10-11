@@ -39,10 +39,10 @@
  */
 
 import * as THREE from 'three';
-import { loadAtlases } from '../../src/maps/swiss2/vegetation/atlas.js';
+import { loadAtlases } from '../../src/render/library/vegetation/atlas.js';
 import {
   IMP_FRAME_GLSL, GRID, MAX_VARIANTS, AZIMUTHS, ELEVATIONS,
-} from '../../src/maps/swiss2/vegetation/impostor.js';
+} from '../../src/render/library/vegetation/impostor.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: false });
 renderer.setPixelRatio(1);

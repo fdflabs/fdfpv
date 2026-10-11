@@ -109,7 +109,7 @@ const DRAWN = `(async () => {
   const sc = window.__mapScene();
   const out = [];
   if (window.__map().id === 'swiss2') {
-    const sp = await import('/src/maps/swiss2/vegetation/species.js');
+    const sp = await import('/src/render/library/vegetation/species.js');
     const clumpsOf = sp.VARIANTS.map((v) => (v.kind === 'beech' || v.kind === 'maple' ? sp.crownClumps(v).clumps : null));
     sc.traverse((o) => {
       if (o.name !== 'swiss2-impostors') {

@@ -26,6 +26,11 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wash } from './lib/wash.js';
+import { wingLift } from './lib/liftcurve.js';
+import { derive as deriveWash } from './wash-derive.js';
+
+const SLIP = deriveWash('FW_KADET1981');
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -207,9 +212,14 @@ function deriv(x, de, d) {
   const CL = CLa * a + CLde * de;
   const CD = CD0 + k * CL * CL;
   const L = qb * S * CL, Dr = qb * S * CD, Tt = T(Math.max(0, u), d);
+  /* The prop's wash over the tail, the plant's slip_* (scripts/wash-derive.js). */
+  const ws = wash(SLIP, Tt, u);
+  const xa = -w * Math.cos(SLIP.slip_a0) - u * Math.sin(SLIP.slip_a0);
+  const kh = rho * ws.vi * ws.fh, ph = ws.dp * ws.fh;
   const Fx = L * (-w / V) - Dr * u / V + Tt;
-  const Fz = L * (u / V) - Dr * w / V;
-  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt;
+  const Fz = L * (u / V) - Dr * w / V + S * (kh * SLIP.slip_cl_a * xa + ph * CLde * de);
+  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt +
+    S * c * (kh * (SLIP.slip_cm_a * xa + Cmq * q * c / 2) + ph * Cmde * de);
   return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) - q * u, My / Iyy, q];
 }
 function solve3(A, bb) {
@@ -335,15 +345,16 @@ const restIdle = (() => {
  * pilot rotates at, 1.2 times the stall; and the speed at which it would
  * lift off level with no elevator at all. */
 const stallBlend = 4 / DEG;
+/* The plant's wing, scripts/lib/liftcurve.js: CL max at the top of the
+ * curve. stall_top and stall_k are set below with the stall's other
+ * numbers. */
+const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK });
 function coeffs(alpha) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+  const lc = wingLift(curve(), alpha);
   const clLin = CLa * alpha;
   return {
-    CL: (1 - sigma) * clLin + sigma * 2 * Math.sin(alpha) * Math.cos(alpha),
-    CD: (1 - sigma) * (CD0 + k * clLin * clLin) + sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CL: lc.CL,
+    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
   };
 }
 function takeoff(mu, vRot) {
@@ -387,33 +398,14 @@ const smooth = (a0, a1, x) => {
   return t * t * (3 - 2 * t);
 };
 function stalledAt(alpha, de) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const sigma = smooth(aStall - stallBlend, aStall + stallBlend, x);
   const clLin = CLa * alpha + CLde * de;
+  const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
-  const clOld = (1 - sigma) * clLin + sigma * plate;
-  const cmLow = -sigma * (armAc * clLin + armCp * plate);
-  const past = smooth(aStall, aStall + stallBlend, x);
-  if (!(sigma > 0)) return { CL: clOld, cmStall: cmLow };
-  let hold = 0;
-  for (let i = 0; i <= 16; i += 1) {
-    const ai = aStall - stallBlend + stallBlend * 0.125 * i;
-    const si = smooth(aStall - stallBlend, aStall + stallBlend, ai);
-    hold = Math.max(hold, (1 - si) * (CLa * ai + CLde * de) + si * 2 * Math.sin(ai) * Math.cos(ai));
-  }
-  const a0 = aStall + stallTop, a1 = a0 + 2 * stallBlend;
-  const fall = smooth(a0, a1, x);
-  let viterna = 0;
-  if (Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05) {
-    const a2 = (stallK * hold - 2 * Math.sin(a1) * Math.cos(a1)) * Math.sin(a1) / Math.cos(a1) ** 2;
-    viterna = a2 * Math.cos(alpha) ** 2 / Math.sin(alpha);
-  }
-  const sgn = alpha < 0 ? -1 : 1;
-  const clSt = (1 - fall) * sgn * hold + fall * (plate + viterna);
-  const cnSt = 2 * Math.sin(alpha) + (clSt - plate) * Math.cos(alpha);
-  const cmPost = sigma * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * clLin - stallDw * (clLin - clSt));
-  return { CL: clOld + past * (clSt - clOld), cmStall: cmLow + past * (cmPost - cmLow) };
+  const cmLow = -lc.sigma * (armAc * clLin + armCp * plate);
+  if (!(lc.sigma > 0)) return { CL: lc.CL, cmStall: cmLow };
+  const cnSt = 2 * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha);
+  const cmPost = lc.sigma * (((1 - lc.past) * armAc - lc.past * armCp) * cnSt - armAc * clLin - stallDw * (clLin - lc.clSt));
+  return { CL: lc.CL, cmStall: cmLow + lc.past * (cmPost - cmLow) };
 }
 function cmAt(alpha, de) {
   return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
@@ -438,16 +430,13 @@ function mush(de) {
  * no speed balances.
  */
 function plantCoeffs(alpha, de) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+  const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const clLin = CLa * alpha + CLde * de;
   const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
   return {
-    CL: (1 - sigma) * clLin + sigma * clFlat,
-    CD: (1 - sigma) * (CD0 + k * clLin * clLin) + sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
-    sigma, clLin, clFlat,
+    CL: lc.CL,
+    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    sigma: lc.sigma, clLin, clFlat,
   };
 }
 function levelTurn(bank, d) {
@@ -549,6 +538,20 @@ rows.push([`trim at ${f(Vtrim, 2)} m/s`, `theta ${f(lmT.thetaDeg, 2)} de ${f(lmT
  * attitude at the throw's 9 m/s is the one that trims level flight there. */
 const lm9 = longitudinalModes(9.0);
 rows.push(['trim at 9.0 m/s, the hand launch', `theta ${f(lm9.thetaDeg, 2)} de ${f(lm9.deDeg, 2)} throttle stick ${f(lm9.duty)}, pitch stick ${f(stickFor(lm9.deDeg / DEG, throwE))}`]);
+/* The throw is at full throttle, and under full power the wash over the
+ * stabiliser (docs/FLIGHTMODEL.md) makes the same elevator stronger: the
+ * elevator that holds that level flight's angle of attack at 9 m/s with
+ * the throttle open is what the throw holds. */
+const de9 = (() => {
+  const x = [9 * Math.cos(lm9.thetaDeg / DEG), -9 * Math.sin(lm9.thetaDeg / DEG), 0, lm9.thetaDeg / DEG];
+  let lo = -throwE, hi = throwE;
+  for (let it = 0; it < 80; it += 1) {
+    const mid = (lo + hi) / 2;
+    if (deriv(x, mid, 1)[2] > 0) hi = mid; else lo = mid;
+  }
+  return (lo + hi) / 2;
+})();
+rows.push(['   the same angle at full throttle, in the wash', `de ${f(de9 * DEG, 2)}, pitch stick ${f(stickFor(de9, throwE))}`]);
 /* Full up elevator: where the linear pitching moment trims, as an angle of
  * the zero lift line, against the stall's. */
 rows.push(['alpha trim at full up, linear moment; alpha stall (deg)', `${f((Cm0 + Cmde * throwE) / -Cma * DEG, 1)} ${f(CLmax / CLa * DEG, 1)}`]);

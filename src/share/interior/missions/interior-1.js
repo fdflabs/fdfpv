@@ -101,6 +101,13 @@ const OUT = {
 /* The first direction to leave goes at once, the rest 20 s after (a dial). */
 const FIRST_OUT_S = 20;
 
+/* Who notices a low aircraft, and how fast (spot.js). Loud is the
+ * Bramor near full throttle (configs/airframes.js topSpeed 25 m/s). */
+const SPOT = {
+  height: 200, range: 450, overR: 60, loud: 24, rise: 0.05, fall: 0.05, levels: { looking: 0.25, spotted: 1 }, scene: 6,
+  warn: 'int-spot-warn', lines: { spotted: 'int-spot-seen', low: 'int-spot-low', over: 'int-spot-over', loud: 'int-spot-loud' },
+};
+
 const BUILDING = (id) => BUILDINGS.find((b) => b.id === id);
 
 /* A checkpoint restart starts on Pista Cero's rail: a stage's
@@ -278,7 +285,24 @@ export default {
    * fails): the ISR down with nobody else airborne, and the light gone
    * (clock.js: about 12 minutes after a first timer at 18 m/s would land,
    * so it ends a run that dawdled or got lost, not an ordinary one). */
+  /* The people being photographed notice a low aircraft (CONTRACT-
+   * SPOTTED.md): the pair once it walks, the camp once it is found (gap 3:
+   * low before then alerts nothing). 200 m is well under the survey's
+   * 500 to 600 m, so a careful run never hears the warning; at the
+   * Bramor's best climb (5 m/s) a pilot warned at 5 s has 15 s to get out. */
+  spotters: [
+    {
+      ...SPOT, id: 'pair', group: 'pair', stage: 'M1_CP_BRAVO_COMPLETE',
+      scatter: ['a', 'b'].map((k) => ({ contacts: `pair-${k}`, route: { dial: 'conceal', map: Object.fromEntries(['west', 'mid', 'east'].map((d) => [d, `conceal-${d}-alt-${k}`])) } })),
+    },
+    {
+      ...SPOT, id: 'camp', group: 'camp', stage: 'M1_CP_CAMP_FOUND',
+      scatter: Object.entries(OUT).flatMap(([d, ids]) => ids.map((id, k) => ({ contacts: id, route: `out-${d}-${'ab'[k]}` }))),
+    },
+  ],
   lost: [
+    { when: { spotted: 'pair' }, why: 'spotted', spot: 'pair' },
+    { when: { spotted: 'camp' }, why: 'spotted', spot: 'camp' },
     { when: { downed: ['isr'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
     { when: { clock: Math.round(sunsetMs(M1_CLOCK) / 1000) }, why: 'light', radio: 'int-fail-function' },
   ],

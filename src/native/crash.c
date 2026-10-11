@@ -542,6 +542,8 @@ static void tables_build(void) {
     { SIM_AIRFRAME_TIGERMOTH1803, PARTS_TIGERMOTH1803, COUNT(PARTS_TIGERMOTH1803) },
     { SIM_AIRFRAME_STRIKER_PROP, PARTS_STRIKER_PROP, COUNT(PARTS_STRIKER_PROP) },
     { SIM_AIRFRAME_STRIKER_JET, PARTS_STRIKER_JET, COUNT(PARTS_STRIKER_JET) },
+    { SIM_AIRFRAME_EXTRA3D1308, PARTS_EXTRA3D1308, COUNT(PARTS_EXTRA3D1308) },
+    { SIM_AIRFRAME_NIGHTTIMBER1200, PARTS_NIGHTTIMBER1200, COUNT(PARTS_NIGHTTIMBER1200) },
   };
   for (int s = 0; s < COUNT(src); s += 1) {
     Table *t = &T[src[s].id];
@@ -6066,6 +6068,7 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
     plant_wind(s->step_index, wa);
     va[0] -= wa[0];
     va[1] -= wa[1];
+    va[2] -= wa[2];
   }
   const double vm = norm(va);
   const double kd = -0.5 * rho * f->cda * vm / f->m;

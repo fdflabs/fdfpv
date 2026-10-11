@@ -227,7 +227,7 @@ event lands differently in each.
 | # | id | Title | When | New for the player | Length |
 | --- | --- | --- | --- | --- | --- |
 | 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
-| 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 10 to 14 min |
+| 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
 | 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 12 to 16 min |
 | 5 | itaipu-5 | The River Below | Day 2, morning | a new axis; the carrier | 11 to 15 min |

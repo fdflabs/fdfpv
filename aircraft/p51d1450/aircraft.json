@@ -1,0 +1,321 @@
+{
+  "id": "p51d1450",
+  "airframe": {
+    "id": "p51d1450",
+    "simId": 15,
+    "fixedWing": true,
+    "stall": 10.06,
+    "topSpeed": 20.64,
+    "gear": {
+      "restHeight": 0.2291
+    },
+    "flaps": true,
+    "retracts": true,
+    "name": "P-51D Mustang",
+    "short": "P-51",
+    "blurb": "A 1450 mm FMS P-51D Mustang on 4S, the Second World War fighter in natural metal with a red nose and tail. It swings left as the tail comes up, so feed in right rudder; it keeps its speed, and it drops a wing if you let it get slow. G raises and lowers the retracts, F sets the flaps.",
+    "facts": [
+      "4S",
+      "1450 mm",
+      "Retracts, flaps"
+    ],
+    "sizeMm": 1450,
+    "grams": 2350,
+    "trackClass": "wing",
+    "cells": 4,
+    "defaultTune": "p51-acro",
+    "gravityBase": 1,
+    "cameraFov": 100,
+    "cameraAngle": 5,
+    "dims": {
+      "arm": 0,
+      "propR": 0.1778,
+      "hullR": 0.8326,
+      "vHalfDown": 0.2491,
+      "vHalfUp": 0.2303,
+      "bodyLength": 1.2628,
+      "bodyWidth": 1.45,
+      "bodyHeight": 0.4794
+    }
+  },
+  "kit": {
+    "slots": [
+      {
+        "id": "spinner",
+        "options": [
+          "stock",
+          "twotone",
+          "striped"
+        ]
+      },
+      {
+        "id": "exhausts",
+        "options": [
+          "stock",
+          "dampers"
+        ]
+      },
+      {
+        "id": "wheels",
+        "options": [
+          "stock",
+          "covered"
+        ]
+      },
+      {
+        "id": "canopy",
+        "options": [
+          "stock",
+          "smoke"
+        ]
+      }
+    ],
+    "drawn": true
+  },
+  "tuning": {
+    "chord": 0.24413793103448275,
+    "area": 0.354,
+    "margin": 0.034,
+    "cg": {
+      "mm": 110,
+      "datum": "tuning.datum.root_le",
+      "range": null,
+      "source": "FMS manual, \"110mm from the wing's leading edge (measured at point of contact with fuselage)\", no range, p. 26; https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+    },
+    "packKg": 0.295,
+    "nose": 0.3,
+    "tail": -0.7,
+    "throws": {
+      "high": [
+        19.8769,
+        25.8721,
+        12.1224
+      ],
+      "low": [
+        13.9,
+        18.1,
+        8.5
+      ],
+      "source": "FMS manual pp. 19 and 20: the low rates, 17, 24 and 21 mm, which the manual says are for normal flying, on the 50, 55 and 100 mm surfaces (docs/P51-STAGE1.md), are the plant's; low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state; https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+    },
+    "flaps": {
+      "mix": 0,
+      "angles": [
+        0,
+        0.2851042871110053,
+        0.6129702553583196
+      ],
+      "source": "FMS manual p. 20: mid 22 mm, full 45 mm, no elevator mix given; https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+    }
+  },
+  "power": {
+    "table": {
+      "simId": 15,
+      "massKg": 2.35,
+      "cells": 4,
+      "rCell": 0.008,
+      "propIn": 14,
+      "cruiseMs": 15.1,
+      "flightTime": {
+        "kind": "mixed",
+        "minutesLow": 8,
+        "minutesHigh": 8,
+        "note": "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight",
+        "source": "https://www.fmshobby.com/products/fms-1400mm-p-51d-red-tail-v8-pnp"
+      }
+    },
+    "options": [
+      {
+        "id": "stock",
+        "name": "power.p51.stock",
+        "kind": "electric",
+        "voice": "wing",
+        "kv": 540,
+        "propIn": 14,
+        "pitchIn": 8,
+        "blades": 4,
+        "thrustN": 30.7,
+        "currentA": 55.2,
+        "rpmNoLoad": 7992,
+        "pitchSpeedMs": 23.006,
+        "lvcV": 3.4,
+        "massKg": 2.35,
+        "cgShiftM": 0,
+        "packs": [
+          {
+            "id": "4s2600",
+            "cells": 4,
+            "mAh": 2600,
+            "massKg": 0.295,
+            "source": "https://www.dynamrc.com/products/14-8v-2600mah-25c-lipo-battery"
+          }
+        ],
+        "pack": "4s2600",
+        "source": [
+          "https://www.fmshobby.com/products/fms-1400mm-p-51d-red-tail-v8-pnp",
+          "https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+        ]
+      },
+      {
+        "id": "kv650",
+        "name": "power.p51.kv650",
+        "kind": "electric",
+        "voice": "wing",
+        "kv": 650,
+        "propIn": 14,
+        "pitchIn": 8,
+        "blades": 4,
+        "thrustN": 36.5,
+        "currentA": 78.3,
+        "rpmNoLoad": 9620,
+        "pitchSpeedMs": 27.693,
+        "lvcV": 3.4,
+        "massKg": 2.395,
+        "cgShiftM": 0,
+        "packs": [
+          {
+            "id": "4s2600",
+            "cells": 4,
+            "mAh": 2600,
+            "massKg": 0.295,
+            "source": "https://www.dynamrc.com/products/14-8v-2600mah-25c-lipo-battery"
+          }
+        ],
+        "pack": "4s2600",
+        "source": [
+          "https://www.hobbysquawk.com/forum/rc-airplanes/rc-propeller-airplanes/66486-official-fms-1400mm-p-51d-v8-thread/page22",
+          "https://www.fmshobby.com/products/4258-kv650-motor"
+        ]
+      }
+    ],
+    "estimates": {
+      "stock": {
+        "4s2600": {
+          "topSpeed": 19.9,
+          "minutes": 12.7
+        }
+      },
+      "kv650": {
+        "4s2600": {
+          "topSpeed": 23.3,
+          "minutes": 13
+        }
+      }
+    }
+  },
+  "hangar": {
+    "props": [
+      {
+        "id": "stock",
+        "name": "parts.prop.stock"
+      }
+    ],
+    "anchors": {
+      "prop": [
+        0.3578,
+        0,
+        0.0129
+      ],
+      "belly": [
+        0,
+        0,
+        -0.066
+      ],
+      "tail": [
+        -0.77,
+        0,
+        0.004
+      ],
+      "tank": [
+        -0.01,
+        0,
+        -0.03
+      ],
+      "led": [
+        [
+          0.102,
+          0.2,
+          -0.043
+        ],
+        [
+          0.074,
+          0.7,
+          0.006
+        ]
+      ]
+    }
+  },
+  "livery": {
+    "regions": [
+      {
+        "id": "wing",
+        "stock": "#cad0d5"
+      },
+      {
+        "id": "fuselage",
+        "stock": "#cad0d5"
+      },
+      {
+        "id": "tail",
+        "stock": "#cad0d5"
+      },
+      {
+        "id": "trim",
+        "stock": "#c8161a"
+      },
+      {
+        "id": "stripe",
+        "stock": "#17191b"
+      }
+    ],
+    "schemes": [
+      {
+        "id": "stock",
+        "source": {
+          "label": "FMS P-51D Mustang V8 1450 mm, the manual's photographs",
+          "url": "https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+        },
+        "colours": {}
+      }
+    ]
+  },
+  "tunes": [
+    {
+      "id": "p51-stab",
+      "airframe": "p51d1450",
+      "name": "Stabilised",
+      "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. On the take off roll it is yours: feed in right rudder as the tail comes up. G works the retracts, F the flaps.",
+      "wingStab": 1
+    },
+    {
+      "id": "p51-acro",
+      "airframe": "p51d1450",
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 120 degrees a second and a pitch rate up to 60, centred sticks hold the attitude, and the rudder stick is the rudder alone. G works the retracts, F the flaps.",
+      "wingStab": 2
+    },
+    {
+      "id": "p51-manual",
+      "airframe": "p51d1450",
+      "name": "Manual",
+      "note": "No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps."
+    }
+  ],
+  "progress": {
+    "level": 7
+  },
+  "strings": {
+    "en": {
+      "carousel.note.p51d1450": "The Second World War fighter on retracts. Right rudder on the take off, and keep its speed up.",
+      "power.p51.stock": "FMS 4250 540 kV, 14 x 8 four blade, 4S (stock)",
+      "power.p51.kv650": "FMS 4258 650 kV from the P-40, 14 x 8 four blade, 4S",
+      "livery.scheme.p51d1450.stock": "Natural metal, red nose and tail"
+    },
+    "es": {
+      "carousel.note.p51d1450": "El caza de la Segunda Guerra Mundial con tren retráctil. Pie derecho al despegar, y mantén la velocidad.",
+      "power.p51.stock": "FMS 4250 540 kV, 14 x 8 de cuatro palas, 4S (de serie)",
+      "power.p51.kv650": "FMS 4258 650 kV del P-40, 14 x 8 de cuatro palas, 4S",
+      "livery.scheme.p51d1450.stock": "Metal natural, morro y cola rojos"
+    }
+  }
+}

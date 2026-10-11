@@ -310,6 +310,14 @@ async function signIn(callsign) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/* Under SIM_CSP (tests/lib/server.js sends the deployed policy as a
+ * header), every violation is a console error naming what was blocked,
+ * and close() prints each once as a "csp-violation:" line, so any check
+ * run that way says what the policy would break (scripts/csp-sweep.js). */
+const CSP_SEED = `document.addEventListener('securitypolicyviolation', (e) => console.error('CSP violation: '
+  + e.effectiveDirective + ' blocked ' + (e.blockedURI || 'inline') + ' from ' + (e.sourceFile || document.URL.split('?')[0])
+  + ':' + e.lineNumber + (e.disposition === 'report' ? ' (report only)' : '')));`;
+
 /*
  * Open `url` of the repo at `root` in a fresh headless Chromium and return
  * the driver.
@@ -391,7 +399,8 @@ export async function openPage({
   /* A controller plugged into this machine is a real pad to headless Chrome
    * too, and one has flown a check's aircraft off its parking spot. No page
    * sees a pad unless its own seed, run after this one, stubs one. */
-  const seeds = ['navigator.getGamepads = () => [];', ...(signedIn ? [signedIn.seed] : []), ...seed];
+  const seeds = ['navigator.getGamepads = () => [];', ...(process.env.SIM_CSP ? [CSP_SEED] : []),
+    ...(signedIn ? [signedIn.seed] : []), ...seed];
   for (const source of seeds) {
     await call('Page.addScriptToEvaluateOnNewDocument', { source });
   }
@@ -429,7 +438,10 @@ export async function openPage({
   /* The loading screen stays 400 ms past the first frame and fades 400
    * more, over the title and whatever is open on it. A key reaches the page
    * through it; a click lands on it, so a click waits for this. */
-  const loaded = (timeoutMs = 15000) => until("document.getElementById('pdcs-loader').hidden", timeoutMs);
+  /* The loader comes back for every world load after the shell is up, and
+   * on CI's software rasteriser a map load takes longer than a frame-paced
+   * wait: the same budget the checks give the shell itself (300 s). */
+  const loaded = (timeoutMs = 300000) => until("document.getElementById('pdcs-loader').hidden", timeoutMs);
 
   /* A left click at the middle of the first element `selector` matches,
    * scrolled into view; false when nothing matches. Counted in page.clicks
@@ -440,7 +452,10 @@ export async function openPage({
     const centre = await evaluate(`(() => {
       const el = document.querySelector(${JSON.stringify(selector)});
       if (!el) { return null; }
-      el.scrollIntoView({ block: 'center' });
+      /* Instant: the hangar's panel scrolls smoothly (index.html
+       * .hangar-side), and a smooth scroll leaves the box read below where
+       * the element was, so the press landed on a neighbour. */
+      el.scrollIntoView({ block: 'center', behavior: 'instant' });
       const box = el.getBoundingClientRect();
       return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
     })()`);
@@ -462,6 +477,11 @@ export async function openPage({
   }
 
   async function close() {
+    if (process.env.SIM_CSP) {
+      for (const line of new Set(errors.filter((e) => e.includes('CSP violation: ')))) {
+        console.log(`csp-violation: ${line.slice(line.indexOf('CSP violation: ') + 15)}`);
+      }
+    }
     ws.close();
     const stillRunning = proc.exitCode === null && proc.signalCode === null;
     const exited = stillRunning ? new Promise((resolve) => proc.once('exit', resolve)) : Promise.resolve();

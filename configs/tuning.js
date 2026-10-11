@@ -8,7 +8,7 @@
  *
  *   TUNING[airframeId] is a fixed wing's data, below. The pilot's setup is
  *   settings.tuning[airframeId] = { packMm, ballastG, rate, expo: { a, e,
- *   r }, trimDeg, flapStart, flapMix }, every field optional, a missing
+ *   r }, trimDeg, flapStart, flapMix, elevFlap }, every field optional, a missing
  *   one the stock value; normalizeTuning validates a stored map on load and
  *   drops whatever is the stock value, so an empty entry is the kit as it
  *   comes. tuneBlock(airframeId, entry, massKg, packKg) is the plant's
@@ -64,16 +64,22 @@ import { TABLE, powerBlock, powerOption } from './power.js';
 /* sim_abi.h's SIM_TUNE_* layout. */
 export const SIM_TUNE = {
   CG_SHIFT: 0, BALLAST_KG: 1, BALLAST_X: 2, THROW_A: 3, THROW_E: 4, THROW_R: 5,
-  EXPO_A: 6, EXPO_E: 7, EXPO_R: 8, TRIM_E: 9, FLAP_MIX: 10,
+  EXPO_A: 6, EXPO_E: 7, EXPO_R: 8, TRIM_E: 9, FLAP_MIX: 10, ELEV_FLAP: 11,
 };
-export const SIM_TUNE_DOUBLES = 11;
+export const SIM_TUNE_DOUBLES = 12;
 
 /* The plant writes its throws as degrees * pi / 180, and so does this, so
  * the high rate is the very double the table holds. */
+const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
 export const RATES = ['low', 'mid', 'high'];
+/* The radio's elevator to flap mix, percent of full flap at full up
+ * elevator, on a plane with flaps: the 3D pilot's "elevator flaps" that
+ * steady a harrier (docs/FLIGHTMODEL.md). Off as every kit ships; the
+ * steps are a transmitter's coarse ones, the amount is the pilot's. */
+export const ELEV_FLAPS = [0, 25, 50, 75, 100];
 export const STOCK_EXPO = 30;
 /* How far a pack slides in its bay either way, mm: ESTIMATED, no kit
  * publishes it; the hook and loop trays of these kits leave about an inch
@@ -158,7 +164,9 @@ export const TUNING = {
     flaps: null,
   },
   radian2000: {
-    chord: 0.1866, area: 0.355, margin: 0.234,
+    /* -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234 was read off the plant
+     * past the linear lift, where its curve now rounds onto CL max. */
+    chord: 0.1866, area: 0.355, margin: 0.228,
     cg: { mm: 63, datum: 'tuning.datum.root_le', range: null, source: `E-flite Radian manual, "2 1/2 inches (63mm) back from leading edge at the root", no range; ${RADIAN_MANUAL}` },
     packKg: 0.11, nose: 0.26, tail: -0.70,
     throws: { high: [15, 24.4, 30], low: [10.5, 18.0, 18.2], source: `E-flite Radian manual p. 3: elevator 12 and 9 mm, rudder 40 and 25 mm, dual rates 100/70 percent; the ailerons ESTIMATED (the Radian has none; the Radian Pro's are 15/12 mm high, 11/8 low, ${RADIAN_PRO_MANUAL}), their low at 70 percent; ${RADIAN_MANUAL}` },
@@ -212,7 +220,14 @@ export const TUNING = {
     packKg: 0.10, nose: 0.205, tail: -1.035,
     throws: { high: [16.5003, 12.1141, 14.5859], low: [10.91, 9.06, 14.59], source: `Great Planes manual p. 21, at the widest part of each surface: high rate ailerons 3/4 in, elevator 1 in and rudder 2 in each way, low rate 1/2, 3/4 and 2 in, on the 67 mm aileron, the 121 mm elevator and the 202 mm rudder (docs/TIGERMOTH-STAGE1.md); ${TIGER_MANUAL}` },
     flaps: null,
+  },  extra3d1308: {
+    chord: 0.2927, area: 0.369, margin: 0.154,
+    cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
+    packKg: 0.27, nose: 0.26, tail: -0.83,
+    throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
+    flaps: null,
   },
+
   p51d1450: {
     chord: 0.24413793103448276, area: 0.354, margin: 0.034,
     cg: { mm: 110, datum: 'tuning.datum.root_le', range: null, source: `FMS manual, "110mm from the wing's leading edge (measured at point of contact with fuselage)", no range, p. 26; ${P51_MANUAL}` },
@@ -263,6 +278,7 @@ export function stockEntry(airframeId) {
     trimDeg: 0,
     flapStart: 0,
     flapMix: Boolean(t && t.flaps),
+    elevFlap: 0,
   };
 }
 
@@ -365,6 +381,9 @@ export function normalizeEntry(airframeId, raw, limits) {
     if (raw.flapMix === false) {
       out.flapMix = false;
     }
+    if (ELEV_FLAPS.includes(raw.elevFlap) && raw.elevFlap !== 0) {
+      out.elevFlap = raw.elevFlap;
+    }
   }
   return Object.keys(out).length ? out : null;
 }
@@ -425,6 +444,7 @@ export function tuneBlock(airframeId, entry, massKg, packKg) {
   out[SIM_TUNE.EXPO_R] = e.expo.r / 100;
   out[SIM_TUNE.TRIM_E] = rad(e.trimDeg);
   out[SIM_TUNE.FLAP_MIX] = t.flaps && e.flapMix ? t.flaps.mix : 0;
+  out[SIM_TUNE.ELEV_FLAP] = t.flaps ? e.elevFlap / 100 : 0;
   return out;
 }
 

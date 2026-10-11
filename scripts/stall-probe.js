@@ -22,8 +22,10 @@
  *      60 deg/s past the stall).
  *   C  B's entry for 5 s, then the handbook's recovery (FAA-H-8083-3C
  *      ch. 5): full opposite rudder with the stick half forward until the
- *      rotation stops, then everything centred. The time and height to
- *      the rotation stopped with the wing unstalled.
+ *      rotation stops (under 20 deg/s for half a second), then everything
+ *      centred. The yaw rate it began from, the turns to the stop, and the
+ *      time and height until the wing flies again. B says whether it was a
+ *      spin (the wing held stalled) or a spiral (the wing flying).
  *   D  A's entry for 5 s, then the stick forward to neutral: the time
  *      and height until the wing flies again.
  *   E  A in Acro: the stabiliser does not stop a pilot who holds full back
@@ -92,11 +94,16 @@ const PLANES = {
 const onlyArg = process.argv.indexOf('--only');
 const only = onlyArg > 0 ? new Set(process.argv[onlyArg + 1].split(',')) : null;
 
+let inertia = [0, 0, 0];
 async function planeSim(p) {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
   must(sim.e.sim_set_airframe(p.sim), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  const ptr = sim.e.malloc(4 * 8);
+  must(sim.e.sim_live_inertia(ptr), 'sim_live_inertia');
+  const li = new Float64Array(sim.e.memory.buffer, ptr, 4);
+  inertia = [li[1], li[2], li[3]];
   return sim;
 }
 
@@ -133,7 +140,19 @@ function flight(sim, p, seconds, hands, stab = 0) {
     /* World yaw rate: the body rates about the world vertical. */
     const up = [2 * (s[8] * s[10] - s[7] * s[9]), 2 * (s[9] * s[10] + s[7] * s[8]), 1 - 2 * (s[8] * s[8] + s[9] * s[9])];
     const yawRate = s[11] * up[0] + s[12] * up[1] + s[13] * up[2];
-    const o = { t: ms / 1000, z: s[3], v, pitch, bank, fullBank, path, alpha, yawRate, turns };
+    /* What deepens a spin and keeps it turning (docs/FLIGHTMODEL.md, the
+     * spin's measure): the inertial pitch, (Iz - Ix) p r, nose up in a
+     * spin, against the elevator's and the stall's together, the
+     * aerodynamic pitching moment, N m, nose up positive; and the stalled
+     * strips' roll, the roll moment less the linear aerodynamics' and the
+     * prop's (the throttle is closed in every flight here), which turns the
+     * roll on (autorotation) when it has the roll rate's sign. */
+    const d = wingDebug(sim);
+    /* The body frame here is y left, so nose up is about -y: the inertial
+     * term the plant integrates, (Iz - Ix) p r about y, nose up negated. */
+    const inertialPitch = -(inertia[2] - inertia[0]) * s[11] * s[13];
+    const strips = d[12] - d[5];
+    const o = { t: ms / 1000, z: s[3], v, pitch, bank, fullBank, path, alpha, yawRate, turns, inertialPitch, aeroPitch: d[6], strips, p: s[11], q: -s[12] };
     out.push(o);
     const [r, pi, y, th] = hands(ms, o);
     must(sim.input(ms / 1000, r, pi, y, th), 'sim_input');
@@ -194,38 +213,91 @@ function spinB(sim, p) {
   const last = tr.filter((o) => o.t >= 5);
   const yr = mean(last, 'yawRate');
   const a = mean(last, 'alpha');
-  const spin = Math.abs(yr) > 60 / DEG && a > p.alphaStall;
-  return `${tr[tr.length - 1].turns.toFixed(2)} turns in 8 s; last 3 s: yaw rate ${f1(yr)} deg/s, alpha ${f1(a)}, `
+  /* A spin is autorotation: the wing held stalled while it turns. The same
+   * yaw rate with the wing flying is a spiral, a steep turn the rudder
+   * holds, which the stick forward does not stop. Which it is reads off
+   * the angle of attack over the last 3 s, its least as well as its mean,
+   * since a spiral dips in and out of the stall. */
+  const aMin = Math.min(...last.map((o) => o.alpha));
+  const turning = Math.abs(yr) > 60 / DEG;
+  const kind = !turning ? 'no spin' : aMin > p.alphaStall ? 'SPIN' : a > p.alphaStall ? 'SPIN, not steady' : 'SPIRAL, the wing flying';
+  const strOn = last.filter((o) => Math.sign(o.strips) === Math.sign(o.p) && Math.abs(o.p) > 0.1).length / last.length;
+  const inert = mean(last, 'inertialPitch');
+  const aero = mean(last, 'aeroPitch');
+  return `${tr[tr.length - 1].turns.toFixed(2)} turns in 8 s; last 3 s: yaw rate ${f1(yr)} deg/s, alpha ${f1(a)} (least ${f1(aMin)}), `
+    + `inertial pitch ${inert.toFixed(3)} N m nose up against the aero's ${aero.toFixed(3)}, strips with the roll ${(strOn * 100).toFixed(0)} percent of the time, `
     + `bank ${f1(mean(last, 'fullBank'))}, pitch ${f1(mean(last, 'pitch'))}, ${mean(last, 'v').toFixed(1)} m/s, `
-    + `sink ${(-(tr[tr.length - 1].z - tr[tr.length - 751].z) / 3).toFixed(1)} m/s: ${spin ? 'SPIN' : 'no spin'}`;
+    + `sink ${(-(tr[tr.length - 1].z - tr[tr.length - 751].z) / 3).toFixed(1)} m/s: ${kind}`;
 }
 
+/*
+ * The handbook's recovery from entry's 5 s: anti held until the rotation
+ * has stopped, then everything centred. Stopped is the world yaw rate
+ * under 20 deg/s for half a second running, not one sample under it: a
+ * spinning aircraft's yaw rate swings, and one low sample is not a stop.
+ * The spin is over as well when the wing has flown, 2 deg under its stall,
+ * for half a second running: what turns on after that is a spiral dive,
+ * the wing flying, which a pilot rolls out of on the ailerons and this
+ * probe does not fly. What it reports is the yaw rate when the recovery
+ * began (an aircraft that was not turning had nothing to recover from),
+ * which of the two ended it, the turns from the recovery's start to that
+ * end, and the time and height to it.
+ */
 function recover(sim, p, entry, anti) {
   let t0 = null;
   let z0 = null;
-  let done = null;
-  let stopped = false;
-  const tr = flight(sim, p, 12, (ms, o) => {
+  let turns0 = 0;
+  let yaw0 = 0;
+  let calm = 0;
+  let flown = 0;
+  let stoppedAt = null;
+  let how = '';
+  flight(sim, p, 15, (ms, o) => {
     if (ms < 5000) {
       return entry(ms, o);
     }
     if (t0 === null) {
       t0 = o.t;
       z0 = o.z;
+      turns0 = o.turns;
+      yaw0 = o.yawRate;
     }
-    if (!stopped && Math.abs(o.yawRate) < 20 / DEG) {
-      stopped = true;
+    calm = Math.abs(o.yawRate) < 20 / DEG ? calm + MS : 0;
+    flown = o.alpha < p.alphaStall - 2 / DEG ? flown + MS : 0;
+    if (stoppedAt === null && (calm >= 500 || flown >= 500)) {
+      stoppedAt = o;
+      how = calm >= 500 ? 'rotation stopped' : `wing flying, ${f1(o.yawRate)} deg/s of spiral left`;
     }
-    if (done === null && stopped && o.alpha < p.alphaStall - 2 / DEG) {
-      done = o;
-    }
-    return stopped ? [0, 0, 0, 0] : anti;
+    return stoppedAt ? [0, 0, 0, 0] : anti;
   });
-  void tr;
-  if (!done) {
-    return 'no recovery in 7 s';
+  const from = `from ${f1(yaw0)} deg/s`;
+  if (!stoppedAt) {
+    return `${from}: still spinning after 10 s`;
   }
-  return `recovered in ${(done.t - t0).toFixed(2)} s, ${(z0 - done.z).toFixed(1)} m`;
+  return `${from}: ${how} in ${Math.abs(stoppedAt.turns - turns0).toFixed(2)} turns, ${(stoppedAt.t - t0).toFixed(2)} s, ${(z0 - stoppedAt.z).toFixed(1)} m`;}
+
+/*
+ * G: the accelerated stall a snap roll is: full back stick at once from
+ * 1.4 Vs at half throttle, held 1 s: the most angle of attack reached
+ * over the stall's, the peak pitch rate, and the roll it makes with full
+ * right rudder and aileron with it.
+ */
+function accel(sim, p) {
+  must(sim.reset(), 'sim_reset');
+  must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
+  must(sim.e.sim_wing_set_slats(p.slats ?? 1), 'sim_wing_set_slats');
+  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(1.4 * p.Vs), 'sim_wing_launch');
+  let aMax = -Infinity, qMax = 0, pMax = 0;
+  for (let ms = 0; ms < 1000; ms += MS) {
+    must(sim.input(ms / 1000, 1, 1, p.rudder ? 1 : 0, 0.5), 'sim_input');
+    must(sim.step(MS), 'sim_step');
+    const s = sim.readState().state;
+    aMax = Math.max(aMax, wingDebug(sim)[0]);
+    qMax = Math.max(qMax, -s[12]);
+    pMax = Math.max(pMax, Math.abs(s[11]));
+  }
+  return `alpha to ${f1(aMax)} (${f1(aMax - p.alphaStall)} past the stall), pitch rate to ${f1(qMax)} deg/s, roll rate to ${f1(pMax)} deg/s`;
 }
 
 for (const [key, p] of Object.entries(PLANES)) {
@@ -239,4 +311,5 @@ for (const [key, p] of Object.entries(PLANES)) {
   console.log(`  D  stall recovery:   ${recover(sim, p, (ms) => [0, ramp(ms), 0, 0], [0, 0, 0, 0])}`);
   console.log(`  E  full back, Acro:  ${stallA(sim, p, 2)}`);
   console.log(`  F  full back at once: ${stallA(sim, p, 0, () => 1)}`);
+  console.log(`  G  accelerated:      ${accel(sim, p)}`);
 }

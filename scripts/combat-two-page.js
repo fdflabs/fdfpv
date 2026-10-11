@@ -263,8 +263,7 @@ try {
    * A is held high so its paper hangs; the held pilots wait out Phase 5's
    * spawning seconds before B is let go past A's paper. Neither throw is
    * `fresh`: a fresh one restarts the flight, and Phase 3 keeps a new
-   * flight untouchable until it has flown 30 m from where it started, so
-   * a pilot hovering where it started can neither cut nor be cut.
+   * flight untouchable for its first five seconds.
    */
   const took = FULL - cut.keep;
   const wantA = [[1, FULL], [2, took]];

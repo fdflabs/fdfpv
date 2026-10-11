@@ -1190,6 +1190,16 @@ heading('edges the stories above leave open');
   check('and a saved calibration takes the verdict down with the guess', b.im.padSummary().guessNoYaw === false);
 }
 
+heading('a standard pad steers the menus four ways');
+{
+  const { padDirections } = await import('../src/input/menus.js');
+  const pad = (axes, held = []) => ({ mapping: 'standard', axes, buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: held.includes(i), value: held.includes(i) ? 1 : 0 })) });
+  check('the left stick pushed right is right, not up', show(padDirections(pad([1, 0, 0, 0])).stick) === show({ up: false, down: false, left: false, right: true }));
+  check('the left stick pushed up is up', padDirections(pad([0, -1, 0, 0])).stick.up === true);
+  check('the d-pad\'s four buttons are its four ways', show(padDirections(pad([0, 0, 0, 0], [12, 15])).dpad) === show({ up: true, down: false, left: false, right: true }));
+  check('a pad with no standard layout (a radio) gets none', padDirections({ mapping: '', axes: [1, 0], buttons: [] }) === null);
+}
+
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
 for (const f of failures) {
   console.log(`  FAIL ${f}`);

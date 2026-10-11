@@ -94,6 +94,10 @@ export const GOOGLE_CLIENT_ID = '684567545976-dqpf7tqf764rs0dp7l08it7usb33fo9m.a
 
 const GUEST_KEY = 'webfpv.pilot.key.guest.v1';
 const SYNCED_KEY = 'webfpv.account.synced.v1';
+/* The account's wallet as the server last said it (tracks-api/wallet.js),
+ * kept to draw the shop and the locks between answers. The server is the
+ * truth: this is never sent, only replaced by what the server says. */
+const WALLET_KEY = 'webfpv.account.wallet.v1';
 const TIMEOUT_MS = 10000;
 /* The session goes as `authorization: Bearer <token>`. */
 const AUTH_SCHEME = 'Bearer';
@@ -353,6 +357,7 @@ function forgetAccount({ ended = false } = {}) {
   writeJson(ACCOUNT_KEY, null);
   writeJson(SYNCED_KEY, null);
   writeJson(GUEST_KEY, null);
+  writeJson(WALLET_KEY, null);
   if (identity) {
     if (guest) {
       identity.importText(guest).catch(() => identity.forget());
@@ -400,7 +405,63 @@ export async function syncProgress(settings) {
   const now = pickSynced(settings);
   const stamps = kept ? stampChanges(now, { ...now, ...(kept.data || {}) }, Date.now(), kept.stamps || {}) : {};
   const got = await api('PUT', '/api/account/progress', { progress: { v: 1, data: now, stamps } });
+  if (got.wallet) {
+    writeJson(WALLET_KEY, got.wallet);
+  }
   return mergeBlobs(got.progress, null);
+}
+
+/*
+ * THE WALLET (docs/ECONOMY.md): { balance, earned, owned: { [item]: how } }.
+ * readWallet is the last one the server gave, or null; fetchWallet asks
+ * again (the server pays what the held progress shows first); buyItem
+ * buys one, and throws the server's refusal (status 402 short, 409 owned
+ * or earned only, 404 unknown) with its `why` on err.body.
+ */
+export function readWallet() {
+  return signedIn() ? readJson(WALLET_KEY) : null;
+}
+
+export async function fetchWallet() {
+  const got = await api('GET', '/api/account/wallet');
+  writeJson(WALLET_KEY, got.wallet);
+  return got.wallet;
+}
+
+export async function buyItem(item) {
+  const got = await api('POST', '/api/account/wallet/buy', { item });
+  writeJson(WALLET_KEY, got.wallet);
+  return got.wallet;
+}
+
+/*
+ * THE LIVERY GALLERY (docs/LIVERY-GALLERY.md, tracks-api/gallery.js). The
+ * list is public and asked with the session when there is one, which the
+ * server ignores; the rest throw the server's refusal with its `why` on
+ * err.body, as buyItem does.
+ */
+export async function galleryList(family, sort, page = 0) {
+  return api('GET', `/api/gallery?family=${encodeURIComponent(family)}&sort=${sort}&page=${page}`);
+}
+
+export async function galleryLiked() {
+  return (await api('GET', '/api/account/gallery/liked')).ids;
+}
+
+export async function galleryPublish(code) {
+  return (await api('POST', '/api/account/gallery', { code })).entry;
+}
+
+export async function galleryLike(id, on) {
+  return api(on ? 'PUT' : 'DELETE', `/api/account/gallery/${id}/like`);
+}
+
+export async function galleryReport(id) {
+  return api('POST', `/api/account/gallery/${id}/report`);
+}
+
+export async function galleryRemove(id) {
+  return api('DELETE', `/api/account/gallery/${id}`);
 }
 
 /*

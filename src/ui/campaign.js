@@ -84,7 +84,11 @@ const skey = (id) => id.replace(/-/g, '_');
 export function createCampaignScreen({
   ui, devMissions = false, enterWarRoom, send, view, room, craftWarhead = null, devAccount = () => Promise.resolve(false),
 }) {
-  const store = createCampaignStore(ui.settings, () => ui.persistSettings());
+  /* A result recorded may be a first (progress-ui.js checkFirsts). */
+  const store = createCampaignStore(ui.settings, () => {
+    ui.persistSettings();
+    ui.progress.checkFirsts();
+  });
   /* Read fresh each time: an account sync may replace the section. */
   const cur = () => store.load();
   /* The loadout the room is told: the campaign's, with the warhead the
