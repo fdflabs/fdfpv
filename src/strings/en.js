@@ -565,7 +565,6 @@ export default {
   "ui.howto_mouse_mode": "The mouse is a real proportional stick, so it flies whichever Flight mode is set in Quad, like a radio. On a quad in Acro the stick springs back to centre, so moving the mouse turns the quad and stopping holds the attitude. In Angle and on every plane it stays where you put it.",
   "input.the_keyboard": "the keyboard",
   "input.on_foot": "the pilot on foot",
-  "foot.can_step_out": "Landed and stopped: {key} steps out.",
   "foot.stepped_out": "On foot. WASD walk, Shift runs, the mouse looks; {key} flies again from here.",
   "foot.flying_again": "Flying from where you stand.",
   "foot.land_first": "Land and stop first, motor off, to step out.",
