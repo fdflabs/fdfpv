@@ -174,6 +174,8 @@ export default withWaves({
   time: 'day',
   radio: { brief: ['itaipu-2-s0-brief', 'itaipu-2-s0-rules'], win: 'debrief-itaipu-2-win', lose: 'debrief-itaipu-2-lose' },
   film: 'spillway',
+  /* The film a win ends on (films/spillway-outro.js). */
+  outro: 'spillway-outro',
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
