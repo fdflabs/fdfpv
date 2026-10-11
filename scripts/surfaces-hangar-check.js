@@ -28,7 +28,9 @@
  *       kept down), and Save keeps them in settings.surfaces.
  *   H4  the shell seats them: sim_wing_tiers is the tier block, the
  *       tune's throws the tier's, the servos' grams in the add-ons.
- *   H5  a pilot who has not earned them flies stock and sees the cards
+ *   H5  the Tuning tab's rates show the tier's throws, as the plant
+ *       flies them.
+ *   H6  a pilot who has not earned them flies stock and sees the cards
  *       locked.
  *
  *   node scripts/surfaces-hangar-check.js [out-dir]
@@ -100,13 +102,17 @@ async function pointAt(page, selector) {
   await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...c }, page.sessionId);
 }
 
-async function openSurfaces(page) {
+async function openHangar(page) {
   await page.evaluate('window.__ui.openCraftRow(false); true');
   await page.until('window.__ui.carousel.isOpen', 10000);
   await page.evaluate(`window.__ui.carousel.setFilter('all'); window.__ui.carousel.goTo(window.__ui.carousel.ids.indexOf(${JSON.stringify(ID)})); true`);
   await page.tap('KeyC');
   await page.until(`window.__ui.hangar.isOpen && window.__ui.hangar.id === ${JSON.stringify(ID)}`, 10000);
   await page.until('Boolean(window.__carouselStats().camera)', 120000);
+}
+
+async function openSurfaces(page) {
+  await openHangar(page);
   await press(page, '.hangar [data-key="tab-surfaces"]');
   await page.until("window.__ui.hangar.tab === 'surfaces'", 5000);
   await page.sleep(1500);
@@ -171,16 +177,32 @@ try {
     `H4 the servos ride as add-ons: ${stock.massKg} kg to ${seated.massKg} kg, ${(grams * 1000).toFixed(0)} g`);
 
   /* H5 */
+  await openHangar(page);
+  await press(page, '.hangar [data-key="tab-tuning"]');
+  await page.until("window.__ui.hangar.tab === 'tuning'", 5000);
+  await press(page, '.hangar [data-key="tuning-rates"]');
+  await page.sleep(800);
+  const shown = await page.evaluate("[...document.querySelectorAll('.hangar .tn-surface-throw')].map((e) => e.textContent)");
+  const rate = await page.evaluate(`(window.__ui.settings.tuning[${JSON.stringify(ID)}] || {}).rate || 'high'`);
+  const wantDeg = tierThrowsDeg(ID, tiers);
+  say(rate === 'high' && shown.length === 3 && shown.every((t, i) => parseFloat(t) === Math.round(wantDeg[i] * 10) / 10),
+    `H5 the Tuning tab's rates show the tier's throws: ${shown.join(', ')} (${rate} rate, the tier's ${wantDeg.map((d) => d.toFixed(1)).join(', ')})`);
+  await shot(page, 'cub-4-rates');
+  await page.tap('Escape');
+  await page.until('!window.__ui.hangar.isOpen', 10000).catch(() => {});
+  await page.evaluate('window.__ui.carousel.close(); true');
+
+  /* H6 */
   await page.evaluate('window.__ui.settings.progress = { ...window.__ui.settings.progress, unlockAll: false, xp: 0 }; true');
   await reseat(page);
   await page.sleep(500);
   const fresh = await craft(page);
   say(JSON.stringify(fresh.tiers) === JSON.stringify([1, 1, 1, 0, 0, 0]) && fresh.massKg === stock.massKg,
-    `H5 not yet earned, it flies stock: ${JSON.stringify(fresh.tiers)}, ${fresh.massKg} kg`);
+    `H6 not yet earned, it flies stock: ${JSON.stringify(fresh.tiers)}, ${fresh.massKg} kg`);
   await openSurfaces(page);
   const lock = await page.evaluate("(() => { const b = document.querySelector('.hangar [data-key=\"surface-a-sport\"]'); const s = document.querySelector('.hangar [data-key=\"surface-a-stock\"]'); return { sport: b.disabled || b.classList.contains('pg-locked'), stock: s.disabled || s.classList.contains('pg-locked') }; })()");
-  say(lock.sport && !lock.stock, `H5 the Sport card is locked, Stock is not: ${JSON.stringify(lock)}`);
-  await shot(page, 'cub-4-locked');
+  say(lock.sport && !lock.stock, `H6 the Sport card is locked, Stock is not: ${JSON.stringify(lock)}`);
+  await shot(page, 'cub-5-locked');
 } finally {
   await page.close();
 }

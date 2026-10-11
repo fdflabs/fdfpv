@@ -11034,17 +11034,22 @@ export async function boot({
     const af = airframeById(runAirframe);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
+      runTierKey = 'null';
       return;
     }
     const set = setupFor(af.id, powerChoice(af.id, s.power));
     const entry = normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits);
-    const tiers = seatedTiers(s, af.id);
-    const tierSet = tierBlock(af.id, tiers);
-    const tierCode = tierSet ? sim.setTiers(tierSet) : sim.clearTiers();
-    if (tierCode !== SIM_OK) {
-      throw new Error(`sim_wing_set_tiers refused ${JSON.stringify(tiers)} on ${af.id}: ${simErrorName(tierCode)}`);
+    /* Mid run the tiers in the air stay (they wait for the next run, with
+     * their servos and their drawing); only the tune is laid again. */
+    const tiers = midRun ? (runTierKey === 'null' ? null : JSON.parse(runTierKey)) : seatedTiers(s, af.id);
+    const tierSet = tiers ? tierBlock(af.id, tiers) : null;
+    if (!midRun) {
+      const tierCode = tierSet ? sim.setTiers(tierSet) : sim.clearTiers();
+      if (tierCode !== SIM_OK) {
+        throw new Error(`sim_wing_set_tiers refused ${JSON.stringify(tiers)} on ${af.id}: ${simErrorName(tierCode)}`);
+      }
+      runTierKey = tierKeyOf(s, af.id);
     }
-    runTierKey = tierKeyOf(s, af.id);
     const block = tuneBlock(af.id, entry, set.massKg, set.packKg, tierSet ? tierThrowsDeg(af.id, tiers) : null);
     const code = block ? sim.setTune(block) : sim.clearTune();
     if (code !== SIM_OK) {
@@ -14336,8 +14341,9 @@ export async function boot({
       return;
     }
     const set = setupFor(af.id, powerChoice(af.id, s.power));
-    if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey
-      || tierKeyOf(s, af.id) !== runTierKey) {
+    /* Not the surface tiers: they are mass and aero and wait for the
+     * next run, which seats them with their servos and draws them. */
+    if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
       applyTuning(s, true);
     }
   }
