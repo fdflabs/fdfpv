@@ -3425,6 +3425,60 @@
      }
     },
     {
+     "id": "freestyle:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Back",
      "action": "back",
@@ -3650,6 +3704,60 @@
       "pick(\"breeze\")": {
        "settings": {
         "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
        }
       }
      }
@@ -27776,6 +27884,60 @@
      }
     },
     {
+     "id": "freestyle:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Volver",
      "action": "back",
@@ -28001,6 +28163,60 @@
       "pick(\"breeze\")": {
        "settings": {
         "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
        }
       }
      }
