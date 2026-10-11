@@ -549,6 +549,37 @@
    }
   },
   {
+   "id": "slick2680",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setProp",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 2.497,
+    "bodyWidth": 2.68,
+    "bodyHeight": 0.945,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
    "id": "p51d1450",
    "name": "craft",
    "scale": [
@@ -779,24 +810,28 @@
    17
   ],
   [
-   "p51d1450",
+   "slick2680",
    18
   ],
   [
-   "f16878",
+   "p51d1450",
    19
   ],
   [
-   "zagi1219",
+   "f16878",
    20
   ],
   [
-   "nrj1490",
+   "zagi1219",
    21
   ],
   [
-   "striker2500",
+   "nrj1490",
    22
+  ],
+  [
+   "striker2500",
+   23
   ],
   [
    "5inch",

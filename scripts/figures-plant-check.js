@@ -14,8 +14,10 @@
  * perfect, nor useless); the 4-point roll, whose holds this person lets
  * sag, named and graded under the roll; nothing else may be named, so the
  * level passes name nothing. The same flight run twice must give the same figures.
+ * --plane slick flies the same program on the Slick 580 (docs/SLICK-STAGE1.md),
+ * thrown at its own sport pace.
  *
- *   node scripts/figures-plant-check.js
+ *   node scripts/figures-plant-check.js [--plane extra|slick]
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -38,12 +40,22 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, EXTRA_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { must, EXTRA_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
+
+/* Each aircraft and the speed it is thrown at: the Extra at 22 m/s, the
+ * Slick at its trimmed sport pace, 22 m/s too (npm run slick:derive). */
+const PLANES = {
+  extra: { id: EXTRA_AIRFRAME, launch: 22, label: 'the Extra' },
+  slick: { id: SLICK_AIRFRAME, launch: 22, label: 'the Slick' },
+};
+const at = process.argv.indexOf('--plane');
+const plane = PLANES[at > 0 ? process.argv[at + 1] : 'extra'];
+if (!plane) throw new Error(`--plane: one of ${Object.keys(PLANES).join(', ')}`);
 
 const MS = 2;
 const LAG = 100;
@@ -71,11 +83,11 @@ function see(s) {
 async function flight() {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(EXTRA_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(plane.id), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 120, 1, 0, 0, 0), 'sim_set_pose');
-  must(sim.e.sim_wing_launch(22), 'sim_wing_launch');
+  must(sim.e.sim_wing_launch(plane.launch), 'sim_wing_launch');
   const figures = [];
   const marks = [];
   const det = new FigureDetector((f) => figures.push({ ...f, atMs: f.endMs }));
@@ -145,7 +157,7 @@ console.log(`flown: ${names || 'nothing'}`);
 const want = ['loop', 'aileron_roll', 'four_point_roll'];
 for (const id of want.slice(0, 2)) {
   const f = a.figures.find((g) => g.figure === id);
-  check(`a person's ${id} on the Extra is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
+  check(`a person's ${id} on ${plane.label} is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
 }
 /* This person's points sag: the nose falls about a third of a turn over
  * the four holds, which a judge marks hard (a point per 15 deg off the

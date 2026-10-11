@@ -127,8 +127,14 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'strike
  * (docs/NIGHTTIMBER-STAGE1.md) opens at 6, the lead's call: the Timber's
  * STOL wing a starter pilot knows, with the 3D the Extra asks for. The
  * Hercules opens at 8 (the lead's decision, 2026-10-08,
- * docs/HERCULES-CONTRACT.md); 10 opens no plane. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, f16878: 11 };
+ * docs/HERCULES-CONTRACT.md); 10 opens no plane. The Slick 580
+ * (docs/SLICK-STAGE1.md) opens last, at 12, its lane's call by analogy for the
+ * biggest and most advanced: the Extra's hover and torque roll with
+ * twelve and a half kilograms of momentum, and its maker asks for
+ * experience, "If this is your first aerobatic RC aircraft, it is highly
+ * recommended that you recruit an experienced giant scale RC enthusiast"
+ * (the 120cc build guide), as Motion RC asks of the F-16's. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, f16878: 11, slick2680: 12 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

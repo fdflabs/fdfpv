@@ -72,6 +72,7 @@ const AIRFRAMES = [
   ['radian2000', 6], ['timber1500', 7], ['bramor2300', 8], ['timber1500f', 9], ['cub1400f', 10],
   ['bombshell1118', 11], ['kadet1981', 12], ['p51d1450', 15], ['f16878', 16], ['zagi1219', 17],
   ['uglystik1567', 19], ['nrj1490', 21], ['tigermoth1803', 23], ['extra3d1308', 29], ['nighttimber1200', 30], ['hercules3077', 31],
+  ['slick2680', 33],
 ];
 
 const GATE = KINDS.indexOf('gate');

@@ -74,6 +74,7 @@ export const SIM_TUNE_DOUBLES = 12;
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
 const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
+const SLICK_SHEET = 'https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -245,6 +246,14 @@ export const TUNING = {
     cg: { mm: 145, datum: 'tuning.datum.root_le', range: [145, 173.5], source: `AeroTetris, "CG (16%): 923.8 mm" and "CG (8%): 952.3 mm" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
     packKg: 1.64, nose: 0.92, tail: -1.20, /* the lead inside the tail cone, ahead of its post */
     throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
+    flaps: null,
+  },
+  slick2680: {
+    chord: 0.4577, area: 1.150, margin: 0.185,
+    expo: 55, /* the sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies */
+    cg: { mm: 169, datum: 'tuning.datum.root_le', range: [160, 179], source: `EF's data sheet, "Center of main wing tube to rear of main wing tube as starting position": the 38 mm tube's centre at 28 percent of the drawn 570 mm root, 160 mm, to its rear, 179; the middle taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
+    packKg: 0.30, nose: 0.48, tail: -1.50, /* the receiver's two packs; the lead at the firewall or ahead of the tail post */
+    throws: { high: [37.5, 47.5, 45], low: [20, 11, 20], source: `EF's data sheet and 120cc build guide, in degrees: aileron 38 up and 37 down high, 20 low; elevator 45 to 50 for 3D, 10 to 12 low; rudder 45 and more high, 20 low; the middles taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
     flaps: null,
   },
 

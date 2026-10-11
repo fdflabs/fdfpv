@@ -285,6 +285,72 @@ class: the wing's root at twelve times its half's weight on the half
 span's lift centroid (400 N m), the engine on its four bolts and stand offs
 (200 N m), the carbon gear at four landings' worth (150 N m).
 
+## The model
+
+`src/render/slickcraft.js`, off the sheet's drawing as measured above: the
+round cowl on the petrol twin, the slab sided fuselage, the long bubble
+canopy running into the turtle deck, the tapered mid wing with its moulded
+tips and ailerons to the tip rib, the stabiliser whose elevators carry
+balance horns outboard of 0.42 m, the full depth rudder with its horn, two
+pants on carbon legs and a steered tailwheel, the 28 x 10 carbon prop
+behind the 5 in spinner, its disc reading the engine's 686 rad/s at full.
+It stands at 9.40 deg and 0.4088 m drawn (the plant's 9.36 and 0.4088
+idling); `craft:check` holds its span and reach (3455 mm, the rudder's
+foot 1.728 m aft further than the tips) to the airframe row. The pad
+shot's orbit now scales with a craft's span past 1.5 m (src/main.js
+INTRO_SPAN), or its lens would orbit inside this wing.
+
+## In the shell
+
+- `configs/airframes.js` slick2680, simId 33; `voice` the two stroke's,
+  `glow2` (src/render/audio.js has no petrol twin's note of its own).
+- Tunes `slick-as3x` (the default), `slick-manual`, `slick-stab`
+  (configs/registry.js): an ARF ships with no electronics, and a builder's
+  heading gyro is what a 35 percent 3D aircraft carries (owner rule
+  2026-10-08, any real gyro), the Extra's three.
+- Power (configs/power.js): the DA-120 on the 28 x 10 and the sheet's
+  34 oz tank of petrol at 0.73 g/cc; the hangar's estimate flies 42.53
+  m/s and 26.7 minutes at its 22 m/s cruise (`power:check`). No other
+  prop yet: APC measures no 27 or 28 in two blade, and Falcon's chart (its
+  27 x 11 and 28 x 9.5 on the DA-120) wants a measured prop kind of its own.
+- Tuning (configs/tuning.js): the sheet's CG range on the tube, its throws
+  high and low, its 55 percent expo.
+- Kit: the Extra's slots, a bullet or striped spinner, a smoke or gold
+  canopy, and the side force generators EF sells.
+- Liveries (configs/liveries.js): EF's three V3 schemes, the 10th
+  Anniversary red and white (stock), white with blue and orange, and cub
+  yellow with red and grey, in the sheet's Oracover colours.
+- It opens at **level 12**, last, this lane's call by analogy (the owner
+  may move it): the biggest and most advanced aircraft, the Extra's hover
+  and torque roll with twelve and a half kilograms of momentum, and the
+  build guide's "If this is your first aerobatic RC aircraft, it is highly
+  recommended that you recruit an experienced giant scale RC enthusiast",
+  as the F-16 at 11 opens on its maker's ask for experience. No aircraft
+  has a price; its kit items are KIT_PRICE as every kit's.
+- `aircraft/slick2680/aircraft.json`, born with its folder: `npm run
+  aircraft:folder` holds it equal to every hand row (foundations item 5).
+- The figures: `npm run slick:figures` flies figures-plant-check.js's
+  person paced pilot on it (loop 7, aileron roll 9, a sagging 4-point roll
+  6, nothing else named); `callouts:check -- --airframe=slick2680` passes
+  32 of 32 with it seated in Free Flight. Trick Battle's runner scores with
+  the same detector and scorer.
+
+## What the owner should feel flying it
+
+Everything happens slower to start and longer to stop than on the Extra:
+it is eight times the mass at twice the size. Pull it vertical and bring
+the stick back to a little over half: it hangs, and turns left about its
+nose at about half a turn a second until the ailerons hold it; more
+aileron and it turns back. At walking pace with the nose 40 deg up and the
+stick near half it mushes along. Full aileron at a sport pace rolls it
+about 420 deg/s. Close the throttle and pull hard: the right wing drops at
+the break, the idling prop's gyroscope. On the ground the engine idles and
+the tail is light; under power it swings left and wants right rudder (more
+than the real one, which has 3 deg of right thrust the plant cannot yet
+give it). What would be wrong: a snap that flicks like the Extra's, a
+hover that holds itself without the pilot, a torque roll to the right, the
+engine stopping on the stick.
+
 ## Sources
 
 - Extreme Flight, 100 in Slick 580 EXP V3 pages:

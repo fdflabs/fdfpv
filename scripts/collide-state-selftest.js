@@ -195,4 +195,4 @@ for (const [label, args] of hits) {
 t.note('after hits', own(c));
 t.note('seated at end', canon(seated()) === canon(FIVE_INCH));
 
-t.finish('collide state', 'fba9decfdb7e0a97db5d39b10f9286271f53f0c4eb09fb22dbf4d6b4f10dd237');
+t.finish('collide state', '8d9d34dec63370480571b461b59ce0cc1905988d81212565c0cd4219e4a5c5a8');

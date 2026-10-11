@@ -2,10 +2,11 @@
  * callouts-check.js: the trick callouts on the real shell, in English and
  * Spanish, at desktop and phone width (docs/TRICKS-CATALOG.md, PR 2).
  *
- *   node scripts/callouts-check.js [--out=DIR]
+ *   node scripts/callouts-check.js [--out=DIR] [--airframe=ID]
  *
- * Per language and width, with the Extra 330 seated in Free Flight and the
- * score off (the default):
+ * Per language and width, with the Extra 330 seated in Free Flight (or the
+ * fixed wing --airframe names, e.g. slick2680) and the score off (the
+ * default):
  *   1. The Freestyle menu has the Trick callouts row, on.
  *   2. A judged loop, landed as the figure detector lands it, is called out
  *      in the overlay: the figure's name in the page's language, its grade
@@ -61,12 +62,14 @@ function check(name, ok, detail = '') {
 }
 
 const STRINGS = { en, es };
+const AIRFRAME = (process.argv.find((a) => a.startsWith('--airframe=')) || '--airframe=extra3d1308').split('=')[1];
+if (!airframeById(AIRFRAME) || !airframeById(AIRFRAME).fixedWing) throw new Error(`--airframe: ${AIRFRAME} is not a fixed wing`);
 const SIZES = [['desktop', 1600, 900], ['phone', 390, 844]];
 const FLYING = "window.__screen === 'flight' && window.__mode === 'flight'";
 
 function seeds(lang) {
   const start = { airframe: 'interceptor', rates: airframeById('interceptor').rates };
-  const seat = seatAirframe(start, 'extra3d1308');
+  const seat = seatAirframe(start, AIRFRAME);
   return [
     `try { localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
       localStorage.setItem(${JSON.stringify(LANG_KEY)}, ${JSON.stringify(lang)});

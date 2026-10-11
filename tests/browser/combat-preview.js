@@ -52,6 +52,7 @@ import { buildTigermothCraft } from '../../src/render/tigermothcraft.js';
 import { buildExtraCraft } from '../../src/render/extracraft.js';
 import { buildNightTimberCraft } from '../../src/render/nighttimbercraft.js';
 import { buildHerculesCraft } from '../../src/render/herculescraft.js';
+import { buildSlickCraft } from '../../src/render/slickcraft.js';
 import { buildUglystikCraft } from '../../src/render/uglystikcraft.js';
 import { buildDlgCraft } from '../../src/render/dlgcraft.js';
 
@@ -72,6 +73,7 @@ const SHIPPED = {
   extra3d1308: buildExtraCraft,
   nighttimber1200: buildNightTimberCraft,
   hercules3077: buildHerculesCraft,
+  slick2680: buildSlickCraft,
   uglystik1567: buildUglystikCraft,
   nrj1490: buildDlgCraft,
 };

@@ -303,6 +303,7 @@ jobs:
       - run: npm run slick:derive -- --check
       - run: npm run slick:gates
       - run: npm run slick:stab
+      - run: npm run slick:figures
 
   shard-3:
     runs-on: ubuntu-latest

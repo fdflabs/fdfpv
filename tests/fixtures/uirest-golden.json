@@ -263,6 +263,10 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -387,6 +391,10 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -2784,6 +2792,155 @@
     }
    },
    "hercules3077:unfitted": null,
+   "slick2680:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "slick2680",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "slick2680:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "slick2680",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "slick2680:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -4276,6 +4433,10 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4400,6 +4561,10 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -6797,6 +6962,155 @@
     }
    },
    "hercules3077:unfitted": null,
+   "slick2680:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "slick2680",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "slick2680:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "slick2680",
+     "look": {
+      "colours": {
+       "wing": 15921903,
+       "fuselage": 15921903,
+       "nose": 13112348,
+       "tail": 13112348,
+       "trim": 1447962,
+       "rays": 13112348
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "slick2680",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "slick2680:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",

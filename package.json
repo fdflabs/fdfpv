@@ -359,6 +359,7 @@
     "slick:stab": "node scripts/slick-stab-selftest.js",
     "slick:record": "node scripts/wing-record.js slick",
     "slick:derive": "node scripts/slick-derive.js",
+    "slick:figures": "node scripts/figures-plant-check.js --plane slick",
     "stab:hold": "node scripts/stab-hold-derive.js --check",
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "hover:probe": "node scripts/hover-probe.js",

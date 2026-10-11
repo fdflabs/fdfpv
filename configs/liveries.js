@@ -261,6 +261,20 @@ export const LIVERIES = {
       { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
     ],
   },
+  slick2680: {
+    /* Extreme Flight's three schemes for the V3 in their Oracover colours,
+     * the data sheet's codes where it gives them, the hex the swatch's: the
+     * 10th Anniversary's white with red cowl, pants, tail and wing rays and
+     * black trim (356RC); white with orange, sky blue and dark blue (#10,
+     * #60, #53, #52, 356V3BW); cub yellow with red, light grey and black
+     * (#30, #23, #11, #71, 356CYV3). */
+    regions: [r('wing', '#f2f2ef'), r('fuselage', '#f2f2ef'), r('nose', '#c8141c'), r('tail', '#c8141c'), r('trim', '#16181a'), r('rays', '#c8141c')],
+    schemes: [
+      { id: 'stock', source: src('Extreme Flight 100 in Slick 580 EXP V3, Red/White 10th Anniversary, 356RC', 'https://extremeflightrc.com/products/ef-100-slick-580-exp-v2-red-anniversary-scheme'), colours: {} },
+      { id: 'blueorange', source: src('Extreme Flight 100 in Slick 580 EXP V3, White/Blue/Orange, 356V3BW; Oracover 10, 60, 53, 52', 'https://extremeflightrc.com/products/105-5-slick-580-exp-v2-white-blue-orange'), colours: { nose: '#f26522', tail: '#3d9ad6', rays: '#f26522', trim: '#1c2a5a' } },
+      { id: 'cubyellow', source: src('Extreme Flight 100 in Slick 580 EXP V3, Cub Yellow/Red/Grey, 356CYV3; Oracover 30, 23, 11, 71', 'https://extremeflightrc.com/products/ef-100-slick-580-exp-v3-cub-yellow-red-grey'), colours: { wing: '#f8c300', fuselage: '#f8c300', nose: '#c1121f', tail: '#c1121f', rays: '#b9bbbc' } },
+    ],
+  },
   nighttimber1200: {
     /* E-flite's scheme off its photographs (EFL13875): white foam, the
      * orange red flashes over the wing and along the fuselage, black

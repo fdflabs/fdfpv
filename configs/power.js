@@ -202,6 +202,10 @@ export const TABLE = {
     simId: 31, massKg: 6.728, cells: 3, rCell: 0.0015, propIn: 12, cruiseMs: 15.46,
     flightTime: null,
   },
+  slick2680: {
+    simId: 33, massKg: 12.474, cells: 2, rCell: 0.030, propIn: 28, cruiseMs: 22,
+    flightTime: null,
+  },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -727,6 +731,29 @@ const HERCULES = [
     source: ['https://www.horizonhobby.com/product/power-25-brushless-outrunner-motor-870kv/EFLM4025A.html', 'https://aerotetris.com/models/c130-3077.php', 'https://www.apcprop.com/files/PER3_12x8E.dat'],
   },
 ];
+
+/* The Slick 580, docs/SLICK-STAGE1.md: Desert Aircraft's DA-120 on Falcon's
+ * 28 x 10 carbon prop, 6,550 rpm and 31.0 kg standing, Falcon's own test
+ * chart; the torque APC's 22 x 8's Cp / Ct (FITTED), the pitch speed the
+ * 22 x 8's zero thrust advance ratio, the idle DA's 1,300 rpm, the flow the
+ * shaft power at Moulton's measured petrol twin's consumption (FITTED),
+ * scripts/slick-derive.js. The tank is the sheet's 34 oz FlowMaster of
+ * petrol with 2.5 percent oil, 0.73 g/cc. */
+const SLICK_SHEET = 'https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf';
+const PETROL_G_CC = 0.73;
+const SLICK_TANKS = [
+  tank('1006cc', 1005.5, 1005.5e-6, 1005.5 * PETROL_G_CC, SLICK_SHEET),
+];
+const SLICK = [
+  {
+    id: 'stock', name: 'power.slick.stock', kind: 'glow', voice: 'glow2',
+    propIn: 28, pitchIn: 10, blades: 2,
+    thrustN: 304.11, rpmNoLoad: 7705.9, pitchSpeedMs: 46.588, idle: 0.1985,
+    flowFullM3s: 71.2e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
+    massKg: 12.474, cgShiftM: 0, packs: SLICK_TANKS, pack: '1006cc',
+    source: [SLICK_SHEET, 'https://www.desertaircraft.com/products/da-120', 'https://www.falconpropellers.com/wp-content/uploads/2020/04/Falcon-Propeller-Test-Chart.pdf', `${APC}22x8.dat`, 'https://drum.lib.umd.edu/handle/1903/6905'],
+  },
+];
 const TIGER_TANKS = [
   tank('355cc', 355, 355.0e-6, 355 * FUEL_G_CC, GP_TIGER),
 ];
@@ -772,6 +799,7 @@ export const POWER = {
   extra3d1308: EXTRA,
   nighttimber1200: NIGHTTIMBER,
   hercules3077: HERCULES,
+  slick2680: SLICK,
   f16878: F16,
   p51d1450: P51,
   zagi1219: ZAGI,
