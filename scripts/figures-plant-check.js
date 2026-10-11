@@ -9,11 +9,16 @@
  * Manual, the way IMAC pilots fly: a level pass, a loop (a steady pull
  * until the nose is back on the horizon), a level pass, an aileron roll
  * (full stick until the wings come round, let go a little early as a
- * person anticipates), a level pass, then a 4-point roll. The loop and
- * the roll must be named and graded between 4 and 10 (a person is not
- * perfect, nor useless); the 4-point roll, whose holds this person lets
- * sag, named and graded under the roll; nothing else may be named, so the
- * level passes name nothing. The same flight run twice must give the same figures.
+ * person anticipates), a level pass, a 4-point roll, a level pass, then a
+ * tailslide (a pull to the vertical, the line held until the speed is
+ * gone, the throttle cut with the nose held up until it slides back, the
+ * sticks let go until it falls through, a diving line and the pull out;
+ * figures-plant-sweep.js's program and line gains), on the aircraft it
+ * is proven on (PLANES' tailslide). The loop, the roll and the tailslide
+ * must be named and graded between 4 and 10 (a person
+ * is not perfect, nor useless); the 4-point roll, whose holds this person
+ * lets sag, named and graded under the roll; nothing else may be named,
+ * so the level passes name nothing. The same flight run twice must give the same figures.
  * --plane slick flies the same program on the Slick 580 (docs/SLICK-STAGE1.md),
  * thrown at its own sport pace.
  *
@@ -46,7 +51,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { must, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -60,8 +65,13 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * 0.55 takes its wing to 15 deg of alpha, past its 11.7 (CL max over the
  * wing's slope, npm run cap580:derive); the Slick at its trimmed sport
  * pace, 22 m/s too (npm run slick:derive), at the Extra's pull. */
+/* The tailslide is proven on the Extra (named 9 to 10 on four of its
+ * flight models, figures-plant-sweep.js); on the CAP this program's up
+ * line at 0.4 throttle hangs at 4.5 m/s and falls off sideways, and on
+ * the Slick the pull out is named a parachute too: their own lanes' to
+ * fly, so not yet asked of them here. */
 const PLANES = {
-  extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55 },
+  extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55, tailslide: true },
   cap: { sim: CAP_AIRFRAME, name: 'the CAP', launch: 22, loopPull: 0.35 },
   slick: { sim: SLICK_AIRFRAME, name: 'the Slick', launch: 22, loopPull: 0.55 },
 };
@@ -78,6 +88,12 @@ const LAG = 100;
 const EVERY = 50;
 const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
 const quant = (x) => clamp(Math.round(x * 50) / 50);
+/* The vertical lines' gains, figures-plant-sweep.js's LINE_GAINS (a rate
+ * gain of 0.5 rings against this person's lag; 0.3 holds the line). */
+const LINE_GAINS = { kp: 4, kr: 0.3 };
+const UP = [0, 0, 1];
+const DOWN = [0, 0, -1];
+const holdLine = (d, target, thr) => [...hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS }).map(quant), thr];
 
 let pass = 0;
 let fail = 0;
@@ -95,7 +111,9 @@ function see(s) {
   const uz = 1 - 2 * (x * x + y * y);
   /* The body's up axis, world: what a pitch of the nose moves it toward. */
   const up = [2 * (x * z + w * y), 2 * (y * z - w * x), uz];
-  return { s, nz, lz, uz, up, p: s[11], q: s[12], v: Math.hypot(s[4], s[5], s[6]) };
+  /* The speed along the nose: below zero, sliding back. */
+  const along = s[4] * (1 - 2 * (y * y + z * z)) + s[5] * 2 * (x * y + w * z) + s[6] * nz;
+  return { s, nz, lz, uz, up, along, p: s[11], q: s[12], v: Math.hypot(s[4], s[5], s[6]) };
 }
 
 async function flight() {
@@ -111,15 +129,17 @@ async function flight() {
   const det = new FigureDetector((f) => figures.push({ ...f, atMs: f.endMs }));
   const seen = [];
   /* The program: [phase, ms or a done test]. */
-  const program = ['level', 'loop', 'level', 'roll', 'level', 'points', 'level'];
+  const program = ['level', 'loop', 'level', 'roll', 'level', 'points', 'level',
+    ...(plane.tailslide ? ['pullup', 'up', 'slide', 'down', 'pullout', 'level'] : [])];
   let phase = 0;
   let phaseMs = 0;
   let turned = 0;
   let quarter = 0;
   let holdMs = 0;
   let line0 = null;
+  let back = false;
   let st = [0, 0, 0, 0.75];
-  for (let ms = 0; ms < 60000 && phase < program.length; ms += MS) {
+  for (let ms = 0; ms < 90000 && phase < program.length; ms += MS) {
     const o = see(sim.readState().state);
     seen.push(o);
     det.step(MS / 1000, o.s);
@@ -144,6 +164,21 @@ async function flight() {
         /* A person lets go early by what the roll will still carry: what
          * they have not seen yet (0.2 s) and the roll's own run on. */
         if (turned > 2 * Math.PI - d.p * 0.35) { phase += 1; phaseMs = 0; marks.push(ms); }
+      } else if (name === 'pullup' || name === 'pullout') {
+        /* A quarter loop, let go early by what the pitch still carries. */
+        turned += Math.abs(d.q) * h;
+        st = [0, plane.loopPull, 0, name === 'pullup' ? 1 : 0.6];
+        if (turned > Math.PI / 2 - Math.abs(d.q) * 0.25) { phase += 1; phaseMs = 0; turned = 0; marks.push(ms); }
+      } else if (name === 'up') {
+        st = holdLine(d, UP, 0.4);
+        if (phaseMs >= 4000 || d.v < 4) { phase += 1; phaseMs = 0; marks.push(ms); }
+      } else if (name === 'slide') {
+        back = back || d.along < -1;
+        st = back ? [0, 0, 0, 0] : holdLine(d, UP, 0);
+        if (phaseMs > 600 && d.nz < -0.3) { phase += 1; phaseMs = 0; marks.push(ms); }
+      } else if (name === 'down') {
+        st = holdLine(d, DOWN, 0.3);
+        if (phaseMs >= 1500) { phase += 1; phaseMs = 0; turned = 0; marks.push(ms); }
       } else if (name === 'points') {
         if (line0 === null) {
           const hv = Math.hypot(d.s[4], d.s[5]);
@@ -183,8 +218,8 @@ const a = await flight();
 const b = await flight();
 const names = a.figures.map((f) => `${f.figure} ${f.grade}`).join(', ');
 console.log(`flown: ${names || 'nothing'}`);
-const want = ['loop', 'aileron_roll', 'four_point_roll'];
-for (const id of want.slice(0, 2)) {
+const want = ['loop', 'aileron_roll', 'four_point_roll', ...(plane.tailslide ? ['tailslide'] : [])];
+for (const id of want.filter((id) => id !== 'four_point_roll')) {
   const f = a.figures.find((g) => g.figure === id);
   check(`a person's ${id} on ${plane.name} is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
 }
