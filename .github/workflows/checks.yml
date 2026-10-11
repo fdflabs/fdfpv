@@ -14,6 +14,14 @@ on:
   # in deploy/github/ruleset-main.json.
   merge_group:
 
+# A new push to a pull request cancels that PR's older run: with a dozen
+# lanes pushing, superseded runs held the org's 20 concurrent jobs and
+# queued fresh ones for over an hour (2026-10-09). Main is never
+# cancelled, so every main commit keeps its own result for the merge gate.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   node:
     runs-on: ubuntu-latest
@@ -68,6 +76,9 @@ jobs:
       - run: npm run pids:selftest
       - run: npm run version:check
       - run: npm run csp:selftest
+      # The shared time of day agrees with the maps and missions that ship
+      # (src/share/daytime.js, docs/DAYTIME-CONTRACT.md).
+      - run: npm run daytime:selftest
       - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
@@ -76,13 +87,24 @@ jobs:
       - run: npm run panels:golden
       - run: npm run rooms:selftest
       - run: npm run bots:selftest
+      # The valley's shared world data against the page's own terrain
+      # modules, which import three: the page loads three from its CDN
+      # import map (index.html), so the same version is unpacked here.
+      - run: |
+          npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
+          npm run world:layer -- --three="$RUNNER_TEMP/package"
       - run: npm run jam:selftest
+      - run: npm run figures:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
       - run: npm run catalog-rules:selftest
       - run: npm run streamer:selftest
       - run: npm run rooms:server
+      # A rooms server draining on SIGUSR2 while a second one serves new
+      # rooms, two processes from this tree (docs/ROOMS-DRAIN.md).
+      - run: npm run rooms:drain
       - run: npm run keynotes:selftest
       - run: npm run weather:selftest
       # The headless page driver every browser check opens the shell through
@@ -183,8 +205,10 @@ jobs:
       - run: npm run extra:gates
       - run: npm run extra:stab
       - run: npm run nighttimber:gates
+      - run: npm run figures:plant
       - run: npm run combat:gates
       - run: npm run input:selftest
+      - run: npm run padprofiles:selftest
       - run: npm run touchsticks:selftest
       - run: npm run input:trace
       - run: npm run stickmode:selftest
@@ -192,6 +216,8 @@ jobs:
       # The in-browser flight recorder and its blackbox CSV
       # (src/share/flightlog.js), against a pinned transcript.
       - run: npm run flightlog:selftest
+      # The control recorder's rows and thumb numbers (src/share/controlrec.js).
+      - run: npm run controlrec:selftest
       # The ghost and live frame wire formats (src/share/ghostdata.js), bit
       # for bit against a pinned transcript.
       - run: npm run ghostdata:selftest
@@ -355,6 +381,10 @@ jobs:
       # What this browser tells the board's statistics page, and when it
       # refuses (src/share/stats.js), against a pinned transcript.
       - run: npm run stats:selftest
+      # What a page error or a minute of frame times may say when it
+      # leaves the browser: a fuzz for planted personal data, the opt out
+      # (src/share/clientreport.js).
+      - run: npm run clientreport:selftest
       # The language and statistics keys shared with the board, through
       # their move to fdfpv.* names (src/share/sharedkeys.js).
       - run: npm run sharedkeys:selftest

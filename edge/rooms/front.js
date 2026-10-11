@@ -119,7 +119,7 @@ export function originAllowed(origin) {
   return !origin || ORIGINS.some((re) => re.test(origin));
 }
 
-function cors(origin) {
+export function cors(origin) {
   return origin && originAllowed(origin)
     ? { 'access-control-allow-origin': origin, 'access-control-allow-methods': 'POST, GET, OPTIONS', 'access-control-allow-headers': 'content-type, authorization', vary: 'origin' }
     : {};

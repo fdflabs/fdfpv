@@ -71,6 +71,7 @@ import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { translate as translateKey } from './input/keybinds.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
+import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js';
 import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
@@ -8958,6 +8959,10 @@ export async function boot({
   const rcLink = new RcLink(LINK_DEFAULT);
   /* Off until the pilot turns it on: it keeps every frame of the run. */
   const flightLog = new FlightRecorder();
+  /* Per step sticks, surfaces, state and frame timing, on with the flight
+   * log (docs/CONTROL-RECORDER.md). */
+  const controlRec = new ControlRecorder();
+  let controlSurf = null;
   /* Stick samples, each stamped with the wall time it was read at, waiting
    * for the RC slot they belong to; rcHeld is the one the receiver holds
    * between slots. */
@@ -12487,6 +12492,7 @@ export async function boot({
 
   /* R: a new run from the map's own spawn. */
   function reset() {
+    keepControlRec();
     frameFault = null;
     /* The pack a run flies on is fixed at its start, or a pack changed from
      * the pause menu would compare a lap against another pack's record. */
@@ -13751,6 +13757,7 @@ export async function boot({
     }
     if (flightLog.on !== s.flightLog) {
       flightLog.setEnabled(s.flightLog);
+      controlRec.setEnabled(s.flightLog);
     }
     audio.setLevel(s.volume / 10);
     audio.setEnabled(s.sound);
@@ -14679,6 +14686,26 @@ export async function boot({
     flashNotice(str('main.flight_log_saved_rows_over_s', { rows, secs }), 3600);
   }
 
+  /* The run that just ended becomes the last flight kept in this browser,
+   * and the recorder starts on the next. */
+  function keepControlRec() {
+    keepLast(controlRec, { map: ui.settings.map, airframe: ui.settings.airframe })
+      .catch((e) => console.warn('control recorder: last flight not kept', e));
+    if (controlRec.on) {
+      controlRec.clear();
+    }
+  }
+
+  function saveControlRec() {
+    if (controlRec.count < 2) {
+      flashNotice(str('main.nothing_recorded_yet_turn_the_flight'), 3600);
+      return;
+    }
+    const secs = controlRec.seconds.toFixed(1);
+    downloadText(controlRecName(ui.settings.map), controlRec.csv());
+    flashNotice(str('main.control_recording_saved_s', { secs }), 3600);
+  }
+
   async function renamePilot() {
     const name = await ui.askName({
       title: str('ui.your_name'),
@@ -14754,6 +14781,7 @@ export async function boot({
     ...CALIBRATE_ACTIONS,
     ...PAD_PICK_ACTIONS,
     ['downloadflightlog', saveFlightLog],
+    ['downloadcontrolrec', saveControlRec],
     ['setname', () => {
       renamePilot();
     }],
@@ -16736,6 +16764,9 @@ export async function boot({
     fr.groundSpeed = 0;
     fr.groundHit = false;
     const steps = takeSteps();
+    if (controlRec.on) {
+      controlRec.beginFrame(nowWall, fr.dt, steps);
+    }
     stampSticks((simStepIdx + steps) * MS_PER_STEP, nowWall);
     if (steps >= 1) {
       if (launchStaging) {
@@ -16818,6 +16849,7 @@ export async function boot({
       if (sortie) {
         sortieSticks(ts, rc.throttle);
       }
+      controlRec.noteSlot(tMs, rc.wallT ?? NaN, ax[0], ax[1], rc.yaw, rc.throttle);
       return sim.input(ts, ax[0], ax[1], rc.yaw, rc.throttle) === SIM_OK;
     };
     if (rcLink.isPerfect()) {
@@ -16881,6 +16913,17 @@ export async function boot({
    * it, so by the step's end the hull has bounced and vz points up, and a
    * real hit read at the end never announced.
    */
+  function recordControlStep(st) {
+    let surf = null;
+    if (wingSurfPtr && sim.e.sim_plane_surfaces(wingSurfPtr) === SIM_OK) {
+      if (!controlSurf || controlSurf.buffer !== sim.e.memory.buffer) {
+        controlSurf = new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4);
+      }
+      surf = controlSurf;
+    }
+    controlRec.step(st, surf);
+  }
+
   function stepInAir(steps, nowWall) {
     let st = stateCurr;
     roomPoseFrame(nowWall, lastWallDt, fr.dt);
@@ -16907,6 +16950,9 @@ export async function boot({
         st = stateCurr;
         fr.faulted = true;
         break;
+      }
+      if (controlRec.on) {
+        recordControlStep(st);
       }
       roomPoseStep(st, (steps - 1 - i) * MS_PER_STEP);
       if (roomCombat.out()) {
@@ -19005,6 +19051,7 @@ export async function boot({
 
   /* The flight recorder: whether it runs, what it holds, and the length of
    * the CSV the download button would save. */
+  window.__controlRec = () => ({ on: controlRec.on, rows: controlRec.count, csv: () => controlRec.csv() });
   window.__flightLog = () => ({
     on: flightLog.on,
     rows: flightLog.count,
