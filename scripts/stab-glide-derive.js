@@ -47,7 +47,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { wingEngine, wingProp } from './lib/propcurve.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -122,6 +122,7 @@ async function tables() {
     for (const l of loadsOf(ids[key[1]], own.mass_kg)) {
       const fw = fields(m[2]);
       if (fw.thrust_static > 0) fw.prop = wingProp(m[1]);
+      fw.engine = fw.thrust_static > 0 ? wingEngine(m[1]) : null;
       /* An engine's dyno curve (throttle_rpm), which fields() leaves out as
        * a list: the stick to its speed over full, straight between tenths. */
       const curve = m[2].match(/\.throttle_rpm = \{ ([^}]*) \}/);
@@ -228,6 +229,13 @@ function thrust(fw, stick, u, curve = null) {
     duty = curve[i] + (x - i) * (curve[i + 1] - curve[i]);
   }
   duty = Math.min(1, Math.max(0, duty));
+  /* A mapped engine floats: the speed its map and the air's torque on the
+   * prop settle at, the stick its map's row (propcurve.js wingEngine). A
+   * driven prop slower than the air stops at zero thrust. */
+  if (fw.engine) {
+    const t = fw.prop.thrust(fw.thrust_static, u, fw.engine.nAt(stick, u));
+    return t < 0 ? 0 : t;
+  }
   /* An electric prop at zero duty free wheels and windmills (plant_wing.c
    * prop_free): it settles where the air's torque meets the motor's
    * friction, n^2 cp(mu) + f = 0 at mu = u / (V_p n), the fastest such

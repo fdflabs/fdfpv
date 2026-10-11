@@ -5834,8 +5834,8 @@ const FixedWingParams FW_SLICK2680 = {
   .expo = 0.55, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
   /* The DA-120 on Falcon's 28 x 10: 6,550 rpm and 31.0 kg standing,
    * Falcon's test chart, MEASURED; the torque APC's 22 x 8 shape's
-   * Cp / Ct, FITTED; the pitch speed APC's zero thrust advance ratio,
-   * scripts/slick-derive.js. */
+   * Cp / Ct, FITTED, scripts/slick-derive.js; the pitch speed and the
+   * curves npm run prop:curves's. */
   .thrust_static = 304.11, /* scripts/slick-derive.js */
   .pitch_speed = 27.728, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
   /* 28 x 10 (0.357): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
@@ -5866,7 +5866,7 @@ const FixedWingParams FW_SLICK2680 = {
   .stab_pitch_kp = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .stab_pitch_kd = 0.2, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .stab_pitch_down = 2.47 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.338, /* the stick that flies it level, elevator neutral, npm run stab:glide */
+  .stab_trim_throttle = 0.155, /* the stick that flies it level, elevator neutral, npm run stab:glide */
   .acro_roll_rate = 360.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .acro_expo = 0.30, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
@@ -5887,7 +5887,7 @@ const FixedWingParams FW_SLICK2680 = {
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0878, 0.434, 0.8287 }, /* npm run as3x:derive */
   .as3x_kh = { 1.5672, 7.7469, 14.7923 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.732, -3.424, -2.03 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.646, -3.424, -2.03 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
