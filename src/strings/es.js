@@ -4290,6 +4290,7 @@ export default {
   "walk.turntable_on": "Grabando el giro",
   "walk.turntable_saved": "Giro guardado",
   "walk.turntable_failed": "No se pudo grabar el giro: {why}",
+  "walk.lineup_flown": "{time} volado en ella",
   "stats.title": "Estadísticas del piloto",
   "stats.total_time": "Tiempo total de vuelo",
   "stats.zero_time": "0 h 0 min",

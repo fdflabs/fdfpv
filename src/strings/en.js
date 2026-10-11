@@ -4285,6 +4285,7 @@ export default {
   "walk.turntable_on": "Recording the turntable",
   "walk.turntable_saved": "Turntable saved",
   "walk.turntable_failed": "The turntable could not record: {why}",
+  "walk.lineup_flown": "{time} flown on it",
   "stats.title": "Pilot stats",
   "stats.total_time": "Total flight time",
   "stats.zero_time": "0 h 0 min",
