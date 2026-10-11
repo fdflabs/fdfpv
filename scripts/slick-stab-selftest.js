@@ -231,23 +231,53 @@ check('full right yaw stick yaws the nose right', as3xYaw.rAll * DEG > 3, `${deg
  * drops the right wing, as the Extra's touch of right rudder does; with
  * j_prop zeroed the same pulls stay level within 3 deg in every mode and
  * the touches of rudder drop 5 to 13 deg each way (the run that showed it,
- * docs/SLICK-STAGE1.md). Level at 1.9 Vs, the throttle closed, sticks
- * centred 1 s, then the elevator held: a quarter stick, short of the
- * stall, stays wings level; a half stick drops the right wing; a small
- * rudder at the break moves the drop the way it yaws (the handbook's wing
- * drop toward the yaw). In Manual, Acro and AS3X. */
+ * docs/SLICK-STAGE1.md). Level at 1.9 Vs, the throttle closed, then the
+ * elevator held: a quarter stick, short of the stall, stays wings level; a
+ * half stick drops the right wing; a small rudder at the break moves the
+ * drop the way it yaws (the handbook's wing drop toward the yaw). In
+ * Manual, Acro and AS3X.
+ *
+ * The engine held at its idle in a 26 m/s glide is driven by the air (the
+ * drive's torque, docs/FLIGHTMODEL.md "The prop's torque, from the
+ * drive"), and the mount takes that torque the prop's way: a steady roll
+ * to the right, 1.3 deg/s with the sticks centred, before any pull. A
+ * pilot trims it out on the ailerons, so in Manual the first second holds
+ * the wings level on the wings' level law (wingpilot.js loopHold's, -1.2
+ * rad and -0.12 p) and the pull flies on the aileron that held them,
+ * frozen, so what the pull does to the wings is still the pull's. Acro's
+ * and AS3X's sticks are rates: centred, they hold the wings themselves. */
+function trimWings(seconds) {
+  const total = seconds * 1000;
+  let sum = 0;
+  let n = 0;
+  for (let ms = 0; ms < total; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const roll = Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11]));
+    must(sim.input((clockMs + ms) / 1000, roll, 0, 0, 0), 'input');
+    must(sim.step(RC_STEP_MS), 'step');
+    if (ms >= total - 500) {
+      sum += roll;
+      n += 1;
+    }
+  }
+  clockMs += total;
+  return sum / n;
+}
 function powerOffPull(mode, pitch, rudder) {
   must(sim.e.sim_wing_set_stab(mode), 'set mode');
   throwAt(120, V_PULL);
-  fly(0, 0, 0, 0, 1);
-  const lead = fly(0, pitch, 0, 0, 1.2);
-  const after = fly(0, pitch, rudder, 0, 1.0);
+  const trim = mode === 0 ? trimWings(1) : (fly(0, 0, 0, 0, 1), 0);
+  const lead = fly(trim, pitch, 0, 0, 1.2);
+  const after = fly(trim, pitch, rudder, 0, 1.0);
   must(sim.e.sim_wing_set_stab(0), 'set manual');
-  return { bank: after.endBank, worst: Math.max(lead.worstBank, after.worstBank) };
+  return { bank: after.endBank, worst: Math.max(lead.worstBank, after.worstBank), trim };
 }
 console.log('power off pull');
 for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
   const quarter = powerOffPull(mode, 0.25, 0);
+  if (mode === 0) {
+    check('Manual: the idle glide wants a touch of left aileron, against the driven idle prop\'s roll to the right', quarter.trim < 0 && quarter.trim > -0.05, `stick ${quarter.trim.toFixed(4)}`);
+  }
   if (mode === 3) {
     /* AS3X holds the heading on the rudder against the precession's yaw,
      * and the rudder's side force over the CG rolls it right: with j_prop

@@ -234,12 +234,20 @@ check: {
     const hoverDuty = th.s6_hover.derived;
     const up = kick([0, 1, 0], hoverDuty);
     const upDead = kick([0, 1, 0], 0);
-    const right = kick([0, 0, 1], hoverDuty);
-    const rightDead = kick([0, 0, 1], 0);
+    /* The rudder's own: hanging, the right thrust's yaw (thrust_yaw, prop_x
+     * T sin 3 deg, 0.7 rad/s^2 at the hover) and the swirl on the fin yaw
+     * it with the sticks centred, so the kick is taken over the same kick
+     * with the rudder centred, the share S10b derives. */
+    const still = kick([0, 0, 0], hoverDuty);
+    const stillDead = kick([0, 0, 0], 0);
+    const rightAll = kick([0, 0, 1], hoverDuty);
+    const rightDeadAll = kick([0, 0, 1], 0);
+    const right = { r: rightAll.r - still.r };
+    const rightDead = { r: rightDeadAll.r - stillDead.r };
     gate('S10', 'full elevator at zero airspeed, in the wash', up.q >= t10.pitchMin && up.q <= t10.pitchMax && Math.abs(upDead.q) <= t10.idleMax * up.q,
       `${up.q.toFixed(1)} rad/s^2 nose up; engine at idle ${upDead.q.toFixed(2)}`, `${t10.pitchMin} to ${t10.pitchMax}; at idle under ${t10.idleMax * 100} percent`);
     gate('S10b', 'full rudder at zero airspeed, in the wash', right.r >= t10.yawMin && right.r <= t10.yawMax && Math.abs(rightDead.r) <= t10.idleMax * right.r,
-      `${right.r.toFixed(1)} rad/s^2 nose right; engine at idle ${rightDead.r.toFixed(2)}`, `${t10.yawMin} to ${t10.yawMax}; at idle under ${t10.idleMax * 100} percent`);
+      `${right.r.toFixed(1)} rad/s^2 nose right (${rightAll.r.toFixed(1)} less ${still.r.toFixed(1)} centred); engine at idle ${rightDead.r.toFixed(2)}`, `${t10.yawMin} to ${t10.yawMax}; at idle under ${t10.idleMax * 100} percent`);
   }
 
   /* S11: the harrier. From level at 18 m/s the nose is raised over 10 s
