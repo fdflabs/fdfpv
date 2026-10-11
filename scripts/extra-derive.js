@@ -23,6 +23,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -187,7 +189,8 @@ const torqueArm = Qs / Ts;
 /* The prop's speed at a duty, the electric motor's law (plant_wing.c
  * prop_spool): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
 const nOf = (d) => (-(0.85 / 0.15) + Math.sqrt((0.85 / 0.15) ** 2 + 4 * (0.85 / 0.15 + 1) * d)) / 2;
-const T = (V, d) => { const n = nOf(d); return Math.max(0, Ts * n * n * (1 - Math.max(0, V) / (Vp * n))); };
+const prop = wingProp('FW_EXTRA3D1308');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, nOf(d)));
 /* The prop's inertia, ESTIMATED: a 13 in wood blade of about 35 g, a
  * tapered blade's 0.7 of a rod's m D^2 / 12, and the outrunner's can. */
 const propJ = 0.7 * 0.035 * (2 * propR) ** 2 / 12 + 0.06 * 0.021 * 0.021;
