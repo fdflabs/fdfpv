@@ -159,13 +159,30 @@ top speed m/s at full throttle):
 | Cub pitch | 100 / 11 / 17.81 | 122 / 16 / 17.84 | 147 / 26 / 17.85 | 179 / 35 / 17.87 |
 | Cub yaw | 40 / 5 / 17.81 | 51 / 7 / 17.80 | 68 / 10 / 17.76 | 89 / 12 / 17.76 |
 
-What the stat bars can show from these, honestly: agility is the full
-stick rates, up 19 to 124 percent at Extreme; stability, read as how hard
-a fifth of a stick moves the aircraft, falls as those rates rise; top speed
-in level flight barely moves (under 0.5 percent, and the Cub's bigger
-elevator trims with less deflection, so it gains 0.3 percent). A deflected
-surface's drag only acts while the surface is deflected. The speed a tier
-costs is lost in manoeuvres, not on a straight line.
+Those tables are from batch df23fdbb2; the plant has moved since, and the
+numbers the game shows are `configs/surfaces-stats.js`, below.
+
+## The stat bars, `configs/surfaces-stats.js`
+
+The hangar's Surfaces tab (`src/ui/hangar-surfaces.js`) shows three bars,
+each the flight model's own numbers, written by `npm run surfaces:gates --
+--write-stats` and held by every run of the gates (T6) within 3 percent of
+what the plant flies now. That is a display number, not a physics gate, and
+T3 and T4 do not take the slack:
+
+- **Agility**: the full stick rates, roll on the aileron's tier, pitch on
+  the elevator's, yaw on the rudder's, each with the other two stock; the
+  bar is their mean over stock's.
+- **Stability**: the rate a fifth of a stick gives, how hard a small thumb
+  movement moves the aircraft; the bar is stock's over the tier's, so it
+  falls as the surfaces grow.
+- **Speed kept in manoeuvres** (the lead's call, 2026-10-11, over "top
+  speed", which a tier moves by under half a percent in level flight): from
+  level flight at cruise, 2 s of full stick on one axis, the speed the
+  aircraft would have back at its starting height, sqrt(v^2 + 2 g dz), over
+  the speed before. Energy, so a dive or a climb is not counted. It falls
+  with every tier: the deflected surface's drag and the tighter manoeuvre
+  it flies.
 
 ## Known limits
 

@@ -41,7 +41,7 @@
  *   node scripts/surfaces-gates.js [--json]
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -124,6 +124,27 @@ function peakRate(sim, axis, stick) {
     peak = Math.max(peak, w);
   }
   return peak * DEG;
+}
+
+/* Speed kept in a manoeuvre: from level flight at the cruise throttle,
+ * full stick on one axis for 2 s (a roll, a pull, a flat turn on the
+ * rudder), the speed the aircraft would have back at the height it
+ * started, sqrt(v^2 + 2 g dz), over the speed before: its energy, so a
+ * dive or a climb is not counted as speed lost or won, only what the
+ * deflected surface's drag and the tighter manoeuvre cost. */
+function speedKept(sim, axis) {
+  const r = fly(sim, { duty: CRUISE, speed0: 18, vzTarget: 0, seconds: 8 });
+  const s0 = sim.readState().state;
+  const v0 = Math.hypot(s0[4], s0[5], s0[6]);
+  const sticks = [0, 0, 0];
+  sticks[axis] = 1;
+  for (let ms = 0; ms < 2000; ms += RC_STEP_MS) {
+    must(sim.input((r.endMs + ms) / 1000, sticks[0], sticks[1], sticks[2], CRUISE), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  const s = sim.readState().state;
+  const v2 = s[4] * s[4] + s[5] * s[5] + s[6] * s[6] + 2 * 9.81 * (s[3] - s0[3]);
+  return Math.sqrt(Math.max(0, v2)) / v0;
 }
 
 /* wingpilot.rollRate is full stick; a part stick flies the same way. */
@@ -320,7 +341,8 @@ for (const id of Object.keys(SURFACES)) {
       const fifth = peakRate(sim, axis, 0.2);
       const flies = stillFlies(sim);
       const top = levelSpeed(sim, 1.0, 18).v;
-      ladder.push({ tier, full, fifth, top, ...flies });
+      const kept = speedKept(sim, axis);
+      ladder.push({ tier, full, fifth, top, kept, ...flies });
       seatTiers(sim, id, null);
     }
     stats[id][key] = ladder;
@@ -349,13 +371,49 @@ for (const id of Object.keys(SURFACES)) {
   seatTiers(sim, id, null);
 }
 
+/*
+ * The hangar's stat bars (src/ui/hangar-surfaces.js) read
+ * configs/surfaces-stats.js, these flights' numbers: per aircraft, surface
+ * and tier, the full stick rate (deg/s), a fifth of a stick's (deg/s) and
+ * the speed kept (share). --write-stats writes it; every run holds it
+ * within STATS_SLACK of what the plant flies now. Display numbers, not a
+ * physics gate (T3 and T4 are those): the slack lets a small plant change
+ * elsewhere pass until the next --write-stats.
+ */
+const STATS_SLACK = 0.03;
+const STATS_FILE = join(root, 'configs/surfaces-stats.js');
+const statTable = Object.fromEntries(Object.entries(stats).map(([id, s]) => [id, Object.fromEntries(SURFACE_KEYS.map((k) => [k,
+  s[k].map((r) => ({ full: Math.round(r.full), fifth: Math.round(r.fifth * 10) / 10, kept: Math.round(r.kept * 1000) / 1000 }))]))]));
+if (process.argv.includes('--write-stats')) {
+  const head = (await readFile(join(root, 'configs/surfaces-tiers.js'), 'utf8')).split('\n').slice(0, 16).join('\n');
+  await writeFile(STATS_FILE, `${head}\n\n/* WRITTEN BY scripts/surfaces-gates.js --write-stats; do not edit. Per aircraft,\n * surface (a e r) and tier (stock sport 3d extreme): the full stick rate,\n * deg/s; a fifth of a stick's, deg/s; the speed kept in 2 s of full stick. */\nexport const SURFACE_STATS = ${JSON.stringify(statTable, null, 2)};\n`);
+  console.log(`wrote ${STATS_FILE}`);
+} else {
+  const { SURFACE_STATS } = await import('../configs/surfaces-stats.js');
+  const off = [];
+  for (const [id, s] of Object.entries(statTable)) {
+    for (const k of SURFACE_KEYS) {
+      s[k].forEach((r, i) => {
+        const was = SURFACE_STATS[id] && SURFACE_STATS[id][k] && SURFACE_STATS[id][k][i];
+        for (const f of ['full', 'fifth', 'kept']) {
+          if (!was || Math.abs(was[f] / r[f] - 1) > STATS_SLACK) {
+            off.push(`${id} ${k} ${TIERS[i]} ${f} ${was ? was[f] : 'none'} vs ${r[f]}`);
+          }
+        }
+      });
+    }
+  }
+  gate('T6', 'configs/surfaces-stats.js is what the plant flies', off.length === 0,
+    off.length ? `${off.slice(0, 4).join('; ')}; run --write-stats` : `within ${STATS_SLACK * 100} percent`);
+}
+
 for (const [id, name, measured, status] of rows) {
   console.log(`${status.padEnd(4)} ${id.padEnd(3)} ${name}: ${measured}`);
 }
 for (const [id, s] of Object.entries(stats)) {
-  console.log(`\n${id} stat numbers (full stick deg/s, a fifth of a stick deg/s, top speed m/s):`);
+  console.log(`\n${id} stat numbers (full stick deg/s, a fifth of a stick deg/s, top speed m/s, speed kept):`);
   for (const key of SURFACE_KEYS) {
-    console.log(`  ${key}: ${s[key].map((r) => `${r.tier} ${r.full.toFixed(0)} / ${r.fifth.toFixed(0)} / ${r.top.toFixed(2)}`).join(' | ')}`);
+    console.log(`  ${key}: ${s[key].map((r) => `${r.tier} ${r.full.toFixed(0)} / ${r.fifth.toFixed(0)} / ${r.top.toFixed(2)} / ${r.kept.toFixed(3)}`).join(' | ')}`);
   }
 }
 if (process.argv.includes('--json')) {
