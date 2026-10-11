@@ -1,0 +1,135 @@
+<!doctype html>
+<!--
+paradrop-perf.html: the harness page of scripts/hercules-perf.js
+(docs/HERCULES-CONTRACT.md). A daylit field with a room's cap of
+paradrops, 300, drawn by src/render/paradrops.js: a share of them falling
+in gusty air and the rest lying on the ground, shown and hidden on
+alternate frames and timed on the GPU, and the CPU time of their update.
+
+This file is part of the Paraguayan Drone Combat Simulator.
+
+The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at
+your option) any later version.
+
+The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY, without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>html, body { margin: 0; background: #000; }</style>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { createParadrops } from '../src/render/paradrops.js';
+import { fall, ROOM_CAP } from '../src/game/paradrop.js';
+import { makeWeather } from '../src/game/weather.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(1280, 720);
+document.body.append(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fc4e8);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445533, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+sun.position.set(50, 100, 30);
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshLambertMaterial({ color: 0x587a3a }));
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+const camera = new THREE.PerspectiveCamera(70, 1280 / 720, 0.05, 1000);
+camera.position.set(0, 30, 90);
+camera.lookAt(0, 10, 0);
+
+const gl = renderer.getContext();
+const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+const drops = createParadrops(ROOM_CAP);
+scene.add(drops.group);
+const air = makeWeather('swiss2', 'gusty', 7);
+const world = { weather: air, surface: () => ({ y: 0, wet: false }) };
+
+/* The cap: FALLING of them dropped over the last minute in a rolling
+ * stream, the rest down, in a field 160 m across. */
+window.paradropPerfFill = (falling) => {
+  drops.clear();
+  for (let i = 0; i < ROOM_CAP; i += 1) {
+    const a = i * 2.399963;
+    const r = 4 + 4.5 * Math.sqrt(i);
+    const rec = { t: i, tp: i, p: [r * Math.cos(a), 60, r * Math.sin(a)], v: [15, 0, 0] };
+    const f = fall(rec, world);
+    drops.add({ id: i + 1, map: 'm', f, startS: i < falling ? -i * 0.2 : -1000, room: false });
+  }
+  return drops.count();
+};
+
+const REPEAT = 20;
+async function frameMs(nowS) {
+  const q = gl.createQuery();
+  gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
+  for (let r = 0; r < REPEAT; r += 1) {
+    renderer.render(scene, camera);
+  }
+  gl.endQuery(ext.TIME_ELAPSED_EXT);
+  await new Promise((r) => requestAnimationFrame(r));
+  for (let w = 0; w < 100 && !gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE); w += 1) {
+    await new Promise((r) => setTimeout(r, 1));
+  }
+  const ms = gl.getParameter(ext.GPU_DISJOINT_EXT) ? null : gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6 / REPEAT;
+  gl.deleteQuery(q);
+  return ms;
+}
+
+window.paradropPerf = async (pairs = 400, falling = 100) => {
+  if (!ext) {
+    return { error: 'no EXT_disjoint_timer_query_webgl2' };
+  }
+  window.paradropPerfFill(falling);
+  const calls = {};
+  for (const on of [false, true]) {
+    drops.group.visible = on;
+    drops.update(5, null, 'm');
+    renderer.render(scene, camera);
+    calls[on ? 'on' : 'off'] = renderer.info.render.calls;
+  }
+  const off = [];
+  const on = [];
+  const diff = [];
+  const cpu = [];
+  for (let k = 0; k < pairs; k += 1) {
+    const nowS = 5 + k * 0.0167;
+    const c0 = performance.now();
+    drops.update(nowS, null, 'm');
+    cpu.push(performance.now() - c0);
+    const first = k % 2 === 0;
+    drops.group.visible = !first;
+    const a = await frameMs(nowS);
+    drops.group.visible = first;
+    const b = await frameMs(nowS);
+    if (a === null || b === null) {
+      continue;
+    }
+    const [x, y] = first ? [a, b] : [b, a];
+    off.push(x);
+    on.push(y);
+    diff.push(y - x);
+  }
+  return { off, on, diff, cpu, calls };
+};
+window.paradropPerfReady = true;
+</script>
+</body>
+</html>
