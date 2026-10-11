@@ -101,6 +101,8 @@ check('itemById knows each and nothing else', ITEMS.every((it) => itemById(it.id
 check('every item\'s paint exists, and the shop lists are exactly the items', PAINTED.every((it) => (it.kind === 'finish' ? FINISHES.includes(it.paint) : Boolean(DECAL_KINDS[it.paint])))
   && ITEMS.filter((it) => it.kind === 'finish').map((it) => it.paint).sort().join() === [...SHOP_FINISHES].sort().join()
   && ITEMS.filter((it) => it.kind === 'decal').map((it) => it.paint).sort().join() === [...SHOP_DECALS].sort().join());
+check('everything the shop sells costs less than a pilot who flies everything once is paid', ITEMS.reduce((n, it) => n + (it.price ?? 0), 0) <= grantCeiling(),
+  `${ITEMS.reduce((n, it) => n + (it.price ?? 0), 0)} against ${grantCeiling()}`);
 check('a shop decal is a valid decal', SHOP_DECALS.every((k) => newDecal(k, [0, 0, 0], [0, 1, 0]).k === k));
 check('no shop item is a level unlock, so Unlock all cannot give it', !unlockables().some((u) => (u.kind === 'finish' && SHOP_FINISHES.includes(u.id)) || (u.kind === 'decal' && SHOP_DECALS.includes(u.id))));
 
