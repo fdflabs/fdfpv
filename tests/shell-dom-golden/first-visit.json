@@ -6354,6 +6354,39 @@
        "attrs": [
         [
          "class",
+         "walk-lineup"
+        ],
+        [
+         "hidden",
+         ""
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "walk-lineup-name"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "walk-lineup-facts"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
          "walk-prompt"
         ],
         [
@@ -14896,6 +14929,39 @@
        "attrs": [
         [
          "class",
+         "walk-lineup"
+        ],
+        [
+         "hidden",
+         ""
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "walk-lineup-name"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "walk-lineup-facts"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
          "walk-prompt"
         ],
         [
@@ -18013,11 +18079,20 @@
   "updateReload": {
    "node": "#ui/div.frame-bot.3.1"
   },
-  "walkPrompt": {
+  "walkLineup": {
    "node": "#ui/div.screen.screen-walk.0"
   },
-  "walkPromptLabel": {
+  "walkLineupFacts": {
    "node": "#ui/div.screen.screen-walk.0.1"
+  },
+  "walkLineupName": {
+   "node": "#ui/div.screen.screen-walk.0.0"
+  },
+  "walkPrompt": {
+   "node": "#ui/div.screen.screen-walk.1"
+  },
+  "walkPromptLabel": {
+   "node": "#ui/div.screen.screen-walk.1.1"
   },
   "warLobbyEl": {
    "node": "#ui/div.screen.screen-page.screen-friends.2"
