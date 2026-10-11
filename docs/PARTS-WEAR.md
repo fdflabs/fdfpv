@@ -209,11 +209,11 @@ voltage need one; listed as a later item).
   in the exploded view; pictures in `~/.cache/fdfpv-w34-parts/`.
 - lint:header, lint:dashes, lint:copy on every PR.
 
-## Owner questions (recommended option first)
+## Decided (lead, 2026-10-07, owner's wwltd)
 
-1. Pack charger turnaround is counted in sorties, not minutes (no timers).
-   Recommended: yes, one turnaround per sortie.
-2. Starting inventory before the economy lands: two packs of the default
-   spec per realism airframe and one two-channel charger. Recommended: yes.
-3. Repair cost: soft currency once item 25 lands, free before.
-   Recommended: yes.
+1. The charger turns packs around per sortie, never by the clock.
+2. Two starter packs per spec an airframe flies, until the economy lane
+   sells packs.
+3. Repair costs soft currency once the economy lands, free until then; the
+   price hook is agreed with the progression lane through the plan file.
+4. No separate loadout preset store: My Hangar builds are the presets.

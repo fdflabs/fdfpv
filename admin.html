@@ -182,6 +182,11 @@
         <p id="waitlist-say" class="say" role="status"></p>
         <div class="scroll"><table id="waitlist"></table></div>
 
+        <h2>Livery gallery <small id="gallery-count"></small></h2>
+        <p class="none">Reported or hidden liveries. Three reports from different pilots hide one until it is shown again here, which clears its reports.</p>
+        <p id="gallery-say" class="say" role="status"></p>
+        <div class="scroll"><table id="gallery"></table></div>
+
         <h2>Members <small id="members-count"></small></h2>
         <p class="none">An account holds no email, so a member is a callsign and two dates.</p>
         <div class="scroll"><table id="members"></table></div>
@@ -348,8 +353,37 @@
         $('members-count').textContent = `${list.length}`;
       }
 
+      async function hideLivery(g, hidden) {
+        try {
+          await admin('POST', `gallery/${g.id}`, { hidden });
+          say($('gallery-say'), 'ok', `"${g.name}" by ${g.callsign} is ${hidden ? 'hidden' : 'shown again'}.`);
+          await load();
+        } catch (e) {
+          if (!expired(e)) {
+            say($('gallery-say'), 'fail', e.message);
+          }
+        }
+      }
+
+      function drawGallery(list) {
+        const t = $('gallery');
+        t.replaceChildren(head(['Livery', 'Aircraft', 'By', 'Reports', 'State', 'Published', '']));
+        for (const g of list) {
+          const acts = el('td', 'acts');
+          acts.append(g.hidden
+            ? act('Show', 'go', () => hideLivery(g, false))
+            : act('Hide', 'danger', () => hideLivery(g, true)));
+          t.append(row([g.name || '(no name)', g.family, g.callsign, String(g.reports), el('td', g.hidden ? 'waiting' : 'invited', g.hidden ? 'Hidden' : 'Shown'), when(g.createdUtc), acts]));
+        }
+        if (!list.length) {
+          t.replaceChildren();
+          t.append(row([el('td', 'none', 'Nothing reported.')]));
+        }
+        $('gallery-count').textContent = `${list.filter((g) => g.hidden).length} hidden, ${list.filter((g) => !g.hidden).length} reported`;
+      }
+
       async function load() {
-        const [o, w, a] = await Promise.all([admin('GET', 'overview'), admin('GET', 'waitlist'), admin('GET', 'accounts')]);
+        const [o, w, a, g] = await Promise.all([admin('GET', 'overview'), admin('GET', 'waitlist'), admin('GET', 'accounts'), admin('GET', 'gallery')]);
         $('numbers').replaceChildren(
           tile('Members', o.accounts),
           tile('With a callsign', o.callsigns),
@@ -362,6 +396,7 @@
         );
         drawWaitlist(w.waitlist);
         drawMembers(a.accounts);
+        drawGallery(g.items);
         $('servers').replaceChildren(
           tile('Tracks and accounts', `UP ${(o.revision.commit || '').slice(0, 7)}`, 'up'),
           tile('Up for', span(o.upS)),

@@ -58,7 +58,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ALPHA_CUT, GRASS_REGIONS, REGIONS } from '../swiss2/vegetation/atlas.js';
+import { ALPHA_CUT, GRASS_REGIONS, REGIONS } from '../../render/library/vegetation/atlas.js';
 import { gridToWorld } from '../../share/interior/frame.js';
 import { LAND } from '../../share/interior/world.js';
 import { hash01, noise } from '../../share/interior/canopy.js';

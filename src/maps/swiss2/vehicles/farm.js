@@ -2,7 +2,7 @@
  * farm.js: the tractor, its hay trailer and the motorbike, near.
  *
  * These are seen from the air or across a field, not from a pavement,
- * so near they keep the cel shape (alps/vehicles.js) and are finished
+ * so near they keep the cel shape (library/vehicles/vehicles.js) and are finished
  * as what they are made of: the tractor's glass is glass you see the
  * seat and the wheel through, its tyres carry the lugs a field tyre
  * has, the bales are wrapped hay rather than yellow cylinders, and the
@@ -27,7 +27,7 @@
 import * as THREE from 'three';
 import {
   buildTractor as celTractor, buildTrailer as celTrailer, buildMotorbike as celMotorbike,
-} from '../../alps/vehicles.js';
+} from '../../../render/library/vehicles/vehicles.js';
 import { makeKit, FIN, fin, refinish, box, cylZ } from './kit.js';
 
 const NEAR = 45;

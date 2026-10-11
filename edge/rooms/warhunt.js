@@ -123,21 +123,21 @@ export function loadHeight(buffer) {
 /* No map: flat ground at y 0. */
 const FLAT = { floorAt: () => 0 };
 
-function cosSin(a) {
+export function cosSin(a) {
   const a2 = a * a;
   const c = 1 - a2 / 2 * (1 - a2 / 12 * (1 - a2 / 30));
   const s = a * (1 - a2 / 6 * (1 - a2 / 20 * (1 - a2 / 42)));
   return [c, s];
 }
 
-function unit(x, y, z) {
+export function unit(x, y, z) {
   const n = Math.sqrt(x * x + y * y + z * z);
   return [x / n, y / n, z / n];
 }
 
 /* The scene quaternion [x, y, z, w] of a body whose -z is the unit f and
  * whose +x is the level unit r, w >= 0. */
-function attitude(f, r) {
+export function attitude(f, r) {
   const bx = -f[0];
   const by = -f[1];
   const bz = -f[2];

@@ -103,8 +103,8 @@ or argued. The rest are this build's, with the reason.
    results screen is the race's (`ui.showRoomResults`), with Play again
    (the same goal) for the host.
 8. **The Ace scores only while it can be caught.** A seat that is
-   spawning (Phase 5: five seconds after a start or a teleport, and until
-   30 m from where it started), crashed, or not seen by the room (its
+   spawning (Phase 5: five seconds after a start or a teleport, parked
+   or not), crashed, or not seen by the room (its
    samples missing or later than `LATE_MS`, a tab on a menu or in the
    background) cannot be touched, so it does not score either. Otherwise
    an Ace would sit on its slot, spawning, and win. An Ace that could

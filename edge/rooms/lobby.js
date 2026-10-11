@@ -258,7 +258,7 @@ export function reportRoom(env, core, now) {
   if (!core || !core.meta.public || !core.meta.code) {
     return null;
   }
-  const entry = listingOf(core.meta, core.seats.size, core.activity(now), core.emptySince ?? null);
+  const entry = listingOf(core.meta, core.people().length, core.activity(now), core.emptySince ?? null);
   const key = JSON.stringify(entry);
   if (core.lastListing === key) {
     return null;

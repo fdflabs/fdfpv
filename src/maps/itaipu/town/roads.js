@@ -35,7 +35,7 @@
  */
 
 import { cutToGround, ribbon } from './drape.js';
-import { roofRecord } from '../../alps/roofs.js';
+import { roofRecord } from '../../../render/library/roofs.js';
 import { wallBoxes } from './plan.js';
 
 /* Metres over the ground, by class: the bigger road over the smaller

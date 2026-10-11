@@ -105,7 +105,7 @@ async function shot(page, name) {
 const STAGE1_SPAWNED_MS = 3000 + Math.max(...MISSION1.stages[0].spawns.map((w) => [w.at].flat().at(-1) * 1000 * (MISSION1.pace?.[1] ?? 1)));
 
 const HUBS = 'Flight Club,Operations,Hangar';
-const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
+const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
 
 const LAYOUT = `(() => ({
   w: window.innerWidth, h: window.innerHeight, sw: document.documentElement.scrollWidth,
@@ -306,7 +306,7 @@ try {
   /* The panel is Flight Club's. */
   await resize(page, 1280, 720);
   await toClub(page);
-  check('Flight Club\'s four cards', (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join() === CLUB, (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join());
+  check('Flight Club\'s five cards', (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join() === CLUB, (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join());
   await page.until("document.querySelectorAll('.gate-rooms-list .gate-room').length === 3", 30000).catch(() => {});
   const PANEL_CUT = `[...document.querySelectorAll('.gate-rooms-count, .gate-room-name, .gate-room-value')]
     .filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;

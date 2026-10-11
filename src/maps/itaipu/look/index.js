@@ -64,8 +64,9 @@ import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
 import {
-  sunDirection, makeLit, sunFor, isNight, timeOf, makeNightAmbient,
+  sunDirection, sunFor, isNight, timeOf, makeNightAmbient,
 } from './light.js';
+import { makeLit } from '../../../render/library/lit.js';
 import { skyBackdrop, skyEnvironment, airFor } from './sky.js';
 import {
   groundMaterial, makeTurf, noiseTexture, loadImage, loadSite, loadGroundArrays,
@@ -335,6 +336,8 @@ export async function makeLook({
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      map.setWet = post.setWet;
       /* The post chain that draws this scene, for the sensor checks,
        * which route a frame through the SensorManager with it
        * (scripts/sensor-check.js). */

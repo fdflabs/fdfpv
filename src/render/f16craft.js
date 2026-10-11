@@ -520,7 +520,7 @@ function merged(parts) {
  */
 const DARK_A = 80 * DEG;
 const MEDIUM_A = 100 * DEG;
-function fuseSkin(lite) {
+function fuseSkin(lite, radome = false) {
   const around = lite ? 24 : 36;
   const ss = lite ? FUSE_STATIONS_LITE : FUSE_STATIONS;
   const rows = ringRows(ss, around, fusePoint);
@@ -534,10 +534,12 @@ function fuseSkin(lite) {
     const off = Math.min(a, 2 * Math.PI - a);
     return off < DARK_A ? 'dark' : off < MEDIUM_A ? 'medium' : 'light';
   };
-  const cells = { dark: [], medium: [], light: [] };
+  const cells = { dark: [], medium: [], light: [], radome: [] };
+  /* A kit's grey radome takes the radome's rows out of the light band. */
+  const nose = radome ? 'radome' : 'light';
   for (let r = 0; r + 1 < ss.length; r += 1) {
     for (let j = 0; j < around; j += 1) {
-      const band = ss[r] < RADOME_S ? 'light' : bandOf(j);
+      const band = ss[r] < RADOME_S ? nose : bandOf(j);
       const t = (r * around + j) * 2;
       cells[band].push(t, t + 1);
     }
@@ -547,6 +549,7 @@ function fuseSkin(lite) {
     dark: subset(whole, cells.dark),
     medium: subset(whole, cells.medium),
     light: subset(whole, cells.light),
+    radome: radome ? subset(whole, cells.radome) : null,
   };
 }
 
@@ -735,7 +738,7 @@ function dorsalGeometry(lite) {
 const NOZZLE_S = 1.232;
 const NOZZLE_EXIT_S = 1.300;
 const NOZZLE_EXIT_R = 0.0375;
-function nozzleGeometry(lite) {
+function nozzleGeometry(lite, burnt = false) {
   const n = lite ? 24 : 36;
   /* Twelve petals: the ring's vertex on each seam between two is pulled
    * in, so the seams show as grooves. */
@@ -759,6 +762,10 @@ function nozzleGeometry(lite) {
   ];
   const radial = (p) => new THREE.Vector3(p.x, p.y, 0);
   const metal = grid(outRows, true, radial);
+  /* A kit's burnt titanium: the petals from their first groove aft drawn
+   * apart, so they take the heat's blue while the collar stays straw. */
+  const petals = burnt ? grid(outRows.slice(2), true, radial) : null;
+  const collar = burnt ? grid(outRows.slice(0, 3), true, radial) : null;
   const pipeRows = [
     ringAt(NOZZLE_EXIT_S + 0.001, NOZZLE_EXIT_R - 0.0008, false),
     ringAt(1.280, PIPE_R, false),
@@ -766,7 +773,7 @@ function nozzleGeometry(lite) {
   ];
   const pipe = grid(pipeRows, true, (p) => radial(p).negate());
   const back = cap(pipeRows[2], new THREE.Vector3(0, 0, 1));
-  return { metal, pipe: merged([pipe, back]) };
+  return { metal, petals, collar, pipe: merged([pipe, back]) };
 }
 
 /* The missile rail on a wing tip: a slim box along the tip chord, its
@@ -1009,6 +1016,9 @@ export function buildF16Craft(opts = {}) {
   const tyreMat = cel({ color: 0x1b1b1d, rim: 0.30, spec: 0.20 });
   const stator = cel({ color: 0x3a3d40, rim: 0.24, spec: 0.45, specWidth: 0.02 });
   const antenna = cel({ color: 0x1a241c, rim: 0.22 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from. */
+  const kit = opts.kit ?? {};
 
   /* The measurement box, hidden, on the contract with verify's check 15 (tests/lib/checks.js). */
   if (opts.measure) {
@@ -1028,7 +1038,7 @@ export function buildF16Craft(opts = {}) {
   /* The fuselage in its three bands; the outline is one hull round the
    * whole skin, the intake's fairing and the canopy, taken off a mesh
    * that is never drawn so that it scales about the fuselage's middle. */
-  const skin = fuseSkin(lite);
+  const skin = fuseSkin(lite, kit.nose === 'radome');
   darkParts.push(skin.dark);
   mediumParts.push(skin.medium);
   lightParts.push(skin.light);
@@ -1052,6 +1062,23 @@ export function buildF16Craft(opts = {}) {
 
   /* The dorsal fairing on the spine under the fin. */
   darkParts.push(dorsalGeometry(lite));
+  /* A kit's drag chute fairing, the Norwegian and Turkish jets' bulged
+   * housing at the fin's root over the nozzle, ending ahead of the fin's
+   * tip so it adds nothing to the length. */
+  if (kit.fincap === 'chute') {
+    const n = lite ? 10 : 16;
+    const rows = [[1.170, 0.004, 0.058, 0.050], [1.200, 0.016, 0.068, 0.046], [1.270, 0.017, 0.070, 0.046], [1.296, 0.012, 0.066, 0.050]]
+      .map(([sta, w, top, bottom]) => {
+        const ring = [];
+        for (let j = 0; j < n; j += 1) {
+          const a = (2 * Math.PI * j) / n;
+          ring.push(new THREE.Vector3(w * Math.sin(a), (top + bottom) / 2 + ((top - bottom) / 2) * Math.cos(a), st(sta)));
+        }
+        return ring;
+      });
+    const pod = grid(rows, true, (p) => new THREE.Vector3(p.x, p.y - 0.058, 0));
+    darkParts.push(merged([pod, cap(rows[0], new THREE.Vector3(0, 0, -1)), cap(rows[rows.length - 1], new THREE.Vector3(0, 0, 1))]));
+  }
 
   /* The booms, medium over and light under. */
   for (const sign of [-1, 1]) {
@@ -1139,6 +1166,12 @@ export function buildF16Craft(opts = {}) {
   lightMesh.name = 'f16-light';
   lightMesh.castShadow = shade;
   group.add(lightMesh);
+  if (skin.radome) {
+    /* A kit's radome in the bare grey of an unpainted composite one. */
+    const radome = new THREE.Mesh(skin.radome, cel({ color: 0x5c6166, rim: 0.30, spec: 0.35, specWidth: 0.016 }));
+    radome.castShadow = shade;
+    group.add(radome);
+  }
 
   /* The canopy. */
   {
@@ -1153,12 +1186,25 @@ export function buildF16Craft(opts = {}) {
   }
 
   /* The nozzle's metal and, black, the jet pipe and the intake's inside. */
-  const nozzle = nozzleGeometry(lite);
-  {
+  const nozzle = nozzleGeometry(lite, kit.exhaust === 'titanium');
+  if (nozzle.petals) {
+    /* Burnt titanium: a straw collar and petals blued by the heat. */
+    const straw = cel({ color: 0x8c7650, rim: 0.30, spec: 0.70, specWidth: 0.020 });
+    const blued = cel({ color: 0x4a4f86, rim: 0.34, spec: 0.80, specWidth: 0.022, specColor: 0xe0c8ff });
+    const collar = new THREE.Mesh(nozzle.collar, straw);
+    collar.castShadow = shade;
+    group.add(collar);
+    const petals = new THREE.Mesh(nozzle.petals, blued);
+    petals.name = 'f16-nozzle';
+    petals.castShadow = shade;
+    group.add(petals);
+  } else {
     const nozzleMesh = new THREE.Mesh(nozzle.metal, nozzleMetal);
     nozzleMesh.name = 'f16-nozzle';
     nozzleMesh.castShadow = shade;
     group.add(nozzleMesh);
+  }
+  {
     blackParts.push(nozzle.pipe);
     const blackMesh = new THREE.Mesh(merged(blackParts), black);
     blackMesh.name = 'f16-black';

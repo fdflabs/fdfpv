@@ -50,7 +50,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK, SIM_ERR_BAD_ARG, SIM_ERR_BAD_STATE } from '../tests/lib/simmod.js';
 import {
-  TIMBERF_AIRFRAME, FLOAT_REST, SKY_AIRFRAME, RC_STEP_MS, floatState, floatTakeoffSticks, attitude, must,
+  TIMBERF_AIRFRAME, FLOAT_REST, SKY_AIRFRAME, RC_STEP_MS, floatState, floatTakeoffSticks, attitude, must, rudderHold,
 } from '../tests/lib/wingpilot.js';
 import { DAMAGE_FLAGS } from '../configs/parts.js';
 
@@ -238,7 +238,10 @@ function takeOff(ms0 = 0) {
   for (let ms = 0; ms < 26000; ms += RC_STEP_MS) {
     const { pitch, bank } = attitude(s);
     const roll = clamp1(-1.2 * bank - 0.12 * s[11]);
-    const yaw = clamp1(-0.6 * s[2] - 0.8 * s[5]);
+    /* The line on the rudder, heading and centreline (rudderHold): at
+     * idle and at taxi power the swirl turns a floatplane off a line that
+     * the line's offset alone does not hold (docs/FLIGHTMODEL.md). */
+    const yaw = rudderHold(s);
     const f = floatState(sim);
     const wet = f[4] + f[5] > 0;
     let sticks;

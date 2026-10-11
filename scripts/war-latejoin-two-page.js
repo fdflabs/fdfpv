@@ -129,9 +129,8 @@ async function shot(page, name) {
 }
 
 const throwTo = (p, at, fresh) => p.evaluate(`window.__crashThrow({ x: ${at[0]}, y: ${at[1]}, z: ${at[2]}, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: ${fresh}, showCraft: true })`);
-/* Held at `at`, a whole airframe that can go off: begun 40 m over it, so
- * it has left its spawn (ROOM_SPAWN_M) when thrown down onto it, as
- * scripts/war-twopage.js holds its pilots. */
+/* Held at `at`, a whole airframe that can go off: begun 40 m over it and
+ * thrown down onto it, as scripts/war-twopage.js holds its pilots. */
 async function hold(p, at) {
   await throwTo(p, [at[0], at[1] + 40, at[2]], true);
   await p.evaluate('new Promise((r) => { let n = 0; const f = () => (++n >= 4 ? r(true) : requestAnimationFrame(f)); requestAnimationFrame(f); })');

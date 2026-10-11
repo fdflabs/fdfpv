@@ -49,13 +49,13 @@
  */
 
 import * as THREE from 'three';
-import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../../render/library/noise.js';
 import {
   LAKE_Y, STRIP_L, TREE_LINE, SNOW_LINE, forestDensity, treeLine, valleyAxis,
 } from '../../alps/terrain.js';
-import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
+import { ALPHA_CUT, GRASS_REGIONS } from '../../../render/library/vegetation/atlas.js';
 import { thermalKind } from '../../../render/thermal.js';
-import { LEAF_SPEC_GLSL } from './plantmat.js';
+import { LEAF_SPEC_GLSL } from '../../../render/library/vegetation/plantmat.js';
 import { MEADOW_GLSL, CRAFT_GLSL, craftUniforms } from '../ground.js';
 import {
   meadowFieldInto, airfield, s2Noise, beachTop, ROAD_DX, ROAD_END,

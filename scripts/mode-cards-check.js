@@ -1,5 +1,5 @@
 /*
- * mode-cards-check.js: the home's three hubs and Flight Club's four
+ * mode-cards-check.js: the home's three hubs and Flight Club's five
  * cards, and the two room game cards driven through the real shell the way
  * a pilot drives them, against a local rooms server (never the live one):
  *
@@ -96,11 +96,11 @@ async function shot(page, name) {
 }
 
 const HUBS = 'Flight Club,Operations,Hangar';
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
 /* Each hub's links, in order, as home draws them. */
 /* Operations: the war's campaign and The Interior beside it
  * (docs/campaign/interior/TECH-NEEDS.md N20). */
-const LINKS = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!|Defend the Paraná,The Interior|Aircraft,Customise,Calibrate sticks,How to fly';
+const LINKS = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly|Defend the Paraná,The Interior|Aircraft,Customise,Calibrate sticks,How to fly';
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -144,7 +144,7 @@ function panelLaidOut(v) {
     && v.cards.every((c) => p[3] <= c.box[1] && apartBox(p, c.box)) && v.chips.every((c) => apartBox(p, c));
 }
 
-function laidOut(v, n = 4) {
+function laidOut(v, n = 5) {
   const c = v.cards;
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
@@ -234,7 +234,7 @@ try {
     && await a.evaluate("document.querySelector('.screen-title .gate-cards').firstElementChild.classList.contains('gate-card-hub-club')"),
   home.cards.filter((x) => x.on).map((x) => x.name).join());
   check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
-  check('each hub lists its activities as links: Track Day, Free Flight, Streamer Combat, Catch the Ace; the war and The Interior; the Hangar\'s four',
+  check('each hub lists its activities as links: Track Day, Free Flight, Streamer Combat, Catch the Ace, Learn to fly; the war and The Interior; the Hangar\'s four',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
   check('home shows the rooms panel (the owner, 2026-10-03), above the cards and clear of them and of the corner chips', panelLaidOut(home),
     `panel ${JSON.stringify(home.panel)} chips ${JSON.stringify(home.chips)} first card ${JSON.stringify(home.cards[0].box)}`);
@@ -247,18 +247,18 @@ try {
   }
   await resize(a, 1280, 720);
 
-  /* INTO FLIGHT CLUB, by the keyboard: its four cards at every size. */
+  /* INTO FLIGHT CLUB, by the keyboard: its five cards at every size. */
   await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'club')); return true; })()");
   await a.tap('Enter');
-  await a.until(`window.__ui.hub === 'club' && ${LAYOUT}.cards.length === 4 && ${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
+  await a.until(`window.__ui.hub === 'club' && ${LAYOUT}.cards.length === 5 && ${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
   const first = await a.evaluate(LAYOUT);
-  check('Enter on Flight Club opens its four cards, in order, no Fly with friends (the owner, 2026-10-02)', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check('Enter on Flight Club opens its five cards, in order, no Fly with friends (the owner, 2026-10-02)', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   check('and the breadcrumb names the hub', /Flight Club$/.test(first.crumb), first.crumb);
   for (const [w, h, row] of SIZES) {
     await resize(a, w, h);
     const v = await a.evaluate(LAYOUT);
-    check(`${w} by ${h}: four cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+    check(`${w} by ${h}: five cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shapeOf(v, row), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     check(`${w} by ${h}: the rooms panel in the window without scrolling, above the cards, clear of them and of the corner chips`,
       panelLaidOut(v), `panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)} first card ${JSON.stringify(v.cards[0].box)}`);
@@ -269,17 +269,17 @@ try {
   /* THE KEYBOARD ALONG THE ROW. */
   await a.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const walk = [await onCard(a)];
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < 4; i += 1) {
     await a.tap('ArrowRight');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  for (let i = 0; i < 2; i += 1) {
+  for (let i = 0; i < 3; i += 1) {
     await a.tap('ArrowLeft');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  check('Right walks all four cards and Left steps back to Free Flight', walk.join('>') === `${NAMES.split(',').join('>')}>Streamer Combat>Free Flight`, walk.join(' > '));
+  check('Right walks all five cards and Left steps back to Free Flight', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Streamer Combat>Free Flight`, walk.join(' > '));
   await a.tap('ArrowRight');
   await a.sleep(150);
 

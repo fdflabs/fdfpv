@@ -90,6 +90,12 @@ export function crownSvg() {
     + tag('rect', { x: 50, y: 222, width: 200, height: 26, rx: 6, ...ink(0.7) }));
 }
 
+/* A loop with its arrow: Trick Battle's card. */
+export function loopSvg() {
+  return plan(tag('path', { d: 'M 150 236 A 86 86 0 1 1 236 150', fill: 'none', ...line(14, 0.8), 'stroke-linecap': 'round' })
+    + tag('path', { d: 'M 206 140 L 236 182 L 266 140 Z', ...ink(0.8) }));
+}
+
 /* A sight over a target ball: the Interior campaign's card. */
 export function ballSvg() {
   return plan(SIGHT
@@ -169,6 +175,7 @@ export const WAYS = [
   /* The room games: the friends card with its game chosen. */
   { id: 'combat', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'combat', ...fromRegistry('combat'), svg: streamerSvg() },
   { id: 'ace', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'tag', ...fromRegistry('tag'), svg: crownSvg() },
+  { id: 'jam', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'jam', ...fromRegistry('jam'), svg: loopSvg() },
   /* Defend Itaipu: its consent gate runs in the shell before the room
    * (src/main.js). Off the title since 2026-09-30; Defend the Parana's
    * Play still enters through it. */
@@ -199,6 +206,21 @@ export const WAYS = [
     svg: ballSvg(),
     blurb: str('ops.campaign.interior.card_blurb'),
     facts: [str('ops.campaign.interior.card_missions'), str('ops.campaign.interior.card_roles'), str('ops.campaign.interior.card_quiet')],
+  },
+  /* Learn to fly, the lessons (src/game/training.js): a solo card, not a
+   * room game, so it is not in the mode registry, as the Interior's is
+   * not. Its own page lists the lessons; a lesson seats its aircraft. */
+  {
+    id: 'training',
+    training: true,
+    category: 'flightclub',
+    airframes: ['timber1500'],
+    mode: 'freestyle',
+    label: str('training.card'),
+    art: 'assets/posters/swiss2.jpg',
+    svg: planeSvg(),
+    blurb: str('training.card_blurb'),
+    facts: [str('training.card_steps'), str('training.card_assists'), str('training.card_gates')],
   },
 ].map((way) => ({ ...way, action: `way-${way.id}` }));
 

@@ -22,6 +22,8 @@
  *                                      { id, name, lapMs, ghost }
  *   POST {board}/api/runs, GET {board}/api/runs?map=
  *                                      the freestyle board
+ *   GET  {board}/api/events/current    Flight Club's weekly event and its
+ *                                      standings
  *
  * The simulator links to a course as {sim}/?map=custom&share={id}&board=
  * {board}; src/trackbuilder/schema.md is the document contract, and a
@@ -51,7 +53,7 @@
 
 import { noAircraftFlies, trackClassOf } from '../trackbuilder/elements.js';
 import { isMapTrack } from '../trackbuilder/model.js';
-import { API_ORIGIN } from './api.js';
+import { API_ORIGIN, SITE_HOSTS } from './api.js';
 import { carryRenamedKeys } from './oldkeys.js';
 import { writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
@@ -97,7 +99,12 @@ export function defaultBoardOrigin() {
   if (host === NO_WINDOW) {
     return DEFAULT_BOARD_ORIGIN;
   }
-  return DEV_HOSTS.has(host) ? DEFAULT_BOARD_ORIGIN : PRODUCTION_BOARD_ORIGIN;
+  if (DEV_HOSTS.has(host)) {
+    return DEFAULT_BOARD_ORIGIN;
+  }
+  /* A pull request's preview (docs/PREVIEWS.md) posts no times to the
+   * real board. */
+  return SITE_HOSTS.includes(host) ? PRODUCTION_BOARD_ORIGIN : NO_BOARD;
 }
 
 export function boardOrigin() {
@@ -289,6 +296,14 @@ export function pickFeaturedTracks(tracks, limit = FEATURED_LIMIT) {
 }
 
 const trackPath = (board, id) => `${baseOf(board)}/api/tracks/${encodeURIComponent(id)}`;
+
+/* Flight Club's weekly event: { id, week, trackId, name, map, goldMs,
+ * wing, startsUtc, endsUtc, standings: [{ name, lapMs, medal }] }, or
+ * null in a week with no course carrying medals. */
+export async function fetchCurrentEvent(origin = boardOrigin()) {
+  const body = await readBody(`${baseOf(origin)}/api/events/current`);
+  return body && body.event ? body.event : null;
+}
 
 export async function fetchTrackDocument(id, origin = boardOrigin()) {
   return readBody(`${trackPath(origin, id)}/document`);

@@ -120,7 +120,8 @@ export class RoomSafety {
 
   seatConn(seat) {
     for (const [conn, s] of this.core.seats) {
-      if (s.seat === seat) {
+      /* An AI pilot is nobody to report or mute (roombots.js). */
+      if (s.seat === seat && !s.bot) {
         return conn;
       }
     }
@@ -237,7 +238,7 @@ export class RoomSafety {
   }
 
   reportsToRemove() {
-    return Math.max(2, Math.ceil(this.core.seats.size / 3));
+    return Math.max(2, Math.ceil(this.core.people().length / 3));
   }
 
   /* Out of the room, and kept out for REMOVE_MS (core.js keepOut). */

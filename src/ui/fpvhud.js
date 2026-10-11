@@ -1184,7 +1184,7 @@ export class FpvOsd {
     /* osdElementFlymode's precedence over the modes the shell has, and
      * for a plane INAV's names. */
     const mode = x.fixedWing
-      ? ({ manual: 'MANU', stab: 'ANGL', acro: 'ACRO' }[v.flightMode] || 'MANU')
+      ? ({ manual: 'MANU', stab: 'ANGL', acro: 'ACRO', as3x: 'AS3X' }[v.flightMode] || 'MANU')
       : (v.flightMode === 'angle' ? 'ANGL' : (this.airmode ? 'AIR' : 'ACRO'));
     const cellV = this.vFilt / x.cells;
     const packV = this.vFilt;

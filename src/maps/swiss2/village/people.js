@@ -408,6 +408,33 @@ export function buildPeople({ layout, heightAt, material }) {
     const idle = t * 0.37 + f.phase;
     q.sway = 0.018 * Math.sin(idle);
     q.head = 0.25 * Math.sin(idle * 0.6);
+    if (f.do === 'stand' || f.do === 'talk') {
+      /* Nobody stands to attention: the weight on one leg, the other
+       * knee eased and its foot a little forward, the hip out over the
+       * standing leg, the arms hung loose and bent. Symmetric and locked,
+       * the square's standers read as mannequins. Which leg, and whether
+       * the hands are clasped behind the back, is each figure's own. */
+      const side = Math.sin(f.phase * 7.1) < 0 ? 1 : -1;
+      const ease = 0.24 + 0.06 * Math.sin(idle * 0.3);
+      if (side > 0) {
+        q.thighR = 0.12;
+        q.kneeR = ease;
+      } else {
+        q.thighL = 0.12;
+        q.kneeL = ease;
+      }
+      q.sway += 0.035 * side;
+      q.armL = 0.08;
+      q.armR = 0.06;
+      q.elbowL = 0.3;
+      q.elbowR = 0.34;
+      if (Math.sin(f.phase * 3.3) > 0.55) {
+        q.armL = -0.3;
+        q.armR = -0.3;
+        q.elbowL = 1.0;
+        q.elbowR = 1.0;
+      }
+    }
     if (f.do === 'walk') {
       const phi = (f.walked / STRIDE) * Math.PI * 2;
       const sn = Math.sin(phi);

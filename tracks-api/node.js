@@ -75,6 +75,9 @@ export function startTracks({
     DB: opened.DB, ADMIN_SECRET: adminSecret, GOOGLE_CLIENT_ID: googleClientId, ACCOUNTS_SECRET: accountsSecret,
     REVISION: revision, INVITE_ONLY: inviteOnly, ADMIN_EMAILS: adminEmails, SEND_MAIL: sendMail,
     ...(googleJwksUrl ? { GOOGLE_JWKS_URL: googleJwksUrl } : {}),
+    /* Where Flight Club's event tiers are read (eventpay.js); none, no
+     * events are paid. */
+    ...(boardOrigin ? { BOARD_ORIGIN: boardOrigin } : {}),
   };
   /* Every request timed to its answer's headers, by route group and in
    * all, for the admin page's Server section (metrics.js). */

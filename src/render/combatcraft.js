@@ -59,6 +59,7 @@ import { PROP_SPIN } from './craftpose.js';
 import { paintRegions } from './livery.js';
 import { paintHook } from './combatpaint.js';
 import { thermalKind } from './thermal.js';
+import { ledLevel } from './kitlights.js';
 
 /*
  * THE FRAMES, as docs/COMBAT-DRONES.md and scripts/combat-derive.js give
@@ -400,7 +401,31 @@ function measure(spec) {
 /* The bare machine.                                                   */
 /* ------------------------------------------------------------------ */
 
-function frameKit(k, f, lite) {
+/*
+ * The arm outlines a kit can fit (configs/kits.js, docs/KITS.md), each in
+ * the arm's own frame: x across, y out along it, root at -root and the
+ * motor pad at len. Never wider than the stock outline's widest (0.80
+ * armW), never longer, so the drawing stays inside the hull the referee
+ * meets (configs/hulls.js).
+ */
+const ARM_OUTLINES = {
+  stock: (w, root, len) => [
+    [-w * 0.62, -root], [w * 0.62, -root],
+    [w / 2, len * 0.70], [w * 0.80, len - w * 0.2], [w * 0.74, len + w * 0.66],
+    [-w * 0.74, len + w * 0.66], [-w * 0.80, len - w * 0.2], [-w / 2, len * 0.70],
+  ],
+  cutout: (w, root, len) => ARM_OUTLINES.stock(w, root, len),
+  blade: (w, root, len) => [
+    [-w * 0.40, -root], [w * 0.40, -root], [w * 0.40, len - w * 0.2], [w * 0.74, len + w * 0.66],
+    [-w * 0.74, len + w * 0.66], [-w * 0.40, len - w * 0.2],
+  ],
+  tapered: (w, root, len) => [
+    [-w * 0.80, -root], [w * 0.80, -root], [w * 0.36, len * 0.80], [w * 0.74, len + w * 0.66],
+    [-w * 0.74, len + w * 0.66], [-w * 0.36, len * 0.80],
+  ],
+};
+
+function frameKit(k, f, lite, kit = {}) {
   const seg = lite ? 8 : 12;
   const { bodyL, bodyW, bodyZ, armW, armT, plateT, belly, armTop, roof, motorX, motorZ } = f;
   /* The bottom plate under the arms and the top plate, wider where the X
@@ -411,6 +436,15 @@ function frameKit(k, f, lite) {
   ];
   k.add('carbon', slab(plate(bodyW, bodyL), plateT), [0, belly + plateT / 2, bodyZ]);
   k.add('topPlate', slab(plate(bodyW * 0.92, bodyL * 0.90), 0.002), [0, roof - 0.001, bodyZ + 0.004]);
+  /* A kit's top plate: vents cut across it, or an armoured cap, a thicker
+   * plate hung under the stock one so the roof stays where it is. */
+  if (kit.top === 'vented') {
+    for (const z of [-0.24, -0.08, 0.08, 0.24]) {
+      k.add('pcbDark', box(bodyW * 0.50, 0.0022, bodyL * 0.05), [0, roof - 0.0009, bodyZ + z * bodyL], [0, 0, 0], { ink: false });
+    }
+  } else if (kit.top === 'armoured') {
+    k.add('armour', slab(plate(bodyW * 0.96, bodyL * 0.94), 0.004), [0, roof - 0.0035, bodyZ + 0.004]);
+  }
   /* The arms, one slab each from under the plates to a wider pad at the
    * motor, a lighter slot of carbon down the middle and olive tape round
    * them twice, the reference's crew marking. */
@@ -421,13 +455,13 @@ function frameKit(k, f, lite) {
     const mz = sz * motorZ;
     const yaw = Math.atan2(mx, mz);
     const root = bodyW * 0.20;
-    const outline = [
-      [-armW * 0.62, -root], [armW * 0.62, -root],
-      [armW / 2, len * 0.70], [armW * 0.80, len - armW * 0.2], [armW * 0.74, len + armW * 0.66],
-      [-armW * 0.74, len + armW * 0.66], [-armW * 0.80, len - armW * 0.2], [-armW / 2, len * 0.70],
-    ];
+    const outline = ARM_OUTLINES[kit.arms ?? 'stock'](armW, root, len);
     k.add('arm', slab(outline, armT), [0, armY, 0], [0, yaw, 0]);
     k.add('carbonDeep', box(armW * 0.34, armT * 1.04, len * 0.40), [mx * 0.50, armY, mz * 0.50], [0, yaw, 0], { ink: false });
+    /* The cut out arm's lightening holes: two dark slots through it. */
+    for (const t of kit.arms === 'cutout' ? [0.26, 0.74] : []) {
+      k.add('pcbDark', box(armW * 0.42, armT * 1.06, len * 0.12), [mx * t, armY, mz * t], [0, yaw, 0], { ink: false });
+    }
     for (const t of f.spec.tape === false ? [] : [0.56, 0.80]) {
       k.add('tape', box(armW * 1.12, armT * 1.4, len * 0.07), [mx * t, armY, mz * t], [0, yaw, 0], { ink: false });
     }
@@ -547,12 +581,21 @@ function cameraKit(k, lite) {
 
 /* The plain mount: two side plates from the bottom plate to the top, the
  * camera on a screw through each. */
-function mountKit(k, f, cam) {
+function mountKit(k, f, cam, kit = {}) {
   const top = f.roof;
   const bottom = f.belly;
   const h = top - bottom;
+  /* A kit's mount: a TPU cage with a bumper round the lens, or wider
+   * carbon side plates. Both inside the plates' own length. */
+  if (kit.mount === 'cage') {
+    for (const sx of [1, -1]) {
+      k.add('tpu', box(0.0040, h, 0.028), [sx * 0.0124, (top + bottom) / 2, cam[2] + 0.006]);
+    }
+    k.add('tpu', new THREE.TorusGeometry(0.0118, 0.0022, 6, 16), [0, cam[1], cam[2] - 0.006], [0, 0, 0]);
+  }
+  const plateW = kit.mount === 'plates' ? 0.034 : 0.026;
   for (const sx of [1, -1]) {
-    k.add('carbon', box(0.0025, h, 0.026), [sx * 0.0122, (top + bottom) / 2, cam[2] + 0.006]);
+    k.add('carbon', box(0.0025, h, plateW), [sx * 0.0122, (top + bottom) / 2, cam[2] + 0.006]);
     k.add('steel', cylY(0.0022, 0.0012, 6), [sx * 0.0140, cam[1], cam[2]], [0, 0, Math.PI / 2], { ink: false });
   }
   return k;
@@ -567,6 +610,59 @@ function stockAntennaKit(k, f) {
     stalk(k, 'whip', [0.012, f.roof, at[2]], [side * 0.25, 0.7, 0.8], 0.028, 0.0011, { seg: 5 });
   }
   return k;
+}
+
+/* A kit's antennas (configs/kits.js): a dual T, two short receiver
+ * dipoles crossed at the back, or a pagoda, the video antenna capped with
+ * a stack of three discs. Wire, like the stock ones. */
+function kitAntennaKit(k, f, which) {
+  const at = f.D(f.spec.plates[0] * -0.42, 0, 0);
+  if (which === 'pagoda') {
+    const top = stalk(k, 'antenna', [-0.012, f.roof, at[2]], [0, 1, 0.1], 0.020, 0.0030, { seg: 8, ink: true });
+    for (const [i, r] of [0.0085, 0.0070, 0.0055].entries()) {
+      k.add('antenna', cylY(r, 0.0022, 10), [top[0], top[1] + 0.002 + i * 0.0035, top[2]]);
+    }
+  } else {
+    for (const side of [1, -1]) {
+      const top = stalk(k, 'whip', [side * 0.012, f.roof, at[2]], [side * 0.15, 1, 0.2], 0.024, 0.0012, { seg: 5 });
+      k.add('antenna', cylZ(0.0016, 0.0016, 0.020, 6), top, [0, side * Math.PI / 2, 0]);
+    }
+  }
+  return k;
+}
+
+/*
+ * The arm LEDs (configs/kits.js lights): a small unlit bar under each
+ * motor in the pilot's colour, and setLights(tMs, throttle, battery) that
+ * runs the pattern (src/render/kitlights.js). Null without LEDs, so a
+ * stock quad draws and costs exactly what it did.
+ */
+const LED_RED = new THREE.Color(0xff1a00);
+function armLeds(group, f, lights, fog) {
+  if (!lights || !lights.led) {
+    return null;
+  }
+  const base = new THREE.Color(lights.led);
+  const pattern = lights.pattern ?? 'solid';
+  const mats = [];
+  MOTOR_SIGNS.forEach(([sx, sz], m) => {
+    /* In the fog as the rest of the craft is, so a far LED fades with
+     * its quad instead of floating bright in the haze. */
+    const mat = new THREE.MeshBasicMaterial({ color: base.clone(), fog });
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(f.armW * 0.9, 0.003, f.motorR * 1.6), mat);
+    bar.name = `led-${m}`;
+    bar.position.set(sx * f.motorX * 0.86, f.armTop - f.armT - 0.002, sz * f.motorZ * 0.86);
+    bar.rotation.y = Math.atan2(sx * f.motorX, sz * f.motorZ);
+    group.add(bar);
+    mats.push(mat);
+  });
+  const out = { level: 1, red: 0 };
+  return function setLights(tMs, throttle = 0, battery = 1) {
+    mats.forEach((mat, m) => {
+      ledLevel(pattern, m, tMs, throttle, battery, out);
+      mat.color.copy(base).lerp(LED_RED, out.red).multiplyScalar(out.level);
+    });
+  };
 }
 
 /* The interceptor's two antennas, angled up and out at the back: a tall
@@ -988,8 +1084,11 @@ export function buildCombatDrone(opts = {}) {
   const parts = { accessories: {} };
   const surfaces = packSurfaces(f, wanted.has('pack2') ? f.C(...spec.accessories.pack2) : null);
   const cam = f.D(...spec.camera);
+  /* The visual kit (configs/kits.js kitParts): pixels only, never a box
+   * the plant or the referee reads. */
+  const kit = opts.kit ?? {};
   const nose = spec.nose === 'armour' ? armourKit : mountKit;
-  parts.frame = kitGroup(nose(frameKit(createKit(), f, lite), f, cam), 'frame', mats, style);
+  parts.frame = kitGroup(nose(frameKit(createKit(), f, lite, kit), f, cam, kit), 'frame', mats, style);
   parts.pack = kitGroup(basePackKit(createKit(), f), 'pack', mats, style);
   group.add(parts.frame, parts.pack);
   if (spec.legs !== false) {
@@ -1008,7 +1107,10 @@ export function buildCombatDrone(opts = {}) {
    * scripts/craft-check.js leaves out of the machine's size, as the five
    * inch's mast is. */
   if (!wanted.has('lrantenna')) {
-    const stock = kitGroup((spec.antennas === 'twin' ? twinAntennaKit : stockAntennaKit)(createKit(), f), 'antenna', mats, style);
+    const fitted = kit.antenna && kit.antenna !== 'stock'
+      ? kitAntennaKit(createKit(), f, kit.antenna)
+      : (spec.antennas === 'twin' ? twinAntennaKit : stockAntennaKit)(createKit(), f);
+    const stock = kitGroup(fitted, 'antenna', mats, style);
     group.add(stock);
     parts.stockAntenna = stock;
   }
@@ -1083,6 +1185,13 @@ export function buildCombatDrone(opts = {}) {
   }
   blade.dispose();
 
+  /* On the group's userData, not the craft: a craft's and the shell's
+   * handles are a pinned shape (render:golden), and only a kitted craft
+   * has lights. */
+  const setLights = armLeds(group, f, opts.lights, fog);
+  if (setLights) {
+    group.userData.setLights = setLights;
+  }
   const craft = {
     group,
     discs,

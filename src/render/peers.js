@@ -43,12 +43,15 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
+import { cancelDecals, dressDecalsLater, readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { liveryKey, lookFor, normaliseEntry, paintable } from '../../configs/liveries.js';
+import { unpackEntry } from '../../configs/paint.js';
 import { PROPS, normalisePlane } from '../../configs/hangar-parts.js';
 import { FIGURE_COUNT, FLAG_CHUTE, FLAG_GEAR_DOWN, FLAG_QUAD, FLAG_SMOKE } from '../share/roomwire.js';
 
@@ -141,9 +144,19 @@ export function buildPeerCraft(profile, look = null) {
   /* A peer on an old tab can still fly an aircraft this build no longer
    * has: it is drawn as that aircraft's successor, a plane for a plane. */
   const id = airframeById(currentAirframeId(profile.airframe)).id;
-  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true });
-  if (paintable(id)) {
-    dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), profile.livery)));
+  /* The peer's visual kit (configs/kits.js) is built into the drawing,
+   * so it is read before the build; profileKey already rebuilds on a new
+   * livery, which carries it. */
+  const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)) : null;
+  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined });
+  if (paint) {
+    /* The colours at once, the layers over the next frames
+     * (dressDecalsLater), so a full livery joining is no long frame. */
+    dressLivery(craft, id, { ...paint, decals: [] });
+    addNavLights(craft, paint.lights);
+    if (paint.decals.length) {
+      dressDecalsLater(craft, paint.decals);
+    }
   }
   let smoke = null;
   if (PROPS[id]) {
@@ -230,6 +243,14 @@ export function buildPeerCraft(profile, look = null) {
       gear += Math.max(-dt * 0.5, Math.min(dt * 0.5, want - gear));
     }
     drive(p, 1, gear);
+    /* The kit's LEDs and strobes, run on this page's sim clock (the wire
+     * carries no clock of the pilot's, so a peer's chase is not in step
+     * with their own screen). The wire has no stick or pack either, so
+     * a peer's throttle pattern sits at half and its battery one solid
+     * (docs/KITS.md section 4). */
+    if (craft.group.userData.setLights) {
+      craft.group.userData.setLights(simT * 1000, 0.5, 1);
+    }
     smokeOn = false;
     if (smoke) {
       const at = craft.group.userData.smokeNozzle;
@@ -279,7 +300,11 @@ export function buildPeerCraft(profile, look = null) {
       }
       return Object.fromEntries(Object.entries(craft.livery.read()).map(([k, v]) => [k, `#${v.toString(16).padStart(6, '0')}`]));
     },
+    /* The livery's layers as drawn (src/render/decals.js readDecals), for
+     * a check. */
+    decals: () => readDecals(craft),
     dispose() {
+      cancelDecals(craft);
       if (undoLook) {
         undoLook();
       }

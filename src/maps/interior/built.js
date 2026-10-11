@@ -23,7 +23,7 @@
  *
  * SOLID AS DRAWN (interior:collide). A building's walls are one turned box
  * under its eaves (src/game/collide.js addTurnedBox) and its roof a roof
- * record (src/maps/alps/roofs.js), so a craft lands on the roof it sees
+ * record (src/render/library/roofs.js), so a craft lands on the roof it sees
  * and the walls under it pass while it stands there (rec.solids); a
  * gable or a lean to's high side is a stack of thin boxes, each inside
  * the drawn wall and under the roof. A veranda's roof is the house's,
@@ -59,7 +59,7 @@ import {
 } from '../../share/interior/places.js';
 import {
   recordAt, gableTop, shedTop, flatTop, pyramidTop,
-} from '../alps/roofs.js';
+} from '../../render/library/roofs.js';
 import { thermalHide, thermalKind } from '../../render/thermal.js';
 import { buildRoads, buildWater } from './ribbons.js';
 import {

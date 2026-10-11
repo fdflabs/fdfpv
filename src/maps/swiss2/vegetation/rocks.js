@@ -44,11 +44,11 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../../render/library/noise.js';
 import { FIELD, SNOW_LINE, LAKE_Y, valleyAxis } from '../../alps/terrain.js';
 import { ROAD_DX, ROAD_END } from './zones.js';
-import { assetUrl } from './atlas.js';
-import { DITHER_GLSL } from './plantmat.js';
+import { assetUrl } from '../../../render/library/vegetation/atlas.js';
+import { DITHER_GLSL } from '../../../render/library/vegetation/plantmat.js';
 import { thermalKind } from '../../../render/thermal.js';
 
 const SHAPES = ['rock1', 'rock3', 'rock4', 'rock6'];

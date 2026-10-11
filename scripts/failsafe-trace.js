@@ -8,7 +8,7 @@
  * default origin/main) and through this tree's dist/sim.wasm and compares
  * the whole state block after EVERY step, not a sample of them:
  *   - the harness's own recorded flight, tests/inputs/baseline.rec;
- *   - a shell style stick stream on the RC_HZ grid, five inch and whoop,
+ *   - a shell style stick stream on the RC_HZ grid, five inch and seven inch,
  *     acro, angle and launch control, with a reset and a second flight;
  *   - the same stream with sim_rx_signal(1) called before every step, the
  *     way the live shell will call it (the base module has no such export
@@ -67,7 +67,9 @@ const RX_ACTIVE = 0x10;
 const RX_ARMED = 0x20;
 const PHASE = ['IDLE', 'RX_LOSS_DETECTED', 'LANDING', 'LANDED', 'RX_LOSS_MONITORING', 'RX_LOSS_RECOVERED'];
 const AIRFRAME_5IN = 0;
-const AIRFRAME_WHOOP = 1;
+/* The whoop's plant row went on 2026-10-03 (3a2a2d19); the seven inch is
+ * the other quad size Betaflight flies here. */
+const AIRFRAME_7IN = 24;
 /* src/main.js RC_HZ: the live shell's frame grid, 4 ms. */
 const RC_PERIOD_MS = 4;
 
@@ -199,7 +201,7 @@ console.log('Identity, the whole state block after every step:');
   await same('baseline.rec, five inch', configA, AIRFRAME_5IN, recEvents(), recSteps);
   await same('baseline.rec, five inch, sim_rx_signal(1) each step', configA, AIRFRAME_5IN, recEvents(), recSteps, { linkUp: true });
   const stream = shellStream(8000, 0);
-  for (const [label, af] of [['five inch', AIRFRAME_5IN], ['whoop', AIRFRAME_WHOOP]]) {
+  for (const [label, af] of [['five inch', AIRFRAME_5IN], ['seven inch', AIRFRAME_7IN]]) {
     await same(`shell stream, ${label}, acro, reset, again`, configA, af, stream, 8000, { resetAndAgain: true });
     await same(`shell stream, ${label}, acro, sim_rx_signal(1)`, configA, af, stream, 8000, { linkUp: true, resetAndAgain: true });
     await same(`shell stream, ${label}, angle, sim_rx_signal(1)`, configA, af, stream, 8000, {
@@ -219,7 +221,7 @@ console.log('Identity, the whole state block after every step:');
   }
   const held = heldSegments();
   await same('held sticks, one sample a segment, five inch', configA, AIRFRAME_5IN, held.ev, held.steps, { resetAndAgain: true });
-  await same('held sticks, whoop', configA, AIRFRAME_WHOOP, held.ev, held.steps);
+  await same('held sticks, seven inch', configA, AIRFRAME_7IN, held.ev, held.steps);
   const fsConfig = `${configA}\nset failsafe_delay = 4\nset failsafe_procedure = AUTO-LAND\nset failsafe_throttle = 1300\n`;
   await same('diff with failsafe_ keys, link never judged', fsConfig, AIRFRAME_5IN, stream, 8000);
 }
