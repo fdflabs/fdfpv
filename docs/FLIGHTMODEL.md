@@ -1229,3 +1229,47 @@ is re-derived on the stall's own CL max, 0.898 at 1.7e5: 8.54 m/s, band
 8.03 to 9.73 (was 8.31, 7.81 to 9.47, on the estimated 0.95); the plant
 reads 8.75. A half stick pull at 16 m/s now breaks at 15.2 deg (13.8
 before).
+
+### Past the stall: the finite wing's broadside force and Viterna's B2 (2026-10-11)
+
+The plant's post stall curve is Viterna's extrapolation (CL = CDmax sin
+cos + A2 cos^2 / sin, CD = CDmax sin^2 + B2 cos), and it took CDmax, the
+normal force broadside, as 2.0, the two dimensional plate's, for every
+wing. A finite wing's is smaller: CDmax = 1.11 + 0.018 AR (AR under 50),
+Viterna and Janetzke, NASA TM-82944 eq. 12
+(https://ntrs.nasa.gov/citations/19820025954), plate_cn in plant_wing.c,
+1.19 to 1.27 across the fleet. Measured, Ostowari and Naik's NACA 4418
+reads 2.06 at infinite AR and 1.32 at AR 6 (SERI/STR-217-2559, sec. 4.6),
+and Sheldahl and Klimas' NACA 0012 1.8 at 90 deg in two dimensions
+(SAND80-2114, table 2), so the formula sits 8 percent under the one
+finite measurement. The plant also lacked Viterna's drag continuity term,
+B2 = (CD at the stall - CDmax sin^2 a_s) / cos a_s (TM-82944 eqs. 15, 17):
+without it the plate alone fell short of the stalled section's drag
+between the stall and about 30 deg (NACA 0012 at 20 deg measures 0.30;
+the old plate gave 0.21). B2 is in the wing's drag, the strips' drag
+excess, the biplane cell's and the stalled normal force's pressure share.
+The shape past the stall is still Viterna's; per section 0 to 180 deg
+tables (SAND80-2114, NACA 2415) wait for knife edge and inverted flight.
+
+What moved, re-derived on it rather than widened:
+- P-51 P8 (NACA's XP-51 wing drop) reads 30.5 deg, from 28.2.
+- Extra E11's harrier at 40 deg: extra-derive.js on the finite wing,
+  7.76 m/s at 0.615 throttle (was 6.25 at 0.603 on the plate), band 20
+  percent and 15 percent either way as before; the plant flies 7.79. The
+  only harrier speed in the 3D video is the Timber's, judged not measured,
+  2 to 4 m/s; no Extra figure exists.
+- Zagi Z9's mush sink band, which had no numeric source: zagi-derive.js
+  brackets it between the wing attached at its CL max (0.61 m/s) and a
+  fully separated plate at 30 deg on Ostowari and Naik's AR 6 1.32 (4.25
+  m/s); the plant mushes at 1.86. The balloon and the break within 3 s
+  are the CRRC's and hold (2.36 s).
+- tuning:check U3 now times the stall's onset (the first strip to
+  separate) instead of the peak angle in a fixed first second, which read
+  a nose heavy glider still departing as higher than stock already past
+  its break: aft stalls first and nose heavy last (or not in 3 s) on every
+  aircraft.
+
+A BIG FAILURE this does not fix, measured: the Timber does not reach its
+harrier. harrier-flap-probe.js, full up held: pitch 7 to 26 deg at 8 to
+11.6 m/s, bank sd 31 to 39 deg, against the video's nose up 40 to 45 deg
+at a crawl with the elevator flaps mix calming it.

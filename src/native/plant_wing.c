@@ -364,6 +364,17 @@ static double clip(double x, double lim) {
  * move. a - (-b) is a + b exactly in IEEE 754, and 0 - (+-0) is +0, so
  * this is the sum for every nonzero term and the identity for a zero one.
  */
+/* The wing's normal force coefficient broadside, at 90 deg: a finite
+ * wing's is 1.11 + 0.018 AR (AR under 50), Viterna and Janetzke, NASA
+ * TM-82944 eq. 12 (https://ntrs.nasa.gov/citations/19820025954), from
+ * flat plate data; 2.0 is the two dimensional plate's, which the plant
+ * took for every wing. The post stall lift, cn sin cos, and drag, cn
+ * sin^2, are Viterna's with it. */
+static double plate_cn(const FixedWingParams *fw) {
+  const double ar = fw->span * fw->span / fw->area;
+  return 1.11 + 0.018 * (ar < 50.0 ? ar : 50.0);
+}
+
 /* The wing's own lift slope (FixedWingParams.cl_alpha_wing). */
 static double wing_cla(const FixedWingParams *fw) {
   return fw->cl_alpha_wing > 0.0 ? fw->cl_alpha_wing : fw->cl_alpha;
@@ -1262,13 +1273,13 @@ static double stalled_lift(const FixedWingParams *fw, double k, double top, doub
   const double a0 = stall + top;
   const double a1 = a0 + 2.0 * fw->stall_blend;
   const double t = smoothstep(a0, a1, sim_fabs(aa));
-  const double plate = 2.0 * sin_a * cos_a;
+  const double plate = plate_cn(fw) * sin_a * cos_a;
   const double sgn = aa < 0.0 ? -1.0 : 1.0;
   double viterna = 0.0;
   if (cos_a > 0.0 && sim_fabs(sin_a) > 0.05) {
     const double st = clip(a1 - shift, 0.5);
     const double ss = sim_sin_small(st), cs = sim_cos_small(st);
-    const double a2 = (k * cl_s - 2.0 * ss * cs) * ss / (cs * cs);
+    const double a2 = (k * cl_s - plate_cn(fw) * ss * cs) * ss / (cs * cs);
     viterna = a2 * cos_a * cos_a / sin_a;
   }
   *fall = t;
@@ -1307,7 +1318,8 @@ static double stalled_lift(const FixedWingParams *fw, double k, double top, doub
  * is what it was.
  */
 static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, double cos_a, double da,
-                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double top, double out[2]) {
+                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double top, double b2,
+                        double out[2]) {
   out[0] = 0.0;
   out[1] = 0.0;
   const double cla = wing_cla(fw);
@@ -1337,7 +1349,7 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
    * stability axis rates), so a stalled strip takes both back. */
   const double ref = r * cla * add_term(alpha, dcl_f / cla) + cla * (da + dr);
   out[0] = past * (blended - ref);
-  out[1] = past * sigma * (2.0 * sp * sp - fw->k_induced * cl_lin * cl_lin);
+  out[1] = past * sigma * (plate_cn(fw) * sp * sp + (cp > 0.0 ? b2 * cp : 0.0) - fw->k_induced * cl_lin * cl_lin);
 }
 
 /*
@@ -1364,7 +1376,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   const double aa = sim_fabs(add_term(alpha, dcl_f / cla));
   const double sigma = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, aa);
   const double cl_lin = add_term(fw->cl_alpha * alpha + fw->cl_de * delta_e, dcl_f);
-  const double cl_flat = 2.0 * sin_a * cos_a;
+  const double cl_flat = plate_cn(fw) * sin_a * cos_a;
   /* THE TOP OF THE CURVE, docs/FLIGHTMODEL.md: a wing's CL max is the peak
    * of its lift curve, which every derivation's stall speed, sqrt(2 W / rho
    * S CL max), is built on. The wing's own lift, the angle's share of
@@ -1439,7 +1451,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
  * monoplane.
  */
 static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e, double dcl_f, double clmax, double k_stall,
-                         double fre, double sin_a, double cos_a, double cd0, double *CL, double *CD, double *cm) {
+                         double fre, double sin_a, double cos_a, double cd0, double b2c, double *CL, double *CD, double *cm) {
   WingLift alone[2], wl[2];
   for (int i = 0; i < 2; i += 1) {
     const double r = fw->bip_r[i];
@@ -1450,8 +1462,10 @@ static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e
     const double lost = alone[1 - i].cl - alone[1 - i].cl_lin;
     wing_lift(fw, r * alpha - fw->bip_m[i] * lost / fw->cl_alpha, r * delta_e, r * dcl_f, clmax, k_stall, fre, sin_a, cos_a, &wl[i]);
   }
-  const double plate = 2.0 * sin_a * sin_a;
-  const double cl_flat = 2.0 * sin_a * cos_a;
+  /* The broadside coefficient and Viterna's B2 are the cell's, on its
+   * span over its area: the two wings stall in each other's flow. */
+  const double plate = plate_cn(fw) * sin_a * sin_a + b2c;
+  const double cl_flat = plate_cn(fw) * sin_a * cos_a;
   /* With hi_alpha the tail's own angle carries the downwash's loss, as in
    * plant_wing_step, and stall_dw is not taken again. */
   const double dw = fw->hi_alpha ? 0.0 : fw->stall_dw;
@@ -1464,7 +1478,7 @@ static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e
     const double ac = fw->stall_arm_ac + fw->bip_x[i];
     const double cp = fw->stall_arm_cp - fw->bip_x[i];
     const double lin = alone[i].cl_lin;
-    const double cn_st = add_term(2.0 * sin_a, (a->cl_st - cl_flat) * cos_a);
+    const double cn_st = add_term(add_term(plate_cn(fw) * sin_a, (a->cl_st - cl_flat) * cos_a), b2c * sin_a);
     const double stall = fre * a->past * a->sigma;
     const double post = ((1.0 - a->past) * ac - a->past * cp) * cn_st - ac * lin - dw * (lin - a->cl_st);
     m += area * (stall * post + (1.0 - stall) * ac * (a->cl_lin - lin));
@@ -1794,7 +1808,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* The flat plate after the stall, at the zero lift line's angle. */
   const double sin_a = add_term(sin_b * fw->cos_zl, -(cos_b * fw->sin_zl));
   const double cos_a = add_term(cos_b * fw->cos_zl, sin_b * fw->sin_zl);
-  const double cl_flat = 2.0 * sin_a * cos_a;
+  const double cl_flat = plate_cn(fw) * sin_a * cos_a;
   double cd0 = add_term(add_term(fw->cd0, g_slats ? fw->slat_cd0 : 0.0), fw->cd_df2 * df * df);
   /* Retracts: the gear's drag goes as it folds away. */
   if (fw->gear_time > 0.0) {
@@ -1810,7 +1824,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double re_d = re_now > 0.5 * fw->cd0_re ? re_now : 0.5 * fw->cd0_re;
     cd0 *= sim_sqrt(fw->cd0_re / re_d);
   }
-  const double cd_flat = cd0 + 2.0 * sin_a * sin_a;
+  /* Viterna's drag past the stall, CDmax sin^2 + B2 cos, B2 taking the
+   * drag at the stall angle, cd0 + k CLmax^2, on continuously (NASA
+   * TM-82944 eqs. 15 and 17); the cd0 is the skin's, along the chord. The
+   * plate alone, without B2, fell short of the stalled section's drag
+   * between the stall and about 30 deg (NACA 0012 at 20 deg: 0.30
+   * measured, SAND80-2114 table 2, the plate 0.21 even at 2.0). */
+  const double a_s = add_term(alpha_stall, -dcl_f / wing_cla(fw));
+  const double s_s = sim_sin(a_s), c_s = sim_cos(a_s);
+  const double b2 = (fw->k_induced * clmax * clmax - plate_cn(fw) * s_s * s_s) / c_s;
+  const double b2c = cos_a > 0.0 ? b2 * cos_a : 0.0;
+  const double cd_flat = cd0 + plate_cn(fw) * sin_a * sin_a + b2c;
   /* Up to its stall angle the wing's lift is the plant's own curve, the
    * blend from the linear lift to the flat plate every gate's band was
    * derived on. Past it the lift is its section's (wing_lift above). */
@@ -1829,7 +1853,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cm_bip = 0.0, alpha_strip = alpha_stall;
   const int biplane = fw->bip_w[0] > 0.0;
   if (biplane) {
-    biplane_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, cd0, &CL, &CD, &cm_bip);
+    biplane_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, cd0, b2c, &CL, &CD, &cm_bip);
     alpha_strip = alpha_stall / (fw->bip_r[0] > fw->bip_r[1] ? fw->bip_r[0] : fw->bip_r[1]);
   }
 
@@ -2162,7 +2186,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * past and fre are zero there and add_term keeps that arithmetic what
    * it was. */
   const double cm_low = -sigma * (fw->lowre_arm_ac * cl_lin + fw->lowre_arm_cp * cl_flat);
-  const double cn_st = add_term(2.0 * sin_a, (cl_st - cl_flat) * cos_a);
+  const double cn_st = add_term(add_term(plate_cn(fw) * sin_a, (cl_st - cl_flat) * cos_a), b2c * sin_a);
   const double cm_post = sigma * (((1.0 - past) * fw->stall_arm_ac - past * fw->stall_arm_cp) * cn_st
                                   - fw->stall_arm_ac * cl_lin_m - stall_dw * (cl_lin_m - cl_st));
   const double cm_stall = biplane ? cm_bip : add_term(cm_low, fre * past * (cm_post - cm_low));
@@ -2321,8 +2345,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
        * elevator is on the tail, and leaves the strips alone. Zero where
        * strip_tau is, so no earlier table reads it. */
       const double se = fw->mix == FW_MIX_ELEVON ? fw->strip_tau[i] * delta_e : 0.0;
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(-da, sa), -se), dr, rr[i], cl_lin, dcl_i, st - 0.5 * fw->stall_asym, k_i, top_i, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(da, -sa), -se), -dr, rr[i], cl_lin, dcl_i, st + 0.5 * fw->stall_asym, k_i, top_i, fr);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(-da, sa), -se), dr, rr[i], cl_lin, dcl_i, st - 0.5 * fw->stall_asym, k_i, top_i, b2, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(da, -sa), -se), -dr, rr[i], cl_lin, dcl_i, st + 0.5 * fw->stall_asym, k_i, top_i, b2, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
@@ -4687,7 +4711,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_i_max = 0.30,
   .as3x_k = { 0.0902, 0.233, 0.6616 }, /* npm run as3x:derive */
   .as3x_kh = { 0.805, 2.0795, 5.9048 }, /* npm run as3x:derive */
-  .as3x_rate = { 7.34, -5.245, -2.689 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.34, -5.245, -2.677 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
