@@ -936,9 +936,8 @@ typedef struct FixedWingParams {
   /* Measured lateral derivatives past the stall, as ratios to their value
    * at 20 deg of body angle of attack, at 20, 25, 30, 35, 40, 45, 50, 55,
    * 60, 70, 80 and 90 deg: cn_beta, cl_beta, cl_p, cn_r, the ailerons'
-   * roll and the rudder's yaw; then Cl_r and Cn_p as increments per
-   * radian from their 20 deg value. Zero: none, the table's linear terms. */
-  double hi_lat[8][12];
+   * roll and the rudder's yaw. Zero: none, the table's linear terms. */
+  double hi_lat[6][12];
   double cn_beta_fin;
   /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
    * deg past the wing's own stall angle: the ailerons' and the fin's and
