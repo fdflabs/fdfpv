@@ -1536,6 +1536,34 @@ export function edgeRoll(s, b = 0) {
   const e = Math.atan2(Math.sin(fullBank(s) - b), Math.cos(fullBank(s) - b));
   return Math.max(-1, Math.min(1, -0.8 * e - 0.05 * s[11]));
 }
+/*
+ * A person's hands holding the wings level through a stall: the bank and
+ * roll rate seen 0.2 s late, the stick moved ten times a second in steps
+ * of a fiftieth of its travel (hover-probe.js's pilot, McRuer and Jex,
+ * IEEE Trans. HFE 1967), with the whole stick's authority: full aileron at
+ * the gate's own bank limit, as a person uses the travel before letting
+ * the wings pass it, the roll rate damped in edgeRoll's proportion, and an
+ * integral as a pilot's hand trims a steady torque. Returns a function of
+ * the state, called every RC_STEP_MS, that gives the aileron stick.
+ */
+export function personWingsHold(limitDeg) {
+  const k = 1 / (limitDeg * Math.PI / 180);
+  const seen = [];
+  const lag = Math.round(200 / RC_STEP_MS);
+  let stick = 0, iBank = 0, ms = 0;
+  return (s) => {
+    seen.push({ bank: fullBank(s), p: s[11] });
+    if (ms % 100 === 0 && seen.length > lag) {
+      const d = seen[seen.length - 1 - lag];
+      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * d.bank * 0.1));
+      const raw = Math.max(-1, Math.min(1, -k * d.bank - k * 0.0625 * d.p + iBank));
+      stick = Math.round(raw * 50) / 50;
+    }
+    ms += RC_STEP_MS;
+    return stick;
+  };
+}
+
 export function edgeLevel(s, { b = 0, trim }) {
   const { pitch } = attitude(s);
   const qAero = -s[12];

@@ -55,7 +55,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
-  turnYawLimitDeg,
+  turnYawLimitDeg, personWingsHold,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -216,13 +216,13 @@ check: {
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
     let o = { s: sim.readState().state };
-    /* With power the hold has an integral, as U11b's (uglystik-gates.js). */
-    let iBank = 0;
+    /* The wings held by a person, as U11b's (uglystik-gates.js,
+     * wingpilot.js personWingsHold). */
+    const person = personWingsHold(t8.maxBankDeg);
     let vMushSum = 0;
     let vMushN = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
-      iBank = duty ? Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000)) : 0;
-      const roll = hold ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
+      const roll = hold ? person(o.s) : 0;
       ailSum += Math.abs(roll);
       /* Power on, the rudder against the engine's yaw, as Great Planes'
        * manual tells the pilot ("always be ready to apply right rudder to
