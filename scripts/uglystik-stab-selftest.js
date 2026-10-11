@@ -36,6 +36,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { planeTable } from './lib/wash.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, uglystikPrelude, uglystikGroundPrelude, uglystikTakeoffSticks, wheelLoads, wingDebug, RC_STEP_MS } from '../tests/lib/wingpilot.js';
@@ -144,12 +145,15 @@ const deg = (x) => (x * DEG).toFixed(1);
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
 throwAt(30, 17.3);
-const level = fly(0, 0, 0, 0.75, 10);
+/* Centred sticks at the stick that flies it level, the table's
+ * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
+ * prop curves gave the prop its thrust at speed. */
+const level = fly(0, 0, 0, planeTable('FW_UGLYSTIK1567').fw.stab_trim_throttle, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
 check('and straight: under 15 m off the line after 10 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
-check('at a cruising speed', level.v > 14 && level.v < 22, `${level.v.toFixed(1)} m/s`);
+check('at the Stik\'s cruise, U1\'s band', level.v > 19.01 && level.v < 25.71, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.95, 4);
 check('full right stick banks right, 50 to 65 degrees', banked.bank * DEG > 50 && banked.bank * DEG < 65, `${deg(banked.bank)} deg`);
