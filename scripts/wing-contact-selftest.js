@@ -60,7 +60,12 @@ const PLANES = [
   /* The Slow Stick is thrown with the elevator neutral: the hand toss's 0.1 up was set on a curve that peaked at 0.81 of CL max, and on the true one it climbs the throw down to 4.9 m/s (docs/FLIGHTMODEL.md). */
   { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
   { name: 'kadet', id: 12, hx: 0.45, hy: 0.9906, down: 0.163, up: 0.119, land: 8, rollMs: 30000, nose: 11, toss: 12, tossSticks: [0, 0.3, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.3072 } },
-  { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
+  /* The Bombshell's roll out from the 8 m/s arrival at idle, derived
+   * (bombshell:derive, roll out: 14.33 s, the plant 14.7, within 3
+   * percent), with a stated 10 percent more for what the derivation leaves
+   * out (the touchdown's bounce, the struts' compliance): 16.2 s, where the
+   * file's 12 s default had no source. */
+  { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, rollMs: 16200, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
   /* The Zagi's throw is flown as zagi-gates' Z11 thrower flies it, the
    * climb out held at 20 deg by hand and trimmed (wingpilot.js zagiHold),
    * not a fixed 0.05 of up no source held. */
