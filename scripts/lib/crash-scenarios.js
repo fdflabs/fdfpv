@@ -491,7 +491,17 @@ export const CRASH_SCENARIOS = [
      * part that meets grass flat on a face slides at a sled's grip, the
      * 0.45 Linthorne and Cooper measured on a rugby pitch, where the shell's
      * 1.40 stays for an edge or a tip. A belly slide under every limit
-     * writes nothing, and takes the sled's deceleration, not the shell's. */
+     * writes nothing, and takes the sled's deceleration, not the shell's.
+     *
+     * THE GRIP IS FRICTION OVER THE REAL NORMAL FORCE, WHILE IT SLIDES. It
+     * was the speed lost from 50 to 250 ms over 0.2 s, which with the mode
+     * off read 1.387 because the Skyhunter had stopped dead at 147 ms, so
+     * the number was its speed at 50 ms over 0.2 s and not a grip at all
+     * (the deceleration while it slid was 2.76 g, the shell's 1.40 charged
+     * twice). Now, each step from 20 ms until it is under 0.5 m/s: the
+     * ground's horizontal force (m a less the plant's own force, read from
+     * sim_wing_debug and turned to the world) over its normal force (m (g +
+     * a_z) less the plant's lift), the median taken. Tolerances unchanged. */
     name: 'under every limit, a face slides on grass at a sled\'s grip',
     async run(mk) {
       const checks = [];
@@ -500,19 +510,35 @@ export const CRASH_SCENARIOS = [
         r.pose([0, 0, 0.3], [1, 0, 0, 0]);
         r.run(1500);
         r.velocity([4, 0, 0]);
-        let v0 = 0;
-        let v1 = 0;
-        r.run(300, [0, 0, 0, 0], (s, k) => {
-          if (k === 50) v0 = s[4];
-          if (k === 250) v1 = s[4];
+        const e = r.sim.e;
+        const m = e.sim_bf_debug(51);
+        const dbg = e.malloc(20 * 8);
+        let prev = r.state();
+        let stopped = false;
+        const mus = [];
+        r.run(400, [0, 0, 0, 0], (s, k) => {
+          stopped = stopped || s[4] < 0.5;
+          if (k >= 20 && !stopped) {
+            e.sim_wing_debug(dbg);
+            const d = new Float64Array(e.memory.buffer, dbg, 20);
+            const [w, x, y, z] = [s[7], s[8], s[9], s[10]];
+            const fx = (1 - 2 * (y * y + z * z)) * d[9] + 2 * (x * y - w * z) * d[10] + 2 * (x * z + w * y) * d[11];
+            const fz = 2 * (x * z - w * y) * d[9] + 2 * (y * z + w * x) * d[10] + (1 - 2 * (x * x + y * y)) * d[11];
+            const ax = (s[4] - prev[4]) / 0.001;
+            const az = (s[6] - prev[6]) / 0.001;
+            mus.push((fx - m * ax) / (m * (9.80665 + az) - fz));
+          }
+          prev = s;
         });
-        return { r, mu: (v0 - v1) / 0.2 / 9.80665 };
+        e.free(dbg);
+        mus.sort((a, b) => a - b);
+        return { r, mu: mus.length ? mus[mus.length >> 1] : NaN, n: mus.length };
       };
       const on = await slide(1);
       const off = await slide(0);
       checks.push({ name: 'a Skyhunter slid on its belly at 4 m/s: nothing written', ok: on.r.events.length === 0 && on.r.damageSum === 0 && on.r.silent === 0, detail: on.r.summary() });
-      checks.push({ name: 'it slows at the sled\'s grip, 0.45, with the mode on', ok: Math.abs(on.mu - 0.45) < 0.02, detail: `${on.mu.toFixed(3)} g` });
-      checks.push({ name: 'and at the shell\'s 1.40 with it off', ok: Math.abs(off.mu - 1.40) < 0.05, detail: `${off.mu.toFixed(3)} g` });
+      checks.push({ name: 'it slides at the sled\'s grip, 0.45, with the mode on', ok: Math.abs(on.mu - 0.45) < 0.02, detail: `${on.mu.toFixed(3)} over ${on.n} ms` });
+      checks.push({ name: 'and at the shell\'s 1.40 with it off', ok: Math.abs(off.mu - 1.40) < 0.05, detail: `${off.mu.toFixed(3)} over ${off.n} ms` });
       const radian = await mk({ id: 6, damage: 1 });
       radian.pose([0, 0, 0.3], [1, 0, 0, 0]);
       radian.launch(8);

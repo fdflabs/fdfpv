@@ -712,16 +712,15 @@ static void ground_settle(double upz, double vn_plant) {
     S.vel[2] -= nz * vn;
     /* That kick was normal impulse the corners gave beyond the load the
      * ground carries, and each corner charged its friction, mu times its
-     * impulse, against all of it. With the damage mode on the share of
-     * the corners' friction that went with the stripped part is given
-     * back, so a slide is held at mu times the real load: a settled five
+     * impulse, against all of it. The share of the corners' friction
+     * that went with the stripped part is given back, so a slide is held at mu times the real load: a settled five
      * inch slid at 1 m/s on grass read 0.524 against the sled's 0.45
      * (Linthorne and Cooper 2013, crash.c SURF), its corners pushing
      * 7.24 N with 6.30 N to carry. It only returns friction already
      * taken this step, so it cannot reverse a slide. It scales the
      * corners' whole tangential change, a plough's share included, which a
      * flat slide does not have; the spin their friction gave is left. */
-    if (SIM_DAMAGE && g_corner_dvn > 0.0) {
+    if (g_corner_dvn > 0.0) {
       double share = vn / g_corner_dvn;
       if (share > 1.0) {
         share = 1.0;
@@ -749,19 +748,18 @@ static void ground_settle(double upz, double vn_plant) {
       || (SIM_DAMAGE && crash_crushing());
   /* With the damage mode on, the grip of the part the craft lies on. */
   const double settle_mu = SIM_DAMAGE ? crash_settle_mu(&S, g_ground_n, g_gmu) : g_gmu;
-  /* The load the settle carries, per unit mass. With the damage mode off it is the weight's share
-   * along the normal. With it on it is what the plant drove into the
-   * ground this step (gravity less the rotors' thrust and the air's lift,
+  /* The load the settle carries, per unit mass: what the plant drove into
+   * the ground this step (gravity less the rotors' thrust and the air's lift,
    * so a craft whose idle props carry a fifth of it is pressed by four
    * fifths) less what the corners' impulses already carried with their
    * own friction, net of the kick stripped above: the ground's grip
-   * counted once, against the load it really takes. */
-  double rest_load = PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
-  if (SIM_DAMAGE) {
-    const double plant_in = -(g_plant_dv[0] * nx + g_plant_dv[1] * ny + g_plant_dv[2] * nz);
-    const double left = plant_in - (g_corner_dvn - stripped);
-    rest_load = left > 0.0 ? left / SIM_DT : 0.0;
-  }
+   * counted once, against the load it really takes. With the damage mode
+   * off it was the whole weight on top of the corners' own friction, so a
+   * Skyhunter's belly slide on grass slowed at 2.76 g against the shell's
+   * 1.40 and a five inch's at 3.43. */
+  const double plant_in = -(g_plant_dv[0] * nx + g_plant_dv[1] * ny + g_plant_dv[2] * nz);
+  const double left = plant_in - (g_corner_dvn - stripped);
+  const double rest_load = left > 0.0 ? left / SIM_DT : 0.0;
 
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
@@ -877,9 +875,7 @@ static void ground_settle(double upz, double vn_plant) {
       const double i_eff = ux * ux * PLANT.inertia[0]
           + uy * uy * PLANT.inertia[1]
           + uz * uz * PLANT.inertia[2];
-      const double load = SIM_DAMAGE
-          ? PLANT.mass_kg * rest_load
-          : PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
+      const double load = PLANT.mass_kg * rest_load;
       const double tau = settle_mu * load * CONTACT_PATCH_R;
       double dw = (i_eff > 1e-12) ? (tau / i_eff) * SIM_DT : wm;
       if (dw > wm) {

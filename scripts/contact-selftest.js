@@ -328,10 +328,17 @@ async function seated(z, q, { motorsOff = false, ground = true } = {}) {
   grass(sim);
   let s = view(fly(sim, 20));
   check('a belly landing slides at first', s.vx > 0.15, `vx ${f3(s.vx)}`);
-  s = view(fly(sim, 180));
-  check('grass stops a belly slide', Math.abs(s.vx) < 0.15, `vx ${f3(s.vx)}`);
+  /* Coulomb at the grass's own grip: from the shove's speed v0 it stops in
+   * v0 / (mu g) and runs v0^2 / (2 mu g). These were a fixed 200 ms and
+   * 0.40 m, which only the grip charged twice (the corners' and the
+   * settle's, 2.8 g) met; the slide is held to the grip it has, with 30 ms
+   * and 5 percent for the shove's first steps. */
+  const stopMs = (shoved.vx / (GROUND_MU * 9.80665)) * 1000;
+  s = view(fly(sim, Math.ceil(stopMs) + 30 - 20));
+  check('grass stops a belly slide at its grip', Math.abs(s.vx) < 0.15, `vx ${f3(s.vx)} at ${Math.ceil(stopMs) + 30} ms, from ${f3(shoved.vx)}`);
   const dx = Math.abs(s.x - shoved.x);
-  check('a belly slide is short', dx < 0.40, `dx ${f3(dx)}`);
+  const runOut = (shoved.vx * shoved.vx) / (2 * GROUND_MU * 9.80665);
+  check('a belly slide runs no farther than its grip allows', dx < runOut * 1.05, `dx ${f3(dx)}, ${f3(runOut)} at mu ${GROUND_MU}`);
   check('a belly slide stays on the plane', s.z > 0.02 && s.z < 0.16, `z ${f3(s.z)}`);
 }
 
