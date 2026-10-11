@@ -9,7 +9,10 @@
  * the plant is checked against, so it has to stand apart from it. Harness
  * arithmetic in JS maths, which is allowed here because nothing it prints
  * is hashed. Run with npm run slick:derive; --check fails when the table,
- * the plant row or the bands differ from what it derives.
+ * the plant row or the bands differ from what it derives, naming each
+ * field and its derived value; --write-bands writes the bands. After a
+ * plant change: mirror it in wingLift or the harrier below, --write-bands,
+ * set what --check names, then as3x:derive and stab:glide.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -27,7 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -876,8 +879,43 @@ const rows = [
   ['   loads main tail N; k main tail; c main tail', `${f(mainLoad, 2)} ${f(tailLoad, 2)}; ${f(kMain, 0)} ${f(kTail, 0)}; ${f(cMain, 2)} ${f(cTail, 2)}`],
 ];
 
+
+/*
+ * The bands, tests/slick-thresholds.json, written from the derived figures
+ * above (--write-bands), so a plant change is re-derived by running this
+ * file: npm run slick:derive -- --write-bands, then --check.
+ */
+function bandsJson() {
+  const D = DERIVED;
+  const r = (x, n) => Number(x.toFixed(n));
+  const band = (v, lo, hi, n) => ({ min: r(v * lo, n), max: r(v * hi, n) });
+  const th = {
+    note: "The bands Extreme Flight's 105.5 in Slick 580 plant has to land in, from docs/SLICK-STAGE1.md, which derives each from EF's data sheet and drawing, Desert Aircraft's DA-120, Falcon's measured static table for the DA-120 on its 28 x 10 and APC's data for the prop's shape (npm run slick:derive prints them; --check holds these derived figures to it). The widths are the Extra's (tests/extra-thresholds.json), each for the same reason. Never widened to pass; argue in the derivation instead.",
+    s1_level_75: { duty: 0.75, derived: r(D.e1, 2), ...band(D.e1, 0.88, 1.12, 2), unit: 'm/s', source: `level speed at 75 percent of the throttle stick (0.94 of the full rpm on the DA-120's dyno curve, throttle_rpm), derived ${D.e1.toFixed(2)} from Falcon's thrust, APC's zero thrust advance ratio and the component drag build up; 12 percent either way, the Extra's, for the thrust line's slope and cd0` },
+    s2_stall: { alphaStall: r(D.alphaStall, 5), derived: r(D.e2, 2), ...band(D.e2, 0.94, 1.14, 2), unit: 'm/s', source: `sqrt(2W / rho S CLmax) at the wing's CLmax at the stall's own Reynolds number, 4.4e5 on the mean chord: 0.902, 0.9 of Sheldahl and Klimas' NACA 0012 (SAND80-2114 Table 2: 0.9811 at 3.6e5, 1.0749 at 7e5), derived ${D.e2.toFixed(2)}; alphaStall CLmax over the wing's own slope; the Extra's band in proportion, 0.94 to 1.14 of the formula, since the plant reads the stall at the blend's midpoint` },
+    s3_glide: { speed: r(D.e3speed, 1), derived: r(D.e3, 2), ...band(D.e3, 0.88, 1.12, 2), source: `L/D at 1.4 Vs, ${D.e3speed.toFixed(1)} m/s, derived ${D.e3.toFixed(2)}, 12 percent either way, the Extra's` },
+    s4_top: { duty: 1.0, derived: r(D.e4, 2), ...band(D.e4, 0.9, 1.1, 2), unit: 'm/s', source: `level speed at full throttle, derived ${D.e4.toFixed(2)}, 10 percent either way` },
+    s5_roll: { speed: 22.0, duty: 0.6, derived: r(D.e5, 4), ...band(D.e5, 0.75, 1.25, 3), source: `pb/2V at full aileron on the sheet's high rate (38 up, 37 down), Clda throw_a / -Clp, derived ${D.e5.toFixed(4)} (${(D.e5 * 2 * 22 / 2.68 * 180 / Math.PI).toFixed(0)} deg/s at 22 m/s); 25 percent either way, the width the large deflection correction K' carries. EF's 'blistering roll rate'` },
+    s6_hover: { derived: r(D.e6, 4), ...band(D.e6, 0.95, 1.05, 3), maxHeightDrift: 0.5, unit: 'throttle', source: `hanging on the prop, the nose held up by the elevator and rudder in the slipstream, the height by the throttle: the rpm share where the thrust meets the weight, sqrt(W / T_static) 0.6343, as a stick on the DA-120's dyno curve (throttle_rpm), derived ${D.e6.toFixed(4)}; 5 percent either way` },
+    s7_vertical: { derived: r(D.e7, 2), ...band(D.e7, 0.9, 1.1, 2), unit: 'm/s', source: `straight up at full throttle, the climb speed where the thrust meets the weight and the zero lift drag, derived ${D.e7.toFixed(2)}; 10 percent either way` },
+    s8_torque_roll: { derived: r(D.e8, 1), min: Math.round(D.e8 * 0.75), max: Math.round(D.e8 * 1.25), unit: 'deg/s', source: `hanging at the hover with the ailerons let go: the prop's torque_arm W less the swirl's roll (SWIRL_KEEP 0.74, Selig 2010, docs/FLIGHTMODEL.md) against the air the turning wing sweeps through (rot_k), steady at sqrt(Q / k), derived ${D.e8.toFixed(0)} deg/s, to the left; 25 percent either way` },
+    s9_aileron_hover: { derived: r(D.e9, 1), min: Math.round(D.e9 * 0.6), max: Math.round(D.e9 * 1.4), unit: 'deg/s', source: `the same with full right aileron: the ailerons' inboard share in the slipstream beats the net torque, derived ${D.e9.toFixed(0)} deg/s right; 40 percent either way, the difference of two estimates` },
+    s10_zero_speed: { pitchDerived: r(D.e10p, 2), yawDerived: r(D.e10y, 2), idleDerived: r(D.idleShare, 4), pitchMin: r(D.e10p * 0.75, 2), pitchMax: r(D.e10p * 1.25, 2), yawMin: r(D.e10y * 0.75, 2), yawMax: r(D.e10y * 1.25, 2), idleMax: r(D.idleShare * 1.5, 3), unit: 'rad/s^2', source: `hanging still, full up elevator and full right rudder from rest: the slipstream's dp on the surfaces' immersed shares, each saturating on a flat plate (hi_alpha), derived ${D.e10p.toFixed(2)} in pitch and ${D.e10y.toFixed(2)} in yaw; 25 percent either way. A petrol engine idles rather than stopping: at its idle the wash's dp, and the authority, is (idle / hover rpm)^2 = ${D.idleShare.toFixed(4)} of the hover's, under 1.5 times that` },
+    s11_harrier: { alphaDeg: 40, vDerived: r(D.e11.V, 2), dutyDerived: r(D.e11.duty, 3), vMin: r(D.e11.V * 0.8, 2), vMax: r(D.e11.V * 1.2, 2), dutyMin: r(D.e11.duty * 0.85, 3), dutyMax: r(D.e11.duty * 1.15, 3), maxBankDeg: 10, maxHeightDrift: 2.0, source: `level at a body angle of attack of 40 deg, the throttle holding height: the stalled wing's plate lift and the thrust's vertical share against the weight, derived ${D.e11.V.toFixed(2)} m/s at a stick of ${D.e11.duty.toFixed(3)} with the elevator at ${(D.e11.deOfThrow * 100).toFixed(0)} percent of its throw; the speed 20 percent and the throttle 15 percent either way, the elevator short of full` },
+    s12_knife_edge: { speed: 30.0, betaDerived: r(D.e12.betaDeg, 2), dutyDerived: r(D.e12.duty, 3), betaMin: r(D.e12.betaDeg * 0.75, 2), betaMax: r(D.e12.betaDeg * 1.25, 2), dutyMin: r(D.e12.duty * 0.85, 3), dutyMax: r(Math.min(1, D.e12.duty * 1.15), 3), maxHeightDrift: 3.0, source: `rolled to 90 deg at 30 m/s, height held on the rudder: derived ${D.e12.betaDeg.toFixed(1)} deg of sideslip at a stick of ${D.e12.duty.toFixed(3)} with the rudder at ${(D.e12.drOfThrow * 100).toFixed(0)} percent of its throw; the sideslip 25 percent and the throttle 15 percent either way, the rudder short of full` },
+    s13_rest: { pitchDerived: r(D.restPitch, 2), zDerived: r(D.cgHeight, 4), tailDerived: r(D.tailShare, 4), pitchMin: r(D.restPitch - 0.5, 2), pitchMax: r(D.restPitch + 0.5, 2), zMin: r(D.cgHeight - 0.005, 4), zMax: r(D.cgHeight + 0.005, 4), tailMin: r(D.tailShare - 0.035, 3), tailMax: r(D.tailShare + 0.035, 3), source: `the sheet's side view on its wheels, ${D.restPitch.toFixed(2)} deg nose up, the CG ${D.cgHeight.toFixed(4)} m up, ${(D.tailShare * 100).toFixed(1)} percent of the weight on the tailwheel; half a degree, 5 mm and 3.5 points either way` },
+    s14_takeoff: { derived: r(D.e14.x, 2), distMin: r(D.e14.x * 0.6, 2), distMax: r(D.e14.x * 1.6, 2), source: `full throttle from standing, the tail up at 8 m/s and the nose to 8 deg at 15 m/s: liftoff at ${D.e14.V.toFixed(1)} m/s after ${D.e14.x.toFixed(2)} m (slick:derive); 40 percent short and 60 long, the Extra's, since the plant's roll has the gear's springs, the engine's spool and the pilot's hands in it and the derivation has none` },
+    s16_cross_host: { source: "the Slick's recorded take off, hover, torque roll and flight, state trace hash, Node against headless Chrome" },
+  };
+    return JSON.stringify(th, null, 0).replace(/^\{/, '{\n  ').replace(/,"(s\d+_[a-z_0-9]+|note)":/g, ',\n  "$1":').replace(/\}$/, '\n}\n');
+}
+
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
-if (isMain) {
+if (isMain && process.argv.includes('--write-bands')) {
+  const root = dirname(dirname(fileURLToPath(import.meta.url)));
+  writeFileSync(join(root, 'tests/slick-thresholds.json'), bandsJson());
+  console.log('wrote tests/slick-thresholds.json');
+} else if (isMain) {
   for (const [name, v] of rows) console.log(`${name.padEnd(58)} ${v}`);
 }
 
