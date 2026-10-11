@@ -240,6 +240,18 @@ scripts/cap580-derive.js --write-bands` rewrites every band's centre from
 the derivation and its edges at the width the thresholds file states for
 it, rounded inward, so the next plant change is re-derived the same way.
 
+**On APC's measured curves (w35-prop-ctj, 2026-10-11).** The plant now
+flies every wing prop on its APC file's thrust and torque over the advance
+ratio (axial_curve, torque_curve, on the geometric pitch speed, the
+bench's 8,636 rpm times 8 in, 29.247 m/s), not the straight line through
+the bench's static thrust and APC's top speed this table first took
+(40.37 m/s). The derivation reads the table's curve (scripts/lib/propcurve.js);
+APC's own 9,000 rpm row scaled to the bench's rpm agrees with it to 0.1 N
+at 0, 10, 20 and 30 m/s. Re-derived by --write-bands: the top speed 33.06
+m/s (the plant 32.2), the vertical climb 24.03 m/s, the harrier stick
+0.467, the knife edge stick 0.624, the take off 3.84 m. The line's
+middle, under the curve by up to 8 N, had cost climb and acceleration.
+
 ## Waits on the plant (for the flight model lane), and the tricks lane
 
 Not built here: this lane adds rows only, no shared plant code.

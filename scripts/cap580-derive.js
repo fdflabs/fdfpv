@@ -39,6 +39,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { shares, wash as washOf } from './lib/wash.js';
+import { wingProp } from './lib/propcurve.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -296,13 +297,12 @@ const THRUST_YAW = 2.5 / DEG;
  * percent of the bench's own, the check that the file stands in for the
  * carbon blade. Its thrust against the airspeed at 9,000 rpm, every row
  * from standing to the zero thrust speed, scaled to the bench's rpm (the
- * speed as the rpm, the thrust as its square), is a curve the plant's
- * straight line 1 - V / Vp cannot follow: it holds its thrust and then
- * falls. The line is taken through the curve's two points that matter
- * most, the bench's static thrust and the curve's thrust at the speed
- * where it meets the drag, so the plant's top speed is APC's and its
- * standing thrust the bench's; between them the line is under the curve
- * (printed below).
+ * speed as the rpm, the thrust as its square), is the curve the plant now
+ * flies: FW_CAP1702's axial_curve and torque_curve, APC's file over its
+ * advance ratio (npm run prop:curves -- wings, docs/FLIGHTMODEL.md "The
+ * prop's curves"), on the geometric pitch speed, the bench's 8,636 rpm
+ * times the 8 in. The derivation reads the table's curve (scripts/lib/
+ * propcurve.js) and prints APC's own row beside it as the check.
  */
 const APC9000 = [
   [0.00, 99.128], [1.39, 97.372], [2.78, 95.495], [4.17, 93.494], [5.56, 91.363], [6.95, 89.099], [8.34, 86.698],
@@ -331,11 +331,13 @@ const apcAt = (V) => {
 };
 /* The drag at a speed, the plant's polar, before the line exists. */
 const dragAt = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
+/* The geometric pitch speed: the bench's full rpm times the 8 in. */
+const Vp = nStatic / 60 * 8 * IN;
+const prop = wingProp('FW_CAP1702');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 let vTopApc = 10;
 for (let i = 0; i < 80; i += 1) vTopApc = apcAt(vTopApc) > dragAt(vTopApc) ? vTopApc + 30 / 2 ** (i + 1) : vTopApc - 30 / 2 ** (i + 1);
 const tTopApc = apcAt(vTopApc) * Ts / apcCurve[0][1];
-const Vp = vTopApc / (1 - tTopApc / Ts);
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - Math.max(0, V) / (Vp * d)));
 /* The prop's inertia, ESTIMATED: a carbon 18 in blade of about 60 g
  * (T-Motor lists none for the AMZ), a tapered blade's 0.7 of a rod's
  * m D^2 / 12, and the AM670's 63.5 mm can, about 0.16 kg at its radius. */
@@ -593,7 +595,7 @@ export const FW = {
   cm_alpha: r(Cma, 4), cm_q: r(Cmq, 3), cm_de: r(Cmde, 4), cn_beta: r(Cnb, 4), cn_r: r(Cnr, 4),
   cn_dr: r(Cndr, 4),
   throw_a: deg(throwA), throw_e: deg(throwE), throw_r: deg(throwR), surface_max: deg(throwA), expo: r(EXPO, 2),
-  thrust_static: r(Ts, 2), pitch_speed: r(Vp, 2), rpm_no_load: r(rpmNL, 1), torque_arm: r(torqueArm, 5),
+  thrust_static: r(Ts, 2), pitch_speed: r(Vp, 3), rpm_no_load: r(rpmNL, 1), torque_arm: r(torqueArm, 5),
   current_full: r(Is, 2), jet_kj: '0.80', prop_x: r(propX, 3),
   throttle_rpm: arr(THROTTLE_RPM, 4), thrust_yaw: deg(THRUST_YAW),
   stall_arm_ac: r(armAc, 4), stall_arm_cp: r(armCp, 4), stall_dw: r(stallDw, 4), stall_k: r(stallK, 2),
@@ -636,9 +638,9 @@ const rows = [
   ['inertia Ixx Iyy Izz', `${f(Ixx, 4)} ${f(Iyy, 4)} ${f(Izz, 4)}`],
   ['bench full: rpm, N m, N, A, V; T/W', `${nStatic} ${f(Qs, 3)} ${f(Ts, 2)} ${f(Is, 2)} ${full[1]}; ${f(Ts / W, 3)}`],
   ['APC 18x8E static at the bench rpm: N, N m (bench over APC)', `${f(apcStatic(nStatic), 2)} ${f(apcQStatic(nStatic), 3)} (${f(Ts / apcStatic(nStatic), 3)} ${f(Qs / apcQStatic(nStatic), 3)})`],
-  ['rpm NL (plant shows 0.85 of it), pitch speed, torque arm m', `${f(rpmNL, 1)} ${f(Vp, 2)} ${f(torqueArm, 5)}`],
-  ['APC curve: top speed, its thrust there (bench scaled); zero thrust speed', `${f(vTopApc, 2)} ${f(tTopApc, 2)}; ${f(apcCurve[apcCurve.length - 1][0], 2)}`],
-  ['APC curve against the line at 0, 10, 20, 30 m/s, N', [0, 10, 20, 30].map((v) => `${f(apcAt(v) * Ts / apcCurve[0][1], 1)}/${f(T(v, 1), 1)}`).join(' ')],
+  ['rpm NL (plant shows 0.85 of it), geometric pitch speed, torque arm m', `${f(rpmNL, 1)} ${f(Vp, 2)} ${f(torqueArm, 5)}`],
+  ['APC row at the bench rpm: top speed, its thrust there; zero thrust speed', `${f(vTopApc, 2)} ${f(tTopApc, 2)}; ${f(apcCurve[apcCurve.length - 1][0], 2)}`],
+  ['APC\'s row against the table\'s curve at 0, 10, 20, 30 m/s, N', [0, 10, 20, 30].map((v) => `${f(apcAt(v) * Ts / apcCurve[0][1], 1)}/${f(T(v, 1), 1)}`).join(' ')],
   ['r_cell from the bench sag, prop J', `${f(rCell, 5)} ${f(propJ, 6)}`],
   ['bench rpm fraction at throttle 0.4 .. 1 (the plant\'s is the throttle)', benchRpmFrac.map(([t, n]) => `${t}:${f(n, 3)}`).join(' ')],
   ['slipstream', J(slip, 4)],
