@@ -739,6 +739,12 @@ typedef struct FixedWingParams {
    * engine never stops. Zero is an electric motor's duty, the stick
    * itself, and leaves every other aircraft's arithmetic as it was. */
   double throttle_idle;
+  /* An engine's throttle as its dyno has it, docs/FLIGHTMODEL.md "The
+   * Slick's DA-120": its steady speed over full at the stick's 0, 0.1, ...
+   * 1, straight between, in place of throttle_idle's straight line; the
+   * first is the idle's own. A butterfly opens most of the speed in its
+   * first half. Zero on every table without, which keeps the line. */
+  double throttle_rpm[11];
   /*
    * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
    * Its volume, m^3; the fuel it burns per second at full rpm and at the
