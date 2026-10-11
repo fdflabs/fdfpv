@@ -4836,8 +4836,8 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .cl_beta_wing = -0.0461, /* cl_beta less the fin's, scripts/tigermoth-derive.js */
   .cl_beta_fin = -0.0116, /* scripts/tigermoth-derive.js */
   .cn_beta_fin = 0.1078, /* scripts/tigermoth-derive.js */
-  .ail_keep = { 1.0, 0.78, 0.30, 0.16, 0.13, 0.16, 0.18 },
-  .fin_keep = { 1.0, 0.84, 0.74, 0.60, 0.31, 0.17, 0.10 },
+  .ail_keep = { 1.0, 0.78, 0.30, 0.16, 0.13, 0.16, 0.18 }, /* TR 419 shifted 2.5 deg, docs/FLIGHTMODEL.md */
+  .fin_keep = { 1.0, 0.84, 0.74, 0.60, 0.31, 0.17, 0.10 }, /* NY-1 TR 456 and the wake geometry, docs/FLIGHTMODEL.md */
   .cl_p = -0.8070,        /* strip theory on both wings at their own slopes */
   .cl_da = 0.2696,        /* the bottom wing's ailerons, 0.35 to 0.89 m out */
   .cl_r_per_cl = 0.25,
@@ -4946,7 +4946,7 @@ const FixedWingParams FW_TIGERMOTH1803 = {
    * more on the bottom wing, ESTIMATE for this cell's stagger 0.42 and gap
    * 1.17 (both shrink it, 4 to 6 deg the band;
    * ~/Desktop/fdfpv-loop/research/TIGERMOTH-HIGH-ALPHA.md section 3a). */
-  .bip_dstall = { 0.0, 2.5 * WING_PI / 180.0 },
+  .bip_dstall = { 0.0, 2.5 * WING_PI / 180.0 }, /* NACA TN 310, docs/FLIGHTMODEL.md */
   .bip_m = { 0.0101, 0.2202 },
   .bip_x = { 0.1729, -0.2277 },
   .bip_ki = { 0.02655, 0.02399 },

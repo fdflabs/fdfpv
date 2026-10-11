@@ -1797,15 +1797,22 @@ What a 3D harrier is flown with, from measured data, on every aircraft:
   keep curves (ail_keep, fin_keep, at 0, 4, 10, 15, 20, 25 and 35 deg past
   its stall); without them the defaults above apply. A biplane's ailerons
   judge the stall on the wing they sit on.
-- **OPEN GAP, the F-16 and the Tiger Moth**, known too strong past the
-  stall: both keep their ailerons whole and no sideslip split (the old
-  plant's arithmetic) until each has its own data. The F-16 needs NASA
-  TP-1538's Cn beta and Cl beta to 90 deg and its LEX and vortex lift:
-  with TP-1538 fig. 13's measured ailerons and differential tail alone
-  (0.78, 0.64, 0.54, 0.36 at 4 to 20 deg past) S9 holds 21.6 deg of bank
-  against 15. The Tiger Moth needs a biplane tail in its cell's wake (NACA
-  biplane spin and tail data): with TR 419's ailerons T8b's half throttle
-  stall rolls off at 29 deg/s against 20.
+- **OPEN GAP, the F-16**, known too strong past the stall: it keeps its
+  ailerons whole and no sideslip split (the old plant's arithmetic). NASA
+  TP-1538's full lateral set, turned into the plant's stability axes as
+  ratios to the 20 deg values, departs S9 (bank 73): its Cl beta ratio
+  multiplies the plant's attached Cl beta, already 1.5 times TP-1538's at
+  20 deg. Needs: the attached Cl beta matched to TP-1538 first, and the
+  Freewing's measured inertias; the set is kept as
+  ~/Desktop/fdfpv-loop/research/f16-hi-lat.patch.
+- **The Tiger Moth** (ESTIMATE, ~/Desktop/fdfpv-loop/research/TIGERMOTH-HIGH-ALPHA.md):
+  its sideslip split from tigermoth-derive; the fin kept past the stall
+  from the NY-1's spinning balance (NACA TR 456) and the two wings' wake
+  geometry {1.0, 0.84, 0.74, 0.60, 0.31, 0.17, 0.10}; the bottom wing's
+  ailerons on TR 419's curve shifted 2.5 deg; and the bottom wing
+  stalling 2.5 deg later than potential flow puts it (bip_dstall), from
+  NACA TN 310's 5 to 6 deg against bip_r's 3. T8b is judged on the 1938
+  text's wing drop and recovery, not a held wing.
 - **The CAP 580 and the Slick 580** (their own branches) match the Extra's
   measured layout, a stabiliser on the fuselage at the thrust line with
   the rudder over it and running under the fuselage (CAP580-STAGE1.md,
