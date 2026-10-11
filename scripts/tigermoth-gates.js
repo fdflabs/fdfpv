@@ -55,7 +55,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
-  turnYawLimitDeg, personWingsHold, rollMode, CROSSOVER_RAD_S,
+  turnYawLimitDeg, spinWatch, personWingsHold, rollMode, CROSSOVER_RAD_S,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -219,13 +219,12 @@ check: {
     clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
+    const spin = spinWatch(th.t2_stall.alphaStall, t8.maxBankDeg);
     let o = { s: sim.readState().state };
     /* The wings held by a person, as U11b's (uglystik-gates.js,
      * wingpilot.js personWingsHold): the gain adapted to its roll mode. */
     const person = personWingsHold(mode);
     let stickSq = 0, stickPeak = 0;
-    let vMushSum = 0;
-    let vMushN = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
       const roll = hold ? person(o.s) : 0;
       ailSum += Math.abs(roll);
@@ -241,21 +240,20 @@ check: {
       minPitch = Math.min(minPitch, pitch * DEG);
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
-      if (ms >= t8.seconds * 1000 - 2000) { vMushSum += speed(o.s); vMushN += 1; }
+      spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
     }
-    const yawMax = turnYawLimitDeg(t8.maxBankDeg, vMushSum / vMushN);
     const ailMean = ailSum / (t8.seconds * 1000 / RC_STEP_MS);
-    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t8.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(person.gain).toFixed(2)} per rad)` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
+    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t8.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(person.gain).toFixed(2)} per rad)` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
     if (!hold) {
       gate(id, 'full up held, power off, hands off: recorded', alphaMax > th.t2_stall.alphaStall, said, 'recorded');
       continue;
     }
     gate(id, `full up held, ${duty ? 'half throttle' : 'power off'}, wings held: nose drops, no wing drop`,
-      worstBank <= t8.maxBankDeg && minPitch >= t8.minPitchDeg && worstR <= yawMax && alphaMax > th.t2_stall.alphaStall
+      worstBank <= t8.maxBankDeg && minPitch >= t8.minPitchDeg && spin.ok() && alphaMax > th.t2_stall.alphaStall
         && worstP <= t8.maxRollRateDegS && ailMean <= t8.maxAileron,
       said,
-      `stalled, bank ${t8.maxBankDeg}, pitch over ${t8.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s, roll under ${t8.maxRollRateDegS} deg/s, ailerons under ${t8.maxAileron}`);
+      `stalled, bank ${t8.maxBankDeg}, pitch over ${t8.minPitchDeg}, yaw under the turn its bank allows at its speed while stalled, roll under ${t8.maxRollRateDegS} deg/s, ailerons under ${t8.maxAileron}`);
   }
 
   /* T8b: the power on stall, judged on what the period's text says a

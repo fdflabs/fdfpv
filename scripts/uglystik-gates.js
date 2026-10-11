@@ -55,7 +55,7 @@ import {
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude,
   loopHold,
-  turnYawLimitDeg, personWingsHold, rollMode,
+  turnYawLimitDeg, spinWatch, personWingsHold, rollMode,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -331,6 +331,7 @@ check: {
     let maxPitch = -90;
     let worstHead = 0;
     let worstR = 0;
+    const spin = spinWatch(th.u2_stall.alphaStall, t11.maxBankDeg);
     let alphaMax = 0;
     let worstP = 0;
     let ailSum = 0;
@@ -342,8 +343,6 @@ check: {
      * wing drop (the roll rate and the aileron it takes), not the hold. */
     const hold = personWingsHold(mode);
     let stickSq = 0, stickPeak = 0;
-    let vMushSum = 0;
-    let vMushN = 0;
     for (let ms = 0; ms < t11.seconds * 1000; ms += RC_STEP_MS) {
       const roll = duty ? hold(o.s) : 0;
       ailSum += Math.abs(roll);
@@ -356,16 +355,15 @@ check: {
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstHead = Math.max(worstHead, Math.abs(wrap(edgeHeading(o.s) - psi0)) * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
-      if (ms >= t11.seconds * 1000 - 2000) { vMushSum += speed(o.s); vMushN += 1; }
+      spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
     }
-    const yawMax = turnYawLimitDeg(t11.maxBankDeg, vMushSum / vMushN);
     const ailMean = ailSum / (t11.seconds * 1000 / RC_STEP_MS);
     const held = duty ? worstP <= t11.maxRollRateDegS && ailMean <= t11.maxAileron : true;
     gate(id, `full up held, ${duty ? 'half throttle, wings held' : 'power off'}: nose drops, no wing drop`,
-      worstBank <= t11.maxBankDeg && minPitch >= t11.minPitchDeg && worstR <= yawMax && alphaMax > th.u2_stall.alphaStall && held,
-      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, alpha up to ${(alphaMax * DEG).toFixed(1)}${duty ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t11.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(hold.gain).toFixed(2)} per rad)` : ''}, ${speed(o.s).toFixed(2)} m/s at the end`,
-      `stalled, bank ${t11.maxBankDeg}, pitch over ${t11.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s${duty ? `, roll under ${t11.maxRollRateDegS} deg/s, ailerons under ${t11.maxAileron}` : ''}`);
+      worstBank <= t11.maxBankDeg && minPitch >= t11.minPitchDeg && spin.ok() && alphaMax > th.u2_stall.alphaStall && held,
+      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, alpha up to ${(alphaMax * DEG).toFixed(1)}${duty ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t11.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(hold.gain).toFixed(2)} per rad)` : ''}, ${speed(o.s).toFixed(2)} m/s at the end`,
+      `stalled, bank ${t11.maxBankDeg}, pitch over ${t11.minPitchDeg}, yaw under the turn its bank allows at its speed while stalled${duty ? `, roll under ${t11.maxRollRateDegS} deg/s, ailerons under ${t11.maxAileron}` : ''}`);
   }
 
   const u12 = propTorque(sim);

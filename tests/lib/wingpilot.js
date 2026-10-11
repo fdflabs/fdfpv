@@ -639,6 +639,41 @@ export function turnYawLimitDeg(maxBankDeg, v) {
 }
 
 /*
+ * The same definition taken at every sample, not frozen at the mush's
+ * speed: while the wing is past its stall angle, a yaw rate past the turn
+ * g tan(bank) / V the bank and the instantaneous speed allow is a rotation
+ * no turn makes. The bank is the instantaneous one, but never under the
+ * gate's own bank limit: inside that limit the wings are what the gate
+ * calls held, and a yaw there with the wings near level is a skid or the
+ * Dutch roll's, not the autorotation a spin is (at a level wing the turn
+ * allows no yaw at all, so a 0.3 deg/s skid would read as a spin). The speed is floored at SPIN_V_FLOOR: below it the formula's
+ * limit runs to infinity while the aircraft is not flying at all (the
+ * slowest stall here is the Slow Stick's 4.4 m/s), so a tail slide or a
+ * hover would never be judged; at 2 m/s a 15 deg bank already allows 75
+ * deg/s. add(s, alpha, t) for each sample; .worst is the largest yaw past
+ * its limit, deg/s (negative while every sample is inside), with its time,
+ * bank, speed and yaw.
+ */
+export const SPIN_V_FLOOR = 2;
+export function spinWatch(alphaStall, maxBankDeg) {
+  const w = { worst: -Infinity, at: null };
+  w.add = (s, alpha, t) => {
+    if (!(alpha > alphaStall)) return;
+    const bank = Math.abs(fullBank(s));
+    const v = Math.max(SPIN_V_FLOOR, Math.hypot(s[4], s[5], s[6]));
+    const yaw = Math.abs(s[13]) * 180 / Math.PI;
+    const limit = turnYawLimitDeg(Math.min(89, Math.max(bank * 180 / Math.PI, maxBankDeg)), v);
+    if (yaw - limit > w.worst) {
+      w.worst = yaw - limit;
+      w.at = { t, bank: bank * 180 / Math.PI, v, yaw, limit };
+    }
+  };
+  w.said = () => (w.at === null ? 'never past the stall' : `yaw past the turn its bank allows by ${w.worst.toFixed(1)} deg/s at ${w.at.t.toFixed(2)} s (${w.at.yaw.toFixed(1)} against ${w.at.limit.toFixed(1)}, bank ${w.at.bank.toFixed(1)}, ${w.at.v.toFixed(1)} m/s)`);
+  w.ok = () => w.worst <= 0;
+  return w;
+}
+
+/*
  * A pilot flying a loop straight, as a real one does on the ailerons and
  * the rudder (the take offs' handbook pilot, the air's): the wings held
  * across the loop's plane, the left wing on world +y the whole way round

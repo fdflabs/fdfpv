@@ -54,7 +54,7 @@ import {
   BOMBSHELL_AIRFRAME, fly, wingDebug, wheelLoads, attitude, must, bombshellGroundPrelude, slowstickGroundPrelude, skyPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
   timberFloatRecPrelude, RC_STEP_MS, wingSlip, rudderLevel, takeoffRoll,
-  turnYawLimitDeg,
+  turnYawLimitDeg, spinWatch,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -248,11 +248,10 @@ check: {
     let maxPitch = -90;
     let worstHead = 0;
     let worstR = 0;
+    const spin = spinWatch(th.s2_stall.alphaStall, t9.maxBankDeg);
     let sinkSum = 0;
     let n = 0;
     let o = null;
-    let vMushSum = 0;
-    let vMushN = 0;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) {
       /* Power on, the wings level on the rudder as the handbook flies a power
        * on stall (rudderLevel, FAA-H-8083-3C ch. 5); the swirl and P factor
@@ -264,16 +263,15 @@ check: {
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstHead = Math.max(worstHead, Math.abs(wrap(heading(o.s) - psi0)) * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
-      if (ms >= t9.seconds * 1000 - 2000) { vMushSum += speed(o.s); vMushN += 1; }
+      spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       if (ms >= t9.seconds * 1000 - 2000) { sinkSum += -o.s[6]; n += 1; }
     }
-    const yawMax = turnYawLimitDeg(t9.maxBankDeg, vMushSum / vMushN);
     const sink = sinkSum / n;
     const alpha = wingDebug(sim)[0] * DEG;
     gate(id, `full up held, ${duty ? 'power on' : 'power off'}: a mush, no wing drop`,
-      worstBank <= t9.maxBankDeg && minPitch >= t9.minPitchDeg && worstR <= yawMax && (t9.min === undefined || within(sink, t9)),
-      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, sink ${sink.toFixed(2)} m/s at ${speed(o.s).toFixed(2)} m/s, alpha ${alpha.toFixed(0)}`,
-      `bank ${t9.maxBankDeg}, pitch over ${t9.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s${t9.min === undefined ? '' : `, sink ${band(t9)}`}`);
+      worstBank <= t9.maxBankDeg && minPitch >= t9.minPitchDeg && spin.ok() && (t9.min === undefined || within(sink, t9)),
+      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), heading ${worstHead.toFixed(0)} deg, sink ${sink.toFixed(2)} m/s at ${speed(o.s).toFixed(2)} m/s, alpha ${alpha.toFixed(0)}`,
+      `bank ${t9.maxBankDeg}, pitch over ${t9.minPitchDeg}, yaw under the turn its bank allows at its speed while stalled${t9.min === undefined ? '' : `, sink ${band(t9)}`}`);
   }
 
   /* S10: the phugoid, fly()'s level cruise, a second of a little up stick,
