@@ -44,6 +44,13 @@
  * On SIGTERM (systemctl restart) every socket is closed with 1012, service
  * restart, which the client (src/share/rooms.js) answers by reconnecting.
  *
+ * On SIGUSR2 the process drains instead (drain below, docs/ROOMS-DRAIN.md):
+ * a new room, a quick join and a socket to a code it does not hold are
+ * refused 503 busy, the rooms it holds fly on and take their pilots back,
+ * and it exits once nobody is connected, or at DRAIN_CAP_MS with today's
+ * 1012. That is the old half of a deploy whose new process already serves
+ * the new joins; SIGTERM keeps its meaning.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -65,7 +72,7 @@ import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { deserialize, serialize } from 'node:v8';
 import { WebSocketServer } from 'ws';
-import front, { sessionAccount } from './front.js';
+import front, { cors, sessionAccount } from './front.js';
 import { RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
 import { Health, roomCounters } from './health.js';
@@ -73,7 +80,7 @@ import {
   answer, listener, readRevision, refuseUpgrade, upgradeListener,
 } from '../node-http.js';
 import {
-  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN,
+  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN, normaliseCode,
 } from '../../src/share/roomwire.js';
 import { turnMinter } from './turn.js';
 import en from '../../src/strings/en.js';
@@ -91,6 +98,13 @@ function pickName(pick) {
  * Cloudflare takes up to 32 MiB, which a process capped at 256 MB must not. */
 const MAX_MESSAGE_BYTES = 1024 * 1024;
 const CLOSE_RESTART = 1012;
+
+/* How long a draining process keeps its rooms at most (survey 2026-10-10:
+ * a race or a combat round is minutes, and two versions alive for longer
+ * than this is a deploy nobody can reason about), and how often it looks
+ * whether anybody is still connected. */
+export const DRAIN_CAP_MS = 20 * 60 * 1000;
+const DRAIN_POLL_MS = 250;
 
 /*
  * THE ROUND TRIP A PAGE CANNOT MEASURE. A page learns the room's clock
@@ -565,10 +579,34 @@ export function startRooms({
     room.enqueue(() => room.host.announce());
   }
 
+  /* While draining, whatever would make a room is refused; a room this
+   * process holds has its core in memory (host.js load, run by init and
+   * by the restore above), so a socket to one is a pilot of a live room. */
+  let draining = null;
+  function opensRoom(request) {
+    const url = new URL(request.url);
+    if (url.pathname === '/v2/create') {
+      return request.method === 'POST';
+    }
+    if (url.pathname.startsWith('/v2/public/')) {
+      return true;
+    }
+    const m = url.pathname.match(/^\/v2\/room\/([^/]+)$/);
+    return Boolean(m) && !env.ROOMS.objects.get(`prv:${normaliseCode(m[1])}`)?.host.core;
+  }
+  const served = {
+    fetch(request, fetchEnv) {
+      if (draining && opensRoom(request)) {
+        return Response.json({ error: 'busy' }, { status: 503, headers: cors(request.headers.get('origin')) });
+      }
+      return front.fetch(request, fetchEnv);
+    },
+  };
+
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
-  const server = http.createServer(listener(front, env));
+  const server = http.createServer(listener(served, env));
   server.on('upgrade', upgradeListener(async (req, socket, head) => {
-    const result = await answer(front, req, env);
+    const result = await answer(served, req, env);
     if (!(result instanceof Upgrade)) {
       await refuseUpgrade(socket, result);
       return;
@@ -576,7 +614,14 @@ export function startRooms({
     wss.handleUpgrade(req, socket, head, (ws) => result.accept(ws, socket));
   }));
 
+  /* Once only: a SIGTERM during a drain's own stop must not close the
+   * SQLite file twice. */
+  let stopping = null;
   function stop() {
+    stopping = stopping || closeAll();
+    return stopping;
+  }
+  function closeAll() {
     env.HEALTH.stop();
     for (const ws of wss.clients) {
       ws.close(CLOSE_RESTART, 'restart');
@@ -594,12 +639,37 @@ export function startRooms({
     });
   }
 
+  /* Resolves 'empty' or 'cap' once stop() is done. Empty is no socket
+   * open at all: a pilot who dropped and has not reconnected yet is not
+   * waited for, the new process takes their reconnect (docs/ROOMS-DRAIN.md,
+   * slice 2), so a drain never holds a deploy for RESEAT_MS. */
+  function drain(capMs = DRAIN_CAP_MS) {
+    if (!(Number.isInteger(capMs) && capMs > 0)) {
+      throw new Error(`drain cap ${capMs}: a whole number of ms above 0`);
+    }
+    draining = draining || new Promise((resolve) => {
+      const until = Date.now() + capMs;
+      const poll = setInterval(() => {
+        const why = !wss.clients.size ? 'empty' : (Date.now() >= until ? 'cap' : null);
+        if (why) {
+          clearInterval(poll);
+          stop().then(() => resolve(why));
+        }
+      }, DRAIN_POLL_MS);
+    });
+    return draining;
+  }
+
   return new Promise((resolve) => {
-    server.listen(port, host, () => resolve({ server, env, stop, port: server.address().port }));
+    server.listen(port, host, () => resolve({ server, env, stop, drain, port: server.address().port }));
   });
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const drainCap = Number(process.env.DRAIN_CAP_MS || DRAIN_CAP_MS);
+  if (!(Number.isInteger(drainCap) && drainCap > 0)) {
+    throw new Error(`DRAIN_CAP_MS ${process.env.DRAIN_CAP_MS}: a whole number of ms above 0`);
+  }
   const running = await startRooms({
     db: process.env.ROOMS_DB || 'rooms.db',
     port: Number(process.env.PORT || 8797),
@@ -611,10 +681,19 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     turnUrls: process.env.TURN_URLS || '',
     devMissions: process.env.DEV_MISSIONS === 'on',
     devAccounts: process.env.DEV_ACCOUNTS || '',
+    /* REVISION_FILE: scripts/rooms-drain-check.js runs two versions from
+     * one tree; the VM reads the REVISION beside the code. */
+    ...(process.env.REVISION_FILE ? { revision: readRevision(pathToFileURL(process.env.REVISION_FILE)) } : {}),
   });
   console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}${running.env.TURN ? '' : ', no TURN relay: voice is peer to peer through STUN alone'}${running.env.DEV_MISSIONS ? ', DEV_MISSIONS: missions in development start too' : ''}`);
   process.on('SIGTERM', async () => {
     await running.stop();
+    process.exit(0);
+  });
+  process.on('SIGUSR2', async () => {
+    console.log(`draining: no new rooms, exit when nobody is connected or in ${drainCap} ms`);
+    const why = await running.drain(drainCap);
+    console.log(`drained (${why})`);
     process.exit(0);
   });
 }
