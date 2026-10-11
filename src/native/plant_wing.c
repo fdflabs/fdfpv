@@ -385,6 +385,22 @@ static double add_term(double sum, double term) {
 }
 
 /*
+ * A plain flap's profile drag on its section, per unit of its chord
+ * fraction: SURF_DRAG_A |delta| + SURF_DRAG_B delta^2, delta in rad.
+ * FITTED by least squares to Roskam, Airplane Design VI, fig. 4.44 (plain
+ * flaps, cf/c 0.1 to 0.3 at 15 and 60 deg, as FAST-GA digitised it,
+ * delta_drag_plain_flap.csv): within 13 percent of every point, and taken
+ * on past cf/c 0.3, where the figure stops, on the same form.
+ * docs/SURFACES-STAGE1.md.
+ */
+#define SURF_DRAG_A 0.2475 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
+#define SURF_DRAG_B 0.3993 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
+static double surf_drag(double delta) {
+  const double d = sim_fabs(delta);
+  return add_term(SURF_DRAG_A * d, SURF_DRAG_B * d * d);
+}
+
+/*
  * THE PACK AND THE TANK, docs/POWER-STAGE1.md.
  *
  * LIPO_OCV: a LiPo cell's open circuit voltage at rest against its state of
@@ -1875,6 +1891,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double re_now = V * fw->chord * PLANT.rho / AIR_MU;
     const double re_d = re_now > 0.5 * fw->cd0_re ? re_now : 0.5 * fw->cd0_re;
     cd0 *= sim_sqrt(fw->cd0_re / re_d);
+  }
+  /* A bigger surface's drag, deflected (FixedWingParams.surf_cd): a
+   * pressure drag, so after the skin's Reynolds number scaling above. */
+  if (fw->surf_cd[0] > 0.0 || fw->surf_cd[1] > 0.0 || fw->surf_cd[2] > 0.0) {
+    cd0 += add_term(add_term(fw->surf_cd[0] * surf_drag(delta_a), fw->surf_cd[1] * surf_drag(delta_e)),
+                    fw->surf_cd[2] * surf_drag(delta_r));
   }
   /* Viterna's drag past the stall, CDmax sin^2 + B2 cos, B2 taking the
    * drag at the stall angle, cd0 + k CLmax^2, on continuously (NASA

@@ -1959,6 +1959,7 @@ static int g_power_on = 0;
 static int g_motors_on = 0;
 static int g_prop_pack_on = 0;
 static int g_tune_on = 0;
+static int g_tier_on = 0;
 static int g_addons_on = 0;
 static void plant_seat(void);
 
@@ -1971,6 +1972,7 @@ void plant_set_airframe(int id) {
   g_motors_on = 0;
   g_prop_pack_on = 0;
   g_tune_on = 0;
+  g_tier_on = 0;
   g_addons_on = 0;
   PLANT_P = &PLANT_TABLE[id];
 }
@@ -2260,6 +2262,78 @@ void plant_tune_read(double *out) {
   out[SIM_TUNE_ELEV_FLAP] = fw ? fw->elev_flap : 0.0;
 }
 
+/*
+ * THE SURFACE TIERS, sim_wing_set_tiers in sim_abi.h: a copy of the
+ * wing table with its control terms scaled, owned by this file like the
+ * tuning's. A tier moves a hinge line on the same wing, stabiliser and
+ * fin, so only the control terms move; the slipstream's share of each
+ * surface reads the same terms (plant_wing.c) and scales with them. The
+ * strips' tau is the aileron's share of each strip's zero lift angle, so
+ * a bigger aileron also takes its strip to the stall sooner.
+ */
+static PlantParams g_plant_tier;
+static FixedWingParams g_fw_tier;
+static double g_tier[SIM_TIER_DOUBLES];
+
+static const PlantParams *plant_tiers_over(const PlantParams *base) {
+  const double ka = g_tier[SIM_TIER_K_A], ke = g_tier[SIM_TIER_K_E], kr = g_tier[SIM_TIER_K_R];
+  g_fw_tier = *base->fw;
+  g_fw_tier.cl_da = base->fw->cl_da * ka;
+  g_fw_tier.cn_da_per_cl = base->fw->cn_da_per_cl * ka;
+  for (int i = 0; i < 4; i += 1) {
+    g_fw_tier.strip_tau[i] = base->fw->strip_tau[i] * ka;
+  }
+  g_fw_tier.cm_de = base->fw->cm_de * ke;
+  g_fw_tier.cl_de = base->fw->cl_de * ke;
+  g_fw_tier.cn_dr = base->fw->cn_dr * kr;
+  g_fw_tier.cy_dr = base->fw->cy_dr * kr;
+  g_fw_tier.cl_dr = base->fw->cl_dr * kr;
+  g_fw_tier.surf_cd[0] = g_tier[SIM_TIER_CD_A];
+  g_fw_tier.surf_cd[1] = g_tier[SIM_TIER_CD_E];
+  g_fw_tier.surf_cd[2] = g_tier[SIM_TIER_CD_R];
+  g_plant_tier = *base;
+  g_plant_tier.fw = &g_fw_tier;
+  return &g_plant_tier;
+}
+
+int plant_set_tiers(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0 || base->fw->mix == FW_MIX_ELEVON) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = SIM_TIER_K_A; i <= SIM_TIER_K_R; i += 1) {
+    if (!in_range(in[i], 0.25, 4.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  for (int i = SIM_TIER_CD_A; i <= SIM_TIER_CD_R; i += 1) {
+    if (!in_range(in[i], 0.0, 0.5)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  /* A rudder mix has no ailerons to make bigger. */
+  if (base->fw->mix == FW_MIX_RUDDER && (in[SIM_TIER_K_A] != 1.0 || in[SIM_TIER_CD_A] != 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < SIM_TIER_DOUBLES; i += 1) {
+    g_tier[i] = in[i];
+  }
+  g_tier_on = 1;
+  plant_seat();
+  return SIM_OK;
+}
+
+void plant_tiers_clear(void) {
+  g_tier_on = 0;
+  plant_seat();
+}
+
+void plant_tiers_read(double *out) {
+  for (int i = 0; i < SIM_TIER_DOUBLES; i += 1) {
+    out[i] = g_tier_on ? g_tier[i] : (i <= SIM_TIER_K_R ? 1.0 : 0.0);
+  }
+}
+
 int plant_tune_on(void) {
   return g_tune_on;
 }
@@ -2279,10 +2353,13 @@ static double g_addons_in[SIM_ADDON_DOUBLES];
  * zero unless the host hands it over after sim_set_addons. */
 static double g_addons_own_i[SIM_ADDON_INERTIA_DOUBLES];
 
-/* What the add-ons are laid over: the tuning over the power option over
- * the table, as far as each is seated. */
+/* What the add-ons are laid over: the tuning over the surface tiers over
+ * the power option over the table, as far as each is seated. */
 static const PlantParams *plant_under_addons(void) {
   const PlantParams *base = g_power_on ? &g_plant_live : &PLANT_TABLE[g_airframe];
+  if (g_tier_on) {
+    base = plant_tiers_over(base);
+  }
   return g_tune_on ? plant_tune_over(base) : base;
 }
 
