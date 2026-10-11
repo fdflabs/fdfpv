@@ -10,10 +10,9 @@
  * weight, opens: hanging on the prop, straight up at full throttle, the
  * torque roll and the ailerons in the wash beating it, full elevator and
  * rudder at zero airspeed (and nothing with the prop stopped), the
- * harrier and the knife edge. C6b sets the plant's hover stick beside the
- * bench table's: the bench lifts the weight at a lower throttle than the
- * plant's steady rpm law gives, which waits on the flight model lane and
- * is reported, not gated. C13 and C14 are its taildragger gear. C15 holds
+ * harrier and the knife edge. C6 holds the hover stick to the bench
+ * table's own, 0.535: the plant turns the stick into rpm by the bench's
+ * measured curve (throttle_rpm). C13 and C14 are its taildragger gear. C15 holds
  * the Extra's, the Night Timber's and the Hercules' recorded hashes where
  * they were before this aircraft (extra:gates E15 holds the rest), C16
  * flies the CAP's recording in Node and in headless Chrome and holds the
@@ -198,10 +197,8 @@ check: {
     unwatch();
     const mean = sum / n;
     const drift = zMax - zMin;
-    gate('C6', 'hangs on the prop at the hover throttle', within(mean, t6) && drift <= t6.maxHeightDrift,
+    gate('C6', 'hangs on the prop at the bench\'s hover throttle', within(mean, t6) && drift <= t6.maxHeightDrift,
       `stick ${mean.toFixed(4)}, height within ${drift.toFixed(2)} m, nose ${(attitude(s).pitch * DEG).toFixed(1)} deg`, `${band(t6)}, within ${t6.maxHeightDrift} m`);
-    waiting('C6b', 'the bench table lifts the weight at a lower throttle', `plant ${mean.toFixed(3)}, bench ${t6.bench.toFixed(3)}`,
-      'steady rpm against the duty under load: the flight model lane (docs/CAP580-STAGE1.md)');
   }
 
   /* C7: straight up at full throttle from the hover: the climb speed after

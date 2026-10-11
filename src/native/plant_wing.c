@@ -5194,6 +5194,13 @@ const FixedWingParams FW_CAP1702 = {
   .rpm_no_load = 10160.0, /* npm run cap580:derive: shows the bench's 8,636 rpm at full */
   .torque_arm = 0.02224,  /* npm run cap580:derive: the bench's 2.097 N m at 94.3 N */
   .thrust_z = 0.0,        /* docs/CAP580-STAGE1.md: the thrust line through the CG */
+  /* The 67 in line's 2.5 deg of right thrust (its build guide, air-rc),
+   * docs/CAP580-STAGE1.md, npm run cap580:derive. */
+  .thrust_yaw = 2.50 * WING_PI / 180.0,
+  /* T-Motor's measured rpm over full at the stick's 0, 0.1, ... 1 (the
+   * bench's rows from 0.4; FITTED under it, straight from the ESC's stop),
+   * npm run cap580:derive. */
+  .throttle_rpm = { 0.0000, 0.1246, 0.2491, 0.3737, 0.4983, 0.6000, 0.6997, 0.7943, 0.8839, 0.9627, 1.0000 },
   .pfactor = 1.89,        /* FITTED: the Cub's blade element figure, as the Extra's; none measured for an 18 in prop */
   .current_full = 111.11, /* A, T-Motor's bench table at 100 percent; npm run cap580:derive */
   /* Stabilised: the Extra's limits and loops (docs/EXTRA-STAGE1.md), its
@@ -5206,8 +5213,8 @@ const FixedWingParams FW_CAP1702 = {
   .stab_roll_kd = 0.06,   /* FITTED: the Extra's */
   .stab_pitch_kp = 2.0,   /* FITTED: the Extra's */
   .stab_pitch_kd = 0.2,   /* FITTED: the Extra's */
-  .stab_pitch_down = 7.74 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.555, /* the stick that flies it level, elevator neutral, npm run stab:glide */
+  .stab_pitch_down = 13.10 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.419, /* the stick that flies it level, elevator neutral, npm run stab:glide */
   /* Acro: the Extra's loops (docs/EXTRA-STAGE1.md), FITTED. */
   .acro_roll_rate = 360.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
@@ -5227,9 +5234,9 @@ const FixedWingParams FW_CAP1702 = {
   .jet_kj = 0.80,
   .prop_x = 0.560, /* npm run cap580:derive */
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
-  .as3x_k = { 0.0366, 0.1998, 0.555 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.6533, 3.5664, 9.9067 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.835, -2.101, -1.966 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0366, 0.1997, 0.5549 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.6533, 3.5646, 9.9049 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.746, -2.01, -0.735 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */

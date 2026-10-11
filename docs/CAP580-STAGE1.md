@@ -180,20 +180,19 @@ Bands are never widened to pass.
 
 | Gate | What | Derived | Band | Plant |
 | --- | --- | --- | --- | --- |
-| C1 | level at 75 percent | 24.68 m/s | 21.72 to 27.64 | 24.47 |
+| C1 | level at 75 percent stick | 27.69 m/s (the prop at the curve's 0.839) | 24.37 to 31.01 | 27.31 |
 | C2 | stall, power off | 10.62 m/s (CL max 0.928 at 2.5e5) | 9.99 to 12.10 | 11.10 |
 | C3 | glide ratio at 15 m/s | 7.43 | 6.54 to 8.32 | 7.41 |
-| C4 | top speed | 33.09 m/s | 29.78 to 36.40 | 32.13 |
+| C4 | top speed | 33.09 m/s | 29.78 to 36.39 | 32.18 |
 | C5 | roll, full aileron, pb/2V | 0.440 (533 deg/s at 18 m/s) | 0.330 to 0.550 | 0.439 (598 at 20.2) |
-| C6 | hover throttle, height held | sqrt(W / T_s) = 0.6144 | 0.584 to 0.645 | 0.6155, height within 0.00 m |
-| C6b | the bench's hover throttle | 0.535 | WAIT, not gated | the plant 0.616 |
-| C7 | vertical climb, full throttle | 21.97 m/s | 19.77 to 24.17 | 21.44 |
-| C8 | torque roll, ailerons let go | 194 deg/s left | 146 to 243 | 213 left |
-| C9 | full right aileron, hanging | 169 deg/s right | 101 to 237 | 185 right |
+| C6 | hover, height held | the bench's 0.535; the curve turns sqrt(W / T_s) at 0.514 | 0.509 to 0.562 | 0.5157, height within 0.01 m |
+| C7 | vertical climb, full throttle | 21.97 m/s | 19.78 to 24.17 | 21.41 |
+| C8 | torque roll, ailerons let go | 194 deg/s left | 146 to 242 | 200 left |
+| C9 | full right aileron, hanging | 169 deg/s right | 102 to 237 | 208 right |
 | C10 | full elevator at zero airspeed | 27.47 rad/s² | 20.6 to 34.3 | 26.7; prop stopped 0.00 |
 | C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.00 |
-| C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.597 throttle (the finite wing's broadside force, below) | 7.84 to 11.75, 0.508 to 0.686 | 9.45, 0.537, elevator 0.85 |
-| C12 | knife edge at 20 m/s | 32.3 deg, 0.757 throttle, rudder 84 percent | 24.2 to 40.3, 0.643 to 0.871 | 30.4, 0.761, rudder 0.88 |
+| C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.497 stick (the finite wing's broadside force, below) | 7.84 to 11.75, 0.423 to 0.571 | 9.45, 0.438, elevator 0.85 |
+| C12 | knife edge at 20 m/s | 32.3 deg, 0.661 stick, rudder 84 percent | 24.2 to 40.3, 0.562 to 0.760 | 31.3, 0.667, rudder 0.90 |
 | C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.5 |
 | C14 | take off roll | 4.2 m | 2.54 to 6.75 | 6.09 |
 | C15 | the Extra, Night Timber, Hercules unmoved | batch's hashes | identical | identical |
@@ -212,15 +211,14 @@ Notes on the derivations:
   derives 178 and its plant reads 218 for that reason); this one does not.
   The plant still reads 10 percent over (213), as the Extra's does on the
   same arithmetic (218 against 198 so derived).
-- **C6 and C6b, the hover.** The plant's steady prop speed is the throttle
-  (plant_wing.c prop_spool: n = d at rest), so its hover stick is sqrt(W /
-  T_s), 0.614, and C6 gates that within the Extra's 5 percent. The bench
-  says otherwise: at 50 percent throttle the AM670 turns 0.60 of its full
-  rpm and at 70 percent 0.79, so it lifts the 3.63 kg at **0.535**. The
-  plant's hover stick is 15 percent high against a measurement. That is
-  the plant's throttle law, shared by every electric aircraft, so it is
-  listed for the flight model lane (below) and printed by the gate as a
-  WAIT, not counted as a pass.
+- **C6, the hover.** The prop speed that holds the weight is sqrt(W /
+  T_s) of full, 0.614; the stick that turns it there is where that speed
+  falls on the bench's measured curve (`throttle_rpm`), 0.514, and the
+  plant hangs at 0.516. The gate holds it to the measurement, the bench's
+  0.535 (between its 50 and 55 percent rows), 5 percent either way, the
+  Extra's E6 width. Until the propulsion lane's electric law landed the
+  plant's steady speed was the stick itself, its hover 0.614, and this
+  row was printed as a WAIT, 15 percent off the bench.
 - **C12 and C17, the knife edge and the judge.** At 20 m/s the CAP holds
   its knife edge at 30 deg of sideslip. The judge
   (src/game/figuredetect.js) names a knife edge by the wing in the vertical
@@ -246,15 +244,16 @@ it, rounded inward, so the next plant change is re-derived the same way.
 
 Not built here: this lane adds rows only, no shared plant code.
 
-1. **The throttle's steady rpm under load.** The bench's rpm over full at
-   a throttle is 0.50 at 40 percent, 0.60 at 50, 0.70 at 60, 0.79 at 70,
-   0.88 at 80; the plant's is the throttle. The hover stick is 0.614 on the
-   plant and 0.535 on the bench (C6b). Drela's motor model the plant
-   cites gives n above d at part throttle; the plant's drive term holds n
-   = d. This is the first aircraft with a measured part throttle table.
-2. **Right thrust.** The CAP's motor points 2.5 deg right (the build guide,
-   air-rc); the plant has no thrust line angle, so the take off swing and
-   the hover's yaw are without it.
+1. **Done, 2026-10-11: the throttle's steady rpm under load.** The plant
+   now turns an electric prop by Drela's law, and a table with its motor's
+   measured curve sets `throttle_rpm` (the propulsion lane). The CAP's is
+   T-Motor's bench, rpm over full 0.498, 0.600, 0.700, 0.794, 0.884, 0.963
+   and 1 at 40 to 100 percent (under 40 FITTED, straight from the ESC's
+   stop). C6 is now gated on the measurement: the bench hovers it at
+   0.535, the plant at 0.516, inside the Extra's 5 percent. The rest of
+   the gap is the bench's thrust not going as the square of its rpm.
+2. **Done, 2026-10-11: right thrust.** `thrust_yaw` is 2.5 deg, the 67 in
+   line's (the build guide, air-rc).
 3. **Aileron differential.** 38 up and 34 down; the plant's aileron is one
    throw each way.
 4. **Per axis expo.** The sheet's three ranges; the plant has one figure.
