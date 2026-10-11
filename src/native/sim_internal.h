@@ -893,7 +893,7 @@ typedef struct FixedWingParams {
    * ratio that paper fits (its Table 16); pitch_speed is the fan's zero
    * thrust speed at full throttle. Its current goes with the cube of the
    * speed and not with the thrust: a fan's power hardly falls with
-   * airspeed (the same paper, Fig. 5f), where a prop's does (CP_OF_CT).
+   * airspeed (the same paper, Fig. 5f), where a prop's does (torque_curve).
    * esc_start: the ESC's startup ramp, s from a stopped motor to full,
    * which holds the command back as it rises from a closed throttle; zero
    * is none.

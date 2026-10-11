@@ -1257,14 +1257,13 @@ momentum into the airframe.
   airframe's; a braked one gives it back. A motor that is not driving
   (zero duty on a free wheeling ESC, folded, cut, flat, dead) puts nothing
   on the airframe.
-- The prop's torque is APC's at the step's thrust share, cp_of_ct (the
-  CP_OF_CT table the pack's current already used, APC's 11 x 7E): at half
-  the thrust 0.90 of the static torque, at the pitch speed 0.19, where the
-  thrust law gave 0.5 and 0. Past APC's last row it goes on straight
-  (CP_OF_CT_TAIL 1.676, the 11 x 7E's last three rows; `npm run cp:tail`
-  prints it and seven more props, 1.38 to 1.83), to zero at a thrust share
-  of -0.112, and below it the air drives the prop. FITTED: the straight
-  line past the data's end.
+- The prop's torque is APC's at the step's advance ratio: the table's
+  torque_curve since "The prop's curves" below (it was cp_of_ct, one
+  11 x 7E table through the thrust share). Past APC's last row it goes on
+  straight with the thrust at the last three rows' slope (the cp:tail
+  method; `npm run cp:tail` prints it for eight props, 1.38 to 1.83), to
+  zero past the zero thrust, and beyond it the air drives the prop.
+  FITTED: the straight line past the data's end.
 - The swirl is the prop's torque, the angular momentum the wash carries.
 - The gyroscope takes the rotor's speed, so a cut motor's coasting prop
   still precesses.
@@ -1781,7 +1780,7 @@ column on, then at the closed throttle's slope (FITTED).
 
 **The rotor floats.** Where a table has the map its engine drives the
 rotor by it at the speed it turns, against the air's own torque on the
-prop (cp_of_ct, APC's), not the static load the glow method holds every
+prop (torque_curve, APC's), not the static load the glow method holds every
 rotor to. A big prop's tips near the speed of sound add their own load,
 from APC's 22x8 rows (Cp 0.0182 to 0.0313 from tip Mach 0.52 to 0.95,
 CP_MACH), taken over the measured full point's. Every other table is
@@ -1820,3 +1819,51 @@ against 3, the idle prop turning 2,885 rpm, not 1,300, so more
 precession), and stab:chop's glide (1.344 m/s sink at 25.0) were derived
 on the static load and the held idle; they are the Slick lane's to
 re-derive on this map.
+
+## The prop's curves
+
+The plant's thrust fell straight from static to nothing at the pitch
+speed, T = T_s n^2 (1 - u / (V_p n)), and the torque followed one table
+(APC's 11 x 7E) through the thrust's share. APC's performance files say
+otherwise for every prop the fleet flies: the thrust holds up and runs on
+past the geometric pitch, to zero at an advance ratio 1.15 to 1.5 times
+the pitch over diameter (the 22 x 8, 0.55 at a pitch over diameter of
+0.364). The line under-read the thrust at cruise by a third and over-read
+it near zero thrust (the Slick's top speed, "The engine at a closed
+throttle").
+
+**What the plant does now.** Each table carries its prop's thrust and
+shaft torque over their static values, axial_curve and torque_curve, at
+mu = u / (V_p n), mu 0 to 2 by tenths, straight between and on along the
+last two (plant_wing.c prop_curve). V_p, pitch_speed, is the prop's own
+geometric pitch at its full rpm, the axis the quads' axial_curve and the
+hangar's parts already use, so a swapped prop flies the stock prop's shape
+on its own pitch speed. `npm run prop:curves -- wings` prints every
+table's curves from APC's files (fetched, not copied), read at J = mu times
+the file's pitch over diameter, at the APC speed row whose tips run as
+fast as the flown prop's at full rpm; where APC makes no such prop the
+nearest pitch over diameter stands in, and the WINGS list names it (the
+Slick's 28 x 10 is the 22 x 8 at its tips' speed; the Bombshell's Cox 7 x
+3.5 is half APC's 7 x 3 and half its 7 x 4). Past APC's last row, FITTED:
+the thrust goes on at its last three rows' slope, the torque with the
+thrust at theirs. The F-16's fan and the jet keep their sourced straight
+lines, written out as curves.
+
+**Measured.** Full throttle level, the plant's thrust against the curve
+at the speed flown: within 1.5 percent on every table. The CAP's pitch
+speed had been fitted through APC's 18 x 8E top point; on its own curve,
+unfitted, it lands on APC's top speed, 32.21 against 32.18 m/s. Top speeds
+on the electric and glow planes rose 18 to 37 percent (Cub 17.9 to 21.8,
+Skyhunter 23.2 to 28.9, Zagi 28.9 to 35.6 m/s); the Slick, at its 6,900 rpm
+ceiling, fell from 44.75 to 41.66 (APC's balance there, 42.40).
+
+**What moved with it.** Every derivation that predicted the plant's speeds
+reads the plant's curve through scripts/lib/propcurve.js, and every gate
+band derived from them was re-derived in its own proportion. The tables'
+own derived values moved with the derivations: the Stabilised trims
+(stab:glide), the AS3X gains (as3x:derive), the 3/4 throttle trims of
+the Kadet, P-51, Ugly Stik and Tiger Moth (cm_0), and the Bramor's static
+thrust, the thrust that gives C-Astral's 5 m/s climb, 22.6 N on its 12 x
+8E curve (APC's static row at its rpm gives about 25 N; 35 was more than
+the prop makes).
+

@@ -107,7 +107,7 @@ now has each as a general propulsor any airframe can use, in C, in
    m/s (0.48), and what is left of the thrust against the jet's low drag is
    what the pilot has to plan with.
 3. **The power.** A prop's power falls as its thrust does (the plant's
-   CP_OF_CT, from APC's data); a fan's hardly does ("a small reduction in
+   torque_curve, from APC's data); a fan's hardly does ("a small reduction in
    power required at a higher q", the same paper, Fig. 5f), so its current
    is the static current times the speed cubed at any airspeed.
 

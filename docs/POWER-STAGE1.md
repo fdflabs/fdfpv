@@ -57,12 +57,10 @@ pack empties the thrust (speed squared) and the pitch speed (speed) fall.
 
 **Current.** The table's full throttle current is the static current. At a
 duty the motor's current goes as the speed squared and the pack's, through
-the ESC's switching, as the cube. In flight the prop unloads: the plant's
-thrust law has the thrust coefficient fall as 1 - V / pitch speed, and APC's
-published data give how the power coefficient goes with it (`CP_OF_CT`,
-from the APC 11 x 7E at 9,000 rpm, https://www.apcprop.com/files/PER3_11x7E.dat;
-the 8 x 4E, 12 x 6 and 13 x 8E agree within a few percent): flat until the
-thrust has fallen by a third, a fifth of static where it is gone. The same
+the ESC's switching, as the cube. In flight the prop unloads as its own
+APC curve says, the table's torque_curve at the advance ratio
+(docs/FLIGHTMODEL.md "The prop's curves"; until 2026-10-11 one APC 11 x 7E
+table, CP_OF_CT, through the straight line thrust law's share). The same
 power off a sagged pack is more current. An earlier draft used momentum
 theory, which leaves out the blades' own drag and put full throttle current
 in flight at half the static; the APC shape is measured.
