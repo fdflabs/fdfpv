@@ -482,6 +482,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['Clβ (the low wing\'s), Clp, Clδa', `${f(Clb, 4)} (${f(ClbLow, 4)}) ${f(Clp)} ${f(Clda, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr; tau e, r, a', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}; ${f(tauE)} ${f(tauR)} ${f(tauAil)}`],
   ['throws a, e, r deg; flaps half, full deg', `${f(throwA * DEG, 4)} ${f(throwE * DEG, 4)} ${f(throwR * DEG, 4)}; ${f(flapHalf * DEG, 2)} ${f(flapFull * DEG, 2)}`],
   ['   in rad a, e, r, flaps half, full', `${throwA.toPrecision(17)} ${throwE.toPrecision(17)} ${throwR.toPrecision(17)} ${flapHalf.toPrecision(17)} ${flapFull.toPrecision(17)}`],

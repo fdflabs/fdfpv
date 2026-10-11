@@ -618,6 +618,7 @@ const rows = [
   ['Cmδe, CLδe', `${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['Clβ: dihedral, fin, shoulder wing, total', `${f(ClbDihedral, 4)} ${f(ClbFin, 4)} ${f(ClbHigh, 4)} ${f(Clb, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Clp, Clδa', `${f(Clp, 4)} ${f(ClDa, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['throws deg: aileron up, down, mean; elevator; rudder', `${f(throwAup * DEG, 4)} ${f(throwAdown * DEG, 4)} ${f(throwA * DEG, 4)}; ${f(throwE * DEG, 4)}; ${f(throwR * DEG, 4)}`],

@@ -257,43 +257,71 @@ check: {
    * the throttle holding the height, the wings on the ailerons and the
    * heading on the rudder, each with an integral as a pilot's hands hold
    * a trim, for 20 s. The wing rocks as it goes into the stall, which is
-   * what a harrier does; the mean of the last 5 s. */
+   * what a harrier does. Speed, throttle and elevator are the last 5 s's
+   * means; the rock is judged over the last 10 s: its worst bank, and its
+   * spread and period from the bank's mean are reported. The period is not
+   * judged here: the video's 1.5 s is the Night Timber's, and the rock is
+   * a limit cycle through nonlinear terms (the separated wing's dead zone,
+   * the ailerons and fin past the stall) closed through the pilot, with no
+   * clean derived period for the Extra; a fitted linearisation would
+   * re-measure the plant against itself. Flown in
+   * Manual, and again in AS3X, the receiver the Extra ships with, which
+   * must damp the rock: its bank's spread under Manual's. */
   {
     const t11 = th.e11_harrier;
-    const r = fly(sim, { duty: 0.5, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
-    clockMs = r.endMs;
-    const target = t11.alphaDeg / DEG;
-    const thr = heightHold(0.55);
-    let iP = 0;
-    let iB = 0;
-    let s = sim.readState().state;
-    const psi0 = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
-    let sv = 0, sd = 0, se = 0, n = 0, worstBank = 0, zMin = Infinity, zMax = -Infinity, sa = 0;
-    for (let ms = 0; ms < 20000; ms += RC_STEP_MS) {
-      const alpha = wingDebug(sim)[0];
-      const bank = fullBank(s);
-      const psi = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
-      const at = Math.min(target, 0.1 + target * ms / 5000);
-      iP = Math.max(-1, Math.min(1, iP + 1.5 * (at - alpha) * RC_STEP_MS / 1000));
-      const pitchStick = clamp(1.5 * (at - alpha) + 0.15 * s[12] + iP);
-      iB = Math.max(-0.5, Math.min(0.5, iB - 1.0 * bank * RC_STEP_MS / 1000));
-      const roll = clamp(-0.6 * bank - 0.06 * s[11] + iB);
-      let dpsi = psi - psi0;
-      while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
-      while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
-      const yaw = clamp(1.0 * dpsi + 0.2 * s[13]);
-      const t = thr(s);
-      s = step(sim, [roll, pitchStick, yaw, t]);
-      if (ms >= 15000) {
-        sv += speed(s); sd += t; se += pitchStick; n += 1; sa += wingDebug(sim)[0];
-        worstBank = Math.max(worstBank, Math.abs(bank * DEG));
-        zMin = Math.min(zMin, s[3]); zMax = Math.max(zMax, s[3]);
+    const harrier = (mode) => {
+      must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
+      const r = fly(sim, { duty: 0.5, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
+      clockMs = r.endMs;
+      const target = t11.alphaDeg / DEG;
+      const thr = heightHold(0.55);
+      let iP = 0;
+      let iB = 0;
+      let s = sim.readState().state;
+      const psi0 = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+      let sv = 0, sd = 0, se = 0, n = 0, worstBank = 0, zMin = Infinity, zMax = -Infinity, sa = 0;
+      const banks = [];
+      for (let ms = 0; ms < 20000; ms += RC_STEP_MS) {
+        const alpha = wingDebug(sim)[0];
+        const bank = fullBank(s);
+        const psi = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+        const at = Math.min(target, 0.1 + target * ms / 5000);
+        iP = Math.max(-1, Math.min(1, iP + 1.5 * (at - alpha) * RC_STEP_MS / 1000));
+        const pitchStick = clamp(1.5 * (at - alpha) + 0.15 * s[12] + iP);
+        iB = Math.max(-0.5, Math.min(0.5, iB - 1.0 * bank * RC_STEP_MS / 1000));
+        const roll = clamp(-0.6 * bank - 0.06 * s[11] + iB);
+        let dpsi = psi - psi0;
+        while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
+        while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
+        const yaw = clamp(1.0 * dpsi + 0.2 * s[13]);
+        const t = thr(s);
+        s = step(sim, [roll, pitchStick, yaw, t]);
+        if (ms >= 10000) {
+          banks.push(bank * DEG);
+          worstBank = Math.max(worstBank, Math.abs(bank * DEG));
+          zMin = Math.min(zMin, s[3]); zMax = Math.max(zMax, s[3]);
+        }
+        if (ms >= 15000) {
+          sv += speed(s); sd += t; se += pitchStick; n += 1; sa += wingDebug(sim)[0];
+        }
       }
-    }
-    const v = sv / n, d = sd / n, e = se / n, a = sa / n * DEG;
-    gate('E11', 'harrier: level at 40 deg of alpha', v >= t11.vMin && v <= t11.vMax && d >= t11.dutyMin && d <= t11.dutyMax && e < 1 && worstBank <= t11.maxBankDeg && zMax - zMin <= t11.maxHeightDrift,
-      `${v.toFixed(2)} m/s at throttle ${d.toFixed(3)}, alpha ${a.toFixed(1)} deg, elevator stick ${e.toFixed(2)}, bank under ${worstBank.toFixed(1)}, height within ${(zMax - zMin).toFixed(2)} m`,
+      const mean = banks.reduce((x, y) => x + y, 0) / banks.length;
+      const spread = Math.sqrt(banks.reduce((x, y) => x + (y - mean) ** 2, 0) / banks.length);
+      let cross = 0;
+      for (let i = 1; i < banks.length; i += 1) if ((banks[i - 1] - mean) * (banks[i] - mean) < 0) cross += 1;
+      must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
+      return { v: sv / n, d: sd / n, e: se / n, a: sa / n * DEG, worstBank, spread, period: cross > 1 ? (2 * 10) / cross : null, drift: zMax - zMin };
+    };
+    const m = harrier(0);
+    const g = harrier(3);
+    gate('E11', 'harrier: level at 40 deg of alpha, its rock within the video\'s',
+      m.v >= t11.vMin && m.v <= t11.vMax && m.d >= t11.dutyMin && m.d <= t11.dutyMax && m.e < 1 && m.worstBank <= t11.maxBankDeg
+        && m.drift <= t11.maxHeightDrift,
+      `${m.v.toFixed(2)} m/s at throttle ${m.d.toFixed(3)}, alpha ${m.a.toFixed(1)} deg, elevator stick ${m.e.toFixed(2)}, bank under ${m.worstBank.toFixed(1)} (sd ${m.spread.toFixed(1)}), period ${m.period === null ? 'none' : m.period.toFixed(2)} s, height within ${m.drift.toFixed(2)} m`,
       `${t11.vMin} to ${t11.vMax} m/s, ${t11.dutyMin} to ${t11.dutyMax}, elevator short of full, bank under ${t11.maxBankDeg}, within ${t11.maxHeightDrift} m`);
+    gate('E11b', 'harrier in AS3X: the gyro damps the rock', g.spread < m.spread && g.drift <= t11.maxHeightDrift,
+      `bank sd ${g.spread.toFixed(1)} against Manual's ${m.spread.toFixed(1)}, worst ${g.worstBank.toFixed(1)}, height within ${g.drift.toFixed(2)} m`,
+      `under Manual's, within ${t11.maxHeightDrift} m`);
   }
 
   /* E12: the knife edge. From level at 15 m/s, rolled right to 90 deg on
