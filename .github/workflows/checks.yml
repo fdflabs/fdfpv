@@ -414,6 +414,10 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
+      # The shell's contact pass, step for step, on fixed frames
+      # (scripts/contact-golden.js): about 30 s here, deterministic since
+      # its plans search from the spawn and its frames are fixed.
+      - run: npm run contact:golden
       # A deploy under an open tab: every module and the wasm at the
       # page's version, the new-version bar held off the flight screen and
       # shown on Paused and the title, its Reload landing on the new deploy

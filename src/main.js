@@ -9508,7 +9508,10 @@ export async function boot({
   /* Contacts bounced off this run, counted up; a readback, nothing spends
    * it. */
   let bounceCount = 0;
-  let bounceAtWall = 0;
+  /* On the sim clock: the bounce it gates strikes the props
+   * (feelImpact, sim_prop_strike), and a wall clock cooldown made the
+   * flight depend on how long the page took to draw. */
+  let bounceAtSimMs = -Infinity;
   /* T held: Betaflight's own crashflip, not the scripted turtle's flag. */
   let manualFlip = false;
   /*
@@ -9550,6 +9553,12 @@ export async function boot({
   let pressing = false;
   /* __drawOff: skip the draw so a probe runs at frame rate. */
   let harnessNoDraw = false;
+  /* Harness only (window.__frameMs): every frame advances this many ms of
+   * sim time whatever the wall clock did, 0 for the wall clock. The shell
+   * decides some things once a frame (a perch, a crash), so where frames
+   * fall decides the step they act at; a staging that must give the same
+   * steps every run fixes the frame. */
+  let harnessFrameMs = 0;
   /* The trick recogniser's contact cooldown, apart from the sound's so one
    * cannot swallow the other, and on the sim clock because it decides
    * what counts as a trick, which must not depend on the frame rate. */
@@ -12260,7 +12269,7 @@ export async function boot({
     lastHitIndex = -1;
     groundCueAtWall = -1e9;
     bounceCount = 0;
-    bounceAtWall = 0;
+    bounceAtSimMs = -Infinity;
     groundBounceAtWall = 0;
     releasePress();
     raceHasPrev = false;
@@ -16549,7 +16558,7 @@ export async function boot({
     fr.blockStart = performance.now();
     fr.wall = nowWall;
     lastWallDt = nowWall - prevWall;
-    fr.dt = Math.min(lastWallDt, FRAME_DT_MAX);
+    fr.dt = harnessFrameMs > 0 ? harnessFrameMs : Math.min(lastWallDt, FRAME_DT_MAX);
     prevWall = nowWall;
     roomPoseMap = null;
     fps = fps * 0.95 + (fr.dt > 0 ? 1000 / fr.dt : 0) * 0.05;
@@ -17206,14 +17215,14 @@ export async function boot({
       trickDetector.bump(closing);
     }
     if (obsImpulse > 0) {
-      if (nowWall - bounceAtWall >= BOUNCE_COOLDOWN_MS || obsImpulse > lastImpulse * 1.6) {
+      if (simTimeMs - bounceAtSimMs >= BOUNCE_COOLDOWN_MS || obsImpulse > lastImpulse * 1.6) {
         bounceCount += 1;
         feelImpact(obsImpulse, obsImpulseKind);
-        bounceAtWall = nowWall;
+        bounceAtSimMs = simTimeMs;
         view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
       }
       lastImpulse = obsImpulse;
-    } else if (nowWall - bounceAtWall > BOUNCE_COOLDOWN_MS) {
+    } else if (simTimeMs - bounceAtSimMs > BOUNCE_COOLDOWN_MS) {
       lastImpulse = 0;
     }
     obsContact = false;
@@ -18882,6 +18891,10 @@ export async function boot({
   window.__drawOff = (on = true) => {
     harnessNoDraw = Boolean(on);
     return harnessNoDraw;
+  };
+  window.__frameMs = (ms = 0) => {
+    harnessFrameMs = Math.max(0, Math.min(FRAME_DT_MAX, Number(ms) || 0));
+    return harnessFrameMs;
   };
 
   /* The mode the plant is in, not the one the menu shows: angle cannot loop. */
