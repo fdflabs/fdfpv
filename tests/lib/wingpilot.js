@@ -1537,31 +1537,60 @@ export function edgeRoll(s, b = 0) {
   return Math.max(-1, Math.min(1, -0.8 * e - 0.05 * s[11]));
 }
 /*
- * A person's hands holding the wings level through a stall: the bank and
- * roll rate seen 0.2 s late, the stick moved ten times a second in steps
- * of a fiftieth of its travel (hover-probe.js's pilot, McRuer and Jex,
- * IEEE Trans. HFE 1967), with the whole stick's authority: full aileron at
- * the gate's own bank limit, as a person uses the travel before letting
- * the wings pass it, the roll rate damped in edgeRoll's proportion, and an
- * integral as a pilot's hand trims a steady torque. Returns a function of
- * the state, called every RC_STEP_MS, that gives the aileron stick.
+ * The roll mode a pilot adapts to, measured where the hold begins: a fifth
+ * of aileron for 0.2 s from the state the gate is in, its roll rate p(t) =
+ * A (1 - exp(-a t)) read at 0.1 and 0.2 s, giving the roll damping a
+ * (1/s, the roll subsidence) and the aileron's roll acceleration per unit
+ * stick, L = A a / 0.2. stepFn(sticks) steps the gate's sim one RC step
+ * and returns the state; throttle is the gate's own.
  */
-export function personWingsHold(limitDeg) {
-  const k = 1 / (limitDeg * Math.PI / 180);
+export function rollMode(stepFn, throttle) {
+  const n1 = Math.round(100 / RC_STEP_MS);
+  let p1 = 0, p2 = 0, s = null;
+  for (let i = 1; i <= 2 * n1; i += 1) {
+    s = stepFn([0.2, 0, 0, throttle]);
+    if (i === n1) p1 = s[11];
+    if (i === 2 * n1) p2 = s[11];
+  }
+  const e = Math.min(0.99, Math.max(0.01, p2 / p1 - 1));
+  const a = -Math.log(e) / 0.1;
+  const A = p1 / (1 - e);
+  return { a, L: A * a / 0.2 };
+}
+
+/*
+ * A person's hands holding the wings level through a stall: the bank seen
+ * 0.2 s late, the stick moved ten times a second in steps of a fiftieth of
+ * its travel (hover-probe.js's pilot), and the gain the person adapts to
+ * the aircraft's own roll mode (rollMode above): McRuer's crossover model
+ * (McRuer and Jex, IEEE Trans. HFE 1967), the pilot and aircraft open loop
+ * crossing over at 3 rad/s, the middle of the 2 to 4 rad/s a person flies
+ * an attitude task at, where the 0.2 s delay leaves about 50 deg of phase
+ * margin. With phi / stick = L / (s (s + a)), the gain is wc sqrt(wc^2 +
+ * a^2) / L stick per radian of bank, with an integral as a hand trims a
+ * steady torque. Returns a function of the state, called every RC_STEP_MS,
+ * that gives the aileron stick; .gain is the gain chosen.
+ */
+export const CROSSOVER_RAD_S = 3;
+export function personWingsHold({ a, L }) {
+  const wc = CROSSOVER_RAD_S;
+  const k = wc * Math.sqrt(wc * wc + a * a) / L;
   const seen = [];
   const lag = Math.round(200 / RC_STEP_MS);
   let stick = 0, iBank = 0, ms = 0;
-  return (s) => {
-    seen.push({ bank: fullBank(s), p: s[11] });
+  const hold = (s) => {
+    seen.push(fullBank(s));
     if (ms % 100 === 0 && seen.length > lag) {
-      const d = seen[seen.length - 1 - lag];
-      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * d.bank * 0.1));
-      const raw = Math.max(-1, Math.min(1, -k * d.bank - k * 0.0625 * d.p + iBank));
+      const bank = seen[seen.length - 1 - lag];
+      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * bank * 0.1));
+      const raw = Math.max(-1, Math.min(1, -k * bank + iBank));
       stick = Math.round(raw * 50) / 50;
     }
     ms += RC_STEP_MS;
     return stick;
   };
+  hold.gain = k;
+  return hold;
 }
 
 export function edgeLevel(s, { b = 0, trim }) {

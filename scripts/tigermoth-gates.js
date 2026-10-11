@@ -55,7 +55,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
-  turnYawLimitDeg, personWingsHold,
+  turnYawLimitDeg, personWingsHold, rollMode,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -212,18 +212,24 @@ check: {
      * nose): the engine is up to speed before the pull, which since the
      * prop spins up on its inertia (prop_spool) it was not when the
      * throttle opened at the pull. */
+    /* The roll mode the pilot adapts to, at the entry (wingpilot.js
+     * rollMode), then the entry flown again for the test itself. */
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    const mode = rollMode((sticks) => step(sim, sticks).s, duty);
     clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
     let o = { s: sim.readState().state };
     /* The wings held by a person, as U11b's (uglystik-gates.js,
-     * wingpilot.js personWingsHold). */
-    const person = personWingsHold(t8.maxBankDeg);
+     * wingpilot.js personWingsHold): the gain adapted to its roll mode. */
+    const person = personWingsHold(mode);
+    let stickSq = 0, stickPeak = 0;
     let vMushSum = 0;
     let vMushN = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
       const roll = hold ? person(o.s) : 0;
       ailSum += Math.abs(roll);
+      stickSq += roll * roll; stickPeak = Math.max(stickPeak, Math.abs(roll));
       /* Power on, the rudder against the engine's yaw, as Great Planes'
        * manual tells the pilot ("always be ready to apply right rudder to
        * counteract engine torque", p. 25): the yaw rate taken out on the
@@ -240,7 +246,7 @@ check: {
     }
     const yawMax = turnYawLimitDeg(t8.maxBankDeg, vMushSum / vMushN);
     const ailMean = ailSum / (t8.seconds * 1000 / RC_STEP_MS);
-    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
+    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t8.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(person.gain).toFixed(2)} per rad)` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
     if (!hold) {
       gate(id, 'full up held, power off, hands off: recorded', alphaMax > th.t2_stall.alphaStall, said, 'recorded');
       continue;
