@@ -1,0 +1,315 @@
+{
+  "id": "cap1702",
+  "airframe": {
+    "id": "cap1702",
+    "simId": 32,
+    "fixedWing": true,
+    "stall": 10.39,
+    "topSpeed": 33.09,
+    "gear": {
+      "restHeight": 0.313
+    },
+    "name": "CAP 580",
+    "short": "CAP",
+    "blurb": "A 1702 mm Extreme Flight CAP 580 on 6S, balsa and carbon, with 2.6 times its weight in thrust on a measured T-Motor bench table. It hovers, torque rolls, harriers and knife edges like the Extra, but at twice the weight it carries its speed through every figure: precise on the lines, heavy in the snap.",
+    "facts": [
+      "6S",
+      "1702 mm",
+      "3D",
+      "IMAC"
+    ],
+    "sizeMm": 1702,
+    "grams": 3628.7,
+    "trackClass": "wing",
+    "cells": 6,
+    "defaultTune": "cap-manual",
+    "gravityBase": 1,
+    "cameraFov": 100,
+    "cameraAngle": 5,
+    "dims": {
+      "arm": 0,
+      "propR": 0.2286,
+      "hullR": 1.076,
+      "vHalfDown": 0.3418,
+      "vHalfUp": 0.277,
+      "bodyLength": 1.676,
+      "bodyWidth": 1.702,
+      "bodyHeight": 0.6188
+    }
+  },
+  "kit": {
+    "slots": [
+      {
+        "id": "spinner",
+        "options": [
+          "stock",
+          "bullet",
+          "striped"
+        ]
+      },
+      {
+        "id": "canopy",
+        "options": [
+          "stock",
+          "smoke",
+          "gold"
+        ]
+      }
+    ],
+    "drawn": true
+  },
+  "tuning": {
+    "chord": 0.338,
+    "area": 0.5548,
+    "margin": 0.21,
+    "cg": {
+      "mm": 130,
+      "datum": "tuning.datum.root_le",
+      "range": [
+        130,
+        150
+      ],
+      "source": "Extreme Flight's data sheet, \"Center of wing tube for maiden, sport and precision flight\", and the 67 in line's build guide, \"at the former immediately behind the wing tube\"; the tube's station FITTED at 130 mm (docs/CAP580-STAGE1.md), the former about 20 mm behind it; https://extremeflightrc.com/cdn/shop/files/DATASHEET_67_CAP_ecb0e58c-fdbf-409f-85e7-0af3bab79c00.pdf"
+    },
+    "packKg": 0.652,
+    "nose": 0.47,
+    "tail": -1.03,
+    "expo": 60,
+    "throws": {
+      "high": [
+        36,
+        50,
+        52.5
+      ],
+      "low": [
+        17.5,
+        11,
+        20
+      ],
+      "source": "Extreme Flight's data sheet, in degrees: high aileron 38 up 34 down (36 each way), elevator 50, rudder 50 to 55 (52.5); low aileron 15 to 20, elevator 10 to 12, rudder 20 (docs/CAP580-STAGE1.md); https://extremeflightrc.com/cdn/shop/files/DATASHEET_67_CAP_ecb0e58c-fdbf-409f-85e7-0af3bab79c00.pdf; https://extremeflightrc.com/cdn/shop/files/67_Extra260_ARF_Build_guide.pdf"
+    },
+    "flaps": null
+  },
+  "power": {
+    "table": {
+      "simId": 32,
+      "massKg": 3.6287,
+      "cells": 6,
+      "rCell": 0.00346,
+      "propIn": 18,
+      "cruiseMs": 18,
+      "flightTime": null
+    },
+    "options": [
+      {
+        "id": "stock",
+        "name": "power.cap.stock",
+        "kind": "electric",
+        "voice": "wing",
+        "kv": 520,
+        "propIn": 18,
+        "pitchIn": 8,
+        "blades": 2,
+        "thrustN": 94.31,
+        "currentA": 111.11,
+        "rpmNoLoad": 10160,
+        "pitchSpeedMs": 40.37,
+        "lvcV": 3,
+        "rpmFull": 8636,
+        "massKg": 3.6287,
+        "cgShiftM": 0,
+        "packs": [
+          {
+            "id": "6s4000",
+            "cells": 6,
+            "mAh": 4000,
+            "massKg": 0.566,
+            "source": "https://motionrc.com/products/admiral-4000mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr40006e"
+          },
+          {
+            "id": "6s4500",
+            "cells": 6,
+            "mAh": 4500,
+            "massKg": 0.652,
+            "source": "https://motionrc.com/products/admiral-4500mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr45006e"
+          }
+        ],
+        "pack": "6s4500",
+        "source": [
+          "https://extremeflightrc.com/products/t-motor-hobby-am670-am116-combo",
+          "https://www.ligpower.com/cn/product/am670-kv520-3D-combo.html",
+          "https://www.apcprop.com/files/PER3_18x8E.dat"
+        ]
+      }
+    ],
+    "estimates": {
+      "stock": {
+        "6s4000": {
+          "topSpeed": 32.2,
+          "minutes": 21.9
+        },
+        "6s4500": {
+          "topSpeed": 32.31,
+          "minutes": 23.8
+        }
+      }
+    }
+  },
+  "hangar": {
+    "props": [
+      {
+        "id": "stock",
+        "name": "parts.prop.stock"
+      },
+      {
+        "id": "18x10e",
+        "name": "parts.prop.18x10e",
+        "apc": "18x10E",
+        "propIn": 18,
+        "pitchIn": 10,
+        "blades": 2,
+        "massKg": 0.07285827443125,
+        "source": [
+          "https://www.apcprop.com/product/18x10e/",
+          "https://www.apcprop.com/files/PER3_18x10E.dat"
+        ]
+      },
+      {
+        "id": "17x8e",
+        "name": "parts.prop.17x8e",
+        "apc": "17x8E",
+        "propIn": 17,
+        "pitchIn": 8,
+        "blades": 2,
+        "massKg": 0.0640699222625,
+        "source": [
+          "https://www.apcprop.com/product/17x8e/",
+          "https://www.apcprop.com/files/PER3_17x8E.dat"
+        ]
+      }
+    ],
+    "anchors": {
+      "prop": [
+        0.56,
+        0,
+        0
+      ],
+      "belly": [
+        0,
+        0,
+        -0.13
+      ],
+      "tail": [
+        -1.03,
+        0,
+        -0.05
+      ],
+      "tank": [
+        0,
+        0,
+        -0.1
+      ],
+      "led": [
+        [
+          0.11,
+          0.25,
+          -0.115
+        ],
+        [
+          0.08,
+          0.75,
+          -0.1
+        ]
+      ]
+    }
+  },
+  "livery": {
+    "regions": [
+      {
+        "id": "wing",
+        "stock": "#2343b4"
+      },
+      {
+        "id": "fuselage",
+        "stock": "#2343b4"
+      },
+      {
+        "id": "tail",
+        "stock": "#2343b4"
+      },
+      {
+        "id": "stripe",
+        "stock": "#f5b318"
+      },
+      {
+        "id": "trim",
+        "stock": "#e2202e"
+      }
+    ],
+    "schemes": [
+      {
+        "id": "blueyellow",
+        "source": {
+          "label": "Extreme Flight 67 in CAP 580, A464-BY: blue, yellow and red",
+          "url": "https://extremeflightrc.com/products/ef-67-cap-580-blue-yellow-arf"
+        },
+        "colours": {}
+      },
+      {
+        "id": "greenred",
+        "source": {
+          "label": "Extreme Flight 67 in CAP 580, A464-GR: green, white and red",
+          "url": "https://extremeflightrc.com/products/ef-67-cap-580-green-red-arf"
+        },
+        "colours": {
+          "wing": "#6cc53a",
+          "fuselage": "#6cc53a",
+          "tail": "#6cc53a",
+          "stripe": "#f4f4f2",
+          "trim": "#e3202c"
+        }
+      }
+    ]
+  },
+  "tunes": [
+    {
+      "id": "cap-manual",
+      "airframe": "cap1702",
+      "name": "Manual",
+      "note": "No flight controller. The sticks are the ailerons, the elevator and the rudder at Extreme Flight's 3D rates. Heavier and faster than the Extra: it carries its speed through a figure and wants a firmer hand. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons."
+    },
+    {
+      "id": "cap-as3x",
+      "airframe": "cap1702",
+      "name": "AS3X",
+      "note": "A Spektrum AR637T receiver fitted by the builder, its AS3X rate damper on: the sticks are the surfaces at the 3D rates, and the gyro damps the bumps and the torque's kicks; it fades out as the stick leaves centre. Nothing levels it and nothing caps a rate.",
+      "wingStab": 3
+    },
+    {
+      "id": "cap-stab",
+      "airframe": "cap1702",
+      "name": "SAFE Select",
+      "note": "The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level. It cannot hover or tumble: switch to Manual or AS3X for 3D.",
+      "wingStab": 1
+    }
+  ],
+  "progress": {
+    "level": 10
+  },
+  "strings": {
+    "en": {
+      "carousel.note.cap1702": "A 67 in balsa CAP on 6S with 2.6 times its weight in thrust. Heavier and faster than the Extra: it carves where the foamie flicks.",
+      "power.cap.stock": "T-Motor AM670 520 kV, 18 x 8 carbon, 6S (stock)",
+      "airframe.blurb.cap1702": "A 1702 mm Extreme Flight CAP 580 on 6S, balsa and carbon, with 2.6 times its weight in thrust on a measured T-Motor bench table. It hovers, torque rolls, harriers and knife edges like the Extra, but at twice the weight it carries its speed through every figure: precise on the lines, heavy in the snap.",
+      "livery.scheme.cap1702.blueyellow": "Blue, yellow and red",
+      "livery.scheme.cap1702.greenred": "Green, white and red"
+    },
+    "es": {
+      "carousel.note.cap1702": "Un CAP de balsa de 67 pulgadas en 6S con 2,6 veces su peso en empuje. Más pesado y rápido que el Extra: traza donde el de espuma da latigazos.",
+      "power.cap.stock": "T-Motor AM670 de 520 kV, 18 x 8 de carbono, 6S (de serie)",
+      "airframe.blurb.cap1702": "Un Extreme Flight CAP 580 de 1702 mm en 6S, de balsa y carbono, con 2,6 veces su peso en empuje según la tabla de banco medida de T-Motor. Se cuelga de la hélice, hace torque roll, harrier y cuchillo como el Extra, pero con el doble de peso lleva su velocidad por cada figura: preciso en las líneas, pesado en el snap.",
+      "livery.scheme.cap1702.blueyellow": "Azul, amarillo y rojo",
+      "livery.scheme.cap1702.greenred": "Verde, blanco y rojo"
+    }
+  }
+}
