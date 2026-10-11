@@ -1994,10 +1994,10 @@ static const PartDef PARTS_SLICK2680[] = {
   { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
     .mass = 0.10, .joint = { -1.45, 0.0, -0.10 }, .m_max = 20.0, .f_max = 400.0, .k = 3312.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
     BOX(-1.53, -1.45, -0.02, 0.02, -0.17, -0.10) },
-  /* 17 the FPV camera on the turtle deck, 18 its antenna behind the canopy. */
+  /* 17 the FPV camera on the canopy's front, 18 its antenna behind the canopy. */
   { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
-    .mass = 0.012, .joint = { 0.40, 0.0, 0.19 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
-    BOX(0.39, 0.415, -0.010, 0.010, 0.18, 0.20) },
+    .mass = 0.012, .joint = { 0.22, 0.0, 0.30 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(0.21, 0.235, -0.010, 0.010, 0.29, 0.31) },
   { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
     .mass = 0.004, .joint = { -0.50, 0.0, 0.17 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
     .npts = 2, .pts = { { -0.50, 0.0, 0.17 }, { -0.50, 0.0, 0.26 } } }, /* shape docs/SLICK-STAGE1.md, FITTED: the sheet's three view, drawn */

@@ -1706,8 +1706,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
  * 39 mm over it, npm run slick:derive. The receiver's 2S pack is the one
  * the shell reads; the engine burns fuel, not it. The hull is only what a
  * crash lands on: the belly 0.138 m under the CG, the canopy's top 0.315
- * over it, the half span wide. The camera sits on the turtle deck ahead of
- * the canopy.
+ * over it, the half span wide. The camera sits on the canopy's front, high
+ * enough to see over the cowl past the 5 in spinner.
  */
 [SIM_AIRFRAME_SLICK2680] = {
   .kind = PLANT_KIND_WING,
@@ -1727,9 +1727,9 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .contact_patch_r = 0.15, /* FITTED: a resting friction lever, the fleet's */
   .contact_arm_max = 1.75, /* FITTED: the rudder's trailing edge, 1.73 m aft, docs/SLICK-STAGE1.md */
   .vib_ref_w = 1000.0,     /* FITTED: the fleet's gyro reference */
-  .camera_x = 0.40,        /* FITTED: the turtle deck ahead of the canopy, drawn, docs/SLICK-STAGE1.md */
+  .camera_x = 0.22,        /* FITTED: on the canopy's front, over the cowl and the spinner, drawn, docs/SLICK-STAGE1.md */
   .camera_y = 0.0, /* FITTED: on the centreline, docs/SLICK-STAGE1.md */
-  .camera_z = 0.19,        /* FITTED: the turtle deck, drawn, docs/SLICK-STAGE1.md */
+  .camera_z = 0.30,        /* FITTED: the canopy's front, drawn, docs/SLICK-STAGE1.md */
   .fw = &FW_SLICK2680, /* docs/SLICK-STAGE1.md */
   /*
    * The gear off the sheet's side view (scripts/slick-derive.js): the main

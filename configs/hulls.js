@@ -458,7 +458,7 @@ export const HULLS = {
       { kind: 'gear', mat: 'cf-plate', min: [0.12, 0.1, -0.44], max: [0.22, 0.34, -0.14] },
       { kind: 'gear', mat: 'cf-plate', min: [0.12, -0.34, -0.44], max: [0.22, -0.1, -0.14] },
       { kind: 'gear', mat: 'wire', min: [-1.53, -0.02, -0.17], max: [-1.45, 0.02, -0.1] },
-      { kind: 'camera', mat: 'electronics', min: [0.39, -0.01, 0.18], max: [0.415, 0.01, 0.2] },
+      { kind: 'camera', mat: 'electronics', min: [0.21, -0.01, 0.29], max: [0.235, 0.01, 0.31] },
       { kind: 'antenna', mat: 'wire', min: [-0.5, 0, 0.17], max: [-0.5, 0, 0.26] },
     ],
   },

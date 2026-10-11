@@ -597,12 +597,13 @@ export const SLICK_DIMS = {
 };
 
 /*
- * The camera mount: the FPV camera on the hatch ahead of the canopy, where
- * the plant's camera is (src/native/plant.c), 0.40 m ahead of the CG and
- * 0.19 m over it, looking over the cowl through the prop.
+ * The camera mount: the FPV camera on the canopy's front, where the
+ * plant's camera is (src/native/plant.c), 0.22 m ahead of the CG and 0.30
+ * m over it: lower and further forward the 5 in spinner fills the bottom
+ * of the picture.
  */
-export const SLICK_MOUNT_FORWARD = 0.40;
-export const SLICK_MOUNT_UP = 0.19;
+export const SLICK_MOUNT_FORWARD = 0.22;
+export const SLICK_MOUNT_UP = 0.30;
 
 /* A tractor turning clockwise seen from behind, as cubcraft.js's. */
 export const SLICK_PROP_SPIN = [1, 0, 0, 0];
