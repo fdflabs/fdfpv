@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|f16|zagi] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|f16|zagi|nighttimber] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).

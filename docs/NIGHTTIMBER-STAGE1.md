@@ -83,6 +83,17 @@ momentum theory slipstream (scripts/lib/wash.js, as every tractor's), the
 Extra's high angle terms (hi_alpha, tail_*, rot_k, side_cda) and its flat
 plate damping in slow air.
 
+The static margin is 0.068 by Nelson's linear neutral point (h_n 0.441 at
+the manual's 89 mm). The plant flies the Extra's high angle pitch moment,
+whose body share goes as sin(alpha) and whose tail angle is sin(alpha) less
+a downwash that goes with the lift; its slope is Cma cos(alpha) less
+slip_cm_a deda (1 - cos(alpha)) / (1 - deda). The Night Timber's zero lift
+line sits 5 deg under the body, so at cruise, where tuning:check U2 measures
+it (body 0 to 0.03 rad), that slope is 2.5 percent shallower and the margin
+the plant reads is 0.0666, which the derivation prints and configs/tuning.js
+carries as 0.067. The Extra's zero lift line is its body's, so it reads its
+linear margin.
+
 ESTIMATED, and the biggest uncertainty: **the motor**. E-flite publishes the
 BL10 900 kV, not its winding. It is E-flite's Power 10 (the same 10 size,
 0.04 ohm and 2.1 A at 1100 kV, EFLM4010A) wound for 900 kV: 0.060 ohm, 1.7 A.

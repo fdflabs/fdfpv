@@ -261,6 +261,16 @@ export const LIVERIES = {
       { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
     ],
   },
+  nighttimber1200: {
+    /* E-flite's scheme off its photographs (EFL13875): white foam, the
+     * orange red flashes over the wing and along the fuselage, black
+     * stripes and cowl, grey slashes. */
+    regions: [r('wing', '#f2f2ee'), r('fuselage', '#f2f2ee'), r('tail', '#f2f2ee'), r('trim', '#ee4a1f'), r('stripe', '#17191b'), r('grey', '#8d9195')],
+    schemes: [
+      { id: 'stock', source: src('E-flite Night Timber X 1.2m, EFL13875', 'https://www.horizonhobby.com/product/night-timber-x-1.2m-pnp/EFL13875.html'), colours: {} },
+      { id: 'timberx', source: src('E-flite Timber X 1.2m, EFL38500: white, red and black', 'https://www.horizonhobby.com/product/timber-x-1.2m-bnf-basic-with-as3x-and-safe-select/EFL38500.html'), colours: { trim: '#d5271f', grey: '#5a5f63' } },
+    ],
+  },
 
   p51d1450: {
     /* FMS's natural metal P-51 as its manual photographs it: silver all

@@ -392,6 +392,28 @@ export const ESTIMATES = {
       }
     }
   },
+  nighttimber1200: {
+    stock: {
+      '4s2200': {
+        topSpeed: 16.85,
+        minutes: 15.7
+      },
+      '4s3200': {
+        topSpeed: 16.9,
+        minutes: 21.9
+      }
+    },
+    '3s': {
+      '3s2200': {
+        topSpeed: 12.41,
+        minutes: null
+      },
+      '3s3200': {
+        topSpeed: 12.4,
+        minutes: null
+      }
+    }
+  },
   f16878: {
     stock: {
       '6s4000': {
