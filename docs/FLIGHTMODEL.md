@@ -1465,3 +1465,37 @@ Measured in a proof build (the Extra given 3 deg, not committed), held
 still at full throttle: the axial force 37.370 N against T cos 3 deg's
 37.371, the side force moved by -1.9585 N against -T sin 3 deg's -1.9585,
 the yaw moment by -0.59146 N m against -prop_x T sin 3 deg's -0.59147.
+
+## The electric throttle
+
+The plant took an electric prop's speed as the stick's share exactly, n =
+d, by giving the motor's drive a d^2 it does not have. A motor on a PWM
+ESC (BLHeli and AM32 run the duty straight with the stick) has Drela's
+torque ("First-Order DC Electric Motor Model", MIT 16.50, 2007), straight
+in the duty and the speed, which with the plant's own full point (0.85 of
+no load at full duty) is Q_f (d - 0.85 n) / 0.15, so at rest
+
+  n^2 + 5.667 n = 6.667 d
+
+full at full, and over its share of the stick below: measured on the
+Extra held still, 0.437 at 0.4, 0.537 at 0.5, 0.634 at 0.6, 0.728 at 0.7,
+0.819 at 0.8 (the law's 0.437, 0.537, 0.635, 0.730, 0.822; the pack's sag
+the rest), where the plant held 0.400 ... 0.797. T-Motor's measured AM670
+on its 18 x 8 (the CAP lane's) sits higher still, 0.50, 0.60, 0.70, 0.79
+and 0.88: a table with its own motor's measured curve sets throttle_rpm,
+and the plant takes the duty that settles on it, (n^2 + 5.667 n) / 6.667.
+
+**Which aircraft change**: every electric prop, the 1000 mm wing, the
+Skyhunter, the Cub and the Cub on floats, the Radian, the Bramor, the Slow
+Stick, the Timber and the Timber on floats, the P-51, the Zagi, the Extra,
+the Night Timber and the Hercules. Not the F-16's fan (its own spool), the
+glow and petrol engines, or the gliders.
+
+**Re-derived with it**, each in its old proportion: the Extra's E1 (18.77
+m/s at 75 percent, was 18.11), E6 (the hover's 0.5904 duty for the prop's
+0.6255, band 0.561 to 0.620), E11 and E12's throttles (0.568, 0.749); the
+Night Timber's N6 (0.7776, band 0.739 to 0.817); every electric table's
+stab_trim_throttle (stab:glide; the Extra 0.624 to 0.589); the Extra's
+taxi duty for the Cub's 1.65 N (0.184, was 0.21), with its heading now
+summed through half a circle; the Timber's T13 at the duty that turns the
+prop at 0.3 of full, as the gate was written for (0.2685).

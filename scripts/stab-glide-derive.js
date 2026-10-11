@@ -204,7 +204,11 @@ function thrust(fw, stick, u) {
     const n = (bq + Math.sqrt(disc)) / (2 * a);
     return fw.thrust_static * n * n * (1 - u / (fw.pitch_speed * n));
   }
-  const t = fw.thrust_static * duty * duty * (1 - Math.max(0, u) / (fw.pitch_speed * duty));
+  /* The prop's speed at the duty: an electric motor's own law (plant_wing.c
+   * prop_spool), n^2 + K_M n = (K_M + 1) d; an engine's, and a fan's (fan_spool), is the duty. */
+  const KM = 0.85 / 0.15;
+  const n = fw.current_full > 0 && !(fw.fan_tau > 0) ? (-KM + Math.sqrt(KM * KM + 4 * (KM + 1) * duty)) / 2 : duty;
+  const t = fw.thrust_static * n * n * (1 - Math.max(0, u) / (fw.pitch_speed * n));
   return fw.fold_duty === 0 && t < 0 ? 0 : t;
 }
 

@@ -184,7 +184,10 @@ const Qs = apcAt(nStatic, 1), Ts = apcAt(nStatic, 2), Is = Qs / kt + i0;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 6 * 0.0254;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const torqueArm = Qs / Ts;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - Math.max(0, V) / (Vp * d)));
+/* The prop's speed at a duty, the electric motor's law (plant_wing.c
+ * prop_spool): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
+const nOf = (d) => (-(0.85 / 0.15) + Math.sqrt((0.85 / 0.15) ** 2 + 4 * (0.85 / 0.15 + 1) * d)) / 2;
+const T = (V, d) => { const n = nOf(d); return Math.max(0, Ts * n * n * (1 - Math.max(0, V) / (Vp * n))); };
 /* The prop's inertia, ESTIMATED: a 13 in wood blade of about 35 g, a
  * tapered blade's 0.7 of a rod's m D^2 / 12, and the outrunner's can. */
 const propJ = 0.7 * 0.035 * (2 * propR) ** 2 / 12 + 0.06 * 0.021 * 0.021;
@@ -208,11 +211,17 @@ const rollAt = (V) => pb2v * 2 * V / b;
  * THE 3D REGIME.
  *
  * Hover: nose up, still, the thrust the weight. The plant's thrust goes
- * as the duty squared at zero airspeed, so the stick is sqrt(W / Ts).
+ * as its speed squared at zero airspeed, so the prop turns at sqrt(W / Ts)
+ * of full, at the duty below.
  * The vertical climb: full throttle, straight up, where the thrust meets
  * the weight and the drag at zero lift.
  */
-const hoverDuty = Math.sqrt(W / Ts);
+/* The prop's speed there, sqrt(W / Ts) of full, and the duty the electric
+ * motor settles at it on (plant_wing.c prop_spool, Drela's law with the
+ * plant's 0.85 rule): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
+const hoverN = Math.sqrt(W / Ts);
+const KM = 0.85 / 0.15;
+const hoverDuty = (hoverN * hoverN + KM * hoverN) / (KM + 1);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 
@@ -306,7 +315,7 @@ const vhT = -slipCma / (at * (1 - deda)), vvF = slipCnb / av;
 const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
 const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 /* The prop's precession: a yaw rate r pitches the airframe at r h / Iy. */
-const hHover = propJ * 0.85 * hoverDuty * rpmNL * 2 * Math.PI / 60;
+const hHover = propJ * 0.85 * hoverN * rpmNL * 2 * Math.PI / 60;
 
 /*
  * The plant's post stall lift (plant_wing.c, stalled_lift) on the whole
@@ -496,7 +505,7 @@ const rows = [
   ['E3 L/D at 12, 14 m/s', `${f(ld(12), 2)} ${f(ld(14), 2)}`],
   ['E4 top speed', f(level(1), 2)],
   ['E5 roll pb/2V, deg/s at 15 m/s, at 20 m/s', `${f(pb2v, 4)} ${f(rollAt(15) * DEG, 0)} ${f(rollAt(20) * DEG, 0)}`],
-  ['E6 hover duty; wash dp, v_i, rw, fh fv fa', `${f(hoverDuty, 4)}; ${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
+  ['E6 hover duty (prop speed); wash dp, v_i, rw, fh fv fa', `${f(hoverDuty, 4)} (${f(hoverN, 4)}); ${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
   ['E7 vertical climb speed, full throttle', f(vClimb, 2)],
   ['SWIRL_KEEP: the swirl\'s roll 0.40 of the torque at the hover (Selig 2010)', `${f(SWIRL_KEEP_DERIVED, 4)}, taken ${SWIRL_KEEP}`],
   ['E8 torque at hover N m, less the swirl\'s root and fin, torque roll deg/s', `${f(Qprop, 4)} ${f(Qhover, 4)} ${f(torqueRoll * DEG, 0)}`],

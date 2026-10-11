@@ -388,14 +388,23 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
   }
 }
 
-/* Taxiing on the Cub's taxi thrust, 1.65 N: 0.21 of the Extra's
- * throttle, where the Cub's check takes 0.35 of its own. */
+/* Taxiing on the Cub's taxi thrust, 1.65 N: the prop at sqrt(1.65 /
+ * 37.86), 0.209 of full, which the electric motor's law (plant_wing.c
+ * prop_spool) turns at a duty of (0.209^2 + 5.667 0.209) / 6.667, 0.184,
+ * where the Cub's check takes 0.35 of its own. The heading's change is
+ * summed step by step: past half a circle the end points wrap. */
 for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
-  roll(() => [0, 0, 0, 0.21], 2);
-  const h0 = heading(sim.readState().state);
-  const taxi = roll(() => [0, 0, 1, 0.21], 4);
-  const turned = (heading(taxi.s) - h0) * DEG;
+  roll(() => [0, 0, 0, 0.184], 2);
+  let last = heading(sim.readState().state);
+  let turnedRad = 0;
+  roll(() => {
+    const h = heading(sim.readState().state);
+    turnedRad += Math.atan2(Math.sin(h - last), Math.cos(h - last));
+    last = h;
+    return [0, 0, 1, 0.184];
+  }, 4);
+  const turned = turnedRad * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);
 }
 
