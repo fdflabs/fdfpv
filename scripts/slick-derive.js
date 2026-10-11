@@ -858,6 +858,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['Clβ (fin, low wing), Clp, Clδa', `${f(Clb, 4)} (${f(ClbFin, 4)} ${f(ClbLow, 4)}) ${f(Clp, 4)} ${f(Clda, 4)}`],
+  ['cl_beta_wing, cl_beta_fin, cn_beta_fin: the wing\'s and the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(Clb - ClbFin, 4)} ${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['throws deg a e r; K\' a e r; tau a e r', `${f(throwA * DEG, 2)} ${f(throwE * DEG, 2)} ${f(throwR * DEG, 2)}; ${f(kPrime(throwA))} ${f(kPrime(throwE))} ${f(kPrime(throwR))}; ${f(tauA)} ${f(tauE)} ${f(tauR)}`],
   ['CD0 (all laminar, mean, all turbulent), parts', `${f(dragLo.cd0, 4)} ${f(CD0, 4)} ${f(dragHi.cd0, 4)} ${J(drag.parts, 4)}`],

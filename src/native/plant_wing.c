@@ -5344,6 +5344,12 @@ const FixedWingParams FW_CAP1702 = {
   .cy_beta = -0.5569,     /* npm run cap580:derive */
   .cy_dr = 0.2278,        /* npm run cap580:derive */
   .cl_beta = 0.0024,      /* npm run cap580:derive: no dihedral, the low wing's roll less the fin's */
+  /* Sideslip past the stall split as the Extra's: the same layout, the
+   * stabiliser on the fuselage at the thrust line and the rudder over it
+   * and running under the fuselage (docs/FLIGHTMODEL.md). */
+  .cl_beta_wing = 0.0290, /* cl_beta less the fin's, npm run cap580:derive */
+  .cl_beta_fin = -0.0265, /* npm run cap580:derive */
+  .cn_beta_fin = 0.2363, /* npm run cap580:derive */
   .cl_p = -0.6309,        /* npm run cap580:derive */
   .cl_da = 0.4415,        /* npm run cap580:derive */
   .cl_r_per_cl = 0.25,    /* docs/EXTRA-STAGE1.md: every table's strip theory figure */
@@ -5491,6 +5497,12 @@ const FixedWingParams FW_SLICK2680 = {
   .cy_beta = -0.6355, /* scripts/slick-derive.js */
   .cy_dr = 0.2518, /* scripts/slick-derive.js */
   .cl_beta = -0.0429,     /* the fin over the CG, the mid wing's near nothing, scripts/slick-derive.js */
+  /* Sideslip past the stall split as the Extra's: the same layout, the
+   * stabiliser on the fuselage at the thrust line and the rudder over it
+   * and running under the fuselage (docs/FLIGHTMODEL.md). */
+  .cl_beta_wing = -0.0012, /* cl_beta less the fin's, scripts/slick-derive.js */
+  .cl_beta_fin = -0.0417, /* scripts/slick-derive.js */
+  .cn_beta_fin = 0.2685, /* scripts/slick-derive.js */
   .cl_p = -0.6610, /* scripts/slick-derive.js */
   .cl_da = 0.3733, /* scripts/slick-derive.js */
   .cl_r_per_cl = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
