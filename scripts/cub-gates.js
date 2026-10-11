@@ -233,7 +233,13 @@ check: {
 
   /* A landing: from 4 m at 11 m/s, a powered descent holding the nose level,
    * a flare to 6 deg at a metre, throttle closed, and on the wheels full up
-   * stick to hold the tail down through the roll out. */
+   * stick to hold the tail down through the roll out. The round out raises
+   * the nose to the landing attitude and holds it (FAA-H-8083-3C,
+   * Approaches and Landings): the hand keeps pulling until the nose is
+   * there, an integral over a second as the take off pilots' hands
+   * (wingpilot.js herculesTakeoffSticks). Proportional alone it held 1.2
+   * deg of the 6, and in the ground effect's nose down moment (plant_wing.c
+   * GROUND EFFECT) it drooped through level onto the wheels nose low. */
   must(sim.reset(), 'sim_reset');
   cubGroundPrelude(sim, { mu: GROUND_MU, e: GROUND_E });
   must(sim.e.sim_set_pose(0, 0, 4, 1, 0, 0, 0), 'sim_set_pose');
@@ -243,6 +249,7 @@ check: {
   let hullLanding = 0;
   let bounces = 0;
   let wasLoaded = false;
+  let hand = 0;
   o = { s: sim.readState().state, loaded: false };
   for (let ms = 0; ms < 16000; ms += RC_STEP_MS) {
     const { pitch, bank } = attitude(o.s);
@@ -253,7 +260,9 @@ check: {
     } else if (o.s[3] > 1.0) {
       sticks = [roll, Math.max(-1, Math.min(1, 2.5 * (0 - pitch) + 0.25 * o.s[12])), 0, 0.3];
     } else {
-      sticks = [roll, Math.max(-1, Math.min(1, 2.5 * (6 / DEG - pitch) + 0.25 * o.s[12])), 0, 0];
+      const err = 6 / DEG - pitch;
+      hand = Math.max(-1, Math.min(1, hand + 4 * err * RC_STEP_MS / 1000));
+      sticks = [roll, Math.max(-1, Math.min(1, 2.5 * err + 0.25 * o.s[12] + hand)), 0, 0];
     }
     o = step(sim, sticks);
     if (o.loaded && touched === null) touched = { v: speed(o.s), vz: o.s[6], x: o.s[1] };
