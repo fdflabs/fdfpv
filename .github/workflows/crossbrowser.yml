@@ -1,0 +1,53 @@
+# Firefox and WebKit (Safari's engine) through the shell: boot, the title's
+# menus, a short flight and a room (scripts/xbrowser-check.js). Not in
+# checks.yml: the two engines' boots on a runner without a GPU take minutes
+# each, and checks.yml already runs 30 to 55. So it runs nightly, by hand,
+# and on a pull request that changes the check itself. A red run says which
+# engine broke what; docs/CROSSBROWSER.md keeps the known state.
+#
+#
+# This file is part of the Paraguayan Drone Combat Simulator.
+#
+# The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+
+name: crossbrowser
+
+on:
+  schedule:
+    - cron: '30 7 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/xbrowser-check.js
+      - .github/workflows/crossbrowser.yml
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      # Headful on Xvfb: with no GPU, headless Firefox gets no WebGL at all.
+      - run: xvfb-run -a npm run xbrowser:check -- ${{ matrix.engine }}
+        env:
+          XBROWSER_HEADFUL: '1'

@@ -26,6 +26,7 @@
     "combat:shell": "node scripts/combat-shell.js",
     "perf": "node scripts/perf-play.js",
     "hangar:perf": "node scripts/hangar-room-perf.js",
+    "xbrowser:check": "node scripts/xbrowser-check.js",
     "hangar:room": "node scripts/hangar-room-check.js",
     "hangar:walk": "node scripts/hangar-walk-check.js",
     "pids:selftest": "node scripts/pids-selftest.js",
@@ -550,5 +551,8 @@
   "dependencies": {
     "nodemailer": "10.0.15",
     "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
   }
 }
