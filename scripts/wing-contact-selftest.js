@@ -38,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
+import { zagiHold } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -49,6 +50,8 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * idle pushes 1.63 N against the grass's 2.14, so it slows at 0.2 m/s^2.
  * The Zagi is thrown as the wing is,
  * its hull the half span wide with the belly 12 mm under the CG. */
+const zagiTrim = { i: 0 };
+const zagiThrower = (st) => { const [roll, pitch] = zagiHold(st, { pitch: 0.35, trim: zagiTrim }); return [roll, pitch, 0, 0.7]; };
 const PLANES = [
   { name: 'wing', id: 2, hx: 0.25, hy: 0.5, down: 0.035, up: 0.035, land: 8, nose: 10, toss: 10, tossSticks: [0, 0.15, 0, 0.7] },
   { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.12, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
@@ -58,7 +61,10 @@ const PLANES = [
   { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
   { name: 'kadet', id: 12, hx: 0.45, hy: 0.9906, down: 0.163, up: 0.119, land: 8, rollMs: 30000, nose: 11, toss: 12, tossSticks: [0, 0.3, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.3072 } },
   { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
-  { name: 'zagi', id: 17, hx: 0.23, hy: 0.6096, down: 0.012, up: 0.127, land: 8, nose: 10, toss: 10.3, tossSticks: [0, 0.05, 0, 0.7] },
+  /* The Zagi's throw is flown as zagi-gates' Z11 thrower flies it, the
+   * climb out held at 20 deg by hand and trimmed (wingpilot.js zagiHold),
+   * not a fixed 0.05 of up no source held. */
+  { name: 'zagi', id: 17, hx: 0.23, hy: 0.6096, down: 0.012, up: 0.127, land: 8, nose: 10, toss: 10.3, tossSticks: zagiThrower },
   { name: 'timber', id: 7, hx: 0.30, hy: 0.60, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 11.81, restZ: 0.2117 } },
   /* The Ugly Stik stands 2.06 deg nose down idling; it arrives at 11 m/s
    * and its 2,000 rpm idle pushes 1.22 N against the grass's 2.14, so it
@@ -110,10 +116,12 @@ function lowestCorner(plane, s) {
   }
   return low;
 }
+/* sticks: fixed, or a function of the state (a pilot). */
 function run(sim, ms, sticks = [0, 0, 0, 0]) {
   const t0 = Number(state(sim)[0]);
   for (let i = 0; i < ms; i += 4) {
-    must(sim.input(t0 + i / 1000 + 0.0001, ...sticks), 'input');
+    const st = typeof sticks === 'function' ? sticks(state(sim)) : sticks;
+    must(sim.input(t0 + i / 1000 + 0.0001, ...st), 'input');
     must(sim.step(4), 'step');
   }
   return state(sim);
