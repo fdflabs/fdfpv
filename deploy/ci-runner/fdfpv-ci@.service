@@ -1,0 +1,42 @@
+# fdfpv-ci@.service: one self-hosted runner slot for checks.yml's `node`
+# job, on the owner's DESKTOP (a systemd --user unit, not on the VM).
+# Installed by install.sh; instances fdfpv-ci@1 and fdfpv-ci@2. Each cycle
+# of run-slot.sh is one container and one job, and Restart=always makes the
+# next one.
+#
+# Stopping an instance stops its container with it, cancelling a job that
+# is running there: retire a slot only when it is idle (README.md).
+#
+# This file is part of the Paraguayan Drone Combat Simulator.
+#
+# The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+Description=FDFPV CI: self-hosted runner slot %i
+After=network-online.target
+Wants=network-online.target
+# Never give up: a GitHub outage must not leave the slot dead until someone
+# notices. run-slot.sh itself waits a minute after a failed mint.
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=%h/.local/lib/fdfpv-ci/run-slot.sh %i
+Restart=always
+RestartSec=5
+# docker run forwards SIGTERM to the container; give the runner time to
+# report a cancelled job before the client is killed.
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target
