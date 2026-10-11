@@ -76,6 +76,7 @@ import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
+import { FigureDetector } from './game/figuredetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
 import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
@@ -231,17 +232,17 @@ import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../co
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import {
-  AIRFRAMES, DEFAULT_AIRFRAME, STRIKER_CAMERA, WAR_AIRFRAMES, WAR_DEFAULT, airStartSpeed, airframeById, isWarAirframe,
+  AIRFRAMES, DEFAULT_AIRFRAME, STRIKER_CAMERA, WAR_AIRFRAMES, WAR_DEFAULT, airStartSpeed, airframeById, currentAirframeId, isWarAirframe,
 } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { setAtlasPreset } from './render/decals.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
-import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
+import { PROPS, addonParams, normalisePlane, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
 import { accrue, impactsFrom, propulsionHealth, realismFlight, startSortie, wearRecordOf, wornPowerBlock, wornQuadBlocks } from '../configs/wear.js';
 import { learnPartTable } from './ui/hangar-parts.js';
 import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
-import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
+import { liveryKey, lookFor, normaliseEntry, paintable } from '../configs/liveries.js';
 import { packEntry } from '../configs/paint.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
@@ -768,7 +769,17 @@ export async function boot({
       }
     },
     again: () => roomOps.start(roomOps.view().mission, { from: 'checkpoint' }),
+    /* The crash cam on this pilot's last 30 s; its way out shows the
+     * debrief again (crashCam's exit). */
+    replay: () => {
+      replayFromDebrief = true;
+      if (!crashCam || !crashCam.open()) {
+        replayFromDebrief = false;
+        debrief.reopen();
+      }
+    },
   }, (seat) => opsSeatName(seat));
+  let replayFromDebrief = false;
   function opsDebrief() {
     const v = roomOps.view();
     const mission = roomOps.mission();
@@ -779,6 +790,14 @@ export async function boot({
     rolesBoard.close();
     debrief.show({
       key: match, view: v, mission, seat: roomOps.seat(), host: opsHost() === roomOps.seat(), stills: stills.of(match), next: interiorScreen.next(v.mission),
+      flight: {
+        aircraft: runAirframe,
+        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+        flightMs: runAirMs,
+        totalS: aircraftSecondsNow(),
+        route: runRoute.snapshot(),
+        replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+      },
     });
     interiorScreen.record(match, v);
   }
@@ -2357,28 +2376,37 @@ export async function boot({
     const dt = dtMs / 1000;
     const pose = ui.walkFrame(dt);
     const graphics = ui.settings.graphics;
-    if (walkRoom.view && walkRoom.graphics !== graphics) {
+    /* A new room (a visit, or home from one) is a new view, as a new
+     * graphics preset is. */
+    if (walkRoom.view && (walkRoom.graphics !== graphics || walkRoom.walk !== ui.walk)) {
       walkRoom.view.dispose();
       walkRoom.view = null;
     }
+    const visit = ui.walk.visit;
     if (!walkRoom.view) {
       walkRoom.view = createRoomView(shell.renderer, { graphics: qualityFor(graphics) });
       walkRoom.view.setRoom(ui.walk.tier, ui.walk.layout);
       walkRoom.graphics = graphics;
+      walkRoom.walk = ui.walk;
       walkRoom.craftKey = null;
-      loadPhotoWall(walkRoom.view);
+      if (visit) {
+        walkRoom.view.setCraft(visitCraft(visit));
+        walkRoom.craftKey = `visit:${visit.callsign}`;
+      } else {
+        loadPhotoWall(walkRoom.view);
+      }
     }
     const id = ui.settings.airframe;
     const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
     walkRoom.hangarWasOpen = ui.hangar.isOpen;
-    if (walkRoom.craftKey !== id || shut) {
+    if (!visit && (walkRoom.craftKey !== id || shut)) {
       walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
       walkRoom.craftKey = id;
     }
     /* The trophy wall: every first paid, in key order so a wall reads the
      * same each visit (src/game/progress.js firsts). */
     const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
-    walkRoom.view.setTrophies(Object.keys(firsts).filter((k) => firsts[k]).sort());
+    walkRoom.view.setTrophies(visit ? [...visit.firsts].sort() : Object.keys(firsts).filter((k) => firsts[k]).sort());
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
@@ -2450,6 +2478,22 @@ export async function boot({
     if (t >= TURNTABLE_S && tt.rec.state === 'recording') {
       tt.rec.stop();
     }
+  }
+
+  /* A visited pilot's aircraft in their own paint and parts, normalised
+   * here as a peer's are (src/render/peers.js): what arrived is another
+   * account's, so a colour or a part this build does not know is dropped. */
+  function visitCraft(visit) {
+    const id = airframeById(currentAirframeId(visit.airframe)).id;
+    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false });
+    if (paintable(id)) {
+      dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), visit.look)));
+    }
+    const entry = PROPS[id] ? normalisePlane(id, visit.parts) : null;
+    if (entry) {
+      dressParts(craft, id, { entry: { ...entry, damage: null }, option: null });
+    }
+    return craft;
   }
 
   /* The newest photos onto the room's photo wall, each made small first:
@@ -3338,6 +3382,14 @@ export async function boot({
       jamScore.land(trick);
     }
   });
+  /* A fixed wing's aerobatic figures (docs/TRICKS-CATALOG.md), landed
+   * through the same scorers. A fixed wing feeds this one and not the
+   * quad detector, whose flips and rolls would name its loops. */
+  const figureDetector = new FigureDetector((figure) => trickDetector.onTrick(figure));
+  /* Decided per frame with `scoring`, consulted every step. */
+  let figureCraft = false;
+  /* The checks land a trick as a detector would (scripts/callouts-check.js). */
+  window.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
   function scoreCrash() {
     score.crash();
     if (jamScore) {
@@ -8341,12 +8393,34 @@ export async function boot({
     if (!roomJam.on()) {
       roomJamTurn = null;
     }
+    jamWatchCallout(v);
     if (wallMs < roomJamHudAt) {
       return;
     }
     roomJamHudAt = wallMs + 250;
     const own = roomJamRun && jamScore ? { total: Math.round(jamScore.total()), last: lastJamTrick() } : null;
     roomJamHud.update(mode === 'flight' && ui.screen === 'flight' ? jamHudView(roomJam, now, roomSeatName, own) : null);
+  }
+  /* A watcher sees the runner's tricks called out as they land: the
+   * room's `last` for each new trick of the run, through the same overlay
+   * as the pilot's own. */
+  let jamWatchSeen = null;
+  /* How many the watcher has had called out, and the last, for the checks. */
+  const jamWatchShown = { n: 0, name: null };
+  function jamWatchCallout(v) {
+    const live = roomJam.on() && !roomJam.mine() && v.state === 'run' ? v.live : null;
+    const key = live && live.last ? `${v.id}:${v.round}:${v.runner}:${live.tricks}` : null;
+    if (key === jamWatchSeen) {
+      return;
+    }
+    jamWatchSeen = key;
+    if (!key || mode !== 'flight') {
+      return;
+    }
+    const l = live.last;
+    jamWatchShown.n += 1;
+    jamWatchShown.name = l.name;
+    ui.scoreEvents([{ kind: 'trick', name: l.name, points: l.points, execution: l.execution, ...(typeof l.grade === 'number' ? { grade: l.grade } : {}) }]);
   }
   function lastJamTrick() {
     const r = jamScore.tricks.at(-1);
@@ -8365,6 +8439,7 @@ export async function boot({
       hold: roomJam.holdMs(now),
       run: roomJamRun ? { endAt: roomJamRun.endAt } : null,
       own: jamScore ? { total: jamScore.total(), tricks: jamScore.tricks.length } : null,
+      watchCallouts: { ...jamWatchShown },
       hud: roomJamHud.key ? JSON.parse(roomJamHud.key) : null,
       results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'jam'),
       standings: roomJam.standings(),
@@ -9584,7 +9659,10 @@ export async function boot({
   /* Contacts bounced off this run, counted up; a readback, nothing spends
    * it. */
   let bounceCount = 0;
-  let bounceAtWall = 0;
+  /* On the sim clock: the bounce it gates strikes the props
+   * (feelImpact, sim_prop_strike), and a wall clock cooldown made the
+   * flight depend on how long the page took to draw. */
+  let bounceAtSimMs = -Infinity;
   /* T held: Betaflight's own crashflip, not the scripted turtle's flag. */
   let manualFlip = false;
   /*
@@ -9626,6 +9704,12 @@ export async function boot({
   let pressing = false;
   /* __drawOff: skip the draw so a probe runs at frame rate. */
   let harnessNoDraw = false;
+  /* Harness only (window.__frameMs): every frame advances this many ms of
+   * sim time whatever the wall clock did, 0 for the wall clock. The shell
+   * decides some things once a frame (a perch, a crash), so where frames
+   * fall decides the step they act at; a staging that must give the same
+   * steps every run fixes the frame. */
+  let harnessFrameMs = 0;
   /* The trick recogniser's contact cooldown, apart from the sound's so one
    * cannot swallow the other, and on the sim clock because it decides
    * what counts as a trick, which must not depend on the frame rate. */
@@ -11927,6 +12011,7 @@ export async function boot({
     turtleRecover = false;
     if (view.mode === 'freestyle') {
       trickDetector.reset();
+      figureDetector.reset();
       scoreCrash();
     }
     race.voidLap(str('main.wrecked_lap_over'), nowWall);
@@ -12336,7 +12421,7 @@ export async function boot({
     lastHitIndex = -1;
     groundCueAtWall = -1e9;
     bounceCount = 0;
-    bounceAtWall = 0;
+    bounceAtSimMs = -Infinity;
     groundBounceAtWall = 0;
     releasePress();
     raceHasPrev = false;
@@ -12407,6 +12492,7 @@ export async function boot({
      * pair with half a roll after it. Race maps never reach the scorer. */
     if (view.mode === 'freestyle') {
       trickDetector.reset();
+      figureDetector.reset();
       scoreCrash();
     }
     dropTurtle();
@@ -12591,6 +12677,7 @@ export async function boot({
     score.timed = scoredRun();
     score.reset();
     trickDetector.restart();
+    figureDetector.restart();
     ui.resetScore();
     /* Only the recording in flight dies; the session book keeps its laps. */
     ghostRecorder.abort();
@@ -12895,6 +12982,7 @@ export async function boot({
     introMs = -1;
     if (view.mode === 'freestyle') {
       trickDetector.reset();
+      figureDetector.reset();
     }
     seatRestHeight(to, !inAir && onWater);
 
@@ -14629,6 +14717,9 @@ export async function boot({
   /* One sync now, resolving to whether it changed anything here, for
    * scripts/account-browser-check.js, which cannot wait out the minute. */
   window.__accountSync = () => accountUi.sync();
+  /* The hangar's visits switch is sent at once rather than within the
+   * minute: a friend is waiting at the door (src/ui/hangarwalk.js). */
+  ui.onSyncNow = () => accountUi.sync();
   /*
    * Fly and Restart start a run the same way once the loaded config is the
    * current one: a tune still being fetched would sim_init underneath a run
@@ -16641,7 +16732,7 @@ export async function boot({
     fr.blockStart = performance.now();
     fr.wall = nowWall;
     lastWallDt = nowWall - prevWall;
-    fr.dt = Math.min(lastWallDt, FRAME_DT_MAX);
+    fr.dt = harnessFrameMs > 0 ? harnessFrameMs : Math.min(lastWallDt, FRAME_DT_MAX);
     prevWall = nowWall;
     roomPoseMap = null;
     fps = fps * 0.95 + (fr.dt > 0 ? 1000 / fr.dt : 0) * 0.05;
@@ -16852,6 +16943,7 @@ export async function boot({
       return;
     }
     scoring = view.mode === 'freestyle' && !crashed;
+    figureCraft = Boolean(airframeById(runAirframe).fixedWing);
     fr.groundClosing = 0;
     fr.groundSpeed = 0;
     fr.groundHit = false;
@@ -17099,6 +17191,10 @@ export async function boot({
    * Both go through frame.js, so nothing new crosses the frame boundary.
    */
   function feedRecogniser(st) {
+    if (figureCraft) {
+      figureDetector.step(0.001, st);
+      return;
+    }
     poseFromState(st, scorePos);
     simQuatToThree(st[7], st[8], st[9], st[10], scoreQuat);
     scoreQuat.premultiply(qSpawn);
@@ -17206,6 +17302,7 @@ export async function boot({
     if (view.mode === 'freestyle') {
       if (hard) {
         trickDetector.reset();
+        figureDetector.reset();
         scoreCrash();
       } else {
         /* The ground is not tappable (TrickDetector.bump). */
@@ -17298,14 +17395,14 @@ export async function boot({
       trickDetector.bump(closing);
     }
     if (obsImpulse > 0) {
-      if (nowWall - bounceAtWall >= BOUNCE_COOLDOWN_MS || obsImpulse > lastImpulse * 1.6) {
+      if (simTimeMs - bounceAtSimMs >= BOUNCE_COOLDOWN_MS || obsImpulse > lastImpulse * 1.6) {
         bounceCount += 1;
         feelImpact(obsImpulse, obsImpulseKind);
-        bounceAtWall = nowWall;
+        bounceAtSimMs = simTimeMs;
         view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
       }
       lastImpulse = obsImpulse;
-    } else if (nowWall - bounceAtWall > BOUNCE_COOLDOWN_MS) {
+    } else if (simTimeMs - bounceAtSimMs > BOUNCE_COOLDOWN_MS) {
       lastImpulse = 0;
     }
     obsContact = false;
@@ -18365,6 +18462,9 @@ export async function boot({
    * why its score can be posted at all; read off score.over() rather than
    * off the drained events, which belong to the overlay.
    */
+  function landedClean(e) {
+    return e.kind === 'trick' && (typeof e.grade === 'number' ? e.grade >= 6 : e.execution === 'CLEAN');
+  }
   function scoreFrame() {
     const wasOver = score.over();
     score.tick(simTimeMs);
@@ -18372,7 +18472,13 @@ export async function boot({
     scoreState = scoreView.state;
     scoreRemainMs = scoreView.remainMs;
     ui.setScore(scoreView);
-    ui.scoreEvents(score.drainEvents());
+    const events = score.drainEvents();
+    ui.scoreEvents(events);
+    /* The landed chime for a trick landed clean, only where its callout
+     * is on screen. */
+    if (events && ui.scoreHud.visible && events.some(landedClean)) {
+      flightCue('trick');
+    }
     if (!wasOver && score.over()) {
       endFreestyleRun();
     }
@@ -18837,7 +18943,7 @@ export async function boot({
   /* The exploded part at client pixels on the hangar's model, for a check. */
   window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
   window.__walkStats = () => (ui.walk ? {
-    pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
+    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
@@ -18974,6 +19080,10 @@ export async function boot({
   window.__drawOff = (on = true) => {
     harnessNoDraw = Boolean(on);
     return harnessNoDraw;
+  };
+  window.__frameMs = (ms = 0) => {
+    harnessFrameMs = Math.max(0, Math.min(FRAME_DT_MAX, Number(ms) || 0));
+    return harnessFrameMs;
   };
 
   /* The mode the plant is in, not the one the menu shows: angle cannot loop. */
@@ -20237,6 +20347,7 @@ export async function boot({
       refreshCrashWorld(back);
     }
     trickDetector.reset();
+    figureDetector.reset();
     race.voidLap(str('replay.lap_void'), nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     mode = 'flight';
@@ -20276,6 +20387,10 @@ export async function boot({
       }
       mode = 'flight';
       ui.show('flight');
+      if (replayFromDebrief) {
+        replayFromDebrief = false;
+        debrief.reopen();
+      }
     },
     drawWar: warMapDraw,
     /* The two beds as they play now, [id, seconds in] ('' for none): the

@@ -55,7 +55,7 @@ gets the facts block above its table.
 | freestyle | `free`, scored or free flight | `ui.showFreestyleResults(score.summary())` |
 | wing | not a mode: a fixed wing airframe in `race` or `free`; adds a landing line (down and whole when the run ends) in `free`, where the pilot ends the flight; a race ends at the line, in the air | the two above |
 | war | `war`, the room's round: the pilot flies on, so the round card (and combat's results card) end on one debrief line, time in the air, distance and the key that opens the replay | warround.js card, combathud |
-| ops | the Interior campaign over a `war` room | `debrief.show(...)` |
+| ops | the Interior campaign over a `war` room: the facts (required items captured of N, stars of N) under the stills, Watch the replay beside Continue; the debrief is hidden while the replay plays and shown again after | `debrief.show(...)` |
 | Flight Club | room results: `race` room and `tag` on the results screen (place of N, points, replay under Fly on); `combat` ends on an in flight card (combathud), with the war's card in PR 5 | `ui.showRoomResults(view)`, combathud |
 
 ## Data

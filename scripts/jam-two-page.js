@@ -158,6 +158,8 @@ try {
       check(`and ${names[pages.indexOf(watcher)]} watches: held, the camera on the runner, the runner's score live on its board`, seen.watching && seen.watched === v.runner
         && seen.hold > 0 && seen.view.live.total === Math.round(mine.own.total) && seen.view.live.tricks > 0 && seen.hud && seen.hud.rows[0].value !== '0',
       JSON.stringify({ watching: seen.watching, watched: seen.watched, live: seen.view.live, own: mine.own, hud: seen.hud && seen.hud.rows[0] }));
+      check(`and ${names[pages.indexOf(watcher)]} had the runner's tricks called out, the last one by name`, seen.watchCallouts.n > 0
+        && seen.watchCallouts.name === seen.view.live.last.name, JSON.stringify({ callouts: seen.watchCallouts, last: seen.view.live.last }));
       await shot(runner, `turn${turn + 1}-runner`);
       await shot(watcher, `turn${turn + 1}-watcher`);
     }

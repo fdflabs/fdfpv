@@ -54,6 +54,10 @@ export const PAGE_MAX = 50;
  * is a pilot with three tabs open.
  */
 export const SIGNIN_LIMIT = 20;
+/* Hangar visits read (GET /api/hangar/<callsign>), same window: a pilot
+ * looking round a few friends' hangars asks a handful; 120 keeps one
+ * address from walking the callsign list. */
+export const HANGAR_VISIT_LIMIT = 120;
 export const ACCOUNT_WRITE_LIMIT = 60;
 
 /* A session lasts thirty days from its sign in, and an account keeps at
