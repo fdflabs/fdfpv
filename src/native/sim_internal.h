@@ -1084,6 +1084,17 @@ typedef struct FixedWingParams {
   double tail_cn;
   double rot_k[3];
   /*
+   * GROUND EFFECT, plant_wing.c: ground_effect 1 takes the term, 0 (every
+   * table that does not set it) leaves the plant as it was. ge_wing and
+   * ge_tail are the wing's and the stabiliser's quarter chords on their
+   * mean chords, body frame from the CG, m, from the drawn model
+   * (crash_parts.h, npm run ge:derive); a table without a tail leaves
+   * ge_tail zero. The tail's term reads tail_deda.
+   */
+  int ground_effect;
+  double ge_wing[3];
+  double ge_tail[3];
+  /*
    * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
    * open in flight, sim_wing_set_door. door_time is their travel each way,
    * s; cd_door the drag they add fully open, on the wing's area; cm_door

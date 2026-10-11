@@ -63,6 +63,9 @@ jobs:
       - run: npm run wash:derive -- --check
       - run: npm run stab:hold
       - run: npm run as3x:derive
+      # The wings' ground effect against its sources and its surfaces
+      # against the drawn model (scripts/ge-derive.js).
+      - run: npm run ge:derive
       - run: npm run spool:derive
       # The host's vertical air at the craft (sim_set_air_vertical).
       - run: npm run air:vertical
@@ -392,6 +395,7 @@ jobs:
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
+      - run: npm run wing:ge
       - run: npm run wing:stab
       - run: npm run skyhunter:gates
       - run: npm run skyhunter:stab
