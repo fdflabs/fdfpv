@@ -1,10 +1,11 @@
 /*
- * war-outro-page.js: First Light's outro (src/share/war/films/
- * first-light-outro.js) on the real shell, as a win starts it: one pilot
- * live in First Light against a local rooms server (never the VM), the
+ * war-outro-page.js: a mission's outro (First Light's, src/share/war/
+ * films/first-light-outro.js, or --mission's) on the real shell, as a win
+ * starts it: one pilot live in the mission against a local rooms server (never the VM), the
  * room's war messages then dropped in the page and the room's won view
  * handed to it as the room would send it (winning for real is a ten minute fight). npm run
- * war:outropage [-- outdir]. What must hold: the outro starts on the win,
+ * war:outropage [-- outdir] [--mission=<id>, itaipu-1 without].
+ * What must hold: the outro starts on the win,
  * on the room's clock from the end; the war HUD and its end card step
  * aside while it plays; every shot is reached, a picture of each written;
  * its first line is the win debrief and the radio does not also say it;
@@ -29,14 +30,24 @@
 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir, mkdtemp, readFile, rm, writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { startRooms } from '../edge/rooms/node.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const missionArg = process.argv.find((a) => a.startsWith('--mission='));
+const MISSION = MISSIONS[missionArg ? missionArg.slice('--mission='.length) : 'itaipu-1'];
+if (!MISSION || !MISSION.outro) {
+  throw new Error(`war-outro-page: ${missionArg} names no mission with an outro`);
+}
+const WIN_EN = JSON.parse(await readFile(join(dirname(dirname(fileURLToPath(import.meta.url))), 'assets/audio/war/lines.json'), 'utf8'))
+  .lines.find((l) => l.id === MISSION.radio.win).en;
 const outDir = resolve(process.argv.slice(2).find((a) => !a.startsWith('--')) || join(tmpdir(), 'war-outro'));
 await mkdir(outDir, { recursive: true });
 
@@ -83,7 +94,7 @@ const seed = [`try {
 })()`];
 
 const dir = await mkdtemp(join(tmpdir(), 'war-outro-'));
-/* devMissions: First Light is held in development (src/game/campaign.js). */
+/* devMissions: the Itaipu missions are held in development (src/game/campaign.js). */
 const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(rooms)}`, width: 1280, height: 720, seed });
@@ -108,7 +119,7 @@ try {
   await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
   await page.evaluate("window.__ui.act('friends'); true");
   await page.sleep(500);
-  await page.evaluate("window.__warDo('start', 'itaipu-1')");
+  await page.evaluate(`window.__warDo('start', '${MISSION.id}')`);
   await page.until("window.__war().view.state === 'live'", 240000);
   /* The room's war goes quiet: what the page shows next is only the view
    * handed to it. */
@@ -120,7 +131,7 @@ try {
   if (!first) {
     console.log(`  view after the win: ${await page.evaluate("JSON.stringify((({ state, mission, endAt, id }) => ({ state, mission, endAt, id }))(window.__war().view))")}, mode ${await page.evaluate('window.__craftState().mode')}, room ${await page.evaluate('JSON.stringify({ phase: window.__rooms().phase })')}`);
   }
-  check('the win starts the outro', Boolean(first) && first.film === 'first-light-outro', JSON.stringify(first && { for: first.for, film: first.film }));
+  check('the win starts the outro', Boolean(first) && first.film === MISSION.outro, JSON.stringify(first && { for: first.for, film: first.film }));
   check('on the room\'s clock from the end', Boolean(first) && first.t < 3000, String(first && first.t));
   const shots = first ? first.shots.map((s) => s.id) : [];
   const seen = new Set();
@@ -141,11 +152,12 @@ try {
     const both = JSON.parse(await page.evaluate('JSON.stringify({ on: Boolean(window.__warIntro()), h: window.__war().hud })'));
     const h = both.h;
     hudUp = hudUp || (both.on && (h.banner !== '' || h.objectives.length > 0));
-    said = said || /dam's still ours/.test(h.subtitle);
+    /* The win line's start: the subtitle may show it in part. */
+    said = said || h.subtitle.includes(WIN_EN.slice(0, 20));
     await page.sleep(250);
   }
   check('every shot is reached', shots.length > 0 && shots.every((id) => seen.has(id)), `${[...seen].join(' ')} of ${shots.join(' ')}`);
-  check('its first line is the win debrief', first && first.lines[0]?.line === 'debrief-itaipu-1-win', JSON.stringify(first && first.lines[0]));
+  check('its first line is the win debrief', first && first.lines[0]?.line === MISSION.radio.win, JSON.stringify(first && first.lines[0]));
   check('the war HUD and its end banner step aside while it plays', !hudUp);
   check('the radio does not say the debrief over the film', !said);
   await page.sleep(1500);
