@@ -81,6 +81,9 @@
 #include "sensors/sensors.h"
 #include "fc/core.h"
 
+/* fc/core.c's airmode throttle latch; see bf_airmode_latch. */
+static bool g_airmode_activated = false;
+
 extern uint32_t sim_bf_now_us;
 extern uint16_t sim_bf_sag_cell_cv;
 
@@ -558,6 +561,8 @@ static void bf_runtime_init(void) {
 
   ENABLE_ARMING_FLAG(ARMED);
   pidStabilisationState(PID_STABILISATION_ON);
+  /* A fresh arm: airmode waits for the throttle again. */
+  g_airmode_activated = false;
 
   /*
    * THE TWO FEATURE FLAGS THAT DO NOTHING UNTIL SOMETHING RUNS THEM.
@@ -1017,7 +1022,50 @@ static int bf_rx_channels(timeUs_t now_us, int frame) {
   return 1;
 }
 
+/*
+ * AIRMODE'S THROTTLE LATCH AND THE I TERM AT LOW THROTTLE, fc/core.c
+ * processRx copied (Betaflight at vendor/betaflight 77d01ba3, core.c
+ * lines 778 to 795; processRx itself is not compiled here).
+ *
+ * Airmode is not active from the moment of arming. It latches the first
+ * time the throttle stick reaches airmode_start_throttle_percent (25 by
+ * default, pg/rx.c) and stays until disarm. Before that, a throttle under
+ * min_check (1050) holds the I term at zero every loop
+ * (pidSetItermReset, pid.c zeroThrottleItermReset) with the PID still
+ * stabilising (pid_at_min_throttle ON by default). This was a stub that
+ * returned true from arming, so a craft that never left zero throttle,
+ * set down flat after a drop, wound its I term against the ground and
+ * spun two diagonal motors to 6,000 to 12,000 rpm. After a real flight
+ * the latch is set and the windup on the ground is Betaflight's own.
+ */
+bool isAirmodeActivated(void) {
+  return g_airmode_activated;
+}
+
+static void bf_airmode_latch(void) {
+  const bool throttleActive = calculateThrottleStatus() != THROTTLE_LOW;
+  const uint8_t throttlePercent = calculateThrottlePercentAbs();
+  const bool launchControlActive = isLaunchControlActive();
+
+  if (airmodeIsEnabled() && ARMING_FLAG(ARMED) && !launchControlActive) {
+    if (throttlePercent >= rxConfig()->airModeActivateThreshold) {
+      g_airmode_activated = true;
+    }
+  } else {
+    g_airmode_activated = false;
+  }
+
+  if (ARMING_FLAG(ARMED) && (g_airmode_activated || throttleActive || launchControlActive || isFixedWing())) {
+    pidSetItermReset(false);
+    pidStabilisationState(PID_STABILISATION_ON);
+  } else {
+    pidSetItermReset(true);
+    pidStabilisationState(currentPidProfile->pidAtMinThrottle ? PID_STABILISATION_ON : PID_STABILISATION_OFF);
+  }
+}
+
 static void bf_rx_commands(timeUs_t now_us) {
+  bf_airmode_latch();
   updateRcRefreshRate(now_us);
   const int level = failsafeIsActive() ? 1 : 0;
   if (level != g_failsafe_level) {
@@ -1124,6 +1172,7 @@ void bridge_reset(void) {
     g_launch_state = LAUNCH_CONTROL_DISABLED;
   }
   g_crashflip = 0;
+  g_airmode_activated = false;
 }
 
 #define SIM_RAD_TO_DEG 57.29577951308232
