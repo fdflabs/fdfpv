@@ -352,6 +352,58 @@ function takeoff() {
   }
   return { x, t, V };
 }
+/*
+ * The rotation, as FAA-H-8083-3C ch. 6 flies it and the take off pilot
+ * does (tests/lib/wingpilot.js herculesTakeoffSticks): the roll at the rest
+ * attitude to VR, 1.1 Vs, then the elevator raises the nose to the
+ * lift-off attitude (CL max / 1.21 on the zero lift line) and holds it,
+ * the same law (4 per rad of error, 0.5 per rad/s of pitch rate, a hand
+ * that adds 4 per rad per second), turning about the main wheels: the
+ * aero moment about the CG (Cm0, Cm alpha, Cm de, Cmq), the lift and the
+ * weight at the CG's 0.08 m ahead of the mains, the thrust's line and the
+ * drag at their heights over the wheels' contact, the CG's inertia as it
+ * accelerates (the load shifting aft), on Iyy plus the CG's
+ * offset from the contact squared; the nose leg holds it until that
+ * moment lifts it. Lift off where the lift carries the weight. Returns the
+ * lift-off's speed, distance and time, the time from VR to it, and when
+ * (if before it) the nose reached the lift-off attitude.
+ */
+const liftoffPitch = CLmax / 1.21 / CLa + alphaZl;
+function rotation() {
+  const dt = 0.0005, VR = 1.1 * Vs;
+  const hC = cgHeight - wheelR;
+  const Im = Iyy + m * (mainX * mainX + hC * hC);
+  let V = 0, x = 0, t = 0, th = restPitchDeg / DEG, qr = 0, iP = 0, tVR = null, tAtt = null;
+  while (t < 30) {
+    let stick = 0;
+    if (V >= VR) {
+      if (tVR === null) tVR = t;
+      const err = liftoffPitch - th;
+      iP = Math.max(-1, Math.min(1, iP + 4 * err * dt));
+      stick = Math.max(-1, Math.min(1, 4 * err - 0.5 * qr + iP));
+    }
+    const q = 0.5 * rho * V * V;
+    const de = stick * throwE;
+    const CL = clAt(th) + CLde * de;
+    const L = q * S * CL, D = q * S * (CD0 + kInd * CL * CL), Tn = T(V, 1);
+    if (L >= W) return { V, x, t, fromVR: t - tVR, tAtt: tAtt === null ? null : tAtt - tVR, attitudeDeg: th * DEG };
+    const aZ = th - alphaZl;
+    const mCG = q * S * c * (Cm0 + Cma * aZ + Cmde * de + (V > 1 ? Cmq * qr * c / (2 * V) : 0));
+    const acc = (Tn - D - 0.08 * Math.max(0, W - L)) / m;
+    /* About the wheels, which accelerate with it, the CG's own inertia
+     * (m a at its height over them, the load shifting aft) lifts the nose. */
+    const mMain = mCG + (L - W) * (-mainX) - Tn * (hC + zThrust) + D * hC + m * acc * hC;
+    if (th > restPitchDeg / DEG + 1e-9 || mMain > 0) {
+      qr += mMain / Im * dt;
+      th += qr * dt;
+      if (th < restPitchDeg / DEG) { th = restPitchDeg / DEG; qr = 0; }
+    }
+    if (tAtt === null && tVR !== null && th >= liftoffPitch) tAtt = t;
+    V += acc * dt; x += V * dt; t += dt;
+  }
+  return null;
+}
+
 /* The ground roll to a speed at the rest attitude, full throttle: the
  * take off gate's band runs from the roll to 1.1 Vs to the roll to 1.5 Vs,
  * as the Kadet's does. */
@@ -441,7 +493,7 @@ const out = {
   CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, CnbFin: av * VV, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
-  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
+  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, liftoffPitchDeg: (CLmax / 1.21 / CLa + alphaZl) * DEG, rotation: rotation(), cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
   kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
   fusW, fusH, propR, yInboard, yOutboard, aileronIn, aileronOut, throwA, throwE, throwR, xCG, xMACle, kitLength, k, washout,
 };

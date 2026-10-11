@@ -205,15 +205,18 @@ check: {
     onStrip();
     for (let ms = 0; ms < 1000; ms += RC_STEP_MS) step(sim, [0, 0, 0, 0]);
     const x0 = sim.readState().state[1];
+    const pull = { i: 0 };
+    let tVR = null;
     let last = null;
     let off = 0;
     let lof = null;
     let worstBank = 0;
     let tail = 0;
     for (let ms = 0; ms < 10000 && !lof; ms += RC_STEP_MS) {
-      const o = step(sim, herculesTakeoffSticks(sim.readState().state));
+      const o = step(sim, herculesTakeoffSticks(sim.readState().state, { hold: pull }));
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));
       tail = Math.max(tail, o.loads[3]);
+      if (tVR === null && speed(o.s) >= 10.63) tVR = ms / 1000;
       if (o.loaded) {
         last = { dist: o.s[1] - x0, v: speed(o.s), t: ms / 1000, heading: heading(o.s) * DEG };
         off = 0;
@@ -222,9 +225,11 @@ check: {
         if (off >= 200) lof = last;
       }
     }
-    gate('H5', 'takes off, the elevator eased up at 1.1 Vs', lof != null && lof.dist >= t5.distMin && lof.dist <= t5.distMax && lof.v >= t5.vMin && lof.v <= t5.vMax && tail === 0,
-      lof == null ? 'never left the ground' : `${lof.dist.toFixed(2)} m to liftoff at ${lof.v.toFixed(2)} m/s, ${lof.t.toFixed(2)} s, heading ${lof.heading.toFixed(1)} deg, bank under ${worstBank.toFixed(1)}, tail ${tail > 0 ? 'STRUCK' : 'clear'}`,
-      `${t5.distMin} to ${t5.distMax} m, ${t5.vMin} to ${t5.vMax} m/s, no tail strike`);
+    const fromVR = lof != null && tVR !== null ? lof.t - tVR : null;
+    gate('H5', 'takes off, the elevator eased up at 1.1 Vs', lof != null && lof.dist >= t5.distMin && lof.dist <= t5.distMax && lof.v >= t5.vMin && lof.v <= t5.vMax && tail === 0
+      && fromVR !== null && Math.abs(fromVR - t5.fromVR) <= t5.fromVRTol * t5.fromVR,
+      lof == null ? 'never left the ground' : `${lof.dist.toFixed(2)} m to liftoff at ${lof.v.toFixed(2)} m/s, ${lof.t.toFixed(2)} s, ${fromVR === null ? '' : `${fromVR.toFixed(2)} s from VR, `}heading ${lof.heading.toFixed(1)} deg, bank under ${worstBank.toFixed(1)}, tail ${tail > 0 ? 'STRUCK' : 'clear'}`,
+      `${t5.distMin} to ${t5.distMax} m, ${t5.vMin} to ${t5.vMax} m/s, ${t5.fromVR} s from VR within ${(t5.fromVRTol * 100).toFixed(0)} percent, no tail strike`);
   }
 }
 

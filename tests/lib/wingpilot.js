@@ -1715,10 +1715,14 @@ export function zagiPrelude(sim, { mu = 1.4, e = 0 } = {}) {
 
 /* Wings level on the roll stick, and the nose held at a pitch on the
  * elevons, gently: the Zagi answers a tenth of its stick. */
-export function zagiHold(s, { bank = 0, pitch = 0 } = {}) {
+/* trim, when given ({ i: 0 }, kept by the caller): the hand that trims a
+ * steady moment out, as personWingsHold's, 0.2 of stick per radian of
+ * error a second; without it the hold is the proportional one it was. */
+export function zagiHold(s, { bank = 0, pitch = 0, trim = null } = {}) {
   const a = attitude(s);
   const roll = Math.max(-1, Math.min(1, -1.0 * (a.bank - bank) - 0.08 * s[11]));
-  const pitchStick = Math.max(-1, Math.min(1, 1.2 * (pitch - a.pitch) - 0.10 * -s[12]));
+  if (trim) trim.i = Math.max(-1, Math.min(1, trim.i + 0.2 * (pitch - a.pitch) * RC_STEP_MS / 1000));
+  const pitchStick = Math.max(-1, Math.min(1, 1.2 * (pitch - a.pitch) - 0.10 * -s[12] + (trim ? trim.i : 0)));
   return [roll, pitchStick];
 }
 
@@ -2307,13 +2311,27 @@ export function herculesGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
 /* A tricycle's take off as the Kadet's: full throttle, the wings held
  * level on the ailerons and the heading on the rudder and nose wheel
  * against the four props' torque, the elevator eased up past 1.1 Vs. */
-export function herculesTakeoffSticks(s, { vRotate = 10.63 } = {}) {
-  const { bank } = attitude(s);
+/* The take off as FAA-H-8083-3C ch. 6 flies it: at VR, 1.1 Vs, back
+ * pressure raises the nose to the lift-off attitude, "the slightly
+ * nose-high pitch attitude should be held until the airplane lifts off",
+ * and not forced off ("excessive back-elevator pressure would only result
+ * in an excessively high-pitch attitude and may delay the takeoff"): the
+ * attitude where the wing makes the weight at 1.1 Vs, CL max / 1.21 on the
+ * zero lift line (hercules:derive liftoffPitchDeg, 5.66 deg), held on the
+ * elevator with takeoffSticks' gains and a hand that keeps pulling until
+ * the nose is there (hold.i, an integral over a second, kept by the
+ * caller); the wings on the ailerons, the heading on the rudder. It
+ * replaces a 0.6 elevator cap no source held. */
+export function herculesTakeoffSticks(s, { vRotate = 10.63, liftoffPitchDeg = 5.66, hold = { i: 0 } } = {}) {
+  const { pitch, bank } = attitude(s);
   const v = Math.hypot(s[4], s[5], s[6]);
   const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
   const roll = Math.max(-1, Math.min(1, -0.8 * bank - 0.1 * s[11]));
   const yaw = Math.max(-1, Math.min(1, 1.5 * heading + 0.2 * s[13]));
-  return [roll, v < vRotate ? 0 : Math.min(0.6, (v - vRotate) * 0.6), yaw, 1];
+  const err = liftoffPitchDeg * Math.PI / 180 - pitch;
+  if (v >= vRotate) hold.i = Math.max(-1, Math.min(1, hold.i + 4 * err * RC_STEP_MS / 1000));
+  const elev = v < vRotate ? 0 : Math.max(-1, Math.min(1, 4 * err + 0.5 * s[12] + hold.i));
+  return [roll, elev, yaw, 1];
 }
 
 /*
@@ -2328,6 +2346,7 @@ export function recordHerculesFlight(sim) {
   must(sim.reset(), 'sim_reset');
   herculesGroundPrelude(sim);
   const samples = [];
+  const pull = { i: 0 };
   for (let ms = 0; ms < 24000; ms += RC_STEP_MS) {
     const s = sim.readState().state;
     const { pitch, bank } = attitude(s);
@@ -2337,7 +2356,7 @@ export function recordHerculesFlight(sim) {
     if (ms < 1000) {
       sticks = [0, 0, 0, 0];
     } else if (ms < 9000) {
-      sticks = herculesTakeoffSticks(s);
+      sticks = herculesTakeoffSticks(s, { hold: pull });
     } else if (ms < 14000) {
       sticks = [hold(0), nose(0.12), 0, 1];
     } else if (ms < 19000) {
