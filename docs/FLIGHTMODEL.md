@@ -1029,8 +1029,9 @@ stick, it rolls or pitches slowly; full stick, rapidly):
 - Gains from as3x:derive: the rate loop at its 6 dB margin at the top
   speed against the frame's delay, k = pi / (4 M tau), 0.0508, 0.2369,
   0.3611; the heading's corner a quarter of that loop's crossover, kh =
-  k pi / (16 tau), 0.9068, 4.2287, 6.4456; as3x_rate 7.171, -4.445, -5.207
-  rad/s per unit stick (as3x:derive on the spun up plant, 2026-10-10). A 1 rad/s kick at 35 m/s settles on every axis
+  k pi / (16 tau), 0.9068, 4.2287, 6.4456; as3x_rate 6.529, -4.141, -4.775
+  rad/s per unit stick (as3x:derive on the spun up plant, each rate the
+  stick's run against the centred one, 2026-10-11). A 1 rad/s kick at 35 m/s settles on every axis
   (as3x:derive checks it); at a 5.5 ms frame the same derivation's gains
   oscillate in yaw against the servos' slew, so 11 it is.
 

@@ -455,7 +455,7 @@ const SCENARIOS = [
   scenario('title-race-named', { seed: () => { store.set('webfpv.pilot.name', 'Ace Pilot'); seedBoardSeat(); }, fields: { friendsRow: friendsRowInRoom, inRoom: () => true } }),
   scenario('title-freestyle', { settings: { map: 'swiss2', freestyleMap: 'swiss2' }, fields: { mode: 'freestyle', firstRun: true } }),
   scenario('title-freestyle-not-loaded', { settings: { map: 'track' }, fields: { mode: 'freestyle' } }),
-  scenario('title-plane', { settings: { airframe: 'cub1400', tune: 'cub-acro' }, fields: {} }),
+  scenario('title-plane', { settings: { airframe: 'cub1400', tune: 'cub-manual' }, fields: {} }),
   scenario('title-update-bar', { fields: { updateBar: { hidden: false } } }),
   scenario('title-both-bars', { fields: { updateBar: { hidden: false }, roomBar: { hidden: false }, roomBarView: { button: 'Rejoin', text: 'OWLS is still open.' } } }),
   scenario('title-room-bar-no-button', { fields: { roomBar: { hidden: false }, roomBarView: { button: '', text: 'nothing' } } }),
