@@ -190,6 +190,16 @@ const idealPower = thrustStatic ** 1.5 / Math.sqrt(2 * rho * discA);
 const staticRpm = 0.85 * rpmNoLoad;
 const torque = idealPower / (staticRpm * 2 * Math.PI / 60);
 const torqueArm = torque / thrustStatic;
+/* The full throttle current: the shaft power the 12 x 8 takes where it
+ * makes the static thrust, off APC's 12 x 8E static rows (PER3_12x8E.dat,
+ * V = 0: 20.527 N and 319.0 W at 8,000 rpm, 26.083 N and 453.4 W at
+ * 9,000), straight between them, through the 0.82 motor of the endurance
+ * check below, off the 6S pack at 3.7 V a cell. */
+const apcStatic = [[8000, 20.527, 319.025], [9000, 26.083, 453.426]];
+const apcAt = (rpm) => apcStatic[0].map((x, i) => x + (rpm - 8000) / 1000 * (apcStatic[1][i] - x));
+const rpmAtTs = 8000 + 1000 * (thrustStatic - apcStatic[0][1]) / (apcStatic[1][1] - apcStatic[0][1]);
+const shaftAtTs = apcAt(rpmAtTs)[2];
+const currentFull = shaftAtTs / (vPack * 0.82);
 
 /* Trim at cruise with the elevons neutral: the pitching moment at the
  * cruise angle of attack and the thrust line's moment at cruise thrust. */
@@ -284,6 +294,7 @@ console.log(`  climb at full throttle: ${[14.3, 15, 16, 18, 20].map((V) => `${f(
 console.log(`  static thrust for a best climb of ${climbMax} m/s: ${thrustStatic} N (T/W ${f(thrustStatic / W, 2)}), best climb ${f(bestClimb(thrustStatic).vz, 2)} at ${f(bestClimb(thrustStatic).v, 1)} m/s`);
 console.log(`  cruise duty for 16 m/s ${f(dutyCruise, 4)}; level at 65 percent ${f(levelSpeed(0.65), 2)}; top ${f(levelSpeed(1), 2)} m/s`);
 console.log(`  ideal static disc power ${f(idealPower, 0)} W, torque ${f(torque, 3)} N m, arm ${f(torqueArm, 4)} m`);
+console.log(`  APC 12 x 8E static: ${f(thrustStatic, 1)} N at ${f(rpmAtTs, 0)} rpm, shaft ${f(shaftAtTs, 0)} W (at ${f(staticRpm, 0)} rpm ${f(apcAt(staticRpm)[1], 2)} N, ${f(apcAt(staticRpm)[2], 0)} W); full throttle current at 0.82 ${f(currentFull, 1)} A`);
 console.log(`  drag at 16 m/s ${f(dragAt(16), 3)} N, aero power ${f(dragAt(16) * 16, 1)} W, electrical at 0.65 x 0.82 ${f(dragAt(16) * 16 / (0.65 * 0.82), 0)} W, 3.5 h is ${f(3.5 * dragAt(16) * 16 / (0.65 * 0.82), 0)} Wh`);
 console.log(`inertia: Ixx ${f(ixx, 3)}, Iyy ${f(iyy, 3)}, Izz ${f(izz, 3)} kg m2`);
 console.log(`chute: total CdA ${f(cdaTotal, 3)} m2 at ${vChute} m/s, airframe ${f(cdaAirframe, 3)}, canopy ${f(chuteCda, 3)} (a ${f(canopyD, 2)} m round canopy at C_D ${canopyCd0})`);
