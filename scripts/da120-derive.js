@@ -16,16 +16,23 @@
  *     are +/-10%"), the propeller table's 28x10 at "6900" rpm and "73.2"
  *     lb of thrust (estimated via simulation, +/-5 percent), BSFC "575
  *     g/kWh".
- *   rc-network.de thread 388921, 2014-05-06: a Falcon 28x10 on a DA-120
- *     tachometered at 6,850 rpm.
+ *   Falcon Propeller's test chart, its DA 120CC column,
+ *     https://www.falconpropellers.com/wp-content/uploads/2020/04/Falcon-Propeller-Test-Chart.pdf:
+ *     the DA-120 on Falcon's 28 x 10, measured, 6,550 rpm and 31.0 kg of
+ *     static thrust: the full throttle point (the Slick lane's,
+ *     docs/SLICK-STAGE1.md). HFE's simulated 6,900 rpm and 73.2 lb and a
+ *     forum's tachometered 6,850 (rc-network.de thread 388921) are printed
+ *     against it; measured beats derived.
  *   Desert Aircraft's DA-120 page (desertaircraft.com): idle "1,300" of
  *     "1,300 to 6,900" rpm.
  *   Prop masses: Biela 28x10 322 g (rc-innovations.es), Mejzlik 28x10
  *     288 g and 276 g (lindinger.at listings).
  *   Extreme Flight's 120cc build guide: the "FlowMaster 34 oz." tank.
- *   APC's 17x6E, https://www.apcprop.com/files/PER3_17x6E.dat, at 11,000
- *     rpm: the nearest pitch over diameter APC publishes (0.353 against
- *     0.357) at the same tip speed (249 m/s against 255).
+ *   APC's 22x8, https://www.apcprop.com/files/PER3_22x8.dat, static Ct
+ *     and Cp at 6,000 and 7,000 rpm, the Slick table's torque transfer
+ *     (pitch over diameter 0.364 against 0.357); APC's 17x6E at 11,000
+ *     rpm, the nearest pitch over diameter at the same tip speed, is
+ *     printed against it.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -47,16 +54,20 @@ const rho = 1.225;
 const IN = 0.0254;
 const D = 28 * IN, pitch = 10 * IN, R = D / 2;
 
-/* The full throttle point: the Falcon 28x10's measured 6,850 rpm; HFE's
- * thrust at its simulated 6,900 taken to it by the speed squared. */
-const rpmFull = 6850;
+/* The full throttle point: Falcon's measured 6,550 rpm and 31.0 kg. */
+const rpmFull = 6550;
 const nFull = rpmFull / 60;
-const thrustFull = 73.2 * 4.4482216 * (rpmFull / 6900) ** 2;
-/* APC's 17x6E at 11,000 rpm, static: Ct 0.0715, Cp 0.0198. The thrust over
- * the power coefficient carries to the 28 x 10, so its torque is
- * T D / (2 pi Ct/Cp). */
-const ctOverCp = 0.0715 / 0.0198;
+const thrustFull = 31.0 * 9.81;
+/* APC's 22x8 static, Ct and Cp straight between 6,000 and 7,000 rpm
+ * (0.0665, 0.0182; 0.0678, 0.0184): their ratio carries to the 28 x 10,
+ * so its torque is T D Cp / (2 pi Ct). FITTED: APC publishes no 28 x 10. */
+const fr = (rpmFull - 6000) / 1000;
+const ctOverCp = (0.0665 + fr * (0.0678 - 0.0665)) / (0.0182 + fr * (0.0184 - 0.0182));
 const torqueFull = thrustFull * D / (2 * Math.PI * ctOverCp);
+/* The alternatives, printed against it: HFE's simulated point taken to
+ * 6,550 by the speed squared, and APC's 17x6E's Ct/Cp, 0.0715 / 0.0198. */
+const thrustHfe = 73.2 * 4.4482216 * (rpmFull / 6900) ** 2;
+const torque17x6 = thrustFull * D / (2 * Math.PI * (0.0715 / 0.0198));
 
 /* HFE fig. 3, the part throttle torque, N m, read off the plot at each
  * 500 rpm column (a reading is within 0.1 N m of the marker; the data are
@@ -84,18 +95,21 @@ function dynoAt(th, rpm) {
 }
 
 /* The prop's static torque goes with its speed squared (the plant's spool
- * load). The full throttle torque is the dyno's own at 6,850 rpm, which
- * checks the transfer above. */
+ * load). */
+/* HFE's engine is fuel injected; Falcon's carburetted one turns the prop
+ * slower, so every dyno row is scaled by the prop's torque at 6,550 over
+ * the dyno's own there, inside its +/-10 percent. */
 const qDyno = dynoAt(1.0, rpmFull);
+const dynoScale = torqueFull / qDyno;
 const qProp = (rpm) => torqueFull * (rpm / rpmFull) ** 2;
 /* Each throttle's steady speed: where the engine's torque meets the prop's. */
 function steadyRpm(th) {
   let lo = 2000, hi = 8000;
-  if (dynoAt(th, lo) < qProp(lo)) return null;
+  if (dynoScale * dynoAt(th, lo) < qProp(lo)) return null;
   for (let i = 0; i < 60; i += 1) {
     const mid = (lo + hi) / 2;
     const q = dynoAt(th, mid);
-    if (q != null && q > qProp(mid)) lo = mid; else hi = mid;
+    if (q != null && dynoScale * q > qProp(mid)) lo = mid; else hi = mid;
   }
   return lo;
 }
@@ -104,7 +118,7 @@ function steadyRpm(th) {
  * Its speed at a throttle position s, of full: the dyno's crossing at
  * 20 percent and up; from the idle's 1,300 rpm at the stop to the 20
  * percent crossing straight, where HFE ran nothing (FITTED: the dyno
- * starts at 2,000 rpm). Full is the measured 6,850 by construction. */
+ * starts at 2,000 rpm). Full is the measured 6,550 by construction. */
 const rpmIdle = 1300;
 const idle = rpmIdle / rpmFull;
 const curve = [];
@@ -162,7 +176,7 @@ function stepTimes(s0, s1) {
 
 const f = (x, d = 4) => Number(x).toFixed(d);
 console.log('da120 derive: the Slick 580\'s engine and prop, docs/FLIGHTMODEL.md');
-console.log(`full throttle: ${rpmFull} rpm, thrust ${f(thrustFull, 1)} N (HFE 73.2 lb at 6,900), torque ${f(torqueFull, 3)} N m (dyno at ${rpmFull}: ${f(qDyno, 2)}), power ${f(powerFull / 1000, 2)} kW (HFE max 7.1)`);
+console.log(`full throttle: ${rpmFull} rpm, thrust ${f(thrustFull, 1)} N (Falcon, measured; HFE's simulated point there ${f(thrustHfe, 1)}), torque ${f(torqueFull, 3)} N m (APC 17x6E's ratio ${f(torque17x6, 3)}; HFE's dyno at ${rpmFull}: ${f(qDyno, 2)}, scaled by ${f(dynoScale, 3)}), power ${f(powerFull / 1000, 2)} kW (HFE max 7.1)`);
 console.log(`steady rpm by throttle (dyno against the prop): ${[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((t) => `${t * 100}% ${f(steadyRpm(t), 0)}`).join(', ')}`);
 console.log(`the stick's curve, rpm over full at 0, 0.1, ... 1: ${curve.map((c) => f(c)).join(' ')}`);
 console.log(`the glow method's straight line there: ${curve.map((_, i) => f(idle + (1 - idle) * i / 10)).join(' ')}`);
@@ -170,12 +184,12 @@ console.log(`rotor J ${f(jProp, 5)} kg m^2 (blades ${f(0.7 * propMass * R * R / 
 console.log(`fuel: full ${f(flowFull * 60e6, 1)} cc/min, tank ${f(tank * 1e6, 0)} cc, ${f(tank / flowFull / 60, 1)} min at full`);
 console.log(`spool 63/90 percent of the thrust, ms: idle to full ${stepTimes(0, 1)}, half to full ${stepTimes(0.5, 1)}, full to half ${stepTimes(1, 0.5)}, idle to half ${stepTimes(0, 0.5)}`);
 console.log('\nThe Slick table\'s engine lines (plant_wing.c, FixedWingParams):');
-console.log(`  .thrust_static = ${f(thrustFull, 2)}, /* N, HFE's 28x10 at 6,900 rpm to the measured 6,850, npm run da120:derive */`);
-console.log(`  .pitch_speed = ${f(pitch * nFull, 3)}, /* the 10 in pitch at 6,850 rpm */`);
-console.log(`  .rpm_no_load = ${f(rpmFull / 0.85, 1)}, /* 6,850 over the plant's 0.85 */`);
+console.log(`  .thrust_static = ${f(thrustFull, 2)}, /* N, Falcon's measured 31.0 kg on the 28 x 10, npm run da120:derive */`);
+console.log(`  .pitch_speed = ${f(pitch * nFull, 3)}, /* the 10 in pitch at 6,550 rpm */`);
+console.log(`  .rpm_no_load = ${f(rpmFull / 0.85, 1)}, /* 6,550 over the plant's 0.85 */`);
 console.log(`  .torque_arm = ${f(torqueFull / thrustFull, 5)}, /* the prop's ${f(torqueFull, 2)} N m over its thrust, npm run da120:derive */`);
 console.log('  .current_full = 0.0,    /* the engine burns fuel, not the pack */');
-console.log(`  .throttle_idle = ${f(idle)}, /* DA's 1,300 rpm idle of the 6,850; throttle_rpm's first, which the tank and the drain key off */`);
+console.log(`  .throttle_idle = ${f(idle)}, /* DA's 1,300 rpm idle of the 6,550; throttle_rpm's first, which the tank and the drain key off */`);
 console.log(`  .throttle_rpm = { ${curve.map((c) => f(c)).join(', ')} }, /* HFE's part throttle dyno against the prop, npm run da120:derive */`);
 console.log(`  .tank_m3 = ${f(tank * 1e6, 1)}e-6, /* the FlowMaster 34 oz */`);
 console.log(`  .flow_full = ${f(flowFull * 1e6, 4)}e-6, /* BSFC 575 g/kWh at ${f(powerFull / 1000, 2)} kW, npm run da120:derive */`);
