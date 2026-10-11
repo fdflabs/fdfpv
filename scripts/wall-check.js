@@ -32,9 +32,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { makeRig, buildWorld, V, linePath, rampPath, sub, len, cl } from './lib/flightrig.js';
+import { makeRig, buildWorld, V, linePath, rampPath, sub, len, cl, cross } from './lib/flightrig.js';
 import { deriveObstacles } from '../src/game/obstacles.js';
-import { CRAFT_ARM, CRAFT_HULL_R, BOUNCE_SEPARATION } from '../src/game/collide.js';
+import { CRAFT_ARM, CRAFT_HULL_R, CRAFT_R, BOUNCE_SEPARATION } from '../src/game/collide.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmPath = join(root, 'dist/sim.wasm');
@@ -44,6 +44,17 @@ const PASS_MS = 4;          /* the shell's contact cadence, which sets the allow
 /* How far the hull reaches toward a face it meets square on: a motor on the
  * diagonal plus the prop disc. Read from collide.js so a change there moves it. */
 const SQUARE_REACH = CRAFT_ARM * Math.SQRT1_2 + CRAFT_HULL_R;
+/* How far the hull reaches toward the face (+x) at the craft's attitude,
+ * the collider's own disc support (collide.js support, clamped as hit
+ * clamps it): the motors along the two body axes in the disc plane, plus
+ * the prop disc's edge. Level it is SQUARE_REACH; on edge against the face,
+ * props to the masonry, it is the hull radius alone. */
+function reachToFace(c) {
+  const side = cross(c.up, c.fwd);
+  const r = CRAFT_ARM * Math.SQRT1_2 * (Math.abs(c.fwd.x) + Math.abs(side.x))
+    + CRAFT_HULL_R * Math.sqrt(Math.max(0, 1 - c.up.x * c.up.x));
+  return Math.min(CRAFT_R, Math.max(CRAFT_HULL_R, r));
+}
 const YAWS = [[0, '0'], [Math.PI / 2, '90'], [Math.PI, '180'], [-Math.PI / 2, '270']];
 const SPEEDS = [3, 6, 9];
 const EAST = Math.atan2(1, 0);
@@ -91,8 +102,15 @@ async function tap(yaw, speed) {
   const approachVx = rig.craft().v.x;
   const coast = [];
   let deepest = -1e9;
+  let hullDeepest = -1e9;
+  let hullReach = 0;
   rig.stickUntil([0, 0, 0, 0.345], Math.round((1.4 / speed) * 1000) + 320, (c) => {
     if (c.p.x > deepest) deepest = c.p.x;
+    const reach = reachToFace(c);
+    if (c.p.x + reach > hullDeepest) {
+      hullDeepest = c.p.x + reach;
+      hullReach = reach;
+    }
     coast.push({ x: c.p.x, vx: c.v.x, touched: rig.stats.contacts > 0 });
     return false;
   });
@@ -105,7 +123,7 @@ async function tap(yaw, speed) {
   const first = coast.findIndex((s) => s.touched);
   const after = first < 0 ? [] : coast.slice(first);
   return {
-    yaw, speed, approach: approachVx, deepest, arrive, stats: { ...rig.stats }, exitGap,
+    yaw, speed, approach: approachVx, deepest, hullDeepest, hullReach, arrive, stats: { ...rig.stats }, exitGap,
     hit: first < 0 ? null : coast[first],
     peakOut: first < 0 ? 0 : after.reduce((m, s) => Math.max(m, -s.vx), -Infinity),
     maxGap: after.reduce((m, s) => Math.max(m, FACE_X - s.x), 0),
@@ -160,11 +178,11 @@ for (const r of runs.filter((x) => x.speed >= 9)) {
 }
 for (const r of runs) {
   const slop = r.speed * (PASS_MS / 1000) * 2 + BOUNCE_SEPARATION;
-  const reach = r.deepest + SQUARE_REACH;
-  report(r.deepest <= FACE_X - SQUARE_REACH + slop,
+  report(r.hullDeepest <= FACE_X + slop,
     `${at(r)}: the hull stays out of the masonry, within what the cadence allows`,
-    `deepest centre x ${f3(r.deepest)}, hull to ${f3(reach)}, `
-    + `${(Math.max(0, (reach - FACE_X) * 1000)).toFixed(0)} mm in, ${(slop * 1000).toFixed(0)} mm allowed`);
+    `deepest hull x ${f3(r.hullDeepest)} (reach ${f3(r.hullReach)} at that attitude, level ${f3(SQUARE_REACH)}), `
+    + `centre at most ${f3(r.deepest)}, `
+    + `${(Math.max(0, (r.hullDeepest - FACE_X) * 1000)).toFixed(0)} mm in, ${(slop * 1000).toFixed(0)} mm allowed`);
 }
 for (const speed of SPEEDS) {
   const ratios = runs.filter((r) => r.speed === speed).map((r) => r.peakOut / Math.max(0.01, r.approach));
