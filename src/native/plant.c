@@ -1643,6 +1643,62 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.308, 0.0, -0.1651 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * AeroTetris's C-130 Hercules 3077, docs/HERCULES-STAGE1.md: 6.73 kg
+ * flying (scripts/hercules-derive.js's build up on the kit's 2460 g
+ * frame), four 12 x 8Es 0.315 m ahead of the CG on the nacelles' thrust
+ * lines 0.10 m over it, taken as one (FW_HERCULES3077). The pack is the
+ * four 3S 5000s, one a motor, as one pack of the same cells: four times
+ * the charge at a quarter of the resistance; the ESCs cut at 3.0 V a
+ * cell, ESTIMATED. The hull is only what a crash lands on: the belly
+ * 0.195 m under the CG, the fuselage's top 0.155 m over it, the half span
+ * wide, the nose 0.92 m ahead. The camera is the pilot's, in the flight
+ * deck's windscreen.
+ */
+[SIM_AIRFRAME_HERCULES3077] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 6.728, /* npm run hercules:derive */
+  .inertia = { 1.1016, 1.3133, 2.2417 }, /* npm run hercules:derive */
+  .gravity = 9.81, /* standard gravity, https://physics.nist.gov/cgi-bin/cuu/Value?gn */
+  .cells = 3.0, /* docs/HERCULES-STAGE1.md */
+  .r_cell = 0.0015, /* FITTED: a 5000 mAh cell's, docs/POWER-STAGE1.md */
+  .pack_c = 4.0 * 5000.0 * 3.6, /* docs/HERCULES-STAGE1.md */
+  .lvc = 3.0, /* FITTED: an ESC's usual cutoff, docs/HERCULES-STAGE1.md */
+  .rho = 1.225, /* ISA sea level, https://en.wikipedia.org/wiki/International_Standard_Atmosphere */
+  .prop_r = 0.1524, /* docs/HERCULES-STAGE1.md */
+  .spin = { -1.0, 0.0, 0.0, 0.0 }, /* docs/HERCULES-STAGE1.md */
+  .pos_x = { 0.315, 0.0, 0.0, 0.0 }, /* scripts/hercules-derive.js */
+  .hull_hx = 0.92, /* FITTED: the nose, drawn */
+  .hull_hy = 1.5385, /* npm run hercules:derive */
+  .hull_hz_down = 0.1954, /* npm run hercules:derive */
+  .hull_hz_up = 0.1549, /* FITTED: the fuselage's top, drawn */
+  .contact_patch_r = 0.15, /* FITTED: a resting friction lever, the fleet's */
+  .contact_arm_max = 1.6, /* FITTED: the largest impulse arm, the half fuselage */
+  .vib_ref_w = 1000.0, /* FITTED: the fleet's gyro reference */
+  .camera_x = 0.80, /* FITTED: the flight deck, drawn */
+  .camera_y = 0.0, /* FITTED: the flight deck, drawn */
+  .camera_z = 0.10, /* FITTED: the flight deck, drawn */
+  .fw = &FW_HERCULES3077, /* docs/HERCULES-STAGE1.md */
+  /*
+   * The fixed tricycle gear, the full size's sponsons scaled: the main
+   * axles 0.08 m behind the CG on a 0.331 m track, the nose wheel's 0.744 m
+   * ahead of them, 55 mm wheels. Each axle is lowered by its 5 mm of
+   * static deflection, so the plant settles onto the drawn pose: level,
+   * the CG 0.260 m over the grass, 10.8 percent of the weight on the nose.
+   * Stiffness for that, damping at 0.6 of critical (the Cub's rule). The
+   * nose wheel steers with the rudder, 0.6 of its angle, the Kadet's sign.
+   * Brakes on the mains. The fourth contact is the upswept tail cone's
+   * lowest point under the ramp, which the grass meets at 9 deg of nose up
+   * on the mains: a tail strike, as on the full size.
+   */
+  .wheel_count = 4, /* docs/HERCULES-STAGE1.md */
+  .wheel = {
+    { .pos = { -0.08, 0.1656, -0.2379 }, .r = 0.0275, .k = 5890.0, .c = 168.92, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.08, -0.1656, -0.2379 }, .r = 0.0275, .k = 5890.0, .c = 168.92, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.6639, 0.0, -0.2379 }, .r = 0.0275, .k = 1420.0, .c = 38.46, .mu_roll = 0.08, .mu_side = 0.70, .steer = -0.6, .slide = TYRE_SLIDE },
+    { .pos = { -0.95, 0.0, -0.12 }, .r = 0.0, .k = 6000.0, .c = 120.0, .mu_roll = 0.60, .mu_side = 0.60, .steer = 0.0 },
+  },
+},
 
 };
 

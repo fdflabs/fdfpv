@@ -55,6 +55,7 @@
  */
 
 import * as THREE from 'three';
+import { PAD_BUTTONS } from '../input/padbuttons.js';
 import {
   createRecorder, createSample, locate, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE, SMOKE, SMOKE_N, WINDOW_S,
 } from './recorder.js';
@@ -93,7 +94,7 @@ import { str } from '../strings/index.js';
 
 /* The keyboard key and the standard pad button that open the replay. */
 export const REPLAY_KEY = 'KeyV';
-export const REPLAY_PAD = 2;
+export const REPLAY_PAD = PAD_BUTTONS.x;
 /* How long the prompt stays up after a crash, ms. */
 const PROMPT_MS = 9000;
 /* A crash this long after a part came off is "lost a part and crashed". */
@@ -189,6 +190,12 @@ export function createCrashCam(host) {
     promptKey = up ? (padConnected() ? 'X' : 'V') : null;
     editor.prompt(up && !host.osdOn(), promptKey || 'V');
     if (!recording || host.mode() !== 'flight') {
+      return;
+    }
+    if (host.onFoot && host.onFoot()) {
+      /* The ring ends at the step out; forgetting its aircraft makes
+       * flying again start a new clip. */
+      ringAirframe = null;
       return;
     }
     const st = host.state();
@@ -810,7 +817,7 @@ export function createCrashCam(host) {
     for (const g of host.liveGroups) {
       g.visible = false;
     }
-    editor.open(S.clip.meta.name);
+    editor.open(S.clip.meta.name, host.exitLabel ? host.exitLabel() : null);
     return true;
   }
 

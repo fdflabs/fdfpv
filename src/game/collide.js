@@ -1188,6 +1188,12 @@ export class Colliders extends Writer {
     this.store = null;
     this.staticMaxR = 0;
     this.nearGap = Infinity;
+    /* bodyPush's answer and its per solid scratch. */
+    this.bodyNx = 0;
+    this.bodyNz = 0;
+    this.bodyDepth = 0;
+    this.wayX = 0;
+    this.wayZ = 0;
     this.stream = { set: EMPTY, grid: null };
     this.gates = { set: EMPTY, grid: null };
     this.refill = null;
@@ -2156,6 +2162,149 @@ export class Colliders extends Writer {
     }
     this.nearest(px, py, pz, maxR, frozenOnly, skipKinds);
     return this.nearGap <= maxR ? this.nearGap : Infinity;
+  }
+
+  /*
+   * THE PILOT ON FOOT (src/game/onfoot.js): a body standing upright, the
+   * vertical segment (px, y0..y1, pz) swollen by r. Returns the solid it
+   * sinks deepest into, or -1, with the level way out in bodyNx/bodyNz and
+   * how far along it in bodyDepth. The walker moves only across the
+   * ground, so the way out is level: for a solid above or below the
+   * segment's ends it is the level distance that clears the slanted gap.
+   * Static, streamed and built sets; moving solids are not seen.
+   * Read only: it shares gather's scratch with hit, so it runs outside a
+   * sim step, and it writes nothing a sweep reads, so no replay changes.
+   */
+  bodyPush(px, pz, y0, y1, r, skipKinds) {
+    this.bodyNx = 0;
+    this.bodyNz = 0;
+    this.bodyDepth = 0;
+    if (!this.built) {
+      return -1;
+    }
+    const pad = r + this.pad;
+    const n = this.gather(px - pad, px + pad, pz - pad, pz + pad);
+    let pick = -1;
+    for (let k = 0; k < n; k += 1) {
+      const i = this.cands[k];
+      if (this.pass[i] !== 0 || (skipKinds & (1 << this.fkind[i]))) {
+        continue;
+      }
+      const deep = this.fbox[i] ? this.bodyIntoBox(i, px, pz, y0, y1, r) : this.bodyIntoCapsule(i, px, pz, y0, y1, r);
+      if (deep > this.bodyDepth) {
+        this.bodyDepth = deep;
+        this.bodyNx = this.wayX;
+        this.bodyNz = this.wayZ;
+        pick = i;
+      }
+    }
+    return pick;
+  }
+
+  /* Box i (level or turned) against the body: the depth, the way out in
+   * wayX/wayZ. */
+  bodyIntoBox(i, px, pz, y0, y1, r) {
+    const dy = Math.max(this.fay[i] - y1, 0, y0 - this.fby[i]);
+    if (dy >= r) {
+      return 0;
+    }
+    const reach = Math.sqrt(r * r - dy * dy);
+    const turned = this.fbox[i] === TURNED;
+    const ux = turned ? this.fux[i] : 1;
+    const uz = turned ? this.fuz[i] : 0;
+    const u = turned ? px * ux + pz * uz : px;
+    const w = turned ? pz * ux - px * uz : pz;
+    const u0 = turned ? this.fu0[i] : this.fax[i];
+    const u1 = turned ? this.fu1[i] : this.fbx[i];
+    const w0 = turned ? this.fw0[i] : this.faz[i];
+    const w1 = turned ? this.fw1[i] : this.fbz[i];
+    let du = u - clampTo(u, u0, u1);
+    let dw = w - clampTo(w, w0, w1);
+    let depth;
+    const out = Math.sqrt(du * du + dw * dw);
+    if (out > 0) {
+      depth = reach - out;
+      du /= out;
+      dw /= out;
+    } else {
+      /* The centre line is inside the footprint: out by the nearest side. */
+      const sides = [u - u0, u1 - u, w - w0, w1 - w];
+      let s = 0;
+      for (let k = 1; k < 4; k += 1) {
+        if (sides[k] < sides[s]) {
+          s = k;
+        }
+      }
+      depth = sides[s] + reach;
+      du = s === 0 ? -1 : s === 1 ? 1 : 0;
+      dw = s === 2 ? -1 : s === 3 ? 1 : 0;
+    }
+    /* The box's u axis is (ux, uz) in the world, its w axis (-uz, ux). */
+    this.wayX = du * ux - dw * uz;
+    this.wayZ = du * uz + dw * ux;
+    return depth > 0 ? depth : 0;
+  }
+
+  /* Capsule i against the body: the closest points of the two segments
+   * (Ericson, Real-Time Collision Detection 5.1.9), then out level. */
+  bodyIntoCapsule(i, px, pz, y0, y1, r) {
+    const ax = this.fax[i];
+    const ay = this.fay[i];
+    const az = this.faz[i];
+    const ex = this.fbx[i] - ax;
+    const ey = this.fby[i] - ay;
+    const ez = this.fbz[i] - az;
+    const h = y1 - y0;
+    const ee = ex * ex + ey * ey + ez * ez;
+    const rx = px - ax;
+    const ry = y0 - ay;
+    const rz = pz - az;
+    /* s along the body (direction (0, h, 0)), t along the capsule. */
+    const f = ex * rx + ey * ry + ez * rz;
+    const c = h * ry;
+    const b = h * ey;
+    const hh = h * h;
+    let s;
+    let t;
+    if (ee <= 1e-12) {
+      t = 0;
+      s = hh > 1e-12 ? clamp01(-c / hh) : 0;
+    } else if (hh <= 1e-12) {
+      s = 0;
+      t = clamp01(f / ee);
+    } else {
+      const denom = hh * ee - b * b;
+      s = denom > 1e-12 ? clamp01((b * f - c * ee) / denom) : 0;
+      t = (b * s + f) / ee;
+      if (t < 0) {
+        t = 0;
+        s = clamp01(-c / hh);
+      } else if (t > 1) {
+        t = 1;
+        s = clamp01((b - c) / hh);
+      }
+    }
+    const dx = px - (ax + ex * t);
+    const dy = (y0 + h * s) - (ay + ey * t);
+    const dz = pz - (az + ez * t);
+    const reachAll = r + this.fr[i];
+    if (dx * dx + dy * dy + dz * dz >= reachAll * reachAll) {
+      return 0;
+    }
+    const level = Math.sqrt(dx * dx + dz * dz);
+    const reach = Math.sqrt(Math.max(0, reachAll * reachAll - dy * dy));
+    if (level > 1e-9) {
+      this.wayX = dx / level;
+      this.wayZ = dz / level;
+    } else {
+      /* Dead on the axis: any level way is as short; the capsule's own
+       * level normal when it has one, else east. */
+      const el = Math.sqrt(ex * ex + ez * ez);
+      this.wayX = el > 1e-9 ? -ez / el : 1;
+      this.wayZ = el > 1e-9 ? ex / el : 0;
+    }
+    const depth = reach - level;
+    return depth > 0 ? depth : 0;
   }
 
   /* The nearest solid's own direction and the point of its centre line

@@ -8,8 +8,8 @@
  * limestone faces three hundred metres tall, a forested bench runs along
  * the top of them, a second, broken band of cliff stands over the bench,
  * and only then do alpine slopes go on up to the ridge. This file gives
- * swiss2 those walls, and the cel alps keep theirs: alps.js builds this
- * field only for a style that asks for it (style.heightfield).
+ * swiss2 those walls, and the cel alps keep theirs: the valley's world
+ * builds this field for swiss2 only (src/share/valley/world.js MAPS).
  *
  * THE SHAPE is the alps' ground plus a wall profile across the valley,
  * added where the walls are and nowhere else:

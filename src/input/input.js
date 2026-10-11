@@ -6,6 +6,10 @@ import { str } from '../strings/index.js';
  * Exactly one source flies at a time, chosen fresh on every poll:
  *
  *   1. the harness stick, written by a capture through window.__stick
+ *   1a. the pilot on foot (src/game/onfoot.js): the sticks are centred
+ *      with zero throttle, the radio set down, while the walk reads the
+ *      devices itself (src/input/footinput.js), so walking forward on W
+ *      never opens a throttle
  *   2. the joystick picker or the calibration wizard, while open (the
  *      sticks are theirs and the craft gets centre and zero throttle)
  *   3. mouse flight, when the pilot picked it in Settings
@@ -48,13 +52,14 @@ import { DEFAULT_STICK_MODE, normaliseStickMode } from './stickmode.js';
 import {
   FLIGHT_CHANNELS, builtInKind, builtInMap, normaliseMap, readSticks,
 } from './padmap.js';
+import { deviceKey } from './padprofiles.js';
 import { migrateStickStorage, loadStickMap, saveStickMap } from './stickstore.js';
 import { KeyboardSticks } from './keyboard.js';
 import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
 import { PadRoster, connectedPads, shortPadName } from './padpick.js';
 import { CalibrationWizard } from './calibrate.js';
 import { GuessEvidence } from './guess.js';
-import { PadMenus, altButton, floatsButton, lookClick, lookStick, padDirections, startButton, swapButtons } from './menus.js';
+import { PadMenus, altButton, floatsButton, lookClick, lookStick, padDirections, startButton, swapButtons, footButton } from './menus.js';
 
 export { standardPadMap } from './padmap.js';
 export { CAL_STEPS, SELECT_STEP, calSteps } from './calibrate.js';
@@ -103,7 +108,12 @@ export class InputManager {
     /* The harness stick: when set it IS the channels, held until the next
      * write, above every source. Nothing in the shell writes it. */
     this.harnessChannels = null;
-    this.map = this.loadMap();
+    /* Set by the shell while the pilot is out on foot (rung 1a). */
+    this.onFoot = false;
+    /* The device this.map belongs to (padprofiles.js deviceKey), null
+     * until one is seen. With none, nothing is saved or loaded. */
+    this.mapKey = null;
+    this.map = loadStickMap(null);
     /* Which built-in layout this.map is while nothing is saved; see
      * builtInKind. 0 is the AETR guess. */
     this.defaultMode = 0;
@@ -143,6 +153,7 @@ export class InputManager {
       this.downAs.clear();
     });
     this.roster.seed();
+    this.followDevice(this.firstGamepad());
   }
 
   /*
@@ -247,15 +258,29 @@ export class InputManager {
 
   /* --------------------------------------------------------- the map */
 
-  loadMap() {
-    return loadStickMap();
-  }
-
   /* A failed write leaves the map calibrated and flying for this tab; the
    * false return lets the shell say it will not outlive it. */
   saveMap() {
     this.map.stored = true;
-    return saveStickMap(this.map);
+    return saveStickMap(this.mapKey, this.map);
+  }
+
+  /*
+   * Each device flies its own calibration: a different device loads its
+   * own map (or none), and the built-in layout is worked out again for it.
+   * Losing every device keeps the last one's map, so the same device
+   * coming back is not a change.
+   */
+  followDevice(gp) {
+    const key = gp ? deviceKey(gp.id) : this.mapKey;
+    if (key === this.mapKey) {
+      return;
+    }
+    this.mapKey = key;
+    this.map = loadStickMap(key);
+    this.defaultMode = 0;
+    this.guess.forget();
+    this.forgetAxisResolution();
   }
 
   readGamepad(gp, map = this.map) {
@@ -432,6 +457,10 @@ export class InputManager {
 
   padStartButton() {
     return startButton(this.firstGamepad());
+  }
+
+  padFootButton() {
+    return footButton(this.firstGamepad());
   }
 
   padFloatsButton() {
@@ -656,6 +685,7 @@ export class InputManager {
     this.lastWall = t;
     const gp = this.firstGamepad();
     this.roster.track();
+    this.followDevice(gp);
     this.followDefaultMap(gp);
     this.measureRates(gp, dtMs);
     const next = this.readSource(gp, dtMs);
@@ -700,6 +730,9 @@ export class InputManager {
       /* So releasing the harness hands the collective back where it was. */
       this.kb.throttle = next.throttle;
       return this.from(str('input.the_harness_override'), next);
+    }
+    if (this.onFoot) {
+      return this.from(str('input.on_foot'), CENTRED());
     }
     if (this.padPick) {
       this.runPadPick(dtMs);

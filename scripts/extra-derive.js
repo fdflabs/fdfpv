@@ -298,6 +298,46 @@ const aileronRollNet = aileronHover > Qhover ? Math.sqrt((aileronHover - Qhover)
  */
 const tailCn = 1.17;
 const plateRatio = (x) => 1 / Math.sqrt(Math.sqrt(1 + (x / tailCn) ** 4));
+
+/*
+ * The swirl over the wing's root (plant_wing.c root_swirl): each side of
+ * the wing inside the wash and outside the fuselage meets the swirl's om y
+ * across its chord on top of the stream's own angle, its normal force the
+ * wing's slope saturating on the plate's 1.17. The fuselage's side 0.075 m
+ * out (E-flite's top view, src/render/extracraft.js), the wing zWing under
+ * the thrust line, the chord there. The share of that strip lift a wing
+ * makes in a stream as narrow as the wash, ROOT_ETA, has no measurement:
+ * FITTED so the root gives back (1 - SWIRL_KEEP) of the torque at the
+ * hover, where Selig's 40 percent is the only number, and geometry and
+ * the stream decide it everywhere else.
+ */
+const rootYf = 0.075, rootC = chordAt(rootYf);
+const GX = [-0.86113631159405258, -0.33998104358485626, 0.33998104358485626, 0.86113631159405258];
+const GW = [0.34785484513745386, 0.65214515486254614, 0.65214515486254614, 0.34785484513745386];
+function rootSwirl(eta, xw, vw, om, rw) {
+  if (!(rw > zWing)) return 0;
+  const yw = Math.sqrt(rw * rw - zWing * zWing);
+  if (!(yw > rootYf)) return 0;
+  const mid = (yw + rootYf) / 2, hw = (yw - rootYf) / 2;
+  let sum = 0;
+  for (let i = 0; i < 4; i += 1) {
+    const y = mid + hw * GX[i];
+    const xp = aw * (xw + om * y) / vw, xm = aw * (xw - om * y) / vw;
+    sum += GW[i] * y * (xp * plateRatio(xp) - xm * plateRatio(xm));
+  }
+  return eta * 0.5 * rho * vw * vw * rootC * hw * sum;
+}
+/* The swirl's rate in the far wake, Q = mdot om rw^2 / 2. */
+const swirlOm = (Q, u, vi, rw) => 2 * Q / (rho * Math.PI * propR * propR * (u + vi) * rw * rw);
+const ROOT_ETA_DERIVED = (1 - SWIRL_KEEP) * Qprop / rootSwirl(1, 0, 2 * hov.vi, swirlOm(Qprop, 0, hov.vi, hov.rw), hov.rw);
+const ROOT_ETA = Number(ROOT_ETA_DERIVED.toFixed(3));
+/* The root's share of the torque at a thrust, an axial speed u and a
+ * crossflow xw over the wing, as the plant takes it. */
+function rootShare(thrust, u, xw) {
+  const ws = wash(thrust, u);
+  const Q = torqueArm * thrust;
+  return Math.min(1, rootSwirl(ROOT_ETA, xw, u + 2 * ws.vi, swirlOm(Q, u, ws.vi, ws.rw), ws.rw) / Q);
+}
 const vhT = -slipCma / (at * (1 - deda)), vvF = slipCnb / av;
 /* Full elevator and rudder hanging on the prop, from rest: the first
  * angular accelerations, each surface's share of the wash's dp on its
@@ -499,6 +539,12 @@ const rows = [
   ['E6 hover duty; wash dp, v_i, rw, fh fv fa', `${f(hoverDuty, 4)}; ${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
   ['E7 vertical climb speed, full throttle', f(vClimb, 2)],
   ['SWIRL_KEEP: the swirl\'s roll 0.40 of the torque at the hover (Selig 2010)', `${f(SWIRL_KEEP_DERIVED, 4)}, taken ${SWIRL_KEEP}`],
+  ['root swirl: fuselage side, wing under thrust line, chord m; eta FITTED', `${f(rootYf, 3)} ${f(zWing, 3)} ${f(rootC, 4)}; ${f(ROOT_ETA_DERIVED, 4)}, taken ${ROOT_ETA}`],
+  ['   root share of the torque: hover; level 15 m/s; harrier 35 40 45', (() => {
+    const lv = D(15), cl15 = W / (0.5 * rho * 15 * 15 * S);
+    const h = [35, 40, 45].map((a) => { const r = harrier(a); return f(rootShare(r.thrust, r.V * Math.cos(a / DEG), r.V * Math.sin(a / DEG)), 3); });
+    return `${f(rootShare(W, 0, 0), 3)}; ${f(rootShare(lv, 15, 15 * cl15 / CLa), 3)}; ${h.join(' ')}`;
+  })()],
   ['E8 torque at hover N m, less the swirl\'s root and fin, torque roll deg/s', `${f(Qprop, 4)} ${f(Qhover, 4)} ${f(torqueRoll * DEG, 0)}`],
   ['E9 full aileron in the wash N m, net roll deg/s', `${f(aileronHover, 4)} ${f(aileronRollNet * DEG, 0)}`],
   ['E10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],

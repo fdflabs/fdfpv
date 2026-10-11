@@ -307,7 +307,7 @@
      "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
      "facts": [
       "Short lessons, in order",
-      "Stabilised first, then Acro",
+      "SAFE Select first, then AS3X",
       "Nothing waits on them"
      ],
      "svg": "<svg 623 chars>",
@@ -1057,7 +1057,7 @@
     {
      "id": "title:a-quad",
      "label": "Plane",
-     "value": "Cub, Acro",
+     "value": "Cub, Manual",
      "note": "The machine. Tune, PIDs, camera angle, field of view, flight mode and the firmware bench, which is every firmware key the module compiles.",
      "action": "quad",
      "drives": {}
@@ -1449,6 +1449,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Back",
      "action": "back",
@@ -1491,6 +1499,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Back",
      "action": "back",
@@ -1522,6 +1538,14 @@
      "label": "Leave the room",
      "note": "Back to flying alone.",
      "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -1595,6 +1619,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -1703,6 +1735,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:aircraft",
      "label": "Aircraft",
      "value": "Seven inch",
@@ -1775,6 +1815,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -1812,7 +1860,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "tune": "striker-acro",
+        "tune": "striker-stab",
         "airframe": "striker2500",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
@@ -1870,6 +1918,14 @@
      "label": "Leave the room",
      "note": "Back to flying alone.",
      "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -1964,6 +2020,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -2025,6 +2089,14 @@
      }
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-friends-leave",
      "label": "Leave the room",
      "note": "Back to flying alone.",
@@ -2053,6 +2125,14 @@
      "value": "OWLS",
      "note": "The code.",
      "action": "friends-room",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -3664,6 +3744,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -3983,6 +4071,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -4306,6 +4402,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4613,6 +4717,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -4940,6 +5052,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -5259,6 +5379,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -5582,6 +5710,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -5901,6 +6037,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -6224,6 +6368,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -6543,6 +6695,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -6866,6 +7026,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -6894,7 +7062,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -6912,7 +7080,7 @@
       },
       "pick(\"radian2000\")": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -7260,7 +7428,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -8294,7 +8462,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -9328,7 +9496,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -10362,7 +10530,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -11388,7 +11556,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -12590,7 +12758,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -13620,7 +13788,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -14630,7 +14798,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -24490,7 +24658,7 @@
      "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
      "facts": [
       "Short lessons, in order",
-      "Stabilised first, then Acro",
+      "SAFE Select first, then AS3X",
       "Nothing waits on them"
      ],
      "svg": "<svg 623 chars>",
@@ -25240,7 +25408,7 @@
     {
      "id": "title:a-quad",
      "label": "Avión",
-     "value": "Cub, Acro",
+     "value": "Cub, Manual",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -25632,6 +25800,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Volver",
      "action": "back",
@@ -25674,6 +25850,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Volver",
      "action": "back",
@@ -25705,6 +25889,14 @@
      "label": "Leave the room",
      "note": "Back to flying alone.",
      "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -25778,6 +25970,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -25886,6 +26086,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:aeronave",
      "label": "Aeronave",
      "value": "Seven inch",
@@ -25958,6 +26166,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -25995,7 +26211,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "tune": "striker-acro",
+        "tune": "striker-stab",
         "airframe": "striker2500",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
@@ -26053,6 +26269,14 @@
      "label": "Leave the room",
      "note": "Back to flying alone.",
      "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -26147,6 +26371,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -26208,6 +26440,14 @@
      }
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-friends-leave",
      "label": "Leave the room",
      "note": "Back to flying alone.",
@@ -26236,6 +26476,14 @@
      "value": "OWLS",
      "note": "The code.",
      "action": "friends-room",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -27847,6 +28095,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -28166,6 +28422,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -28489,6 +28753,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -28796,6 +29068,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -29123,6 +29403,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -29442,6 +29730,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -29765,6 +30061,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -30084,6 +30388,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -30407,6 +30719,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -30726,6 +31046,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -31049,6 +31377,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -31077,7 +31413,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -31095,7 +31431,7 @@
       },
       "pick(\"radian2000\")": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -31443,7 +31779,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -32477,7 +32813,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -33511,7 +33847,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -34545,7 +34881,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -35571,7 +35907,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -36773,7 +37109,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -37803,7 +38139,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -38813,7 +39149,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },

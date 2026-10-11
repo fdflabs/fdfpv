@@ -1001,6 +1001,68 @@ a heading term would do, and Spektrum's receivers carry one ("Heading",
 off by default on the AS3000). Whether the Extra's factory set up (an
 AR636) has it on, and how much, is not published; it is left out until
 that set up is sourced.
+
+## The Extra's gyro: a heading lock
+
+The owner (2026-10-08): "you dont need to be tied to specific receiver
+specs just assume you can use any electronics in there, but make the
+physics and behavior work". So mode 3, the Extra's default, is a heading
+lock gyro, the kind 3D aircraft and helicopter tails fly on, built as
+E-flite describes AS3X behaving (the Timber manual's AS3X column: stick
+neutral, "Aircraft will continue to fly at its present attitude"; small
+stick, it rolls or pitches slowly; full stick, rapidly):
+
+- Once an 11 ms servo frame (Spektrum's frame for digital servos; the
+  Extra's are digital) it reads the rates and writes each surface's
+  offset, held to the next frame.
+- A damper on the body's rate, as3x_k, and a heading term, as3x_kh, on
+  the rotation beyond what the stick asks: the stick times as3x_rate,
+  the airframe's own turn per stick, the larger of level at 16 m/s and
+  hanging on the prop, so the gyro never holds the stick to less than
+  the aircraft gives it. Centred it holds the attitude against the
+  torque and the gusts; held it turns at the rate asked.
+- Both fade as the stick leaves centre and are gone at 40 percent
+  (Spektrum's priority 160), so a full stick is Manual's.
+- The servos slew at 9.52 rad/s, in every mode: E-flite publishes no
+  speed for the Extra's 23 g digital servo (EFL11598); Hitec's D89MW, a
+  25 g digital servo of its class, is "0.11 sec @ 60 deg" at 6 V.
+- Gains from as3x:derive: the rate loop at its 6 dB margin at the top
+  speed against the frame's delay, k = pi / (4 M tau), 0.0508, 0.2369,
+  0.3611; the heading's corner a quarter of that loop's crossover, kh =
+  k pi / (16 tau), 0.9068, 4.2287, 6.4456; as3x_rate 6.529, -4.14, -4.775
+  rad/s per unit stick (as3x:derive on the spun up plant, each rate the
+  stick's run against the centred one, 2026-10-11). A 1 rad/s kick at 35 m/s settles on every axis
+  (as3x:derive checks it); at a 5.5 ms frame the same derivation's gains
+  oscillate in yaw against the servos' slew, so 11 it is.
+
+Considered and not built:
+- A pure attitude hold under 40 percent stick (the rotation itself
+  integrated, not the rotation beyond the stick's). It is the easiest
+  hover, 379 of 648 person-paced pilots, but it un-rolls a 35 deg bank
+  the pilot made with 35 percent stick (extra:stab's "not levelled"
+  gate, 35 to 1.5 deg), and no real gyro does that.
+- Heading off on yaw (Spektrum's advice for normal flight). The nose
+  in the hover is held on the elevator and the rudder alike, and the
+  yaw term is most of the gyro's help there; a heading lock on the
+  rudder makes a turn flown on the ailerons alone skid, as on every
+  heading lock aircraft, so the rudder goes in with the turn.
+
+Gated in extra:stab: a 1 rad/s kick on each axis with the sticks centred,
+hanging on the prop and level at 16 m/s, turns the Extra less in 0.5 s
+than in Manual (hanging: roll 7.7 against 24.0 deg, pitch 8.0 against
+63.2, yaw 0.1 against 8.1); full stick is Manual's rate within 2
+percent; a bank it is left in stays.
+
+The person-paced hover (hover:probe's limits, the video's technique, a
+slow torque roll, no hand trim; 648 pilots): Manual 72, the gyro 158,
+holding with a mean aileron of 0.12; in a 2 m/s breeze gusting 1 m/s
+RMS (ESTIMATED, the video's "wind pushes it around"), Manual 0, the gyro
+132. The owner's morning target is 70 percent of them; with real
+electronics on this physics it is 24. The
+pure attitude hold above is 58 percent. What separates them is the
+pilot model: it sees 0.2 s late and does not anticipate (analysis pass 2
+counts 96, 52 and 8 of its 336 at 0.12, 0.2 and 0.3 s), so a person
+practised on the aircraft does better than the grid.
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
@@ -1058,6 +1120,7 @@ thrust's change, ms, nose up and held still:
  uglystik1567 (glow) | 319/625 | 196/430 | 436/728
  tigermoth1803 (glow) | 319/625 | 262/609 | 436/728
  extra3d1308 | 60/103 | 27/48 | 100/182
+ hercules3077 (four props as one) | 64/133 | 37/81 | 85/156
  p51d1450 | 274/555 | 158/375 | 363/640
  f16878 (its fan_tau, unchanged) | 195/337 | 147/277 | 415/561
  zagi1219 | 48/100 | 34/84 | 64/117
@@ -1118,3 +1181,266 @@ the inner part of each panel, the ailerons outboard), so it makes the root
 stall first and keeps the tips, and the ailerons, flying: the mechanism
 the mix works by. Flaps over their own strips only is a stall model change
 in strip_stall, the 3D lane's code; it is proposed there, not made here.
+
+### Flaps over their strips (2026-10-11)
+
+Made. Each flapped table names its flaps' span, flap_eta, the inner and
+outer edge over the semispan, from its derivation's drawing (Timber 0.067
+to 0.430, scripts/timber-derive.js; P-51 0.079 to 0.579,
+scripts/p51-derive.js; Night Timber 0.156 to 0.532,
+scripts/nighttimber-derive.js). The wing's flap lift and CLmax increments
+(cl_df, clmax_df) stay the whole wing's, area weighted, as Raymer's S_f/S
+builds them (eq. 12.21); the stall strips now take them only where the
+flaps are, scaled up by the flapped share of the area, so the strip sum is
+the wing's. A strip under the flap gets its section's increment, more lift
+than CLmax added, and reaches its stall sooner, as a plain flap lowers the
+stall angle (DATCOM; Raymer sec. 12.6); a strip outside it stalls where it
+did with the flaps up. Flaps up nothing changes. Moments only: the wing's
+force is the centreline's, unchanged. `npm run flapstrip:check` (CI)
+gates it per strip through `sim_wing_strips`; with the flaps spread over
+the whole span again it fails (the P-51's tip stalls 1 deg sooner).
+
+## The Extra's stall from a measured section
+
+The owner found every firm pull stalling the Extra. Its stall was an
+estimate, CL max 0.95 at the stall angle CL max over the aircraft's lift
+slope, 11.6 deg, at every speed. Measured symmetric sections at these
+Reynolds numbers (Timmer, NACA 0018, Wind Engineering 32(6), 2008: CL max
+0.988 at 11.6 deg at 1.5e5 and 1.056 at 15.1 deg at 3e5; Sheldahl and
+Klimas's 0012 and 0015 at 3.6e5 agree, 0.96 at 11.5 and 1.06 at 13.6)
+stall later as the speed rises, and two things in the plant put the
+Extra's stall early:
+
+- The Reynolds number: two new table fields, stall_re, stall_clmax and
+  stall_peak, take the wing's CL max (0.9 of the section's, Raymer,
+  Aircraft Design, sec. 12.4) and the angle its lift peaks at (the
+  section's peak plus the induced angle CL / (pi A e)) from the data,
+  straight between 1.5e5 and 3e5 on the chord: 0.889 at 16.3 deg at the
+  stall's speed, 0.950 at 20.1 deg at 16 m/s.
+- The slope: the stall angle was CL max over cl_alpha, which is the wing
+  and the tail's (Nelson eq. 2.52, as on most tables). The tail does not
+  stall with the wing. cl_alpha_wing (here extra-derive's a_w, 4.390)
+  sets the wing's stall angle, and the tail's share of the slope lifts on
+  past it.
+
+Both are zero on every other table, which flies as it did; the same
+shortcut on every table is the next pull request's. E2, the stall speed,
+is re-derived on the stall's own CL max, 0.898 at 1.7e5: 8.54 m/s, band
+8.03 to 9.73 (was 8.31, 7.81 to 9.47, on the estimated 0.95); the plant
+reads 8.75. A half stick pull at 16 m/s now breaks at 15.2 deg (13.8
+before).
+
+## The Slick's DA-120
+
+The Slick 580 (its own lane, w35-slick580) flies on a Desert Aircraft
+DA-120, a 120 cc petrol twin, on a 28 x 10. The plant takes an engine by
+the glow method the Ugly Stik, Tiger Moth, Kadet and Bombshell already
+use (docs/POWER-STAGE1.md, "A prop spins up" above): an idle the engine
+never stops under, a rotor whose inertia the engine's torque spins up,
+J w_f n' = Q_f (d^2 - n^2), with that torque flat in speed, and a tank.
+`npm run da120:derive` (scripts/da120-derive.js) derives every number the
+Slick's table takes, with its source, and prints the table's lines.
+
+**The full throttle point.** A Falcon 28 x 10 on a DA-120 tachometered at
+6,850 rpm (rc-network.de thread 388921, 2014-05-06). HFE's DA120 data
+sheet (HFEDCN0810 Rev A,
+https://hfe.aero/wp-content/uploads/2025/11/DA120-Data-Sheet.pdf), its
+propeller table: the 28x10 at "6900" rpm, "73.2" lb of thrust ("Estimated
+via simulation", +/-5 percent), taken to 6,850 by the speed squared:
+**320.9 N**. The torque from the thrust by APC's 17 x 6E, the nearest
+pitch over diameter APC publishes (0.353 against 0.357) at the same tip
+speed (249 m/s at 11,000 rpm against 255), Ct/Cp 3.61
+(https://www.apcprop.com/files/PER3_17x6E.dat): Q = T D / (2 pi Ct/Cp) =
+**10.06 N m**, 7.22 kW. Two checks: HFE's own full throttle torque at
+6,850 rpm reads 9.89 N m off its figure 3 (1.7 percent), and its rated
+maximum is 7.1 kW. A heavier Falcon 28 x 9 at 6,780 rpm and the 29 x 10
+at 6,310 are quoted at 31.4 and 31.2 kg by the importer (rc-network.de
+thread 492295), the same class.
+
+**The torque is flat, which the glow method assumes.** HFE's full throttle
+torque, read off figure 3: 9.3 N m at 3,500 rpm, 9.6 at 4,000, 10.3 at
+5,000, 10.1 at 6,500, 9.8 at 7,000; within 6 percent of 9.9 over the
+range a flown engine turns in. At part throttle, 50 percent and over is
+flat to 10 percent; at 20 to 40 percent the torque falls with the speed,
+which makes the real engine settle a little faster there than the plant's.
+
+**The throttle is not a straight line.** The glow method runs the rpm
+straight from the idle to full with the stick. A butterfly opens most of
+the speed in the first half of its travel: HFE's figure 3 is the torque
+at 20, 30, ... 100 percent throttle across 2,000 to 8,000 rpm, measured
+on a Magtrol eddy current dyno, and each throttle settles where its torque
+meets the prop's, Q_f (rpm / 6,850)^2. The new table field
+`throttle_rpm` takes that curve, the speed over full at the stick's 0,
+0.1, ... 1 (zero on every other table, which keeps the straight line):
+
+ Stick | 0 | 0.1 | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 | 1
+ --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+ Dyno against the prop | 0.190 | 0.310 | 0.430 | 0.523 | 0.640 | 0.763 | 0.866 | 0.914 | 0.967 | 0.973 | 1
+ The straight line | 0.190 | 0.271 | 0.352 | 0.433 | 0.514 | 0.595 | 0.676 | 0.757 | 0.838 | 0.919 | 1
+
+The stick's 0 is the idle, DA's 1,300 rpm (desertaircraft.com, "1,300 to
+6,900"; DA Australia gives 1,000). FITTED, said where it is: HFE ran
+nothing under 2,000 rpm, so the stick's tenth is half way from the idle
+to the 20 percent crossing; and where the dyno's +/-10 percent puts the
+90 percent crossing under the 80 percent's, the curve is held level.
+Half stick is 5,230 rpm, not 4,080.
+
+**How fast it answers.** The rotor: 0.7 of the blades' rod inertia (the
+fleet's convention, PR 3) on the 28 x 10's listed masses (Biela 322 g,
+Mejzlik 288 and 276 g) and 0.0006 kg m^2 for the crank, the ignition's
+rotor and the 5 in spinner, ESTIMATED: **0.00931 kg m^2**, J w_f / Q_f =
+0.664 s. The plant's spool with these, measured in a proof build that
+gave the Ugly Stik's table the DA-120's lines (not committed), against
+the derivation's own integration of the same equation, 63 and 90 percent
+of the thrust's change, ms:
+
+ Step | plant | derivation
+ --- | --- | ---
+ idle to full | 608/1092 | 608/1092
+ half to full | 388/840 | 389/841
+ full to half | 362/890 | 362/891
+ idle to half | 757/1390 | 758/1391
+
+and its steady speed at the stick: 0.1898 at 0, 0.4297 at 0.2, 0.5229 at
+0.3, 0.7629 at 0.5, 0.9138 at 0.7, 1 at full, the curve's own. A
+two stroke burns on the revolution after its charge is drawn, one
+revolution, 46 ms at the idle and 9 ms at full: an order under the
+rotor's time, and no source gives its size for this engine, so it is left
+out, as for the glow engines.
+
+**The tank.** Extreme Flight's build guide: "FlowMaster 34 oz.", 1,005 cc.
+HFE's average BSFC, 575 g/kWh, at the 7.22 kW, on petrol and 40:1 oil at
+0.74 kg/l (ESTIMATED): 93.4 cc/min at full, 10.8 minutes. An owner's
+report has "most of a 32oz tank in 10 minutes" flown (giantscalenews.com
+thread 8533). The flow runs straight from the idle's share of it in the
+duty, which with throttle_rpm is the speed's share, not the stick's (half
+stick burns at 0.763 of the way, where the straight line's 0.595 was),
+and leans at the end as the Bombshell's does, the glow method. The table
+sets throttle_idle to throttle_rpm's first entry: the tank, the pack's
+drain and a turbine's idle all key off throttle_idle, which the curve
+does not replace.
+
+**For the Slick's table, not here.** Its data sheet's "Right thrust: 3
+deg" (Extreme Flight, DATASHEET_105SLICK580v2.pdf): the plant has no
+side thrust field (thrust_z only), and on 321 N it is a 16.8 N side force
+ahead of the CG, which is how the real aircraft holds its line against
+the swirl and the P factor. The thrust line's angle wants a field; the
+propulsion lane can add it when the Slick's table is there to prove it on.
+
+**spool:derive held the aircraft still and let it climb.** Its harness put
+the aircraft back in place each step with sim_set_pose, which keeps the
+velocity, so an aircraft whose thrust passes its weight climbed away on
+its own prop and the thrust it read fell with the airspeed it gained, not
+the rotor's speed; and its 1 s after the step was shorter than the glow
+engines take to settle. It now zeroes the velocity with sim_rest each
+step and gives the rotor 8 s before the step and 4 s after. Its numbers
+(the table under "A prop spins up" was taken with the old harness):
+
+ Aircraft | half to full | full to half | rest (idle) to full
+ --- | --- | --- | ---
+ sky1800 | 87/180 | 61/153 | 118/214
+ cub1400 | 118/242 | 83/207 | 160/289
+ radian2000 | 128/261 | 90/226 | 173/312
+ bramor2300 | 60/125 | 42/105 | 81/148
+ slowstick1180 | 100/207 | 70/174 | 135/245
+ timber1500 | 128/264 | 91/227 | 174/315
+ bombshell1118 (glow) | 348/740 | 317/798 | 438/846
+ kadet1981 (glow) | 500/1038 | 441/1142 | 676/1237
+ uglystik1567 (glow) | 333/686 | 291/763 | 463/830
+ tigermoth1803 (glow) | 333/686 | 291/763 | 463/830
+ extra3d1308 | 73/145 | 52/131 | 99/176
+ nighttimber1200 | 86/176 | 61/153 | 117/211
+ hercules3077 (four props as one) | 64/132 | 45/111 | 86/156
+ p51d1450 | 275/562 | 196/491 | 375/675
+ f16878 (its fan_tau) | 193/328 | 147/277 | 414/555
+ zagi1219 | 47/97 | 34/84 | 64/116
+ striker2500 (petrol) | 357/741 | 316/817 | 480/881
+
+Nothing in the plant moved for it; only the measurement did.
+## The swirl over the wing's root
+
+SWIRL_KEEP took the wing root's share of a tractor's swirl as a fixed
+(1 - K) of the prop's torque, 0.26 at K = 0.74, at every speed, power and
+angle: a stator with no geometry. The root is a wing in the wash, and how
+much of the swirl it turns back depends on how much wing is in the wash
+outside the fuselage and on the angle that wing already meets.
+
+**The model** (plant_wing.c root_swirl, the table's `slip_root` and
+`slip_root_eta`). The wash turns as a solid body at Omega, Q = mdot Omega
+rw² / 2 (momentum theory, as the fin's swirl already took it), so at y
+out along the span it blows across the chord at Omega y, at any height:
+up on the left of a prop turning clockwise from behind, down on the
+right. Each side's root, from the fuselage's side out to where the wing
+leaves the contracted wash, sqrt(rw² - h²) with h the wing's distance
+from the thrust line, meets that on top of the angle the whole stream
+crosses it at, the free stream's crossflow over the wash's axial speed
+u + 2 v_i. Its normal force is the wing's slope saturating on a flat
+plate's 1.17 (Hoerner), plate_ratio, the form the tail already has in the
+wash. The roll the prop's way is the two sides' difference, so:
+
+- at small angles each side is linear and the difference is the strip
+  theory stator, which grows with the span of wing in the wash: at the
+  hover the wash has contracted to 0.117 m and only 0.075 to 0.093 m of
+  each side is in it; in level flight at 15 m/s it is 0.075 to 0.144 m;
+- near the stall the upwash side saturates first and the root gives back
+  less of the swirl: what the left wing cannot lift is the shortfall,
+  and the airframe meets more of the torque, which is the Extra's
+  left/right asymmetry at low speed and high power.
+
+The fin meets what the root leaves, 1 - root / Q, so the angular momentum
+the prop puts in the wash is still accounted once.
+
+**Its one fitted number.** No measurement gives a wing's lift in a stream
+as narrow as a model prop's wash (the jet's boundary takes much of it;
+Veldhuis, Propeller Wing Aerodynamic Interference, TU Delft 2005, finds
+the recovery "significant" without a share a plant can take).
+`slip_root_eta`, the share of the strip lift the root makes, is FITTED so
+that at the hover the root gives back exactly what SWIRL_KEEP's Selig
+anchor gave it, (1 - 0.74) of the torque (Selig, AIAA 2010-7938: the
+swirl's net roll on an aerobatic aircraft in a hover is near 40 percent
+of the torque): 0.414 (`npm run extra:derive`). Everywhere else geometry
+and the stream decide it. The Extra's geometry: the fuselage's side
+0.075 m out (E-flite's top view, src/render/extracraft.js), the wing
+0.070 m under the thrust line (its front photograph), the chord there
+0.347 m.
+
+**Only the Extra has it.** Every other tractor keeps SWIRL_KEEP's fixed
+share, bit for bit: their wing heights and fuselage widths at the root are
+not measured yet, and a high wing (the Cub's, the Timber's, the Kadet's)
+sits at the top of the wash or above it, where the fuselage, not the wing,
+is the stator, which this form does not cover.
+
+**Measured** (scripts/extra-derive.js for the root's share; the harrier
+is E11's pilot, the last 5 s of 20, Manual):
+
+ Condition | root's share of the torque, before | after
+ --- | --- | ---
+ Hover, hanging still | 0.260 | 0.260 (Selig's, by construction)
+ Level, 15 m/s | 0.260 | 0.522
+ Harrier 35, 40, 45 deg | 0.260 | 0.199, 0.195, 0.196
+
+ Harrier, E11's pilot | right aileron to hold the wings, before | after
+ --- | --- | ---
+ 30 deg | 0.116 | 0.128
+ 40 deg | 0.231 | 0.251
+ 50 deg | 0.377 | 0.401
+
+In level flight the root takes twice the torque it did, so the fin meets
+0.48 of the swirl (was 0.74); in the harrier the left root saturates and the pilot holds 8 to 9
+percent more right aileron. Every E gate holds; E14's take off, 3.98 m to
+3.93 m, 0.08 to 0.07 m off the line.
+
+**Changed with it.** The Extra's recorded flight hash, 8fb879543a8cef72
+on batch/2026-10-11 at 6476da48e to e68b6bd6c7f97153, re-pinned in
+nighttimber N15 and hercules H7 (its recording is kept: it flies the same
+sticks). The AS3X rows re-derived by `npm run as3x:derive`, whose top
+speed the plant now flies at 23.86 m/s (24.08): as3x_k 0.0518, 0.2393,
+0.3643; as3x_kh 0.9246, 4.2715, 6.5027; as3x_rate 6.529, -4.142, -4.763.
+
+**Not modelled, said plainly.** The root band's own extra lift in the
+wash (the symmetric part, the wing's lift with power) and its damping of
+a roll rate in the wash: both are real and both are left as they were,
+the plant's wing still sees only the free stream. The section's peak and
+drop past CL max in the wash: the plate's saturation has no peak, so the
+asymmetry is the milder of the two; the free stream strips keep their
+measured stall.

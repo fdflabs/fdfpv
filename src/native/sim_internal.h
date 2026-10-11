@@ -292,6 +292,7 @@ typedef struct {
 #define SIM_AIRFRAME_STRIKER_JET 28
 #define SIM_AIRFRAME_EXTRA3D1308 29
 #define SIM_AIRFRAME_NIGHTTIMBER1200 30
+#define SIM_AIRFRAME_HERCULES3077 31
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -302,8 +303,9 @@ typedef struct {
  * and on its turbojet (the same doc, section 7). 29 is the 3D aircraft of
  * the flight model lane, the Extra 300 3D under a new id, 14 staying
  * reserved (docs/FLIGHTMODEL.md). 30 is E-flite's Night Timber X 1.2m
- * (docs/NIGHTTIMBER-STAGE1.md). */
-#define SIM_AIRFRAME_COUNT 31
+ * (docs/NIGHTTIMBER-STAGE1.md). 31 is the owner's balsa C-130 Hercules of
+ * 2026-10-08 (docs/HERCULES-CONTRACT.md). */
+#define SIM_AIRFRAME_COUNT 32
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -572,7 +574,6 @@ typedef struct FixedWingParams {
                          * which is a prop turning clockwise seen from behind.
                          * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
-  double duty_min;
   /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
   double stab_bank_max;
   double stab_pitch_max;
@@ -615,7 +616,17 @@ typedef struct FixedWingParams {
    * distance ahead of the CG, m. Zero k_j leaves it out. */
   double jet_kj;
   double prop_x;
+  /* The surfaces' servos' rate, rad/s; zero moves them in the step. */
+  double servo_rate;
   double as3x_k[3];
+  /* The heading hold on top (mode 3), a heading lock gyro's: surface per
+   * rad the aircraft has turned beyond the rate its stick asks for, and
+   * that rate, rad/s per unit stick, signed as the body rate the stick
+   * gives. Zero as3x_kh leaves the damper alone. scripts/as3x-derive.js. */
+  double as3x_kh[3];
+  double as3x_rate[3];
+  /* The gyro's servo frame, s; zero is Spektrum's default, 22 ms. */
+  double as3x_frame;
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
@@ -707,6 +718,12 @@ typedef struct FixedWingParams {
   double clmax_df;        /* CLmax per rad of flap */
   double cd_df2;          /* drag per rad^2 of flap */
   double cm_dcl_f;        /* pitching moment per unit of flap lift, nose up + */
+  /* Where the flaps are along each half, inner and outer edge over the
+   * semispan. The wing's flap lift (cl_df) and CLmax (clmax_df) are the
+   * whole wing's, area weighted; the stall strips take them where the
+   * flaps are and nowhere else, so a part span flap stalls its own strips
+   * first and leaves the rest flying. Zero on a table without flaps. */
+  double flap_eta[2];
   double de_df;           /* the radio's mix: elevator rad per rad of flap */
   /* The radio's elevator to flap mix, sim_wing_set_tune: flap, as a share
    * of flap_full, per unit of up elevator stick. Zero on every table. */
@@ -722,6 +739,12 @@ typedef struct FixedWingParams {
    * engine never stops. Zero is an electric motor's duty, the stick
    * itself, and leaves every other aircraft's arithmetic as it was. */
   double throttle_idle;
+  /* An engine's throttle as its dyno has it, docs/FLIGHTMODEL.md "The
+   * Slick's DA-120": its steady speed over full at the stick's 0, 0.1, ...
+   * 1, straight between, in place of throttle_idle's straight line; the
+   * first is the idle's own. A butterfly opens most of the speed in its
+   * first half. Zero on every table without, which keeps the line. */
+  double throttle_rpm[11];
   /*
    * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
    * Its volume, m^3; the fuel it burns per second at full rpm and at the
@@ -885,6 +908,17 @@ typedef struct FixedWingParams {
    * over which its drag coefficient more than halves.
    */
   double cd0_re;
+  /* The wing's own lift slope, per rad, where cl_alpha is the wing and
+   * tail's: the stall angle is the wing's, CL max over this, and the
+   * tail's share of the slope lifts on past it. Zero: cl_alpha for both. */
+  double cl_alpha_wing;
+  /* The stall across the Reynolds numbers on the chord: at stall_re[0]
+   * and [1], the wing's CL max and the angle its lift peaks at, rad,
+   * straight between them and held past them. Zero leaves cl_max and
+   * stall_blend as the table has them. */
+  double stall_re[2];
+  double stall_clmax[2];
+  double stall_peak[2];
   /*
    * THE DISCUS LAUNCH, docs/DLG-STAGE1.md, for a glider thrown by its
    * wingtip. Zero discus_v is an aircraft that is not, which
@@ -947,6 +981,19 @@ typedef struct FixedWingParams {
    * fins). */
   int slip_pusher;
   /*
+   * THE SWIRL OVER THE WING'S ROOT, docs/FLIGHTMODEL.md. Where
+   * slip_root_eta is set, the root's share of a tractor's swirl is the lift
+   * the swirl's upwash and downwash make on the wing inside the wash and
+   * outside the fuselage, each side at its own angle, instead of a fixed
+   * (1 - SWIRL_KEEP) of the torque. slip_root: the fuselage's half width at
+   * the wing, the wing's distance from the thrust line, and the root's
+   * chord, m. slip_root_eta: the share of that strip lift a wing makes in
+   * a stream as narrow as the wash. Zero on a table without, which keeps
+   * SWIRL_KEEP's arithmetic exactly.
+   */
+  double slip_root[3];
+  double slip_root_eta;
+  /*
    * THE FUSELAGE IN A CROSSFLOW, docs/FLIGHTMODEL.md. side_cda: the side
    * view's crossflow drag area, m^2, eta Cdc S_side, Allen and Perkins'
    * viscous crossflow (NACA TR 1048) with Jorgensen's eta for a body's
@@ -991,6 +1038,17 @@ typedef struct FixedWingParams {
   double tail_deda;
   double tail_cn;
   double rot_k[3];
+  /*
+   * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
+   * open in flight, sim_wing_set_door. door_time is their travel each way,
+   * s; cd_door the drag they add fully open, on the wing's area; cm_door
+   * the pitching moment they add, on its area and chord, nose up positive.
+   * Both go with how far open they are. Zero door_time is an aircraft
+   * without, and then nothing is read.
+   */
+  double door_time;
+  double cd_door;
+  double cm_door;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -1011,6 +1069,7 @@ extern const FixedWingParams FW_STRIKER_PROP;
 extern const FixedWingParams FW_STRIKER_JET;
 extern const FixedWingParams FW_EXTRA3D1308;
 extern const FixedWingParams FW_NIGHTTIMBER1200;
+extern const FixedWingParams FW_HERCULES3077;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_TIGERMOTH1803;
@@ -1069,6 +1128,7 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
+void plant_wing_strips(double out[8]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any
@@ -1125,6 +1185,13 @@ double plant_wing_gear(void);
 int plant_wing_gear_selected(void);
 int plant_wing_gear_down(void);
 void plant_wing_gear_reset(void);
+/* The cargo doors (FixedWingParams.door_time): selected open (1) or shut
+ * (0); where they are, 0 shut to 1 open. A reset and an airframe change
+ * shut them. */
+int plant_wing_set_door(int open);
+double plant_wing_door(void);
+int plant_wing_door_selected(void);
+void plant_wing_door_reset(void);
 
 /*
  * WATER, src/native/water.c: the bodies of water a host declares, still

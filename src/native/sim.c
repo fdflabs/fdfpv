@@ -2529,6 +2529,7 @@ SIM_EXPORT int sim_set_airframe(int id) {
   plant_wing_discus_stop();
   plant_wing_flaps_stow();
   plant_wing_gear_reset();
+  plant_wing_door_reset();
   contact_build_corners();
   /* Only if the host has not raised its own plane. A shell that has already
    * called sim_set_ground owns that number and must not have it taken back. */
@@ -2871,6 +2872,14 @@ SIM_EXPORT int sim_wing_slip(double *out) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wing_strips(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_strips(out);
+  return SIM_OK;
+}
+
 /* The wing's stabiliser: 0 off, 1 stabilised, 2 acro. Kept across
  * resets, like the airframe; the shell sets it from the tune. Additive:
  * 2 arrived after 0 and 1 and they mean what they did. */
@@ -2971,6 +2980,31 @@ SIM_EXPORT double sim_wing_gear(void) {
  * reset puts it down, so a host reads it rather than keeping a copy. */
 SIM_EXPORT int sim_wing_gear_selected(void) {
   return plant_wing_gear_selected();
+}
+
+/*
+ * The cargo doors, on an aircraft that has them (docs/HERCULES-CONTRACT.md).
+ * sim_wing_set_door(open): 1 opens them, 0 shuts them, at the aircraft's
+ * own rate. SIM_ERR_BAD_ARG for 1 on an aircraft without. sim_wing_door:
+ * where they are, 0 shut to 1 open. sim_wing_door_selected: the switch.
+ * Additive, version unchanged.
+ */
+SIM_EXPORT int sim_wing_set_door(int open) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (open != 0 && open != 1) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return plant_wing_set_door(open) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
+}
+
+SIM_EXPORT double sim_wing_door(void) {
+  return plant_wing_door();
+}
+
+SIM_EXPORT int sim_wing_door_selected(void) {
+  return plant_wing_door_selected();
 }
 
 /* The flaps where the notch has them, at once, as sim_reset puts them: for

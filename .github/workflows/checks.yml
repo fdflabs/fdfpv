@@ -284,6 +284,7 @@ jobs:
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses
+      - run: npm run stall-side:check
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
@@ -295,6 +296,14 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
+      - run: npm run hercules:gates
+      - run: npm run paradrop:selftest
+      # The pilot on foot (docs/ON-FOOT.md): the walk never ends inside a
+      # solid, steps and slopes, pace; then on swiss2 in the real shell,
+      # step out, pace, the eye over the terrain, the hangar wall, fly
+      # again from where the pilot stands, pad and touch.
+      - run: npm run foot:node
+      - run: npm run foot:walk
 
   shard-3:
     runs-on: ubuntu-latest
@@ -359,6 +368,7 @@ jobs:
       - run: npm run f16:gates
       - run: npm run f16:stab
       - run: npm run p51:gates
+      - run: npm run flapstrip:check
       - run: npm run p51:stab
       - run: npm run zagi:gates
       - run: npm run zagi:stab
@@ -513,6 +523,9 @@ jobs:
       # Outside CI it went red for a day of merged features and hid a moved
       # hangar tab among them; a UI change re-records it in its PR.
       - run: npm run ui:domgolden
+      # A hangar that's yours: two pilots' own rooms from their own data,
+      # and a level up growing one (docs/HANGAR-ROOM.md).
+      - run: npm run foot:mine
 
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.

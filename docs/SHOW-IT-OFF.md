@@ -18,9 +18,10 @@ Also in this lane, before the four: the hangar's trophy wall and TV
   a small cup for a passed lesson. Empty slots stay empty. Standing at it,
   E opens the hangar's Challenges tab, which lists them.
 - Data: read only, from `ui.progress.state.firsts`. Nothing stored.
-- Not: Flight Club medals. Brief said they are on main; on origin/main at
-  cd3a666d there is no `medals` key in progress.js or anywhere in src, so
-  they join the wall when the Flight Club lane lands them.
+- Flight Club medals (progress `medals`, src/game/medals.js, since #711)
+  are trophies too, ahead of the firsts: gold, silver and bronze each in
+  its own bright metal, best first. A visit (docs/HANGAR-VISITS.md)
+  carries them in the same list.
 
 ## 0b. TV
 
@@ -31,7 +32,7 @@ Also in this lane, before the four: the hangar's trophy wall and TV
 - The screen shows no thumbnail: a picture there is one more texture, and
   Low's budget holds two, both taken (docs/HANGAR-ROOM.md).
 - Data: read only, IndexedDB clips. Nothing new stored.
-- Known: the replay viewer's way out still reads "Back to flight".
+- The replay viewer's way out reads "Back to the hangar" when the TV opened it.
 
 ## 1. Photo mode and photo wall
 
@@ -64,10 +65,12 @@ Also in this lane, before the four: the hangar's trophy wall and TV
   weight, time flown on it), then the door's action runs: Fly, the
   launch card where the seat is a race, or the war's card from the field
   hangar. E or Enter goes at once; Escape stays in the room.
-- Not yet: the lineup in a room (every pilot's aircraft side by side in
-  their own livery before a start; src/render/peers.js buildPeerCraft
-  already builds them). It needs a two page check on the rooms server and
-  comes as its own PR after the visits.
+- In a room (rooms server), the room screen's Lineup row (in a game's
+  lobby too) opens the airfield hangar with every pilot's aircraft side by
+  side on the floor in their own paint and parts, this pilot's first,
+  from the room profiles (normalised as peers are), the camera square on
+  to the row, and a card naming each pilot and aircraft. Escape is the
+  room screen again. Checked on two pages (npm run hangar:lineup).
 - Data: what the seat already knows. Nothing stored.
 
 ## 4. Read-only friend visits

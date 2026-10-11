@@ -74,7 +74,7 @@ function node(tag, classes, text) {
 
 const within = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-export function mountTouchSticks({ onPause, onSwap } = {}) {
+export function mountTouchSticks({ onPause, onSwap, onFoot } = {}) {
   const root = node('div', 'touch-fly');
   root.hidden = true;
 
@@ -91,13 +91,18 @@ export function mountTouchSticks({ onPause, onSwap } = {}) {
     const cap = node('div', 'osd-gimbal-cap', stickCaption(layout.mode, side, CAPTION_SEP));
     gimbal.append(plate, cap);
     zone.append(gimbal);
-    return { side, zone, plate, nub, cap, thumb: null };
+    /* The thumb's drag as it is, right and down positive, -1..1 at the
+     * sprung span, 0 with no thumb: the pilot on foot's sticks, which
+     * know no stick mode and no sticky throttle. */
+    return { side, zone, plate, nub, cap, thumb: null, raw: { x: 0, y: 0 } };
   }
   const sticks = [buildStick('left'), buildStick('right')];
   const channelsOf = (stick) => layout[stick.side];
 
   function letGo(stick) {
     stick.thumb = null;
+    stick.raw.x = 0;
+    stick.raw.y = 0;
     stick.plate.classList.remove('is-held');
   }
 
@@ -118,6 +123,8 @@ export function mountTouchSticks({ onPause, onSwap } = {}) {
     const { horiz, vert } = channelsOf(stick);
     value[horiz] = within((e.clientX - t.x0) / t.sprungSpan, -1, 1);
     const dy = e.clientY - t.y0;
+    stick.raw.x = within((e.clientX - t.x0) / t.sprungSpan, -1, 1);
+    stick.raw.y = within(dy / t.sprungSpan, -1, 1);
     value[vert] = vert === 'throttle'
       ? within(t.throttleAtDown - dy / t.throttleSpan, 0, 1)
       : within(dy / t.sprungSpan, -1, 1);
@@ -174,9 +181,18 @@ export function mountTouchSticks({ onPause, onSwap } = {}) {
       onSwap();
     }
   });
+  /* Step out of a landed aircraft, or fly again: shown only while one
+   * of the two is possible (setFoot). */
+  const foot = node('button', 'bug-chip touch-foot', '');
+  foot.hidden = true;
+  foot.addEventListener('click', () => {
+    if (onFoot) {
+      onFoot();
+    }
+  });
   /* Shown by the stylesheet in portrait, where two thumbs do not fit. */
   const rotate = node('div', 'touch-rotate', str('touchsticks.turn_your_phone_sideways_to_fly'));
-  root.append(sticks[0].zone, sticks[1].zone, pause, swap, rotate);
+  root.append(sticks[0].zone, sticks[1].zone, pause, swap, foot, rotate);
 
   /* Where a channel sits on its plate's vertical, -1 bottom to 1 top.
    * Throttle runs 0 to 1, and pushing a pitch stick up is negative pitch. */
@@ -212,6 +228,17 @@ export function mountTouchSticks({ onPause, onSwap } = {}) {
       dropAll();
       for (const stick of sticks) {
         stick.cap.textContent = stickCaption(layout.mode, stick.side, CAPTION_SEP);
+      }
+    },
+    /* Both thumbs' drags, for walking: left moves, right looks. */
+    raw() {
+      return { left: { ...sticks[0].raw }, right: { ...sticks[1].raw } };
+    },
+    /* The foot chip's words, or null to hide it. */
+    setFoot(label) {
+      foot.hidden = !label;
+      if (label && foot.textContent !== label) {
+        foot.textContent = label;
       }
     },
     setVisible(on) {

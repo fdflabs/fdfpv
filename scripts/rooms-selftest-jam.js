@@ -130,7 +130,12 @@ export function jamSection(check) {
   e.say(r0, { op: 'score', ...nums(1.5) });
   e.say(r0, { op: 'score', ...nums(400, { last: { name: 'x'.repeat(41), execution: 'CLEAN', points: 1 } }) });
   e.say(r0, { op: 'score', ...nums(400, { last: { name: 'Flip', execution: 'PERFECT', points: 1 } }) });
-  check('a total going down, more unique than tricks, a fraction, a long name or an unknown grade are ignored', e.r.jam.match.live.total === 300);
+  e.say(r0, { op: 'score', ...nums(400, { last: { name: 'fig:loop', execution: 'CLEAN', points: 1, grade: 7.3 } }) });
+  e.say(r0, { op: 'score', ...nums(400, { last: { name: 'fig:loop', execution: 'CLEAN', points: 1, grade: 11 } }) });
+  check('a total going down, more unique than tricks, a fraction, a long name, an unknown execution or a figure grade off the half points are ignored', e.r.jam.match.live.total === 300);
+  e.say(r0, { op: 'score', ...nums(350, { last: { name: 'fig:loop', execution: 'CLEAN', points: 170, grade: 8.5 } }) });
+  check('a judged figure\'s grade reaches the other pilot with its last trick', e.jam(w0).live.total === 350 && e.jam(w0).live.last.grade === 8.5
+    && e.jam(w0).live.last.name === 'fig:loop', JSON.stringify(e.jam(w0).live.last));
   e.say(r0, { op: 'done', ...nums(900, { tricks: 4, unique: 3, crashes: 1 }) });
   v = e.jam(w0);
   check('done closes the run and counts the next pilot in', v.state === 'turn' && v.runs.length === 1 && v.runs[0].total === 900 && v.runs[0].why === 'done'

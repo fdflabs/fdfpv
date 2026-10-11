@@ -53,6 +53,25 @@ export const TIER_LEVELS = { garage: 1, workshop: 4, airfield: 7 };
 export function tierFor(level, unlockAll = false) {
   return unlockAll ? 'airfield' : TIERS.filter((t) => level >= TIER_LEVELS[t]).pop();
 }
+/*
+ * THE BUDGET, per frame, for the largest tier with the aircraft and the
+ * pilot in it. The room replaces the world's draw (main.js skips it while
+ * the room is open), and the owner's target is 90 fps, 11.1 ms. A Low
+ * machine (a Steam Deck class GPU) is several times slower than this
+ * box's RTX 3060 Ti, so the GPU column is held to a small share of the
+ * frame here. Draw calls are what a weak CPU pays for: the aircraft's
+ * parts are most of them. Textures are the room's target and the shadow
+ * map, and one more since item 28: the wall atlas, the photo wall's and
+ * the paint chart's (src/render/hangarroomview.js), made only when there
+ * is something to hang. Here, not in the perf check, so the check of the
+ * room in the real shell (scripts/foot-mine-check.js) holds the same.
+ */
+export const ROOM_BUDGET = {
+  low: { calls: 40, tris: 150000, textures: 3, gpuMs: 2.0 },
+  medium: { calls: 60, tris: 150000, textures: 4, gpuMs: 3.0 },
+  high: { calls: 70, tris: 150000, textures: 4, gpuMs: 4.0 },
+};
+
 /* Every room there is: the tiers and the field hangar. */
 export const ROOM_IDS = [...TIERS, 'field'];
 
@@ -68,12 +87,22 @@ export const KINDS = {
   chest: { size: [2, 1] },
   couch: { size: [4, 2] },
   crates: { size: [2, 2] },
+  /* A second stand, the size of the first, where one more of the pilot's
+   * own aircraft is parked to be looked at (src/game/hangarmine.js says
+   * which). No station: changing aircraft is the main stand's. */
+  bay: { size: [4, 4] },
 };
 
 /*
  * The default layout of each tier. Wall pieces stand against the back
  * (j 0) or a side wall, front to the room; the stand is in the middle
  * with room to walk round it; the door's half of the room is kept clear.
+ * The bays grow with the room, so the aircraft parked in it do: none in
+ * the garage corner, one in the workshop, three in the airfield hangar
+ * (with the main stand, 1, 2 and 4 aircraft). A bay stands at least 3 m
+ * centre to centre from the main stand, clear of the widest wing a pilot
+ * of that tier can have (the Bramor's 2.3 m by level 6; the Hercules'
+ * 3.1 m only in the airfield hangar, where the bays are 5.5 m apart).
  */
 export const LAYOUTS = {
   garage: [
@@ -94,6 +123,7 @@ export const LAYOUTS = {
     { kind: 'tv', at: [0, 5], rot: 3 },
     { kind: 'couch', at: [5, 5], rot: 1 },
     { kind: 'crates', at: [17, 0], rot: 0 },
+    { kind: 'bay', at: [14, 4], rot: 0 },
   ],
   airfield: [
     { kind: 'stand', at: [18, 9], rot: 0 },
@@ -109,6 +139,9 @@ export const LAYOUTS = {
     { kind: 'tv', at: [0, 8], rot: 3 },
     { kind: 'couch', at: [5, 8], rot: 1 },
     { kind: 'crates', at: [37, 14], rot: 0 },
+    { kind: 'bay', at: [7, 9], rot: 0 },
+    { kind: 'bay', at: [29, 9], rot: 0 },
+    { kind: 'bay', at: [24, 3], rot: 0 },
   ],
   field: [
     { kind: 'stand', at: [8, 5], rot: 0 },

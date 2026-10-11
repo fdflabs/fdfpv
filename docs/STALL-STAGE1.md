@@ -125,20 +125,19 @@ eighths, five eighths and seven eighths of the semispan.
   the nose toward it.
 - **Nothing short of its stall angle:** a strip takes nothing until it
   passes its own stall angle, and it is brought in over one `stall_blend`.
-- **Asymmetry:** the left half stalls `stall_asym` sooner, 1 mm of trailing
-  edge over the chord (0.21 to 0.31 deg). This is ESTIMATED as a kit's
-  build tolerance. Without it a power off stall from wings level is exactly
-  symmetric and no wing could ever drop. The Extra 300 3D carries none
-  (2026-10-09): its fixed left side made every power off pull of the
-  owner's drop the left wing, the side of a tolerance nobody knows is no
-  property of the aircraft, and in flight the pilot's own small rudder
-  and aileron, the gusts and the prop's torque and swirl pick the side,
-  as they do on the field. The other tables keep the convention; whether
-  they should is the lead's call.
-- **The asymmetry picks the side, not the violence:** at 0.1 and 4 times
-  its value, the probe's final bank moves by a few degrees on every
-  airframe except the Timber, whose slow spiral in a held full up stall
-  starts sooner with more asymmetry.
+- **Asymmetry: none built in** (2026-10-09). The tables carried a left
+  panel that stalled `stall_asym` sooner, 1 mm of trailing edge over the
+  chord, ESTIMATED as a kit's build tolerance. A real airframe has one,
+  but nobody knows which side any of these has, and the fixed left made
+  every power off pull of the owner's drop the left wing, then bank and
+  yaw it left. Now `stall_asym` is zero on every table: a power off stall
+  from wings level, in still air and with the sticks centred, is
+  symmetric, and what drops a wing is what drops it on the field, the
+  pilot's own small rudder and aileron, the gusts, and under power the
+  prop's torque and swirl. stall-side:check gates it on every aircraft
+  but one: the P-51 keeps its 1 mm, because the XP-51 it is checked
+  against (NACA 1943, fig. 42) dropped a wing in a controls fixed gliding
+  stall, a measured asymmetry, though its side is not.
 - **Sideslip is not in the strips' angles.** With the dihedral's share in,
   a stall with right rudder spun left on every plane that has more than a
   few degrees of dihedral, against the handbook ("in the direction of

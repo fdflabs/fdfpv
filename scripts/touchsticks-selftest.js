@@ -213,7 +213,7 @@ Object.defineProperty(globalThis, 'navigator', { value: { maxTouchPoints: 5 }, c
 
 const trace = [];
 const calls = [];
-const touch = mountTouchSticks({ onPause: () => calls.push('pause'), onSwap: () => calls.push('swap') });
+const touch = mountTouchSticks({ onPause: () => calls.push('pause'), onSwap: () => calls.push('swap'), onFoot: () => calls.push('foot') });
 const root = touch.root;
 
 const zones = [];
@@ -405,6 +405,28 @@ leftZone.fire('pointermove', ev(11, lx + 63, ly - 63));
 leftZone.fire('pointerup', ev(11, lx, ly));
 for (const dt of [0, 0.5, 4, 1e-3, 16]) {
   snap(`spring at dt ${dt}`, dt);
+}
+
+/* The pilot on foot's drags (raw()): right and down positive at the
+ * sprung span, whatever the stick mode, and nothing once lifted. */
+{
+  const span = 0.72 * 126;
+  leftZone.fire('pointerdown', ev(30, lx, ly));
+  leftZone.fire('pointermove', ev(30, lx + span / 2, ly - 2 * span));
+  rightZone.fire('pointerdown', ev(31, rx, ry));
+  rightZone.fire('pointermove', ev(31, rx - span / 4, ry + span / 2));
+  const held = touch.raw();
+  check('raw: the left drag, clamped', Math.abs(held.left.x - 0.5) < 1e-9 && held.left.y === -1, JSON.stringify(held.left));
+  check('raw: the right drag', Math.abs(held.right.x + 0.25) < 1e-9 && Math.abs(held.right.y - 0.5) < 1e-9, JSON.stringify(held.right));
+  leftZone.fire('pointerup', ev(30, lx, ly));
+  rightZone.fire('pointerup', ev(31, rx, ry));
+  const lifted = touch.raw();
+  check('raw: nothing once both lift', lifted.left.x === 0 && lifted.left.y === 0 && lifted.right.x === 0 && lifted.right.y === 0);
+  touch.setFoot('Step out');
+  const chip = clickables.find((b) => b.classSet.has('touch-foot'));
+  check('the foot chip shows its words', chip && !chip.hidden && chip.textContent === 'Step out');
+  touch.setFoot(null);
+  check('and hides on null', chip.hidden);
 }
 
 const result = {

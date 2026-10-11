@@ -179,7 +179,7 @@ try {
   await click(page, '[data-skip="first"] .training-skip-btn');
   await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'first_unaided'", 15000).catch(() => {});
   const skipSeat = await page.evaluate("({ lesson: window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id, tune: window.__ui.settings.tune })");
-  check('I fly already on First flight flies the unaided round, in Acro', skipSeat.lesson === 'first_unaided' && skipSeat.tune === 'timber-acro', JSON.stringify(skipSeat));
+  check('I fly already on First flight flies the unaided round, in AS3X', skipSeat.lesson === 'first_unaided' && skipSeat.tune === 'timber-as3x', JSON.stringify(skipSeat));
   await page.evaluate(`(() => {
     const p = window.__ui.progress;
     let t = 0;

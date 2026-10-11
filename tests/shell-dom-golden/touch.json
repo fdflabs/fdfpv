@@ -210,6 +210,15 @@
          "attrs": [
           [
            "class",
+           "osd-sub osd-mode"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
            "osd-sub"
           ]
          ]
@@ -8742,6 +8751,15 @@
           [
            "class",
            "osd-value"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "osd-sub osd-mode"
           ]
          ]
         },
@@ -17535,7 +17553,7 @@
    ]
   },
   "osdAlt": {
-   "node": "#ui/div.osd.2.4"
+   "node": "#ui/div.osd.2.5"
   },
   "osdBest": {
    "node": "#ui/div.osd.0.4"
@@ -17560,6 +17578,9 @@
   },
   "osdHits": {
    "node": "#ui/div.osd.1.3"
+  },
+  "osdHold": {
+   "node": "#ui/div.osd.2.4"
   },
   "osdLast": {
    "node": "#ui/div.osd.0.3"
@@ -17624,7 +17645,7 @@
    "node": "#ui/div.osd.3"
   },
   "osdThrBar": {
-   "node": "#ui/div.osd.2.6.0"
+   "node": "#ui/div.osd.2.7.0"
   },
   "osdTimer": {
    "node": "#ui/div.osd.0.1"

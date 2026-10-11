@@ -38,6 +38,7 @@
  */
 
 import { centredReading } from './padmap.js';
+import { PAD_BUTTONS as B } from './padbuttons.js';
 
 /* How far a stick has to leave rest to count as a menu keypress. main.js
  * reads the same number for its own stick navigation. */
@@ -58,24 +59,32 @@ export function swapButtons(gp) {
   if (!standard(gp) || !gp.buttons) {
     return null;
   }
-  return { open: pressed(gp, 3), prev: pressed(gp, 4), next: pressed(gp, 5) };
+  return { open: pressed(gp, B.y), prev: pressed(gp, B.lb), next: pressed(gp, B.rb) };
 }
 
 /* X, which the aircraft picker takes as Customise. */
 export function altButton(gp) {
-  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 2);
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, B.x);
 }
 
 /* Start (Menu on an Xbox pad): pause in flight, resume from the pause
  * menu. Standard pads only, as the other extras: on a radio a button
  * number can be the arm switch. */
 export function startButton(gp) {
-  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 9);
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, B.start);
+}
+
+/* B, held in flight to step out of a landed aircraft and to fly again
+ * (main.js THE PILOT ON FOOT). Not View: on a world the builder works
+ * in, View enters the builder (src/builder/buildmode.js PAD.back). B is
+ * a menu's back, and in flight nothing else reads it. */
+export function footButton(gp) {
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 1);
 }
 
 /* Y, which the aircraft picker takes as its Floats switch. */
 export function floatsButton(gp) {
-  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 3);
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, B.y);
 }
 
 /* The four ways on a standard pad, as levels: `dpad` the d-pad (buttons
@@ -91,14 +100,14 @@ export function padDirections(gp) {
   const x = (gp.axes && gp.axes[0]) || 0;
   const y = (gp.axes && gp.axes[1]) || 0;
   return {
-    dpad: { up: pressed(gp, 12), down: pressed(gp, 13), left: pressed(gp, 14), right: pressed(gp, 15) },
+    dpad: { up: pressed(gp, B.up), down: pressed(gp, B.down), left: pressed(gp, B.left), right: pressed(gp, B.right) },
     stick: { up: y < -NAV_DEFLECT, down: y > NAV_DEFLECT, left: x < -NAV_DEFLECT, right: x > NAV_DEFLECT },
   };
 }
 
 /* The right stick pressed in (R3), which the hangar takes as Flip. */
 export function lookClick(gp) {
-  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 11);
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, B.rs);
 }
 
 /* The right stick, right and down positive, for orbiting the hangar. */

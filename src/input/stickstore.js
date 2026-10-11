@@ -16,6 +16,15 @@
  * (storage may refuse the write), loads read the old key, and the first
  * successful save under the new name retires it.
  *
+ * Stick maps are kept per device (version 2): { v: 2, maps: { [deviceKey]:
+ * map }, orphan }. Version 1 held one map for every device. It is filed
+ * under the device the pilot had chosen, which is the one it was made on
+ * as far as anything recorded says; with no choice recorded it becomes the
+ * orphan, which the first device to connect adopts, once. The same rules
+ * as the rename hold: version 1 is removed only after version 2 is
+ * written, until then loads fold it in, and a device's own version 2 map
+ * wins over it.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -33,9 +42,11 @@
  */
 
 import { AETR_MAP, normaliseMap } from './padmap.js';
+import { deviceKey } from './padprofiles.js';
 
 const STICK_MAP_KEY = 'fdfpv.stick_map.v1';
 const PAD_CHOICE_KEY = 'fdfpv.pad.v1';
+const STICK_MAPS_KEY = 'fdfpv.stick_maps.v2';
 
 /* [current key, the key older builds wrote]. */
 const RENAMED = [
@@ -68,32 +79,127 @@ export function migrateStickStorage() {
        * still there to move on a visit where storage works. */
     }
   }
+  try {
+    if (oldMap(readRenamed(STICK_MAP_KEY)) !== null) {
+      writeMaps(readMaps());
+    }
+  } catch (e) {
+    /* Refused: version 1 stays, and loads keep folding it in. */
+  }
+}
+
+const isRecord = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+
+/* A saved map over AETR, so a map saved before a field existed loads with
+ * that field filled in. */
+function savedMap(value) {
+  return { ...AETR_MAP, ...value, stored: true };
 }
 
 /*
- * The saved map over AETR, so a map saved before a field existed loads
- * with that field filled in. Anything at all under the key counts as a
- * saved map, even JSON null; anything unreadable is no map.
+ * The version 1 map as it was written, or null for none. Anything JSON at
+ * all counts as a saved map, even null, as it always has: a value that is
+ * not an object is an empty map, which loads as AETR saved. Text that is
+ * not JSON is no map, and is left where it is rather than moved.
  */
-export function loadStickMap() {
-  let saved = null;
-  try {
-    saved = readRenamed(STICK_MAP_KEY);
-    if (saved) {
-      return normaliseMap({ ...AETR_MAP, ...JSON.parse(saved), stored: true });
-    }
-  } catch (e) {
-    /* Unreadable or refused: the pilot flies the guess. */
+function oldMap(text) {
+  if (!text) {
+    return null;
   }
-  return normaliseMap({ ...AETR_MAP, stored: false });
+  try {
+    const value = JSON.parse(text);
+    return isRecord(value) ? value : {};
+  } catch (e) {
+    return null;
+  }
 }
 
-/* True when the map reached storage. */
-export function saveStickMap(map) {
+/* Version 2 as stored; anything malformed is an empty store, because a
+ * value nothing can read holds no map a pilot ever flew. */
+function storedMaps() {
+  let parsed = null;
   try {
-    localStorage.setItem(STICK_MAP_KEY, JSON.stringify(map));
-    /* A write under the new name supersedes anything still under the old. */
-    localStorage.removeItem(oldSpelling(STICK_MAP_KEY));
+    parsed = JSON.parse(localStorage.getItem(STICK_MAPS_KEY) || 'null');
+  } catch (e) {
+    parsed = null;
+  }
+  const ok = isRecord(parsed) && parsed.v === 2 && isRecord(parsed.maps);
+  const maps = {};
+  for (const [key, map] of Object.entries(ok ? parsed.maps : {})) {
+    if (isRecord(map)) {
+      maps[key] = map;
+    }
+  }
+  return { v: 2, maps, orphan: ok && isRecord(parsed.orphan) ? parsed.orphan : null };
+}
+
+/* Version 2 with any version 1 map still in storage folded in. */
+function readMaps() {
+  const store = storedMaps();
+  let old = null;
+  try {
+    old = oldMap(readRenamed(STICK_MAP_KEY));
+  } catch (e) {
+    old = null;
+  }
+  if (!old) {
+    return store;
+  }
+  const choice = loadPadChoice();
+  if (choice.kind === 'pad') {
+    const key = deviceKey(choice.id);
+    store.maps[key] = store.maps[key] || old;
+  } else {
+    store.orphan = store.orphan || old;
+  }
+  return store;
+}
+
+/* Throws when storage refuses. Version 1 goes only once version 2 holds
+ * it, under either spelling. */
+function writeMaps(store) {
+  localStorage.setItem(STICK_MAPS_KEY, JSON.stringify(store));
+  localStorage.removeItem(STICK_MAP_KEY);
+  localStorage.removeItem(oldSpelling(STICK_MAP_KEY));
+}
+
+/*
+ * The map saved for the device `key` names (padprofiles.js deviceKey), or
+ * AETR unsaved. A device with none adopts the orphan; if storage refuses
+ * that write it still flies it this visit, and the orphan waits.
+ */
+export function loadStickMap(key) {
+  const none = normaliseMap({ ...AETR_MAP, stored: false });
+  if (typeof key !== 'string') {
+    return none;
+  }
+  let store = null;
+  try {
+    store = readMaps();
+  } catch (e) {
+    return none;
+  }
+  if (!store.maps[key] && store.orphan) {
+    store.maps[key] = store.orphan;
+    store.orphan = null;
+    try {
+      writeMaps(store);
+    } catch (e) {
+      /* Adopted for this visit only. */
+    }
+  }
+  return store.maps[key] ? normaliseMap(savedMap(store.maps[key])) : none;
+}
+
+/* True when the map reached storage under the device's key. */
+export function saveStickMap(key, map) {
+  if (typeof key !== 'string') {
+    return false;
+  }
+  try {
+    const store = readMaps();
+    store.maps[key] = map;
+    writeMaps(store);
     return true;
   } catch (e) {
     return false;

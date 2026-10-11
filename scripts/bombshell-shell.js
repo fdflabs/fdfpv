@@ -2,7 +2,8 @@
  * bombshell-shell.js: the Buzzard Bombshell in the real shell, headless,
  * from the gate: the Free Flight card (the fixed wings') pressed, the Bombshell picked on the
  * machine screen, and flown from where the shell seats it, on swiss2 (the
- * Free Flight card's home) and then on the Alps. Seated with Acro and its own module, parked on its
+ * Free Flight card's home) and then on the Alps. Seated in Manual, its
+ * default, and its own module, parked on its
  * wheels and skid at the plant's rest, it takes off on full throttle with
  * the sticks centred, climbs, answers full roll stick on its rudder, and
  * the C key puts the chase camera on it.
@@ -146,7 +147,7 @@ try {
     const drawn = await page.evaluate("(() => { let n = null; window.__mapScene().traverse((o) => { if (o.name === 'craft') { o.traverse((c) => { if (!n && /-fuselage$/.test(c.name)) n = c.name; }); } }); return n; })()");
     say(craft.setting === AF && craft.run === AF && craft.module === af.simId && drawn === `${AF.replace(new RegExp(`${af.sizeMm}$`), '')}-fuselage`,
       `the setting, the run, the module and the drawn model: ${craft.setting}, ${craft.run}, module ${craft.module}, ${drawn}`);
-    say(st.tune === af.defaultTune && st.wingStab === 2, `on ${st.tune} with the stabiliser in mode ${st.wingStab}`);
+    say(st.tune === af.defaultTune && st.wingStab === 0, `on ${st.tune} with the stabiliser in mode ${st.wingStab}`);
     /* Its sound: the voice the airframe names, or the fixed wings' blade
      * pass, read off the mix's own voice (src/render/audio.js VOICES). */
     const voice = await page.evaluate("(() => { const v = window.__audio.voice; return { perRev: v.perRev, wave: v.wave, rpmFull: v.rpmFull }; })()");

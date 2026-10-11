@@ -53,15 +53,19 @@ import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
 import { RoomJam } from './jam.js';
 import { RoomSafety } from './safety.js';
-import { TYPE_PARTS, TYPE_STREAMER, WAR_JOIN } from '../../src/share/roomwire.js';
+import {
+  TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
+} from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
+import { RoomDrops } from './drops.js';
 import { RoomOps } from './ops.js';
 import { RoomGameLobby } from './gamelobby.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
 import { RoomBots } from './roombots.js';
+import { onFoot } from './foot.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
@@ -283,6 +287,7 @@ export class RoomCore {
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.jam = new RoomJam(); /* Trick Battle, edge/rooms/jam.js */
+    this.drops = new RoomDrops(); /* the Hercules' paradrops, edge/rooms/drops.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     /* The accounts whose rooms start missions in development (devHost). */
@@ -958,6 +963,7 @@ export class RoomCore {
       type: 'join', seat, name: s.name, ...(callsign ? { callsign } : {}), profile, host: this.host(),
     })));
     actions.push(...wrecks.wrecksFor(this, conn));
+    actions.push(...this.drops.join(conn));
     actions.push(...this.race.join(this, seat));
     this.combat.seat(seat, profile.airframe);
     actions.push(...this.combat.join(this, conn));
@@ -983,6 +989,9 @@ export class RoomCore {
       }
       if (s && data[0] === TYPE_STREAMER) {
         return this.combat.frame(this, conn, s, data, now);
+      }
+      if (s && data[0] === TYPE_FOOT) {
+        return onFoot(this, conn, s, data, now);
       }
       return s ? this.pose(conn, s, data, now) : [];
     }
@@ -1045,6 +1054,9 @@ export class RoomCore {
     }
     if (msg.type === 'weather') {
       return this.weather(conn, s, msg);
+    }
+    if (msg.type === 'drop') {
+      return this.drops.message(this, conn, s, msg);
     }
     /* A game room's lobby: ready from anybody, the round's setting from
      * the host (edge/rooms/gamelobby.js), with the clock its times need. */

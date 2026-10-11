@@ -195,4 +195,6 @@ for (const [label, args] of hits) {
 t.note('after hits', own(c));
 t.note('seated at end', canon(seated()) === canon(FIVE_INCH));
 
-t.finish('collide state', '17b3bb6beb2fb830bc2869fa24730b783844cc73d7bdda7304ec17e4152758e1');
+/* Re-pinned 2026-10-11 for bodyPush's five answer fields (the pilot on
+ * foot); every other record is unchanged. */
+t.finish('collide state', '45222c146419f2d385d8d6b9aea50cb0176e9eec5089026ea8a305d78ce284ea');
