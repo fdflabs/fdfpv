@@ -13,7 +13,7 @@
  * long. Speed, turn rate, lead and reaction are the level's (LEVELS).
  *
  * WHERE. Only where the room knows the ground: the valley floor of
- * swiss2 and the alps (BOT_MAPS; grounds.js, the field each page builds). The floor rolls between about
+ * swiss2 and the alps (BOT_MAPS; grounds.js, the ground each page lays its roofs over). The floor rolls between about
  * -2 and 8 m within CORRIDOR.half of the valley's axis, so an AI pilot
  * keeps within that and between CORRIDOR.yMin and CORRIDOR.yMax (lower
  * only on the last TERMINAL_M to a target, below): its aim is put inside

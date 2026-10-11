@@ -26,12 +26,15 @@ import * as THREE from 'three';
 import { celMaterial } from '../../render/celmat.js';
 import { fbm, noise2, smoothstep } from '../../render/library/noise.js';
 import {
-  CELLS, FIELD, HALF, LAKE_N, LAKE_Y, POOL, SIDE_Z, SNOW_LINE, SNOW_MAX_SLOPE, STRIP_L, TREE_LINE, forestDensity, lakeBasin, streamX, terrainHeight, valleyAxis,
+  CELLS, FIELD, HALF, POOL, SIDE_Z, streamX, terrainHeight, valleyAxis,
 } from './heights.js';
+import { groundZone } from '../../share/valley/world.js';
 
-/* The shape lives in heights.js, so the room server can read it; every
- * importer of this file still finds it here. */
+/* The shape lives in heights.js and what the ground is in
+ * share/valley/world.js, so the room server can read them; every importer
+ * of this file still finds them here. */
 export * from './heights.js';
+export { groundZone };
 
 export function canvasTexture(w, h, draw) {
   const c = document.createElement('canvas');
@@ -65,99 +68,6 @@ export function groundPaths() {
     zigzag.push({ x: -250 - k * 95, z: 112 + (k % 2 === 0 ? 40 : -140) });
   }
   return [stream, side, zigzag];
-}
-
-/* The village plateau's footprint, the same terms terrainHeight holds it
- * flat with, so the mown stripes stop where the plateau does. */
-function plateauAt(x, z) {
-  return (1 - smoothstep(STRIP_L / 2 + 60, STRIP_L / 2 + 260, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
-}
-
-/*
- * What the ground is at (x, z), as weights from nought to one, read with
- * the slope taken `d` metres either side. The cel paint mixes its colours
- * from these and the photographic ground blends its texture layers by
- * them, so both looks agree where the forest floor, the scree, the rock,
- * the snow and the shore are. Fills and returns `out`:
- *
- *   y, slope, grain, patch  the height, the slope and two noises
- *   flat                    the village plateau
- *   up                      floor to pasture, by height
- *   hay                     the hayfield patches (before `up` fades them)
- *   bloom                   the flower patches on the pasture
- *   forest                  forestDensity, exactly what the trees read
- *   scree, screeLight       the fans below the cliffs, and which streak
- *   rock, faces             rock above the trees and on steep ground, and
- *                           the steep faces that carry strata
- *   snow                    snow above the line and old snow in hollows
- *   lake, shore, silt, bed  inside the basin: the gravel round the shore,
- *                           and silt and the bed under it (times shore)
- */
-export function groundZone(field, x, z, d, out) {
-  const y = field.height(x, z);
-  const sx = (field.height(x + d, z) - field.height(x - d, z)) / (2 * d);
-  const sz = (field.height(x, z + d) - field.height(x, z - d)) / (2 * d);
-  const slope = Math.hypot(sx, sz);
-  const grain = fbm(x / 80, z / 80, 2);
-  const patch = noise2(x / 34 + 9.1, z / 34 + 3.7);
-  out.y = y;
-  out.slope = slope;
-  out.grain = grain;
-  out.patch = patch;
-  out.flat = plateauAt(x, z);
-  /* The floor and the pasture. Hayfields are patches of a yellower
-   * green a hundred metres across. */
-  out.up = smoothstep(60, 500, y);
-  out.hay = smoothstep(0.55, 0.7, noise2(x / 140 + 3.3, z / 140 + 8.8));
-  /* Flower patches on the pasture below the tree line: a warmer
-   * green, and the texels speckle it. */
-  out.bloom = smoothstep(0.58, 0.7, patch) * smoothstep(40, 120, y) * (1 - smoothstep(TREE_LINE - 200, TREE_LINE, y)) * (1 - smoothstep(0.45, 0.7, slope));
-  /* The forest floor, exactly under the density the trees are
-   * planted with. */
-  out.forest = forestDensity(x, y, z, slope, sz);
-  /* Scree below the cliffs, streaked down the fall line. Uphill is
-   * against the gradient; steep ground forty five metres up from a
-   * moderate slope is where the cliff sheds. */
-  out.scree = 0;
-  out.screeLight = false;
-  if (slope > 0.04 && slope < 0.85) {
-    const ax = x - sx / slope * 45;
-    const az = z - sz / slope * 45;
-    const usx = (field.height(ax + 6, az) - field.height(ax - 6, az)) / 12;
-    const usz = (field.height(ax, az + 6) - field.height(ax, az - 6)) / 12;
-    const sc = smoothstep(0.85, 1.15, Math.hypot(usx, usz)) * smoothstep(0.3, 0.55, slope);
-    if (sc > 0.02) {
-      out.scree = sc;
-      out.screeLight = noise2((-sz * x + sx * z) / slope / 7 + 1.7, y / 40) > 0.5;
-    }
-  }
-  /* Rock on the steep faces and above the trees; the faces get
-   * their strata from the texels. */
-  const rockiness = Math.max(smoothstep(0.8, 1.05, slope), smoothstep(TREE_LINE + 80, TREE_LINE + 220, y + 60 * grain));
-  out.rock = rockiness;
-  out.faces = smoothstep(0.7, 1.0, slope) * rockiness;
-  /* Snow above the line on anything that will hold it, and old snow
-   * in the hollows below it. */
-  const line = SNOW_LINE + 150 * grain;
-  let snowy = smoothstep(line - 100, line + 100, y) * (1 - smoothstep(SNOW_MAX_SLOPE - 0.3, SNOW_MAX_SLOPE + 0.3, slope));
-  if (y > line - 330 && slope < 0.8) {
-    const hollow = smoothstep(0.66, 0.74, noise2(x / 60 + 2.2, z / 60 + 7.9)) * smoothstep(line - 330, line - 180, y) * (1 - smoothstep(0.5, 0.8, slope));
-    snowy = Math.max(snowy, hollow);
-  }
-  out.snow = snowy;
-  /* The lake basin: gravel round the shore, silt under the
-   * shallows, the bed under the deep water. */
-  out.lake = y < LAKE_Y + 3.5 && z > LAKE_N;
-  out.shore = 0;
-  out.silt = 0;
-  out.bed = 0;
-  if (out.lake) {
-    const basin = lakeBasin(z);
-    out.shore = (1 - smoothstep(LAKE_Y + 1.5, LAKE_Y + 3.5, y)) * smoothstep(0.2, 0.5, basin);
-    out.silt = 1 - smoothstep(LAKE_Y - 3, LAKE_Y - 1.2, y);
-    out.bed = 1 - smoothstep(LAKE_Y - 9, LAKE_Y - 4, y);
-  }
-  return out;
 }
 
 /*
@@ -423,20 +333,13 @@ export function terrainMesh(field, tex) {
  * noticed, and the sky dome takes it before the far plane does.
  */
 /*
- * The ranges beyond the valley, and since the pilot asked for a bigger
- * world, ground a craft can fly over and hit rather than scenery it
- * passes through: 24 km across against the valley's 6. Returns the mesh
- * and a height sampler read on the mesh's own triangles, split on the
- * diagonal PlaneGeometry uses, as the valley's heightfield is, so what
- * stops a craft is what is drawn.
+ * The ranges beyond the valley, drawn from `far`, the grid the world's
+ * ground reads (src/share/valley/world.js farGrid), vertex for vertex, so
+ * what stops a craft is what is drawn. Returns the mesh and that grid's
+ * height sampler.
  */
-export function farRange(field, look) {
-  const size = 24000;
-  /* 300 m cells: all of it stands in fog, and at 250 the strip's view
-   * swung over its 600k triangle budget with the traffic. 300 also puts a
-   * grid line on the field's edge at 3 km, so the seam is a shared edge. */
-  const n = 80;
-  const geo = new THREE.PlaneGeometry(size, size, n, n);
+export function farRange(far, look) {
+  const geo = new THREE.PlaneGeometry(far.size, far.size, far.n, far.n);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.getAttribute('position');
   const colour = new Float32Array(pos.count * 3);
@@ -448,23 +351,7 @@ export function farRange(field, look) {
   for (let k = 0; k < pos.count; k += 1) {
     const x = pos.getX(k);
     const z = pos.getZ(k);
-    const r = Math.hypot(x, z);
-    /* Nothing inside the field, a skirt rising from the field's edge,
-     * peaks to two and a half kilometres beyond it. The skirt starts at
-     * the edge rather than inside it: begun six hundred metres in, it
-     * stood up through the valley floor as a bare green wall a few
-     * hundred metres past the lake's far shore. */
-    const skirt = smoothstep(HALF - 100, HALF + 2300, r);
-    let h = skirt * (1500 + 900 * fbm(x / 2200, z / 2200, 4) + 350 * fbm(x / 700, z / 700, 3)) - 40 * (1 - skirt);
-    /* Past the field's edge the range starts where the valley's own ground
-     * stops and eases into its peaks. Without this the valley's side walls
-     * ended at 1.3 km and the range began at the bottom of a trench round
-     * the whole world. The heightfield clamps to its edge, so outside it
-     * reads the edge height straight out. */
-    const out = Math.max(Math.abs(x), Math.abs(z)) - HALF;
-    if (out >= 0) {
-      h = Math.max(h, field.height(x, z) * (1 - smoothstep(0, 2500, out)));
-    }
+    const h = far.data[k];
     pos.setY(k, h);
     const t = smoothstep(1300, 1900, h + 200 * fbm(x / 900, z / 900, 2));
     /* The lower slopes in forest and pasture, as the valley's own are. */
@@ -479,29 +366,5 @@ export function farRange(field, look) {
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, look.parts('far-range', { rim: 0.1 }));
   mesh.name = 'far-range';
-  /* PlaneGeometry's vertex (i, j), laid flat, is at x = i * cell - size / 2
-   * and z = j * cell - size / 2, index i + (n + 1) * j. */
-  const cell = size / n;
-  const data = new Float32Array(pos.count);
-  for (let k = 0; k < pos.count; k += 1) {
-    data[k] = pos.getY(k);
-  }
-  const at = (i, j) => data[Math.max(0, Math.min(n, j)) * (n + 1) + Math.max(0, Math.min(n, i))];
-  const height = (x, z) => {
-    const u = (x + size / 2) / cell;
-    const v = (z + size / 2) / cell;
-    const i = Math.floor(u);
-    const j = Math.floor(v);
-    const fu = Math.max(0, Math.min(1, u - i));
-    const fv = Math.max(0, Math.min(1, v - j));
-    const h00 = at(i, j);
-    const h10 = at(i + 1, j);
-    const h01 = at(i, j + 1);
-    const h11 = at(i + 1, j + 1);
-    if (fu + fv <= 1) {
-      return h00 + (h10 - h00) * fu + (h01 - h00) * fv;
-    }
-    return h11 + (h01 - h11) * (1 - fu) + (h10 - h11) * (1 - fv);
-  };
-  return { mesh, height };
+  return { mesh, height: far.height };
 }
