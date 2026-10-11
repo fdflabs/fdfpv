@@ -286,7 +286,11 @@ async function stage(page, th) {
   })()`);
   let lastN = -1;
   let since = 0;
+  const giveUp = Date.now() + WAIT;
   for (;;) {
+    if (Date.now() > giveUp) {
+      throw new Error(`${th.id}: the page drew no ${STALL_FRAMES} frames in ${WAIT} ms`);
+    }
     const { n, frames } = await page.evaluate('JSON.stringify({ n: window.__stepTrace().n, frames: window.__goldenFrames })').then(JSON.parse);
     if (n >= STEPS) break;
     if (n !== lastN) {
