@@ -293,6 +293,8 @@ typedef struct {
 #define SIM_AIRFRAME_EXTRA3D1308 29
 #define SIM_AIRFRAME_NIGHTTIMBER1200 30
 #define SIM_AIRFRAME_HERCULES3077 31
+/* 32 is held for the CAP 580 lane of 2026-10-11. */
+#define SIM_AIRFRAME_SLICK2680 33
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -304,8 +306,9 @@ typedef struct {
  * the flight model lane, the Extra 300 3D under a new id, 14 staying
  * reserved (docs/FLIGHTMODEL.md). 30 is E-flite's Night Timber X 1.2m
  * (docs/NIGHTTIMBER-STAGE1.md). 31 is the owner's balsa C-130 Hercules of
- * 2026-10-08 (docs/HERCULES-CONTRACT.md). */
-#define SIM_AIRFRAME_COUNT 32
+ * 2026-10-08 (docs/HERCULES-CONTRACT.md). 33 is Extreme Flight's 105.5 in
+ * Slick 580 on a DA-120 (docs/SLICK-STAGE1.md). */
+#define SIM_AIRFRAME_COUNT 34
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -1036,6 +1039,7 @@ extern const FixedWingParams FW_STRIKER_JET;
 extern const FixedWingParams FW_EXTRA3D1308;
 extern const FixedWingParams FW_NIGHTTIMBER1200;
 extern const FixedWingParams FW_HERCULES3077;
+extern const FixedWingParams FW_SLICK2680;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_TIGERMOTH1803;

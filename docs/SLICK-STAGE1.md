@@ -1,0 +1,322 @@
+# Slick 580, stage 1: the aircraft, the model and what it is meant to do
+
+The owner chose it on 2026-10-11 from the two 3D candidates in the lead's
+research (fdfpv-loop 3D-PLANES-RESEARCH.md, candidate A): **Extreme
+Flight's 100 in class Slick 580 EXP V3** (356RC Red/White 10th
+Anniversary, 356V3BW White/Blue/Orange, 356CYV3 Cub Yellow), a 35 percent
+balsa and composite IMAC and 3D aerobat on a 120 cc petrol twin, the
+biggest and heaviest aircraft in the hangar. Airframe **33**, string id
+`slick2680`, table `FW_SLICK2680` in `src/native/plant_wing.c`, every
+number below from `npm run slick:derive` (`scripts/slick-derive.js`,
+whose `--check` holds the table, the plant row and the bands in
+`tests/slick-thresholds.json` to it). 32 is held for the CAP 580 lane.
+
+It is Extreme Flight's own name for a scaled Slick 360 (Slick Aircraft,
+Pretoria; 7.30 m and around 400 deg/s of roll, Wikipedia): EF calls its
+114 in Slick "a true 40% scale", and 2.68 m is 37 percent of the full
+size's span.
+
+## Which span: 2.680 m, and why
+
+The V3 product pages say "WINGSPAN 100 in / 2.5 M", and the research found
+that the only data sheet they link is the V2's, 105.5 in. Read again on
+2026-10-11:
+
+- Two of the three V3 pages (356CYV3, 356V3BW) say **"100 in. / 2.5 M
+  (without tips)"**; the 356RC page drops the bracket.
+- The V2 sheet (105.5SlickDatatSheet.pdf, the same drawing as
+  DATASHEET_105SLICK580v2.pdf) is a **dimensioned three view**: 2680 tip
+  to tip, 2540 overall length, 1040 stabiliser, 115 dm² of wing. Measured
+  on the drawing's own scale, its wing is **2538 mm between the tip ribs**,
+  the moulded tips 70 mm each beyond them.
+- EF sells one hardware bag for "100 in Slick 580 V2/V3" (356V2HWB) and
+  renamed the V2's "105.5 in" parts and listings "100 in".
+
+So "100 in" is the same wing less its tips (and also the length), not a
+smaller V3. Taken: **span 2.680 m, area 1.150 m²**, the sheet's. If EF
+publishes a V3 sheet that says otherwise, `SPAN` and `AREA` at the top of
+the derivation are the two numbers to change; `--check` then names every
+table field that moves.
+
+## The aircraft
+
+| Quantity | Value | Source |
+| --- | --- | --- |
+| Span b | 2.680 m | the sheet's drawing, tip to tip (above) |
+| Wing area S | 1.150 m² | the sheet, "115 dm² / 1783.7 sq in" |
+| Length | 2.540 m | the sheet, 100 in |
+| Mass m | 12.474 kg (27.5 lb) | the middle of the overlap of EF's two V3 ranges, 26 to 28 lb (356RC, the sheet) and 27 to 29 lb (356CYV3, 356V3BW), taken with the 34 oz tank full (docs/POWER-STAGE1.md's glow convention) |
+| Wing loading | 106.4 N/m² | W/S: 2.65 times the Extra's |
+| CG | 169 mm behind the root's leading edge | the sheet: "center of main wing tube to rear of main wing tube as starting position", the middle; the 38 mm tube at 28 percent of the root chord, the drawn section's thickest station |
+| Incidence | 0 deg wing, 0 deg stabiliser | the sheet |
+| Thrust line | 0 deg up and down, **3 deg right** | the sheet; the 120cc build guide "2.5-3 degrees of right thrust" |
+| Throws, high | aileron 38 up and 37 down, elevator 45 to 50 (3D), rudder 45 and more | the sheet and the 120cc build guide, in degrees |
+| Expo | 50 to 60 percent aileron and elevator, 60 to 80 rudder | the same |
+| Throws, low | aileron 20, elevator 10 to 12, rudder 20 | the same |
+| Engine | Desert Aircraft DA-120, 121 cc, 11.7 hp, 2.25 kg, 1,300 to 6,900 rpm | desertaircraft.com |
+| Prop | 28 x 10 carbon (EF: "27x11, 28x9.5 and 28x10 are our favorites") | the 120cc build guide |
+| Tank | 34 oz FlowMaster | the sheet |
+| Gear | carbon legs, 630 mm track, wheel pants, a tailwheel steered off the rudder | the sheet's drawing and label |
+
+Taken: the 3D elevator's middle, 47.5 deg (XA's 60 and more is a setup
+past it), the aileron's mean, 37.5, the rudder's 45; expo 0.55 (the
+table's one expo; the rudder's own 0.70 goes in the pilot's tuning).
+
+### The drawing, measured
+
+DATASHEET_105SLICK580v2.pdf rendered at 300 dpi. Its span axis is to
+scale: the 2680, 2540 (between the tip ribs) and 1040 labels agree on
+1.3128 mm a pixel within 0.4 percent. The top view's chordwise axis is
+drawn about 5 percent long (the root measures 600 for its 570 label, while
+the side view's root section measures 572), so the top view's chords are
+taken at 570/600 of the span scale; the side view is to scale on its 2250
+(spinner to hinge line) and 755 (height) labels, 1.3123 mm a pixel. Where
+a label and the drawing differ, the label is taken: the root 570 and tip
+285 give the sheet's 1.150 m² within 1.6 percent with the tips; the drawn
+chords give 9 percent more. The 630 track is the label; the drawn pants
+sit wider.
+
+- **Wing**: root 570 at the fuselage's side (0.163 m out, the 326 mm
+  fuselage label), 285 at the tip rib 1.270 m out, rounded tips to 1.340;
+  the leading edge swept back 73 mm to the tip rib. MAC 0.4577 m, AR 6.25.
+- **Section**: the drawn root is 12.6 percent thick with its thickest
+  station at 28 percent of the chord.
+- **Ailerons**: 0.32 of the chord, from 0.181 m out to the tip rib.
+- **Stabiliser**: 1.039 m, root 0.335 m on the side view, tip 0.206 m,
+  0.248 m², the elevators 0.566 of it with their tip balances; its MAC's
+  quarter chord 1.354 m behind the CG; chord line 14 mm over the thrust
+  line.
+- **Fin and rudder**: 0.144 m², the rudder 0.68 of it running down to the
+  fuselage's foot behind the hinge line; 0.466 m over the thrust line and
+  0.096 under it; the quarter chord 1.456 m behind the CG.
+- **Gear**: the main axles 0.159 m ahead of the CG and 0.388 m under it,
+  105 mm wheels; the tailwheel's 1.509 m behind and 0.145 m under, 38 mm.
+  On the ground the drawing stands it **9.38 deg nose up**.
+- **Prop**: the spinner's back plate, the disc, 0.609 m ahead of the CG.
+
+### Mass and inertia, ESTIMATED
+
+Built up from the parts (`scripts/slick-derive.js`): the DA-120's 2.25 kg
+(Desert Aircraft) and its mufflers 0.30 on the stand offs, the prop and
+spinner 0.29, the ignition 0.25, the tank with 34 fl oz of petrol at 0.73
+kg/l (0.734 kg), the wing panels with four servos and the 38 x 1180 tube
+2.70, the stabiliser and elevators with two servos 0.55, the rudder and its
+servo 0.35, the carbon gear, wheels and pants 0.80, the tailwheel 0.10,
+the receiver and its two packs 0.45, a pilot bust 0.10, and the fuselage
+the rest, 3.20 kg in two rods, its front share 0.81 the balance that puts
+the CG at the sheet's (the Ugly Stik's method). The CG comes out 39 mm
+under the thrust line. **Ixx 1.512, Iyy 4.163, Izz 5.463 kg m²**: 33, 36
+and 36 times the Extra's.
+
+## The engine and prop: one link FITTED, not three
+
+The research expected three fitted links (the torque curve, the static rpm
+and a prop APC does not measure). The static point is in fact published:
+**Falcon Propeller's own test chart** (Falcon Carbon Fiber Gas Propeller
+Test Chart, two blades, its DA 120CC column) gives the DA-120 on Falcon's
+**28 x 10 at 6,550 rpm and 31.0 kg standing**, MEASURED (its 27 x 11 6,600
+rpm and 30.1 kg, its 28 x 9.5 6,640 and 31.2). Owners' tachometers on
+FlyingGiants and RCU read 6,300 to 7,200 on a 28 x 10, which brackets it.
+
+| Quantity | Value | How |
+| --- | --- | --- |
+| Static thrust | 304.11 N, **2.49 times the weight** | Falcon, 31.0 kg |
+| Full rpm | 6,550 | Falcon; `rpm_no_load` 7,705.9 is it over 0.85, the glow rule |
+| Torque, torque arm | 9.38 N m, 0.03083 m | **FITTED**: APC publishes no 28 x 10; the file nearest in shape is PER3_22x8 (pitch over diameter 0.364 against 0.357), whose static Cp / Ct at 6,000 and 7,000 rpm (0.0182 / 0.0665, 0.0184 / 0.0678) carries to the 28 x 10, Q = T D Cp / (2 pi Ct). Falcon's own Ct, 0.081, is above APC's 0.067 (a wider 3D blade), which moves Ct and Cp together and leaves their ratio. The shaft power it gives, 6.43 kW (8.6 hp), is under DA's rated 11.7 hp, as a static prop below the top of the 6,900 rpm range should be. The research's PER3_27x13E would give a 9 percent longer arm |
+| Pitch speed | 46.59 m/s | where the plant's straight thrust line reaches zero: APC's 22 x 8 pulls to J 0.53, 1.5 times its pitch over diameter; the least squares J0 of a straight line through its static Ct over its Ct(J) at 6,000 rpm, 0.600, times n D. The Ugly Stik's rule, the geometric rpm times pitch, would give 27.7 m/s and a 60 mph top speed for a 35 percent aerobat |
+| Idle | 0.1985 of full | DA's lowest, 1,300 rpm |
+| Fuel flow | 71.2 cc/min at full, 14 minutes of the tank | **FITTED**: the shaft power at 0.797 lb/hp h, the brake specific consumption measured at peak power on 3W's 100i-B2 petrol twin two stroke (Moulton, University of Maryland, 2007), at 0.73 kg/l, linear in the rpm through zero as every glow table's |
+| Prop inertia | 0.00681 kg m² | ESTIMATED: a 28 in carbon blade of about 190 g as 0.7 of a rod's m D² / 12, and the crank, flywheel magnet and rods |
+
+**The engine rides today's engine path**, the Ugly Stik's: the glow
+throttle (`throttle_idle`: the stick runs the rpm from the idle to full,
+linearly, and the engine never stops), the tank and its lean run, and
+`prop_spool`'s flat torque (Heywood), which answers a step in 0.25 s at
+full. A petrol engine's own throttle response (its torque curve, the
+carburettor's delay) is the propulsion lane's model; the hook is this
+table's `throttle_idle`, `j_prop` and `torque_arm`, which that model would
+read, and nothing in the shared plant is changed here.
+
+## The coefficients
+
+Nelson's forms, as the Extra's (`scripts/extra-derive.js`), on the
+drawing's geometry.
+
+| Quantity | Value | How |
+| --- | --- | --- |
+| a_w, a_t, a_v | 4.759, 4.303, 3.958 /rad | 2 pi A / (A + 2); the fin's effective AR 1.55 of its geometric 2.196 |
+| d eps / d alpha, V_H, V_V | 0.485, 0.639, 0.0678 | |
+| CL alpha | 5.190 | wing and tail |
+| Static margin | 0.185 | h_n 0.492 less the CG's 0.307 of the MAC |
+| Cm alpha, Cm q, Cm0 | -0.9608, -14.633, 0.0664 | Cm0 trims 22 m/s hands off |
+| Cm de, CL de | 1.1748, -0.3972 | |
+| CY beta, Cn beta, Cn r | -0.6355, 0.2270, -0.2967 | |
+| Cl beta, Cl p, Cl da | -0.0429, -0.6610, 0.3733 | the fin over the CG; the mid wing's own near nothing (DATCOM) |
+| Cn dr, CY dr, Cl dr | -0.1368, 0.2518, 0.0212 | |
+| K', tau a e r | 0.577, 0.554, 0.557; 0.392, 0.475, 0.509 | Roskam's large deflection factor (Mason's fit) at the sheet's throws |
+| CD0 | 0.0202 | Raymer's component build up at 20 m/s (sec. 12.5): wing 0.0073, fuselage 0.0038, tail 0.0031, gear and pants 0.0023 (table 12.5), the cowl's cooling 0.0019 (eq. 12.39 on DA's 11.7 hp), 10 percent for leaks; all laminar 0.0121, all turbulent 0.0283 |
+| e | 0.862 | Raymer eq. 12.48 for a straight wing |
+| CL max | 0.883 at 3.6e5 to 0.967 at 7e5 | **Sheldahl and Klimas, SAND80-2114 (1981), Table 2, NACA 0012**: 0.9811 at 10 deg and 1.0749 at 11 deg, the drawn 12.6 percent section; 0.9 of it for the wing (Raymer sec. 12.4), the peak further on by CL / (pi A e). The stall at its own Reynolds number, 4.4e5: 0.902 |
+| stall_top, stall_k | 1 deg, 0.37 | the same table: a 12 percent section stalls from its leading edge (McCullough and Gault, NACA TN 2502), the lift held 1 deg past its peak at 3.6e5 and falling to 0.28 of it there and 0.46 at 7e5 |
+| Stall arms, stall_dw | 0.0571, 0.0929, 0.2522 | the Extra's forms |
+| Slipstream, rot_k, side_cda | `scripts/slick-derive.js` | the Extra's forms on this geometry and the 28 in prop |
+
+## What is new in the plant
+
+Nothing. The table sets the terms the Extra and the Ugly Stik brought in
+(the slipstream, the high angles and the slow air's damping, the glow
+throttle and tank, the prop's gyroscope, the stall by Reynolds number),
+and every other aircraft's recorded hash is unmoved (`slick:gates` S15).
+
+## The intended behaviour, and how each part is proven
+
+`npm run slick:gates`, bands in `tests/slick-thresholds.json`, each band
+the Extra's width for the same reason (docs/EXTRA-STAGE1.md). **17 of
+17**, measured 2026-10-11 on this branch's module:
+
+| Gate | What | Derived | Band | Measured |
+| --- | --- | --- | --- | --- |
+| S1 | level at 75 percent of the stick | 33.91 m/s | 29.84 to 37.98 | 33.90 |
+| S2 | stall, power off | 13.88 m/s | 13.05 to 15.82 | 13.67 |
+| S3 | glide ratio at 1.4 Vs, 19.4 m/s | 14.06 | 12.38 to 15.75 | 14.17 |
+| S4 | top speed | 42.54 m/s | 38.28 to 46.79 | 42.53 |
+| S5 | roll, full aileron, pb/2V | 0.370 | 0.277 to 0.462 | 0.365 (422 deg/s at 27.1 m/s) |
+| S6 | hover stick, height held | 0.5438 (an rpm share of 0.6343 over the idle) | 0.517 to 0.571 | 0.5445, within 0.03 m |
+| S7 | vertical climb, full throttle | 26.33 m/s | 23.70 to 28.96 | 26.07 |
+| S8 | torque roll, ailerons let go | 154 deg/s left | 115 to 192 | 170 left |
+| S9 | full right aileron, hanging | 119 deg/s right | 72 to 167 | 128 right |
+| S10 | full elevator at zero airspeed | 12.05 rad/s² | 9.04 to 15.06; at idle under 0.147 of it | 10.5; at idle 1.04 |
+| S10b | full rudder at zero airspeed | 7.99 rad/s² | 5.99 to 9.98; the same | 7.2; at idle 0.71 |
+| S11 | harrier at 40 deg of alpha | 9.30 m/s at a stick of 0.475, elevator 57 percent | 7.44 to 11.16, 0.404 to 0.546, short of full | 10.21 at 0.450, stick 0.81 |
+| S12 | knife edge at 30 m/s | 24.8 deg of sideslip at 0.792, rudder 82 percent | 18.6 to 31.1, 0.673 to 0.911, short of full | 24.2 at 0.790, stick -0.89 |
+| S13 | standing on its wheels, engine idling | 9.38 deg, 0.4082 m, 10.9 percent on the tail | half a degree, 5 mm, 3.5 points | 9.36, 0.4088, 10.9 |
+| S14 | take off roll | 7.64 m | 4.58 to 12.22 | 11.28 |
+| S15 | every other aircraft unmoved | main's hashes (extra-thresholds E15) | identical | identical |
+| S16 | Node and Chrome agree | | identical | identical |
+
+Where this derivation goes further than the Extra's, and why:
+
+- **S6, S11, S12: sticks, not rpm shares.** A petrol engine's stick runs
+  the rpm from the idle (plant_wing.c `throttle_idle`), so the hover's rpm
+  share sqrt(W / T) is a stick of (0.6343 - 0.1985) / (1 - 0.1985).
+- **S8: the heading held.** The Extra's E8 counted the fin's roll in the
+  swirl against the torque. The gate's pilot holds the nose on the rudder,
+  and the rudder's side force is on the same fin at the same height, so
+  with the yaw held the fin's net side force and its roll go: the root's
+  (1 - SWIRL_KEEP) of the torque is what is left (154 deg/s; with the fin's
+  roll counted it would be 109). The Extra's own E8 would move the same
+  way (its plant 218 against a derived 178; with the yaw held, 198).
+- **S10: the engine idles.** A petrol engine does not stop on the stick,
+  so the wash at the idle is (idle / hover rpm)² = 0.098 of the hover's,
+  and the band is under 1.5 times that.
+- **S11: the harrier on every term the plant takes there.** The plant's
+  own lift curve past the stall (wing_lift: the tail's share of the slope
+  does not stall with the wing; CL 1.12 at 40 deg, where the Extra's older
+  copy gave 0.90), Selig's jet normal force at the prop (jet_kj), the
+  thrust line 39 mm over the CG and the jet force's arm in the moment. The
+  gate's pilot is the Extra's with slower hands on the throttle and more
+  pitch damping: with the Extra's it rode a phugoid of 6 to 19 m/s on an
+  aircraft of thirty times its pitch inertia. Its throttle stick is held to
+  0 to 1, as a stick is.
+- **S13: the idling engine.** Its 12 N along the thrust line pitches the
+  aircraft forward on its mains and takes 2.6 points off the tail (13.5
+  with the engine stopped).
+- **S14: the engine's spool.** The roll starts from the idle and the
+  engine runs up on `prop_spool`'s flat torque.
+
+### Its stabiliser and gyro modes, `npm run slick:stab` (62 checks)
+
+The Extra's checks at the same multiples of this aircraft's stall (its
+level throw at 1.4 Vs, its pulls at 1.9 Vs), with one re-derived to the
+aircraft: **a power off pull through the stall drops the right wing.** The
+DA-120 idles at 1,300 rpm, so its prop keeps J Omega = 0.93 N m s, and
+pitching up at q yaws the nose right by J Omega q (a prop turning
+clockwise from behind); at the break that yaw drops the right wing, 10 deg
+in Manual, 11 in Acro, 6 in AS3X. The check that showed it: with `j_prop`
+set to nearly zero in a scratch build, the same pulls stayed level within
+3 deg in every mode, and a touch of rudder dropped 5 to 13 deg either
+way. The checks now hold the drop to the right and a touch of rudder
+moving it the way it yaws. Short of the stall nothing picks a side.
+
+Stabilised and AS3X use the Extra's loops; `stab_pitch_down` 2.47 deg and
+`stab_trim_throttle` 0.423 from `npm run stab:glide`, `as3x_k` from `npm
+run as3x:derive`; `stab:chop` holds its power off glide.
+
+## What is not modelled, and waits on the physics lanes
+
+Reported plainly, per the owner's rule:
+
+- **The 3 deg of right thrust.** The plant has no field for a thrust line
+  turned off the body's axis. At full static thrust it is T sin 3 deg = 15.9
+  N at 0.609 m, **9.7 N m of yaw to the right**, the moment EF builds in
+  to take out the P factor and the swirl's left turn; at the hover, 3.9 N
+  m. Without it the Slick swings left under power more than the real one
+  and the pilot holds more right rudder. The CAP 580 lane needs the same
+  (2.5 deg); a shared plant field for both is the lead's to schedule.
+- **A petrol engine's throttle response** (its torque curve, the
+  carburettor): the propulsion lane's; today's flat torque spool stands in.
+- **The thrust past the static point** is a straight line to its pitch
+  speed; a real prop's Ct(J) curve and the rpm a petrol engine gains as
+  its prop unloads in flight are not in it.
+- **The rudder's roll in the wash** is taken at the whole fin's height
+  (cl_dr times the wash's dp), where the immersed part sits lower; it is
+  why S8 reads 10 percent over its derivation.
+- **The inner wing in the wash** gets no extra lift; the tail surfaces
+  saturate on a flat plate without a section stall of their own (the
+  Extra's notes).
+- **Snaps and spins**: the plant's spins are shallow (docs/FLIGHTMODEL.md,
+  "Deep spins and the Stik's snap: not built"). The section's sharp stall
+  (stall_top 1 deg, stall_k 0.37) is in the table for when they are.
+- **The fuel's mass** does not burn off (the glow convention).
+- **The kill switch**: a real petrol aircraft's ignition cut stops the
+  engine; the plant's engine stops only on a dry tank.
+
+## The crash parts
+
+`src/native/crash_parts.h` PARTS_SLICK2680: the forward fuselage (the
+engine box, firewall, tank, tube sleeves, gear plate and cowl, the rest of
+the mass), the aft fuselage, the stabiliser and elevators, the fin and the
+full depth rudder, two wing panels on the tube with their ailerons, the
+DA-120 and mufflers on their stand offs, the carbon prop and spinner, the
+receiver packs, the canopy on its pins, the two carbon legs and the
+tailwheel, the camera and the antenna; 19 parts summing to 12.474 kg with
+the CG at the origin (`npm run crash:core`). Strengths ESTIMATED for the
+class: the wing's root at twelve times its half's weight on the half
+span's lift centroid (400 N m), the engine on its four bolts and stand offs
+(200 N m), the carbon gear at four landings' worth (150 N m).
+
+## Sources
+
+- Extreme Flight, 100 in Slick 580 EXP V3 pages:
+  https://extremeflightrc.com/products/ef-100-slick-580-exp-v2-red-anniversary-scheme ,
+  https://extremeflightrc.com/products/ef-100-slick-580-exp-v3-cub-yellow-red-grey ,
+  https://extremeflightrc.com/products/105-5-slick-580-exp-v2-white-blue-orange
+  (read 2026-10-11; listings via https://extremeflightrc.com/products.json)
+- The V2 data sheet and its drawing:
+  https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf ,
+  https://extremeflightrc.com/cdn/shop/files/DATASHEET_105SLICK580v2.pdf
+- The 120cc build guide (throws, right thrust, props, CG):
+  https://extremeflightrc.com/cdn/shop/files/120cc_build_guide.pdf
+- The V2/V3 hardware bag: https://extremeflightrc.com/products/105-v2-slick-580-hardware-bag
+- Desert Aircraft DA-120: https://www.desertaircraft.com/products/da-120
+- Falcon Propeller test chart (the DA 120CC column):
+  https://www.falconpropellers.com/wp-content/uploads/2020/04/Falcon-Propeller-Test-Chart.pdf
+  (and its .xlsx); the chart's page https://www.falconpropellers.com/prop-chart/
+- Owners' tachometers, DA-120 on a 28 x 10: https://www.flyinggiants.com/forums/showthread.php?t=311135 ,
+  https://www.rcuniverse.com/forum/gas-engines-142/9523621-new-da-120-a.html
+- APC performance data, PER3_22x8.dat (via the Internet Archive when
+  apcprop.com refuses the fetcher): https://www.apcprop.com/files/PER3_22x8.dat
+- Moulton, Performance Measurement and Simulation of a Small Internal
+  Combustion Engine (3W 100i-B2), University of Maryland, 2007:
+  https://drum.lib.umd.edu/handle/1903/6905
+- Sheldahl and Klimas, Aerodynamic Characteristics of Seven Symmetrical
+  Airfoil Sections Through 180-Degree Angle of Attack, SAND80-2114, 1981:
+  https://www.osti.gov/biblio/6548367
+- McCullough and Gault, Examples of Three Representative Types of Airfoil
+  Section Stall at Low Speed, NACA TN 2502, 1951.
+- Slick 360: https://en.wikipedia.org/wiki/Slick_Aircraft_Slick_360
+- Selig, Modeling Propeller Aerodynamics and Slipstream Effects on Small
+  UAVs in Realtime, AIAA 2010-7938; Nelson, Flight Stability and Automatic
+  Control; Raymer, Aircraft Design; Roskam, Airplane Design VI (Mason's
+  curve fit); Hoerner; Heywood, Internal Combustion Engine Fundamentals; as
+  the other stage files cite them.

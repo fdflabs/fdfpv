@@ -423,9 +423,11 @@ int sim_set_flight_style(int arcade);
  * prop as the Extra does, and 31 AeroTetris's C-130 Hercules 3077
  * (docs/HERCULES-STAGE1.md), a 3 m balsa C-130H on four electric motors
  * whose props the plant takes as one thrust line, with a rear ramp and
- * cargo door that open in flight. Returns SIM_ERR_BAD_ARG for any id
- * without an aircraft.
- * 2 to 23 and 27 to 31 are fixed wings: no Betaflight, the sticks go to the
+ * cargo door that open in flight, and 33 Extreme Flight's 105.5 in Slick
+ * 580 EXP (docs/SLICK-STAGE1.md), a 12.5 kg IMAC and 3D aerobat on a
+ * DA-120 petrol twin. Returns SIM_ERR_BAD_ARG for any id without an
+ * aircraft.
+ * 2 to 23, 27 to 31 and 33 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply. 0, 1 and 24 to 26 are quads.
  *
@@ -476,6 +478,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_EXTRA3D1308_ID 29
 #define SIM_AIRFRAME_NIGHTTIMBER1200_ID 30
 #define SIM_AIRFRAME_HERCULES3077_ID 31
+#define SIM_AIRFRAME_SLICK2680_ID 33
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */

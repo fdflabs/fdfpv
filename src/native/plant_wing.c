@@ -4702,3 +4702,157 @@ const FixedWingParams FW_HERCULES3077 = {
   .cd_door = 0.0259,      /* npm run hercules:derive */
   .cm_door = -0.0091,     /* npm run hercules:derive */
 };
+
+/* Extreme Flight's 105.5 in Slick 580 EXP (the V3 on the V2's data sheet),
+ * docs/SLICK-STAGE1.md and scripts/slick-derive.js, where each number has
+ * its formula and source and the fitted ones say so; npm run slick:derive
+ * -- --check holds this table to it. A 35 percent balsa and composite IMAC
+ * and 3D aerobat of 12.5 kg on a 2.68 m wing of 1.15 m^2, a scaled Slick
+ * 360. A Desert Aircraft DA-120 petrol twin turns Falcon's 28 x 10 carbon
+ * prop, clockwise seen from behind, at a measured 6,550 rpm and 31.0 kg
+ * standing: two and a half times its weight, so it hangs on its prop as
+ * the Extra does, with eight times the Extra's mass and thirty times its
+ * pitch inertia. The engine rides today's glow path (docs/POWER-STAGE1.md,
+ * plant_wing.c prop_spool's flat torque); a petrol throttle response of its
+ * own is the propulsion lane's, and this table's throttle_idle, j_prop and
+ * torque_arm are what it would read. The kit's 3 deg of right thrust has no
+ * field in the plant yet (docs/SLICK-STAGE1.md says what that leaves out). */
+const FixedWingParams FW_SLICK2680 = {
+  .mix = FW_MIX_TAIL,
+  .span = 2.680,          /* the sheet's 105.5 in drawing, 2680 mm tip to tip, docs/SLICK-STAGE1.md */
+  .area = 1.150,          /* the sheet, 115 dm^2, docs/SLICK-STAGE1.md */
+  .chord = 0.4577,        /* the mean aerodynamic chord of the drawn planform, scripts/slick-derive.js */
+  .cl_alpha = 5.190,      /* wing and tail, Nelson eq. 2.52, scripts/slick-derive.js */
+  .cl_max = 0.9017,       /* the wing's at its stall's Reynolds number, scripts/slick-derive.js */
+  /* The stall from the section's data, docs/SLICK-STAGE1.md: the drawn root
+   * is 12.6 percent thick, the NACA 0012 of Sheldahl and Klimas,
+   * SAND80-2114, Table 2: CL max 0.9811 at 10 deg at 3.6e5 and 1.0749 at
+   * 11 deg at 7e5; 0.9 of it for the wing (Raymer sec. 12.4), the peak
+   * further on by the induced angle. */
+  .cl_alpha_wing = 4.759, /* scripts/slick-derive.js */
+  .stall_re = { 360000, 700000 },      /* SAND80-2114 Table 2, docs/SLICK-STAGE1.md */
+  .stall_clmax = { 0.883, 0.9674 },    /* 0.9 of 0.9811 and 1.0749, scripts/slick-derive.js */
+  .stall_peak = { 0.2267, 0.2492 },    /* 10 and 11 deg plus CL / (pi A e), scripts/slick-derive.js */
+  /* The sheet: main wing and stabiliser incidence 0 deg, a symmetric section. */
+  .alpha_zl = 0.0, /* the sheet's 0 deg incidence, docs/SLICK-STAGE1.md */
+  .sin_zl = 0.0, /* the sheet's 0 deg incidence, docs/SLICK-STAGE1.md */
+  .cos_zl = 1.0, /* the sheet's 0 deg incidence, docs/SLICK-STAGE1.md */
+  .cd0 = 0.0202,          /* Raymer's component build up, scripts/slick-derive.js */
+  .k_induced = 0.05912,   /* 1/(pi e A), e 0.862 by Raymer eq. 12.48, scripts/slick-derive.js */
+  /* Nelson's forms on the drawing's tail, scripts/slick-derive.js. */
+  .cl_de = -0.3972, /* scripts/slick-derive.js */
+  .cy_beta = -0.6355, /* scripts/slick-derive.js */
+  .cy_dr = 0.2518, /* scripts/slick-derive.js */
+  .cl_beta = -0.0429,     /* the fin over the CG, the mid wing's near nothing, scripts/slick-derive.js */
+  .cl_p = -0.6610, /* scripts/slick-derive.js */
+  .cl_da = 0.3733, /* scripts/slick-derive.js */
+  .cl_r_per_cl = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
+  .cl_dr = 0.0212, /* scripts/slick-derive.js */
+  .cm_0 = 0.0664,         /* trimmed hands off at 22 m/s, scripts/slick-derive.js */
+  .cm_alpha = -0.9608,    /* static margin 0.185 at the tube's middle, scripts/slick-derive.js */
+  .cm_q = -14.633, /* scripts/slick-derive.js */
+  .cm_de = 1.1748, /* scripts/slick-derive.js */
+  .cn_beta = 0.2270, /* scripts/slick-derive.js */
+  .cn_r = -0.2967, /* scripts/slick-derive.js */
+  .cn_p_per_cl = -0.125,  /* the Extra's, docs/EXTRA-STAGE1.md */
+  .cn_da_per_cl = -0.08,  /* the Extra's: a symmetric section, wide chord ailerons, 38 up and 37 down, docs/EXTRA-STAGE1.md */
+  .cn_dr = -0.1368, /* scripts/slick-derive.js */
+  .stall_blend = 3.0 * WING_PI / 180.0, /* the Extra's, docs/EXTRA-STAGE1.md */
+  /* The sheet's high rates in degrees: aileron 38 up and 37 down, the 3D
+   * elevator's 45 to 50, the rudder's 45; their expo 50 to 60 percent,
+   * docs/SLICK-STAGE1.md. The control derivatives carry Roskam's K'. */
+  .throw_a = 37.5 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
+  .throw_e = 47.5 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
+  .throw_r = 45.0 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
+  .surface_max = 47.5 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
+  .expo = 0.55, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
+  /* The DA-120 on Falcon's 28 x 10: 6,550 rpm and 31.0 kg standing,
+   * Falcon's test chart, MEASURED; the torque APC's 22 x 8 shape's
+   * Cp / Ct, FITTED; the pitch speed APC's zero thrust advance ratio,
+   * scripts/slick-derive.js. */
+  .thrust_static = 304.11, /* scripts/slick-derive.js */
+  .pitch_speed = 46.588, /* scripts/slick-derive.js */
+  .rpm_no_load = 7705.9,  /* 6,550 over 0.85, the glow rule, docs/POWER-STAGE1.md */
+  .torque_arm = 0.03083, /* scripts/slick-derive.js */
+  .thrust_z = 0.0390,     /* the CG 39 mm under the thrust line, from the masses, scripts/slick-derive.js */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's, docs/CUB-STAGE1.md */
+  .current_full = 0.0,    /* the engine burns fuel, not the pack, docs/POWER-STAGE1.md */
+  .duty_min = 0.02,       /* every table's, docs/POWER-STAGE1.md */
+  /* Stabilised and Acro: the Extra's loops (docs/EXTRA-STAGE1.md), held by
+   * npm run slick:stab. */
+  .stab_bank_max = 60.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_pitch_max = 30.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_deadband = 0.04, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_roll_kp = 0.6, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_roll_kd = 0.06, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_pitch_kp = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_pitch_kd = 0.2, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .stab_pitch_down = 2.47 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.423, /* the stick that flies it level, elevator neutral, npm run stab:glide */
+  .acro_roll_rate = 360.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_expo = 0.30, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_err_max = 5.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_roll_kp = 1.5, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_roll_kd = 0.20, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_roll_ff = 0.10, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_pitch_kp = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_pitch_kd = 0.2, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_pitch_ff = 0.15, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_roll_ki = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_pitch_ki = 3.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_i_max = 0.30, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  /* A cowled nose: Selig's 80 percent for a cowling (docs/EXTRA-STAGE1.md);
+   * the disc 0.609 m ahead of the CG, the drawing's, scripts/slick-derive.js. */
+  .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .prop_x = 0.6093, /* scripts/slick-derive.js */
+  .as3x_k = { 0.0459, 0.232, 0.4065 }, /* npm run as3x:derive */
+  .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
+  /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md. */
+  .throttle_idle = 0.1985, /* scripts/slick-derive.js */
+  /* The tank, the sheet's 34 oz FlowMaster; the flow at full the shaft power
+   * at Moulton's 0.797 lb/hp h, FITTED: a measured petrol twin two stroke's
+   * at its peak power, scripts/slick-derive.js; the lean run the
+   * Bombshell's, docs/POWER-STAGE1.md. */
+  .tank_m3 = 1005.5e-6, /* scripts/slick-derive.js */
+  .flow_full = 71.2e-6 / 60.0, /* scripts/slick-derive.js */
+  .flow_idle = 0.1985 * (71.2e-6 / 60.0), /* scripts/slick-derive.js */
+  .lean_frac = 0.05, /* the Bombshell's lean run, docs/POWER-STAGE1.md */
+  .lean_gain = 0.05, /* the Bombshell's lean run, docs/POWER-STAGE1.md */
+  /* Past the stall, docs/SLICK-STAGE1.md: a 12 percent section stalls from
+   * its leading edge (McCullough and Gault, NACA TN 2502), its lift held
+   * 1 deg past the peak and falling to 0.37 of it, SAND80-2114 Table 2. */
+  .stall_arm_ac = 0.0571, /* the CG behind the wing's aerodynamic centre, scripts/slick-derive.js */
+  .stall_arm_cp = 0.0929, /* the plate's centre of pressure at 0.40 of the chord, scripts/slick-derive.js */
+  .stall_dw = 0.2522, /* scripts/slick-derive.js */
+  /* No built in side, as the Extra's (docs/EXTRA-STAGE1.md): what drops a
+   * wing is the pilot's rudder and aileron, the gusts and the prop. */
+  .stall_asym = 0.0, /* docs/SLICK-STAGE1.md */
+  .stall_k = 0.37, /* scripts/slick-derive.js */
+  .stall_top = 1.0 * WING_PI / 180.0, /* SAND80-2114 Table 2, docs/SLICK-STAGE1.md */
+  .strip_c = { 1.326, 1.125, 0.924, 0.723 }, /* the drawn taper, scripts/slick-derive.js */
+  /* The slipstream, the high angles and the slow air, scripts/slick-derive.js:
+   * the 28 in prop; the stabiliser's half span, the fin over and under the
+   * thrust line, the ailerons' span; the tail's shares. */
+  .slip_r = 0.3556, /* scripts/slick-derive.js */
+  .slip_yh = 0.5195, /* scripts/slick-derive.js */
+  .slip_hv = { 0.466, 0.096 }, /* scripts/slick-derive.js */
+  .slip_ya = { 0.181, 1.27 }, /* scripts/slick-derive.js */
+  .slip_a0 = 0.0692, /* scripts/slick-derive.js */
+  .slip_cl_a = 0.4308, /* scripts/slick-derive.js */
+  .slip_cm_a = -1.2739, /* scripts/slick-derive.js */
+  .slip_cn_b = 0.2685, /* scripts/slick-derive.js */
+  .slip_cn_r = -0.2916, /* scripts/slick-derive.js */
+  .slip_cy_b = -0.4944, /* scripts/slick-derive.js */
+  .slip_cl_b = -0.0417, /* scripts/slick-derive.js */
+  .strip_tau = { 0.18, 0.392, 0.392, 0.31 }, /* the ailerons from 0.181 m to the tip rib, scripts/slick-derive.js */
+  .hi_alpha = 1, /* the 3D regime's terms, docs/EXTRA-STAGE1.md */
+  .tail_at = 4.303, /* scripts/slick-derive.js */
+  .tail_av = 3.958, /* scripts/slick-derive.js */
+  .tail_deda = 0.485, /* scripts/slick-derive.js */
+  .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
+  .side_cda = 0.4914, /* scripts/slick-derive.js */
+  .rot_k = { 0.3889, 0.9415, 0.782 }, /* scripts/slick-derive.js */
+  .j_prop = 0.00681,      /* ESTIMATED: a 190 g carbon blade and the DA's crank, scripts/slick-derive.js */
+};

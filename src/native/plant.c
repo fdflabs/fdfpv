@@ -1699,6 +1699,59 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { -0.95, 0.0, -0.12 }, .r = 0.0, .k = 6000.0, .c = 120.0, .mu_roll = 0.60, .mu_side = 0.60, .steer = 0.0 },
   },
 },
+/*
+ * Extreme Flight's 105.5 in Slick 580 EXP, docs/SLICK-STAGE1.md: 12.474 kg
+ * with the 34 oz tank full (27.5 lb, the middle of the overlap of EF's two
+ * V3 ranges), Falcon's 28 x 10 0.609 m ahead of the CG on a thrust line
+ * 39 mm over it, npm run slick:derive. The receiver's 2S pack is the one
+ * the shell reads; the engine burns fuel, not it. The hull is only what a
+ * crash lands on: the belly 0.138 m under the CG, the canopy's top 0.315
+ * over it, the half span wide. The camera sits on the turtle deck ahead of
+ * the canopy.
+ */
+[SIM_AIRFRAME_SLICK2680] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 12.474,       /* scripts/slick-derive.js */
+  .inertia = { 1.512, 4.163, 5.463 }, /* ESTIMATED from the parts, scripts/slick-derive.js */
+  .gravity = 9.81, /* every table's standard air, docs/SLICK-STAGE1.md */
+  .cells = 2.0,            /* the receiver's 2S, as the Ugly Stik's, docs/UGLYSTIK-STAGE1.md */
+  .r_cell = 0.030,         /* the Ugly Stik's receiver pack, docs/UGLYSTIK-STAGE1.md */
+  .rho = 1.225, /* every table's standard air, docs/SLICK-STAGE1.md */
+  .prop_r = 0.3556,        /* Falcon's 28 in, docs/SLICK-STAGE1.md */
+  .spin = { -1.0, 0.0, 0.0, 0.0 }, /* clockwise from behind, the DA-120 on a tractor prop, docs/SLICK-STAGE1.md */
+  .pos_x = { 0.6093, 0.0, 0.0, 0.0 }, /* the drawing's spinner back plate, scripts/slick-derive.js */
+  .hull_hx = 0.69,         /* FITTED: the Extra's 0.35 on its 1.26 m, at this fuselage's 2.5 m, docs/SLICK-STAGE1.md */
+  .hull_hy = 1.340,        /* the half span, docs/SLICK-STAGE1.md */
+  .hull_hz_down = 0.138,   /* the drawn belly, docs/SLICK-STAGE1.md */
+  .hull_hz_up = 0.315,     /* the drawn canopy's top, docs/SLICK-STAGE1.md */
+  .contact_patch_r = 0.15, /* FITTED: a resting friction lever, the fleet's */
+  .contact_arm_max = 1.75, /* FITTED: the rudder's trailing edge, 1.73 m aft, docs/SLICK-STAGE1.md */
+  .vib_ref_w = 1000.0,     /* FITTED: the fleet's gyro reference */
+  .camera_x = 0.40,        /* FITTED: the turtle deck ahead of the canopy, drawn, docs/SLICK-STAGE1.md */
+  .camera_y = 0.0, /* FITTED: on the centreline, docs/SLICK-STAGE1.md */
+  .camera_z = 0.19,        /* FITTED: the turtle deck, drawn, docs/SLICK-STAGE1.md */
+  .fw = &FW_SLICK2680, /* docs/SLICK-STAGE1.md */
+  /*
+   * The gear off the sheet's side view (scripts/slick-derive.js): the main
+   * axles 0.159 m ahead of the CG and 0.388 m under it on the sheet's
+   * 630 mm track with 105 mm wheels, the tailwheel's axle 1.509 m behind
+   * and 0.145 m under with a 38 mm wheel. Each axle is lowered by its 5 mm
+   * of static deflection, so the plant settles onto the drawn pose: 9.38
+   * deg nose up, the CG 0.408 m over the grass, 13.5 percent of the weight
+   * on the tail. Stiffness for that, damping at 0.6 of critical (the Cub's
+   * rule). The tailwheel steers off the rudder through its springs, 0.45 of
+   * the rudder's angle, the Extra's (docs/EXTRA-STAGE1.md).
+   */
+  .wheel_count = 4, /* docs/SLICK-STAGE1.md */
+  .wheel = {
+    { .pos = { 0.1592, 0.315, -0.3925 }, .r = 0.0525, .k = 10581.0, .c = 308.27, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.1592, -0.315, -0.3925 }, .r = 0.0525, .k = 10581.0, .c = 308.27, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -1.5088, 0.0, -0.1504 }, .r = 0.019, .k = 3312.0, .c = 89.64, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.45, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.3556 m under the hub: 0.195 m over
+     * the grass at rest, scripts/slick-derive.js. */
+    { .pos = { 0.6093, 0.0, -0.3166 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 
 };
 

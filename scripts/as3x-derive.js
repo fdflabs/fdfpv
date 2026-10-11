@@ -58,6 +58,7 @@ const AS3X = {
   FW_EXTRA3D1308: { sim: 29 },
   FW_NIGHTTIMBER1200: { sim: 30 },
   FW_HERCULES3077: { sim: 31 },
+  FW_SLICK2680: { sim: 33 },
 };
 
 async function planeSim(id) {
