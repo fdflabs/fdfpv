@@ -1501,3 +1501,16 @@ stab_trim_throttle (stab:glide; the Extra 0.624 to 0.589); the Extra's
 taxi duty for the Cub's 1.65 N (0.184, was 0.21), with its heading now
 summed through half a circle; the Timber's T13 at the duty that turns the
 prop at 0.3 of full, as the gate was written for (0.2685).
+
+**Still failing on the law, diagnosed**, beside the five of "The prop's
+torque, from the drive":
+
+- p51 P19, the aero part: pb/2V 0.0813 in the XP-51's band, but the bank
+  in the first second 17.2 deg against its 20 floor (27.0 before the law).
+  The pull starts from level at duty 0.8, where the prop now turns at
+  0.82 of full, not 0.80; the chopped rotor's speed and the entry trim
+  differ, and the first second's bank is sensitive to both.
+- power:check P2 on the Timber on floats: 6.8 min flat out against E-flite's
+  7 min timer (7.9 before). On a sagged pack the motor's law turns the
+  prop over the duty the sag leaves, and the pack's current goes with its
+  speed cubed.
