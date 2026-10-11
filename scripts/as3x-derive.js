@@ -84,6 +84,7 @@ const AS3X = {
   FW_TIGERMOTH1803: { sim: 23 },
   FW_NIGHTTIMBER1200: { sim: 30, level: [16, 0.624] },
   FW_HERCULES3077: { sim: 31 },
+  FW_CAP1702: { sim: 32 },
 };
 
 async function planeSim(id) {

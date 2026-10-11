@@ -1030,6 +1030,51 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md: a balsa
+     * and carbon IMAC and 3D monoplane, 3.63 kg on 6S, simId 32 on the
+     * fixed wing plant. T-Motor's bench table gives it 2.6 times its
+     * weight in thrust, so it hangs on the prop as the Extra does, at
+     * twice the Extra's weight and its wing loading half again. A
+     * taildragger on carbon legs and pants; `gear` is the plant's settled
+     * pose, which the drawn wheels in src/render/capcraft.js match: the CG
+     * 0.313 m over the ground and 10.87 degrees nose up (cap580:gates C13).
+     */
+    id: 'cap1702',
+    simId: 32,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/cap580-thresholds.json c2_stall. */
+    stall: 10.62,
+    /* Level speed at full throttle, m/s: tests/cap580-thresholds.json c4_top, derived. */
+    topSpeed: 33.09,
+    gear: { restHeight: 0.3130, restPitch: 10.87 * Math.PI / 180 },
+    name: 'CAP 580',
+    short: 'CAP',
+    blurb: 'A 1702 mm Extreme Flight CAP 580 on 6S, balsa and carbon, with 2.6 times its weight in thrust on a measured T-Motor bench table. It hovers, torque rolls, harriers and knife edges like the Extra, but at twice the weight it carries its speed through every figure: precise on the lines, heavy in the snap.',
+    facts: ['6S', '1702 mm', '3D', 'IMAC'],
+    sizeMm: 1702,
+    grams: 3628.7,
+    trackClass: 'wing',
+    cells: 6,
+    ...packStates(),
+    defaultTune: 'cap-manual',
+    gravityBase: 1.0,
+    rates: stockRates(),
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/capcraft.js CAP_DIMS. */
+    dims: {
+      arm: 0,
+      propR: 0.2286,
+      hullR: 1.076,
+      vHalfDown: 0.3418,
+      vHalfUp: 0.277,
+      bodyLength: 1.676,
+      bodyWidth: 1.702,
+      bodyHeight: 0.6188,
+    },
+  },
+  {
+    /*
      * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
      * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
      * plant, with ailerons, an elevator, a rudder, plain flaps and electric

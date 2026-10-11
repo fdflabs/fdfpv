@@ -6,7 +6,7 @@
  * line (FAI F3P-AA 23: "During the knife edge the wing must be in the
  * vertical plane"), not by the fuselage, which yaws nose up by the
  * sideslip that holds the height. The flight is the aircraft's own knife
- * edge gate's (extra-gates.js E12): level at the gate's speed, rolled to
+ * edge gate's (extra-gates.js E12, cap580-gates.js C12): level at the gate's speed, rolled to
  * 90 deg on the ailerons, the height held on the rudder through the
  * sideslip, the heading on the elevator, the speed on the throttle; then
  * rolled back level. The detector is fed every plant step, as main.js
@@ -14,7 +14,7 @@
  * not test what the judge used to refuse), be named a knife edge pass
  * graded 4 to 10, and nothing else may be named.
  *
- *   node scripts/figures-knife-check.js [extra]
+ *   node scripts/figures-knife-check.js [extra|cap]
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -37,7 +37,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, fly, wingDebug, EXTRA_AIRFRAME, RC_STEP_MS } from '../tests/lib/wingpilot.js';
+import { must, fly, wingDebug, EXTRA_AIRFRAME, CAP_AIRFRAME, RC_STEP_MS } from '../tests/lib/wingpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -48,6 +48,7 @@ const json = async (f) => JSON.parse(await readFile(join(root, f), 'utf8'));
 /* Each aircraft at its knife edge gate's speed. */
 const PLANES = {
   extra: { sim: EXTRA_AIRFRAME, name: 'Extra', speed: (await json('tests/extra-thresholds.json')).e12_knife_edge.speed },
+  cap: { sim: CAP_AIRFRAME, name: 'CAP', speed: (await json('tests/cap580-thresholds.json')).c12_knife_edge.speed },
 };
 const plane = PLANES[process.argv[2] || 'extra'];
 if (!plane) {

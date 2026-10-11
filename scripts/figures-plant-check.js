@@ -15,7 +15,12 @@
  * sag, named and graded under the roll; nothing else may be named, so the
  * level passes name nothing. The same flight run twice must give the same figures.
  *
- *   node scripts/figures-plant-check.js
+ *   node scripts/figures-plant-check.js [extra|cap]
+ *
+ * The same person flies the Extra 300 3D by default, or with `cap` the
+ * Extreme Flight 67 in CAP 580 (docs/CAP580-STAGE1.md), heavier and
+ * faster, at the same launch speed and sticks but for the loop's pull
+ * (PLANES below): the judge must name the same three figures on it.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -38,12 +43,24 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, EXTRA_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { must, EXTRA_AIRFRAME, CAP_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
+
+/* The loop's pull is the person's for the aircraft: a round IMAC loop is
+ * flown short of the wing's stall. On the Extra 0.55; on the CAP, whose
+ * elevator has 50 deg of throw over a tail volume half again the Extra's,
+ * 0.55 takes the wing to 15 deg of alpha, past its 11.7 (CL max over the
+ * wing's slope, npm run cap580:derive), and 0.35 holds it at 9. */
+const PLANES = { extra: { sim: EXTRA_AIRFRAME, name: 'Extra', loopPull: 0.55 }, cap: { sim: CAP_AIRFRAME, name: 'CAP', loopPull: 0.35 } };
+const plane = PLANES[process.argv[2] || 'extra'];
+if (!plane) {
+  console.log(`figures plant check: no plane ${process.argv[2]}; one of ${Object.keys(PLANES).join(', ')}`);
+  process.exit(2);
+}
 
 const MS = 2;
 const LAG = 100;
@@ -71,7 +88,7 @@ function see(s) {
 async function flight() {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(EXTRA_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(plane.sim), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 120, 1, 0, 0, 0), 'sim_set_pose');
@@ -105,7 +122,7 @@ async function flight() {
         if (phaseMs >= 4000) { phase += 1; phaseMs = 0; turned = 0; marks.push(ms); }
       } else if (name === 'loop') {
         turned += -d.q * h;
-        st = [0, 0.55, 0, 1];
+        st = [0, plane.loopPull, 0, 1];
         if (turned > 2 * Math.PI - 0.6) { phase += 1; phaseMs = 0; marks.push(ms); }
       } else if (name === 'roll') {
         turned += d.p * h;
@@ -145,7 +162,7 @@ console.log(`flown: ${names || 'nothing'}`);
 const want = ['loop', 'aileron_roll', 'four_point_roll'];
 for (const id of want.slice(0, 2)) {
   const f = a.figures.find((g) => g.figure === id);
-  check(`a person's ${id} on the Extra is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
+  check(`a person's ${id} on the ${plane.name} is named and graded 4 to 10`, f && f.grade >= 4 && f.grade <= 10, f ? `grade ${f.grade}` : 'not named');
 }
 /* This person's points sag: the nose falls about a third of a turn over
  * the four holds, which a judge marks hard (a point per 15 deg off the

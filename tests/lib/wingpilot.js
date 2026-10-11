@@ -2153,3 +2153,84 @@ export function recordHerculesFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * Extreme Flight's 67 in CAP 580, airframe 32, docs/CAP580-STAGE1.md: a
+ * taildragger standing nose up on its carbon gear as the photographs have
+ * it, the CG over the grass as npm run cap580:derive gives it
+ * (src/render/capcraft.js draws the same), or thrown at its cruise.
+ */
+export const CAP_AIRFRAME = 32;
+export const CAP_REST = { z: 0.3130, pitchDeg: 10.87 };
+export function capPrelude(sim) {
+  must(sim.e.sim_set_airframe(CAP_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(18), 'sim_wing_launch');
+}
+export function capGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(CAP_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = CAP_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, CAP_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+/* The CAP's take off, the Extra's hands: the elevator a little up to keep
+ * the tailwheel steering, eased so the tail comes up past 6 m/s, and the
+ * nose raised to 8 deg at 1.2 times the stall (cap580:derive). */
+export function capTakeoffSticks(s, { vRotate = 12.75 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+  const pitchT = (v < 6 ? CAP_REST.pitchDeg : (v < vRotate ? 2 : 8)) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -0.6 * bank - 0.06 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 1.5 * (pitchT - pitch) - 0.12 * qAero));
+  const yaw = Math.max(-1, Math.min(1, 1.5 * heading + 0.2 * s[13]));
+  return [roll, pitchStick, yaw];
+}
+
+/*
+ * The CAP's recording for the cross-host check, the Extra's program: a
+ * second at idle, the take off, a climb, a pull to the vertical, hanging
+ * on the prop with the throttle on the height and the ailerons on the
+ * torque, two seconds of torque roll with them let go, full throttle out
+ * and back to level, and a second of full rudder: twenty two seconds,
+ * every slipstream term in the hashed trace.
+ */
+export function recordCapFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  capGroundPrelude(sim);
+  const samples = [];
+  let iT = 0.6;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -0.6 * (bank - b) - 0.06 * p));
+    const nose = (t) => Math.max(-1, Math.min(1, 1.5 * (t - pitch) - 0.12 * qAero));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 7000) {
+      sticks = [...capTakeoffSticks(s), 1];
+    } else if (ms < 9000) {
+      sticks = [hold(0), nose(0.45), 0, 1];
+    } else if (ms < 16000) {
+      iT += 0.0008 * (0 - vz);
+      iT = Math.max(0.3, Math.min(1, iT));
+      const thr = Math.max(0, Math.min(1, iT - 0.08 * vz));
+      sticks = [...hangSticks(s, { rollRate: ms < 14000 ? 0 : null }), ms < 11000 ? 0.75 : thr];
+    } else if (ms < 20000) {
+      sticks = [hold(0), nose(0.1), 0, 1];
+    } else {
+      sticks = [hold(0), nose(0.1), ms < 21000 ? 1 : 0, 0.6];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

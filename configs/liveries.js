@@ -281,6 +281,20 @@ export const LIVERIES = {
     ],
   },
 
+  cap1702: {
+    /* Extreme Flight's two covering schemes for the 67 in CAP 580, the
+     * data sheet's Oracover colours read off its product photographs: the
+     * blue and yellow A464-BY (Dark Blue 52 over the wing's root and the
+     * fuselage, Cub Yellow 30 stripes and spats, Ferrari Red 23 tips, cowl
+     * and flashes) and the green and red A464-GR (May Green 43, White 10,
+     * Ferrari Red 23). */
+    regions: [r('wing', '#2343b4'), r('fuselage', '#2343b4'), r('tail', '#2343b4'), r('stripe', '#f5b318'), r('trim', '#e2202e')],
+    schemes: [
+      { id: 'blueyellow', source: src('Extreme Flight 67 in CAP 580, A464-BY: blue, yellow and red', 'https://extremeflightrc.com/products/ef-67-cap-580-blue-yellow-arf'), colours: {} },
+      { id: 'greenred', source: src('Extreme Flight 67 in CAP 580, A464-GR: green, white and red', 'https://extremeflightrc.com/products/ef-67-cap-580-green-red-arf'), colours: { wing: '#6cc53a', fuselage: '#6cc53a', tail: '#6cc53a', stripe: '#f4f4f2', trim: '#e3202c' } },
+    ],
+  },
+
   p51d1450: {
     /* FMS's natural metal P-51 as its manual photographs it: silver all
      * over, the red of the nose band, the spinner and the fin's top, and

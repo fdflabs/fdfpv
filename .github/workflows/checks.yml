@@ -298,6 +298,10 @@ jobs:
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
       - run: npm run hercules:gates
+      - run: npm run cap580:derive
+      - run: npm run cap580:gates
+      - run: npm run cap580:figures
+      - run: npm run cap580:stab
       - run: npm run paradrop:selftest
       # The pilot on foot (docs/ON-FOOT.md): the walk never ends inside a
       # solid, steps and slopes, pace; then on swiss2 in the real shell,

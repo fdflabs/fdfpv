@@ -1918,4 +1918,94 @@ static const PartDef PARTS_HERCULES3077[] = {
     BOX(-0.84, -0.60, -0.115, 0.115, -0.17, -0.12) },
 };
 
+/* ------------------------------------------------------------------------
+ * EXTREME FLIGHT 67 IN CAP 580, SIM_AIRFRAME_CAP1702, capcraft.js.
+ * 3.63 kg of balsa and ply under film, docs/CAP580-STAGE1.md: nothing
+ * foam, so nothing crushes; a joint past its onset cracks, as the Ugly
+ * Stik's balsa does. A sheeted box fuselage on a fibreglass cowl, the two
+ * wing panels on a 20 mm carbon tube, the tail feathers built up and
+ * hinged, carbon gear legs, an AM670 on a ply firewall. Wheels: 0 left
+ * main, 1 right main, 2 tailwheel, 3 the prop tip's skid.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_CAP1702[] = {
+  /* 0 the fuselage from the wing's trailing edge to the firewall: the
+   * cowl, the ESC, the four servos, the receiver and the wing's saddle:
+   * the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.31, 0.47, -0.075, 0.075, -0.13, 0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 1 the rear fuselage, a sheeted box tapering to the tail. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.20, .joint = { -0.31, 0.0, -0.03 }, .m_max = 150.0, .f_max = 700.0, .k = 4.0e4, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { -0.31, 0.075, -0.13 }, { -0.31, -0.075, -0.13 }, { -0.31, 0.075, 0.07 }, { -0.31, -0.075, 0.07 }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+                        { -1.03, 0.015, -0.05 }, { -1.03, -0.015, -0.05 }, { -1.03, 0.015, 0.06 }, { -1.03, -0.015, 0.06 } } },
+  /* 2 the stabiliser on the fuselage, 3 the elevators, 67 percent of it. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -0.82, 0.0, 0.027 }, .m_max = 2.0 * BALSA_M(0.0127, 0.0127), /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .f_max = 120.0, .k = 2500.0, BOX(-0.87, -0.77, -0.375, 0.375, 0.017, 0.037) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -0.87, 0.0, 0.027 }, .m_max = 1.5, .f_max = 40.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-1.06, -0.87, -0.375, 0.375, 0.019, 0.035) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 4 the fin on the fuselage's top, 5 the rudder, which runs down under
+   * the fuselage to its foot. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.04, .joint = { -0.88, 0.0, 0.06 }, .m_max = 2.0 * BALSA_M(0.0127, 0.0127), .f_max = 80.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.95, -0.80, -0.005, 0.005, 0.06, 0.277) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.95, 0.0, 0.10 }, .m_max = 1.2, .f_max = 35.0, .k = 1500.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-1.076, -0.95, -0.005, 0.005, -0.075, 0.277) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 6, 7 the two panels on the 20 mm carbon tube (its size air-rc's, docs/CAP580-STAGE1.md): a 1 mm wall's section,
+   * 2.7e-7 m^3, 160 N m at a carbon tube's 600 MPa, FITTED; fore and aft
+   * the panel's sheeted leading and trailing edges, 90 N m. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.25, .joint = { -0.01, 0.075, -0.085 }, CARBON_SPAR(0.010), .m_max = 160.0, .m_max_z = 90.0, .f_max = 800.0, .k = 3000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { 0.13, 0.075, -0.115 }, { -0.305, 0.075, -0.115 }, { 0.13, 0.075, -0.055 }, { -0.305, 0.075, -0.055 }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+                        { 0.076, 0.851, -0.10 }, { -0.141, 0.851, -0.10 }, { 0.076, 0.851, -0.07 }, { -0.141, 0.851, -0.07 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.25, .joint = { -0.01, -0.075, -0.085 }, CARBON_SPAR(0.010), .m_max = 160.0, .m_max_z = 90.0, .f_max = 800.0, .k = 3000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { 0.13, -0.075, -0.115 }, { -0.305, -0.075, -0.115 }, { 0.13, -0.075, -0.055 }, { -0.305, -0.075, -0.055 }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+                        { 0.076, -0.851, -0.10 }, { -0.141, -0.851, -0.10 }, { 0.076, -0.851, -0.07 }, { -0.141, -0.851, -0.07 } } },
+  /* 8, 9 the ailerons, 43 percent of the chord from 0.115 m to the tip. */
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.12, 0.48, -0.085 }, .m_max = 1.0, .f_max = 30.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.29, -0.06, 0.115, 0.851, -0.095, -0.075) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.12, -0.48, -0.085 }, .m_max = 1.0, .f_max = 30.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.29, -0.06, -0.851, -0.115, -0.095, -0.075) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 10 the AM670, 416 g (T-Motor), on its mount through the 1/4 in ply
+   * firewall: four bolts, the Ugly Stik's 800 N and 24 N m. 11 the 18 x 8
+   * carbon prop and the 76 mm spinner. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.416, .joint = { 0.47, 0.0, 0.0 }, .m_max = 24.0, .f_max = 800.0, .k = 1.0e6, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.47, 0.545, -0.032, 0.032, -0.032, 0.032) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_CF_PLATE, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.06, .joint = { 0.56, 0.0, 0.0 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { 0.56, 0.0, 0.0 }, { 0.2286, 0.0, 0.0 } } }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 12 the 6S 4500 on the fuselage's floor under the canopy, slid to the
+   * CG (npm run cap580:derive), 13 the canopy hatch. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.652, .joint = { 0.024, 0.0, -0.09 }, .m_max = 8.0, .f_max = 2.0 * VELCRO_12, .k = 3.0e5, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.055, 0.105, -0.025, 0.025, -0.12, -0.06) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.08, .joint = { 0.10, 0.0, 0.07 }, .m_max = 1.0, .f_max = MAGNET_2, .k = 2.0e4, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.10, 0.25, -0.06, 0.06, 0.07, 0.15) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 14, 15 the carbon main legs, the 67 in line's (docs/CAP580-STAGE1.md),
+   * with their pants and wheels; 16 the carbon tailwheel assembly. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 0,
+    .mass = 0.09, .joint = { 0.13, 0.05, -0.13 }, .m_max = 30.0, .f_max = 800.0, .k = 2959.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.08, 0.17, 0.05, 0.21, -0.347, -0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 1,
+    .mass = 0.09, .joint = { 0.13, -0.05, -0.13 }, .m_max = 30.0, .f_max = 800.0, .k = 2959.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.08, 0.17, -0.21, -0.05, -0.347, -0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 2,
+    .mass = 0.03, .joint = { -0.93, 0.0, -0.06 }, .m_max = 4.0, .f_max = 150.0, .k = 1201.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.955, -0.925, -0.008, 0.008, -0.143, -0.06) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.10, 0.0, 0.12 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.09, 0.115, -0.010, 0.010, 0.11, 0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* Not drawn: where an FPV conversion carries its whip, behind the canopy. */
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.40, 0.0, 0.06 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 2, .pts = { { -0.40, 0.0, 0.06 }, { -0.40, 0.0, 0.15 } } }, /* shape docs/CAP580-STAGE1.md */
+};
+
 #endif /* CRASH_PARTS_H */

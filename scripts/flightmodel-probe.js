@@ -94,6 +94,7 @@ const PLANES = {
   striker: { sim: 27, Vs: 20.0, ail: true, rud: true, mass: 13.8249 },
   extra: { sim: 29, Vs: 8.31, ail: true, rud: true },
   nighttimber: { sim: 30, Vs: 9.08, ail: true, rud: true },
+  cap: { sim: 32, Vs: 10.62, ail: true, rud: true },
 };
 
 const arg = (k) => {

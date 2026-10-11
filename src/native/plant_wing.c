@@ -4913,3 +4913,131 @@ const FixedWingParams FW_HERCULES3077 = {
   .cd_door = 0.0259,      /* npm run hercules:derive */
   .cm_door = -0.0091,     /* npm run hercules:derive */
 };
+
+/* Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md and
+ * scripts/cap580-derive.js, where each number has its formula and source
+ * and the fitted ones say so. A balsa and carbon IMAC and 3D monoplane on
+ * a T-Motor AM670 520 kV turning an 18 x 8 carbon prop, clockwise seen
+ * from behind, its thrust and torque T-Motor's measured bench table on 6S:
+ * 2.6 times its weight, so it hangs on the prop as the Extra does, the
+ * Extra's high angle, slipstream and slow air terms carrying it there. */
+const FixedWingParams FW_CAP1702 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.7018,         /* Extreme Flight's data sheet, 67 in; docs/CAP580-STAGE1.md */
+  .area = 0.5548,         /* the data sheet, 860 sq in; docs/CAP580-STAGE1.md */
+  .chord = 0.3380,        /* npm run cap580:derive: the mean chord of the measured taper */
+  .cl_alpha = 5.0601,     /* npm run cap580:derive: wing and tail, Nelson eq. 2.52 */
+  .cl_max = 0.9283,       /* npm run cap580:derive: the wing's CL max at the stall's Reynolds number */
+  .cl_alpha_wing = 4.543, /* npm run cap580:derive: the wing's own slope, the stall angle's */
+  .stall_re = { 1.5e5, 3.0e5 },        /* Timmer 2008 measured at these, docs/CAP580-STAGE1.md */
+  .stall_clmax = { 0.8892, 0.9504 },   /* 0.9 of 0.988 and 1.056, docs/CAP580-STAGE1.md */
+  .stall_peak = { 0.2748, 0.3408 },    /* 11.6 and 15.1 deg plus CL / (pi A e), npm run cap580:derive */
+  /* A symmetric section at no incidence (docs/CAP580-STAGE1.md): zero
+   * lift on the body axis. */
+  .alpha_zl = 0.0,
+  .sin_zl = 0.0, /* docs/CAP580-STAGE1.md: a symmetric section, zero lift on the body axis */
+  .cos_zl = 1.0, /* docs/CAP580-STAGE1.md: a symmetric section, zero lift on the body axis */
+  .cd0 = 0.045,           /* docs/CAP580-STAGE1.md: the Extra's class, ESTIMATED */
+  .k_induced = 0.08131,   /* npm run cap580:derive: 1/(pi 0.75 5.22) */
+  .cl_de = -0.5824,       /* npm run cap580:derive */
+  .cy_beta = -0.5569,     /* npm run cap580:derive */
+  .cy_dr = 0.2278,        /* npm run cap580:derive */
+  .cl_beta = 0.0024,      /* npm run cap580:derive: no dihedral, the low wing's roll less the fin's */
+  .cl_p = -0.6309,        /* npm run cap580:derive */
+  .cl_da = 0.4415,        /* npm run cap580:derive */
+  .cl_r_per_cl = 0.25,    /* docs/EXTRA-STAGE1.md: every table's strip theory figure */
+  .cl_dr = 0.0135,        /* npm run cap580:derive */
+  .cm_0 = 0.0678,         /* npm run cap580:derive: trimmed hands off at 18 m/s */
+  .cm_alpha = -1.0619,    /* npm run cap580:derive: static margin 0.21 */
+  .cm_q = -14.673,        /* npm run cap580:derive */
+  .cm_de = 1.4644,        /* npm run cap580:derive */
+  .cn_beta = 0.1997,      /* npm run cap580:derive */
+  .cn_r = -0.2612,        /* npm run cap580:derive */
+  .cn_p_per_cl = -0.125,  /* docs/EXTRA-STAGE1.md: every table's */
+  .cn_da_per_cl = -0.08,  /* docs/EXTRA-STAGE1.md: the Extra's, ESTIMATED, a symmetric section and wide chord ailerons */
+  .cn_dr = -0.1205,       /* npm run cap580:derive */
+  .stall_blend = 3.0 * WING_PI / 180.0, /* docs/EXTRA-STAGE1.md */
+  /* Extreme Flight's high rates in degrees, the data sheet: the aileron
+   * the mean of 38 up and 34 down, the elevator 50, the rudder 52.5 of
+   * 50 to 55; the control derivatives carry Roskam's large deflection K'
+   * at these throws (npm run cap580:derive). */
+  .throw_a = 36.00 * WING_PI / 180.0,
+  .throw_e = 50.00 * WING_PI / 180.0, /* the data sheet's high rate, docs/CAP580-STAGE1.md */
+  .throw_r = 52.50 * WING_PI / 180.0, /* the data sheet's high rate, docs/CAP580-STAGE1.md */
+  .surface_max = 36.00 * WING_PI / 180.0, /* the data sheet's high rate, docs/CAP580-STAGE1.md */
+  .expo = 0.60,           /* docs/CAP580-STAGE1.md: the data sheet's high rate expo, one figure for all three */
+  .thrust_static = 94.31, /* N, T-Motor's bench table: 9,617 g at 100 percent; npm run cap580:derive */
+  .pitch_speed = 40.37,   /* npm run cap580:derive: APC's 18 x 8E curve through the bench's static and its top speed */
+  .rpm_no_load = 10160.0, /* npm run cap580:derive: shows the bench's 8,636 rpm at full */
+  .torque_arm = 0.02224,  /* npm run cap580:derive: the bench's 2.097 N m at 94.3 N */
+  .thrust_z = 0.0,        /* docs/CAP580-STAGE1.md: the thrust line through the CG */
+  .pfactor = 1.89,        /* FITTED: the Cub's blade element figure, as the Extra's; none measured for an 18 in prop */
+  .current_full = 111.11, /* A, T-Motor's bench table at 100 percent; npm run cap580:derive */
+  /* Stabilised: the Extra's limits and loops (docs/EXTRA-STAGE1.md), its
+   * throws near these. */
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .stab_deadband = 0.04, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .stab_roll_kp = 0.6,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .stab_roll_kd = 0.06,   /* FITTED: the Extra's */
+  .stab_pitch_kp = 2.0,   /* FITTED: the Extra's */
+  .stab_pitch_kd = 0.2,   /* FITTED: the Extra's */
+  .stab_pitch_down = 7.74 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.555, /* the stick that flies it level, elevator neutral, npm run stab:glide */
+  /* Acro: the Extra's loops (docs/EXTRA-STAGE1.md), FITTED. */
+  .acro_roll_rate = 360.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_expo = 0.30, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_err_max = 5.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_roll_kp = 1.5, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_roll_kd = 0.20, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_roll_ff = 0.10, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_pitch_kp = 2.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_pitch_kd = 0.2, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_pitch_ff = 0.15, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_roll_ki = 2.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_pitch_ki = 3.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_i_max = 0.30, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  /* A cowled nose: Selig's 80 percent for a cowling (docs/EXTRA-STAGE1.md);
+   * the disc 0.56 m ahead of the CG, npm run cap580:derive. */
+  .jet_kj = 0.80,
+  .prop_x = 0.560, /* npm run cap580:derive */
+  .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
+  .as3x_k = { 0.0366, 0.2261, 0.5556 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.6533, 4.0359, 9.9174 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.794, -2.441, -2.609 }, /* npm run as3x:derive */
+  .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  /* Past the stall, the Extra's forms and its symmetric section's break,
+   * npm run cap580:derive. */
+  .stall_arm_ac = 0.0632, /* npm run cap580:derive */
+  .stall_arm_cp = 0.0868, /* npm run cap580:derive */
+  .stall_dw = 0.3558,     /* npm run cap580:derive */
+  .stall_asym = 0.0,      /* docs/EXTRA-STAGE1.md: no built in side */
+  .stall_k = 0.70,        /* npm run cap580:derive: the Extra's section */
+  .stall_top = 2.0 * WING_PI / 180.0, /* npm run cap580:derive: the Extra's section */
+  .strip_c = { 1.250, 1.083, 0.917, 0.750 }, /* npm run cap580:derive: the taper's strips */
+  /* The slipstream, the high angles and the slow air, npm run
+   * cap580:derive: the 18 in prop; the stabiliser's half span, the fin
+   * over and under the thrust line, the ailerons' span; the tail's shares. */
+  .slip_r = 0.2286,       /* npm run cap580:derive */
+  .slip_yh = 0.3750,      /* npm run cap580:derive */
+  .slip_hv = { 0.277, 0.075 }, /* npm run cap580:derive */
+  .slip_ya = { 0.1150, 0.8509 }, /* npm run cap580:derive */
+  .slip_a0 = 0.0639,      /* npm run cap580:derive */
+  .slip_cl_a = 0.5174,    /* npm run cap580:derive */
+  .slip_cm_a = -1.3011,   /* npm run cap580:derive */
+  .slip_cn_b = 0.2363,    /* npm run cap580:derive */
+  .slip_cn_r = -0.2500,   /* npm run cap580:derive */
+  .slip_cy_b = -0.4469,   /* npm run cap580:derive */
+  .slip_cl_b = -0.0265,   /* npm run cap580:derive */
+  .strip_tau = { 0.2064, 0.4492, 0.4492, 0.4492 }, /* npm run cap580:derive: the ailerons from 0.115 m to the tip */
+  .hi_alpha = 1, /* docs/EXTRA-STAGE1.md: the 3D aircraft's high angle terms */
+  .tail_at = 3.740,       /* npm run cap580:derive */
+  .tail_av = 3.701,       /* npm run cap580:derive */
+  .tail_deda = 0.554,     /* npm run cap580:derive */
+  .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
+  .side_cda = 0.1985,     /* npm run cap580:derive */
+  .rot_k = { 0.05099, 0.12406, 0.08237 }, /* npm run cap580:derive */
+  .j_prop = 0.000866,     /* npm run cap580:derive: a 60 g carbon 18 in blade and the AM670's can, ESTIMATED */
+};

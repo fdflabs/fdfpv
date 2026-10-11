@@ -44,6 +44,7 @@ aircraft no longer offers" rule; craft-pick-selftest covers it).
 | BMJR Bombshell | kit, no gyro | Manual | Manual, AS3X (pitch and yaw), Stabilised | docs/BOMBSHELL-STAGE1.md |
 | GWS Slow Stick | kit, no gyro (verified: a three channel kit, receiver of the builder's choice) | Manual | Manual, AS3X (pitch and yaw), Stabilised | docs/SLOWSTICK-STAGE1.md |
 | Great Planes Tiger Moth GPMA1330 | glow ARF, no gyro in the box (verified) | Manual | Manual, AS3X, Stabilised | docs/TIGERMOTH-STAGE1.md |
+| Extreme Flight 67 in CAP 580 (A464) | ARF; the RxR has its power installed and no receiver; no gyro | Manual | Manual, AS3X, SAFE Select | docs/CAP580-STAGE1.md; Extreme Flight's data sheet |
 | Skyhunter 1800 | kit; builders fit INAV | Acro | Acro, Stabilised, Manual | INAV docs/Settings.md |
 | Bramor C4EYE | its own autopilot | Stabilised | Stabilised, Manual | docs/BRAMOR-STAGE1.md |
 | Striker | what a one way attack drone flies: an autopilot's stabilised mode | Stabilised | Stabilised, Manual | docs/COMBAT-DRONES.md |
