@@ -1674,14 +1674,20 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
 static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e, double dcl_f, double clmax, double k_stall,
                          double fre, double sin_a, double cos_a, double cd0, double b2c, double *CL, double *CD, double *cm) {
   WingLift alone[2], wl[2];
+  /* bip_dstall: how much later than potential flow each wing stalls, in
+   * the cell's angle, the lift it holds to that angle its own CL max. */
+  double cmax[2];
+  for (int i = 0; i < 2; i += 1) {
+    cmax[i] = add_term(clmax, wing_cla(fw) * fw->bip_r[i] * fw->bip_dstall[i]);
+  }
   for (int i = 0; i < 2; i += 1) {
     const double r = fw->bip_r[i];
-    wing_lift(fw, r * alpha, r * delta_e, r * dcl_f, clmax, k_stall, fre, sin_a, cos_a, &alone[i]);
+    wing_lift(fw, r * alpha, r * delta_e, r * dcl_f, cmax[i], k_stall, fre, sin_a, cos_a, &alone[i]);
   }
   for (int i = 0; i < 2; i += 1) {
     const double r = fw->bip_r[i];
     const double lost = alone[1 - i].cl - alone[1 - i].cl_lin;
-    wing_lift(fw, r * alpha - fw->bip_m[i] * lost / fw->cl_alpha, r * delta_e, r * dcl_f, clmax, k_stall, fre, sin_a, cos_a, &wl[i]);
+    wing_lift(fw, r * alpha - fw->bip_m[i] * lost / fw->cl_alpha, r * delta_e, r * dcl_f, cmax[i], k_stall, fre, sin_a, cos_a, &wl[i]);
   }
   /* The broadside coefficient and Viterna's B2 are the cell's, on its
    * span over its area: the two wings stall in each other's flow. */
@@ -2535,7 +2541,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * surf_sep; the flying wing's elevator half keeps its surf_sep. */
   /* A biplane's ailerons are on the wing that stalls later (bip_r[1], the
    * Tiger Moth's bottom wing), past its own stall angle. */
-  const double ail_stall = fw->bip_w[0] > 0.0 ? alpha_stall / fw->bip_r[1] : alpha_stall;
+  const double ail_stall = fw->bip_w[0] > 0.0 ? add_term(alpha_stall / fw->bip_r[1], fw->bip_dstall[1]) : alpha_stall;
   const double past_deg = (sim_fabs(add_term(alpha, dcl_f / wing_cla(fw))) - ail_stall) * 180.0 / WING_PI;
   const double ail_sep = keep_at(fw->ail_keep, AIL_KEEP_TR419, past_deg);
   /* The same share of the surface's shift of its strips' zero lift: a
@@ -4772,6 +4778,14 @@ const FixedWingParams FW_TIGERMOTH1803 = {
    * plane. */
   .bip_w = { 0.5684, 0.4316 },
   .bip_r = { 1.1087, 0.8856 },
+  /* The bottom wing of a positively staggered cell stalls 5 to 6 deg after
+   * the top one, its flow held on by the top wing as a slot holds it (NACA
+   * TN 310, Knight and Noyes 1929, figs. 8 and 9, stagger 0.5, gap 1.0, Re
+   * 1.5e5; the model's Re); potential flow, bip_r, gives 3 deg, so 2.5 deg
+   * more on the bottom wing, ESTIMATE for this cell's stagger 0.42 and gap
+   * 1.17 (both shrink it, 4 to 6 deg the band;
+   * ~/Desktop/fdfpv-loop/research/TIGERMOTH-HIGH-ALPHA.md section 3a). */
+  .bip_dstall = { 0.0, 2.5 * WING_PI / 180.0 },
   .bip_m = { 0.0101, 0.2202 },
   .bip_x = { 0.1729, -0.2277 },
   .bip_ki = { 0.02655, 0.02399 },

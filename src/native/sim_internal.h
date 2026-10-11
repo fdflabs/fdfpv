@@ -909,6 +909,9 @@ typedef struct FixedWingParams {
   double bip_x[2];
   double bip_ki[2];
   double bip_kx[2];
+  /* Each wing's stall later than potential flow puts it, rad of the cell's
+   * angle (the slot effect of the wing above); zero: bip_r's alone. */
+  double bip_dstall[2];
   /*
    * THE DRAG ACROSS THE REYNOLDS NUMBERS, docs/DLG-STAGE1.md. Zero cd0_re
    * is a CD0 that is the same at every speed, every other table's, and then
