@@ -372,6 +372,9 @@ const cgHeight = (mainHw + tailHw) / 2;
 const armAc = hCG - 0.25, armCp = 0.40 - hCG, stallDw = eta * VH * at * deda / aw;
 const stallTop = 3.7 / DEG, stallK = 0.63;
 
+/* The wing's normal force broadside, Viterna and Janetzke's finite wing
+ * 1.11 + 0.018 AR (NASA TM-82944 eq. 12), as plant_wing.c plate_cn. */
+const PCN = 1.11 + 0.018 * Math.min(AR, 50);
 /*
  * The plant's post stall lift on the whole wing (plant_wing.c,
  * stalled_lift), as the Extra's derivation takes it, for the harrier and
@@ -381,24 +384,24 @@ function smooth(a0, a1, x) { if (x <= a0) return 0; if (x >= a1) return 1; const
 function clPlant(alpha) {
   const aS = CLmax / CLa;
   const sig = smooth(aS - blend, aS + blend, Math.abs(alpha));
-  const lin = CLa * alpha, plateL = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const lin = CLa * alpha, plateL = PCN * Math.sin(alpha) * Math.cos(alpha);
   const old = (1 - sig) * lin + sig * plateL;
   if (sig <= 0) return { CL: lin, CD: CD0 + k * lin * lin, sig, clSt: lin, fall: 0, past: 0 };
   let clS = 0;
   for (let i = 0; i <= 16; i += 1) {
     const ai = aS - blend + blend * 0.125 * i;
     const si = smooth(aS - blend, aS + blend, ai);
-    clS = Math.max(clS, (1 - si) * CLa * ai + si * 2 * Math.sin(ai) * Math.cos(ai));
+    clS = Math.max(clS, (1 - si) * CLa * ai + si * PCN * Math.sin(ai) * Math.cos(ai));
   }
   const a0 = aS + stallTop, a1 = a0 + 2 * blend;
   const t = smooth(a0, a1, Math.abs(alpha));
   const st = Math.min(a1, 0.5);
-  const a2 = (stallK * clS - 2 * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
+  const a2 = (stallK * clS - PCN * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
   const vit = Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05 ? a2 * Math.cos(alpha) ** 2 / Math.sin(alpha) : 0;
   const clSt = (1 - t) * clS + t * (plateL + vit);
   const past = smooth(aS, aS + blend, Math.abs(alpha));
   const CL = old + past * (clSt - old);
-  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + 2 * Math.sin(alpha) ** 2);
+  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + PCN * Math.sin(alpha) ** 2);
   return { CL, CD, sig, clSt, fall: t, past };
 }
 const tailCnH = 1.17;
@@ -440,7 +443,7 @@ function harrier(alphaDeg) {
   const qb = 0.5 * rho * V * V;
   const w = washOf(slip, thrust, u);
   const sa = Math.sin(a);
-  const cnSt = 2 * sa + (clSt - 2 * sa * Math.cos(a)) * Math.cos(a);
+  const cnSt = PCN * sa + (clSt - PCN * sa * Math.cos(a)) * Math.cos(a);
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * CLa * sa);
   const alphaT = sa - deda * CL / CLa - slip.slip_a0 * (1 - deda);
   const xa = V * Math.sin(a - slip.slip_a0);

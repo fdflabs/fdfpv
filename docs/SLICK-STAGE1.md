@@ -174,26 +174,28 @@ and every other aircraft's recorded hash is unmoved (`slick:gates` S15).
 
 `npm run slick:gates`, bands in `tests/slick-thresholds.json`, each band
 the Extra's width for the same reason (docs/EXTRA-STAGE1.md). **17 of
-17**, measured 2026-10-11 on this branch's module:
+17**, measured 2026-10-11 on the aero lane's plant (w34-3d-wingslope
+a83fc2a4: the finite wing's broadside force, Viterna's B2, the tail's own
+lift at its own angle):
 
 | Gate | What | Derived | Band | Measured |
 | --- | --- | --- | --- | --- |
-| S1 | level at 75 percent of the stick (0.94 of the rpm) | 39.95 m/s | 35.15 to 44.74 | 39.92 |
-| S2 | stall, power off | 13.88 m/s | 13.05 to 15.82 | 13.67 |
-| S3 | glide ratio at 1.4 Vs, 19.4 m/s | 14.06 | 12.38 to 15.75 | 14.17 |
-| S4 | top speed | 42.54 m/s | 38.28 to 46.79 | 42.53 |
-| S5 | roll, full aileron, pb/2V | 0.370 | 0.277 to 0.462 | 0.367 (549 deg/s at 35.0 m/s) |
-| S6 | hover stick, height held | 0.3926 (an rpm share of 0.6343 on the curve) | 0.373 to 0.412 | 0.3929, within 0.01 m |
+| S1 | level at 75 percent of the stick (0.94 of the rpm) | 39.95 m/s | 35.15 to 44.74 | 39.87 |
+| S2 | stall, power off | 13.88 m/s | 13.05 to 15.82 | 13.91 |
+| S3 | glide ratio at 1.4 Vs, 19.4 m/s | 14.06 | 12.38 to 15.75 | 13.49 |
+| S4 | top speed | 42.54 m/s | 38.28 to 46.79 | 42.47 |
+| S5 | roll, full aileron, pb/2V | 0.370 | 0.277 to 0.462 | 0.367 (552 deg/s at 35.2 m/s) |
+| S6 | hover stick, height held | 0.3926 (an rpm share of 0.6343 on the curve) | 0.373 to 0.412 | 0.3929, within 0.00 m |
 | S7 | vertical climb, full throttle | 26.33 m/s | 23.70 to 28.96 | 26.07 |
 | S8 | torque roll, ailerons let go | 154 deg/s left | 115 to 192 | 170 left |
-| S9 | full right aileron, hanging | 119 deg/s right | 72 to 167 | 129 right |
+| S9 | full right aileron, hanging | 119 deg/s right | 72 to 167 | 128 right |
 | S10 | full elevator at zero airspeed | 12.05 rad/s² | 9.04 to 15.06; at idle under 0.147 of it | 10.5; at idle 1.04 |
 | S10b | full rudder at zero airspeed | 7.99 rad/s² | 5.99 to 9.98; the same | 7.2; at idle 0.71 |
-| S11 | harrier at 40 deg of alpha | 9.30 m/s at a stick of 0.343, elevator 57 percent | 7.44 to 11.16, 0.292 to 0.395, short of full | 10.03 at 0.348, stick 0.79, within 0.03 m |
+| S11 | harrier at 40 deg of alpha | 11.34 m/s at a stick of 0.346, elevator 75 percent | 9.07 to 13.60, 0.294 to 0.398, short of full | 12.63 at 0.358, stick 0.91, within 0.34 m |
 | S12 | knife edge at 30 m/s | 24.8 deg of sideslip at 0.563, rudder 82 percent | 18.6 to 31.1, 0.479 to 0.648, short of full | 24.3 at 0.563, stick -0.89 |
 | S13 | standing on its wheels, engine idling | 9.38 deg, 0.4082 m, 10.9 percent on the tail | half a degree, 5 mm, 3.5 points | 9.36, 0.4088, 10.9 |
-| S14 | take off roll | 8.25 m | 4.95 to 13.20 | 11.99 |
-| S15 | every other aircraft unmoved | main's hashes (extra-thresholds E15) | identical | identical |
+| S14 | take off roll | 8.61 m | 5.16 to 13.77 | 12.21 |
+| S15 | every other aircraft unmoved | the hashes extra:gates E15 pins | identical | identical |
 | S16 | Node and Chrome agree | | identical | identical |
 
 Where this derivation goes further than the Extra's, and why:
@@ -212,9 +214,11 @@ Where this derivation goes further than the Extra's, and why:
   so the wash at the idle is (idle / hover rpm)² = 0.098 of the hover's,
   and the band is under 1.5 times that.
 - **S11: the harrier on every term the plant takes there.** The plant's
-  own lift curve past the stall (wing_lift: the tail's share of the slope
-  does not stall with the wing; CL 1.12 at 40 deg, where the Extra's older
-  copy gave 0.90), Selig's jet normal force at the prop (jet_kj), the
+  own lift curve past the stall on the aero lane's plant (wing_lift: the
+  finite wing's broadside force, 1.11 + 0.018 AR = 1.22, NASA TM-82944,
+  Viterna's B2 drag continuity, and the tail lifting at its own angle
+  with the elevator's share, saturating on a plate; the wing's CL 0.82 and
+  CD 0.53 at 40 deg, 1.12 and 0.85 on the plate's 2.0 before it), Selig's jet normal force at the prop (jet_kj), the
   thrust line 39 mm over the CG and the jet force's arm in the moment. The
   gate's pilot is the Extra's with slower hands on the throttle and more
   pitch damping, flying the nose's attitude (level, the angle of attack)

@@ -1027,9 +1027,9 @@ stick, it rolls or pitches slowly; full stick, rapidly):
   speed for the Extra's 23 g digital servo (EFL11598); Hitec's D89MW, a
   25 g digital servo of its class, is "0.11 sec @ 60 deg" at 6 V.
 - Gains from as3x:derive: the rate loop at its 6 dB margin at the top
-  speed against the frame's delay, k = pi / (4 M tau), 0.0508, 0.2369,
-  0.3611; the heading's corner a quarter of that loop's crossover, kh =
-  k pi / (16 tau), 0.9068, 4.2287, 6.4456; as3x_rate 6.529, -4.14, -4.775
+  speed against the frame's delay, k = pi / (4 M tau), 0.0511, 0.2163,
+  0.3619; the heading's corner a quarter of that loop's crossover, kh =
+  k pi / (16 tau), 0.9121, 3.8609, 6.4599; as3x_rate 6.527, -4.167, -4.774
   rad/s per unit stick (as3x:derive on the spun up plant, each rate the
   stick's run against the centred one, 2026-10-11). A 1 rad/s kick at 35 m/s settles on every axis
   (as3x:derive checks it); at a 5.5 ms frame the same derivation's gains
@@ -1453,3 +1453,96 @@ the plant's wing still sees only the free stream. The section's peak and
 drop past CL max in the wash: the plate's saturation has no peak, so the
 asymmetry is the milder of the two; the free stream strips keep their
 measured stall.
+
+### Past the stall: the finite wing's broadside force and Viterna's B2 (2026-10-11)
+
+The plant's post stall curve is Viterna's extrapolation (CL = CDmax sin
+cos + A2 cos^2 / sin, CD = CDmax sin^2 + B2 cos), and it took CDmax, the
+normal force broadside, as 2.0, the two dimensional plate's, for every
+wing. A finite wing's is smaller: CDmax = 1.11 + 0.018 AR (AR under 50),
+Viterna and Janetzke, NASA TM-82944 eq. 12
+(https://ntrs.nasa.gov/citations/19820025954), plate_cn in plant_wing.c,
+1.19 to 1.27 across the fleet. Measured, Ostowari and Naik's NACA 4418
+reads 2.06 at infinite AR and 1.32 at AR 6 (SERI/STR-217-2559, sec. 4.6),
+and Sheldahl and Klimas' NACA 0012 1.8 at 90 deg in two dimensions
+(SAND80-2114, table 2), so the formula sits 8 percent under the one
+finite measurement. The plant also lacked Viterna's drag continuity term,
+B2 = (CD at the stall - CDmax sin^2 a_s) / cos a_s (TM-82944 eqs. 15, 17):
+without it the plate alone fell short of the stalled section's drag
+between the stall and about 30 deg (NACA 0012 at 20 deg measures 0.30;
+the old plate gave 0.21). B2 is in the wing's drag, the strips' drag
+excess, the biplane cell's and the stalled normal force's pressure share.
+The shape past the stall is still Viterna's; per section 0 to 180 deg
+tables (SAND80-2114, NACA 2415) wait for knife edge and inverted flight.
+
+What moved, re-derived on it rather than widened:
+- P-51 P8 (NACA's XP-51 wing drop) reads 30.5 deg, from 28.2.
+- Extra E11's harrier at 40 deg: extra-derive.js on the finite wing,
+  7.76 m/s at 0.615 throttle (was 6.25 at 0.603 on the plate), band 20
+  percent and 15 percent either way as before; the plant flies 7.79. The
+  only harrier speed in the 3D video is the Timber's, judged not measured,
+  2 to 4 m/s; no Extra figure exists.
+- Zagi Z9's mush sink band, which had no numeric source: zagi-derive.js
+  brackets it between the wing attached at its CL max (0.61 m/s) and a
+  fully separated plate at 30 deg on Ostowari and Naik's AR 6 1.32 (4.25
+  m/s); the plant mushes at 1.86. The balloon and the break within 3 s
+  are the CRRC's and hold (2.36 s).
+- tuning:check U3 now reads the angle full up elevator holds, the
+  pitching moment at cruise speed with the body held still, rather than a
+  flight's transient: the peak angle in a fixed first second read a nose
+  heavy glider still departing as higher than stock, and the time to the
+  first stall strip (tried next) tied on the CAP, whose forward CG
+  lengthens a 50 deg elevator's arm. Aft is held highest and nose heavy
+  lowest on every aircraft (FAA, Effects of Adverse Balance).
+
+A BIG FAILURE this does not fix, measured: the Timber does not reach its
+harrier. harrier-flap-probe.js, full up held: pitch 7 to 26 deg at 8 to
+11.6 m/s, bank sd 31 to 39 deg, against the video's nose up 40 to 45 deg
+at a crawl with the elevator flaps mix calming it.
+
+### The tail's own stall and moment (2026-10-11)
+
+With the wing's own slope (cl_alpha_wing, #935) the tail's share of the
+lift slope, CLa - a_w, rode on the wing as (CLa - a_w) sin a cos a: it
+never stalled and carried no moment, while the pitching moment on a
+hi_alpha table already took the tail on its own angle, saturating on its
+plate (vh x_t plate_ratio(x_t), docs/EXTRA-STAGE1.md). A table with both
+now takes the tail's lift on that same angle, x_t = a_t (sin a - de/da
+CL_w / a_w - a_0 (1 - de/da)) plus the elevator's angle, times
+(CLa - a_w) / (a_t (1 - de/da)), which is S_t / S eta (Nelson eq. 2.52):
+one surface's lift and moment, stalling together. At small angles it is
+the linear plant's (CLa - a_w) alpha + cl_de delta_e exactly (the Extra:
+0.314 x 0.8666 / 0.770 = 0.353 against cl_de 0.3537). The downwash at the
+tail now goes with the wing's lift alone; before, the elevator's own lift
+fed the downwash on its own tail, and the Extra's pitch control power
+reads 330 rad/s^2 per rad against 301 (as3x:derive re-derives its gains).
+On a table without hi_alpha the sin cos share stands until that table
+gets the tail's own angle (the fleet's wing slope work).
+
+### The stall angle on the wing's own slope, fleet wide (2026-10-11)
+
+#935 put the Extra's stall angle on the wing's own lift slope, a_w, with
+the tail's share of CLa lifting on past it. Fourteen tailed tables now
+carry it, each a_w its derivation's (cl_alpha_wing, cited on the line):
+the Sky, Cub (and floats), Radian, Slow Stick, Timber (and floats),
+Bombshell, Kadet, F-16, Ugly Stik, NRJ, P-51 and Night Timber. Left out:
+the Hercules (another lane's; its derivation prints no a_w), the Tiger
+Moth (a biplane, bip_r) and the flying wings (no tail).
+
+The rule, written once for every stall gate: alphaStall is CLmax over
+a_w, and the plant's stall CL is the wing's CLmax plus the tail's lift at
+that angle, in the form that table's tail has: (CLa - a_w) sin a cos a
+without hi_alpha, and on the tail's own angle with it (the Extra, the
+Night Timber; the tail's own stall above). Each formula stall band moves
+by sqrt(CLw / (CLw + tail)), checked against the plant before and after
+to within 0.7 percent; the Night Timber's N2b, the video's own 6.7 to
+8.0 m/s, is not rescaled and reads 7.30. The Extra's E2 takes its
+Reynolds CLmax, 0.898. The Bombshell's U2 margin is re-derived in
+bombshell-derive.js (0.2881: over U2's span the lift slope is a_w plus
+the tail's sin cos share, a shade under CLa).
+
+Measured on it: the P-51's P8 wing drop 24.3 deg (NACA's XP-51; 28.2
+before this chain, 18.9 with the slope on the old plate). Still a gap:
+without hi_alpha a tail's lift has no stall and no moment of its own;
+the fleet's tail angle goes with the knife edge work, whose fin half
+needs its own sources. Not started: the Reynolds CLmax per aircraft.

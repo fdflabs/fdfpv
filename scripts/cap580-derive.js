@@ -13,6 +13,8 @@
  *   node scripts/cap580-derive.js --check   also fail when a constant in
  *                                           plant_wing.c, plant.c or the
  *                                           thresholds differs from it
+ *   node scripts/cap580-derive.js --write-bands   rewrite the bands'
+ *                                           centres and edges from it
  *
  * Run with npm run cap580:derive.
  *
@@ -32,7 +34,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -456,28 +458,32 @@ const cgHeight = (mainHw + tailHw) / 2;
 const armAc = hCG - 0.25, armCp = 0.40 - hCG, stallDw = eta * VH * at * deda / aw;
 const stallTop = 2.0 / DEG, stallK = 0.70;
 
+/* The wing's normal force broadside, Viterna and Janetzke's finite wing
+ * 1.11 + 0.018 AR (NASA TM-82944 eq. 12), as plant_wing.c plate_cn and as
+ * extra-derive.js takes it. */
+const PCN = 1.11 + 0.018 * Math.min(AR, 50);
 function smooth(a0, a1, x) { if (x <= a0) return 0; if (x >= a1) return 1; const t = (x - a0) / (a1 - a0); return t * t * (3 - 2 * t); }
 function clPlant(alpha) {
   const aS = CLmax / CLa;
   const sig = smooth(aS - blend, aS + blend, Math.abs(alpha));
-  const lin = CLa * alpha, plateL = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const lin = CLa * alpha, plateL = PCN * Math.sin(alpha) * Math.cos(alpha);
   const old = (1 - sig) * lin + sig * plateL;
   if (sig <= 0) return { CL: lin, CD: CD0 + k * lin * lin, sig, clSt: lin, fall: 0, past: 0 };
   let clS = 0;
   for (let i = 0; i <= 16; i += 1) {
     const ai = aS - blend + blend * 0.125 * i;
     const si = smooth(aS - blend, aS + blend, ai);
-    clS = Math.max(clS, (1 - si) * CLa * ai + si * 2 * Math.sin(ai) * Math.cos(ai));
+    clS = Math.max(clS, (1 - si) * CLa * ai + si * PCN * Math.sin(ai) * Math.cos(ai));
   }
   const a0 = aS + stallTop, a1 = a0 + 2 * blend;
   const t = smooth(a0, a1, Math.abs(alpha));
   const st = Math.min(a1, 0.5);
-  const a2 = (stallK * clS - 2 * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
+  const a2 = (stallK * clS - PCN * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
   const vit = Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05 ? a2 * Math.cos(alpha) ** 2 / Math.sin(alpha) : 0;
   const clSt = (1 - t) * clS + t * (plateL + vit);
   const past = smooth(aS, aS + blend, Math.abs(alpha));
   const CL = old + past * (clSt - old);
-  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + 2 * Math.sin(alpha) ** 2);
+  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + PCN * Math.sin(alpha) ** 2);
   return { CL, CD, sig, clSt, fall: t, past };
 }
 /* The harrier, the Extra's derivation's. */
@@ -494,7 +500,7 @@ function harrier(alphaDeg) {
   const qb = 0.5 * rho * V * V;
   const w = washOf(slip, thrust, u);
   const sa = Math.sin(a);
-  const cnSt = 2 * sa + (clSt - 2 * sa * Math.cos(a)) * Math.cos(a);
+  const cnSt = PCN * sa + (clSt - PCN * sa * Math.cos(a)) * Math.cos(a);
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * CLa * sa);
   const alphaT = sa - deda * CL / CLa - slip.slip_a0 * (1 - deda);
   const xa = V * Math.sin(a - slip.slip_a0);
@@ -647,6 +653,60 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (process.argv.includes('--table')) {
     for (const [kk, v] of Object.entries(FW)) console.log(`  .${kk} = ${v},`);
     for (const [kk, v] of Object.entries(PT)) console.log(`  .${kk} = ${v},`);
+  }
+  /*
+   * --write-bands: a plant change that moves a derivation (the aero lane's,
+   * the propulsion lane's) is re-derived mechanically: each band's centre
+   * is written from this derivation and its edges at the width the
+   * thresholds file states for it, the Extra's for the same gate (never
+   * wider). The source texts name the old centre where they quote one, and
+   * that number is replaced with the new.
+   */
+  if (process.argv.includes('--write-bands')) {
+    const file = join(root, 'tests/cap580-thresholds.json');
+    const th = JSON.parse(readFileSync(file, 'utf8'));
+    const D = DERIVED;
+    const fix = (x, n) => Number(x.toFixed(n));
+    /* Edges are rounded inward, so rounding never widens a band. */
+    const up = (x, n) => Number((Math.ceil(x * 10 ** n - 1e-9) / 10 ** n).toFixed(n));
+    const dn = (x, n) => Number((Math.floor(x * 10 ** n + 1e-9) / 10 ** n).toFixed(n));
+    /* [gate, centre key, value, digits, min key, max key, low factor or offset, high, offsets?] */
+    const BANDS = [
+      ['c1_level_75', 'derived', D.level75, 2, 'min', 'max', 0.88, 1.12],
+      ['c2_stall', 'derived', D.Vs, 2, 'min', 'max', 0.94, 1.14],
+      ['c3_glide', 'derived', D.ld15, 2, 'min', 'max', 0.88, 1.12],
+      ['c4_top', 'derived', D.top, 2, 'min', 'max', 0.90, 1.10],
+      ['c5_roll', 'derived', D.pb2v, 4, 'min', 'max', 0.75, 1.25, 2],
+      ['c6_hover', 'derived', D.hoverDuty, 4, 'min', 'max', 0.95, 1.05, 3],
+      ['c7_vertical', 'derived', D.vClimb, 2, 'min', 'max', 0.90, 1.10],
+      ['c8_torque_roll', 'derived', D.torqueRoll, 0, 'min', 'max', 0.75, 1.25],
+      ['c9_aileron_hover', 'derived', D.aileronRollNet, 0, 'min', 'max', 0.60, 1.40],
+      ['c10_zero_speed', 'pitchDerived', D.pitchAccHover, 2, 'pitchMin', 'pitchMax', 0.75, 1.25, 1],
+      ['c10_zero_speed', 'yawDerived', D.yawAccHover, 2, 'yawMin', 'yawMax', 0.75, 1.25, 1],
+      ['c11_harrier', 'vDerived', D.harrier40.V, 3, 'vMin', 'vMax', 0.80, 1.20, 2],
+      ['c11_harrier', 'dutyDerived', D.harrier40.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
+      ['c12_knife_edge', 'betaDerived', D.knife20.betaDeg, 2, 'betaMin', 'betaMax', 0.75, 1.25, 1],
+      ['c12_knife_edge', 'dutyDerived', D.knife20.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
+      ['c14_takeoff', 'derived', D.takeoff.x, 3, 'distMin', 'distMax', 0.60, 1.60, 2],
+    ];
+    for (const [gate, key, value, n, lo, hi, fl, fh, nb] of BANDS) {
+      const g = th[gate];
+      const was = g[key];
+      g[key] = fix(value, n);
+      g[lo] = up(value * fl, nb ?? n);
+      g[hi] = dn(value * fh, nb ?? n);
+      if (g.source && was !== g[key]) g.source = g.source.replace(String(was), String(g[key]));
+    }
+    th.c2_stall.alphaStall = fix(D.CLmax / D.aw, 5);
+    th.c6_hover.bench = fix(D.hoverBench, 4);
+    /* The rest pose: half a degree, 5 mm and 3.5 points either way. */
+    const r13 = th.c13_rest;
+    r13.pitchDerived = fix(D.restPitchDeg, 2); r13.pitchMin = up(D.restPitchDeg - 0.5, 2); r13.pitchMax = dn(D.restPitchDeg + 0.5, 2);
+    r13.zDerived = fix(D.cgHeight, 4); r13.zMin = up(D.cgHeight - 0.005, 3); r13.zMax = dn(D.cgHeight + 0.005, 3);
+    r13.tailDerived = fix(D.tailShare, 4); r13.tailMin = up(D.tailShare - 0.035, 3); r13.tailMax = dn(D.tailShare + 0.035, 3);
+    const text = `{\n${Object.entries(th).map(([kk, v]) => `  ${JSON.stringify(kk)}: ${JSON.stringify(v).replace(/,"/g, ', "').replace(/":/g, '": ')}`).join(',\n')}\n}\n`;
+    writeFileSync(file, text);
+    console.log('wrote tests/cap580-thresholds.json');
   }
   if (process.argv.includes('--check')) {
     const wing = readFileSync(join(root, 'src/native/plant_wing.c'), 'utf8');

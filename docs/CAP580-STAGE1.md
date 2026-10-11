@@ -181,7 +181,7 @@ Bands are never widened to pass.
 | Gate | What | Derived | Band | Plant |
 | --- | --- | --- | --- | --- |
 | C1 | level at 75 percent | 24.68 m/s | 21.72 to 27.64 | 24.47 |
-| C2 | stall, power off | 10.62 m/s (CL max 0.928 at 2.5e5) | 9.98 to 12.11 | 11.00 |
+| C2 | stall, power off | 10.62 m/s (CL max 0.928 at 2.5e5) | 9.99 to 12.10 | 11.10 |
 | C3 | glide ratio at 15 m/s | 7.43 | 6.54 to 8.32 | 7.41 |
 | C4 | top speed | 33.09 m/s | 29.78 to 36.40 | 32.13 |
 | C5 | roll, full aileron, pb/2V | 0.440 (533 deg/s at 18 m/s) | 0.330 to 0.550 | 0.439 (598 at 20.2) |
@@ -192,10 +192,10 @@ Bands are never widened to pass.
 | C9 | full right aileron, hanging | 169 deg/s right | 101 to 237 | 185 right |
 | C10 | full elevator at zero airspeed | 27.47 rad/s² | 20.6 to 34.3 | 26.7; prop stopped 0.00 |
 | C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.00 |
-| C11 | harrier at 40 deg of alpha | 7.89 m/s, 0.585 throttle | 6.31 to 9.46, 0.497 to 0.673 | 7.91, 0.566, elevator 0.72 |
+| C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.597 throttle (the finite wing's broadside force, below) | 7.84 to 11.75, 0.508 to 0.686 | 9.45, 0.537, elevator 0.85 |
 | C12 | knife edge at 20 m/s | 32.3 deg, 0.757 throttle, rudder 84 percent | 24.2 to 40.3, 0.643 to 0.871 | 30.4, 0.761, rudder 0.88 |
 | C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.5 |
-| C14 | take off roll | 4.2 m | 2.53 to 6.76 | 5.97 |
+| C14 | take off roll | 4.2 m | 2.54 to 6.75 | 6.09 |
 | C15 | the Extra, Night Timber, Hercules unmoved | batch's hashes | identical | identical |
 | C16 | Node and Chrome agree | | identical | identical |
 | C17 | the figure judge names its 3D figures | hover, torque roll, harrier, knife edge pass | all four | all four |
@@ -231,6 +231,16 @@ Notes on the derivations:
   it too.
 - **Everything else** is the Extra's derivation's arithmetic on this
   aircraft's numbers.
+
+**Re-derived on the aero lane's plant (w34-3d-wingslope, 2026-10-11).**
+Past the stall the wing's broadside force is now the finite wing's,
+1.11 + 0.018 A (Viterna and Janetzke, NASA TM-82944), 1.204 here, in
+place of the plate's 2.0, and the tail lifts on its own angle. The
+derivation takes the same CDmax as extra-derive.js does; the harrier at
+40 deg moves to 9.80 m/s at 0.597 throttle (the plant 9.45). `node
+scripts/cap580-derive.js --write-bands` rewrites every band's centre from
+the derivation and its edges at the width the thresholds file states for
+it, rounded inward, so the next plant change is re-derived the same way.
 
 ## Waits on the plant (for the flight model lane), and the tricks lane
 
