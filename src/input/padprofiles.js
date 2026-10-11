@@ -47,6 +47,21 @@ export function parsePadId(id) {
   return { name: text, vendor: null, product: null };
 }
 
+/*
+ * The name a calibration is saved under: one device model, whichever
+ * index it plugs in at. The USB ids alone are not enough, because every
+ * EdgeTX radio reports 1209:4f54 and every ExpressLRS Bluetooth joystick
+ * the ESP32-BLE-Gamepad defaults e502:bbab, so a Pocket and a TX16S would
+ * share one map; the name tells those apart. Two units of the same model
+ * do share one, which is what a pilot with two identical radios wants
+ * unless they set them up differently.
+ */
+export function deviceKey(id) {
+  const { name, vendor, product } = parsePadId(id);
+  const tidy = name.replace(/\s+/g, ' ').trim();
+  return vendor ? `${vendor}:${product}:${tidy}` : tidy;
+}
+
 export const PAD_PROFILES = [
   { key: 'standard', vouched: true, match: { standard: true } },
   /* ExpressLRS 3.3 to 3.6 as a Bluetooth joystick: the name is set in

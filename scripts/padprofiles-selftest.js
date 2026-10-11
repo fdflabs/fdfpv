@@ -25,7 +25,9 @@
  */
 
 import { AETR_MAP, builtInKind, builtInMap, standardPadMap } from '../src/input/padmap.js';
-import { PAD_PROFILES, parsePadId, profileFor } from '../src/input/padprofiles.js';
+import {
+  PAD_PROFILES, deviceKey, parsePadId, profileFor,
+} from '../src/input/padprofiles.js';
 
 let failed = 0;
 let passed = 0;
@@ -134,6 +136,17 @@ parsed(XBOX_CHROMIUM, { name: 'Xbox 360 Controller', vendor: '045e', product: '0
 parsed(EDGETX_FIREFOX, { name: 'Radiomaster Pocket Joystick', vendor: '1209', product: '4f54' });
 parsed('Some (odd) name', { name: 'Some (odd) name', vendor: null, product: null });
 check('a non string id parses as empty', show(parsePadId(undefined)) === show({ name: '', vendor: null, product: null }));
+
+console.log('\nthe key a calibration is saved under');
+const keyIs = (id, want) => check(`${show(id)} is ${show(want)}`, deviceKey(id) === want, show(deviceKey(id)));
+keyIs(EDGETX_CHROMIUM, '1209:4f54:Radiomaster Pocket Joystick');
+keyIs(EDGETX_FIREFOX, '1209:4f54:Radiomaster Pocket Joystick');
+keyIs(XBOX_CHROMIUM, '045e:028e:Xbox 360 Controller');
+keyIs('  Some   radio ', 'Some radio');
+keyIs(null, '');
+check('the same radio in both browsers\' forms is one key', deviceKey(EDGETX_CHROMIUM) === deviceKey(EDGETX_FIREFOX));
+check('two EdgeTX radios (same USB ids) are two keys',
+  deviceKey(EDGETX_CHROMIUM) !== deviceKey('TX16S Joystick (Vendor: 1209 Product: 4f54)'));
 
 console.log('\nnegative control: a mutated row must be caught');
 const edgetx = PAD_PROFILES.find((row) => row.key === 'edgetx-usb');
