@@ -25,6 +25,7 @@
  */
 
 import { wingLift } from './lib/liftcurve.js';
+import { planeTable, propMoments } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -268,11 +269,11 @@ function lateral(V) {
 
 /* Integrate the linear lateral model from a bank with the rudder centred:
  * the bank at a time, for the hands off levelling. */
-function bankAfter(lat, phi0, tEnd) {
+function bankAfter(lat, phi0, tEnd, force = [0, 0, 0, 0]) {
   let x = [0, 0, 0, phi0];
   const dt = 0.001;
   for (let t = 0; t < tEnd; t += dt) {
-    const dx = lat.A.map((row) => row.reduce((s, v, j) => s + v * x[j], 0));
+    const dx = lat.A.map((row, i) => row.reduce((s, v, j) => s + v * x[j], 0) + force[i]);
     x = x.map((v, i) => v + dx[i] * dt);
   }
   return x[3];
@@ -473,6 +474,13 @@ const Vtrim = 8.0, CLtrim = 2 * W / (rho * Vtrim * Vtrim * S), Cm0 = -Cma * CLtr
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const Vcruise = level(0.75);
 const lat = lateral(Vcruise);
+/* Hands off at cruise the prop does not let go: its torque against the
+ * airframe, the root's share of the swirl back and the swirl over the fin
+ * (plant_wing.c, docs/FLIGHTMODEL.md "The prop's torque, from the
+ * drive"), from the table as the plant has it, a constant input to the
+ * lateral model: side force over m V, roll over Ixx, yaw over Izz. */
+const propAt = propMoments(planeTable('FW_BOMBSHELL1118'), dutyOf(0.75), Vcruise);
+const propForce = [propAt.Y / (m * Vcruise), propAt.L / Ixx, propAt.N / Izz, 0];
 const latS = lateral(1.2 * Vs);
 const rows = [
   ['c = S/b, drawn chord, AR, m, W/S N/m^2', `${f(c, 4)} ${f(chordDrawn, 4)} ${f(AR, 2)} ${f(m, 4)} ${f(W / S, 2)}`],
@@ -500,6 +508,7 @@ const rows = [
   ['   spiral root, margin ClbCnr-CnbClr', `${f(lat.spiral.root, 4)} ${f(lat.spiralMargin, 5)} t_half ${f(lat.spiral.tHalf, 1)} t2 ${f(lat.spiral.t2, 1)}`],
   ['   roll tau s, Dutch roll wn zeta period', `${f(lat.roll.tau)} ${lat.dutch ? `${f(lat.dutch.wn, 2)} ${f(lat.dutch.zeta)} ${f(lat.dutch.period, 2)}` : 'none'}`],
   ['   30 deg bank, hands off: bank after 2, 4, 6 s', `${f(bankAfter(lat, 30 / DEG, 2) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6) * DEG, 1)}`],
+  ['   the same with the prop\'s torque and swirl (Q, L, N at cruise)', `${f(bankAfter(lat, 30 / DEG, 2, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6, propForce) * DEG, 1)} (${f(propAt.Q, 4)} ${f(propAt.L, 4)} ${f(propAt.N, 4)})`],
   ['lateral at 1.2 Vs: spiral root, t_half', `${f(latS.spiral.root, 4)} ${f(latS.spiral.tHalf, 1)}`],
   ['full right rudder from cruise, after 1 s', JSON.stringify(rudderStep(lat, -throwR, 1), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['   after 2 s', JSON.stringify(rudderStep(lat, -throwR, 2), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
