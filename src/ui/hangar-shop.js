@@ -32,6 +32,8 @@
 
 import { ITEMS, itemById } from '../game/economy.js';
 import { newDecal } from '../../configs/paint.js';
+import { liveryKey } from '../../configs/liveries.js';
+import { withSlot } from '../../configs/kits.js';
 import { buyItem, fetchWallet, readWallet, signedIn } from '../share/account.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
@@ -52,7 +54,42 @@ function tokens(n) {
 }
 
 function itemName(it) {
+  if (it.kind === 'kit') {
+    return str('kit.item', { slot: str(`kit.slot.${it.slot}`), option: str(`kit.option.${it.option}`) });
+  }
   return str(`hangar.${it.kind}_${it.paint}`);
+}
+
+/* The shop's items for the aircraft on show: every paint item, and the
+ * kit items of this aircraft's family only (docs/KITS.md section 7). */
+function itemsFor(h) {
+  const family = liveryKey(h.id);
+  return ITEMS.filter((it) => it.kind !== 'kit' || it.family === family);
+}
+
+/* The entry an item is tried on as, or null when it is not tried on. */
+function triedWith(h, it) {
+  if (it.kind === 'kit') {
+    return it.family === liveryKey(h.id) ? withSlot(h.entry, it.family, it.slot, it.option) : null;
+  }
+  return tryable(h, it) ? withFinishAll(h, h.entry, it.paint) : null;
+}
+
+/* For the Kit tab: where a kit item stands for this account (owned, earn,
+ * buy), or null while the shop has not opened. */
+export function kitStanding(id) {
+  const it = itemById(id);
+  return st && it ? standing(it) : null;
+}
+
+/* For the Kit tab: a locked option pressed opens it here, chosen. */
+export function showInShop(h, id) {
+  const it = itemById(id);
+  if (!st || !it) {
+    return;
+  }
+  h.setTab('shop');
+  select(h, it);
 }
 
 /* Where an item stands for this account: owned, earn (not yet), or buy. */
@@ -111,7 +148,8 @@ function repaint(h) {
 function select(h, it) {
   st.sel = it.id;
   st.msg = '';
-  h.pin = tryable(h, it) ? { entry: withFinishAll(h, h.entry, it.paint) } : null;
+  const tried = triedWith(h, it);
+  h.pin = tried ? { entry: tried } : null;
   h.changed(`shop-${it.id}`, 'move');
 }
 
@@ -147,7 +185,7 @@ async function buy(h, it) {
 
 function wear(h, it) {
   h.pin = null;
-  h.entry = withFinishAll(h, h.entry, it.paint);
+  h.entry = triedWith(h, it);
   st.msg = str('shop.worn', { item: itemName(it) });
   h.changed('shop-wear');
 }
@@ -160,14 +198,17 @@ function itemCard(h, it) {
   b.setAttribute('aria-pressed', String(on));
   if (it.kind === 'decal') {
     b.append(thumb(newDecal(it.paint, [0, 0, 0], [0, 1, 0]), 64, 28));
+  } else if (it.kind === 'kit') {
+    b.append(el('span', 'shop-swatch shop-kit'));
   } else {
     b.append(el('span', `shop-swatch paint-finish-${it.paint}`));
   }
   b.append(el('span', 'shop-item-name', itemName(it)));
   const tag = { owned: str('shop.owned'), earn: str('shop.earned_only'), buy: it.price ? tokens(it.price) : '' }[now];
   b.append(el('span', 'shop-item-tag', tag));
-  if (tryable(h, it)) {
-    h.trial(b, { entry: withFinishAll(h, h.entry, it.paint) }, `shop-${it.id}`);
+  const tried = triedWith(h, it);
+  if (tried) {
+    h.trial(b, { entry: tried }, `shop-${it.id}`);
   }
   b.addEventListener('click', () => select(h, it));
   return b;
@@ -183,9 +224,9 @@ function detail(h, it) {
   }
   const now = standing(it);
   if (now === 'earn') {
-    box.append(el('p', 'hangar-note', str(`shop.earn_${it.earn}`)));
+    box.append(el('p', 'hangar-note', str(`shop.earn_${it.earn.startsWith('hour:') ? 'hour' : it.earn}`)));
   } else if (now === 'owned') {
-    if (tryable(h, it)) {
+    if (triedWith(h, it)) {
       const w = button('paint-chip paint-wide shop-wear', str('shop.wear'));
       w.dataset.key = 'shop-wear';
       w.addEventListener('click', () => wear(h, it));
@@ -220,7 +261,7 @@ function paintTab(h) {
   }[st.status];
   box.append(bal, el('p', 'hangar-source', str('shop.how')));
   const list = el('div', 'shop-items');
-  for (const it of ITEMS) {
+  for (const it of itemsFor(h)) {
     list.append(itemCard(h, it));
   }
   box.append(list);

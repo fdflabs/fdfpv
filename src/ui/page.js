@@ -198,7 +198,7 @@ export function buildFrame(shell) {
 
 /*
  * THE TITLE. A copy column: the brand and the gate's rooms panel on one
- * row, the gate's cards, and a foot with the key hint and the menu. The
+ * row, Flight Club's pilot stats, the gate's cards, and a foot with the key hint and the menu. The
  * cards and the panel are hidden outside the gate, which leaves the column
  * its two children spaced apart. The craft canvas is made here and shown
  * in the quad's showcase.
@@ -229,7 +229,10 @@ function titleScreen(shell) {
   foot.append(shell.titleHint, block.stage);
 
   const column = el('div', 'title-copy');
-  column.append(top, keep(shell, 'gateCards', 'div', 'gate-cards'), foot);
+  /* Flight Club's pilot stats (src/ui/pilotstats.js) sit in the room
+   * between the brand and the cards. Not a menu item: the arrows, a pad
+   * and Tab walk past it to the cards exactly as before. */
+  column.append(top, keep(shell, 'gateStats', 'div', 'gate-stats'), keep(shell, 'gateCards', 'div', 'gate-cards'), foot);
   shell.craftCanvas = el('canvas', 'craft-view');
   shell.craftCanvas.setAttribute('aria-hidden', 'true');
   const screen = el('div', 'screen screen-title');
@@ -402,11 +405,28 @@ const PAGES = {
     seat: quadShowcase,
     hint: ESC_STORED,
   },
+  /* A plane's rates: the manual's throws and the expo, rows only. */
+  planerates: {
+    classes: 'screen-page screen-pilot',
+    title: 'ui.rates',
+    lede: ['rates-lede', 'ui.plane_rates_lede'],
+    menu: 'planerates',
+    scroll: true,
+    hint: ESC_STORED,
+  },
   pilot: {
     classes: 'screen-page screen-pilot',
     title: 'ui.settings',
     lede: ['rates-lede', 'ui.you_and_your_sticks_rates_are'],
     menu: 'pilot',
+    scroll: true,
+    hint: ESC_STORED,
+  },
+  controls: {
+    classes: 'screen-page screen-pilot screen-controls',
+    title: 'keybinds.title',
+    lede: ['rates-lede', 'keybinds.lede'],
+    menu: 'controls',
     scroll: true,
     hint: ESC_STORED,
   },
@@ -496,6 +516,12 @@ const PAGES = {
     title: 'ui.paused',
     menu: 'paused',
     hint: [['Esc'], 'ui.resumes_resume_is_also_the_first'],
+  },
+  quick: {
+    classes: 'screen-modal',
+    title: 'pause.flight',
+    menu: 'quick',
+    hint: [['Esc'], 'pause.quick_hint'],
   },
 };
 
@@ -688,7 +714,8 @@ function padpickScreen(shell) {
 }
 
 /* RESULTS: the kicker, the head, the best lap as the hero, the table and
- * a note over the menu, in one copy column. */
+ * a note over the menu, in one copy column; the debrief's facts
+ * (docs/DEBRIEF.md) beside it. */
 function resultsScreen(shell) {
   const hero = keep(shell, 'resultsHero', 'div', 'results-hero');
   hero.append(
@@ -711,7 +738,9 @@ function resultsScreen(shell) {
   const column = el('div', 'results-copy');
   column.append(top, foot);
   const screen = el('div', 'screen screen-results');
-  screen.append(column);
+  /* The facts sit beside the copy column, not in it: the column has no
+   * height to spare over the laps and the menu. */
+  screen.append(column, keep(shell, 'resultsFacts', 'div', 'results-facts'));
   return ['results', screen];
 }
 
@@ -753,11 +782,12 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'pids'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,
   menuPage('paused'),
+  menuPage('quick'),
   resultsScreen,
   walkScreen,
 ];

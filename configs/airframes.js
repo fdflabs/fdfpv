@@ -876,6 +876,55 @@ export const AIRFRAMES = [
       bodyWidth: 1.8034,
       bodyHeight: 0.5692,
     },
+  },  {
+    /*
+     * E-flite's Extra 300 3D 1.3m, EFL115500, docs/EXTRA-STAGE1.md: a
+     * moulded foam aerobatic monoplane, 1.51 kg on 4S, simId 29 on the
+     * fixed wing plant (14 until it was removed on 2026-09-29; back for the
+     * flight model lane under a new id, docs/FLIGHTMODEL.md). Its thrust is two and a half times its weight, so
+     * it hangs on its prop: its oversized ailerons, elevator and rudder
+     * work in the slipstream with no airspeed at all, and the airframe
+     * turns against the prop's torque when they are let go. A taildragger
+     * on spatted wheels; `gear` is the plant's settled pose, which the
+     * drawn wheels in src/render/extracraft.js match: the CG 0.2221 m over
+     * the ground and 6.7 degrees nose up, tail down.
+     */
+    id: 'extra3d1308',
+    simId: 29,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/extra-thresholds.json e2_stall. */
+    stall: 8.31,
+    /* Level speed at full throttle, m/s: tests/extra-thresholds.json e4_top, derived. */
+    topSpeed: 24.34,
+    gear: { restHeight: 0.2221, restPitch: 6.7 * Math.PI / 180 },
+    name: 'Extra 300 3D',
+    short: 'Extra',
+    blurb: 'A 1308 mm E-flite Extra 300 3D on 4S, with two and a half times its weight in thrust and control surfaces as big as it can carry. Hang it on the prop, let go of the ailerons and it torque rolls; harrier it in slow at 40 degrees, knife edge it past on the rudder.',
+    facts: ['4S', '1308 mm', '3D'],
+    sizeMm: 1308,
+    grams: 1510,
+    trackClass: 'wing',
+    cells: 4,
+    ...packStates(),
+    defaultTune: 'extra-as3x',
+    gravityBase: 1.0,
+    rates: stockRates(),
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/extracraft.js EXTRA_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge, 0.926 m aft, further
+     * than the tips; the lowest drawn point the wheels' and the highest the
+     * rudder's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1651,
+      hullR: 0.926,
+      vHalfDown: 0.2416,
+      vHalfUp: 0.208,
+      bodyLength: 1.263,
+      bodyWidth: 1.308,
+      bodyHeight: 0.4496,
+    },
   },
   {
     /*

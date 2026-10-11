@@ -159,6 +159,17 @@ const lines = new Set(JSON.parse(readFileSync(new URL('../assets/audio/war/lines
 const failures = [];
 const fail = (msg) => failures.push(msg);
 
+/* A cast member coming down onto the ground (its last key's height null)
+ * is on the ground at and after that key, not held at the key before. */
+{
+  const shot = { start: 0, ms: 4000, lines: [] };
+  const def = { keys: [{ t: 0, p: [0, 10, 0] }, { t: 1, p: [0, 2, 0] }, { t: 2, p: [0, null, 0] }] };
+  const at = (ms) => castAt(def, shot, ms).p[1];
+  if (at(500) !== 6 || at(2000) !== null || at(3500) !== null) {
+    fail(`castAt: down onto the ground reads ${at(500)}, ${at(2000)}, ${at(3500)}, not 6, null, null`);
+  }
+}
+
 /* One film's timing, lines, names, anchors, aircraft and passes, by its
  * campaign's rules: { cameras, grades, airframes, whose, anchors(def) }. */
 function lintFilm(film, rules) {
@@ -190,14 +201,16 @@ function lintFilm(film, rules) {
     /* Each line and its pads inside its shot, or its span. */
     let need = 0;
     for (const [j, l] of (def.lines ?? []).entries()) {
-      if (!lines.has(l.line)) {
-        fail(`${film.id} ${s.id}: no line ${l.line} in lines.json`);
-      }
-      for (const lang of LANGS) {
-        try {
-          lineMs(l.line, lang);
-        } catch (e) {
-          fail(`${film.id} ${s.id}: ${e.message}`);
+      for (const id of l.or ? [l.line, l.or.line] : [l.line]) {
+        if (!lines.has(id)) {
+          fail(`${film.id} ${s.id}: no line ${id} in lines.json`);
+        }
+        for (const lang of LANGS) {
+          try {
+            lineMs(id, lang);
+          } catch (e) {
+            fail(`${film.id} ${s.id}: ${e.message}`);
+          }
         }
       }
       /* Where the timeline put it, so an overlapping line is measured

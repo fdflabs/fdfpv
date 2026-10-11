@@ -73,6 +73,7 @@
 
 import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { GOALS, GOAL_MAX, GOAL_MIN } from '../../src/share/roomtag.js';
+import { RUN_SECONDS, RUN_SECONDS_DEFAULT } from '../../src/share/roomjam.js';
 import { MODES, ROUND_MINUTES, modeById, modeOfWire } from '../../src/share/modes.js';
 
 export const LOBBY_COUNTDOWN_MS = 5000;
@@ -102,6 +103,7 @@ function warMission(core) {
 }
 
 const combatMinutes = (core) => (ROUND_MINUTES.includes(core.meta.minutes) ? core.meta.minutes : ROUND_MINUTES[0]);
+const jamSeconds = (core) => (RUN_SECONDS.includes(core.meta.seconds) ? core.meta.seconds : RUN_SECONDS_DEFAULT);
 const tagGoal = (core) => (Number.isInteger(core.meta.goal) && core.meta.goal >= GOAL_MIN && core.meta.goal <= GOAL_MAX ? core.meta.goal : GOALS[0].goal);
 
 /* The key of game `id`'s one setting, from the mode registry. */
@@ -147,6 +149,13 @@ const GAMES = {
     can: () => true,
     on: (core) => core.tag.on(),
     start: (core, conn, s, now) => core.tag.message(core, conn, s, { type: 'tag', op: 'start', goal: tagGoal(core) }, now),
+  },
+  jam: {
+    set: { key: settingKey('jam'), valid: (core, v) => RUN_SECONDS.includes(v) },
+    show: (core) => ({ seconds: jamSeconds(core) }),
+    can: () => true,
+    on: (core) => core.jam.on(),
+    start: (core, conn, s, now) => core.jam.message(core, conn, s, { type: 'jam', op: 'start', seconds: jamSeconds(core) }, now),
   },
   /* The racers are the pilots on the track's grid when it goes (race.js
    * start, its own ready): a pilot in the lobby has the room's track
@@ -238,7 +247,8 @@ export class RoomGameLobby {
    * may start or stop the five seconds; a join only keeps them as they
    * are. */
   settle(core, now, arm) {
-    const here = new Set([...core.seats.values()].map((s) => s.seat));
+    /* The people: an AI pilot is never asked to be ready. */
+    const here = new Set(core.people().map((s) => s.seat));
     for (const seat of this.ready) {
       if (!here.has(seat)) {
         this.ready.delete(seat);
@@ -322,7 +332,7 @@ export class RoomGameLobby {
       return [];
     }
     this.ready.delete(seat);
-    if (!core.seats.size) {
+    if (!core.people().length) {
       this.clear();
       this.live = false;
       return [];

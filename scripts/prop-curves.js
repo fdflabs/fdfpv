@@ -37,6 +37,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { pathToFileURL } from 'node:url';
+
 const APC = 'https://www.apcprop.com/files/PER3_';
 /* apcprop.com refuses a request without a browser's user agent. */
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
@@ -120,7 +122,10 @@ export async function curves() {
   return out;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/* pathToFileURL, not a template: argv[1] holds a raw path, and a space
+ * (the owner's "FDFPV TEMP" folder) is %20 in import.meta.url, so the
+ * template never matched and the script exited 0 doing nothing. */
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   for (const c of await curves()) {
     const list = (v) => v.map((x) => x.toFixed(4)).join(', ');
     console.log(`[${c.airframe ?? c.option}] ${c.prop}: PER3_${c.file}.dat at ${c.rpm} rpm, pitch speed ${c.pitchSpeed.toFixed(1)} m/s (${c.why})`);

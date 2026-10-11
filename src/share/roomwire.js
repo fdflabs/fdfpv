@@ -68,8 +68,14 @@ export const PROTO = 2;
  * rpm in them, which clamped every quad above 5,080 rpm and which a level
  * 2 receiver would hear nine and a half times too fast (docs/AUDIO.md
  * section 13).
+ *
+ * 3: a peer the room says is bot: true is an AI pilot, and is named as one
+ * (src/share/rooms.js shownName). The room fills seats with AI pilots only
+ * while every person in it is at 3 or above (edge/rooms/roombots.js), and
+ * a tab below closes with CLOSE.update by the rule above, so no screen ever
+ * shows an AI pilot as a person.
  */
-export const ROOM_LEVEL = 2;
+export const ROOM_LEVEL = 3;
 
 /*
  * A hello's `war`: this build asks the war's consent (docs/WARFARE-PLAN.md
@@ -192,7 +198,7 @@ export const ROOM_STATUSES = ['paused', 'menu', 'hidden', 'loading', 'crashcam']
 
 /* The games a private room's host starts: toilet paper combat, Catch
  * the Ace (roomtag) and the war mode (docs/WARFARE-PLAN.md). */
-export const ROOM_GAMES = ['combat', 'tag', 'war'];
+export const ROOM_GAMES = ['combat', 'tag', 'jam', 'war'];
 
 /*
  * The shape a room accepts for a profile: { airframe, map, figure,
