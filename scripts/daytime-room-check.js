@@ -85,7 +85,7 @@ const a = await openPage({ root, url, width: 960, height: 540, seed: seedFor('ni
 const b = await openPage({ root, url, width: 960, height: 540, seed: seedFor('own') });
 /* A hard limit on the whole check, so a world that never builds fails it
  * rather than holding its slot: four Itaipu builds and a room, measured
- * at about 4 min on a quiet machine, given 12. The browsers and the
+ * at 406 s with every check slot busy (2026-10-11), given 12 min. The browsers and the
  * server are closed first, so nothing outlives it. */
 const LIMIT_MS = 12 * 60000;
 setTimeout(async () => {

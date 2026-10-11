@@ -89,8 +89,8 @@ const boot = async (url, map, timeOfDay) => {
 };
 
 /* A hard limit on the whole check, so a world that never builds fails it
- * rather than holding its slot: three boots, about 3 min on a quiet
- * machine, given 12. The open page is closed first. */
+ * rather than holding its slot: three boots, measured at 135 s with every
+ * check slot busy (2026-10-11), given 12 min. The open page is closed first. */
 const LIMIT_MS = 12 * 60000;
 let open = null;
 setTimeout(async () => {
