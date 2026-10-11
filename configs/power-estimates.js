@@ -373,22 +373,22 @@ export const ESTIMATES = {
   extra3d1308: {
     stock: {
       '4s2200': {
-        topSpeed: 23.69,
-        minutes: 14.9
+        topSpeed: 23.67,
+        minutes: 14.7
       },
       '4s3200': {
-        topSpeed: 23.91,
-        minutes: 20.7
+        topSpeed: 23.88,
+        minutes: 20.3
       }
     },
     '3s': {
       '3s2200': {
-        topSpeed: 17.91,
-        minutes: 12.4
+        topSpeed: 17.88,
+        minutes: 12.2
       },
       '3s3200': {
-        topSpeed: 17.98,
-        minutes: 16.9
+        topSpeed: 17.95,
+        minutes: 16.6
       }
     }
   },

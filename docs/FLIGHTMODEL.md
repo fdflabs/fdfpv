@@ -1027,9 +1027,9 @@ stick, it rolls or pitches slowly; full stick, rapidly):
   speed for the Extra's 23 g digital servo (EFL11598); Hitec's D89MW, a
   25 g digital servo of its class, is "0.11 sec @ 60 deg" at 6 V.
 - Gains from as3x:derive: the rate loop at its 6 dB margin at the top
-  speed against the frame's delay, k = pi / (4 M tau), 0.0508, 0.2369,
-  0.3611; the heading's corner a quarter of that loop's crossover, kh =
-  k pi / (16 tau), 0.9068, 4.2287, 6.4456; as3x_rate 6.529, -4.14, -4.775
+  speed against the frame's delay, k = pi / (4 M tau), 0.0511, 0.2163,
+  0.3619; the heading's corner a quarter of that loop's crossover, kh =
+  k pi / (16 tau), 0.9121, 3.8609, 6.4599; as3x_rate 6.527, -4.167, -4.774
   rad/s per unit stick (as3x:derive on the spun up plant, each rate the
   stick's run against the centred one, 2026-10-11). A 1 rad/s kick at 35 m/s settles on every axis
   (as3x:derive checks it); at a 5.5 ms frame the same derivation's gains
@@ -1273,3 +1273,22 @@ A BIG FAILURE this does not fix, measured: the Timber does not reach its
 harrier. harrier-flap-probe.js, full up held: pitch 7 to 26 deg at 8 to
 11.6 m/s, bank sd 31 to 39 deg, against the video's nose up 40 to 45 deg
 at a crawl with the elevator flaps mix calming it.
+
+### The tail's own stall and moment (2026-10-11)
+
+With the wing's own slope (cl_alpha_wing, #935) the tail's share of the
+lift slope, CLa - a_w, rode on the wing as (CLa - a_w) sin a cos a: it
+never stalled and carried no moment, while the pitching moment on a
+hi_alpha table already took the tail on its own angle, saturating on its
+plate (vh x_t plate_ratio(x_t), docs/EXTRA-STAGE1.md). A table with both
+now takes the tail's lift on that same angle, x_t = a_t (sin a - de/da
+CL_w / a_w - a_0 (1 - de/da)) plus the elevator's angle, times
+(CLa - a_w) / (a_t (1 - de/da)), which is S_t / S eta (Nelson eq. 2.52):
+one surface's lift and moment, stalling together. At small angles it is
+the linear plant's (CLa - a_w) alpha + cl_de delta_e exactly (the Extra:
+0.314 x 0.8666 / 0.770 = 0.353 against cl_de 0.3537). The downwash at the
+tail now goes with the wing's lift alone; before, the elevator's own lift
+fed the downwash on its own tail, and the Extra's pitch control power
+reads 330 rad/s^2 per rad against 301 (as3x:derive re-derives its gains).
+On a table without hi_alpha the sin cos share stands until that table
+gets the tail's own angle (the fleet's wing slope work).

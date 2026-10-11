@@ -1374,6 +1374,11 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   const double cla = wing_cla(fw);
   const double alpha_stall = clmax / cla;
   const double aa = sim_fabs(add_term(alpha, dcl_f / cla));
+  /* With the tail's own angle (hi_alpha) and the wing's own slope, the
+   * tail's lift, the elevator's with it, is the tail's, taken in
+   * plant_wing_step on the tail's angle; this is the wing's alone. */
+  const int tail_own = fw->hi_alpha && fw->cl_alpha_wing > 0.0;
+  const double de_w = tail_own ? 0.0 : delta_e;
   const double sigma = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, aa);
   const double cl_lin = add_term(fw->cl_alpha * alpha + fw->cl_de * delta_e, dcl_f);
   const double cl_flat = plate_cn(fw) * sin_a * cos_a;
@@ -1400,7 +1405,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   } else if (aa < a1) {
     wing = clmax - cla * (a1 - aa) * (a1 - aa) / (4.0 * fw->stall_blend);
   }
-  const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * delta_e;
+  const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * de_w;
   const double s_hi = smoothstep(a1, a1 + 2.0 * fw->stall_blend, aa);
   const double cl_old = (1.0 - s_hi) * cl_peak + s_hi * cl_flat;
   double cl_st = cl_old, fall = 0.0, past = 0.0;
@@ -1411,7 +1416,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
      * stalling on, so a symmetric section holds the same lift on its back
      * as right way up. */
     const int neg = add_term(alpha, shift) < 0.0;
-    const double cl_s = neg ? clmax - fw->cl_de * delta_e : clmax + fw->cl_de * delta_e;
+    const double cl_s = neg ? clmax - fw->cl_de * de_w : clmax + fw->cl_de * de_w;
     cl_st = stalled_lift(fw, k_stall, fw->stall_top, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
   }
   o->cl_lin = cl_lin;
@@ -1423,7 +1428,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   /* The tail's share of the slope (cl_alpha_wing), which does not stall
    * with the wing: its lift at the angle, sin cos for alpha so it is
    * bounded on its side. Nothing where the table gives no wing slope. */
-  if (fw->cl_alpha_wing > 0.0) {
+  if (fw->cl_alpha_wing > 0.0 && !tail_own) {
     o->cl += (fw->cl_alpha - fw->cl_alpha_wing) * sin_a * cos_a;
   }
 }
@@ -1888,9 +1893,22 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * carries no angle, where the division would be 0 / 0. */
     ae = vh > 0.0 ? -fw->cm_de * delta_e / vh : 0.0;
     ar = vv > 0.0 ? fw->cn_dr * delta_r / vv : 0.0;
-    const double at = sin_a - dd * CL / fw->cl_alpha - fw->slip_a0 * (1.0 - dd);
+    /* The downwash goes with the wing's lift: with the wing's own slope
+     * (cl_alpha_wing) CL here is the wing's alone. */
+    const int tail_own = fw->cl_alpha_wing > 0.0;
+    const double at = sin_a - dd * CL / (tail_own ? fw->cl_alpha_wing : fw->cl_alpha) - fw->slip_a0 * (1.0 - dd);
     const double xt = fw->tail_at * at + ae;
-    cm_stiff = (fw->cm_alpha - fw->slip_cm_a) * sin_a + fw->slip_cm_a * fw->slip_a0 - vh * xt * plate_ratio(xt, fw->tail_cn);
+    const double rt = plate_ratio(xt, fw->tail_cn);
+    cm_stiff = (fw->cm_alpha - fw->slip_cm_a) * sin_a + fw->slip_cm_a * fw->slip_a0 - vh * xt * rt;
+    /* THE TAIL'S OWN LIFT: on its own angle, the elevator's with it,
+     * saturating on its plate as its moment above does, so the lift and
+     * the moment are one surface's. Its share of the slope over its own,
+     * (CLa - a_w) / (a_t (1 - de/da)), is S_t / S eta (Nelson eq. 2.52);
+     * at small angles it is (CLa - a_w) alpha + cl_de delta_e, the linear
+     * plant's. docs/FLIGHTMODEL.md, the tail's own stall. */
+    if (tail_own) {
+      CL = add_term(CL, (fw->cl_alpha - fw->cl_alpha_wing) / (fw->tail_at * (1.0 - dd)) * xt * rt);
+    }
     cm_de_lin = 0.0;
     const double xv = fw->tail_av * beta_s + ar;
     const double rv = plate_ratio(xv, fw->tail_cn);
@@ -4584,9 +4602,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0508, 0.2369, 0.3611 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.9068, 4.2287, 6.4456 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.529, -4.14, -4.775 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0511, 0.2163, 0.3619 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.9121, 3.8609, 6.4599 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.527, -4.167, -4.774 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
