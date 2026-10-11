@@ -234,6 +234,11 @@ const AXES = ['roll', 'pitch', 'yaw'];
  * mean body rate the axis a stick moved, plus minus; surf[a] the surfaces
  * at the end of each of the two holds.
  */
+/* The Cub's cruise duty: the prop at 0.6 of full, as these scenarios were
+ * written for, which the electric motor's own law (plant_wing.c
+ * prop_spool, n^2 + 5.667 n = 6.667 d) turns at a duty of 0.5642. */
+const CUB_CRUISE = 0.5642;
+
 async function cubStickRates(mk, kind) {
   const moved = [];
   const surf = [];
@@ -247,10 +252,10 @@ async function cubStickRates(mk, kind) {
       r.sim.e.sim_wing_set_stab(0);
       r.pose([0, 0, 100], [1, 0, 0, 0]);
       r.launch(15);
-      r.run(1500, [0, 0, 0, 0.6]);
+      r.run(1500, [0, 0, 0, CUB_CRUISE]);
       if (kind) r.sim.e.sim_part_break(r.index(kind, (p) => kind !== 'wing' || p.cg[1] > 0));
-      r.run(300, [0, 0, 0, 0.6]);
-      const stick = [0, 0, 0, 0.6];
+      r.run(300, [0, 0, 0, CUB_CRUISE]);
+      const stick = [0, 0, 0, CUB_CRUISE];
       stick[a] = 0.5 * sign;
       const acc = [0, 0, 0];
       r.run(300, stick, (s) => { acc[0] += s[11] / 300; acc[1] += s[12] / 300; acc[2] += s[13] / 300; });
@@ -1286,7 +1291,8 @@ export const CRASH_SCENARIOS = [
         let firstY = 0;
         let keepAt = null;
         for (let ms = 0; ms < 1200; ms += 4) {
-          r.run(4, [0, 0, 0, 0.75]);
+          /* The prop at 0.75 of full, as written, on the motor's own law. */
+          r.run(4, [0, 0, 0, 0.7219]);
           if (first !== null && keepAt === null && Math.round(r.state()[0] * 1000) >= first + 150) {
             keepAt = speedOf(r.state()) / v0;
           }
