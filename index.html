@@ -1462,13 +1462,19 @@
       .gate-stats-mode { display: inline-flex; gap: 8px; min-width: 0; }
       .gate-stats-mode-name { color: var(--slate); text-transform: uppercase; letter-spacing: 0.1em; }
       .gate-stats-mode-time { color: var(--cream); }
+      .gate-stats-mode-game { color: var(--slate); }
+      .gate-stats-extra { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12.5px; letter-spacing: 0.06em; color: var(--cream); }
+      .gate-stats-tokens { color: var(--pdcs-blue); }
       /* A window under 820 tall (1280 by 720 is the common laptop): six
          cards in a row need the height, so the panel gives back its air
          and the tiles their second lines (the most flown, the medal
          split, the stars), and the cards' tags stay clear of the command
-         bar in Spanish too (pilot:stats). */
+         bar in Spanish too (pilot:stats). The flights and tokens line
+         takes the bracketed title's place, and the room games' results
+         go with the other second lines: in Spanish they wrap the modes
+         onto a second row the cards have no height for. */
       @media (max-height: 820px) {
-        .gate-stat-sub, .gate-stats-time-label { display: none; }
+        .gate-stat-sub, .gate-stats-time-label, .gate-stats-title, .gate-stats-mode-game { display: none; }
         .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
           margin: 6px 0 8px; padding: 8px 14px; row-gap: 6px;
         }
@@ -1495,7 +1501,7 @@
         }
         .gate-stats-head { flex-direction: row; align-items: baseline; gap: 10px; }
         .gate-stats-time { font-size: 20px; }
-        .gate-stats-title, .gate-stats-time-label, .gate-stats-nudge, .gate-stats-modes, .gate-stat-level .gate-stat-sub,
+        .gate-stats-title, .gate-stats-time-label, .gate-stats-extra, .gate-stats-nudge, .gate-stats-modes, .gate-stat-level .gate-stat-sub,
         .gate-stats-tiles .gate-stat:not(.gate-stat-level) { display: none; }
         .gate-stats-tiles { display: flex; }
         .gate-stat-level { flex-direction: row; align-items: baseline; gap: 6px; padding: 0; box-shadow: none; }
