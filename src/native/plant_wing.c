@@ -1018,7 +1018,46 @@ static int prop_free(const FixedWingParams *fw, double de) {
   return fw->current_full > 0.0 && !(de > 0.0);
 }
 
-static double prop_spool(const FixedWingParams *fw, double de, int off, double u_pos) {
+/* An engine's torque at the stick and its speed, N m, from its map
+ * (FixedWingParams.engine_q): rows at the idle stop (stick 0) and at the
+ * stick's 0.2, 0.3, ... 1, columns 1,000 to 8,000 rpm in 500s, bilinear,
+ * straight on past either end of the speed. */
+static int engine_mapped(const FixedWingParams *fw) {
+  return fw->engine_q[9][0] > 0.0;
+}
+
+static double engine_torque(const FixedWingParams *fw, double stick, double rpm) {
+  const double st = stick < 0.0 ? 0.0 : (stick > 1.0 ? 1.0 : stick);
+  const double xr = st <= 0.2 ? st / 0.2 : 1.0 + (st - 0.2) / 0.1;
+  const int r = xr >= 9.0 ? 8 : (int)xr;
+  const double fr = xr - (double)r;
+  const double xc = (rpm - 1000.0) / 500.0;
+  const int c = xc < 0.0 ? 0 : (xc >= 14.0 ? 13 : (int)xc);
+  const double fc = xc - (double)c;
+  const double q0 = fw->engine_q[r][c] + fc * (fw->engine_q[r][c + 1] - fw->engine_q[r][c]);
+  const double q1 = fw->engine_q[r + 1][c] + fc * (fw->engine_q[r + 1][c + 1] - fw->engine_q[r + 1][c]);
+  return q0 + fr * (q1 - q0);
+}
+
+/* A prop's power coefficient at its tip's Mach number over its own at
+ * 0.52: APC's 22x8 static rows (https://www.apcprop.com/files/PER3_22x8.dat)
+ * at 6,000 to 11,000 rpm, Cp 0.0182, 0.0184, 0.0189, 0.0203, 0.0249 and
+ * 0.0313, their tips at Mach 0.52, 0.60, 0.69, 0.77, 0.86 and 0.95 (340
+ * m/s): past 0.7 the blades' compressibility drag climbs. At Mach 0.5,
+ * 0.6, ... 1.0 read straight between those rows, the 1.0 straight on
+ * from the last two (FITTED: APC's file ends at 0.95); held at the ends. */
+#define CP_MACH_N 6
+static const double CP_MACH[CP_MACH_N] = { 1.000, 1.011, 1.049, 1.191, 1.532, 1.941 };
+
+static double cp_of_mach(double m) {
+  const double x = (m - 0.5) / 0.1;
+  if (!(x > 0.0)) return CP_MACH[0];
+  if (x >= (double)(CP_MACH_N - 1)) return CP_MACH[CP_MACH_N - 1];
+  const int i = (int)x;
+  return CP_MACH[i] + (x - (double)i) * (CP_MACH[i + 1] - CP_MACH[i]);
+}
+
+static double prop_spool(const FixedWingParams *fw, double de, int off, double u_pos, double stick) {
   int hot = 0;
   if (g_prop_hot) {
     g_prop_hot = 0;
@@ -1033,7 +1072,14 @@ static double prop_spool(const FixedWingParams *fw, double de, int off, double u
   /* An electric motor's torque is Drela's, straight in the duty and the
    * speed: Q_f (d - 0.85 n) / 0.15, which is the K_M term plus d. A glow
    * engine's is the torque that holds n = d. */
-  const double drive = free ? 0.0 : electric + (fw->current_full > 0.0 ? de : de * de);
+  double drive = free ? 0.0 : electric + (fw->current_full > 0.0 ? de : de * de);
+  /* A mapped engine drives by its map at the speed it turns, against the
+   * air's own torque on the prop (cp_of_ct), so its speed floats with the
+   * airspeed as a real engine's does. */
+  const int mapped = engine_mapped(fw);
+  if (mapped && !free) {
+    drive = engine_torque(fw, stick, n * 0.85 * fw->rpm_no_load) / q_f;
+  }
   /* A driven rotor's load is taken at its static torque, so that it holds
    * n = d at any airspeed and the trims stay the table's (the motor's
    * unloading at speed is left out, docs/FLIGHTMODEL.md). A free rotor has
@@ -1041,8 +1087,17 @@ static double prop_spool(const FixedWingParams *fw, double de, int off, double u
    * cp_of_ct's, falls as the air speeds it and past the windmill turns it,
    * so it settles where Cp is zero, spinning with the airspeed. */
   double load = n * n;
-  if (free && n > 0.0) {
+  if ((free || mapped) && n > 0.0) {
     load = n * n * cp_of_ct(1.0 - u_pos / (fw->pitch_speed * SIM_BOOST * n));
+    /* A mapped engine's rotor turns as fast as its torque and the air let
+     * it, and a big prop's tips reach the speed of sound: its load climbs
+     * with their Mach number as APC's does. */
+    if (mapped) {
+      /* Over the static full point's own, which the measured full
+       * throttle speed already carries. */
+      const double tip_f = WING_PI * 2.0 * fw->slip_r * 0.85 * fw->rpm_no_load / 60.0 / 340.0;
+      load *= cp_of_mach(tip_f * n) / cp_of_mach(tip_f);
+    }
     /* An electric motor's own friction, its no load current's torque, I0
      * Kt (Drela's model), holds a free rotor back; a glow engine's is in
      * its idle. */
@@ -2156,7 +2211,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (fan) {
     n = fan_spool(fw, throttle, duty_e, dead || g_chute);
   } else if (prop_spools(fw)) {
-    n = prop_spool(fw, duty_e, dead || g_chute, u > 0.0 ? u : 0.0);
+    n = prop_spool(fw, duty_e, dead || g_chute, u > 0.0 ? u : 0.0, throttle);
   }
   const double u_pos = u > 0.0 ? u : 0.0;
   /* A fan or a prop at rest makes nothing, where 0 / 0 would be a NaN. */
@@ -5387,6 +5442,21 @@ const FixedWingParams FW_SLICK2680 = {
    * lane's method, docs/FLIGHTMODEL.md "The Slick's DA-120"). */
   .throttle_idle = 0.1985, /* scripts/slick-derive.js */
   .throttle_rpm = { 0.1985, 0.3182, 0.4379, 0.5306, 0.6426, 0.7653, 0.8727, 0.9133, 0.966, 0.9798, 1 }, /* scripts/slick-derive.js */ /* scripts/slick-derive.js */
+  /* The DA-120's torque map, HFE's part throttle dyno scaled to Falcon's
+   * measured full throttle, its idle stop the closed throttle's, docs/
+   * FLIGHTMODEL.md "The engine at a closed throttle". */
+  .engine_q = {
+    { 0.489, 0.247, 0.005, -0.237, -0.479, -0.721, -0.963, -1.205, -1.448, -1.690, -1.932, -2.174, -2.416, -2.658, -2.900 }, /* the idle stop */
+    { 2.421, 2.328, 2.235, 2.142, 1.676, 1.397, 1.397, 0.000, -0.242, -0.484, -0.726, -0.968, -1.211, -1.453, -1.695 }, /* 20 percent */
+    { 2.887, 3.445, 4.004, 4.563, 3.259, 2.607, 2.328, 2.887, 2.328, 0.000, -0.242, -0.484, -0.726, -0.968, -1.211 }, /* 30 percent */
+    { 5.215, 5.308, 5.401, 5.494, 4.842, 4.190, 3.911, 3.818, 4.097, 2.980, 0.000, -0.242, -0.484, -0.726, -0.968 }, /* 40 percent */
+    { 5.773, 5.866, 5.960, 6.053, 5.866, 5.494, 5.308, 5.401, 5.494, 5.401, 5.215, 5.028, 4.656, 0.000, -0.242 }, /* 50 percent */
+    { 5.494, 5.960, 6.425, 6.891, 6.891, 6.984, 6.891, 7.077, 7.077, 7.263, 6.984, 6.705, 6.705, 6.053, 0.000 }, /* 60 percent */
+    { 5.401, 6.053, 6.705, 7.356, 7.449, 7.822, 7.822, 7.915, 8.008, 7.822, 7.822, 7.822, 7.729, 7.356, 6.984 }, /* 70 percent */
+    { 5.028, 5.866, 6.705, 7.543, 7.636, 8.194, 8.288, 8.474, 8.474, 8.288, 8.567, 8.846, 8.474, 8.101, 7.636 }, /* 80 percent */
+    { 5.308, 6.053, 6.798, 7.543, 7.729, 8.288, 8.381, 8.474, 8.567, 8.660, 8.846, 9.032, 8.567, 8.381, 8.008 }, /* 90 percent */
+    { 6.705, 7.077, 7.449, 7.822, 8.101, 8.660, 8.939, 9.219, 9.591, 9.498, 9.452, 9.405, 9.126, 8.753, 8.194 }, /* 100 percent */
+  }, /* N m at 1,000 to 8,000 rpm in 500s, npm run da120:derive */
   /* The tank, the sheet's 34 oz FlowMaster; the flow at full the shaft power
    * at HFE's DA120 data sheet's 575 g/kWh, scripts/slick-derive.js; the lean
    * run the Bombshell's, docs/POWER-STAGE1.md. */

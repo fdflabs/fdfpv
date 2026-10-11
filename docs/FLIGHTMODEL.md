@@ -1759,3 +1759,47 @@ prop at 0.3 of full, as the gate was written for (0.2685).
   the OSD's 3.5 V a cell. T-Motor's AM670 bench (the CAP lane's) holds
   the plant's current form, power as the speed cubed over the loaded
   voltage, within 7 percent from 40 to 100 percent throttle.
+
+## The engine at a closed throttle (BLOCKED on the Slick's gates)
+
+The Slick lane found the plant held the DA-120 at its 1,300 rpm idle in a
+26 m/s glide while the air drove the prop: 1.05 N m back through the
+mount, a roll to the right of 1.3 deg/s. A real two stroke at a closed
+throttle speeds up until its friction and pumping hold the prop.
+
+**The engine's map** (FixedWingParams.engine_q, `npm run da120:derive`):
+HFE's part throttle dyno (DA120 EFI data sheet fig. 3, 20 to 100 percent
+throttle, 2,000 to 8,000 rpm) scaled by 0.931 to Falcon's measured full
+throttle, as rows of torque against speed. HFE ran nothing at the idle
+stop; that row holds the prop's load at DA's 1,300 rpm and falls with the
+speed as the 20 percent row's least squares slope, 0.484 N m a 1,000 rpm
+(FITTED: the nearest measured throttle), through zero at 2,010 rpm: past
+it the closed throttle's friction and pumping outgrow what the idle burns
+and the engine brakes. Past each part throttle row's last point HFE's
+engine "could not produce torque" (its words); the row falls to nothing a
+column on, then at the closed throttle's slope (FITTED).
+
+**The rotor floats.** Where a table has the map its engine drives the
+rotor by it at the speed it turns, against the air's own torque on the
+prop (cp_of_ct, APC's), not the static load the glow method holds every
+rotor to. A big prop's tips near the speed of sound add their own load,
+from APC's 22x8 rows (Cp 0.0182 to 0.0313 from tip Mach 0.52 to 0.95,
+CP_MACH), taken over the measured full point's. Every other table is
+unchanged to the bit (extra:gates E15, nighttimber N15).
+
+**Measured on the Slick:** standing still the speeds are the throttle
+curve's (1,300, 3,557, 5,163, 6,089, 6,550 rpm at the stick's 0, 0.3, 0.5,
+0.7, 1). In the 26 m/s idle glide the engine runs up to 2,885 rpm, where
+its braking, 0.42 N m, holds the prop against the air: the mount gives
+back 0.42 N m, where it gave 1.05.
+
+**What it moves, and why this is blocked.** The same physics unloads the
+engine at full throttle in fast flight: level at full throttle the prop
+runs at 8,394 rpm (static 6,550) and the Slick flies 54.5 m/s where it
+flew 42.5. The Slick's S1, S4, S7 and S12, slick:stab's cruise and
+stab:chop's glide were derived on the static load and are red here; they
+are the Slick lane's to re-derive on this map. No in-flight rpm for a
+DA-120 on a 28 x 10 was found to check the unloading against (Desert
+Aircraft gives "1,300 to 6,900" rpm; Model Aviation says such engines run
+over their static rpm in the air without a number); it is the plant's
+answer from HFE's map, APC's Cp and APC's Mach rise.

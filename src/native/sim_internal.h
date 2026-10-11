@@ -757,6 +757,15 @@ typedef struct FixedWingParams {
    * first is the idle's own. A butterfly opens most of the speed in its
    * first half. Zero on every table without, which keeps the line. */
   double throttle_rpm[11];
+  /* An engine's torque map, N m, docs/FLIGHTMODEL.md "The engine at a
+   * closed throttle": rows the stick's idle stop and 20, 30, ... 100
+   * percent throttle, columns 1,000 to 8,000 rpm in 500s, straight between
+   * and straight on past the ends. Where it is set the engine drives its
+   * rotor by it against the air's own torque on the prop, so its speed
+   * floats with the airspeed: a closed throttle in a dive brakes a prop the
+   * air drives. Zero on every table without, which keeps the glow method's
+   * flat torque against the static load. */
+  double engine_q[10][15];
   /*
    * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
    * Its volume, m^3; the fuel it burns per second at full rpm and at the
