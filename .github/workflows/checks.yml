@@ -119,6 +119,12 @@ jobs:
       # report, exit code and the argv it hands shots.js and the browser,
       # over fakes on PATH, with no Emscripten and no browser.
       - run: npm run verify:selftest
+      # A new or changed constant in the C plant carries its source where it
+      # is defined (CLAUDE.md owner rule 2); today's uncited ones are a
+      # baseline that only shrinks (scripts/physics-sources-lint.js). The
+      # lint runs first so a lane sees its whole list in one run.
+      - run: npm run lint:physics-sources
+      - run: npm run physics-sources:selftest
       # src/render and src/art outputs on a fixed stage against goldens
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
