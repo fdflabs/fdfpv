@@ -177,6 +177,7 @@ function stubUi() {
   ui.screen = 'flight';
   ui.share = null;
   ui.scoreHud = {
+    setCalloutsOnly: (on) => note('score.setCalloutsOnly', on),
     setVisible: (on) => note('score.setVisible', on),
     update: (v) => note('score.update', JSON.stringify(v)),
     events: (l) => note('score.events', JSON.stringify(l)),

@@ -115,6 +115,10 @@ jobs:
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest
+      # The shell's contact pass, step for step, on fixed frames
+      # (scripts/contact-golden.js): about 30 s here, deterministic since
+      # its plans search from the spawn and its frames are fixed.
+      - run: npm run contact:golden
       # The verify runner (tests/verify.js) from outside: its printed
       # report, exit code and the argv it hands shots.js and the browser,
       # over fakes on PATH, with no Emscripten and no browser.
@@ -284,6 +288,10 @@ jobs:
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
+      # The trick callouts on the flight screen, en and es, desktop and
+      # phone, clear of the attitude cues (scripts/callouts-check.js,
+      # docs/TRICKS-CATALOG.md).
+      - run: npm run callouts:check
       # Flight Club's pilot stats read off the screen in en and es, a sync
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
