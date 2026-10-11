@@ -7428,7 +7428,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -8462,7 +8462,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -9496,7 +9496,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -10530,7 +10530,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -11556,7 +11556,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -12758,7 +12758,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -13788,7 +13788,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -14798,7 +14798,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
      "action": "controls",
      "drives": {}
     },
@@ -31779,7 +31779,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -32813,7 +32813,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -33847,7 +33847,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -34881,7 +34881,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -35907,7 +35907,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -37109,7 +37109,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -38139,7 +38139,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
@@ -39149,7 +39149,7 @@
     {
      "id": "pilot:a-controls",
      "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
      "action": "controls",
      "drives": {}
     },
