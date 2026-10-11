@@ -24,7 +24,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingLift } from './lib/liftcurve.js';
+import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { wingProp } from './lib/propcurve.js';
 import { planeTable, propMoments } from './lib/wash.js';
 
@@ -333,13 +333,13 @@ const stallBlend = 3 / DEG;
 /* The plant's wing, scripts/lib/liftcurve.js: CL max at the top of the
  * curve. stall_top and stall_k are set below with the stall's other
  * numbers. */
-const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK });
+const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK, claWing: aw, plateCn: plateCnOf(b, S) });
 function coeffs(alpha) {
   const lc = wingLift(curve(), alpha);
   const clLin = CLa * alpha;
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
   };
 }
 function takeoff(mu, muTail) {
@@ -403,10 +403,10 @@ const smooth = (a0, a1, x) => {
 function stalledAt(alpha, de) {
   const clLin = CLa * alpha + CLde * de;
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
-  const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const plate = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   const cmLow = -lc.sigma * (armAc * clLin + armCp * plate);
   if (!(lc.sigma > 0)) return { CL: lc.CL, cmStall: cmLow };
-  const cnSt = 2 * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha);
+  const cnSt = curve().plateCn * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha) + wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).b2c * Math.sin(alpha);
   const cmPost = lc.sigma * (((1 - lc.past) * armAc - lc.past * armCp) * cnSt - armAc * clLin - stallDw * (clLin - lc.clSt));
   return { CL: lc.CL, cmStall: cmLow + lc.past * (cmPost - cmLow) };
 }
@@ -438,10 +438,10 @@ function mush(de) {
 function plantCoeffs(alpha, de) {
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const clLin = CLa * alpha + CLde * de;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const clFlat = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
     sigma: lc.sigma, clLin, clFlat,
   };
 }

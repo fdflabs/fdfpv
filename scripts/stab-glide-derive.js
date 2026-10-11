@@ -48,7 +48,7 @@
  */
 
 import { wingProp } from './lib/propcurve.js';
-import { wingLift } from './lib/liftcurve.js';
+import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -142,18 +142,24 @@ const smoothstep = (a, b, x) => {
  * and flaps neutral, the slats as fitted by default. */
 function coeffs(fw, alpha) {
   const clmax = fw.cl_max + fw.slat_dclmax;
-  const aStall = clmax / fw.cl_alpha;
-  const sigma = smoothstep(aStall - fw.stall_blend, aStall + fw.stall_blend, Math.abs(alpha));
+  const w = {
+    cla: fw.cl_alpha, clmax, blend: fw.stall_blend, top: fw.stall_top, k: fw.stall_k,
+    claWing: fw.cl_alpha_wing, plateCn: plateCnOf(fw.span, fw.area),
+  };
+  const aStall = clmax / (fw.cl_alpha_wing > 0 ? fw.cl_alpha_wing : fw.cl_alpha);
   const clLin = fw.cl_alpha * alpha;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const clFlat = w.plateCn * Math.sin(alpha) * Math.cos(alpha);
   const cd0 = fw.cd0 + fw.slat_cd0;
-  /* The lift is the plant's curve, CL max at its top (scripts/lib/liftcurve.js);
-   * the glides and cruises solved here are short of the stall, where the
-   * stalled section's own terms are not reached. */
-  const lc = wingLift({ cla: fw.cl_alpha, clmax, blend: fw.stall_blend, top: fw.stall_top, k: fw.stall_k }, alpha);
+  /* The lift and drag are the plant's curve (scripts/lib/liftcurve.js): the
+   * wing's own slope to its stall, the tail's share past it, the finite
+   * wing's plate and Viterna's B2; the glides and cruises solved here are
+   * short of the stall, where the stalled section's own terms are not
+   * reached. */
+  const lc = wingLift(w, alpha);
+  const { CD, sigma } = wingDrag(w, alpha, { cd0, k: fw.k_induced, clLin });
   return {
     CL: lc.CL,
-    CD: (1 - sigma) * (cd0 + fw.k_induced * clLin * clLin) + sigma * (cd0 + 2 * Math.sin(alpha) ** 2),
+    CD,
     Cm: fw.cm_0 + fw.cm_alpha * alpha - sigma * (fw.stall_arm_ac * clLin + fw.stall_arm_cp * clFlat),
     aStall,
   };
