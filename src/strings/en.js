@@ -3043,6 +3043,8 @@ export default {
   "rooms.away_hidden": "{name} is here but not flying: tab hidden",
   "rooms.away_loading": "{name} is here but not flying: loading the world",
   "rooms.away_crashcam": "{name} is here but not flying: in the crash cam",
+  "rooms.away_hangar": "{name} is here but not flying: in the hangar",
+  "rooms.in_hangar": "{name}: in the hangar",
   "rooms.away_reconnecting": "{name} is here but not flying: reconnecting",
   "rooms.fly_prompt": "Your friends are flying. Press Fly.",
   "rooms.fly_button": "Fly",

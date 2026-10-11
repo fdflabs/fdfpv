@@ -3048,6 +3048,8 @@ export default {
   "rooms.away_hidden": "{name} está en la sala pero no vuela: pestaña oculta",
   "rooms.away_loading": "{name} está en la sala pero no vuela: cargando el mundo",
   "rooms.away_crashcam": "{name} está en la sala pero no vuela: en la cámara de choques",
+  "rooms.away_hangar": "{name} está en la sala pero no vuela: en el hangar",
+  "rooms.in_hangar": "{name}: en el hangar",
   "rooms.away_reconnecting": "{name} está en la sala pero no vuela: reconectando",
   "rooms.fly_prompt": "Tus amigos están volando. Pulsa Volar.",
   "rooms.fly_button": "Volar",

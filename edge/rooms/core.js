@@ -53,7 +53,9 @@ import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
 import { RoomJam } from './jam.js';
 import { RoomSafety } from './safety.js';
-import { TYPE_PARTS, TYPE_STREAMER, WAR_JOIN } from '../../src/share/roomwire.js';
+import {
+  TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
+} from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
@@ -63,6 +65,7 @@ import { RoomOps } from './ops.js';
 import { RoomGameLobby } from './gamelobby.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
 import { RoomBots } from './roombots.js';
+import { onFoot } from './foot.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
@@ -986,6 +989,9 @@ export class RoomCore {
       }
       if (s && data[0] === TYPE_STREAMER) {
         return this.combat.frame(this, conn, s, data, now);
+      }
+      if (s && data[0] === TYPE_FOOT) {
+        return onFoot(this, conn, s, data, now);
       }
       return s ? this.pose(conn, s, data, now) : [];
     }
