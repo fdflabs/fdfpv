@@ -101,16 +101,17 @@ check, the tick's batch recipients). Those 17 go through one helper,
   (never under 2 m), or a pilot sat on the strip could never be caught.
 - AI pilots crash as people do: a referee hit that breaks a part of one
   (the same `brk` a person's plant applies), or its belly on the ground
-  the page's pilot hits (edge/rooms/grounds.js, the very field the page
-  builds; what is built on the ground, roofs and decks, is not there). It
+  the page's pilot hits (edge/rooms/grounds.js, the page's own ground from
+  src/share/valley/world.js: the field, the range beyond it and the alps'
+  headwall; what is built on the ground, roofs and decks, is not there). It
   falls from where it was, lies 5 s where it came to rest (FLAG_CRASHED,
   drawn intact: no wreck table), and is born again in the air, untouchable
   for 5 s, as a person's fresh flight is (5 s only, parked or not: lead,
   2026-10-09).
   A softer touch moves a person and leaves the AI pilot flying, unmoved.
 - Where: AI pilots fly only where the server knows the ground
-  (edge/rooms/grounds.js, the very field each page builds, from
-  src/maps/alps/heights.js and src/maps/swiss2/field.js). That is the
+  (edge/rooms/grounds.js, the very ground each page's pilot hits, from
+  src/share/valley/world.js). That is the
   valley, in both its drawings: swiss2 (tag's home world) and the alps,
   one shape, so one corridor: within 150 m of the valley axis
   (src/maps/alps/heights.js valleyAxis, copied with a selftest that it

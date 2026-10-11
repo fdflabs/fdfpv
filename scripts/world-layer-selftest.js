@@ -16,8 +16,9 @@
  * every vertex, and the headwall's (alps/nature.js buildHeadwall) at
  * every vertex, so what a craft meets is what is drawn.
  *
- * The room. How far edge/rooms/grounds.js groundOf is from World.groundAt
- * on a fixed grid, reported: the room has no far range and no headwall.
+ * The room. edge/rooms/grounds.js groundOf must equal World.groundAt at
+ * every sample of a fixed grid (Object.is), and a room ground off by a
+ * centimetre must fail the same comparison (the negative control).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -185,13 +186,23 @@ for (const map of ['alps', 'swiss2']) {
     check(map === 'swiss2', `${map}: no headwall, as its nature draws none`, `${map}: the World has no headwall`);
   }
 
-  /* The room: reported, not asserted, until grounds.js reads the World. */
+  /* The room: its ground is the World's, everywhere on the grid. */
+  const t1 = Date.now();
   const gap = roomGap(groundOf(map), world);
+  const ms = Date.now() - t1;
   for (const [where, g] of Object.entries(gap)) {
-    console.log(`report ${map} rooms grounds.js vs World, ${where}: ${g.differ} of ${g.n} differ`
-      + ` (${(100 * g.differ / g.n).toFixed(2)}%), max ${g.max.toFixed(2)} m at ${JSON.stringify(g.at)}`);
+    check(g.differ === 0,
+      `${map}: the room's ground is the World's, ${where}, at ${g.n} samples`,
+      `${map}: the room's ground differs from the World's, ${where}, at ${g.differ} of ${g.n}`
+        + ` (${(100 * g.differ / g.n).toFixed(2)}%), max ${g.max.toFixed(2)} m at ${JSON.stringify(g.at)}`);
   }
-  console.log(`  ${map}: World built in ${built} ms`);
+  console.log(`  ${map}: World built in ${built} ms, room compared in ${ms} ms`);
+
+  /* The negative control: a room ground a centimetre off is caught. */
+  const bent = roomGap((x, z) => world.groundAt(x, z) + 0.01, world);
+  const caught = Object.values(bent).every((g) => g.differ === g.n);
+  check(caught, `${map}: negative control caught (a room ground 1 cm off differs at every sample)`,
+    `${map}: negative control not caught (${JSON.stringify(Object.values(bent).map((g) => g.differ))})`);
 }
 
 if (failed) {
