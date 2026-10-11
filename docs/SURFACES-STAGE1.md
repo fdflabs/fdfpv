@@ -184,6 +184,23 @@ T3 and T4 do not take the slack:
   with every tier: the deflected surface's drag and the tighter manoeuvre
   it flies.
 
+## In a room
+
+A pilot's tiers ride in their room profile's parts, `{ prop, addons,
+surfaces }`, so the others draw their aircraft with the bigger surfaces
+and the room's lineup names them ("Extreme ailerons, 3D elevator"). The
+host's "Stock surfaces only" (the freestyle menu, beside the weather) is
+the room's `stockSurfaces` (edge/rooms/core.js): host only, kept with the
+meta, in the welcome, told to everybody; each pilot's next run then flies
+stock and their profile carries no tiers. The plant runs on each pilot's
+own page, so the room holds the rule and the pages keep it; a modified
+page could still fly its tiers. `rooms:selftest` holds the server's side,
+`surfaces:room` two real pages on a real rooms server. The room's poses
+carry each surface as an int8 over 0.8 rad (src/share/roomwire.js
+SURFACE_FULL_RAD), so another pilot sees a 50 deg Extreme throw stop at
+46 deg, as the Extra's stock 55 deg rudder already does; widening it is a
+wire format change, left for a versioned protocol bump.
+
 ## Known limits
 
 - The stock tables have no deflection drag of their own; a tier adds only

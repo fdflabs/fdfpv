@@ -232,6 +232,8 @@ export const DEFAULTS = {
   launchControl: false,
   missionGuidance: true,
   crashDamage: true,
+  /* A room this pilot hosts flies stock control surfaces (configs/surfaces.js). */
+  roomStockSurfaces: false,
   /* The air a solo run flies; in a room the host's is the room's. */
   weather: 'calm',
   /* The time of day, likewise (docs/DAYTIME-CONTRACT.md). */

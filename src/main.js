@@ -2427,7 +2427,7 @@ export async function boot({
         /* This pilot's own aircraft as the shell dresses it, the others'
          * from their room profiles as a visit's are. */
         walkRoom.view.setLineup(ui.walk.roomLineup.map((e) => (e.own
-          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false }), e.airframe), e.airframe)
+          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false, surfaces: surfacesFor(e.airframe) ?? undefined }), e.airframe), e.airframe)
           : visitCraft(e))));
         walkRoom.view.setCraft(null);
         walkRoom.craftKey = 'lineup';
@@ -2542,7 +2542,9 @@ export async function boot({
    * account's, so a colour or a part this build does not know is dropped. */
   function visitCraft(visit) {
     const id = airframeById(currentAirframeId(visit.airframe)).id;
-    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false });
+    /* The surface tiers they fly, in their parts (configs/surfaces.js). */
+    const surfaces = surfaceGrowth(id, visit.parts && visit.parts.surfaces);
+    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false, surfaces: surfaces ?? undefined });
     if (paintable(id)) {
       dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), visit.look)));
     }
@@ -3788,6 +3790,14 @@ export async function boot({
   function roomHereText(text, bots) {
     return bots ? `${text}, ${plural('count.ai_pilots_extra', bots)}` : text;
   }
+  /* The surface tiers this pilot flies on `id`, for the room's lineup
+   * and the others' drawings: the seated ones on the aircraft in the air
+   * (a change waits for the next run, as the plant's does), none when
+   * stock, and so none in a stock only room. */
+  function profileTiers(id) {
+    const key = id === runAirframe ? runTierKey : tierKeyOf(ui.settings, id);
+    return key === 'null' ? {} : { surfaces: JSON.parse(key) };
+  }
   function roomProfile() {
     const status = roomStatus();
     /* Off the air in a war room (its lobby, its briefing) the aircraft the
@@ -3803,7 +3813,7 @@ export async function boot({
       /* Packed (configs/paint.js packEntry), so MAX_DECALS layers fit the
        * room's PROFILE_MAX_BYTES. */
       livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) ? packEntry(ui.settings.livery[liveryKey(id)]) : null,
-      parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
+      parts: parts ? { prop: parts.prop, addons: parts.addons, ...profileTiers(id) } : null,
       ...(ui.roomGame ? { game: ui.roomGame } : {}),
       ...(status ? { status } : {}),
     };
@@ -7224,6 +7234,8 @@ export async function boot({
       mode: st.welcome ? st.welcome.mode ?? null : null,
       lobby: st.welcome && st.welcome.lobby ? { ...st.welcome.lobby } : null,
       host: st.welcome ? st.welcome.host : null,
+      /* The host's stock surfaces only (edge/rooms/core.js stockSurfaces). */
+      stockSurfaces: Boolean(st.welcome && st.welcome.stockSurfaces),
       /* The watch seat: the pilot the camera follows, and how far the
        * camera is from where that pilot is drawn, metres. */
       watch: Boolean(st.welcome && st.welcome.watch),
@@ -7239,6 +7251,7 @@ export async function boot({
         airframe: p.profile.airframe,
         map: p.profile.map,
         livery: p.profile.livery,
+        parts: p.profile.parts ?? null,
         drawn: Boolean(p.rig && p.rig.group.visible),
         drawnAirframe: p.rig ? p.rig.airframe : null,
         at: p.rig ? p.rig.group.position.toArray() : null,
@@ -7511,9 +7524,11 @@ export async function boot({
     if (roomLinkState.state().phase !== 'open') {
       return [];
     }
-    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true };
+    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true, surfaces: profileTiers(runAirframe).surfaces ?? null };
     const others = [...roomPeers.values()].filter((p) => p.profile && p.profile.airframe)
-      .map((p) => ({ name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts }));
+      .map((p) => ({
+        name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts, surfaces: (p.profile.parts && p.profile.parts.surfaces) ?? null,
+      }));
     return [own, ...others];
   };
   ui.friendsRows = () => {
@@ -10959,13 +10974,18 @@ export async function boot({
    * (roomStockOnly). applyTuning seats the plant's block and the tiers'
    * throws, applyParts their servos; runTierKey is what was seated.
    */
-  let roomStockOnly = false;
   let runTierKey = 'null';
+  /* A room whose host set stock surfaces only (edge/rooms/core.js
+   * stockSurfaces); off outside a room. */
+  function roomStockOnly() {
+    const w = roomLinkState.state().welcome;
+    return roomLinkState.state().phase === 'open' && Boolean(w && w.stockSurfaces);
+  }
   function seatedTiers(s, id) {
     const progress = s.progress;
     return flownTiers(id, s.surfaces && s.surfaces[id], {
       locked: (af, unlock) => lockOf(progress, 'surface', unlock, af) !== null,
-      stockOnly: roomStockOnly,
+      stockOnly: roomStockOnly(),
     });
   }
   /* What runTierKey holds for these settings: 'null' for stock. */
@@ -12763,6 +12783,10 @@ export async function boot({
     const w = roomLinkState.state().welcome;
     if (roomHost(w) && w.weather && w.weather.preset !== s.weather) {
       roomLinkState.sendWeather(s.weather);
+    }
+    /* And stock surfaces only, the same way, at the same moment. */
+    if (roomHost(w) && Boolean(w.stockSurfaces) !== (s.roomStockSurfaces === true)) {
+      roomLinkState.sendStockSurfaces(s.roomStockSurfaces === true);
     }
   }
   /* And the room's time of day, at the same moment, a run's start: told

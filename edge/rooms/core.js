@@ -954,6 +954,7 @@ export class RoomCore {
         mission: this.meta.mission ?? null,
         map: this.meta.map,
         weather: this.meta.weather ?? CALM,
+        stockSurfaces: Boolean(this.meta.stockSurfaces),
         daytime: this.daytimeWelcome(),
         peers: this.peerList(conn),
         ...this.race.welcome(),
@@ -1068,6 +1069,9 @@ export class RoomCore {
     }
     if (msg.type === 'weather') {
       return this.weather(conn, s, msg);
+    }
+    if (msg.type === 'stockSurfaces') {
+      return this.stockSurfaces(conn, s, msg);
     }
     if (msg.type === 'daytime') {
       return this.setDaytime(conn, s, msg);
@@ -1207,6 +1211,29 @@ export class RoomCore {
     return [
       { store: 'meta', value: this.meta },
       ...this.roster(null, JSON.stringify({ type: 'weather', ...this.meta.weather })),
+    ];
+  }
+
+  /*
+   * The host asks every pilot to fly stock control surfaces, or lets them
+   * fly their own tiers (configs/surfaces.js, the owner's room rule of
+   * 2026-10-11): { type: 'stockSurfaces', on }. Kept with the meta like the
+   * weather, handed to joiners in the welcome, and told to everybody as
+   * the same message, which a build from before it passes over. Each
+   * pilot's next run flies it. The plant runs on each pilot's own page, so
+   * the room holds the rule and the pages keep it.
+   */
+  stockSurfaces(conn, s, msg) {
+    if (typeof msg.on !== 'boolean') {
+      return [];
+    }
+    if (s.seat !== this.host()) {
+      return [{ send: conn, data: JSON.stringify({ type: 'refused', why: 'host' }) }];
+    }
+    this.meta.stockSurfaces = msg.on;
+    return [
+      { store: 'meta', value: this.meta },
+      ...this.roster(null, JSON.stringify({ type: 'stockSurfaces', on: msg.on })),
     ];
   }
 

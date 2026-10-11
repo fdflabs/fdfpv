@@ -1245,6 +1245,8 @@ export default {
   "ui.could_not_be_loaded_from_the": "{name} no se pudo cargar desde el tablero.",
   "ui.crash_damage": "Daños en choques",
   "ui.crash_damage_note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
+  "ui.stock_surfaces": "Solo superficies de fábrica",
+  "ui.stock_surfaces_note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
   "ui.weather": "Clima",
   "weather.calm": "Calma",
   "weather.breeze": "Brisa",
