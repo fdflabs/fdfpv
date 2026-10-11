@@ -1,0 +1,1077 @@
+{
+ "bodies": {
+  "keys": [
+   "dispose",
+   "group",
+   "meshes",
+   "set",
+   "stats"
+  ],
+  "group": {
+   "type": "Group",
+   "name": "interior-vehicles",
+   "visible": true,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "q": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "s": [
+    1,
+    1,
+    1
+   ],
+   "children": [
+    {
+     "type": "Mesh",
+     "name": "interior-motorcycle",
+     "visible": false,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "castShadow": true,
+     "geometry": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 2826,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "80fed92a",
+        "inst": false
+       },
+       "normal": {
+        "n": 2826,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "28a9e56f",
+        "inst": false
+       },
+       "color": {
+        "n": 2826,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "cc87b821",
+        "inst": false
+       },
+       "thermal": {
+        "n": 2826,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4fe17445",
+        "inst": false
+       },
+       "slot": {
+        "n": 2826,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b945b865",
+        "inst": false
+       },
+       "tintB": {
+        "n": 4,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c655ff85",
+        "inst": true
+       },
+       "tintC": {
+        "n": 4,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c655ff85",
+        "inst": true
+       }
+      },
+      "morph": [],
+      "index": null,
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "material": {
+      "ref": "m1",
+      "type": "MeshStandardMaterial",
+      "name": "",
+      "transparent": false,
+      "opacity": 1,
+      "depthWrite": true,
+      "depthTest": true,
+      "side": 0,
+      "fog": true,
+      "blending": 1,
+      "vertexColors": true,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "flatShading": false,
+      "wireframe": false,
+      "roughness": 0.6,
+      "metalness": 0.3,
+      "emissiveIntensity": 1,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "color": "ffffff",
+      "emissive": "000000",
+      "defines": {
+       "STANDARD": "",
+       "THERMAL_KIND": 4,
+       "THERMAL_ATTR": ""
+      },
+      "onBeforeCompile": true,
+      "cacheKey": "interior-slot-tint",
+      "userData": [
+       "thermal"
+      ]
+     },
+     "instances": {
+      "n": 0,
+      "matrices": "66627145",
+      "colors": "c655ff85"
+     }
+    },
+    {
+     "type": "Mesh",
+     "name": "interior-pickup",
+     "visible": false,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "castShadow": true,
+     "geometry": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b1088505",
+        "inst": false
+       },
+       "normal": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "11c2bcc5",
+        "inst": false
+       },
+       "color": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "ccbc4d4d",
+        "inst": false
+       },
+       "thermal": {
+        "n": 288,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "d35eead5",
+        "inst": false
+       },
+       "slot": {
+        "n": 288,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5156d385",
+        "inst": false
+       },
+       "tintB": {
+        "n": 4,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c655ff85",
+        "inst": true
+       },
+       "tintC": {
+        "n": 4,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c655ff85",
+        "inst": true
+       }
+      },
+      "morph": [],
+      "index": null,
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "material": "m1",
+     "instances": {
+      "n": 0,
+      "matrices": "66627145",
+      "colors": "c655ff85"
+     }
+    }
+   ]
+  },
+  "shader": {
+   "vertex": "01afdb87",
+   "fragment": "a8be4df2",
+   "key": "interior-slot-tint",
+   "defines": {
+    "STANDARD": "",
+    "THERMAL_KIND": 4,
+    "THERMAL_ATTR": ""
+   }
+  }
+ },
+ "exports": [
+  "makeVehicles"
+ ],
+ "placed": [
+  {
+   "stats": {
+    "drawn": 6
+   },
+   "group": {
+    "type": "Group",
+    "name": "interior-vehicles",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "children": [
+     {
+      "type": "Mesh",
+      "name": "interior-motorcycle",
+      "visible": true,
+      "p": [
+       0,
+       0,
+       0
+      ],
+      "q": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "s": [
+       1,
+       1,
+       1
+      ],
+      "castShadow": true,
+      "geometry": {
+       "ref": "g0",
+       "type": "BufferGeometry",
+       "attrs": {
+        "position": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "80fed92a",
+         "inst": false
+        },
+        "normal": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "28a9e56f",
+         "inst": false
+        },
+        "color": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "cc87b821",
+         "inst": false
+        },
+        "thermal": {
+         "n": 2826,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "4fe17445",
+         "inst": false
+        },
+        "slot": {
+         "n": 2826,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "b945b865",
+         "inst": false
+        },
+        "tintB": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "c485e4a5",
+         "inst": true
+        },
+        "tintC": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "c485e4a5",
+         "inst": true
+        }
+       },
+       "morph": [],
+       "index": null,
+       "groups": [],
+       "drawRange": [
+        0,
+        "all"
+       ],
+       "userData": []
+      },
+      "material": {
+       "ref": "m1",
+       "type": "MeshStandardMaterial",
+       "name": "",
+       "transparent": false,
+       "opacity": 1,
+       "depthWrite": true,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": true,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "flatShading": false,
+       "wireframe": false,
+       "roughness": 0.6,
+       "metalness": 0.3,
+       "emissiveIntensity": 1,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "ffffff",
+       "emissive": "000000",
+       "defines": {
+        "STANDARD": "",
+        "THERMAL_KIND": 4,
+        "THERMAL_ATTR": ""
+       },
+       "onBeforeCompile": true,
+       "cacheKey": "interior-slot-tint",
+       "userData": [
+        "thermal"
+       ]
+      },
+      "instances": {
+       "n": 4,
+       "matrices": "f726a945",
+       "colors": "fbd24b89"
+      }
+     },
+     {
+      "type": "Mesh",
+      "name": "interior-pickup",
+      "visible": true,
+      "p": [
+       0,
+       0,
+       0
+      ],
+      "q": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "s": [
+       1,
+       1,
+       1
+      ],
+      "castShadow": true,
+      "geometry": {
+       "ref": "g2",
+       "type": "BufferGeometry",
+       "attrs": {
+        "position": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "b1088505",
+         "inst": false
+        },
+        "normal": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "11c2bcc5",
+         "inst": false
+        },
+        "color": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "ccbc4d4d",
+         "inst": false
+        },
+        "thermal": {
+         "n": 288,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "d35eead5",
+         "inst": false
+        },
+        "slot": {
+         "n": 288,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "5156d385",
+         "inst": false
+        },
+        "tintB": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "2e11a215",
+         "inst": true
+        },
+        "tintC": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "2e11a215",
+         "inst": true
+        }
+       },
+       "morph": [],
+       "index": null,
+       "groups": [],
+       "drawRange": [
+        0,
+        "all"
+       ],
+       "userData": []
+      },
+      "material": "m1",
+      "instances": {
+       "n": 2,
+       "matrices": "f3382cda",
+       "colors": "cd7c5a93"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "stats": {
+    "drawn": 3
+   },
+   "group": {
+    "type": "Group",
+    "name": "interior-vehicles",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "children": [
+     {
+      "type": "Mesh",
+      "name": "interior-motorcycle",
+      "visible": true,
+      "p": [
+       0,
+       0,
+       0
+      ],
+      "q": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "s": [
+       1,
+       1,
+       1
+      ],
+      "castShadow": true,
+      "geometry": {
+       "ref": "g0",
+       "type": "BufferGeometry",
+       "attrs": {
+        "position": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "80fed92a",
+         "inst": false
+        },
+        "normal": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "28a9e56f",
+         "inst": false
+        },
+        "color": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "cc87b821",
+         "inst": false
+        },
+        "thermal": {
+         "n": 2826,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "4fe17445",
+         "inst": false
+        },
+        "slot": {
+         "n": 2826,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "b945b865",
+         "inst": false
+        },
+        "tintB": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "c485e4a5",
+         "inst": true
+        },
+        "tintC": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "c485e4a5",
+         "inst": true
+        }
+       },
+       "morph": [],
+       "index": null,
+       "groups": [],
+       "drawRange": [
+        0,
+        "all"
+       ],
+       "userData": []
+      },
+      "material": {
+       "ref": "m1",
+       "type": "MeshStandardMaterial",
+       "name": "",
+       "transparent": false,
+       "opacity": 1,
+       "depthWrite": true,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": true,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "flatShading": false,
+       "wireframe": false,
+       "roughness": 0.6,
+       "metalness": 0.3,
+       "emissiveIntensity": 1,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "ffffff",
+       "emissive": "000000",
+       "defines": {
+        "STANDARD": "",
+        "THERMAL_KIND": 4,
+        "THERMAL_ATTR": ""
+       },
+       "onBeforeCompile": true,
+       "cacheKey": "interior-slot-tint",
+       "userData": [
+        "thermal"
+       ]
+      },
+      "instances": {
+       "n": 2,
+       "matrices": "f726a945",
+       "colors": "fbd24b89"
+      }
+     },
+     {
+      "type": "Mesh",
+      "name": "interior-pickup",
+      "visible": true,
+      "p": [
+       0,
+       0,
+       0
+      ],
+      "q": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "s": [
+       1,
+       1,
+       1
+      ],
+      "castShadow": true,
+      "geometry": {
+       "ref": "g2",
+       "type": "BufferGeometry",
+       "attrs": {
+        "position": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "b1088505",
+         "inst": false
+        },
+        "normal": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "11c2bcc5",
+         "inst": false
+        },
+        "color": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "ccbc4d4d",
+         "inst": false
+        },
+        "thermal": {
+         "n": 288,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "d35eead5",
+         "inst": false
+        },
+        "slot": {
+         "n": 288,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "5156d385",
+         "inst": false
+        },
+        "tintB": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "2e11a215",
+         "inst": true
+        },
+        "tintC": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "2e11a215",
+         "inst": true
+        }
+       },
+       "morph": [],
+       "index": null,
+       "groups": [],
+       "drawRange": [
+        0,
+        "all"
+       ],
+       "userData": []
+      },
+      "material": "m1",
+      "instances": {
+       "n": 1,
+       "matrices": "f3382cda",
+       "colors": "cd7c5a93"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "stats": {
+    "drawn": 0
+   },
+   "group": {
+    "type": "Group",
+    "name": "interior-vehicles",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "children": [
+     {
+      "type": "Mesh",
+      "name": "interior-motorcycle",
+      "visible": false,
+      "p": [
+       0,
+       0,
+       0
+      ],
+      "q": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "s": [
+       1,
+       1,
+       1
+      ],
+      "castShadow": true,
+      "geometry": {
+       "ref": "g0",
+       "type": "BufferGeometry",
+       "attrs": {
+        "position": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "80fed92a",
+         "inst": false
+        },
+        "normal": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "28a9e56f",
+         "inst": false
+        },
+        "color": {
+         "n": 2826,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "cc87b821",
+         "inst": false
+        },
+        "thermal": {
+         "n": 2826,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "4fe17445",
+         "inst": false
+        },
+        "slot": {
+         "n": 2826,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "b945b865",
+         "inst": false
+        },
+        "tintB": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "c485e4a5",
+         "inst": true
+        },
+        "tintC": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "c485e4a5",
+         "inst": true
+        }
+       },
+       "morph": [],
+       "index": null,
+       "groups": [],
+       "drawRange": [
+        0,
+        "all"
+       ],
+       "userData": []
+      },
+      "material": {
+       "ref": "m1",
+       "type": "MeshStandardMaterial",
+       "name": "",
+       "transparent": false,
+       "opacity": 1,
+       "depthWrite": true,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": true,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "flatShading": false,
+       "wireframe": false,
+       "roughness": 0.6,
+       "metalness": 0.3,
+       "emissiveIntensity": 1,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "ffffff",
+       "emissive": "000000",
+       "defines": {
+        "STANDARD": "",
+        "THERMAL_KIND": 4,
+        "THERMAL_ATTR": ""
+       },
+       "onBeforeCompile": true,
+       "cacheKey": "interior-slot-tint",
+       "userData": [
+        "thermal"
+       ]
+      },
+      "instances": {
+       "n": 0,
+       "matrices": "f726a945",
+       "colors": "fbd24b89"
+      }
+     },
+     {
+      "type": "Mesh",
+      "name": "interior-pickup",
+      "visible": false,
+      "p": [
+       0,
+       0,
+       0
+      ],
+      "q": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "s": [
+       1,
+       1,
+       1
+      ],
+      "castShadow": true,
+      "geometry": {
+       "ref": "g2",
+       "type": "BufferGeometry",
+       "attrs": {
+        "position": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "b1088505",
+         "inst": false
+        },
+        "normal": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "11c2bcc5",
+         "inst": false
+        },
+        "color": {
+         "n": 288,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "ccbc4d4d",
+         "inst": false
+        },
+        "thermal": {
+         "n": 288,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "d35eead5",
+         "inst": false
+        },
+        "slot": {
+         "n": 288,
+         "size": 1,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "5156d385",
+         "inst": false
+        },
+        "tintB": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "2e11a215",
+         "inst": true
+        },
+        "tintC": {
+         "n": 4,
+         "size": 3,
+         "norm": false,
+         "type": "Float32Array",
+         "hash": "2e11a215",
+         "inst": true
+        }
+       },
+       "morph": [],
+       "index": null,
+       "groups": [],
+       "drawRange": [
+        0,
+        "all"
+       ],
+       "userData": []
+      },
+      "material": "m1",
+      "instances": {
+       "n": 0,
+       "matrices": "f3382cda",
+       "colors": "cd7c5a93"
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

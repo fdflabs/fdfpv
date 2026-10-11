@@ -57,8 +57,8 @@
  */
 
 import * as THREE from 'three';
-import { WAVE_VERTEX_DECL, WAVE_VERTEX, WAVE_FRAGMENT_DECL } from '../../../render/lakewaves.js';
-import { thermalKind, thermalHide } from '../../../render/thermal.js';
+import { WAVE_VERTEX_DECL, WAVE_VERTEX, WAVE_FRAGMENT_DECL } from '../../lakewaves.js';
+import { thermalKind, thermalHide } from '../../thermal.js';
 
 /* How far light seen at a point on the surface travels through the
  * water, per metre of depth, over what it travels looking straight down:

@@ -1,9 +1,10 @@
 /*
- * figures.js: the Interior's people, drawn low and instanced (TECH-NEEDS
- * N3): a body of tapered limbs, a chest, a head and what is worn on it in
- * each of Mission 1's poses, readable as a person and a posture from 100
- * to 600 m through the camera ball's lens, and warm in the thermal
- * picture. No face, no hands but a block, nothing harmed: a person is a
+ * figures.js: the asset library's people, first the Interior's (placed
+ * by src/maps/interior/life.js; the hangar room's pilot is one), drawn
+ * low and instanced (TECH-NEEDS N3): a body of tapered limbs, a chest, a
+ * head and what is worn on it in each of Mission 1's poses, readable as
+ * a person and a posture from 100 to 600 m through the camera ball's
+ * lens, and warm in the thermal picture. No face, no hands but a block, nothing harmed: a person is a
  * shape, a posture and the colours of their clothes.
  *
  * ONE MESH A POSE AND A KIT. Each action routes.js names (walk, stand,
@@ -38,11 +39,11 @@
  */
 
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { thermalKind } from '../thermal.js';
-import { hash01 } from '../../share/interior/canopy.js';
+import { thermalKind } from '../../thermal.js';
+import { hash01 } from '../hash.js';
 import {
   slotTint, addSlotTints, setSlotTints, slotTintsChanged,
-} from './tint.js';
+} from '../tint.js';
 
 /* How much of the skin's temperature over the air shows through, per
  * part (src/render/thermal.js, the body kind): clothes most of it, the

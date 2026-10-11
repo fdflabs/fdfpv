@@ -1,0 +1,1453 @@
+{
+ "built": {
+  "scene": {
+   "type": "Scene",
+   "name": "",
+   "visible": true,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "q": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "s": [
+    1,
+    1,
+    1
+   ],
+   "children": [
+    {
+     "type": "Group",
+     "name": "interior-near",
+     "visible": true,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "children": [
+      {
+       "type": "Mesh",
+       "name": "interior-near-grass",
+       "visible": true,
+       "p": [
+        0,
+        0,
+        0
+       ],
+       "q": [
+        0,
+        0,
+        0,
+        1
+       ],
+       "s": [
+        1,
+        1,
+        1
+       ],
+       "receiveShadow": true,
+       "frustumCulled": false,
+       "geometry": {
+        "ref": "g0",
+        "type": "InstancedBufferGeometry",
+        "attrs": {
+         "position": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "4870f729",
+          "inst": false
+         },
+         "uv": {
+          "n": 12,
+          "size": 2,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "d8379085",
+          "inst": false
+         },
+         "normal": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "c473fa55",
+          "inst": false
+         },
+         "aCard": {
+          "n": 60000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "102c0dc5",
+          "inst": false
+         },
+         "aCard2": {
+          "n": 60000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "102c0dc5",
+          "inst": false
+         }
+        },
+        "morph": [],
+        "index": {
+         "n": 18,
+         "type": "Uint16Array",
+         "hash": "03d44d06"
+        },
+        "groups": [],
+        "drawRange": [
+         0,
+         "all"
+        ],
+        "userData": []
+       },
+       "material": {
+        "ref": "m1",
+        "type": "MeshStandardMaterial",
+        "name": "",
+        "transparent": false,
+        "opacity": 1,
+        "depthWrite": true,
+        "depthTest": true,
+        "side": 2,
+        "fog": true,
+        "blending": 1,
+        "vertexColors": false,
+        "alphaTest": 0.5,
+        "polygonOffset": false,
+        "polygonOffsetFactor": 0,
+        "polygonOffsetUnits": 0,
+        "colorWrite": true,
+        "toneMapped": true,
+        "flatShading": false,
+        "wireframe": false,
+        "roughness": 0.85,
+        "metalness": 0,
+        "emissiveIntensity": 1,
+        "dithering": false,
+        "premultipliedAlpha": false,
+        "visible": true,
+        "stencilWrite": false,
+        "alphaToCoverage": false,
+        "color": "ffffff",
+        "emissive": "000000",
+        "map": {
+         "ref": "t2",
+         "type": "DataTexture",
+         "size": [
+          2,
+          2,
+          null
+         ],
+         "data": "9dc68605",
+         "wrap": [
+          1001,
+          1001
+         ],
+         "filter": [
+          1003,
+          1003
+         ],
+         "mips": false,
+         "format": 1023,
+         "dataType": 1009,
+         "colorSpace": "",
+         "repeat": [
+          1,
+          1
+         ],
+         "offset": [
+          0,
+          0
+         ],
+         "flipY": false,
+         "anisotropy": 1
+        },
+        "defines": {
+         "STANDARD": "",
+         "THERMAL_KIND": 1
+        },
+        "onBeforeCompile": true,
+        "cacheKey": "interior-near-grass",
+        "userData": [
+         "thermal"
+        ]
+       }
+      },
+      {
+       "type": "Mesh",
+       "name": "interior-near-meadow",
+       "visible": true,
+       "p": [
+        0,
+        0,
+        0
+       ],
+       "q": [
+        0,
+        0,
+        0,
+        1
+       ],
+       "s": [
+        1,
+        1,
+        1
+       ],
+       "receiveShadow": true,
+       "frustumCulled": false,
+       "geometry": {
+        "ref": "g3",
+        "type": "InstancedBufferGeometry",
+        "attrs": {
+         "position": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "4870f729",
+          "inst": false
+         },
+         "uv": {
+          "n": 12,
+          "size": 2,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "d8379085",
+          "inst": false
+         },
+         "normal": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "c473fa55",
+          "inst": false
+         },
+         "aCard": {
+          "n": 50000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "cf3425c5",
+          "inst": false
+         },
+         "aCard2": {
+          "n": 50000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "cf3425c5",
+          "inst": false
+         }
+        },
+        "morph": [],
+        "index": {
+         "n": 18,
+         "type": "Uint16Array",
+         "hash": "03d44d06"
+        },
+        "groups": [],
+        "drawRange": [
+         0,
+         "all"
+        ],
+        "userData": []
+       },
+       "material": {
+        "ref": "m4",
+        "type": "MeshStandardMaterial",
+        "name": "",
+        "transparent": false,
+        "opacity": 1,
+        "depthWrite": true,
+        "depthTest": true,
+        "side": 2,
+        "fog": true,
+        "blending": 1,
+        "vertexColors": false,
+        "alphaTest": 0.5,
+        "polygonOffset": false,
+        "polygonOffsetFactor": 0,
+        "polygonOffsetUnits": 0,
+        "colorWrite": true,
+        "toneMapped": true,
+        "flatShading": false,
+        "wireframe": false,
+        "roughness": 0.85,
+        "metalness": 0,
+        "emissiveIntensity": 1,
+        "dithering": false,
+        "premultipliedAlpha": false,
+        "visible": true,
+        "stencilWrite": false,
+        "alphaToCoverage": false,
+        "color": "ffffff",
+        "emissive": "000000",
+        "map": "t2",
+        "defines": {
+         "STANDARD": "",
+         "THERMAL_KIND": 1
+        },
+        "onBeforeCompile": true,
+        "cacheKey": "interior-near-meadow",
+        "userData": [
+         "thermal"
+        ]
+       }
+      },
+      {
+       "type": "Mesh",
+       "name": "interior-near-banks",
+       "visible": true,
+       "p": [
+        0,
+        0,
+        0
+       ],
+       "q": [
+        0,
+        0,
+        0,
+        1
+       ],
+       "s": [
+        1,
+        1,
+        1
+       ],
+       "receiveShadow": true,
+       "frustumCulled": false,
+       "geometry": {
+        "ref": "g5",
+        "type": "InstancedBufferGeometry",
+        "attrs": {
+         "position": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "4870f729",
+          "inst": false
+         },
+         "uv": {
+          "n": 12,
+          "size": 2,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "d8379085",
+          "inst": false
+         },
+         "normal": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "c473fa55",
+          "inst": false
+         },
+         "aCard": {
+          "n": 20000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "3bcc6dc5",
+          "inst": false
+         },
+         "aCard2": {
+          "n": 20000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "3bcc6dc5",
+          "inst": false
+         }
+        },
+        "morph": [],
+        "index": {
+         "n": 18,
+         "type": "Uint16Array",
+         "hash": "03d44d06"
+        },
+        "groups": [],
+        "drawRange": [
+         0,
+         "all"
+        ],
+        "userData": []
+       },
+       "material": {
+        "ref": "m6",
+        "type": "MeshStandardMaterial",
+        "name": "",
+        "transparent": false,
+        "opacity": 1,
+        "depthWrite": true,
+        "depthTest": true,
+        "side": 2,
+        "fog": true,
+        "blending": 1,
+        "vertexColors": false,
+        "alphaTest": 0.5,
+        "polygonOffset": false,
+        "polygonOffsetFactor": 0,
+        "polygonOffsetUnits": 0,
+        "colorWrite": true,
+        "toneMapped": true,
+        "flatShading": false,
+        "wireframe": false,
+        "roughness": 0.85,
+        "metalness": 0,
+        "emissiveIntensity": 1,
+        "dithering": false,
+        "premultipliedAlpha": false,
+        "visible": true,
+        "stencilWrite": false,
+        "alphaToCoverage": false,
+        "color": "ffffff",
+        "emissive": "000000",
+        "map": "t2",
+        "defines": {
+         "STANDARD": "",
+         "THERMAL_KIND": 1
+        },
+        "onBeforeCompile": true,
+        "cacheKey": "interior-near-banks",
+        "userData": [
+         "thermal"
+        ]
+       }
+      },
+      {
+       "type": "Mesh",
+       "name": "interior-near-shrubs",
+       "visible": true,
+       "p": [
+        0,
+        0,
+        0
+       ],
+       "q": [
+        0,
+        0,
+        0,
+        1
+       ],
+       "s": [
+        1,
+        1,
+        1
+       ],
+       "receiveShadow": true,
+       "frustumCulled": false,
+       "geometry": {
+        "ref": "g7",
+        "type": "InstancedBufferGeometry",
+        "attrs": {
+         "position": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "4870f729",
+          "inst": false
+         },
+         "uv": {
+          "n": 12,
+          "size": 2,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "d8379085",
+          "inst": false
+         },
+         "normal": {
+          "n": 12,
+          "size": 3,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "0a3c3a4d",
+          "inst": false
+         },
+         "aCard": {
+          "n": 16000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "6942ddc5",
+          "inst": false
+         },
+         "aCard2": {
+          "n": 16000,
+          "size": 4,
+          "norm": false,
+          "type": "Float32Array",
+          "hash": "6942ddc5",
+          "inst": false
+         }
+        },
+        "morph": [],
+        "index": {
+         "n": 18,
+         "type": "Uint16Array",
+         "hash": "03d44d06"
+        },
+        "groups": [],
+        "drawRange": [
+         0,
+         "all"
+        ],
+        "userData": []
+       },
+       "material": {
+        "ref": "m8",
+        "type": "MeshStandardMaterial",
+        "name": "",
+        "transparent": false,
+        "opacity": 1,
+        "depthWrite": true,
+        "depthTest": true,
+        "side": 2,
+        "fog": true,
+        "blending": 1,
+        "vertexColors": false,
+        "alphaTest": 0.5,
+        "polygonOffset": false,
+        "polygonOffsetFactor": 0,
+        "polygonOffsetUnits": 0,
+        "colorWrite": true,
+        "toneMapped": true,
+        "flatShading": false,
+        "wireframe": false,
+        "roughness": 0.9,
+        "metalness": 0,
+        "emissiveIntensity": 1,
+        "dithering": false,
+        "premultipliedAlpha": false,
+        "visible": true,
+        "stencilWrite": false,
+        "alphaToCoverage": false,
+        "color": "ffffff",
+        "emissive": "000000",
+        "map": {
+         "ref": "t9",
+         "type": "DataTexture",
+         "size": [
+          2,
+          2,
+          null
+         ],
+         "data": "9dc68605",
+         "wrap": [
+          1001,
+          1001
+         ],
+         "filter": [
+          1003,
+          1003
+         ],
+         "mips": false,
+         "format": 1023,
+         "dataType": 1009,
+         "colorSpace": "",
+         "repeat": [
+          1,
+          1
+         ],
+         "offset": [
+          0,
+          0
+         ],
+         "flipY": false,
+         "anisotropy": 1
+        },
+        "defines": {
+         "STANDARD": "",
+         "THERMAL_KIND": 1
+        },
+        "onBeforeCompile": true,
+        "cacheKey": "interior-near-shrubs",
+        "userData": [
+         "thermal"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "shaders": [
+   {
+    "vertex": "201c982f",
+    "fragment": "96c47523",
+    "added": [
+     [
+      "uNfReach",
+      [
+       0,
+       44
+      ]
+     ],
+     [
+      "uNfRegions",
+      [
+       [
+        0,
+        0.857142857143,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.857142857143,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0,
+        0.714285714286,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.714285714286,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0,
+        0.571428571429,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.571428571429,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.25,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ],
+       [
+        0.5,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ],
+       [
+        0.75,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ]
+      ]
+     ],
+     [
+      "uNfTints",
+      [
+       [
+        1,
+        1.15,
+        0.66
+       ],
+       [
+        1.2,
+        1.15,
+        0.62
+       ],
+       [
+        1.45,
+        1.25,
+        0.68
+       ],
+       [
+        0.62,
+        0.74,
+        0.44
+       ],
+       [
+        1.3,
+        1.15,
+        0.8
+       ]
+      ]
+     ]
+    ],
+    "key": "interior-near-grass"
+   },
+   {
+    "vertex": "201c982f",
+    "fragment": "96c47523",
+    "added": [
+     [
+      "uNfReach",
+      [
+       0,
+       170
+      ]
+     ],
+     [
+      "uNfRegions",
+      [
+       [
+        0,
+        0.857142857143,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.857142857143,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0,
+        0.714285714286,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.714285714286,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0,
+        0.571428571429,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.571428571429,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.25,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ],
+       [
+        0.5,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ],
+       [
+        0.75,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ]
+      ]
+     ],
+     [
+      "uNfTints",
+      [
+       [
+        1,
+        1.15,
+        0.66
+       ],
+       [
+        1.2,
+        1.15,
+        0.62
+       ],
+       [
+        1.45,
+        1.25,
+        0.68
+       ],
+       [
+        0.62,
+        0.74,
+        0.44
+       ],
+       [
+        1.3,
+        1.15,
+        0.8
+       ]
+      ]
+     ]
+    ],
+    "key": "interior-near-meadow"
+   },
+   {
+    "vertex": "201c982f",
+    "fragment": "96c47523",
+    "added": [
+     [
+      "uNfReach",
+      [
+       0,
+       320
+      ]
+     ],
+     [
+      "uNfRegions",
+      [
+       [
+        0,
+        0.857142857143,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.857142857143,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0,
+        0.714285714286,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.714285714286,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0,
+        0.571428571429,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.5,
+        0.571428571429,
+        0.5,
+        0.142857142857
+       ],
+       [
+        0.25,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ],
+       [
+        0.5,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ],
+       [
+        0.75,
+        0.142857142857,
+        0.25,
+        0.285714285714
+       ]
+      ]
+     ],
+     [
+      "uNfTints",
+      [
+       [
+        1,
+        1.15,
+        0.66
+       ],
+       [
+        1.2,
+        1.15,
+        0.62
+       ],
+       [
+        1.45,
+        1.25,
+        0.68
+       ],
+       [
+        0.62,
+        0.74,
+        0.44
+       ],
+       [
+        1.3,
+        1.15,
+        0.8
+       ]
+      ]
+     ]
+    ],
+    "key": "interior-near-banks"
+   },
+   {
+    "vertex": "08fb4a92",
+    "fragment": "96c47523",
+    "added": [
+     [
+      "uNfReach",
+      [
+       0,
+       420
+      ]
+     ],
+     [
+      "uNfRegions",
+      [
+       [
+        0,
+        0,
+        0.5,
+        0.5
+       ],
+       [
+        0.5,
+        0,
+        0.5,
+        0.5
+       ]
+      ]
+     ],
+     [
+      "uNfTints",
+      [
+       [
+        0.46,
+        0.52,
+        0.32
+       ],
+       [
+        0.56,
+        0.54,
+        0.32
+       ],
+       [
+        0.4,
+        0.48,
+        0.32
+       ]
+      ]
+     ]
+    ],
+    "key": "interior-near-shrubs"
+   }
+  ]
+ },
+ "exports": [
+  "buildNearField"
+ ],
+ "views": {
+  "high": [
+   {
+    "stats": {
+     "grass": 21649,
+     "meadow": 30342,
+     "banks": 6726,
+     "shrubs": 16000,
+     "scale": 1,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      true,
+      21649,
+      "98cd2321",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      true,
+      30342,
+      "15ec14ff",
+      1
+     ],
+     [
+      "interior-near-banks",
+      true,
+      6726,
+      "0734a5e2",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      true,
+      16000,
+      "33cd0865",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 9724,
+     "meadow": 4350,
+     "banks": 0,
+     "shrubs": 16000,
+     "scale": 0.588235294118,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      true,
+      9724,
+      "640208e8",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      true,
+      4350,
+      "4535c400",
+      1
+     ],
+     [
+      "interior-near-banks",
+      true,
+      0,
+      "0734a5e2",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      true,
+      16000,
+      "d874223e",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 0,
+     "meadow": 0,
+     "banks": 0,
+     "shrubs": 0,
+     "scale": 0,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      false,
+      9724,
+      "640208e8",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      false,
+      4350,
+      "4535c400",
+      1
+     ],
+     [
+      "interior-near-banks",
+      false,
+      0,
+      "0734a5e2",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      false,
+      16000,
+      "d874223e",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 20880,
+     "meadow": 31047,
+     "banks": 6800,
+     "shrubs": 16000,
+     "scale": 1,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      true,
+      20880,
+      "e1cb2f86",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      true,
+      31047,
+      "f74629d0",
+      1
+     ],
+     [
+      "interior-near-banks",
+      true,
+      6800,
+      "7c89e078",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      true,
+      16000,
+      "84c8aa98",
+      1
+     ]
+    ]
+   }
+  ],
+  "medium": [
+   {
+    "stats": {
+     "grass": 7414,
+     "meadow": 8639,
+     "banks": 3489,
+     "shrubs": 8000,
+     "scale": 1,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      true,
+      7414,
+      "1fb962d0",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      true,
+      8639,
+      "47bd38f2",
+      1
+     ],
+     [
+      "interior-near-banks",
+      true,
+      3489,
+      "58642961",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      true,
+      8000,
+      "5e8c57d6",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 4074,
+     "meadow": 1647,
+     "banks": 0,
+     "shrubs": 8000,
+     "scale": 0.588235294118,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      true,
+      4074,
+      "c5aa08ad",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      true,
+      1647,
+      "aad416a6",
+      1
+     ],
+     [
+      "interior-near-banks",
+      true,
+      0,
+      "58642961",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      true,
+      8000,
+      "25ee320a",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 0,
+     "meadow": 0,
+     "banks": 0,
+     "shrubs": 0,
+     "scale": 0,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      false,
+      4074,
+      "c5aa08ad",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      false,
+      1647,
+      "aad416a6",
+      1
+     ],
+     [
+      "interior-near-banks",
+      false,
+      0,
+      "58642961",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      false,
+      8000,
+      "25ee320a",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 8707,
+     "meadow": 8639,
+     "banks": 3489,
+     "shrubs": 7958,
+     "scale": 1,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      true,
+      8707,
+      "1c3ddec3",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      true,
+      8639,
+      "b0830477",
+      1
+     ],
+     [
+      "interior-near-banks",
+      true,
+      3489,
+      "c48086ad",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      true,
+      7958,
+      "45942f85",
+      1
+     ]
+    ]
+   }
+  ],
+  "low": [
+   {
+    "stats": {
+     "grass": 0,
+     "meadow": 0,
+     "banks": 0,
+     "shrubs": 0,
+     "scale": 1,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-banks",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 0,
+     "meadow": 0,
+     "banks": 0,
+     "shrubs": 0,
+     "scale": 0.588235294118,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-banks",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 0,
+     "meadow": 0,
+     "banks": 0,
+     "shrubs": 0,
+     "scale": 0,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-banks",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ]
+    ]
+   },
+   {
+    "stats": {
+     "grass": 0,
+     "meadow": 0,
+     "banks": 0,
+     "shrubs": 0,
+     "scale": 1,
+     "pending": 0
+    },
+    "layers": [
+     [
+      "interior-near-grass",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-meadow",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-banks",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ],
+     [
+      "interior-near-shrubs",
+      false,
+      0,
+      "0b2ae445",
+      1
+     ]
+    ]
+   }
+  ]
+ }
+}

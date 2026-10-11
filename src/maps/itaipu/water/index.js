@@ -4,7 +4,7 @@
  *
  *   The reservoir at 219.0 m and the river below the dam at 103.5 m, each
  *   over its outline from water.json, in swiss2's water material
- *   (swiss2/water/surface.js): Fresnel at water's index, the sun's
+ *   (src/render/library/water/surface.js): Fresnel at water's index, the sun's
  *   glitter, ripples drifting with the wind (on the river, downstream
  *   with the current), shore foam, and the body's colour deepening away
  *   from the shore; calmer than swiss2's lake, and without its patches
@@ -711,9 +711,9 @@ export async function buildPart(ctx) {
   const thermal = ctx.mats.thermal;
   const water = (mat) => (thermal ? thermal.kind(mat, 'water') : mat);
   const [{ waterMaterial }, { planarMirror }, { waveTexture }, { makeWaves }] = await Promise.all([
-    import('../../swiss2/water/surface.js'),
-    import('../../swiss2/water/lake.js'),
-    import('../../swiss2/water/waves.js'),
+    import('../../../render/library/water/surface.js'),
+    import('../../../render/library/water/mirror.js'),
+    import('../../../render/library/water/waves.js'),
     import('../../../render/lakewaves.js'),
   ]);
   const group = new THREE.Group();

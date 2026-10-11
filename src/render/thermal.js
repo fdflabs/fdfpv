@@ -479,7 +479,7 @@ export function thermalKind(material, kind, { attr = false, defines = null } = {
 /*
  * A material the thermal picture cannot see at all, left out of every
  * thermal draw: the pass under a lake that tints its bed by the water's
- * visible transmittance (swiss2/water/surface.js bedMaterial). Water is
+ * visible transmittance (library/water/surface.js bedMaterial). Water is
  * opaque in the long wave band, so the bed is never in the picture, and
  * the thermal draw is the cheaper by its pass.
  */

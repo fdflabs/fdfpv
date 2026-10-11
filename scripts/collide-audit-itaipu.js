@@ -10,9 +10,10 @@
  * where things collide or fly through". This is the world half of it, as
  * a sweep rather than a list of hand-picked places, so it can run again.
  *
- * In Node, on the data folder's own buildings (town/plan.js, pure):
+ * In Node, on the data folder's own buildings (town/plan.js and
+ * library/buildings/footprint.js, pure):
  *
- *   footprints  every building's wall boxes (plan.js wallBoxes) against the
+ *   footprints  every building's wall boxes (footprint.js wallBoxes) against the
  *               outline it is drawn on: the ground the boxes stand on that
  *               is outside the drawn walls, by how deep, split into the
  *               two ways it happens. `concave`: a run's box spans the
@@ -136,9 +137,10 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { styleOf, landuseAreas } from '../src/maps/itaipu/town/plan.js';
 import {
-  cleanRing, rectOf, styleOf, rectRing, wallBoxes, landuseAreas,
-} from '../src/maps/itaipu/town/plan.js';
+  cleanRing, rectOf, rectRing, wallBoxes,
+} from '../src/render/library/buildings/footprint.js';
 import { FINE_R, MOVE, planTown } from '../src/maps/itaipu/town/model.js';
 import { roofSlabs, roofTop } from '../src/render/library/roofs.js';
 import { CREST_SPAWN, AIR_SPAWN } from '../src/maps/itaipu/spawns.js';

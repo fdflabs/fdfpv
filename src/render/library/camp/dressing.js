@@ -1,5 +1,5 @@
 /*
- * campdressing.js: where the camp's decorative dressing stands, round 4
+ * dressing.js: where the camp's decorative dressing stands, round 4
  * of docs/INTERIOR-LOOP.md (the camp read sparse in its middle against
  * the golden hour mock). Offsets in metres east and south of the camp's
  * middle (places.js CAMP_PROPS.middle), as camp.js's STORES are. None of

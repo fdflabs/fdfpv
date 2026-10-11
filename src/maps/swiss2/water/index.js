@@ -42,10 +42,11 @@
 import * as THREE from 'three';
 import { LAKE_Y } from '../../alps/terrain.js';
 import { valleyLayout, lakeShore } from '../vegetation/zones.js';
-import { waveTexture } from './waves.js';
-import { waterMaterial, bedMaterial } from './surface.js';
-import { lakeGeometry, planarMirror } from './lake.js';
-import { streamGeometry, streamSurface } from './stream.js';
+import { waveTexture } from '../../../render/library/water/waves.js';
+import { waterMaterial, bedMaterial } from '../../../render/library/water/surface.js';
+import { lakeGeometry } from './lake.js';
+import { planarMirror } from '../../../render/library/water/mirror.js';
+import { streamGeometry, streamSurface } from '../../../render/library/water/stream.js';
 import { buildFall } from './fall.js';
 import { makeWaves, patchGeometry, placePatch, outlineBox, probeSurface } from '../../../render/lakewaves.js';
 import { buildSpray } from '../../../render/spray.js';

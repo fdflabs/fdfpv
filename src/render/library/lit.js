@@ -2,7 +2,7 @@
  * lit.js: the asset library's sun for lit materials, first Itaipu's
  * (src/maps/itaipu/look/light.js) and taken up by the Interior.
  *
- * THE INJECTION. swiss2's material kit (src/maps/swiss2/look.js) reads
+ * THE INJECTION. The photographic material kit (library/photolook.js) reads
  * each fragment's world position from vS2World, which swiss2's own
  * injector (swiss2/light.js makeLit) declares; that injector also lays
  * the Alps field's terrain shadow and a cloud deck over every material,
@@ -36,7 +36,7 @@ import * as THREE from 'three';
 const LIT_TYPES = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial', 'MeshToonMaterial']);
 
 /*
- * THE CASCADES ARE ONE SUN. On High, swiss2's makeSun (swiss2/light.js)
+ * THE CASCADES ARE ONE SUN. On High, makeSun (sun.js)
  * stands two directional lights in the sun's place, each at the sun's
  * full irradiance: a sharp shadow map round the craft and a wide one
  * past it. swiss2's injector hands each fragment to one of them, the

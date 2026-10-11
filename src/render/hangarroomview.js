@@ -9,7 +9,7 @@
  * (screens, lamps, the daylight through the door). So the room is three
  * draws however much furniture stands in it, and a layout change is a
  * rebuild, which is rare. The pilot is the Interior's people
- * (src/render/interior/figures.js), one instance, one draw. The aircraft
+ * (src/render/library/people/figures.js), one instance, one draw. The aircraft
  * on its stand is the flown model, one draw a part.
  *
  * NO SECOND CONTEXT, as carousel3d.js: the shell's renderer draws the room
@@ -43,7 +43,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   CELL, ROOMS, LAYOUTS, frontHeading, placement,
 } from '../game/hangarroom.js';
-import { makeFigures } from './interior/figures.js';
+import { makeFigures } from './library/people/figures.js';
 import { drawDecal } from './decalart.js';
 import { newDecal } from '../../configs/paint.js';
 import { str } from '../strings/index.js';

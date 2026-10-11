@@ -46,7 +46,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { disposeSources } from '../../../render/library/kit.js';
-import { worldUv } from '../look.js';
+import { worldUv } from '../../../render/library/photolook.js';
 
 const CELL_M = 250;
 /* How far past a cell's own radius its near detail is still drawn. */

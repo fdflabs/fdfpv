@@ -389,7 +389,7 @@ export function conformTile(level, i, j, data, half, { bound, fill }, cut = null
 
 /*
  * THE BUILDINGS OVER THE CUT. A building is drawn down to the lowest
- * ground at its corners (town/plan.js heightsOf), so one whose footprint
+ * ground at its corners (library/buildings/footprint.js heightsOf), so one whose footprint
  * the cut lowered stands as a tall face over the excavation (OpenStreetMap
  * way 186671808, 5 m from the chute's west wall on the plateau 40 m over
  * it). No building stands over the real chute: one whose outline reaches

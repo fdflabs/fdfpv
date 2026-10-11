@@ -1,14 +1,16 @@
 /*
- * camp.js: the camp at Claro Viejo (TECH-NEEDS M1 assets, MISSIONS.md M1
- * stage 5): four shelters of poles and sagging tarps tied out with
- * ropes, one tarp a person moves, the Column's mark painted under one
- * shelter's roof (mark.js), a lattice mast with a small dish on guy wires
- * that comes down, a solar panel on its stand, crates, drums and
- * jerrycans, sacks and a table under the roofs, hammocks, the cooking
- * fire in its ring of stones with its thin smoke, and the lookout's
- * platform in a tree at the clearing's north edge. Places from
- * src/share/interior/places.js CAMP_PROPS; the motorcycles are
- * vehicles.js's, the people figures.js's.
+ * camp.js: the asset library's camp, first the Interior's at Claro Viejo
+ * and Claro Nuevo (TECH-NEEDS M1 assets, MISSIONS.md M1 stage 5; placed by
+ * src/maps/interior/life.js): four shelters of poles and sagging tarps
+ * tied out with ropes, one tarp a person moves, a mark painted under one
+ * shelter's roof (the Interior's is the Column's, src/render/interior/
+ * mark.js), a lattice mast with a small dish on guy wires that comes
+ * down, a solar panel on its stand, crates, drums and jerrycans, sacks
+ * and a table under the roofs, hammocks, the cooking fire in its ring of
+ * stones with its thin smoke, and the lookout's platform in a tree at the
+ * clearing's north edge. Places from the layout the map hands in (the
+ * Interior's src/share/interior/places.js CAMP_PROPS); the motorcycles
+ * and the people are the map's to place.
  *
  * WHAT MOVES, on the room's word (map.setCamp): which of the three
  * markable shelters carries the mark (the dial), how far the side tarp
@@ -31,7 +33,8 @@
  * the rest (what stands under the roofs, by the fire, beside the drums)
  * is this file's dressing, set on each shelter's own frame and left out
  * wherever it would stand in the way of a route the camp's people walk
- * (src/share/interior/routes.js), so nobody walks through a crate.
+ * (`routes`, the Interior's src/share/interior/routes.js), so nobody
+ * walks through a crate.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -50,14 +53,11 @@
  */
 
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { CAMP_PROPS } from '../../share/interior/places.js';
-import { ROUTES } from '../../share/interior/routes.js';
-import { hash01 } from '../../share/interior/canopy.js';
-import { recordAt, shedTop, flatTop } from '../library/roofs.js';
-import { thermalKind, thermalHide } from '../thermal.js';
-import { markPixels, MARK_PX } from './mark.js';
+import { hash01 } from '../hash.js';
+import { recordAt, shedTop, flatTop } from '../roofs.js';
+import { thermalKind, thermalHide } from '../../thermal.js';
 import { makeCampLight } from './camplight.js';
-import { DRESSING } from './campdressing.js';
+import { DRESSING } from './dressing.js';
 
 const POLE = [0.2, 0.15, 0.1];
 /* Patched, sun faded tarps (linear, under the cloth texture's weave): an
@@ -396,12 +396,12 @@ function shelterFrame(s, ground) {
 
 /* The routes' stretches near the camp, for keeping the dressing off them. */
 const NEAR_CAMP = 70;
-function routeStretches(props) {
+function routeStretches(props, routes) {
   const [mx, mz] = props.middle;
   const out = [];
-  for (const r of Object.values(ROUTES)) {
-    for (let k = 0; k + 1 < r.pts.length; k += 1) {
-      const [a, b] = [r.pts[k], r.pts[k + 1]];
+  for (const pts of Object.values(routes)) {
+    for (let k = 0; k + 1 < pts.length; k += 1) {
+      const [a, b] = [pts[k], pts[k + 1]];
       if (Math.min(Math.hypot(a[0] - mx, a[1] - mz), Math.hypot(b[0] - mx, b[1] - mz)) < NEAR_CAMP + Math.hypot(b[0] - a[0], b[1] - a[1])) {
         out.push([a, b]);
       }
@@ -445,7 +445,7 @@ const RAG = [[0.32, 0.3, 0.26], [0.08, 0.12, 0.22], [0.25, 0.06, 0.04], [0.12, 0
 const LITTER = [[0.2, 0.2, 0.2], [0.26, 0.24, 0.2], [0.16, 0.05, 0.04], [0.06, 0.08, 0.12], [0.22, 0.17, 0.1]];
 
 /*
- * THE DRESSING (campdressing.js): a work table, a cooking place with its
+ * THE DRESSING (dressing.js): a work table, a cooking place with its
  * own small fire, firewood, a water tank and bottles, more crate stacks,
  * a generator, a wheelbarrow, a washing line, a string of bulbs, lanterns
  * under two roofs, and litter. Solid where it stands higher than the
@@ -728,11 +728,16 @@ function dress({
 /*
  * A camp: { group, setCamp({ mark, tarp, mast, cold }), update(seconds),
  * stats(), dispose() }. Adds its colliders and roof records. `props` is
- * its layout (places.js CAMP_PROPS, Claro Viejo, by default; NUEVO_PROPS
- * for Claro Nuevo): the dressing and the wear are offsets from its middle.
+ * its layout (the Interior's places.js CAMP_PROPS for Claro Viejo,
+ * NUEVO_PROPS for Claro Nuevo): the dressing and the wear are offsets
+ * from its middle. `routes` are the polylines people walk, by id
+ * ({ id: [[x, z], ...] }), which the clutter keeps clear of; `worn` the
+ * ids of those the camp's own people walk, trodden into its floor; `mark`
+ * the pixels ({ pixels, px }, RGBA, px square) painted under a markable
+ * shelter's roof.
  */
 export function buildCamp({
-  THREE, world, colliders, roofs, props = CAMP_PROPS, name = 'interior-camp',
+  THREE, world, colliders, roofs, props, routes, worn, mark, name = 'interior-camp',
 }) {
   const ground = world.groundAt;
   const group = new THREE.Group();
@@ -741,11 +746,11 @@ export function buildCamp({
   const solid = sink();
   const cloth = sink();
   const ropes = [];
-  const stretches = routeStretches(props);
+  const stretches = routeStretches(props, routes);
   /* The mark is under the roof: its pane faces down and is drawn only
    * from below. */
   const markMat = thermalKind(new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 }), 'vegetation');
-  const tex = texture(THREE, markPixels(), MARK_PX);
+  const tex = texture(THREE, mark.pixels, mark.px);
   tex.flipY = true;
   markMat.map = tex;
   const atlas = texture(THREE, atlasPixels(), ATLAS_PX);
@@ -1279,7 +1284,7 @@ export function buildCamp({
   update(0);
 
   /* THE WEAR on the clearing's floor: the paths the camp's people walk
-   * (routes.js's camp loops) trodden dark into the soil, darker where
+   * (`worn`, the Interior's routes.js camp loops) trodden dark into the soil, darker where
    * they cross, the ground under each roof scuffed and the ash round the
    * fire. A film of vertex alpha a few centimetres over the ground, seen
    * in shadow as the ground is; nothing a craft or the thermal picture
@@ -1299,12 +1304,10 @@ export function buildCamp({
    * route's points, comes and goes in strength, and fades out at its
    * ends rather than stopping. */
   const PATH = 0.7;
-  for (const [id, r] of Object.entries(ROUTES)) {
-    if (!id.startsWith('camp-') || !id.endsWith('-loop')) {
-      continue;
-    }
-    for (let k = 0; k + 1 < r.pts.length; k += 1) {
-      const [a, b] = [r.pts[k], r.pts[k + 1]];
+  for (const id of worn) {
+    const pts = routes[id];
+    for (let k = 0; k + 1 < pts.length; k += 1) {
+      const [a, b] = [pts[k], pts[k + 1]];
       const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
       if (len < 0.5) {
         continue;
