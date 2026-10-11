@@ -506,6 +506,8 @@
     "hangar:garage": "node scripts/garage-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
     "paint:workshop": "node scripts/paint-workshop-check.js",
+    "paint:workshop:views": "WORKSHOP_PART=views node scripts/paint-workshop-check.js",
+    "paint:workshop:paint": "WORKSHOP_PART=paint node scripts/paint-workshop-check.js",
     "materials:check": "node scripts/materials-check.js",
     "materials:perf": "node scripts/materials-perf.js",
     "gallery:admin": "node scripts/gallery-admin-check.js",
