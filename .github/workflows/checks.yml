@@ -42,6 +42,11 @@ jobs:
       # ws, the one dependency: rooms:server starts the VM's rooms server,
       # edge/rooms/node.js, and speaks to it.
       - run: npm ci
+      # A deploy under an open tab: every module and the wasm at the
+      # page's version, the new-version bar held off the flight screen and
+      # shown on Paused and the title, its Reload landing on the new deploy
+      # (scripts/version-reload-check.js, src/ui/update.js).
+      - run: npm run version:reload
       - run: npm run water:check -- --no-chrome
       - run: npm run pick:selftest
       - run: npm run paint:selftest
@@ -114,10 +119,19 @@ jobs:
       # report, exit code and the argv it hands shots.js and the browser,
       # over fakes on PATH, with no Emscripten and no browser.
       - run: npm run verify:selftest
+      # A new or changed constant in the C plant carries its source where it
+      # is defined (CLAUDE.md owner rule 2); today's uncited ones are a
+      # baseline that only shrinks (scripts/physics-sources-lint.js). The
+      # lint runs first so a lane sees its whole list in one run.
+      - run: npm run lint:physics-sources
+      - run: npm run physics-sources:selftest
       # src/render and src/art outputs on a fixed stage against goldens
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
       - run: npm run render:golden
+      # The scoring chain end to end, the real aircraft flying the tricks
+      # (a powerloop round a rail by a closed loop pilot) included.
+      - run: npm run score:selftest
 
   shard-2:
     runs-on: ubuntu-latest
@@ -129,6 +143,10 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - run: npm run rooms:server
+      # The livery gallery against a local tracks server: list, like, sort,
+      # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
+      - run: npm run gallery:check
       # 32 pilots in one room through free flight, a race and a combat
       # round, 5 s each, about a minute: the plan's rooms:load at 32 a
       # room. Its checks are about function; the speed numbers it prints
@@ -281,6 +299,10 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
+      # by hand (npm run midair:harness) and its numbers go in the pull
+      # request. Two seeds here keep every row and every scenario.
+      - run: npm run midair:harness -- --seeds=2
       # The Interior's Mission 1 flown headless on track WORLD's map: solo to
       # the end, a laggy run, a squad of five, the soft fail and its
       # checkpoint, the boundary, the ISR down.
@@ -343,6 +365,7 @@ jobs:
       # A solo race's debrief in the real page: the facts, Watch the replay
       # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
       - run: npm run debrief:race
+      - run: npm run debrief:free
       # The race results' lap table ends above the menu at 1280x720
       # (scripts/results-layout-check.js).
       - run: npm run results:layout
@@ -427,7 +450,6 @@ jobs:
       - run: npm run voicechat:selftest
       - run: npm run catalog-rules:selftest
       - run: npm run streamer:selftest
-      - run: npm run rooms:server
       # A rooms server draining on SIGUSR2 while a second one serves new
       # rooms, two processes from this tree (docs/ROOMS-DRAIN.md).
       - run: npm run rooms:drain
@@ -448,10 +470,6 @@ jobs:
       - run: npm run airframes:selftest
       - run: npm run aircraft:folder
       - run: npm run midair:plant
-      # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
-      # by hand (npm run midair:harness) and its numbers go in the pull
-      # request. Two seeds here keep every row and every scenario.
-      - run: npm run midair:harness -- --seeds=2
       # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
       # half a minute on 20 cores, by hand; four and six here keep every row.
       - run: npm run tag:harness -- --seeds=4 --runs=6
@@ -468,15 +486,7 @@ jobs:
       # The Escape menu in the real shell: a quad and a plane in en and es and
       # a phone, into the Flight panel and back (docs/redesign/PAUSE-MENUS.md).
       - run: npm run pause:menus -- /tmp/pause-menus
-      # The livery gallery against a local tracks server: list, like, sort,
-      # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
-      - run: npm run gallery:check
       - run: npm run stab:chop
-      # A deploy under an open tab: every module and the wasm at the
-      # page's version, the new-version bar held off the flight screen and
-      # shown on Paused and the title, its Reload landing on the new deploy
-      # (scripts/version-reload-check.js, src/ui/update.js).
-      - run: npm run version:reload
 
   # paint:workshop's other half alone: Top, Bottom and Flip on one
   # aircraft of every paint family, and a pad's R3. Whole, the check was
@@ -492,6 +502,10 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run paint:workshop:views
+      # The page build() draws, node for node (scripts/shell-dom-golden.js).
+      # Outside CI it went red for a day of merged features and hid a moved
+      # hangar tab among them; a UI change re-records it in its PR.
+      - run: npm run ui:domgolden
 
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.
