@@ -87,7 +87,13 @@ export function addNavLights(craft, lights, fog = true) {
   if (lights.strobe) {
     const lift = new THREE.Vector3(0, r * 2.2, 0);
     const strobes = [add(WHITE, left.clone().add(lift), 'strobe-left'), add(WHITE, right.clone().add(lift), 'strobe-right')];
-    group.userData.setLights = (tMs) => {
+    /* A builder's own lights (a Night Timber's factory set) keep running
+     * beside these. */
+    const own = group.userData.setLights;
+    group.userData.setLights = (tMs, ...rest) => {
+      if (own) {
+        own(tMs, ...rest);
+      }
       const on = navLevel(tMs) > 0.5;
       for (const s of strobes) {
         s.visible = on;

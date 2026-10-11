@@ -28,7 +28,15 @@
  */
 
 export const KIT_VERSION = 1;
-export const LIGHTS_VERSION = 1;
+/* 2 since the Night Timber X: `factory`, a family's own lights' switch.
+ * A v1 entry has no `factory` and reads as `auto`, so it migrates by
+ * taking the new number. */
+export const LIGHTS_VERSION = 2;
+/* The families with lights built in at the factory, which the lights'
+ * `factory` switch sets to auto (on at night), on or off
+ * (docs/NIGHTTIMBER-STAGE1.md section 5). */
+export const FACTORY_LIGHTS = new Set(['nighttimber1200']);
+export const FACTORY_MODES = ['auto', 'on', 'off'];
 
 const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
 
@@ -124,10 +132,10 @@ export function slotsFor(family) {
  * a plane; underglow on a quad and the F-16. */
 export function lightsFor(family) {
   if (!KITS[family]) {
-    return { led: false, nav: false, glow: false };
+    return { led: false, nav: false, glow: false, factory: false };
   }
   const quad = QUADS.has(family);
-  return { led: quad, nav: !quad, glow: quad || family === 'f16878' };
+  return { led: quad, nav: !quad, glow: quad || family === 'f16878', factory: FACTORY_LIGHTS.has(family) };
 }
 
 const isRecord = (o) => Boolean(o) && typeof o === 'object' && !Array.isArray(o);
@@ -196,8 +204,16 @@ export function checkLights(family, lights) {
   take('strobe', (v) => has.nav && typeof v === 'boolean');
   take('glow', (v) => has.glow && typeof v === 'string' && HEX.test(v));
   take('glowPattern', (v) => has.glow && GLOW_PATTERNS.includes(v));
+  /* auto is the default, so it is not kept: absent means auto. */
+  if (lights.factory !== undefined) {
+    if (!has.factory || !FACTORY_MODES.includes(lights.factory)) {
+      dropped += 1;
+    } else if (lights.factory !== 'auto') {
+      out.factory = lights.factory;
+    }
+  }
   for (const key of Object.keys(lights)) {
-    if (!['v', 'led', 'pattern', 'nav', 'strobe', 'glow', 'glowPattern'].includes(key)) {
+    if (!['v', 'led', 'pattern', 'nav', 'strobe', 'glow', 'glowPattern', 'factory'].includes(key)) {
       dropped += 1;
     }
   }

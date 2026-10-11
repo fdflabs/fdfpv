@@ -135,9 +135,15 @@ them with no new section:
 
 ```
 entry.kit = { v: 1, parts: { [slot]: optionId } }        // a slot left out is stock
-entry.lights = { v: 1, led: '#rrggbb', pattern: 'solid'|'chase'|'strobe'|'throttle'|'battery',
-                 nav: true|false, strobe: true|false, glow: '#rrggbb'|null }
+entry.lights = { v: 2, led: '#rrggbb', pattern: 'solid'|'chase'|'strobe'|'throttle'|'battery',
+                 nav: true|false, strobe: true|false, glow: '#rrggbb'|null,
+                 factory: 'on'|'off' }                      // absent: auto
 ```
+
+- `factory` (v2, 2026-10-09, docs/NIGHTTIMBER-STAGE1.md section 5): a
+  family with lights built in at the factory (`FACTORY_LIGHTS`, the Night
+  Timber X) switches them on at the map's night (auto, stored as no key),
+  always on, or off. A v1 entry has no `factory` and reads as v2 at auto.
 
 - Ids are checked against configs/kits.js for the family; an unknown slot
   or option is dropped and counted (`entryDrops`), so a shared code from a

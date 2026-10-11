@@ -21,7 +21,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { DRAWN, LED_PATTERNS, LIGHTS_VERSION, kitParts, lightsFor, slotsFor, withSlot } from '../../configs/kits.js';
+import { DRAWN, FACTORY_MODES, LED_PATTERNS, LIGHTS_VERSION, kitParts, lightsFor, slotsFor, withSlot } from '../../configs/kits.js';
 import { liveryKey } from '../../configs/liveries.js';
 import { airframeById } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
@@ -43,9 +43,12 @@ const LED_COLOURS = ['#ff2a1a', '#ff8a00', '#ffe600', '#22ff44', '#00b7ff', '#7a
 /* The entry with its lights changed; nothing on means no lights. */
 function withLights(entry, change) {
   const lights = { v: LIGHTS_VERSION, ...(entry.lights ?? {}), ...change };
+  if (lights.factory === 'auto') {
+    delete lights.factory;
+  }
   const out = { ...entry };
   delete out.lights;
-  if (lights.led || lights.nav || lights.strobe) {
+  if (lights.led || lights.nav || lights.strobe || (lights.factory && lights.factory !== 'auto')) {
     out.lights = lights;
   }
   return out;
@@ -118,6 +121,30 @@ function navRows(hangar, box) {
   box.append(grid);
 }
 
+/* An aircraft's own lights from the factory (a Night Timber X's): on by
+ * themselves at night, always on, or off. */
+function factoryRows(hangar, box) {
+  const now = (hangar.entry.lights ?? {}).factory ?? 'auto';
+  box.append(el('h3', 'hangar-h', str('kit.factory')));
+  const grid = el('div', 'hangar-cards hangar-cards-small');
+  FACTORY_MODES.forEach((m, i) => {
+    const on = now === m;
+    const b = button(`hangar-card${on ? ' on' : ''}`);
+    b.dataset.key = `factory-${m}`;
+    b.style.setProperty('--i', String(i));
+    b.setAttribute('aria-pressed', String(on));
+    b.append(el('span', 'hangar-card-name', str(`kit.factory.${m}`)));
+    hangar.trial(b, { entry: withLights(hangar.entry, { factory: m }) }, 'overview');
+    b.addEventListener('click', () => {
+      hangar.entry = withLights(hangar.entry, { factory: m });
+      hangar.changed(b.dataset.key);
+    });
+    grid.append(b);
+  });
+  box.append(grid);
+  box.append(el('p', 'hangar-source', str('kit.factory_note')));
+}
+
 registerHangarTab({
   id: 'kit',
   focus: 'overview',
@@ -169,6 +196,9 @@ registerHangarTab({
     }
     if (has.nav) {
       navRows(hangar, box);
+    }
+    if (has.factory) {
+      factoryRows(hangar, box);
     }
     box.append(el('p', 'hangar-source', str('kit.note')));
     return box;

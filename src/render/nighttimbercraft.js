@@ -68,6 +68,8 @@ import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
 import { spinnerFor } from './kitshapes.js';
+import { navLevel } from './kitlights.js';
+import { factoryLit } from './worldlight.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -1154,6 +1156,73 @@ export function buildNightTimberCraft(opts = {}) {
     group.add(led);
     leds.push({ mesh: led, mat: ledMat, front: at.front, base: at.base });
   }
+
+  /*
+   * THE FACTORY LIGHTS, the real one's LED system (docs/NIGHTTIMBER-STAGE1.md
+   * section 5, E-flite's night photographs EFL13875_A14 to A17): the
+   * strips inside the wings light each panel from within, whitest over
+   * the leading edge half; the stabiliser and the cabin's underside glow
+   * the same white; the landing light in the cowl's chin and the nav
+   * lights at the tips burn steady, the strobes at the tips double flash
+   * and the beacon on the wing's top pulses red. Unlit meshes, fogged
+   * with the craft, no real light: the kits' budget (docs/KITS.md
+   * section 4). Four draws: the glow, the steady lamps, the strobes, the
+   * beacon. opts.lights.factory is the switch: auto (absent) on at night,
+   * on, off.
+   */
+  const factoryMode = (opts.lights && opts.lights.factory) || 'auto';
+  const factory = new THREE.Group();
+  factory.name = 'factory-lights';
+  {
+    const glowParts = [];
+    const lift = 0.0016;
+    for (const sign of [-1, 1]) {
+      for (const side of [-1, 1]) {
+        glowParts.push(wingPaint(sign * (FLAP_IN + 0.004), sign * (HALF - 0.02), 0.03, 0.55, side, lite ? 3 : 8, lite ? 2 : 4, lift));
+      }
+    }
+    for (const side of [-1, 1]) {
+      glowParts.push(paint((u, v) => {
+        const x = -STAB_HALF + 0.02 + (2 * STAB_HALF - 0.04) * u;
+        const p = stabPlan(Math.abs(x));
+        return stabAt(x, p.le, p.hinge - p.le)(0.08 + 0.80 * v, side);
+      }, lite ? 3 : 8, 2, () => new THREE.Vector3(0, side, 0), lift));
+    }
+    glowParts.push(skinPanel(lite, 0.270, 0.480, lite ? 2 : 4, () => [Math.PI * 0.80, Math.PI * 1.20], 2, lift));
+    const glow = new THREE.Mesh(merged(glowParts), new THREE.MeshBasicMaterial({
+      color: 0xfff3dc, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, fog,
+    }));
+    glow.name = 'factory-glow';
+    glow.renderOrder = 2;
+    factory.add(glow);
+  }
+  const bulbs = (points, hex, name) => {
+    const geos = points.map((p) => new THREE.SphereGeometry(0.0075, 8, 6).translate(p.x, p.y, p.z));
+    const mesh = new THREE.Mesh(merged(geos), new THREE.MeshBasicMaterial({ color: hex, fog }));
+    mesh.name = name;
+    factory.add(mesh);
+    return mesh;
+  };
+  const L = NIGHTTIMBER_LAMPS;
+  const tipOut = (p, sign) => p.clone().add(new THREE.Vector3(sign * 0.006, 0, 0));
+  const strobePos = (sign) => tipOut(sign < 0 ? L.navLeft : L.navRight, sign).add(new THREE.Vector3(0, 0, 0.03));
+  bulbs([tipOut(L.navLeft, -1)], 0xff2010, 'factory-nav-left');
+  bulbs([tipOut(L.navRight, 1)], 0x20ff40, 'factory-nav-right');
+  bulbs([L.landing], 0xffffff, 'factory-landing');
+  const strobes = bulbs([strobePos(-1), strobePos(1)], 0xffffff, 'factory-strobes');
+  const beacon = bulbs([L.beacon], 0xff1a10, 'factory-beacon');
+  factory.visible = factoryLit(factoryMode);
+  group.add(factory);
+  /* On the flight clock as every light here, so a replay flashes as the
+   * flight did; the switch read against the world's night each time. */
+  group.userData.setLights = (tMs) => {
+    factory.visible = factoryLit(factoryMode);
+    if (!factory.visible) {
+      return;
+    }
+    strobes.visible = navLevel(tMs) > 0.5;
+    beacon.visible = (tMs % 1000) < 450;
+  };
 
   /*
    * Pose the surfaces. Radians: left aileron, right aileron, elevator,

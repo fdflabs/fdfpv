@@ -252,6 +252,7 @@ import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraf
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP } from './render/nighttimbercraft.js';
+import { setWorldNight, worldNight } from './render/worldlight.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -17451,6 +17452,10 @@ export async function boot({
     }
     /* The kit's arm LEDs (docs/KITS.md section 4) on the flight clock, so
      * a replay flashes as the flight did; the pack as the OSD bands it. */
+    /* A Night Timber's factory lights come on with the map's own night
+     * (docs/NIGHTTIMBER-STAGE1.md section 5), read every frame because
+     * the interior's sun sets mid flight. */
+    setWorldNight(Boolean(shell.quad.parent) && shell.quad.parent.userData.timeOfDay === 'night');
     if (shell.quad.userData.setLights) {
       shell.quad.userData.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
     }
@@ -18800,6 +18805,12 @@ export async function boot({
       bladeScale: audio.bladeScale,
       tune: af.fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
       flapNotch,
+      /* A Night Timber's factory lights, drawn or not, and the world's
+       * night they follow (nighttimber:lights). */
+      factoryLights: (() => {
+        const f = shell.quad.getObjectByName('factory-lights');
+        return f ? { visible: f.visible, night: worldNight() } : null;
+      })(),
       standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
     };
   };

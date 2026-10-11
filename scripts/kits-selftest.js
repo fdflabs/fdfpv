@@ -22,7 +22,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { KITS, KIT_VERSION, LED_PATTERNS, checkKit, kitParts, lightsFor, slotsFor } from '../configs/kits.js';
+import { KITS, KIT_VERSION, LED_PATTERNS, LIGHTS_VERSION, checkKit, checkLights, kitParts, lightsFor, slotsFor } from '../configs/kits.js';
 import { LIVERIES, entryDrops, normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
 import { encodeLivery } from '../configs/paint.js';
 import { cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
@@ -52,12 +52,16 @@ const fullQuad = { kit: { v: 1, parts: { arms: 'blade', top: 'stock', antenna: '
   lights: { v: 1, led: '#ff2200', pattern: 'chase', glow: '#00ccff', glowPattern: 'breathe' } };
 const q = normaliseEntry('7inch', fullQuad);
 check('a quad kit keeps its options, stock left out', same(q.kit, { v: 1, parts: { arms: 'blade', antenna: 'pagoda' } }), JSON.stringify(q.kit));
-check('a quad keeps its LEDs and glow', same(q.lights, fullQuad.lights));
+check('a quad keeps its LEDs and glow, a v1 entry read as the current version', same(q.lights, { ...fullQuad.lights, v: LIGHTS_VERSION }), JSON.stringify(q.lights));
 check('nothing dropped from a good entry', entryDrops('7inch', fullQuad) === 0);
 check('a plane slot on a quad is dropped and counted', entryDrops('7inch', { kit: { v: 1, parts: { spinner: 'bullet' } } }) === 1);
 check('an unknown option is dropped', entryDrops('sky1800', { kit: { v: 1, parts: { spinner: 'gold' } } }) === 1);
 check('LEDs on a plane are dropped', entryDrops('sky1800', { lights: { v: 1, led: '#ff0000' } }) === 1);
-check('nav lights on a plane kept', same(normaliseEntry('sky1800', { lights: { v: 1, nav: true, strobe: false } }).lights, { v: 1, nav: true, strobe: false }));
+check('nav lights on a plane kept', same(normaliseEntry('sky1800', { lights: { v: 1, nav: true, strobe: false } }).lights, { v: LIGHTS_VERSION, nav: true, strobe: false }));
+check('the factory lights switch is the Night Timber\'s', lightsFor('nighttimber1200').factory && !lightsFor('timber1500').factory && !lightsFor('7inch').factory);
+check('its factory lights on or off are kept', same(normaliseEntry('nighttimber1200', { lights: { v: 2, factory: 'off' } }).lights, { v: LIGHTS_VERSION, factory: 'off' }) && same(checkLights('nighttimber1200', { v: 2, factory: 'on', nav: true }).lights, { v: LIGHTS_VERSION, nav: true, factory: 'on' }));
+check('auto is the default and not stored', normaliseEntry('nighttimber1200', { lights: { v: 2, factory: 'auto' } }) === null && checkLights('nighttimber1200', { v: 2, factory: 'auto' }).dropped === 0);
+check('a factory switch on another family, or a bad mode, is dropped', entryDrops('sky1800', { lights: { v: 2, factory: 'on' } }) === 1 && entryDrops('nighttimber1200', { lights: { v: 2, factory: 'disco' } }) === 1);
 check('a bad pattern is dropped', entryDrops('7inch', { lights: { v: 1, pattern: 'disco' } }) === 1);
 check('LED_PATTERNS as the contract', same(LED_PATTERNS, ['solid', 'chase', 'strobe', 'throttle', 'battery']));
 check('all stock is no key at all', normaliseEntry('sky1800', { kit: { v: 1, parts: { spinner: 'stock' } } }) === null);
@@ -67,6 +71,8 @@ console.log('migration');
 const old = { sky1800: { scheme: 'stock', regions: { wing: '#FF0000' } }, '7inch': { regions: { frame: '#123456' } } };
 const loaded = normaliseLiveries(old);
 check('an old settings blob loads with no kit and no lights', Object.values(loaded).every((e) => !('kit' in e) && !('lights' in e)), JSON.stringify(loaded));
+const oldNight = normaliseLiveries({ nighttimber1200: { scheme: 'stock', lights: { v: 1, nav: true } } });
+check('a v1 lights entry from before the switch migrates with the switch at auto', same(oldNight.nighttimber1200.lights, { v: LIGHTS_VERSION, nav: true }), JSON.stringify(oldNight));
 check('an old entry draws all stock', same(kitParts('sky1800', loaded.sky1800.kit), Object.fromEntries(slotsFor('sky1800').map((s) => [s.id, 'stock']))));
 const newer = { v: KIT_VERSION + 1, parts: { spinner: 'hologram' } };
 check('a newer kit version is kept as it came', same(checkKit('sky1800', newer).kit, newer));
@@ -85,6 +91,10 @@ check('a v1 code carries kit and lights', !back.error && same(back.entry.kit, q.
 check('a code with a bad kit is refused', readCode(encodeLivery('7inch', 'x', { kit: { v: 1, parts: { spinner: 'bullet' } } })).error === 'bad_value');
 check('a code with a newer kit version is refused with the version sentence', readCode(encodeLivery('7inch', 'x', { kit: { v: 2, parts: { arms: 'x' } } })).error === 'version');
 check('a code with newer lights is refused too', readCode(encodeLivery('7inch', 'x', { lights: { v: 9, led: '#ffffff' } })).error === 'version');
+const v1code = readCode(encodeLivery('sky1800', 'v1', { lights: { v: 1, nav: true } }));
+check('a v1 lights code still reads, as the current version', !v1code.error && same(v1code.entry.lights, { v: LIGHTS_VERSION, nav: true }), v1code.error ?? JSON.stringify(v1code.entry));
+const nightCode = readCode(encodeLivery('nighttimber1200', 'n', { lights: { v: 2, factory: 'on' } }));
+check('a code carries the factory switch', !nightCode.error && same(nightCode.entry.lights, { v: LIGHTS_VERSION, factory: 'on' }), nightCode.error ?? '');
 const plain = readCode(encodeLivery('sky1800', 'old', { regions: { wing: '#ff0000' } }));
 check('an old code reads the same', !plain.error && same(plain.entry, { regions: { wing: '#ff0000' } }));
 
