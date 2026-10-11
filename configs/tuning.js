@@ -74,6 +74,8 @@ export const SIM_TUNE_DOUBLES = 12;
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
 const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
+const CAP_SHEET = 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_67_CAP_ecb0e58c-fdbf-409f-85e7-0af3bab79c00.pdf';
+const CAP_GUIDE = 'https://extremeflightrc.com/cdn/shop/files/67_Extra260_ARF_Build_guide.pdf';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -245,6 +247,14 @@ export const TUNING = {
     cg: { mm: 145, datum: 'tuning.datum.root_le', range: [145, 173.5], source: `AeroTetris, "CG (16%): 923.8 mm" and "CG (8%): 952.3 mm" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
     packKg: 1.64, nose: 0.92, tail: -1.20, /* the lead inside the tail cone, ahead of its post */
     throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
+    flaps: null,
+  },
+  cap1702: {
+    chord: 0.338, area: 0.5548, margin: 0.21,
+    cg: { mm: 130, datum: 'tuning.datum.root_le', range: [130, 150], source: `Extreme Flight's data sheet, "Center of wing tube for maiden, sport and precision flight", and the 67 in line's build guide, "at the former immediately behind the wing tube"; the tube's station FITTED at 130 mm (docs/CAP580-STAGE1.md), the former about 20 mm behind it; ${CAP_SHEET}` },
+    packKg: 0.652, nose: 0.47, tail: -1.03,
+    expo: 60, /* the data sheet's high rate expo, one figure for all three, as FW_CAP1702 flies (docs/CAP580-STAGE1.md) */
+    throws: { high: [36, 50, 52.5], low: [17.5, 11, 20], source: `Extreme Flight's data sheet, in degrees: high aileron 38 up 34 down (36 each way), elevator 50, rudder 50 to 55 (52.5); low aileron 15 to 20, elevator 10 to 12, rudder 20 (docs/CAP580-STAGE1.md); ${CAP_SHEET}; ${CAP_GUIDE}` },
     flaps: null,
   },
 

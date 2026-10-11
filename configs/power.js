@@ -201,7 +201,11 @@ export const TABLE = {
   hercules3077: {
     simId: 31, massKg: 6.728, cells: 3, rCell: 0.0015, propIn: 12, cruiseMs: 15.46,
     flightTime: null,
+  },  cap1702: {
+    simId: 32, massKg: 3.6287, cells: 6, rCell: 0.00346, propIn: 18, cruiseMs: 18,
+    flightTime: null,
   },
+
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -603,6 +607,26 @@ const F16 = [
   },
 ];
 
+/* Extreme Flight's 67 in CAP 580, docs/CAP580-STAGE1.md: the T-Motor AM670
+ * 520 kV on the 18 x 8 AMZ carbon and the AM116A, the combo Extreme Flight
+ * sells for it, on a 6S 4000 to 5000 (the data sheet). The thrust, current
+ * and rpm are T-Motor's bench table at full throttle (LIG Power's copy),
+ * the pitch speed APC's 18 x 8E through it (npm run cap580:derive). The
+ * packs are Motion RC's Admiral 6S 4000 and 4500, in the sheet's range;
+ * the 4500 is the stock. */
+const CAP_COMBO = 'https://extremeflightrc.com/products/t-motor-hobby-am670-am116-combo';
+const CAP_BENCH = 'https://www.ligpower.com/cn/product/am670-kv520-3D-combo.html';
+const CAP = [
+  {
+    id: 'stock', name: 'power.cap.stock', kind: 'electric', voice: 'wing',
+    kv: 520, propIn: 18, pitchIn: 8, blades: 2,
+    thrustN: 94.31, currentA: 111.11, rpmNoLoad: 10160, pitchSpeedMs: 40.37, lvcV: 3.0,
+    rpmFull: 8636, /* T-Motor's bench at full throttle; its pitch speed is APC's curve's (docs/CAP580-STAGE1.md) */
+    massKg: 3.6287, cgShiftM: 0, packs: F16_6S, pack: '6s4500',
+    source: [CAP_COMBO, CAP_BENCH, `${APC}18x8E.dat`],
+  },
+];
+
 /* The Zagi HP, docs/ZAGI-STAGE1.md: Zagi's own power pack, its 3100 kV
  * 28 x 35 inrunner on a 5 x 5 carbon prop and a 35 to 40 A ESC, "over
  * 22,000 rpm at only 30 amps in static testing", on Zagi's 3S 2200 30C
@@ -772,6 +796,7 @@ export const POWER = {
   extra3d1308: EXTRA,
   nighttimber1200: NIGHTTIMBER,
   hercules3077: HERCULES,
+  cap1702: CAP,
   f16878: F16,
   p51d1450: P51,
   zagi1219: ZAGI,

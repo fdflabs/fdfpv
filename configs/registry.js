@@ -412,6 +412,32 @@ export const TUNES = [
     wingStab: 1,
   },
   {
+    /* The CAP 580 is an ARF and ships with no electronics, as the
+     * Hercules: Manual is its default, as an IMAC or 3D pilot flies it. A
+     * builder fits whatever receiver they like; the two gyro modes are a
+     * Spektrum AR637T's (owner rule 2026-10-08: any real gyro), its AS3X
+     * rate damper and its SAFE Select self levelling. On its wheels every
+     * mode flies as Manual. docs/CAP580-STAGE1.md. */
+    id: 'cap-manual',
+    airframe: 'cap1702',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at Extreme Flight\'s 3D rates. Heavier and faster than the Extra: it carries its speed through a figure and wants a firmer hand. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons.',
+  },
+  {
+    id: 'cap-as3x',
+    airframe: 'cap1702',
+    name: 'AS3X',
+    note: 'A Spektrum AR637T receiver fitted by the builder, its AS3X rate damper on: the sticks are the surfaces at the 3D rates, and the gyro damps the bumps and the torque\'s kicks; it fades out as the stick leaves centre. Nothing levels it and nothing caps a rate.',
+    wingStab: 3,
+  },
+  {
+    id: 'cap-stab',
+    airframe: 'cap1702',
+    name: 'SAFE Select',
+    note: 'The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level. It cannot hover or tumble: switch to Manual or AS3X for 3D.',
+    wingStab: 1,
+  },
+  {
     /* The P-51's three, the Timber's: ailerons, elevator and rudder, the
      * flaps and the retracts switches on top of every mode, F and G; on
      * its wheels every mode flies as Manual, so the swing on the take off

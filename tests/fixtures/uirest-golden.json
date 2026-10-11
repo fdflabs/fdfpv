@@ -263,6 +263,10 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -387,6 +391,10 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
       },
       {
        "value": "p51d1450",
@@ -2784,6 +2792,147 @@
     }
    },
    "hercules3077:unfitted": null,
+   "cap1702:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "cap1702",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "cap1702:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "cap1702",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "cap1702:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -4276,6 +4425,10 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4400,6 +4553,10 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
       },
       {
        "value": "p51d1450",
@@ -6797,6 +6954,147 @@
     }
    },
    "hercules3077:unfitted": null,
+   "cap1702:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "cap1702",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "cap1702:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "cap1702",
+     "look": {
+      "colours": {
+       "wing": 2311092,
+       "fuselage": 2311092,
+       "tail": 2311092,
+       "stripe": 16102168,
+       "trim": 14819374
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "cap1702",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "cap1702:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",

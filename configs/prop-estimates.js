@@ -422,5 +422,19 @@ export const PROP_ESTIMATES = {
         currentA: 119.133
       }
     }
+  },
+  cap1702: {
+    stock: {
+      "18x10e": {
+        thrustN: 101.2258,
+        pitchSpeedMs: 48.9017,
+        currentA: 130.584
+      },
+      "17x8e": {
+        thrustN: 81.684,
+        pitchSpeedMs: 41.4996,
+        currentA: 93.493
+      }
+    }
   }
 };
