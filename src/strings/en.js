@@ -2088,6 +2088,7 @@ export default {
   "airframe.blurb.zagi1219": "A 48 in Zagi HP on 3S, the EPP flying wing that taught a generation to fly on the slope and in combat. Throw it hard, and go easy on the elevons: it rolls fast and it answers the smallest touch in pitch. No rudder. It glides a long way and slides in on its belly.",
   "airframe.blurb.nrj1490": "A 1490 mm OA Composites NRJ, a 213 g carbon discus launch glider with no motor. Spin and throw it by the wingtip to 60 m, then work the thermals to stay up; bring it home on its belly or catch it.",
   "airframe.blurb.striker2500": "The raid's own pusher delta, 2.5 m across, on a 110 cc boxer twin or a small turbojet, with a warhead in its nose. Shoot it off the rail, fly it fast and level, put it into the target. It is stable and heavy, not aerobatic, and the jet takes seconds to spool.",
+  "airframe.blurb.hercules3077": "A 3 m AeroTetris balsa C-130H on four electric motors, in USAF grey. Heavy and slow to answer: fly it on a long approach. Press O to open the ramp and P to drop a load under its parachute.",
   "trickfilm.and": " and ",
   "tricks.level.beginner": "Beginner",
   "tricks.level.novice": "Novice",
