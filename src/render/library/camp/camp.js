@@ -445,7 +445,7 @@ const RAG = [[0.32, 0.3, 0.26], [0.08, 0.12, 0.22], [0.25, 0.06, 0.04], [0.12, 0
 const LITTER = [[0.2, 0.2, 0.2], [0.26, 0.24, 0.2], [0.16, 0.05, 0.04], [0.06, 0.08, 0.12], [0.22, 0.17, 0.1]];
 
 /*
- * THE DRESSING (campdressing.js): a work table, a cooking place with its
+ * THE DRESSING (dressing.js): a work table, a cooking place with its
  * own small fire, firewood, a water tank and bottles, more crate stacks,
  * a generator, a wheelbarrow, a washing line, a string of bulbs, lanterns
  * under two roofs, and litter. Solid where it stands higher than the
