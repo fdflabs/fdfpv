@@ -491,6 +491,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.lobby = m.lobby;
         }
         handlers.onLobby?.();
+      } else if (m.type === 'bots') {
+        /* The host switched the room's AI pilots (edge/rooms/roombots.js). */
+        if (welcome && typeof m.level === 'string') {
+          welcome.bots = m.level;
+        }
+        handlers.onRoom?.();
       } else if (m.type === 'room') {
         if (welcome) {
           welcome.name = m.name;

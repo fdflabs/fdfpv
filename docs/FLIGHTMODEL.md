@@ -491,6 +491,46 @@ Stick, the Zagi, the NRJ, `war:legacy` and `crash:core`'s digests.
 Regenerated: `configs/power-estimates.js`, `tools/audio/flights.json`.
 No gate changed.
 
+## The spin measure, made honest (no plant change)
+
+The probe this lane started from reported every spin recovery in 0.02 to
+0.33 s, which said more about the probe than the aircraft: its recovery
+ended at the first sample under 20 deg/s of yaw. `scripts/stall-probe.js`
+rows B and C now say what they measure:
+
+- **B** names the motion. A spin is the wing held stalled while it turns
+  (its least angle of attack over the last 3 s over the stall); the same
+  yaw rate with the wing flying is a spiral; under 60 deg/s is neither.
+- **C** ends the recovery when the rotation has stopped (under 20 deg/s
+  for half a second running) or the wing has flown (2 deg under its stall
+  for half a second), says which, and gives the turns, time and height
+  from the anti spin controls to that end, and the yaw rate it began from.
+
+On main (the module byte identical, this pull request changes only the
+probe):
+
+| Aircraft | B: last 3 s | C: from, end, turns, s |
+| --- | --- | --- |
+| 1000 mm wing | 290 deg/s, alpha 7.3: spiral, the wing flying | wing flying in 0.50 s, 0.00 turns |
+| Skyhunter | 49 deg/s, alpha 14.1: no spin | 0.09 turns, 0.59 s |
+| Cub | 49 deg/s, alpha 15.7: no spin | 0.07 turns, 0.60 s |
+| Slow Stick | 98 deg/s, alpha 13.8: spin | 0.02 turns, 0.55 s |
+| Radian | 81 deg/s, alpha 14.6: spin | 0.06 turns, 0.58 s |
+| Timber | 50 deg/s, alpha 19.9: no spin | 0.13 turns, 0.59 s |
+| Bramor | 395 deg/s, alpha 15.7: spin | 0.18 turns, 0.67 s |
+| Bombshell | 139 deg/s, alpha 12.3: spin | 0.01 turns, 0.53 s |
+| Kadet | 51 deg/s, alpha 10.6: no spin | 0.05 turns, 0.53 s |
+| F-16 | 283 deg/s, alpha 40.2: spin | 0.04 turns, 0.65 s |
+| Ugly Stik | 39 deg/s, alpha 12.9: no spin | 0.06 turns, 0.60 s |
+| Tiger Moth | 87 deg/s, alpha 16.6: spin | 0.09 turns, 0.63 s |
+
+What it shows: the trainers and the Stik are stalled but turn at 40 to
+50 deg/s, a stalled spiral, not a spin; and every aircraft that does spin
+stops the moment the stick goes forward, in under a fifth of a turn. A
+real light aircraft takes a half to one and a half turns after the anti
+spin controls to stop (FAA-H-8083-3C ch. 5, "Spin recovery"), because its
+spin is autorotation that the wing keeps up until the rotation is taken
+out of it. That is the plant to build next; this is its before.
 ## PR 5, built: the 3D aircraft
 
 E-flite's Extra 300 3D 1.3m (EFL115500), the aircraft docs/EXTRA-STAGE1.md
@@ -531,6 +571,68 @@ inside the wash. The probe's harrier pilot is integrator limited at 29
 deg; extra:gates E11, flown to the alpha, holds 40. AUTH here is one step
 of full stick, the gates' E10 a 20 ms average from rest.
 
+### What deepens a spin, measured
+
+Two more columns in row B and a row G, still no plant change:
+
+- **B** gives the inertial pitch, -(Iz - Ix) p r, nose up, which in a real
+  spin holds the nose up against the aerodynamics (Bowman, NASA TN D-6575,
+  p. 6: "As the one-turn point is approached, the nose comes back up and
+  the angle of attack continues to increase"), against the aerodynamic
+  pitching moment; and how much of the time the stalled strips' roll has
+  the roll rate's sign, which is autorotation.
+- **G**, the accelerated stall a snap roll is: full back, right rudder and
+  right aileron at once from 1.4 Vs at half throttle, 1 s: the angle of
+  attack reached past the stall, the peak pitch and roll rates.
+
+The targets, where a source gives one: a developed light aircraft spin
+at 32 to 79 deg of angle of attack and 122 to 261 deg/s (Stough, AIAA
+90-1317, four aircraft, recovery parachute tests), reached after about two
+turns in 4 to 6 s (Bowman, p. 6 and 13); recovery from a one turn spin in
+not more than one more turn (14 CFR 23.221(a), normal category); one RC
+aerobat measured, a 35 percent Extra 260, rolling at 235 deg/s with its
+nose 55 deg down and sinking 15 m/s (Ragheb, Dantsker and Selig, AIAA
+2013-2806). For the aircraft here, only the Tiger Moth has a source that
+says it spins ("Stalls, spins, aerobatics are straightforward",
+Phillips, docs/TIGERMOTH-STAGE1.md) and only the Ugly Stik one that says
+it snaps (RCM, "four point and snap rolls"); nothing found says the Cub,
+Kadet, Skyhunter, Timber or Slow Stick does or does not.
+
+On #854's module: the trainers sit 1.5 to 2 deg past their stall turning
+at 47 to 55 deg/s, the inertial pitch a few hundredths of a newton metre,
+the strips with the roll; the Tiger Moth turns at 62 deg/s at 14.6 deg
+with 0.133 N m of inertial pitch up against 0.070 of aerodynamic pitch
+down. G: the Stik reaches 2.6 deg past its stall at 65 deg/s of pitch and
+rolls at 73 deg/s, the P-51 (not in this probe; flightmodel-probe's SNAP)
+snaps. None of them is near Stough's envelope: the plant's spins are
+shallow, the next step's subject.
+
+### Deep spins and the Stik's snap: not built, and why
+
+- **What holds the plant's spins shallow is the stall's pitch break, at
+  the sections' own data.** On the Cub's B flight the full up elevator's
+  linear moment at 14.6 deg is +0.10 of qSc and the stall's moment -0.10:
+  the angle of attack stops 2 deg past the stall. The strips past it hold
+  their lift flat for stall_top (the UIUC curves each table cites: 4.6 deg
+  on the Cub's Clark Y class, 6.2 on the Tiger Moth's), so a roll rate that
+  pushes a wing deeper loses it no lift: no autorotation to speak of until
+  the wing is deeper than the elevator takes it, and no rotation fast
+  enough for the inertial pitch to take it there. A developed spin at
+  Stough's 32 to 79 deg needs the tail's and the stalled wing's pitching
+  moments at those angles, which no source here gives for these aircraft.
+- **Tried:** the Tiger Moth, the one aircraft a source says spins, with
+  hi_alpha's saturating tail (the removed Extra's, its own tail slopes):
+  B unchanged, 60 deg/s at 14.4 deg. The cap is the wing's break, not the
+  tail. Not kept.
+- **The Ugly Stik's snap:** G reaches 2.6 deg past its stall at 65 deg/s
+  of pitch on the plan's 3/8 in of elevator; the P-51 snaps on its own
+  throws. RCM's "four point and snap rolls" gives no throws or speeds for
+  them, and nothing found times a Stik snap: building one would be fitting
+  the elevator or the break to an adjective.
+- **A spin recovery that takes turns:** every spin here stops in under a
+  fifth of a turn, inside 14 CFR 23.221's one turn. A delay (the rudder
+  blanketed by the stalled tail, Bowman p. 16) is measurable only on a
+  developed spin, which the plant does not reach, so it is not built.
 ## The rudder only aircraft's level hold, retuned for the wash
 
 PR 2's wash made the Bombshell's and the Slow Stick's rudder stronger
@@ -610,6 +712,135 @@ the plant 218; E9, full aileron against it, 209 (232), the plant 212.
   Unmoved: the five inch, the 1000 mm wing, the Skyhunter, the Bramor and
   its chute, the F-16, the Zagi, the NRJ, war:legacy and crash:core.
 
+## The Skyhunter's wash: a pusher between its booms
+
+The Skyhunter's prop is behind its wing and ahead of its H tail: its wash
+blows the middle of the stabiliser, 0.456 m of span between the booms,
+and passes both boom fins 0.232 m out (docs/SKYHUNTER-STAGE1.md, the 3D
+model), and no wing root stands behind the prop to turn its swirl back.
+Two table fields say so: `slip_pusher` (no root: the swirl's share at
+the tail is all of it, and nothing recovers it) and `slip_hv` both zero
+(no fin in the wash: its share is 0). Every other table's arithmetic is
+as it was. From scripts/wash-derive.js on its derivation's tail numbers.
+
+| Skyhunter | main | this |
+| --- | --- | --- |
+| AUTH pitch, yaw rad/s² at zero airspeed | 0, 0 | 31.3, 0 |
+| HOVER held of 8 s | 0.82 | 4.31 |
+| HARR pitch | 11.3 deg | 17.2 deg |
+
+Re-recorded nothing: the Skyhunter's committed recording is kept (its
+recorder does not reproduce it on main either) and its hash, replaylib's
+trace and simmod's transcript are re-pinned. Every other hash is the
+previous pull request's.
+
+## The stall, part 1: CL max at the top of the curve, and the moment break
+
+### The lift
+
+The probe found every minimum flying speed 3 to 12 percent over its
+derivation because the plant's lift curve topped out at 0.80 to 0.88 of
+each table's CL max (UGLYSTIK and TIGERMOTH-STAGE1 said as much: "the
+plant's curve rounds off short of CL max, as every aircraft's does"). Every
+derivation's stall speed, sqrt(2 W / rho S CL max), takes CL max as the
+peak of the curve. Now it is: the wing's own lift follows the linear line
+to a stall_blend short of the stall angle, leaves it below on the parabola
+tangent to it there, and tops out at CL max a stall_blend past it, level;
+the stalled section holds CL max for stall_top before it falls. The plate's
+drag and the strips' stall angle start where they always did, and the gates
+measure the stall at the linear crossing as before.
+scripts/lib/liftcurve.js is the curve for the derivations (Kadet, Bombshell,
+Slow Stick, stab:glide), formula for formula.
+
+### The moment break: the centre of pressure moves aft at the stall
+
+The stalled lift used to act at the aerodynamic centre for as long as the
+section held it, and only move to the plate's centre of pressure as it
+fell. A section that stalls from its trailing edge separates from CL max on
+and its centre of pressure moves aft with the separation: its quarter chord
+moment breaks nose down at the stall itself, not when the lift falls
+(Abbott and von Doenhoff, Theory of Wing Sections, the cm_c/4 curves of the
+NACA 24xx, 00xx and Clark Y class sections; Hoerner, Fluid Dynamic Lift, the
+centre of pressure's travel with separation). Critzos, Heyson and Boswinkle,
+NACA TN 3361 (the NACA 0012 to 180 deg), say the same in words: the
+quarter chord moment "become[s] negative after the stall (alpha = 14 deg)
+and remain[s] negative to 180 deg". They give the sign, not the speed: how
+fast the arm moves is the model's choice, not a measured curve, and the
+sourced curve would come from TN 3361's figure 1, which is not digitised
+here. It moves over one stall_blend from the stall angle, a choice bounded
+by the P-51's flight test on one side and the trainers' gates on the other.
+Spread over the whole plateau and the fall instead (stall_top and two
+blends), the Stik's U11b reads bank 19.1, the Slow Stick's S9b yaw 28.5
+and the P-51's P19 pb/2V 0.119, past the XP-51's band; over one blend all
+three pass, P19 at 0.107. The arm now moves over the
+stall's own blend (past) rather than over the fall, on the monoplane and on
+each of a biplane's wings. With CL max held at the old arm, the aircraft
+whose CG is behind its wing's aerodynamic centre (the Ugly Stik, the Tiger
+Moth) pitched up harder at full up and stalled deeper, and dropped a wing at
+a held powered stall (U11b 33 deg, T8b 18); with the break at the stall
+their trim is main's again (the Stik 14.2 deg of alpha against 14.0).
+Independent flight test agreement: the P-51's slow pull to full up, P19,
+reads pb/2V 0.107 in its first second, against the XP-51's 0.079 (NACA)
+inside the band of 0.04 to 0.118 it was derived on; 0.112 before.
+
+### Minimum flying speed, the probe's, #853 to this
+
+ Aircraft | STALL m/s 
+ --- | --- 
+ 1000 mm wing | 8.03 → 7.19 
+ Skyhunter | 10.31 → 9.15 
+ Cub | 8.94 → 8.07 
+ Slow Stick | 4.82 → 4.54 
+ Radian | 7.11 → 6.49 
+ Turbo Timber | 7.98 → 7.31 
+ Bramor | 14.06 → 13.80 
+ Bombshell | 6.94 → 6.66 
+ Kadet Senior | 8.28 → 7.42 
+ P-51D | 11.06 → 9.74 
+ F-16 | 12.82 → 11.80 
+ Zagi HP | 7.90 → 7.38 
+ Ugly Stik | 10.60 → 9.46 
+ Tiger Moth | 9.89 → 8.99 
+ Striker | 7.87 → 8.87 
+ Extra 300 3D | 9.32 → 8.36 
+
+Against each derivation: the 1000 mm wing 7.19 (7.25), Skyhunter 9.15
+(9.2), Cub 8.07 (8.1), Radian 6.49 (6.49), Zagi 7.38 (7.36), Ugly Stik 9.46
+(9.48), F-16 11.80 (11.98), P-51 9.74 (10.06), Timber 7.31 (7.20), Kadet
+7.42 (7.15), Bombshell 6.66 (6.49), Slow Stick 4.54 (4.43): the remaining
+few percent over on the trainers is the elevator's down load at full up,
+which the probe flies with and the formula leaves out. The Tiger Moth's
+derivation put its stall at the top wing's CL max, 9.47 m/s; the cell keeps
+lifting on its bottom wing past that, and the cell's own maximum on the
+plant's curve is CL 1.106, 8.76 m/s (the bip_* wings through
+scripts/lib/liftcurve.js); the plant flies 8.99. T2 still measures the top
+wing's crossing and is unchanged.
+
+### Gates re-derived, each said so in its source
+
+- Bands derived on the old curve, re-derived on the new one with their
+  tolerances: Kadet S9a (sink 1.21 m/s at 7.72 m/s, was 1.88 at 9.0),
+  Bombshell S9a (1.23 at 6.83, was 1.98 at 7.7), Slow Stick S9a (0.92 at
+  4.63, was 2.09 at 5.7, the first derivation's flat plate), Slow Stick
+  S15's take off (3.20 m at 4.63 m/s, was 4.9 m at 5.2). stab:glide's
+  curve is the new one; no table moved. The Slow Stick's hand toss in
+  wing:contact is thrown with the elevator neutral: 0.1 up climbed the
+  throw down to 4.9 m/s on the true curve.
+- Powered held stalls, flown as the handbook flies them (FAA-H-8083-3C ch.
+  5, power on stalls: right rudder against the left turning tendencies, a
+  wing picked up with the rudder): the Kadet, Bombshell and Slow Stick S9b
+  hold the wings on the rudder, their only roll control; the Tiger Moth's
+  T8b takes the yaw rate out on the rudder, as Great Planes' manual says
+  ("always be ready to apply right rudder to counteract engine torque");
+  the Stik's U11b and the Moth's T8b aileron holds have an integral, as the
+  Kadet's S8 bank hold, slow (0.2 per second per radian) against a stalled
+  wing's roll response. No band moved; every one passes.
+- tuning:check U2 read the Radian's static margin from two angles the
+  second of which, 2.9 deg of body angle, is past where its curve now
+  leaves the linear line; both points are on the linear lift now, and the
+  Radian's documented margin is the table's own, -cm_alpha / cl_alpha,
+  1.304 / 5.709 = 0.228 (it read 0.234 off the old curve's blend). The
+  hangar's tuning page shows 22.8 percent for it.
 ## A hover a person can fly, and the Extra's AS3X
 
 The owner flew the Extra 300 3D and could not hover it. HOVER above is
@@ -741,3 +972,102 @@ pinned hash with the call made and without; a Radian's glide sinking
 0.500 m/s less in 0.5 m/s of rise; a seven inch with its motors off
 falling less far in rising air; it outliving a reset and a still wind,
 and 0 taking it away to the bit.
+
+## The jet's normal force in a hover
+
+Air that crosses the disc sideways leaves along the prop's axis, so the
+prop takes its sideways momentum: Selig, AIAA 2010-7938, eq. 13 to 16,
+N_j = k_j rho A w0 V_T against the disc's sideways air V_T, w0 the
+hover's induced speed sqrt(T / (2 rho A)); "for an airplane in hover the
+damping force makes hovering flight less demanding of the pilot". k_j:
+Selig gives about 80 percent behind a smooth cowling and "nearly 100%"
+for the cruciform nosed profile foamies; the Extra is cowled, 0.80. It
+acts at the disc, 0.302 m ahead of the CG (the drawn model), so it damps
+the nose's swing as well as the drift, and it is washed out away from
+the hover by 1 - m, Selig's jet parameter m = V_N / (V_N + w); his
+classic normal force (eq. 4), which he blends with it, is not in this
+plant. The Extra only so far; every other table leaves k_j at zero.
+
+Measured: a 2 m/s drift, the attitude held vertical at the hover's
+throttle, is 0.64 m/s a second later along the wing and 0.29 across it,
+against 0.94 and 0.54 without; hover:probe's person-limited pilots
+holding the Extra 10 s, Manual 11 to 59 of 648, AS3X 82 to 169.
+
+### Not known: AS3X's heading on this receiver
+
+The Extra's AS3X here is a rate damper. E-flite's manuals describe AS3X
+with a centred stick as "continue to fly at its present attitude", which
+a heading term would do, and Spektrum's receivers carry one ("Heading",
+off by default on the AS3000). Whether the Extra's factory set up (an
+AR636) has it on, and how much, is not published; it is left out until
+that set up is sourced.
+## A prop spins up
+
+The owner noticed the throttle reaches the thrust in the step it is
+asked; a real rotor has inertia. Every prop now spins up by its drive's
+own equation, every figure from the table already there (plant_wing.c,
+prop_spool): the rotor's inertia j_prop (PR 3's estimates) turned by the
+drive's torque less the prop's, the prop's torque going with its speed
+squared, Q_f = torque_arm thrust_static at full.
+
+**Electric motors** (Drela, "First-Order DC Electric Motor Model", MIT
+16.50 notes, 2007: Q = (I - I0)/Kv, I = (V - w/Kv)/R). The table's speed
+at full is 0.85 of no load (the plant's rule), so the circuit (pack, ESC
+and windings) drops 0.15 of the pack's voltage at the full current, which
+sets R; Kt is V over the no load speed, so the motor's torque at full is
+Kt I_f, which matches the prop's torque_arm times thrust_static (the
+Extra's 0.68 and 0.65 N m). Over the full speed,
+J w_f n' = Q_f (5.67 (d - n) + d^2 - n^2), whose rest is still n = d, the
+plant's speed at a duty: the thrust curve and the trims are where they
+were, and only the getting there takes time. The current a step draws is
+that circuit's, up to V/R at a stall; no ESC here clamps it in running
+(none of these aircraft's ESC listings names a current limiter, and we
+found no source for one acting on a throttle step), so none is modelled.
+With the stick pulled back (d < n) the same equation brakes the prop
+harder than its drag alone: that is the ESC's damped light (synchronous
+rectification, BLHeli's default "damped light" mode) returning the back
+EMF's current to the pack.
+
+**Glow and petrol engines** (Ugly Stik, Tiger Moth, Kadet, Bombshell, the
+Striker's boxer). At a fixed throttle an engine's torque changes slowly
+with its speed (Heywood, Internal Combustion Engine Fundamentals, 1988,
+ch. 2, brake torque against speed), taken as flat, so the drive is the
+torque that holds n = d and J w_f n' = Q_f (d^2 - n^2): with no back EMF to
+stiffen it, an engine answers several times slower than a motor of its
+power. The carburettor's own delay, a few revolutions of mixture, has no
+source we found for engines this size and is left out (it would only add
+to the lag). An engine is running from the reset, at its idle.
+
+A thrown or launched plane starts at the duty; a cut or flat motor or a
+dead engine coasts down on the prop's drag alone. The ducted fan keeps its
+own sourced fan_tau and the turbojet its spool.
+
+spool:derive (in CI) measures it off the plant, 63 and 90 percent of the
+thrust's change, ms, nose up and held still:
+
+ Aircraft | half to full | full to half | rest (idle) to full
+ --- | --- | --- | ---
+ sky1800 | 88/183 | 48/101 | 117/214
+ cub1400 | 119/248 | 83/207 | 158/290
+ radian2000 | 129/269 | 90/226 | 172/316
+ bramor2300 | 60/126 | 42/105 | 80/147
+ slowstick1180 | 100/209 | 70/174 | 133/244
+ timber1500 | 130/271 | 66/134 | 173/317
+ bombshell1118 (glow) | 327/649 | 284/634 | 404/718
+ kadet1981 (glow) | 423/760 | 362/728 | 544/836
+ uglystik1567 (glow) | 319/625 | 196/430 | 436/728
+ tigermoth1803 (glow) | 319/625 | 262/609 | 436/728
+ extra3d1308 | 60/103 | 27/48 | 100/182
+ p51d1450 | 274/555 | 158/375 | 363/640
+ f16878 (its fan_tau, unchanged) | 195/337 | 147/277 | 415/561
+ zagi1219 | 48/100 | 34/84 | 64/117
+ striker2500 (petrol) | 304/548 | 183/384 | 443/744
+
+Gates that measured from rest in one step now hold the prop at speed
+first, as the real measurement is taken: slowstick S11 and P-51 P10/P11
+(tests/lib/wingpilot.js fullThrottleHeld), extra E10/E10b (a second at the
+throttle), flightmodel-probe AUTH and TORQ, and hover-probe (the pilot
+arrives in the hover with the motor at 0.6). The Striker's piston gate
+"the thrust is the stick's" (under 50 ms) contradicted a rotor with
+inertia and is re-derived: its rpm reaches 90 percent of full in 0.5 to
+1.0 s about the 0.75 s the equation gives standing still.

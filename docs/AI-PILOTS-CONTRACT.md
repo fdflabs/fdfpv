@@ -14,10 +14,9 @@ half) is another lane's.
   pilot: `AI Brave Fox 3` in English, `IA Zorro Valiente 3` in Spanish
   (`bots.name` in src/strings). An AI pilot is never shown without the mark.
 - The game lobby shows the AI pilots in its seat list, marked the same way.
-  The host's row (AI pilots, Off / Easy / Normal / Hard) is PR 4's client
-  half; the room's half (`{ type: 'bots', level }` from the host, told to
-  everybody, `bots` in the welcome) ships in PR 3. A room made for tag
-  starts at Normal.
+  The host's row (AI pilots, Off / Easy / Normal / Hard) sends
+  `{ type: 'bots', level }`; the room tells everybody and the welcome
+  carries `bots`. A public room starts at Normal, a private one Off.
 - A real pilot joining a room takes a seat an AI pilot held: the AI pilot
   leaves (a normal leave on every screen) and the newcomer is never refused
   `full` because of AI pilots.
@@ -100,22 +99,51 @@ check, the tick's batch recipients). Those 17 go through one helper,
   the nearest hunter along the valley; with the orb free, fly to the orb.
   On the last 150 m to a target it may come down to the target's height
   (never under 2 m), or a pilot sat on the strip could never be caught.
-- v1 AI pilots never crash: a mid air with one breaks the person as any
-  mid air does (the referee's hit), and the AI pilot flies on. Crashing
-  them (and their wreck) is a later PR if the owner wants it.
-- Where: AI pilots fly only where the server knows the ground. v1 is
-  swiss2 (tag's home world): the valley floor corridor, within 150 m of the
-  valley axis (src/maps/alps/terrain.js valleyAxis, copied with a selftest
-  that it matches) and between 20 m and 120 m over the flat floor. A room on
-  another world gets no AI pilots until that world has a server floor.
+- AI pilots crash as people do: a referee hit that breaks a part of one
+  (the same `brk` a person's plant applies), or its belly on the ground
+  the page's pilot hits (edge/rooms/grounds.js, the very field the page
+  builds; what is built on the ground, roofs and decks, is not there). It
+  falls from where it was, lies 5 s where it came to rest (FLAG_CRASHED,
+  drawn intact: no wreck table), and is born again in the air, untouchable
+  for 5 s, as a person's fresh flight is (5 s only, parked or not: lead,
+  2026-10-09).
+  A softer touch moves a person and leaves the AI pilot flying, unmoved.
+- Where: AI pilots fly only where the server knows the ground
+  (edge/rooms/grounds.js, the very field each page builds, from
+  src/maps/alps/heights.js and src/maps/swiss2/field.js). That is the
+  valley, in both its drawings: swiss2 (tag's home world) and the alps,
+  one shape, so one corridor: within 150 m of the valley axis
+  (src/maps/alps/heights.js valleyAxis, copied with a selftest that it
+  matches) and between 20 m and 120 m, over a floor that rolls between
+  about -2 and 8 m. A host moving a private room between the two sees the
+  AI pilots leave and fill again on the new one; to any other world they
+  leave.
+  - Itaipu: not yet. Its ground is streamed tiles (height.bin) that the
+    town and the water then conform (itaipu/terrain/conform.js) as the
+    page builds; the room would need the tiles and the conform on Node,
+    and a flight region over the lake and town.
+  - The Interior: next. The room already reads its ground and its tree
+    canopy (src/share/ops/missions.js worldFor: groundAt, canopyBlocks,
+    in the ops frame, z up), so ground and tree collision are there; what
+    is missing is where to fly (no valley axis) and the frame mapping.
+- Other games: none built. Streamer Combat: a pilot can cut paper with
+  none of its own (combat.js), so an AI pilot without a streamer would cut
+  and never be cut; its paper is simulated on the owner's client at the
+  physics rate (src/game/streamer.js), which the room would have to run
+  per AI pilot. Trick Battle: the runner's own client scores tricks from
+  every physics step (jam.js); a constant speed wing flies none. Races are
+  the cleanest next game: the room holds the host's track (race.js), and
+  an AI pilot needs only to fly its gates in order.
 - Difficulty: speed, turn rate, lead and a reaction delay, three steps.
   Easy is beatable by a first-week pilot, Hard is not a sure thing for the
   owner. The numbers are in edge/rooms/bots.js with the reason for each.
 
 ## Fill and leave
 
-- Until the host's lobby row exists (lead, 2026-10-07), only PUBLIC rooms
-  are filled; a private room gets none.
+- A public room starts at Normal, a private room Off (lead, 2026-10-08);
+  the host's AI pilots row on the room screen and in the lobby switches
+  them on or off and sets the level, in either. Everybody else reads the
+  host's choice on the same row.
 - A room made for tag fills up to FILL_TO pilots (people plus AI) while it
   has at least one person, at the host's difficulty; the default is Normal
   in a room made for the game and Off anywhere else.

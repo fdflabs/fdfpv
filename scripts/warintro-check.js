@@ -330,6 +330,12 @@ try {
     row(`wave: the mission's own card, its title over "Mission ${FILM_TITLE.n}"`, shot('wave').titles.includes(EN[FILM_TITLE.key]), shot('wave').titles.join(' | '));
     row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
   }
+  if (FILM.id === 'first-light-outro') {
+    row('outro: no attacker in any shot (the day is over)', SHOTS.every((x) => Object.values(shot(x.id).drawn).every((n) => !n)), SHOTS.map((x) => JSON.stringify(shot(x.id).drawn)).join(' '));
+    row('rack: the quad home on its pad', shot('rack').cast.includes('q2s'), shot('rack').cast.join(' '));
+    row('crest: the line of aircraft', ['ten', 'q1', 'int'].every((n) => shot('crest').cast.includes(n)), shot('crest').cast.join(' '));
+    row('gates: no title card while The Spillway is held', shot('gates').titles.length === 0, shot('gates').titles.join(' | '));
+  }
   if (FILM.id === 'spillway') {
     row('water and skin: the reservoir and the gate, no attacker', Object.values(shot('water').drawn).every((n) => !n) && Object.values(shot('skin').drawn).every((n) => !n),
       `${JSON.stringify(shot('water').drawn)} ${JSON.stringify(shot('skin').drawn)}`);

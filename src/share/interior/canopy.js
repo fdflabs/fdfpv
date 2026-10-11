@@ -22,9 +22,13 @@
  * crowns are round 0's (ROUTE_KEEP), and where the mission needs open
  * grass (KEEP_OPEN) the open land grows only its lone trees.
  *
- * A crown is an ellipsoid: horizontal radius r, vertical semi axis ry,
- * its top at the tree's height over the ground under its trunk. A line of
- * sight is blocked when it passes through any crown. Trunks and branches
+ * A crown is sized by an ellipsoid: horizontal radius r, vertical semi
+ * axis ry, its top at the tree's height over the ground under its trunk.
+ * Inside it the crown is lobed (src/render/library/crownshape.js): a
+ * core, a top and side heaps with gaps between them at the edge, as a
+ * real crown has, the same lobes the drawing draws. A line of sight is
+ * blocked when it passes through any crown's lobes, and open through a
+ * gap a pilot sees through. Trunks and branches
  * under the crown are left out: from the air, the crowns are what hides.
  *
  * WORLD METRES, Y UP (frame.js): a point is [x, y, z], x east, z south,
@@ -55,6 +59,10 @@ import { LAND } from './world.js';
 import { PLACES, opened } from './places.js';
 import { RIVER, STREAMS } from './hydro.js';
 import { ROUTES } from './routes.js';
+import { lobesHit, lobesTop, templateOf } from '../../render/library/crownshape.js';
+import { hash01 } from '../../render/library/hash.js';
+
+export { hash01 };
 
 /* One tree a square this size at most, metres: a semi deciduous forest's
  * crowns are 5 to 11 m across. */
@@ -153,6 +161,12 @@ function keptOpen(x, z) {
 /* The share of forest squares whose tree stands over the roof, on
  * average: more in some stretches of the forest than others. */
 const EMERGENT = 0.025;
+/* A closed stand's crowns, lobed (crownshape.js), cover about three
+ * quarters of the ellipsoid they are sized by; a little wider, they
+ * interlock as a closed roof's do and the forest stays as closed as it
+ * was with whole ellipsoids (canopy-los.js's 4000 lines: 2999 blocked
+ * against 3078), its gaps now at the crowns' edges. */
+const CLOSED_SPREAD = 1.17;
 
 /* Chance a square holds a tree, by land class. */
 const DENSITY = [];
@@ -165,15 +179,6 @@ DENSITY[LAND.wetland] = 0.05;
 DENSITY[LAND.bare] = 0.004;
 DENSITY[LAND.built] = 0.05;
 DENSITY[LAND.burned] = 0;
-
-/* An integer hash of a square and a salt, as a number in [0, 1). */
-export function hash01(i, j, salt) {
-  let h = Math.imul(i | 0, 0x27d4eb2d) ^ Math.imul(j | 0, 0x165667b1) ^ Math.imul(salt | 0, 0x9e3779b1);
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
 
 /* Value noise in [0, 1) on a lattice `cell` metres apart, smoothstepped.
  * Exported for the drawing's stands of one tone (trees.js). */
@@ -291,7 +296,7 @@ function linesNear() {
  *                           (x, z its trunk; h its top over ground; r the
  *                           crown's radius, ry its vertical semi axis, cy
  *                           its centre's world y; tint in [0, 1) for the
- *                           drawing)
+ *                           drawing; lobe its crownshape.js layout)
  *   treesIn(x0, z0, x1, z1, out)   every tree whose trunk is in the box
  *   canopyBlocks(from, to)  true when a crown stands between the two
  *                           world points [x, y, z]
@@ -396,7 +401,7 @@ export function makeCanopy(world) {
        * canopy and the layer under it, as one crown a square. Round 0's
        * footprint by the routes (ROUTE_KEEP), four fifths of it in the
        * closest stands elsewhere. */
-      r = (3.6 + 2.4 * w) * (1 - keep * 0.2 * (1 - sn));
+      r = (3.6 + 2.4 * w) * (1 - keep * 0.2 * (1 - sn)) * CLOSED_SPREAD;
       ry = (0.36 + 0.12 * hash01(ci, cj, 12)) * h;
       /* An emergent: a broad flat crown 6 to 12 m over the roof (the
        * lapachos, the timbo), never beside the routes. */
@@ -439,7 +444,7 @@ export function makeCanopy(world) {
     }
     const ground = groundAt(x, z);
     return {
-      x, z, ground, h, r, ry, cy: ground + h - ry, kind, tint: hash01(ci, cj, 6),
+      x, z, ground, h, r, ry, cy: ground + h - ry, kind, tint: hash01(ci, cj, 6), lobe: templateOf(hash01(ci, cj, 16)),
     };
   }
 
@@ -455,8 +460,9 @@ export function makeCanopy(world) {
     return out;
   }
 
-  /* The segment from p to p + d (t in [0, 1]) against a tree's crown. */
-  function hits(t, px, py, pz, dx, dy, dz) {
+  /* The segment from p to p + d (t in [0, 1]) against a tree's crown's
+   * ellipsoid, which holds all of its lobes. */
+  function bounds(t, px, py, pz, dx, dy, dz) {
     const ox = (px - t.x) / t.r;
     const oy = (py - t.cy) / t.ry;
     const oz = (pz - t.z) / t.r;
@@ -520,7 +526,7 @@ export function makeCanopy(world) {
     const dz = to[2] - from[2];
     for (let k = 0; k < sq.length; k += 2) {
       const t = treeAt(sq[k], sq[k + 1]);
-      if (t && hits(t, from[0], from[1], from[2], dx, dy, dz)) {
+      if (t && bounds(t, from[0], from[1], from[2], dx, dy, dz) && lobesHit(t, from[0], from[1], from[2], dx, dy, dz)) {
         return true;
       }
     }
@@ -560,13 +566,8 @@ export function makeCanopy(world) {
         if (!t) {
           continue;
         }
-        const ex = (x - t.x) / t.r;
-        const ez = (z - t.z) / t.r;
-        const q = 1 - ex * ex - ez * ez;
-        if (q > 0) {
-          const y = t.cy + t.ry * Math.sqrt(q);
-          top = y > top ? y : top;
-        }
+        const y = lobesTop(t, x, z);
+        top = y > top ? y : top;
       }
     }
     return top;

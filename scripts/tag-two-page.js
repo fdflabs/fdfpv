@@ -176,8 +176,7 @@ try {
   const spot = { A: { ...m, z: m.z + 30 }, B: m, C: { ...m, z: m.z - 30 } };
   await Promise.all(pages.map((p, i) => hold(p, spot[names[i]])));
   /* The room takes a throw for a teleport and keeps the seat untouchable
-   * for SPAWN_MS (edge/rooms/safety.js); the page its own five seconds and
-   * until 30 m from where it started. */
+   * for SPAWN_MS (edge/rooms/safety.js); the page its own five seconds. */
   for (const p of pages) {
     await p.until('window.__rooms().spawning === false', 15000);
   }

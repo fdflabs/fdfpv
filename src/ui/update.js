@@ -18,6 +18,11 @@
  * ?v=<new version>, URLs the cache has never seen. Measured by
  * scripts/version-reload-check.js against a server sending max-age=600.
  *
+ * A stamped page also registers sw.js, the offline cache. Seeing a new
+ * version here asks the browser for the new worker at once, so it has
+ * taken over by the time the pilot presses Reload and the reloaded page is
+ * answered from the new deploy's cache. See sw.js.
+ *
  * A room survives the reload by itself: src/share/rooms.js keeps the code
  * and the seat token in sessionStorage and main.js rejoins on the next
  * load.
@@ -46,6 +51,23 @@ export function pageVersion() {
   return document.querySelector('meta[name="fdfpv-version"]')?.content || null;
 }
 
+/* A browser without service workers, or one that refuses this one (a
+ * private window can), loads from the network as before; the warning says
+ * why a pilot's loads are not cached. */
+function registerWorker() {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+  navigator.serviceWorker.register(new URL('sw.js', document.baseURI), { updateViaCache: 'none' })
+    .catch((e) => console.warn('offline cache not registered:', e));
+}
+
+function askForNewWorker() {
+  navigator.serviceWorker?.getRegistration()
+    .then((reg) => reg?.update())
+    .catch((e) => console.warn('offline cache update failed:', e));
+}
+
 /* Calls onChange(true) when the deployed version stops being this page's,
  * and onChange(false) if it comes back (a revert). Returns the check, to
  * ask again now (a room just joined), or a no-op on a page with no stamp. */
@@ -54,10 +76,16 @@ export function watchVersion(onChange) {
   if (!own) {
     return () => {};
   }
+  registerWorker();
   let deployed = own;
   let asking = false;
+  let askAgain = false;
   const check = async () => {
     if (asking) {
+      /* A focus or a room join while an answer is still on its way asks
+       * once more after it lands: dropping it would leave the pilot on the
+       * old version until the next poll, three minutes out. */
+      askAgain = true;
       return;
     }
     asking = true;
@@ -67,6 +95,7 @@ export function watchVersion(onChange) {
       const seen = body && typeof body.version === 'string' ? body.version : null;
       if (seen && seen !== deployed) {
         deployed = seen;
+        askForNewWorker();
         onChange(seen !== own);
       }
     } catch (e) {
@@ -74,6 +103,10 @@ export function watchVersion(onChange) {
        * out, and the next check asks again. */
     } finally {
       asking = false;
+    }
+    if (askAgain) {
+      askAgain = false;
+      check();
     }
   };
   setInterval(check, CHECK_MS);

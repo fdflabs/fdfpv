@@ -3,7 +3,7 @@
  * (edge/rooms/bots.js, docs/AI-PILOTS-CONTRACT.md) in plain Node: the same
  * calls give the same poses bit for bit, a save and restore mid flight
  * flies on bit for bit, every pose stays in the corridor, the valley's
- * axis is alps/terrain.js's, a hunter catches a pilot flying straight,
+ * axis is alps/heights.js's, a hunter catches a pilot flying straight,
  * an Ace on Hard runs longer than one on Easy, and what it costs.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -25,8 +25,12 @@
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import {
-  BOT_CAP_MEASURE, Bots, CORRIDOR, LEVELS, valleyAxis,
+  BOT_CAP_MEASURE, BOT_MAPS, Bots, CONTACT_M, CORRIDOR, DOWN_MS, LEVELS, SPAWN_MS, valleyAxis,
 } from '../edge/rooms/bots.js';
+import { groundOf } from '../edge/rooms/grounds.js';
+import { buildSwissField } from '../src/maps/swiss2/field.js';
+import { buildHeightfield } from '../src/maps/alps/heights.js';
+import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING } from '../src/share/roomwire.js';
 import { BUBBLE_M } from '../src/share/roomtag.js';
 import { encodePose, decodePose } from '../src/share/roomwire.js';
 
@@ -112,7 +116,8 @@ function corridorRows() {
     }
     worst = Math.max(worst, off);
   }
-  check('every pose in two minutes of 8 bots is inside the corridor', out === 0, `widest ${worst.toFixed(1)} m of ${CORRIDOR.half}`);
+  check('every pose in two minutes of 8 bots is inside the corridor, none crashed on its own', out === 0 && bots.crashes.ground === 0,
+    `widest ${worst.toFixed(1)} m of ${CORRIDOR.half}, ${bots.crashes.ground} ground crashes`);
   /* Held at the edge is flying along it; what would show is a jump. A
    * substep at the fastest level moves 1.27 m, so a hold under a tenth of
    * that is a turn finishing at the edge, never a pop. */
@@ -123,7 +128,7 @@ function corridorRows() {
 }
 
 function axisRow() {
-  const src = readFileSync(new URL('../src/maps/alps/terrain.js', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../src/maps/alps/heights.js', import.meta.url), 'utf8');
   const m = src.match(/export function valleyAxis\(z\) \{\s*return ([^;]+);/);
   const theirs = m ? new Function('z', `return ${m[1]};`) : null;
   let worst = Infinity;
@@ -133,7 +138,7 @@ function axisRow() {
       worst = Math.max(worst, Math.abs(theirs(z) - valleyAxis(z)));
     }
   }
-  check("the corridor's axis is alps/terrain.js valleyAxis", worst < 1e-6, m ? `${m[1]}, worst ${worst.toExponential(1)} m` : 'valleyAxis not found');
+  check("the corridor's axis is alps/heights.js valleyAxis", worst < 1e-6, m ? `${m[1]}, worst ${worst.toExponential(1)} m` : 'valleyAxis not found');
 }
 
 /* A pilot flying down the valley's axis at 14 m/s (slower than every
@@ -237,11 +242,152 @@ function costRow() {
     `${perBotSecond.toFixed(3)} ms CPU per bot per room second (${(wall / 60).toFixed(2)} ms wall a second for all ${n})`);
 }
 
+/* One bot, out of its spawn, flown to roomMs `to` in room ticks from
+ * `from`; returns the last pose. */
+function flyTo(bots, from, to, orders = () => null) {
+  let last = null;
+  for (let t = from; t <= to; t += TICK) {
+    for (const { pose } of bots.step(Math.round(t), orders)) {
+      last = pose;
+    }
+  }
+  return last;
+}
+
+function crashRows() {
+  const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const ms = Number((main.match(/const ROOM_SPAWN_MS = (\d+);/) || [])[1]);
+  check("an AI pilot's spawn is a person's: src/main.js ROOM_SPAWN_MS, time alone", ms === SPAWN_MS && !/ROOM_SPAWN_M\b/.test(main), `${ms} ms`);
+
+  const field = buildSwissField().height;
+  const ground = groundOf('swiss2');
+  let worst = 0;
+  for (let z = CORRIDOR.zMin; z <= CORRIDOR.zMax; z += 37) {
+    for (let dx = -CORRIDOR.half; dx <= CORRIDOR.half; dx += 23) {
+      const x = valleyAxis(z) + dx;
+      const h = field(x, z);
+      worst = Math.max(worst, Math.abs(ground(x, z) - Math.max(h, -1.5)));
+    }
+  }
+  check("the room's ground is the Swiss field (swiss2/field.js) over the lake's surface, across the corridor (the strip's 2 cm of grass apart; bots:twopage holds it to the page's own ground)", worst <= 0.02 + 1e-9, `worst ${worst} m`);
+
+  /* Born untouchable for SPAWN_MS. */
+  const bots = new Bots(3);
+  bots.add(1, 'normal', 0);
+  const born = bots.step(0, () => null)[0].pose;
+  const later = flyTo(bots, TICK, SPAWN_MS + 200);
+  check('born in the air, untouchable for SPAWN_MS, then not', (born.flags & FLAG_SPAWNING) !== 0 && (born.flags & FLAG_AIRBORNE) !== 0
+    && (later.flags & FLAG_SPAWNING) === 0, `flags ${born.flags} then ${later.flags}`);
+  check('untouchable, the referee cannot crash it', !new Bots(3).crash(1, 0) && (() => {
+    const b = new Bots(3);
+    b.add(1, 'normal', 0);
+    return !b.crash(1, 100);
+  })());
+
+  /* A hit: it falls from where it was and lies on the ground. */
+  const t0 = SPAWN_MS + 200;
+  const at = bots.list.get(1).p.slice();
+  check('a hit crashes it', bots.crash(1, t0) && bots.crashes.hit === 1);
+  const mid = flyTo(bots, t0 + TICK, t0 + 1000);
+  let tr = t0 + 1000;
+  while (bots.list.get(1).down.restAt == null && tr < t0 + 20000) {
+    tr += TICK;
+    flyTo(bots, tr, tr);
+  }
+  const restAt = bots.list.get(1).down.restAt;
+  const rest = flyTo(bots, tr + TICK, restAt + DOWN_MS - 100);
+  const g = ground(rest.px, rest.pz) + CONTACT_M;
+  check('it falls, crashed, motor stopped, then lies on the ground', (mid.flags & FLAG_CRASHED) !== 0 && (mid.flags & FLAG_AIRBORNE) === 0
+    && mid.py < at[1] && mid.motor === 0 && Math.abs(rest.py - g) < 1e-9 && rest.vx === 0 && rest.vy === 0,
+    `from ${at[1].toFixed(1)} m, ${mid.py.toFixed(1)} m a second on, at rest after ${((restAt - t0) / 1000).toFixed(1)} s at ${rest.py.toFixed(2)} on ground ${g.toFixed(2)}, still there ${(DOWN_MS - 100) / 1000} s on`);
+  const again = flyTo(bots, restAt + DOWN_MS - 100 + TICK, restAt + DOWN_MS + 100);
+  check('DOWN_MS after it came to rest it is born again in the air, untouchable', (again.flags & FLAG_AIRBORNE) !== 0 && (again.flags & FLAG_SPAWNING) !== 0
+    && again.py >= CORRIDOR.yMin, `flags ${again.flags}, ${again.py.toFixed(1)} m`);
+
+  /* The ground: a bot flown into it crashes there. */
+  const low = new Bots(4);
+  low.add(1, 'hard', 0);
+  flyTo(low, TICK, SPAWN_MS + 2000);
+  const b = low.list.get(1);
+  /* Its aim keeps it over what it hunts, and a pull up is in its turn,
+   * so in play it meets the pasture seldom (none in ten terminal runs at
+   * targets sat on the floor, Hard); put it there to see the rule. */
+  b.p = [valleyAxis(-600), ground(valleyAxis(-600), -600) + CONTACT_M / 2, -600];
+  b.f = [0, -0.5, Math.sqrt(0.75)];
+  const before = b.p[1];
+  const hit = flyTo(low, SPAWN_MS + 2000 + TICK, SPAWN_MS + 2300);
+  check('its belly on the pasture, it crashes there', low.crashes.ground === 1 && (hit.flags & FLAG_CRASHED) !== 0,
+    `${low.crashes.ground} ground crashes from ${before.toFixed(1)} m over ${ground(b.p[0], b.p[2]).toFixed(1)} m ground`);
+
+  /* A restore mid fall falls on exactly as it would have. */
+  const run1 = new Bots(9);
+  run1.add(1, 'easy', 0);
+  run1.add(2, 'hard', 0);
+  flyTo(run1, TICK, SPAWN_MS + 500);
+  run1.crash(2, SPAWN_MS + 500);
+  flyTo(run1, SPAWN_MS + 500 + TICK, SPAWN_MS + 900);
+  const run2 = new Bots(1);
+  run2.restore(JSON.parse(JSON.stringify(run1.save())));
+  const trace = (bs) => {
+    const out = [];
+    for (let t = SPAWN_MS + 900 + TICK; t <= SPAWN_MS + 900 + DOWN_MS + 6000; t += TICK) {
+      for (const { pose } of bs.step(Math.round(t), () => null)) {
+        out.push(pose.flags, pose.px, pose.py, pose.pz);
+      }
+    }
+    return out;
+  };
+  check('a save and restore mid fall falls, lies and is born again bit for bit', same(trace(run1), trace(run2)));
+}
+
+/* The alps: the same valley drawn cel shaded, on the alps' own field. */
+function alpsRows() {
+  const field = buildHeightfield().height;
+  const ground = groundOf('alps');
+  let worst = 0;
+  for (let z = CORRIDOR.zMin; z <= CORRIDOR.zMax; z += 37) {
+    for (let dx = -CORRIDOR.half; dx <= CORRIDOR.half; dx += 23) {
+      const x = valleyAxis(z) + dx;
+      worst = Math.max(worst, Math.abs(ground(x, z) - Math.max(field(x, z), -1.5)));
+    }
+  }
+  check("the alps' ground is the alps' field (alps/heights.js) over the lake's surface, across the corridor (the strip's grass apart)", worst <= 0.02 + 1e-9, `worst ${worst} m`);
+  const bots = new Bots(5, 'alps');
+  for (let s = 1; s <= 8; s += 1) {
+    bots.add(s, ['easy', 'normal', 'hard'][s % 3], 0);
+  }
+  let out = 0;
+  let lowest = Infinity;
+  for (const t of ticks(120000, true)) {
+    for (const { pose } of bots.step(t, tagOrders(bots))) {
+      if (Math.abs(pose.px - valleyAxis(pose.pz)) > CORRIDOR.half + 1e-9 || pose.py < CORRIDOR.yMin - 1e-9 || pose.py > CORRIDOR.yMax + 1e-9) {
+        out += 1;
+      }
+      lowest = Math.min(lowest, pose.py - ground(pose.px, pose.pz));
+    }
+  }
+  check('two minutes of 8 bots over the alps: inside the corridor, none crashed', out === 0 && bots.crashes.ground === 0,
+    `${out} outside, ${bots.crashes.ground} ground crashes, the lowest ${lowest.toFixed(1)} m over the ground`);
+  const saved = JSON.parse(JSON.stringify(bots.save()));
+  const back = new Bots(1);
+  back.restore(saved);
+  check('restored, they fly over the ground they were saved over', back.map === 'alps' && BOT_MAPS.includes('swiss2'), back.map);
+  let threw = false;
+  try {
+    new Bots(1, 'itaipu');
+  } catch (e) {
+    threw = true;
+  }
+  check('a world the room has no ground for gets no bots', threw);
+}
+
 console.log('bots-selftest: edge/rooms/bots.js');
 determinismRows();
 corridorRows();
 axisRow();
 behaviourRows();
+crashRows();
+alpsRows();
 wireRow();
 costRow();
 console.log(failed ? `bots-selftest: ${failed} FAILED` : 'bots-selftest: all pass');
