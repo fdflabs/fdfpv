@@ -9,7 +9,6 @@ src/native/plant_wing.c #define STALL_RE_LO 3.0e4
 src/native/plant_wing.c #define STALL_RE_HI 5.0e4
 src/native/plant_wing.c #define AIR_MU 1.789e-5
 src/native/plant_wing.c #define STALL_TF_SEMICHORDS 3.0
-src/native/plant_wing.c #define AS3X_PRIORITY 1.6
 src/native/plant_wing.c #define CP_OF_CT_N 11
 src/native/plant_wing.c #define THERMAL_COUNT ((int)(sizeof(THERMALS) / sizeof(THERMALS[0])))
 src/native/plant_wing.c #define THERMAL_FORM_LO 5.0
@@ -1523,7 +1522,6 @@ src/native/plant_wing.c FW_EXTRA3D1308.acro_pitch_ki = 3.0
 src/native/plant_wing.c FW_EXTRA3D1308.acro_i_max = 0.30
 src/native/plant_wing.c FW_EXTRA3D1308.jet_kj = 0.80
 src/native/plant_wing.c FW_EXTRA3D1308.prop_x = 0.302
-src/native/plant_wing.c FW_EXTRA3D1308.as3x_k = { 0.028, 0.1224, 0.1842 }
 src/native/plant_wing.c FW_EXTRA3D1308.yaw_coord_k = 0.25
 src/native/plant_wing.c FW_EXTRA3D1308.stall_arm_cp = 0.1482
 src/native/plant_wing.c FW_EXTRA3D1308.stall_dw = 0.2661
