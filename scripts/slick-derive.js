@@ -569,38 +569,55 @@ function stallAt(V) {
   const bl = Math.max(blend, peak - clmax / aw);
   return { clmax, bl };
 }
+/* The wing's broadside normal force, Viterna and Janetzke's finite wing,
+ * 1.11 + 0.018 AR (NASA TM-82944 eq. 12), plant_wing.c plate_cn. */
+const PCN = 1.11 + 0.018 * Math.min(AR, 50);
+const vhT2 = -slipCma / (at * (1 - deda));
 function wingLift(alpha, de, V) {
   const { clmax, bl } = stallAt(V);
   const sa = Math.sin(alpha), ca = Math.cos(alpha);
   const aS = clmax / aw, aa = Math.abs(alpha);
   const sigma = smooth(aS - bl, aS + bl, aa);
   const clLin = CLa * alpha + CLde * de;
-  const clFlat = 2 * sa * ca;
+  const clFlat = PCN * sa * ca;
   const a0 = aS - bl, a1 = aS + bl;
   let wing = clmax;
   if (aa < a0) wing = aw * aa; else if (aa < a1) wing = clmax - aw * (a1 - aa) ** 2 / (4 * bl);
-  const clPeak = (alpha < 0 ? -wing : wing) + CLde * de;
+  /* The tail lifts on its own angle (hi_alpha with a wing slope): the
+   * elevator's lift is the tail's, below, not the wing's. */
+  const clPeak = alpha < 0 ? -wing : wing;
   const sHi = smooth(a1, a1 + 2 * bl, aa);
   const clOld = (1 - sHi) * clPeak + sHi * clFlat;
   let clSt = clOld, fall = 0, past = 0;
   if (sigma > 0) {
-    const clS = alpha < 0 ? clmax - CLde * de : clmax + CLde * de;
+    const clS = clmax;
     const b0 = aS + stallTop, b1 = b0 + 2 * bl;
     const t = smooth(b0, b1, aa);
     let vit = 0;
     if (ca > 0 && Math.abs(sa) > 0.05) {
       const st = Math.min(b1, 0.5);
-      const a2 = (stallK * clS - 2 * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
+      const a2 = (stallK * clS - PCN * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
       vit = a2 * ca * ca / sa;
     }
     fall = t;
     past = smooth(aS, aS + bl, aa);
     clSt = (1 - t) * (alpha < 0 ? -1 : 1) * clS + t * (clFlat + vit);
   }
-  const cl = clOld + past * (clSt - clOld) + (CLa - aw) * sa * ca;
+  const clW = clOld + past * (clSt - clOld);
+  /* The tail at its own angle, the downwash going with the wing's lift,
+   * saturating on a plate with the elevator's share, its lift the slope's
+   * tail share of that (plant_wing.c, tail_own). */
+  const ae = -Cmde * de / vhT2;
+  const xt = at * (sa - deda * clW / aw - slipA0 * (1 - deda)) + ae;
+  const rt = plateRatio(xt);
+  const cl = clW + (CLa - aw) / (at * (1 - deda)) * xt * rt;
+  /* Viterna's drag continuity, B2 = (CD at the stall - CDmax sin^2 a_s) /
+   * cos a_s (TM-82944 eqs. 15 and 17), on the plate's drag. */
+  const b2 = (kInd * clmax * clmax - PCN * Math.sin(aS) ** 2) / Math.cos(aS);
+  const b2c = ca > 0 ? b2 * ca : 0;
   const cdLin = CD0 + kInd * clLin * clLin;
-  const cd = (1 - sigma) * cdLin + sigma * (CD0 + 2 * sa * sa);
-  return { cl, cd, clLin, clSt, sigma, past, fall, sa, ca };
+  const cd = (1 - sigma) * cdLin + sigma * (CD0 + PCN * sa * sa + b2c);
+  return { cl, clW, cd, clLin, clSt, sigma, past, fall, sa, ca, xt, rt, b2c };
 }
 const clPlant = (alpha) => { const w = wingLift(alpha, 0, 15); return { CL: w.cl, CD: w.cd }; };
 const armCp = 0.40 - hCG, stallDw = eta * VH * at * deda / aw;
@@ -617,7 +634,6 @@ const armCp = 0.40 - hCG, stallDw = eta * VH * at * deda / aw;
  * speed and the rpm share from the two force balances, the elevator from
  * the moment, iterated together.
  */
-const vhT2 = -slipCma / (at * (1 - deda));
 function harrier(alphaDeg) {
   const a = alphaDeg / DEG;
   const sa = Math.sin(a), ca = Math.cos(a);
@@ -654,10 +670,8 @@ function harrier(alphaDeg) {
     const cm = (d) => {
       const wl = wingLift(a, d, V);
       const ae = -Cmde * d / vhT2;
-      const atl = sa - deda * wl.cl / CLa - slipA0 * (1 - deda);
-      const xt = at * atl + ae;
-      const stiff = (Cma - slipCma) * sa + slipCma * slipA0 - vhT2 * xt * plateRatio(xt);
-      const cnSt = 2 * sa + (wl.clSt - 2 * sa * ca) * ca;
+      const stiff = (Cma - slipCma) * sa + slipCma * slipA0 - vhT2 * wl.xt * wl.rt;
+      const cnSt = PCN * sa + (wl.clSt - PCN * sa * ca) * ca + wl.b2c * sa;
       const clLinM = CLa * sa + CLde * d;
       const post = wl.sigma * (((1 - wl.past) * (hCG - 0.25) - wl.past * armCp) * cnSt - (hCG - 0.25) * clLinM);
       const rh = plateRatio(at * xa / vw + ae);
