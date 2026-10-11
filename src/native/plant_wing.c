@@ -5344,6 +5344,7 @@ const FixedWingParams FW_SLICK2680 = {
   .rpm_no_load = 7705.9,  /* 6,550 over 0.85, the glow rule, docs/POWER-STAGE1.md */
   .torque_arm = 0.03083, /* scripts/slick-derive.js */
   .thrust_z = 0.0390,     /* the CG 39 mm under the thrust line, from the masses, scripts/slick-derive.js */
+  .thrust_yaw = 3.0 * WING_PI / 180.0, /* EF's V2 data sheet "Right thrust: 3 deg", the 120cc build guide's 2.5 to 3, docs/SLICK-STAGE1.md */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's, docs/CUB-STAGE1.md */
   .current_full = 0.0,    /* the engine burns fuel, not the pack, docs/POWER-STAGE1.md */
   /* Stabilised and Acro: the Extra's loops (docs/EXTRA-STAGE1.md), held by
@@ -5374,11 +5375,11 @@ const FixedWingParams FW_SLICK2680 = {
   /* A cowled nose: Selig's 80 percent for a cowling (docs/EXTRA-STAGE1.md);
    * the disc 0.609 m ahead of the CG, the drawing's, scripts/slick-derive.js. */
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .prop_x = 0.6093, /* scripts/slick-derive.js */
+  .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0841, 0.4162, 0.7947 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.5012, 7.4292, 14.1854 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.687, -2.78, -2.477 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0843, 0.4171, 0.7963 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.5048, 7.4452, 14.2139 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.687, -2.484, -1.366 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
