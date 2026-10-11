@@ -23,7 +23,9 @@
  *
  * Each at 390 by 844 and 360 by 640 too: the panel inside the window,
  * on no card, every card's tags clear of the command bar, no sideways
- * scroll. Pictures in outdir, which is not in the repository.
+ * scroll. Pictures, and one at 1920 by 1080, only when an outdir is
+ * given (it is not in the repository): nothing reads them on CI, where
+ * each took a minute of software rasterising.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -51,7 +53,7 @@ import { flightTotals } from '../src/share/flighttime.js';
 import { SETTINGS_KEY } from '../src/ui/settings.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const outDir = process.argv[2] || join(root, 'build', 'pilot-stats');
+const outDir = process.argv[2] || null;
 
 let failed = 0;
 let passed = 0;
@@ -64,9 +66,20 @@ function check(name, ok, detail = '') {
   }
 }
 
+/* Every row here reads the DOM, and on a software rasteriser a frame of
+ * the world behind Flight Club takes seconds, which every key, click and
+ * read queues behind. So the world is drawn only for a picture. */
+const drawOff = (page, on) => page.evaluate(`window.__drawOff(${on})`);
+
 async function shot(page, name) {
+  if (!outDir) {
+    return;
+  }
   await mkdir(outDir, { recursive: true });
+  await drawOff(page, false);
+  await page.evaluate('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))');
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+  await drawOff(page, true);
   const path = join(outDir, `${name}.png`);
   await writeFile(path, Buffer.from(data, 'base64'));
   console.log(`  shot ${path}`);
@@ -176,10 +189,9 @@ async function resize(page, width, height) {
 
 async function toClub(page) {
   await page.until('window.__shellReady === true', 300000);
-  /* The shell is up a frame before the map's world load shows the loader
-   * again; on a software rasteriser that load outlasts click()'s 15 s wait. */
-  await page.loaded(300000);
   await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000);
+  await page.loaded();
+  await drawOff(page, true);
   await page.click('.gate-card-hub-club .gate-card-name');
   await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length >= 6", 30000).catch(async (e) => {
     await shot(page, 'no-club');
@@ -230,9 +242,11 @@ try {
     l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.panel[3] <= Math.min(...l.cards.map((c) => c.box[1])) && l.sw <= l.w,
     `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
   await shot(en, 'en-1280x720');
-  await resize(en, 1920, 1080);
-  await shot(en, 'en-1920x1080');
-  await resize(en, 1280, 720);
+  if (outDir) {
+    await resize(en, 1920, 1080);
+    await shot(en, 'en-1920x1080');
+    await resize(en, 1280, 720);
+  }
 
   /* NOT A FOCUS TRAP: nothing in it is a control, the arrows walk the
    * cards as before, Tab never stops in it, a click on it is nobody's. */
@@ -291,9 +305,11 @@ try {
     l.cards.length >= 6 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
     `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
   await shot(es, 'es-1280x720');
-  await resize(es, 1920, 1080);
-  await shot(es, 'es-1920x1080');
-  await resize(es, 1280, 720);
+  if (outDir) {
+    await resize(es, 1920, 1080);
+    await shot(es, 'es-1920x1080');
+    await resize(es, 1280, 720);
+  }
   await phones(es, 'es');
   check('es: no page error', errorsOf(es).length === 0, errorsOf(es).slice(0, 3).join(' | '));
 } finally {
