@@ -3334,7 +3334,7 @@ const FixedWingParams FW_BRAMOR2300 = {
   .torque_arm = 0.0121,   /* 254 W of disc power at 8,870 rpm is 0.273 N m at 22.6 N */
   .j_prop = 0.00021, /* a 12 x 8 folding carbon prop (30 g) and a 200 g outrunner's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .thrust_z = 0.087,      /* the drawn hub over the CG */
-  .current_full = 45.0,   /* A: about 1 kW on 6S */
+  .current_full = 20.3,   /* A: APC 12 x 8E static at 22.6 N, 369 W shaft through a 0.82 motor on 22.2 V; npm run bramor:derive */
   /* Its two blade CFRP pusher folds (docs/BRAMOR-STAGE1.md: it "folds
    * back along the tail cone when the plant stops the motor"), so its ESC
    * brakes the motor rather than letting it windmill. FITTED: C-Astral
