@@ -41,7 +41,8 @@
  *              that syncs a month late would bring the build back.
  *              combat is a combat aircraft's stock loadout by airframe id;
  *              builds is My Hangar by build id.
- *   whole      the section as one value, the newer stamp wins.
+ *   whole      the section as one value, the newer stamp wins: the tune,
+ *              the rates, and the pilot's swatch library ({ list }).
  *   flag       a yes the pilot gave, true once either side is: the
  *              replay notice for voice chat (voiceReplayAck,
  *              src/ui/voiceui.js), read and accepted on one computer,
@@ -55,6 +56,10 @@
  *              browser, merged counter by counter to the larger, so two
  *              computers flying offline both keep their time and a slot
  *              sent twice is counted once. Stamps play no part.
+ *   counts     pilotCounts, the flights flown and the Catch the Ace!
+ *              and Trick Battle results (src/share/pilotcounts.js):
+ *              the same grow only slot per browser as devices, merged
+ *              the same way. Stamps play no part.
  *   best       records, the best laps (src/share/records.js): per key
  *              the lower lap. Stamps play no part.
  *
@@ -91,14 +96,16 @@ import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
 import { retiredAirframe } from '../../configs/airframes.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
+import { cleanPilotCounts, mergePilotCounts } from './pilotcounts.js';
 import { cleanRecords, mergeRecords } from './records.js';
 import {
-  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS,
+  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX,
 } from '../../tracks-api/limits.js';
 
 export const SYNCED_SECTIONS = {
   progress: 'progress',
   liverySaves: 'union',
+  swatches: 'whole',
   livery: 'keyed',
   parts: 'keyed',
   power: 'keyed',
@@ -108,16 +115,19 @@ export const SYNCED_SECTIONS = {
   floats: 'keyed',
   tune: 'whole',
   rates: 'whole',
+  keybinds: 'whole',
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
+  packs: 'keyed',
   voiceReplayAck: 'flag',
   flightTime: 'devices',
-  records: 'best',
+  pilotCounts: 'counts',
   /* The walkable hangar's visits switch and the aircraft it shows
    * (src/share/hangarvisit.js). Absent, as in every blob before it, is
    * closed: no migration step needed, the absence already means off. */
   hangarVisit: 'whole',
+  records: 'best',
 };
 
 const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts', 'lessonsFlown'];
@@ -145,6 +155,8 @@ const ENTRY_SHAPES = {
   builds: (key, b) => BUILD_ID_RE.test(key) && isRecord(b) && (b.id === undefined || b.id === key)
     && typeof b.name === 'string' && b.name.length >= 1 && b.name.length <= 40
     && typeof b.airframe === 'string' && ID_RE.test(b.airframe) && isRecord(b.fit) && when(b.created) && when(b.updated),
+  /* configs/wear.js holds the fields; the server holds the shape. */
+  packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
 };
 
 /*
@@ -179,7 +191,7 @@ export function currentBuild(b) {
  */
 export function blobRefusal(raw) {
   const data = isRecord(raw) && isRecord(raw.data) ? raw.data : {};
-  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES };
+  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES, packs: PACKS_MAX };
   for (const [section, shape] of Object.entries(ENTRY_SHAPES)) {
     const value = data[section];
     if (value === undefined) {
@@ -208,6 +220,14 @@ export function blobRefusal(raw) {
   if (isRecord(flight) && Object.keys(flight).length > FLIGHT_DEVICES_MAX) {
     return { status: 413, section: 'flightTime', why: 'count', limit: FLIGHT_DEVICES_MAX };
   }
+  const tally = data.pilotCounts;
+  if (tally !== undefined && !isRecord(tally)) {
+    return { status: 422, section: 'pilotCounts', why: 'map' };
+  }
+  /* One slot per browser, as flightTime: the same ceiling. */
+  if (isRecord(tally) && Object.keys(tally).length > FLIGHT_DEVICES_MAX) {
+    return { status: 413, section: 'pilotCounts', why: 'count', limit: FLIGHT_DEVICES_MAX };
+  }
   return null;
 }
 
@@ -233,6 +253,12 @@ export function cleanBlob(raw) {
     if (kind === 'devices') {
       if (isRecord(value)) {
         out.data[section] = cleanFlightTime(value);
+      }
+      continue;
+    }
+    if (kind === 'counts') {
+      if (isRecord(value)) {
+        out.data[section] = cleanPilotCounts(value);
       }
       continue;
     }
@@ -349,6 +375,8 @@ export function mergeBlobs(incoming, held) {
       merged = av === undefined && bv === undefined ? undefined : av === true || bv === true;
     } else if (kind === 'devices') {
       merged = av === undefined && bv === undefined ? undefined : mergeFlightTime(av, bv);
+    } else if (kind === 'counts') {
+      merged = av === undefined && bv === undefined ? undefined : mergePilotCounts(av, bv);
     } else if (kind === 'best') {
       merged = av === undefined && bv === undefined ? undefined : mergeRecords(av, bv);
     } else if (kind === 'whole') {

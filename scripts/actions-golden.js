@@ -301,12 +301,37 @@ function snapshot(ui) {
   out.boardNote = ui.boardNote.textContent;
   out.localNote = ui.localNote.textContent;
   out.fcMenuScroll = ui.fcMenu.scrollTop;
-  for (const [k, v] of store) out[`store.${k}`] = v.length > 80 ? `${v.length} chars, hash ${hash(v)}` : v;
+  for (const [k, v] of store) {
+    const fields = jsonObject(v);
+    if (fields) {
+      for (const [f, fv] of Object.entries(fields)) out[`store.${k}.${f}`] = short(JSON.stringify(fv));
+    } else {
+      out[`store.${k}`] = short(v);
+    }
+  }
   return out;
 }
 
-/* A long stored value is written down by size and hash: a settings blob
- * that changed shows, without a page of JSON per step. */
+/* A stored JSON object is written down field by field, so a step's record
+ * names the fields it changed. A hash of the whole blob changed in every
+ * step that saved settings whenever any pull request added a setting, and
+ * two such pull requests, each green, made main red together
+ * (docs/GOLDENS.md). */
+function jsonObject(text) {
+  try {
+    const v = JSON.parse(text);
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* A long value is written down by size and hash, without a page of JSON
+ * per step. */
+function short(text) {
+  return text.length > 80 ? `${text.length} chars, hash ${hash(text)}` : text;
+}
+
 function hash(text) {
   let h = 5381;
   for (let i = 0; i < text.length; i += 1) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
@@ -317,6 +342,11 @@ function changed(before, after) {
   const out = {};
   for (const k of Object.keys(after)) {
     if (JSON.stringify(before[k]) !== JSON.stringify(after[k])) out[k] = after[k];
+  }
+  /* A field a step removed (a deleted track in the stored library) is a
+   * change too. */
+  for (const k of Object.keys(before)) {
+    if (!(k in after)) out[k] = '(removed)';
   }
   return out;
 }
@@ -361,6 +391,11 @@ const STATES = {
   'title-firstrun': { screen: 'title', craftGate: false, mode: 'race', firstRun: true, settings: { map: 'track' }, seat: 'track' },
   paused: { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' }, seat: 'track' },
   'paused-freestyle': { screen: 'paused', craftGate: false, mode: 'freestyle', returnTo: 'paused', settings: { map: 'swiss2', freestyleMap: 'swiss2' } },
+  /* Paused by Escape in flight: nothing set returnTo on the way in. */
+  'paused-by-escape': { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'title', settings: { map: 'track' }, seat: 'track' },
+  quick: { screen: 'quick', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' }, seat: 'track' },
+  'rates-from-quick': { screen: 'rates', mode: 'race', craftGate: false, returnTo: 'paused', ratesFrom: 'quick' },
+  'pids-from-quick': { screen: 'pids', mode: 'race', craftGate: false, returnTo: 'paused', pidsFrom: 'quick' },
   courses: { screen: 'courses', mode: 'race', craftGate: false, settings: { map: 'track' } },
   'courses-local': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:trk-local0001', card: localCard, settings: { map: 'track' } },
   'courses-local-chosen': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:trk-local0001', card: localCard, trackChosen: true },
@@ -441,7 +476,7 @@ const ACTIONS = [
   'howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'tricks', 'friends',
   'fly', 'launch-go', 'rates', 'pids', 'fc', 'fc-save', 'fc-save-exit', 'fc-save-restart', 'fc-wait', 'fc-motors-stop', 'fc-preset:bf',
   'fc-keep-editing', 'fc-discard-leave', 'fc-discard', 'fc-export', 'fc-back', 'pids-default', 'rates-default', 'rates-save', 'rates-delete',
-  'map:alps', 'map:track', 'back', 'mode-gate', 'mytracks', 'title', 'paused',
+  'map:alps', 'map:track', 'back', 'mode-gate', 'mytracks', 'title', 'paused', 'quick',
   'pause', 'restart', 'resume', 'postrun', 'posttime', 'noop', 'setname', 'choosepad', 'downloadflightlog', 'exportkey', 'importkey',
   'trackbuilder', 'remix', 'editown', 'race', 'calibrate', 'calibrate-cancel', 'calibrate-save', 'padpick-yes', 'padpick-no', 'padpick-cancel',
   'padpick-skip', 'accountsignin', 'accountsignout', 'hub-club', 'hub-hangar', 'nosuchaction',

@@ -17,10 +17,26 @@
  *      the model from the Top view names the region and side beside it
  *      and a click puts the colour on that region's top; from the Bottom
  *      view the label says underside and a click paints the underside.
+ *   6. Undo and Redo on the Timber: a top colour, then an underside; the Undo
+ *      button takes the underside off, Z the top colour, and Undo is then
+ *      off with the paint as it opened; Redo and Y bring both back, and a
+ *      new change after an Undo ends what Redo could bring back.
+ *   7. A/B on the Timber (its saved underside on): Stock pressed shows the
+ *      kit's colours and no underside, pressed again the pilot's paint
+ *      back; H the same; a swatch picked while on stock ends it.
+ *   8. Patterns on every paint family: a pattern (each family the next
+ *      in the list) on the first region that is not film, a swatch then
+ *      its second colour; the model's material draws both, and a picture
+ *      of each from above.
+ *   9. The swatch library: a colour kept on the Timber is stored at once,
+ *      offered on the Cub after a reload and paints it, and Forget takes
+ *      it out of the library.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
- * The pictures go to the directory given as the first argument.
+ * The pictures go to the directory given as the first argument; with
+ * none, none are taken. Nothing reads them on CI, and about eighty of them
+ * on its software rasteriser cost minutes.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -44,11 +60,14 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { AIRFRAMES } from '../configs/airframes.js';
-import { liveryKey, paintable } from '../configs/liveries.js';
+import { PATTERNS } from '../configs/paint.js';
+import { coloursFor, liveryKey, paintable } from '../configs/liveries.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const outDir = resolve(process.argv[2] || join(root, 'tmp', 'paint-workshop-check'));
-await mkdir(outDir, { recursive: true });
+const outDir = process.argv[2] ? resolve(process.argv[2]) : null;
+if (outDir) {
+  await mkdir(outDir, { recursive: true });
+}
 
 let failed = 0;
 let passed = 0;
@@ -73,9 +92,28 @@ const seed = [`try {
     progress: { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, unlockAll: true },
   });
   localStorage.setItem(k, JSON.stringify(s));
-} catch (e) { /* storage refused; the checks below will say so */ }`];
+} catch (e) { /* storage refused; the checks below will say so */ }
+/* A record of the pointer's presses and the side panel being drawn
+ * again, read back when a click lands somewhere it should not have. */
+window.__clickLog = [];
+for (const type of ['pointerdown', 'pointerup', 'click']) {
+  document.addEventListener(type, (e) => {
+    const k = e.target && e.target.closest && e.target.closest('[data-key]');
+    window.__clickLog.push(type + ':' + (k ? k.dataset.key : e.target.className) + '@' + Math.round(performance.now()));
+  }, true);
+}
+new MutationObserver((list) => {
+  for (const m of list) {
+    if (m.target.classList && m.target.classList.contains('hangar-side') && m.addedNodes.length) {
+      window.__clickLog.push('repaint@' + Math.round(performance.now()));
+    }
+  }
+}).observe(document, { childList: true, subtree: true });`];
 
 async function shot(page, name) {
+  if (!outDir) {
+    return;
+  }
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   await writeFile(join(outDir, `${name}.png`), Buffer.from(data, 'base64'));
 }
@@ -163,9 +201,21 @@ async function flipAndViews(page) {
     navigator.getGamepads = () => [pad()];
     return true;
   })()`);
-  await page.sleep(400);
+  /* Each step waits on the hangar's own state, not a clock: a slow
+   * software renderer polls the pad once a frame, a few times a second.
+   * The pad is first chosen as the device in use (the roster takes a pad
+   * that turns up on some later poll) and seen released, since the first
+   * poll only learns what is held; then held in until the hangar has
+   * flipped, then let go. */
+  await page.until("(() => { const gp = window.__input.firstGamepad(); return Boolean(gp) && gp.id === 'check pad'; })()", 60000);
+  /* Two more of the hangar's polls (each makes a new padPrev) with the pad
+   * chosen and R3 out, so the press is an edge and not learnt as held. */
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate('window.__padPrevSeen = window.__ui.hangar.padPrev; true');
+    await page.until('window.__ui.hangar.padPrev !== window.__padPrevSeen', 60000);
+  }
   await page.evaluate('window.__r3 = true');
-  await page.sleep(400);
+  await page.until('window.__ui.hangar.flip === true', 60000).catch(() => {});
   await page.evaluate('window.__r3 = false');
   await page.until(ROLLED(Math.PI), 60000).catch(() => {});
   say(Math.abs((await cam(page)).roll - Math.PI) < 0.01, `R3 on a pad flips it: roll ${(await cam(page)).roll.toFixed(3)}`);
@@ -211,21 +261,48 @@ async function steady(page, selector) {
   let last = '';
   let same = 0;
   for (let i = 0; i < 100; i++) {
-    const r = await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(selector)}); if (!b) return 'none'; const r = b.getBoundingClientRect(); return [r.left, r.top, r.width, getComputedStyle(b).opacity].join(); })()`);
-    same = r === last && r !== 'none' ? same + 1 : 0;
+    /* A control waiting out its own staggered entrance delay stands still
+     * too, so no finite keyframe animation on it may be pending or
+     * running (a colour transition on hover moves nothing). Only its own: the panel's slide in runs for many seconds on a starved
+     * page, and its movement shows in the place read below anyway. */
+    const r = await page.evaluate(`(() => {
+      const b = document.querySelector(${JSON.stringify(selector)});
+      if (!b) return 'none';
+      const moving = document.getAnimations().some((a) => a.playState !== 'finished' && a.effect && a.effect.target
+        && a.effect.target === b && a.animationName && a.effect.getComputedTiming().endTime !== Infinity);
+      if (moving) {
+        return 'moving ' + document.getAnimations().filter((a) => a.playState !== 'finished' && a.effect && a.effect.target && a.effect.target === b && a.animationName).map((a) => [a.animationName || a.transitionProperty || a.constructor.name, a.playState, a.effect.target.className].join(':')).join(',');
+      }
+      const r = b.getBoundingClientRect();
+      return [r.left, r.top, r.width, getComputedStyle(b).opacity].join();
+    })()`);
+    same = r === last && r !== 'none' && !r.startsWith('moving') ? same + 1 : 0;
     if (same >= 2) {
       return;
     }
     last = r;
     await page.sleep(120);
   }
-  throw new Error(`${selector} never stood still`);
+  throw new Error(`${selector} never stood still: ${last}`);
 }
 
 /* A real pointer click on a button once it stands still. */
 async function press(page, selector) {
   await steady(page, selector);
-  return page.click(selector);
+  const before = await page.evaluate('window.__clickLog.length');
+  const done = await page.click(selector);
+  /* The click must reach the control aimed at; say so plainly if it went
+   * to another, with what the page saw, rather than fail later on state. */
+  const key = (selector.match(/data-key="([^"]+)"/) || [])[1];
+  if (key) {
+    await page.until(`window.__clickLog.slice(${before}).some((l) => l.startsWith('click:'))`, 10000).catch(() => {});
+    const log = await page.evaluate(`window.__clickLog.slice(${before})`);
+    const hit = log.find((l) => l.startsWith('click:'));
+    if (!hit || !hit.startsWith(`click:${key}@`)) {
+      throw new Error(`the click on ${key} landed on ${hit || 'nothing'}: ${log.join(' ')}`);
+    }
+  }
+  return done;
 }
 
 async function paintUnder(page, id) {
@@ -245,8 +322,20 @@ async function paintUnder(page, id) {
   /* A colour the top is not in: the top's own is no underside of its own. */
   const top = (await paintOf(page, id))[region];
   const key = keys.filter((k) => k !== `colour-${top}`)[2];
+  /* The press is checked where it lands: the entry must hold the swatch
+   * pressed. A press that took another (a pointer one swatch over on a
+   * slow software renderer, seen once on CI on the Timber, #825; the class
+   * #776 fixed for R3) is pressed once more, said, and then must hold. */
+  const want = key.slice('colour-'.length);
+  const holds = `(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(want)}`;
   await press(page, `.hangar [data-key="${key}"]`);
-  await page.until(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(key.slice('colour-'.length))}`, 5000).catch(() => {});
+  const landed = await page.until(holds, 5000).then(() => true).catch(() => false);
+  if (!landed) {
+    const got = await page.evaluate(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] || null`);
+    console.log(`  note  ${id}: pressed ${key} (top ${top}, palette ${keys.slice(0, 5).join(' ')}...) and the entry took ${got}; pressed again`);
+    await press(page, `.hangar [data-key="${key}"]`);
+    await page.until(holds, 5000).catch(() => {});
+  }
   /* The pointer off the panel, so no swatch under it is being tried on. */
   await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 400, y: 450 }, page.sessionId);
   return { region, hex: key.slice('colour-'.length) };
@@ -274,7 +363,7 @@ async function underEach(page) {
     const u = l && l.uniforms[got.region];
     const entry = await page.evaluate('window.__ui.hangar.entry');
     say(Boolean(u) && u.under === got.hex && after[got.region] === before[got.region] && entry.under && entry.under[got.region] === got.hex,
-      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}`);
+      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}${entry.under && entry.under[got.region] === got.hex ? '' : ` log ${await page.evaluate('window.__clickLog.slice(-24).join(" ")')}`}`);
     if (id === 'timber1500') {
       await press(page, '.hangar [data-key="save"]');
       await page.until('!window.__ui.hangar.isOpen', 10000);
@@ -349,16 +438,205 @@ async function clickToPaint(page) {
   await page.evaluate('window.__ui.carousel.close(); true');
 }
 
+async function undoSteps(page) {
+  console.log('6. undo on the Timber');
+  await openHangar(page, 'timber1500');
+  await press(page, '.hangar [data-key="tab-colours"]');
+  await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  const start = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
+  const pick = async (n) => {
+    const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+    await press(page, `.hangar [data-key="${keys[n]}"]`);
+    await mouse(page, 'mouseMoved', 400, 450);
+  };
+  await press(page, '.hangar [data-key="side-top"]');
+  await pick(5);
+  await page.until('Boolean(window.__ui.hangar.entry.regions)', 5000).catch(() => {});
+  const topOnly = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
+  await press(page, '.hangar [data-key="side-under"]');
+  await pick(6);
+  await page.until('Boolean(window.__ui.hangar.entry.under)', 5000).catch(() => {});
+  const both = await page.evaluate('window.__ui.hangar.entry');
+  say(Boolean(both.regions) && Boolean(both.under), `a top colour and an underside on: ${JSON.stringify(both)}`);
+  await press(page, '.hangar [data-key="undo"]');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(topOnly)}`, 5000).catch(() => {});
+  const one = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
+  say(one === topOnly, `the Undo button takes the underside off: ${one}`);
+  await page.tap('KeyZ');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(start)}`, 5000).catch(() => {});
+  const two = await page.evaluate("({ entry: JSON.stringify(window.__ui.hangar.entry), off: document.querySelector('.hangar [data-key=\"undo\"]').disabled })");
+  say(two.entry === start && two.off, `Z takes the top colour off, back to how it opened, and Undo is off: ${JSON.stringify(two)}`);
+  await press(page, '.hangar [data-key="redo"]');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(topOnly)}`, 5000).catch(() => {});
+  say(await page.evaluate('JSON.stringify(window.__ui.hangar.entry)') === topOnly, 'the Redo button puts the top colour back');
+  await page.tap('KeyY');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(JSON.stringify(both))}`, 5000).catch(() => {});
+  const again = await page.evaluate("({ entry: window.__ui.hangar.entry, off: document.querySelector('.hangar [data-key=\"redo\"]').disabled })");
+  say(JSON.stringify(again.entry) === JSON.stringify(both) && again.off, `Y puts the underside back, and Redo is off: ${JSON.stringify(again)}`);
+  await page.tap('KeyZ');
+  await press(page, '.hangar [data-key="side-top"]');
+  await pick(7);
+  await page.sleep(400);
+  const cut = await page.evaluate("document.querySelector('.hangar [data-key=\"redo\"]').disabled");
+  say(cut, `a new change after Undo ends what Redo could bring back (${cut})`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
+async function abStock(page) {
+  console.log('7. A/B against stock on the Timber');
+  /* Region order is the builder's, so compare as sorted pairs. */
+  const sorted = (o) => JSON.stringify(Object.entries(o || {}).sort());
+  const kit = coloursFor('timber1500', null);
+  const shows = () => page.evaluate("(() => { const l = window.__pickLook('timber1500'); return { paint: window.__pickPaint('timber1500'), under: l.uniforms.wing && l.uniforms.wing.under }; })()");
+  await openHangar(page, 'timber1500');
+  await page.until("(() => { const l = window.__pickLook('timber1500'); return Boolean(l && l.uniforms.wing && l.uniforms.wing.under); })()", 20000).catch(() => {});
+  const own = await shows();
+  const stockNow = `(() => { const p = window.__pickPaint('timber1500'); const l = window.__pickLook('timber1500'); return JSON.stringify(Object.entries(p).sort()) === ${JSON.stringify(sorted(kit))} && !(l.uniforms.wing && l.uniforms.wing.under); })()`;
+  await press(page, '.hangar [data-key="ab"]');
+  await page.until(stockNow, 10000).catch(() => {});
+  const stock = await shows();
+  say(sorted(stock.paint) === sorted(kit) && !stock.under && Boolean(own.under),
+    `Stock shows the kit's paint and no underside: ${JSON.stringify(stock)}, the pilot's was ${JSON.stringify(own)}`);
+  await shot(page, '7-ab-stock');
+  await press(page, '.hangar [data-key="ab"]');
+  await page.until(`(() => { const l = window.__pickLook('timber1500'); return Boolean(l.uniforms.wing && l.uniforms.wing.under); })()`, 10000).catch(() => {});
+  const back = await shows();
+  say(JSON.stringify(back) === JSON.stringify(own), `pressed again the pilot's paint is back: ${JSON.stringify(back)}`);
+  await page.tap('KeyH');
+  await page.until(stockNow, 10000).catch(() => {});
+  say(await page.evaluate(stockNow), 'H shows stock too');
+  await press(page, '.hangar [data-key="tab-colours"]');
+  await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+  await press(page, `.hangar [data-key="${keys[7]}"]`);
+  const off = await page.evaluate("({ stock: window.__ui.hangar.stockView, pressed: document.querySelector('.hangar [data-key=\"ab\"]').getAttribute('aria-pressed') })");
+  say(!off.stock && off.pressed === 'false', `a swatch picked ends the comparison: ${JSON.stringify(off)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
+async function patternsEach(page) {
+  console.log('8. patterns on every paint family');
+  let n = 0;
+  for (const id of FAMILIES) {
+    await openHangar(page, id);
+    await press(page, '.hangar [data-key="tab-colours"]');
+    await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+    const region = await page.evaluate("(window.__ui.hangar.regions.find((r) => !r.film) || {}).id || null");
+    if (!region) {
+      const offered = await page.evaluate("Boolean(document.querySelector('.hangar [data-key=\"pattern-checks\"]'))");
+      say(!offered, `${id}: every region is film, so no pattern is offered`);
+      await closeHangar(page);
+      await page.evaluate('window.__ui.carousel.close(); true');
+      continue;
+    }
+    const pattern = PATTERNS[n % PATTERNS.length];
+    n += 1;
+    await press(page, `.hangar [data-key="region-${region}"]`);
+    await press(page, `.hangar [data-key="pattern-${pattern}"]`);
+    await page.until(`(window.__ui.hangar.entry.patterns || {})[${JSON.stringify(region)}]`, 5000).catch(() => {});
+    const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+    const key = keys[10];
+    const hex = key.slice('colour-'.length);
+    await press(page, `.hangar [data-key="${key}"]`);
+    await mouse(page, 'mouseMoved', 400, 450);
+    await press(page, '.hangar [data-key="view-top"]');
+    const want = { p: PATTERNS.indexOf(pattern) + 1, c: hex };
+    await page.until(`(() => { const l = window.__pickLook(${JSON.stringify(id)}); const u = l && l.uniforms[${JSON.stringify(region)}]; return Boolean(u) && JSON.stringify(u.pattern) === ${JSON.stringify(JSON.stringify(want))}; })()`, 20000).catch(() => {});
+    await page.until(LANDED('top'), 60000).catch(() => {});
+    const u = (await look(page, id)).uniforms[region];
+    await shot(page, `${id}-pattern`);
+    say(Boolean(u) && JSON.stringify(u.pattern) === JSON.stringify(want), `${id}: ${pattern} on the ${region} in ${hex}: ${JSON.stringify(u)}`);
+    await closeHangar(page);
+    await page.evaluate('window.__ui.carousel.close(); true');
+  }
+}
+
+async function swatchLibrary(page) {
+  console.log('9. the swatch library');
+  const stored = () => page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).swatches || {}).list || []`);
+  const colours = async (id) => {
+    await openHangar(page, id);
+    await press(page, '.hangar [data-key="tab-colours"]');
+    await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  };
+  await colours('timber1500');
+  await press(page, '.hangar [data-key="side-top"]');
+  const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+  const hex = keys[12].slice('colour-'.length);
+  await press(page, `.hangar [data-key="${keys[12]}"]`);
+  await mouse(page, 'mouseMoved', 400, 450);
+  await press(page, '.hangar [data-key="keep-colour"]');
+  await page.until(`document.querySelector('.hangar [data-key="mine-colour-${hex}"]')`, 5000).catch(() => {});
+  const kept = await stored();
+  say(kept[0] === hex, `Keep stores ${hex} at once: ${JSON.stringify(kept)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await page.until('!!window.__shellReady', 300000);
+  await page.until('window.__map && window.__map().ready', 400000);
+  await colours('cub1400');
+  const region = await page.evaluate('window.__ui.hangar.region');
+  await press(page, '.hangar [data-key="side-top"]');
+  const offered = await page.evaluate(`Boolean(document.querySelector('.hangar [data-key="mine-colour-${hex}"]'))`);
+  if (offered) {
+    await press(page, `.hangar [data-key="mine-colour-${hex}"]`);
+    await mouse(page, 'mouseMoved', 400, 450);
+  }
+  await page.until(`(window.__ui.hangar.entry.regions || {})[${JSON.stringify(region)}] === ${JSON.stringify(hex)}`, 5000).catch(() => {});
+  const cub = await page.evaluate('window.__ui.hangar.entry');
+  say(offered && (cub.regions || {})[region] === hex, `after a reload the Cub offers it and it paints the ${region}: ${JSON.stringify(cub)}`);
+  await steady(page, '.hangar [data-key="keep-colour"]');
+  const label = await page.evaluate(`document.querySelector('.hangar [data-key="keep-colour"]').textContent`);
+  await press(page, '.hangar [data-key="keep-colour"]');
+  await page.until(`!document.querySelector('.hangar [data-key="mine-colour-${hex}"]')`, 5000).catch(() => {});
+  const left = await stored();
+  say(label === 'Forget this colour' && !left.includes(hex), `Forget takes it out: "${label}", ${JSON.stringify(left)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
+const STEPS = {
+  viewsEach, flipAndViews, closedFlipped, underEach, clickToPaint, undoSteps, abStock, patternsEach, swatchLibrary,
+};
+/* CI runs the check as two npm scripts on two shards, a page each
+ * (paint:workshop:views and paint:workshop:paint, WORKSHOP_PART), because
+ * the whole set the wall clock of a CI run at 26 minutes. Steps 4 to 7
+ * read the Timber's underside that step 4 saved, so they share a part. */
+const PARTS = {
+  views: ['viewsEach', 'flipAndViews', 'closedFlipped'],
+  paint: ['underEach', 'clickToPaint', 'undoSteps', 'abStock', 'patternsEach', 'swatchLibrary'],
+};
+
 async function main() {
+  /* A step in no part would silently leave CI. */
+  const parted = Object.values(PARTS).flat().sort();
+  if (JSON.stringify(parted) !== JSON.stringify(Object.keys(STEPS).sort())) {
+    throw new Error(`every step must be in exactly one part: ${parted.join()} against ${Object.keys(STEPS).sort().join()}`);
+  }
+  const part = process.env.WORKSHOP_PART;
+  if (part && !PARTS[part]) {
+    throw new Error(`WORKSHOP_PART ${part} is none of ${Object.keys(PARTS).join(', ')}`);
+  }
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
+    /* The hangar's own reduced motion (index.html): no entrance slides, no
+     * staggered swatches, no smooth scroll. Motion is not what this check
+     * is about, and on CI's starved software page a control still moving
+     * when the pointer pressed took the click for its neighbour, or lost
+     * it, whatever the check waited on first. */
+    await page.cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, page.sessionId);
     await page.until('!!window.__shellReady', 300000);
     await page.until('window.__map && window.__map().ready', 400000);
-    await viewsEach(page);
-    await flipAndViews(page);
-    await closedFlipped(page);
-    await underEach(page);
-    await clickToPaint(page);
+    /* WORKSHOP_STEPS (names of the steps in STEPS) and WORKSHOP_REPEAT run
+     * a part of the check again and again, to hunt a race on a slow page. */
+    const chosen = process.env.WORKSHOP_STEPS ? process.env.WORKSHOP_STEPS.split(',') : (part ? PARTS[part] : Object.keys(STEPS));
+    for (let i = 0; i < Number(process.env.WORKSHOP_REPEAT || 1); i++) {
+      for (const name of chosen) {
+        await STEPS[name](page);
+      }
+    }
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
@@ -366,7 +644,7 @@ async function main() {
   } finally {
     await page.close();
   }
-  console.log(`\n${passed} passed, ${failed} failed; pictures in ${outDir}`);
+  console.log(`\n${passed} passed, ${failed} failed${outDir ? `; pictures in ${outDir}` : ''}`);
   process.exit(failed ? 1 : 0);
 }
 

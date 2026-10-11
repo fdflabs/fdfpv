@@ -127,7 +127,8 @@ function lobbyPilot(p) {
     who.append(el('span', 'war-lobby-host', str('lobby.host')));
   }
   who.append(el('span', 'war-lobby-craft', p.aircraft));
-  row.append(who, el('span', 'war-lobby-flag', str(p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting')));
+  /* An AI pilot is never waited for: it flies whatever starts. */
+  row.append(who, el('span', 'war-lobby-flag', str(p.ai ? 'lobby.flag_ai' : (p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting'))));
   return row;
 }
 

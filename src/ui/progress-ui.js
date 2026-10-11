@@ -31,10 +31,11 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { itemById } from '../game/economy.js';
+import { LessonWatch, passesOf } from '../game/training.js';
 import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
@@ -253,18 +254,78 @@ export class Progress {
     this.watch.start(ctx);
   }
 
+  /*
+   * THE LESSON being flown (src/game/training.js), or none: judged beside
+   * the challenges from the same calls, and said in toasts. It lasts until
+   * another lesson or endLesson (any other card).
+   */
+  startLesson(lesson) {
+    this.lesson = lesson ? new LessonWatch(lesson) : null;
+    this.lessonStep = 0;
+    if (lesson) {
+      this.toast({
+        cls: 'lap', icon: '1', kicker: str('training.toast_lesson'),
+        title: str(`training.lesson.${lesson.id}`), sub: str(`training.lesson.${lesson.id}_note`),
+      });
+    }
+  }
+
+  endLesson() {
+    this.lesson = null;
+  }
+
+  /* The visual aid the lesson in flight draws, or null. */
+  lessonAid() {
+    return this.lesson ? this.lesson.lesson.aid ?? null : null;
+  }
+
+  /* After a lesson call: a toast for each step done, and the pass. */
+  lessonNews() {
+    const w = this.lesson;
+    if (!w || w.step === this.lessonStep) {
+      return;
+    }
+    const total = w.lesson.steps.length;
+    if (w.passed) {
+      const now = Date.now();
+      for (const id of passesOf(w.lesson.id)) {
+        this.state.lessons[id] ??= now;
+      }
+      /* Only the lesson actually flown pays its first (progress.js
+       * lessonsFlown); what it covers is passed, not flown. The map is
+       * made here when a profile from before it has none. */
+      this.state.lessonsFlown ??= {};
+      this.state.lessonsFlown[w.lesson.id] = true;
+      this.save();
+      this.toast({ cls: 'challenge', icon: '\u2713', kicker: str('training.toast_passed'), title: str(`training.lesson.${w.lesson.id}`) });
+      this.lesson = null;
+      return;
+    }
+    if (w.step > this.lessonStep) {
+      this.toast({ cls: 'lap', icon: String(w.step + 1), kicker: str('training.toast_step', { n: w.step + 1, of: total }), title: str(`training.lesson.${w.lesson.id}`) });
+    }
+    this.lessonStep = w.step;
+  }
+
   gatePass() {
     this.award(this.watch.gatePass());
+    if (this.lesson) {
+      this.lesson.gatePass();
+      this.lessonNews();
+    }
   }
 
   touch(kind) {
     this.watch.touch(kind);
+    if (this.lesson && RIM_KINDS.includes(kind)) {
+      this.lesson.rim();
+    }
   }
 
-  /* A lap closed on `course`, { key, kind }. */
-  /* `medal` is the one the lap reached on a course with medals
-   * (src/game/medals.js), or null. */
-  lap(course, medal = null) {
+  /* A lap closed on `course`, { key, kind }; `ms` its time, `ghostMs`
+   * the ghost's it was flown against, and `medal` the one it reached on a
+   * course with medals (src/game/medals.js), each null when there is none. */
+  lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
     const done = this.watch.lap();
@@ -272,10 +333,18 @@ export class Progress {
     this.show(events);
     this.show(won);
     this.award(done);
+    if (this.lesson) {
+      this.lesson.lap({ ms, ghostMs });
+      this.lessonNews();
+    }
   }
 
   tick(state) {
     this.award(this.watch.tick(state));
+    if (this.lesson) {
+      this.lesson.tick(state);
+      this.lessonNews();
+    }
   }
 
   /*

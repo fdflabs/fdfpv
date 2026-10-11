@@ -85,6 +85,16 @@ static int g_ground_near = 0;
  * two doubles, so nothing a host that never names one does can move. */
 static double g_gmu = 1.40;
 static double g_ge = 0.0;
+/* What this step's hull corner impulses did to the velocity: along the
+ * ground's normal, and across it (their friction). ground_settle reads
+ * them to charge friction only against the load the ground really took. */
+static double g_corner_dvn = 0.0;
+static double g_corner_dvt[3] = { 0.0, 0.0, 0.0 };
+/* This step's velocity and rate change from the plant alone (gravity,
+ * thrust, the air), before any contact. Written by the step loop just
+ * before ground_apply, its one caller, so ground_settle reads this step's. */
+static double g_plant_dv[3];
+static double g_plant_dw[3];
 
 /* The hull half extents are the airframe's now. The five inch's are the
  * numbers that used to be here; the whoop's are a third of them, which is
@@ -557,7 +567,14 @@ static int ground_hit_at(const double r[3], const double vs[3]) {
     return 0;
   }
   const double use_p = pen > 0.0 ? pen : 0.0;
+  const double v0[3] = { S.vel[0], S.vel[1], S.vel[2] };
   contact_impulse(g_ground_n, r, vs, g_ge, g_gmu, use_p);
+  const double dv[3] = { S.vel[0] - v0[0], S.vel[1] - v0[1], S.vel[2] - v0[2] };
+  const double dvn = dv[0] * g_ground_n[0] + dv[1] * g_ground_n[1] + dv[2] * g_ground_n[2];
+  g_corner_dvn += dvn;
+  for (int a = 0; a < 3; a += 1) {
+    g_corner_dvt[a] += dv[a] - dvn * g_ground_n[a];
+  }
   if (pen > CONTACT_SLOP && !(SIM_DAMAGE && crash_last_capped())) {
     const double push = (pen - CONTACT_SLOP) * CONTACT_POS_PUSH;
     S.pos[0] += g_ground_n[0] * push;
@@ -684,6 +701,7 @@ static void ground_settle(double upz, double vn_plant) {
   const double ny = g_ground_n[1];
   const double nz = g_ground_n[2];
   double vn = S.vel[0] * nx + S.vel[1] * ny + S.vel[2] * nz;
+  double stripped = 0.0;
 
   /* Strip an outbound kick the contact just invented (Baumgarte, a
    * residual bounce). Leave a climb the plant already had: killing
@@ -692,6 +710,27 @@ static void ground_settle(double upz, double vn_plant) {
     S.vel[0] -= nx * vn;
     S.vel[1] -= ny * vn;
     S.vel[2] -= nz * vn;
+    /* That kick was normal impulse the corners gave beyond the load the
+     * ground carries, and each corner charged its friction, mu times its
+     * impulse, against all of it. With the damage mode on the share of
+     * the corners' friction that went with the stripped part is given
+     * back, so a slide is held at mu times the real load: a settled five
+     * inch slid at 1 m/s on grass read 0.524 against the sled's 0.45
+     * (Linthorne and Cooper 2013, crash.c SURF), its corners pushing
+     * 7.24 N with 6.30 N to carry. It only returns friction already
+     * taken this step, so it cannot reverse a slide. It scales the
+     * corners' whole tangential change, a plough's share included, which a
+     * flat slide does not have; the spin their friction gave is left. */
+    if (SIM_DAMAGE && g_corner_dvn > 0.0) {
+      double share = vn / g_corner_dvn;
+      if (share > 1.0) {
+        share = 1.0;
+      }
+      S.vel[0] -= g_corner_dvt[0] * share;
+      S.vel[1] -= g_corner_dvt[1] * share;
+      S.vel[2] -= g_corner_dvt[2] * share;
+    }
+    stripped = vn;
     vn = 0.0;
   }
 
@@ -710,11 +749,19 @@ static void ground_settle(double upz, double vn_plant) {
       || (SIM_DAMAGE && crash_crushing());
   /* With the damage mode on, the grip of the part the craft lies on. */
   const double settle_mu = SIM_DAMAGE ? crash_settle_mu(&S, g_ground_n, g_gmu) : g_gmu;
-  /* And the share of the weight this step's corner impulses did not
-   * already carry, with their own friction: the ground's grip counted once. */
-  const double settle_share = SIM_DAMAGE
-      ? crash_settle_share(PLANT.mass_kg * PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0) * SIM_DT)
-      : 1.0;
+  /* The load the settle carries, per unit mass. With the damage mode off it is the weight's share
+   * along the normal. With it on it is what the plant drove into the
+   * ground this step (gravity less the rotors' thrust and the air's lift,
+   * so a craft whose idle props carry a fifth of it is pressed by four
+   * fifths) less what the corners' impulses already carried with their
+   * own friction, net of the kick stripped above: the ground's grip
+   * counted once, against the load it really takes. */
+  double rest_load = PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
+  if (SIM_DAMAGE) {
+    const double plant_in = -(g_plant_dv[0] * nx + g_plant_dv[1] * ny + g_plant_dv[2] * nz);
+    const double left = plant_in - (g_corner_dvn - stripped);
+    rest_load = left > 0.0 ? left / SIM_DT : 0.0;
+  }
 
   /* Props-down on grass: stop immediately when the hull is on the
    * plane, or when it is only in the 8 mm halo and not diving in.
@@ -798,8 +845,7 @@ static void ground_settle(double upz, double vn_plant) {
       S.vel[2] = 0.0;
     }
   } else {
-    const double load = settle_share * PLANT.gravity * SIM_GRAVITY * (nz > 0.0 ? nz : 0.0);
-    double dv = settle_mu * load * SIM_DT;
+    double dv = settle_mu * rest_load * SIM_DT;
     const double vtm = sim_sqrt(vt2);
     if (dv > vtm) {
       dv = vtm;
@@ -831,7 +877,9 @@ static void ground_settle(double upz, double vn_plant) {
       const double i_eff = ux * ux * PLANT.inertia[0]
           + uy * uy * PLANT.inertia[1]
           + uz * uz * PLANT.inertia[2];
-      const double load = settle_share * PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
+      const double load = SIM_DAMAGE
+          ? PLANT.mass_kg * rest_load
+          : PLANT.gravity * SIM_GRAVITY * PLANT.mass_kg * (nz > 0.0 ? nz : 0.0);
       const double tau = settle_mu * load * CONTACT_PATCH_R;
       double dw = (i_eff > 1e-12) ? (tau / i_eff) * SIM_DT : wm;
       if (dw > wm) {
@@ -884,8 +932,6 @@ static double g_wheel_load[SIM_WHEELS_MAX];
 /* What the plant's own forces did to the velocity this step, world, and
  * to the body rates, body frame: the wheels' friction holds a point
  * against the next step's push as well as this one's (wheels_friction). */
-static double g_plant_dv[3];
-static double g_plant_dw[3];
 
 static void contact_point_vel(const double r[3], double out[3]) {
   double w[3];
@@ -1213,6 +1259,10 @@ static int ground_wheels(void) {
 }
 
 static void ground_apply(void) {
+  g_corner_dvn = 0.0;
+  g_corner_dvt[0] = 0.0;
+  g_corner_dvt[1] = 0.0;
+  g_corner_dvt[2] = 0.0;
   g_ground_hits = 0;
   g_ground_projected = 0;
   g_ground_near = 0;
@@ -2813,6 +2863,14 @@ SIM_EXPORT int sim_wing_biplane(double *out) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wing_slip(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_slip(out);
+  return SIM_OK;
+}
+
 /* The wing's stabiliser: 0 off, 1 stabilised, 2 acro. Kept across
  * resets, like the airframe; the shell sets it from the tune. Additive:
  * 2 arrived after 0 and 1 and they mean what they did. */
@@ -2820,7 +2878,7 @@ SIM_EXPORT int sim_wing_set_stab(int mode) {
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;
   }
-  if (mode < 0 || mode > 2) {
+  if (mode < 0 || mode > 3) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_set_stab(mode);
@@ -3002,7 +3060,16 @@ SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
   SIM_WIND[0] = vx;
   SIM_WIND[1] = vy;
   SIM_GUST = gust;
-  SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0;
+  SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0 || SIM_AIR_W != 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_set_air_vertical(double w) {
+  if (!finite_d(w) || !(w >= -10.0) || !(w <= 10.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  SIM_AIR_W = w;
+  SIM_WIND_ON = SIM_WIND[0] != 0.0 || SIM_WIND[1] != 0.0 || SIM_GUST > 0.0 || w != 0.0;
   return SIM_OK;
 }
 

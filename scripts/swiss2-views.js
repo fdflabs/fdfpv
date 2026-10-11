@@ -103,6 +103,10 @@ const VIEWS = [
    * at eye level on the beach at the water's edge among the houses. */
   { id: 'lake-village-20m', cam: [120, 22, 2655, 70, 8, 2735], ref: 'village' },
   { id: 'lake-village-eye', cam: [30, 0.2, 2692, 10, 5, 2722], ref: 'village' },
+  /* The café's people from ten metres, where how they stand is the
+   * picture (src/maps/swiss2/village/people.js): square-eye's line of
+   * sight to the stander by the café, five metres down it. */
+  { id: 'square-people', cam: [-173.5, 1.9, 105.5, -183.4, 0.9, 100.8], ref: 'village' },
 ];
 
 /* Median of a frame's duration over sixty frames, in the page. */

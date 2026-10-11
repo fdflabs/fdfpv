@@ -64,7 +64,7 @@
  */
 
 import * as THREE from 'three';
-import { makeRng, noise2 } from '../../alps/noise.js';
+import { makeRng, noise2 } from '../../../render/library/noise.js';
 import { LAKE_Y, valleyAxis } from '../../alps/terrain.js';
 import {
   lakeShore, jettyClear, ROAD_END, ROAD_DX,
@@ -72,7 +72,7 @@ import {
 import {
   UP, Mesher, propMaterial, shade, box, frame, roofProxy, albedoOf,
 } from './mesh.js';
-import { standWalls } from '../../alps/roofs.js';
+import { standWalls } from '../../../render/library/roofs.js';
 import { setSolidSurface } from '../../../game/crashworld.js';
 import { frame as kitFrame } from '../buildings/parts.js';
 import { chalet, church } from '../buildings/houses.js';
@@ -142,7 +142,7 @@ const footprintOf = (corners) => ({
 });
 
 /*
- * Stand a kit builder into `bake` at (x, z), turned `ry` (alps/kit.js's
+ * Stand a kit builder into `bake` at (x, z), turned `ry` (library/kit.js's
  * frame turn), as alps/village.js stands a house: level on the highest
  * of `ground` (points under it) or at `y` where it is given, its
  * foundation cut down to the lowest. Its new roofs are recorded as
@@ -599,7 +599,7 @@ const WIND = new THREE.Vector2(0.8, -0.6).normalize();
  * hamlet's houses and the promenade join), `bake`, the kit's bake the
  * buildings are put into (the caller bakes it, buildings/bake.js), and,
  * when the map collides, its colliders and its list of roofs: every
- * building here is walls under a roof that is ground (alps/roofs.js),
+ * building here is walls under a roof that is ground (library/roofs.js),
  * its footprint the one it always had and noted as it always was, by
  * the push below.
  */

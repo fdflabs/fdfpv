@@ -60,7 +60,7 @@ import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
 import {
-  DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
+  DECAL_KINDS, DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
 } from '../../configs/paint.js';
 import { ACT1, INTERIOR, MAX_STARS } from './campaign.js';
 import { MEDAL_STEPS, newSteps } from './medals.js';
@@ -121,8 +121,10 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'strike
  * the Extra 300, the Pitts S-1S, the Wot 4 and the Quickie 500 held 10,
  * 9, 8, 4 and 7 until they were removed on 2026-09-29 at the owner's
  * request; the F-16 stays at 11 rather than move, since where a plane
- * opens is the owner's call, so 8 to 10 open no plane. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, f16878: 11 };
+ * opens is the owner's call. The Extra 300 3D came back on 2026-10-08
+ * (docs/FLIGHTMODEL.md) at its old 9: a hover and a torque roll are
+ * skills the P-51 does not teach. 8 and 10 open no plane. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, extra3d1308: 9, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;
@@ -405,7 +407,7 @@ export function unlockables() {
       add({ key: itemKey('finish', f), kind: 'finish', id: f, airframe: null, level: 1 + i, name: `hangar.finish_${f}` });
     }
   });
-  DECAL_KIND_IDS.filter((k) => !SHOP_DECALS.includes(k)).forEach((k, i) => {
+  DECAL_KIND_IDS.filter((k) => !SHOP_DECALS.includes(k) && !DECAL_KINDS[k].free).forEach((k, i) => {
     if (i >= FREE_DECALS) {
       add({ key: itemKey('decal', k), kind: 'decal', id: k, airframe: null, level: 2 + Math.floor((i - FREE_DECALS) / 2), name: `hangar.decal_${k}` });
     }

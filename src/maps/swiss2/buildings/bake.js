@@ -45,7 +45,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { disposeSources } from '../../alps/kit.js';
+import { disposeSources } from '../../../render/library/kit.js';
 import { worldUv } from '../look.js';
 
 const CELL_M = 250;

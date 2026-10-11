@@ -75,6 +75,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { spinnerProfile } from './kitshapes.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -367,8 +368,10 @@ function box(w, h, l, x, y, s) {
  * wheel parts separately, since the tyre is black and the rest is too, but
  * the tyre is what touches the ground and is measured.
  */
-function wheelParts(r, w, lite) {
-  const tube = Math.max(0.0025, r * 0.1);
+function wheelParts(r, w, lite, fat = false) {
+  /* A kit's tundra tyre is the same diameter on a fat foam balloon, so
+   * the wheel touches where it did. */
+  const tube = fat ? r * 0.30 : Math.max(0.0025, r * 0.1);
   const tyre = new THREE.TorusGeometry(r - tube, tube, 6, lite ? 16 : 24);
   tyre.rotateY(Math.PI / 2);
   const inner = [];
@@ -544,6 +547,9 @@ export function buildSlowStickCraft(opts = {}) {
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
   const group = new THREE.Group();
   group.name = opts.name ?? 'slowstick-craft';
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from. */
+  const kit = opts.kit ?? {};
   if (opts.worldScale) {
     group.scale.setScalar(1 / WORLD_SCALE);
   }
@@ -644,7 +650,7 @@ export function buildSlowStickCraft(opts = {}) {
     parts.push(box(0.020, 0.009, 0.030, 0, STICK_Y + STICK_H + 0.0045, 0.575));
     /* The wheels: tyres, hubs and spokes. */
     for (const sign of [-1, 1]) {
-      const { tyre, inner } = wheelParts(MAIN_R, MAIN_W, lite);
+      const { tyre, inner } = wheelParts(MAIN_R, MAIN_W, lite, kit.wheels === 'tundra');
       for (const g of [tyre, ...inner]) {
         g.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
         parts.push(g);
@@ -801,8 +807,12 @@ export function buildSlowStickCraft(opts = {}) {
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.0022, 0.0022, 0.022, 6), stator);
     shaft.position.set(0, -0.001, 0);
     propMount.add(shaft);
-    const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0055, 0.008, lite ? 6 : 8), stator);
-    nut.position.set(0, PROP_S - 0.004, 0);
+    /* A kit's bullet spinner over the nut, its tip where the nut's is. */
+    const bullet = kit.spinner === 'bullet';
+    const nut = new THREE.Mesh(bullet
+      ? new THREE.LatheGeometry(spinnerProfile('bullet', 0.012, -0.002, PROP_S, lite ? 4 : 7), lite ? 8 : 14)
+      : new THREE.CylinderGeometry(0.0045, 0.0055, 0.008, lite ? 6 : 8), stator);
+    nut.position.set(0, bullet ? 0 : PROP_S - 0.004, 0);
     nut.name = 'spinner';
     propMount.add(nut);
 

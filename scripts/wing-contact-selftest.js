@@ -54,7 +54,8 @@ const PLANES = [
   { name: 'skyhunter', id: 3, hx: 0.61, hy: 0.9, down: 0.12, up: 0.08, land: 11, nose: 13, toss: 12, tossSticks: [0, 0.3, 0, 0.8] },
   { name: 'cub', id: 4, hx: 0.30, hy: 0.70, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.18, 0, 0.8], wheels: { restPitchDeg: 11.0, restZ: 0.1463 } },
   { name: 'radian', id: 6, hx: 0.45, hy: 0.55, down: 0.052, up: 0.08, land: 8, nose: 10, toss: 10, tossSticks: [0, -0.274, 0, 0.7] },
-  { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
+  /* The Slow Stick is thrown with the elevator neutral: the hand toss's 0.1 up was set on a curve that peaked at 0.81 of CL max, and on the true one it climbs the throw down to 4.9 m/s (docs/FLIGHTMODEL.md). */
+  { name: 'slowstick', id: 5, hx: 0.30, hy: 0.588, down: 0.03, up: 0.06, land: 5, nose: 6, toss: 6, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 6.91, restZ: 0.1349 } },
   { name: 'kadet', id: 12, hx: 0.45, hy: 0.9906, down: 0.163, up: 0.119, land: 8, rollMs: 30000, nose: 11, toss: 12, tossSticks: [0, 0.3, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.3072 } },
   { name: 'bombshell', id: 11, hx: 0.30, hy: 0.5588, down: 0.065, up: 0.084, land: 8, nose: 9, toss: 8, tossSticks: [0, 0, 0, 0.8], wheels: { restPitchDeg: 8.50, restZ: 0.1318 } },
   { name: 'zagi', id: 17, hx: 0.23, hy: 0.6096, down: 0.012, up: 0.127, land: 8, nose: 10, toss: 10.3, tossSticks: [0, 0.05, 0, 0.7] },

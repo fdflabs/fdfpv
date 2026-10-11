@@ -49,6 +49,7 @@ const CSS = `
 .debrief-box h2 { margin: 0.2em 0 0.4em; font-weight: normal; letter-spacing: 0.16em; font-size: 1.35em; }
 .debrief-result { letter-spacing: 0.2em; margin-bottom: 0.6em; }
 .debrief-result.lost { color: #ffc04a; }
+.debrief-advice { margin: -0.2em 0 0.8em; opacity: 0.9; }
 .debrief-stars { display: grid; gap: 0.25em; margin: 0.6em 0 1em; }
 .debrief-star { color: rgba(236, 244, 240, 0.5); }
 .debrief-star.on { color: #f2d48a; }
@@ -267,6 +268,10 @@ export class Debrief {
     el('div', `debrief-result${won || ended ? '' : ' lost'}`, box, won
       ? str('ops.debrief.won')
       : ended ? str('ops.debrief.ended') : str('ops.debrief.lost', { why: word(`ops.why.${skey(view.why ?? 'end')}`) }));
+    /* Spotted: what to do better, the radio's advice with the height. */
+    if (view.spotAdvice) {
+      el('div', 'debrief-advice', box, str(`ops.spot.advice_${view.spotAdvice.advice}`, { h: view.spotAdvice.h }));
+    }
     const stars = el('div', 'debrief-stars', box);
     const got = new Set((view.result && view.result.starIds) || []);
     for (const s of mission.stars ?? []) {
