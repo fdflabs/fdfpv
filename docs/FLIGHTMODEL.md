@@ -1223,21 +1223,23 @@ J w_f n' = Q_f (d^2 - n^2), with that torque flat in speed, and a tank.
 `npm run da120:derive` (scripts/da120-derive.js) derives every number the
 Slick's table takes, with its source, and prints the table's lines.
 
-**The full throttle point.** A Falcon 28 x 10 on a DA-120 tachometered at
-6,850 rpm (rc-network.de thread 388921, 2014-05-06). HFE's DA120 data
-sheet (HFEDCN0810 Rev A,
-https://hfe.aero/wp-content/uploads/2025/11/DA120-Data-Sheet.pdf), its
-propeller table: the 28x10 at "6900" rpm, "73.2" lb of thrust ("Estimated
-via simulation", +/-5 percent), taken to 6,850 by the speed squared:
-**320.9 N**. The torque from the thrust by APC's 17 x 6E, the nearest
-pitch over diameter APC publishes (0.353 against 0.357) at the same tip
-speed (249 m/s at 11,000 rpm against 255), Ct/Cp 3.61
-(https://www.apcprop.com/files/PER3_17x6E.dat): Q = T D / (2 pi Ct/Cp) =
-**10.06 N m**, 7.22 kW. Two checks: HFE's own full throttle torque at
-6,850 rpm reads 9.89 N m off its figure 3 (1.7 percent), and its rated
-maximum is 7.1 kW. A heavier Falcon 28 x 9 at 6,780 rpm and the 29 x 10
-at 6,310 are quoted at 31.4 and 31.2 kg by the importer (rc-network.de
-thread 492295), the same class.
+**The full throttle point, measured.** Falcon Propeller's own test chart
+(its DA 120CC column,
+https://www.falconpropellers.com/wp-content/uploads/2020/04/Falcon-Propeller-Test-Chart.pdf)
+measures the DA-120 on Falcon's 28 x 10 at **6,550 rpm and 31.0 kg,
+304.1 N** of static thrust; the Slick lane found it (docs/SLICK-STAGE1.md)
+and measured beats derived, so the derivation takes it. The figures it
+replaced, printed against it: HFE's DA120 data sheet's simulated 28x10,
+"6900" rpm and "73.2" lb (293.4 N taken to 6,550 by the speed squared),
+and a forum's tachometered 6,850 rpm (rc-network.de thread 388921). The
+torque from the thrust by APC's 22x8 static Ct and Cp between its 6,000
+and 7,000 rpm rows (the Slick table's transfer, pitch over diameter 0.364
+against 0.357; FITTED, APC publishes no 28 x 10): Q = T D Cp / (2 pi Ct)
+= **9.38 N m**, 6.43 kW; APC's 17 x 6E, the nearest pitch over diameter
+at the same tip speed, gives 9.53, 1.6 percent more. HFE's dyno is a fuel
+injected engine and reads 10.07 N m at 6,550 rpm: every dyno row below is
+scaled by 0.931 so full throttle settles on the measured point, inside
+the dyno's own +/-10 percent.
 
 **The torque is flat, which the glow method assumes.** HFE's full throttle
 torque, read off figure 3: 9.3 N m at 3,500 rpm, 9.6 at 4,000, 10.3 at
@@ -1251,63 +1253,63 @@ straight from the idle to full with the stick. A butterfly opens most of
 the speed in the first half of its travel: HFE's figure 3 is the torque
 at 20, 30, ... 100 percent throttle across 2,000 to 8,000 rpm, measured
 on a Magtrol eddy current dyno, and each throttle settles where its torque
-meets the prop's, Q_f (rpm / 6,850)^2. The new table field
+meets the prop's, Q_f (rpm / 6,550)^2, its dyno scaled as above. The new table field
 `throttle_rpm` takes that curve, the speed over full at the stick's 0,
 0.1, ... 1 (zero on every other table, which keeps the straight line):
 
  Stick | 0 | 0.1 | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 | 1
  --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
- Dyno against the prop | 0.190 | 0.310 | 0.430 | 0.523 | 0.640 | 0.763 | 0.866 | 0.914 | 0.967 | 0.973 | 1
- The straight line | 0.190 | 0.271 | 0.352 | 0.433 | 0.514 | 0.595 | 0.676 | 0.757 | 0.838 | 0.919 | 1
+ Dyno against the prop | 0.199 | 0.318 | 0.438 | 0.531 | 0.643 | 0.765 | 0.873 | 0.913 | 0.966 | 0.980 | 1
+ The straight line | 0.199 | 0.279 | 0.359 | 0.439 | 0.519 | 0.599 | 0.679 | 0.760 | 0.840 | 0.920 | 1
 
 The stick's 0 is the idle, DA's 1,300 rpm (desertaircraft.com, "1,300 to
 6,900"; DA Australia gives 1,000). FITTED, said where it is: HFE ran
 nothing under 2,000 rpm, so the stick's tenth is half way from the idle
 to the 20 percent crossing; and where the dyno's +/-10 percent puts the
 90 percent crossing under the 80 percent's, the curve is held level.
-Half stick is 5,230 rpm, not 4,080.
+Half stick is 5,010 rpm, not the straight line's 3,930.
 
 **How fast it answers.** The rotor: 0.7 of the blades' rod inertia (the
 fleet's convention, PR 3) on the 28 x 10's listed masses (Biela 322 g,
 Mejzlik 288 and 276 g) and 0.0006 kg m^2 for the crank, the ignition's
 rotor and the 5 in spinner, ESTIMATED: **0.00931 kg m^2**, J w_f / Q_f =
-0.664 s. The plant's spool with these, measured in a proof build that
+0.681 s. The plant's spool with these, measured in a proof build that
 gave the Ugly Stik's table the DA-120's lines (not committed), against
 the derivation's own integration of the same equation, 63 and 90 percent
 of the thrust's change, ms:
 
  Step | plant | derivation
  --- | --- | ---
- idle to full | 608/1092 | 608/1092
- half to full | 388/840 | 389/841
- full to half | 362/890 | 362/891
- idle to half | 757/1390 | 758/1391
+ idle to full | 619/1115 | 619/1116
+ half to full | 398/861 | 398/862
+ full to half | 371/912 | 371/913
+ idle to half | 768/1414 | 768/1415
 
-and its steady speed at the stick: 0.1898 at 0, 0.4297 at 0.2, 0.5229 at
-0.3, 0.7629 at 0.5, 0.9138 at 0.7, 1 at full, the curve's own. A
+and its steady speed at the stick: 0.1985 at 0, 0.4379 at 0.2, 0.5306 at
+0.3, 0.7653 at 0.5, 0.9133 at 0.7, 1 at full, the curve's own. A
 two stroke burns on the revolution after its charge is drawn, one
 revolution, 46 ms at the idle and 9 ms at full: an order under the
 rotor's time, and no source gives its size for this engine, so it is left
 out, as for the glow engines.
 
 **The tank.** Extreme Flight's build guide: "FlowMaster 34 oz.", 1,005 cc.
-HFE's average BSFC, 575 g/kWh, at the 7.22 kW, on petrol and 40:1 oil at
-0.74 kg/l (ESTIMATED): 93.4 cc/min at full, 10.8 minutes. An owner's
+HFE's average BSFC, 575 g/kWh, at the 6.43 kW, on petrol and 40:1 oil at
+0.74 kg/l (ESTIMATED): 83.3 cc/min at full, 12.1 minutes. An owner's
 report has "most of a 32oz tank in 10 minutes" flown (giantscalenews.com
 thread 8533). The flow runs straight from the idle's share of it in the
 duty, which with throttle_rpm is the speed's share, not the stick's (half
-stick burns at 0.763 of the way, where the straight line's 0.595 was),
+stick burns at 0.765 of the way, where the straight line's 0.599 was),
 and leans at the end as the Bombshell's does, the glow method. The table
 sets throttle_idle to throttle_rpm's first entry: the tank, the pack's
 drain and a turbine's idle all key off throttle_idle, which the curve
 does not replace.
 
 **For the Slick's table, not here.** Its data sheet's "Right thrust: 3
-deg" (Extreme Flight, DATASHEET_105SLICK580v2.pdf): the plant has no
-side thrust field (thrust_z only), and on 321 N it is a 16.8 N side force
-ahead of the CG, which is how the real aircraft holds its line against
-the swirl and the P factor. The thrust line's angle wants a field; the
-propulsion lane can add it when the Slick's table is there to prove it on.
+deg" (Extreme Flight, DATASHEET_105SLICK580v2.pdf) is 15.9 N sideways on
+304 N, 9.7 N m of right yaw at full static ahead of its CG (the Slick
+lane's figure). This plant has the thrust line's height (thrust_z) but no
+angle; the field, `thrust_yaw`, is on the propulsion lane's next batch
+branch, and the Slick and CAP lanes set it when it lands.
 
 **spool:derive held the aircraft still and let it climb.** Its harness put
 the aircraft back in place each step with sim_set_pose, which keeps the
