@@ -1636,6 +1636,54 @@ export function personWingsHold({ a, L, v0 }) {
   return hold;
 }
 
+/*
+ * The power on stall as FAA-H-8083-3C ch. 5 ("Full Stalls, Power-On")
+ * flies it, for an aircraft whose wings are levelled on the rudder: "hold
+ * that attitude until the full stall occurs ... continual adjustments ...
+ * to maintain coordinated flight", here full up and rudderLevel; then "the
+ * pilot should recognize when the stall has occurred and take action
+ * without delay to prevent a prolonged stalled condition ... reducing the
+ * AOA ... level the wings ... coordinate with rudder ... the throttle is
+ * already at the climb power setting". The stall is recognised when the
+ * wing passes alphaStall, acted on 0.2 s later (the person's delay,
+ * personWingsHold's), then the elevator neutral, the wings on rudderLevel
+ * and the power kept. "With sufficient airspeed and control effectiveness"
+ * the airplane is returned to its flightpath, so the wings are judged once
+ * the speed is back to v0. Returns the stall's time (null if none), the
+ * worst bank and whether it was ever on its back through both phases, the
+ * time the speed is back to v0 and the wings within maxBankDeg after the
+ * recovery began, and the worst bank after the speed is back.
+ * stepFn(sticks) steps the gate's sim and returns the state; alphaOf()
+ * reads the wing's angle.
+ */
+export function faaPowerOnStall(stepFn, s0, { alphaStall, duty, seconds, recoverSeconds, v0, maxBankDeg, alphaOf }) {
+  let s = s0, tStall = null, worstBank = 0, inverted = false;
+  const lagS = 0.2;
+  const watch = (st) => {
+    const b = Math.abs(fullBank(st));
+    worstBank = Math.max(worstBank, b * 180 / Math.PI);
+    inverted = inverted || b > Math.PI / 2;
+  };
+  let t = 0;
+  for (; t < seconds; t += RC_STEP_MS / 1000) {
+    s = stepFn([0, 1, rudderLevel(s), duty]);
+    watch(s);
+    if (tStall === null && alphaOf() > alphaStall) tStall = t;
+    if (tStall !== null && t >= tStall + lagS) break;
+  }
+  let tSpeed = null, tLevel = null, worstAfter = 0;
+  for (let r = 0; r < recoverSeconds; r += RC_STEP_MS / 1000) {
+    s = stepFn([0, 0, rudderLevel(s), duty]);
+    watch(s);
+    const v = Math.hypot(s[4], s[5], s[6]);
+    const bank = Math.abs(fullBank(s)) * 180 / Math.PI;
+    if (tSpeed === null && v >= v0) tSpeed = r;
+    if (tLevel === null && bank <= maxBankDeg) tLevel = r;
+    if (tSpeed !== null) worstAfter = Math.max(worstAfter, bank);
+  }
+  return { tStall, worstBank, inverted, tSpeed, tLevel, worstAfter };
+}
+
 export function edgeLevel(s, { b = 0, trim }) {
   const { pitch } = attitude(s);
   const qAero = -s[12];

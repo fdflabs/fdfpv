@@ -50,7 +50,7 @@ import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import {
   SLOWSTICK_AIRFRAME, fly, wingDebug, wheelLoads, attitude, must, slowstickGroundPrelude, skyPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, RC_STEP_MS, wingSlip, rudderLevel, fullThrottleHeld,
-  turnYawLimitDeg, spinWatch,
+  turnYawLimitDeg, spinWatch, faaPowerOnStall,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -238,6 +238,33 @@ check: {
   /* S9: full up held from level cruise, power off and power on. */
   for (const [id, t9, duty] of [['S9a', th.s9_stall_power_off, 0], ['S9b', th.s9_stall_power_on, th.s9_stall_power_on.duty]]) {
     levelThen(sim, 0.75);
+    /* S9b, power on, judged on FAA-H-8083-3C ch. 5, "Full Stalls,
+     * Power-On" (wingpilot.js faaPowerOnStall, which quotes it): entered
+     * slowed with the power set ("the purpose of reducing the airspeed ...
+     * is to avoid an excessively steep nose-up attitude"), 1.2 times the top of S2's measured stall speed band;
+     * the attitude held coordinated on the rudder until the stall,
+     * recognised and recovered without delay, never on its back, and the
+     * wings level within the bank limit by the time the speed is back to
+     * the entry's, and held. Its earlier form held full up for the whole
+     * run with the wings on the rudder, the "prolonged stalled condition"
+     * the handbook says to prevent; past the stall the wing's dihedral
+     * share fades (TP-2011 fig. 51), so a rudder can no longer level it
+     * there. */
+    if (duty) {
+      clockMs = fly(sim, { duty, vTarget: 1.2 * th.s2_stall.max, seconds: 25, guard: false, speed0: 1.2 * th.s2_stall.max }).endMs;
+      const s0 = sim.readState().state;
+      const v0 = speed(s0);
+      const r = faaPowerOnStall((sticks) => step(sim, sticks).s, s0, {
+        alphaStall: th.s2_stall.alphaStall, duty, seconds: t9.seconds, recoverSeconds: t9.recoverSeconds, v0,
+        maxBankDeg: t9.maxBankDeg, alphaOf: () => wingDebug(sim)[0],
+      });
+      const recovered = r.tSpeed !== null && r.tLevel !== null && r.tLevel <= r.tSpeed && r.worstAfter <= t9.maxBankDeg;
+      gate(id, 'power on stall as the handbook flies it: recognised, recovered, the wings level',
+        r.tStall !== null && !r.inverted && recovered,
+        `stall at ${r.tStall === null ? 'never' : `${r.tStall.toFixed(2)} s`} from ${v0.toFixed(2)} m/s, bank up to ${r.worstBank.toFixed(1)}; recovering, the speed back at ${r.tSpeed === null ? 'never' : `${r.tSpeed.toFixed(2)} s`}, within ${t9.maxBankDeg} deg at ${r.tLevel === null ? 'never' : `${r.tLevel.toFixed(2)} s`}, then under ${r.worstAfter.toFixed(1)}`,
+        `stalled within ${t9.seconds} s, never on its back, level by the time the speed is back and held`);
+      continue;
+    }
     const psi0 = heading(sim.readState().state);
     let worstBank = 0;
     let minPitch = 90;
