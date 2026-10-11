@@ -2095,6 +2095,7 @@ export default {
   "airframe.blurb.zagi1219": "Un Zagi HP de 48 pulgadas en 3S, el ala volante de EPP que enseñó a volar a una generación en la ladera y en combate. Lánzalo fuerte y ve suave con los elevones: alabea rápido y responde al toque más pequeño en cabeceo. Sin timón. Planea lejos y se desliza sobre la panza.",
   "airframe.blurb.nrj1490": "Un OA Composites NRJ de 1490 mm, un planeador de lanzamiento por punta de ala de carbono de 213 g, sin motor. Gíralo y lánzalo por la punta del ala hasta 60 m, luego trabaja las térmicas para mantenerte arriba; tráelo de vuelta sobre la panza o atrápalo.",
   "airframe.blurb.striker2500": "El delta propulsor propio de la incursión, de 2,5 m de envergadura, con un bóxer bicilíndrico de 110 cc o un pequeño turborreactor, y una ojiva en la nariz. Dispáralo desde el riel, vuélalo rápido y nivelado, mételo en el blanco. Es estable y pesado, no acrobático, y el reactor tarda segundos en acelerar.",
+  "airframe.blurb.nighttimber1200": "Un E-flite Night Timber X de 1200 mm en 4S: el ala STOL y las superficies grandes del Timber X, con LED dentro del fuselaje. Con flaps a fondo despega de la pista en pocos metros; con los flaps mezclados en los alerones, se cuelga de la hélice y hace torque roll. F ajusta los flaps.",
   "trickfilm.and": " y ",
   "tricks.level.beginner": "Principiante",
   "tricks.level.novice": "Novato",
