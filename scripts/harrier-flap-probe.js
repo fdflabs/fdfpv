@@ -3,8 +3,9 @@
  * harrier? The 3D video study (a Night Timber X, 05:00 to 05:20) flies the
  * harrier on full up elevator with "elevator flaps" mixed in and shows the
  * wing rock grow to 30 deg at about 1.5 s with the mix switched off. Here
- * the Turbo Timber, the class's aircraft in the sim, is flown into a
- * harrier by a pilot with a person's limits (hover-probe.js's: sees 0.2 s
+ * the Night Timber, the video's own aircraft (the Turbo Timber stood in for
+ * it before the Night Timber flew in the sim; --plane timber1500 still
+ * flies that), is flown into a harrier by a pilot with a person's limits (hover-probe.js's: sees 0.2 s
  * late, moves the sticks ten times a second in fiftieths): from level at
  * 1.3 times the stall, the elevator is eased to full up over 3 s and held,
  * the wings held level on the ailerons, the height on the throttle. Over
@@ -13,7 +14,10 @@
  * step, in Manual and in AS3X. A grid of aileron pilots; the best one is
  * reported, as the hover probe does. It measures, it does not judge.
  *
- *   node scripts/harrier-flap-probe.js [--plane timber1500]
+ *   node scripts/harrier-flap-probe.js [--plane nighttimber1200]
+ *
+ * harrier-probe.js flies it as a pilot does, from a slow entry with the
+ * rudder as well; this one keeps the level entry it was written with.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -56,7 +60,7 @@ const arg = (k, d) => {
   const i = process.argv.indexOf(k);
   return i > 0 ? process.argv[i + 1] : d;
 };
-const af = AIRFRAMES.find((a) => a.id === arg('--plane', 'timber1500'));
+const af = AIRFRAMES.find((a) => a.id === arg('--plane', 'nighttimber1200'));
 const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
 const quant = (x) => clamp(Math.round(x * STEPS) / STEPS);
 
