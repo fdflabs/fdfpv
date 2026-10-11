@@ -79,7 +79,7 @@ const speed = (s) => Math.hypot(s[4], s[5], s[6]);
 const W_TIMBER = 1.934 * 9.81;
 
 /* swiss2's lower stream: 5.2 m wide as drawn, the water 0.16 m over its
- * bed at the centre (src/maps/swiss2/water/stream.js). */
+ * bed at the centre (src/render/library/water/stream.js). */
 const HALF = 2.6;
 const DEPTH = 0.16;
 /* The test river: along x every 2 m, straight to x = 200 and then

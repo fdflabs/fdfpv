@@ -67,7 +67,7 @@ after pictures.
 | Grass and leaf atlas | `vegetation/atlas.js` | loaded by each map's vegetation | Swiss valley, Itaipu, Interior |
 | Turf and near grass | not yet | `swiss2/vegetation/grass.js`, `itaipu/look/ground.js` `makeTurf`, `interior/nearfield.js` | one each |
 | Ground cover materials | not yet | each map's `ground.js` / `look/ground.js` | one each |
-| Water edges, streams, silt | not yet | `interior/ribbons.js`, `swiss2/water/`, `itaipu/water/`, `alps/nature.js` | one each |
+| Water surface (lake, pool, stream), wave texture, stream ribbons and gravel bars, planar mirror | `water/surface.js`, `water/waves.js`, `water/stream.js`, `water/mirror.js` | placed by `swiss2/water/` and `swiss2/props/` (bars); Itaipu's reservoir and river (`itaipu/water/index.js`) draw with the material, texture and mirror. The Interior's silty river and banks (`interior/ribbons.js`) and the Alps' cel water (`alps/nature.js`) stay their own | Swiss valley, Itaipu |
 | Scanned rocks (boulders and stones: scans, material, colliders, levels) | `rocks.js` | placed by `swiss2/vegetation/rocks.js`; the Alps keep their cel boulders (`alps/nature.js`), the carved cliffs stay with the Swiss valley's terrain (`swiss2/rock/`) | Swiss valley |
 | People and postures | not yet | `src/render/interior/figures.js`, `swiss2/village/people.js`, `alps/fauna.js` | one each |
 | Roofs as ground (records, solids under them) | `roofs.js` | used by `kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
@@ -163,6 +163,38 @@ material that dissolves across its distance band.
   shadow. Program key `swiss2-rock`.
 - **Golden**: `tests/browser/render-golden/rocks.js`, through the Swiss
   valley's `buildRocks` and `waterStones`, colliders included.
+
+## Water (`src/render/library/water/`)
+
+The Swiss valley's water, which Itaipu's reservoir and river use too:
+three's standard material with the water spliced in (normals from a
+tiling ripple texture, Fresnel at water's index, depth that clears to
+the bed in the shallows, shore and rapids foam, a planar mirror).
+
+- **Inputs**: `waterMaterial(options)` takes the wave texture, shared
+  `time` and `wind` uniforms, the body's colours, clarity, ripple,
+  roughness, and optionally a mirror, a wave field (`lakewaves.js`), a
+  depth patch, a boat's wake and an inflow; `bedMaterial(options, absorb)`
+  the same with the water's absorption per metre. `streamGeometry(pts,
+  width, groundAt, lift)` and `gravelBarGeometry(pts, width, groundAt,
+  rng)` take a line in flow order and the map's ground.
+  `planarMirror(level, scale)` a water level and a resolution share.
+- **Outputs**: materials (uniforms on `userData.water`), geometries with
+  `aWater` (depth, distance along, position across, bed slope) and
+  `aFlow`, the mirror's texture, matrix and `render(renderer, scene,
+  camera, hide, bounds)`.
+- **Needs**: still water reads `s2Sun`, the sun term the Swiss valley's
+  lit injection (`swiss2/light.js` makeLit) declares; a map without that
+  light declares it itself (Itaipu's water: `const float s2Sun = 1.0;`,
+  its sun reaching the water past nothing but the shadow maps). Running
+  water does not read it.
+- **Shape**: `streamSurface(pts, groundAt, lift)` is the drawn stream's
+  centre line, which the Swiss valley hands the plant as its river, so
+  the water a craft floats on is the water drawn (`river:check`).
+- **Perf**: one draw a sheet; the mirror is one more scene draw a frame
+  on High and Medium, scissored to the texels the water reads
+  (`perf-mirror-check.js`). Program keys `swiss2-water-*`.
+- **Golden**: `tests/browser/render-golden/water.js`.
 
 ## Placing an asset on a map
 

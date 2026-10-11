@@ -23,7 +23,7 @@
  *   BALES in the fields the paint shows freshly cut, wrapped white, in a
  *   loose line where the baler dropped them.
  *
- *   GRAVEL BARS on the insides of the stream's bends (water/stream.js).
+ *   GRAVEL BARS on the insides of the stream's bends (src/render/library/water/stream.js).
  *
  *   A REED BANK along the lake's north shore either side of the jetty,
  *   and in its sheltered corners, dense where nature.js's reeds are
@@ -89,7 +89,7 @@ import {
   valleyLayout, meadowField, meadowCuts, lakeShore, jettyClear, airfield, ROAD_DX, ROAD_END, STREET_Z,
 } from '../vegetation/zones.js';
 import { RUNWAY_HALF } from '../ground.js';
-import { gravelBarGeometry } from '../water/stream.js';
+import { gravelBarGeometry } from '../../../render/library/water/stream.js';
 import {
   UP, Mesher, propMaterial, shade, box, frame, roofProxy, albedoOf,
 } from './mesh.js';

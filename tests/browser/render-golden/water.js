@@ -25,10 +25,10 @@
  */
 
 import * as THREE from 'three';
-import * as surface from '../../../src/maps/swiss2/water/surface.js';
-import * as waves from '../../../src/maps/swiss2/water/waves.js';
-import * as stream from '../../../src/maps/swiss2/water/stream.js';
-import { planarMirror } from '../../../src/maps/swiss2/water/lake.js';
+import * as surface from '../../../src/render/library/water/surface.js';
+import * as waves from '../../../src/render/library/water/waves.js';
+import * as stream from '../../../src/render/library/water/stream.js';
+import { planarMirror } from '../../../src/render/library/water/mirror.js';
 import { makeWaves } from '../../../src/render/lakewaves.js';
 import { makeRng } from '../../../src/render/library/noise.js';
 import {
