@@ -136,8 +136,14 @@ checks it, numbers it, keeps it under `drops` in its storage and sends
 ## What it does NOT do
 
 - No engine failure, no per engine throttle.
-- The loads do not change the aircraft's mass or balance (the plant has
-  no hold to empty); a finite hold is a product question for the owner.
+- The hold (lead decision 2026-10-09): eight loads, each 250 g where it
+  sits on the cargo floor (src/game/hold.js), seated on the plant as
+  add-ons. A full hold is 2.0 kg on 6.73 kg, 30 percent, the full size's
+  payload share (42,000 lb on 155,000 lb); it moves the CG 22.9 mm aft
+  (the static margin 0.16 to 0.10). They leave aft pair first, so each
+  drop lightens the aircraft and walks the CG forward, at once. Stopped
+  on the ground, the hold is filled again. The HUD shows "Loads n of 8";
+  an empty hold refuses P and says to land.
 - A load does not hit other aircraft, trees or buildings on the way down;
   it lands on the ground or the water under it.
 - A landed load is not pushed by later wind or by other aircraft.
