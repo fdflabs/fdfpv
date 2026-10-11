@@ -131,16 +131,36 @@ async function seedAccount(pilot) {
   return { acc, wallet };
 }
 
+/* How long a step of the shell may take: the shell's own load budget.
+ * On a 2 core runner drawing in software (CI's SwiftShader), building
+ * the room and its aircraft and compiling their programs on the first
+ * frame took longer than the 20 s once given here; a fixed short wait
+ * measured the machine, not the room. */
+const SHELL_MS = 300000;
+
+/* until, with how long it took and, when it gives up, where the shell was. */
+async function need(page, expr, what) {
+  const t0 = Date.now();
+  try {
+    await page.until(expr, SHELL_MS);
+  } catch (err) {
+    const at = await page.evaluate('JSON.stringify({ screen: window.__ui.screen, hub: window.__ui.hub, walk: Boolean(window.__ui.walk), stats: window.__walkStats && window.__walkStats() })');
+    console.log(`stuck ${what} at ${at}; errors: ${page.errors.slice(0, 5).join(' | ')}`);
+    throw err;
+  }
+  console.log(`  ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+}
+
 /* Walk in from the Hangar hub with a real pointer; what the shell built. */
 async function walkIn(page, label) {
   await page.evaluate('window.__ui.hub = null; window.__ui.show("title"); window.__ui.renderMenu(); true');
   await page.sleep(300);
   check(`${label}: the Hangar hub card clicked`, await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
-  await page.until("window.__ui.hub === 'hangar'", 10000);
+  await need(page, "window.__ui.hub === 'hangar'", `${label}: the Hangar hub`);
   check(`${label}: Walk in clicked`, await page.click('.gate-card.gate-card-hangar-walk'), 'clicked');
-  await page.until("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
+  await need(page, "window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", `${label}: the room drawn`);
   /* The wallet asked again as the room opened: its chips hung. */
-  await page.until('(() => { const s = window.__walkStats(); return s.mine && s.view.chart === s.mine.chart.finishes.length + s.mine.chart.decals.length; })()', 20000);
+  await need(page, '(() => { const s = window.__walkStats(); return s.mine && s.view.chart === s.mine.chart.finishes.length + s.mine.chart.decals.length; })()', `${label}: the chart hung`);
   await page.sleep(600);
   return page.evaluate('window.__walkStats()');
 }
@@ -186,8 +206,8 @@ async function openPilot(pilot, seeded) {
   const page = await openPage({
     root, width: 1600, height: 900, seed: [seedSignedIn(accounts.origin, seeded.acc), settings], url: `/index.html?tracks=${encodeURIComponent(accounts.origin)}`,
   });
-  await page.until('window.__shellReady === true', 300000);
-  await page.loaded(60000);
+  await page.until('window.__shellReady === true', SHELL_MS);
+  await page.loaded(SHELL_MS);
   return page;
 }
 
@@ -215,7 +235,7 @@ try {
 
     /* A lap through the progress path a pilot's lap takes: up a level. */
     await page.tap('Escape');
-    await page.until("window.__ui.screen !== 'walk'", 10000);
+    await need(page, "window.__ui.screen !== 'walk'", 'Wren: out of the room');
     /* As many first laps as it takes, each a course flown once. */
     for (let k = 0; k < 8 && (await page.evaluate('window.__ui.progress.state.xp')) < LEVEL_XP[TIER_LEVELS.workshop - 1]; k += 1) {
       await page.evaluate(`window.__ui.progress.lap({ key: 'foot-mine-lap-${k}', kind: 'map' }); true`);
