@@ -34,7 +34,8 @@ import { inspectCourse } from '../share/listing.js';
 import { writePendingTime } from '../share/session.js';
 import { formatScore } from '../game/score.js';
 import { str, plural } from '../strings/index.js';
-import { formatDelta, formatTime } from './format.js';
+import { splitDuration } from '../share/flighttime.js';
+import { formatDelta, formatRunClock, formatTime } from './format.js';
 import { el } from './widgets.js';
 /* A cycle (ui.js installs these methods), so only read inside methods. */
 import { lapCraftOf, seatIsRace } from './ui.js';
@@ -94,6 +95,8 @@ function verdictOf(fastest, recordAtStart) {
 function resetScreen(ui, record, empty, replay) {
   ui.resultsBody.textContent = '';
   ui.resultsNote.textContent = '';
+  ui.resultsFacts.textContent = '';
+  ui.resultsDebrief = null;
   const screen = ui.screens.results;
   screen.classList.toggle('is-record', record);
   screen.classList.toggle('is-empty', empty);
@@ -108,6 +111,97 @@ function replayEntrance(screen) {
    * animation instead of being folded into the removal. */
   void screen.offsetWidth;
   screen.classList.add('is-in');
+}
+
+const SVG = 'http://www.w3.org/2000/svg';
+/* The route's square, in SVG units; the line is scaled into it less a
+ * margin so the start and end dots are never clipped. */
+const ROUTE_BOX = 100;
+const ROUTE_PAD = 8;
+
+function svg(tag, attrs) {
+  const node = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    node.setAttribute(k, String(v));
+  }
+  return node;
+}
+
+/* The route seen from above, the same scale on both axes so a circle
+ * stays round, start hollow and end filled. */
+function routeSvg(route) {
+  const xs = route.points.map((p) => p[0]);
+  const zs = route.points.map((p) => p[1]);
+  const x0 = Math.min(...xs);
+  const z0 = Math.min(...zs);
+  const span = Math.max(Math.max(...xs) - x0, Math.max(...zs) - z0, 1);
+  const k = (ROUTE_BOX - 2 * ROUTE_PAD) / span;
+  const at = (p) => [ROUTE_PAD + (p[0] - x0) * k, ROUTE_PAD + (p[1] - z0) * k].map((v) => v.toFixed(1));
+  const node = svg('svg', { viewBox: `0 0 ${ROUTE_BOX} ${ROUTE_BOX}`, class: 'results-route', role: 'img', 'aria-label': str('debrief.route') });
+  node.append(svg('polyline', { points: route.points.map((p) => at(p).join(',')).join(' '), class: 'results-route-line' }));
+  const [sx, sy] = at(route.points[0]);
+  const [ex, ey] = at(route.points[route.points.length - 1]);
+  node.append(svg('circle', { cx: sx, cy: sy, r: 3.5, class: 'results-route-start' }));
+  node.append(svg('circle', { cx: ex, cy: ey, r: 3.5, class: 'results-route-end' }));
+  return node;
+}
+
+const lengthText = (m) => (m < 1000 ? str('debrief.metres', { m: Math.round(m) }) : str('debrief.km', { km: (m / 1000).toFixed(1) }));
+
+function hoursText(s) {
+  const { h, m } = splitDuration(s);
+  if (h) {
+    return str('debrief.hours', { h, m });
+  }
+  return m ? str('debrief.minutes', { m }) : str('debrief.seconds', { s: Math.floor(s) });
+}
+
+/* A record line's value in its own unit: a lap time, a board score or a
+ * total flight time. */
+function recordText(r) {
+  if (r.what === 'debrief.aircraft_time') {
+    return hoursText(r.now);
+  }
+  const unit = r.what === 'debrief.track_record' ? formatTime : formatScore;
+  if (r.before == null) {
+    return str('debrief.record_first', { now: unit(r.now) });
+  }
+  return r.improved ? str('debrief.record_beat', { now: unit(r.now), before: unit(r.before) }) : str('debrief.record_stands', { before: unit(r.before) });
+}
+
+/* The debrief's facts (src/game/debrief.js): every line the record has,
+ * in the contract's order; the result is the screen's head and the next
+ * actions its menu, so neither is repeated here. */
+function factLines(d) {
+  const lines = [[str('debrief.air_time'), formatRunClock(d.time.flightMs)]];
+  if (d.route) {
+    lines.push([str('debrief.distance'), lengthText(d.route.distanceM)]);
+    lines.push([str('debrief.top'), str('debrief.top_value', { m: Math.max(0, Math.round(d.route.topM)) })]);
+  }
+  for (const a of d.accuracy) {
+    lines.push([str(a.what), a.of == null ? String(a.n) : str('debrief.n_of', { n: a.n, of: a.of })]);
+  }
+  if (d.result.landed != null) {
+    lines.push([str('debrief.landing'), str(d.result.landed ? 'debrief.landed' : 'debrief.not_landed')]);
+  }
+  for (const r of d.records) {
+    lines.push([str(r.what), recordText(r), r.improved === true ? 'gain' : r.improved === false ? 'off' : '']);
+  }
+  return lines;
+}
+
+function fillFacts(box, d) {
+  if (!d) {
+    return;
+  }
+  if (d.route && d.route.points.length > 1) {
+    box.append(routeSvg(d.route));
+  }
+  const list = el('dl', 'results-facts-list');
+  for (const [label, value, tone] of factLines(d)) {
+    list.append(el('dt', null, label), el('dd', tone || null, value));
+  }
+  box.append(list);
 }
 
 const RACE_HEADS = { record: 'ui.new_track_record', matched: 'ui.matched_the_record', off: 'ui.run_complete' };
@@ -182,13 +276,15 @@ export const resultsMethods = {
    * pilot did not fly). `best` is the live record; `recordAtStart` the one
    * this run was chasing, which decides the headline.
    */
-  showResults(log, best, recordAtStart, ghostNote = null) {
+  showResults(log, best, recordAtStart, ghostNote = null, debrief = null) {
     this.roomResults = false;
     const laps = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
     const fastest = laps.length ? Math.min(...laps) : null;
     const slowest = laps.length ? Math.max(...laps) : null;
     const verdict = verdictOf(fastest, recordAtStart);
     resetScreen(this, verdict === 'record', verdict === 'none', true);
+    this.resultsDebrief = debrief;
+    fillFacts(this.resultsFacts, debrief);
     this.resultsKicker.textContent = this.resultsCourseName();
 
     const meta = this.resultsHeroMeta;

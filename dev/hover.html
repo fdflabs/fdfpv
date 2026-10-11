@@ -1,0 +1,154 @@
+<!doctype html>
+<!--
+  dev/hover.html: the control recording viewer, /dev/hover.html. Opens a
+  recording the game saved (Settings, Download control recording) or the
+  last flight kept in this browser, plots the sticks against the nose off
+  vertical and the roll rate, and prints the hover probe's thumb numbers
+  (src/share/controlrec.js thumbStats). docs/CONTROL-RECORDER.md.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paraguayan Drone Combat Simulator</title>
+    <style>
+      body { margin: 0; padding: 16px; background: #111418; color: #dfe4ea; font: 14px/1.4 system-ui, sans-serif; }
+      h1 { font-size: 18px; margin: 0 0 12px; }
+      .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+      button, label.file { background: #24303c; color: inherit; border: 1px solid #3a4a5a; border-radius: 4px; padding: 6px 10px; cursor: pointer; font: inherit; }
+      table { border-collapse: collapse; margin: 12px 0; }
+      td, th { padding: 3px 10px; border-bottom: 1px solid #2a333d; text-align: right; }
+      th:first-child, td:first-child { text-align: left; }
+      canvas { width: 100%; max-width: 1200px; height: 420px; background: #0b0e11; display: block; }
+      #msg { color: #f0c36a; }
+    </style>
+  </head>
+  <body>
+    <h1 id="title"></h1>
+    <div class="bar">
+      <label class="file"><span id="openFile"></span> <input id="file" type="file" accept=".csv,text/csv" hidden /></label>
+      <button id="last" type="button"></button>
+      <span id="msg"></span>
+    </div>
+    <p id="summary"></p>
+    <table id="sticks"></table>
+    <table id="timing"></table>
+    <p id="note"></p>
+    <canvas id="plot" width="1200" height="420"></canvas>
+    <script type="module">
+      import { str, useLocale, preferredLocale } from '../src/strings/index.js';
+      import { COLUMN as C, parseCsv, thumbStats, noseOffVertical, loadLast } from '../src/share/controlrec.js';
+
+      await useLocale(preferredLocale());
+      const el = (id) => document.getElementById(id);
+      el('title').textContent = str('controlrec.title');
+      el('openFile').textContent = str('controlrec.open_file');
+      el('last').textContent = str('controlrec.open_last');
+      el('note').textContent = str('controlrec.plot_note');
+      const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : '-');
+
+      function row(cells, tag = 'td') {
+        const tr = document.createElement('tr');
+        for (const c of cells) {
+          const td = document.createElement(tag);
+          td.textContent = c;
+          tr.append(td);
+        }
+        return tr;
+      }
+
+      function show(rows) {
+        const s = thumbStats(rows);
+        window.__hoverStats = s;
+        el('summary').textContent = str('controlrec.summary', { secs: fmt(s.seconds, 1), held: fmt(s.noseUpHeldS, 1) });
+        const t = el('sticks');
+        t.replaceChildren(row([str('controlrec.stick'), str('controlrec.mean_abs'), str('controlrec.peak'), str('controlrec.rate95'), str('controlrec.reversals')], 'th'));
+        for (const k of ['roll', 'pitch', 'yaw', 'throttle']) {
+          const h = s.sticks[k];
+          t.append(row([str('controlrec.' + k), fmt(h.meanAbs, 3), fmt(h.peak), fmt(h.rate95), fmt(h.reversalsPerS)]));
+        }
+        const m = el('timing');
+        m.replaceChildren(row(['', 'p50', 'p95', 'p99', 'max'], 'th'));
+        for (const [label, d] of [[str('controlrec.wait'), s.stickToFrame], [str('controlrec.frame'), s.frameInterval]]) {
+          m.append(row([label, fmt(d.p50, 1), fmt(d.p95, 1), fmt(d.p99, 1), fmt(d.max, 1)]));
+        }
+        plot(rows);
+      }
+
+      function plot(rows) {
+        const cv = el('plot');
+        const g = cv.getContext('2d');
+        const w = cv.width;
+        const h = cv.height;
+        g.clearRect(0, 0, w, h);
+        if (rows.length < 2) {
+          return;
+        }
+        const t0 = rows[0][C.t_s];
+        const span = rows[rows.length - 1][C.t_s] - t0 || 1;
+        const every = Math.max(1, Math.floor(rows.length / w));
+        const half = h / 2;
+        g.strokeStyle = '#2a333d';
+        g.beginPath();
+        g.moveTo(0, half);
+        g.lineTo(w, half);
+        g.stroke();
+        const line = (colour, top, value) => {
+          g.strokeStyle = colour;
+          g.beginPath();
+          for (let i = 0; i < rows.length; i += every) {
+            const x = ((rows[i][C.t_s] - t0) / span) * w;
+            const y = top + (half / 2) * (1 - Math.max(-1, Math.min(1, value(rows[i]))));
+            if (i === 0) { g.moveTo(x, y); } else { g.lineTo(x, y); }
+          }
+          g.stroke();
+        };
+        line('#6ab0f0', 0, (r) => r[C.roll]);
+        line('#f06a6a', 0, (r) => r[C.pitch]);
+        line('#6af0a0', 0, (r) => r[C.yaw]);
+        line('#f0c36a', 0, (r) => r[C.throttle] * 2 - 1);
+        /* Bottom: nose off vertical, 0 to 90 degrees, and roll rate over
+         * plus or minus 360 degrees a second. */
+        line('#dfe4ea', half, (r) => 1 - noseOffVertical(r) / 45);
+        line('#6ab0f0', half, (r) => (r[C.p] * 57.29577951308232) / 360);
+      }
+
+      el('file').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        if (!f) { return; }
+        try {
+          el('msg').textContent = '';
+          show(parseCsv(await f.text()));
+        } catch (err) {
+          el('msg').textContent = err.message;
+        }
+      });
+      el('last').addEventListener('click', async () => {
+        const kept = await loadLast().catch(() => null);
+        if (!kept) {
+          el('msg').textContent = str('controlrec.none_kept');
+          return;
+        }
+        el('msg').textContent = '';
+        show(kept.rows);
+      });
+      window.__hoverShow = (text) => show(parseCsv(text));
+    </script>
+  </body>
+</html>
