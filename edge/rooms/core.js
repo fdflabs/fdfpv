@@ -1211,8 +1211,8 @@ export class RoomCore {
    * time (src/share/daytime.js). A mission's time is the room's while
    * its game is the room's: an ops match's clock (its sun moves from the
    * go), a war's mission time, from its lobby on so every screen builds
-   * the mission's world before the briefing (war.js WORLD_LEAD_MS). Any
-   * other room flies the time its host set. Handed to joiners in the
+   * the mission's world before the briefing (war.js WORLD_LEAD_MS), and
+   * over its end. Any other room flies the time its host set. Handed to joiners in the
    * welcome and told as { type: 'daytime', daytime } whenever it changes
    * (daytimeNews), which a build from before it passes over.
    */
@@ -1229,6 +1229,12 @@ export class RoomCore {
     if (this.meta.mode === 'war') {
       const id = warMission(this);
       return clockOfTime(id ? missionTime(MISSIONS[id]) : null);
+    }
+    /* A war started in another room keeps its time over its end and its
+     * result, so the banner, and a briefing straight after, are not held
+     * behind two rebuilds. */
+    if (this.war.match) {
+      return clockOfTime(missionTime(this.war.mission()));
     }
     return clockOfTime(this.meta.daytime ?? null);
   }

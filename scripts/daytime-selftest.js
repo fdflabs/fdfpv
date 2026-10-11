@@ -264,6 +264,21 @@ const lastClock = (so) => {
   check('a war on is at its mission\'s time', room.war.on() && same(room.daytime(), clockOfTime('night')) && same(lastClock(host), clockOfTime('night')));
 }
 {
+  /* A war started in a free room keeps its time over its end, and the
+   * host's time comes back only with no match standing. */
+  const night = Object.values(MISSIONS).find((m) => nightOfTime(missionTime(m)) && m.map === 'itaipu');
+  const meta = { code: 'DAYT03', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: T0 - 1000, daytime: 'noon' };
+  const room = new RoomCore(meta, { devMissions: true });
+  const host = sock('host');
+  hello(room, host, { war: 9 });
+  check('a free room before any war is at its host\'s time', same(lastClock(host), clockOfTime('noon')));
+  say(room, host, { type: 'war', op: 'start', mission: night.id });
+  const on = lastClock(host);
+  say(room, host, { type: 'war', op: 'end' });
+  check(`a war in a free room is at its mission's time (${night.id}), and stays so over its end`,
+    same(on, clockOfTime('night')) && !room.war.on() && same(lastClock(host), clockOfTime('night')), `${JSON.stringify(on)} then ${JSON.stringify(lastClock(host))}`);
+}
+{
   /* An ops match: its mission's clock, standing until the go, then
    * moving at its rate from the go, as localHour has it. */
   const W = worldFor('interior');

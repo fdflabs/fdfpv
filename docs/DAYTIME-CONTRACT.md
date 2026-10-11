@@ -52,9 +52,11 @@ world at its own time (what every world did before clocks). Added to
 - an ops match: its mission's clock, `{ startHour, 0, 0 }` until the go,
   then `{ startHour, rate, goAt }`, so the Interior's sun moves for every
   screen from the go (it did before, computed on each screen);
-- a war room: its lobby's mission's time from the lobby on, the match's
-  while it is on (so every screen builds the mission's world before the
-  briefing, as `warTimeFrame` did from the client's lobby);
+- a war: the match's mission time while it is on; in a war room the
+  lobby's mission's time between matches (so every screen builds the
+  mission's world before the briefing, as `warTimeFrame` did from the
+  client's lobby); a war started in another room keeps its time over its
+  end and its result, as the client did;
 - any other room: the time its host set, `meta.daytime`, a `TIME_NAMES`
   name or null. The room's creator's setting is its time from its start
   (`POST /v2/create { daytime }`); after that the host's
