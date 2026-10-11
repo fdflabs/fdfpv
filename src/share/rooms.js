@@ -51,6 +51,7 @@ import {
 } from './roomwire.js';
 import { readAccount } from './pilot.js';
 import { RoomClock } from './roomclock.js';
+import { clockOf } from './daytime.js';
 import { API_ORIGIN, SITE_HOSTS } from './api.js';
 
 /* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md),
@@ -420,6 +421,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           p.name = shownName(p);
         }
         welcome = m;
+        /* The room's game clock (edge/rooms/core.js daytime), checked
+         * here at the network's edge; a server from before clocks sends
+         * none, which is each world's own time. */
+        welcome.daytime = clockOf(m.daytime);
         attempt = 0;
         restarting = false;
         /* A watcher's token names no seat, and would take a pilot's place. */
@@ -484,6 +489,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         /* The host set the room's air (edge/rooms/core.js weather). */
         if (welcome && typeof m.preset === 'string' && Number.isInteger(m.seed)) {
           welcome.weather = { preset: m.preset, seed: m.seed };
+        }
+      } else if (m.type === 'daytime') {
+        /* The room's game clock moved (edge/rooms/core.js daytimeNews). */
+        if (welcome) {
+          welcome.daytime = clockOf(m.daytime);
         }
       } else if (m.type === 'lobby') {
         /* The war's lobby changed (edge/rooms/gamelobby.js). */
@@ -586,7 +596,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   const link = {
     /* Make a room in `map`, private unless room.public; room.name is the
      * typed name or null, room.mode the game it is set up for or null,
-     * room.mission the war's mission for a room made for the war.
+     * room.mission the war's mission for a room made for the war,
+     * room.daytime the creator's time of day (a TIME_NAMES name) or null.
      * Resolves to its code; throws Error('name') for a name the server
      * refused, Error('signin') before anything is made for a pilot who
      * has not signed in. */
@@ -603,6 +614,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null, mission: room.mission ?? null,
+          daytime: room.daytime ?? null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -690,6 +702,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     /* The host sets the room's air (edge/rooms/core.js weather). */
     sendWeather(preset) {
       sendText({ type: 'weather', preset });
+    },
+    /* The host sets the room's time of day, a TIME_NAMES name or null
+     * (edge/rooms/core.js setDaytime). */
+    sendDaytime(time) {
+      sendText({ type: 'daytime', time });
     },
     kick(seat) {
       sendText({ type: 'kick', seat });

@@ -69,7 +69,7 @@ import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
 import { spinnerFor } from './kitshapes.js';
 import { navLevel } from './kitlights.js';
-import { factoryLit } from './worldlight.js';
+import { daytimeNow } from '../share/daytime.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -1211,12 +1211,15 @@ export function buildNightTimberCraft(opts = {}) {
   bulbs([L.landing], 0xffffff, 'factory-landing');
   const strobes = bulbs([strobePos(-1), strobePos(1)], 0xffffff, 'factory-strobes');
   const beacon = bulbs([L.beacon], 0xff1a10, 'factory-beacon');
-  factory.visible = factoryLit(factoryMode);
+  /* The switch against the world: auto follows the frame's night
+   * (src/share/daytime.js daytimeNow, the flight loop's one value). */
+  const factoryLit = () => factoryMode === 'on' || (factoryMode !== 'off' && daytimeNow().night);
+  factory.visible = factoryLit();
   group.add(factory);
   /* On the flight clock as every light here, so a replay flashes as the
    * flight did; the switch read against the world's night each time. */
   group.userData.setLights = (tMs) => {
-    factory.visible = factoryLit(factoryMode);
+    factory.visible = factoryLit();
     if (!factory.visible) {
       return;
     }

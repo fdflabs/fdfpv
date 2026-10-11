@@ -48,7 +48,7 @@
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { addNavLights } from './navlights.js';
-import { setWorldNight } from './worldlight.js';
+import { publishDaytime } from '../share/daytime.js';
 import { dressLivery, liveryFor } from './livery.js';
 import { layerOutline, paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
@@ -593,7 +593,7 @@ export function createCarouselStage(renderer) {
     if (m.craft.group.userData.setLights) {
       /* The hangar is indoors and lit: a factory light shows here only
        * switched on. */
-      setWorldNight(false);
+      publishDaytime(false, 'day');
       m.craft.group.userData.setLights(t0, 0.5, 1);
     }
     for (const other of models.values()) {

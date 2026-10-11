@@ -565,6 +565,8 @@
     "lint:physics-sources": "node scripts/physics-sources-lint.js",
     "physics-sources:selftest": "node scripts/physics-sources-selftest.js",
     "daytime:selftest": "node scripts/daytime-selftest.js",
+    "daytime:frame": "node scripts/daytime-frame-check.js",
+    "daytime:room": "node scripts/daytime-room-check.js",
     "briefing:selftest": "node scripts/briefing-selftest.js",
     "sky:smooth": "node scripts/sky-smooth-check.js",
     "kits:selftest": "node scripts/kits-selftest.js",

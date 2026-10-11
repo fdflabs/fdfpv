@@ -124,9 +124,8 @@ const AMB_CELL = 60;
 const AMB_REACH = 2;
 const AMB_FAR = 1500;
 /* How many of a grid's cells sing, by the time of day, and with what. The
- * times are src/main.js worldTime's: 'day' and 'night' today, and the
- * presets #344 adds (morning, noon, golden) when they come; an unknown
- * one is day. Birds sing most at dawn and least at noon (the dawn
+ * times are the frame's daytime's (src/share/daytime.js daytimeNow().time,
+ * a TIME_NAMES name), night only under a dark sky; an unknown one is day. Birds sing most at dawn and least at noon (the dawn
  * chorus); crickets and frogs at night; cicadas in the subtropical heat
  * of the day only (Itaipu, `subtropical` below). */
 const SINGERS = {
@@ -537,8 +536,8 @@ export class WorldAudio {
    * Post this frame: the listener from `camera` (a THREE camera: its
    * position, forward -z and right +x through its quaternion), the ground
    * under it from groundY, every source added since the last post, and
-   * the ambience of `view` (the map) at `time` (src/main.js worldTime)
-   * round it.
+   * the ambience of `view` (the map) at `time` (src/share/daytime.js
+   * daytimeNow().time) round it.
    */
   post(camera, groundY, view, time) {
     this.frameNo += 1;

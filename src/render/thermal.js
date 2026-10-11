@@ -33,10 +33,11 @@
  *                 as it does in a real camera; by night it plays no part;
  *   the climate   the map's (scene.userData.climate, CLIMATE below): the
  *                 air and the water by day and by night, and the clear
- *                 sky's own temperature; the time of day is the map's
- *                 scene.userData.timeOfDay and its sun's elevation, read
- *                 every thermal frame so a map whose sun moves (the
- *                 Interior's) cools into its night;
+ *                 sky's own temperature; the time of day is the frame's
+ *                 night (src/share/daytime.js daytimeNow, published from
+ *                 the map's scene.userData.timeOfDay) and its sun's
+ *                 elevation, read every thermal frame so a map whose sun
+ *                 moves (the Interior's) cools into its night;
  *   the night     with the sun gone, surfaces that face the sky radiate
  *                 to it and fall below the air; walls and rock that
  *                 stored the day stay over it; the water, which stores
@@ -89,6 +90,7 @@
  */
 
 import * as THREE from 'three';
+import { daytimeNow } from '../share/daytime.js';
 
 /* Degrees Celsius per unit written: 0.31 is 31 C. */
 export const T_SCALE = 100;
@@ -587,8 +589,8 @@ const sunDir = new THREE.Vector3();
 const sunAt = new THREE.Vector3();
 
 /*
- * The frame's weather from its scene: the climate it names, night if it
- * says so, else how high its sun stands. The sun term is the light this
+ * The frame's weather from its scene: the climate it names, night if the
+ * frame's daytime says so, else how high its sun stands. The sun term is the light this
  * frame's surfaces receive over what the light carries now, so it holds
  * the angle and the shadow, and over that the beam's strength through the
  * air at the sun's elevation (the direct beam's transmittance at its air
@@ -597,7 +599,7 @@ const sunAt = new THREE.Vector3();
  */
 function sceneWeather(scene) {
   const light = sceneSun(scene);
-  let day = scene.userData.timeOfDay === 'night' ? 0 : 1;
+  let day = daytimeNow().night ? 0 : 1;
   let sun = 1;
   if (light) {
     sun = light.intensity * (0.2126 * light.color.r + 0.7152 * light.color.g + 0.0722 * light.color.b);
