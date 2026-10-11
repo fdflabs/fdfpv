@@ -64,10 +64,12 @@ Also in this lane, before the four: the hangar's trophy wall and TV
   weight, time flown on it), then the door's action runs: Fly, the
   launch card where the seat is a race, or the war's card from the field
   hangar. E or Enter goes at once; Escape stays in the room.
-- Not yet: the lineup in a room (every pilot's aircraft side by side in
-  their own livery before a start; src/render/peers.js buildPeerCraft
-  already builds them). It needs a two page check on the rooms server and
-  comes as its own PR after the visits.
+- In a room (rooms server), the room screen's Lineup row (in a game's
+  lobby too) opens the airfield hangar with every pilot's aircraft side by
+  side on the floor in their own paint and parts, this pilot's first,
+  from the room profiles (normalised as peers are), the camera square on
+  to the row, and a card naming each pilot and aircraft. Escape is the
+  room screen again. Checked on two pages (npm run hangar:lineup).
 - Data: what the seat already knows. Nothing stored.
 
 ## 4. Read-only friend visits

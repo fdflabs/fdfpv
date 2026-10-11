@@ -4476,4 +4476,7 @@ export default {
   "controlrec.pitch": "pitch",
   "controlrec.yaw": "yaw",
   "controlrec.throttle": "throttle",
+  "walk.lineup_room": "Lineup",
+  "walk.lineup_room_note": "Every pilot's aircraft side by side, in their own paint.",
+  "walk.lineup_you": "You",
 };

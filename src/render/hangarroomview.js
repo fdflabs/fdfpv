@@ -532,16 +532,9 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
    * a repaint is a new setCraft.
    */
   let parked = null;
-  function setCraft(craft) {
-    if (parked) {
-      /* A loose part's geometry is the caller's craft's. */
-      parked.traverse((o) => o.geometry && !o.userData.borrowed && o.geometry.dispose());
-      parked = null;
-    }
-    craftSlot.clear();
-    if (!craft) {
-      return;
-    }
+  /* A craft parked: a merged copy per material, standing on y 0, nose
+   * to +z. The caller keeps the original. */
+  function parkCraft(craft) {
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -576,7 +569,7 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       }
       buckets.get(o.material).push(geo);
     });
-    parked = new THREE.Group();
+    const parked = new THREE.Group();
     for (const [mat, geos] of buckets) {
       /* Only the attributes every part has, so the parts merge. */
       const names = Object.keys(geos[0].attributes).filter((n) => geos.every((x) => x.attributes[n]));
@@ -604,7 +597,72 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
     const box = new THREE.Box3().setFromObject(parked, true);
     parked.rotation.set(0, Math.PI, 0);
     parked.position.y = Number.isFinite(box.min.y) ? -box.min.y : 0;
+    return parked;
+  }
+
+  function disposeParked(group) {
+    /* A loose part's geometry is the caller's craft's. */
+    group.traverse((o) => o.geometry && !o.userData.borrowed && o.geometry.dispose());
+  }
+
+  function setCraft(craft) {
+    if (parked) {
+      disposeParked(parked);
+      parked = null;
+    }
+    craftSlot.clear();
+    if (!craft) {
+      return;
+    }
+    parked = parkCraft(craft);
     craftSlot.add(parked);
+  }
+
+  /*
+   * THE ROOM'S LINEUP (docs/SHOW-IT-OFF.md part 3): every pilot's aircraft
+   * parked side by side on the floor between the stand and the door, in
+   * the order given, and the camera square on to the row. Empty, the
+   * row goes and the stand is the room's again.
+   */
+  let lineup = null;
+  function setLineup(crafts) {
+    if (lineup) {
+      lineup.children.forEach(disposeParked);
+      scene.remove(lineup);
+      lineup = null;
+    }
+    lineupShot = null;
+    if (!crafts.length) {
+      return;
+    }
+    lineup = new THREE.Group();
+    const parts = crafts.map(parkCraft);
+    const widths = parts.map((g) => new THREE.Box3().setFromObject(g, true).getSize(new THREE.Vector3()).x);
+    const gap = 0.6;
+    const total = widths.reduce((a, w) => a + w, 0) + gap * (parts.length - 1);
+    let x = -total / 2;
+    const z = craftSlot.position.z + 3;
+    parts.forEach((g, i) => {
+      g.position.x = x + widths[i] / 2;
+      g.position.z = z;
+      x += widths[i] + gap;
+      lineup.add(g);
+    });
+    scene.add(lineup);
+    lineupShot = { z, width: total };
+  }
+  let lineupShot = null;
+
+  /* The camera square on to the lineup's row, far enough to hold it all. */
+  function aimAtLineup() {
+    const room = ROOMS[tier];
+    const D = (room.d * CELL) / 2 - 0.15;
+    const half = Math.max(1.5, lineupShot.width / 2 + 0.5);
+    const dist = half / (Math.tan(THREE.MathUtils.degToRad(CAM_FOV / 2)) * camera.aspect) + 0.5;
+    camera.position.set(0, 1.6, Math.min(D, lineupShot.z + dist));
+    look.set(0, 0.4, lineupShot.z);
+    camera.lookAt(look);
+    cam.placed = false;
   }
 
   /* The camera's spring toward where it wants to be: behind the pilot,
@@ -754,10 +812,12 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
     /* photo: null to follow the pilot, or { yaw, zoom } for photo mode:
      * the pilot out of the picture and the camera round the stand. */
     update(dt, pose, ms, orbit = 0, photo = null) {
-      pilot.set(photo ? [] : [{
+      pilot.set(photo || lineupShot ? [] : [{
         x: pose.x, y: 0, z: pose.z, heading: pose.heading, action: pose.moving ? 'walk' : 'stand', tint: [0.1, 0.13, 0.15], seed: 2,
       }], ms);
-      if (photo) {
+      if (lineupShot) {
+        aimAtLineup();
+      } else if (photo) {
         aimAtStand(photo);
       } else {
         follow(dt, pose, orbit);
@@ -770,6 +830,7 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       captureWanted = done;
     },
     setPhotos,
+    setLineup,
     draw() {
       renderer.getDrawingBufferSize(size);
       if (target.width !== size.x || target.height !== size.y) {
@@ -807,12 +868,13 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       renderer.shadowMap.enabled = was.shadows;
     },
     /* camBack: the camera's distance from the pilot along the floor, m. */
-    stats: () => ({ ...info, tier, trophies: cups.count, photos: photoCount, camBack: Math.hypot(cam.x - look.x, cam.z - look.z) }),
+    stats: () => ({ ...info, tier, trophies: cups.count, lineup: lineup ? lineup.children.length : 0, photos: photoCount, camBack: Math.hypot(cam.x - look.x, cam.z - look.z) }),
     dispose() {
       if (built) {
         built.dispose();
       }
       setCraft(null);
+      setLineup([]);
       setPhotos([]);
       cupGeo.dispose();
       cups.material.dispose();
