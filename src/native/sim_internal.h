@@ -766,6 +766,7 @@ typedef struct FixedWingParams {
    * air drives. Zero on every table without, which keeps the glow method's
    * flat torque against the static load. */
   double engine_q[10][15];
+  double engine_rpm_max;
   /*
    * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
    * Its volume, m^3; the fuel it burns per second at full rpm and at the

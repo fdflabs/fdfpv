@@ -1021,13 +1021,17 @@ static int prop_free(const FixedWingParams *fw, double de) {
 /* An engine's torque at the stick and its speed, N m, from its map
  * (FixedWingParams.engine_q): rows at the idle stop (stick 0) and at the
  * stick's 0.2, 0.3, ... 1, columns 1,000 to 8,000 rpm in 500s, bilinear,
- * straight on past either end of the speed. */
+ * straight on past either end of the speed. Past the maker's published top
+ * speed (FixedWingParams.engine_rpm_max) it is the idle stop's, the engine
+ * giving nothing but its friction and pumping: no source runs the engine
+ * there, and the dyno's own run on to 8,000 rpm would let an unloaded prop
+ * take it 1,500 rpm past the range it is sold for. */
 static int engine_mapped(const FixedWingParams *fw) {
   return fw->engine_q[9][0] > 0.0;
 }
 
 static double engine_torque(const FixedWingParams *fw, double stick, double rpm) {
-  const double st = stick < 0.0 ? 0.0 : (stick > 1.0 ? 1.0 : stick);
+  const double st = rpm > fw->engine_rpm_max ? 0.0 : (stick < 0.0 ? 0.0 : (stick > 1.0 ? 1.0 : stick));
   const double xr = st <= 0.2 ? st / 0.2 : 1.0 + (st - 0.2) / 0.1;
   const int r = xr >= 9.0 ? 8 : (int)xr;
   const double fr = xr - (double)r;
@@ -5457,6 +5461,11 @@ const FixedWingParams FW_SLICK2680 = {
     { 5.308, 6.053, 6.798, 7.543, 7.729, 8.288, 8.381, 8.474, 8.567, 8.660, 8.846, 9.032, 8.567, 8.381, 8.008 }, /* 90 percent */
     { 6.705, 7.077, 7.449, 7.822, 8.101, 8.660, 8.939, 9.219, 9.591, 9.498, 9.452, 9.405, 9.126, 8.753, 8.194 }, /* 100 percent */
   }, /* N m at 1,000 to 8,000 rpm in 500s, npm run da120:derive */
+  /* Desert Aircraft's published range for the DA-120, 1,300 to 6,900 rpm
+   * (https://www.desertaircraft.com/collections/da-engines/products/da-120).
+   * A real engine can over-rev with its prop unloaded in flight; no in-flight
+   * rpm for this engine and prop is published, so it stops at the range. */
+  .engine_rpm_max = 6900.0,
   /* The tank, the sheet's 34 oz FlowMaster; the flow at full the shaft power
    * at HFE's DA120 data sheet's 575 g/kWh, scripts/slick-derive.js; the lean
    * run the Bombshell's, docs/POWER-STAGE1.md. */

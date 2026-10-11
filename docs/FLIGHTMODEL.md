@@ -1793,13 +1793,30 @@ curve's (1,300, 3,557, 5,163, 6,089, 6,550 rpm at the stick's 0, 0.3, 0.5,
 its braking, 0.42 N m, holds the prop against the air: the mount gives
 back 0.42 N m, where it gave 1.05.
 
-**What it moves, and why this is blocked.** The same physics unloads the
-engine at full throttle in fast flight: level at full throttle the prop
-runs at 8,394 rpm (static 6,550) and the Slick flies 54.5 m/s where it
-flew 42.5. The Slick's S1, S4, S7 and S12, slick:stab's cruise and
-stab:chop's glide were derived on the static load and are red here; they
-are the Slick lane's to re-derive on this map. No in-flight rpm for a
-DA-120 on a 28 x 10 was found to check the unloading against (Desert
-Aircraft gives "1,300 to 6,900" rpm; Model Aviation says such engines run
-over their static rpm in the air without a number); it is the plant's
-answer from HFE's map, APC's Cp and APC's Mach rise.
+**The ceiling.** The same physics unloads the engine at full throttle in
+fast flight. On HFE's map alone, which runs on to 8,000 rpm, the prop ran
+to 8,394 rpm (static 6,550) and the Slick flew 54.5 m/s. That is not the
+floating balance going wrong: APC's own 22x8 tables, read at the 28 x 10's
+tip speed, put the balance at 8,436 rpm and 52.5 m/s (the 22x8, pitch over
+diameter 0.364, pulls to an advance ratio of 0.55, 1.5 times its pitch
+over diameter, not to its geometric pitch). Desert Aircraft publishes the
+DA-120's range as 1,300 to 6,900 rpm (desertaircraft.com), so the map
+stops there (FixedWingParams.engine_rpm_max): past it the engine gives
+only its closed throttle torque. A real engine can over-rev with its prop
+unloaded in flight; no in-flight rpm for a DA-120 on a 28 x 10 is
+published (Model Aviation and the control line boards report engines
+running over their static rpm in the air, without a number for this one),
+so the published range is the bound. Level at full throttle the Slick now
+flies 44.76 m/s at 6,895 rpm; APC's tables at 6,900 rpm give 42.40, the
+plant's straight line thrust law (zero thrust at J 0.60 where APC's is
+0.55) the rest.
+
+**Why this is blocked.** S4 (top speed, 38.28 to 46.79) and S7 hold. The
+Slick's S1 (level at 75 percent, derived at a held 0.94 of full rpm; the
+floating engine reaches the ceiling there too, 44.74 against 44.74 at
+most), S12 (knife edge throttle 0.442 against 0.48 to 0.649), slick:stab's
+cruise (31.9 against 22.35) and Manual quarter pull power off (3.3 deg
+against 3, the idle prop turning 2,885 rpm, not 1,300, so more
+precession), and stab:chop's glide (1.344 m/s sink at 25.0) were derived
+on the static load and the held idle; they are the Slick lane's to
+re-derive on this map.
