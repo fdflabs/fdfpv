@@ -86,6 +86,24 @@ function seat(id, option, pack) {
 }
 
 /*
+ * The current the plant draws at full throttle standing still on a fresh
+ * pack, A: held in place and at rest each step (sim_rest), 3 s for the
+ * rotor to settle. A prop unloads as the aircraft flies, so no flight at
+ * full throttle draws more than this.
+ */
+function staticAmps(id, option, pack) {
+  seat(id, option, pack);
+  must(sim.reset(), 'sim_reset');
+  for (let ms = 0; ms < 3000; ms += RC_STEP_MS) {
+    must(sim.e.sim_set_pose(0, 0, 200, Math.SQRT1_2, 0, -Math.SQRT1_2, 0), 'sim_set_pose');
+    must(sim.e.sim_rest(), 'sim_rest');
+    must(sim.input(ms / 1000, 0, 0, 0, 1), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return sim.readState().state[19];
+}
+
+/*
  * The OSD's battery logic, the shell's own class, fed as the shell feeds
  * it: the plant state and pack every frame. Only the pieces feed() and
  * batteryState() read are set up; nothing is drawn.
@@ -241,6 +259,7 @@ function flightTime(id, option, pack, speed, cells, { full = false, until = 'cut
       const o = osd.feed(st, pw);
       if (r.warnS == null && o.batt !== 'ok') {
         r.warnS = ms / 1000;
+        r.warnUsed = pw.capacityC > 0 ? pw.chargeC / pw.capacityC : null;
         r.warnPackV = o.vFilt;
         r.prevPackV = lastFilt;
         r.loadedPackV = st[18];
@@ -358,8 +377,15 @@ for (const id of ids) {
    * P2, against what the maker's figure is. The end of a flight is LOW
    * BATTERY for an electric motor, the cut for the Bramor's autopilot, a
    * dry tank for a glow engine.
-   *   timer:   a flight timer the manual sets, which lands with the pack
-   *            to spare, so even flown flat out the pack outlasts it.
+   *   timer:   a flight timer the manual sets for a flight of mixed
+   *            throttle, landing with the pack to spare, so cruise lasts
+   *            at least it. Flat out is derived, not the timer: the
+   *            capacity the plant draws to LOW BATTERY (the share is
+   *            printed) over the plant's own full throttle current
+   *            standing still, which no flight at full throttle exceeds as
+   *            the prop unloads, is the least time flat out can last.
+   *            Re-derived 2026-10-11: the timer is no full throttle
+   *            endurance (the lead's decision, docs/FLIGHTMODEL.md).
    *   atLeast: "10 minutes and longer": cruise lasts at least that.
    *   mixed:   a time for mixed throttle, which lies between the time at
    *            full throttle and the time at cruise.
@@ -375,17 +401,27 @@ for (const id of ids) {
   const endName = stock.kind === 'glow' ? 'a dry tank' : (end === 'cut' ? 'the cut' : 'LOW BATTERY');
   const tCruise = endOf(ft);
   const tFull = endOf(ftFull);
+  /* The timer kind's flat out least: the share of the pack drawn to LOW
+   * BATTERY flat out, over the static full throttle current. */
+  let tFullLeast = null;
+  let leastNote = '';
+  if (stated && stated.kind === 'timer' && ftFull.warnUsed != null) {
+    const amps = staticAmps(id, stock.id, stock.pack);
+    const capC = sim.powerState().capacityC;
+    tFullLeast = ftFull.warnUsed * capC / amps;
+    leastNote = `; flat out least ${minutes(tFullLeast)}: ${f1(ftFull.warnUsed * 100)} percent of ${f1(capC / 3.6)} mAh to LOW BATTERY over ${f1(amps)} A static`;
+  }
   if (stated) {
     const lo = stated.minutesLow * 60;
     const hi = stated.minutesHigh * 60;
     const holds = {
-      timer: [`even flat out the pack outlasts the maker's ${stated.minutesHigh} min timer`, () => tFull >= hi],
+      timer: [`cruise outlasts the maker's ${stated.minutesHigh} min timer, and flat out the derived least`, () => tCruise >= hi && tFull >= tFullLeast],
       atLeast: [`cruise lasts the maker's ${stated.minutesLow} min or more`, () => tCruise >= lo],
       mixed: [`the maker's ${stated.minutesLow} min lies between full throttle and cruise`, () => tFull <= hi && tCruise >= lo],
       cruise: [`cruise lasts the maker's ${stated.minutesLow} min, within 5 percent`, () => Math.abs(tCruise - lo) <= 0.05 * lo],
     }[stated.kind];
     check(`P2 ${holds[0]}`, tCruise != null && tFull != null && holds[1](),
-      `${minutes(tFull)} at full throttle, ${minutes(tCruise)} at cruise at ${t.cruiseMs} m/s, to ${endName}; maker: ${stated.note}`);
+      `${minutes(tFull)} at full throttle, ${minutes(tCruise)} at cruise at ${t.cruiseMs} m/s, to ${endName}${leastNote}; maker: ${stated.note}`);
   } else {
     check(`P2 the stock ${stock.kind === 'glow' ? 'tank' : 'pack'} runs out, sooner at full throttle (no maker figure)`,
       tCruise != null && tFull != null && tFull < tCruise,

@@ -1522,33 +1522,33 @@ prop at 0.3 of full, as the gate was written for (0.2685).
   g tan(bank) / V, so the limit is that turn at the mush's speed (31 to
   32 deg/s on the Slow Stick). The Bombshell, Kadet, Ugly Stik, Tiger Moth
   and F-16 carry the same unsourced 20 and pass it.
-- **P18, the full flap landing, still failing.** The contact is not the
-  flare: 0.31 s after the main wheels touch, at the rest pitch (13.1 deg)
-  with the tailwheel unloaded and the tail coming down at 0.87 rad/s, the
-  tail's hull meets the grass. The scripted pilot pulls full up over 1.5
-  s after the touch; over 3.5 s it passes, over 2.5 it does not, and
-  earlier flares (2.0, 2.5 m) or power held into the flare move the touch
-  but not the tail. The gate sits on the scripted pilot's edge. The
-  handbook (FAA-H-8083-3C ch. 9) says a steeper descent wants an earlier,
-  slower roundout and idle in it; it gives no post touchdown elevator
-  rate. Not changed: tuning the script until it passes is not a
-  derivation.
-- **P19 on the law, still failing.** The first second's bank falls with
-  the rotor's speed at the chop: entering at duty 0.76, 0.78, 0.80 and
-  0.82 (the prop at 0.78 to 0.84 of full) it is 30.9, 24.9, 17.2 and 14.6
-  deg. The gate chops from cruise and pulls while the free rotor runs
-  down; the XP-51's was a gliding stall, its prop at its windmill. At the
-  rotor speed the gate was written for (0.80 of full, duty 0.78) it holds
-  the band. A settled power off glide before the pull is the faithful
-  entry; a first attempt (a 4 s glide with the wings held, then the
-  controls fixed) rolled at the hand over and is not committed.
-- **power:check P2, the Timber on floats, still failing**: 6.8 min flat out
-  against E-flite's 7 min timer (7.1 before the law). It is not a cruise
-  over draw: cruise is unchanged, 25.1 min. Flat out on a sagged pack the
-  motor's law turns the prop over the sag's share of full (Drela's
-  model), and the pack's current goes as the power, n^3 over the loaded
-  voltage. T-Motor's AM670 bench (the CAP lane's) holds that form: its
-  electrical power over full is the speed's cube within 7 percent from 40
-  to 100 percent throttle, where the duty times the speed squared falls 3
-  to 18 percent short. E-flite publishes no throttle curve or current
-  table for the Timber's motor, so its mapping is the default law's.
+- **P18, the full flap landing**: the scripted pilot pulled full up for
+  1.5 s once a wheel touched, and with the windmill's drag the P-51
+  touched on its mains, skipped, and the tail met the grass 0.31 s later.
+  Now flown as the handbook's three point landing (FAA-H-8083-3C ch. 14,
+  https://www.faa.gov/sites/faa.gov/files/regulations_policies/handbooks_manuals/aviation/airplane_handbook/15_afh_ch14.pdf):
+  "a gentle increase in AOA to maintain flight while slowing" to the three
+  point attitude (P13's rest), a main wheel first a skip "easily managed
+  by re-flaring", and "once the tailwheel makes contact, the elevator
+  control should be eased fully back". Touched at 8.19 m/s, no hull or
+  prop, at rest on three points; the bands as they were.
+- **P19 on the law**: the first second's bank followed the rotor's speed
+  at the chop from cruise (30.9, 24.9, 17.2, 14.6 deg from duty 0.76 to
+  0.82). Now entered as the XP-51's was, a gliding stall: the throttle
+  closed and the glide settled at 15.6 m/s on the elevator with the wings
+  held, 8 s, the prop at its windmill, then the controls fixed and the
+  elevator run from the glide's to full. Aero part pb/2V 0.0994, bank
+  36.4 (XP-51 0.079, 39); with the gyroscope 0.0905, 30.8.
+- **power:check P2's flat out premise** ("even flat out the pack outlasts
+  the maker's timer") read a mixed throttle timer as a full throttle
+  endurance. Re-derived for the timer kind: cruise outlasts the timer,
+  and flat out lasts at least the capacity drawn to LOW BATTERY over the
+  plant's static full throttle current, which no flight at full throttle
+  exceeds as the prop unloads. The Timber on floats: 90.5 percent of its
+  3200 mAh to LOW BATTERY over 43.9 A static (the review's bench figure,
+  44 A), at least 4.0 min; it flies 6.8. The Cub 4.5 (9.1), the Timber
+  4.0 (7.8), the Extra 1.9 (4.6), the Night Timber 3.3 (10.0). The share
+  drawn by LOW BATTERY, 90 to 94 percent, is the plant's LiPo curve and
+  the OSD's 3.5 V a cell. T-Motor's AM670 bench (the CAP lane's) holds
+  the plant's current form, power as the speed cubed over the loaded
+  voltage, within 7 percent from 40 to 100 percent throttle.
