@@ -4674,12 +4674,14 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .cy_beta = -0.3080,
   .cy_dr = 0.1996,
   .cl_beta = -0.0577,     /* the two dihedrals, the top wing high over the fuselage, the fin */
-  /* OPEN GAP, known too strong past the stall: the ailerons kept whole,
-   * the plant's old arithmetic, and no sideslip split: a biplane's tail in
-   * its cell's wake has no measured curve here (NACA's biplane spin and
-   * tail data would give one). With the unswept wing's ailerons (TR 419)
-   * T8b's half throttle stall rolls off at 29 deg/s. docs/FLIGHTMODEL.md. */
-  .ail_keep = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 },
+  /* Sideslip past the stall split as the derivation splits cl_beta
+   * (scripts/tigermoth-derive.js): the dihedrals and wing heights, the
+   * fin's share, and the fin's cn_beta. */
+  .cl_beta_wing = -0.0461, /* cl_beta less the fin's, scripts/tigermoth-derive.js */
+  .cl_beta_fin = -0.0116, /* scripts/tigermoth-derive.js */
+  .cn_beta_fin = 0.1078, /* scripts/tigermoth-derive.js */
+  .ail_keep = { 1.0, 0.78, 0.30, 0.16, 0.13, 0.16, 0.18 },
+  .fin_keep = { 1.0, 0.84, 0.74, 0.60, 0.31, 0.17, 0.10 },
   .cl_p = -0.8070,        /* strip theory on both wings at their own slopes */
   .cl_da = 0.2696,        /* the bottom wing's ailerons, 0.35 to 0.89 m out */
   .cl_r_per_cl = 0.25,
