@@ -34,6 +34,8 @@ import { decodeRec } from '../tests/lib/recfile.js';
 import { findChrome, runBrowserHarness } from '../tests/lib/browser.js';
 import { startServer } from '../tests/lib/server.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
+import { addonParams } from '../configs/hangar-parts.js';
+import { HOLD_LOADS, holdPoints, holdShift } from '../src/game/hold.js';
 import {
   HERCULES_AIRFRAME, herculesGroundPrelude, herculesTakeoffSticks, fly, wingDebug, wheelLoads, attitude, must,
   bombshellGroundPrelude, slowstickGroundPrelude, skyPrelude, wingPrelude, cubGroundPrelude, gliderRecPrelude,
@@ -136,6 +138,42 @@ check: {
     gate('H9', 'O opens the ramp: its drag slows the cruise', openAt !== null && Math.abs(openAt - t9.travelS) <= 0.01 && within(open.v, t9) && drop >= t9.dropMin && drop <= t9.dropMax && refused,
       `open in ${openAt === null ? 'never' : openAt.toFixed(3)} s, level ${open.v.toFixed(2)} m/s against ${closed.v.toFixed(2)} shut, ${drop.toFixed(2)} slower, the P-51 ${refused ? 'refuses' : 'ACCEPTS'} doors`,
       `${t9.travelS} s, ${band(t9)}, ${t9.dropMin} to ${t9.dropMax} slower`);
+  }
+
+  /* H10: the hold. Eight loads seated as add-ons; level at 75 percent
+   * they leave one at a time a second apart, the add-ons seated again mid
+   * flight each time. */
+  {
+    const base = 6.728;
+    const seat = (n) => {
+      const block = addonParams('hercules3077', { addons: [], prop: 'stock', damage: null }, null, base, holdPoints(n));
+      return block ? sim.setAddons(block) : sim.clearAddons();
+    };
+    must(seat(HOLD_LOADS), 'seat the hold');
+    const a0 = sim.addonsState();
+    const full = { kg: a0.massKg, dx: a0.shift[0] };
+    const want = holdShift(HOLD_LOADS, base);
+    let worstJump = 0;
+    let n = HOLD_LOADS;
+    let prevV = null;
+    fly(sim, {
+      duty: 0.75, vzTarget: 0, seconds: 20, ...slow,
+      onStep: (o) => {
+        if (prevV !== null) worstJump = Math.max(worstJump, Math.abs(o.v - prevV));
+        prevV = o.v;
+        if (o.ms >= 8000 && o.ms % 1000 === 0 && n > 0) {
+          n -= 1;
+          must(seat(n), 'drop one');
+        }
+      },
+    });
+    const a1 = sim.addonsState();
+    const empty = { kg: a1.massKg, dx: a1.shift[0] };
+    must(sim.clearAddons(), 'clear');
+    gate('H10', 'the hold: 8 loads lighten and rebalance it as they leave',
+      Math.abs(full.kg - (base + want.kg)) < 1e-9 && Math.abs(full.dx - want.dx) < 1e-6 && n === 0 && Math.abs(empty.kg - base) < 1e-9 && Math.abs(empty.dx) < 1e-9 && worstJump < 0.05,
+      `full ${full.kg.toFixed(3)} kg, CG ${(full.dx * 1000).toFixed(1)} mm; empty ${empty.kg.toFixed(3)} kg, CG ${(empty.dx * 1000).toFixed(1)} mm; worst speed step ${worstJump.toFixed(4)} m/s`,
+      `${(base + want.kg).toFixed(3)} kg and ${(want.dx * 1000).toFixed(1)} mm full, the table's empty, no jump`);
   }
 
   const onStrip = () => {
