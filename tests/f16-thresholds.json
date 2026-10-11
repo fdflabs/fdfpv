@@ -165,7 +165,7 @@
     "timberf": "48ff435ab96c2f46",
     "kadet": "a3355c62e0a7cc8c",
     "p51": "3af15e3aa20c25d3",
-    "p51Air": "7c5c4b37e26e9864",
+    "p51Air": "2b0a450683e8628c",
     "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was."
   },
   "s18_cross_host": {
