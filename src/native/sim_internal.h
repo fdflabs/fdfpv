@@ -1244,9 +1244,6 @@ double crash_settle_mu(const SimState *s, const double n[3], double mu);
  * unit), from the solver's mu jn: on turf an edge that is in the ground
  * also ploughs. Damage mode only. */
 double crash_contact_grip(const SimState *s, double mu, double jn, const double t[3]);
-/* Of the normal impulse the weight asks of the ground in this step, w, the
- * fraction the step's ground contacts have not already given. */
-double crash_settle_share(double w);
 /* How far the next contact's point is past the surface, m, the ground
  * plane's; called before crash_contact_pre. */
 void crash_contact_depth(double pen);
