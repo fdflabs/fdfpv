@@ -225,9 +225,10 @@ check: {
   }
 
   /*
-   * P19: the owner's stall, a slow pull. Level at 15.6 m/s with the gear
-   * up, the throttle closed and the elevator run linearly to full over 8
-   * s, ailerons and rudder centred. The roll off is timed from its onset,
+   * P19: the owner's stall, a slow pull, from the XP-51's entry: a power
+   * off glide settled at 15.6 m/s with the gear up, the prop windmilling,
+   * then the controls fixed, the elevator run linearly from the glide's to
+   * full over 8 s, ailerons and rudder centred. The roll off is timed from its onset,
    * the first moment the helix angle pb/2V passes 0.02, a quarter of the
    * reference's peak; in the second after it, the first roll's peak
    * pb/2V and the bank it takes. The reference is the XP-51's clean wing
@@ -251,10 +252,27 @@ check: {
   const pull = (gyro) => {
     const t19 = th.p19_slow_pull;
     clockMs = flyUp(sim, { duty: 0.8, vTarget: t19.entry, seconds: 30, guard: false, speed0: t19.entry, start: STILL_AIR }).endMs;
+    /* The XP-51's was a gliding stall: the throttle closed and the glide
+     * settled at the entry speed on the elevator, the wings held level, so
+     * the prop windmills (fly()'s speed and wings laws, 8 s). Then the
+     * controls fixed: the ailerons and rudder let go and the elevator run
+     * from the glide's to full over the ramp. */
+    let trimG = attitude(sim.readState().state).pitch;
+    let lastPitchStick = 0;
+    for (let ms = 0; ms < 8000; ms += RC_STEP_MS) {
+      const g = sim.readState().state;
+      const a = attitude(g);
+      const dv = speed(g) - t19.entry;
+      trimG = Math.max(-0.4, Math.min(0.4, trimG + 0.00002 * dv));
+      const pitchT = Math.max(-0.4, Math.min(0.3, 0.04 * dv + trimG));
+      lastPitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - a.pitch) + 0.25 * g[12]));
+      step(sim, [Math.max(-1, Math.min(1, -1.2 * a.bank - 0.12 * g[11])), lastPitchStick, 0, 0]);
+    }
+    const e0 = lastPitchStick;
     must(sim.e.sim_wing_set_gyro(gyro), 'sim_wing_set_gyro');
     const rows = [];
     for (let ms = 0; ms < 11000; ms += RC_STEP_MS) {
-      const o = step(sim, [0, Math.min(1, ms / (t19.rampS * 1000)), 0, 0]);
+      const o = step(sim, [0, Math.min(1, e0 + (1 - e0) * ms / (t19.rampS * 1000)), 0, 0]);
       rows.push({ ms, bank: fullBank(o.s) * DEG, p: o.s[11], v: speed(o.s) });
     }
     must(sim.e.sim_wing_set_gyro(1), 'sim_wing_set_gyro');
