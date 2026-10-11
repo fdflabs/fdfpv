@@ -72,7 +72,7 @@ after pictures.
 | People and postures (instanced posed bodies, slot tints) | `people/figures.js`, `tint.js` | placed by `interior/life.js` and the hangar room (`src/render/hangarroomview.js`). The Swiss valley's café people (`swiss2/village/people.js`, built on its vehicle kit) and the Alps' cel animals (`alps/fauna.js`) stay their own | Interior, hangar room |
 | Roofs as ground (records, solids under them) | `roofs.js` | used by `kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
 | Cel building kit (chalet, barn, farmhouse, gasthof, shop, church, hangar, bridge, street furniture, fence) | `kit.js` | the Alps' village; the Swiss valley's buildings remake its builders photographically | Alps, Swiss valley |
-| Other building models | not yet | `interior/built.js`, `itaipu/town/` | one each |
+| Buildings raised from footprints (cleaned footprint, rectangle, heights, hip, gable or flat roof as ground and faces, walls as faces and collider boxes) | `buildings/footprint.js` | Itaipu's town: its style (which roof, which colours, by bank and id) stays `itaipu/town/plan.js`, its meshes `itaipu/town/mesh.js`. The Interior's buildings (`interior/built.js`) are drawn from its own building list with its own sinks and skins and stay its own | Itaipu |
 | Fences | `kit.js` `fence` (cel) | also `swiss2/village/pieces.js`, `interior/yards.js` | one each |
 | Cel vehicles and the parts kit | `vehicles/vehicles.js`, `vehicles/parts.js` | the Alps' life, the Swiss valley's vehicles (which refinish them) | Alps, Swiss valley |
 | Low instanced vehicles (motorcycles, pickup; paint tinted per instance) | `vehicles/instanced.js` | placed by `interior/life.js` | Interior |
@@ -306,6 +306,28 @@ the engine warm in the thermal picture.
 - **Perf**: one draw a kind with any in it. Program key
   `interior-slot-tint`, shared with the people.
 - **Golden**: `tests/browser/render-golden/interior-vehicles.js`.
+
+## Buildings from footprints (`src/render/library/buildings/footprint.js`)
+
+Itaipu's town raises each OpenStreetMap building from its footprint;
+any map with footprint polygons can. Pure, no THREE.
+
+- **Inputs**: a footprint `outer` ([x, z] points, closed or not) and an
+  id for error messages; a ground function; a height; a style whose
+  `spec` says the roof (`shape` hip, gable or flat, `slope`, `over` the
+  eaves, `thick`, and the `key`, `material` and `surface` the map's
+  meshes take). The map decides the style (Itaipu: `styleOf`).
+- **Outputs**: `cleanRing` (wound positive, no repeated or straight
+  corners), `rectOf` (the smallest rectangle), `rectRing`, `heightsOf`
+  (`base` a little under the lowest corner, `plate`), `roofOf` (`rec`, a
+  roofs.js record the roof is ground by, `faces` to draw, `gables`),
+  `wallFaces`, `wallBoxes` (axis aligned collider boxes and the eaves'
+  pieces), `triangulate` and `convexPieces` for flat roofs.
+- **Shape**: every wall within 0.5 m of its box (`STRAY`), columns no
+  narrower than 1 m (`COLUMN`) for a building turned off the axes; the
+  roof is ground. `npm run itaipu:collide` holds it on every building of
+  Itaipu's extract.
+- **Golden**: `tests/browser/render-golden/footprint-buildings.js`.
 
 ## Placing an asset on a map
 

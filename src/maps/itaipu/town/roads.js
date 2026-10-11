@@ -36,7 +36,7 @@
 
 import { cutToGround, ribbon } from './drape.js';
 import { roofRecord } from '../../../render/library/roofs.js';
-import { wallBoxes } from './plan.js';
+import { wallBoxes } from '../../../render/library/buildings/footprint.js';
 
 /* Metres over the ground, by class: the bigger road over the smaller
  * where they cross. Section 14 asks for within 0.1 m. */

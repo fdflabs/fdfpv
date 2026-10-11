@@ -36,7 +36,7 @@
  */
 
 import { roofRecord } from '../../../render/library/roofs.js';
-import { wallBoxes } from './plan.js';
+import { wallBoxes } from '../../../render/library/buildings/footprint.js';
 
 /* Metres over the river's lowest ground along the line. */
 const RIM = 48;

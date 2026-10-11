@@ -38,9 +38,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { styleOf, landuseAreas } from './plan.js';
 import {
-  cleanRing, rectOf, styleOf, heightsOf, rectRing, roofOf, wallFaces, wallBoxes, landuseAreas,
-} from './plan.js';
+  cleanRing, rectOf, heightsOf, rectRing, roofOf, wallFaces, wallBoxes,
+} from '../../../render/library/buildings/footprint.js';
 import { layRoads, deckOf } from './roads.js';
 import { layOut, piecesOf, bracesOf, stringsOf } from './power.js';
 import { inside, yardOutline } from '../war/plan.js';

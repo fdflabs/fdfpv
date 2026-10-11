@@ -1,7 +1,7 @@
 /*
  * render-golden/footprint-buildings.js: buildings raised from footprint
- * polygons (Itaipu's town, src/maps/itaipu/town/plan.js when this was
- * recorded): each footprint cleaned, its rectangle, its style, heights,
+ * polygons (Itaipu's town, all in src/maps/itaipu/town/plan.js when
+ * this was recorded): each footprint cleaned, its rectangle, its style, heights,
  * roof as ground and as faces, walls as faces and as collider boxes,
  * pinned before the geometry moves into the shared asset library
  * (docs/ASSET-LIBRARY.md) and the style stays Itaipu's, so the split is
@@ -25,8 +25,13 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as plan from '../../../src/maps/itaipu/town/plan.js';
+import * as style from '../../../src/maps/itaipu/town/plan.js';
+import * as footprint from '../../../src/render/library/buildings/footprint.js';
 import { hashText } from '../render-golden-lib.js';
+
+/* The library's geometry and Itaipu's style, as plan.js was before the
+ * split. */
+const plan = { ...footprint, ...style };
 
 const sig = (v) => (typeof v === 'number' ? Number(v.toPrecision(12)) + 0 : v);
 const round = (o) => JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'function' ? '[fn]' : sig(v))));
@@ -94,7 +99,10 @@ const LANDUSE = [
 
 export function cases() {
   return {
-    exports: () => Object.keys(plan).sort().map((k) => [k, typeof plan[k]]),
+    exports: () => ({
+      footprint: Object.keys(footprint).sort().map((k) => [k, typeof footprint[k]]),
+      style: Object.keys(style).sort().map((k) => [k, typeof style[k]]),
+    }),
     constants: () => round({ COLUMN: plan.COLUMN, ROOFS: plan.ROOFS }),
     helpers: () => round({
       hashes: ['w1', 'w186542023', 'n77', ''].map((id) => [plan.hashOf(id), plan.hashOf(id, 3)]),
