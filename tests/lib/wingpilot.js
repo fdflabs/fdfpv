@@ -1263,16 +1263,25 @@ export function f16GroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
  * describes; the fan's thrust through the CG high over the mains holds
  * the nose wheel down until full up lifts it (docs/F16-STAGE1.md). Once
  * the nose is 8 deg up the elevator eases off to hold it there, as a
- * pilot does, so it does not over rotate onto its tail. */
-export function f16TakeoffSticks(s, { vRotate = 14.4, duty = 1 } = {}) {
+ * pilot does, so it does not over rotate onto its tail. Given hand (kept
+ * by the caller), the hand keeps pulling until the nose is there, an
+ * integral over a second as herculesTakeoffSticks' (FAA-H-8083-3C ch. 6:
+ * the attitude "should be held until the airplane lifts off"); without
+ * it the hold is proportional and droops where the trim wants more up
+ * elevator, as near the ground (plant_wing.c GROUND EFFECT). The
+ * recordings fly without it, as they were recorded. */
+export function f16TakeoffSticks(s, { vRotate = 14.4, duty = 1, hand = null } = {}) {
   const v = Math.hypot(s[4], s[5], s[6]);
   if (v < vRotate) {
     return [0, 0, 0, duty];
   }
   const { pitch } = attitude(s);
   const ease = Math.min(1, (v - vRotate) * 0.5);
-  const hold = Math.max(-1, Math.min(1, 3.0 * (8 * Math.PI / 180 - pitch) + 0.3 * s[12]));
-  return [0, pitch > 4 * Math.PI / 180 ? Math.min(ease, hold) : ease, 0, duty];
+  const err = 8 * Math.PI / 180 - pitch;
+  const held = pitch > 4 * Math.PI / 180;
+  if (hand && held) hand.i = Math.max(-1, Math.min(1, hand.i + 4 * err * RC_STEP_MS / 1000));
+  const hold = Math.max(-1, Math.min(1, 3.0 * err + 0.3 * s[12] + (hand ? hand.i : 0)));
+  return [0, held ? Math.min(ease, hold) : ease, 0, duty];
 }
 
 /*

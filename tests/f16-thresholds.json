@@ -141,7 +141,7 @@
     "distMax": 308.4,
     "vMin": 14.37,
     "vMax": 19.16,
-    "source": "the same at 55 percent, Model Aviation's 'takeoff throttle settings of 50% to 60% and gradual application of up-elevator will result in scalelike, shallow angle-of-attack departures': the fan's thrust with its speed squared and falling with the airspeed makes the roll to 1.2 Vs 72.2 m and to 1.6 Vs 308 m, the gear's drag in both (f16:derive), a long jet's roll; it lifts off between the two"
+    "source": "the same at 55 percent, Model Aviation's 'takeoff throttle settings of 50% to 60% and gradual application of up-elevator will result in scalelike, shallow angle-of-attack departures': the fan's thrust with its speed squared and falling with the airspeed makes the roll to 1.2 Vs 72.2 m and to 1.6 Vs 308 m, the gear's drag in both (f16:derive), a long jet's roll; it lifts off between the two Flown since 2026-10-11 with the pilot's hand holding the 8 deg it rotates to (wingpilot.js f16TakeoffSticks, FAA-H-8083-3C ch. 6), as f16:derive's lift off takes it: the proportional hold alone drooped to 5.6 deg once the ground effect's nose down moment (plant_wing.c GROUND EFFECT) wanted 3.9 deg more up stabilator, and lifted off at 19.20 m/s. Derived, at the held 8 deg: 17.54 m/s in free air, 16.72 with the ground effect (sigma 0.354 at the wing's 0.140 m); the band, 1.2 to 1.6 Vs, holds it unchanged."
   },
   "s16_landing": {
     "z0": 12.0,

@@ -42,6 +42,27 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const WING_C = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))), 'src/native/plant_wing.c');
+
+/* A table's surfaces as the plant takes them (ge_wing, ge_tail, npm run
+ * ge:derive), [x, z] from the CG, m; the tail null on a tailless table.
+ * Throws where the table does not take the term. */
+export function wingGround(table) {
+  const src = readFileSync(WING_C, 'utf8');
+  const m = new RegExp(`const FixedWingParams ${table} = \\{([\\s\\S]*?)\\n\\};`).exec(src);
+  if (!m || !/\.ground_effect = 1/.test(m[1])) throw new Error(`groundeffect: ${table} does not take the term`);
+  const vec = (name) => {
+    const v = new RegExp(`\\.${name} = \\{([^}]*)\\}`).exec(m[1]);
+    return v ? v[1].split(',').map(Number) : null;
+  };
+  const w = vec('ge_wing'), t = vec('ge_tail');
+  return { wing: [w[0], w[2]], tail: t && t[0] < 0 ? [t[0], t[2]] : null };
+}
+
 /* The height over the span past which the wing meets no ground: TM 77's
  * sigma is zero there. */
 export const GE_HB_MAX = 1 / 1.32;
