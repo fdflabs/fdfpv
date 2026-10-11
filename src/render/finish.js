@@ -90,6 +90,14 @@ const FINISH = {
   pearl: { diffuse: 0.86, env: 0.3, tint: 0.15, spec: 0.8, width: 0.03, rim: 1.8, cel: 0 },
   candy: { diffuse: 0.55, env: 0.7, tint: 1, spec: 1.1, width: 0.01, rim: 1.3, cel: 0 },
   gold: { diffuse: 0.5, env: 0.85, tint: 0, spec: 1.2, width: 0.02, rim: 0.8, cel: 0, gold: 1 },
+  /* Flake: gloss over a metallic base with flakes in the coat that each
+   * catch the light at their own angle (finFlake). Brushed: metal in the
+   * paint's colour, brushed along the span, whose highlight is a streak
+   * across the brushing (finAniso) instead of the round one. Cost, a P-51
+   * filling the screen on the 3060 Ti (npm run materials:perf, GPU 0 not
+   * quite idle, 2026-10-07): at most 0.08 ms a frame over gloss, any preset. */
+  flake: { diffuse: 0.78, env: 0.22, tint: 0.6, spec: 0.75, width: 0.01, rim: 1.25, cel: 0, flake: 1 },
+  brushed: { diffuse: 0.6, env: 0.4, tint: 0.9, spec: 0, width: 0.01, rim: 0.9, cel: 0, brush: 1 },
 };
 
 /* The model's own coordinates and normal, for the weave and the wear. */
@@ -97,6 +105,7 @@ const FINISH_VARYINGS = /* glsl */ `
   varying vec3 vFinP;
   varying vec3 vFinN;
   varying vec3 vFinCN;
+  varying vec3 vFinT;
   varying vec3 vFinCP;
 `;
 
@@ -105,6 +114,7 @@ const FINISH_VERTEX = /* glsl */ `
   vFinN = vec3(objectNormal);
   vFinCN = mat3(uFinCraft) * (mat3(modelMatrix) * objectNormal);
   vFinCP = (uFinCraft * modelMatrix * vec4(transformed, 1.0)).xyz;
+  vFinT = mat3(modelViewMatrix) * vec3(1.0, 0.0, 0.0);
 `;
 
 const FINISH_HELPERS = /* glsl */ `
@@ -152,6 +162,29 @@ const FINISH_HELPERS = /* glsl */ `
     float tow = mix(sin(f.x * PI), sin(f.y * PI), warp);
     float fade = 1.0 - smoothstep(0.35, 0.9, max(fwidth(q.x), fwidth(q.y)));
     return mix(0.5, tow, fade);
+  }
+  /* Metal flakes, 1 mm cells of the model's own space (coarser than a
+   * full size car's, so they read on a model a metre and a half across),
+   * each tilted by a hash so only some face the highlight from a given
+   * eye: 1 on a flake that catches the light. Fades to the even share of
+   * flakes that would catch it once cells are well under a pixel, so far
+   * off it is a sheen, not crawling noise. */
+  float finFlake(vec3 n, vec3 v, vec3 l) {
+    vec3 q = vFinP / 0.001;
+    vec3 c = floor(q);
+    vec3 tilt = vec3(finHash(c), finHash(c + 17.0), finHash(c + 31.0)) - 0.5;
+    vec3 fn = normalize(n + 1.1 * tilt);
+    float hit = step(0.95, max(dot(reflect(-v, fn), l), 0.0));
+    float fade = 1.0 - smoothstep(1.5, 4.0, max(fwidth(q.x), max(fwidth(q.y), fwidth(q.z))));
+    return mix(0.08, hit, fade);
+  }
+  /* A brushed highlight: bright where the half vector is square to the
+   * brushing, so it spreads across the grooves into a streak. */
+  float finAniso(vec3 n, vec3 v, vec3 l) {
+    vec3 t = normalize(vFinT - n * dot(vFinT, n));
+    vec3 h = normalize(l + v);
+    float th = dot(t, h);
+    return pow(max(1.0 - th * th, 0.0), 120.0) * smoothstep(0.0, 0.25, dot(n, h)) * smoothstep(0.0, 0.2, dot(n, l));
   }
   /* Scratches: three sets of long thin streaks at their own angles, where
    * a coarse field says this patch took knocks. More wear, more of both. */
@@ -206,6 +239,9 @@ const FINISH_CHUNK = /* glsl */ `
       finBase = finShade * vec3(0.05, 0.052, 0.058) * (0.55 + 0.9 * finTwill());
     } else if (uFinGold > 0.5) {
       finBase = finShade * vec3(0.62, 0.45, 0.14);
+    } else if (uFinBrush > 0.5) {
+      float brushed = finNoise(vec3(vFinP.x * 3.0, vFinP.y * 400.0, vFinP.z * 400.0));
+      finBase = finShade * finPaint * (0.86 + 0.24 * brushed);
     } else if (uFinAlu > 0.5) {
       float brush = finNoise(vec3(vFinP.x * 3.0, vFinP.y * 400.0, vFinP.z * 400.0));
       finBase = finShade * vec3(0.44, 0.46, 0.49) * (0.88 + 0.2 * brush);
@@ -247,6 +283,13 @@ const FINISH_CHUNK = /* glsl */ `
     vec3 finTint = mix(vec3(1.0), pow(finPaint, vec3(0.4545)), uFinTint) * mix(vec3(1.0), vec3(1.0, 0.8, 0.42), uFinGold);
     float finSpec = max(dot(finR, normalize(uFinSpecDir)), 0.0);
     finSpec = step(0.985 - uFinWidth, finSpec) * uFinSpec;
+    vec3 finL = normalize(uFinSpecDir);
+    if (uFinFlake > 0.5) {
+      finSpec += 1.6 * finFlake(normal, finV, finL) * finLight;
+    }
+    if (uFinBrush > 0.5) {
+      finSpec += 0.8 * finAniso(normal, finV, finL) * finLight;
+    }
     gl_FragColor.rgb = finBase * uFinDiffuse + (finEnv * uFinEnv * finLight + finSpec) * finTint;
   }
 `;
@@ -267,6 +310,8 @@ function wrap(mat) {
     uFinCarbon: { value: 0 },
     uFinAlu: { value: 0 },
     uFinGold: { value: 0 },
+    uFinFlake: { value: 0 },
+    uFinBrush: { value: 0 },
     uFinWear: { value: 0 },
     uFinUnder: { value: 0 },
     uFinUnderCol: { value: new THREE.Color() },
@@ -304,6 +349,8 @@ function wrap(mat) {
          uniform float uFinCarbon;
          uniform float uFinAlu;
          uniform float uFinGold;
+         uniform float uFinFlake;
+         uniform float uFinBrush;
          uniform float uFinWear;
          uniform float uFinUnder;
          uniform vec3 uFinUnderCol;
@@ -345,6 +392,8 @@ function apply(state, finish) {
   u.uFinCarbon.value = f.carbon ?? 0;
   u.uFinAlu.value = f.alu ?? 0;
   u.uFinGold.value = f.gold ?? 0;
+  u.uFinFlake.value = f.flake ?? 0;
+  u.uFinBrush.value = f.brush ?? 0;
 }
 
 /*
@@ -461,7 +510,7 @@ export function readFinishUniforms(craft) {
   for (const [id, mats] of Object.entries(craft.livery.materials())) {
     const s = mats[0] && mats[0].userData.finishState;
     out[id] = s ? {
-      compiled: s.rim !== null, carbon: s.u.uFinCarbon.value, alu: s.u.uFinAlu.value, gold: s.u.uFinGold.value, wear: s.u.uFinWear.value,
+      compiled: s.rim !== null, carbon: s.u.uFinCarbon.value, alu: s.u.uFinAlu.value, gold: s.u.uFinGold.value, flake: s.u.uFinFlake.value, brush: s.u.uFinBrush.value, wear: s.u.uFinWear.value,
       under: s.u.uFinUnder.value > 0.5 ? `#${s.u.uFinUnderCol.value.getHex().toString(16).padStart(6, '0')}` : null,
       pattern: s.u.uFinPat.value > 0.5 ? { p: s.u.uFinPat.value, c: `#${s.u.uFinPatCol.value.getHex().toString(16).padStart(6, '0')}` } : null,
     } : null;
