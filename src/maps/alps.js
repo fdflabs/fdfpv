@@ -29,12 +29,14 @@
  * grows and the post chain it is seen through. The cel style is here;
  * src/maps/swiss2.js is the same valley drawn to read as a photograph.
  *
- * Everything reads one heightfield through ctx.heightAt, so the ground
- * the wing lands on is the ground it sees, and the shell samples the same
- * function under the craft every step to lay its physics plane with the
- * slope it finds there. Shapes are procedural and seeded, the same valley
- * on every load, and none of it touches the step clock: the plant never
- * reads these files.
+ * Everything reads one heightfield through ctx.heightAt, and the ground
+ * the wing lands on is the valley's world (src/share/valley/world.js):
+ * that field, the range beyond and the headwall, which the terrain, the
+ * range and the headwall are drawn from, so the ground the wing lands on
+ * is the ground it sees. The shell samples it under the craft every step
+ * to lay its physics plane with the slope it finds there. Shapes are
+ * procedural and seeded, the same valley on every load, and none of it
+ * touches the step clock: the plant never reads these files.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -64,9 +66,10 @@ import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
 import { makeRng } from '../render/library/noise.js';
 import {
-  HALF, CELL, STRIP_L, STRIP_W, STRIP_Y, LAKE_Y,
-  valleyAxis, buildHeightfield, groundTexture, terrainMesh, farRange, groundZone,
+  HALF, CELL, STRIP_L, STRIP_W, STRIP_Y,
+  valleyAxis, groundTexture, terrainMesh, farRange,
 } from './alps/terrain.js';
+import { makeValleyWorld } from '../share/valley/world.js';
 import { buildNature } from './alps/nature.js';
 import { buildVillage, villageMaterials } from './alps/village.js';
 import { makeRoofs } from '../render/library/roofs.js';
@@ -182,11 +185,14 @@ export async function buildValley(shell, progress, q, style) {
   progress(0.1, 'terrain');
   await yieldToPaint();
 
-  /* A style may bring its own field (swiss2's walls, swiss2/terrain.js);
-   * the cel style reads the valley's own. */
-  const field = style.heightfield ? style.heightfield() : buildHeightfield();
+  /* The style's world: its field (swiss2 has walls of its own,
+   * swiss2/terrain.js), the range beyond, the cel alps' headwall, and the
+   * ground and material a craft meets, the very ones the room's AI pilots
+   * fly over (edge/rooms/grounds.js). */
+  const world = makeValleyWorld(style.id);
+  const { field } = world;
   scene.add(await style.ground(field, stage));
-  const far = farRange(field, style.look);
+  const far = farRange(world.far, style.look);
   scene.add(far.mesh);
   progress(0.45, 'nature');
   await yieldToPaint();
@@ -216,7 +222,7 @@ export async function buildValley(shell, progress, q, style) {
   };
   const base = { scene, heightAt, valleyAxis, colliders, mats, paint, look: style.look };
 
-  const nature = await style.nature({ ...base, rng: makeRng(20260924), stage, field, renderer, quality: q, camera });
+  const nature = await style.nature({ ...base, rng: makeRng(20260924), stage, field, world, renderer, quality: q, camera });
   progress(undefined, 'village');
   const village = await buildVillage({ ...base, rng: makeRng(20260925) });
   progress(undefined, 'life');
@@ -274,54 +280,6 @@ export async function buildValley(shell, progress, q, style) {
   }
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
-  const zone = {};
-  /* The terrain, the strip and the lake, with no roof. */
-  const ground = (x, z) => {
-    /* Inside the field the far range sits under the valley's ground, so
-     * the higher of the two is the ground, and so is ground a style's
-     * nature draws over the field (the cel style's headwall, nature.js).
-     * Outside it only the far range is drawn: the heightfield there is
-     * its own edge clamped outward, an invisible floor that is not what
-     * the pilot sees. */
-    const inField = Math.abs(x) <= HALF && Math.abs(z) <= HALF;
-    const h = inField
-      ? Math.max(field.height(x, z), far.height(x, z), nature.ground ? nature.ground(x, z) : -Infinity)
-      : far.height(x, z);
-    if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
-      return Math.max(h, STRIP_Y);
-    }
-    return h < LAKE_Y ? LAKE_Y : h;
-  };
-  /* The headwall's material where its grid is the ground, else null: the
-   * ledge's turf top is grass and the face rock (nature.js buildHeadwall).
-   * The terrain painted under the wall says nothing about what is drawn. */
-  const wallSurface = (x, z) => {
-    if (!nature.groundSurface || !(Math.abs(x) <= HALF && Math.abs(z) <= HALF)) {
-      return null;
-    }
-    const wall = nature.ground(x, z);
-    return wall >= Math.max(field.height(x, z), far.height(x, z)) ? nature.groundSurface(x, z) : null;
-  };
-  /* The ground's material off the painted zones. */
-  const terrainSurface = (x, z) => {
-    if (!(Math.abs(x) <= HALF && Math.abs(z) <= HALF)) {
-      return 'rock';
-    }
-    if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
-      return 'grass';
-    }
-    groundZone(field, x, z, 2, zone);
-    if (zone.snow > 0.5) {
-      return 'snow';
-    }
-    if (zone.rock > 0.5 || zone.scree > 0.5) {
-      return 'rock';
-    }
-    if (zone.lake && zone.shore > 0.5) {
-      return 'dirt';
-    }
-    return 'grass';
-  };
   return {
     id: style.id,
     name: style.name(),
@@ -344,7 +302,7 @@ export async function buildValley(shell, progress, q, style) {
      * the basin. And the roofs: the highest within a step of fromY, the
      * city's rule, so a craft over a roof lands on it and one under the
      * eaves does not (library/roofs.js). */
-    height: (x, z, fromY) => roofs.height(x, z, fromY, ground(x, z)),
+    height: (x, z, fromY) => roofs.height(x, z, fromY, world.groundAt(x, z)),
     /* The shell's obstacle pass, every pass: while a roof is the craft's
      * ground, the walls under it let the sweep through (roofs.js). */
     cover: (x, z, fromY) => roofs.cover(colliders, x, z, fromY),
@@ -359,7 +317,7 @@ export async function buildValley(shell, progress, q, style) {
      * a roof's covering where y is a roof's top, else read off the same
      * zones the ground is painted by, so the snow a wing digs into is the
      * snow on screen. The far range is rock. */
-    surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)) ?? wallSurface(x, z) ?? terrainSurface(x, z),
+    surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)) ?? world.surfaceAt(x, z),
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,

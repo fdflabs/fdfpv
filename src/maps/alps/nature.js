@@ -43,6 +43,7 @@ import { makeWaves, patchGeometry, placePatch, injectWaves, starLoops, outlineBo
 import { buildSpray } from '../../render/spray.js';
 import { recordAt, flatTop } from '../../render/library/roofs.js';
 import { setSolidSurface } from '../../game/crashworld.js';
+import { headwallBand } from '../../share/valley/world.js';
 
 /* The valley is cut into this many bands along z; every instanced thing
  * is one mesh per band, so the bands behind the camera cull. */
@@ -251,27 +252,9 @@ export function natureSites(ctx) {
     const sz = (heightAt(x, z + 10) - heightAt(x, z - 10)) / 20;
     return { sx, sz, s: Math.hypot(sx, sz) };
   };
-  /*
-   * The side valley's trough, which the stream follows up to the fall,
-   * and the cliff band the fall drops over. The band runs along the
-   * hanging valley's lip, its foot twenty metres short of LIP_DX and its
-   * top the ground thirty metres past it, with a level ledge between
-   * the two over the slope the heightfield can hold. It is full height
-   * across the side valley and dies away into the hillside either side
-   * as the lip does, so its ends are the lip's own ends. faceDx is how
-   * far out from the axis the face stands at z, wandering a little.
-   */
-  const trough = (dx) => SIDE_Z + 10 * smoothstep(700, 1000, dx) + 6 * Math.sin(dx / 60);
-  const fallZ = trough(POOL.dx + POOL.r);
-  const BAND = 430;
+  /* The side valley's trough and the headwall's band (world.js). */
+  const { trough, fallZ, BAND, faceDx, BACK_DX, bandTop } = headwallBand(heightAt);
   const inBand = (z) => Math.abs(z - fallZ) < BAND;
-  const faceDx = (z) => LIP_DX - 20 + 7 * (noise2(z / 45 + 3.3, 8.1) - 0.5);
-  const BACK_DX = LIP_DX + 30;
-  const bandTop = (z, foot) => {
-    const full = heightAt(valleyAxis(z) + BACK_DX, z);
-    const w = smoothstep(0.35, 0.75, Math.exp(-Math.pow((z - SIDE_Z) / 420, 2)));
-    return foot + Math.max(0, full - foot) * w;
-  };
   /* The ground with the ledge on it: what the stream above the fall
    * lies on. */
   const groundAt = (x, z) => {
@@ -704,234 +687,33 @@ export function buildStream(ctx, sites) {
 }
 
 /*
- * THE HEADWALL. The heightfield's thirty metre cells cannot hold a
- * face much steeper than forty five degrees, and water laid down a
- * slope that shallow read as a white stripe painted on the hill. So
- * the lip gets a cliff of its own: banded rock from the foot of the
- * lip to its top, broken into crags by the noise, with a turf ledge
- * back to where the ground comes up to meet it.
- *
- * Returns the ground the plant meets there: the wall as seen from above
- * (topDown), which the map raises its heightfield to, and the material of
- * it: the ledge's flat top is turf as drawn, so grass to the crash model;
- * the face, and the slope the grid leans out of it, are rock. Without it
- * the craft met the heightfield's forty five degree slope, which stands
- * up to sixty metres behind the drawn face, and flew through the rock.
+ * THE HEADWALL: the cliff the world's ground holds at the hanging
+ * valley's lip (src/share/valley/world.js headwallTriangles), drawn
+ * triangle for triangle, so the rock a craft meets is the rock on screen.
+ * The face in banded rock, a dark band in three, and the ledge in turf.
  */
-export function buildHeadwall(ctx, sites) {
-  const { scene, heightAt, valleyAxis, look } = ctx;
-  const { fallZ, BAND, faceDx, bandTop, BACK_DX } = sites;
-  {
-    const COLS = Math.round((2 * BAND) / 6);
-    const ROWS = 16;
-    const pos = [];
-    const col = [];
-    const face = [];
-    const ledge = [];
-    /* Per triangle, in the order tri() lays them: whether it is turf. */
-    const isTurf = [];
-    const rockLight = new THREE.Color(0xa99c8a);
-    const rockDark = new THREE.Color(0x88796a);
-    const turf = new THREE.Color(0x6d7f45);
-    for (let k = 0; k <= COLS; k += 1) {
-      const z = fallZ - BAND + (2 * BAND * k) / COLS;
-      const ax = valleyAxis(z);
-      const fx = ax + faceDx(z);
-      const foot = heightAt(fx, z);
-      const top = bandTop(z, foot);
-      const base = foot - 3;
-      const rows = [];
-      for (let r = 0; r <= ROWS; r += 1) {
-        const y = base + ((top - base) * r) / ROWS;
-        const crag = r === 0 || r === ROWS ? 0 : 3.2 * (noise2(k * 0.83 + 4.1, r * 0.91 + 2.3) - 0.5);
-        rows.push([fx - crag, y, z]);
-      }
-      face.push(rows);
-      ledge.push([[fx, top, z], [ax + BACK_DX, top, z]]);
-    }
-    const tri = (a, b, c, colour) => {
-      isTurf.push(colour === turf);
-      pos.push(...a, ...b, ...c);
-      for (let q = 0; q < 3; q += 1) {
-        col.push(colour.r, colour.g, colour.b);
-      }
-    };
-    /* Winding: the face looks down the valley at the pool, the ledge
-     * looks up. */
-    for (let k = 0; k < COLS; k += 1) {
-      for (let r = 0; r < ROWS; r += 1) {
-        const a = face[k][r];
-        const b = face[k][r + 1];
-        const c = face[k + 1][r];
-        const d = face[k + 1][r + 1];
-        /* Strata: a dark band in three, following the rows round. */
-        const band = r % 3 === 1;
-        tri(a, c, b, band ? rockDark : rockLight);
-        tri(c, d, b, band ? rockDark : rockLight);
-      }
-      const a = ledge[k][0];
-      const b = ledge[k][1];
-      const c = ledge[k + 1][0];
-      const d = ledge[k + 1][1];
-      tri(a, c, b, turf);
-      tri(c, d, b, turf);
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    geo.computeVertexNormals();
-    const mat = look.parts('headwall', { rim: 0.2 });
-    const wall = new THREE.Mesh(geo, mat);
-    wall.name = 'headwall';
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-    scene.add(wall);
-    return topDown(pos, isTurf, HEADWALL_CELL, HEADWALL_RISE);
-  }
-}
-
-/* The headwall's ground grid, metres a cell: under a metre, so the
- * crags the face is broken into (3.2 m deep) stand where they are drawn. */
-const HEADWALL_CELL = 0.5;
-/* The steepest the plant is handed the face, metres up a metre out. The
- * ground plane's normal is sampled across 0.35 m and refreshed every
- * eighth step (src/main.js sampleGroundNormal), so a craft pressed a
- * metre or two into a sheer face stood its probe on the ledge behind it,
- * read the ledge's level normal there, and was thrown fifty metres up
- * onto it. At this rise the face is a slope the probe stays on. */
-const HEADWALL_RISE = 20;
-
-/*
- * A heightfield of triangle soup `pos` (x, y, z triples), as a ray from
- * straight above meets it: each cell holds the highest point of any
- * triangle over it, -Infinity where none is. A cell's centre takes the
- * triangles whose plan covers it; the edges are walked at a quarter cell
- * as well, for the faces near vertical, whose plan is a sliver no centre
- * falls in and whose highest point is on an edge.
- *
- * Then no cell is let stand more than `rise` times its width over the
- * cell before it on the -x side, which is where the face looks: a cell
- * that would is raised, so the face leans out over its foot as a slope
- * that steep, never back behind what is drawn.
- *
- * `isTurf[t]` says triangle t (pos, nine numbers a triangle) is drawn as
- * turf. Each cell remembers whether the triangle that set its height is,
- * and a cell the slope raised is rock: that is the face leaning out.
- *
- * Returns { height, surface }. height(x, z) is bilinear between the four
- * cells round the point when all four hold the wall, else the highest of
- * those that do, so the face is never drawn in front of what the grid
- * holds. surface(x, z) is 'grass' where all four cells round the point are
- * turf, so the level ledge and not its lip, where a cell holds the face's
- * top beside the ledge's; else 'rock'; null where none holds the wall.
- */
-function topDown(pos, isTurf, cell, rise) {
-  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
-  let y0 = Infinity, y1 = -Infinity;
-  for (let k = 0; k < pos.length; k += 3) {
-    x0 = Math.min(x0, pos[k]);
-    x1 = Math.max(x1, pos[k]);
-    y0 = Math.min(y0, pos[k + 1]);
-    y1 = Math.max(y1, pos[k + 1]);
-    z0 = Math.min(z0, pos[k + 2]);
-    z1 = Math.max(z1, pos[k + 2]);
-  }
-  /* Room on the -x side for the slope's foot. */
-  x0 -= cell + (y1 - y0) / rise;
-  z0 -= cell;
-  const nx = Math.ceil((x1 - x0) / cell) + 2;
-  const nz = Math.ceil((z1 - z0) / cell) + 2;
-  const top = new Float32Array(nx * nz).fill(-Infinity);
-  const turfCell = new Uint8Array(nx * nz);
-  let turfNow = false;
-  /* The ledge wins a tie with the face: the ledge's lip is where the
-   * face's top row meets it, at the same height. */
-  const put = (i, j, y) => {
-    if (i < 0 || j < 0 || i >= nx || j >= nz) {
-      return;
-    }
-    const at = j * nx + i;
-    const f = Math.fround(y);
-    if (f > top[at] || (f === top[at] && turfNow)) {
-      top[at] = f;
-      turfCell[at] = turfNow ? 1 : 0;
-    }
+export function buildHeadwall(ctx) {
+  const { scene, look, world } = ctx;
+  const { pos, kinds } = world.headwall;
+  const colours = {
+    rock: new THREE.Color(0xa99c8a),
+    strata: new THREE.Color(0x88796a),
+    turf: new THREE.Color(0x6d7f45),
   };
-  const edge = (ax, ay, az, bx, by, bz) => {
-    const n = Math.ceil(Math.hypot(bx - ax, bz - az) / (cell / 4)) + 1;
-    for (let q = 0; q <= n; q += 1) {
-      const t = q / n;
-      put(Math.round((ax + (bx - ax) * t - x0) / cell), Math.round((az + (bz - az) * t - z0) / cell), ay + (by - ay) * t);
-    }
-  };
-  for (let k = 0; k < pos.length; k += 9) {
-    const [ax, ay, az, bx, by, bz, cx, cy, cz] = pos.slice(k, k + 9);
-    turfNow = isTurf[k / 9];
-    edge(ax, ay, az, bx, by, bz);
-    edge(bx, by, bz, cx, cy, cz);
-    edge(cx, cy, cz, ax, ay, az);
-    const area = (bx - ax) * (cz - az) - (cx - ax) * (bz - az);
-    if (Math.abs(area) < 1e-6) {
-      continue;
-    }
-    const i0 = Math.ceil((Math.min(ax, bx, cx) - x0) / cell);
-    const i1 = Math.floor((Math.max(ax, bx, cx) - x0) / cell);
-    const j0 = Math.ceil((Math.min(az, bz, cz) - z0) / cell);
-    const j1 = Math.floor((Math.max(az, bz, cz) - z0) / cell);
-    for (let j = j0; j <= j1; j += 1) {
-      const z = z0 + j * cell;
-      for (let i = i0; i <= i1; i += 1) {
-        const x = x0 + i * cell;
-        const u = ((bx - x) * (cz - z) - (cx - x) * (bz - z)) / area;
-        const v = ((cx - x) * (az - z) - (ax - x) * (cz - z)) / area;
-        const w = 1 - u - v;
-        if (u >= 0 && v >= 0 && w >= 0) {
-          put(i, j, u * ay + v * by + w * cy);
-        }
-      }
-    }
+  const col = [];
+  for (const kind of kinds) {
+    const c = colours[kind];
+    col.push(c.r, c.g, c.b, c.r, c.g, c.b, c.r, c.g, c.b);
   }
-  for (let j = 0; j < nz; j += 1) {
-    for (let i = nx - 2; i >= 0; i -= 1) {
-      const raised = top[j * nx + i + 1] - rise * cell;
-      if (raised > top[j * nx + i]) {
-        top[j * nx + i] = raised;
-        turfCell[j * nx + i] = 0;
-      }
-    }
-  }
-  const height = (x, z) => {
-    const gx = (x - x0) / cell;
-    const gz = (z - z0) / cell;
-    const i = Math.floor(gx);
-    const j = Math.floor(gz);
-    if (i < 0 || j < 0 || i >= nx - 1 || j >= nz - 1) {
-      return -Infinity;
-    }
-    const a = top[j * nx + i];
-    const b = top[j * nx + i + 1];
-    const c = top[(j + 1) * nx + i];
-    const d = top[(j + 1) * nx + i + 1];
-    if (a === -Infinity || b === -Infinity || c === -Infinity || d === -Infinity) {
-      return Math.max(a, b, c, d);
-    }
-    const fu = gx - i;
-    const fv = gz - j;
-    return (a * (1 - fu) + b * fu) * (1 - fv) + (c * (1 - fu) + d * fu) * fv;
-  };
-  const surface = (x, z) => {
-    const i = Math.floor((x - x0) / cell);
-    const j = Math.floor((z - z0) / cell);
-    if (i < 0 || j < 0 || i >= nx - 1 || j >= nz - 1) {
-      return null;
-    }
-    const around = [j * nx + i, j * nx + i + 1, (j + 1) * nx + i, (j + 1) * nx + i + 1];
-    if (around.every((k) => top[k] === -Infinity)) {
-      return null;
-    }
-    return around.every((k) => turfCell[k]) ? 'grass' : 'rock';
-  };
-  return { height, surface };
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.computeVertexNormals();
+  const wall = new THREE.Mesh(geo, look.parts('headwall', { rim: 0.2 }));
+  wall.name = 'headwall';
+  wall.castShadow = true;
+  wall.receiveShadow = true;
+  scene.add(wall);
 }
 
 /*
@@ -1309,7 +1091,7 @@ export async function buildNature(ctx) {
   await ctx.paint(0.5);
 
   const rivers = buildStream(ctx, sites);
-  const headwall = buildHeadwall(ctx, sites);
+  buildHeadwall(ctx);
   buildFall(ctx, sites, waterMat);
   buildFoam(ctx, sites);
   await ctx.paint(0.54);
@@ -1324,8 +1106,6 @@ export async function buildNature(ctx) {
 
   return {
     pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps, rivers, roofs: shore.roofs,
-    ground: headwall.height,
-    groundSurface: headwall.surface,
     setWaves: waves.setWaves, updateWaves: waves.updateWaves, probeWater: waves.probeWater, disposeWaves: waves.dispose,
   };
 }

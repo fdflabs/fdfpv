@@ -71,7 +71,7 @@ import {
   HALF, CELL, CELLS, groundPaths, buildHeightfield,
 } from './alps/terrain.js';
 import {
-  buildSwissField, swissGroundGeometry, wallRise, apronAt, bayLayout,
+  swissGroundGeometry, wallRise, apronAt, bayLayout,
 } from './swiss2/terrain.js';
 import {
   natureSites, buildShore, buildReeds, buildDrifts,
@@ -353,9 +353,6 @@ function photoStyle() {
       };
       return stage;
     },
-    /* The valley with Lauterbrunnen's walls, the alps' own everywhere
-     * else (swiss2/terrain.js). */
-    heightfield: buildSwissField,
     /* The ground: the field's own mesh under the splat. The masks are
      * made here because they need the field, and the materials asked for
      * later (the strip, the range beyond) share them. */
