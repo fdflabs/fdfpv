@@ -45,6 +45,7 @@ import { normalisePlane, normaliseParts } from '../../configs/hangar-parts.js';
 import { normalisePacks } from '../../configs/wear.js';
 import { normaliseCombat } from '../../configs/combat.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
+import { normaliseSurfaces } from '../../configs/surfaces.js';
 import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../configs/liveries.js';
 import { FC_DUMP_AIRFRAME_KEY, FC_DUMP_KEY } from '../fc/dump.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
@@ -259,6 +260,7 @@ export const DEFAULTS = {
   packs: {},
   combat: {},
   tuning: {},
+  surfaces: {},
   floats: {},
   buildFits: {},
   weight: WEIGHT_STOCK,
@@ -567,6 +569,7 @@ export function loadSettings() {
   s.combat = normaliseCombat(s.combat, airframeById);
   s.floats = normaliseFloats(s.floats, s.airframe);
   s.tuning = normalizeTuning(s.tuning, limitsWith(s.power));
+  s.surfaces = normaliseSurfaces(s.surfaces);
   s.buildFits = normaliseBuildFits(s.buildFits);
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
   s.weight = clampWeight(s.weight);

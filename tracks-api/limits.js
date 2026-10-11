@@ -93,6 +93,10 @@ export const BUILD_MAX_CHARS = 8 * 1024;
  * there are four today, and 64 is that with room for many more. */
 export const COMBAT_MAX_ENTRIES = 64;
 
+/* Control surface tiers, settings.surfaces, one per fixed wing
+ * (configs/surfaces.js): under thirty aircraft, and 64 with room over. */
+export const SURFACES_MAX_ENTRIES = 64;
+
 /* Career and war packs (configs/wear.js): two starters a spec an
  * airframe flies, a few dozen, with room for bought ones. */
 export const PACKS_MAX = 256;

@@ -52,6 +52,7 @@ import { bodyPosToModel } from './frame.js';
 import { AIRFRAMES, DEFAULT_AIRFRAME, airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
 import { dressLivery, liveryFor } from './livery.js';
+import { surfacesFor } from './surfacesource.js';
 import { dressParts } from './partsfit.js';
 import { addNavLights } from './navlights.js';
 
@@ -184,6 +185,7 @@ export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
     worldScale: true,
     measure: true,
     combat: combat ?? combatFor(lastBuiltId) ?? undefined,
+    surfaces: surfacesFor(lastBuiltId) ?? undefined,
   });
   return addNavLights(dressParts(dressLivery(built, lastBuiltId, look), lastBuiltId), look && look.lights);
 }

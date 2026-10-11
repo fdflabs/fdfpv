@@ -172,7 +172,7 @@ console.log('1. the journal\'s tables against sim_abi.h and the module');
   check(wrongSide.length === 0, 'every `in` pointer is const in the header', wrongSide.join(', ') || 'yes');
   /* The doubles an `in` pointer carries are the header's own count. */
   const counts = {
-    sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES',
+    sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_wing_set_tiers: 'SIM_TIER_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES',
     sim_set_addon_inertia: 'SIM_ADDON_INERTIA_DOUBLES', sim_set_motors: 'SIM_MOTORS_DOUBLES', sim_set_prop_pack: 'SIM_PROP_PACK_DOUBLES',
   };
   const inputs = Object.keys(POINTERS).filter((n) => POINTERS[n].doubles);

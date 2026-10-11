@@ -154,8 +154,8 @@ check('the kit\'s finish and gloss are free, then matte at 2, metallic at 3, chr
 check('a number, a stripe and a checker are free decals, the rest open two a level', ['num', 'stripe', 'checker'].every((k) => lockOf(p0, 'decal', k, 'timber1500') === null)
   && same(lockOf(p0, 'decal', 'chevron', 'timber1500'), { level: 2 }) && same(lockOf(p0, 'decal', 'wings', 'timber1500'), { level: 5 }));
 check('the float Timber\'s parts are the Timber\'s', same(lockOf(p0, 'prop', '11x7e', 'timber1500f'), lockOf(p0, 'prop', '11x7e', 'timber1500')));
-check('only planes, power, schemes, props, add-ons, finishes and decals are locked: never a repair, tape, a pack, a tank or a palette colour',
-  unlockables().every((it) => ['plane', 'power', 'scheme', 'prop', 'addon', 'finish', 'decal', 'part'].includes(it.kind)));
+check('only planes, power, schemes, props, add-ons, surface tiers, finishes and decals are locked: never a repair, tape, a pack, a tank or a palette colour',
+  unlockables().every((it) => ['plane', 'power', 'scheme', 'prop', 'addon', 'surface', 'finish', 'decal', 'part'].includes(it.kind)));
 check('an item on a locked plane waits for its plane', unlockables().filter((it) => it.airframe && PLANE_LEVELS[it.airframe]).every((it) => it.level >= PLANE_LEVELS[it.airframe]));
 check('Unlock all opens everything', unlockables().every((it) => lockOf({ ...p0, unlockAll: true }, it.kind, it.id, it.airframe) === null));
 const all = unlockables();

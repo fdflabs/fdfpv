@@ -59,6 +59,7 @@ import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
+import { tierUnlockables } from '../../configs/surfaces.js';
 import {
   DECAL_KINDS, DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
 } from '../../configs/paint.js';
@@ -409,6 +410,12 @@ export function unlockables() {
         key: itemKey('addon', a, id), kind: 'addon', id: a, airframe: id, level: Math.max(planeLevel(id), 2 + ADDON_ORDER.indexOf(a)), name: `parts.addon.${a}`,
       });
     }
+  }
+  /* The control surface tiers (configs/surfaces.js): Sport, 3D and
+   * Extreme a level, two and three after their plane, earned and never
+   * bought, since they change how it flies. */
+  for (const t of tierUnlockables()) {
+    add({ key: itemKey('surface', t.id, t.airframe), kind: 'surface', id: t.id, airframe: t.airframe, level: planeLevel(t.airframe) + t.step, name: t.name });
   }
   /* The paint shop's (src/ui/hangar-paint.js), on every plane alike: the
    * first finish and the first few decals are free, so a new pilot can
