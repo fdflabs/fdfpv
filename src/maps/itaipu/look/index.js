@@ -4,7 +4,7 @@
  * point 5).
  *
  * From swiss2, unchanged and shared: the terrain photographs and the
- * surfaces (swiss2/assets.js), the material kit every part is handed
+ * surfaces (src/render/library/surfaces.js), the material kit every part is handed
  * (swiss2/look.js makePhotoLook, as ctx.mats), the
  * sun's shadow cascades (swiss2/light.js makeSun, which takes its
  * direction), the post chain (swiss2/post.js: occlusion, aerial
@@ -57,7 +57,7 @@
  */
 
 import * as THREE from 'three';
-import { loadSurface, SURFACES } from '../../swiss2/assets.js';
+import { loadSurface, SURFACES } from '../../../render/library/surfaces.js';
 import { makeSun } from '../../swiss2/light.js';
 import { makePhotoLook, finishScene } from '../../swiss2/look.js';
 import { buildPhotoComposer } from '../../swiss2/post.js';

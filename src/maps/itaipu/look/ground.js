@@ -150,7 +150,7 @@ const DETAIL_HUE = 0.3;
 /*
  * The layers as two texture arrays, `size` square a layer: the albedo
  * (sRGB) and the normal and height (data), packed as swiss2's are
- * (swiss2/assets.js loadTerrainArrays, whose decoding this follows: no
+ * (library/surfaces.js loadTerrainArrays, whose decoding this follows: no
  * colour management, rows top first). Returns { col, nrh }.
  */
 export async function loadGroundArrays(size, anisotropy) {
@@ -227,7 +227,7 @@ const v3 = (c) => `vec3(${c.map((x) => x.toFixed(4)).join(', ')})`;
 
 /* An image from the data folder as a texture, decoded as the pipeline
  * wrote it: no colour management and no premultiplication (fetchBitmap in
- * swiss2/assets.js says why). Rows stay top first: v runs north to south,
+ * library/surfaces.js says why). Rows stay top first: v runs north to south,
  * which is the imagery's own order (pixel (0, 0) is the north west
  * corner). */
 export async function loadImage(url, srgb, anisotropy) {

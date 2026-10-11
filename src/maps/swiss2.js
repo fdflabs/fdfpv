@@ -16,7 +16,7 @@
  * environment and its post chain are built here and freed on dispose.
  * The shell, the HUD and the other maps see a MapInstance like any other.
  *
- *   swiss2/assets.js     the photographs: texture arrays, surfaces, sky
+ *   swiss2/assets.js     the photographs: sky and marks (layers and surfaces: library/surfaces.js)
  *   swiss2/terrain.js    the walls' shape, the field and the ground's mesh
  *   swiss2/ground.js     the terrain's splat, and its masks
  *   swiss2/light.js      the sun, its cascades and the mountains' shadow
@@ -79,9 +79,8 @@ import {
 import { ribbon } from './alps/ribbon.js';
 import { standWalls } from '../render/library/roofs.js';
 import { PAINT } from '../render/library/vehicles/vehicles.js';
-import {
-  loadTerrainArrays, loadSurface, loadSky, loadMark, SURFACES, SKY_K, SKY_SPAN_DEG,
-} from './swiss2/assets.js';
+import { loadSky, loadMark, SKY_K, SKY_SPAN_DEG } from './swiss2/assets.js';
+import { loadTerrainArrays, loadSurface, SURFACES } from '../render/library/surfaces.js';
 import {
   groundMasks, pathMask, groundMaterial, floorUnderTrees, wallUniform, wallMask, craftUniforms, craftFootprint,
 } from './swiss2/ground.js';

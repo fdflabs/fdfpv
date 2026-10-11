@@ -48,7 +48,7 @@
  */
 
 import * as THREE from 'three';
-import { loadSurface, SURFACES } from '../swiss2/assets.js';
+import { loadSurface, SURFACES } from '../../render/library/surfaces.js';
 import { makePhotoLook, finishScene } from '../swiss2/look.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { buildPhotoComposer } from '../swiss2/post.js';

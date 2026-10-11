@@ -23,7 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as assets from '../../../src/maps/swiss2/assets.js';
+import * as assets from '../../../src/render/library/surfaces.js';
 import { describeTexture, makeTable } from '../render-golden-lib.js';
 
 const file = (t) => (t.image && t.image.src ? t.image.src.replace(window.location.origin, '') : null);

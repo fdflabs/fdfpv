@@ -66,7 +66,7 @@ after pictures.
 | Far forest canopy surface | not yet | `src/maps/itaipu/vegetation/draw.js` `canopyShell` | Itaipu |
 | Grass and leaf atlas | `vegetation/atlas.js` | loaded by each map's vegetation | Swiss valley, Itaipu, Interior |
 | Near grass, weeds, reeds and bushes as layers of crossed cards | `vegetation/cards.js` | placed by `interior/nearfield.js`. The Swiss valley's meadow (`swiss2/vegetation/grass.js`, its material reads the valley's ground paint) and Itaipu's turf (`itaipu/look/ground.js` `makeTurf`, a mesh the ground's textures displace) stay their own | Interior |
-| Ground cover materials | not yet | each map's `ground.js` / `look/ground.js` | one each |
+| Photographed ground layers and surfaces (terrain layer arrays; boards, render, stone, shingle, slate, asphalt, gravel, cobble, concrete, metal) | `surfaces.js` | layers blended by `swiss2/ground.js`; surfaces finished on by `swiss2.js`, `itaipu/look/index.js`, `interior/look.js`. The ground materials themselves stay each map's (`swiss2/ground.js` masks, Itaipu's satellite colour, the Interior's land cover): they are the map's data, not an asset | layers: Swiss valley; surfaces: all three photographic maps |
 | Water surface (lake, pool, stream), wave texture, stream ribbons and gravel bars, planar mirror | `water/surface.js`, `water/waves.js`, `water/stream.js`, `water/mirror.js` | placed by `swiss2/water/` and `swiss2/props/` (bars); Itaipu's reservoir and river (`itaipu/water/index.js`) draw with the material, texture and mirror. The Interior's silty river and banks (`interior/ribbons.js`) and the Alps' cel water (`alps/nature.js`) stay their own | Swiss valley, Itaipu |
 | Scanned rocks (boulders and stones: scans, material, colliders, levels) | `rocks.js` | placed by `swiss2/vegetation/rocks.js`; the Alps keep their cel boulders (`alps/nature.js`), the carved cliffs stay with the Swiss valley's terrain (`swiss2/rock/`) | Swiss valley |
 | People and postures | not yet | `src/render/interior/figures.js`, `swiss2/village/people.js`, `alps/fauna.js` | one each |
@@ -220,6 +220,23 @@ instanced mesh a layer, refilled from tiles round the camera.
   `interior-near-<name>`.
 - **Golden**: `tests/browser/render-golden/near-grass.js`, through the
   Interior's `buildNearField`.
+
+## Photographed layers and surfaces (`src/render/library/surfaces.js`)
+
+CC0 photographs (Poly Haven, ambientCG; `docs/SWISS2-ASSETS.md` names each
+with its source) under `assets/swiss2/`.
+
+- **Inputs**: a size and anisotropy for the terrain layers; a name from
+  `SURFACES` and an anisotropy for a surface.
+- **Outputs**: `loadTerrainArrays(size, anisotropy)` two texture arrays,
+  `col` (sRGB albedo) and `nrh` (normal in red and green, height in
+  blue), one layer each of `LAYERS` in that order; `loadSurface(name,
+  anisotropy)` `{ col, nrm, arm }`, repeating, for a standard material
+  whose uv is in world metres; `fetchBitmap(name)` a file decoded as data
+  (no colour management, no premultiplication).
+- **Perf**: nine layers in two samplers, however many a ground blends.
+- **Golden**: `tests/browser/render-golden/photo-materials.js`: the
+  arrays to the byte and every surface's files and settings.
 
 ## Placing an asset on a map
 
