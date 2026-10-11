@@ -76,7 +76,9 @@ import { LAND } from '../../share/interior/world.js';
 import { opened } from '../../share/interior/places.js';
 import { thermalKind } from '../../render/thermal.js';
 import { makeLit } from '../../render/library/lit.js';
-import { crownGeometry, crownMaterial, fitOf } from '../../render/library/crowns.js';
+import {
+  crownGeometry, crownMaterial, crownDepthMaterial, fitOf,
+} from '../../render/library/crowns.js';
 
 export const CHUNK = 256;
 export const NEAR_M = 300;
@@ -300,6 +302,7 @@ export function buildTrees({
   near.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(NEAR_CAP * 3), 3);
   mid.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP * 3), 3);
   near.castShadow = quality === 'high';
+  near.customDepthMaterial = crownDepthMaterial(THREE, { uCrFit: { value: nearFit } });
   trunks.castShadow = quality === 'high';
   near.receiveShadow = true;
   mid.receiveShadow = true;
@@ -651,7 +654,7 @@ export function buildTrees({
       for (const g of [nearGeo, midGeo, trunkGeo, farGeo, ptsLayer.geo]) {
         g.dispose();
       }
-      for (const m of [nearMat, midMat, ptsMat, blockMat, trunkMat]) {
+      for (const m of [nearMat, midMat, ptsMat, blockMat, trunkMat, near.customDepthMaterial]) {
         m.dispose();
       }
       group.removeFromParent();
