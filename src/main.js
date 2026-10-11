@@ -78,7 +78,7 @@ import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
-import { createRoute, fromFree, fromRace, replayState } from './game/debrief.js';
+import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -100,6 +100,7 @@ import { createFlightStats, pingVisit } from './share/stats.js';
 import {
   addFlight, createFlightClock, deviceId, flightTotals, mergeFlightTime, stepsAreFlight,
 } from './share/flighttime.js';
+import { addFlightCount, addGameResult, mergePilotCounts } from './share/pilotcounts.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
@@ -2214,6 +2215,8 @@ export async function boot({
     }
   })());
   let flightClockFlew = false;
+  /* Whether this run has been counted as a flight yet. */
+  let flightCounted = false;
   /* This run's own share of that clock and its route, for the debrief
    * (src/game/debrief.js, docs/DEBRIEF.md); reset() clears both. */
   let runAirMs = 0;
@@ -2235,8 +2238,29 @@ export async function boot({
       record = addFlight(record, flightDevice, g.airframe, g.activity, g.seconds, day);
     }
     ui.settings.flightTime = record;
+    /* The run's first whole second airborne makes it a flight
+     * (src/share/pilotcounts.js): counted once, here, from the clock
+     * that counts the hours. */
+    if (!flightCounted) {
+      flightCounted = true;
+      ui.settings.pilotCounts = addFlightCount(mergePilotCounts(ui.settings.pilotCounts, storedCounts()), flightDevice, got[0].activity);
+    }
     ui.persistSettings();
     ui.progress.checkFirsts();
+  }
+  /* What a second tab in this browser has written to the counts. */
+  function storedCounts() {
+    try {
+      return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').pilotCounts;
+    } catch (e) {
+      return null;
+    }
+  }
+  /* A Catch the Ace! or Trick Battle match this pilot had a seat in, from
+   * the room's final standings. */
+  function recordGameResult(game, result) {
+    ui.settings.pilotCounts = addGameResult(mergePilotCounts(ui.settings.pilotCounts, storedCounts()), flightDevice, game, result);
+    ui.persistSettings();
   }
   /* A profile from before firsts is paid for what it already holds. */
   ui.progress.checkFirsts();
@@ -7930,6 +7954,28 @@ export async function boot({
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : str('roomrace.gone');
   }
+  /*
+   * A room match's debrief (src/game/debrief.js fromRoom) from the room's
+   * order: rows of { seat, place, points? }. The replay is offered only
+   * when this pilot's own flight is what ended here (mode 'results'); a
+   * pilot who was on a room screen has no flight of theirs to replay.
+   */
+  function roomDebrief(activity, rows, seat, final) {
+    const me = rows.find((row) => row.seat === seat) || null;
+    return fromRoom({
+      activity,
+      aircraft: runAirframe,
+      fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+      place: me ? me.place : null,
+      of: rows.length,
+      final,
+      points: me && activity !== 'roomrace' ? me.points : null,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: mode === 'results' ? replayState(crashCam ? crashCam.span() : null, false) : null,
+    });
+  }
   /* The results screen, from the room's order; again as it changes. */
   function roomShowResults() {
     const view = resultsView(roomRace, roomSeatName);
@@ -7939,7 +7985,7 @@ export async function boot({
     }
     roomResultsKey = key;
     roomResultsOf = 'race';
-    ui.showRoomResults(view);
+    ui.showRoomResults(view, roomDebrief('roomrace', roomRace.standings(), roomRace.seat(), roomRace.race().state === 'results'));
   }
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
@@ -8228,13 +8274,18 @@ export async function boot({
     }
     roomTagOrbAt = roomTag.orb() || (crown ? null : roomTagOrbAt);
     const done = roomTag.takeResults();
+    /* Kept whatever screen is up: the room's standings are the result. */
+    const mine = done && roomTag.standings().find((row) => row.seat === roomTag.seat());
+    if (mine) {
+      recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
+    }
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
       }
       roomTagRunId = null;
       roomResultsOf = 'tag';
-      ui.showRoomResults(tagResultsView(roomTag, roomSeatName));
+      ui.showRoomResults(tagResultsView(roomTag, roomSeatName), roomDebrief('tag', roomTag.standings(), roomTag.seat(), true));
     }
     if (wallMs < roomTagHudAt) {
       return;
@@ -8285,6 +8336,11 @@ export async function boot({
       }
     }
     const done = roomJam.takeResults();
+    const seat = roomJam.seat();
+    if (done && roomJam.standings().some((row) => row.seat === seat)) {
+      const best = (done.runs || []).filter((r) => r.seat === seat).reduce((a, r) => Math.max(a, r.total), 0);
+      recordGameResult('jam', { won: (done.winners || []).includes(seat), score: best });
+    }
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
@@ -12313,8 +12369,11 @@ export async function boot({
     if (lcArmed && ui.settings.launchControl) {
       applyLaunchSwitch(true);
     }
-    /* Parked again, so the takeoff hint is due again. */
+    /* Parked again, so the takeoff hint is due again. The run before
+     * is committed first, so its seconds count it and not this one. */
     flownThisRun = false;
+    commitFlightTime();
+    flightCounted = false;
     /* The terrain under the spawn was asked once, for startY; asking again
      * is how two answers for one point drift apart. */
     groundY = startY;

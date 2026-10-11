@@ -49,6 +49,9 @@ import { ITEMS, grantsFrom, itemById } from '../src/game/economy.js';
 import { CHALLENGES } from '../src/game/progress.js';
 import { grantEvent } from './wallet.js';
 import {
+  addFlightCount, addGameResult, countTotals, mergePilotCounts,
+} from '../src/share/pilotcounts.js';
+import {
   GALLERY_PAGE, GALLERY_PER_ACCOUNT, GALLERY_REPORT_HIDE, GALLERY_WRITE_LIMIT,
 } from './limits.js';
 
@@ -289,6 +292,46 @@ console.log('flight time follows the account, and is never counted twice or lost
   check(`more than ${FLIGHT_DEVICES_MAX} device slots is refused, not trimmed`, blobRefusal(blob(many))?.status === 413);
   check('flight time is a synced section, read from the settings', pickSynced({ flightTime: account, graphics: 'low' }).flightTime[DESK].by.cub1400.free === 100);
   check('an account that never flew gets no section', !('flightTime' in mergeBlobs({ v: 1, data: {}, stamps: {} }, null).data));
+}
+
+console.log('flights and room game results follow the account');
+{
+  /*
+   * src/share/pilotcounts.js: the flightTime rule for the flights flown
+   * and the Catch the Ace! and Trick Battle results. Counts sum over
+   * computers, the best score is the highest of them, nothing is counted
+   * twice and an old copy takes nothing away.
+   */
+  const DESK = 'deskdevice01';
+  const LAPTOP = 'laptopdev002';
+  const blob = (pilotCounts) => ({ v: 1, data: { pilotCounts }, stamps: {} });
+  let account = addFlightCount({}, DESK, 'free');
+  account = addGameResult(account, DESK, 'tag', { won: true, score: 7 });
+  let desk = addFlightCount(account, DESK, 'race');
+  desk = addGameResult(desk, DESK, 'jam', { won: false, score: 840.4 });
+  let laptop = addFlightCount(addFlightCount(account, LAPTOP, 'free'), LAPTOP, 'tag');
+  laptop = addGameResult(laptop, LAPTOP, 'tag', { won: false, score: 12 });
+  laptop = addGameResult(laptop, LAPTOP, 'jam', { won: true, score: 1250 });
+  const m = mergeBlobs(blob(laptop), mergeBlobs(blob(desk), blob(account)));
+  const t = countTotals(m.data.pilotCounts);
+  check('two computers offline: flights summed', t.flights === 4, JSON.stringify(t));
+  check('matches played and won summed, the best is the higher',
+    JSON.stringify(t.tag) === JSON.stringify({ played: 2, won: 1, best: 12 }) && JSON.stringify(t.jam) === JSON.stringify({ played: 2, won: 1, best: 1250 }), JSON.stringify(t));
+  check('the other order gives the same record',
+    JSON.stringify(mergeBlobs(blob(account), mergeBlobs(blob(desk), blob(laptop))).data.pilotCounts) === JSON.stringify(m.data.pilotCounts));
+  check('a slot sent again is not counted again', JSON.stringify(mergeBlobs(blob(desk), m).data.pilotCounts) === JSON.stringify(m.data.pilotCounts));
+  check('an old copy takes nothing away', countTotals(mergeBlobs(blob(account), m).data.pilotCounts).flights === 4);
+  check('the merge is idempotent', JSON.stringify(mergePilotCounts(m.data.pilotCounts, m.data.pilotCounts)) === JSON.stringify(m.data.pilotCounts));
+  const junk = cleanBlob(blob({ 'BAD ID': { flights: { free: 3 } }, okdevice01: { flights: { free: -1, race: 2.5, war: 4 }, tag: { played: 'x', won: 1 }, nope: { played: 9 } } }));
+  check('wrong shapes are dropped', JSON.stringify(junk.data.pilotCounts) === JSON.stringify({ okdevice01: { flights: { war: 4 }, tag: { won: 1 } } }), JSON.stringify(junk.data.pilotCounts));
+  check('a section that is not a map is refused', blobRefusal(blob([1]))?.section === 'pilotCounts');
+  const many = Object.fromEntries(Array.from({ length: FLIGHT_DEVICES_MAX + 1 }, (_, i) => [`dev${String(i).padStart(6, '0')}`, { flights: { free: 1 } }]));
+  check(`more than ${FLIGHT_DEVICES_MAX} slots is refused, not trimmed`, blobRefusal(blob(many))?.status === 413);
+  /* MIGRATION: a profile from before the section, with hours but no
+   * counts, reads nought and takes the account's counts whole. */
+  const old = { v: 1, data: { flightTime: { deskdevice01: { by: { cub1400: { free: 600 } } } } }, stamps: {} };
+  check('an old profile reads no flights and no results', JSON.stringify(countTotals(old.data.pilotCounts)) === JSON.stringify({ flights: 0, tag: { played: 0, won: 0, best: 0 }, jam: { played: 0, won: 0, best: 0 } }));
+  check('an old profile merged with the account takes its counts', countTotals(mergeBlobs(old, m).data.pilotCounts).flights === 4 && !('pilotCounts' in mergeBlobs(old, null).data));
 }
 
 console.log('the voice notice follows the account');
