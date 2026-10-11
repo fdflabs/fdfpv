@@ -881,6 +881,15 @@ static int prop_spools(const FixedWingParams *fw) {
   return fw->j_prop > 0.0 && !(fw->fan_tau > 0.0) && fw->thrust_static > 0.0;
 }
 
+/* An engine's steady speed at the stick, its throttle_rpm, straight
+ * between tenths; the stick held to 0 to 1. */
+static double engine_throttle(const FixedWingParams *fw, double throttle) {
+  const double t = throttle < 0.0 ? 0.0 : (throttle > 1.0 ? 1.0 : throttle);
+  const double x = t * 10.0;
+  const int i = x >= 10.0 ? 9 : (int)x;
+  return fw->throttle_rpm[i] + (x - (double)i) * (fw->throttle_rpm[i + 1] - fw->throttle_rpm[i]);
+}
+
 static double prop_spool(const FixedWingParams *fw, double de, int off) {
   if (g_prop_hot) {
     g_prop_hot = 0;
@@ -1907,7 +1916,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * glow engine's stick runs its rpm from the carburettor's idle to full,
    * so its duty is never under the idle's. */
   double duty = throttle;
-  if (fw->throttle_idle > 0.0) {
+  if (fw->throttle_rpm[10] > 0.0) {
+    duty = engine_throttle(fw, throttle);
+  } else if (fw->throttle_idle > 0.0) {
     duty = fw->throttle_idle + (1.0 - fw->throttle_idle) * throttle;
   }
   /* An electric aircraft's ESC at zero throttle does not drive the motor:
