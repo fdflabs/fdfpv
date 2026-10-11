@@ -23,7 +23,7 @@
  */
 
 import { wingLift } from './lib/liftcurve.js';
-import { wingProp } from './lib/propcurve.js';
+import { electricN, wingProp } from './lib/propcurve.js';
 import { planeTable, propMoments } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -108,7 +108,8 @@ const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 /* Thrust on the prop's APC curve as the plant flies it (plant_wing.c
  * prop_curve, scripts/lib/propcurve.js). */
 const prop = wingProp('FW_SLOWSTICK1180');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* The stick d turns the prop at the motor's law's speed (electricN). */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 3, hi = 20;
@@ -359,7 +360,10 @@ function cmAt(alpha, de) {
   return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
 }
 function mush(de) {
-  let lo = 0.05, hi = 1.2;
+  /* The bracket has to hold the root (the Kadet's floor at 0.05 rad
+   * printed its own end, kadet-derive.js). */
+  let lo = -0.1, hi = 1.2;
+  if (!(cmAt(lo, de) > 0 && cmAt(hi, de) < 0)) throw new Error(`mush: no trim between ${lo} and ${hi} rad at de ${de}`);
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (cmAt(mid, de) > 0) lo = mid; else hi = mid; }
   const alpha = lo;
   const CL = stalledAt(alpha, de).CL;
@@ -437,7 +441,7 @@ const lat = lateral(Vcruise);
  * (plant_wing.c, docs/FLIGHTMODEL.md "The prop's torque, from the
  * drive"), from the table as the plant has it, a constant input to the
  * lateral model: side force over m V, roll over Ixx, yaw over Izz. */
-const propAt = propMoments(planeTable('FW_SLOWSTICK1180'), 0.75, Vcruise);
+const propAt = propMoments(planeTable('FW_SLOWSTICK1180'), electricN(0.75), Vcruise);
 const propForce = [propAt.Y / (m * Vcruise), propAt.L / Ixx, propAt.N / Izz, 0];
 const latS = lateral(1.2 * Vs);
 const rows = [

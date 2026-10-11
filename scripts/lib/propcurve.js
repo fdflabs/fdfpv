@@ -59,3 +59,12 @@ export function wingProp(table) {
     thrust: (Ts, V, n) => (n > 0 ? Ts * n * n * at(axial, Math.max(0, V) / (Number(vp[1]) * n)) : 0),
   };
 }
+
+/* An electric motor's speed over full at a duty, the plant's own law at
+ * rest against the prop's static load (plant_wing.c prop_spool):
+ * n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. A derivation that flies
+ * a stick's thrust takes the prop at this speed, not at the stick. */
+export function electricN(d) {
+  const km = 0.85 / 0.15;
+  return (-km + Math.sqrt(km * km + 4 * (km + 1) * Math.max(0, d))) / 2;
+}
