@@ -405,6 +405,22 @@ static double keep_at(const double tab[7], const double def[7], double past) {
   }
   return k[6];
 }
+/* A table's measured lateral derivatives past the stall (hi_lat), as
+ * ratios to their value at HI_LAT_DEG[0], against the body's angle of
+ * attack; 1 short of it, held past the last. */
+static const double HI_LAT_DEG[12] = { 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 70.0, 80.0, 90.0 };
+static double hi_lat_at(const double row[12], double deg) {
+  if (!(deg > HI_LAT_DEG[0])) {
+    return 1.0;
+  }
+  for (int i = 0; i < 11; i += 1) {
+    if (deg <= HI_LAT_DEG[i + 1]) {
+      return row[i] + (row[i + 1] - row[i]) * (deg - HI_LAT_DEG[i]) / (HI_LAT_DEG[i + 1] - HI_LAT_DEG[i]);
+    }
+  }
+  return row[11];
+}
+
 /* NACA TR 419 table II, an unswept Clark Y wing's ailerons (below). */
 static const double AIL_KEEP_TR419[7] = { 1.0, 0.40, 0.22, 0.108, 0.148, 0.18, 0.18 };
 /* NASA TP-2011 fig. 55a, a rudder over a low stabiliser (below). */
@@ -2198,6 +2214,25 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       cl_sep = -(beta_s < 0.0 ? -1.0 : 1.0) * (aw_s < 0.0 ? -1.0 : 1.0) * sep_w * kk * bd;
     }
   }
+  /* A table with its own measured lateral derivatives past the stall
+   * (hi_lat, the F-16's from NASA TP-1538) takes them as ratios on its
+   * own: the dihedral, the weathercock, the roll and yaw damping, the
+   * ailerons and the rudder, each against the body's angle of attack. Its
+   * roll damping is then the measured whole aircraft's, so the strips'
+   * stall moments below are not added to it. */
+  const int hi_lat = fw->hi_lat[0][0] != 0.0;
+  const double a_body = sim_atan2(sin_b, cos_b) * 180.0 / WING_PI;
+  const double r_clp = hi_lat ? hi_lat_at(fw->hi_lat[2], a_body) : 1.0;
+  const double r_cnr = hi_lat ? hi_lat_at(fw->hi_lat[3], a_body) : 1.0;
+  const double r_ail = hi_lat ? hi_lat_at(fw->hi_lat[4], a_body) : 1.0;
+  if (hi_lat) {
+    cnb *= hi_lat_at(fw->hi_lat[0], a_body);
+    clb *= hi_lat_at(fw->hi_lat[1], a_body);
+    const double r_rud = hi_lat_at(fw->hi_lat[5], a_body);
+    cydr *= r_rud;
+    cldr *= r_rud;
+    cndr *= r_rud;
+  }
 
 
   /* Forces in the body frame. */
@@ -2530,12 +2565,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * angle is sin_b and cos_b above, 0 and 1 below 0.5 m/s. */
   const double ps = p * cos_b + r_aero * sin_b;
   const double rs = r_aero * cos_b - p * sin_b;
-  double cl_sum = clb * beta_s + fw->cl_p * ps * b2v + fw->cl_da * da_m;
+  double cl_sum = clb * beta_s + fw->cl_p * r_clp * ps * b2v + fw->cl_da * da_m * r_ail;
   cl_sum = add_term(cl_sum, cl_sep);
 
   cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
   cl_sum = add_term(cl_sum, cldr * delta_r);
-  double cn_sum = cnb * beta_s + fw->cn_r * rs * b2v;
+  double cn_sum = cnb * beta_s + fw->cn_r * r_cnr * rs * b2v;
   cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, cndr * delta_r);
@@ -2735,7 +2770,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       ml += arm * (g_sep[i][0][0] - g_sep[i][1][0]);
       mn += arm * (g_sep[i][0][1] - g_sep[i][1][1]);
     }
-    const double k = qbar * kr * fre;
+    const double k = hi_lat ? 0.0 : qbar * kr * fre;
     /* A strip's lift and drag act across and along the air, the
      * stability axes, so they turn into the body's through the angle of
      * attack as the linear moments above do (Etkin and Reid's stability to
@@ -4291,15 +4326,26 @@ const FixedWingParams FW_F16878 = {
   .cy_beta = -0.470,
   .cy_dr = 0.2134,
   .cl_beta = -0.1061,     /* the sweep's effective dihedral and the fin */
-  /* OPEN GAP, known too strong past the stall: the ailerons kept whole,
-   * the plant's old arithmetic, and no sideslip split. The full size
-   * F-16's measured ailerons and differential tail keep 0.78, 0.64, 0.54
-   * and 0.36 of their moment 4, 10, 15 and 20 deg past its stall (NASA
-   * TP-1538 fig. 13), but with them alone the Freewing cannot hold its
-   * wings at 30 deg (S9 bank 21.6): its LEX and vortex lift and its
-   * directional terms past the stall (TP-1538's Cn_beta and Cl_beta to 90
-   * deg) are not in the plant. docs/FLIGHTMODEL.md. */
+  /* Past the stall the full size F-16's measured lateral derivatives as
+   * ratios to their value at 20 deg (NASA TP-1538 table III, read from the
+   * scan; ~/Desktop/fdfpv-loop/research/F16-HIGH-ALPHA.md): cn_beta,
+   * cl_beta, cl_p and cn_r with the leading edge flap retracted to 45 deg,
+   * the Freewing's fixed leading edge, the base table past it; the
+   * ailerons' roll (with TP-1538's 5 deg of differential tail, which the
+   * Freewing lacks) and the rudder's yaw from the base table. Cn beta goes
+   * unstable from 30 to 50 deg, as the paper's tables do (fig. 12 reads
+   * it about half as large above 35). The subscale tunnel models' Reynolds
+   * number is not given; ESTIMATED within 2 to 3 times the Freewing's.
+   * The ailerons' measured loss is hi_lat's, so ail_keep stays whole. */
   .ail_keep = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 },
+  .hi_lat = {
+    { 1.0, 0.022, -0.376, -2.348, -2.017, -3.448, -1.887, 0.070, 1.887, 2.019, -0.113, -0.296 },
+    { 1.0, 1.657, 1.396, 0.941, 1.746, 1.485, 0.694, 0.475, 0.483, 0.639, 0.395, 0.361 },
+    { 1.0, 1.159, 1.033, -0.503, -0.245, 0.010, 0.304, 0.365, 0.426, 0.304, 0.456, 0.608 },
+    { 1.0, 1.041, 1.386, 1.645, 1.306, 1.158, 0.984, 0.636, 0.636, 0.127, 0.273, 0.273 },
+    { 1.0, 0.890, 0.737, 0.612, 0.397, 0.292, 0.182, 0.227, 0.220, 0.179, 0.098, -0.053 },
+    { 1.0, 1.017, 1.040, 0.945, 0.691, 0.341, 0.171, 0.084, 0.025, 0.032, 0.128, 0.051 },
+  },
   .cl_p = -0.3495,
   .cl_da = 0.1226,
   .cl_r_per_cl = 0.25,
