@@ -133,16 +133,16 @@ wing's bands were, in proportion.
 
 | Check | Derived | Band |
 | --- | --- | --- |
-| S1 level speed at 65 percent throttle | 14.9 m/s | 13.0 to 17.0 |
+| S1 level speed at 65 percent throttle | 18.80 m/s (14.9 on the straight line) | 16.40 to 21.45 |
 | S2 stall speed, level, power off | 9.2 m/s | 8.6 to 10.4 |
 | S3 glide ratio, power off, at 11 m/s | 13.0 (best 13.1 at 10.4 m/s) | 11.5 to 14.5 |
-| S4 top speed, level, full throttle | 23.5 m/s | 21.5 to 26.5 |
-| S5 roll rate, full aileron at 20 m/s | 141 deg/s, pb/2V = 0.11 | 100 to 190 |
+| S4 top speed, level, full throttle | 29.26 m/s (23.5 on the straight line) | 26.77 to 33.00 |
+| S5 roll rate, full aileron at 20 m/s, flown at 69 percent, the throttle that holds it (85 on the straight line) | 141 deg/s, pb/2V = 0.11 | 100 to 190 |
 | S6 turn radius at 60 deg bank | V²/(g tan 60°) | within 15 percent of the formula at the speed flown |
-| S7 climb rate, full throttle, best | 8.0 m/s at 12.5 m/s | 5.5 to 9.5 |
+| S7 climb rate, full throttle, best | 12.44 m/s at 16.5 m/s (8.0 at 12.5 on the straight line) | 8.55 to 14.77 |
 | S8 hand throw at 11 m/s, 60 percent throttle, for two seconds the up stick that trims 11 m/s | above 1 m and faster than 10 m/s after 3 s | pass or fail |
 | S9 throttle chop from cruise | glides, pitch within ±30 deg for 3 s | pass or fail |
-| S10 phugoid period at 15 m/s, sticks centred | 9.8 s, ζ 0.29: the phugoid root of the four state longitudinal model (Nelson, ch. 4) from the derivatives above | 8.0 to 11.5 |
+| S10 phugoid period at 15 m/s, sticks centred | 9.63 s, ζ 0.25: the phugoid root of the four state longitudinal model (Nelson, ch. 4) from the derivatives above (9.8 s, ζ 0.29 on the straight line) | 7.86 to 11.30 |
 | S11 full rudder at cruise, wings held level with aileron: steady sideslip | −Cnδr δr/Cnβ = 13.7 deg, nose to the rudder's side | 9 to 20 |
 | S12 full rudder at cruise, ailerons centred: peak yaw rate | 68 deg/s: the Dutch roll step, ω_n = sqrt(q S b Cnβ/Izz) = 6.8 rad/s, ζ = 0.24 | 45 to 100 |
 | S13 full rudder at cruise, ailerons centred: bank after 2 s | the rudder's way; steady roll rate 22 deg/s once the sideslip is built, from Clβ β against Clp | 15 to 80 deg, and the sign |
@@ -219,7 +219,8 @@ above and these terms added, all of them zero on the wing:
   δe ± δa on each clipped at 25 deg.
 
 Motor: the wing's thrust model with the Skyhunter's T_s and V_p, thrust
-T = T_s d² (1 − V/(V_p d)) clipped at zero, duty floored at 0.02, rpm
+T = T_s d² ct(V/(V_p d)) clipped at zero, ct APC's 11 x 5.5E curve (the
+straight line 1 − V/(V_p d) until 2026-10-11), duty floored at 0.02, rpm
 0.85 d times the no load figure, current 43 d² A.
 
 Ground: the wing's contact path. The hull is its eight corner box,
@@ -267,7 +268,7 @@ centred.
 rho=1.225 g=9.81 b=1.8 S=0.36 m=2.10 CLmax=1.10 CD0=0.033 e=0.80
 aw=2 pi AR/(AR+2); CLa=aw + at (Sh/S) eta (1 - 2 aw/(pi AR))
 Vs=sqrt(2W/(rho S CLmax)); CLopt=sqrt(CD0/k); LDmax=CLopt/(2 CD0)
-T(V,d)=max(0, Ts d^2 (1 - V/(Vp d))); D(V)=q S (CD0 + k CL^2) with CL=W/(q S)
+T(V,d)=max(0, Ts d^2 ct(V/(Vp d))), ct APC's 11 x 5.5E curve; D(V)=q S (CD0 + k CL^2) with CL=W/(q S)
 level speed at duty d: bisect T(V,d)=D(V); climb=(T-D)V/W
 roll: pb/2V = Clda da/(-Clp); sideslip: -Cndr dr/Cnb
 Dutch roll: wn=sqrt(q S b Cnb/Izz), zeta from Cnr and CYb, peak r of the step
@@ -275,3 +276,10 @@ phugoid: trim level at 15 m/s for alpha, delta_e and duty, finite difference
 the four state (u, w, q, theta) equations, roots of the characteristic
 polynomial
 ```
+
+`node scripts/skyhunter-derive.js` runs the thrust dependent part of it:
+S1, S4, S7, S5's throttle and S10, re-derived on 2026-10-11 when the
+plant's thrust moved to the prop's measured curve; each band keeps its
+proportion about the derived figure. The curve's thrust falls more gently
+with speed than the line's (dT/du -0.517 against -0.634 N s/m at 15 m/s),
+which damps the phugoid less and shortens it a little.

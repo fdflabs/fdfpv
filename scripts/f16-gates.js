@@ -54,7 +54,7 @@ import {
   slowstickGroundPrelude, skyPrelude, kadetGroundPrelude, p51RecPrelude, p51AirPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
   timberFloatRecPrelude, RC_STEP_MS,
-  turnYawLimitDeg,
+  turnYawLimitDeg, spinWatch,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -254,30 +254,28 @@ check: {
     const psi0 = heading(sim.readState().state);
     let worstBank = 0;
     let worstR = 0;
+    const spin = spinWatch(th.s2_stall.alphaStall, t9.maxBankDeg);
     let worstHead = 0;
     let alphaSum = 0;
     let n = 0;
     let o = { s: sim.readState().state };
-    let vMushSum = 0;
-    let vMushN = 0;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) {
       const roll = Math.max(-1, Math.min(1, -0.8 * fullBank(o.s) - 0.05 * o.s[11]));
       o = step(sim, [roll, 1, 0, t9.duty]);
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
-      if (ms >= t9.seconds * 1000 - 2000) { vMushSum += speed(o.s); vMushN += 1; }
+      spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       worstHead = Math.max(worstHead, Math.abs(wrap(heading(o.s) - psi0)) * DEG);
       if (ms >= t9.seconds * 1000 - 2000) { alphaSum += wingDebug(sim)[0] * DEG; n += 1; }
     }
-    const yawMax = turnYawLimitDeg(t9.maxBankDeg, vMushSum / vMushN);
     const alpha = alphaSum / n;
     /* The same hands off, for the record: the slow spiral it is. */
     clockMs = flyUp(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
     let free = null;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) free = step(sim, [0, 1, 0, t9.duty]);
-    gate('S9', 'full up held: 30 deg of alpha, the wings held', alpha >= t9.alphaMinDeg && alpha <= t9.alphaMaxDeg && worstBank <= t9.maxBankDeg && worstR <= yawMax,
-      `alpha ${alpha.toFixed(1)} deg, bank ${worstBank.toFixed(1)}, yaw ${worstR.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, ${speed(o.s).toFixed(2)} m/s, sink ${(-o.s[6]).toFixed(2)}; hands off ${(fullBank(free.s) * DEG).toFixed(0)} deg of bank after ${t9.seconds} s`,
-      `alpha ${t9.alphaMinDeg} to ${t9.alphaMaxDeg}, bank ${t9.maxBankDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s`);
+    gate('S9', 'full up held: 30 deg of alpha, the wings held', alpha >= t9.alphaMinDeg && alpha <= t9.alphaMaxDeg && worstBank <= t9.maxBankDeg && spin.ok(),
+      `alpha ${alpha.toFixed(1)} deg, bank ${worstBank.toFixed(1)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), heading ${worstHead.toFixed(0)} deg, ${speed(o.s).toFixed(2)} m/s, sink ${(-o.s[6]).toFixed(2)}; hands off ${(fullBank(free.s) * DEG).toFixed(0)} deg of bank after ${t9.seconds} s`,
+      `alpha ${t9.alphaMinDeg} to ${t9.alphaMaxDeg}, bank ${t9.maxBankDeg}, yaw under the turn its bank allows at its speed while stalled`);
   }
 
   /* S10: the phugoid, level at the pattern speed, a second of a little up

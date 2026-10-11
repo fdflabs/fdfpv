@@ -56,7 +56,7 @@ import {
   slowstickGroundPrelude, skyPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
   timberFloatRecPrelude, RC_STEP_MS, wingSlip, rudderLevel,
-  turnYawLimitDeg,
+  turnYawLimitDeg, spinWatch, faaPowerOnStall,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -244,26 +244,62 @@ check: {
   /* S9: full up held from slow flight, power off and power on. The
    * Bombshell's is entered from its cruise, which is 1.25 times its stall;
    * the Kadet cruises at twice its stall, where full up is a zoom and not
-   * a stall, so it is entered from level flight at t9.entry m/s with the
-   * throttle closed, the approach to a stall a trainer is taught, and held
+   * a stall, so S9a is entered from the handbook's approach (below) and
+   * S9b from level flight at its own entry speed, and each held
    * for t9.seconds, which is the Bombshell's 8 s over its 5.6 s phugoid
    * scaled to the Kadet's 10.1. Power on is half throttle, not the
    * Bombshell's cruise throttle: a Kadet on an FS-52 held at full up with
    * three quarters has thrust to spare over the mush's drag and climbs
    * steeply until it hangs on its prop, which is not a stall. */
   for (const [id, t9, duty] of [['S9a', th.s9_stall_power_off, 0], ['S9b', th.s9_stall_power_on, th.s9_stall_power_on.duty]]) {
-    clockMs = fly(sim, { duty: 0, vTarget: t9.entry, seconds: 25, guard: false, speed0: t9.entry, start: STILL_AIR }).endMs;
+    /* S9a enters as FAA-H-8083-3C ch. 5, "Full Stalls, Power-Off", sets
+     * it up: "Airspeed in excess of the normal approach speed should not be
+     * carried into a stall entry since it could result in an abnormally
+     * nose-high attitude ... Once in a normal approach, the pilot sets the
+     * power to idle. When the approach attitude and airspeed have
+     * stabilized, the pilot should smoothly raise the airplane's nose":
+     * a stabilised idle descent at the normal approach speed, 1.3 times
+     * the middle of S2's measured stall band, not the cruise, whose speed
+     * the prop curves moved by a fifth and with it the zoom (2026-10-11). */
+    const vApp = 1.3 * (th.s2_stall.min + th.s2_stall.max) / 2;
+    clockMs = fly(sim, { duty: 0, vTarget: vApp, seconds: 25, guard: false, speed0: vApp, start: STILL_AIR }).endMs;
+    /* S9b, power on, judged on FAA-H-8083-3C ch. 5, "Full Stalls,
+     * Power-On" (wingpilot.js faaPowerOnStall, which quotes it): entered
+     * slowed with the power set ("the purpose of reducing the airspeed ...
+     * is to avoid an excessively steep nose-up attitude"), the entry above, at the throttle;
+     * the attitude held coordinated on the rudder until the stall,
+     * recognised and recovered without delay, never on its back, and the
+     * wings level within the bank limit by the time the speed is back to
+     * the entry's, and held. Its earlier form held full up for the whole
+     * run with the wings on the rudder, the "prolonged stalled condition"
+     * the handbook says to prevent; past the stall the wing's dihedral
+     * share fades (TP-2011 fig. 51), so a rudder can no longer level it
+     * there. */
+    if (duty) {
+      clockMs = fly(sim, { duty, vTarget: t9.entry, seconds: 25, guard: false, speed0: t9.entry, start: STILL_AIR }).endMs;
+      const s0 = sim.readState().state;
+      const v0 = speed(s0);
+      const r = faaPowerOnStall((sticks) => step(sim, sticks).s, s0, {
+        alphaStall: th.s2_stall.alphaStall, duty, seconds: t9.seconds, recoverSeconds: t9.recoverSeconds, v0,
+        maxBankDeg: t9.maxBankDeg, alphaOf: () => wingDebug(sim)[0],
+      });
+      const recovered = r.tSpeed !== null && r.tLevel !== null && r.tLevel <= r.tSpeed && r.worstAfter <= t9.maxBankDeg;
+      gate(id, 'power on stall as the handbook flies it: recognised, recovered, the wings level',
+        r.tStall !== null && !r.inverted && recovered,
+        `stall at ${r.tStall === null ? 'never' : `${r.tStall.toFixed(2)} s`} from ${v0.toFixed(2)} m/s, bank up to ${r.worstBank.toFixed(1)}; recovering, the speed back at ${r.tSpeed === null ? 'never' : `${r.tSpeed.toFixed(2)} s`}, within ${t9.maxBankDeg} deg at ${r.tLevel === null ? 'never' : `${r.tLevel.toFixed(2)} s`}, then under ${r.worstAfter.toFixed(1)}`,
+        `stalled within ${t9.seconds} s, never on its back, level by the time the speed is back and held`);
+      continue;
+    }
     const psi0 = heading(sim.readState().state);
     let worstBank = 0;
     let minPitch = 90;
     let maxPitch = -90;
     let worstHead = 0;
     let worstR = 0;
+    const spin = spinWatch(th.s2_stall.alphaStall, t9.maxBankDeg);
     let sinkSum = 0;
     let n = 0;
     let o = null;
-    let vMushSum = 0;
-    let vMushN = 0;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) {
       /* Power on, the wings level on the rudder as the handbook flies a power
        * on stall (rudderLevel, FAA-H-8083-3C ch. 5); the swirl and P factor
@@ -275,16 +311,15 @@ check: {
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstHead = Math.max(worstHead, Math.abs(wrap(heading(o.s) - psi0)) * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
-      if (ms >= t9.seconds * 1000 - 2000) { vMushSum += speed(o.s); vMushN += 1; }
+      spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       if (ms >= t9.seconds * 1000 - 2000) { sinkSum += -o.s[6]; n += 1; }
     }
-    const yawMax = turnYawLimitDeg(t9.maxBankDeg, vMushSum / vMushN);
     const sink = sinkSum / n;
     const alpha = wingDebug(sim)[0] * DEG;
     gate(id, `full up held, ${duty ? 'power on' : 'power off'}: a mush, no wing drop`,
-      worstBank <= t9.maxBankDeg && minPitch >= t9.minPitchDeg && worstR <= yawMax && (t9.min === undefined || within(sink, t9)),
-      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, sink ${sink.toFixed(2)} m/s at ${speed(o.s).toFixed(2)} m/s, alpha ${alpha.toFixed(0)}`,
-      `bank ${t9.maxBankDeg}, pitch over ${t9.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s${t9.min === undefined ? '' : `, sink ${band(t9)}`}`);
+      worstBank <= t9.maxBankDeg && minPitch >= t9.minPitchDeg && spin.ok() && (t9.min === undefined || within(sink, t9)),
+      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), heading ${worstHead.toFixed(0)} deg, sink ${sink.toFixed(2)} m/s at ${speed(o.s).toFixed(2)} m/s, alpha ${alpha.toFixed(0)}`,
+      `bank ${t9.maxBankDeg}, pitch over ${t9.minPitchDeg}, yaw under the turn its bank allows at its speed while stalled${t9.min === undefined ? '' : `, sink ${band(t9)}`}`);
   }
 
   /* S10: the phugoid, fly()'s level cruise, a second of a little up stick,

@@ -486,6 +486,7 @@
     "lint:copy": "node scripts/copy-lint.js",
     "lint:es-leaks": "node scripts/es-leak-lint.js",
     "lint:header": "node scripts/header-lint.js",
+    "lint:ci-coverage": "node scripts/ci-coverage-lint.js",
     "weather:selftest": "node scripts/weather-selftest.js",
     "weather:surface": "node scripts/weather-surface-build.js",
     "world:layer": "node scripts/world-layer-selftest.js",

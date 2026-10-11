@@ -27,6 +27,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -257,7 +259,10 @@ const jProp = blades * 0.025 * propR * propR / 3 + 0.060 * 0.03 * 0.03 + 0.100 *
  * same prop class.
  */
 const pfactor = 1.6;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+/* Thrust on the prop's APC curve as the plant flies it (plant_wing.c
+ * prop_curve, scripts/lib/propcurve.js). */
+const prop = wingProp('FW_P51D1450');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 const D = (V, cd0 = CD0) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (cd0 + k * CL * CL); };
 const level = (d, cd0 = CD0) => {
   let lo = 5, hi = 40;

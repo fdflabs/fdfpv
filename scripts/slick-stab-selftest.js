@@ -145,9 +145,9 @@ console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
 throwAt(3, V_LEVEL);
 /* At the stick FW_SLICK2680's stabiliser trims for (stab_trim_throttle,
- * npm run stab:glide): on the DA-120's dyno curve a three quarter stick
- * is 94 percent of the engine and climbs. */
-const level = fly(0, 0, 0, 0.306, 10);
+ * npm run stab:glide): the engine floats on its map, so at 22 m/s a stick
+ * of 0.155 turns the prop at the speed that holds it level. */
+const level = fly(0, 0, 0, 0.155, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
@@ -228,10 +228,9 @@ check('full right yaw stick yaws the nose right', as3xYaw.rAll * DEG > 3, `${deg
  * at its idle the 28 x 10 still turns at 1,300 rpm, J Omega 0.93 N m s
  * (slick:derive's j_prop), and pitching the nose up at q yaws it right by
  * J Omega q, a prop turning clockwise from behind. At the break that yaw
- * drops the right wing, as the Extra's touch of right rudder does; with
- * j_prop zeroed the same pulls stay level within 3 deg in every mode and
- * the touches of rudder drop 5 to 13 deg each way (the run that showed it,
- * docs/SLICK-STAGE1.md). Level at 1.9 Vs, the throttle closed, then the
+ * drops the right wing, as the Extra's touch of right rudder does, and
+ * the driven idle's torque with it (the half pull's note below; the run
+ * that first showed the gyroscope, docs/SLICK-STAGE1.md). Level at 1.9 Vs, the throttle closed, then the
  * elevator held: a quarter stick, short of the stall, stays wings level; a
  * half stick drops the right wing; a small rudder at the break moves the
  * drop the way it yaws (the handbook's wing drop toward the yaw). In
@@ -263,9 +262,16 @@ function trimWings(seconds) {
   clockMs += total;
   return sum / n;
 }
-function powerOffPull(mode, pitch, rudder) {
+function powerOffPull(mode, pitch, rudder, { prop = true } = {}) {
   must(sim.e.sim_wing_set_stab(mode), 'set mode');
+  /* prop false: the idling prop's gyroscope and its torque on the mount
+   * taken out (sim_wing_set_gyro, sim_wing_set_mount, measurement switches;
+   * the throw's reset puts them back, so they are set after it). */
   throwAt(120, V_PULL);
+  if (!prop) {
+    must(sim.e.sim_wing_set_gyro(0), 'gyro off');
+    must(sim.e.sim_wing_set_mount(0), 'mount off');
+  }
   const trim = mode === 0 ? trimWings(1) : (fly(0, 0, 0, 0, 1), 0);
   const lead = fly(trim, pitch, 0, 0, 1.2);
   const after = fly(trim, pitch, rudder, 0, 1.0);
@@ -273,6 +279,21 @@ function powerOffPull(mode, pitch, rudder) {
   return { bank: after.endBank, worst: Math.max(lead.worstBank, after.worstBank), trim };
 }
 console.log('power off pull');
+/* The half stick pull is a zoom: the nose comes up past 60 deg and the
+ * speed goes at the top, where the controls lose the air and the wing
+ * drops. What drops it is the idling prop: its gyroscope (J Omega q) and
+ * the driven idle's torque on the mount. A scratch build with j_prop
+ * zeroed and that torque clipped held every mode level to 0.0 deg; with
+ * either alone the drop was right in every mode (Manual 33 and 17 deg,
+ * Acro 7 and 7, AS3X 1.4 and 1.0, the sticks centred and untrimmed). Acro
+ * holds the rate until the ailerons run out of air and the drop comes in
+ * the last half second (12 deg). AS3X holds the attitude too (as3x_kh,
+ * Spektrum's heading hold) and its drop has only begun at the end (2.4
+ * deg): to the right, as the gyro and the torque have it, and less than
+ * Acro's. The 3 deg it was held over before came from AS3X fighting a
+ * strip aileron reversal in the stall that NACA TR 419 says does not
+ * happen (the aero lane's lateral model). */
+const halfBank = {};
 for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
   const quarter = powerOffPull(mode, 0.25, 0);
   if (mode === 0) {
@@ -284,10 +305,22 @@ for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
      * zeroed this pull stays within 3 deg (the same scratch build). */
     check(`${name}: a quarter stick pull, power off: the gyro's rudder against the prop's precession rolls it right`, quarter.bank > 0, `${deg(quarter.bank)} deg, ${deg(quarter.worst)} at most`);
   } else {
-    check(`${name}: a quarter stick pull, power off, short of the stall: wings within 3 deg`, quarter.worst * DEG < 3, `${deg(quarter.worst)} deg`);
+    /* The floating idle (3,407 rpm on the DA-120's map) turns the prop
+     * fast enough that its gyroscope and its spin-down torque on the mount
+     * drop the right wing even short of the stall, as P19g reads the
+     * P-51's: the drop is asserted to the right, and the same pull with
+     * the two taken out (the measurement switches) holds within 3 deg,
+     * the airframe's own aero. */
+    const bare = powerOffPull(mode, 0.25, 0, { prop: false });
+    check(`${name}: a quarter stick pull, power off, short of the stall: the idling prop drops the right wing, the airframe alone within 3 deg`, quarter.bank > 0 && bare.worst * DEG < 3, `${deg(quarter.bank)} deg right with the prop, ${deg(bare.worst)} at most without`);
   }
   const half = powerOffPull(mode, 0.5, 0);
-  check(`${name}: a half stick pull through the stall at idle, no rudder: the idling prop's gyroscope drops the right wing`, half.bank * DEG > 3, `${deg(half.bank)} deg`);
+  halfBank[mode] = half.bank;
+  if (mode === 3) {
+    check(`${name}: a half stick pull through the stall at idle, no rudder: the gyro holds the wings until the air goes, the drop right and under Acro's`, half.bank > 0 && half.bank < halfBank[2], `${deg(half.bank)} deg against Acro's ${deg(halfBank[2])}`);
+  } else {
+    check(`${name}: a half stick pull through the stall at idle, no rudder: the idling prop's gyroscope and torque drop the right wing`, half.bank * DEG > 3, `${deg(half.bank)} deg`);
+  }
   const left = powerOffPull(mode, 0.5, -0.05);
   const right = powerOffPull(mode, 0.5, 0.05);
   check(`${name}: a touch of left rudder takes the drop left of it, right rudder right of it`, left.bank < half.bank && right.bank > half.bank, `${deg(left.bank)}, ${deg(half.bank)} and ${deg(right.bank)} deg`);

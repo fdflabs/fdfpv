@@ -237,7 +237,7 @@ const TIMBER = [
   {
     id: 'stock', name: 'power.timber.stock', kind: 'electric', voice: 'wing',
     kv: 800, propIn: 11, pitchIn: 7.5, blades: 3,
-    thrustN: 25.0, currentA: 44.0, rpmNoLoad: 11840, pitchSpeedMs: 31.95, lvcV: 3.4,
+    thrustN: 25.0, currentA: 44.0, rpmNoLoad: 11840, pitchSpeedMs: 31.953, lvcV: 3.4,
     massKg: 1.70, cgShiftM: 0, packs: TIMBER_4S, pack: '4s3200',
     source: [TIMBER_MANUAL, 'https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html'],
   },
@@ -247,7 +247,7 @@ const TIMBER = [
     id: '3s', name: 'power.timber.3s', kind: 'electric', voice: 'wing',
     kv: 800, propIn: 11, pitchIn: 7.5, blades: 3,
     thrustN: 25.0 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 44.0 * (11.1 / 14.8) * (11.1 / 14.8),
-    rpmNoLoad: 800 * 11.1, pitchSpeedMs: 31.95 * (11.1 / 14.8), lvcV: 3.4,
+    rpmNoLoad: 800 * 11.1, pitchSpeedMs: 31.953 * (11.1 / 14.8), lvcV: 3.4,
     massKg: 1.70 - 0.325 + 0.237, cgShiftM: 0, packs: TIMBER_3S, pack: '3s3200',
     source: ['https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html', 'https://www.modelaviation.com/turbo-timber-bnf'],
   },
@@ -260,7 +260,7 @@ const CUB = [
   {
     id: 'stock', name: 'power.cub.stock', kind: 'electric', voice: 'wing',
     kv: 850, propIn: 11, pitchIn: 7, blades: 2,
-    thrustN: 13.5, currentA: 27.0, rpmNoLoad: 9435, pitchSpeedMs: 23.8, lvcV: 3.0,
+    thrustN: 13.5, currentA: 27.0, rpmNoLoad: 9435, pitchSpeedMs: 23.765, lvcV: 3.0,
     massKg: 1.32, cgShiftM: 0,
     packs: [
       lipo('3s2200', 3, 2200, 165.56, `${HH}SPMX22003S30.html`),
@@ -291,7 +291,7 @@ const SKY = [
   {
     id: 'stock', name: 'power.sky.stock', kind: 'electric', voice: 'wing',
     kv: 950, propIn: 11, pitchIn: 5.5, blades: 2,
-    thrustN: 27.0, currentA: 43.0, rpmNoLoad: 14060, pitchSpeedMs: 27.8, lvcV: 3.0,
+    thrustN: 27.0, currentA: 43.0, rpmNoLoad: 14060, pitchSpeedMs: 27.826, lvcV: 3.0,
     massKg: 2.10, cgShiftM: 0, packs: SKY_4S, pack: '4s5000',
     source: ['https://www.modelaviation.com/skyhunter', SONIC_SKY],
   },
@@ -332,7 +332,7 @@ const RADIAN = [
   {
     id: 'stock', name: 'power.radian.stock', kind: 'electric', voice: 'wing',
     kv: 960, propIn: 9.75, pitchIn: 7.5, blades: 2,
-    thrustN: 9.28, currentA: 21.8, rpmNoLoad: 10656, pitchSpeedMs: 28.76, lvcV: 3.108,
+    thrustN: 9.28, currentA: 21.8, rpmNoLoad: 10656, pitchSpeedMs: 28.758, lvcV: 3.108,
     massKg: 0.98, cgShiftM: 0,
     packs: [
       lipo('3s1300', 3, 1300, 113, `${CNHL}cnhl-black-series-1300mah-11-1v-3s-130c-lipo-battery-with-xt60-plug`),
@@ -346,11 +346,11 @@ const RADIAN = [
 ];
 
 /* The Bramor C4EYE: C-Astral publishes neither motor nor pack, only 3 h on
- * LiPo. The 6S 22000 is derived from that endurance on this plant
+ * LiPo. The 6S 11000 is derived from that endurance on this plant
  * (docs/POWER-STAGE1.md) and its mass is inside the published 4.5 kg.
  * Stock stays the published aircraft; the one alternative is an uprate
  * the owner asked for, to make it more forgiving. */
-const BRAMOR_6S = [lipo('6s22000', 6, 22000, null, 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye')];
+const BRAMOR_6S = [lipo('6s11000', 6, 11000, null, 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye')];
 /* ESTIMATED, no maker's figure: a 500 kV motor of the stock one's size on
  * the same 12 x 8 and 6S pack. The prop's coefficients are unchanged, so
  * with speed in proportion to kV the static thrust goes with its square,
@@ -363,20 +363,20 @@ const BRAMOR = [
   {
     id: 'stock', name: 'power.bramor.stock', kind: 'electric', voice: 'wing',
     kv: 470, propIn: 12, pitchIn: 8, blades: 2,
-    thrustN: 35.0, currentA: 45.0, rpmNoLoad: 10434, pitchSpeedMs: 30.0, lvcV: 0,
+    thrustN: 22.6, currentA: 20.3, rpmNoLoad: 10434, pitchSpeedMs: 30.036, lvcV: 0,
     massKg: 4.5, cgShiftM: 0,
     packs: BRAMOR_6S,
-    pack: '6s22000',
+    pack: '6s11000',
     source: ['https://www.c-astral.com/en/unmanned-systems/bramor-c4eye', 'https://www.c-astral.com/media/uploads/fm/catalogue/c-astral_katalog2019-spread.pdf'],
   },
   {
     id: '500kv', name: 'power.bramor.500kv', kind: 'electric', voice: 'wing',
     kv: 500, propIn: 12, pitchIn: 8, blades: 2,
-    thrustN: 35.0 * BRAMOR_KV_UP * BRAMOR_KV_UP, currentA: 45.0 * BRAMOR_KV_UP * BRAMOR_KV_UP * BRAMOR_KV_UP,
-    rpmNoLoad: 10434 * BRAMOR_KV_UP, pitchSpeedMs: 30.0 * BRAMOR_KV_UP, lvcV: 0,
+    thrustN: 22.6 * BRAMOR_KV_UP * BRAMOR_KV_UP, currentA: 20.3 * BRAMOR_KV_UP * BRAMOR_KV_UP * BRAMOR_KV_UP,
+    rpmNoLoad: 10434 * BRAMOR_KV_UP, pitchSpeedMs: 30.036 * BRAMOR_KV_UP, lvcV: 0,
     massKg: 4.54, cgShiftM: -(0.040 * 0.35) / 4.54,
     packs: BRAMOR_6S,
-    pack: '6s22000',
+    pack: '6s11000',
     source: ['https://www.c-astral.com/en/unmanned-systems/bramor-c4eye'],
   },
 ];
@@ -387,7 +387,7 @@ const WING = [
   {
     id: 'stock', name: 'power.wing.stock', kind: 'electric', voice: 'wing',
     kv: 1400, propIn: 6, pitchIn: 4, blades: 2,
-    thrustN: 11.5, currentA: 28.0, rpmNoLoad: 20720, pitchSpeedMs: 29.8, lvcV: 3.0,
+    thrustN: 11.5, currentA: 28.0, rpmNoLoad: 20720, pitchSpeedMs: 29.823, lvcV: 3.0,
     massKg: 0.65, cgShiftM: 0,
     packs: [
       lipo('4s1300', 4, 1300, 151, `${CNHL}cnhl-black-series-v2-0-1300mah-14-8v-4s-130c-lipo-battery-with-xt60-plug`),
@@ -417,7 +417,7 @@ const SLOWSTICK = [
   {
     id: 'stock', name: 'power.slowstick.stock', kind: 'electric', voice: 'wing',
     kv: 0, propIn: 11, pitchIn: 8, blades: 2,
-    thrustN: 2.69, currentA: 6.1, rpmNoLoad: 3882, pitchSpeedMs: 11.18, lvcV: 2.7,
+    thrustN: 2.69, currentA: 6.1, rpmNoLoad: 3882, pitchSpeedMs: 11.175, lvcV: 2.7,
     massKg: 0.42, cgShiftM: 0, packs: SLOW_2S.slice(0, 1), pack: '2s1300',
     source: ['http://www.gwsus.com/english/product/powersystem/004.htm', 'http://www.gwsus.com/english/product/speedcontroller/009.htm', GWS_GUIDE],
   },
@@ -457,7 +457,7 @@ const BOMBSHELL = [
   {
     id: 'stock', name: 'power.bombshell.stock', kind: 'glow', voice: 'glow2',
     propIn: 7, pitchIn: 3.5, blades: 2,
-    thrustN: 2.824, rpmNoLoad: 11000, pitchSpeedMs: 13.85, idle: 0.40,
+    thrustN: 2.824, rpmNoLoad: 11000, pitchSpeedMs: 13.854, idle: 0.40,
     flowFullM3s: 1.84e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
     massKg: 0.5599, cgShiftM: 0, packs: BOMBSHELL_TANKS, pack: '8.4cc',
     source: [BMJR, COX_TEXACO, MENON],
@@ -501,7 +501,7 @@ const KADET = [
   {
     id: 'stock', name: 'power.kadet.stock', kind: 'glow', voice: 'glow4',
     propIn: 12, pitchIn: 6, blades: 2,
-    thrustN: 27.83, rpmNoLoad: 11176, pitchSpeedMs: 24.13, idle: 0.2421,
+    thrustN: 27.83, rpmNoLoad: 11176, pitchSpeedMs: 24.129, idle: 0.2421,
     flowFullM3s: 18.3e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
     massKg: 2.7216, cgShiftM: 0, packs: KADET_TANKS, pack: '355cc',
     source: [SIG_KIT, OS_56_MANUAL, MENON],
@@ -624,7 +624,7 @@ const CAP = [
   {
     id: 'stock', name: 'power.cap.stock', kind: 'electric', voice: 'wing',
     kv: 520, propIn: 18, pitchIn: 8, blades: 2,
-    thrustN: 94.31, currentA: 111.11, rpmNoLoad: 10160, pitchSpeedMs: 40.37, lvcV: 3.0,
+    thrustN: 94.31, currentA: 111.11, rpmNoLoad: 10160, pitchSpeedMs: 29.247, lvcV: 3.0,
     rpmFull: 8636, /* T-Motor's bench at full throttle; its pitch speed is APC's curve's (docs/CAP580-STAGE1.md) */
     massKg: 3.6287, cgShiftM: 0, packs: F16_6S, pack: '6s4500',
     source: [CAP_COMBO, CAP_BENCH, `${APC}18x8E.dat`],
@@ -699,7 +699,7 @@ const EXTRA = [
   {
     id: 'stock', name: 'power.extra.stock', kind: 'electric', voice: 'wing',
     kv: 910, propIn: 13, pitchIn: 6, blades: 2,
-    thrustN: 37.86, currentA: 64.4, rpmNoLoad: 13468, pitchSpeedMs: 29.08, lvcV: 3.0,
+    thrustN: 37.86, currentA: 64.4, rpmNoLoad: 13468, pitchSpeedMs: 29.077, lvcV: 3.0,
     massKg: 1.51, cgShiftM: 0, packs: [TIMBER_4S[0], TIMBER_4S[1]], pack: '4s2200',
     source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html', `${APC}13x65E.dat`],
   },
@@ -707,7 +707,7 @@ const EXTRA = [
     id: '3s', name: 'power.extra.3s', kind: 'electric', voice: 'wing',
     kv: 910, propIn: 13, pitchIn: 6, blades: 2,
     thrustN: 37.86 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 64.4 * (11.1 / 14.8) * (11.1 / 14.8),
-    rpmNoLoad: 910 * 11.1, pitchSpeedMs: 29.08 * (11.1 / 14.8), lvcV: 3.0,
+    rpmNoLoad: 910 * 11.1, pitchSpeedMs: 29.077 * (11.1 / 14.8), lvcV: 3.0,
     massKg: 1.51 - 0.270 + 0.16556, cgShiftM: 0, packs: TIMBER_3S, pack: '3s2200',
     source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'],
   },
@@ -722,7 +722,7 @@ const NIGHTTIMBER = [
   {
     id: 'stock', name: 'power.nighttimber.stock', kind: 'electric', voice: 'wing',
     kv: 900, propIn: 13, pitchIn: 4, blades: 2,
-    thrustN: 25.93, currentA: 37.4, rpmNoLoad: 13320, pitchSpeedMs: 19.17, lvcV: 3.0,
+    thrustN: 25.93, currentA: 37.4, rpmNoLoad: 13320, pitchSpeedMs: 19.172, lvcV: 3.0,
     massKg: 1.698, cgShiftM: 0, packs: [TIMBER_4S[0], TIMBER_4S[1]], pack: '4s2200',
     source: [NIGHTTIMBER_MANUAL, NIGHTTIMBER_PAGE, `${APC}13x4E.dat`],
   },
@@ -730,7 +730,7 @@ const NIGHTTIMBER = [
     id: '3s', name: 'power.nighttimber.3s', kind: 'electric', voice: 'wing',
     kv: 900, propIn: 13, pitchIn: 4, blades: 2,
     thrustN: 25.93 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 37.4 * (11.1 / 14.8) * (11.1 / 14.8),
-    rpmNoLoad: 900 * 11.1, pitchSpeedMs: 19.17 * (11.1 / 14.8), lvcV: 3.0,
+    rpmNoLoad: 900 * 11.1, pitchSpeedMs: 19.172 * (11.1 / 14.8), lvcV: 3.0,
     massKg: 1.698 - 0.270 + 0.16556, cgShiftM: 0, packs: TIMBER_3S, pack: '3s2200',
     source: [NIGHTTIMBER_MANUAL, NIGHTTIMBER_PAGE],
   },
@@ -750,7 +750,7 @@ const HERCULES = [
   {
     id: 'stock', name: 'power.hercules.stock', kind: 'electric', voice: 'wing',
     kv: 870, propIn: 12, pitchIn: 8, blades: 2,
-    thrustN: 81.30, currentA: 147.1, rpmNoLoad: 9657, pitchSpeedMs: 27.80, lvcV: 3.0,
+    thrustN: 81.30, currentA: 147.1, rpmNoLoad: 9657, pitchSpeedMs: 27.799, lvcV: 3.0,
     massKg: 6.728, cgShiftM: 0, packs: HERCULES_PACKS, pack: '3s5000x4',
     source: ['https://www.horizonhobby.com/product/power-25-brushless-outrunner-motor-870kv/EFLM4025A.html', 'https://aerotetris.com/models/c130-3077.php', 'https://www.apcprop.com/files/PER3_12x8E.dat'],
   },
@@ -772,7 +772,7 @@ const SLICK = [
   {
     id: 'stock', name: 'power.slick.stock', kind: 'glow', voice: 'glow2',
     propIn: 28, pitchIn: 10, blades: 2,
-    thrustN: 304.11, rpmNoLoad: 7705.9, pitchSpeedMs: 46.588, idle: 0.1985,
+    thrustN: 304.11, rpmNoLoad: 7705.9, pitchSpeedMs: 27.728, idle: 0.1985,
     flowFullM3s: 84.4e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
     massKg: 12.474, cgShiftM: 0, packs: SLICK_TANKS, pack: '1006cc',
     source: [SLICK_SHEET, 'https://www.desertaircraft.com/products/da-120', 'https://www.falconpropellers.com/wp-content/uploads/2020/04/Falcon-Propeller-Test-Chart.pdf', `${APC}22x8.dat`, 'https://hfe.aero/wp-content/uploads/2025/11/DA120-Data-Sheet.pdf'],

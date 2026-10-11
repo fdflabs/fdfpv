@@ -27,6 +27,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const g = 9.81;
 const rhoA = 1.225;
@@ -46,7 +48,7 @@ const PLANES = {
     S: 0.361, b: 1.555, c: 0.2322, CD0: 0.042, CYb: -0.369, Cnb: 0.087, Clb: -0.047,
     CLa: 5.25, CLde: -0.498, Cm0: 0.0853, Cma: -1.004, Cmde: 1.175, alphaZL: -5 / DEG, throwE: 20 / DEG,
     flapHalf: 0.31376497222433070, clDf: 1.2391, clDf2: -0.6681, cmDclF: 0.0940, deDf: -0.183531, CLmax: 1.15, slatDclmax: 0.305, clmaxDf: 0.7689,
-    Ts: 25.0, Vp: 31.95, thrustZ0: 0.0, wheelsCD: 0.0062,
+    Ts: 25.0, table: 'FW_TIMBER1500F', thrustZ0: 0.0, wheelsCD: 0.0062,
     set: { floatMass: 0.097, floatY: 0.18, floatZ: -0.234, floatL: 0.72, strutMass: 0.04, strutY: 0.12, strutZ: -0.15 },
     /* The float, in the wheeled aircraft's frame. */
     fl: { y: 0.18, xBow: 0.33, xKnee: 0.14, xStep: -0.05, xStern: -0.39, zKeel0: -0.275, bowRise: 0.060, stepH: 0.010, aftSlope: Math.tan(8 / DEG), depth: 0.075, beam: 0.085, deadrise: 15 / DEG },
@@ -60,7 +62,7 @@ const PLANES = {
     S: 0.28, b: 1.40, c: 0.20, CD0: 0.050, CYb: -0.29, Cnb: 0.048, Clb: -0.089,
     CLa: 5.21, CLde: -0.345, Cm0: 0.062, Cma: -0.62, Cmde: 0.89, alphaZL: -5 / DEG, throwE: 15 / DEG,
     flapHalf: 0, clDf: 0, clDf2: 0, cmDclF: 0, deDf: 0, CLmax: 1.15, slatDclmax: 0, clmaxDf: 0,
-    Ts: 13.5, Vp: 23.8, thrustZ0: 0.002, wheelsCD: 0.004,
+    Ts: 13.5, table: 'FW_CUB1400F', thrustZ0: 0.002, wheelsCD: 0.004,
     set: { floatMass: 0.091, floatY: 0.15, floatZ: -0.201, floatL: 0.72, strutMass: 0.03, strutY: 0.10, strutZ: -0.13 },
     fl: { y: 0.15, xBow: 0.27, xKnee: 0.09, xStep: -0.04, xStern: -0.45, zKeel0: -0.245, bowRise: 0.064, stepH: 0.009, aftSlope: Math.tan(8 / DEG), depth: 0.080, beam: 0.080, deadrise: 15 / DEG },
     struts: { frontal: 0.0040, cd: 1.0 },
@@ -242,7 +244,8 @@ for (const [key, P] of Object.entries(PLANES)) {
    * moment. */
   const df = P.flapHalf;
   const dclF = P.clDf * df + P.clDf2 * df * df;
-  const T = (V) => P.Ts * (1 - V / P.Vp);
+  const prop = wingProp(P.table);
+  const T = (V) => prop.thrust(P.Ts, V, 1);
   const de = Math.max(-P.throwE, Math.min(P.throwE, P.throwE + P.deDf * df));
   const alphaStall = (P.CLmax + P.slatDclmax + P.clmaxDf * df) / P.CLa - dclF / P.CLa;
   const air = (V, theta, dE) => {
@@ -325,15 +328,24 @@ for (const [key, P] of Object.entries(PLANES)) {
     return best;
   };
   let vStep = null;
+  let nearest = null;
   for (let V = 1.5; V < 12; V += 0.01) {
     const p = planing(V);
+    if (p.Cv > 1.5 && (nearest === null || p.lam < nearest.lam)) nearest = { V, lam: p.lam };
     if (p.lam * bw <= forebody && p.Cv > 1.5) {
       vStep = V;
       break;
     }
   }
-  const pStep = planing(vStep);
-  pr(`on the step at ${vStep.toFixed(2)} m/s (Cv ${pStep.Cv.toFixed(2)}): trim ${(pStep.tau * DEG).toFixed(1)} deg, wetted ${(pStep.lam * bw).toFixed(3)} m, water drag ${(2 * pStep.D / W).toFixed(3)} of the weight`);
+  /* Never on the forebody alone: the run and the landing, which switch
+   * from the hump to Savitsky at the step speed, have nothing to switch at,
+   * so they are left underived rather than guessed. */
+  if (vStep === null) {
+    pr(`never on the step: the wetted length is at its least ${(nearest.lam * bw).toFixed(3)} m at ${nearest.V.toFixed(2)} m/s, over the forebody's ${forebody.toFixed(3)} m; the run and the landing are not derived`);
+  } else {
+    const pStep = planing(vStep);
+    pr(`on the step at ${vStep.toFixed(2)} m/s (Cv ${pStep.Cv.toFixed(2)}): trim ${(pStep.tau * DEG).toFixed(1)} deg, wetted ${(pStep.lam * bw).toFixed(3)} m, water drag ${(2 * pStep.D / W).toFixed(3)} of the weight`);
+  }
 
   /* THE TAKE OFF RUN, full throttle from rest. Below the step speed the
    * floats are in the hump, whose resistance the literature puts at 0.12
@@ -365,9 +377,9 @@ for (const [key, P] of Object.entries(PLANES)) {
     }
     return { x, t };
   };
-  const runLo = run(0.12);
-  const runHi = run(0.25);
-  pr(`take off run to ${vLof.toFixed(2)} m/s: ${runLo ? runLo.x.toFixed(2) : 'never'} m in ${runLo ? runLo.t.toFixed(2) : '-'} s with a hump of 0.12 W, ${runHi ? runHi.x.toFixed(2) : 'never'} m in ${runHi ? runHi.t.toFixed(2) : '-'} s at 0.25 W`);
+  const runLo = vStep === null ? null : run(0.12);
+  const runHi = vStep === null ? null : run(0.25);
+  if (vStep !== null) pr(`take off run to ${vLof.toFixed(2)} m/s: ${runLo ? runLo.x.toFixed(2) : 'never'} m in ${runLo ? runLo.t.toFixed(2) : '-'} s with a hump of 0.12 W, ${runHi ? runHi.x.toFixed(2) : 'never'} m in ${runHi ? runHi.t.toFixed(2) : '-'} s at 0.25 W`);
 
   /* THE LANDING RUN, the manual's: full flaps where there are flaps,
    * touching down at 1.15 of that stall with the throttle closed and the
@@ -414,7 +426,9 @@ for (const [key, P] of Object.entries(PLANES)) {
     }
     return x;
   };
-  pr(`landing from ${(1.15 * vStallL).toFixed(2)} m/s (stall ${vStallL.toFixed(2)} ${dfL ? 'full flaps' : ''}) to 1 m/s: ${landing(0.25).toFixed(1)} m with a hump of 0.25 W, ${landing(0.12).toFixed(1)} m at 0.12 W`);
+  const landLo = vStep === null ? null : landing(0.25);
+  const landHi = vStep === null ? null : landing(0.12);
+  if (vStep !== null) pr(`landing from ${(1.15 * vStallL).toFixed(2)} m/s (stall ${vStallL.toFixed(2)} ${dfL ? 'full flaps' : ''}) to 1 m/s: ${landLo.toFixed(1)} m with a hump of 0.25 W, ${landHi.toFixed(1)} m at 0.12 W`);
 
   /* The water rudder's taxi turn, a steady turn at a walking pace: the
    * rudders' side force at full rudder against the floats' sideways
@@ -467,5 +481,5 @@ for (const [key, P] of Object.entries(PLANES)) {
   const breakaway = Math.sqrt(0.35 * W / P.Ts);
   pr(`on grass at mu 0.35 it breaks away at ${(breakaway * 100).toFixed(0)} percent throttle`);
 
-  out[key] = { m, W, dz, th, stepDraft, cgOver, vLof, vStall, vStep, runLo, runHi, radius: U / tr.r, breakaway, landLo: landing(0.25), landHi: landing(0.12) };
+  out[key] = { m, W, dz, th, stepDraft, cgOver, vLof, vStall, vStep, runLo, runHi, radius: U / tr.r, breakaway, landLo, landHi };
 }

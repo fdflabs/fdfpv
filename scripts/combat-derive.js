@@ -30,6 +30,7 @@
 import { derivatives, lattice } from './lib/lattice.js';
 import { trimBallastKg } from '../configs/combat.js';
 import { pathToFileURL } from 'node:url';
+import { wingProp } from './lib/propcurve.js';
 
 const RHO = 1.225;
 const G = 9.80665;
@@ -763,13 +764,13 @@ export function deriveStriker() {
       const Ts = Math.pow(P.shaftW * P.fm * Math.sqrt(2 * RHO * Math.PI * R * R), 2 / 3);
       const omega = P.rpm * 2 * Math.PI / 60;
       v.engine = {
-        propR: R, Ts, Vp: P.rpm / 60 * P.pitchIn * INCH, rpmNoLoad: P.rpm / 0.85, torqueArm: P.shaftW / omega / Ts,
+        propR: R, Ts, Vp: P.rpm / 60 * P.pitchIn * INCH, ct: wingProp('FW_STRIKER_PROP').ct, rpmNoLoad: P.rpm / 0.85, torqueArm: P.shaftW / omega / Ts,
         idle: P.idle, tankM3: P.fuel.litres / 1000, flowFull: P.flowFullLph / 1000 / 3600,
         flowIdle: P.flowIdleFrac * P.flowFullLph / 1000 / 3600, thrustZ: P.thrustZ - v.zCG, jProp: P.jProp, fanTau: 0,
       };
     } else {
       v.engine = {
-        propR: SW.nacelle.r, Ts: P.thrustN, Vp: P.exitV, rpmNoLoad: P.rpmFull / 0.85, torqueArm: 0,
+        propR: SW.nacelle.r, Ts: P.thrustN, Vp: P.exitV, ct: (mu) => 1 - mu, rpmNoLoad: P.rpmFull / 0.85, torqueArm: 0,
         idle: Math.sqrt(P.idleThrustFrac), tankM3: P.fuel.litres / 1000, flowFull: P.flowFullLpm / 1000 / 60,
         flowIdle: P.flowIdleLpm / 1000 / 60, thrustZ: P.thrustZ - v.zCG, jProp: P.jProp, fanTau: P.spoolTau,
       };
@@ -859,10 +860,12 @@ export function deriveStriker() {
   const Dhalf = derivatives(run, ref, { alpha: aHalf });
   const perCL = (key) => (Dhalf[key] - D0[key]) / 0.5;
 
-  /* The plant's motor law at a stick: a running engine's idle under it. */
+  /* The plant's motor law at a stick: a running engine's idle under it,
+   * the thrust over static on the engine's curve at mu = V / (Vp n): the
+   * prop's APC curve (plant_wing.c prop_curve), the jet's momentum line. */
   const thrustAt = (E, V, stick) => {
     const n = E.idle + (1 - E.idle) * stick;
-    return Math.max(0, E.Ts * n * n * (1 - V / (E.Vp * n)));
+    return Math.max(0, E.Ts * n * n * E.ct(V / (E.Vp * n)));
   };
   const payloadOf = (id) => (id ? payloads.find((p) => p.id === id) : null);
   const out = {};

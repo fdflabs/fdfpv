@@ -24,7 +24,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingLift } from './lib/liftcurve.js';
+import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
+import { wingProp } from './lib/propcurve.js';
 import { planeTable, propMoments } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -141,7 +142,11 @@ const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 const dutyOf = (stick) => idle + (1 - idle) * stick;
-const T = (V, stick) => { const d = dutyOf(stick); return Math.max(0, Ts * d * d * (1 - V / (Vp * d))); };
+/* The thrust on APC's curve the plant flies (scripts/lib/propcurve.js),
+ * whose pitch speed is this one: the prop's geometric pitch at full rpm. */
+const prop = wingProp('FW_BOMBSHELL1118');
+if (Math.abs(prop.pitchSpeed - Vp) > 0.01) throw new Error(`bombshell-derive: the plant's pitch speed ${prop.pitchSpeed} is not V_p ${Vp}`);
+const T = (V, stick) => Math.max(0, prop.thrust(Ts, V, dutyOf(stick)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 3, hi = 20;
@@ -328,13 +333,13 @@ const stallBlend = 3 / DEG;
 /* The plant's wing, scripts/lib/liftcurve.js: CL max at the top of the
  * curve. stall_top and stall_k are set below with the stall's other
  * numbers. */
-const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK });
+const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK, claWing: aw, plateCn: plateCnOf(b, S) });
 function coeffs(alpha) {
   const lc = wingLift(curve(), alpha);
   const clLin = CLa * alpha;
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
   };
 }
 function takeoff(mu, muTail) {
@@ -398,10 +403,10 @@ const smooth = (a0, a1, x) => {
 function stalledAt(alpha, de) {
   const clLin = CLa * alpha + CLde * de;
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
-  const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const plate = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   const cmLow = -lc.sigma * (armAc * clLin + armCp * plate);
   if (!(lc.sigma > 0)) return { CL: lc.CL, cmStall: cmLow };
-  const cnSt = 2 * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha);
+  const cnSt = curve().plateCn * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha) + wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).b2c * Math.sin(alpha);
   const cmPost = lc.sigma * (((1 - lc.past) * armAc - lc.past * armCp) * cnSt - armAc * clLin - stallDw * (clLin - lc.clSt));
   return { CL: lc.CL, cmStall: cmLow + lc.past * (cmPost - cmLow) };
 }
@@ -409,7 +414,10 @@ function cmAt(alpha, de) {
   return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
 }
 function mush(de) {
-  let lo = 0.05, hi = 1.2;
+  /* The bracket has to hold the root: a trim under 0.05 rad, the Kadet's
+   * glide on the prop curves' Cm0, came back as the bracket's end. */
+  let lo = -0.1, hi = 1.2;
+  if (!(cmAt(lo, de) > 0 && cmAt(hi, de) < 0)) throw new Error(`mush: no trim between ${lo} and ${hi} rad at de ${de}`);
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (cmAt(mid, de) > 0) lo = mid; else hi = mid; }
   const alpha = lo;
   const CL = stalledAt(alpha, de).CL;
@@ -430,10 +438,10 @@ function mush(de) {
 function plantCoeffs(alpha, de) {
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const clLin = CLa * alpha + CLde * de;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const clFlat = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
     sigma: lc.sigma, clLin, clFlat,
   };
 }
@@ -535,6 +543,11 @@ rows.push(['trim at the 75 percent speed', `theta ${f(lm.thetaDeg, 2)} de ${f(lm
 rows.push(['   phugoid s, zeta; short period s, zeta', `${f(lm.phugoid && lm.phugoid.period, 2)} ${f(lm.phugoid && lm.phugoid.zeta)}; ${f(lm.short && lm.short.period, 2)} ${f(lm.short && lm.short.zeta)}`]);
 const lmT = longitudinalModes(Vtrim);
 rows.push([`trim at ${Vtrim} m/s`, `theta ${f(lmT.thetaDeg, 2)} de ${f(lmT.deDeg, 2)} throttle stick ${f(lmT.duty)}, pitch stick ${f(stickFor(lmT.deDeg / DEG, throwE))}`]);
+/* Hands off the aircraft flies where the neutral elevator trims, Vtrim,
+ * not at the 75 percent level speed: on the prop's curve the two parted,
+ * and the 75 percent stick climbs it there. The phugoid and the thermal
+ * pass (S10, S19) are flown hands off. */
+rows.push(['   phugoid s, zeta at that trim; thermal pass there: gain m', `${f(lmT.phugoid && lmT.phugoid.period, 2)} ${f(lmT.phugoid && lmT.phugoid.zeta)}; ${f(2.5 * (16 / 15) * 45 / Vtrim, 1)}`]);
 /* Full up elevator: where the linear pitching moment trims, as an angle of
  * the zero lift line, against the stall's. */
 rows.push(['alpha trim at full up, linear moment; alpha stall (deg)', `${f((Cm0 + Cmde * throwE) / -Cma * DEG, 1)} ${f(CLmax / CLa * DEG, 1)}`]);
@@ -542,8 +555,9 @@ rows.push(['plant CL max on the unstalled branch, its stall m/s', `${f(plantCLma
 rows.push(['stall arms ac, cp (per chord)', `${f(armAc, 4)} ${f(armCp, 4)}`]);
 rows.push(['full up mush', JSON.stringify(mush(throwE), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 /* The same balance with the elevator neutral is the throttle chop with the
- * sticks let go: the idle's thrust is nil over its 5.5 m/s pitch speed, so
- * the aircraft settles on the glide its pitching moment trims. */
+ * sticks let go: the idle's thrust is nil past 1.27 times its 5.5 m/s pitch
+ * speed, 7.0 m/s, where the curve crosses zero, so the aircraft settles
+ * on the glide its pitching moment trims. */
 rows.push(['hands off glide, throttle closed', JSON.stringify(mush(0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 90 percent', JSON.stringify(levelTurn(45 / DEG, 0.9), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DEG, 1.0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);

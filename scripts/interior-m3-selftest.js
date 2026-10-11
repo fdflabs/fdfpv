@@ -142,7 +142,9 @@ console.log('the gate');
 /* ---------------------------------------------------------- the pilot */
 
 const dist = (a, b) => Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
-const TOP_MS = AIRFRAMES.find((a) => a.id === 'bramor2300').topSpeed;
+/* M3_SPEED=<m/s> flies the scripted pilot at another speed, to prove
+ * the mission across the Bramor's range and not at one top speed. */
+const TOP_MS = Number(process.env.M3_SPEED) || AIRFRAMES.find((a) => a.id === 'bramor2300').topSpeed;
 const CLIMB_MS = 5;
 
 function pilot(e, i, start) {
@@ -331,7 +333,16 @@ console.log('a designation before the action is refused by Ibarra and stops noth
   watch(e, c, 'courier', () => clsOf(e, 'parked') === 'hostile', 400000, 'D meets the courier');
   until(e, () => contact(e, 'pair-a'), 120000, 'the pair appears');
   watch(e, c, 'pair-a', () => contact(e, 'pair-a') && clsOf(e, 'pair-a') === 'poi', 120000, 'the pair seen');
-  snap(e, c, 'confirm_pair', 'pair-a');
+  /* The pair is first seen through a gap in the crowns it walks out
+   * under, so the first still may be BLOCKED BY CANOPY: no designation,
+   * and the pilot takes another, as a player told so would. */
+  const atGate = () => truth(e, 'pair-a').reached['gate-near'] != null;
+  let boxed = snap(e, c, 'confirm_pair', 'pair-a');
+  while (!boxed && !atGate()) {
+    e.fly(e.clock + 1000);
+    boxed = snap(e, c, 'confirm_pair', 'pair-a');
+  }
+  check('the pair boxed before its action', boxed && !atGate(), JSON.stringify(e.errors(0).slice(-3)));
   e.fly(e.clock + 4000);
   check('"We don\'t have that yet."; the pair not cleared', e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-notyet')) && clsOf(e, 'pair-a') === 'poi');
   /* Lenient by choice (CONTRACT-M3.md gap 2): the early box stands, so

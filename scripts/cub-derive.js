@@ -22,6 +22,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -62,7 +64,8 @@ const Cndr = -VV * av * tauR, CYdr = av * (Sv / S) * tauR, Cldr = CYdr * zv / b;
 /* The motor. */
 const rpmNL = kv * volts, Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+const prop = wingProp('FW_CUB1400');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 6, hi = 40;
@@ -170,9 +173,29 @@ function longitudinalModes(V) {
     p = p.map((v, i) => v + dx[i]);
   }
   const x0 = [V * Math.cos(p[0]), -V * Math.sin(p[0]), 0, p[0]];
+  return { thetaDeg: p[0] * DEG, deDeg: p[1] * DEG, duty: p[2], ...modesAbout(x0, p[1], p[2]) };
+}
+/* The state the gate flies, C10 "sticks centred": the elevator at zero and
+ * the throttle set, the speed, alpha and pitch free, so the excess thrust
+ * goes into a steady climb rather than a trim. */
+function centredModes(d) {
+  const res = (p) => { const r = deriv([p[0], p[1], 0, p[2]], 0, d); return [r[0], r[1], r[2]]; };
+  let p = [12, -0.5, 0.1];
+  for (let it = 0; it < 60; it += 1) {
+    const r = res(p);
+    const J = [0, 1, 2].map((j) => { const pp = p.slice(); pp[j] += 1e-7; const rr = res(pp); return rr.map((v, i) => (v - r[i]) / 1e-7); });
+    const dx = solve3([0, 1, 2].map((i) => [0, 1, 2].map((j) => J[j][i])), r.map((v) => -v));
+    p = p.map((v, i) => v + dx[i]);
+  }
+  const x0 = [p[0], p[1], 0, p[2]];
+  const V = Math.hypot(p[0], p[1]);
+  const gammaRad = p[2] - Math.atan2(-p[1], p[0]);
+  return { V, climb: V * Math.sin(gammaRad), thetaDeg: p[2] * DEG, ...modesAbout(x0, 0, d) };
+}
+function modesAbout(x0, de, d) {
   const A = [0, 1, 2, 3].map((i) => [0, 1, 2, 3].map((j) => {
     const xp = x0.slice(), xm = x0.slice(); xp[j] += 1e-6; xm[j] -= 1e-6;
-    return (deriv(xp, p[1], p[2])[i] - deriv(xm, p[1], p[2])[i]) / 2e-6;
+    return (deriv(xp, de, d)[i] - deriv(xm, de, d)[i]) / 2e-6;
   }));
   /* Faddeev LeVerrier for the characteristic polynomial, then Durand Kerner. */
   const mul = (X, Y) => X.map((r, i) => Y[0].map((_, j) => r.reduce((s, _v, kk) => s + X[i][kk] * Y[kk][j], 0)));
@@ -197,7 +220,7 @@ function longitudinalModes(V) {
   }
   const modes = roots.filter((r) => r.im > 1e-6).map((r) => { const wn = Math.hypot(r.re, r.im); return { period: 2 * Math.PI / r.im, zeta: -r.re / wn }; });
   modes.sort((x, y) => y.period - x.period);
-  return { thetaDeg: p[0] * DEG, deDeg: p[1] * DEG, duty: p[2], phugoid: modes[0], short: modes[1] };
+  return { phugoid: modes[0], short: modes[1] };
 }
 
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
@@ -230,8 +253,11 @@ const rows = [
   ['    three point, hands off: CL, liftoff', `${f(CL3)} ${f(V3, 2)} ${JSON.stringify(takeoff(muGrass, 99, V3), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))}`],
   ['C19 taxi radius m', f(wheelbase / Math.tan(throwR), 2)],
 ];
+const lc = centredModes(0.65);
+rows.push(['C10 sticks centred at 65 percent: V, climb m/s, theta', `${f(lc.V, 2)} ${f(lc.climb, 2)} ${f(lc.thetaDeg, 2)}`]);
+rows.push(['    phugoid s, zeta; short period s, zeta', `${f(lc.phugoid.period, 2)} ${f(lc.phugoid.zeta)}; ${f(lc.short.period, 2)} ${f(lc.short.zeta)}`]);
 const lm = longitudinalModes(level(0.65));
-rows.push(['C10 trim at the 65 percent speed', `theta ${f(lm.thetaDeg, 2)} de ${f(lm.deDeg, 2)} duty ${f(lm.duty)}`]);
+rows.push(['    trimmed level at the 65 percent speed instead', `theta ${f(lm.thetaDeg, 2)} de ${f(lm.deDeg, 2)} duty ${f(lm.duty)}`]);
 rows.push(['    phugoid s, zeta; short period s, zeta', `${f(lm.phugoid.period, 2)} ${f(lm.phugoid.zeta)}; ${f(lm.short.period, 2)} ${f(lm.short.zeta)}`]);
 const lm10 = longitudinalModes(10);
 rows.push(['C8 trim at 10 m/s', `theta ${f(lm10.thetaDeg, 2)} de ${f(lm10.deDeg, 2)} duty ${f(lm10.duty)}, stick ${f(stickFor(lm10.deDeg / DEG, throwE))}`]);

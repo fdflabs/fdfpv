@@ -32,6 +32,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { planeTable } from './lib/wash.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll } from '../tests/lib/wingpilot.js';
@@ -140,7 +141,10 @@ const deg = (x) => (x * DEG).toFixed(1);
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
 throwAt(3, 12);
-const level = fly(0, 0, 0, 0.75, 10);
+/* Centred sticks at the stick that flies it level, the table's
+ * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
+ * prop curves gave the prop its thrust at speed. */
+const level = fly(0, 0, 0, planeTable('FW_EXTRA3D1308').fw.stab_trim_throttle, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);

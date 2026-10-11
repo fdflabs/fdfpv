@@ -453,7 +453,7 @@ export function chuteTest(sim, { height = 60, speed = 16, duty = 0.667, cruiseMs
   const end = sim.readState().state;
   return {
     sink: -mean('vz'), upzMean: mean('upz'), upzWorst: Math.max(...before.map((o) => o.upz)),
-    peakG, touchdown, rest: { z: end[3], upz: upz(end), v: Math.hypot(end[4], end[5], end[6]), w: Math.hypot(end[11], end[12], end[13]) },
+    peakG, touchdown, end, rest: { z: end[3], upz: upz(end), v: Math.hypot(end[4], end[5], end[6]), w: Math.hypot(end[11], end[12], end[13]) },
     rpmAfter: trace.length > 250 ? trace[250].rpm : null, drift: Math.hypot(end[1] - pulledAt[1], end[2] - pulledAt[2]),
     open: sim.e.sim_wing_chute_open(),
   };
@@ -636,6 +636,41 @@ export function rudderHold(s) {
  */
 export function turnYawLimitDeg(maxBankDeg, v) {
   return 9.81 * Math.tan(maxBankDeg * Math.PI / 180) / v * 180 / Math.PI;
+}
+
+/*
+ * The same definition taken at every sample, not frozen at the mush's
+ * speed: while the wing is past its stall angle, a yaw rate past the turn
+ * g tan(bank) / V the bank and the instantaneous speed allow is a rotation
+ * no turn makes. The bank is the instantaneous one, but never under the
+ * gate's own bank limit: inside that limit the wings are what the gate
+ * calls held, and a yaw there with the wings near level is a skid or the
+ * Dutch roll's, not the autorotation a spin is (at a level wing the turn
+ * allows no yaw at all, so a 0.3 deg/s skid would read as a spin). The speed is floored at SPIN_V_FLOOR: below it the formula's
+ * limit runs to infinity while the aircraft is not flying at all (the
+ * slowest stall here is the Slow Stick's 4.4 m/s), so a tail slide or a
+ * hover would never be judged; at 2 m/s a 15 deg bank already allows 75
+ * deg/s. add(s, alpha, t) for each sample; .worst is the largest yaw past
+ * its limit, deg/s (negative while every sample is inside), with its time,
+ * bank, speed and yaw.
+ */
+export const SPIN_V_FLOOR = 2;
+export function spinWatch(alphaStall, maxBankDeg) {
+  const w = { worst: -Infinity, at: null };
+  w.add = (s, alpha, t) => {
+    if (!(alpha > alphaStall)) return;
+    const bank = Math.abs(fullBank(s));
+    const v = Math.max(SPIN_V_FLOOR, Math.hypot(s[4], s[5], s[6]));
+    const yaw = Math.abs(s[13]) * 180 / Math.PI;
+    const limit = turnYawLimitDeg(Math.min(89, Math.max(bank * 180 / Math.PI, maxBankDeg)), v);
+    if (yaw - limit > w.worst) {
+      w.worst = yaw - limit;
+      w.at = { t, bank: bank * 180 / Math.PI, v, yaw, limit };
+    }
+  };
+  w.said = () => (w.at === null ? 'never past the stall' : `yaw past the turn its bank allows by ${w.worst.toFixed(1)} deg/s at ${w.at.t.toFixed(2)} s (${w.at.yaw.toFixed(1)} against ${w.at.limit.toFixed(1)}, bank ${w.at.bank.toFixed(1)}, ${w.at.v.toFixed(1)} m/s)`);
+  w.ok = () => w.worst <= 0;
+  return w;
 }
 
 /*
@@ -1536,6 +1571,119 @@ export function edgeRoll(s, b = 0) {
   const e = Math.atan2(Math.sin(fullBank(s) - b), Math.cos(fullBank(s) - b));
   return Math.max(-1, Math.min(1, -0.8 * e - 0.05 * s[11]));
 }
+/*
+ * The roll mode a pilot adapts to, measured where the hold begins: a fifth
+ * of aileron for 0.2 s from the state the gate is in, its roll rate p(t) =
+ * A (1 - exp(-a t)) read at 0.1 and 0.2 s, giving the roll damping a
+ * (1/s, the roll subsidence) and the aileron's roll acceleration per unit
+ * stick, L = A a / 0.2, at the speed v0 it was measured at. stepFn(sticks)
+ * steps the gate's sim one RC step and returns the state; throttle is the
+ * gate's own.
+ */
+export function rollMode(stepFn, throttle) {
+  const n1 = Math.round(100 / RC_STEP_MS);
+  let p1 = 0, p2 = 0, s = null;
+  for (let i = 1; i <= 2 * n1; i += 1) {
+    s = stepFn([0.2, 0, 0, throttle]);
+    if (i === n1) p1 = s[11];
+    if (i === 2 * n1) p2 = s[11];
+  }
+  const e = Math.min(0.99, Math.max(0.01, p2 / p1 - 1));
+  const a = -Math.log(e) / 0.1;
+  const A = p1 / (1 - e);
+  return { a, L: A * a / 0.2, v0: Math.hypot(s[4], s[5], s[6]) };
+}
+
+/*
+ * A person's hands holding the wings level through a stall: the bank seen
+ * 0.2 s late, the stick moved ten times a second in steps of a fiftieth of
+ * its travel (hover-probe.js's pilot), and the gain the person adapts to
+ * the aircraft's own roll mode (rollMode above): McRuer's crossover model
+ * (McRuer and Jex, IEEE Trans. HFE 1967), the pilot and aircraft open loop
+ * crossing over at 3 rad/s, the middle of the 2 to 4 rad/s a person flies
+ * an attitude task at, where the 0.2 s delay leaves about 50 deg of phase
+ * margin. With phi / stick = L / (s (s + a)), the gain is wc sqrt(wc^2 +
+ * a^2) / L stick per radian of bank, with an integral as a hand trims a
+ * steady torque. The person keeps adapting as the speed changes (the
+ * crossover model's adaptation): L goes with the dynamic pressure and a
+ * with the speed, from the mode measured at v0. Returns a function of the
+ * state, called every RC_STEP_MS, that gives the aileron stick; .gain is
+ * the gain at v0.
+ */
+export const CROSSOVER_RAD_S = 3;
+export function personWingsHold({ a, L, v0 }) {
+  const wc = CROSSOVER_RAD_S;
+  const gainAt = (v) => {
+    const r = v0 > 0 && v > 0 ? v / v0 : 1;
+    return wc * Math.sqrt(wc * wc + a * a * r * r) / (L * r * r);
+  };
+  const k = gainAt(v0);
+  const seen = [];
+  const lag = Math.round(200 / RC_STEP_MS);
+  let stick = 0, iBank = 0, ms = 0;
+  const hold = (s) => {
+    seen.push({ bank: fullBank(s), v: Math.hypot(s[4], s[5], s[6]) });
+    if (ms % 100 === 0 && seen.length > lag) {
+      const d = seen[seen.length - 1 - lag];
+      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * d.bank * 0.1));
+      const raw = Math.max(-1, Math.min(1, -gainAt(d.v) * d.bank + iBank));
+      stick = Math.round(raw * 50) / 50;
+    }
+    ms += RC_STEP_MS;
+    return stick;
+  };
+  hold.gain = k;
+  return hold;
+}
+
+/*
+ * The power on stall as FAA-H-8083-3C ch. 5 ("Full Stalls, Power-On")
+ * flies it, for an aircraft whose wings are levelled on the rudder: "hold
+ * that attitude until the full stall occurs ... continual adjustments ...
+ * to maintain coordinated flight", here full up and rudderLevel; then "the
+ * pilot should recognize when the stall has occurred and take action
+ * without delay to prevent a prolonged stalled condition ... reducing the
+ * AOA ... level the wings ... coordinate with rudder ... the throttle is
+ * already at the climb power setting". The stall is recognised when the
+ * wing passes alphaStall, acted on 0.2 s later (the person's delay,
+ * personWingsHold's), then the elevator neutral, the wings on rudderLevel
+ * and the power kept. "With sufficient airspeed and control effectiveness"
+ * the airplane is returned to its flightpath, so the wings are judged once
+ * the speed is back to v0. Returns the stall's time (null if none), the
+ * worst bank and whether it was ever on its back through both phases, the
+ * time the speed is back to v0 and the wings within maxBankDeg after the
+ * recovery began, and the worst bank after the speed is back.
+ * stepFn(sticks) steps the gate's sim and returns the state; alphaOf()
+ * reads the wing's angle.
+ */
+export function faaPowerOnStall(stepFn, s0, { alphaStall, duty, seconds, recoverSeconds, v0, maxBankDeg, alphaOf }) {
+  let s = s0, tStall = null, worstBank = 0, inverted = false;
+  const lagS = 0.2;
+  const watch = (st) => {
+    const b = Math.abs(fullBank(st));
+    worstBank = Math.max(worstBank, b * 180 / Math.PI);
+    inverted = inverted || b > Math.PI / 2;
+  };
+  let t = 0;
+  for (; t < seconds; t += RC_STEP_MS / 1000) {
+    s = stepFn([0, 1, rudderLevel(s), duty]);
+    watch(s);
+    if (tStall === null && alphaOf() > alphaStall) tStall = t;
+    if (tStall !== null && t >= tStall + lagS) break;
+  }
+  let tSpeed = null, tLevel = null, worstAfter = 0;
+  for (let r = 0; r < recoverSeconds; r += RC_STEP_MS / 1000) {
+    s = stepFn([0, 0, rudderLevel(s), duty]);
+    watch(s);
+    const v = Math.hypot(s[4], s[5], s[6]);
+    const bank = Math.abs(fullBank(s)) * 180 / Math.PI;
+    if (tSpeed === null && v >= v0) tSpeed = r;
+    if (tLevel === null && bank <= maxBankDeg) tLevel = r;
+    if (tSpeed !== null) worstAfter = Math.max(worstAfter, bank);
+  }
+  return { tStall, worstBank, inverted, tSpeed, tLevel, worstAfter };
+}
+
 export function edgeLevel(s, { b = 0, trim }) {
   const { pitch } = attitude(s);
   const qAero = -s[12];

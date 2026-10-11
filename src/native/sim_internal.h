@@ -521,6 +521,7 @@ extern int SIM_RATE_GUARD_TRIPS;
 #define FW_MIX_ELEVON 0 /* two elevons, delta_e plus and minus delta_a; no rudder */
 #define FW_MIX_TAIL 1   /* ailerons, an elevator and a rudder, each its own surface */
 #define FW_MIX_RUDDER 2 /* no ailerons: an elevator, and a rudder the roll stick drives too */
+#define FW_CURVE_N 21  /* mu = 0, 0.1, ... 2 in axial_curve and torque_curve */
 
 typedef struct FixedWingParams {
   int mix;             /* FW_MIX_ELEVON, FW_MIX_TAIL or FW_MIX_RUDDER */
@@ -565,7 +566,13 @@ typedef struct FixedWingParams {
   double expo;
   /* The motor. */
   double thrust_static; /* N */
-  double pitch_speed;   /* m/s at full duty */
+  double pitch_speed;   /* m/s at full duty: the prop's pitch times its full
+                         * rpm (a fan's or a jet's zero thrust speed) */
+  /* The prop's thrust and shaft torque over their static values at mu =
+   * u / (pitch_speed n), mu = 0, 0.1, ... 2, from APC's performance files
+   * (npm run prop:curves -- wings); straight on past mu = 2. */
+  double axial_curve[FW_CURVE_N];
+  double torque_curve[FW_CURVE_N];
   double rpm_no_load;
   double torque_arm;    /* prop reaction, roll moment per newton of thrust, m */
   double thrust_z;      /* thrust line height above the CG, m: a line under
@@ -757,6 +764,16 @@ typedef struct FixedWingParams {
    * first is the idle's own. A butterfly opens most of the speed in its
    * first half. Zero on every table without, which keeps the line. */
   double throttle_rpm[11];
+  /* An engine's torque map, N m, docs/FLIGHTMODEL.md "The engine at a
+   * closed throttle": rows the stick's idle stop and 20, 30, ... 100
+   * percent throttle, columns 1,000 to 8,000 rpm in 500s, straight between
+   * and straight on past the ends. Where it is set the engine drives its
+   * rotor by it against the air's own torque on the prop, so its speed
+   * floats with the airspeed: a closed throttle in a dive brakes a prop the
+   * air drives. Zero on every table without, which keeps the glow method's
+   * flat torque against the static load. */
+  double engine_q[10][15];
+  double engine_rpm_max;
   /*
    * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
    * Its volume, m^3; the fuel it burns per second at full rpm and at the
@@ -876,7 +893,7 @@ typedef struct FixedWingParams {
    * ratio that paper fits (its Table 16); pitch_speed is the fan's zero
    * thrust speed at full throttle. Its current goes with the cube of the
    * speed and not with the thrust: a fan's power hardly falls with
-   * airspeed (the same paper, Fig. 5f), where a prop's does (CP_OF_CT).
+   * airspeed (the same paper, Fig. 5f), where a prop's does (torque_curve).
    * esc_start: the ESC's startup ramp, s from a stopped motor to full,
    * which holds the command back as it rises from a closed throttle; zero
    * is none.
@@ -909,6 +926,9 @@ typedef struct FixedWingParams {
   double bip_x[2];
   double bip_ki[2];
   double bip_kx[2];
+  /* Each wing's stall later than potential flow puts it, rad of the cell's
+   * angle (the slot effect of the wing above); zero: bip_r's alone. */
+  double bip_dstall[2];
   /*
    * THE DRAG ACROSS THE REYNOLDS NUMBERS, docs/DLG-STAGE1.md. Zero cd0_re
    * is a CD0 that is the same at every speed, every other table's, and then
@@ -1171,6 +1191,7 @@ void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
 void plant_wing_strips(double out[8]);
 void plant_wing_set_gyro(int on);
+void plant_wing_set_mount(int on);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any

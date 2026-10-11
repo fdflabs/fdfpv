@@ -27,418 +27,418 @@ export const ESTIMATES = {
   wing1000: {
     stock: {
       '4s1300': {
-        topSpeed: 23.29,
-        minutes: 19.6
+        topSpeed: 27.99,
+        minutes: 27.5
       },
       '4s1800': {
-        topSpeed: 23.41,
-        minutes: 23.7
+        topSpeed: 28.21,
+        minutes: 33.2
       },
       '4s2200': {
-        topSpeed: 23.47,
-        minutes: 28.9
+        topSpeed: 28.31,
+        minutes: 40.4
       }
     }
   },
   sky1800: {
     stock: {
       '4s4000': {
-        topSpeed: 23.21,
-        minutes: 39.8
+        topSpeed: 28.91,
+        minutes: 61.7
       },
       '4s5000': {
-        topSpeed: 23.23,
-        minutes: 46
+        topSpeed: 28.95,
+        minutes: 71.4
       },
       '4s6000': {
-        topSpeed: 23.25,
-        minutes: 52.1
+        topSpeed: 28.98,
+        minutes: 80.8
       },
       '4s16000': {
-        topSpeed: 23.22,
-        minutes: 94.2
+        topSpeed: 29.02,
+        minutes: 145.9
       }
     },
     '920-11x7': {
       '4s4000': {
-        topSpeed: 26.5,
-        minutes: 45.5
+        topSpeed: 32.57,
+        minutes: 68.9
       },
       '4s5000': {
-        topSpeed: 26.54,
-        minutes: 52.6
+        topSpeed: 32.64,
+        minutes: 79.7
       },
       '4s6000': {
-        topSpeed: 26.56,
-        minutes: 59.6
+        topSpeed: 32.69,
+        minutes: 90.2
       },
       '4s16000': {
-        topSpeed: 26.55,
-        minutes: 107.7
+        topSpeed: 32.77,
+        minutes: 162.9
       }
     },
     '920-12x6': {
       '4s4000': {
-        topSpeed: 24.29,
-        minutes: 39.2
+        topSpeed: 30.17,
+        minutes: 60.5
       },
       '4s5000': {
-        topSpeed: 24.33,
-        minutes: 45.4
+        topSpeed: 30.23,
+        minutes: 70
       },
       '4s6000': {
-        topSpeed: 24.35,
-        minutes: 51.3
+        topSpeed: 30.27,
+        minutes: 79.2
       },
       '4s16000': {
-        topSpeed: 24.33,
-        minutes: 92.8
+        topSpeed: 30.33,
+        minutes: 143.1
       }
     },
     '920-12x6-3s': {
       '3s5000': {
-        topSpeed: 18.38,
-        minutes: 37.1
+        topSpeed: 22.96,
+        minutes: 57.6
       }
     },
     '800-13x8': {
       '4s4000': {
-        topSpeed: 26.85,
-        minutes: 49.1
+        topSpeed: 33.08,
+        minutes: 74.8
       },
       '4s5000': {
-        topSpeed: 26.89,
-        minutes: 56.8
+        topSpeed: 33.15,
+        minutes: 86.5
       },
       '4s6000': {
-        topSpeed: 26.91,
-        minutes: 64.3
+        topSpeed: 33.2,
+        minutes: 97.9
       },
       '4s16000': {
-        topSpeed: 26.92,
-        minutes: 116.3
+        topSpeed: 33.29,
+        minutes: 176.8
       }
     }
   },
   cub1400: {
     stock: {
       '3s2200': {
-        topSpeed: 17.98,
-        minutes: 22.2
+        topSpeed: 21.94,
+        minutes: 31
       },
       '3s3200': {
-        topSpeed: 18.02,
-        minutes: 29.9
+        topSpeed: 22.03,
+        minutes: 41.7
       }
     }
   },
   cub1400f: {
     stock: {
       '3s2200': {
-        topSpeed: 16.68,
-        minutes: 15.4
+        topSpeed: 20.27,
+        minutes: 21.7
       },
       '3s3200': {
-        topSpeed: 16.73,
-        minutes: 21.2
+        topSpeed: 20.36,
+        minutes: 29.6
       }
     }
   },
   radian2000: {
     stock: {
       '3s1300': {
-        topSpeed: 21.14,
-        minutes: 68.4
+        topSpeed: 25.73,
+        minutes: 92.5
       },
       '3s1500': {
-        topSpeed: 21.19,
-        minutes: 77.4
+        topSpeed: 25.82,
+        minutes: 104.7
       },
       '3s1800': {
-        topSpeed: 21.22,
-        minutes: 87
+        topSpeed: 25.9,
+        minutes: 117.8
       },
       '3s2200': {
-        topSpeed: 21.26,
-        minutes: 104.4
+        topSpeed: 25.98,
+        minutes: 141.4
       }
     }
   },
   bramor2300: {
     stock: {
-      '6s22000': {
-        topSpeed: 24.62,
-        minutes: 176.7
+      '6s11000': {
+        topSpeed: 27.96,
+        minutes: 179.2
       }
     },
     '500kv': {
-      '6s22000': {
-        topSpeed: 26.26,
-        minutes: 174.3
+      '6s11000': {
+        topSpeed: 29.84,
+        minutes: 176.8
       }
     }
   },
   slowstick1180: {
     stock: {
       '2s1300': {
-        topSpeed: 7.95,
-        minutes: 39
+        topSpeed: 9.9,
+        minutes: 52.2
       }
     },
     '2212-1047': {
       '2s1300': {
-        topSpeed: 8.03,
-        minutes: 37.7
+        topSpeed: 9.85,
+        minutes: 49.9
       },
       '2s2200': {
-        topSpeed: 7.97,
-        minutes: 49.9
+        topSpeed: 9.81,
+        minutes: 65.7
       }
     },
     '2212-1060': {
       '2s1300': {
-        topSpeed: 10.29,
-        minutes: 59
+        topSpeed: 12.62,
+        minutes: 79.3
       },
       '2s2200': {
-        topSpeed: 10.21,
-        minutes: 77.7
+        topSpeed: 12.6,
+        minutes: 104.5
       }
     },
     '2215-1060-3s': {
       '3s1300': {
-        topSpeed: 12.9,
-        minutes: 75.2
+        topSpeed: 15.7,
+        minutes: 101.2
       },
       '3s2200': {
-        topSpeed: 12.83,
-        minutes: 91.4
+        topSpeed: 15.69,
+        minutes: 123
       }
     }
   },
   timber1500: {
     stock: {
       '4s2200': {
-        topSpeed: 23.6,
-        minutes: 25
+        topSpeed: 27.12,
+        minutes: 35.3
       },
       '4s3200': {
-        topSpeed: 23.76,
-        minutes: 34.6
+        topSpeed: 27.32,
+        minutes: 48.9
       },
       '4s4000': {
-        topSpeed: 23.82,
-        minutes: 41.5
+        topSpeed: 27.4,
+        minutes: 58.5
       },
       '4s5000': {
-        topSpeed: 23.85,
-        minutes: 47.3
+        topSpeed: 27.44,
+        minutes: 66.8
       }
     },
     '3s': {
       '3s2200': {
-        topSpeed: 17.63,
-        minutes: 20.6
+        topSpeed: 20.36,
+        minutes: 29.2
       },
       '3s3200': {
-        topSpeed: 17.67,
-        minutes: 28.1
+        topSpeed: 20.42,
+        minutes: 39.7
       }
     }
   },
   timber1500f: {
     stock: {
       '4s2200': {
-        topSpeed: 21.95,
-        minutes: 17.9
+        topSpeed: 25.18,
+        minutes: 25.4
       },
       '4s3200': {
-        topSpeed: 22.12,
-        minutes: 25.1
+        topSpeed: 25.39,
+        minutes: 35.4
       },
       '4s4000': {
-        topSpeed: 22.18,
-        minutes: 30.3
+        topSpeed: 25.47,
+        minutes: 42.6
       },
       '4s5000': {
-        topSpeed: 22.21,
-        minutes: 34.9
+        topSpeed: 25.52,
+        minutes: 49.2
       }
     },
     '3s': {
       '3s2200': {
-        topSpeed: 16.4,
-        minutes: 14.5
+        topSpeed: 18.9,
+        minutes: 20.6
       },
       '3s3200': {
-        topSpeed: 16.45,
-        minutes: 20.1
+        topSpeed: 18.96,
+        minutes: 28.5
       }
     }
   },
   bombshell1118: {
     stock: {
       '8.4cc': {
-        topSpeed: 9.61,
-        minutes: 5.4
+        topSpeed: 11.84,
+        minutes: 6.4
       },
       '5.1cc': {
-        topSpeed: 9.62,
-        minutes: 3.3
+        topSpeed: 11.84,
+        minutes: 3.9
       }
     },
     'cox-rc': {
       '8.4cc': {
-        topSpeed: 13.78,
-        minutes: 6.3
+        topSpeed: 16.67,
+        minutes: 7.4
       },
       '5.1cc': {
-        topSpeed: 13.79,
-        minutes: 3.8
+        topSpeed: 16.68,
+        minutes: 4.4
       }
     },
     electric: {
       '3s850': {
-        topSpeed: 16.6,
-        minutes: 30.1
+        topSpeed: 20.37,
+        minutes: 41.4
       }
     }
   },
   kadet1981: {
     stock: {
       '355cc': {
-        topSpeed: 18.12,
-        minutes: 32.2
+        topSpeed: 23.03,
+        minutes: 39.6
       },
       '237cc': {
-        topSpeed: 18.14,
-        minutes: 21.9
+        topSpeed: 23.04,
+        minutes: 26.9
       }
     },
     fsa56: {
       '355cc': {
-        topSpeed: 18.73,
-        minutes: 33.3
+        topSpeed: 23.78,
+        minutes: 40.9
       },
       '237cc': {
-        topSpeed: 18.75,
-        minutes: 22.6
+        topSpeed: 23.79,
+        minutes: 27.9
       }
     },
     fs64: {
       '355cc': {
-        topSpeed: 19.26,
-        minutes: 30
+        topSpeed: 24.56,
+        minutes: 37.2
       },
       '237cc': {
-        topSpeed: 19.27,
-        minutes: 20.4
+        topSpeed: 24.57,
+        minutes: 25.3
       }
     },
     electric: {
       '5s5000': {
-        topSpeed: 21.89,
-        minutes: 66.4
+        topSpeed: 27.35,
+        minutes: 99
       }
     }
   },
   uglystik1567: {
     stock: {
       '355cc': {
-        topSpeed: 22.09,
-        minutes: 16.3
+        topSpeed: 28.28,
+        minutes: 20.6
       }
     },
     fx46: {
       '355cc': {
-        topSpeed: 22.31,
-        minutes: 22.6
+        topSpeed: 28.22,
+        minutes: 28.3
       }
     }
   },
   tigermoth1803: {
     stock: {
       '355cc': {
-        topSpeed: 18.57,
-        minutes: 16.3
+        topSpeed: 23.13,
+        minutes: 19.9
       }
     },
     fs91: {
       '355cc': {
-        topSpeed: 17.18,
-        minutes: 13.9
+        topSpeed: 21.7,
+        minutes: 17.2
       }
     }
   },
   extra3d1308: {
     stock: {
       '4s2200': {
-        topSpeed: 23.75,
-        minutes: 14.7
+        topSpeed: 29.34,
+        minutes: 22.7
       },
       '4s3200': {
-        topSpeed: 23.93,
-        minutes: 20.3
+        topSpeed: 29.68,
+        minutes: 31.3
       }
     },
     '3s': {
       '3s2200': {
-        topSpeed: 17.91,
-        minutes: 12.2
+        topSpeed: 22.28,
+        minutes: 18.9
       },
       '3s3200': {
-        topSpeed: 17.97,
-        minutes: 16.6
+        topSpeed: 22.38,
+        minutes: 25.6
       }
     }
   },
   nighttimber1200: {
     stock: {
       '4s2200': {
-        topSpeed: 16.87,
-        minutes: 15.5
+        topSpeed: 23.18,
+        minutes: 26.8
       },
       '4s3200': {
-        topSpeed: 16.9,
-        minutes: 21.6
+        topSpeed: 23.28,
+        minutes: 37.2
       }
     },
     '3s': {
       '3s2200': {
-        topSpeed: 12.4,
-        minutes: null
+        topSpeed: 17.24,
+        minutes: 22.1
       },
       '3s3200': {
-        topSpeed: 12.39,
-        minutes: null
+        topSpeed: 17.25,
+        minutes: 30.1
       }
     }
   },
   hercules3077: {
     stock: {
       '3s5000x4': {
-        topSpeed: 23.25,
-        minutes: 48.6
+        topSpeed: 28.38,
+        minutes: 67.8
       }
     }
   },
   cap1702: {
     stock: {
       '6s4000': {
-        topSpeed: 32.25,
-        minutes: 21.3
+        topSpeed: 32.28,
+        minutes: 22.7
       },
       '6s4500': {
-        topSpeed: 32.34,
-        minutes: 23.1
+        topSpeed: 32.37,
+        minutes: 24.6
       }
     }
   },
   slick2680: {
     stock: {
       '1006cc': {
-        topSpeed: 42.47,
-        minutes: 23.8
+        topSpeed: 41.66,
+        minutes: 33.2
       }
     }
   },
@@ -463,30 +463,30 @@ export const ESTIMATES = {
   p51d1450: {
     stock: {
       '4s2600': {
-        topSpeed: 19.94,
-        minutes: 12.7
+        topSpeed: 25.45,
+        minutes: 20.2
       }
     },
     kv650: {
       '4s2600': {
-        topSpeed: 23.38,
-        minutes: 13
+        topSpeed: 29.54,
+        minutes: 20.2
       }
     }
   },
   zagi1219: {
     stock: {
       '3s1300': {
-        topSpeed: 28.56,
-        minutes: 48.1
+        topSpeed: 34.93,
+        minutes: 64.4
       },
       '3s1500': {
-        topSpeed: 28.72,
-        minutes: 54.1
+        topSpeed: 35.19,
+        minutes: 72.3
       },
       '3s2200': {
-        topSpeed: 28.98,
-        minutes: 70.5
+        topSpeed: 35.76,
+        minutes: 94.3
       }
     }
   }

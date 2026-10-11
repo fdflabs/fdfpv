@@ -539,11 +539,12 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .cells = 6.0,
   .r_cell = 0.010,
   /* DERIVED, docs/POWER-STAGE1.md: C-Astral publishes no pack, only
-   * 3 h at 16 m/s; 22 Ah on 6S flies that on this plant. That is 488 Wh,
-   * against the 330 Wh the drag estimate needs: this plant's cruise
-   * power is high, which the estimated 45 A full throttle current is the
-   * likeliest cause of. The autopilot, not an ESC, manages the end. */
-  .pack_c = 22000.0 * 3.6,
+   * 3 h at 16 m/s; 11 Ah on 6S flies that on this plant (179.2 min to the
+   * cut at a mean 3.68 A, 82 W, on the 12 x 8's curve and the 20.3 A full
+   * throttle current APC's 12 x 8E gives). That is 244 Wh, against the
+   * 330 Wh the drag estimate's 0.65 prop and 0.82 motor need. The
+   * autopilot, not an ESC, manages the end. */
+  .pack_c = 11000.0 * 3.6,
   .lvc = 0.0,
   .rho = 1.225,
   .prop_r = 0.1524,

@@ -1,13 +1,15 @@
 /*
- * cp-tail-derive.js: where a prop's power goes past its zero thrust,
- * CP_OF_CT_TAIL in src/native/plant_wing.c (docs/FLIGHTMODEL.md "The
- * prop's torque, from the drive"). APC's performance files stop at the
+ * cp-tail-derive.js: where a prop's power goes past its zero thrust, the
+ * method scripts/prop-curves.js wings takes past each file's last row
+ * (docs/FLIGHTMODEL.md "The prop's torque, from the drive" and "The
+ * prop's curves"). APC's performance files stop at the
  * row where the thrust is gone, and there the prop still takes about a
  * fifth of its static power. Over the last three rows Cp over its static
  * value falls straight with Ct over its; extended, Cp is zero where the
  * air turns the prop with nothing driving it, the windmill. For each prop
- * below, at the rpm given, it prints the CP_OF_CT row the plant's power
- * table is (CP_OF_CT is the 11 x 7E's), the slope of the last three rows
+ * below, at the rpm given, it prints Cp over its static value at Ct over
+ * its static value 0, 0.1, ... 1 (the plant's power table before the prop
+ * curves was the 11 x 7E's, CP_OF_CT), the slope of the last three rows
  * and the Ct over its static value the windmill extends to.
  *
  * APC's PER3 files are APC's own computation (its blade element model,
@@ -37,7 +39,7 @@ const APC = 'https://www.apcprop.com/files/PER3_';
 /* apcprop.com refuses a request without a browser's user agent. */
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
-/* CP_OF_CT's own prop first, then the fleet's sizes either side of it. */
+/* The old CP_OF_CT's prop first, then the fleet's sizes either side of it. */
 const PROPS = [
   ['11x7E', 9000], ['8x4E', 12000], ['11x55E', 11000], ['12x6', 9000], ['12x6E', 10000],
   ['12x8E', 9000], ['13x65E', 10000], ['13x8E', 9000],

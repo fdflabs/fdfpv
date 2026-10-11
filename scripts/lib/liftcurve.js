@@ -35,30 +35,38 @@ const smooth = (a, b, x) => {
 };
 
 /*
- * w: { cla, clmax, blend, top, k }, the table's cl_alpha, CL max (flaps'
- * and slats' in), stall_blend, stall_top and stall_k. alpha: the zero lift
- * line's angle, rad. Returns CL, and the blends: sigma (the plate's drag
- * and the stall's moments), past and fall, and the stalled lift clSt and
- * the curve short of it clOld, as the plant's cm_post reads them.
+ * w: { cla, clmax, blend, top, k, claWing, plateCn }, the table's
+ * cl_alpha, CL max (flaps' and slats' in), stall_blend, stall_top, stall_k,
+ * the wing's own slope cl_alpha_wing (the stall angle is CL max over it,
+ * and the tail's share of the slope, cla less it, lifts on past the
+ * wing's stall as the plant's sin cos term), cla where the table gives
+ * none, and the finite wing's broadside normal force plateCnOf below.
+ * alpha: the zero lift line's angle, rad. Returns CL, and the blends:
+ * sigma (the plate's drag and the stall's moments), past and fall, and the
+ * stalled lift clSt and the curve short of it clOld, as the plant's
+ * cm_post reads them.
  */
 export function wingLift(w, alpha, { extra = 0, shift = 0, fre = 1 } = {}) {
-  const aStall = w.clmax / w.cla;
+  if (!(w.plateCn > 0)) throw new Error('liftcurve: plateCn is the plant\'s plate_cn, plateCnOf(span, area)');
+  const claW = w.claWing > 0 ? w.claWing : w.cla;
+  const tail = (w.cla - claW) * Math.sin(alpha) * Math.cos(alpha);
+  const aStall = w.clmax / claW;
   const aw = alpha + shift;
   const aa = Math.abs(aw);
   const sigma = smooth(aStall - w.blend, aStall + w.blend, aa);
   const a0 = aStall - w.blend, a1 = aStall + w.blend;
   let wing = w.clmax;
   if (aa < a0) {
-    wing = w.cla * aa;
+    wing = claW * aa;
   } else if (aa < a1) {
-    wing = w.clmax - w.cla * (a1 - aa) * (a1 - aa) / (4 * w.blend);
+    wing = w.clmax - claW * (a1 - aa) * (a1 - aa) / (4 * w.blend);
   }
-  const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const plate = w.plateCn * Math.sin(alpha) * Math.cos(alpha);
   const peak = (aw < 0 ? -wing : wing) + extra;
   const sHi = smooth(a1, a1 + 2 * w.blend, aa);
   const clOld = (1 - sHi) * peak + sHi * plate;
   if (!(sigma > 0) || !(fre > 0)) {
-    return { CL: clOld, sigma, past: 0, fall: 0, clSt: clOld, clOld };
+    return { CL: clOld + tail, sigma, past: 0, fall: 0, clSt: clOld, clOld };
   }
   const hold = aw < 0 ? w.clmax - extra : w.clmax + extra;
   const past = smooth(aStall, aStall + w.blend, aa);
@@ -67,9 +75,36 @@ export function wingLift(w, alpha, { extra = 0, shift = 0, fre = 1 } = {}) {
   let viterna = 0;
   if (Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05) {
     const st = Math.max(-0.5, Math.min(0.5, s1 - shift));
-    const a2 = (w.k * hold - 2 * Math.sin(st) * Math.cos(st)) * Math.sin(st) / Math.cos(st) ** 2;
+    const a2 = (w.k * hold - w.plateCn * Math.sin(st) * Math.cos(st)) * Math.sin(st) / Math.cos(st) ** 2;
     viterna = a2 * Math.cos(alpha) ** 2 / Math.sin(alpha);
   }
   const clSt = (1 - fall) * (aw < 0 ? -1 : 1) * hold + fall * (plate + viterna);
-  return { CL: clOld + fre * past * (clSt - clOld), sigma, past, fall, clSt, clOld };
+  return { CL: clOld + fre * past * (clSt - clOld) + tail, sigma, past, fall, clSt, clOld };
+}
+
+/*
+ * The finite wing's broadside normal force, plant_wing.c plate_cn: 1.11 +
+ * 0.018 AR (Viterna and Janetzke, NASA TM-82944), not the infinite
+ * plate's 2.0.
+ */
+export function plateCnOf(span, area) {
+  const ar = span * span / area;
+  return 1.11 + 0.018 * Math.min(ar, 50);
+}
+
+/*
+ * The plant's drag at alpha, short of and past the stall blend
+ * (plant_wing.c, no flaps): the linear wing's cd0 + k CL_lin^2 blended into
+ * Viterna's CDmax sin^2 + B2 cos, B2 taking the drag at the stall angle,
+ * cd0 + k CLmax^2 (NASA TM-82944 eqs. 15 and 17). Its B2 term for the
+ * stalled moment's normal force is returned with it.
+ */
+export function wingDrag(w, alpha, { cd0, k, clLin }) {
+  const lc = wingLift(w, alpha);
+  const claW = w.claWing > 0 ? w.claWing : w.cla;
+  const aS = w.clmax / claW;
+  const b2 = (k * w.clmax * w.clmax - w.plateCn * Math.sin(aS) ** 2) / Math.cos(aS);
+  const b2c = Math.cos(alpha) > 0 ? b2 * Math.cos(alpha) : 0;
+  const cdFlat = cd0 + w.plateCn * Math.sin(alpha) ** 2 + b2c;
+  return { CD: (1 - lc.sigma) * (cd0 + k * clLin * clLin) + lc.sigma * cdFlat, b2c, sigma: lc.sigma };
 }
