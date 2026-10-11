@@ -237,7 +237,17 @@ check: {
 
   /* S9: full up held from level cruise, power off and power on. */
   for (const [id, t9, duty] of [['S9a', th.s9_stall_power_off, 0], ['S9b', th.s9_stall_power_on, th.s9_stall_power_on.duty]]) {
-    levelThen(sim, 0.75);
+    /* S9a enters as FAA-H-8083-3C ch. 5, "Full Stalls, Power-Off", sets
+     * it up: "Airspeed in excess of the normal approach speed should not be
+     * carried into a stall entry since it could result in an abnormally
+     * nose-high attitude ... Once in a normal approach, the pilot sets the
+     * power to idle. When the approach attitude and airspeed have
+     * stabilized, the pilot should smoothly raise the airplane's nose":
+     * a stabilised idle descent at the normal approach speed, 1.3 times
+     * the middle of S2's measured stall band, not the cruise, whose speed
+     * the prop curves moved by a fifth and with it the zoom (2026-10-11). */
+    const vApp = 1.3 * (th.s2_stall.min + th.s2_stall.max) / 2;
+    clockMs = fly(sim, { duty: 0, vTarget: vApp, seconds: 25, guard: false, speed0: vApp }).endMs;
     /* S9b, power on, judged on FAA-H-8083-3C ch. 5, "Full Stalls,
      * Power-On" (wingpilot.js faaPowerOnStall, which quotes it): entered
      * slowed with the power set ("the purpose of reducing the airspeed ...
