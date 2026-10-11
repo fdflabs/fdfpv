@@ -54,6 +54,8 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude,
+  loopHold,
+  turnYawLimitDeg,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -241,8 +243,11 @@ check: {
       `${Math.abs(invRoll.rateDegS).toFixed(0)} against ${Math.abs(u6.rateDegS).toFixed(0)} deg/s`, `within ${u8.rollPct} percent`);
   }
 
-  /* U9: a loop. Level at full throttle, then half up stick held with the
-   * ailerons and rudder centred until the flight path has gone once round
+  /* U9: a loop. Level at full throttle, then half up stick held, the
+   * wings and the nose kept in the loop's plane on the ailerons and the
+   * rudder as a pilot keeps them (wingpilot.js loopHold; the prop's
+   * torque and swirl at the loop's speed turn it out of the plane with
+   * them centred, docs/FLIGHTMODEL.md), until the flight path has gone once round
    * in the vertical plane it started in, the derivation's point mass's
    * own end: the path's angle, unwrapped, from the velocity. */
   {
@@ -255,7 +260,8 @@ check: {
     let t = 0;
     let path = Math.atan2(s0[6], s0[4]);
     for (; t < 20000 && turned < 2 * Math.PI; t += RC_STEP_MS) {
-      o = step(sim, [0, t9.stick, 0, 1]);
+      const [rollStick, yawStick] = loopHold(o.s);
+      o = step(sim, [rollStick, t9.stick, yawStick, 1]);
       const now = Math.atan2(o.s[6], o.s[4]);
       turned += wrap(now - path);
       path = now;
@@ -333,6 +339,8 @@ check: {
      * bank; what U11b measures is a wing drop (the roll rate and the
      * aileron it takes), not the hold's offset. */
     let iBank = 0;
+    let vMushSum = 0;
+    let vMushN = 0;
     for (let ms = 0; ms < t11.seconds * 1000; ms += RC_STEP_MS) {
       iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000));
       const roll = duty ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
@@ -345,14 +353,16 @@ check: {
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstHead = Math.max(worstHead, Math.abs(wrap(edgeHeading(o.s) - psi0)) * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
+      if (ms >= t11.seconds * 1000 - 2000) { vMushSum += speed(o.s); vMushN += 1; }
       alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
     }
+    const yawMax = turnYawLimitDeg(t11.maxBankDeg, vMushSum / vMushN);
     const ailMean = ailSum / (t11.seconds * 1000 / RC_STEP_MS);
     const held = duty ? worstP <= t11.maxRollRateDegS && ailMean <= t11.maxAileron : true;
     gate(id, `full up held, ${duty ? 'half throttle, wings held' : 'power off'}: nose drops, no wing drop`,
-      worstBank <= t11.maxBankDeg && minPitch >= t11.minPitchDeg && worstR <= t11.maxYawRateDegS && alphaMax > th.u2_stall.alphaStall && held,
+      worstBank <= t11.maxBankDeg && minPitch >= t11.minPitchDeg && worstR <= yawMax && alphaMax > th.u2_stall.alphaStall && held,
       `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, alpha up to ${(alphaMax * DEG).toFixed(1)}${duty ? `, ailerons ${ailMean.toFixed(2)} of the stick` : ''}, ${speed(o.s).toFixed(2)} m/s at the end`,
-      `stalled, bank ${t11.maxBankDeg}, pitch over ${t11.minPitchDeg}, yaw ${t11.maxYawRateDegS} deg/s${duty ? `, roll under ${t11.maxRollRateDegS} deg/s, ailerons under ${t11.maxAileron}` : ''}`);
+      `stalled, bank ${t11.maxBankDeg}, pitch over ${t11.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s${duty ? `, roll under ${t11.maxRollRateDegS} deg/s, ailerons under ${t11.maxAileron}` : ''}`);
   }
 
   const u12 = propTorque(sim);

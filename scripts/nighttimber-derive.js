@@ -306,7 +306,11 @@ const pb2v = Clda * throwA / -Clp;
 const rollAt = (V) => pb2v * 2 * V / b;
 
 /* THE 3D REGIME, as the Extra's derivation takes it. */
-const hoverDuty = Math.sqrt(W / Ts);
+/* The prop's speed at the hover, sqrt(W / Ts) of full, and the duty the
+ * electric motor settles at it on (plant_wing.c prop_spool): n^2 + K_M n
+ * = (K_M + 1) d, K_M = 0.85 / 0.15. */
+const hoverN = Math.sqrt(W / Ts);
+const hoverDuty = (hoverN * hoverN + (0.85 / 0.15) * hoverN) / (0.85 / 0.15 + 1);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 

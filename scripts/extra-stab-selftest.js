@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold } from '../tests/lib/wingpilot.js';
+import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -358,27 +358,53 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
   for (const feet of [false, true]) {
     onGround(mode);
     roll(() => [0, 0, 0, 0], 1);
-    const run = roll(() => [0, 0, feet ? rudderHold(sim.readState().state) : 0, 1], 8, { untilAirborneMs: 2000 });
+    let rudPeak = 0, rudSum = 0, rudN = 0, turned = 0, lastH = heading(sim.readState().state);
+    const run = roll((ms) => {
+      if (!feet) {
+        /* The heading's change, unwrapped: a ground loop goes past 180. */
+        const h = heading(sim.readState().state);
+        turned += Math.atan2(Math.sin(h - lastH), Math.cos(h - lastH));
+        lastH = h;
+        return [0, 0, 0, 1];
+      }
+      const st = takeoffRoll(sim.readState().state, ms, { ailerons: true });
+      rudPeak = Math.max(rudPeak, Math.abs(st[2])); rudSum += st[2]; rudN += 1;
+      return st;
+    }, 8, { untilAirborneMs: 2000 });
     const lof = run.liftoff;
-    check(`${name}, full throttle, ${feet ? 'the heading held on the rudder' : 'the sticks centred'}: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
-    if (!lof) continue;
     if (!feet) {
-      check('it swings left: heading left of the runway at liftoff', lof.heading * DEG > 0, `heading ${deg(lof.heading)} deg`);
+      /* Sticks centred the left turning tendency swings it left (FAA-H-8083-3C
+       * ch. 6); whether it then flies off or ground loops is the swing's
+       * size, which a pilot never leaves to it. */
+      const h = turned;
+      check(`${name}, full throttle, the sticks centred: it swings left off the line`, h * DEG > 0, `turned ${deg(h)} deg left${lof ? `, off at ${lof.x.toFixed(1)} m` : ', a ground loop'}`);
       continue;
     }
+    check(`${name}, full throttle, the handbook's take off: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
+    if (!lof) continue;
+    check('with the rudder short of full: the line is held with authority to spare', rudPeak < 1, `peak ${rudPeak.toFixed(2)}, mean ${(rudSum / rudN).toFixed(2)} right`);
     check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
     check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
   }
 }
 
-/* Taxiing on the Cub's taxi thrust, 1.65 N: 0.21 of the Extra's
- * throttle, where the Cub's check takes 0.35 of its own. */
+/* Taxiing on the Cub's taxi thrust, 1.65 N: the prop at sqrt(1.65 /
+ * 37.86), 0.209 of full, which the electric motor's law (plant_wing.c
+ * prop_spool) turns at a duty of (0.209^2 + 5.667 0.209) / 6.667, 0.184,
+ * where the Cub's check takes 0.35 of its own. The heading's change is
+ * summed step by step: past half a circle the end points wrap. */
 for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
-  roll(() => [0, 0, 0, 0.21], 2);
-  const h0 = heading(sim.readState().state);
-  const taxi = roll(() => [0, 0, 1, 0.21], 4);
-  const turned = (heading(taxi.s) - h0) * DEG;
+  roll(() => [0, 0, 0, 0.184], 2);
+  let last = heading(sim.readState().state);
+  let turnedRad = 0;
+  roll(() => {
+    const h = heading(sim.readState().state);
+    turnedRad += Math.atan2(Math.sin(h - last), Math.cos(h - last));
+    last = h;
+    return [0, 0, 1, 0.184];
+  }, 4);
+  const turned = turnedRad * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);
 }
 

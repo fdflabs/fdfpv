@@ -191,13 +191,13 @@
     "estimates": {
       "stock": {
         "4s2600": {
-          "topSpeed": 19.9,
+          "topSpeed": 19.94,
           "minutes": 12.7
         }
       },
       "kv650": {
         "4s2600": {
-          "topSpeed": 23.3,
+          "topSpeed": 23.38,
           "minutes": 13
         }
       }

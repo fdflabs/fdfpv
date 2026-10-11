@@ -36,6 +36,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { planeTable } from './lib/wash.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -224,9 +225,10 @@ check: {
   }
 
   /*
-   * P19: the owner's stall, a slow pull. Level at 15.6 m/s with the gear
-   * up, the throttle closed and the elevator run linearly to full over 8
-   * s, ailerons and rudder centred. The roll off is timed from its onset,
+   * P19: the owner's stall, a slow pull, from the XP-51's entry: a power
+   * off glide settled at 15.6 m/s with the gear up, the prop windmilling,
+   * then the controls fixed, the elevator run linearly from the glide's to
+   * full over 8 s, ailerons and rudder centred. The roll off is timed from its onset,
    * the first moment the helix angle pb/2V passes 0.02, a quarter of the
    * reference's peak; in the second after it, the first roll's peak
    * pb/2V and the bank it takes. The reference is the XP-51's clean wing
@@ -235,15 +237,45 @@ check: {
    * deg of bank in the time its first 1.76 s is at the kit's span and
    * speed (b/V), both read off the scan and banded by half again either
    * way. docs/P51-STAGE1.md.
+   *
+   * A full scale stall carries the airframe's aero by b/V, not a model's
+   * gyroscope: the closed throttle's free prop windmills, and its J omega q
+   * in that time unit is two to three orders of magnitude larger on the
+   * 1.45 m model than on the 11 m aircraft (docs/FLIGHTMODEL.md "The
+   * prop's torque, from the drive"). So the XP-51's band is held by the
+   * aero part, the same pull with the prop's gyroscope taken out
+   * (sim_wing_set_gyro, a measurement switch); P19g holds the gyroscope's
+   * own term to J omega q at the windmilling prop, from the table's J and
+   * the rotor's measured speed; and the whole pull, gyroscope in, must
+   * still drop a wing at least as the XP-51 did at its band's floor.
    */
-  {
+  const pull = (gyro) => {
     const t19 = th.p19_slow_pull;
     clockMs = flyUp(sim, { duty: 0.8, vTarget: t19.entry, seconds: 30, guard: false, speed0: t19.entry, start: STILL_AIR }).endMs;
+    /* The XP-51's was a gliding stall: the throttle closed and the glide
+     * settled at the entry speed on the elevator, the wings held level, so
+     * the prop windmills (fly()'s speed and wings laws, 8 s). Then the
+     * controls fixed: the ailerons and rudder let go and the elevator run
+     * from the glide's to full over the ramp. */
+    let trimG = attitude(sim.readState().state).pitch;
+    let lastPitchStick = 0;
+    for (let ms = 0; ms < 8000; ms += RC_STEP_MS) {
+      const g = sim.readState().state;
+      const a = attitude(g);
+      const dv = speed(g) - t19.entry;
+      trimG = Math.max(-0.4, Math.min(0.4, trimG + 0.00002 * dv));
+      const pitchT = Math.max(-0.4, Math.min(0.3, 0.04 * dv + trimG));
+      lastPitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - a.pitch) + 0.25 * g[12]));
+      step(sim, [Math.max(-1, Math.min(1, -1.2 * a.bank - 0.12 * g[11])), lastPitchStick, 0, 0]);
+    }
+    const e0 = lastPitchStick;
+    must(sim.e.sim_wing_set_gyro(gyro), 'sim_wing_set_gyro');
     const rows = [];
     for (let ms = 0; ms < 11000; ms += RC_STEP_MS) {
-      const o = step(sim, [0, Math.min(1, ms / (t19.rampS * 1000)), 0, 0]);
+      const o = step(sim, [0, Math.min(1, e0 + (1 - e0) * ms / (t19.rampS * 1000)), 0, 0]);
       rows.push({ ms, bank: fullBank(o.s) * DEG, p: o.s[11], v: speed(o.s) });
     }
+    must(sim.e.sim_wing_set_gyro(1), 'sim_wing_set_gyro');
     const helix = (x) => x.p * 1.450 / (2 * x.v);
     const on = rows.find((x) => Math.abs(helix(x)) > t19.onsetPb2v);
     let peak = 0;
@@ -255,9 +287,37 @@ check: {
         bankMax = Math.max(bankMax, Math.abs(x.bank - on.bank));
       }
     }
-    gate('P19', 'slow pull to full up over 8 s: the wing drops sharply', on !== undefined && peak >= t19.min && peak <= t19.max && bankMax >= t19.bankMin && bankMax <= t19.bankMax,
-      on === undefined ? 'no roll off' : `onset ${(on.ms / 1000).toFixed(2)} s at ${on.v.toFixed(2)} m/s, ${on.p < 0 ? 'left' : 'right'} wing; first 1 s: peak pb/2V ${peak.toFixed(4)} (${(peak * 2 * on.v / 1.45 * DEG).toFixed(0)} deg/s), bank ${bankMax.toFixed(1)} deg`,
-      `pb/2V ${band(t19)}, bank ${t19.bankMin} to ${t19.bankMax} deg (XP-51: ${t19.reference}, ${t19.bankRef})`);
+    const said = on === undefined ? 'no roll off' : `onset ${(on.ms / 1000).toFixed(2)} s at ${on.v.toFixed(2)} m/s, ${on.p < 0 ? 'left' : 'right'} wing; first 1 s: peak pb/2V ${peak.toFixed(4)} (${(peak * 2 * on.v / 1.45 * DEG).toFixed(0)} deg/s), bank ${bankMax.toFixed(1)} deg`;
+    return { on, peak, bankMax, said };
+  };
+  {
+    const t19 = th.p19_slow_pull;
+    const aero = pull(0);
+    gate('P19', 'slow pull to full up over 8 s, the aero part: the wing drops sharply', aero.on !== undefined && aero.peak >= t19.min && aero.peak <= t19.max && aero.bankMax >= t19.bankMin && aero.bankMax <= t19.bankMax,
+      aero.said, `pb/2V ${band(t19)}, bank ${t19.bankMin} to ${t19.bankMax} deg (XP-51: ${t19.reference}, ${t19.bankRef})`);
+    const whole = pull(1);
+    gate('P19w', 'the same pull, the windmilling prop\'s gyroscope in: still a sharp drop', whole.on !== undefined && whole.peak >= t19.min && whole.bankMax >= t19.bankMin,
+      whole.said, `pb/2V over ${t19.min}, bank over ${t19.bankMin} deg (the XP-51's floor; no model scale stall gives a ceiling)`);
+    /* The gyroscope's own term at the windmilling prop: the glide, then
+     * the same step with a pitch rate of +-0.5 rad/s set; the yaw moment
+     * moves by J omega q and nothing else in the step reads q in yaw. */
+    clockMs = flyUp(sim, { duty: 0.8, vTarget: t19.entry, seconds: 30, guard: false, speed0: t19.entry, start: STILL_AIR }).endMs;
+    for (let ms = 0; ms < 3000; ms += RC_STEP_MS) step(sim, [0, 0, 0, 0]);
+    const s0 = sim.readState().state;
+    const yawAt = (q) => {
+      must(sim.e.sim_set_velocity(s0[4], s0[5], s0[6], 0, q, 0), 'sim_set_velocity');
+      must(sim.input(clockMs / 1000, 0, 0, 0, 0), 'sim_input');
+      must(sim.step(1), 'sim_step');
+      return { mz: wingDebug(sim)[14], rpm: sim.readState().state[14] };
+    };
+    const up = yawAt(0.5);
+    const dn = yawAt(-0.5);
+    const omega = 0.5 * (up.rpm + dn.rpm) * 2 * Math.PI / 60;
+    const measured = (up.mz - dn.mz) / 1.0;
+    const jProp = planeTable('FW_P51D1450').fw.j_prop;
+    const expect = jProp * omega;
+    gate('P19g', 'the windmilling prop\'s gyroscope is J omega q', omega > 0 && Math.abs(measured - expect) <= 0.01 * expect,
+      `${measured.toFixed(5)} N m per rad/s at ${(omega * 60 / (2 * Math.PI)).toFixed(0)} rpm`, `J omega ${expect.toFixed(5)}, within 1 percent (J ${jProp}, the table's)`);
   }
 
   /* P9: the phugoid, level cruise at 75 percent, gear up, a second of a
@@ -474,9 +534,8 @@ check: {
 
   /* P18: the approach, full flap and the gear down, flown at 1.3 Vs with
    * full flap on the elevator and the throttle, the wings on the
-   * ailerons, a flare from 1.5 m and the throttle closed, the stick
-   * brought back on the wheels into three points, the heading on the
-   * rudder. */
+   * ailerons, then the handbook's three point landing (below), the
+   * heading on the rudder. */
   {
     const t18 = th.p18_landing;
     onStrip(2);
@@ -488,33 +547,49 @@ check: {
     let o = { s: sim.readState().state, loaded: false, loads: [0, 0, 0, 0] };
     let iPitch = 0;
     let iThr = 0;
+    let tailOn = null;
+    let held = 0;
     for (let ms = 0; ms < 25000; ms += RC_STEP_MS) {
       const { pitch, bank } = attitude(o.s);
       const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * o.s[11]));
       const v = speed(o.s);
       let pitchStick = 0;
       let thr = 0;
-      if (touched === null) {
-        const flare = o.s[3] < 1.5;
+      /* The handbook's three point landing (FAA-H-8083-3C ch. 14, "Three-
+       * Point Landing", https://www.faa.gov/sites/faa.gov/files/regulations_policies/handbooks_manuals/aviation/airplane_handbook/15_afh_ch14.pdf):
+       * the round out, then "a gentle increase in AOA to maintain flight
+       * while slowing", the goal "a much steeper fuselage angle ... one
+       * that touches the tailwheels at the same time as the main wheels",
+       * the throttle closed; a main wheel first, "the tail naturally
+       * drops", is a skip "easily managed by re-flaring", so the attitude
+       * is held until the tailwheel is down; and "once the tailwheel makes
+       * contact, the elevator control should be eased fully back". */
+      const flare = touched !== null || o.s[3] < 1.5;
+      if (!flare) {
         /* On the approach: speed on the elevator, a 4 deg glide path on
-         * the throttle. In the flare: the nose raised, the power off. */
-        const target = flare ? Math.min(12, 2 + 10 * (1.5 - o.s[3]) / 1.2) / DEG : Math.max(-6 / DEG, Math.min(10 / DEG, (1 + 5 * (v - t18.approach)) / DEG));
+         * the throttle. */
+        const target = Math.max(-6 / DEG, Math.min(10 / DEG, (1 + 5 * (v - t18.approach)) / DEG));
         iPitch = Math.max(-0.6, Math.min(0.6, iPitch + 2.0 * (target - pitch) * RC_STEP_MS / 1000));
         pitchStick = Math.max(-1, Math.min(1, 2.5 * (target - pitch) + 0.25 * o.s[12] + iPitch));
         iThr = Math.max(0, Math.min(0.8, iThr + 0.2 * (-0.76 - o.s[6]) * RC_STEP_MS / 1000));
-        thr = flare ? 0 : Math.max(0, Math.min(1, iThr + 0.3 * (-0.76 - o.s[6])));
+        thr = Math.max(0, Math.min(1, iThr + 0.3 * (-0.76 - o.s[6])));
+        held = pitchStick;
+      } else if (tailOn === null) {
+        /* Toward the three point attitude, P13's rest, as the height
+         * comes off. */
+        const target = Math.min(rest.pitch / DEG, (2 + (rest.pitch - 2) * Math.max(0, 1.5 - o.s[3]) / 1.2) / DEG);
+        iPitch = Math.max(-0.6, Math.min(0.6, iPitch + 2.0 * (target - pitch) * RC_STEP_MS / 1000));
+        pitchStick = Math.max(-1, Math.min(1, 2.5 * (target - pitch) + 0.25 * o.s[12] + iPitch));
+        held = pitchStick;
       } else {
-        /* Brought back over a second and a half, not snatched: on the
-         * wheels at 9 m/s a snatched full up pitches the tail into the
-         * grass. With the slipstream the elevator loses the wash's share
-         * as the throttle closes for the flare, so the flare is shallower
-         * and the touch faster than before it (docs/FLIGHTMODEL.md). */
-        pitchStick = Math.min(1, (ms - touched.ms) / 1500);
+        /* Eased fully back over half a second, and held. */
+        pitchStick = Math.min(1, held + (1 - held) * (ms - tailOn) / 500);
       }
       /* The runway's heading on the rudder: under power the swirl on the
        * fin yaws the approach left (docs/FLIGHTMODEL.md). */
       o = step(sim, [roll, pitchStick, rudderHold(o.s), thr]);
       if (o.loaded && touched === null) touched = { v, vg: Math.hypot(o.s[4], o.s[5]), vz: o.s[6], x: o.s[1], ms };
+      if (touched !== null && tailOn === null && o.loads[2] > 0) tailOn = ms;
       if (touched !== null) hull = Math.max(hull, o.hull + (o.loads[3] > 0 ? 1 : 0));
     }
     const land = { pitch: attitude(o.s).pitch * DEG, v: Math.hypot(o.s[4], o.s[5]), roll: touched ? o.s[1] - touched.x : 0 };

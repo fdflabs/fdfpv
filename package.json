@@ -372,6 +372,7 @@
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "hover:probe": "node scripts/hover-probe.js",
     "spool:derive": "node scripts/spool-derive.js",
+    "cp:tail": "node scripts/cp-tail-derive.js",
     "da120:derive": "node scripts/da120-derive.js",
     "harrier:flap": "node scripts/harrier-flap-probe.js",
     "flightmodel:probe": "node scripts/flightmodel-probe.js",
