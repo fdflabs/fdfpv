@@ -265,14 +265,14 @@ jobs:
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
-      # Flight Club's pilot stats read off the screen in en and es, a sync
-      # moving them, the empty state, and the phone layouts
-      # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
-      - run: npm run pilot:stats
       # The trick callouts on the flight screen, en and es, desktop and
       # phone, clear of the attitude cues (scripts/callouts-check.js,
       # docs/TRICKS-CATALOG.md).
       - run: npm run callouts:check -- --out=/tmp/callouts
+      # Flight Club's pilot stats read off the screen in en and es, a sync
+      # moving them, the empty state, and the phone layouts
+      # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
+      - run: npm run pilot:stats
 
   shard-3:
     runs-on: ubuntu-latest
