@@ -35,7 +35,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Stage the site
         run: |
           scripts/stage-site.sh /tmp/site
@@ -44,7 +44,7 @@ jobs:
           # is published so the served tree says where it lives, and so a
           # move back to branch publishing would keep the domain.
           grep -qx paraguayandronecombatsimulator.com /tmp/site/CNAME
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
       - name: Stamp the version
@@ -53,8 +53,8 @@ jobs:
       # Pages sends no header a site chooses, so it is a meta tag (scripts/csp.js).
       - name: Write the Content-Security-Policy
         run: node scripts/csp.js /tmp/site
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: /tmp/site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
