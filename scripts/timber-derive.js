@@ -309,6 +309,7 @@ const rows = [
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['27 percent surface: tau, cm per rad', `${f(tauTE)} ${f(cmTE)}`],
   ['flap chord m, half, full deg, S_f/S', `${f(cf, 4)} ${f(flapHalf * DEG, 2)} ${f(flapFull * DEG, 2)} ${f(SfS)}`],
+  ['flap_eta: the flaps over the semispan (the stall strips)', `${f(flapIn / (b / 2), 4)} ${f(flapOut / (b / 2), 4)}`],
   ['flap dCL half, full; fit a, b', `${f(dclHalf)} ${f(dclFull)}; ${f(clDf, 4)} ${f(clDf2, 4)}`],
   ['flap dCLmax full, per rad', `${f(dclmaxFull)} ${f(clmaxDf, 4)}`],
   ['flap dCD half, full; per rad2', `${f(cdHalf, 4)} ${f(cdFull, 4)}; ${f(cdDf2, 4)}`],

@@ -1182,6 +1182,24 @@ stall first and keeps the tips, and the ailerons, flying: the mechanism
 the mix works by. Flaps over their own strips only is a stall model change
 in strip_stall, the 3D lane's code; it is proposed there, not made here.
 
+### Flaps over their strips (2026-10-11)
+
+Made. Each flapped table names its flaps' span, flap_eta, the inner and
+outer edge over the semispan, from its derivation's drawing (Timber 0.067
+to 0.430, scripts/timber-derive.js; P-51 0.079 to 0.579,
+scripts/p51-derive.js; Night Timber 0.156 to 0.532,
+scripts/nighttimber-derive.js). The wing's flap lift and CLmax increments
+(cl_df, clmax_df) stay the whole wing's, area weighted, as Raymer's S_f/S
+builds them (eq. 12.21); the stall strips now take them only where the
+flaps are, scaled up by the flapped share of the area, so the strip sum is
+the wing's. A strip under the flap gets its section's increment, more lift
+than CLmax added, and reaches its stall sooner, as a plain flap lowers the
+stall angle (DATCOM; Raymer sec. 12.6); a strip outside it stalls where it
+did with the flaps up. Flaps up nothing changes. Moments only: the wing's
+force is the centreline's, unchanged. `npm run flapstrip:check` (CI)
+gates it per strip through `sim_wing_strips`; with the flaps spread over
+the whole span again it fails (the P-51's tip stalls 1 deg sooner).
+
 ## The Extra's stall from a measured section
 
 The owner found every firm pull stalling the Extra. Its stall was an

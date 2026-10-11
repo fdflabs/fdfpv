@@ -276,6 +276,13 @@ void plant_wing_slip(double out[6]) {
   }
 }
 
+void plant_wing_strips(double out[8]) {
+  for (int i = 0; i < 4; i += 1) {
+    out[i] = g_sep[i][0][0];
+    out[4 + i] = g_sep[i][1][0];
+  }
+}
+
 void plant_wing_debug(double out[20]) {
   for (int i = 0; i < 20; i += 1) {
     out[i] = g_debug[i];
@@ -2256,6 +2263,21 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       rmax = rr[i] > rmax ? rr[i] : rmax;
       cyy += fw->strip_c[i] * eta * eta * 0.25;
     }
+    /* The flaps over the strips they span, cov the share of each strip's
+     * span they cover, the whole wing's flap lift and CLmax taken at those
+     * strips over the flapped share of the area, fa, so the area weighted
+     * sum is the wing's (docs/FLIGHTMODEL.md, flaps over their strips). */
+    double cov[4], fa = 0.0, ca = 0.0;
+    for (int i = 0; i < 4; i += 1) {
+      const double lo = 0.25 * i, hi = lo + 0.25;
+      const double in = fw->flap_eta[0] > lo ? fw->flap_eta[0] : lo;
+      const double out = fw->flap_eta[1] < hi ? fw->flap_eta[1] : hi;
+      cov[i] = out > in ? (out - in) / 0.25 : 0.0;
+      fa += cov[i] * fw->strip_c[i];
+      ca += fw->strip_c[i];
+    }
+    fa /= ca;
+    const double dclmax_f = fw->clmax_df * df;
     const double chord_mean = fw->area / fw->span;
     const double kr = -fw->cl_p * fw->area * fw->span * fw->span /
                       (4.0 * wing_cla(fw) * chord_mean * half * half * half * cyy);
@@ -2273,8 +2295,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double y = (0.125 + 0.25 * i) * half;
       const double da = p * y / Vrate;
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
-      const double st0 = kmin > 0.0 ? alpha_strip * (fw->strip_k[i] / rr[i]) / kmin : alpha_strip * rmax / rr[i];
+      /* No flap span given (no flaps), the strips take the wing's. */
+      const double fs = fa > 0.0 ? cov[i] / fa : 1.0;
+      const double as_i = add_term(alpha_strip, (fs - 1.0) * dclmax_f / fw->cl_alpha);
+      const double st0 = kmin > 0.0 ? as_i * (fw->strip_k[i] / rr[i]) / kmin : as_i * rmax / rr[i];
       const double st = add_term(st0, fw->washout * (0.125 + 0.25 * i));
+      const double dcl_i = fs * dcl_f;
       double fl[2], fr[2];
       /* A section along the span stalls its own way: a thin one sharply
        * at its peak and down to less, a thick one rounded over and down
@@ -2295,8 +2321,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
        * elevator is on the tail, and leaves the strips alone. Zero where
        * strip_tau is, so no earlier table reads it. */
       const double se = fw->mix == FW_MIX_ELEVON ? fw->strip_tau[i] * delta_e : 0.0;
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(-da, sa), -se), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_i, top_i, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(da, -sa), -se), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_i, top_i, fr);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(-da, sa), -se), dr, rr[i], cl_lin, dcl_i, st - 0.5 * fw->stall_asym, k_i, top_i, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(da, -sa), -se), -dr, rr[i], cl_lin, dcl_i, st + 0.5 * fw->stall_asym, k_i, top_i, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
@@ -3194,6 +3220,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .clmax_df = 0.7689,
   .cd_df2 = 0.0666,
   .cm_dcl_f = 0.0940,
+  .flap_eta = { 0.0669, 0.4296 }, /* scripts/timber-derive.js */
   .de_df = -0.183531,
   /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
   .slat_dclmax = 0.305,
@@ -3309,6 +3336,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .clmax_df = 0.7689,
   .cd_df2 = 0.0666,
   .cm_dcl_f = 0.0940,
+  .flap_eta = { 0.0669, 0.4296 }, /* scripts/timber-derive.js */
   .de_df = -0.183531,
   /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
   .slat_dclmax = 0.305,
@@ -3744,6 +3772,7 @@ const FixedWingParams FW_P51D1450 = {
   .clmax_df = 0.7370,
   .cd_df2 = 0.1520,
   .cm_dcl_f = 0.1959,
+  .flap_eta = { 0.0788, 0.5793 }, /* scripts/p51-derive.js */
   .de_df = 0.0,
   /* Past the stall: a 15 percent section at 2e5, the NACA 2415's UIUC
    * curve standing for the laminar NAA/NACA 45-100, docs/P51-STAGE1.md. */
@@ -4672,6 +4701,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .clmax_df = 0.4819,
   .cd_df2 = 0.1463,
   .cm_dcl_f = 0.3984,
+  .flap_eta = { 0.1558, 0.5319 }, /* scripts/nighttimber-derive.js */
   .de_df = -0.212333,
   /* No slats: they ship in the box, and the manual's CG is without them. */
   /* Past the stall, the Turbo Timber's section (docs/STALL-STAGE1.md). */

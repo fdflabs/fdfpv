@@ -362,6 +362,7 @@ jobs:
       - run: npm run f16:gates
       - run: npm run f16:stab
       - run: npm run p51:gates
+      - run: npm run flapstrip:check
       - run: npm run p51:stab
       - run: npm run zagi:gates
       - run: npm run zagi:stab

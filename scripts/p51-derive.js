@@ -486,6 +486,7 @@ const rows = [
   ['throws a, e, r deg; flaps half, full deg', `${f(throwA * DEG, 4)} ${f(throwE * DEG, 4)} ${f(throwR * DEG, 4)}; ${f(flapHalf * DEG, 2)} ${f(flapFull * DEG, 2)}`],
   ['   in rad a, e, r, flaps half, full', `${throwA.toPrecision(17)} ${throwE.toPrecision(17)} ${throwR.toPrecision(17)} ${flapHalf.toPrecision(17)} ${flapFull.toPrecision(17)}`],
   ['flaps: S_f/S, dCL half full, fit a b', `${f(SfS)} ${f(dclHalf)} ${f(dclFull)}; ${f(clDf, 4)} ${f(clDf2, 4)}`],
+  ['flap_eta: the flaps over the semispan (the stall strips)', `${f(flapIn / (b / 2), 4)} ${f(flapOut / (b / 2), 4)}`],
   ['   dCLmax full, per rad; CD per rad2; Cm per dCL', `${f(dclmaxFull)} ${f(clmaxDf, 4)}; ${f(cdDf2, 4)}; ${f(cmPerDcl, 4)}`],
   ['motor static: rpm, A, W shaft, thrust N', `${f(staticPoint.rpm, 0)} ${f(staticPoint.I, 1)} ${f(staticPoint.P, 0)} ${f(Ts, 2)}`],
   ['the 650 kV upgrade: static rpm, A, thrust N; rpm NL, Vp', `${f(point650.rpm, 0)} ${f(point650.I, 1)} ${f(point650.T, 2)}; ${f(point650.rpmNL, 0)} ${f(point650.Vp, 3)}`],

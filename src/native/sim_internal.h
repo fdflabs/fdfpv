@@ -718,6 +718,12 @@ typedef struct FixedWingParams {
   double clmax_df;        /* CLmax per rad of flap */
   double cd_df2;          /* drag per rad^2 of flap */
   double cm_dcl_f;        /* pitching moment per unit of flap lift, nose up + */
+  /* Where the flaps are along each half, inner and outer edge over the
+   * semispan. The wing's flap lift (cl_df) and CLmax (clmax_df) are the
+   * whole wing's, area weighted; the stall strips take them where the
+   * flaps are and nowhere else, so a part span flap stalls its own strips
+   * first and leaves the rest flying. Zero on a table without flaps. */
+  double flap_eta[2];
   double de_df;           /* the radio's mix: elevator rad per rad of flap */
   /* The radio's elevator to flap mix, sim_wing_set_tune: flap, as a share
    * of flap_full, per unit of up elevator stick. Zero on every table. */
@@ -1103,6 +1109,7 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
+void plant_wing_strips(double out[8]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any
