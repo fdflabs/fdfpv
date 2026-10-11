@@ -181,6 +181,11 @@ const arV = 1.55 * arVgeo; /* the stabiliser and the fuselage end plate it, Rosk
 const aileronIn = spanAt(1235), aileronOut = yRib, cfA = 0.32;
 /* The prop: Falcon's 28 x 10, 0.3556 m in radius, its disc 0.61 m ahead. */
 const propR = 14 * IN, propX = X(402.5);
+/* The engine's right thrust: the data sheet's "Right thrust: 3 deg" (the
+ * 120cc build guide, 2.5 to 3). The plant turns the thrust line by it
+ * (thrust_yaw): cos 3 deg of the thrust along the axis, sin 3 deg of it
+ * sideways at the disc, prop_x ahead of the CG. */
+const thrustYaw = 3.0 / DEG, cosYaw = Math.cos(thrustYaw), sinYaw = Math.sin(thrustYaw);
 
 /* The throws, the data sheet and the 120cc build guide, in degrees:
  * aileron high 38 up and 37 down (the mean), elevator 3D 45 to 50 (the
@@ -477,10 +482,12 @@ const stickOf = (share) => {
   return 1;
 };
 const T = (V, d) => Math.max(0, Ts * d * d * (1 - Math.max(0, V) / (Vp * d)));
+/* The thrust's share along the body's axis, the line turned thrust_yaw right. */
+const Tx = (V, d) => T(V, d) * cosYaw;
 const Dr = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + kInd * CL * CL); };
 const level = (d) => {
   let lo = 10, hi = 60;
-  for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d) > Dr(mid)) lo = mid; else hi = mid; }
+  for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (Tx(mid, d) > Dr(mid)) lo = mid; else hi = mid; }
   return lo;
 };
 const reOf = (V) => V * c / NU;
@@ -497,12 +504,12 @@ const pb2v = Clda * throwA / -Clp;
 const rollAt = (V) => pb2v * 2 * V / b;
 
 /* THE 3D REGIME, the Extra's arithmetic on this aircraft. */
-const hoverShare = Math.sqrt(W / Ts), hoverDuty = stickOf(hoverShare);
+const hoverShare = Math.sqrt(W / (Ts * cosYaw)), hoverDuty = stickOf(hoverShare);
 /* Hanging at the idle, the wash's dp and with it every surface's authority
  * is the idle's thrust over the hover's. */
 const idleShare = (idle / hoverShare) ** 2;
 let vClimb = 0;
-for (let V = 0; V < 40; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
+for (let V = 0; V < 40; V += 0.001) { if (Tx(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 const bhH = bh / 2;
 function wash(thrust, u) {
   const dp = thrust / (Math.PI * propR * propR);
@@ -532,8 +539,10 @@ const rotK = [
  * 0.26 m, at Allen and Perkins' 1.2 times their eta of 0.7, as the
  * Extra's. */
 const sideCda = (fusL * 0.26) * 1.2 * 0.7;
-const hov = wash(W, 0);
-const Qprop = torqueArm * W;
+/* Hanging, the thrust's share along the axis holds the weight. */
+const hoverThrust = W / cosYaw;
+const hov = wash(hoverThrust, 0);
+const Qprop = torqueArm * hoverThrust;
 const SWIRL_KEEP = 0.74; /* the plant's, Selig 2010 (docs/FLIGHTMODEL.md) */
 const swirlFinPerK = (Qp) => S * b * rho * hov.vi * hov.fv * slipClb * -(Qp * (Math.min(hov.rw, hvUpT) - Math.min(hov.rw, hvDnT)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
 /* The fin's roll in the swirl is its side force at its height; a pilot
@@ -541,9 +550,14 @@ const swirlFinPerK = (Qp) => S * b * rho * hov.vi * hov.fv * slipClb * -(Qp * (M
  * side force acts on the same fin at the same height, so with the yaw held
  * the fin's net side force, and its roll, go to nothing: the root's share
  * is what is left against the torque (the Extra's E8 took the fin's swirl
- * roll with the rudder free, docs/SLICK-STAGE1.md). */
+ * roll with the rudder free, docs/SLICK-STAGE1.md). Less one thing: the
+ * right thrust's yaw, prop_x T sin(thrust_yaw), is held on the fin too, so
+ * the fin keeps that over l_v of side force, pushing the tail right at its
+ * height z_v, a roll to the right against the torque. */
 const finSwirlRoll = SWIRL_KEEP * swirlFinPerK(Qprop);
-const Qhover = Qprop - (1 - SWIRL_KEEP) * Qprop;
+const thrustYawHover = propX * hoverThrust * sinYaw;
+const finHoldRoll = thrustYawHover * zvCG / lv;
+const Qhover = Qprop - (1 - SWIRL_KEEP) * Qprop - finHoldRoll;
 const torqueRoll = Math.sqrt(Math.max(0, Qhover) / rotK[0]);
 const aileronHover = hov.dp * hov.fa * S * b * Clda * throwA;
 const aileronRollNet = aileronHover > Qhover ? Math.sqrt((aileronHover - Qhover) / rotK[0]) : -Math.sqrt((Qhover - aileronHover) / rotK[0]);
@@ -653,8 +667,8 @@ function harrier(alphaDeg) {
       const u = Vt * ca, q = 0.5 * rho * Vt * Vt;
       const { cl, cd } = wingLift(a, de, Vt);
       let tr = q * S * cd / ca;
-      for (let k = 0; k < 40; k += 1) tr = (q * S * cd + jet(tr, u) * Vt * sa * sa) / ca;
-      const fj = jet(tr, u) * Vt * sa;
+      for (let k = 0; k < 40; k += 1) tr = (q * S * cd + jet(tr / cosYaw, u) * Vt * sa * sa) / ca;
+      const fj = jet(tr / cosYaw, u) * Vt * sa;
       return { res: q * S * cl + tr * sa + fj * ca - W, tr, fj };
     };
     let lo = 3, hi = 30;
@@ -664,10 +678,10 @@ function harrier(alphaDeg) {
     thrust = bal.tr;
     const u = V * ca;
     let sLo = 0, sHi = 1;
-    for (let i = 0; i < 60; i += 1) { const mid = (sLo + sHi) / 2; if (T(u, mid) < thrust) sLo = mid; else sHi = mid; }
+    for (let i = 0; i < 60; i += 1) { const mid = (sLo + sHi) / 2; if (Tx(u, mid) < thrust) sLo = mid; else sHi = mid; }
     share = sLo;
     const q = 0.5 * rho * V * V;
-    const w = wash(thrust, u);
+    const w = wash(thrust / cosYaw, u);
     const xa = V * Math.sin(a - slipA0);
     const vw = u + 2 * w.vi;
     const cm = (d) => {
@@ -679,7 +693,7 @@ function harrier(alphaDeg) {
       const post = wl.sigma * (((1 - wl.past) * (hCG - 0.25) - wl.past * armCp) * cnSt - (hCG - 0.25) * clLinM);
       const rh = plateRatio(at * xa / vw + ae);
       const slip = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.fh * rh * Cmde * d) / q;
-      return Cm0 + stiff + wl.past * post + slip - thrustZ * thrust / (q * S * c) + propX * bal.fj / (q * S * c);
+      return Cm0 + stiff + wl.past * post + slip - thrustZ * thrust / cosYaw / (q * S * c) + propX * bal.fj / (q * S * c);
     };
     let dLo = -throwE, dHi = throwE;
     for (let i = 0; i < 60; i += 1) { const mid = (dLo + dHi) / 2; if (cm(mid) < 0) dLo = mid; else dHi = mid; }
@@ -687,24 +701,29 @@ function harrier(alphaDeg) {
   }
   return { alphaDeg, V, thrust, duty: stickOf(share), deOfThrow: de / throwE };
 }
+/* Rolled right, as S12 flies it: the right thrust points the line
+ * thrust_yaw down from the body's axis, so the thrust meets the flight path
+ * at the sideslip less thrust_yaw, and its sideways part at prop_x pitches
+ * the nose down with the weathercock's moment, against the rudder. */
 function knifeEdge(V) {
   const qb = 0.5 * rho * V * V;
   for (let bDeg = 1; bDeg < 60; bDeg += 0.01) {
     const bt = bDeg / DEG, sb = Math.sin(bt), cb = Math.cos(bt);
+    const st = Math.sin(bt - thrustYaw), ct = Math.cos(bt - thrustYaw);
     const u = V * cb;
-    let thrust = qb * S * CD0 / cb;
+    let thrust = qb * S * CD0 / ct;
     let side = 0, dr = 0, w = null;
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
-      const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slipCnb * (V * sb);
+      const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slipCnb * (V * sb) + propX * thrust * sinYaw;
       const nPerDr = qb * S * b * Cndr + w.dp * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
         - (qb + w.dp * w.fv) * S * CYdr * Math.abs(dr);
-      thrust = (qb * S * CD0 + side * sb) / cb;
+      thrust = (qb * S * CD0 + side * sb) / ct;
     }
     if (T(u, 1) < thrust) break;
-    if (side * cb + thrust * sb >= W) {
+    if (side * cb + thrust * st >= W) {
       let lo = 0, hi = 1;
       for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(u, mid) < thrust) lo = mid; else hi = mid; }
       return { V, betaDeg: bDeg, duty: stickOf(lo), drOfThrow: Math.abs(dr) / throwR };
@@ -728,10 +747,10 @@ const mainC = [mainAx[0], mainAx[1] - wheelR], tailC = [tailAx[0], tailAx[1] - t
 const rp = restPitch;
 const mainXw = mainC[0] * Math.cos(rp) - mainC[1] * Math.sin(rp);
 const tailXw = tailC[0] * Math.cos(rp) - tailC[1] * Math.sin(rp);
-/* A petrol engine idles on the strip: its idle thrust, Ts idle^2, along the
- * thrust line, pitches the aircraft nose down about the main wheels and
+/* A petrol engine idles on the strip: its idle thrust, Ts idle^2, its
+ * share along the axis (cos thrust_yaw), pitches the aircraft nose down about the main wheels and
  * takes that much off the tail. */
-const idleThrust = Ts * idle * idle;
+const idleThrust = Ts * idle * idle * cosYaw;
 const thrustHeight = cgHeight0() + thrustZ * Math.cos(restPitch);
 function cgHeight0() { return -(mainC[0] * Math.sin(restPitch) + mainC[1] * Math.cos(restPitch)); }
 const tailShare = (mainXw * W - idleThrust * thrustHeight) / ((mainXw - tailXw) * W);
@@ -762,7 +781,7 @@ function takeoff() {
     const { cl: CL, cd: CD } = wingLift(pDeg / DEG, 0, Math.max(V, 1));
     const q = 0.5 * rho * V * V;
     if (q * S * CL >= W) break;
-    const acc = (T(V, n) - q * S * CD - 0.08 * Math.max(0, W - q * S * CL)) / mTotal;
+    const acc = (Tx(V, n) - q * S * CD - 0.08 * Math.max(0, W - q * S * CL)) / mTotal;
     V += acc * dt; x += V * dt; t += dt;
   }
   return { x, t, V };
@@ -789,7 +808,7 @@ export const TABLE = {
   cm_0: r(Cm0, 4), cm_alpha: r(Cma, 4), cm_q: r(Cmq, 3), cm_de: r(Cmde, 4),
   cn_beta: r(Cnb, 4), cn_r: r(Cnr, 4), cn_dr: r(Cndr, 4),
   throw_a: r(throwA * DEG, 2), throw_e: r(throwE * DEG, 2), throw_r: r(throwR * DEG, 2), expo: expoAE,
-  thrust_static: r(Ts, 2), pitch_speed: r(Vp, 3), rpm_no_load: r(rpmNL, 1), torque_arm: r(torqueArm, 5), thrust_z: r(thrustZ, 4),
+  thrust_static: r(Ts, 2), pitch_speed: r(Vp, 3), rpm_no_load: r(rpmNL, 1), torque_arm: r(torqueArm, 5), thrust_z: r(thrustZ, 4), thrust_yaw: r(thrustYaw * DEG, 2),
   throttle_idle: curveR[0], tank_m3: r(tankM3 * 1e6, 1), flow_full: r(flowFull * 1e6 * 60, 1),
   prop_x: r(propX, 4),
   stall_arm_ac: r(hCG - 0.25, 4), stall_arm_cp: r(armCp, 4), stall_dw: r(stallDw, 4),
@@ -868,6 +887,7 @@ const rows = [
   ['S6 hover stick (rpm share); wash dp, v_i, rw, fh fv fa', `${f(hoverDuty, 4)} (${f(hoverShare, 4)}); ${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
   ['S7 vertical climb speed, full throttle', f(vClimb, 2)],
   ['S8 torque at hover N m, net (the fin\'s swirl roll, rudder free), torque roll deg/s', `${f(Qprop, 3)} ${f(Qhover, 3)} (${f(finSwirlRoll, 3)}) ${f(torqueRoll * DEG, 0)}`],
+  ['S8 right thrust\'s yaw at hover N m, the fin holding it rolls N m', `${f(thrustYawHover, 3)} ${f(finHoldRoll, 3)}`],
   ['S9 full aileron in the wash N m, net roll deg/s', `${f(aileronHover, 3)} ${f(aileronRollNet * DEG, 0)}`],
   ['S10 full elevator hanging, rad/s2; rudder; at the idle, share', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}; ${f(idleShare, 4)}`],
   ['S11 the wing past the stall: CL, CD at 40 deg', `${f(clPlant(40 / DEG).CL, 3)} ${f(clPlant(40 / DEG).CD, 3)}`],
@@ -898,11 +918,11 @@ function bandsJson() {
     s5_roll: { speed: 22.0, duty: 0.6, derived: r(D.e5, 4), ...band(D.e5, 0.75, 1.25, 3), source: `pb/2V at full aileron on the sheet's high rate (38 up, 37 down), Clda throw_a / -Clp, derived ${D.e5.toFixed(4)} (${(D.e5 * 2 * 22 / 2.68 * 180 / Math.PI).toFixed(0)} deg/s at 22 m/s); 25 percent either way, the width the large deflection correction K' carries. EF's 'blistering roll rate'` },
     s6_hover: { derived: r(D.e6, 4), ...band(D.e6, 0.95, 1.05, 3), maxHeightDrift: 0.5, unit: 'throttle', source: `hanging on the prop, the nose held up by the elevator and rudder in the slipstream, the height by the throttle: the rpm share where the thrust meets the weight, sqrt(W / T_static) 0.6343, as a stick on the DA-120's dyno curve (throttle_rpm), derived ${D.e6.toFixed(4)}; 5 percent either way` },
     s7_vertical: { derived: r(D.e7, 2), ...band(D.e7, 0.9, 1.1, 2), unit: 'm/s', source: `straight up at full throttle, the climb speed where the thrust meets the weight and the zero lift drag, derived ${D.e7.toFixed(2)}; 10 percent either way` },
-    s8_torque_roll: { derived: r(D.e8, 1), min: Math.round(D.e8 * 0.75), max: Math.round(D.e8 * 1.25), unit: 'deg/s', source: `hanging at the hover with the ailerons let go: the prop's torque_arm W less the swirl's roll (SWIRL_KEEP 0.74, Selig 2010, docs/FLIGHTMODEL.md) against the air the turning wing sweeps through (rot_k), steady at sqrt(Q / k), derived ${D.e8.toFixed(0)} deg/s, to the left; 25 percent either way` },
+    s8_torque_roll: { derived: r(D.e8, 1), min: Math.round(D.e8 * 0.75), max: Math.round(D.e8 * 1.25), unit: 'deg/s', source: `hanging at the hover with the ailerons let go: the prop's torque_arm W less the swirl's roll (SWIRL_KEEP 0.74, Selig 2010, docs/FLIGHTMODEL.md) and less the roll of the fin holding the right thrust's yaw (thrust_yaw 3 deg, prop_x T sin 3 deg over l_v at the fin's height z_v), against the air the turning wing sweeps through (rot_k), steady at sqrt(Q / k), derived ${D.e8.toFixed(0)} deg/s, to the left; 25 percent either way` },
     s9_aileron_hover: { derived: r(D.e9, 1), min: Math.round(D.e9 * 0.6), max: Math.round(D.e9 * 1.4), unit: 'deg/s', source: `the same with full right aileron: the ailerons' inboard share in the slipstream beats the net torque, derived ${D.e9.toFixed(0)} deg/s right; 40 percent either way, the difference of two estimates` },
     s10_zero_speed: { pitchDerived: r(D.e10p, 2), yawDerived: r(D.e10y, 2), idleDerived: r(D.idleShare, 4), pitchMin: r(D.e10p * 0.75, 2), pitchMax: r(D.e10p * 1.25, 2), yawMin: r(D.e10y * 0.75, 2), yawMax: r(D.e10y * 1.25, 2), idleMax: r(D.idleShare * 1.5, 3), unit: 'rad/s^2', source: `hanging still, full up elevator and full right rudder from rest: the slipstream's dp on the surfaces' immersed shares, each saturating on a flat plate (hi_alpha), derived ${D.e10p.toFixed(2)} in pitch and ${D.e10y.toFixed(2)} in yaw; 25 percent either way. A petrol engine idles rather than stopping: at its idle the wash's dp, and the authority, is (idle / hover rpm)^2 = ${D.idleShare.toFixed(4)} of the hover's, under 1.5 times that` },
     s11_harrier: { alphaDeg: 40, vDerived: r(D.e11.V, 2), dutyDerived: r(D.e11.duty, 3), vMin: r(D.e11.V * 0.8, 2), vMax: r(D.e11.V * 1.2, 2), dutyMin: r(D.e11.duty * 0.85, 3), dutyMax: r(D.e11.duty * 1.15, 3), maxBankDeg: 10, maxHeightDrift: 2.0, source: `level at a body angle of attack of 40 deg, the throttle holding height: the stalled wing's plate lift and the thrust's vertical share against the weight, derived ${D.e11.V.toFixed(2)} m/s at a stick of ${D.e11.duty.toFixed(3)} with the elevator at ${(D.e11.deOfThrow * 100).toFixed(0)} percent of its throw; the speed 20 percent and the throttle 15 percent either way, the elevator short of full` },
-    s12_knife_edge: { speed: 30.0, betaDerived: r(D.e12.betaDeg, 2), dutyDerived: r(D.e12.duty, 3), betaMin: r(D.e12.betaDeg * 0.75, 2), betaMax: r(D.e12.betaDeg * 1.25, 2), dutyMin: r(D.e12.duty * 0.85, 3), dutyMax: r(Math.min(1, D.e12.duty * 1.15), 3), maxHeightDrift: 3.0, source: `rolled to 90 deg at 30 m/s, height held on the rudder: derived ${D.e12.betaDeg.toFixed(1)} deg of sideslip at a stick of ${D.e12.duty.toFixed(3)} with the rudder at ${(D.e12.drOfThrow * 100).toFixed(0)} percent of its throw; the sideslip 25 percent and the throttle 15 percent either way, the rudder short of full` },
+    s12_knife_edge: { speed: 30.0, betaDerived: r(D.e12.betaDeg, 2), dutyDerived: r(D.e12.duty, 3), betaMin: r(D.e12.betaDeg * 0.75, 2), betaMax: r(D.e12.betaDeg * 1.25, 2), dutyMin: r(D.e12.duty * 0.85, 3), dutyMax: r(Math.min(1, D.e12.duty * 1.15), 3), maxHeightDrift: 3.0, source: `rolled right to 90 deg at 30 m/s, height held on the rudder, the right thrust 3 deg down from the axis and its yaw on the rudder too: derived ${D.e12.betaDeg.toFixed(1)} deg of sideslip at a stick of ${D.e12.duty.toFixed(3)} with the rudder at ${(D.e12.drOfThrow * 100).toFixed(0)} percent of its throw; the sideslip 25 percent and the throttle 15 percent either way, the rudder short of full` },
     s13_rest: { pitchDerived: r(D.restPitch, 2), zDerived: r(D.cgHeight, 4), tailDerived: r(D.tailShare, 4), pitchMin: r(D.restPitch - 0.5, 2), pitchMax: r(D.restPitch + 0.5, 2), zMin: r(D.cgHeight - 0.005, 4), zMax: r(D.cgHeight + 0.005, 4), tailMin: r(D.tailShare - 0.035, 3), tailMax: r(D.tailShare + 0.035, 3), source: `the sheet's side view on its wheels, ${D.restPitch.toFixed(2)} deg nose up, the CG ${D.cgHeight.toFixed(4)} m up, ${(D.tailShare * 100).toFixed(1)} percent of the weight on the tailwheel; half a degree, 5 mm and 3.5 points either way` },
     s14_takeoff: { derived: r(D.e14.x, 2), distMin: r(D.e14.x * 0.6, 2), distMax: r(D.e14.x * 1.6, 2), source: `full throttle from standing, the tail up at 8 m/s and the nose to 8 deg at 15 m/s: liftoff at ${D.e14.V.toFixed(1)} m/s after ${D.e14.x.toFixed(2)} m (slick:derive); 40 percent short and 60 long, the Extra's, since the plant's roll has the gear's springs, the engine's spool and the pilot's hands in it and the derivation has none` },
     s16_cross_host: { source: "the Slick's recorded take off, hover, torque roll and flight, state trace hash, Node against headless Chrome" },
