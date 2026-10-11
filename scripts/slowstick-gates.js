@@ -157,18 +157,22 @@ check: {
     must(sim.e.sim_set_pose(s[1], s[2], s[3], c * Math.cos(h), c * Math.sin(h), z * Math.sin(h), z * Math.cos(h)), 'sim_set_pose');
     const b0 = fullBank(sim.readState().state) * DEG;
     let worst = Math.abs(b0);
-    let at = null;
+    /* The bank at each checkpoint, held to the derived curve. */
+    const at = [];
     let o = null;
-    for (let ms = 0; ms < t6.atS * 1000; ms += RC_STEP_MS) {
+    let sameSide = true;
+    const end = t6.atS[t6.atS.length - 1] * 1000;
+    for (let ms = 0; ms < end; ms += RC_STEP_MS) {
       o = step(sim, [0, 0, 0, t6.duty]);
       const b = fullBank(o.s) * DEG;
       worst = Math.max(worst, Math.abs(b));
-      if (ms + RC_STEP_MS === 2000) at = b;
+      sameSide = sameSide && Math.sign(b) === Math.sign(b0);
+      if (t6.atS.includes((ms + RC_STEP_MS) / 1000)) at.push(Math.abs(b));
     }
-    const b6 = fullBank(o.s) * DEG;
-    gate('S6', 'hands off from a 30 deg bank: levels itself', Math.sign(b6) === Math.sign(b0) && within(Math.abs(b6), t6) && worst <= t6.maxBankDeg,
-      `${b0.toFixed(1)} deg, ${at.toFixed(1)} at 2 s, ${b6.toFixed(1)} at ${t6.atS} s, never past ${worst.toFixed(1)}, ${speed(o.s).toFixed(2)} m/s`,
-      `${band(t6)} deg at ${t6.atS} s, never past ${t6.maxBankDeg}`);
+    const off = at.map((b, i) => b - t6.derived[i]);
+    gate('S6', 'hands off from a 30 deg bank: levels itself as derived', sameSide && off.every((d) => Math.abs(d) <= t6.tolDeg) && worst <= t6.maxBankDeg,
+      `${b0.toFixed(1)} deg, then ${at.map((b, i) => `${b.toFixed(1)} at ${t6.atS[i]} s`).join(', ')}, never past ${worst.toFixed(1)}, ${speed(o.s).toFixed(2)} m/s`,
+      `${t6.derived.join(', ')} deg within ${t6.tolDeg}, the same side, never past ${t6.maxBankDeg}`);
   }
 
   /* S7: full right roll stick from level cruise, which the mix makes full
