@@ -25,7 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createRoute, fromFree, fromRace, nextActions, replayState, ROUTE_MAX } from '../src/game/debrief.js';
+import { createRoute, fromFree, fromRace, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
 
 let failed = 0;
 function check(name, ok, detail = '') {
@@ -121,6 +121,13 @@ const ok = { ok: true, why: null };
   const e = fromFree({ aircraft: '5inch', summary: { total: 0, tricks: 0, unique: 0, crashes: 0, timed: false, durationMs: 0 }, flightMs: 5000, totalS: 5, replay: ok });
   check('free: free flight has no run clock, no tricks', e.result.kind === 'ended' && e.time.runMs === null && e.accuracy.length === 1);
   check('free: not posted, no board line', e.records.length === 1);
+  const p = withPosted(e, { score: 900, improved: true });
+  check('free: the board answer adds its line first', p.records.length === 2 && p.records[0].what === 'debrief.run_best' && p.records[0].before === 900 && p.records[0].improved === true);
+  check('free: and leaves the record it was given alone', e.records.length === 1);
+  check('free: a second answer replaces the line', withPosted(p, { score: 950, improved: false }).records.filter((r) => r.what === 'debrief.run_best').length === 1);
+  check('free: no score in the answer, no change', withPosted(e, { ok: true }) === e);
+  const w = fromFree({ aircraft: 'cub1400', fixedWing: true, summary: { total: 0, tricks: 0, unique: 0, crashes: 0, timed: false, durationMs: 0 }, flightMs: 1, totalS: 1, replay: ok, landed: true });
+  check('free: a plane reports its landing', w.result.landed === true);
 }
 
 /* The replay row and the fallback next list. */
