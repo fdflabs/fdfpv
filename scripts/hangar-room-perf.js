@@ -33,6 +33,9 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
+import { bayCount } from '../src/game/hangarmine.js';
+import { ROOM_BUDGET } from '../src/game/hangarroom.js';
+import { ITEMS } from '../src/game/economy.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
@@ -40,22 +43,9 @@ const out = args.find((a) => !a.startsWith('--')) || join(tmpdir(), 'hangar-room
 const frames = Number((args.find((a) => a.startsWith('--frames=')) || '--frames=300').slice(9));
 mkdirSync(out, { recursive: true });
 
-/*
- * THE BUDGET, per frame, for the largest tier with the aircraft and the
- * pilot in it. The room replaces the world's draw (main.js skips it while
- * the room is open), and the owner's target is 90 fps, 11.1 ms. A Low
- * machine (a Steam Deck class GPU) is several times slower than this
- * box's RTX 3060 Ti, so the GPU column is held to a small share of the
- * frame here. Draw calls are what a weak CPU pays for: the aircraft's
- * parts are most of them. Textures are the room's target and the shadow
- * map, and one more since item 28: the photo wall, one 1536 by 576 atlas
- * (3.5 MB) whatever the number of pictures, made only when there is one.
- */
-const BUDGET = {
-  low: { calls: 40, tris: 150000, textures: 3, gpuMs: 2.0 },
-  medium: { calls: 60, tris: 150000, textures: 4, gpuMs: 3.0 },
-  high: { calls: 70, tris: 150000, textures: 4, gpuMs: 4.0 },
-};
+/* THE BUDGET (src/game/hangarroom.js ROOM_BUDGET), per frame, for the
+ * largest tier with the aircraft and the pilot in it. */
+const BUDGET = ROOM_BUDGET;
 const PRESETS = ['low', 'medium', 'high'];
 const TIERS = ['garage', 'workshop', 'airfield', 'field'];
 
@@ -96,10 +86,10 @@ try {
     rows.push(r);
   }
   console.log('');
-  console.log('preset  tier      build   calls  tris     tex  geo  prog  gpu ms  p95    cpu ms  Mpx');
+  console.log('preset  tier      build   bays chips calls  tris     tex  geo  prog  gpu ms  p95    cpu ms  Mpx');
   for (const r of rows) {
     const f = (v, n) => String(v).padEnd(n);
-    console.log(`${f(r.preset, 8)}${f(r.tier, 10)}${f(r.naive ? 'naive' : 'merged', 8)}${f(r.calls, 7)}${f(r.tris, 9)}${f(r.textures, 5)}${f(r.geometries, 5)}${f(r.programs, 6)}${f(r.gpuMs == null ? 'n/a' : r.gpuMs.toFixed(2), 8)}${f(r.gpuP95 == null ? 'n/a' : r.gpuP95.toFixed(2), 7)}${f(r.cpuMs.toFixed(2), 8)}${(r.pixels / 1e6).toFixed(2)}`);
+    console.log(`${f(r.preset, 8)}${f(r.tier, 10)}${f(r.naive ? 'naive' : 'merged', 8)}${f(r.bays, 5)}${f(r.chart, 6)}${f(r.calls, 7)}${f(r.tris, 9)}${f(r.textures, 5)}${f(r.geometries, 5)}${f(r.programs, 6)}${f(r.gpuMs == null ? 'n/a' : r.gpuMs.toFixed(2), 8)}${f(r.gpuP95 == null ? 'n/a' : r.gpuP95.toFixed(2), 7)}${f(r.cpuMs.toFixed(2), 8)}${(r.pixels / 1e6).toFixed(2)}`);
   }
   console.log('');
   for (const preset of PRESETS) {
@@ -117,6 +107,10 @@ try {
       }
     }
     const r = rows.find((x) => x.preset === preset && x.tier === 'airfield' && !x.naive);
+    /* Measured full: every bay with an aircraft and every chip the shop
+     * sells on the paint chart (docs/HANGAR-ROOM.md, a hangar that's yours). */
+    const chips = ITEMS.filter((it) => it.kind === 'finish' || it.kind === 'decal').length;
+    check(`${preset} airfield: measured with every bay and chip`, r.bays === bayCount('airfield') && r.chart === chips, `${r.bays} of ${bayCount('airfield')} bays, ${r.chart} of ${chips} chips`);
     const n = rows.find((x) => x.preset === preset && x.naive);
     check(`${preset}: merging saves draw calls`, r.calls < n.calls, `merged ${r.calls}, naive ${n.calls}`);
   }

@@ -57,6 +57,51 @@ main room with the pilot second, the war field hangar third.
   Medium and High, 8.4 k to 13.8 k triangles (hangar:perf), 30 calls in
   the real shell.
 
+## A hangar that's yours (walk plan slice 7, 2026-10-11)
+
+Every pilot's room is built from that pilot's own data on their own
+computer, and nothing of it is sent anywhere new: a visit
+(docs/HANGAR-VISITS.md) still carries only its five fields, so another
+pilot's room never shows your builds or your wallet. Owner answer
+2026-10-11: the room grows with the level (6 by 5, 10 by 8, 20 by 14 m),
+the same rooms as the tiers above; the walk plan's door (slice 4) opens
+this same room.
+
+- **The bays** (`bay` in KINDS: the stand's plinth without its ring, no
+  station). None in the garage corner, one in the workshop, three in the
+  airfield hangar, so with the main stand the room holds 1, 2 and 4 of
+  the pilot's aircraft. Which aircraft (src/game/hangarmine.js bayFill):
+  the saved builds (src/ui/builds.js), the last changed first, leaving out
+  the one the seated aircraft wears; then the planes the pilot's level
+  opened, the newest first, each family once and never the seated one;
+  then the starters. A bay with nothing left stays empty.
+- **The paint chart**: a chip for each shop finish and decal the wallet
+  owns (tracks-api/wallet.js; src/game/hangarmine.js paintChart), on the
+  wall behind the shop, two rows of four, its name under it in the
+  pilot's language. A finish chip is a paint maker's card of the finish
+  (a gradient and the finish's highlight, drawn in 2D); a decal chip is
+  the decal's own drawing (src/render/decalart.js). Kits are not on it.
+  Signed out there is no wallet and no chart. The wallet last known
+  hangs at once, and the server's answer replaces it when it comes.
+- **The trophy wall** and **the photo wall** are as before: the pilot's
+  firsts and medals, the pilot's own photos.
+- **When it changes**: decided as the room opens. A build saved, a level
+  reached or an item bought shows the next time the pilot walks in; a
+  stand never appears under the pilot's feet.
+- Not in a visit, the war's field hangar or the room's lineup: those
+  rooms are not the pilot's own.
+
+**Cheap by construction, as the room.** A bay's aircraft is baked: every
+part it shows into one geometry, its paint as vertex colours, and all
+the bays one mesh with one material, so the bays cost one draw (and one
+in the shadow pass) however many aircraft and parts. What a vertex colour
+cannot carry, a finish's shine and the decals, is the main stand's to
+show; a bay is seen from across the room. The paint chart shares the
+photo wall's atlas (one texture, now 1536 by 864, 5.3 MB, made only when
+there is a photo or a chip to hang) and its draw, because the budget has
+no texture to spare at Low or Medium. Measured with every bay holding a
+Bramor (the most meshes) and every chip hung, in the table below.
+
 ## Look
 
 The game's own: flat shaded low poly, vertex colours, no textures, the
@@ -100,10 +145,30 @@ render target, the shadow map and, since item 28's photo wall
 (docs/SHOW-IT-OFF.md), one atlas of the newest six photos, 1536 by 576,
 3.5 MB, made only when there is a photo. The texture column went up by
 that one on purpose, written here before it was measured; nothing else
-in the budget moved. The GPU column is a small share of the
+in the budget moved. Since the paint chart (above) that atlas is the
+wall atlas, 1536 by 864, 5.3 MB, still one texture: the chart's chips
+are its third band. The budget itself lives in src/game/hangarroom.js
+(ROOM_BUDGET), read by hangar:perf and foot:mine alike. The GPU column is a small share of the
 frame on purpose: a Low machine (Steam Deck class) is several times
 slower than this box's RTX 3060 Ti. `npm run hangar:perf` fails a run
 over the budget.
+
+### Measured 2026-10-11 with the bays and the paint chart (Intel ARL iGPU, ANGLE GL ES 3.2, 1600 by 900)
+
+hangar:perf, every bay with a Bramor and all seven chips, against the
+same run on the tree before (same machine, same hour):
+
+| Preset | Tier | Calls before | Calls now | Triangles before | Triangles now | Textures |
+| --- | --- | --- | --- | --- | --- | --- |
+| low | airfield | 19 | 20 | 13.5 k | 26.3 k | 3, unchanged |
+| medium | airfield | 35 | 37 | 21.0 k | 46.7 k | 4, unchanged |
+| high | airfield | 35 | 37 | 21.0 k | 46.7 k | 4, unchanged |
+| medium | workshop | 35 | 37 | 16.6 k | 25.2 k | 4, unchanged |
+
+The check chose the Intel chip, not the 3060 Ti the GPU column was
+written on, and its GPU medians fail that column before this change as
+after it (medium airfield 7.35 ms before, 6.13 ms now, budget 3.0): they
+measure the chip and the other lanes' checks sharing it, not the room.
 
 ### Measured 2026-10-07 (RTX 3060 Ti, ANGLE GL ES 3.2, 1600 by 900)
 
@@ -149,7 +214,14 @@ shop, trophy or replay screens (other lanes' and item 28's).
 - `npm run hangar:perf` (browser, GPU): the budget above, per preset.
 - `npm run hangar:room` (Node): every layout in bounds and overlap free,
   every station reachable on foot from the door, walking never leaves
-  the room or enters furniture.
+  the room or enters furniture; the bays per tier, which aircraft stand
+  on them and what the paint chart hangs (src/game/hangarmine.js).
+- `npm run foot:mine` (browser, in CI): two pilots signed in to an
+  accounts server of the check's own, with their own levels, builds,
+  wallets and firsts; each room matches its pilot's data and not the
+  other's, a lap's level up grows the first pilot's room the next time
+  they walk in, and the full airfield hangar is within the Medium draw
+  call and triangle budget in the real shell.
 - Second PR adds a browser check driving the real UI: walk in from the
   hub with real key presses, reach each placed station, its prompt
   shows, E opens its screen, Escape returns, the door flies.
