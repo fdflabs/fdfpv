@@ -22,6 +22,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -169,8 +171,12 @@ const rpmLoaded = n * 60;
 const Ts = 0.10 * rho * n * n * D ** 4;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 const discP = Ts ** 1.5 / Math.sqrt(2 * rho * Math.PI * propR * propR);
-const T = (V, d) => (d > 0 ? Math.max(0, Ts * d * d * (1 - V / (Vp * d))) : 0);
-const Tunclipped = (V, d) => Ts * d * d * (1 - V / (Vp * d));
+/* Thrust on APC's 9.75 x 7.5 curve as the plant flies it (plant_wing.c
+ * prop_curve); open past its last tenth it carries on along the last two,
+ * which is the folding prop's braking. */
+const prop = wingProp('FW_RADIAN2000');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+const Tunclipped = (V, d) => prop.thrust(Ts, V, d);
 const drag = (V, n1 = 1) => { const q = 0.5 * rho * V * V; const CL = n1 * W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 6, hi = 40;
@@ -188,7 +194,7 @@ for (let V = Vs; V < 20; V += 0.05) { const vz = (T(V, 1) - drag(V)) * V / W; if
 
 /* The folding prop: folded under the fold throttle, and above it an
  * unfolded prop turning slower than the air would windmill it brakes, the
- * thrust line of the motor model carried below zero. Glide at 8 m/s, the
+ * prop's curve carried below zero. Glide at 8 m/s, the
  * prop folded and at the fold throttle. */
 const foldDuty = 0.05;
 const propDrag8 = -Tunclipped(8, foldDuty);
