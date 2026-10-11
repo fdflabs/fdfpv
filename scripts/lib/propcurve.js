@@ -60,6 +60,13 @@ export function wingProp(table) {
   };
 }
 
+/* An electric's steady speed share at a stick with no throttle_rpm table:
+ * the ESC's duty is the stick's (linear) and Drela's motor settles where
+ * n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15 (plant_wing.c prop_spool),
+ * so a part stick turns the prop faster than its share: 0.437 at 0.4. */
+const K_M = 0.85 / 0.15;
+export const electricN = (d) => (d > 0 ? (-K_M + Math.sqrt(K_M * K_M + 4 * (K_M + 1) * Math.min(1, d))) / 2 : 0);
+
 /*
  * A mapped engine (FixedWingParams.engine_q, plant_wing.c engine_torque and
  * prop_spool): its torque at the stick and the speed it turns, nothing past

@@ -25,7 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { electricN, wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -281,7 +281,8 @@ const Ts = 4 * Ts1;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 8 * 0.0254;
 const torqueArm = Qs1 / Ts1;
 const prop = wingProp('FW_HERCULES3077');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* d is the stick; the prop turns at the motor's steady share of it. */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
 /* Each prop's inertia: a 26 g blade at 0.7 of a rod's m D^2 / 12, the
  * spinner and the can; four of them. */
 const propJ = 4 * (0.7 * 0.026 * (0.3048) ** 2 / 12 + 0.07 * 0.021 * 0.021);

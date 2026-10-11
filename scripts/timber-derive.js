@@ -22,7 +22,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { electricN, wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -129,7 +129,8 @@ const TsBlade = 0.13 * rho * nStatic * nStatic * D4;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const discP = Math.pow(Ts, 1.5) / Math.sqrt(2 * rho * Math.PI * propR * propR);
 const prop = wingProp('FW_TIMBER1500');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* d is the stick; the prop turns at the motor's steady share of it. */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
 
 /* Drag polar and level speed, clean (flaps up) with the slats on. */
 const cd0Clean = CD0 + slatCd0;

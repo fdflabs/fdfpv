@@ -22,7 +22,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { electricN, wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -65,7 +65,8 @@ const Cndr = -VV * av * tauR, CYdr = av * (Sv / S) * tauR, Cldr = CYdr * zv / b;
 const rpmNL = kv * volts, Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const prop = wingProp('FW_CUB1400');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* d is the stick; the prop turns at the motor's steady share of it. */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 6, hi = 40;
