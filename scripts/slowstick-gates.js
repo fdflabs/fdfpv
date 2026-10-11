@@ -244,6 +244,7 @@ check: {
     let worstHead = 0;
     let worstR = 0;
     let sinkSum = 0;
+    let speedSum = 0;
     let n = 0;
     let o = null;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) {
@@ -257,14 +258,23 @@ check: {
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstHead = Math.max(worstHead, Math.abs(wrap(heading(o.s) - psi0)) * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
-      if (ms >= t9.seconds * 1000 - 2000) { sinkSum += -o.s[6]; n += 1; }
+      if (ms >= t9.seconds * 1000 - 2000) { sinkSum += -o.s[6]; speedSum += speed(o.s); n += 1; }
     }
     const sink = sinkSum / n;
+    /* A spin is autorotation: the wing that drops keeps rolling and the
+     * yaw comes with that roll. Short of it, with the wings within the
+     * bank limit (the wing drop's), the aircraft only turns, and a turn
+     * at bank phi and speed V yaws at g tan(phi) / V: a yaw rate past the
+     * turn the bank limit allows at the mush's speed is a rotation no
+     * turn makes, the spin's. Re-derived 2026-10-11 from the 20 deg/s,
+     * which had no source (docs/FLIGHTMODEL.md). */
+    const vMush = speedSum / n;
+    const yawMax = 9.81 * Math.tan(t9.maxBankDeg / DEG) / vMush * DEG;
     const alpha = wingDebug(sim)[0] * DEG;
     gate(id, `full up held, ${duty ? 'power on' : 'power off'}: a mush, no wing drop`,
-      worstBank <= t9.maxBankDeg && minPitch >= t9.minPitchDeg && worstR <= t9.maxYawRateDegS && (t9.min === undefined || within(sink, t9)),
+      worstBank <= t9.maxBankDeg && minPitch >= t9.minPitchDeg && worstR <= yawMax && (t9.min === undefined || within(sink, t9)),
       `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, sink ${sink.toFixed(2)} m/s at ${speed(o.s).toFixed(2)} m/s, alpha ${alpha.toFixed(0)}`,
-      `bank ${t9.maxBankDeg}, pitch over ${t9.minPitchDeg}, yaw ${t9.maxYawRateDegS} deg/s${t9.min === undefined ? '' : `, sink ${band(t9)}`}`);
+      `bank ${t9.maxBankDeg}, pitch over ${t9.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s${t9.min === undefined ? '' : `, sink ${band(t9)}`}`);
   }
 
   /* S10: the phugoid, fly()'s level cruise, a second of a little up stick,
