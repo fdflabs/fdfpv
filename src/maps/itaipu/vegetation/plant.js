@@ -85,9 +85,9 @@ export const PER_TREE = 1 + CROWN_SPHERES;
 export const FILL_SLICE_TREES = 250;
 
 /*
- * The kinds, in model units for swiss2's broadleaf generator
- * (swiss2/vegetation/species.js buildVariant; kind picks the leaf card),
- * but for the palm, which draw.js builds: two canopy trees for the
+ * The kinds, in model units for the library's broadleaf generator
+ * (src/render/library/vegetation/species.js buildVariant; kind picks the
+ * leaf card), but for the palm, which draw.js builds: two canopy trees for the
  * forest, which small are the forest edge's and a grove's undergrowth
  * and grown alone the pastures' spreading trees; a lone tree with its
  * crown high, the pastures' single trees and OpenStreetMap's; a

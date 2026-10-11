@@ -171,30 +171,35 @@ check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG
  * fades out as the stick leaves centre (Spektrum's priority), so a full
  * stick is Manual's rate, no cap; nothing levels it; and centred, it damps
  * the rate the aircraft is left with harder than the airframe alone. */
+/* The lead in is flown in Manual and the mode set at the step, so both
+ * meet the stick from the same state. */
 function bothModes(fn) {
   const out = {};
   for (const [mode, name] of [[0, 'manual'], [3, 'as3x']]) {
-    must(sim.e.sim_wing_set_stab(mode), 'set mode');
-    out[name] = fn();
+    must(sim.e.sim_wing_set_stab(0), 'set manual');
+    out[name] = fn(() => must(sim.e.sim_wing_set_stab(mode), 'set mode'));
   }
   return out;
 }
 console.log('as3x');
-const rollRates = bothModes(() => {
+const rollRates = bothModes((mode) => {
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
+  mode();
   return fly(1, 0, 0, 1.0, 0.5).p;
 });
 check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x / rollRates.manual - 1) < 0.02, `${deg(rollRates.as3x)} against ${deg(rollRates.manual)} deg/s`);
-const pullRates = bothModes(() => {
+const pullRates = bothModes((mode) => {
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
+  mode();
   return fly(0, 1, 0, 1.0, 0.5).q;
 });
 check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
-const released = bothModes(() => {
+const released = bothModes((mode) => {
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
+  mode();
   fly(0, 1, 0, 1.0, 0.3);
   return Math.abs(fly(0, 0, 0, 1.0, 0.1).q);
 });

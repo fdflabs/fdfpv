@@ -54,7 +54,7 @@ import {
 import { sha256Base64, trackDeleteMessage, trackMessage } from './identity.js';
 import { readPilotName } from './pilot.js';
 import { str } from '../strings/index.js';
-import { API_ORIGIN } from './api.js';
+import { API_ORIGIN, SITE_HOSTS } from './api.js';
 
 /*
  * The deployed server: tracks-api/node.js on the owner's VM, behind Caddy
@@ -71,7 +71,6 @@ const ORIGIN_KEY = 'webfpv.tracks.origin';
  * error, forkedTo }. */
 export const TRACK_SYNC_EVENT = 'webfpv-tracks-sync';
 
-const LOOPBACK_HOSTS = new Set(['', 'localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0']);
 const READ_TIMEOUT_MS = 8000;
 const RETRY_FIRST_MS = 15000;
 const RETRY_MAX_MS = 5 * 60 * 1000;
@@ -100,7 +99,10 @@ export function tracksOrigin() {
     /* Private mode. */
   }
   try {
-    if (LOOPBACK_HOSTS.has(window.location.hostname)) {
+    /* Loopback, and a pull request's preview on its own host
+     * (docs/PREVIEWS.md): no production server, so a build nobody merged
+     * never signs in or writes a pilot's tracks or account. */
+    if (!SITE_HOSTS.includes(window.location.hostname)) {
       return '';
     }
   } catch (e) {
