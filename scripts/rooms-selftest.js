@@ -66,6 +66,7 @@ import { browserSection } from './rooms-selftest-browser.js';
 import { scaleSection } from './rooms-selftest-scale.js';
 import { sessionSection } from './rooms-selftest-session.js';
 import { weatherSection } from './rooms-selftest-weather.js';
+import { dropsSection } from './rooms-selftest-drops.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
 import { emptyRoomSection, gameLobbySection, warLobbySection } from './rooms-selftest-gamelobby.js';
@@ -1907,6 +1908,7 @@ botsSection(check);
 emptyRoomSection(check);
 sessionSection(check);
 weatherSection(check);
+dropsSection(check);
 await browserSection(check);
 await scaleSection(check);
 

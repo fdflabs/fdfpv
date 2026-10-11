@@ -55,7 +55,7 @@ import { PerfOverlay } from './ui/perfoverlay.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
-import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
+import { bodyPosToModel, simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
@@ -255,6 +255,9 @@ import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
+import { NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP } from './render/nighttimbercraft.js';
+import { setWorldNight, worldNight } from './render/worldlight.js';
+import { HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP } from './render/herculescraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -275,6 +278,8 @@ const WING_MOUNTS = {
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
   extra3d1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
+  nighttimber1200: [NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP],
+  hercules3077: [HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
@@ -311,6 +316,9 @@ import {
 } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
+import { createParadrops } from './render/paradrops.js';
+import { HOLD_LOADS, holdPoints } from './game/hold.js';
+import { dcos as dcosPerf, fall as paradropFall, SOLO_CAP as PARADROP_SOLO_CAP, ROOM_CAP as PARADROP_ROOM_CAP } from './game/paradrop.js';
 import { createBreakage } from './render/breakage.js';
 import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
@@ -3900,6 +3908,14 @@ export async function boot({
         roomRefused(m.why);
         return;
       }
+      if (m.type === 'drop') {
+        roomDropArrived(m);
+        return;
+      }
+      if (m.type === 'drops' && Array.isArray(m.list)) {
+        m.list.forEach(roomDropArrived);
+        return;
+      }
       if (m.type === 'combat') {
         roomCombat.onRound(m);
         ui.refreshFriends();
@@ -3937,6 +3953,10 @@ export async function boot({
       roomLinkHold(st);
       if (st.phase !== 'open') {
         roomSlot = -1;
+      }
+      /* The room's drops go with the room; a reconnect is sent them again. */
+      if (st.phase !== 'open' && st.phase !== 'connecting') {
+        roomDropsGone();
       }
       /* The room would not seat this session: one that ended elsewhere is
        * let go by asking the accounts server, and then the sign in is
@@ -9570,6 +9590,8 @@ export async function boot({
    * TAKEOFF_THROTTLE releases it.
    */
   let landed = true;
+  /* The Hercules' loads still aboard (THE HOLD, below). */
+  let holdLeft = HOLD_LOADS;
   /* Last frame's landed, for the touchdown edge (input.holdThrottleLow). */
   let landedWas = true;
   /* progressRun's key for the run being judged, and the hangar rev on
@@ -10718,7 +10740,9 @@ export async function boot({
     }
     const { option, pack } = powerChoice(af.id, s.power);
     const parts = partsEntry(s.parts, af.id);
-    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS]);
+    /* The Hercules' cargo still aboard rides as add-ons too (THE HOLD). */
+    const cargo = af.ramp ? holdPoints(holdLeft) : [];
+    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS], cargo);
     const code = block ? sim.setAddons(block) : sim.clearAddons();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
@@ -11893,6 +11917,179 @@ export async function boot({
    * Once a frame, right after the craft is posed: read the damage, draw
    * the pieces, judge the wreck. Render and rules; the plant has moved on.
    */
+  /*
+   * THE PARADROP, docs/HERCULES-CONTRACT.md: P on an aircraft with a ramp
+   * drops a load off its lip while the doors are fully open. The fall is
+   * src/game/paradrop.js's, a pure function of the drop's record and the
+   * air, worked out once at release; drawing it is reading it at the time
+   * since. Solo, the loads stay for the session, each on its own map; at
+   * the cap P refuses and nothing is taken away. The lip is the ramp's
+   * end, 0.844 m behind the CG and 0.17 m under it (herculescraft.js).
+   */
+  const paradrops = createParadrops(Math.max(PARADROP_SOLO_CAP, PARADROP_ROOM_CAP));
+  /*
+   * THE HOLD (src/game/hold.js, lead decision 2026-10-09): eight real
+   * loads, each a mass where it sits, seated on the plant with the hangar
+   * parts; one leaving lightens the aircraft and moves its CG at once, the
+   * add-ons seated again mid flight. Standing on the ground the hold is
+   * filled again. holdLeft is declared beside `landed`, since applyParts
+   * reads it from the first seat on.
+   */
+  function seatHold() {
+    /* applyParts puts the smoke off at a seat between runs; a load leaving
+     * is not one. */
+    const smoking = smokeOn;
+    applyParts(ui.settings);
+    smokeOn = smoking;
+  }
+  const paradropRecords = [];
+  const RAMP_LIP = [-0.844, 0, -0.17];
+  const lipQ = new THREE.Quaternion();
+  const lipP = new THREE.Vector3();
+  const lipV = new THREE.Vector3();
+  function paradropWorld(rec) {
+    const air = rec.air ? makeWeather(rec.air.map, rec.air.preset, rec.air.seed) : null;
+    return {
+      weather: air,
+      surface: (x, z) => {
+        const ground = view.height(x, z, Infinity);
+        const body = waterAt(x, z);
+        const water = body ? surfaceAt(body, x, z) : -Infinity;
+        return water > ground ? { y: water, wet: true } : { y: ground, wet: false };
+      },
+    };
+  }
+  function paradropSeat(rec, startS, room = false) {
+    const f = paradropFall(rec, paradropWorld(rec));
+    /* A room's drop lies where its dropper saw it come down, which the
+     * room keeps, so a late joiner's terrain or water rounding never
+     * moves it. */
+    if (room && rec.rest) {
+      const n = f.path.length / 5 - 1;
+      f.path[n * 5 + 1] = rec.rest[0];
+      f.path[n * 5 + 2] = rec.rest[1];
+      f.path[n * 5 + 3] = rec.rest[2];
+      f.rest = [...rec.rest];
+    }
+    paradrops.add({ id: rec.id, map: rec.map, f, startS, room });
+    return f;
+  }
+  /* In a room the room numbers the drops and sends them back to
+   * everybody, the dropper too, on the room's clock. */
+  const roomDropRecords = [];
+  function roomDropArrived(rec) {
+    if (roomDropRecords.some((r) => r.id === rec.id)) {
+      return;
+    }
+    roomDropRecords.push(rec);
+    paradropSeat(rec, rec.t, true);
+  }
+  function roomDropsGone() {
+    roomDropRecords.length = 0;
+    paradrops.remove((d) => !d.room);
+  }
+  function inRoom() {
+    const st = roomLinkState.state();
+    return st.phase === 'open' && Boolean(st.welcome);
+  }
+  function paradropNow() {
+    return performance.now() / 1000;
+  }
+  function dropLoad() {
+    if (landed || wrecked) {
+      return false;
+    }
+    if (!(sim.e.sim_wing_door() >= 1)) {
+      notice = { text: str('main.drop_open_doors'), untilMs: performance.now() + 2200 };
+      return false;
+    }
+    if (holdLeft <= 0) {
+      notice = { text: str('main.drop_hold_empty'), untilMs: performance.now() + 2600 };
+      return false;
+    }
+    const room = inRoom();
+    const mine = room ? roomDropRecords.length : paradropRecords.filter((r) => r.map === view.id).length;
+    const cap = room ? PARADROP_ROOM_CAP : PARADROP_SOLO_CAP;
+    if (mine >= cap) {
+      notice = { text: str('main.drop_field_full', { n: cap }), untilMs: performance.now() + 2600 };
+      return false;
+    }
+    const st = readState();
+    poseFromState(st, lipP);
+    simQuatToThree(st[7], st[8], st[9], st[10], lipQ).premultiply(qSpawn);
+    const [bx, by, bz] = bodyPosToModel(...RAMP_LIP);
+    const lip = new THREE.Vector3(bx, by, bz).applyQuaternion(lipQ).add(lipP);
+    simPosToThree(st[4], st[5], st[6], lipV).applyQuaternion(qSpawn);
+    const rec = {
+      id: paradropRecords.length + 1,
+      map: view.id,
+      af: runAirframe,
+      t: weatherT0 + st[0],
+      tp: st[0],
+      p: [lip.x, lip.y, lip.z],
+      v: [lipV.x, lipV.y, lipV.z],
+      air: weatherFlown,
+    };
+    holdLeft -= 1;
+    seatHold();
+    if (room) {
+      const f = paradropFall(rec, paradropWorld(rec));
+      const { id, ...sent } = rec;
+      roomLinkState.send({ type: 'drop', ...sent, rest: f.rest, wet: f.wet });
+      notice = { text: str('main.drop_away', { n: mine + 1 }), untilMs: performance.now() + 1400 };
+      return true;
+    }
+    const f = paradropSeat(rec, paradropNow());
+    rec.rest = f.rest;
+    rec.wet = f.wet;
+    paradropRecords.push(rec);
+    notice = { text: str('main.drop_away', { n: mine + 1 }), untilMs: performance.now() + 1400 };
+    return true;
+  }
+  /* The drops in this session, for a check. */
+  window.__paradrops = () => (inRoom() ? roomDropRecords : paradropRecords).map((r) => ({ ...r }));
+  /* Each drop fallen again from its record alone, and the doors' and the
+   * chute's state, for scripts/hercules-keys.js. */
+  window.__paradropRefall = () => (inRoom() ? roomDropRecords : paradropRecords).map((r) => paradropFall(r, paradropWorld(r)).rest);
+  /* n loads laid in a ring about the craft, `falling` of them released
+   * now 60 m up, the rest long landed: scripts/hercules-perf.js's field at
+   * the cap. */
+  window.__paradropFill = (n, falling = 0) => {
+    for (let i = 0; i < n; i += 1) {
+      const a = i * 2.399963;
+      const r = 8 + 0.9 * Math.sqrt(i) * 6;
+      const x = pCurr.x + r * dcosPerf(a);
+      const z = pCurr.z + r * dcosPerf(a - 1.5707963267948966);
+      const y = view.height(x, z, Infinity) + 60;
+      const rec = { id: paradropRecords.length + 1, map: view.id, af: 'hercules3077', t: 0, tp: 0, p: [x, y, z], v: [15, 0, 0], air: weatherFlown };
+      const f = paradropSeat(rec, i < falling ? paradropNow() : paradropNow() - 1000);
+      rec.rest = f.rest;
+      rec.wet = f.wet;
+      paradropRecords.push(rec);
+    }
+    return paradrops.count();
+  };
+  /* Where each drawn load is now, by its id, for scripts/hercules-room.js. */
+  window.__paradropDrawn = () => paradrops.list.map((d) => ({ id: d.id, room: d.room, rest: d.f.rest }));
+  window.__hold = () => holdLeft;
+  window.__wingDoor = () => ({
+    door: sim.e.sim_wing_door(),
+    chute: typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0,
+  });
+  function paradropFrame() {
+    if (landed && holdLeft < HOLD_LOADS && airframeById(runAirframe).ramp) {
+      holdLeft = HOLD_LOADS;
+      seatHold();
+      notice = { text: str('main.drop_hold_full', { n: HOLD_LOADS }), untilMs: performance.now() + 2200 };
+    }
+    const parent = shell.quad.parent;
+    if (parent && paradrops.group.parent !== parent) {
+      parent.add(paradrops.group);
+    }
+    const roomMs = inRoom() ? roomLinkState.roomNow() : null;
+    paradrops.update(paradropNow(), Number.isFinite(roomMs) ? roomMs / 1000 : null, view.id);
+  }
+
   function crashFrame(nowWall, dt) {
     const parent = shell.quad.parent;
     if (parent && wreckRig.group.parent !== parent) {
@@ -15529,6 +15726,25 @@ export async function boot({
       }
       return;
     }
+    /* THE CARGO DOORS, on an aircraft that has them (airframes.js `ramp`,
+     * the Hercules): O opens and shuts the ramp and door, ahead of O's
+     * smoke, which a Hercules with smoke fitted gives up while it flies
+     * (docs/HERCULES-CONTRACT.md). The switch is the plant's, which a reset
+     * shuts, so it is read back rather than kept here. */
+    if (code === 'KeyO' && ui.screen === 'flight' && airframeById(runAirframe).ramp
+      && typeof sim.e.sim_wing_set_door === 'function') {
+      const open = sim.e.sim_wing_door_selected() ? 0 : 1;
+      if (sim.e.sim_wing_set_door(open) === SIM_OK) {
+        notice = { text: open ? str('ui.doors_open') : str('ui.doors_shut'), untilMs: performance.now() + 1600 };
+      }
+      return;
+    }
+    /* P on an aircraft with a ramp drops a load (THE PARADROP), and only
+     * there: on the Bramor P is still its recovery chute. */
+    if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).ramp) {
+      dropLoad();
+      return;
+    }
     if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).chute) {
       pullChute();
       return;
@@ -17341,6 +17557,7 @@ export async function boot({
     shell.quad.quaternion.copy(qPrev);
     if (mode !== 'replay') {
       crashFrame(fr.wall, fr.dt);
+      paradropFrame();
     }
     smokeFrame();
     if (crashCam) {
@@ -17638,6 +17855,10 @@ export async function boot({
     }
     /* The kit's arm LEDs (docs/KITS.md section 4) on the flight clock, so
      * a replay flashes as the flight did; the pack as the OSD bands it. */
+    /* A Night Timber's factory lights come on with the map's own night
+     * (docs/NIGHTTIMBER-STAGE1.md section 5), read every frame because
+     * the interior's sun sets mid flight. */
+    setWorldNight(Boolean(shell.quad.parent) && shell.quad.parent.userData.timeOfDay === 'night');
     if (shell.quad.userData.setLights) {
       shell.quad.userData.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
     }
@@ -17676,6 +17897,9 @@ export async function boot({
     }
     if (shell.setGear && typeof sim.e.sim_wing_gear === 'function') {
       shell.setGear(sim.e.sim_wing_gear());
+    }
+    if (shell.setRamp && typeof sim.e.sim_wing_door === 'function') {
+      shell.setRamp(sim.e.sim_wing_door());
     }
   }
 
@@ -18528,6 +18752,7 @@ export async function boot({
       throttle: input.channels.throttle,
       flightMode,
       flaps: af.flaps ? flapNotch : null,
+      hold: af.ramp ? str('ui.hold', { n: holdLeft, of: HOLD_LOADS }) : null,
       gear: gearNow != null
         ? (gearNow >= 1 ? 'up' : gearNow <= 0 ? 'down' : 'moving')
         : null,
@@ -18996,6 +19221,12 @@ export async function boot({
       bladeScale: audio.bladeScale,
       tune: af.fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
       flapNotch,
+      /* A Night Timber's factory lights, drawn or not, and the world's
+       * night they follow (nighttimber:lights). */
+      factoryLights: (() => {
+        const f = shell.quad.getObjectByName('factory-lights');
+        return f ? { visible: f.visible, night: worldNight() } : null;
+      })(),
       standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
     };
   };

@@ -255,6 +255,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -371,6 +379,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -2474,6 +2490,300 @@
     }
    },
    "extra3d1308:unfitted": null,
+   "nighttimber1200:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "nighttimber1200:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "nighttimber1200:unfitted": null,
+   "hercules3077:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "hercules3077",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "hercules3077:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "hercules3077",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "hercules3077:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -3958,6 +4268,14 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4074,6 +4392,14 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
+       "value": "hercules3077",
+       "label": "C-130 Hercules"
       },
       {
        "value": "p51d1450",
@@ -6177,6 +6503,300 @@
     }
    },
    "extra3d1308:unfitted": null,
+   "nighttimber1200:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "nighttimber1200:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "nighttimber1200:unfitted": null,
+   "hercules3077:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "hercules3077",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "hercules3077:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "hercules3077",
+     "look": {
+      "colours": {
+       "fuselage": 6383724,
+       "wing": 6383724,
+       "tail": 6383724,
+       "radome": 4080455,
+       "spinners": 6383724,
+       "props": 1842463,
+       "trim": 2829873
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "hercules3077",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "hercules3077:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",

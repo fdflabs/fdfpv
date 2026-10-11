@@ -420,8 +420,12 @@ int sim_set_flight_style(int arcade);
  * replays as it, and 30 E-flite's Night Timber X 1.2m
  * (docs/NIGHTTIMBER-STAGE1.md), the Timber X's STOL high wing with flaps
  * and oversized surfaces, flown on full span ailerons, which hangs on its
- * prop as the Extra does. Returns SIM_ERR_BAD_ARG for any id without an
- * aircraft. 2 to 23 and 27 to 30 are fixed wings: no Betaflight, the sticks go to the
+ * prop as the Extra does, and 31 AeroTetris's C-130 Hercules 3077
+ * (docs/HERCULES-STAGE1.md), a 3 m balsa C-130H on four electric motors
+ * whose props the plant takes as one thrust line, with a rear ramp and
+ * cargo door that open in flight. Returns SIM_ERR_BAD_ARG for any id
+ * without an aircraft.
+ * 2 to 23 and 27 to 31 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply. 0, 1 and 24 to 26 are quads.
  *
@@ -471,6 +475,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_STRIKER_JET_ID 28
 #define SIM_AIRFRAME_EXTRA3D1308_ID 29
 #define SIM_AIRFRAME_NIGHTTIMBER1200_ID 30
+#define SIM_AIRFRAME_HERCULES3077_ID 31
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -766,6 +771,20 @@ int sim_wing_flaps_settle(void);
 int sim_wing_set_gear(int up);
 double sim_wing_gear(void);
 int sim_wing_gear_selected(void);
+/*
+ * sim_wing_set_door(open): the cargo ramp and door of an aircraft that has
+ * them (docs/HERCULES-CONTRACT.md), 1 open and 0 shut; they travel at the
+ * aircraft's own rate, and open they add their drag and pitching moment.
+ * A reset and sim_set_airframe shut them. SIM_ERR_BAD_ARG for 1 on an
+ * aircraft without, or anything but 0 or 1.
+ * sim_wing_door(): where they are, 0 shut to 1 open.
+ * sim_wing_door_selected(): the switch.
+ * Additive, version unchanged: an aircraft without doors reads none of it
+ * and its trace is bit identical.
+ */
+int sim_wing_set_door(int open);
+double sim_wing_door(void);
+int sim_wing_door_selected(void);
 int sim_wing_set_slats(int fitted);
 
 /*
