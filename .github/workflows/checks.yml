@@ -46,10 +46,11 @@ jobs:
       - run: npm run pick:selftest
       - run: npm run paint:selftest
       - run: npm run kits:selftest
-      # The hangar's workshop in the real shell: Flip, the preset views and a
-      # pad's R3 on one aircraft of every paint family
-      # (docs/redesign/WORKSHOP-PAINT.md).
-      - run: npm run paint:workshop
+      # The hangar's workshop in the real shell: the underside, click to
+      # paint, undo, A/B, patterns and the swatch library
+      # (docs/redesign/WORKSHOP-PAINT.md). Its other half, the views, runs
+      # on shard-5.
+      - run: npm run paint:workshop:paint
       # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:admin
       # Every tractor's slipstream terms against their geometry
@@ -476,10 +477,25 @@ jobs:
       # (scripts/version-reload-check.js, src/ui/update.js).
       - run: npm run version:reload
 
+  # paint:workshop's other half alone: Top, Bottom and Flip on one
+  # aircraft of every paint family, and a pad's R3. Whole, the check was
+  # one step of 15 to 26 minutes, the longest of any shard.
+  shard-5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run paint:workshop:views
+
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.
   node:
-    needs: [shard-1, shard-2, shard-3, shard-4]
+    needs: [shard-1, shard-2, shard-3, shard-4, shard-5]
     if: always()
     runs-on: ubuntu-latest
     steps:

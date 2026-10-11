@@ -597,7 +597,28 @@ async function swatchLibrary(page) {
   await page.evaluate('window.__ui.carousel.close(); true');
 }
 
+const STEPS = {
+  viewsEach, flipAndViews, closedFlipped, underEach, clickToPaint, undoSteps, abStock, patternsEach, swatchLibrary,
+};
+/* CI runs the check as two npm scripts on two shards, a page each
+ * (paint:workshop:views and paint:workshop:paint, WORKSHOP_PART), because
+ * the whole set the wall clock of a CI run at 26 minutes. Steps 4 to 7
+ * read the Timber's underside that step 4 saved, so they share a part. */
+const PARTS = {
+  views: ['viewsEach', 'flipAndViews', 'closedFlipped'],
+  paint: ['underEach', 'clickToPaint', 'undoSteps', 'abStock', 'patternsEach', 'swatchLibrary'],
+};
+
 async function main() {
+  /* A step in no part would silently leave CI. */
+  const parted = Object.values(PARTS).flat().sort();
+  if (JSON.stringify(parted) !== JSON.stringify(Object.keys(STEPS).sort())) {
+    throw new Error(`every step must be in exactly one part: ${parted.join()} against ${Object.keys(STEPS).sort().join()}`);
+  }
+  const part = process.env.WORKSHOP_PART;
+  if (part && !PARTS[part]) {
+    throw new Error(`WORKSHOP_PART ${part} is none of ${Object.keys(PARTS).join(', ')}`);
+  }
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
     /* The hangar's own reduced motion (index.html): no entrance slides, no
@@ -608,15 +629,12 @@ async function main() {
     await page.cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, page.sessionId);
     await page.until('!!window.__shellReady', 300000);
     await page.until('window.__map && window.__map().ready', 400000);
-    /* WORKSHOP_STEPS (names of the steps below) and WORKSHOP_REPEAT run a
-     * part of the check again and again, to hunt a race on a slow page. */
-    const steps = {
-      viewsEach, flipAndViews, closedFlipped, underEach, clickToPaint, undoSteps, abStock, patternsEach, swatchLibrary,
-    };
-    const chosen = process.env.WORKSHOP_STEPS ? process.env.WORKSHOP_STEPS.split(',') : Object.keys(steps);
+    /* WORKSHOP_STEPS (names of the steps in STEPS) and WORKSHOP_REPEAT run
+     * a part of the check again and again, to hunt a race on a slow page. */
+    const chosen = process.env.WORKSHOP_STEPS ? process.env.WORKSHOP_STEPS.split(',') : (part ? PARTS[part] : Object.keys(STEPS));
     for (let i = 0; i < Number(process.env.WORKSHOP_REPEAT || 1); i++) {
       for (const name of chosen) {
-        await steps[name](page);
+        await STEPS[name](page);
       }
     }
     const f = page.errors.filter((e) => !e.startsWith('network:'));
