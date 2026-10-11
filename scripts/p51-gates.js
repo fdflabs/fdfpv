@@ -516,9 +516,8 @@ check: {
 
   /* P18: the approach, full flap and the gear down, flown at 1.3 Vs with
    * full flap on the elevator and the throttle, the wings on the
-   * ailerons, a flare from 1.5 m and the throttle closed, the stick
-   * brought back on the wheels into three points, the heading on the
-   * rudder. */
+   * ailerons, then the handbook's three point landing (below), the
+   * heading on the rudder. */
   {
     const t18 = th.p18_landing;
     onStrip(2);
@@ -530,33 +529,49 @@ check: {
     let o = { s: sim.readState().state, loaded: false, loads: [0, 0, 0, 0] };
     let iPitch = 0;
     let iThr = 0;
+    let tailOn = null;
+    let held = 0;
     for (let ms = 0; ms < 25000; ms += RC_STEP_MS) {
       const { pitch, bank } = attitude(o.s);
       const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * o.s[11]));
       const v = speed(o.s);
       let pitchStick = 0;
       let thr = 0;
-      if (touched === null) {
-        const flare = o.s[3] < 1.5;
+      /* The handbook's three point landing (FAA-H-8083-3C ch. 14, "Three-
+       * Point Landing", https://www.faa.gov/sites/faa.gov/files/regulations_policies/handbooks_manuals/aviation/airplane_handbook/15_afh_ch14.pdf):
+       * the round out, then "a gentle increase in AOA to maintain flight
+       * while slowing", the goal "a much steeper fuselage angle ... one
+       * that touches the tailwheels at the same time as the main wheels",
+       * the throttle closed; a main wheel first, "the tail naturally
+       * drops", is a skip "easily managed by re-flaring", so the attitude
+       * is held until the tailwheel is down; and "once the tailwheel makes
+       * contact, the elevator control should be eased fully back". */
+      const flare = touched !== null || o.s[3] < 1.5;
+      if (!flare) {
         /* On the approach: speed on the elevator, a 4 deg glide path on
-         * the throttle. In the flare: the nose raised, the power off. */
-        const target = flare ? Math.min(12, 2 + 10 * (1.5 - o.s[3]) / 1.2) / DEG : Math.max(-6 / DEG, Math.min(10 / DEG, (1 + 5 * (v - t18.approach)) / DEG));
+         * the throttle. */
+        const target = Math.max(-6 / DEG, Math.min(10 / DEG, (1 + 5 * (v - t18.approach)) / DEG));
         iPitch = Math.max(-0.6, Math.min(0.6, iPitch + 2.0 * (target - pitch) * RC_STEP_MS / 1000));
         pitchStick = Math.max(-1, Math.min(1, 2.5 * (target - pitch) + 0.25 * o.s[12] + iPitch));
         iThr = Math.max(0, Math.min(0.8, iThr + 0.2 * (-0.76 - o.s[6]) * RC_STEP_MS / 1000));
-        thr = flare ? 0 : Math.max(0, Math.min(1, iThr + 0.3 * (-0.76 - o.s[6])));
+        thr = Math.max(0, Math.min(1, iThr + 0.3 * (-0.76 - o.s[6])));
+        held = pitchStick;
+      } else if (tailOn === null) {
+        /* Toward the three point attitude, P13's rest, as the height
+         * comes off. */
+        const target = Math.min(rest.pitch / DEG, (2 + (rest.pitch - 2) * Math.max(0, 1.5 - o.s[3]) / 1.2) / DEG);
+        iPitch = Math.max(-0.6, Math.min(0.6, iPitch + 2.0 * (target - pitch) * RC_STEP_MS / 1000));
+        pitchStick = Math.max(-1, Math.min(1, 2.5 * (target - pitch) + 0.25 * o.s[12] + iPitch));
+        held = pitchStick;
       } else {
-        /* Brought back over a second and a half, not snatched: on the
-         * wheels at 9 m/s a snatched full up pitches the tail into the
-         * grass. With the slipstream the elevator loses the wash's share
-         * as the throttle closes for the flare, so the flare is shallower
-         * and the touch faster than before it (docs/FLIGHTMODEL.md). */
-        pitchStick = Math.min(1, (ms - touched.ms) / 1500);
+        /* Eased fully back over half a second, and held. */
+        pitchStick = Math.min(1, held + (1 - held) * (ms - tailOn) / 500);
       }
       /* The runway's heading on the rudder: under power the swirl on the
        * fin yaws the approach left (docs/FLIGHTMODEL.md). */
       o = step(sim, [roll, pitchStick, rudderHold(o.s), thr]);
       if (o.loaded && touched === null) touched = { v, vg: Math.hypot(o.s[4], o.s[5]), vz: o.s[6], x: o.s[1], ms };
+      if (touched !== null && tailOn === null && o.loads[2] > 0) tailOn = ms;
       if (touched !== null) hull = Math.max(hull, o.hull + (o.loads[3] > 0 ? 1 : 0));
     }
     const land = { pitch: attitude(o.s).pitch * DEG, v: Math.hypot(o.s[4], o.s[5]), roll: touched ? o.s[1] - touched.x : 0 };
