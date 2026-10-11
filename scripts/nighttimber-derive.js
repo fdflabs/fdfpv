@@ -506,6 +506,7 @@ const J = (o, n = 3) => JSON.stringify(o, (kk, v) => (typeof v === 'number' ? +v
 const rows = [
   ['S clean m2, chord, slat chord, AR, W/S N/m2', `${f(S, 4)} ${f(c, 4)} ${f(cSlat, 4)} ${f(AR)} ${f(W / S, 1)}`],
   ['flaps y m, ailerons y m, chord share', `${f(flapIn)} ${f(flapOut)} ${f(ailIn)} ${f(ailOut)} ${f(cf)}`],
+  ['flap_eta: the flaps over the semispan (the stall strips)', `${f(flapIn / (b / 2), 4)} ${f(flapOut / (b / 2), 4)}`],
   ['CG from spinner m, prop ahead m, h_cg', `${f(cgFromTip, 4)} ${f(propX, 4)} ${f(hCG, 4)}`],
   ['stab: Sh, bh, lh, chord, elevator share', `${f(Sh, 4)} ${f(bh, 4)} ${f(lh, 4)} ${f(cStab, 4)} ${f(cfE)}`],
   ['a_w, a_t, a_v /rad; AR_v geometric, effective', `${f(aw)} ${f(at)} ${f(av)}; ${f(arVgeo)} ${f(arV)}`],

@@ -638,6 +638,12 @@ int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
 int sim_wing_slip(double *out);
+/* sim_wing_strips(out[8]): each stall strip's lift lost to separation as
+ * the last step left it, left half root to tip then right half, in units
+ * of the wing's lift coefficient over the strip's share: zero on a strip
+ * short of its stall. For the gates that ask where along the span a wing
+ * stalls first. Additive, version unchanged. */
+int sim_wing_strips(double *out);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
