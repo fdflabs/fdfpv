@@ -1058,6 +1058,7 @@ thrust's change, ms, nose up and held still:
  uglystik1567 (glow) | 319/625 | 196/430 | 436/728
  tigermoth1803 (glow) | 319/625 | 262/609 | 436/728
  extra3d1308 | 60/103 | 27/48 | 100/182
+ hercules3077 (four props as one) | 64/133 | 37/81 | 85/156
  p51d1450 | 274/555 | 158/375 | 363/640
  f16878 (its fan_tau, unchanged) | 195/337 | 147/277 | 415/561
  zagi1219 | 48/100 | 34/84 | 64/117

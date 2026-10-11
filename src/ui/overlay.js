@@ -342,7 +342,7 @@ export const overlayMethods = {
    * above the surface under the craft (the collision query's own), which
    * is the number that means something over a roof.
    */
-  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
+  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, hold = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
     const freestyle = mode === 'freestyle';
     paintClock(this, freestyle, lapMs, runScored, runTimed, runState, runRemainMs);
     let gateLine = '';
@@ -370,6 +370,9 @@ export const overlayMethods = {
     }
     if (this.osdGear) {
       Ui.text(this.osdGear, gearText(gear));
+    }
+    if (this.osdHold) {
+      Ui.text(this.osdHold, hold ?? '');
     }
     if (this.osdLaunch) {
       paintLaunch(this.osdLaunch, launchState, launchPitch);

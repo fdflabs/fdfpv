@@ -292,6 +292,7 @@ typedef struct {
 #define SIM_AIRFRAME_STRIKER_JET 28
 #define SIM_AIRFRAME_EXTRA3D1308 29
 #define SIM_AIRFRAME_NIGHTTIMBER1200 30
+#define SIM_AIRFRAME_HERCULES3077 31
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -302,8 +303,9 @@ typedef struct {
  * and on its turbojet (the same doc, section 7). 29 is the 3D aircraft of
  * the flight model lane, the Extra 300 3D under a new id, 14 staying
  * reserved (docs/FLIGHTMODEL.md). 30 is E-flite's Night Timber X 1.2m
- * (docs/NIGHTTIMBER-STAGE1.md). */
-#define SIM_AIRFRAME_COUNT 31
+ * (docs/NIGHTTIMBER-STAGE1.md). 31 is the owner's balsa C-130 Hercules of
+ * 2026-10-08 (docs/HERCULES-CONTRACT.md). */
+#define SIM_AIRFRAME_COUNT 32
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -572,7 +574,6 @@ typedef struct FixedWingParams {
                          * which is a prop turning clockwise seen from behind.
                          * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
-  double duty_min;
   /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
   double stab_bank_max;
   double stab_pitch_max;
@@ -1002,6 +1003,17 @@ typedef struct FixedWingParams {
   double tail_deda;
   double tail_cn;
   double rot_k[3];
+  /*
+   * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
+   * open in flight, sim_wing_set_door. door_time is their travel each way,
+   * s; cd_door the drag they add fully open, on the wing's area; cm_door
+   * the pitching moment they add, on its area and chord, nose up positive.
+   * Both go with how far open they are. Zero door_time is an aircraft
+   * without, and then nothing is read.
+   */
+  double door_time;
+  double cd_door;
+  double cm_door;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -1022,6 +1034,7 @@ extern const FixedWingParams FW_STRIKER_PROP;
 extern const FixedWingParams FW_STRIKER_JET;
 extern const FixedWingParams FW_EXTRA3D1308;
 extern const FixedWingParams FW_NIGHTTIMBER1200;
+extern const FixedWingParams FW_HERCULES3077;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_TIGERMOTH1803;
@@ -1136,6 +1149,13 @@ double plant_wing_gear(void);
 int plant_wing_gear_selected(void);
 int plant_wing_gear_down(void);
 void plant_wing_gear_reset(void);
+/* The cargo doors (FixedWingParams.door_time): selected open (1) or shut
+ * (0); where they are, 0 shut to 1 open. A reset and an airframe change
+ * shut them. */
+int plant_wing_set_door(int open);
+double plant_wing_door(void);
+int plant_wing_door_selected(void);
+void plant_wing_door_reset(void);
 
 /*
  * WATER, src/native/water.c: the bodies of water a host declares, still

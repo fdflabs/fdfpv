@@ -124,6 +124,8 @@ const COX_REVIEW = 'https://www.coxengines.ca/public/files/review.pdf';
 const SAM_RULES = 'https://www.antiquemodeler.org/images/Rulebook/2025%20Final%20-%20Jan%2017%202025.pdf';
 const MENON = 'https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content';
 const APC = 'https://www.apcprop.com/files/PER3_';
+const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
+const NIGHTTIMBER_PAGE = 'https://www.horizonhobby.com/product/night-timber-x-1.2m-pnp/EFL13875.html';
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const OS_FX_MANUAL = 'https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf';
 const RCU_61FX = 'https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-61-fx-engines.html';
@@ -188,9 +190,17 @@ export const TABLE = {
   },
   uglystik1567: { simId: 19, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 17.33, flightTime: null },
   tigermoth1803: { simId: 23, massKg: 4.6493, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 14.41, flightTime: null },
+  nighttimber1200: {
+    simId: 30, massKg: 1.698, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 13,
+    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 4, note: "E-flite's manual timer, '4 minutes' on the 4S 2200", source: NIGHTTIMBER_MANUAL },
+  },
   extra3d1308: {
     simId: 29, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
     flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
+  },
+  hercules3077: {
+    simId: 31, massKg: 6.728, cells: 3, rCell: 0.0015, propIn: 12, cruiseMs: 15.46,
+    flightTime: null,
   },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
@@ -675,6 +685,48 @@ const EXTRA = [
   },
 ];
 
+/* The Night Timber X 1.2m, docs/NIGHTTIMBER-STAGE1.md: E-flite's BL10
+ * 900 kV on the 13 x 4 and the Avian 60 A, 4S or 3S 2200 (the manual).
+ * The thrust and current are ESTIMATED, the motor against APC's 13 x 4E
+ * (scripts/nighttimber-derive.js); the 3S option scales them as the
+ * Extra's does. The pack sits to the manual's CG. */
+const NIGHTTIMBER = [
+  {
+    id: 'stock', name: 'power.nighttimber.stock', kind: 'electric', voice: 'wing',
+    kv: 900, propIn: 13, pitchIn: 4, blades: 2,
+    thrustN: 25.93, currentA: 37.4, rpmNoLoad: 13320, pitchSpeedMs: 19.17, lvcV: 3.0,
+    massKg: 1.698, cgShiftM: 0, packs: [TIMBER_4S[0], TIMBER_4S[1]], pack: '4s2200',
+    source: [NIGHTTIMBER_MANUAL, NIGHTTIMBER_PAGE, `${APC}13x4E.dat`],
+  },
+  {
+    id: '3s', name: 'power.nighttimber.3s', kind: 'electric', voice: 'wing',
+    kv: 900, propIn: 13, pitchIn: 4, blades: 2,
+    thrustN: 25.93 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 37.4 * (11.1 / 14.8) * (11.1 / 14.8),
+    rpmNoLoad: 900 * 11.1, pitchSpeedMs: 19.17 * (11.1 / 14.8), lvcV: 3.0,
+    massKg: 1.698 - 0.270 + 0.16556, cgShiftM: 0, packs: TIMBER_3S, pack: '3s2200',
+    source: [NIGHTTIMBER_MANUAL, NIGHTTIMBER_PAGE],
+  },
+];
+
+/* The Hercules 3077, docs/HERCULES-STAGE1.md: AeroTetris names no power
+ * system. Four E-flite Power 25s, 870 kV, on 12 x 8Es and 40 A ESCs, each
+ * on its own 3S 5000, as Paschaloudis's 11 ft C-130 flies four packs
+ * (Model Airplane News); the plant takes the four packs as one 3S of four
+ * times the charge. The thrust and current are ESTIMATED, four motors
+ * against APC's 12 x 8E (scripts/hercules-derive.js). The packs sit on
+ * the cargo floor at the kit's CG. */
+const HERCULES_PACKS = [
+  lipo('3s5000x4', 3, 20000, 1640, 'https://www.modelairplanenews.com/video-electric-11-foot-c-130/'),
+];
+const HERCULES = [
+  {
+    id: 'stock', name: 'power.hercules.stock', kind: 'electric', voice: 'wing',
+    kv: 870, propIn: 12, pitchIn: 8, blades: 2,
+    thrustN: 81.30, currentA: 147.1, rpmNoLoad: 9657, pitchSpeedMs: 27.80, lvcV: 3.0,
+    massKg: 6.728, cgShiftM: 0, packs: HERCULES_PACKS, pack: '3s5000x4',
+    source: ['https://www.horizonhobby.com/product/power-25-brushless-outrunner-motor-870kv/EFLM4025A.html', 'https://aerotetris.com/models/c130-3077.php', 'https://www.apcprop.com/files/PER3_12x8E.dat'],
+  },
+];
 const TIGER_TANKS = [
   tank('355cc', 355, 355.0e-6, 355 * FUEL_G_CC, GP_TIGER),
 ];
@@ -718,6 +770,8 @@ export const POWER = {
   uglystik1567: STIK,
   tigermoth1803: TIGER,
   extra3d1308: EXTRA,
+  nighttimber1200: NIGHTTIMBER,
+  hercules3077: HERCULES,
   f16878: F16,
   p51d1450: P51,
   zagi1219: ZAGI,

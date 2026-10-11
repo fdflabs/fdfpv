@@ -48,6 +48,7 @@
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { addNavLights } from './navlights.js';
+import { setWorldNight } from './worldlight.js';
 import { dressLivery, liveryFor } from './livery.js';
 import { layerOutline, paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
@@ -590,6 +591,9 @@ export function createCarouselStage(renderer) {
     /* The kit's LED pattern and strobes previewed on the stand, on the
      * page's clock (only the flight's own needs the flight clock). */
     if (m.craft.group.userData.setLights) {
+      /* The hangar is indoors and lit: a factory light shows here only
+       * switched on. */
+      setWorldNight(false);
       m.craft.group.userData.setLights(t0, 0.5, 1);
     }
     for (const other of models.values()) {
