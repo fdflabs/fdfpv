@@ -106,8 +106,23 @@ for (let k = 0; k < TROPHY_ROWS; k += 1) {
 /* A first's trophy colour, linear, by its kind (src/game/progress.js
  * firstsOf keys): a mission won gold, a star silver, an aircraft's
  * milestone bronze, a lesson passed steel blue. */
-const TROPHY_COLOUR = { win: [0.62, 0.42, 0.1], star: [0.5, 0.52, 0.55], aircraft: [0.4, 0.2, 0.08], lesson: [0.12, 0.22, 0.4] };
+const TROPHY_COLOUR = {
+  win: [0.62, 0.42, 0.1],
+  star: [0.5, 0.52, 0.55],
+  aircraft: [0.4, 0.2, 0.08],
+  lesson: [0.12, 0.22, 0.4],
+  /* Flight Club medals (src/game/medals.js), brighter than the firsts'
+   * metals so a medal reads as one beside a mission's cup. */
+  gold: [0.85, 0.6, 0.12],
+  silver: [0.72, 0.74, 0.78],
+  bronze: [0.55, 0.28, 0.1],
+};
+/* A trophy's kind from its key: a first's (progress.js firstsOf), or
+ * `medal:<course>:<step>` for a Flight Club medal. */
 export function trophyKind(key) {
+  if (key.startsWith('medal:')) {
+    return key.slice(key.lastIndexOf(':') + 1);
+  }
   if (key.startsWith('mission:')) {
     return key.endsWith(':win') ? 'win' : 'star';
   }

@@ -18,9 +18,10 @@ Also in this lane, before the four: the hangar's trophy wall and TV
   a small cup for a passed lesson. Empty slots stay empty. Standing at it,
   E opens the hangar's Challenges tab, which lists them.
 - Data: read only, from `ui.progress.state.firsts`. Nothing stored.
-- Not: Flight Club medals. Brief said they are on main; on origin/main at
-  cd3a666d there is no `medals` key in progress.js or anywhere in src, so
-  they join the wall when the Flight Club lane lands them.
+- Flight Club medals (progress `medals`, src/game/medals.js, since #711)
+  are trophies too, ahead of the firsts: gold, silver and bronze each in
+  its own bright metal, best first. A visit (docs/HANGAR-VISITS.md)
+  carries them in the same list.
 
 ## 0b. TV
 
