@@ -1232,7 +1232,7 @@ if (!existsSync(wasmPath)) {
     return Math.sign(rad) * hi;
   }
 
-  async function flyCircle(field) {
+  async function flyCircle(field, exitMs = 0) {
     const f = await rig(field);
     const mod = await loadSim(wasmBytes);
     mod.init(diffText);
@@ -1275,8 +1275,9 @@ if (!existsSync(wasmPath)) {
         lineMs += 1;
       }
       /* Out along the line until the rail is behind the detector's reach
-       * for a bar (obstacles.js REACH, 14 m), so the loop is judged whole. */
-      if (phase === 'out' && st[1] - LOOP_C.x > 16) {
+       * for a bar (obstacles.js REACH, 14 m), so the loop is judged whole,
+       * or for exitMs when the caller flies on from there itself. */
+      if (phase === 'out' && (exitMs > 0 ? lineMs > exitMs : st[1] - LOOP_C.x > 16)) {
         break;
       }
       if (ms % LOOP_EVERY_MS === 0 && seen.length > LOOP_LAG_MS) {
@@ -1369,6 +1370,18 @@ if (!existsSync(wasmPath)) {
   check('a flown powerloop around a real rail is a Powerloop', loopNames === 'Powerloop');
   note(`rail at y ${rail.y.toFixed(1)} z ${rail.z.toFixed(1)}, radius off by ${rms.toFixed(2)} m rms, `
     + `${worst.toFixed(2)} m at worst, wound ${wound.toFixed(2)} turns, named "${loopNames || 'nothing'}"`);
+  {
+    /* Out of the loop 9 m past the rail and straight up, still inside the
+     * rail's reach, then away: the climb sweeps an angle round the rail and
+     * crosses its height, which once made the lap one and a half and named
+     * the loop a 3/4 Flip. */
+    const climb = await flyCircle(railField, 900);
+    climb.f.hold(700, 0.5);
+    climb.f.hold(4000, 0.3);
+    const climbNames = names(climb.f.done());
+    check('a flown powerloop with a climb out past the rail is still a Powerloop', climbNames === 'Powerloop');
+    note(`climbed out, named "${climbNames || 'nothing'}"`);
+  }
 }
 
 console.log(failures === 0 ? '\nall passed' : `\n${failures} FAILED`);
