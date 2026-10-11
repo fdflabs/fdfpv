@@ -92,5 +92,19 @@ check('at the room\'s end: the scorer finished, done sent once with the summary'
   && score.over() && d.summary.total === sent.at(-1).total && run.frame(wall + 999, 11000) === d && sent.filter((m) => m.op === 'done').length === 1);
 check('totals the room sees never go down', sent.every((m, i) => i === 0 || m.total >= sent[i - 1].total));
 
+/* A fixed wing's judged figure goes to the room with its grade. */
+{
+  const fig = new FreestyleScore({ timed: false });
+  const out = [];
+  const r = createJamRun(fig, 10000, (m) => out.push(m));
+  r.frame(0, 0);
+  fig.land({ name: 'fig:loop', figure: 'loop', grade: 8.5, execution: 'CLEAN', endMs: 100 });
+  fig.tick(5000);
+  r.frame(SEND_MS + 1, 5000);
+  const m = out.at(-1);
+  check('a judged figure is sent with its grade, in a shape the room takes', m.last && m.last.name === 'fig:loop' && m.last.grade === 8.5
+    && m.last.points === 170 && cleanNumbers(m) !== null && cleanNumbers(m).last.grade === 8.5, JSON.stringify(m.last));
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

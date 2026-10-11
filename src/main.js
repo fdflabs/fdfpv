@@ -220,6 +220,7 @@ import { LINEUP_S } from './ui/hangarwalk.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
+import { MEDAL_STEPS } from './game/medals.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { retiredMap } from './maps/retired.js';
@@ -2399,7 +2400,15 @@ export async function boot({
       walkRoom.graphics = graphics;
       walkRoom.walk = ui.walk;
       walkRoom.craftKey = null;
-      if (visit) {
+      if (ui.walk.roomLineup) {
+        /* This pilot's own aircraft as the shell dresses it, the others'
+         * from their room profiles as a visit's are. */
+        walkRoom.view.setLineup(ui.walk.roomLineup.map((e) => (e.own
+          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false }), e.airframe), e.airframe)
+          : visitCraft(e))));
+        walkRoom.view.setCraft(null);
+        walkRoom.craftKey = 'lineup';
+      } else if (visit) {
         walkRoom.view.setCraft(visitCraft(visit));
         walkRoom.craftKey = `visit:${visit.callsign}`;
       } else {
@@ -2409,14 +2418,14 @@ export async function boot({
     const id = ui.settings.airframe;
     const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
     walkRoom.hangarWasOpen = ui.hangar.isOpen;
-    if (!visit && (walkRoom.craftKey !== id || shut)) {
+    if (!visit && !ui.walk.roomLineup && (walkRoom.craftKey !== id || shut)) {
       walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
       walkRoom.craftKey = id;
     }
     /* The trophy wall: every first paid, in key order so a wall reads the
      * same each visit (src/game/progress.js firsts). */
-    const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
-    walkRoom.view.setTrophies(visit ? [...visit.firsts].sort() : Object.keys(firsts).filter((k) => firsts[k]).sort());
+    const state = ui.progress ? ui.progress.state : {};
+    walkRoom.view.setTrophies(visit ? visit.firsts : trophyKeys(state.firsts, state.medals));
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
@@ -2488,6 +2497,17 @@ export async function boot({
     if (t >= TURNTABLE_S && tt.rec.state === 'recording') {
       tt.rec.stop();
     }
+  }
+
+  /* The trophy wall's keys: medals first, gold before silver before
+   * bronze (src/game/medals.js), then every first paid, each in key order
+   * so a wall reads the same each visit. */
+  function trophyKeys(firsts = {}, medals = {}) {
+    const rank = (step) => MEDAL_STEPS.length - MEDAL_STEPS.indexOf(step);
+    const won = Object.entries(medals || {}).filter(([, m]) => MEDAL_STEPS.includes(m))
+      .sort(([a, ma], [b, mb]) => rank(ma) - rank(mb) || (a < b ? -1 : 1))
+      .map(([course, m]) => `medal:${course}:${m}`);
+    return [...won, ...Object.keys(firsts || {}).filter((k) => firsts[k]).sort()];
   }
 
   /* A visited pilot's aircraft in their own paint and parts, normalised
@@ -7320,6 +7340,17 @@ export async function boot({
     return { value: '', note: str('friends.row_off') };
   };
 
+  /* Who stands in the room's lineup (src/ui/hangarwalk.js): this pilot
+   * first, then every other seat in the room, from their profiles. */
+  ui.roomLineupList = () => {
+    if (roomLinkState.state().phase !== 'open') {
+      return [];
+    }
+    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true };
+    const others = [...roomPeers.values()].filter((p) => p.profile && p.profile.airframe)
+      .map((p) => ({ name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts }));
+    return [own, ...others];
+  };
   ui.friendsRows = () => {
     const st = roomLinkState.state();
     const pick = namePick();
@@ -19170,7 +19201,7 @@ export async function boot({
   /* The exploded part at client pixels on the hangar's model, for a check. */
   window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
   window.__walkStats = () => (ui.walk ? {
-    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
+    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, lineup: ui.walk.roomLineup ? ui.walk.roomLineup.map((e) => e.airframe) : null, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
@@ -20599,6 +20630,7 @@ export async function boot({
     enter: () => {
       mode = 'replay';
     },
+    exitLabel: () => (tvReturn ? str('replay.back_to_hangar') : null),
     exit: () => {
       /* A replay the hangar's TV opened goes back to the hangar. */
       if (tvReturn) {

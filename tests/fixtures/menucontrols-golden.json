@@ -25,7 +25,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -53,7 +53,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -83,7 +83,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -124,9 +124,9 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {
-       "wing-acro": {
+       "wing-stab": {
         "mode": "expert"
        }
       }
@@ -135,12 +135,12 @@
     }
    },
    "log": [
-    "pidsPanel.paint null Acro is loading.",
-    "pidsPanel.paint null Acro is loading.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, as it ships. Read back from the module; the notch is stock 4.5.1.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro through your sliders. Read back from the module; the notch is stock 4.5.1.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, PIDs set by hand. Read back from the module.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, as it ships. Read back from the module; the notch is stock 4.5.1.",
+    "pidsPanel.paint null Stabilised is loading.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, as it ships. Read back from the module; the notch is stock 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, as it ships. Read back from the module; the notch is stock 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised through your sliders. Read back from the module; the notch is stock 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, PIDs set by hand. Read back from the module.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, as it ships. Read back from the module; the notch is stock 4.5.1.",
     "renderMenu"
    ]
   },
@@ -1993,7 +1993,7 @@
         "r": 1
        },
        "airframe": "quad",
-       "tune": "wing-acro",
+       "tune": "wing-stab",
        "pids": {}
       },
       "active": "<body>"
@@ -2275,7 +2275,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -2311,7 +2311,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -2340,7 +2340,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -2430,7 +2430,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<input.row-num.row-textfield>"
@@ -2461,7 +2461,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<input.row-num.row-textfield>"
@@ -2492,7 +2492,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<input.row-num.row-textfield>"
@@ -2660,7 +2660,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "air": true
      },
@@ -2674,20 +2674,20 @@
     "> click  <button.sw-seg \"On\">",
     "markBars 2",
     "it.adjust 1",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":true}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":true}",
     "< click  stopped",
     "it.adjust -1",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":false}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":false}",
     "it.adjust 1",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":true}",
     "renderMenu",
     "refreshBest"
    ]
@@ -2760,7 +2760,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "mode": "h"
      },
@@ -2774,11 +2774,11 @@
     "> click  <button.sw-seg \"Horizon\">",
     "markBars 2",
     "it.pick h",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"mode\":\"h\"}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"mode\":\"h\"}",
     "< click  stopped",
     "> click  <button.sw-seg \"Acro\">",
     "markBars 2",
@@ -2854,7 +2854,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -2996,7 +2996,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -3025,7 +3025,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -3058,7 +3058,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -3114,11 +3114,11 @@
     "< focus  ",
     "> keydown ArrowDown <input.row-num>",
     "set 700",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":700}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":700}",
     "move 1",
     "< keydown prevented stopped",
     "> keydown ArrowUp <input.row-num>",
@@ -3131,11 +3131,11 @@
     "< keydown  ",
     "> blur  <input.row-num>",
     "set 999",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":999}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":999}",
     "< blur  ",
     "> blur  <input.row-num>",
     "< blur  ",
@@ -3143,29 +3143,29 @@
     "< mousedown prevented ",
     "> click  <button.step \"▲\">",
     "set 1000",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "< click  stopped",
     "> mousedown  <button.step \"▼\">",
     "< mousedown prevented ",
     "> click  <button.step \"▼\">",
     "set 669",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":669}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":669}",
     "< click  stopped",
     "> click  <button.step \"▼\">",
     "set 0",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "< click  stopped"
    ]
   },
@@ -3262,7 +3262,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 90
      },
@@ -3292,7 +3292,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 90
      },
@@ -3309,11 +3309,11 @@
     "< input  ",
     "> change  <input.row-range>",
     "set 150",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":150}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":150}",
     "< change  ",
     "> change  <input.row-range>",
     "< change  ",
@@ -3330,11 +3330,11 @@
     "< focus  ",
     "> keydown Enter <input.row-num.row-range-num>",
     "set 120",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":120}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":120}",
     "< keydown prevented stopped",
     "> keydown Escape <input.row-num.row-range-num>",
     "blur <input.row-num.row-range-num>",
@@ -3352,11 +3352,11 @@
     "blur <input.row-num.row-range-num>",
     "> blur  <input.row-num.row-range-num>",
     "set 90",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":90}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":90}",
     "< blur  ",
     "> blur  <input.row-num.row-range-num>",
     "< blur  "
@@ -3388,7 +3388,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -3408,37 +3408,37 @@
     "renderMenu",
     "renderMenu",
     "set 671",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "set 671",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "set 4",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":4}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":4}",
     "set 1000",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "set 0",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
     "refreshBest"
    ]
@@ -3532,7 +3532,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -3608,7 +3608,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -3683,7 +3683,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -3712,7 +3712,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -3741,7 +3741,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -3770,7 +3770,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -3799,7 +3799,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -3827,11 +3827,11 @@
     "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
     "sound move",
     "it.pick 3",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "sound select",
     "markBars 6",
     "scrollIntoView <row3> {\"block\":\"nearest\"}",
@@ -3841,11 +3841,11 @@
     "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}",
     "> click  <button.drop-opt \"Gamma\">",
     "it.pick 3",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "< click  stopped",
     "markBars 6",
     "scrollIntoView <row1> {\"block\":\"nearest\"}",
@@ -3876,7 +3876,7 @@
       "r": 1
      },
      "airframe": "quad",
-     "tune": "wing-acro",
+     "tune": "wing-stab",
      "pids": {},
      "p": "quiet"
     },
@@ -3884,13 +3884,13 @@
    },
    "log": [
     "it.pick 7",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"p\":7}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"p\":7}",
     "it.pick quiet",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":\"quiet\"}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"p\":\"quiet\"}",
     "renderMenu",
     "refreshBest"
    ]
@@ -3922,7 +3922,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -3950,7 +3950,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -3980,7 +3980,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -4021,9 +4021,9 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {
-       "wing-acro": {
+       "wing-stab": {
         "mode": "expert"
        }
       }
@@ -4032,12 +4032,12 @@
     }
    },
    "log": [
-    "pidsPanel.paint null Acro se está cargando.",
-    "pidsPanel.paint null Acro se está cargando.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, tal como viene. Leído desde el módulo; el notch es el de fábrica de 4.5.1.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro a través de tus sliders. Leído de vuelta desde el módulo; la muesca es el stock 4.5.1.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, PIDs fijados a mano. Leídos de vuelta desde el módulo.",
-    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, tal como viene. Leído desde el módulo; el notch es el de fábrica de 4.5.1.",
+    "pidsPanel.paint null Stabilised se está cargando.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, tal como viene. Leído desde el módulo; el notch es el de fábrica de 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, tal como viene. Leído desde el módulo; el notch es el de fábrica de 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised a través de tus sliders. Leído de vuelta desde el módulo; la muesca es el stock 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, PIDs fijados a mano. Leídos de vuelta desde el módulo.",
+    "pidsPanel.paint {\"tune\":\"wing-stab\",\"roll\":[1]} Stabilised, tal como viene. Leído desde el módulo; el notch es el de fábrica de 4.5.1.",
     "renderMenu"
    ]
   },
@@ -5890,7 +5890,7 @@
         "r": 1
        },
        "airframe": "quad",
-       "tune": "wing-acro",
+       "tune": "wing-stab",
        "pids": {}
       },
       "active": "<body>"
@@ -6172,7 +6172,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -6208,7 +6208,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -6237,7 +6237,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -6327,7 +6327,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<input.row-num.row-textfield>"
@@ -6358,7 +6358,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<input.row-num.row-textfield>"
@@ -6389,7 +6389,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<input.row-num.row-textfield>"
@@ -6557,7 +6557,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "air": true
      },
@@ -6571,20 +6571,20 @@
     "> click  <button.sw-seg \"On\">",
     "markBars 2",
     "it.adjust 1",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":true}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":true}",
     "< click  stopped",
     "it.adjust -1",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":false}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":false}",
     "it.adjust 1",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":true}",
     "renderMenu",
     "refreshBest"
    ]
@@ -6657,7 +6657,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "mode": "h"
      },
@@ -6671,11 +6671,11 @@
     "> click  <button.sw-seg \"Horizon\">",
     "markBars 2",
     "it.pick h",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"mode\":\"h\"}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"mode\":\"h\"}",
     "< click  stopped",
     "> click  <button.sw-seg \"Acro\">",
     "markBars 2",
@@ -6751,7 +6751,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {}
      },
      "active": "<body>"
@@ -6893,7 +6893,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -6922,7 +6922,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -6955,7 +6955,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -7011,11 +7011,11 @@
     "< focus  ",
     "> keydown ArrowDown <input.row-num>",
     "set 700",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":700}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":700}",
     "move 1",
     "< keydown prevented stopped",
     "> keydown ArrowUp <input.row-num>",
@@ -7028,11 +7028,11 @@
     "< keydown  ",
     "> blur  <input.row-num>",
     "set 999",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":999}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":999}",
     "< blur  ",
     "> blur  <input.row-num>",
     "< blur  ",
@@ -7040,29 +7040,29 @@
     "< mousedown prevented ",
     "> click  <button.step \"▲\">",
     "set 1000",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "< click  stopped",
     "> mousedown  <button.step \"▼\">",
     "< mousedown prevented ",
     "> click  <button.step \"▼\">",
     "set 669",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":669}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":669}",
     "< click  stopped",
     "> click  <button.step \"▼\">",
     "set 0",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "< click  stopped"
    ]
   },
@@ -7159,7 +7159,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 90
      },
@@ -7189,7 +7189,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 90
      },
@@ -7206,11 +7206,11 @@
     "< input  ",
     "> change  <input.row-range>",
     "set 150",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":150}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":150}",
     "< change  ",
     "> change  <input.row-range>",
     "< change  ",
@@ -7227,11 +7227,11 @@
     "< focus  ",
     "> keydown Enter <input.row-num.row-range-num>",
     "set 120",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":120}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":120}",
     "< keydown prevented stopped",
     "> keydown Escape <input.row-num.row-range-num>",
     "blur <input.row-num.row-range-num>",
@@ -7249,11 +7249,11 @@
     "blur <input.row-num.row-range-num>",
     "> blur  <input.row-num.row-range-num>",
     "set 90",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":90}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":90}",
     "< blur  ",
     "> blur  <input.row-num.row-range-num>",
     "< blur  "
@@ -7285,7 +7285,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "rate": 0
      },
@@ -7305,37 +7305,37 @@
     "renderMenu",
     "renderMenu",
     "set 671",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "set 671",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":671}",
     "set 4",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":4}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":4}",
     "set 1000",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":1000}",
     "set 0",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"rate\":0}",
     "renderMenu",
     "refreshBest"
    ]
@@ -7429,7 +7429,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -7505,7 +7505,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -7580,7 +7580,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -7609,7 +7609,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -7638,7 +7638,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -7667,7 +7667,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -7696,7 +7696,7 @@
        "r": 1
       },
       "airframe": "quad",
-      "tune": "wing-acro",
+      "tune": "wing-stab",
       "pids": {},
       "choice": 3
      },
@@ -7724,11 +7724,11 @@
     "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
     "sound move",
     "it.pick 3",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "sound select",
     "markBars 6",
     "scrollIntoView <row3> {\"block\":\"nearest\"}",
@@ -7738,11 +7738,11 @@
     "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}",
     "> click  <button.drop-opt \"Gamma\">",
     "it.pick 3",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"choice\":3}",
     "< click  stopped",
     "markBars 6",
     "scrollIntoView <row1> {\"block\":\"nearest\"}",
@@ -7773,7 +7773,7 @@
       "r": 1
      },
      "airframe": "quad",
-     "tune": "wing-acro",
+     "tune": "wing-stab",
      "pids": {},
      "p": "quiet"
     },
@@ -7781,13 +7781,13 @@
    },
    "log": [
     "it.pick 7",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"p\":7}",
     "renderMenu",
     "refreshBest",
     "sound adjust",
-    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"p\":7}",
     "it.pick quiet",
-    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":\"quiet\"}",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"p\":\"quiet\"}",
     "renderMenu",
     "refreshBest"
    ]

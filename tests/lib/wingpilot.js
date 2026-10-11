@@ -2177,7 +2177,7 @@ export function capGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
 /* The CAP's take off, the Extra's hands: the elevator a little up to keep
  * the tailwheel steering, eased so the tail comes up past 6 m/s, and the
  * nose raised to 8 deg at 1.2 times the stall (cap580:derive). */
-export function capTakeoffSticks(s, { vRotate = 12.47 } = {}) {
+export function capTakeoffSticks(s, { vRotate = 12.75 } = {}) {
   const { pitch, bank } = attitude(s);
   const v = Math.hypot(s[4], s[5], s[6]);
   const qAero = -s[12];

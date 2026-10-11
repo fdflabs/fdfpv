@@ -4,7 +4,7 @@
     "id": "cap1702",
     "simId": 32,
     "fixedWing": true,
-    "stall": 10.39,
+    "stall": 10.62,
     "topSpeed": 33.09,
     "gear": {
       "restHeight": 0.313
@@ -282,7 +282,7 @@
       "id": "cap-as3x",
       "airframe": "cap1702",
       "name": "AS3X",
-      "note": "A Spektrum AR637T receiver fitted by the builder, its AS3X rate damper on: the sticks are the surfaces at the 3D rates, and the gyro damps the bumps and the torque's kicks; it fades out as the stick leaves centre. Nothing levels it and nothing caps a rate.",
+      "note": "A Spektrum AR637T receiver fitted by the builder, its AS3X on: the sticks are the surfaces at the 3D rates; centred, the gyro holds the attitude you left it in, against the gusts and the torque's kicks; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.",
       "wingStab": 3
     },
     {

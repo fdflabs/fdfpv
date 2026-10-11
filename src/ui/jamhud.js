@@ -28,7 +28,7 @@
 
 import { str, plural } from '../strings/index.js';
 import { formatScore } from '../game/score.js';
-import { trickTitle } from './scorehud.js';
+import { gradeText, trickTitle } from './scorehud.js';
 
 /* m:ss of ms, never below zero. */
 function clock(ms) {
@@ -55,7 +55,7 @@ export function jamHudView(rj, now, nameOf, own) {
   const last = live && live.last;
   return {
     title: str('jam.hud_title', { round: str('jam.hud_round', { n: v.round, of: v.rounds }), what: title }),
-    ...(v.state === 'run' && last ? { chip: str('jam.hud_last', { name: trickTitle(last.name), points: formatScore(last.points) }) } : {}),
+    ...(v.state === 'run' && last ? { chip: str('jam.hud_last', { name: typeof last.grade === 'number' ? `${trickTitle(last.name)} ${gradeText(last.grade)}` : trickTitle(last.name), points: formatScore(last.points) }) } : {}),
     rows: [
       ...(v.state === 'run' ? [{
         place: '', name: str('jam.hud_live', { name }), value: formatScore(live ? live.total : 0), me: mine,

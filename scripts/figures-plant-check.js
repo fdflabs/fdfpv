@@ -53,8 +53,8 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 /* The loop's pull is the person's for the aircraft: a round IMAC loop is
  * flown short of the wing's stall. On the Extra 0.55; on the CAP, whose
  * elevator has 50 deg of throw over a tail volume half again the Extra's,
- * 0.55 takes the wing to 15 deg of alpha, past its 11 (CLmax / CLalpha,
- * npm run cap580:derive), and 0.35 holds it at 9. */
+ * 0.55 takes the wing to 15 deg of alpha, past its 11.7 (CL max over the
+ * wing's slope, npm run cap580:derive), and 0.35 holds it at 9. */
 const PLANES = { extra: { sim: EXTRA_AIRFRAME, name: 'Extra', loopPull: 0.55 }, cap: { sim: CAP_AIRFRAME, name: 'CAP', loopPull: 0.35 } };
 const plane = PLANES[process.argv[2] || 'extra'];
 if (!plane) {

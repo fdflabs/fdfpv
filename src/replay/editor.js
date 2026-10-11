@@ -1451,7 +1451,10 @@ export function createEditor(api) {
   }
 
   return {
-    open(clipName) {
+    /* exitLabel: the way out's words when the replay goes back somewhere
+     * other than the flight (the hangar's TV), else Back to flight. */
+    open(clipName, exitLabel = null) {
+      closeBtn.firstChild.textContent = exitLabel || str('replay.back_to_flight');
       root.hidden = false;
       prompt.hidden = true;
       name.textContent = clipName;

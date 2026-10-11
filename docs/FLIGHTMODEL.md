@@ -1001,6 +1001,68 @@ a heading term would do, and Spektrum's receivers carry one ("Heading",
 off by default on the AS3000). Whether the Extra's factory set up (an
 AR636) has it on, and how much, is not published; it is left out until
 that set up is sourced.
+
+## The Extra's gyro: a heading lock
+
+The owner (2026-10-08): "you dont need to be tied to specific receiver
+specs just assume you can use any electronics in there, but make the
+physics and behavior work". So mode 3, the Extra's default, is a heading
+lock gyro, the kind 3D aircraft and helicopter tails fly on, built as
+E-flite describes AS3X behaving (the Timber manual's AS3X column: stick
+neutral, "Aircraft will continue to fly at its present attitude"; small
+stick, it rolls or pitches slowly; full stick, rapidly):
+
+- Once an 11 ms servo frame (Spektrum's frame for digital servos; the
+  Extra's are digital) it reads the rates and writes each surface's
+  offset, held to the next frame.
+- A damper on the body's rate, as3x_k, and a heading term, as3x_kh, on
+  the rotation beyond what the stick asks: the stick times as3x_rate,
+  the airframe's own turn per stick, the larger of level at 16 m/s and
+  hanging on the prop, so the gyro never holds the stick to less than
+  the aircraft gives it. Centred it holds the attitude against the
+  torque and the gusts; held it turns at the rate asked.
+- Both fade as the stick leaves centre and are gone at 40 percent
+  (Spektrum's priority 160), so a full stick is Manual's.
+- The servos slew at 9.52 rad/s, in every mode: E-flite publishes no
+  speed for the Extra's 23 g digital servo (EFL11598); Hitec's D89MW, a
+  25 g digital servo of its class, is "0.11 sec @ 60 deg" at 6 V.
+- Gains from as3x:derive: the rate loop at its 6 dB margin at the top
+  speed against the frame's delay, k = pi / (4 M tau), 0.0508, 0.2369,
+  0.3611; the heading's corner a quarter of that loop's crossover, kh =
+  k pi / (16 tau), 0.9068, 4.2287, 6.4456; as3x_rate 6.529, -4.14, -4.775
+  rad/s per unit stick (as3x:derive on the spun up plant, each rate the
+  stick's run against the centred one, 2026-10-11). A 1 rad/s kick at 35 m/s settles on every axis
+  (as3x:derive checks it); at a 5.5 ms frame the same derivation's gains
+  oscillate in yaw against the servos' slew, so 11 it is.
+
+Considered and not built:
+- A pure attitude hold under 40 percent stick (the rotation itself
+  integrated, not the rotation beyond the stick's). It is the easiest
+  hover, 379 of 648 person-paced pilots, but it un-rolls a 35 deg bank
+  the pilot made with 35 percent stick (extra:stab's "not levelled"
+  gate, 35 to 1.5 deg), and no real gyro does that.
+- Heading off on yaw (Spektrum's advice for normal flight). The nose
+  in the hover is held on the elevator and the rudder alike, and the
+  yaw term is most of the gyro's help there; a heading lock on the
+  rudder makes a turn flown on the ailerons alone skid, as on every
+  heading lock aircraft, so the rudder goes in with the turn.
+
+Gated in extra:stab: a 1 rad/s kick on each axis with the sticks centred,
+hanging on the prop and level at 16 m/s, turns the Extra less in 0.5 s
+than in Manual (hanging: roll 7.7 against 24.0 deg, pitch 8.0 against
+63.2, yaw 0.1 against 8.1); full stick is Manual's rate within 2
+percent; a bank it is left in stays.
+
+The person-paced hover (hover:probe's limits, the video's technique, a
+slow torque roll, no hand trim; 648 pilots): Manual 72, the gyro 158,
+holding with a mean aileron of 0.12; in a 2 m/s breeze gusting 1 m/s
+RMS (ESTIMATED, the video's "wind pushes it around"), Manual 0, the gyro
+132. The owner's morning target is 70 percent of them; with real
+electronics on this physics it is 24. The
+pure attitude hold above is 58 percent. What separates them is the
+pilot model: it sees 0.2 s late and does not anticipate (analysis pass 2
+counts 96, 52 and 8 of its 336 at 0.12, 0.2 and 0.3 s), so a person
+practised on the aircraft does better than the grid.
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
@@ -1120,3 +1182,51 @@ the inner part of each panel, the ailerons outboard), so it makes the root
 stall first and keeps the tips, and the ailerons, flying: the mechanism
 the mix works by. Flaps over their own strips only is a stall model change
 in strip_stall, the 3D lane's code; it is proposed there, not made here.
+
+### Flaps over their strips (2026-10-11)
+
+Made. Each flapped table names its flaps' span, flap_eta, the inner and
+outer edge over the semispan, from its derivation's drawing (Timber 0.067
+to 0.430, scripts/timber-derive.js; P-51 0.079 to 0.579,
+scripts/p51-derive.js; Night Timber 0.156 to 0.532,
+scripts/nighttimber-derive.js). The wing's flap lift and CLmax increments
+(cl_df, clmax_df) stay the whole wing's, area weighted, as Raymer's S_f/S
+builds them (eq. 12.21); the stall strips now take them only where the
+flaps are, scaled up by the flapped share of the area, so the strip sum is
+the wing's. A strip under the flap gets its section's increment, more lift
+than CLmax added, and reaches its stall sooner, as a plain flap lowers the
+stall angle (DATCOM; Raymer sec. 12.6); a strip outside it stalls where it
+did with the flaps up. Flaps up nothing changes. Moments only: the wing's
+force is the centreline's, unchanged. `npm run flapstrip:check` (CI)
+gates it per strip through `sim_wing_strips`; with the flaps spread over
+the whole span again it fails (the P-51's tip stalls 1 deg sooner).
+
+## The Extra's stall from a measured section
+
+The owner found every firm pull stalling the Extra. Its stall was an
+estimate, CL max 0.95 at the stall angle CL max over the aircraft's lift
+slope, 11.6 deg, at every speed. Measured symmetric sections at these
+Reynolds numbers (Timmer, NACA 0018, Wind Engineering 32(6), 2008: CL max
+0.988 at 11.6 deg at 1.5e5 and 1.056 at 15.1 deg at 3e5; Sheldahl and
+Klimas's 0012 and 0015 at 3.6e5 agree, 0.96 at 11.5 and 1.06 at 13.6)
+stall later as the speed rises, and two things in the plant put the
+Extra's stall early:
+
+- The Reynolds number: two new table fields, stall_re, stall_clmax and
+  stall_peak, take the wing's CL max (0.9 of the section's, Raymer,
+  Aircraft Design, sec. 12.4) and the angle its lift peaks at (the
+  section's peak plus the induced angle CL / (pi A e)) from the data,
+  straight between 1.5e5 and 3e5 on the chord: 0.889 at 16.3 deg at the
+  stall's speed, 0.950 at 20.1 deg at 16 m/s.
+- The slope: the stall angle was CL max over cl_alpha, which is the wing
+  and the tail's (Nelson eq. 2.52, as on most tables). The tail does not
+  stall with the wing. cl_alpha_wing (here extra-derive's a_w, 4.390)
+  sets the wing's stall angle, and the tail's share of the slope lifts on
+  past it.
+
+Both are zero on every other table, which flies as it did; the same
+shortcut on every table is the next pull request's. E2, the stall speed,
+is re-derived on the stall's own CL max, 0.898 at 1.7e5: 8.54 m/s, band
+8.03 to 9.73 (was 8.31, 7.81 to 9.47, on the estimated 0.95); the plant
+reads 8.75. A half stick pull at 16 m/s now breaks at 15.2 deg (13.8
+before).

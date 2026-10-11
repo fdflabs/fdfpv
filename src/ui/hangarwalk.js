@@ -88,6 +88,9 @@ const ORBIT_RETURN = 1.5;
 function usable(ui) {
   const w = ui.walk;
   const s = stationNear(w.stations, w.pose);
+  if (w.roomLineup) {
+    return null;
+  }
   /* Visiting, nothing is used but the door, which goes home. */
   if (w.visit) {
     return s && s.id === 'door' ? { id: 'door', action: 'hangar-walk', label: str('walk.home') } : null;
@@ -136,6 +139,8 @@ export const walkMethods = {
       hub: tier === 'field' ? 'ops' : 'hangar',
       /* Another pilot's hangar, read only: the server's visit, or null. */
       visit,
+      /* The room's lineup: [{ name, airframe, look, parts, own }], or null. */
+      roomLineup: null,
       layout,
       room,
       occ: occupancy(room, layout),
@@ -226,8 +231,8 @@ export const walkMethods = {
   togglePhoto() {
     const w = this.walk;
     /* A turntable recording is seen through to its end; a visit takes no
-     * pictures of another pilot's hangar. */
-    if (!w || w.visit || (w.photo && w.photo.turntable)) {
+     * pictures of another pilot's hangar, nor the lineup. */
+    if (!w || w.visit || w.roomLineup || (w.photo && w.photo.turntable)) {
       return;
     }
     w.photo = w.photo ? null : { yaw: w.pose.heading + Math.PI, zoom: 1, shoot: false };
@@ -247,6 +252,33 @@ export const walkMethods = {
     }
   },
 
+  /*
+   * THE ROOM'S LINEUP: every pilot in the room the pilot is in, their
+   * aircraft side by side in their own paint in the airfield hangar, and
+   * their names in the card in the same order. main.js says who
+   * (roomLineupList); Back is the room screen again.
+   */
+  openRoomLineup() {
+    const list = this.roomLineupList ? this.roomLineupList() : [];
+    if (!list.length) {
+      return;
+    }
+    this.openWalk('main');
+    const w = this.walk;
+    w.tier = 'airfield';
+    w.room = ROOMS.airfield;
+    w.layout = LAYOUTS.airfield;
+    w.occ = occupancy(w.room, w.layout);
+    w.stations = [];
+    w.hub = null;
+    w.roomLineup = list;
+    this.walkPrompt.hidden = true;
+    this.walkLineupName.textContent = str('walk.lineup_room');
+    this.walkLineupFacts.textContent = list.map((e) => `${e.name}: ${airframeById(e.airframe).name}`).join('  ·  ');
+    this.walkLineup.hidden = false;
+    this.syncFrame();
+  },
+
   /* Let other pilots walk round this hangar, or stop; the switch is a
    * synced section the server reads (docs/HANGAR-VISITS.md). */
   toggleVisits() {
@@ -258,10 +290,11 @@ export const walkMethods = {
     this.syncFrame();
   },
 
-  /* Another pilot's hangar: their callsign asked for, the server asked,
-   * and the room opened read only, or why not. */
-  async visitHangar() {
-    const got = await this.askForm({
+  /* Another pilot's hangar: their callsign (given, from a pilot in the
+   * same room, or asked for), the server asked, and the room opened read
+   * only, or why not. */
+  async visitHangar(callsign = null) {
+    const got = callsign ? { callsign } : await this.askForm({
       title: str('walk.visit_title'),
       detail: str('walk.visit_detail'),
       confirmLabel: str('walk.visit_go'),
@@ -375,7 +408,7 @@ export const walkMethods = {
         return w.pose;
       }
     }
-    const input = overlay || w.photo || w.lineup ? { forward: 0, turn: 0 } : {
+    const input = overlay || w.photo || w.lineup || w.roomLineup ? { forward: 0, turn: 0 } : {
       forward: (has(FORWARD) || pad.up ? 1 : 0) - (has(BACKWARD) || pad.down ? 1 : 0),
       turn: (has(RIGHT) || pad.right ? 1 : 0) - (has(LEFT) || pad.left ? 1 : 0),
     };
@@ -383,8 +416,15 @@ export const walkMethods = {
     if (w.pose.moving) {
       w.orbit -= w.orbit * Math.min(1, ORBIT_RETURN * dt);
     }
-    if (!w.photo && !w.lineup) {
+    if (!w.photo && !w.lineup && !w.roomLineup) {
       renderPrompt(this);
+    }
+    /* The command bar offers the room's pilots by name: it is painted
+     * again when they come or go while the pilot walks. */
+    const room = this.roomLineupList ? this.roomLineupList().map((e) => e.name).join('|') : '';
+    if (room !== w.roomKey) {
+      w.roomKey = room;
+      this.syncFrame();
     }
     return w.pose;
   },

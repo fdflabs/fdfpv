@@ -32,6 +32,7 @@ import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import { levelOf } from '../game/progress.js';
 import { tierFor } from '../game/hangarroom.js';
+import { MEDAL_STEPS } from '../game/medals.js';
 
 const isRecord = (o) => Boolean(o) && typeof o === 'object' && !Array.isArray(o);
 const ID_RE = /^[a-z0-9_-]{1,40}$/;
@@ -46,7 +47,8 @@ export function visitsOpen(blob) {
 /*
  * The visit, or null when the hangar is closed: { callsign, tier,
  * airframe, look, parts, firsts }. look and parts are the seated
- * aircraft's own entries (null when it has none); firsts the keys only.
+ * aircraft's own entries (null when it has none); firsts the trophy
+ * wall's keys: medals as `medal:<course>:<step>`, then the firsts paid.
  */
 export function visitOf(blob, callsign) {
   if (!visitsOpen(blob)) {
@@ -63,7 +65,15 @@ export function visitOf(blob, callsign) {
     const e = blob[section][liveryKey(airframe)] ?? blob[section][airframe];
     return isRecord(e) ? JSON.parse(JSON.stringify(e)) : null;
   };
-  const firsts = isRecord(p.firsts) ? Object.keys(p.firsts).filter((k) => p.firsts[k] === true && k.length <= 80).slice(0, FIRSTS_MAX) : [];
+  /* The trophies: Flight Club medals as `medal:<course>:<step>`, gold
+   * first, then the firsts paid, keys only. */
+  const rank = (step) => MEDAL_STEPS.length - MEDAL_STEPS.indexOf(step);
+  const medals = isRecord(p.medals) ? Object.entries(p.medals)
+    .filter(([k, m]) => k.length <= 120 && MEDAL_STEPS.includes(m))
+    .sort(([a, ma], [b, mb]) => rank(ma) - rank(mb) || (a < b ? -1 : 1))
+    .map(([k, m]) => `medal:${k}:${m}`) : [];
+  const paid = isRecord(p.firsts) ? Object.keys(p.firsts).filter((k) => p.firsts[k] === true && k.length <= 80).sort() : [];
+  const firsts = [...medals, ...paid].slice(0, FIRSTS_MAX);
   return {
     callsign: String(callsign),
     tier: tierFor(levelOf(xp), p.unlockAll === true),

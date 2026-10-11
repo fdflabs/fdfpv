@@ -143,20 +143,36 @@ const fusVol = fusL * fusW * fusD * 0.6;
 const eta = 0.9;
 
 /*
- * The section and the drag, ESTIMATED by the Extra's rule
- * (docs/EXTRA-STAGE1.md): no maker publishes the model's section; the
+ * The section and the drag. No maker publishes the model's section; the
  * full size CAP 231's is the V16F, 16 percent (Lednicer), so a thick
- * symmetric section. XFOIL's NACA 0015 CLmax is 1.21 at 2e5 and 1.27 at
- * 5e5 (airfoiltools.com), 1.237 at this wing's 3e5 on log Re; the Extra
- * took 0.95 against XFOIL's 1.21 at its 2e5 (XFOIL overpredicts CLmax at
- * these Reynolds numbers), and the same ratio here gives 0.97. CD0 and e
- * are the Extra's class: spatted gear on carbon legs, open hinge gaps, a
- * thick wing, and the side force generators on the tips.
+ * symmetric section, and the stall is the Extra's measured one
+ * (docs/FLIGHTMODEL.md, "The Extra's stall from a measured section"):
+ * Timmer's NACA 0018 (Wind Engineering 32(6), 2008), CL max 0.988 at 11.6
+ * deg at Re 1.5e5 and 1.056 at 15.1 deg at 3e5, the wing's 0.9 of the
+ * section's (Raymer, Aircraft Design, sec. 12.4) and its peak the
+ * section's plus the induced angle CL / (pi A e), straight between the two
+ * Reynolds numbers on the mean chord as the plant takes them (stall_re),
+ * the stall angle on the wing's own slope (cl_alpha_wing). The CAP flies
+ * above 3e5 from 14 m/s, where the plant holds the 3e5 figures. CD0 and e
+ * are the Extra's class, ESTIMATED: spatted gear on carbon legs, open
+ * hinge gaps, a thick wing, and the side force generators on the tips.
  */
-const reMid = 1.3 * Math.sqrt(2 * W / (rho * S * 0.97)) * MAC / 1.5e-5;
-const xfoil = 1.21 + (1.27 - 1.21) * Math.log(reMid / 2e5) / Math.log(5e5 / 2e5);
-const CLmax = Number((xfoil * 0.95 / 1.21).toFixed(2));
 const CD0 = 0.045, e = 0.75, k = 1 / (Math.PI * e * AR);
+const AIR_MU = 1.789e-5; /* plant_wing.c's */
+const STALL_RE = [1.5e5, 3.0e5];
+const STALL_CLMAX = [0.9 * 0.988, 0.9 * 1.056];
+const STALL_PEAK = [11.6 / DEG + STALL_CLMAX[0] / (Math.PI * AR * e), 15.1 / DEG + STALL_CLMAX[1] / (Math.PI * AR * e)];
+const reOf = (V) => rho * V * MAC / AIR_MU;
+const clmaxAt = (V) => {
+  const re = reOf(V);
+  const x = re <= STALL_RE[0] ? 0 : (re >= STALL_RE[1] ? 1 : (re - STALL_RE[0]) / (STALL_RE[1] - STALL_RE[0]));
+  return STALL_CLMAX[0] + x * (STALL_CLMAX[1] - STALL_CLMAX[0]);
+};
+/* The stall's speed on the CL max at its own Reynolds number. */
+let VsRe = 10;
+for (let i = 0; i < 50; i += 1) VsRe = Math.sqrt(2 * W / (rho * S * clmaxAt(VsRe)));
+const reStall = reOf(VsRe);
+const CLmax = clmaxAt(VsRe);
 const blend = 3 / DEG;
 
 /*
@@ -545,7 +561,8 @@ const r = (x, n) => Number(x).toFixed(n);
 const deg = (x, n = 2) => `${r(x * DEG, n)} * WING_PI / 180.0`;
 const arr = (a, n) => `{ ${a.map((x) => r(x, n)).join(', ')} }`;
 export const FW = {
-  span: r(b, 4), area: r(S, 4), chord: r(c, 4), cl_alpha: r(CLa, 4), cl_max: r(CLmax, 2),
+  span: r(b, 4), area: r(S, 4), chord: r(c, 4), cl_alpha: r(CLa, 4), cl_max: r(CLmax, 4),
+  cl_alpha_wing: r(aw, 3), stall_re: '{ 1.5e5, 3.0e5 }', stall_clmax: arr(STALL_CLMAX, 4), stall_peak: arr(STALL_PEAK, 4),
   cd0: r(CD0, 3), k_induced: r(k, 5), cl_de: r(CLde, 4), cy_beta: r(CYb, 4), cy_dr: r(CYdr, 4),
   cl_beta: r(Clb, 4), cl_p: r(Clp, 4), cl_da: r(Clda, 4), cl_dr: r(Cldr, 4), cm_0: r(Cm0, 4),
   cm_alpha: r(Cma, 4), cm_q: r(Cmq, 3), cm_de: r(Cmde, 4), cn_beta: r(Cnb, 4), cn_r: r(Cnr, 4),
@@ -569,7 +586,7 @@ export const GEAR = {
   tail: [tailX, 0, tailZ - 0.005, tailR, kTail, cTail],
 };
 export const DERIVED = {
-  W, Ts, Vp, Vs, CLa, CLmax, hoverDuty, hoverBench, vClimb, pb2v, torqueRoll: torqueRoll * DEG, aileronRollNet: aileronRollNet * DEG,
+  W, Ts, Vp, Vs, CLa, aw, CLmax, hoverDuty, hoverBench, vClimb, pb2v, torqueRoll: torqueRoll * DEG, aileronRollNet: aileronRollNet * DEG,
   pitchAccHover, yawAccHover, restPitchDeg, cgHeight, tailShare, level75: level(0.75), top: level(1), ld: ld(14),
   harrier40: harrier(40), knife20: knifeEdge(20), takeoff: takeoff(), vRotate, ld15: ld(15),
 };
@@ -579,7 +596,7 @@ const J = (o, n = 3) => JSON.stringify(o, (kk, v) => (typeof v === 'number' ? +v
 const rows = [
   ['b, S sheet m2, S of the measured trapezoid, AR, W/S N/m2', `${f(b, 4)} ${f(S, 4)} ${f(Strap, 4)} ${f(AR)} ${f(W / S, 1)}`],
   ['taper, MAC, y_MAC, MAC LE behind root LE, h_cg', `${f(lam)} ${f(MAC, 4)} ${f(yMAC, 4)} ${f(macLE, 4)} ${f(hCG, 4)}`],
-  ['Re at 1.3 Vs on the MAC; XFOIL NACA 0015 CLmax there; CLmax', `${f(reMid, 0)} ${f(xfoil, 3)} ${f(CLmax, 2)}`],
+  ['stall: Re on the MAC, the wing\'s CL max there; stall_clmax; stall_peak deg', `${f(reStall, 0)} ${f(CLmax, 4)}; ${f(STALL_CLMAX[0], 4)} ${f(STALL_CLMAX[1], 4)}; ${f(STALL_PEAK[0] * DEG, 2)} ${f(STALL_PEAK[1] * DEG, 2)}`],
   ['stab: Sh, AR, V_H; fin: AR geometric, effective, V_V', `${f(Sh, 4)} ${f(ARt)} ${f(VH)}; ${f(arVgeo)} ${f(arV)} ${f(VV, 4)}`],
   ['a_w, a_t, a_v /rad; dε/dα', `${f(aw)} ${f(at)} ${f(av)}; ${f(deda)}`],
   ['CLα, h_n, static margin', `${f(CLa, 4)} ${f(hn)} ${f(SM)}`],
@@ -601,7 +618,7 @@ const rows = [
   ['slipstream', J(slip, 4)],
   ['rot_k roll pitch yaw N m s2; side_cda m2', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}; ${f(sideCda, 4)}`],
   ['C1 level at 75 percent', f(level(0.75), 2)],
-  ['C2 stall, CLmax / CLα', `${f(Vs, 2)} ${f(CLmax / CLa, 5)}`],
+  ['C2 stall, CLmax / a_w', `${f(Vs, 2)} ${f(CLmax / aw, 5)}`],
   ['C3 L/D at 15 m/s', f(ld(15), 2)],
   ['C4 top speed', f(level(1), 2)],
   ['C5 roll pb/2V, deg/s at 18 m/s', `${f(pb2v, 4)} ${f(rollAt(18) * DEG, 0)}`],
@@ -653,7 +670,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     const D = DERIVED;
     const centres = [
       ['c1_level_75.derived', th.c1_level_75.derived, D.level75], ['c2_stall.derived', th.c2_stall.derived, D.Vs],
-      ['c2_stall.alphaStall', th.c2_stall.alphaStall, D.CLmax / D.CLa], ['c3_glide.derived', th.c3_glide.derived, D.ld15],
+      ['c2_stall.alphaStall', th.c2_stall.alphaStall, D.CLmax / D.aw], ['c3_glide.derived', th.c3_glide.derived, D.ld15],
       ['c4_top.derived', th.c4_top.derived, D.top], ['c5_roll.derived', th.c5_roll.derived, D.pb2v],
       ['c6_hover.derived', th.c6_hover.derived, D.hoverDuty], ['c6_hover.bench', th.c6_hover.bench, D.hoverBench],
       ['c7_vertical.derived', th.c7_vertical.derived, D.vClimb], ['c8_torque_roll.derived', th.c8_torque_roll.derived, D.torqueRoll],

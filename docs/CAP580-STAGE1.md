@@ -156,7 +156,7 @@ Nelson's forms, as the Extra's (scripts/cap580-derive.js):
 | Quantity | Value | How |
 | --- | --- | --- |
 | AR, MAC | 5.220, 0.338 m | b² / S; the taper's mean chord |
-| CLmax | 0.97 | ESTIMATED by the Extra's rule: XFOIL's NACA 0015 CLmax at this wing's Re 3.0e5 (1.238, airfoiltools.com, between 1.21 at 2e5 and 1.27 at 5e5) times the Extra's 0.95 / 1.21 |
+| CLmax | 0.889 at Re 1.5e5 to 0.950 at 3e5, peaking at 15.7 to 19.5 deg; 0.928 at the stall's 2.5e5 | Timmer's measured NACA 0018 (Wind Engineering 32(6), 2008: 0.988 at 11.6 deg at 1.5e5, 1.056 at 15.1 at 3e5) times Raymer's 0.9 for the wing, the peak further on by the induced angle CL / (pi A e), the stall angle on the wing's own slope 4.543 (cl_alpha_wing): the Extra's measured stall (docs/FLIGHTMODEL.md), the plant's stall_re. A first pass took 0.97 by the Extra's old XFOIL rule; replaced when the measured one landed |
 | CD0, e | 0.045, 0.75 | ESTIMATED, the Extra's class: spatted gear on carbon legs, hinge gaps, a thick wing, the side force generators |
 | CL alpha | 5.060 | wing and tail |
 | static margin | 0.210 | h_n 0.523 less the CG's 0.313 of the MAC |
@@ -181,7 +181,7 @@ Bands are never widened to pass.
 | Gate | What | Derived | Band | Plant |
 | --- | --- | --- | --- | --- |
 | C1 | level at 75 percent | 24.68 m/s | 21.72 to 27.64 | 24.47 |
-| C2 | stall, power off | 10.39 m/s | 9.77 to 11.84 | 10.85 |
+| C2 | stall, power off | 10.62 m/s (CL max 0.928 at 2.5e5) | 9.98 to 12.11 | 11.00 |
 | C3 | glide ratio at 15 m/s | 7.43 | 6.54 to 8.32 | 7.41 |
 | C4 | top speed | 33.09 m/s | 29.78 to 36.40 | 32.13 |
 | C5 | roll, full aileron, pb/2V | 0.440 (533 deg/s at 18 m/s) | 0.330 to 0.550 | 0.439 (598 at 20.2) |
@@ -190,12 +190,12 @@ Bands are never widened to pass.
 | C7 | vertical climb, full throttle | 21.97 m/s | 19.77 to 24.17 | 21.44 |
 | C8 | torque roll, ailerons let go | 194 deg/s left | 146 to 243 | 213 left |
 | C9 | full right aileron, hanging | 169 deg/s right | 101 to 237 | 185 right |
-| C10 | full elevator at zero airspeed | 27.47 rad/s² | 20.6 to 34.3 | 26.7; prop stopped 0.03 |
-| C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.02 |
-| C11 | harrier at 40 deg of alpha | 7.88 m/s, 0.585 throttle | 6.30 to 9.45, 0.497 to 0.673 | 8.39, 0.598, elevator 0.73 |
+| C10 | full elevator at zero airspeed | 27.47 rad/s² | 20.6 to 34.3 | 26.7; prop stopped 0.00 |
+| C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.00 |
+| C11 | harrier at 40 deg of alpha | 7.89 m/s, 0.585 throttle | 6.31 to 9.46, 0.497 to 0.673 | 7.91, 0.566, elevator 0.72 |
 | C12 | knife edge at 20 m/s | 32.3 deg, 0.757 throttle, rudder 84 percent | 24.2 to 40.3, 0.643 to 0.871 | 30.4, 0.761, rudder 0.88 |
-| C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.4 |
-| C14 | take off roll | 4.0 m | 2.41 to 6.42 | 5.87 |
+| C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.5 |
+| C14 | take off roll | 4.2 m | 2.53 to 6.76 | 5.97 |
 | C15 | the Extra, Night Timber, Hercules unmoved | batch's hashes | identical | identical |
 | C16 | Node and Chrome agree | | identical | identical |
 | C17 | the figure judge names its 3D figures | hover, torque roll, harrier, knife edge pass | all four | all four |
@@ -246,8 +246,9 @@ Not built here: this lane adds rows only, no shared plant code.
 3. **Aileron differential.** 38 up and 34 down; the plant's aileron is one
    throw each way.
 4. **Per axis expo.** The sheet's three ranges; the plant has one figure.
-5. **duty_min**, the zero throttle ESC fix in progress, applies here as on
-   every electric table (0.02 today).
+5. **The free prop at zero throttle** is taken as stopped (the flight
+   model lane's ESC fix, 2026-10-11, which this table follows: it carries no
+   duty_min); windmilling waits on the propulsion lane, as on every table.
 6. **The thrust line's height over the CG**, taken 0 (above, the crash
    parts' check); a balance of the real model would settle it.
 7. **Tricks lane: the judge's knife edge** needs the wings within 26 deg of
@@ -299,8 +300,11 @@ next to their estimate.
 An ARF ships with no electronics, as the Hercules does
 (configs/registry.js): **Manual** is the default, as an IMAC or 3D pilot
 flies it; **AS3X** and **SAFE Select** are a Spektrum AR637T a builder
-fits (owner rule 2026-10-08: any real gyro). The AS3X gains from `npm run
-as3x:derive` (0.0204, 0.1164, 0.2812); Stabilised's power off glide and
+fits (owner rule 2026-10-08: any real gyro), as docs/CONTROLLERS.md has
+it. The data sheet's servos (EF/Theta 989, Savox 1261) are digital, so the
+receiver writes Spektrum's 11 ms frame, as on the Extra; the AS3X gains,
+heading hold and rates from `npm run as3x:derive` (as3x_k 0.0366, 0.2261,
+0.5556; as3x_kh 0.6533, 4.0359, 9.9174); Stabilised's power off glide and
 trim throttle from `npm run stab:glide` (7.74 deg, 0.555). The loop gains
 are the Extra's, FITTED. `npm run cap580:stab`, 59 checks: the Extra's set
 on the CAP's throws, less Acro (the CAP has no Acro tune), and on the take
@@ -362,7 +366,10 @@ a firm but not full pull.
 - Lednicer, The Incomplete Guide to Airfoil Usage (the CAP 231's V16F):
   https://m-selig.ae.illinois.edu/ads/aircraft.html
 - Mudry CAP 230 family: https://en.wikipedia.org/wiki/Mudry_CAP_230
-- XFOIL polars for the NACA 0015: http://airfoiltools.com/polar/details?polar=xf-naca0015-il-200000 ,
+- Timmer, W. A., Two-dimensional low-Reynolds number wind tunnel results for
+  airfoil NACA 0018, Wind Engineering 32(6), 2008 (the measured stall, as
+  docs/FLIGHTMODEL.md cites it for the Extra)
+- XFOIL polars for the NACA 0015 (the first pass's CL max, superseded): http://airfoiltools.com/polar/details?polar=xf-naca0015-il-200000 ,
   http://airfoiltools.com/polar/details?polar=xf-naca0015-il-500000
 - Motion RC, Admiral 6S 4500 (the stock pack's mass): see configs/power.js F16_6S
 - docs/EXTRA-STAGE1.md and docs/FLIGHTMODEL.md for every form and plant term

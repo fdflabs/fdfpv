@@ -41,9 +41,12 @@ export const NAME_MAX = 40;
 export const EXECUTIONS = ['CLEAN', 'SLOPPY', 'BUMP', 'MISSED', 'CRASH'];
 
 const whole = (n, max) => Number.isInteger(n) && n >= 0 && n <= max;
+/* A judged figure's grade (src/game/figuredetect.js): 0 to 10 in halves. */
+const isGrade = (g) => Number.isInteger(g * 2) && g >= 0 && g <= 10;
 
 /* A runner's numbers as the room keeps them, or null when they are out of
- * shape. `last` is optional and null when absent. */
+ * shape. `last` is optional and null when absent; its `grade` is optional
+ * too, a judged figure's (docs/TRICKS-CATALOG.md). */
 export function cleanNumbers(msg) {
   if (!msg || !whole(msg.total, TOTAL_MAX) || !whole(msg.tricks, COUNT_MAX)
     || !whole(msg.unique, COUNT_MAX) || !whole(msg.crashes, COUNT_MAX) || msg.unique > msg.tricks) {
@@ -53,10 +56,12 @@ export function cleanNumbers(msg) {
   if (msg.last != null) {
     const l = msg.last;
     if (typeof l !== 'object' || typeof l.name !== 'string' || l.name.length < 1 || l.name.length > NAME_MAX
-      || /[\u0000-\u001f]/.test(l.name) || !EXECUTIONS.includes(l.execution) || !whole(l.points, TOTAL_MAX)) {
+      || /[\u0000-\u001f]/.test(l.name) || !EXECUTIONS.includes(l.execution) || !whole(l.points, TOTAL_MAX)
+      || (l.grade !== undefined && !isGrade(l.grade))) {
       return null;
     }
     last = { name: l.name, execution: l.execution, points: l.points };
+    if (l.grade !== undefined) last.grade = l.grade;
   }
   return {
     total: msg.total, tricks: msg.tricks, unique: msg.unique, crashes: msg.crashes, last,
@@ -251,7 +256,10 @@ export function createJamRun(score, endAt, send) {
       tricks: s.tricks,
       unique: s.unique,
       crashes: s.crashes,
-      last: r ? { name: r.name.slice(0, NAME_MAX), execution: r.execution, points: Math.max(0, Math.round(r.net)) } : null,
+      last: r ? {
+        name: r.name.slice(0, NAME_MAX), execution: r.execution, points: Math.max(0, Math.round(r.net)),
+        ...(typeof r.grade === 'number' ? { grade: r.grade } : {}),
+      } : null,
     };
   };
   return {

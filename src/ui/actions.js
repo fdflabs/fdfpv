@@ -270,6 +270,7 @@ const ACTIONS = {
   'walk-turntable'(ui) { ui.takeTurntable(); },
   'walk-visit'(ui) { ui.visitHangar(); },
   'walk-visits'(ui) { ui.toggleVisits(); },
+  'room-lineup'(ui) { ui.openRoomLineup(); },
   /* The walkable hangar's shop counter: the hangar opened on its Shop tab
    * (src/ui/hangar-shop.js), for the seated aircraft. */
   /* The trophy wall: the hangar on its Challenges tab, which lists the
@@ -515,6 +516,9 @@ const PREFIXES = [
   ['newtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map }); }],
   ['casualtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map, casual: true }); }],
   ['friends-', (ui, action) => { if (ui.onFriends) ui.onFriends(action); }],
+  /* A pilot in the room the pilot is in, visited straight from the
+   * walkable hangar's command bar (src/ui/hangarwalk.js). */
+  ['walk-visit:', (ui, action, callsign) => ui.visitHangar(callsign)],
   /* The gate's rooms panel: the friends card's way in, then the room,
    * the lobby or Make a room, with the card's world left unbuilt because
    * the room's welcome seats its own. */
@@ -540,6 +544,10 @@ const needsAccount = (action) => typeof action === 'string' && !OPEN_ACTIONS.has
 const BACK_FROM = {
   /* A walkable hangar backs out to the cards of the hub it came from. */
   walk(ui) {
+    if (ui.walk && ui.walk.roomLineup) {
+      ui.show('friends');
+      return true;
+    }
     /* From a visit, Back is home. */
     if (ui.walk && ui.walk.visit) {
       ui.openWalk('main');
