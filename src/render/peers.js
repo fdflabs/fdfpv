@@ -318,10 +318,26 @@ export function buildPeerCraft(profile, look = null) {
   };
 }
 
+/* m: one stride, two steps, of a person 1.75 m tall walking: a step of
+ * 0.41 of stature, 0.72 m, the usual rule of thumb for a comfortable
+ * pace. ESTIMATED: drawn, not simulated. */
+const STRIDE_M = 2 * 0.41 * 1.75;
+/* rad: how far a leg swings fore and aft of straight at a walk's 1.4 m/s,
+ * and the most at a run, ESTIMATED from a step that long under a 0.86 m
+ * leg (asin(0.36 / 0.86) is 0.43). */
+const SWING_WALK = 0.43;
+const SWING_MOST = 0.7;
+const WALK_MPS = 1.4;
+/* s for the swing to grow or settle, about a step. */
+const SWING_S = 0.4;
+
 /*
  * A pilot figure, 1.75 m, standing on its feet at the group's origin and
  * facing -z. lookAt(x, y, z) turns the head (and a little of the body) to
- * a world point.
+ * a world point. stride(metres, dt) walks it that far this frame (0 to
+ * stand: the legs settle under it), the legs swinging from the hips, a
+ * stride every STRIDE_M. setBodyVisible(false) leaves the name alone, for
+ * a pilot gone inside a building.
  */
 export function buildPilotFigure(figure) {
   const look = FIGURE_LOOKS[Math.max(0, Math.min(FIGURE_COUNT - 1, figure | 0))];
@@ -339,8 +355,16 @@ export function buildPilotFigure(figure) {
   };
   const body = new THREE.Group();
   group.add(body);
-  body.add(box(0.14, 0.86, 0.16, dark, -0.1, 0.43, 0));
-  body.add(box(0.14, 0.86, 0.16, dark, 0.1, 0.43, 0));
+  /* Each leg hangs from its hip, so it swings there. */
+  const leg = (x) => {
+    const hip = new THREE.Group();
+    hip.position.set(x, 0.86, 0);
+    hip.add(box(0.14, 0.86, 0.16, dark, 0, -0.43, 0));
+    body.add(hip);
+    return hip;
+  };
+  const legL = leg(-0.1);
+  const legR = leg(0.1);
   body.add(box(0.44, 0.6, 0.24, suit, 0, 1.16, 0));
   /* Forearms out in front, holding the transmitter at the chest. */
   const armL = box(0.1, 0.5, 0.1, suit, -0.26, 1.12, -0.08);
@@ -381,10 +405,37 @@ export function buildPilotFigure(figure) {
     head.rotation.x = Math.max(-0.6, Math.min(1.2, pitch));
   }
 
+  let phase = 0;
+  let swing = 0;
+  function stride(metres, dt) {
+    const speed = dt > 0 ? metres / dt : 0;
+    const want = metres > 0 ? Math.min(SWING_MOST, (SWING_WALK * speed) / WALK_MPS) : 0;
+    swing += (want - swing) * Math.min(1, dt / SWING_S);
+    phase = (phase + (2 * Math.PI * metres) / STRIDE_M) % (2 * Math.PI);
+    /* Standing, the legs come together at the next pass under the body. */
+    if (metres === 0 && swing < 0.01) {
+      swing = 0;
+      phase = 0;
+    }
+    legL.rotation.x = swing * Math.sin(phase);
+    legR.rotation.x = -legL.rotation.x;
+    /* The body is highest over a straight leg, twice a stride. */
+    body.position.y = 0.02 * (swing / SWING_WALK) * (Math.abs(Math.cos(phase)) - 1);
+    if (metres > 0) {
+      body.rotation.y = 0;
+      head.rotation.set(0, 0, 0);
+    }
+  }
+
   return {
     group,
     setLabel: tag.set,
     lookAt,
+    stride,
+    swing: () => swing,
+    setBodyVisible(on) {
+      body.visible = on;
+    },
     dispose() {
       group.removeFromParent();
       release(group);
