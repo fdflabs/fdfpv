@@ -55,6 +55,9 @@ export const ACTIONS = [
   { id: 'gear', code: 'KeyG' },
   { id: 'smoke', code: 'KeyO' },
   { id: 'view', code: 'KeyC' },
+  /* Every letter is taken in flight (an action above, or RESERVED), and
+   * F, the plan's first pick, is the flaps, which a pilot sets parked. */
+  { id: 'foot', code: 'Digit1' },
 ];
 
 const BY_ID = new Map(ACTIONS.map((a) => [a.id, a]));

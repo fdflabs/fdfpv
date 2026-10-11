@@ -297,6 +297,12 @@ jobs:
       - run: npm run pilot:stats
       - run: npm run hercules:gates
       - run: npm run paradrop:selftest
+      # The pilot on foot (docs/ON-FOOT.md): the walk never ends inside a
+      # solid, steps and slopes, pace; then on swiss2 in the real shell,
+      # step out, pace, the eye over the terrain, the hangar wall, fly
+      # again from where the pilot stands, pad and touch.
+      - run: npm run foot:node
+      - run: npm run foot:walk -- /tmp/foot-walk
 
   shard-3:
     runs-on: ubuntu-latest

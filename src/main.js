@@ -69,7 +69,10 @@ import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
-import { translate as translateKey } from './input/keybinds.js';
+import { translate as translateKey, effectiveKeys, keyLabel } from './input/keybinds.js';
+import { createFootInput } from './input/footinput.js';
+import { SKIP_KINDS as FOOT_SKIP, createWalker, depthInside, findClear, step as stepWalker } from './game/onfoot.js';
+import { BODY_RADIUS, EYE_HEIGHT, STATURE, STEP_UP } from './game/human.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
 import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js';
 import { PLANE_REACH, Race } from './game/race.js';
@@ -2161,6 +2164,7 @@ export async function boot({
       ui.show('paused');
     }),
     onSwap: () => leaveFlightFromThumbs(() => ui.openSwap('flight')),
+    onFoot: () => toggleFoot(),
   }) : null;
   /* Both buttons mean something only in flight, the same two steps the
    * Escape key takes for Pause, and both hide the sticks at once rather
@@ -3360,6 +3364,32 @@ export async function boot({
     startY = spawnHeight(startX, startZ, sp.y);
     qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
     qSpawnInv.copy(qSpawn).invert();
+    seatPilotSpot();
+  }
+
+  /*
+   * THE PILOT'S SPOT: where the person who flies stands, the pilot and
+   * line of sight views' eye and the place they step out onto. Seated
+   * here, once per spawn, 20 m right of the spawn and 15 m ahead, and
+   * after that moved only by walking (docs/ON-FOOT.md). A clip recovery
+   * or a swap in the air moves the spawn (seatSpawnAt), never the pilot:
+   * the spot used to be worked out from the spawn every frame, which
+   * carried the pilot off with every recovery. fromY is the height the
+   * ground is asked from: anywhere over the spot until walked, then
+   * a step over the feet that walked there.
+   */
+  const pilotSpot = { x: 0, z: 0, fromY: Infinity };
+  /* The walk, while the pilot is out on foot, else null (THE PILOT ON
+   * FOOT, below). Up here because a reset at boot asks it. */
+  let walker = null;
+  function seatPilotSpot() {
+    /* The spawn's right, (1, 0, 0), and ahead, (0, 0, -1), turned by its
+     * yaw about the vertical as qSpawn turns them. */
+    const c = Math.cos(startYaw);
+    const sn = Math.sin(startYaw);
+    pilotSpot.x = startX + c * 20 - sn * 15;
+    pilotSpot.z = startZ - sn * 20 - c * 15;
+    pilotSpot.fromY = Infinity;
   }
 
   /* Gates, laps and the best lap. A freestyle map gets one too, empty, so
@@ -12442,6 +12472,7 @@ export async function boot({
    * sticks already held, so they are not dropped to zero under it.
    */
   function resetCraft(at, keepSticks = false) {
+    leaveFoot();
     if (at) {
       seatSpawnAt(at);
     }
@@ -15484,7 +15515,7 @@ export async function boot({
     ui,
     view: () => view,
     mode: () => mode,
-    canBuild: () => mapReady && mode === 'flight' && ui.screen === 'flight' && Boolean(mapById(view.id).build),
+    canBuild: () => mapReady && mode === 'flight' && ui.screen === 'flight' && !walker && Boolean(mapById(view.id).build),
     onFlightScreen: () => ui.screen === 'flight',
     heightAt: (x, z) => view.height(x, z, Infinity),
     hold: () => ui.onAction('pause'),
@@ -15514,6 +15545,203 @@ export async function boot({
         console.error('build mode failed to load', e);
       });
   }
+
+  /*
+   * THE PILOT ON FOOT (docs/ON-FOOT.md). In free flight, landed and
+   * stopped, the foot key (keybinds.js `foot`), a held B on a pad or
+   * the thumbs' chip steps the pilot out onto the pilot's spot facing the
+   * aircraft, and the walk (src/game/onfoot.js) takes the devices
+   * (src/input/footinput.js) while the flight sticks are held centred at
+   * zero throttle (input.js rung 1a). The same key flies again from
+   * wherever the pilot stands: the pilot and line of sight views look
+   * from there. Anything that reseats the craft (resetCraft: a restart, a
+   * swap, a recovery) ends the walk first.
+   *
+   * DETERMINISM. Only a landed craft is left, and a landed craft is not
+   * stepped (advancePlant); the sticks it would read are centred; the
+   * walk asks the map's height and Colliders.bodyPush, which read and
+   * write nothing a sweep reads. So no call the plant hears changes, and
+   * no map's solids do.
+   */
+  const footInput = createFootInput(input, () => document.pointerLockElement === shell.canvas);
+  const footWorld = {
+    height: (x, z, fromY) => view.height(x, z, fromY),
+    get solids() {
+      return view.colliders && view.colliders.built ? view.colliders : null;
+    },
+    wet: (x, z) => Boolean(view.water && view.water.length && waterAt(x, z)),
+  };
+  /* m/s: stopped, as the plan's rule has it; a landed craft rests at 0. */
+  const FOOT_STILL = 0.5;
+  /* ms a pad's B is held to step out or in, so a brush does neither. */
+  const FOOT_PAD_HOLD_MS = 500;
+  const FOOT_FOV = 70;
+  const footEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+  let footPadMs = 0;
+  let footPadFired = false;
+  let footCouldWas = false;
+
+  /* A free flight, flown here and now by this pilot, not a war, a
+   * mission, a watcher's seat or the builder. */
+  function footAllowedHere() {
+    const m = modeById(flightActivity());
+    return Boolean(m && m.onFoot) && !roomWar.on() && !roomOps.on() && !roomWatching() && !warSpectating()
+      && !(build && build.active);
+  }
+
+  function canStepOut() {
+    return walker === null && mode === 'flight' && ui.screen === 'flight' && mapReady && Boolean(stateCurr)
+      && landed && !crashed && !wrecked && !turtleWait && !turtleFlip.active && !launchStaging && !poseLock
+      && !takingOff && plantSpeed(stateCurr) < FOOT_STILL && input.channels.throttle <= TAKEOFF_RELEASE
+      && footAllowedHere();
+  }
+
+  function footKeyLabel() {
+    const gp = input.firstGamepad();
+    if (gp && gp.mapping === 'standard') {
+      return str('foot.pad_view');
+    }
+    return keyLabel(effectiveKeys(ui.settings.keybinds, runAirframe).foot);
+  }
+
+  function stepOut() {
+    const spot = findClear(footWorld, pilotSpot.x, pilotSpot.z);
+    if (!spot) {
+      flashNotice(str('foot.no_room'), 2600);
+      return;
+    }
+    walker = createWalker(spot.x, spot.z, spot.feet, Math.atan2(pCurr.x - spot.x, -(pCurr.z - spot.z)));
+    input.onFoot = true;
+    footInput.clear();
+    introMs = -1;
+    chaseValid = false;
+    flashNotice(str('foot.stepped_out', { key: footKeyLabel() }), 3200);
+  }
+
+  /* Back to the sticks, from where the pilot stands. */
+  function leaveFoot() {
+    if (walker === null) {
+      return;
+    }
+    pilotSpot.x = walker.x;
+    pilotSpot.z = walker.z;
+    pilotSpot.fromY = walker.feet + STEP_UP;
+    walker = null;
+    input.onFoot = false;
+    /* What the keys, the wheel or a thumb left on the sticks while
+     * walking is not the pilot's throttle; and a pad resting at half
+     * waits for its stick to come down, as at a landing. */
+    input.resetKeyboardSticks();
+    input.holdThrottleLow(TAKEOFF_RELEASE);
+    chaseValid = false;
+  }
+
+  function toggleFoot() {
+    if (walker !== null) {
+      leaveFoot();
+      flashNotice(str('foot.flying_again'), 1800);
+      return;
+    }
+    if (canStepOut()) {
+      stepOut();
+      return;
+    }
+    flashNotice(str(footAllowedHere() ? 'foot.land_first' : 'foot.free_flight_only'), 2600);
+  }
+
+  /* The foot key in flight; on foot, every other flight key but R (a
+   * restart) is swallowed, since the aircraft is out of reach. */
+  function footKey(code, repeat) {
+    if (ui.screen !== 'flight' || (mode !== 'flight' && walker === null)) {
+      return false;
+    }
+    if (code === 'Digit1') {
+      if (!repeat && mode === 'flight') {
+        toggleFoot();
+      }
+      return true;
+    }
+    return walker !== null && code !== 'KeyR';
+  }
+
+  /* Once a frame, before the camera: the pad's B, the thumbs' chip,
+   * the hint on stopping, and the walk itself. */
+  function walkFrame() {
+    if (walker !== null && (mode === 'title' || mode === 'results')) {
+      leaveFoot();
+    }
+    const flying = mode === 'flight' && ui.screen === 'flight';
+    const could = canStepOut();
+    const gp = input.firstGamepad();
+    if (flying && input.padFootButton()) {
+      footPadMs += fr.dt;
+      if (footPadMs >= FOOT_PAD_HOLD_MS && !footPadFired) {
+        footPadFired = true;
+        toggleFoot();
+      }
+    } else {
+      footPadMs = 0;
+      footPadFired = false;
+    }
+    if (touch) {
+      touch.setFoot(!flying ? null : walker !== null ? str('foot.chip_fly') : could ? str('foot.chip_out') : null);
+    }
+    /* Said after a landing, not at every spawn, where the pilot came to fly. */
+    if (could && !footCouldWas && flownThisRun) {
+      flashNotice(str('foot.can_step_out', { key: footKeyLabel() }), 2600);
+    }
+    footCouldWas = could;
+    if (walker === null || !flying) {
+      return;
+    }
+    const dt = fr.dt / 1000;
+    stepWalker(walker, footInput.read(dt, gp, touch && touch.active() ? touch : null), dt, footWorld);
+  }
+
+  function footCamera() {
+    fpvLensLive = false;
+    chaseValid = false;
+    shell.quad.visible = true;
+    shell.camera.up.set(0, 1, 0);
+    shell.camera.position.set(walker.x, walker.feet + EYE_HEIGHT, walker.z);
+    shell.camera.quaternion.setFromEuler(footEuler.set(walker.pitch, -walker.heading, 0, 'YXZ'));
+    setFov(FOOT_FOV);
+  }
+
+  /* Harness: the solid within 5 cm of the body, by kind, or null. */
+  function footTouching() {
+    const set = footWorld.solids;
+    if (!walker || !set) {
+      return null;
+    }
+    const i = set.bodyPush(walker.x, walker.z, walker.feet + BODY_RADIUS, walker.feet + STATURE - BODY_RADIUS, BODY_RADIUS + 0.05, FOOT_SKIP);
+    return i < 0 ? null : set.kindName(set.fkind[i]);
+  }
+
+  /* Harness: the walk as it stands, and a turn (checks steer with it;
+   * the pilot turns with the mouse, a stick or a thumb). */
+  window.__foot = {
+    state: () => ({
+      on: walker !== null,
+      could: canStepOut(),
+      allowed: footAllowedHere(),
+      walker: walker && { ...walker },
+      spot: { ...pilotSpot },
+      ground: walker && view.height(walker.x, walker.z, walker.feet + STEP_UP),
+      eye: walker && walker.feet + EYE_HEIGHT,
+      camera: shell.camera.position.toArray(),
+      fov: shell.camera.fov,
+      source: input.stats().source,
+      touching: footTouching(),
+      inside: walker ? depthInside(walker, footWorld) : 0,
+    }),
+    face: (heading) => {
+      if (walker) {
+        walker.heading = heading;
+      }
+      return Boolean(walker);
+    },
+  };
 
   /*
    * MOUSE FLIGHT'S POINTER LOCK. The mouse flies only while the pointer is
@@ -15554,8 +15782,10 @@ export async function boot({
   let mouseEscGuardUntil = 0;
   const MOUSE_ESC_GUARD_MS = 300;
   const mouseLocked = () => document.pointerLockElement === shell.canvas;
+  /* Mouse flight's in the air, the walk's on foot (a thumb looks on a
+   * touch screen), the builder's own in build mode. */
   function mouseWantsLock() {
-    return input.mouseEnabled && mode === 'flight' && ui.screen === 'flight'
+    return (input.mouseEnabled || (walker !== null && !(touch && touch.active()))) && mode === 'flight' && ui.screen === 'flight'
       && !(build && build.active && !build.racing) && !debrief.isOpen;
   }
   function askMouseLock() {
@@ -15568,7 +15798,7 @@ export async function boot({
   function syncMouseLock(nowWall) {
     const want = mouseWantsLock();
     const locked = mouseLocked();
-    input.setMouseLive(want && locked);
+    input.setMouseLive(want && locked && !walker);
     const wing = Boolean(airframeById(runAirframe).fixedWing);
     input.setMouseCraft(wing, ui.settings.flightMode !== 'angle');
     if (!want) {
@@ -15587,7 +15817,7 @@ export async function boot({
       askMouseLock();
     }
     if (!notice || notice.mouse || nowWall >= notice.untilMs) {
-      notice = { text: str('main.mouse_click_to_fly'), untilMs: nowWall + 250, mouse: true };
+      notice = { text: str(walker ? 'foot.click_to_look' : 'main.mouse_click_to_fly'), untilMs: nowWall + 250, mouse: true };
     }
   }
   window.addEventListener('mousedown', (e) => {
@@ -15616,7 +15846,7 @@ export async function boot({
     mouseLockMine = false;
     mouseExitAsked = false;
     input.setMouseLive(false);
-    if (mine && !ours && input.mouseEnabled && mode === 'flight' && ui.screen === 'flight') {
+    if (mine && !ours && (input.mouseEnabled || walker) && mode === 'flight' && ui.screen === 'flight') {
       mouseEscGuardUntil = performance.now() + MOUSE_ESC_GUARD_MS;
       ui.act('pause');
       ui.show('paused');
@@ -15717,6 +15947,9 @@ export async function boot({
       return;
     }
     if (ui.handleKey(code, repeat)) {
+      return;
+    }
+    if (footKey(code, repeat)) {
       return;
     }
     if (repeat) {
@@ -17007,6 +17240,7 @@ export async function boot({
     raceFrame();
     dressWorld();
     placeLens();
+    walkFrame();
     pickCamera();
     moveScenery();
     drawFrame();
@@ -18079,6 +18313,8 @@ export async function boot({
       }
     } else if (mode === 'results' && !camOverride) {
       finishCamera(dt);
+    } else if (walker) {
+      footCamera();
     } else if (watching) {
       watchCamera(watching, dt);
     } else if (introMs >= 0 && (mode === 'flight' || mode === 'paused') && !camOverride) {
@@ -18279,7 +18515,8 @@ export async function boot({
   /*
    * A wing from outside, or a wreck: the chase follows the craft's travel
    * (its heading while it drifts on the water, levelled for a wreck), the
-   * line of sight stands behind the spawn and zooms to keep the span.
+   * line of sight stands on the pilot's spot (seatPilotSpot) and zooms to
+   * keep the span.
    */
   /* deg: a monitor or a laptop at arm's length subtends about 40 to 55
    * deg of a person's view, ESTIMATED; at 50 the picture is life size. */
@@ -18293,13 +18530,7 @@ export async function boot({
       setFov(70);
       return;
     }
-    losBack.set(1, 0, 0).applyQuaternion(qSpawn);
-    losBack.y = 0;
-    losPos.set(startX, 0, startZ).addScaledVector(losBack.normalize(), 20);
-    losBack.set(0, 0, -1).applyQuaternion(qSpawn);
-    losBack.y = 0;
-    losPos.addScaledVector(losBack.normalize(), 15);
-    losPos.y = view.height(losPos.x, losPos.z, Infinity) + 1.7;
+    losPos.set(pilotSpot.x, view.height(pilotSpot.x, pilotSpot.z, pilotSpot.fromY) + EYE_HEIGHT, pilotSpot.z);
     shell.camera.position.copy(losPos);
     shell.camera.lookAt(pCurr);
     /* The pilot's own view: the same spot, the picture as wide as a screen
@@ -19037,6 +19268,10 @@ export async function boot({
       return [notice.text, false];
     }
     if (ui.isModal()) {
+      return NO_BANNER;
+    }
+    /* On foot the aircraft's prompts are not the pilot's. */
+    if (walker !== null) {
       return NO_BANNER;
     }
     if (input.throttleWaiting && inFlight) {
@@ -20678,6 +20913,9 @@ export async function boot({
     liveGroups: [wreckRig.group, debris.group, smoke.group],
     mode: () => mode,
     screen: () => ui.screen,
+    /* On foot the parked aircraft is not a clip: the ring stops at the
+     * step out, and flying again starts a new one. */
+    onFoot: () => walker !== null,
     enter: () => {
       mode = 'replay';
     },
