@@ -32,6 +32,9 @@ import {
 import { levelOf } from '../game/progress.js';
 import { str } from '../strings/index.js';
 import { customisable } from './builds.js';
+import { airframeById } from '../../configs/airframes.js';
+import { flightTotals } from '../share/flighttime.js';
+import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { listClips } from '../replay/store.js';
 import { hubWays } from './ways.js';
 
@@ -71,6 +74,10 @@ const ZOOM_STEP = 0.0012;
 const ZOOM_MIN = 0.45;
 const ZOOM_MAX = 2.2;
 const LEAVE = new Set(['Escape', 'Backspace']);
+/* The lineup before launch: how long the camera holds on the aircraft
+ * before the flight starts, s. */
+export const LINEUP_S = 2.6;
+
 /* A drag's turn of the camera, radians a pixel, and how fast it swings
  * back behind the pilot once they walk. */
 const DRAG_TURN = 0.006;
@@ -124,6 +131,8 @@ export const walkMethods = {
       clips: 0,
       /* Photo mode: null, or { yaw, zoom, shoot } while it is on. */
       photo: null,
+      /* The lineup before launch: null, or { action, t } while it runs. */
+      lineup: null,
     };
     /* How many clips the TV has to play; read once a visit. */
     const w = this.walk;
@@ -139,6 +148,14 @@ export const walkMethods = {
   /* A key press on the walk screen: use, leave; the walking keys are read
    * held, by walkHeld. */
   walkKey(code) {
+    if (this.walk && this.walk.lineup) {
+      if (USE.has(code)) {
+        this.endLineup(true);
+      } else if (code === 'Escape' || code === 'Backspace') {
+        this.endLineup(false);
+      }
+      return true;
+    }
     if (code === PHOTO) {
       this.togglePhoto();
     } else if (this.walk && this.walk.photo) {
@@ -244,8 +261,42 @@ export const walkMethods = {
       return false;
     }
     this.onUiSound?.('select');
-    this.act(near.action);
+    if (near.id === 'door') {
+      this.startLineup(near.action);
+    } else {
+      this.act(near.action);
+    }
     return true;
+  },
+
+  /*
+   * THE LINEUP BEFORE LAUNCH (docs/SHOW-IT-OFF.md part 3): the door does
+   * not fly at once. The camera sweeps the aircraft on its stand with its
+   * card (name, size, weight, time flown on it) for LINEUP_S, then the
+   * door's action runs; E or Enter goes now, Escape stays in the room.
+   */
+  startLineup(action) {
+    const id = this.settings.airframe;
+    const flown = flightTotals(this.settings.flightTime).byAirframe[id] || 0;
+    this.walk.lineup = { action, t: 0 };
+    this.walkPrompt.hidden = true;
+    this.walkLineupName.textContent = airframeById(id).name;
+    this.walkLineupFacts.textContent = [sizeText(id), weightText(id), str('walk.lineup_flown', { time: flightTimeText(flown) })].join('  ·  ');
+    this.walkLineup.hidden = false;
+  },
+
+  endLineup(go) {
+    const w = this.walk;
+    const l = w && w.lineup;
+    if (!l) {
+      return;
+    }
+    w.lineup = null;
+    w.promptKey = null;
+    this.walkLineup.hidden = true;
+    if (go) {
+      this.act(l.action);
+    }
   },
 
   /*
@@ -262,7 +313,14 @@ export const walkMethods = {
     const overlay = this.carousel.isOpen || this.hangar.isOpen;
     const has = (set) => [...w.held].some((c) => set.has(c));
     const pad = w.pad || {};
-    const input = overlay || w.photo ? { forward: 0, turn: 0 } : {
+    if (w.lineup) {
+      w.lineup.t += dt;
+      if (w.lineup.t >= LINEUP_S) {
+        this.endLineup(true);
+        return w.pose;
+      }
+    }
+    const input = overlay || w.photo || w.lineup ? { forward: 0, turn: 0 } : {
       forward: (has(FORWARD) || pad.up ? 1 : 0) - (has(BACKWARD) || pad.down ? 1 : 0),
       turn: (has(RIGHT) || pad.right ? 1 : 0) - (has(LEFT) || pad.left ? 1 : 0),
     };
@@ -270,7 +328,7 @@ export const walkMethods = {
     if (w.pose.moving) {
       w.orbit -= w.orbit * Math.min(1, ORBIT_RETURN * dt);
     }
-    if (!w.photo) {
+    if (!w.photo && !w.lineup) {
       renderPrompt(this);
     }
     return w.pose;
