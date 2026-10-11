@@ -1816,7 +1816,18 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (fw->throttle_idle > 0.0) {
     duty = fw->throttle_idle + (1.0 - fw->throttle_idle) * throttle;
   }
-  if (duty < fw->duty_min) duty = fw->duty_min;
+  /* An electric aircraft's ESC at zero throttle does not drive the motor:
+   * Spektrum's Avian ESCs ship with the brake disabled, "Motor will free
+   * wheel when throttle position is zero" (SmartLink ESC instructions,
+   * https://www.astramodel.cz/manualy/S/Spektrum_SmartLink_ESC_Instructions.pdf).
+   * The plant used to floor the duty at 2 percent, a guard for the thrust
+   * law's division, which kept every prop turning at 2 percent of its speed
+   * with no thrust: a gyroscope with nothing driving it, which yawed a
+   * power off pull one way every time. FITTED: an undriven prop is taken as
+   * stopped once its own drag has run it down (prop_spool); a free prop
+   * windmills, but its torque past the pitch speed is beyond the APC
+   * static and forward rows the tables hold. */
+  if (duty < 0.0) duty = 0.0;
   if (duty > 1.0) duty = 1.0;
   /* The pack or the tank, power_duty below: the duty the motor actually
    * turns at, which is the stick's while the pack is as it was seated. */
@@ -1834,10 +1845,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     n = prop_spool(fw, duty_e, dead || g_chute);
   }
   const double u_pos = u > 0.0 ? u : 0.0;
-  /* A fan at rest makes nothing, where 0 / 0 would be a NaN. */
+  /* A fan or a prop at rest makes nothing, where 0 / 0 would be a NaN. */
   /* The chase boost's faster prop has the faster pitch speed; exact at
    * 1.0 (sim_set_boost). */
-  const double ct = ((fan && !(n > 0.0)) || !(fw->thrust_static > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * SIM_BOOST * n);
+  const double ct = (!(n > 0.0) || !(fw->thrust_static > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * SIM_BOOST * n);
   double thrust = fw->thrust_static * n * n * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
@@ -2378,7 +2389,6 @@ const FixedWingParams FW_WING1000 = {
   .torque_arm = 0.009,
   .j_prop = 0.000012, /* the 6 x 4 (5.7 g) and the 2216's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .current_full = 28.0,   /* A at static full thrust */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -2464,7 +2474,6 @@ const FixedWingParams FW_SKY1800 = {
   .torque_arm = 0.0107,   /* 362 W of disc power at 11,950 rpm is 0.29 N m at 27 N */
   .j_prop = 0.000124, /* APC's 24.9 g 11 x 5.5E and the 2820's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .current_full = 43.0,
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -2557,7 +2566,6 @@ const FixedWingParams FW_CUB1400 = {
   .thrust_z = 0.002,      /* the drawn model's thrust line, 2 mm over the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
   .current_full = 27.0,
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -2652,7 +2660,6 @@ const FixedWingParams FW_RADIAN2000 = {
   .thrust_z = -0.008,     /* the drawn thrust line, 8 mm under the CG: power lifts the nose */
   .pfactor = 1.6,         /* the Cub's blade element figure, a tractor turning the same way */
   .current_full = 21.8,   /* A, measured on the same power system */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   /* Centred sticks glide at the trim: the best glide flies 0.6 degrees
@@ -2845,7 +2852,6 @@ const FixedWingParams FW_BRAMOR2300 = {
   .j_prop = 0.00021, /* a 12 x 8 folding carbon prop (30 g) and a 200 g outrunner's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .thrust_z = 0.087,      /* the drawn hub over the CG */
   .current_full = 45.0,   /* A: about 1 kW on 6S */
-  .duty_min = 0.02,
   .stab_bank_max = 45.0 * WING_PI / 180.0,
   .stab_pitch_max = 20.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -2947,7 +2953,6 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .thrust_z = -0.0025,    /* the drawn model's shaft, 2.5 mm under the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 6.1,
-  .duty_min = 0.02,
   .stab_bank_max = 45.0 * WING_PI / 180.0,
   .stab_pitch_max = 25.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3043,7 +3048,6 @@ const FixedWingParams FW_TIMBER1500 = {
   .thrust_z = 0.0,        /* the thrust line through the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 44.0,   /* A, the review's bench figure on 4S */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3156,7 +3160,6 @@ const FixedWingParams FW_TIMBER1500F = {
   .thrust_z = 0.0266,     /* the floats lower the CG under the thrust line */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 44.0,   /* A, the review's bench figure on 4S */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3264,7 +3267,6 @@ const FixedWingParams FW_CUB1400F = {
   .thrust_z = 0.0284,     /* 2 mm over the old CG, which the floats lower 26.4 mm */
   .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
   .current_full = 27.0,
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3362,7 +3364,6 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .thrust_z = -0.0053,    /* the drawn model's shaft, 5.3 mm under the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .duty_min = 0.02,
   .stab_bank_max = 45.0 * WING_PI / 180.0,
   .stab_pitch_max = 12.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3480,7 +3481,6 @@ const FixedWingParams FW_KADET1981 = {
   .thrust_z = 0.0335,     /* 6 degrees of downthrust through the hub: a level line 1.32 in over the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .duty_min = 0.02,
   .stab_bank_max = 45.0 * WING_PI / 180.0,
   .stab_pitch_max = 20.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3585,7 +3585,6 @@ const FixedWingParams FW_P51D1450 = {
   .thrust_z = 0.0129,     /* the thrust line 12.9 mm over the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 55.2,   /* A, the static balance of the motor on the pack */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3706,7 +3705,6 @@ const FixedWingParams FW_F16878 = {
   .torque_arm = 0.0,      /* the fan's stators take out its torque */
   .j_prop = 0.000010, /* the 69 mm twelve blade rotor (12 g) and the 2957 inrunner's rotor, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .current_full = 70.0,   /* A, the fan unit's static figure */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 3.0 * WING_PI / 180.0,
@@ -3803,7 +3801,6 @@ const FixedWingParams FW_ZAGI1219 = {
   .torque_arm = 0.01203,  /* the shaft's 0.0878 N m at 30 A over the static thrust; clockwise from behind */
   .thrust_z = 0.052,      /* the motor on the tray, its shaft 52 mm over the CG: power pitches the nose down */
   .current_full = 30.0,   /* A, Zagi's static figure */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3906,7 +3903,6 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .thrust_z = -0.0043,    /* the crankshaft 0.17 in under the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4030,7 +4026,6 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .thrust_z = 0.0074,     /* the thrust line 7 mm over the CG, from the masses */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 0.0,   /* level at the trim flies at 0.3 deg nose down: it cruises tail up */
@@ -4152,7 +4147,6 @@ const FixedWingParams FW_STRIKER_PROP = {
   .torque_arm = 0.05529,   /* 15.7 N m on the shaft over the static thrust */
   .thrust_z = 0.0196,      /* the shaft on the fuselage's axis, over the CG */
   .current_full = 0.0,     /* the engine burns fuel, not the pack */
-  .duty_min = 0.02,
   .stab_bank_max = 45.0 * WING_PI / 180.0,
   .stab_pitch_max = 20.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4244,7 +4238,6 @@ const FixedWingParams FW_STRIKER_JET = {
   .torque_arm = 0.0,      /* a turbojet's reaction is its own shaft's, nothing to the airframe */
   .thrust_z = 0.1099,     /* the nacelle on the tail, over the axis: power pitches the nose down */
   .current_full = 0.0,
-  .duty_min = 0.02,
   .stab_bank_max = 45.0 * WING_PI / 180.0,
   .stab_pitch_max = 20.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4353,7 +4346,6 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .thrust_z = 0.0,        /* the thrust line through the CG */
   .pfactor = 1.89,        /* the Cub's blade element figure on a 13 in prop */
   .current_full = 64.4,
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4482,7 +4474,6 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .thrust_z = 0.0,        /* the thrust line through the CG */
   .pfactor = 1.89,        /* the Cub's blade element figure on a 13 in prop, as the Extra's */
   .current_full = 37.4,
-  .duty_min = 0.02,
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4613,7 +4604,6 @@ const FixedWingParams FW_HERCULES3077 = {
   .thrust_z = 0.0998,     /* the nacelles' thrust lines 0.10 m over the CG; npm run hercules:derive */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's; four the same way sum; docs/FLIGHTMODEL.md */
   .current_full = 147.1,  /* A, four times 36.8 at the static point; npm run hercules:derive */
-  .duty_min = 0.02, /* FITTED: the fleet's ESC start duty */
   .stab_bank_max = 45.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
   .stab_pitch_max = 20.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
   .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* FITTED: SAFE's level trim, as the fleet's */

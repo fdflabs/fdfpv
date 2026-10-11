@@ -574,7 +574,6 @@ typedef struct FixedWingParams {
                          * which is a prop turning clockwise seen from behind.
                          * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
-  double duty_min;
   /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
   double stab_bank_max;
   double stab_pitch_max;
