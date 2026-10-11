@@ -1520,8 +1520,9 @@ prop at 0.3 of full, as the gate was written for (0.2685).
 - **S9's 20 deg/s** had no source; re-derived from a spin's definition,
   autorotation: inside the bank limit the aircraft only turns, at
   g tan(bank) / V, so the limit is that turn at the mush's speed (31 to
-  32 deg/s on the Slow Stick). The Bombshell, Kadet, Ugly Stik, Tiger Moth
-  and F-16 carry the same unsourced 20 and pass it.
+  32 deg/s on the Slow Stick); the Bombshell, Kadet, Ugly Stik, Tiger
+  Moth and F-16 take the same limit (tests/lib/wingpilot.js
+  turnYawLimitDeg), so no unsourced 20 deg/s is left.
 - **P18, the full flap landing**: the scripted pilot pulled full up for
   1.5 s once a wheel touched, and with the windmill's drag the P-51
   touched on its mains, skipped, and the tail met the grass 0.31 s later.

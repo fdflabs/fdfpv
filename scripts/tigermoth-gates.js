@@ -55,6 +55,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
+  turnYawLimitDeg,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -217,6 +218,8 @@ check: {
     let o = { s: sim.readState().state };
     /* With power the hold has an integral, as U11b's (uglystik-gates.js). */
     let iBank = 0;
+    let vMushSum = 0;
+    let vMushN = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
       iBank = duty ? Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000)) : 0;
       const roll = hold ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
@@ -232,8 +235,10 @@ check: {
       minPitch = Math.min(minPitch, pitch * DEG);
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
+      if (ms >= t8.seconds * 1000 - 2000) { vMushSum += speed(o.s); vMushN += 1; }
       alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
     }
+    const yawMax = turnYawLimitDeg(t8.maxBankDeg, vMushSum / vMushN);
     const ailMean = ailSum / (t8.seconds * 1000 / RC_STEP_MS);
     const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
     if (!hold) {
@@ -241,10 +246,10 @@ check: {
       continue;
     }
     gate(id, `full up held, ${duty ? 'half throttle' : 'power off'}, wings held: nose drops, no wing drop`,
-      worstBank <= t8.maxBankDeg && minPitch >= t8.minPitchDeg && worstR <= t8.maxYawRateDegS && alphaMax > th.t2_stall.alphaStall
+      worstBank <= t8.maxBankDeg && minPitch >= t8.minPitchDeg && worstR <= yawMax && alphaMax > th.t2_stall.alphaStall
         && worstP <= t8.maxRollRateDegS && ailMean <= t8.maxAileron,
       said,
-      `stalled, bank ${t8.maxBankDeg}, pitch over ${t8.minPitchDeg}, yaw ${t8.maxYawRateDegS} deg/s, roll under ${t8.maxRollRateDegS} deg/s, ailerons under ${t8.maxAileron}`);
+      `stalled, bank ${t8.maxBankDeg}, pitch over ${t8.minPitchDeg}, yaw under the turn at that bank, ${yawMax.toFixed(1)} deg/s, roll under ${t8.maxRollRateDegS} deg/s, ailerons under ${t8.maxAileron}`);
   }
 
   /* T9: the phugoid: level at the trim, a second of a little up stick,

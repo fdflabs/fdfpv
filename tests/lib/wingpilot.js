@@ -626,6 +626,19 @@ export function rudderHold(s) {
  * down going wing deeper into it). The rudder only aircraft's wings level
  * law, -1.2 bank - 0.12 p, on the yaw stick. */
 /*
+ * A stall's no spin yaw limit, deg/s, re-derived 2026-10-11 from what a
+ * spin is (docs/FLIGHTMODEL.md): autorotation, the dropping wing rolling
+ * on with the yaw coming with it. With the wings inside the bank limit
+ * (the wing drop's) the aircraft only turns, and a turn at bank phi and
+ * speed V yaws at g tan(phi) / V; a yaw past the turn the bank limit
+ * allows at the mush's speed is a rotation no turn makes. It replaces an
+ * unsourced 20 deg/s.
+ */
+export function turnYawLimitDeg(maxBankDeg, v) {
+  return 9.81 * Math.tan(maxBankDeg * Math.PI / 180) / v * 180 / Math.PI;
+}
+
+/*
  * A pilot flying a loop straight, as a real one does on the ailerons and
  * the rudder (the take offs' handbook pilot, the air's): the wings held
  * across the loop's plane, the left wing on world +y the whole way round

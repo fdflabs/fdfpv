@@ -72,8 +72,8 @@
     "alphaMinDeg": 22,
     "alphaMaxDeg": 40,
     "maxBankDeg": 15,
-    "maxYawRateDegS": 20,
-    "source": "full up held from 20 m/s at 60 percent, the wings held level on the ailerons as the pilot of a high alpha pass does: the pitching moment through the stall's model trims at 31.5 deg of alpha (f16:derive, full up mush), Freewing's 'the aircraft can also maintain a high alpha of 30 degrees to demonstrate its superior low speed stability'; alpha over the last 2 s in the band, the ailerons still holding the wings within 15 deg (no wing drop they cannot catch), no yaw that is a spin. Hands off it is a slow spiral, which the gate prints and does not hold"
+    
+    "source": "full up held from 20 m/s at 60 percent, the wings held level on the ailerons as the pilot of a high alpha pass does: the pitching moment through the stall's model trims at 31.5 deg of alpha (f16:derive, full up mush), Freewing's 'the aircraft can also maintain a high alpha of 30 degrees to demonstrate its superior low speed stability'; alpha over the last 2 s in the band, the ailerons still holding the wings within 15 deg (no wing drop they cannot catch), no yaw that is a spin. Hands off it is a slow spiral, which the gate prints and does not hold The yaw limit is re-derived 2026-10-11 from a spin's definition, autorotation: with the wings inside the bank limit the aircraft only turns, at g tan(bank) / V, so the limit is the turn that bank allows at the mush's measured speed (tests/lib/wingpilot.js turnYawLimitDeg, docs/FLIGHTMODEL.md), where it was 20 deg/s with no source."
   },
   "s10_phugoid": {
     "duty": 0.5,
