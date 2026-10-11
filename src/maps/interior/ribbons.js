@@ -307,7 +307,10 @@ function waterMaterial(THREE) {
         vec3 shoal = vec3(0.11, 0.092, 0.06);
         float swirl = rbNoise(w * 0.008) * 0.5 + rbNoise(w * 0.03) * 0.3 + rbNoise(w * 0.11) * 0.2;
         vec3 col = mix(deep, shoal, shallow * 0.75) * (0.8 + 0.45 * swirl);
-        vec3 siltFar = vec3(0.19, 0.15, 0.095) * (0.88 + 0.25 * swirl);
+        /* From survey height the river is the silt's own colour, darker
+         * than its sand, with the sky's sheen doing the lightening: at
+         * 0.19 it printed as a tan band lighter than the fields. */
+        vec3 siltFar = vec3(0.1, 0.082, 0.055) * (0.88 + 0.25 * swirl);
         col = mix(col, siltFar, smoothstep(0.3, 2.0, rbFp));
         /* Sand bars on the inside of a tighter bend (bend's sign is the
          * inside), wider where it turns harder, broken along it. */
@@ -316,13 +319,23 @@ function waterMaterial(THREE) {
         float n = rbNoise(w * 0.012) * 0.65 + rbNoise(w * 0.05) * 0.35;
         float bar = smoothstep(1.0 - 0.5 * reach, 1.04 - 0.5 * reach, inside + (n - 0.5) * 0.35)
           * step(0.01, reach) * smoothstep(0.35, 0.55, n);
-        rbBar = bar;
         vec3 sand = mix(vec3(0.21, 0.175, 0.13), vec3(0.16, 0.135, 0.1), rbNoise(w * 0.3));
         /* Wet sand at the bar's edge, darker. */
         sand *= mix(0.65, 1.0, smoothstep(0.0, 0.5, bar));
-        diffuseColor.rgb = mix(col, sand, bar);
-        /* The edge laps the bank under it. */
-        diffuseColor.a = max(bar, 1.0 - smoothstep(0.8, 1.0, abs(t) + (rbNoise(w * 0.2) - 0.5) * 0.12)) * mix(0.96, 1.0, bar);
+        /* The streams (no river is under 4 m across): still water half
+         * grown over, mats of floating weed from each bank and in
+         * patches, and a ragged edge into the grass; drawn bare they
+         * were a steel blue slab with ruled sides. The weed is matte
+         * (rbBar), as the bars are. */
+        float creek = 1.0 - step(4.0, hw);
+        float weed = creek * smoothstep(0.5, 0.7, abs(t) * 0.75 + rbNoise(w * 0.35) * 0.45 + rbNoise(w * 1.4) * 0.15);
+        vec3 weedCol = vec3(0.045, 0.085, 0.028) * (0.75 + 0.5 * rbNoise(w * 1.1));
+        col = mix(col, col * vec3(0.75, 0.95, 0.7), creek);
+        rbBar = max(bar, weed);
+        diffuseColor.rgb = mix(mix(col, sand, bar), weedCol, weed);
+        /* The edge laps the bank under it; a stream's edge wanders more. */
+        float lap = mix(0.12, 0.6, creek);
+        diffuseColor.a = max(rbBar, 1.0 - smoothstep(0.8, 1.0, abs(t) + (rbNoise(w * 0.2) - 0.5) * lap)) * mix(0.96, 1.0, rbBar);
       }`)
     .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
       /* Ripples too small for a pixel to hold are a rougher surface,

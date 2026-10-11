@@ -192,6 +192,17 @@ const CSS = `
 .ops-first button { margin-top: 0.8em; font: inherit; letter-spacing: inherit; color: ${INK}; background: transparent;
   border: 1px solid rgba(236, 244, 240, 0.55); padding: 0.3em 0.9em; cursor: pointer; }
 .ops-brief.wait { color: ${AMBER}; }
+.ops-fleet { pointer-events: auto; text-align: right; line-height: 1.4; white-space: nowrap; }
+@media (max-width: 899px), (max-height: 480px) {
+  .ops-fleet .ops-fleet-craft, .ops-fleet-title { display: none; }
+  .ops-fleet button { min-height: 32px; padding: 0.1em 0.5em; }
+}
+.ops-fleet:empty { display: none; }
+.ops-fleet-title { color: ${DIM}; letter-spacing: 0.2em; margin-bottom: 0.25em; }
+.ops-fleet button { display: block; margin: 0.2em 0 0 auto; font: inherit; letter-spacing: inherit; color: ${INK}; text-align: right;
+  background: rgba(6, 10, 12, 0.45); border: 1px solid rgba(236, 244, 240, 0.35); padding: 0.25em 0.7em; min-height: 40px; cursor: pointer; }
+.ops-fleet button.flown { border-color: #fff; cursor: default; }
+.ops-fleet .ops-k { margin: 0 0 0 0.8em; }
 .ops-touch { display: none; z-index: 5; pointer-events: auto; gap: 0.5em; align-items: center; touch-action: none; }
 .ops-touch.on { display: flex; }
 .ops-touch button { font: inherit; letter-spacing: 0.12em; color: ${INK}; background: rgba(6, 10, 12, 0.45);
@@ -358,6 +369,12 @@ export class OpsHud {
     for (const k of ['eo', 'ir', 'map', 'tgt', 'lrf']) {
       this.rowCells[k] = new Field(this.row);
     }
+    /* The pilot's aircraft when it holds more than one role
+     * (CONTRACT-HOLDS.md): each one's state and height, and a tap flies
+     * it. onFleet(key) is the shell's. */
+    this.fleet = el('div', 'ops-panel ops-fleet', this.el);
+    this.fleetKey = null;
+    this.onFleet = null;
     this.mapBox = el('div', 'ops-panel ops-map', this.el);
     this.mapCanvas = el('canvas', '', this.mapBox);
     this.mg = this.mapCanvas.getContext('2d');
@@ -453,7 +470,33 @@ export class OpsHud {
       subtitle: this.sub.v,
       goal: this.goalText,
       first: this.firstKey ? this.first.textContent : null,
+      fleet: [...this.fleet.querySelectorAll('button')].map((b) => ({ key: b.dataset.act.slice(4), text: b.textContent, flown: b.classList.contains('flown') })),
     });
+  }
+
+  /* fleet: [{ key, role, craft, state, agl }] or null (one aircraft). */
+  fleetText(fleet) {
+    const key = JSON.stringify(fleet ? fleet.map((f) => [f.key, f.role, f.craft, f.state, f.agl == null ? null : Math.round(f.agl)]) : null);
+    if (key === this.fleetKey) {
+      return;
+    }
+    this.fleetKey = key;
+    this.fleet.textContent = '';
+    if (!fleet) {
+      return;
+    }
+    el('div', 'ops-fleet-title', this.fleet, str('ops.fleet.title'));
+    for (const f of fleet) {
+      const b = el('button', f.state === 'flown' ? 'flown' : '', this.fleet, f.role);
+      el('span', 'ops-fleet-craft', b, str('ops.fleet.craft', { craft: f.craft }));
+      b.type = 'button';
+      b.dataset.act = `fly:${f.key}`;
+      const state = str(`ops.fleet.state.${f.state}`);
+      el('span', 'ops-k', b, f.agl == null ? state : str('ops.fleet.state_alt', { state, m: Math.round(f.agl) }));
+      if (f.state !== 'flown') {
+        b.addEventListener('click', () => this.onFleet && this.onFleet(f.key));
+      }
+    }
   }
 
   /* The panels' rectangles, CSS px, for the layout check. */
@@ -478,6 +521,7 @@ export class OpsHud {
       goal: r(this.goal),
       subtitle: r(this.sub.el),
       first: r(this.first),
+      fleet: r(this.fleet),
     };
   }
 
@@ -637,15 +681,18 @@ export class OpsHud {
         x: r.left, y: r.top, w: r.width, h: r.height,
       });
     }
-    const order = [[this.goal, 'c', 't'], [this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.sub.el, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't'], [this.touchEl, 'c', 't']];
+    const order = [[this.goal, 'c', 't'], [this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.sub.el, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't'], [this.fleet, 'r', 't', 'l'], [this.touchEl, 'c', 't']];
     for (const [p] of order) {
       p.classList.remove('ops-off');
     }
-    for (const [p, ax, ay] of order) {
+    /* A fourth entry is the side a panel tries when its own is full (the
+     * aircraft strip on a landscape phone, under the read panel). */
+    for (const [p, ax, ay, alt] of order) {
       if (getComputedStyle(p).display === 'none' || (!p.textContent && !p.querySelector('canvas'))) {
         continue;
       }
-      const me = this.slide(p, ax, ay, w, h, [...this.keepOut, ...placed]);
+      const against = [...this.keepOut, ...placed];
+      const me = this.slide(p, ax, ay, w, h, against) ?? (alt ? this.slide(p, alt, ay, w, h, against) : null);
       if (!me) {
         p.classList.add('ops-off');
         continue;
@@ -754,6 +801,7 @@ export class OpsHud {
       }));
       this.fLock.set(str(b.lock ? (b.track ? 'ops.hud.lock_track' : 'ops.hud.lock_ground') : 'ops.hud.lock_free'));
     }
+    this.fleetText(src.fleet);
     const c = src.craft;
     this.fAlt.set(c ? str('ops.hud.alt_of', { m: Math.round(c.agl) }) : '');
     this.fSpd.set(c ? str('ops.hud.spd_of', { kmh: Math.round(c.speed * 3.6) }) : '');
@@ -829,7 +877,12 @@ export class OpsHud {
       this.setGoal(goal);
     }
     const bound = v && v.boundary ? v.boundary[src.seat] : null;
-    this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : '');
+    /* The people below noticing the aircraft (CONTRACT-SPOTTED.md) share
+     * the boundary's place: both say "get out of here", and the boundary
+     * is the more urgent. */
+    const levels = Object.values((v && v.spot) || {}).map((x) => x.level);
+    const spot = ['spotted', 'looking'].find((l) => levels.includes(l));
+    this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : spot ? str(`ops.hud.spot_${spot}`) : '');
 
     /* The EO / IR / MAP / TGT / LRF row. */
     const thermal = src.mode === 'ir_wh' || src.mode === 'ir_bh' || src.mode === 'fusion';

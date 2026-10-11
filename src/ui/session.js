@@ -127,7 +127,8 @@ function lobbyPilot(p) {
     who.append(el('span', 'war-lobby-host', str('lobby.host')));
   }
   who.append(el('span', 'war-lobby-craft', p.aircraft));
-  row.append(who, el('span', 'war-lobby-flag', str(p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting')));
+  /* An AI pilot is never waited for: it flies whatever starts. */
+  row.append(who, el('span', 'war-lobby-flag', str(p.ai ? 'lobby.flag_ai' : (p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting'))));
   return row;
 }
 
@@ -677,6 +678,16 @@ export function watchSessionEvents(ui) {
       e.preventDefault();
     }
   }, true);
+  /* The walkable hangar walks on keys held, not pressed. Up is read
+   * everywhere, so a key let go over another screen is not held when the
+   * room opens again. */
+  window.addEventListener('keydown', (e) => {
+    if (ui.screen === 'walk' && !ui.carousel.isOpen && !ui.hangar.isOpen) {
+      ui.walkHeld(e.code, true);
+    }
+  });
+  window.addEventListener('keyup', (e) => ui.walkHeld(e.code, false));
+  window.addEventListener('blur', () => ui.walk && ui.walk.held.clear());
   ui.root.addEventListener('mousedown', (e) => {
     if (ui.dropEl && !ui.dropEl.contains(e.target) && !e.target.closest('.drop-btn')) {
       ui.closeDrop();

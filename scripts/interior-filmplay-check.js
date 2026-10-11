@@ -141,6 +141,25 @@ try {
   const after = await page.evaluate(`({ state: window.__ops.view().state, film: ${FILM} ? ${FILM}.for : null, mode: window.__craftState().mode })`);
   check('when the briefing ends the film stops and the pilot flies the match', after.state === 'live' && after.film === null && after.mode === 'flight', JSON.stringify(after));
 
+  /* SPOTTED (CONTRACT-SPOTTED.md): the room's spotted moment cuts the
+   * screen to a wide orbit over the people, for the spotter's scene. */
+  await page.evaluate(`(() => {
+    const v = window.__ops.view();
+    const now = window.__rooms().roomNow;
+    const pair = ['a', 'b'].map((k) => ({ id: 'pair-' + k, kind: 'person', group: 'pair', route: 'conceal-west-' + k, t0: now - 120000, state: 'seen' }));
+    window.__ops.inject({ type: 'ops', ops: { ...v, contacts: [...(v.contacts || []), ...pair], spot: { pair: { value: 1, level: 'spotted', at: { looking: now - 15000, spotted: now }, worst: { h: 120, off: 150, loud: false, seen: true }, advice: 'low' } } } });
+    return true;
+  })()`);
+  await page.until(`${FILM} && ${FILM}.for === 'ops:spotted'`, 15000).catch(() => {});
+  await page.sleep(2500);
+  const cut = await page.evaluate(`(() => { const f = ${FILM}; return f ? { for: f.for, map: f.map, ms: f.ms } : null; })()`);
+  check('spotted: the screen cuts to the end scene over the Interior', cut && cut.for === 'ops:spotted' && cut.map === 'interior', JSON.stringify(cut));
+  const looks = (await page.evaluate('window.__ops.drawn()')).looks;
+  check('the people are drawn in the world the cut looks at', looks.includes('pair-a:person') && looks.includes('pair-b:person'), JSON.stringify(looks));
+  await shot('spotted-cut.png');
+  await page.until(`!${FILM}`, 15000).catch(() => {});
+  check('the end scene ends on its own after the scene\'s seconds', !(await page.evaluate(FILM)));
+
   /* OUTRO, on a win the screen hears. */
   await page.evaluate("window.__ops.addStill('bridge', 'clean', 1000)");
   await page.sleep(500);

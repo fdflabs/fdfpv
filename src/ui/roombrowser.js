@@ -46,6 +46,9 @@ import { MAPS, mapById } from '../maps/registry.js';
 import { plural, str } from '../strings/index.js';
 
 const ROOM_ACTION = 'friends-room-';
+/* The watch seat's way into a listed room (docs/FLIGHTCLUB-PROGRESSION.md
+ * section 3). */
+const WATCH_ACTION = 'friends-watch-';
 /* Rooms on the title's panel: the busiest few with a seat. Two on an
  * upright phone, where the rooms stack a line each and a room's whole
  * name (32 letters, never cut) takes two lines beside its load: three
@@ -204,7 +207,7 @@ export function createRoomBrowser({
     if (r.game === 'war' && r.wave) {
       return str('roombrowser.flying_wave', { flying, w: r.wave, of: r.waves });
     }
-    if (r.game === 'combat' && r.round) {
+    if ((r.game === 'combat' || r.game === 'jam') && r.round) {
       return str('roombrowser.flying_round', { flying, n: r.round });
     }
     return flying;
@@ -451,7 +454,7 @@ export function createRoomBrowser({
       const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, titleRooms(home));
       return [
         { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
-        ...open.map((r) => ({
+        ...open.flatMap((r) => [{
           lobby: 'room',
           label: title(r),
           /* The game, then what its pilots are doing: "War 2 · 1 in
@@ -462,7 +465,13 @@ export function createRoomBrowser({
            * green, a room in its lobby blue (index.html, THE ROOMS PANEL). */
           live: flyingNow(r),
           action: `lobby:${ROOM_ACTION}${r.code}`,
-        })),
+        }, ...(home ? [] : [{
+          /* Flight Club's Join a session strip only: home's panel is a
+           * grid of rooms, one cell each. */
+          lobby: 'watch',
+          label: str('roombrowser.watch'),
+          action: `lobby:${WATCH_ACTION}${r.code}`,
+        }])]),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },
         { lobby: 'make', label: str('roombrowser.new'), action: 'lobby:roomnew' },
       ];
@@ -547,6 +556,16 @@ export function createRoomBrowser({
     },
     /* A friends- action of these screens: true when it was one. */
     act(action) {
+      if (action.startsWith(WATCH_ACTION)) {
+        joined = action.slice(WATCH_ACTION.length);
+        /* A watcher flies at its welcome, straight from this panel: a
+         * card's reel still recording would hold the world still under it
+         * (src/ui/cards.js reelFreezeWorld). */
+        ui.stopReels();
+        link.join(joined, { watch: true });
+        ui.show('friends');
+        return true;
+      }
       if (action.startsWith(ROOM_ACTION)) {
         joined = action.slice(ROOM_ACTION.length);
         link.join(joined);

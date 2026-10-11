@@ -52,11 +52,59 @@ const RED = '#ff4a3a';
 const DIM = 'rgba(125, 255, 154, 0.35)';
 const SCRIM = 'rgba(4, 10, 6, 0.55)';
 const CALL_MS = 4500;
+/*
+ * The cards an objective change calls for (The Interior's cards, docs/
+ * campaign/FIRST-LIGHT-AUDIT.md), from what the HUD showed before
+ * (`was`, { entry, states }) and the stage's objectives now: one shown
+ * after its stage opened (a twist's, on its `show`) is
+ * card.primary_updated, one settled is done or failed. A stage's opening
+ * objectives are not carded: its title is. Pure.
+ */
+export function objectiveCards(was, stage, list) {
+  const entry = stage ? `${stage.id}@${stage.at}` : null;
+  const states = new Map(list.map((o) => [o.id, o.state]));
+  const now = { entry, states };
+  if (entry !== was.entry) {
+    return { now, cards: [] };
+  }
+  const cards = [];
+  for (const [id, state] of states) {
+    const before = was.states.get(id);
+    if (before === undefined) {
+      cards.push('card.primary_updated');
+    } else if (before !== state && (state === 'done' || state === 'failed')) {
+      cards.push(state === 'done' ? 'card.objective_done' : 'card.objective_failed');
+    }
+  }
+  return { now, cards };
+}
+
 /* A stage's title stands this long (TECH-NEEDS T4: 3 s). */
 const LOWER_MS = 3000;
+/* How long this pilot's SPLASH stands, ms. */
+const SPLASH_MS = 2600;
 /* A radio subtitle stays this long after its line, and at most this many
  * wait behind the one shown. */
 const SUB_TAIL_MS = 600;
+/* A subtitle that waited longer than this for its turn is dropped, as the
+ * radio drops a story line that waited (warradio.js STORY_STALE_MS): with
+ * the sound off the words ran on their own clock, kept every line, and
+ * fell behind the fight ("Something high over the water" under a scout
+ * already down). */
+export const SUB_STALE_MS = 12000;
+
+/* The next subtitle due from the queue at `now` (ms): the oldest that has
+ * not waited past SUB_STALE_MS, the staler ones dropped from the queue
+ * (which it changes). Null when none is left. */
+export function nextDue(queue, now) {
+  while (queue.length) {
+    const s = queue.shift();
+    if (now - s.at <= SUB_STALE_MS) {
+      return s;
+    }
+  }
+  return null;
+}
 const SUB_QUEUE = 3;
 const CALLS_SHOWN = 3;
 /* The display's top, under the room's lines at their longest (see the
@@ -212,6 +260,7 @@ export function createWarHud(nameOf, restart = null) {
   let inRounds = false;
   let pipsPulse = 0;
   let splashSeen = false;
+  let splashUntil = 0;
   let hintEl = null;
   let hintTimer = 0;
   let killsPulse = 0;
@@ -315,6 +364,7 @@ export function createWarHud(nameOf, restart = null) {
    * failed), its words and, for a count, how far it has got. */
   function objectivesShown(stage, roomNow) {
     const list = stage ? stage.objectives ?? [] : [];
+    cardsShown(stage, list);
     goals.replaceChildren();
     goals.style.display = stage && (stage.text || list.length) ? 'flex' : 'none';
     if (stage && stage.text) {
@@ -331,6 +381,26 @@ export function createWarHud(nameOf, restart = null) {
       if (heldMs != null && o.state === 'active') {
         const bar = el({ height: '3px', marginTop: '2px', background: 'rgba(125, 255, 154, 0.15)' }, d);
         el({ height: '100%', width: `${((100 * heldMs) / o.ms).toFixed(1)}%`, background: AMBER }, bar);
+      }
+    }
+  }
+
+  /* The objectives' cards (objectiveCards below) in the lower third. */
+  let goalsWas = { entry: null, states: new Map() };
+  /* Every card shown, for the checks (shown()). */
+  const cardsSaid = [];
+  function cardsShown(stage, list) {
+    const { now, cards } = objectiveCards(goalsWas, stage, list);
+    goalsWas = now;
+    /* A card under this pilot's own SPLASH ran into it (the kill that
+     * settles a kill objective is the splash's): it waits the splash out. */
+    const wait = Math.max(0, splashUntil - performance.now());
+    for (const key of cards) {
+      cardsSaid.push(key);
+      if (wait > 0) {
+        setTimeout(() => lowerThird(str(key)), wait);
+      } else {
+        lowerThird(str(key));
       }
     }
   }
@@ -377,8 +447,9 @@ export function createWarHud(nameOf, restart = null) {
       { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.08 },
       { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.7 },
       { opacity: 0, transform: 'translate(-50%, -50%) scale(1.05)' },
-    ], { duration: 2600, easing: 'ease-out' });
+    ], { duration: SPLASH_MS, easing: 'ease-out' });
     killsPulse = performance.now() + 1500;
+    splashUntil = performance.now() + SPLASH_MS;
     shown = '';
   }
 
@@ -502,7 +573,7 @@ export function createWarHud(nameOf, restart = null) {
   let subUntil = 0;
   let subTimer = 0;
   function subtitle(text, ms) {
-    subs.push({ text, ms });
+    subs.push({ text, ms, at: performance.now() });
     if (subs.length > SUB_QUEUE) {
       subs.shift();
     }
@@ -512,7 +583,7 @@ export function createWarHud(nameOf, restart = null) {
   }
   function nextSub() {
     clearTimeout(subTimer);
-    const s = subs.shift();
+    const s = nextDue(subs, performance.now());
     if (!subEl) {
       subEl = root({
         position: 'fixed', left: '50%', bottom: '21vh', transform: 'translateX(-50%)', zIndex: '43', pointerEvents: 'none',
@@ -687,11 +758,12 @@ export function createWarHud(nameOf, restart = null) {
       calls: calls ? [...calls.children].map((c) => c.textContent) : [],
       banner: banner && banner.style.display !== 'none' ? banner.firstChild.nodeValue : '',
       status: status && status.style.display !== 'none' ? status.textContent : '',
-      objectives: goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
+      objectives: box && box.style.display !== 'none' && goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       subtitle: subEl && subEl.style.display !== 'none' ? subEl.textContent : '',
       splashSeen,
+      cards: cardsSaid.slice(),
     }),
   };
 }

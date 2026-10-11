@@ -61,11 +61,17 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
+import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
+import { createGlidePath } from './render/glidepath.js';
+import { createGateCue } from './ui/gatecue.js';
+import { medalFor, publishMedals } from './game/medals.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
+import { translate as translateKey } from './input/keybinds.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
+import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js';
 import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
@@ -89,7 +95,7 @@ import {
   adoptShareFromLocation, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
 } from './share/board.js';
-import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
+import { findBoardTwin, inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
 import {
   addFlight, createFlightClock, deviceId, flightTotals, mergeFlightTime, stepsAreFlight,
@@ -106,6 +112,8 @@ import { createVoiceUi } from './ui/voiceui.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
+import { createJamRun, createRoomJam } from './share/roomjam.js';
+import { jamHudView, jamResultsView, jamTurnShout } from './ui/jamhud.js';
 import { MODES, modeById, modeOfRoom, modeOfWire } from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
@@ -125,6 +133,7 @@ import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
+import { createRain } from './render/rain.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
@@ -132,6 +141,8 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
+import { feedSnow } from './share/ops/feed.js';
+import { HOLD_BANK, holdOf, holdPose } from './share/ops/hold.js';
 import { opsWorldOf } from './share/opsworlds.js';
 import { resolve as opsResolve } from './share/ops/stages.js';
 import { localHour } from './share/interior/clock.js';
@@ -141,11 +152,13 @@ import { OpsHud, heldRolesOf } from './ui/opshud.js';
 import {
   bearingSaid, briefOf, createNudger, focusOf, goalLine, nudgeOf, targetOf,
 } from './share/ops/guide.js';
-import { RolesBoard } from './ui/rolesboard.js';
+import { RolesBoard, roleName } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
+import { spotFilm } from './share/ops/spotfilm.js';
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
+import { createTrainingScreen } from './ui/training.js';
 import { INTERIOR, INTERIOR_CAMPAIGN } from './game/campaign.js';
 import { SIZE as CONTACT_SIZE, centreOf } from './share/ops/contacts.js';
 import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
@@ -156,6 +169,9 @@ import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
 import { BRIEF_LINES, DEBRIEF_LINES, createWarCalls } from './render/warradio.js';
+import {
+  createNudger as createWarNudger, ground as warGround, headingOf as warHeadingOf, nudgeOf as warNudgeOf, threatOf as warThreatOf,
+} from './share/war/nudge.js';
 import VOICE_LENGTHS from './share/war/voicelen.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
@@ -166,7 +182,7 @@ import {
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
-import { filmFor } from './share/war/films/index.js';
+import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
 import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
@@ -194,6 +210,12 @@ import { isMapTrack } from './trackbuilder/model.js';
 import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
+import { createRoomView, PHOTO_FRAMES } from './render/hangarroomview.js';
+import { listClips, downloadBlob, stampedName } from './replay/store.js';
+import { listPhotos, putPhoto } from './ui/photostore.js';
+import { qualityFor } from './render/quality.js';
+import { dressLivery } from './render/livery.js';
+import { dressParts } from './render/partsfit.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { retiredMap } from './maps/retired.js';
@@ -210,10 +232,14 @@ import {
 } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
+import { setAtlasPreset } from './render/decals.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
+import { accrue, impactsFrom, propulsionHealth, realismFlight, startSortie, wearRecordOf, wornPowerBlock, wornQuadBlocks } from '../configs/wear.js';
+import { learnPartTable } from './ui/hangar-parts.js';
 import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
+import { packEntry } from '../configs/paint.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
@@ -224,6 +250,7 @@ import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
+import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -243,6 +270,7 @@ const WING_MOUNTS = {
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
+  extra3d1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
@@ -267,6 +295,7 @@ import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { currentLocale, plural, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
+import { makeWeather, MAPS as WEATHER_MAPS, PRESET_IDS as WEATHER_PRESETS } from './game/weather.js';
 import { KINDS, TURNED } from './game/collide.js';
 import {
   conditionOf, createDamageLink, damagedPart, isPowered, isWreck, PART_STATE_DOUBLES, STATE,
@@ -471,9 +500,10 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * resource timing for them): a wrong count moves the bar at the wrong pace
  * and cannot break a load. A map with no entry weighs 4.
  *
- * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
- * all. The Alps modules it builds through are counted under their own
- * prefix, so they are not in this number, and a pilot who flew the Alps
+ * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 46 in
+ * all. The Alps modules it builds through, and the asset library's
+ * (src/render/library/, where its tree models went), are under their own
+ * prefixes, so they are not in this number, and a pilot who flew the Alps
  * first already has them. Check 16 asserts this count against what the
  * browser actually fetched on choosing the valley, because a bar weight
  * that is wrong cannot break a load and so nothing else would notice: 61
@@ -501,7 +531,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * terrain engine (src/maps/terrain/) and the swiss2 look it is built
  * with are under their own prefixes, as the Alps' modules are for
  * swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 34 };
+const MAP_MODULE_COUNT = { swiss2: 46, itaipu: 34 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -555,6 +585,8 @@ async function importMapModule(entry, loading) {
  * that water attached. */
 async function loadMap(shell, id, loading, mapOptions) {
   const options = withTimeOption(mapOptions);
+  /* Liveries dressed in this world draw their layers at its preset. */
+  setAtlasPreset(options.quality);
   const entry = mapById(id);
   /* Track mode's seat is resolved to a world by worldId before anything
    * asks for one, so a seat reaching here is a caller that skipped it. */
@@ -791,12 +823,180 @@ export async function boot({
   const OPS_CONSENT = {
     [INTERIOR_CAMPAIGN.id]: { given: () => ui.settings.interiorConsent === true, ask: () => interiorConsented() },
   };
+  /* The role key this seat flies now, or null. */
+  function opsActiveKey(v) {
+    const r = v.roles;
+    return r && r.active ? r.active[roomOps.seat()] ?? null : null;
+  }
+  /* The aircraft of role key `key`, or null. */
+  function opsKeyCraft(v, key) {
+    const def = key && ((v.roles && v.roles.defs) || []).find((d) => d.id === String(key).split(':')[0]);
+    return def && def.platforms && def.platforms[0] ? def.platforms[0] : null;
+  }
   /* The aircraft of the role this seat flies now, or null. */
   function opsRoleCraft(v) {
-    const r = v.roles;
-    const key = r && r.active ? r.active[roomOps.seat()] : null;
-    const def = key && (r.defs || []).find((d) => d.id === String(key).split(':')[0]);
-    return def && def.platforms && def.platforms[0] ? def.platforms[0] : null;
+    return opsKeyCraft(v, opsActiveKey(v));
+  }
+
+  /*
+   * PLATFORM HOLDS (docs/campaign/interior/CONTRACT-HOLDS.md, TECH-NEEDS
+   * N15). A pilot holding several roles in a live match keeps one aircraft
+   * per role alive: the one flown is the plant, each other is a hold on
+   * the room clock (src/share/ops/hold.js), drawn as a model. Changing the
+   * active role ([ and ], the pad's shoulders) hands the plant over to
+   * the held aircraft where its hold has it, and the one left takes a
+   * hold where it was. A role never flown yet in this match is launched
+   * where the pilot is, by the hot swap's rules. Outside a live match
+   * nothing here runs, and the hot swap is unchanged.
+   *
+   * opsHolds: role key -> { airframe, hold, yaw, rig }, this page's only.
+   * opsFlownKey: the role key the plant is flying now.
+   */
+  const opsHolds = new Map();
+  let opsFlownKey = null;
+  let opsHoldBusy = false;
+  const holdP = new THREE.Vector3();
+  const holdV = new THREE.Vector3();
+  const holdDoc = { x: 0, y: 0, z: 0 };
+  const holdQ = new THREE.Quaternion();
+  const holdE = new THREE.Euler(0, 0, 0, 'YXZ');
+
+  function opsHoldsClear() {
+    for (const h of opsHolds.values()) {
+      h.rig.group.removeFromParent();
+      h.rig.dispose();
+    }
+    opsHolds.clear();
+    opsFlownKey = null;
+  }
+
+  /* [ or ]: the next role this seat holds, asked of the room; true when
+   * the key was this feature's. */
+  function opsHoldCycle(dir) {
+    const v = roomOps.on() ? roomOps.view() : null;
+    const keys = (v && v.roles && v.roles.held && v.roles.held[roomOps.seat()]) || [];
+    if (!roomOps.live() || keys.length < 2) {
+      return false;
+    }
+    const i = keys.indexOf(opsActiveKey(v));
+    roomOps.active(keys[(i + dir + keys.length) % keys.length]);
+    return true;
+  }
+  ui.cycleHold = opsHoldCycle;
+
+  /* The room clock in whole ms, or null with no clock (no link yet):
+   * a hold is on the room's clock or it is not taken. */
+  let opsClockOverride = null;
+  function holdRoomMs() {
+    const t = opsClockOverride ? opsClockOverride() : roomLinkState.roomNow();
+    return Number.isFinite(t) ? Math.floor(t) : null;
+  }
+
+  /* Where a hold is now, into holdP and holdV (scene frame), and the yaw
+   * it faces. */
+  function holdNow(h) {
+    const q = holdPose(h.hold, Math.max(h.hold.t0, holdRoomMs() ?? h.hold.t0));
+    docPosToThree(q.p[0], q.p[1], q.p[2], holdP);
+    docPosToThree(q.v[0], q.v[1], q.v[2], holdV);
+    return h.hold.kind === 'orbit' ? Math.atan2(-holdV.x, -holdV.z) : h.yaw;
+  }
+
+  /* The other seats' holds, from the room's view: `${seat}:${key}` ->
+   * { airframe, hold, yaw, rig }. */
+  const peerHolds = new Map();
+  function peerHoldsSync(v) {
+    const want = new Map();
+    const mine = String(roomOps.seat());
+    for (const [seat, hs] of Object.entries((roomOps.live() && v && v.holds) || {})) {
+      if (seat === mine) {
+        continue;
+      }
+      for (const [key, h] of Object.entries(hs)) {
+        want.set(`${seat}:${key}`, { ...h, key });
+      }
+    }
+    for (const [id, h] of peerHolds) {
+      const w = want.get(id);
+      if (!w || w.airframe !== h.airframe || w.hold.t0 !== h.hold.t0) {
+        h.rig.group.removeFromParent();
+        h.rig.dispose();
+        peerHolds.delete(id);
+      }
+    }
+    for (const [id, w] of want) {
+      if (!peerHolds.has(id)) {
+        const rig = buildPeerCraft({ airframe: w.airframe, livery: null, parts: null }, (craft) => shell.lookCraft(craft));
+        rig.setLabel(roleName(w.key));
+        peerHolds.set(id, {
+          airframe: w.airframe, hold: w.hold, yaw: 0, rig,
+        });
+      }
+    }
+  }
+
+  /* Each held aircraft drawn where its hold has it: level on a hover or
+   * parked, banked into the turn on an orbit. */
+  function opsHoldsDraw(v) {
+    peerHoldsSync(v);
+    for (const h of [...opsHolds.values(), ...peerHolds.values()]) {
+      const yaw = holdNow(h);
+      h.rig.group.position.copy(holdP);
+      holdE.set(0, yaw, h.hold.kind === 'orbit' ? HOLD_BANK : 0);
+      h.rig.group.quaternion.setFromEuler(holdE);
+      if (h.rig.group.parent !== shell.quad.parent) {
+        shell.quad.parent.add(h.rig.group);
+      }
+    }
+  }
+
+  async function opsHoldSwitch(v, fromKey, toKey) {
+    const toCraft = opsKeyCraft(v, toKey);
+    const t = holdRoomMs();
+    if (!toCraft || t == null) {
+      return;
+    }
+    opsHoldBusy = true;
+    try {
+      const st = readState();
+      poseFromState(st, holdP);
+      simPosToThree(st[4], st[5], st[6], holdV).applyQuaternion(qSpawn);
+      const from = airframeById(runAirframe);
+      const left = {
+        p: Object.values(threePosToDoc(holdP.x, holdP.y, holdP.z, { ...holdDoc })),
+        v: Object.values(threePosToDoc(holdV.x, holdV.y, holdV.z, { ...holdDoc })),
+        airborne: !onSurface(),
+      };
+      const leftHold = {
+        airframe: from.id, hold: holdOf(left, from, t), yaw: craftHeadingYaw(), rig: null,
+      };
+      const to = opsHolds.get(toKey);
+      let at = null;
+      if (to) {
+        const yaw = holdNow(to);
+        at = {
+          pos: holdP.clone(), vel: holdV.clone(), yaw, flying: to.hold.kind !== 'parked',
+        };
+      }
+      const swapped = await hotSwap(toCraft, { refit: toCraft === runAirframe, at });
+      if (!swapped) {
+        return;
+      }
+      if (to) {
+        to.rig.group.removeFromParent();
+        to.rig.dispose();
+        opsHolds.delete(toKey);
+      }
+      /* The room's copy: it makes the same hold from the same pose. The
+       * camera ball's ground lock stays on the held aircraft's camera. */
+      const lock = ball && ballAirframe === from.id && ball.state.lock ? ball.state.lock.slice() : null;
+      roomOps.hold(fromKey, t, left, lock && opsCam ? { aim: lock, tanHalf: opsCam.tanHalf, aspect: opsCam.aspect } : null);
+      leftHold.rig = buildPeerCraft({ airframe: from.id, livery: null, parts: null }, (craft) => shell.lookCraft(craft));
+      leftHold.rig.setLabel(roleName(fromKey));
+      opsHolds.set(fromKey, leftHold);
+      opsFlownKey = toKey;
+    } finally {
+      opsHoldBusy = false;
+    }
   }
   /* The start this page owes a room it made for a mission, until its
    * welcome; the match this page has put itself in the air for. */
@@ -806,6 +1006,8 @@ export async function boot({
    * last told. */
   let opsDrawn = false;
   let opsCampMark = null;
+  /* Which mission's camps the map shows (mission.camp.world), told once. */
+  let opsCampWorld = null;
   /* What the map was last told, for the checks: the hour, the looks. */
   let opsHourTold = null;
   let opsLooksTold = [];
@@ -1125,7 +1327,18 @@ export async function boot({
      * taken or swapped since): seated before it is flown, and again when
      * the role changes to another aircraft. */
     const craft = consentDue ? null : opsRoleCraft(v);
-    if (craft && ui.settings.airframe !== craft) {
+    const activeKey = consentDue ? null : opsActiveKey(v);
+    if (!roomOps.live() && opsHolds.size) {
+      opsHoldsClear();
+    }
+    if (activeKey && opsFlownKey && activeKey !== opsFlownKey && opsBegunFor === match && swapLive()) {
+      if (!opsHoldBusy) {
+        opsHoldSwitch(v, opsFlownKey, activeKey).catch((e) => {
+          console.error('hold switch failed', e);
+          throw e;
+        });
+      }
+    } else if (craft && ui.settings.airframe !== craft) {
       seatAirframe(ui.settings, craft);
       ui.persistSettings();
       if (opsBegunFor === match && mode === 'flight') {
@@ -1135,6 +1348,8 @@ export async function boot({
     /* A match begun: into the air, as a war's begins (warBegin). */
     if (!consentDue && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
       opsBegunFor = match;
+      opsHoldsClear();
+      opsFlownKey = activeKey;
       const w = roomLinkState.state().welcome;
       if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
         ui.onAction('restart');
@@ -1143,6 +1358,7 @@ export async function boot({
       }
     }
     opsFilmFrame(v, match, consentDue);
+    opsHoldsDraw(v);
     opsDraw(roomOps.on() ? v : null, roomOps.on() ? roomOps.mission() : null, roomLinkState.roomNow());
     for (const x of (v.roles && v.roles.swaps) || []) {
       if (x.to === roomOps.seat() && !swapsTold.has(x.id)) {
@@ -1253,6 +1469,14 @@ export async function boot({
       }
       return;
     }
+    if (opsCampWorld !== mission.id && typeof view.setCamp === 'function') {
+      /* A mission's camps as its story has them (Mission 2: Claro Viejo
+       * stripped, Claro Nuevo standing); Mission 1's are the default. */
+      opsCampWorld = mission.id;
+      view.setCamp({
+        nuevo: false, mast: 0, parked: Infinity, cold: false, ...(mission.camp && mission.camp.world),
+      });
+    }
     const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
     const list = [];
     for (const c of v.contacts || []) {
@@ -1300,6 +1524,8 @@ export async function boot({
   /* The match whose mission palette the thermal core has been set to. */
   let opsPaletteFor = null;
   let opsOutroShown = null;
+  /* The spotted end scene last played: match, spotter and moment. */
+  let opsSpotShown = null;
   /* The prologue owed before the campaign's page: its film id, or null. */
   let opsPrologueDue = null;
   /* Own stills as pictures the film can draw, by item. */
@@ -1313,13 +1539,15 @@ export async function boot({
     warIntroStop();
     warIntroFor = `ops:${id}`;
     warIntroFov = shell.camera.fov;
-    const film = OPS_FILMS[id];
+    const film = opts.film ?? OPS_FILMS[id];
     const h = playInteriorFilm(shell.quad.parent || view.scene, shell.camera, id, {
       map: view.id,
       canvas: shell.canvas,
       audio,
       ground: (x, z) => view.height(x, z, Infinity),
       seen: seenFilm(opsFilmStore.load(), id, film.version),
+      /* The story flags a film's callback lines read (film.js `or`). */
+      flags: opsFilmStore.load().flags,
       onSeen: () => {
         opsFilmStore.save(markSeen(opsFilmStore.load(), id, film.version));
         opsSeenTell();
@@ -1429,6 +1657,30 @@ export async function boot({
     } else if (intro && opsFilmOn(intro) && !briefing) {
       warIntroStop();
     }
+    /* Spotted (CONTRACT-SPOTTED.md): the cut to the people scattering,
+     * on the room's clock from the moment they saw you, then the fail. */
+    const spot = v.state === 'live' && mission && mode !== 'replay' && map && opsWorldUp(map)
+      ? (mission.spotters ?? []).find((sp) => v.spot?.[sp.id]?.at.spotted != null) : null;
+    const spotKey = spot ? `${match}:${spot.id}:${v.spot[spot.id].at.spotted}` : null;
+    if (spot && opsSpotShown !== spotKey) {
+      opsSpotShown = spotKey;
+      const t0 = v.spot[spot.id].at.spotted;
+      const world = opsWorld(mission);
+      const ps = (v.contacts || []).filter((c) => (c.id === spot.group || c.group === spot.group) && c.route)
+        .map((c) => world.poseOnRoute(c.route, t0 - c.t0)).filter((p) => p && p.action !== 'gone');
+      if (ps.length) {
+        /* Ops frame (x east, y north) to the world's (x, -z). */
+        const at = [ps.reduce((a, p) => a + p.x, 0) / ps.length, -ps.reduce((a, p) => a + p.y, 0) / ps.length];
+        const cam = shell.camera.position;
+        const from = Math.atan2(cam.x - at[0], cam.z - at[1]);
+        opsFilmPlay('spotted', {
+          film: spotFilm(map, at, spot.scene, from),
+          clock: () => roomLinkState.roomNow() - t0,
+          seen: true,
+          onSeen: () => {},
+        });
+      }
+    }
     /* The outro on a win, then the debrief. */
     const outro = opsFilmOf(v.mission, 'outro');
     if (v.state === 'won' && outro && opsOutroShown !== match && v.endAt != null && map && opsWorldUp(map)) {
@@ -1509,6 +1761,33 @@ export async function boot({
     return { x: ((x + 1) / 2) * cw, y: ((1 - y) / 2) * ch };
   }
 
+  /* The HUD's aircraft strip: each role this seat holds, when it holds
+   * more than one in a live match (PLATFORM HOLDS). */
+  function opsFleet(v) {
+    const keys = (v.roles && v.roles.held && v.roles.held[roomOps.seat()]) || [];
+    if (keys.length < 2 || !roomOps.live()) {
+      return null;
+    }
+    return keys.map((key) => {
+      const h = opsHolds.get(key);
+      const id = opsKeyCraft(v, key);
+      let state = 'ready';
+      let agl = null;
+      if (key === opsFlownKey) {
+        state = 'flown';
+        agl = opsAgl();
+      } else if (h) {
+        holdNow(h);
+        state = h.hold.kind;
+        agl = holdP.y - view.height(holdP.x, holdP.z, Infinity);
+      }
+      return {
+        key, role: roleName(key), craft: id ? airframeById(id).name : '', state, agl,
+      };
+    });
+  }
+  opsHud.onFleet = (key) => roomOps.active(key);
+
   /* What the quiet HUD draws this frame. */
   function opsHudSrc() {
     const raw = roomOps.view();
@@ -1540,6 +1819,7 @@ export async function boot({
       touch: Boolean(touch),
       insetMode: sensors.state.pipMode,
       tutorial: v ? opsTutorial(v, mission) : null,
+      fleet: v ? opsFleet(v) : null,
       /* The guide's line and marks, under the Mission guidance setting. */
       guide: v && ui.settings.missionGuidance && opsGuide.focus ? opsGuide : null,
       edgeDir: opsEdgeDir,
@@ -1741,6 +2021,25 @@ export async function boot({
     filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
     flown: () => runAirframe,
+    /* The forward feed's snow on this screen now (src/share/ops/feed.js). */
+    feed: () => opsFeedSnow(),
+    /* The platform holds: the role flown, and each held aircraft, where
+     * its hold has it now and where its model is drawn (scene frame). */
+    holds: () => ({
+      flown: opsFlownKey,
+      held: [...opsHolds].map(([key, h]) => {
+        holdNow(h);
+        return {
+          key, airframe: h.airframe, kind: h.hold.kind, r: h.hold.r ?? null, c: h.hold.c ? h.hold.c.slice() : null, p: holdP.toArray(), drawn: h.rig.group.position.toArray(), shown: h.rig.group.parent != null,
+        };
+      }),
+      peers: [...peerHolds].map(([id, h]) => {
+        holdNow(h);
+        return {
+          id, airframe: h.airframe, kind: h.hold.kind, p: holdP.toArray(), drawn: h.rig.group.position.toArray(), shown: h.rig.group.parent != null,
+        };
+      }),
+    }),
     /* What the map was last told of the room: mark, hour, contacts. */
     drawn: () => ({ mark: opsCampMark, hour: opsHourTold, looks: opsLooksTold.slice() }),
     /* Checks only: the host's end of the match. */
@@ -1758,6 +2057,8 @@ export async function boot({
     welcome: (w) => roomOps.onWelcome(w),
     inject: (m) => roomOps.onMessage(m),
     useWorld: (w) => { opsWorldOverride = w; opsCaptureFor = null; },
+    /* Checks only: a room clock (page ms to room ms) with no room. */
+    useClock: (f) => { opsClockOverride = f; },
     sent: () => opsSent.slice(),
     /* Checks only: a capture of `item` proposed now, whatever is framed,
      * for the room to judge on this page's real pose and camera. */
@@ -1934,7 +2235,10 @@ export async function boot({
     }
     ui.settings.flightTime = record;
     ui.persistSettings();
+    ui.progress.checkFirsts();
   }
+  /* A profile from before firsts is paid for what it already holds. */
+  ui.progress.checkFirsts();
   /* The activity flown, as the mode registry's id (src/share/modes.js):
    * the room's game in a room, else Track Day on a race map and Free
    * Flight anywhere else. Every game but those two is played in a room,
@@ -2012,6 +2316,133 @@ export async function boot({
   let showcase = null;
   /* The aircraft picker's models, in the shell's own renderer. */
   const pickStage = createCarouselStage(shell.renderer);
+  /*
+   * THE WALKABLE HANGAR (docs/HANGAR-ROOM.md): made when the room opens,
+   * on the shell's renderer, and let go when it shuts. The aircraft on its
+   * stand is built again when the seated one changes or the hangar's
+   * editor shuts, since a save there may have repainted it.
+   */
+  /* Where a replay the hangar's TV opened goes back to: { mode, which }. */
+  let tvReturn = null;
+  const walkRoom = { lastTurntable: null, view: null, graphics: null, craftKey: null, hangarWasOpen: false, ms: 0 };
+  /* dtMs is the frame's, in milliseconds as everywhere in the frame loop;
+   * the walk and the room's springs take seconds. */
+  function walkRoomFrame(dtMs) {
+    const dt = dtMs / 1000;
+    const pose = ui.walkFrame(dt);
+    const graphics = ui.settings.graphics;
+    if (walkRoom.view && walkRoom.graphics !== graphics) {
+      walkRoom.view.dispose();
+      walkRoom.view = null;
+    }
+    if (!walkRoom.view) {
+      walkRoom.view = createRoomView(shell.renderer, { graphics: qualityFor(graphics) });
+      walkRoom.view.setRoom(ui.walk.tier, ui.walk.layout);
+      walkRoom.graphics = graphics;
+      walkRoom.craftKey = null;
+      loadPhotoWall(walkRoom.view);
+    }
+    const id = ui.settings.airframe;
+    const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
+    walkRoom.hangarWasOpen = ui.hangar.isOpen;
+    if (walkRoom.craftKey !== id || shut) {
+      walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
+      walkRoom.craftKey = id;
+    }
+    /* The trophy wall: every first paid, in key order so a wall reads the
+     * same each visit (src/game/progress.js firsts). */
+    const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
+    walkRoom.view.setTrophies(Object.keys(firsts).filter((k) => firsts[k]).sort());
+    walkRoom.ms += dt * 1000;
+    const photo = ui.walk.photo;
+    turntableStep(photo);
+    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, photo);
+    if (photo && photo.shoot) {
+      photo.shoot = false;
+      const view = walkRoom.view;
+      view.capture((blob) => {
+        if (!blob) {
+          ui.walkFlash(str('walk.photo_none'));
+          return;
+        }
+        downloadBlob(stampedName('hangar', '.jpg'), blob);
+        putPhoto(blob, ui.settings.airframe).then(() => {
+          ui.walkFlash(str('walk.photo_saved'));
+          return loadPhotoWall(view);
+        }).catch((err) => ui.walkFlash(str('walk.photo_failed', { why: err.message })));
+      });
+    }
+    return walkRoom.view;
+  }
+  /*
+   * THE TURNTABLE (docs/SHOW-IT-OFF.md part 2): the camera once round the
+   * stand in TURNTABLE_S while a MediaRecorder takes the canvas, then the
+   * WebM downloaded. Turned by the wall clock, so a slow machine records a
+   * slower frame rate, never a shorter turn.
+   */
+  const TURNTABLE_S = 6;
+  function turntableStep(photo) {
+    const tt = photo && photo.turntable;
+    if (!tt) {
+      return;
+    }
+    if (tt.want) {
+      tt.want = false;
+      const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
+      try {
+        tt.chunks = [];
+        tt.rec = new MediaRecorder(shell.canvas.captureStream(30), { mimeType: type, videoBitsPerSecond: 8e6 });
+      } catch (err) {
+        photo.turntable = null;
+        ui.walkFlash(str('walk.turntable_failed', { why: err.message }));
+        return;
+      }
+      tt.rec.ondataavailable = (e) => e.data.size && tt.chunks.push(e.data);
+      tt.rec.onstop = () => {
+        const blob = new Blob(tt.chunks, { type: tt.rec.mimeType });
+        walkRoom.lastTurntable = { bytes: blob.size, type: blob.type, s: (performance.now() - tt.t0) / 1000 };
+        downloadBlob(stampedName('turntable', '.webm'), blob);
+        ui.walkFlash(str('walk.turntable_saved'));
+        if (ui.walk && ui.walk.photo === photo) {
+          photo.turntable = null;
+        }
+      };
+      tt.yaw0 = photo.yaw;
+      tt.t0 = performance.now();
+      tt.rec.start(500);
+      ui.walkFlash(str('walk.turntable_on'));
+    }
+    const t = (performance.now() - tt.t0) / 1000;
+    photo.yaw = tt.yaw0 + (2 * Math.PI * Math.min(t, TURNTABLE_S)) / TURNTABLE_S;
+    if (t >= TURNTABLE_S && tt.rec.state === 'recording') {
+      tt.rec.stop();
+    }
+  }
+
+  /* The newest photos onto the room's photo wall, each made small first:
+   * the wall's atlas cell is a few hundred pixels wide. */
+  async function loadPhotoWall(view) {
+    try {
+      const rows = (await listPhotos()).slice(0, PHOTO_FRAMES);
+      const bitmaps = await Promise.all(rows.map((r) => createImageBitmap(r.blob, { resizeWidth: 512, resizeQuality: 'medium' })));
+      if (walkRoom.view === view) {
+        view.setPhotos(bitmaps);
+      }
+    } catch (err) {
+      /* No IndexedDB, or a picture that will not decode: the wall stays
+       * bare, and the console says why. */
+      console.warn('hangar photo wall:', err);
+      if (walkRoom.view === view) {
+        view.setPhotos([]);
+      }
+    }
+  }
+  function walkRoomShut() {
+    if (walkRoom.view) {
+      walkRoom.view.dispose();
+      walkRoom.view = null;
+    }
+  }
   /*
    * A map named in the address wins over the stored one. boot.js only read
    * it to weight the loading bar; the Ui owns the setting, and it built its
@@ -2864,9 +3295,22 @@ export async function boot({
   /* Trick targets (deriveObstacles output) for the current map, or null,
    * in which case the detector recognises open-air tricks only. */
   let obstacles = null;
+  /* A Trick Battle run of this pilot's (TRICK BATTLE, below): its own
+   * scorer beside the freestyle one, fed the same tricks and crashes. A
+   * reader of the detector only, so a recorded flight replays the same. */
+  let jamScore = null;
   const trickDetector = new TrickDetector((trick) => {
     score.land(trick);
+    if (jamScore) {
+      jamScore.land(trick);
+    }
   });
+  function scoreCrash() {
+    score.crash();
+    if (jamScore) {
+      jamScore.crash();
+    }
+  }
   /*
    * Called on every map change. Race courses get no trick targets. Heights
    * come from the map's own ground query so a wall modelled deep into the
@@ -3050,10 +3494,10 @@ export async function boot({
     }
     const on = ui.settings.live === 'on';
     const state = liveLink.state();
-    let value = 'Off';
+    let value = str('main.live_off');
     if (on) {
       value = state === 'open'
-        ? (livePeers.size ? `${livePeers.size} here` : str('main.alone'))
+        ? (livePeers.size ? str('main.live_here', { n: livePeers.size }) : str('main.alone'))
         : (state === 'failed' ? str('main.no_room') : str('main.joining'));
     }
     ui.setLiveRow({
@@ -3134,7 +3578,24 @@ export async function boot({
     if (typeof pick === 'string') {
       return pick;
     }
+    if (pick && pick.bot) {
+      return str('rooms.bot_name', { name: roomName(pick.bot) });
+    }
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
+  }
+  /* Whether a peer is an AI pilot the room flies (shownName). */
+  function roomBot(peer) {
+    return Boolean(peer.name && peer.name.bot);
+  }
+  /* The people here, this pilot too, and the room's AI pilots apart:
+   * "n here" is people, the AI pilots a "+n" after it, since one leaves
+   * for every person who comes (edge/rooms/roombots.js). */
+  function roomHere() {
+    const bots = [...roomPeers.values()].filter(roomBot).length;
+    return { n: roomPeers.size + 1 - bots, bots };
+  }
+  function roomHereText(text, bots) {
+    return bots ? `${text}, ${plural('count.ai_pilots_extra', bots)}` : text;
   }
   function roomProfile() {
     const status = roomStatus();
@@ -3148,7 +3609,9 @@ export async function boot({
       airframe: id,
       map: view ? view.id : worldId(),
       figure: figurePick(),
-      livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
+      /* Packed (configs/paint.js packEntry), so MAX_DECALS layers fit the
+       * room's PROFILE_MAX_BYTES. */
+      livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) ? packEntry(ui.settings.livery[liveryKey(id)]) : null,
       parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
       ...(ui.roomGame ? { game: ui.roomGame } : {}),
       ...(status ? { status } : {}),
@@ -3189,6 +3652,8 @@ export async function boot({
   const roomRace = createRoomRace((obj) => roomLinkState.send(obj));
   /* Catch the Ace (src/share/roomtag.js), wired below at CATCH THE ACE. */
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
+  /* Trick Battle (src/share/roomjam.js, docs/JAM-PLAN.md). */
+  const roomJam = createRoomJam((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
   /* Ops missions (src/share/roomops.js), wired below at THE CAMERA BALL. */
@@ -3238,7 +3703,7 @@ export async function boot({
   let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
-  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
+  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', jam: 'jam.card', war: 'war.card', free: 'ui.free_flight_card' };
   /*
    * THE BOOTLOADER OVER A ROOM LINK BEING RETRIED (src/ui/loading.js hold):
    * a room's socket that dropped, or a rooms server that said it was
@@ -3262,6 +3727,7 @@ export async function boot({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
       roomTag.onWelcome(w);
+      roomJam.onWelcome(w);
       roomWar.onWelcome(w);
       roomOps.onWelcome(w);
       roomPeersClear();
@@ -3358,7 +3824,7 @@ export async function boot({
         ui.refreshFriends();
         return;
       }
-      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
+      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomJam.onMessage(m) || roomWar.onMessage(m)) {
         /* The room's word on this pilot's war start, said like a refusal. */
         /* Not the room's refusal of the aircraft a war just put this pilot
          * out of (warSeatCraft): only one still flown says it. */
@@ -3408,6 +3874,10 @@ export async function boot({
         roomRaceRunId = null;
         roomRaceHud.update(null);
         roomTag.clear();
+        roomJam.clear();
+        jamScore = null;
+        roomJamRun = null;
+        roomJamHud.update(null);
         roomTagRunId = null;
         roomTagHud.update(null);
         tagMarkPeers();
@@ -3633,6 +4103,31 @@ export async function boot({
     }];
   }
 
+  /* Trick Battle's block on the room screen (docs/JAM-PLAN.md): the host
+   * starts one in passing at a run length, or ends the one on. */
+  function jamRows(host, w, lead) {
+    if (!w) {
+      return [];
+    }
+    const head = { label: str('jam.card'), section: true };
+    const on = roomJam.on();
+    const err = roomJam.error();
+    if (host && !on) {
+      return [head, ...modeById('jam').setting.choices.map((seconds, i) => ({
+        label: str('jam.start', { s: seconds }),
+        note: err ? str(`jam.error_${err}`) : str('jam.row_note'),
+        action: `friends-jam-${seconds}`,
+        primary: lead && i === 0,
+      }))];
+    }
+    const v = roomJam.view();
+    const state = on ? str('jam.state_on', { n: v.round, of: v.rounds }) : '';
+    if (host) {
+      return [head, { label: str('jam.stop'), value: state, note: str('jam.stop_note'), action: 'friends-jam-end' }];
+    }
+    return [head, { label: str('jam.card'), value: state, note: str(on ? 'jam.row_note' : 'jam.waiting'), info: true }];
+  }
+
   /*
    * DEFEND ITAIPU (docs/WARFARE-PLAN.md, docs/WAR-WIRING.md): the room's
    * war, the client's half in roomWar. What this shell does with it:
@@ -3847,16 +4342,32 @@ export async function boot({
       && spentOf(r, seat) >= allowanceOf(r, seat) && (mode === 'flight' || mode === 'paused');
   }
 
+  /* In a room on its watch seat (edge/rooms/core.js watch,
+   * docs/FLIGHTCLUB-PROGRESSION.md section 3): the war spectator's camera
+   * on whoever flies, its own aircraft never shown or sent. */
+  ui.watching = () => roomWatching();
+  function roomWatching() {
+    const st = roomLinkState.state();
+    return st.phase === 'open' && Boolean(st.welcome && st.welcome.watch) && (mode === 'flight' || mode === 'paused');
+  }
+
+  /* A pilot of a Trick Battle while another flies its run: held on its
+   * slot, the camera on the runner (docs/JAM-PLAN.md). */
+  function jamWatching() {
+    return roomJam.watching() && !roomWatching() && (mode === 'flight' || mode === 'paused');
+  }
+
   /* The teammate to watch this frame, stepped by `step` through the ones
    * drawn in the air here in seat order, or kept while it still flies;
    * null when spectating none. */
   function warWatch(step = 0) {
-    if (!warSpectating()) {
+    if (!warSpectating() && !roomWatching() && !jamWatching()) {
       warWatchSeat = -1;
       return null;
     }
+    const runner = jamWatching() ? roomJam.view().runner : null;
     const seats = [...roomPeers.values()]
-      .filter((p) => p.drawnPose && p.last && !(p.last.flags & FLAG_CRASHED))
+      .filter((p) => p.drawnPose && p.last && !(p.last.flags & FLAG_CRASHED) && (runner == null || p.seat === runner))
       .map((p) => p.seat)
       .sort((a, b) => a - b);
     if (!seats.length) {
@@ -3904,6 +4415,12 @@ export async function boot({
 
   function warWatchBanner() {
     const peer = warWatch();
+    if (jamWatching()) {
+      return peer ? str('jam.watching', { name: roomName(peer.name) }) : str('jam.watching_none');
+    }
+    if (roomWatching()) {
+      return peer ? str('rooms.watching', { name: roomName(peer.name) }) : str('rooms.watching_none');
+    }
     return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
   }
 
@@ -4038,8 +4555,23 @@ export async function boot({
         note: 'lobby.goal_note',
         value: (n) => plural('count.points', n),
       },
-      rows: () => [],
+      rows: (host) => roomBotRows(host),
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
+    },
+    jam: {
+      on: () => roomJam.on(),
+      ended: () => roomJam.view().state === 'results',
+      start: 'friends-lobby-start',
+      begin: (lobby) => roomJam.start(lobby.seconds),
+      setting: {
+        key: modeById('jam').setting.key,
+        choices: () => modeById('jam').setting.choices,
+        label: 'lobby.seconds',
+        note: 'lobby.seconds_note',
+        value: (n) => str('lobby.seconds_value', { n }),
+      },
+      rows: () => [],
+      line: (lobby) => str('lobby.jam_line', { n: lobby.seconds }),
     },
     /* The race goes off the track the host chose, from My tracks; the
      * pilots in the lobby have it built under the lobby screen, and are on
@@ -4134,6 +4666,7 @@ export async function boot({
         });
       }
     }
+    rows.push({ label: str('lobby.watch'), note: str('lobby.watch_note'), action: 'friends-watch' });
     rows.push({ label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
     return rows;
   }
@@ -4163,6 +4696,8 @@ export async function boot({
          * only the war's aircraft may be. */
         aircraft: airframeById(seat === w.seat ? (game === 'war' ? warCraftOf(ui.settings) : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
+        /* An AI pilot (src/share/rooms.js shownName). */
+        ai: seat !== w.seat && Boolean(roomPeers.get(seat).name.bot),
         host: seat === w.host,
         me: seat === w.seat,
       })),
@@ -4783,6 +5318,8 @@ export async function boot({
   /* The war whose briefing this shell has shown (roomWar.match()): once,
    * however long the room stays in it after a skip. */
   let warIntroShown = null;
+  /* The match whose outro has started (warOutroFrame). */
+  let warOutroShown = null;
   let warIntroFov = 0;
   /* The host's Watch intro, pressed while the room's world was still
    * being built: played once it stands (warIntroFrame). */
@@ -4907,9 +5444,32 @@ export async function boot({
           }
         },
       });
-    } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !briefing) {
+    } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !warOutroOn(v) && !briefing) {
       warIntroStop();
     }
+    warOutroFrame(v);
+  }
+
+  /* A mission's outro (its `outro`, First Light's) on a win, once per
+   * match, on the room's clock from the end, so every pilot sees the same
+   * frame; in the mission's own world as it stands, its damage and all.
+   * A new match, a restart or the lobby ends it. */
+  const warOutroOn = (v) => warIntro !== null && String(warIntroFor).startsWith('outro:') && v.state === 'won';
+  function warOutroFrame(v) {
+    const outro = WAR_MISSIONS[v.mission]?.outro;
+    if (!outro || v.state !== 'won' || v.endAt == null || warOutroShown === roomWar.match() || mode === 'replay' || !warFilmWorldUp(v.mission)) {
+      return;
+    }
+    warOutroShown = roomWar.match();
+    /* The HUD redraws every 250 ms; without this the win's banner stays
+     * over the film's first frames until the next redraw. */
+    warHudAt = 0;
+    const endAt = v.endAt;
+    warIntroPlay(`outro:${v.id}`, {
+      mission: v.mission,
+      film: WAR_FILMS[outro],
+      clock: () => roomLinkState.roomNow() - endAt,
+    });
   }
 
   /* A mission's film plays only in the mission's own world, built and
@@ -5311,6 +5871,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    warNudgeFrame(v, live, wallMs);
     worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
@@ -5333,8 +5894,34 @@ export async function boot({
     }
     warHudAt = wallMs + 250;
     const m = roomWar.mission();
-    warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
-    warRoundCard.update(mode === 'flight' && ui.screen === 'flight' ? v : null, now);
+    /* Under the outro the film has the screen; the end card comes after. */
+    const hudOn = mode === 'flight' && ui.screen === 'flight' && !warOutroOn(v);
+    warHud.update(hudOn ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
+    warRoundCard.update(hudOn ? v : null, now);
+  }
+
+  /* The war's guide nudge (src/share/war/nudge.js), for a mission that
+   * asks for it: after no progress for a while, and only into a quiet
+   * radio, where the attacker nearest the targets is. Progress is the
+   * stage moving on, a kill, the nearest threat changing, or closing on
+   * it. */
+  const warNudger = createWarNudger();
+  let warNudgeAt = 0;
+  function warNudgeFrame(v, live, wallMs) {
+    const m = roomWar.mission();
+    if (!m || !m.nudge || !roomWar.live() || mode !== 'flight' || ui.screen !== 'flight' || warIntro || wallMs < warNudgeAt) {
+      return;
+    }
+    warNudgeAt = wallMs + 1000;
+    const here = warGround([pCurr.x, pCurr.y, pCurr.z]);
+    const threat = warThreatOf(live, m.targets);
+    const dist = threat ? Math.hypot(threat.at[0] - here[0], threat.at[1] - here[1]) : null;
+    warNudger.progress(`${v.stage ? v.stage.id : ''}|${live.length}|${threat ? threat.id : ''}`, wallMs, dist);
+    if (!threat || !radioQuiet() || !warNudger.due(wallMs)) {
+      return;
+    }
+    warSay([warNudgeOf(threat, here, warHeadingOf([camFwd.x, camFwd.y, camFwd.z]))], 'guide');
+    warNudger.nudged(wallMs);
   }
 
   /* The game running in this room, as this screen knows it, or null. */
@@ -5345,6 +5932,9 @@ export async function boot({
     }
     if (roomTag.on()) {
       return 'tag';
+    }
+    if (roomJam.on()) {
+      return 'jam';
     }
     if (roomWar.on()) {
       return 'war';
@@ -5545,6 +6135,7 @@ export async function boot({
     }
     roomRaceFrame(now, wallMs);
     roomTagFrame(now, wallMs);
+    roomJamFrame(now, wallMs);
     roomWarFrame(now, wallMs, dt);
     roomSessionFrame(link.welcome, wallMs);
     if (wallMs > roomProfileCheckAt) {
@@ -5648,7 +6239,7 @@ export async function boot({
    * wherever the room is, so its rounds never move anybody off a track. */
   function roomTarget(w) {
     const t = roomRace.track();
-    const free = roomTag.on() || roomWar.on();
+    const free = roomTag.on() || roomJam.on() || roomWar.on();
     return { world: w.map, track: t && t.map === w.map && !free ? t : null };
   }
   const roomTargetKey = (t) => `${t.world}|${t.track ? t.track.id : ''}`;
@@ -5691,7 +6282,9 @@ export async function boot({
     if (!roomInPlace(target) && MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
       roomNote = str('friends.other_world', { world: mapById(target.world).name });
     }
-    roomCall('join');
+    /* A watcher has no lobby and no Fly of its own: it is put in the
+     * air at once, where the watch camera takes it (roomWatching). */
+    roomCall(w.watch ? 'watch' : 'join');
   }
 
   /*
@@ -6247,14 +6840,15 @@ export async function boot({
    * was drawn until its crash event brings its shared wreck (Phase 2,
    * roomEvent), or ROOM_FREEZE_MS if it broke nothing that makes one.
    *
-   * SPAWNING: for the five seconds after a flight starts, and until 30 m
-   * from where it started, this aircraft is flagged untouchable, and the
-   * room neither hits it nor lets it hit anyone (section 6.2, rule 5).
+   * SPAWNING: for the five seconds after a flight starts this aircraft is
+   * flagged untouchable, and the room neither hits it nor lets it hit
+   * anyone (section 6.2, rule 5). Five seconds only, parked or not (lead,
+   * 2026-10-09): it also lasted until 30 m from the start, so an Ace sat
+   * on the strip could never be caught.
    */
   const ROOM_SPAWN_MS = 5000;
-  const ROOM_SPAWN_M = 30;
   const ROOM_FREEZE_MS = 600;
-  const roomSpawn = { at: -Infinity, x: 0, y: 0, z: 0, clear: true, simT: Infinity };
+  const roomSpawn = { at: -Infinity, simT: Infinity };
   let roomMidairSide = null;
   const roomHits = [];
   const roomFlashAt = new THREE.Vector3();
@@ -6264,13 +6858,10 @@ export async function boot({
     const simT = stateCurr[0];
     /* A new flight, or R: the sim clock starts again from zero. */
     if (simT < roomSpawn.simT) {
-      Object.assign(roomSpawn, { at: now, x: pCurr.x, y: pCurr.y, z: pCurr.z, clear: false });
+      roomSpawn.at = now;
     }
     roomSpawn.simT = simT;
-    if (!roomSpawn.clear && Math.hypot(pCurr.x - roomSpawn.x, pCurr.y - roomSpawn.y, pCurr.z - roomSpawn.z) >= ROOM_SPAWN_M) {
-      roomSpawn.clear = true;
-    }
-    return now - roomSpawn.at < ROOM_SPAWN_MS || !roomSpawn.clear;
+    return now - roomSpawn.at < ROOM_SPAWN_MS;
   }
 
   function roomHit(m) {
@@ -6348,6 +6939,11 @@ export async function boot({
       mode: st.welcome ? st.welcome.mode ?? null : null,
       lobby: st.welcome && st.welcome.lobby ? { ...st.welcome.lobby } : null,
       host: st.welcome ? st.welcome.host : null,
+      /* The watch seat: the pilot the camera follows, and how far the
+       * camera is from where that pilot is drawn, metres. */
+      watch: Boolean(st.welcome && st.welcome.watch),
+      watching: fr.watching ? fr.watching.seat : null,
+      watchGap: fr.watching ? shell.camera.position.distanceTo(new THREE.Vector3(fr.watching.drawnPose.px, fr.watching.drawnPose.py, fr.watching.drawnPose.pz)) : null,
       heard: roomSafety.heard(),
       note: roomSafety.note(),
       peers: [...roomPeers.values()].map((p) => ({
@@ -6362,9 +6958,11 @@ export async function boot({
         drawnAirframe: p.rig ? p.rig.airframe : null,
         at: p.rig ? p.rig.group.position.toArray() : null,
         paint: p.rig ? p.rig.paint() : null,
+        decals: p.rig ? p.rig.decals() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
+        flags: p.last ? p.last.flags : null,
       })),
       /* The session (THE ROOM IS ONE SESSION): the room's world, this
        * pilot's own status, a summon still owed, the room bar's words. */
@@ -6482,6 +7080,11 @@ export async function boot({
     })),
   });
   window.__warAt = (t) => roomWar.attackersAt(t);
+  window.__wear = () => ({
+    sortie: sortie ? { airframe: sortie.airframe, packId: sortie.packId, fullS: sortie.fullS, flew: sortie.lastTs >= 0 } : null,
+    seated: wornSeated,
+    delta: ui.wearDelta ?? null,
+  });
   /* For scripts/replay-world.js: a room message handed to the war as the
    * room's socket hands it (the check scripts a war's hits and struck
    * lines on a real room's match), what the map shows now (each target
@@ -6594,10 +7197,11 @@ export async function boot({
     }
     const st = roomLinkState.state();
     if (st.phase === 'open') {
+      const here = roomHere();
       return {
-        value: st.welcome && st.welcome.public
-          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: roomPeers.size + 1 })
-          : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
+        value: roomHereText(st.welcome && st.welcome.public
+          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: here.n })
+          : str('friends.row_in', { code: st.code, n: here.n }), here.bots),
         note: str('friends.row_in_note'),
         inRoom: true,
       };
@@ -6657,6 +7261,12 @@ export async function boot({
         const out = [];
         for (const peer of roomPeers.values()) {
           const craft = airframeById(peer.profile.airframe).name;
+          /* An AI pilot has no voice, says nothing, and cannot be kicked
+           * or handed the room: its row only says what it is. */
+          if (roomBot(peer)) {
+            out.push({ label: roomName(peer.name), value: craft, note: str('friends.bot_note'), info: true });
+            continue;
+          }
           const muted = roomSafety.isMuted(peer.seat);
           const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
           /* A report picked from this row asks here before it is sent. */
@@ -6733,14 +7343,15 @@ export async function boot({
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
-        tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
+        tag: [...(game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host)), ...roomBotRows(host)],
         combat: combatRows(host, w, game === 'combat'),
+        jam: jamRows(host, w, game === 'jam'),
         war: warRows(host, w),
       };
       /* Defend Itaipu last, unless the room or its pilot came for it, and
        * only on Itaipu (warRows): a public room there says why not. */
       const first = game || (wanted === 'war' ? 'war' : null);
-      const order = first ? [first, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'war'];
+      const order = first ? [first, ...['race', 'tag', 'combat', 'jam', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'jam', 'war'];
       const games = [
         {
           label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
@@ -6763,7 +7374,7 @@ export async function boot({
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
         {
           label: str('friends.here'),
-          value: str('friends.here_value', { n: roomPeers.size + 1, cap: w ? w.cap : 8 }),
+          value: roomHereText(str('friends.here_value', { n: roomHere().n, cap: w ? w.cap : 8 }), roomHere().bots),
           note: str('friends.here_note'),
           info: true,
         },
@@ -6881,6 +7492,33 @@ export async function boot({
     },
   });
   ui.onOpsCampaignCard = () => opsCampaignOpen();
+  /*
+   * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
+   * Stabilised or Acro) and goes in by the card it is flown from, Free
+   * Flight on its world or Track mode's tracks; its judge rides on the
+   * progress calls (src/ui/progress-ui.js) until another card is pressed.
+   */
+  const trainingScreen = createTrainingScreen({
+    ui,
+    passed: (id) => Boolean(ui.settings.progress.lessons[id]),
+    fly: (lesson) => {
+      const s = ui.settings;
+      const craft = lesson.airframe || s.airframe;
+      if (craft !== s.airframe) {
+        seatAirframe(s, craft);
+      }
+      if (lesson.tune) {
+        s.tune = lesson.tune;
+      }
+      if (lesson.mode) {
+        s.flightMode = lesson.mode;
+      }
+      ui.progress.startLesson(lesson);
+      ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
+    },
+  });
+  ui.onTrainingCard = () => trainingScreen.open();
+  window.__training = trainingScreen;
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
    * Phase 0, the lead's call), on the mission's map, the pilot in the
@@ -7059,6 +7697,14 @@ export async function boot({
       roomCombat.start(action === 'friends-combat-5' ? 5 : 3);
       return;
     }
+    if (action.startsWith('friends-jam-') && modeById('jam').setting.choices.includes(Number(action.slice('friends-jam-'.length)))) {
+      roomJam.start(Number(action.slice('friends-jam-'.length)));
+      return;
+    }
+    if (action === 'friends-jam-end' || action === 'friends-end-jam') {
+      roomJam.end();
+      return;
+    }
     if (action === 'friends-combat-stop') {
       roomCombat.stop();
       return;
@@ -7094,6 +7740,15 @@ export async function boot({
         roomLinkState.join(got.code);
       }
       ui.refreshFriends();
+      return;
+    }
+    /* Give up the seat for the watch seat: the same room, joined again. */
+    if (action === 'friends-watch') {
+      const { code } = roomLinkState.state();
+      if (code) {
+        roomLinkState.leave();
+        roomLinkState.join(code, { watch: true });
+      }
       return;
     }
     if (action === 'friends-leave') {
@@ -7204,7 +7859,7 @@ export async function boot({
       }
     }
     roomRace.frame(now);
-    raceHoldMs = roomRun() ? roomRace.holdMs(now) : roomTagHoldMs(now);
+    raceHoldMs = roomRun() ? roomRace.holdMs(now) : Math.max(roomTagHoldMs(now), roomJam.holdMs(now));
     /* An air start lets go when its own countdown runs out (tickAirStart),
      * so the room's is written into it; a parked aircraft is held by
      * raceHoldMs where it would take off, and its GO is shown here. */
@@ -7256,6 +7911,13 @@ export async function boot({
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
       return roomTagResultsRows();
+    }
+    if (roomResultsOf === 'jam') {
+      return [
+        { label: str('roomtag.fly_on'), action: 'restart', note: str('jam.fly_on_note'), primary: true },
+        ...ui.friendsItems(),
+        { label: str('ui.back_to_title'), action: 'title' },
+      ];
     }
     const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomRace.seat();
     return [
@@ -7549,6 +8211,91 @@ export async function boot({
   }
 
   /*
+   * TRICK BATTLE (src/share/roomjam.js, docs/JAM-PLAN.md). Every new turn
+   * puts every pilot of the room back on its slot (the "same spot"); the
+   * runner's is held to its go and then flies a run its own scorer counts
+   * (jamScore, fed by the detector above) while createJamRun tells the
+   * room; everybody else is held all the turn with the camera on the
+   * runner (jamWatching). The room's clock ends the run.
+   */
+  const roomJamHud = new RoomRaceHud(ui.root);
+  let roomJamRun = null;
+  let roomJamTurn = null;
+  let roomJamHudAt = 0;
+  function roomJamFrame(now, wallMs) {
+    const w = roomLinkState.state().welcome;
+    const v = roomJam.view();
+    const key = roomJam.on() ? `${v.id}:${v.round}:${v.runner}:${v.goAt}` : null;
+    if (w && key && key !== roomJamTurn) {
+      roomJamTurn = key;
+      roomLeaveCrashCam();
+      /* Up from the lobby screen, or back onto the slot from the air. */
+      roomCall('game', { restart: true });
+      if (mode !== 'replay') {
+        tagShout.shout(jamTurnShout(roomJam, roomSeatName));
+      }
+    }
+    const turn = roomJam.takeTurn(now);
+    if (turn) {
+      jamScore = new FreestyleScore({ timed: false });
+      roomJamRun = createJamRun(jamScore, turn.endAt, (m) => roomLinkState.send(m));
+    }
+    if (roomJamRun && !roomJam.mine()) {
+      /* The room closed the run first (the host's end, a reconnect). */
+      roomJamRun = null;
+      jamScore = null;
+    }
+    if (roomJamRun) {
+      jamScore.tick(simTimeMs);
+      if (roomJamRun.frame(wallMs, now)) {
+        roomJamRun = null;
+      }
+    }
+    const done = roomJam.takeResults();
+    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+      if (mode === 'flight') {
+        leaveFlightForResults();
+      }
+      jamScore = null;
+      roomJamRun = null;
+      roomJamHud.update(null);
+      roomResultsOf = 'jam';
+      ui.showRoomResults(jamResultsView(roomJam, roomSeatName));
+    }
+    if (!roomJam.on()) {
+      roomJamTurn = null;
+    }
+    if (wallMs < roomJamHudAt) {
+      return;
+    }
+    roomJamHudAt = wallMs + 250;
+    const own = roomJamRun && jamScore ? { total: Math.round(jamScore.total()), last: lastJamTrick() } : null;
+    roomJamHud.update(mode === 'flight' && ui.screen === 'flight' ? jamHudView(roomJam, now, roomSeatName, own) : null);
+  }
+  function lastJamTrick() {
+    const r = jamScore.tricks.at(-1);
+    return r ? { name: r.name, points: Math.max(0, Math.round(r.net)) } : null;
+  }
+  /* The host's start, for the checks (the lobby's Start now sends it too). */
+  window.__roomJamStart = (seconds) => roomJam.start(seconds);
+  window.__roomJam = () => {
+    const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
+    return {
+      view: roomJam.view(),
+      seat: roomJam.seat(),
+      mine: roomJam.mine(),
+      watching: jamWatching(),
+      watched: jamWatching() && warWatchSeat >= 0 ? warWatchSeat : null,
+      hold: roomJam.holdMs(now),
+      run: roomJamRun ? { endAt: roomJamRun.endAt } : null,
+      own: jamScore ? { total: jamScore.total(), tricks: jamScore.tricks.length } : null,
+      hud: roomJamHud.key ? JSON.parse(roomJamHud.key) : null,
+      results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'jam'),
+      standings: roomJam.standings(),
+    };
+  };
+
+  /*
    * The Ace marked for everybody: the peer marks' role (src/ui/peermarks.js),
    * a crown over its aircraft that never fades and a larger arrow at the
    * frame's edge when it is out of the picture. Set when the crown moves,
@@ -7643,6 +8390,33 @@ export async function boot({
         ui.refreshFriends();
       },
     });
+  }
+
+  /* The host's say over the room's AI pilots (edge/rooms/roombots.js),
+   * where its game has them: off, or how well they fly. A public room
+   * starts with them on, a private one off. Everybody else is told what
+   * the host chose. */
+  const BOT_LEVELS = ['off', 'easy', 'normal', 'hard'];
+  function roomBotRows(host) {
+    const w = roomLinkState.state().welcome;
+    const mode = w ? modeOfRoom(w.mode) : null;
+    if (!w || !mode || !mode.allowAI || !BOT_LEVELS.includes(w.bots)) {
+      return [];
+    }
+    const value = str(`lobby.ai_level.${w.bots}`);
+    if (!host) {
+      return [{ label: str('lobby.ai_pilots'), value, note: str('lobby.ai_pilots_guest_note'), info: true }];
+    }
+    const set = (level) => roomLinkState.send({ type: 'bots', level });
+    return [{
+      label: str('lobby.ai_pilots'),
+      value,
+      note: str('lobby.ai_pilots_note'),
+      current: w.bots,
+      options: BOT_LEVELS.map((l) => ({ value: l, label: str(`lobby.ai_level.${l}`) })),
+      pick: set,
+      adjust: (d) => set(BOT_LEVELS[(BOT_LEVELS.indexOf(w.bots) + d + BOT_LEVELS.length) % BOT_LEVELS.length]),
+    }];
   }
 
   function roomTagAction(action) {
@@ -8185,6 +8959,10 @@ export async function boot({
   const rcLink = new RcLink(LINK_DEFAULT);
   /* Off until the pilot turns it on: it keeps every frame of the run. */
   const flightLog = new FlightRecorder();
+  /* Per step sticks, surfaces, state and frame timing, on with the flight
+   * log (docs/CONTROL-RECORDER.md). */
+  const controlRec = new ControlRecorder();
+  let controlSurf = null;
   /* Stick samples, each stamped with the wall time it was read at, waiting
    * for the RC slot they belong to; rcHeld is the one the receiver holds
    * between slots. */
@@ -9608,6 +10386,86 @@ export async function boot({
    * first and seats what the new choice has, or a prop put back to stock
    * would stay seated.
    */
+  /*
+   * CAREER AND WAR WEAR (configs/wear.js, docs/PARTS-WEAR.md). A sortie
+   * is one run of a campaign mission or a war room: at its seat the
+   * charger turns packs around, a charged pack is picked, and the plant
+   * is seated on that pack's and the airframe's wear; when it ends (a
+   * reset, or leaving for the results) what it did is accrued. Every
+   * other flight seats exactly the blocks it always has. `sortie` is
+   * { airframe, packId, kinds, wear, fullS, lastTs } while one flies,
+   * else null; `ui.wearDelta` is the last sortie's delta, for the
+   * debrief. The wear record is the parts entry's (settings.parts[id]
+   * .wear), by the module's part table, whose kinds say which parts are
+   * the motors and props.
+   */
+  let sortie = null;
+  /* The worn blocks last seated, as plain arrays, for the checks. */
+  let wornSeated = null;
+  const FULL_THROTTLE = 0.95;
+  function realismNow() {
+    return realismFlight({ mission: Boolean(roomOps.room() && roomOps.mission()), war: roomWar.on() });
+  }
+  function sortieSeat(airframeId, choice) {
+    if (!realismNow()) {
+      sortie = null;
+      return null;
+    }
+    if (sortie && sortie.airframe === airframeId) {
+      /* Seated again mid sortie (a refit, a settings pass): the same pack
+       * and wear; only endSortie ends it. */
+      return { wear: sortie.wear, pack: sortie.packId ? ui.settings.packs[sortie.packId] : null };
+    }
+    /* Another airframe seated mid sortie ends the one flying. */
+    endSortie();
+    const table = damage.table();
+    learnPartTable(airframeId, table);
+    const kinds = table.map((t) => t.kind);
+    const got = startSortie(ui.settings, airframeId, choice);
+    ui.settings.packs = got.packs;
+    ui.persistSettings();
+    const wear = propulsionHealth(got.record, kinds);
+    sortie = { airframe: airframeId, packId: got.packId, kinds, wear, fullS: 0, lastTs: -1 };
+    return { wear, pack: got.packId ? got.packs[got.packId] : null };
+  }
+  /* Seconds at full throttle, from the sticks the plant is fed. */
+  function sortieSticks(ts, throttle) {
+    if (sortie.lastTs >= 0 && throttle >= FULL_THROTTLE && ts > sortie.lastTs) {
+      sortie.fullS += ts - sortie.lastTs;
+    }
+    sortie.lastTs = ts;
+  }
+  /* What the sortie did, accrued, before the plant forgets it. True when
+   * there was one that flew, so the next run seats afresh. */
+  function endSortie() {
+    if (!sortie || sortie.lastTs < 0) {
+      return false;
+    }
+    const af = airframeById(sortie.airframe);
+    const p = readPower();
+    const choice = powerChoice(af.id, ui.settings.power);
+    const option = POWER[af.id] ? powerOption(af.id, choice.option) : null;
+    const flight = {
+      airframe: af.id,
+      kinds: sortie.kinds,
+      packId: sortie.packId,
+      drawnC: p ? p.chargeC : 0,
+      capacityC: p ? p.capacityC : 0,
+      minCellV: p ? p.cellOcv : 0,
+      lvcV: option && option.kind === 'electric' ? option.lvcV : 0,
+      fullThrottleS: sortie.fullS,
+      impacts: runDamage ? impactsFrom(damage.parts(), sortie.kinds.length) : [],
+    };
+    const entry = partsEntry(ui.settings.parts, af.id);
+    const got = accrue(ui.settings.packs, wearRecordOf(ui.settings, af.id), flight);
+    ui.settings.packs = got.packs;
+    ui.settings.parts = normaliseParts({ ...ui.settings.parts, [af.id]: { ...entry, wear: got.record } });
+    ui.wearDelta = got.delta;
+    ui.persistSettings();
+    sortie = null;
+    return true;
+  }
+
   function applyPower(s) {
     const af = airframeById(runAirframe);
     /* What the engine is heard as: the same choice the plant is built
@@ -9619,12 +10477,18 @@ export async function boot({
       if (cleared !== SIM_OK) {
         throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(cleared)}`);
       }
-      const motors = motorsBlock(af.id, choice);
+      const worn = sortieSeat(af.id, choice);
+      const blocks = worn
+        ? wornQuadBlocks(af.id, choice, motorsBlock(af.id, choice), propPackBlock(af.id, choice), worn.wear, worn.pack)
+        : { motors: motorsBlock(af.id, choice), propPack: propPackBlock(af.id, choice) };
+      const plain = (b) => (b ? Array.from(b) : null);
+      wornSeated = worn ? { motors: plain(blocks.motors), propPack: plain(blocks.propPack) } : null;
+      const motors = blocks.motors;
       const code = motors ? sim.setMotors(motors) : SIM_OK;
       if (code !== SIM_OK) {
         throw new Error(`sim_set_motors refused ${choice.option} on ${af.id}: ${simErrorName(code)}`);
       }
-      const propPack = propPackBlock(af.id, choice);
+      const propPack = blocks.propPack;
       const packed = propPack ? sim.setPropPack(propPack) : SIM_OK;
       if (packed !== SIM_OK) {
         throw new Error(`sim_set_prop_pack refused ${choice.prop} and ${choice.pack} on ${af.id}: ${simErrorName(packed)}`);
@@ -9652,7 +10516,10 @@ export async function boot({
      * option's own block, or the table's, exactly as it was. */
     const parts = partsEntry(s.parts, af.id);
     const own = powerParams(af.id, option, pack);
-    const block = parts.prop === 'stock' ? own : partsPowerBlock(af.id, option, parts.prop, own ?? powerBlock(af.id, option, pack));
+    const fitted = parts.prop === 'stock' ? own : partsPowerBlock(af.id, option, parts.prop, own ?? powerBlock(af.id, option, pack));
+    const worn = sortieSeat(af.id, { option, pack });
+    const block = worn ? wornPowerBlock(af.id, { option, pack }, fitted, worn.wear, worn.pack) : fitted;
+    wornSeated = worn && block ? { power: Array.from(block) } : null;
     const code = block ? sim.setPower(block) : sim.clearPower();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_power refused ${option}/${pack} on ${af.id}: ${simErrorName(code)}`);
@@ -9732,7 +10599,7 @@ export async function boot({
    * the air needs a refit.
    */
   let runTuneKey = 'null';
-  function applyTuning(s) {
+  function applyTuning(s, midRun = false) {
     const af = airframeById(runAirframe);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
@@ -9746,7 +10613,7 @@ export async function boot({
       throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
     }
     runTuneKey = JSON.stringify(entry);
-    if (entry && entry.flapStart) {
+    if (!midRun && entry && entry.flapStart) {
       setFlapNotch(fullEntry(af.id, entry).flapStart);
     }
   }
@@ -9835,6 +10702,47 @@ export async function boot({
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
+  /*
+   * A LESSON'S AIDS (src/game/training.js): the glide path to the strip
+   * and the next gate's chevron, drawn only while a lesson that names one
+   * is in flight. Nothing here reaches the plant.
+   */
+  const glidePath = createGlidePath();
+  shell.keepAcrossMaps(glidePath.group);
+  const gateCueHud = createGateCue();
+  let glideKey = null;
+  let glideAt = null;
+  const cueCam = { x: 0, y: 0, z: 0, forward: new THREE.Vector3(), up: new THREE.Vector3() };
+  const cueTo = { x: 0, y: 0, z: 0 };
+  function aidsFrame() {
+    const aid = mode === 'flight' && ui.screen === 'flight' ? ui.progress.lessonAid() : null;
+    const strip = aid === 'glide' && view ? STRIPS[ui.settings.map] ?? null : null;
+    const scene = shell.quad.parent;
+    if (scene && glidePath.group.parent !== scene) {
+      scene.add(glidePath.group);
+    }
+    if (strip && glideKey !== ui.settings.map) {
+      glideKey = ui.settings.map;
+      glideAt = glidePoints(strip, view.height(strip.x, strip.z, Infinity));
+    }
+    glidePath.show(strip ? glideAt : null, strip);
+    const gate = aid === 'gate' && !race.freestyle ? race.gates[race.next] : null;
+    if (!gate) {
+      gateCueHud.show(null);
+      return;
+    }
+    const c = shell.camera;
+    cueCam.x = c.position.x;
+    cueCam.y = c.position.y;
+    cueCam.z = c.position.z;
+    c.getWorldDirection(cueCam.forward);
+    cueCam.up.set(0, 1, 0).applyQuaternion(c.quaternion);
+    cueTo.x = gate.x;
+    cueTo.y = gate.y + (gate.apertures[0] ? gate.apertures[0].centreY : 0);
+    cueTo.z = gate.z;
+    gateCueHud.show(gateCue(cueCam, cueTo));
+  }
+  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null, gateCue: gateCueHud.shown() });
   /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
@@ -10518,7 +11426,7 @@ export async function boot({
   /* The solids near crashProbe for the free bodies. A roof the craft is
    * on stands over the walls under it, and the city's staircase stands up
    * into it: the parts meet the roof, which is the ground, not them. The
-   * same solids the sweep lets through (src/maps/alps/roofs.js cover),
+   * same solids the sweep lets through (src/render/library/roofs.js cover),
    * chosen from where the plant is, so the set stays a function of the
    * flight. */
   function declareCrashSolids(must = -1) {
@@ -10596,7 +11504,7 @@ export async function boot({
 
   /*
    * A ROOF IS A SOLID FOR THE BROKEN PARTS. The craft stands on a roof
-   * through the plant's ground plane (src/maps/alps/roofs.js), but a free
+   * through the plant's ground plane (src/render/library/roofs.js), but a free
    * part has no ground but that one plane under the craft, and the roof was
    * declared to the plant as nothing: a Cub's aileron that fell on a roof
    * beside the craft went through the tiles and came to rest on the walls'
@@ -10943,7 +11851,7 @@ export async function boot({
     turtleRecover = false;
     if (view.mode === 'freestyle') {
       trickDetector.reset();
-      score.crash();
+      scoreCrash();
     }
     race.voidLap(str('main.wrecked_lap_over'), nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
@@ -11019,8 +11927,21 @@ export async function boot({
       shell.quad.visible = true;
     }
     wreckRig.setCraftVisible(shell.quad.visible);
-    fpvFail.update(nowWall, runDamage && fpvLensLive && !camOverride && !warIntro);
+    /* An ops mission's forward feed breaking up (src/share/ops/feed.js):
+     * the snow is on whatever picture the pilot flies by, FPV or ball. */
+    const feed = opsFeedSnow();
+    fpvFail.signal(feed);
+    fpvFail.update(nowWall, ((runDamage && fpvLensLive) || feed > 0) && !camOverride && !warIntro);
   }
+  function opsFeedSnow() {
+    const m = roomOps.room() ? roomOps.mission() : null;
+    if (!m || !m.feed) {
+      return 0;
+    }
+    threePosToDoc(pCurr.x, pCurr.y, pCurr.z, feedDoc);
+    return feedSnow(m, roomOps.view(), roomOps.seat(), [feedDoc.x, feedDoc.y]);
+  }
+  const feedDoc = { x: 0, y: 0, z: 0 };
 
   function crashSummary() {
     const names = Object.keys(DAMAGE_FLAGS).filter((k) => (crashFlags & DAMAGE_FLAGS[k]) !== 0);
@@ -11102,6 +12023,155 @@ export async function boot({
     qSpawnInv.copy(qSpawn).invert();
   }
 
+  /*
+   * THE AIR, docs/WEATHER-CONTRACT.md: null is calm. The plant's wind
+   * outlives sim_reset, so a run after a windy one sets still air once (the
+   * launch stand steps in it; the first flight step sets the new air); a
+   * run after a calm one makes no call at all, which keeps every calm
+   * flight's call stream (recorded flights, contact:golden) as it was.
+   * In a room the room's air (its welcome, set by the host) on the room's
+   * clock, so every pilot meets a front where the others do; the clock is
+   * read once per run, which keeps the run's own steps a function of its
+   * own clock (docs/WEATHER-CONTRACT.md). Solo, the
+   * pilot's setting with one fixed seed, so a solo flight meets the same
+   * air every time (window.__weather can name another seed).
+   */
+  let soloSeed = 1;
+  let weather = null;
+  let windSet = false;
+  const airPos = new THREE.Vector3();
+  const airOut = { x: 0, z: 0, gust: 0, up: 0 };
+  const airSim = { x: 0, y: 0, z: 0 };
+  function setWind(vx, vy, gust, up) {
+    const code = sim.e.sim_set_wind(vx, vy, gust);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
+    }
+    const codeUp = sim.e.sim_set_air_vertical(up);
+    if (codeUp !== SIM_OK) {
+      throw new Error(`sim_set_air_vertical refused ${up}: ${simErrorName(codeUp)}`);
+    }
+  }
+  let weatherT0 = 0;
+  let weatherFlown = null;
+  function seatWeather() {
+    const welcome = roomLinkState.state().welcome;
+    offerRoomWeather(ui.settings);
+    /* Free flight only: a race map's records, a war and a mission are
+     * flown in still air, the same for everyone who ever flew them. */
+    const free = view.mode === 'freestyle' && !roomWar.on() && !roomOps.on();
+    const pick = !free ? null : (welcome ? welcome.weather : { preset: ui.settings.weather, seed: soloSeed });
+    /* A room's air is from the network, and may name what this build does
+     * not know (a newer server) or a world without weather: still air. */
+    const known = pick && WEATHER_PRESETS.includes(pick.preset) && Object.hasOwn(WEATHER_MAPS, view.id);
+    weather = known ? makeWeather(view.id, pick.preset, pick.seed) : null;
+    /* null until the room's clock has synced: the run's own clock then. */
+    const roomMs = welcome ? roomLinkState.roomNow() : null;
+    weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
+    weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
+    if (windSet) {
+      setWind(0, 0, 0, 0);
+      windSet = false;
+    }
+  }
+  /* Before a step: the air at the craft, on the plant's own clock. */
+  function pushWeather(st) {
+    poseFromState(st, airPos);
+    weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
+    worldDirToSim(airOut.x, 0, airOut.z, airSim);
+    setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
+    windSet = true;
+  }
+  /* The rain the air makes, at the camera, on the plant's clock: the
+   * picture only, so read once a frame and never handed to the plant. */
+  const rain = createRain();
+  const rainAt = { x: 0, z: 0, gust: 0, wet: 0 };
+  let wetShown = 0;
+  function rainFrame() {
+    const scene = shell.quad.parent;
+    if (scene && rain.object.parent !== scene) {
+      scene.add(rain.object);
+    }
+    /* Not in a replay: the air is this run's, not the recorded one's. */
+    const flying = weather && stateCurr && (mode === 'flight' || mode === 'paused');
+    if (!flying) {
+      rain.frame(shell.camera, 0, 0, 0, 0);
+      wetShown = 0;
+      view.setWet?.(wetHold ?? 0);
+      return;
+    }
+    const c = shell.camera.position;
+    const t = weatherT0 + stateCurr[0];
+    weather.at(c.x, c.y, c.z, t, rainAt);
+    rain.frame(shell.camera, t, rainAt.x, rainAt.z, rainAt.wet);
+    /* The map's own haze in the rain, if its look has one (the photoreal
+     * lane's): 0 must be the dry look exactly. */
+    wetShown = rainAt.wet;
+    view.setWet?.(wetHold ?? wetShown);
+  }
+  /* The look held at a rain intensity whatever the air, for the haze
+   * check's pictures (null lets the air decide again). Harness only. */
+  let wetHold = null;
+  window.__wetHold = (w) => {
+    wetHold = w;
+  };
+  /* One frame drawn now at rain intensity `wet`, read back, for
+   * scripts/weather-haze-check.js: the look's own setWet and post chain,
+   * in one task, so nothing between two calls moves but `wet`. Returns
+   * the frame's FNV-1a hash, its mean luma, the luma's standard
+   * deviation (its contrast) and a luma thumbnail. Harness only. */
+  window.__wetFrame = (wet) => {
+    view.setWet?.(wet);
+    if (view.post) {
+      view.post.render();
+    } else {
+      shell.renderer.render(view.scene, shell.camera);
+    }
+    const gl = shell.renderer.getContext();
+    const w = gl.drawingBufferWidth;
+    const h = gl.drawingBufferHeight;
+    const px = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    let hash = 0x811c9dc5;
+    let sum = 0;
+    let sum2 = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      hash = Math.imul(hash ^ px[i], 16777619);
+      hash = Math.imul(hash ^ px[i + 1], 16777619);
+      hash = Math.imul(hash ^ px[i + 2], 16777619);
+      const l = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+      sum += l;
+      sum2 += l * l;
+    }
+    const n = w * h;
+    /* A 64 by 36 luma thumbnail, nearest sample, to compare frames by. */
+    const thumb = [];
+    for (let y = 0; y < 36; y += 1) {
+      for (let x = 0; x < 64; x += 1) {
+        const k = (Math.floor((y + 0.5) * h / 36) * w + Math.floor((x + 0.5) * w / 64)) * 4;
+        thumb.push(Math.round(0.2126 * px[k] + 0.7152 * px[k + 1] + 0.0722 * px[k + 2]));
+      }
+    }
+    return { hash: hash >>> 0, luma: sum / n, contrast: Math.sqrt(Math.max(0, sum2 / n - (sum / n) ** 2)), thumb, w, h };
+  };
+  window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
+  /* The air this run flies, { map, preset, seed }, or null for calm. */
+  window.__weatherFlown = () => weatherFlown;
+  window.__weather = (preset, seed) => {
+    makeWeather(view.id, preset, seed);
+    ui.settings.weather = preset;
+    soloSeed = seed >>> 0;
+    return true;
+  };
+  /* A host's setting is the room's air: told to the room when they differ,
+   * which every pilot's next run then flies. */
+  function offerRoomWeather(s) {
+    const w = roomLinkState.state().welcome;
+    if (roomHost(w) && w.weather && w.weather.preset !== s.weather) {
+      roomLinkState.sendWeather(s.weather);
+    }
+  }
+
   /* The plant's calls here are in the order recorded flights and
    * contact:golden start from, so they stay in it. */
   function restartPlant() {
@@ -11111,6 +12181,15 @@ export async function boot({
      * moved CG at rest. */
     if (af.combat && JSON.stringify(combatSeated(runAirframe)) !== combatSeatKey) {
       applyCombat(af);
+    }
+    /* A sortie that flew is accrued and the next one seated on its own
+     * pack; a flight that left career or war for a casual one goes back
+     * to fresh blocks. */
+    const wasSortie = sortie !== null;
+    if (endSortie() || (wasSortie && !realismNow()) || (!wasSortie && realismNow())) {
+      applyPower(ui.settings);
+      applyTuning(ui.settings);
+      applyParts(ui.settings);
     }
     sim.reset();
     plantStarts += 1;
@@ -11123,6 +12202,7 @@ export async function boot({
     }
     sim.setCellVoltage(runVoltage);
     declareWater();
+    seatWeather();
     crashReset();
     /* sim_reset put the module's step counter back to zero; queued stick
      * samples and the leftover step time belong to the old count, and the
@@ -11248,7 +12328,7 @@ export async function boot({
      * pair with half a roll after it. Race maps never reach the scorer. */
     if (view.mode === 'freestyle') {
       trickDetector.reset();
-      score.crash();
+      scoreCrash();
     }
     dropTurtle();
     sim.rest();
@@ -11412,6 +12492,7 @@ export async function boot({
 
   /* R: a new run from the map's own spawn. */
   function reset() {
+    keepControlRec();
     frameFault = null;
     /* The pack a run flies on is fixed at its start, or a pack changed from
      * the pause menu would compare a lap against another pack's record. */
@@ -11472,7 +12553,9 @@ export async function boot({
       progressKey = ctx.key;
       ui.progress.startRun(ctx);
     }
-    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
+    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
+      agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
+    });
   }
   /* The track a lap closed on: a built track (seated, or the casual sky
    * track's test flight), or the world's own. A built track is keyed by
@@ -11613,7 +12696,9 @@ export async function boot({
    * state to fly on quietly. */
   /* `refit` swaps the aircraft for itself: the hangar's new motor or pack
    * put in the air where it is, by every rule a swap keeps. */
-  async function hotSwap(id, { refit = false } = {}) {
+  /* `at` { pos, vel, yaw, flying } seats the new aircraft there instead
+   * of where this one is: a platform hold's hand over (PLATFORM HOLDS). */
+  async function hotSwap(id, { refit = false, at = null } = {}) {
     const to = airframeById(id);
     if (swapBusy || to.id !== id || (to.id === runAirframe) !== refit || !swapLive()) {
       return false;
@@ -11625,7 +12710,7 @@ export async function boot({
       if (!swapLive() || (to.id === runAirframe) !== refit) {
         return false;
       }
-      seatSwap(to, next, text);
+      seatSwap(to, next, text, at);
       await seatSwapCourse(to);
       return true;
     } finally {
@@ -11655,15 +12740,22 @@ export async function boot({
     return f[4] + f[5] > 0 || f[6] > 0;
   }
 
-  function seatSwap(to, next, text) {
-    /* Where the old one is, read before anything moves it. */
+  function seatSwap(to, next, text, at = null) {
+    /* Where the old one is, read before anything moves it, or where the
+     * caller seats the new one. */
     const st = readState();
     poseFromState(st, swapAt);
     simPosToThree(st[4], st[5], st[6], swapVel).applyQuaternion(qSpawn);
-    const yaw = craftHeadingYaw();
+    let yaw = craftHeadingYaw();
+    let wasFlying = !onSurface();
+    if (at) {
+      swapAt.copy(at.pos);
+      swapVel.copy(at.vel);
+      yaw = at.yaw;
+      wasFlying = at.flying;
+    }
     const from = runAirframe;
     const quadBefore = shell.quad;
-    const wasFlying = !onSurface();
     const midLap = race.currentLapMs(simTimeMs) != null;
     const onWater = Boolean(waterAt(swapAt.x, swapAt.z));
     const inAir = wasFlying || Boolean(to.floats) !== onWater;
@@ -12426,6 +13518,7 @@ export async function boot({
       applyRunSettings(s);
     }
     applyAirSettings(s);
+    offerRoomWeather(s);
     race.setRecordKey(recordKey());
     paintBest();
     if (!worldMatchesSettings()) {
@@ -12441,6 +13534,7 @@ export async function boot({
       });
     }
     applyRatesSettings(s);
+    applyPlaneRates(s);
     applyPidSettings(s);
     applyDeviceSettings(s);
     syncAngleMode();
@@ -12570,6 +13664,27 @@ export async function boot({
   }
 
   /*
+   * A plane's rates from the Rates screen (src/ui/items.js planeRatesRows)
+   * fly at once, as a quad's do: the setup is seated again without a
+   * reset, and only its throws and expo have moved, so the plane flies on
+   * from where it is. The flaps stay where the switch has them. At the
+   * title the next seat takes it (applyRunSettings).
+   */
+  function applyPlaneRates(s) {
+    if (mode === 'title') {
+      return;
+    }
+    const af = airframeById(runAirframe);
+    if (!af.fixedWing || !tuningFor(af.id)) {
+      return;
+    }
+    const set = setupFor(af.id, powerChoice(af.id, s.power));
+    if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
+      applyTuning(s, true);
+    }
+  }
+
+  /*
    * Rates are part of the config text, so a change re-inits the module,
    * but without resetting the run: rates are the pilot's stick feel, which
    * is tuned against a corner mid run, not the machine. The craft is put
@@ -12642,6 +13757,7 @@ export async function boot({
     }
     if (flightLog.on !== s.flightLog) {
       flightLog.setEnabled(s.flightLog);
+      controlRec.setEnabled(s.flightLog);
     }
     audio.setLevel(s.volume / 10);
     audio.setEnabled(s.sound);
@@ -12885,6 +14001,7 @@ export async function boot({
    * turtle, or mid flip) is set on its wheels first, or the next run would
    * start with its motors still parked. */
   function leaveFlightForResults() {
+    endSortie();
     mode = 'results';
     if (isTurtleParked()) {
       if (!turtleFlip.active) {
@@ -12965,6 +14082,21 @@ export async function boot({
    * the board already held this one from another browser, and the line the
    * builder shows, because the flight's own notice is hidden while building.
    */
+  /* The builder's best test lap, on the layout it was flown on: the gold
+   * time the course is published with (src/game/medals.js). */
+  let builderBest = null;
+  function noteBuilderLap(ms) {
+    const doc = build.doc;
+    if (!doc || !Number.isFinite(ms)) {
+      return;
+    }
+    const layout = layoutFingerprint(doc);
+    const wing = Boolean(airframeById(runAirframe).fixedWing);
+    if (!builderBest || builderBest.docId !== doc.id || builderBest.layout !== layout || builderBest.wing !== wing || ms < builderBest.ms) {
+      builderBest = { docId: doc.id, layout, ms, wing };
+    }
+  }
+
   async function publishBuiltTrack(doc) {
     const owned = Boolean(readEditKey(doc.id));
     const values = await ui.askForm({
@@ -12994,9 +14126,16 @@ export async function boot({
     if (!values) {
       return null;
     }
+    const layout = layoutFingerprint(doc);
+    const medals = publishMedals(doc.medals, layout, (readBind(doc.id) || {}).layoutFingerprint, builderBest && builderBest.docId === doc.id ? builderBest : null);
+    const sent = { ...doc };
+    delete sent.medals;
+    if (medals) {
+      sent.medals = medals;
+    }
     try {
       const result = await publishCurrentCourse({
-        doc,
+        doc: sent,
         author: values.author,
         origin: (readBind(doc.id) || {}).board,
         courseName: values.course,
@@ -13181,6 +14320,7 @@ export async function boot({
           thrustToWeight: st.tw,
           hoverMinutes: st.hoverMin,
           fullMinutes: st.fullMin,
+          responseMs: st.tau * 1000,
         };
       },
     };
@@ -13218,6 +14358,9 @@ export async function boot({
           topSpeed: e.topSpeed ?? null,
           minutes: e.minutes ?? null,
           thrustToWeight: o.thrustN / (mass * 9.80665),
+          /* Handling, as one number the plant flies: grams on each dm^2
+           * of the plant's wing. */
+          wingLoading: (mass * 1000) / (tuningFor(id).area * 100),
         };
       },
     };
@@ -13556,6 +14699,26 @@ export async function boot({
     flashNotice(str('main.flight_log_saved_rows_over_s', { rows, secs }), 3600);
   }
 
+  /* The run that just ended becomes the last flight kept in this browser,
+   * and the recorder starts on the next. */
+  function keepControlRec() {
+    keepLast(controlRec, { map: ui.settings.map, airframe: ui.settings.airframe })
+      .catch((e) => console.warn('control recorder: last flight not kept', e));
+    if (controlRec.on) {
+      controlRec.clear();
+    }
+  }
+
+  function saveControlRec() {
+    if (controlRec.count < 2) {
+      flashNotice(str('main.nothing_recorded_yet_turn_the_flight'), 3600);
+      return;
+    }
+    const secs = controlRec.seconds.toFixed(1);
+    downloadText(controlRecName(ui.settings.map), controlRec.csv());
+    flashNotice(str('main.control_recording_saved_s', { secs }), 3600);
+  }
+
   async function renamePilot() {
     const name = await ui.askName({
       title: str('ui.your_name'),
@@ -13631,6 +14794,7 @@ export async function boot({
     ...CALIBRATE_ACTIONS,
     ...PAD_PICK_ACTIONS,
     ['downloadflightlog', saveFlightLog],
+    ['downloadcontrolrec', saveControlRec],
     ['setname', () => {
       renamePilot();
     }],
@@ -13664,6 +14828,23 @@ export async function boot({
   ui.onAction = (action, s) => {
     if (s) {
       applySettings(s);
+    }
+    /* The hangar's TV: the newest of My clips in the replay viewer, whose
+     * own My clips lists the rest; leaving it is the hangar again. */
+    if (action === 'hangar-tv' && ui.walk) {
+      const which = ui.walk.tier === 'field' ? 'field' : 'main';
+      listClips().then((rows) => {
+        if (!rows.length) {
+          return undefined;
+        }
+        const newest = rows.reduce((a, b) => (b.created > a.created ? b : a));
+        tvReturn = { mode, which };
+        return crashCam.playSaved(newest.id);
+      }).catch((err) => {
+        tvReturn = null;
+        notice = { text: str('walk.tv_refused', { why: err.message }), untilMs: performance.now() + 2400 };
+      });
+      return;
     }
     if (accountUi.handle(action)) {
       return;
@@ -13745,6 +14926,8 @@ export async function boot({
       back: buttons.back,
       alt: input.padAltButton(),
       floats: input.padFloatsButton(),
+      start: input.padStartButton(),
+      flip: input.padLookClick(),
       look: input.padLookStick(),
     };
     if (input.mapUsable()) {
@@ -13754,9 +14937,23 @@ export async function boot({
       intent.right = roll > NAV_DEFLECT;
       intent.left = roll < -NAV_DEFLECT;
     } else {
-      const raw = input.navRaw();
+      /* With no mapping to trust, a standard pad's left stick steers the
+       * four ways; anything else moves up and down off whichever axis
+       * moves, the radio's rule. */
+      const pad = input.padDirections();
+      const raw = pad ? pad.stick : input.navRaw();
       intent.up = raw.up;
       intent.down = raw.down;
+      intent.left = Boolean(raw.left);
+      intent.right = Boolean(raw.right);
+    }
+    /* A standard pad's d-pad steers whatever the flight mapping says: it
+     * flies nothing. */
+    const ways = input.padDirections();
+    if (ways) {
+      for (const k of ['up', 'down', 'left', 'right']) {
+        intent[k] = intent[k] || ways.dpad[k];
+      }
     }
     return intent;
   }
@@ -14032,6 +15229,9 @@ export async function boot({
     }
   }
 
+  /* The pilot's key bindings (src/input/keybinds.js), in flight only: the
+   * menus keep every key as it is. */
+  input.translateKey = (code) => (ui.screen === 'flight' ? translateKey(ui.settings.keybinds, runAirframe, code) : code);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -14041,6 +15241,22 @@ export async function boot({
       return;
     }
     if (crashCam && crashCam.onKey(code, repeat)) {
+      return;
+    }
+    /* A watcher: J (a replay's key) and the brackets step through the
+     * pilots, Escape leaves the room, and nothing else flies. */
+    if (ui.screen === 'flight' && roomWatching() && (code === 'Escape' || code === 'KeyJ' || WAR_WATCH_KEYS.has(code))) {
+      if (repeat) {
+        return;
+      }
+      /* Escape is the pause menu, as for a pilot: leaving is a row in it
+       * (lead 2026-10-09), not one stray key. */
+      if (code === 'Escape') {
+        ui.act('pause');
+        ui.show('paused');
+      } else if (code !== 'KeyR' && code !== 'KeyX' && code !== 'Tab') {
+        warWatch(code === 'BracketLeft' ? -1 : 1);
+      }
       return;
     }
     if (ui.screen === 'flight' && WAR_WATCH_KEYS.has(code) && warSpectating()) {
@@ -14179,12 +15395,12 @@ export async function boot({
     }
     if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
       /* A ball carried adds its picture as a fourth view (THE CAMERA BALL). */
-      const views = ballFor(runAirframe) ? ['fpv', 'chase', 'los', 'ball'] : ['fpv', 'chase', 'los'];
+      const views = ballFor(runAirframe) ? ['fpv', 'chase', 'los', 'pilot', 'ball'] : ['fpv', 'chase', 'los', 'pilot'];
       ui.settings.wingView = views[(views.indexOf(ui.settings.wingView) + 1) % views.length];
       ui.persistSettings();
       chaseValid = false;
       const said = {
-        fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los'), ball: str('main.view_ball'),
+        fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los'), pilot: str('main.view_pilot'), ball: str('main.view_ball'),
       };
       notice = { text: said[ui.settings.wingView], untilMs: performance.now() + 1800 };
       return;
@@ -14268,6 +15484,7 @@ export async function boot({
     const chaseLast = new THREE.Vector3();
     const chaseAim = new THREE.Vector3();
     const chaseStep = new THREE.Vector3();
+    const chaseHead = new THREE.Vector3();
     /* The point the chase camera follows and looks at: the plane itself,
      * except that on water its height is slowed to the swell's mean. A
      * floatplane rides every wave up and down, and a camera tied to it
@@ -14712,7 +15929,7 @@ export async function boot({
     }
     /* A roof that is the craft's ground is its contact, not the walls
      * under it, which the swept hull would otherwise reach through the
-     * shell (src/maps/alps/roofs.js). Same fromY as the ground plane. */
+     * shell (src/render/library/roofs.js). Same fromY as the ground plane. */
     if (view.cover) {
       view.cover(obsTo.x, obsTo.z, obsTo.y - SURFACE_BIAS);
     }
@@ -15267,7 +16484,7 @@ export async function boot({
     /* What the solid world reported, read once per frame in readContacts. */
     leftover: false, interior: 0, roof: false,
     /* Screen state the later phases share. */
-    worldLive: false, attractOn: false, pickerOn: false, studioOn: false,
+    worldLive: false, attractOn: false, pickerOn: false, walkOn: false, studioOn: false,
     drawThis: false, renderMs: 0, capHz: 0, watching: null, motorsTurning: false,
   };
 
@@ -15387,6 +16604,8 @@ export async function boot({
      * builder is building on the same screen, where Y carries a gate. */
     if (ui.screen === 'flight' && mode !== 'replay' && !(build && build.cameraLive)) {
       ui.pollFlightPad(input.padSwapButtons());
+      /* The menus poll the pad only while one is up, so Start is read here. */
+      ui.pollStart(input.padStartButton());
     }
     if (worldHold && mode === 'title') {
       releaseWorldHold();
@@ -15558,6 +16777,9 @@ export async function boot({
     fr.groundSpeed = 0;
     fr.groundHit = false;
     const steps = takeSteps();
+    if (controlRec.on) {
+      controlRec.beginFrame(nowWall, fr.dt, steps);
+    }
     stampSticks((simStepIdx + steps) * MS_PER_STEP, nowWall);
     if (steps >= 1) {
       if (launchStaging) {
@@ -15637,6 +16859,10 @@ export async function boot({
       lastTs = ts;
       const ax = applyTurtleRc(rc.roll, rc.pitch);
       traceInput(ts, ax[0], ax[1], rc.yaw, rc.throttle);
+      if (sortie) {
+        sortieSticks(ts, rc.throttle);
+      }
+      controlRec.noteSlot(tMs, rc.wallT ?? NaN, ax[0], ax[1], rc.yaw, rc.throttle);
       return sim.input(ts, ax[0], ax[1], rc.yaw, rc.throttle) === SIM_OK;
     };
     if (rcLink.isPerfect()) {
@@ -15700,6 +16926,17 @@ export async function boot({
    * it, so by the step's end the hull has bounced and vz points up, and a
    * real hit read at the end never announced.
    */
+  function recordControlStep(st) {
+    let surf = null;
+    if (wingSurfPtr && sim.e.sim_plane_surfaces(wingSurfPtr) === SIM_OK) {
+      if (!controlSurf || controlSurf.buffer !== sim.e.memory.buffer) {
+        controlSurf = new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4);
+      }
+      surf = controlSurf;
+    }
+    controlRec.step(st, surf);
+  }
+
   function stepInAir(steps, nowWall) {
     let st = stateCurr;
     roomPoseFrame(nowWall, lastWallDt, fr.dt);
@@ -15715,6 +16952,9 @@ export async function boot({
         crashBeforeStep(st);
       }
       tracePre(st);
+      if (weather) {
+        pushWeather(st);
+      }
       const sound = st;
       sim.step(1);
       st = readState();
@@ -15723,6 +16963,9 @@ export async function boot({
         st = stateCurr;
         fr.faulted = true;
         break;
+      }
+      if (controlRec.on) {
+        recordControlStep(st);
       }
       roomPoseStep(st, (steps - 1 - i) * MS_PER_STEP);
       if (roomCombat.out()) {
@@ -15884,7 +17127,7 @@ export async function boot({
     if (view.mode === 'freestyle') {
       if (hard) {
         trickDetector.reset();
-        score.crash();
+        scoreCrash();
       } else {
         /* The ground is not tappable (TrickDetector.bump). */
         trickDetector.bump(undefined, false);
@@ -16113,12 +17356,21 @@ export async function boot({
       }
     }
     ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passed);
+    if (!race.freestyle && build && build.testing && race.laps.length > lapsBefore) {
+      noteBuilderLap(race.lastLapMs);
+    }
     if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {
       if (passed) {
         ui.progress.gatePass();
       }
       if (race.laps.length > lapsBefore) {
-        ui.progress.lap(progressCourse());
+        const seated = seatedMapTrack();
+        const medals = seated && seated.document && seated.document.medals;
+        ui.progress.lap(progressCourse(), {
+          ms: race.laps[race.laps.length - 1],
+          ghostMs: ghostChased ? ghostChased.durationMs : null,
+          medal: medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing),
+        });
       }
     }
     const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');
@@ -16170,10 +17422,13 @@ export async function boot({
    * flight is not a flat panel in between. Prop discs spin at a visibly
    * aliased fraction of true RPM; on the title a cruise spin stands in.
    */
+  const LED_BATTERY = { ok: 1, warning: 0.4, critical: 0 };
   function dressWorld() {
     const freezeWorld = Boolean(ui.reelFreezeWorld);
     fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
     fr.pickerOn = ui.carousel.isOpen || ui.hangar.isOpen;
+    /* A replay the TV opened draws the world in the room's place. */
+    fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk) && !crashCam.live;
     fr.studioOn = ui.screen === 'quad' && !fr.pickerOn;
     fr.worldLive = !freezeWorld && (
       Boolean(finishLoadingOnFrame)
@@ -16184,6 +17439,7 @@ export async function boot({
       || ui.screen === 'courses'
       || fr.attractOn
       || fr.pickerOn
+      || fr.walkOn
       || Boolean(camOverride)
       || Boolean(warIntro)
     );
@@ -16203,6 +17459,11 @@ export async function boot({
     }
     if (shell.setProp) {
       shell.setProp(stateCurr[14]);
+    }
+    /* The kit's arm LEDs (docs/KITS.md section 4) on the flight clock, so
+     * a replay flashes as the flight did; the pack as the OSD bands it. */
+    if (shell.quad.userData.setLights) {
+      shell.quad.userData.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
     }
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);
@@ -16334,10 +17595,10 @@ export async function boot({
       }
     } else if (mode === 'results' && !camOverride) {
       finishCamera(dt);
-    } else if (introMs >= 0 && (mode === 'flight' || mode === 'paused') && !camOverride) {
-      padShot(dt);
     } else if (watching) {
       watchCamera(watching, dt);
+    } else if (introMs >= 0 && (mode === 'flight' || mode === 'paused') && !camOverride) {
+      padShot(dt);
     } else if (ballView() && !wreckWantsChase(nowWall)) {
       ballFrame(dt / 1000, mode === 'paused' || ui.screen === 'paused');
     } else if (wingOut || wreckWantsChase(nowWall)) {
@@ -16383,6 +17644,7 @@ export async function boot({
       }
     }
     crashFrameLate(nowWall);
+    aidsFrame();
   }
 
   /* The projection is rebuilt only when the fov moves: exactly, when the
@@ -16523,7 +17785,7 @@ export async function boot({
       chasePos.copy(chaseAim);
       chaseValid = true;
     }
-    shell.quad.visible = true;
+    shell.quad.visible = !roomWatching();
     shell.camera.up.set(0, 1, 0);
     shell.camera.position.copy(chasePos);
     shell.camera.lookAt(chaseAnchor);
@@ -16535,6 +17797,9 @@ export async function boot({
    * (its heading while it drifts on the water, levelled for a wreck), the
    * line of sight stands behind the spawn and zooms to keep the span.
    */
+  /* deg: a monitor or a laptop at arm's length subtends about 40 to 55
+   * deg of a person's view, ESTIMATED; at 50 the picture is life size. */
+  const PILOT_FOV = 50;
   function outsideCamera(dt, nowWall) {
     shell.quad.visible = true;
     shell.camera.up.set(0, 1, 0);
@@ -16553,9 +17818,56 @@ export async function boot({
     losPos.y = view.height(losPos.x, losPos.z, Infinity) + 1.7;
     shell.camera.position.copy(losPos);
     shell.camera.lookAt(pCurr);
-    const d = Math.max(1, losPos.distanceTo(pCurr));
-    setFov(Math.min(45, Math.max(12, 2 * Math.atan((span * 5) / d) * 180 / Math.PI)));
+    /* The pilot's own view: the same spot, the picture as wide as a screen
+     * at arm's length is to the eye, so the aircraft is the size it would
+     * look from the strip and nothing zooms. Line of sight keeps it large. */
+    if (ui.settings.wingView === 'pilot') {
+      setFov(PILOT_FOV);
+    } else {
+      const d = Math.max(1, losPos.distanceTo(pCurr));
+      setFov(Math.min(45, Math.max(12, 2 * Math.atan((span * 5) / d) * 180 / Math.PI)));
+    }
     chaseValid = false;
+  }
+
+  /*
+   * How far the chase camera turns toward the craft's travel this frame,
+   * and toward what. Slow, it does not turn: a hovering 3D plane travels
+   * nowhere, and the few millimetres it drifts a frame, taken as a
+   * direction, swung a travel led camera round it at random; under 4 m/s
+   * the camera holds its heading, a pilot standing still. And the
+   * travel's climb is held under CHASE_STEEP of the direction, its own
+   * bearing kept (or the camera's, straight up or down), or a vertical
+   * line would put the camera under the plane looking up along world up,
+   * where its yaw is undefined. Reads chaseStep, this frame's travel, and
+   * chaseDir; returns the lerp's share, the target in chaseHead.
+   */
+  /* m/s: under CHASE_SLOW the camera holds its heading, a hovering or
+   * hanging plane's; it takes the travel back over the next CHASE_RAMP. */
+  const CHASE_SLOW = 4;
+  const CHASE_RAMP = 2;
+  const CHASE_STEEP = 0.8;
+  function chaseTurn(dt, k) {
+    const travel = chaseStep.length();
+    if (!(travel > 0) || !(dt > 0)) {
+      return 0;
+    }
+    const speed = travel / simLenToWorld(1) / (dt / 1000);
+    chaseHead.copy(chaseStep).multiplyScalar(1 / travel);
+    if (Math.abs(chaseHead.y) > CHASE_STEEP) {
+      const up = Math.sign(chaseHead.y);
+      chaseHead.y = 0;
+      if (chaseHead.lengthSq() < 1e-4) {
+        chaseHead.set(chaseDir.x, 0, chaseDir.z);
+      }
+      if (chaseHead.lengthSq() < 1e-9) {
+        chaseHead.set(0, 0, -1);
+      }
+      chaseHead.normalize().multiplyScalar(Math.sqrt(1 - CHASE_STEEP * CHASE_STEEP));
+      chaseHead.y = up * CHASE_STEEP;
+    }
+    const w = Math.min(1, Math.max(0, (speed - CHASE_SLOW) / CHASE_RAMP));
+    return Math.min(1, k) * w;
   }
 
   function chaseCamera(dt, nowWall, span) {
@@ -16580,8 +17892,11 @@ export async function boot({
       if (introLook.lengthSq() > 1e-6) {
         chaseDir.lerp(introLook.normalize(), 1 - Math.exp(-dt / 600)).normalize();
       }
-    } else if (chaseStep.lengthSq() > 1e-6) {
-      chaseDir.lerp(chaseStep.normalize(), Math.min(1, k)).normalize();
+    } else {
+      const share = chaseTurn(dt, k);
+      if (share > 0) {
+        chaseDir.lerp(chaseHead, share).normalize();
+      }
     }
     chaseLast.copy(chaseAnchor);
     if (wreckWantsChase(nowWall)) {
@@ -16682,7 +17997,8 @@ export async function boot({
       }
     }
     fr.drawThis = drawThis;
-    if (fr.worldLive && drawThis && !ui.hangar.isOpen) {
+    if (fr.worldLive && drawThis && !ui.hangar.isOpen && !fr.walkOn) {
+      rainFrame();
       dynres.beginGpu();
       if (avionicsHud.on || ballOn) {
         sensors.render(view.post);
@@ -16707,12 +18023,31 @@ export async function boot({
       renderStats.calls = shell.renderer.info.render.calls;
       renderStats.triangles = shell.renderer.info.render.triangles;
     }
+    /* The room is drawn in the world's place, and under the picker when
+     * one is open over it; the hangar's editor has a set of its own. */
+    if (fr.walkOn) {
+      const view = walkRoomFrame(dt);
+      if (drawThis && !ui.hangar.isOpen) {
+        view.draw();
+        renderStats.calls = view.stats().calls;
+        renderStats.triangles = view.stats().triangles;
+      }
+    } else {
+      walkRoomShut();
+    }
     const pick = ui.hangar.isOpen ? ui.hangar.frame(dt) : ui.carousel.frame(dt);
     if (drawThis) {
       pickStage.draw(fr.worldLive ? pick : null);
     }
     if (pick && pick.hangar && pick.hangar.aim) {
       ui.hangar.aimed(pickStage.pick(pick.items[0].id, pick.hangar.aim.x, pick.hangar.aim.y));
+    }
+    if (ui.hangar.isOpen) {
+      const layer = ui.hangar.shop.gizmoLayer();
+      ui.hangar.shop.gizmoAt(layer && pick ? pickStage.outline(pick.items[0].id, layer) : null);
+    }
+    if (pick && pick.hangar) {
+      ui.hangar.pointed(pick.hangar.point ? pickStage.pickPart(pick.items[0].id, pick.hangar.point.x, pick.hangar.point.y) : null);
     }
     studioFrame(dt, nowWall);
   }
@@ -16930,7 +18265,9 @@ export async function boot({
     const ch = input.channels;
     const vis = turtleAxes(ch.roll, ch.pitch);
     ui.setStickOverlay({
-      show: input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+      /* window.__showSticks: a capture's own switch, so a recorded flight
+       * shows the sticks whatever flies it (scripts/hover-video.js). */
+      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,
@@ -16977,7 +18314,7 @@ export async function boot({
     const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
     let flightMode;
     if (af.fixedWing) {
-      flightMode = ['manual', 'stab', 'acro'][tuneById(configId).wingStab || 0];
+      flightMode = ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
     } else if (turtleWait || turtleFlip.active) {
       flightMode = 'turtle';
     } else {
@@ -17181,7 +18518,7 @@ export async function boot({
     if (crashed && inFlight) {
       return ['Crashed', true];
     }
-    if (inFlight && warSpectating()) {
+    if (inFlight && (warSpectating() || roomWatching() || jamWatching())) {
       return [warWatchBanner(), true];
     }
     if (inFlight && roomWar.live() && roundOf(roomWar.view())?.state === 'result') {
@@ -17418,6 +18755,11 @@ export async function boot({
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
+  /* The exploded part at client pixels on the hangar's model, for a check. */
+  window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
+  window.__walkStats = () => (ui.walk ? {
+    pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
+  } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
   window.__pickPaint = (id) => pickStage.paint(id);
@@ -17722,6 +19064,7 @@ export async function boot({
 
   /* The flight recorder: whether it runs, what it holds, and the length of
    * the CSV the download button would save. */
+  window.__controlRec = () => ({ on: controlRec.on, rows: controlRec.count, csv: () => controlRec.csv() });
   window.__flightLog = () => ({
     on: flightLog.on,
     rows: flightLog.count,
@@ -17823,6 +19166,9 @@ export async function boot({
       worldX: at.x,
       worldY: at.y,
       worldZ: at.z,
+      /* Where the shell's camera stands, world space, for a check on how a
+       * view frames the craft (extra-owner.js's hover). */
+      camera: { x: shell.camera.position.x, y: shell.camera.position.y, z: shell.camera.position.z },
       /* Null mid world swap, when `view` is the world being disposed. */
       groundClearance: mapReady ? at.y - view.height(at.x, at.z, at.y - SURFACE_BIAS) : null,
       pitchDeg: st ? pitchNoseDownDeg(st) : 0,
@@ -18602,7 +19948,7 @@ export async function boot({
    * otherwise load a second three.js whose classes this scene's objects are
    * not instances of. */
   window.__three = THREE;
-  /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
+  /* The roofs (src/render/library/roofs.js): each one's frame, plate, wall
    * rectangle, covering, what building it is and the collider indices of
    * the walls under it, so a capture can fly at a real roof. Empty where
    * a map has none. Harness only. */
@@ -18754,6 +20100,9 @@ export async function boot({
     if (!journal.restore(mark, simT)) {
       return { ok: false, match: false };
     }
+    /* The restored region holds the recorded frame's wind, so the next run
+     * must clear it whatever this run's air was. */
+    windSet = true;
     const back = readState();
     const match = stateHash(back) === hash;
     const nowWall = performance.now();
@@ -18828,6 +20177,14 @@ export async function boot({
       mode = 'replay';
     },
     exit: () => {
+      /* A replay the hangar's TV opened goes back to the hangar. */
+      if (tvReturn) {
+        const back = tvReturn;
+        tvReturn = null;
+        mode = back.mode;
+        ui.openWalk(back.which);
+        return;
+      }
       acc = 0;
       /* The map as the war has it now, whatever the replay drew. */
       warMapDraw(warLiveWorld(roomWar.view(), roomLinkState.roomNow()));

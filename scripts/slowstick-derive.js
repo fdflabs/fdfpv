@@ -22,6 +22,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingLift } from './lib/liftcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -280,17 +282,19 @@ const cTail = 2 * 0.6 * Math.sqrt(kTail * mTail);
  * plant's lift and drag at the rest attitude, stall blend and all, full
  * throttle, rolling resistance on the load the wing has not taken. */
 const stallBlend = 4 / DEG;
+/* The plant's wing, scripts/lib/liftcurve.js: CL max at the top of the
+ * curve. stall_top and stall_k the table's, scripts/stall-derive.js's for
+ * this section. */
+const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK });
 function coeffs(alpha) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+  const lc = wingLift(curve(), alpha);
   const clLin = CLa * alpha;
   return {
-    CL: (1 - sigma) * clLin + sigma * 2 * Math.sin(alpha) * Math.cos(alpha),
-    CD: (1 - sigma) * (CD0 + k * clLin * clLin) + sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CL: lc.CL,
+    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
   };
 }
+const stallTop = 4.4 / DEG, stallK = 0.72;
 function takeoff(mu) {
   const { CL, CD } = coeffs(rp - alphaZL);
   const vLof = Math.sqrt(2 * W / (rho * S * CL));
@@ -315,20 +319,26 @@ function takeoff(mu) {
  */
 const armAc = (xCG - xAcWing) / c;
 const armCp = (wingLE + macLE + 0.40 * mac - xCG) / c;
-function cmAt(alpha, de) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+const stallDw = 0.1313;
+function stalledAt(alpha, de) {
   const clLin = CLa * alpha + CLde * de;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
-  return Cm0 + Cma * alpha + Cmde * de - sigma * (armAc * clLin + armCp * clFlat);
+  const lc = wingLift(curve(), alpha, { extra: CLde * de });
+  const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const cmLow = -lc.sigma * (armAc * clLin + armCp * plate);
+  if (!(lc.sigma > 0)) return { CL: lc.CL, cmStall: cmLow };
+  const cnSt = 2 * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha);
+  const cmPost = lc.sigma * (((1 - lc.past) * armAc - lc.past * armCp) * cnSt - armAc * clLin - stallDw * (clLin - lc.clSt));
+  return { CL: lc.CL, cmStall: cmLow + lc.past * (cmPost - cmLow) };
+}
+function cmAt(alpha, de) {
+  return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
 }
 function mush(de) {
   let lo = 0.05, hi = 1.2;
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (cmAt(mid, de) > 0) lo = mid; else hi = mid; }
   const alpha = lo;
-  const { CL, CD } = coeffs(alpha);
+  const CL = stalledAt(alpha, de).CL;
+  const { CD } = coeffs(alpha);
   const V = Math.sqrt(2 * W / (rho * S * Math.hypot(CL, CD)));
   const gamma = Math.atan2(CD, CL);
   return { alphaDeg: alpha * DEG, CL, CD, V, sink: V * Math.sin(gamma), pathDeg: gamma * DEG, pitchDeg: (alpha + alphaZL - gamma) * DEG };
@@ -343,16 +353,13 @@ function mush(de) {
  * no speed balances.
  */
 function plantCoeffs(alpha, de) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+  const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const clLin = CLa * alpha + CLde * de;
   const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
   return {
-    CL: (1 - sigma) * clLin + sigma * clFlat,
-    CD: (1 - sigma) * (CD0 + k * clLin * clLin) + sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
-    sigma, clLin, clFlat,
+    CL: lc.CL,
+    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    sigma: lc.sigma, clLin, clFlat,
   };
 }
 function levelTurn(bank, d) {

@@ -33,6 +33,8 @@ import {
 } from '../../configs/hangar-parts.js';
 import { PROP_ESTIMATES } from '../../configs/prop-estimates.js';
 import { PART_KINDS } from '../../configs/parts.js';
+import { hasMotors, packOption } from '../../configs/motors.js';
+import { NEW, RETIRED_BELOW, normalisePacks, normaliseWearRecord, packSpec, repair } from '../../configs/wear.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
@@ -84,6 +86,30 @@ function changed(hangar, key) {
   hangar.changed(key);
 }
 
+/* What an entry does to the spec sheet's readouts: its grams, and its
+ * prop's full throttle thrust over the option's own. */
+function fitOf(entry, now) {
+  const id = st.id;
+  const p = propOf(id, entry.prop);
+  const est = p.id === 'stock' ? null : PROP_ESTIMATES[id][now.option.id][p.id];
+  return {
+    extraG: partsSummary(id, entry, now.option, baseMass(id, now)).grams,
+    thrustK: est ? est.thrustN / now.option.thrustN : 1,
+  };
+}
+
+/* BEFORE EQUIPPING: a card under the pointer or the focus shows on the
+ * spec sheet what the entry `next` makes of it (src/ui/hangar.js
+ * previewStats). */
+function previewOn(hangar, b, next, now) {
+  const on = () => hangar.previewStats(fitOf(next(), now));
+  const off = () => hangar.previewStats(null);
+  b.addEventListener('pointerenter', on);
+  b.addEventListener('focus', on);
+  b.addEventListener('pointerleave', off);
+  b.addEventListener('blur', off);
+}
+
 function propCards(hangar, box, now) {
   const id = st.id;
   const props = PROPS[id];
@@ -105,6 +131,7 @@ function propCards(hangar, box, now) {
     b.addEventListener('pointerenter', () => {
       hangar.focus = 'nose';
     });
+    previewOn(hangar, b, () => ({ ...st.entry, prop: p.id }), now);
     b.addEventListener('click', () => {
       st.entry.prop = p.id;
       changed(hangar, `prop-${p.id}`);
@@ -139,6 +166,15 @@ function addonCards(hangar, box, now) {
     const grams = partsSummary(id, { prop: 'stock', addons: [a], damage: null }, now.option, baseMass(id, now)).grams;
     b.append(el('span', 'hangar-card-name', str(`parts.addon.${a}`)));
     b.append(el('span', 'hangar-card-detail', str('parts.plus_grams', { n: number(grams) })));
+    previewOn(hangar, b, () => {
+      const set = new Set(st.entry.addons);
+      if (on) {
+        set.delete(a);
+      } else {
+        set.add(a);
+      }
+      return { ...st.entry, addons: fit.filter((x) => set.has(x)) };
+    }, now);
     b.addEventListener('click', () => {
       const set = new Set(st.entry.addons);
       if (on) {
@@ -208,6 +244,112 @@ function damageList(hangar, box) {
   }
 }
 
+/* The specs this airframe's packs come in, for the shelf. */
+function specsOf(id) {
+  const ids = hasMotors(id) ? [packOption(id, null).id] : (POWER[id] || []).flatMap((o) => o.packs.map((p) => p.id));
+  return new Set(ids.map((p) => packSpec(id, p)).filter(Boolean));
+}
+
+const percent = (health) => number(Math.round((health * 100) / NEW));
+
+/* The part tables the shell has read from the module, by airframe: each
+ * index's kind and side, so the bench can name a worn part (the hangar
+ * has no module of its own). */
+const PART_TABLES = {};
+const REPAIR_FROM = 0.85;
+/* A quad's arm, motor and prop are named by corner, front or rear too. */
+const QUAD_CORNER = new Set(['arm', 'motor', 'prop']);
+export function learnPartTable(id, table) {
+  const quad = hasMotors(id);
+  PART_TABLES[id] = table.map((t) => ({
+    kind: t.kind,
+    side: Math.abs(t.cg[1]) < 0.02 ? 0 : t.cg[1] > 0 ? 1 : -1,
+    end: quad && QUAD_CORNER.has(PART_KINDS[t.kind]) ? (t.cg[0] > 0 ? 'front' : 'rear') : null,
+  }));
+}
+
+function wornName(id, i) {
+  const t = PART_TABLES[id] && PART_TABLES[id][i];
+  if (!t) {
+    return str('parts.wear_part', { n: number(i) });
+  }
+  const kind = str(`parts.kind.${PART_KINDS[t.kind]}`);
+  if (t.side === 0) {
+    return kind;
+  }
+  const side = t.side > 0 ? 'left' : 'right';
+  return str(t.end ? `parts.part_${t.end}_${side}` : `parts.part_${side}`, { part: kind });
+}
+
+/*
+ * CAREER AND WAR WEAR (configs/wear.js): each worn part of the entry's
+ * record by its crash part index, repaired here (free until the economy
+ * prices it) and saved with the tab, and the packs on the shelf that fit
+ * this airframe, which are replaced, never repaired.
+ */
+function wearList(hangar, box) {
+  const id = st.id;
+  box.append(el('h3', 'hangar-h', str('parts.wear')));
+  const record = normaliseWearRecord(st.entry.wear);
+  const worn = record ? Object.keys(record.parts).map(Number).sort((a, b) => a - b) : [];
+  if (!worn.length) {
+    box.append(el('p', 'hangar-source', str('parts.wear_none')));
+  } else {
+    const list = el('div', 'parts-damage');
+    for (const i of worn) {
+      /* The training lane's bands: from 0.85 a part is due a repair. */
+      const row = el('div', `parts-damage-row ${record.parts[i] >= REPAIR_FROM ? 'due' : 'worn'}`);
+      const words = el('div', 'parts-damage-words');
+      const left = Math.round((1 - record.parts[i]) * 100);
+      words.append(el('span', 'parts-damage-name', wornName(id, i)), el('span', 'parts-damage-state', str('parts.wear_health', { n: number(left) })));
+      const fix = button('parts-act', str('parts.repair'));
+      fix.dataset.key = `wear-repair-${i}`;
+      fix.dataset.focus = 'overview';
+      fix.addEventListener('click', () => {
+        st.entry.wear = repair(record, i);
+        changed(hangar, 'wear-done');
+      });
+      const acts = el('div', 'parts-damage-acts');
+      acts.append(fix);
+      row.append(words, acts);
+      list.append(row);
+    }
+    box.append(list);
+    if (worn.length > 1) {
+      const all = button('hangar-reset parts-repair-all', str('parts.repair_all'));
+      all.dataset.key = 'wear-repair-all';
+      all.addEventListener('click', () => {
+        st.entry.wear = repair(record);
+        changed(hangar, 'wear-done');
+      });
+      box.append(all);
+    }
+  }
+  const specs = specsOf(id);
+  const packs = Object.entries(normalisePacks(st.settings.packs)).filter(([, p]) => specs.has(p.spec)).sort(([a], [b]) => (a < b ? -1 : 1));
+  if (packs.length) {
+    box.append(el('h3', 'hangar-h', str('parts.packs')));
+    const list = el('div', 'parts-damage');
+    for (const [k, p] of packs) {
+      const m = /^(\d+)s(\d+)/.exec(p.spec);
+      const row = el('div', `parts-damage-row pack${p.health < RETIRED_BELOW ? ' retired' : ''}`);
+      row.dataset.key = `pack-${k}`;
+      const words = el('div', 'parts-damage-words');
+      words.append(
+        el('span', 'parts-damage-name', str('power.pack', { cells: m[1], mah: m[2] })),
+        el('span', 'parts-damage-state', str('parts.pack_line', { health: percent(p.health), cycles: number(p.cycles), charge: str(`parts.charge_${p.charge}`) })),
+      );
+      if (p.health < RETIRED_BELOW) {
+        words.append(el('span', 'parts-damage-state', str('parts.pack_retired')));
+      }
+      row.append(words);
+      list.append(row);
+    }
+    box.append(list);
+  }
+  box.append(el('p', 'hangar-source', str('parts.wear_note')));
+}
+
 function statsBlock(box, now) {
   const id = st.id;
   const s = partsSummary(id, st.entry, now.option, baseMass(id, now));
@@ -252,7 +394,7 @@ registerHangarTab({
   focus: 'overview',
   open(hangar, settings) {
     const id = hangar.id;
-    const saved = PROPS[id] ? partsEntry(settings.parts, id) : null;
+    const saved = PROPS[id] || hasMotors(id) ? partsEntry(settings.parts, id) : null;
     st = { id, settings, saved, entry: saved ? clone(saved) : null };
   },
   close() {
@@ -270,7 +412,12 @@ registerHangarTab({
   /* The grams the chosen add-ons and prop put on, for the spec sheet. */
   grams(hangar) {
     const now = st && st.entry ? optionNow(hangar) : null;
-    return now ? partsSummary(st.id, st.entry, now.option, baseMass(st.id, now)).grams : 0;
+    return now ? fitOf(st.entry, now).extraG : 0;
+  },
+  /* The prop's thrust over the option's own, for the spec sheet. */
+  thrustScale(hangar) {
+    const now = st && st.entry ? optionNow(hangar) : null;
+    return now ? fitOf(st.entry, now).thrustK : 1;
   },
   save() {
     if (!st || !st.entry || sameEntry(st.entry, st.saved)) {
@@ -286,7 +433,7 @@ registerHangarTab({
     return { parts: map };
   },
   frame(hangar) {
-    if (!st || !st.entry) {
+    if (!st || !st.entry || !PROPS[st.id]) {
       return null;
     }
     const now = optionNow(hangar);
@@ -294,8 +441,11 @@ registerHangarTab({
   },
   paint(hangar) {
     const box = el('div', 'hangar-tab parts-tab');
-    if (!st || !st.entry) {
+    if (!st || !st.entry || !PROPS[st.id]) {
       box.append(el('p', 'hangar-note', str('parts.none_here')));
+      if (st && st.entry) {
+        wearList(hangar, box);
+      }
       return box;
     }
     const now = optionNow(hangar);
@@ -303,6 +453,7 @@ registerHangarTab({
     addonCards(hangar, box, now);
     damageList(hangar, box);
     statsBlock(box, now);
+    wearList(hangar, box);
     return box;
   },
 });

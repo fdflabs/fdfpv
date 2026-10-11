@@ -57,7 +57,9 @@ import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
 import './hangar-tuning.js';
 import './hangar-parts.js';
+import './hangar-shop.js';
 import './hangar-combat.js';
+import './hangar-kit.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
@@ -209,9 +211,9 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
+  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
-  'calibrate', 'friends', 'rooms', 'roomnew',
+  'calibrate', 'friends', 'rooms', 'roomnew', 'controls',
 ]);
 
 /*
@@ -230,9 +232,12 @@ export const SCREEN_TITLES = {
   launch: str('ui.before_you_fly'),
   standings: 'Standings',
   rates: 'Rates',
+  planerates: 'Rates',
   pids: 'PIDs',
+  controls: str('keybinds.title'),
   fc: str('ui.firmware_bench'),
   paused: 'Paused',
+  quick: str('pause.flight'),
   results: str('ui.run_complete'),
   howto: str('ui.how_to_fly'),
   tricks: str('ui.trick_list'),
@@ -626,6 +631,8 @@ export class Ui {
     this.craftGate = !seatedByLink;
     /* The hub on the gate, null for home and its three hub cards. */
     this.hub = null;
+    /* The walkable hangar, while it is open (src/ui/hangarwalk.js). */
+    this.walk = null;
     /* A guided first flight is in the air; main.js reads it. */
     this.guided = false;
     /* The room game a title card preselected; see act()'s ways. */
@@ -1167,6 +1174,14 @@ export class Ui {
       this.onCampaignCard();
       return;
     }
+    /* Any other card ends a lesson in flight. */
+    if (!way.training && this.progress) {
+      this.progress.endLesson();
+    }
+    if (way.training && this.onTrainingCard) {
+      this.onTrainingCard();
+      return;
+    }
     if (way.opsCampaign && this.onOpsCampaignCard) {
       this.onOpsCampaignCard(way.opsCampaign);
       return;
@@ -1296,7 +1311,7 @@ export class Ui {
    * in the slots as it always was unless its family wears a build, when
    * it waits beside them. Either can be saved as a new build too.
    */
-  openHangar(card, after = null, build = null) {
+  openHangar(card, after = null, build = null, tab = null) {
     const s = this.settings;
     /* A build opens on the airframe it was built on; a stock plane on the
      * version its toggle names, whichever of the two it was asked for. */
@@ -1374,13 +1389,17 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
-      tab: firstTab,
+      tab: tab ?? firstTab,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {
         name: build ? build.name : null,
         suggest: this.buildName(id),
         full: this.myBuilds.length >= MAX_BUILDS,
+      },
+      onSwatches: (lib) => {
+        s.swatches = lib;
+        this.persistSettings();
       },
       onLibrary: (list) => {
         const saves = { ...s.liverySaves };
@@ -1469,19 +1488,22 @@ export class Ui {
       });
   }
 
-  /* The Parts tab's damage, which is the airframe's own, into the slots
-   * when what was saved was not the slots. Whether it changed. */
+  /* The Parts tab's damage and wear repairs, which are the airframe's
+   * own, into the slots when what was saved was not the slots. Whether
+   * they changed. */
   keepDamage(id, res) {
     const s = this.settings;
     if (!res.settings.parts) {
       return false;
     }
     const was = s.parts && s.parts[id];
-    const want = res.settings.parts[id] ? res.settings.parts[id].damage ?? null : null;
-    if (JSON.stringify((was && was.damage) ?? null) === JSON.stringify(want)) {
+    const got = res.settings.parts[id] ?? {};
+    const want = { damage: got.damage ?? null, wear: got.wear ?? null };
+    const had = { damage: (was && was.damage) ?? null, wear: (was && was.wear) ?? null };
+    if (JSON.stringify(had) === JSON.stringify(want)) {
       return false;
     }
-    s.parts = normaliseParts({ ...s.parts, [id]: { prop: 'stock', addons: [], ...(was ?? {}), damage: want } });
+    s.parts = normaliseParts({ ...s.parts, [id]: { prop: 'stock', addons: [], ...(was ?? {}), ...want } });
     return true;
   }
 
@@ -1496,6 +1518,11 @@ export class Ui {
 
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
+    /* In an ops match with several roles held, they step the role flown
+     * (src/main.js PLATFORM HOLDS) and not the aircraft. */
+    if (this.screen === 'flight' && this.cycleHold && this.cycleHold(dir)) {
+      return;
+    }
     if (this.onHotSwap && this.screen === 'flight') {
       this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }
@@ -1534,6 +1561,9 @@ Object.assign(Ui.prototype, navMethods);
 
 import { actionMethods } from './actions.js';
 Object.assign(Ui.prototype, actionMethods);
+
+import { walkMethods } from './hangarwalk.js';
+Object.assign(Ui.prototype, walkMethods);
 
 import { sessionMethods, watchSessionEvents, wireFcSession } from './session.js';
 Object.assign(Ui.prototype, sessionMethods);

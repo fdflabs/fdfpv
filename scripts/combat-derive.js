@@ -29,6 +29,7 @@
 
 import { derivatives, lattice } from './lib/lattice.js';
 import { trimBallastKg } from '../configs/combat.js';
+import { pathToFileURL } from 'node:url';
 
 const RHO = 1.225;
 const G = 9.80665;
@@ -1112,7 +1113,10 @@ function print() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/* pathToFileURL, not a template: argv[1] holds a raw path, and a space
+ * (the owner's "FDFPV TEMP" folder) is %20 in import.meta.url, so the
+ * template never matched and the script exited 0 doing nothing. */
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   print();
   printStriker();
 }

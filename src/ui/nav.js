@@ -61,6 +61,7 @@ const CRUMBS = {
   howto: ['ui.how_to_fly'],
   tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
+  controls: ['ui.settings', 'keybinds.title'],
   friends: ['friends.title'],
   rooms: ['friends.title', 'roombrowser.title'],
   roomnew: ['friends.title', 'roombrowser.title', 'roombrowser.new_title'],
@@ -84,9 +85,12 @@ const MENU_FIELD = {
   launch: 'launchMenu',
   standings: 'standingsMenu',
   rates: 'ratesMenu',
+  planerates: 'planeratesMenu',
   pids: 'pidsMenu',
+  controls: 'controlsMenu',
   fc: 'fcMenu',
   paused: 'pausedMenu',
+  quick: 'quickMenu',
   results: 'resultsMenu',
 };
 
@@ -178,9 +182,21 @@ function paintRow(ui, it, i) {
   if (control) {
     row.append(control);
   }
-  /* mousemove, not mouseenter: a rebuilt row under a still pointer, or
-   * the scroll after scrollIntoView, must not snap the cursor back. */
-  row.addEventListener('mousemove', (e) => ui.hoverCursor(e, i));
+  /* A move, not an enter: a rebuilt row under a still pointer, or the
+   * scroll after scrollIntoView, must not snap the cursor back. A finger
+   * does not hover: the mousemove a phone makes from a tap would move the
+   * cursor under it the way the press below would. */
+  row.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'touch') ui.hoverCursor(e, i);
+  });
+  /* A press does not focus the row: focus moves the cursor, the new note
+   * resizes a short centred menu, and the release lands on another node,
+   * so the browser sends the click to the menu instead of the row. The
+   * click handler moves the cursor once the press is over. A control's
+   * own press (a typed field) keeps its focus. */
+  row.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.row-control')) e.preventDefault();
+  });
   row.addEventListener('click', (e) => {
     if (e.target.closest('.row-control')) {
       return;
@@ -254,8 +270,11 @@ function leaveFor(ui, screen) {
   if (ui.roomFrom && (screen === 'title' || screen === ui.roomFrom)) {
     ui.roomFrom = null;
   }
-  if (leaving('rates')) {
+  if (leaving('rates') || leaving('planerates')) {
     ui.ratesFrom = null;
+  }
+  if (leaving('walk')) {
+    ui.closeWalk();
   }
   /* A storage complaint belongs to the visit that caused it. */
   if (screen === 'rates' && from !== 'rates') {
@@ -264,6 +283,10 @@ function leaveFor(ui, screen) {
   /* pidsFrom survives the bench, because the bench comes back to PIDs:
    * dropping it there is how Quad, Tune, Every setting, back, back once
    * landed on the title. */
+  if (leaving('controls')) {
+    ui.binding = null;
+    ui.keybindMsg = null;
+  }
   if (leaving('pids') && screen !== 'fc') {
     ui.pidsFrom = null;
   }
@@ -310,6 +333,10 @@ function crumbTrail(ui) {
   if (hub) {
     return [str('ui.product_name'), str(hub.label)];
   }
+  /* A walkable hangar is under the hub it was opened from. */
+  if (ui.screen === 'walk' && ui.walk) {
+    return ui.walk.tier === 'field' ? [str('hub.ops'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
+  }
   return CRUMBS[ui.screen] || [SCREEN_TITLES[ui.screen] || ui.screen];
 }
 
@@ -341,6 +368,7 @@ export const navMethods = {
     } else if (this.screen === 'title') {
       this.renderTitleCards();
       this.renderTitleRooms();
+      this.renderTitleStats();
     }
     if (this.screens && this.screens.title) {
       /* onGate(), the one definition of "the gate is up", and never
@@ -649,6 +677,7 @@ export const navMethods = {
       const node = hint.action ? btn('legend-act', '') : el('i', null);
       node.append(...hint.keys.map((k) => el('span', kbd, k)), document.createTextNode(` ${hint.text}`));
       if (hint.action) {
+        node.dataset.action = hint.action;
         node.addEventListener('click', () => this.act(hint.action));
       }
       this.frameLegend.append(node);
@@ -696,6 +725,22 @@ export const navMethods = {
       return hints;
     }
     const pad = this.lastInput === 'pad';
+    if (this.screen === 'walk' && this.walk && this.walk.photo) {
+      return [
+        { keys: pad ? ['Roll'] : ['Drag', 'Wheel'], text: str('walk.photo_aim') },
+        { keys: [pad ? 'A' : 'Space'], text: str('walk.photo_take'), action: 'walk-photo-take' },
+        { keys: ['T'], text: str('walk.turntable'), action: 'walk-turntable' },
+        { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
+      ];
+    }
+    if (this.screen === 'walk') {
+      return [
+        { keys: ['P'], text: str('walk.photo'), action: 'walk-photo' },
+        { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
+        { keys: [pad ? 'A' : 'E'], text: str('walk.use') },
+        { keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' },
+      ];
+    }
     const hints = [];
     const arrows = (a, b) => (pad ? ['Pitch'] : [a, b]);
     if (this.cardScreen()) {

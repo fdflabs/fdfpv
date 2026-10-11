@@ -65,7 +65,10 @@
  *
  * THE RADIO is the stages' cues (MISSIONS.md M1 Radio: CREST, MIRADOR,
  * TALLER), the countdown's two lines and the debriefs (`radio`); the film
- * is films/first-light.js.
+ * is films/first-light.js. The `itaipu-1-g-*` cues are the guide
+ * (docs/campaign/FIRST-LIGHT-AUDIT.md): CREST saying plainly what to do,
+ * after the story line it follows, at each objective's start. They wait in
+ * the story queue (warradio.js), so each is heard after the line before.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -161,6 +164,13 @@ export default withWaves({
   time: 'morning',
   radio: { brief: ['itaipu-1-s0-brief', 'itaipu-1-s0-rules'], win: 'debrief-itaipu-1-win', lose: 'debrief-itaipu-1-lose' },
   film: 'first-light',
+  /* On a win only, after the end, on the room's clock (src/main.js
+   * warOutroFrame); its first line is the win debrief, so the radio does
+   * not say it (warradio.js OUTROS). */
+  outro: 'first-light-outro',
+  /* CREST's nudge to the attacker nearest the targets after no progress
+   * (src/share/war/nudge.js, docs/campaign/WAR-NUDGE.md). */
+  nudge: true,
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sectors: {
@@ -189,8 +199,10 @@ export default withWaves({
         id: 'scout', text: 'war.obj.itaipu_1.scout', kind: 'kill', done: { down: { group: 'eyes' } }, fail: { left: 1, group: 'eyes' },
       }],
       cues: [
+        { at: 0, radio: 'itaipu-1-g-first' },
         { when: { born: { group: 'eyes' } }, at: 3, radio: 'itaipu-1-s1-eyes' },
         { when: { born: { group: 'eyes' } }, at: 8, radio: 'itaipu-1-s1-why' },
+        { when: { born: { group: 'eyes' } }, at: 12, radio: 'itaipu-1-g-scout', skip: { any: [{ down: { group: 'eyes' } }, { left: 1, group: 'eyes' }] } },
         { when: { down: { group: 'eyes' } }, radio: 'itaipu-1-s1-down' },
         { when: { left: 1, group: 'eyes' }, radio: 'itaipu-1-s1-gone' },
         STAGE_LOST,
@@ -213,6 +225,7 @@ export default withWaves({
       ],
       objectives: [{ id: 'intakes', text: 'war.obj.protect_intakes', kind: 'protect' }],
       cues: [
+        { at: 0, radio: 'itaipu-1-g-intakes' },
         { when: { born: { group: 'a' } }, at: 4, radio: 'itaipu-1-s2-probe' },
         { when: { born: { group: 'b' } }, radio: 'itaipu-1-s2-again' },
         { when: { all: [{ gone: { group: 'b' } }, { cleared: true }] }, radio: 'itaipu-1-s2-clear' },
@@ -234,6 +247,7 @@ export default withWaves({
       ],
       objectives: [{ id: 'face', text: 'war.obj.protect_intakes_gates', kind: 'protect' }],
       cues: [
+        { at: 0, radio: 'itaipu-1-g-face' },
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-1-s3-split' },
         { when: { killed: 1 }, radio: 'itaipu-1-s3-hold' },
         { when: { cleared: true }, radio: 'itaipu-1-s3-clear' },
@@ -259,6 +273,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'swarm' } }, radio: 'itaipu-1-ta-turn' },
         { when: { born: { group: 'swarm' } }, at: 4, radio: 'itaipu-1-ta-why' },
+        { when: { born: { group: 'swarm' } }, at: 8, radio: 'itaipu-1-g-back-door', skip: { down: { group: 'swarm' } } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
@@ -281,6 +296,7 @@ export default withWaves({
       cues: [
         { when: { crossed: 'east-shore-mid', group: 'boats' }, radio: 'itaipu-1-tb-turn' },
         { when: { crossed: 'east-shore-mid', group: 'boats' }, at: 4, radio: 'itaipu-1-tb-why' },
+        { when: { crossed: 'east-shore-mid', group: 'boats' }, at: 8, radio: 'itaipu-1-g-low-water', skip: { down: { group: 'boats' } } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
@@ -303,6 +319,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'hunters' } }, radio: 'itaipu-1-tc-turn' },
         { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-1-tc-why' },
+        { when: { born: { group: 'hunters' } }, at: 8, radio: 'itaipu-1-g-come-for-you', skip: { down: { group: 'hunters' } } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
@@ -336,6 +353,7 @@ export default withWaves({
       cues: [
         { when: { born: {} }, radio: 'itaipu-1-s5-all' },
         { when: { born: {} }, at: 4, radio: 'itaipu-1-s5-order' },
+        { when: { born: {} }, at: 8, radio: 'itaipu-1-g-all' },
       ],
       /* The last: lost or held, the mission is won if the output is still
        * over the floor when it ends (as the old fifth round). */

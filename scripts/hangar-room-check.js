@@ -20,7 +20,7 @@
  */
 
 import {
-  CELL, ROOMS, TIERS, LAYOUTS, checkLayout, occupancy, stations, startPose, walk, stationNear, reachable, BODY_R,
+  CELL, ROOMS, ROOM_IDS, LAYOUTS, TIER_LEVELS, tierFor, checkLayout, occupancy, stations, startPose, walk, stationNear, reachable, BODY_R,
 } from '../src/game/hangarroom.js';
 
 const words = (p) => p.map((x) => `${x.kind} at ${x.at.join(',')} ${x.problem}${x.other ? ` ${x.other}` : ''}`).join('; ');
@@ -33,7 +33,7 @@ function check(name, ok, detail) {
   }
 }
 
-for (const tier of TIERS) {
+for (const tier of ROOM_IDS) {
   const room = ROOMS[tier];
   const layout = LAYOUTS[tier];
   const problems = checkLayout(room, layout);
@@ -81,6 +81,15 @@ for (const tier of TIERS) {
   const s = stations(room, LAYOUTS.garage).find((x) => x.id === 'bench');
   check('standing on a station\'s spot finds it', stationNear(stations(room, LAYOUTS.garage), { x: s.x, z: s.z })?.id === 'bench', 'bench');
   check('the middle of an empty floor finds none', stationNear([s], { x: s.x + 2, z: s.z + 2 }) === null, 'null');
+}
+
+/* The size tiers open by level, never shrink, and all open with unlockAll. */
+{
+  const seen = [1, 2, 3, 4, 5, 6, 7, 8, 20].map((l) => tierFor(l));
+  check('level 1 is the garage corner, 4 the workshop, 7 the airfield hangar',
+    tierFor(1) === 'garage' && tierFor(TIER_LEVELS.workshop - 1) === 'garage' && tierFor(TIER_LEVELS.workshop) === 'workshop'
+    && tierFor(TIER_LEVELS.airfield - 1) === 'workshop' && tierFor(TIER_LEVELS.airfield) === 'airfield', seen.join(' '));
+  check('unlock all opens the airfield hangar at level 1', tierFor(1, true) === 'airfield', tierFor(1, true));
 }
 
 /* A layout the check must refuse. */

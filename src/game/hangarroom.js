@@ -39,8 +39,22 @@ export const ROOMS = {
   garage: { w: 12, d: 10, h: 2.8 },
   workshop: { w: 20, d: 16, h: 4 },
   airfield: { w: 40, d: 28, h: 7 },
+  /* The war's field hangar (owner 2026-10-07: a second room, apart from
+   * the main one): a tent over dirt, sandbags along its sides. */
+  field: { w: 20, d: 14, h: 3.6, look: 'field' },
 };
 export const TIERS = ['garage', 'workshop', 'airfield'];
+/* The pilot's level (src/game/progress.js, XP from flying) each tier opens
+ * at; never bought (lead decision 2026-10-07). Spaced inside the planes'
+ * own unlock levels, so a bigger room comes as the bigger planes do. */
+export const TIER_LEVELS = { garage: 1, workshop: 4, airfield: 7 };
+
+/* The biggest tier a level has opened; everything with unlockAll. */
+export function tierFor(level, unlockAll = false) {
+  return unlockAll ? 'airfield' : TIERS.filter((t) => level >= TIER_LEVELS[t]).pop();
+}
+/* Every room there is: the tiers and the field hangar. */
+export const ROOM_IDS = [...TIERS, 'field'];
 
 /* Footprints in cells before the turn, and the station a kind is, if any:
  * what a pilot standing at its front can use. */
@@ -66,8 +80,9 @@ export const LAYOUTS = {
     { kind: 'stand', at: [4, 2], rot: 0 },
     { kind: 'bench', at: [0, 0], rot: 0 },
     { kind: 'shelf', at: [9, 0], rot: 0 },
-    { kind: 'chest', at: [11, 3], rot: 1 },
+    { kind: 'trophies', at: [11, 2], rot: 1 },
     { kind: 'tv', at: [0, 4], rot: 3 },
+    { kind: 'shop', at: [11, 6], rot: 1 },
   ],
   workshop: [
     { kind: 'stand', at: [8, 5], rot: 0 },
@@ -94,6 +109,16 @@ export const LAYOUTS = {
     { kind: 'tv', at: [0, 8], rot: 3 },
     { kind: 'couch', at: [5, 8], rot: 1 },
     { kind: 'crates', at: [37, 14], rot: 0 },
+  ],
+  field: [
+    { kind: 'stand', at: [8, 5], rot: 0 },
+    { kind: 'bench', at: [1, 0], rot: 0 },
+    { kind: 'shelf', at: [6, 0], rot: 0 },
+    { kind: 'chest', at: [10, 0], rot: 0 },
+    { kind: 'crates', at: [14, 0], rot: 0 },
+    { kind: 'crates', at: [16, 0], rot: 0 },
+    { kind: 'crates', at: [18, 4], rot: 0 },
+    { kind: 'crates', at: [0, 6], rot: 0 },
   ],
 };
 
@@ -209,9 +234,10 @@ export function startPose(room) {
  * and furniture. */
 export const WALK_SPEED = 2.2;
 export const TURN_RATE = 2.6;
-export const BODY_R = 0.25;
+export const BODY_R = 0.2;
 
-function blocked(room, occ, x, z) {
+/* Whether the body standing at x, z would be in a wall or furniture. */
+export function blocked(room, occ, x, z) {
   const hw = (room.w * CELL) / 2;
   const hd = (room.d * CELL) / 2;
   if (x < -hw + BODY_R || x > hw - BODY_R || z < -hd + BODY_R || z > hd - BODY_R) {

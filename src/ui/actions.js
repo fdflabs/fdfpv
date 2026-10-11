@@ -30,13 +30,14 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { KEYBIND_PREFIX, keybindAction } from './controls.js';
 import { MAPS } from '../maps/registry.js';
 import { airframeById } from '../../configs/airframes.js';
 import { clearPidsFor } from '../../configs/pids.js';
 import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
 import { needSignIn } from '../share/account.js';
-import { boardPageUrl, fetchTrackDocument } from '../share/board.js';
+import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
 import { tracksConfigured } from '../share/cloud.js';
 import { hasFlyableTrack } from '../share/listing.js';
 import { clearShareImport, readShareImport } from '../share/session.js';
@@ -59,7 +60,7 @@ const sound = (ui, name) => { if (ui.onUiSound) ui.onUiSound(name); };
 const tellShell = (ui) => { if (ui.onSettings) ui.onSettings(ui.settings); };
 
 /* Where Back goes after this press: a run paused behind the menus is kept. */
-const pauseOrTitle = (ui) => (ui.screen === 'paused' ? 'paused' : 'title');
+const pauseOrTitle = (ui) => (ui.screen === 'paused' || ui.screen === 'quick' ? 'paused' : 'title');
 
 const noteOn = (node, text) => { node.textContent = text; };
 
@@ -104,7 +105,7 @@ function fcLeave(ui) {
 
 /* Screens a plain row opens. Opened from a room, Back returns to that
  * room; opened over a paused run, Back returns to the pause menu. */
-const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends'];
+const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends', 'controls'];
 
 function openScreen(ui, screen) {
   ui.roomFrom = ROOM_PARENTS.has(ui.screen) && ui.screen !== screen ? ui.screen : null;
@@ -255,7 +256,28 @@ const ACTIONS = {
   'update-reload'() { window.location.reload(); },
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
   hotswap(ui) { ui.openSwap('paused'); },
+  /* The pause menu's Flight panel. Escape into the pause menu leaves
+   * returnTo where the run found it, so the panel names its way back. */
+  quick(ui) {
+    ui.returnTo = pauseOrTitle(ui);
+    ui.show('quick');
+  },
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
+  'hangar-walk'(ui) { ui.openWalk('main'); },
+  'field-walk'(ui) { ui.openWalk('field'); },
+  'walk-photo'(ui) { ui.togglePhoto(); },
+  'walk-photo-take'(ui) { ui.takePhoto(); },
+  'walk-turntable'(ui) { ui.takeTurntable(); },
+  /* The walkable hangar's shop counter: the hangar opened on its Shop tab
+   * (src/ui/hangar-shop.js), for the seated aircraft. */
+  /* The trophy wall: the hangar on its Challenges tab, which lists the
+   * firsts the wall's trophies stand for (src/ui/progress-ui.js). */
+  'hangar-trophies'(ui) {
+    ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'challenges');
+  },
+  'hangar-shop'(ui) {
+    ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'shop');
+  },
   customise(ui) {
     /* The aircraft in the air may be a My Hangar build; a change in the
      * hangar is then a change to that build. */
@@ -289,6 +311,12 @@ const ACTIONS = {
       return;
     }
     if (ui.standingsFor) boardTab(ui, ui.standingsFor.board);
+  },
+  'weekly-event'(ui) {
+    const e = ui.weeklyEvent;
+    /* The event is all the hub has of the track: enough to seat it, since
+     * its document is fetched by id. */
+    if (e && e.trackId) ui.openBoardCourse(e.trackId, () => ui.play(), { id: e.trackId, name: e.name, map: e.map, author: '', board: boardOrigin() });
   },
   'standings-fly'(ui) {
     const t = ui.standingsFor;
@@ -332,7 +360,7 @@ const ACTIONS = {
   rates(ui) {
     /* Reached from Settings or Quad, Back returns there; from the bench,
      * returnTo is left to the pause chain it may be carrying. */
-    if (ui.screen === 'pilot' || ui.screen === 'quad') {
+    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
@@ -340,9 +368,19 @@ const ACTIONS = {
     }
     ui.show('rates');
   },
+  /* A plane's rates, from the same rows: Back as the quad's Rates. */
+  planerates(ui) {
+    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
+      ui.ratesFrom = ui.screen;
+    } else {
+      ui.ratesFrom = null;
+      ui.returnTo = pauseOrTitle(ui);
+    }
+    ui.show('planerates');
+  },
   pids(ui) {
-    if (ui.screen === 'quad') {
-      ui.pidsFrom = 'quad';
+    if (ui.screen === 'quad' || ui.screen === 'quick') {
+      ui.pidsFrom = ui.screen;
     } else {
       ui.pidsFrom = null;
       ui.returnTo = pauseOrTitle(ui);
@@ -486,6 +524,7 @@ const PREFIXES = [
     ui.fc.applyPreset(id).then(() => ui.renderMenu()).catch((err) => console.error(err));
   }],
   ['map:', (ui, action, id) => ui.seatMap(id)],
+  [KEYBIND_PREFIX, keybindAction],
 ];
 
 /* Without an account the menus are for looking at: anything behind a card
@@ -497,6 +536,12 @@ const needsAccount = (action) => typeof action === 'string' && !OPEN_ACTIONS.has
 
 /* Screens with their own step back. True when the step was taken. */
 const BACK_FROM = {
+  /* A walkable hangar backs out to the cards of the hub it came from. */
+  walk(ui) {
+    ui.hub = ui.walk ? ui.walk.hub : 'hangar';
+    ui.show('title');
+    return true;
+  },
   calibrate(ui) {
     ui.act('calibrate-cancel');
     return true;
@@ -560,6 +605,7 @@ const BACK_FROM = {
   /* Rates and PIDs are pages: back to the room that opened them, by
    * show() so a paused run's returnTo survives. */
   rates(ui) { return backToOrigin(ui, 'ratesFrom'); },
+  planerates(ui) { return backToOrigin(ui, 'ratesFrom'); },
   pids(ui) { return backToOrigin(ui, 'pidsFrom'); },
 };
 
@@ -712,9 +758,16 @@ export const actionMethods = {
   /* The three hub cards with their activities as links. A hub with
    * nothing to offer (Operations without a rooms server) is left out. */
   hubCards(rooms) {
-    const linksOf = (hub) => (hub.id === 'hangar'
-      ? this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }))
-      : hubWays(hub.id).filter((w) => rooms || !w.room).map((w) => ({ label: w.label, action: w.action, key: w.id })));
+    const ways = (id) => hubWays(id).filter((w) => rooms || !w.room).map((w) => ({ label: w.label, action: w.action, key: w.id }));
+    /* Operations also holds the war's field hangar, which needs no rooms
+     * server to walk round. */
+    const field = { label: str('walk.field'), action: 'field-walk', key: 'ops-field' };
+    const linksOf = (hub) => {
+      if (hub.id === 'hangar') {
+        return this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }));
+      }
+      return hub.id === 'ops' ? [...ways(hub.id), field] : ways(hub.id);
+    };
     return HUBS.map((hub) => ({
       label: str(hub.label),
       card: `hub-${hub.id}`,
@@ -734,6 +787,7 @@ export const actionMethods = {
     const plan = craftSvg(airframeById(this.settings.airframe));
     const card = (id, label, svg, blurb, action) => ({ label, card: `hangar-${id}`, svg, blurb, facts: [], action });
     return [
+      card('walk', str('walk.card'), null, str('walk.blurb'), 'hangar-walk'),
       card('aircraft', str('ui.aircraft'), plan, str('hub.aircraft_blurb'), 'hangar-aircraft'),
       ...(customisable(this.settings.airframe) ? [card('customise', str('hangar.customise'), plan, str('hangar.row_note'), 'customise')] : []),
       card('sticks', str('ui.calibrate_sticks'), null, str('hub.sticks_blurb'), 'calibrate'),
@@ -743,8 +797,29 @@ export const actionMethods = {
 
   openHub(id) {
     this.hub = id;
+    if (id === 'club') {
+      this.loadWeeklyEvent();
+    }
     this.setCursor(this.firstStop(this.items()));
     this.renderMenu();
+  },
+
+  /* This week's event, read each time Flight Club opens so its standings
+   * are fresh; until it answers (or with no board) the hub has no card
+   * for it. */
+  loadWeeklyEvent() {
+    if (!boardConfigured()) {
+      return;
+    }
+    fetchCurrentEvent().then((event) => {
+      const had = JSON.stringify(this.weeklyEvent || null);
+      this.weeklyEvent = event;
+      if (had !== JSON.stringify(event) && this.hub === 'club') {
+        this.renderMenu();
+      }
+    }).catch(() => {
+      /* No board this time: the hub reads as it did before events. */
+    });
   },
 
   /* The one place a world or track becomes the seat: written, handed to
@@ -831,9 +906,9 @@ export const actionMethods = {
 
   /* Seat a board track through the shell, which owns the fetch, then
    * `then`. One at a time: a second press while one loads is ignored. */
-  openBoardCourse(id, then = null) {
+  openBoardCourse(id, then = null, known = null) {
     const listed = (this.boardCourses || []).find((t) => t.id === id);
-    const track = listed || (this.standingsFor && this.standingsFor.id === id ? this.standingsFor : null);
+    const track = listed || known || (this.standingsFor && this.standingsFor.id === id ? this.standingsFor : null);
     if (!track || this.openingBoardCourse) return;
     const failed = (why) => {
       this.openingBoardCourse = false;
