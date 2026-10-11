@@ -128,7 +128,13 @@ eighths, five eighths and seven eighths of the semispan.
 - **Asymmetry:** the left half stalls `stall_asym` sooner, 1 mm of trailing
   edge over the chord (0.21 to 0.31 deg). This is ESTIMATED as a kit's
   build tolerance. Without it a power off stall from wings level is exactly
-  symmetric and no wing could ever drop.
+  symmetric and no wing could ever drop. The Extra 300 3D carries none
+  (2026-10-09): its fixed left side made every power off pull of the
+  owner's drop the left wing, the side of a tolerance nobody knows is no
+  property of the aircraft, and in flight the pilot's own small rudder
+  and aileron, the gusts and the prop's torque and swirl pick the side,
+  as they do on the field. The other tables keep the convention; whether
+  they should is the lead's call.
 - **The asymmetry picks the side, not the violence:** at 0.1 and 4 times
   its value, the probe's final bank moves by a few degrees on every
   airframe except the Timber, whose slow spiral in a held full up stall

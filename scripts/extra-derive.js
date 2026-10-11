@@ -515,7 +515,7 @@ const rows = [
   ['E14 take off roll', J(takeoff())],
   ['gear: wheelbase m, loads main tail N', `${f(wheelbase, 4)} ${f(mainLoad, 3)} ${f(tailLoad, 3)}`],
   ['   k main tail N/m, c main tail N s/m, tail m_eff', `${f(kMain, 0)} ${f(kTail, 0)} ${f(cMain, 2)} ${f(cTail, 2)} ${f(mTail, 4)}`],
-  ['stall: arm_ac, arm_cp, dw, asym', `${f(armAc, 4)} ${f(armCp, 4)} ${f(stallDw, 4)} ${f(0.001 / c, 5)}`],
+  ['stall: arm_ac, arm_cp, dw, asym', `${f(armAc, 4)} ${f(armCp, 4)} ${f(stallDw, 4)} 0 (no side: docs/STALL-STAGE1.md)`],
 ];
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(56)} ${v}`);

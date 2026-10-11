@@ -11,8 +11,8 @@
  *   <name>.png      the four sticks against time (tools/plot-sticks.py)
  *
  * and prints what a person's thumbs would have done: peak and mean
- * absolute deflection per axis, the stick rate (travel per second, peak
- * and 95th percentile), and the reversals per second.
+ * absolute deflection per axis, the stick rate (travel per second over
+ * 100 ms, peak and 95th percentile), and the reversals per second.
  *
  *   node scripts/hover-video.js [tune] [outdir]   (tune: extra-as3x)
  *
@@ -43,7 +43,9 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const th = JSON.parse(await readFile(join(root, 'tests/extra-thresholds.json'), 'utf8'));
 const TUNE = process.argv[2] ?? 'extra-as3x';
 const OUT = process.argv[3] ?? join(process.env.HOME, '.cache/fdfpv-w34-flightmodel/hover-videos');
-const NAME = `${TUNE}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+/* 'pull': the owner's power off pull instead of the hover. */
+const KIND = process.argv[4] ?? 'hover';
+const NAME = `${KIND}-${TUNE}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const FRAMES = join(OUT, `${NAME}-frames`);
 await mkdir(FRAMES, { recursive: true });
 
@@ -57,7 +59,7 @@ try {
   await page.evaluate("window.__showSticks = true; window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
   await page.sleep(2000);
-  await page.evaluate(PILOT('video', th));
+  await page.evaluate(PILOT(KIND === 'pull' ? `pulloff-${TUNE}` : `video-${TUNE}`, th));
   /* The four sticks' values over the gimbals, for the film only. */
   await page.evaluate(`(() => {
     const box = document.createElement('div');
@@ -74,7 +76,7 @@ try {
   const t0 = Date.now();
   /* Film once the person has it: from the hand over to the end. */
   while (Date.now() - t0 < 900000 && !(await page.evaluate('window.__T.done'))) {
-    if (await page.evaluate("window.__T.at === 'human' || window.__T.at === 'pull'")) {
+    if (await page.evaluate("window.__T.at === 'human' || window.__T.at === 'pull' || window.__T.at === 'pulloff'")) {
       const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 80 }, page.sessionId);
       frame += 1;
       await writeFile(join(FRAMES, `f${String(frame).padStart(5, '0')}.jpg`), Buffer.from(data, 'base64'));
@@ -86,7 +88,13 @@ try {
   const r = T.res || {};
   const sticks = T.sticks || [];
   /* What the thumbs did over the judged 10 s (after the 3 s to catch it). */
-  const judged = sticks.filter((x) => x[0] >= 3);
+  /* Resampled every 100 ms, the pilot's own move interval: a stick rate
+   * is a change over 100 ms, as a thumb makes it, not one display frame's
+   * jump. */
+  const judged = [];
+  for (const x of sticks.filter((y) => y[0] >= (KIND === 'pull' ? 0 : 3))) {
+    if (!judged.length || x[0] - judged[judged.length - 1][0] >= 0.1) judged.push(x);
+  }
   const names = ['roll', 'pitch', 'yaw', 'throttle'];
   const human = {};
   for (let k = 0; k < 4; k += 1) {
@@ -113,12 +121,12 @@ try {
       reversalsPerS: rev / 2 / span,
     };
   }
-  await writeFile(join(OUT, `${NAME}.json`), JSON.stringify({ tune: TUNE, result: r, human, sticks }, null, 1));
+  await writeFile(join(OUT, `${NAME}.json`), JSON.stringify({ kind: KIND, tune: TUNE, result: r, human, sticks }, null, 1));
   const fps = Math.max(1, Math.round(frame / Math.max(1, (sticks.length ? sticks[sticks.length - 1][0] : 1) + 4)));
   spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', join(FRAMES, 'f%05d.jpg'), '-pix_fmt', 'yuv420p', join(OUT, `${NAME}.mp4`)], { stdio: 'inherit' });
   spawnSync('python3', ['-I', join(root, 'tools/plot-sticks.py'), join(OUT, `${NAME}.json`), join(OUT, `${NAME}.png`)], { stdio: 'inherit' });
   await rm(FRAMES, { recursive: true, force: true });
-  console.log(JSON.stringify({ video: join(OUT, `${NAME}.mp4`), plot: join(OUT, `${NAME}.png`), frames: frame, held: r.human, crashed: r.crashed }));
+  console.log(JSON.stringify({ video: join(OUT, `${NAME}.mp4`), plot: join(OUT, `${NAME}.png`), frames: frame, held: r.human, pull: r.pull, crashed: r.crashed, peakRoll: Math.max(...sticks.map((x) => Math.abs(x[5]))) }));
   for (const [k, h] of Object.entries(human)) {
     console.log(`${k.padEnd(9)} peak ${h.peak.toFixed(2)}, mean abs ${h.meanAbs.toFixed(3)}, stick rate peak ${h.ratePeak.toFixed(2)}/s, 95th ${h.rate95.toFixed(2)}/s, reversals ${h.reversalsPerS.toFixed(2)}/s`);
   }
