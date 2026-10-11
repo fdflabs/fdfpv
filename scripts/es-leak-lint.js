@@ -23,7 +23,8 @@
  * tests/fixtures/es-leaks.json, and that list may only shrink: a leak not
  * on it fails, and so does an entry that no longer happens, so a fix takes
  * its line off. It is a ratchet, not an excuse list. Every name a tune can
- * have must have a key (tune.name.<word>) or be in SHARED.
+ * have must have a key (tune.name.<word>) or be in SHARED, and every
+ * aircraft its description (airframe.blurb.<id>).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -47,6 +48,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { TUNES } from '../configs/registry.js';
+import { TRICKS } from '../src/game/tricks-sheet.js';
 import en from '../src/strings/en.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -59,12 +61,20 @@ const ENGLISH = /\b(the|and|you|your|with|is|it|of|to|this|that|from|when|here)\
 /* The same word in Spanish, or a name nobody translates. */
 const SHARED = new Set([
   'Acro', 'Manual', 'AS3X', 'SAFE Select', 'KISS', 'Actual', 'Raceflight', 'Quick', 'Expo', 'PID', 'PIDs', 'FPV', 'HUD',
+  'GPU', 'Radio', 'Sticks', 'Feedforward', 'D max', 'Hangar', 'Arcade', 'Taranis', 'ELRS 250 Hz', 'ironbow', '60 fps',
   ...AIRFRAMES.flatMap((a) => [a.short, a.name]),
+  /* Freestyle trick names are the sport's English jargon in Spanish too. */
+  ...TRICKS.map((t) => t.name),
 ]);
+/* A value made only of shared words ("Cub, Acro"), or a duration. */
+const sharedValue = (text) => text.split(', ').every((part) => SHARED.has(part)) || /^\d+ (h|min)( \d+ min)?$/.test(text);
 
 /* scripts/items-golden.js's own rows (friendsRowInRoom and the others). */
 const STAND_INS = new Set([
   'OWLS', 'Two pilots in the room.', 'No room', 'Make one or join one.', 'Off', 'Nobody is watching.', 'Best lap', 'Your best, beside you.', 'Room',
+  'Leave the room', 'Back to flying alone.', 'The code.', 'Start the race', 'Everybody is ready.', 'Rejoin', 'OWLS is still open.',
+  'Room results', 'rows of rooms', 'rows of roomnew', 'Rooms panel home=true', 'Rooms panel home=false', 'bench row',
+  'Storage refused the save.', 'Hung track', 'No author', 'Nameless', 'Old world', 'Valley run', 'Barn loop', 'Empty field', 'One gate', 'Callsign', 'Ace Pilot', 'A fine card.', 'Stand-in GPU 9000', 'Bando', 'Saved before creative mode',
 ]);
 
 function dump(locale) {
@@ -85,7 +95,7 @@ for (const [name, scene] of Object.entries(english)) {
     }
     for (const field of FIELDS) {
       const text = es[field];
-      if (typeof text !== 'string' || SHARED.has(text) || STAND_INS.has(text)) {
+      if (typeof text !== 'string' || sharedValue(text) || STAND_INS.has(text)) {
         continue;
       }
       const same = text === row[field] && /[A-Za-z]{3}/.test(text);
@@ -98,6 +108,8 @@ for (const [name, scene] of Object.entries(english)) {
 
 const names = [...new Set(TUNES.map((t) => t.name))];
 const unkeyed = names.filter((n) => !SHARED.has(n) && en[`tune.name.${n.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`] === undefined);
+/* The aircraft row reads airframe.blurb.<id>; the page throws on a missing key. */
+const unblurbed = AIRFRAMES.filter((a) => en[`airframe.blurb.${a.id}`] === undefined).map((a) => a.id);
 const found = [...new Set(leaks)].sort();
 const strict = found.filter((l) => STRICT.test(l));
 const rest = found.filter((l) => !STRICT.test(l));
@@ -127,6 +139,10 @@ for (const l of gone) {
 }
 for (const n of unkeyed) {
   console.error(`FAIL  tune name "${n}" has no key tune.name.<word> in src/strings and is not in SHARED`);
+  bad += 1;
+}
+for (const id of unblurbed) {
+  console.error(`FAIL  aircraft "${id}" has no airframe.blurb.${id} in src/strings (en and es)`);
   bad += 1;
 }
 if (bad) {
