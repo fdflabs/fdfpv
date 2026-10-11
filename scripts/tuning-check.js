@@ -191,7 +191,8 @@ function surfaces(id, tune, roll, pitch, flapNotch = 0) {
     must(sim.e.sim_wing_flaps_settle(), 'settle');
   }
   must(sim.input(0, roll, pitch, 0, 0), 'input');
-  must(sim.step(1), 'step');
+  /* 200 ms: a table whose servos slew (servo_rate) has them there. */
+  must(sim.step(200), 'step');
   const ptr = sim.e.malloc(32);
   must(sim.e.sim_plane_surfaces(ptr), 'surfaces');
   const out = Array.from(new Float64Array(sim.e.memory.buffer, ptr, 4));
