@@ -79,6 +79,7 @@ import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
 import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
+import { formatRunClock, lengthText } from './ui/format.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -4058,7 +4059,7 @@ export async function boot({
       combatHudAt = wallMs + 200;
       /* Not over the crash cam's replay, which is another moment. */
       combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
-        paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow);
+        paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow, debriefCardLine());
     }
     if (!roomCombat.out()) {
       if (combatLayer.count()) {
@@ -5929,7 +5930,7 @@ export async function boot({
     /* Under the outro the film has the screen; the end card comes after. */
     const hudOn = mode === 'flight' && ui.screen === 'flight' && !warOutroOn(v);
     warHud.update(hudOn ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
-    warRoundCard.update(hudOn ? v : null, now);
+    warRoundCard.update(hudOn ? v : null, now, debriefCardLine());
   }
 
   /* The war's guide nudge (src/share/war/nudge.js), for a mission that
@@ -7949,6 +7950,17 @@ export async function boot({
       totalS: aircraftSecondsNow(),
       route: runRoute.snapshot(),
       replay: mode === 'results' ? replayState(crashCam ? crashCam.span() : null, false) : null,
+    });
+  }
+  /*
+   * The debrief on a card shown in flight (the war's round, a combat
+   * round's results): the pilot flies on, so no screen of facts, one line
+   * and the key that opens the replay (docs/DEBRIEF.md).
+   */
+  function debriefCardLine() {
+    const route = runRoute.snapshot();
+    return str('debrief.card_line', {
+      air: formatRunClock(runAirMs), dist: lengthText(route ? route.distanceM : 0), key: crashCam ? crashCam.replayKey() : 'V',
     });
   }
   /* The results screen, from the room's order; again as it changes. */
