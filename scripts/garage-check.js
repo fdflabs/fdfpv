@@ -127,7 +127,7 @@ async function shots(page, name) {
 }
 
 async function placeDecal(page, kind, view, facing) {
-  await page.evaluate(click(`view-${view}`));
+  await page.evaluate(click(`decal-view-${view}`));
   const before = await page.evaluate('(window.__ui.hangar.entry.decals || []).length');
   await page.evaluate(click('decal-add'));
   await page.evaluate(click(`kind-${kind}`));
@@ -313,11 +313,25 @@ async function main() {
         });
         return { finishes: [...finishes].sort(), wear };
       };
-      const seen = { ...paintOf(peer.group), decals: readDecals(peer) };
+      /* A peer's layers go on over the next frames (peers.js,
+       * dressDecalsLater), so they are read once they have stopped coming:
+       * the same count for a second, or 10 s. */
+      const settled = async (craft) => {
+        let last = -1;
+        let same = 0;
+        for (let i = 0; i < 100 && same < 10; i += 1) {
+          await new Promise((r) => setTimeout(r, 100));
+          const n = readDecals(craft).decals;
+          same = n === last ? same + 1 : 0;
+          last = n;
+        }
+        return readDecals(craft);
+      };
+      const seen = { ...paintOf(peer.group), decals: await settled(peer) };
       const rude = JSON.parse(JSON.stringify(relayed));
       rude.livery.decals[3].t = 'MIERDA';
       const rudePeer = buildPeerCraft(checkProfile(rude));
-      const rudeSeen = readDecals(rudePeer);
+      const rudeSeen = await settled(rudePeer);
       peer.dispose && peer.dispose();
       rudePeer.dispose && rudePeer.dispose();
       return { relayed: Boolean(relayed), bytes, seen, rudeSeen };

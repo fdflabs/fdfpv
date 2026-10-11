@@ -1071,3 +1071,50 @@ arrives in the hover with the motor at 0.6). The Striker's piston gate
 "the thrust is the stick's" (under 50 ms) contradicted a rotor with
 inertia and is re-derived: its rpm reaches 90 percent of full in 0.5 to
 1.0 s about the 0.75 s the equation gives standing still.
+## The radio's elevator to flap mix
+
+The 3D video study (analysis/3D-VIDEO-LESSONS.md, an E-flite Night Timber
+X, 03:20 to 05:20 and 15:20) flies the harrier on full up elevator with
+"elevator flaps": the radio mixes the elevator stick into the flaps, and
+with the mix off the wing rocks, 10 then 20 then 30 deg at about 1.5 s.
+Any transmitter does this (an elevator to flap mix line), so it is a
+pilot's setting on the plane's Rates screen, on the aircraft with flaps
+(the Turbo Timber and its floats, the P-51): off, as every kit ships, or
+25, 50, 75 or 100 percent of full flap at full up elevator, on top of the
+flap switch's notch, down only (sim_wing_set_tune's ELEV_FLAP). The
+servos follow it as fast as the other surfaces; only the switch's notch
+is slowed. The flap to down elevator compensation stays on the notch,
+as a radio's mix from the switch is, so the stick's up elevator is not
+cancelled by it. Zero is bit identical to before.
+
+`npm run harrier:flap` flies the Timber into a harrier on full up elevator
+with a person-paced pilot (hover-probe.js's limits) for each mix step
+(AS3X reads as Manual here because the Timber's AS3X gains land with the
+controllers pull request, #871):
+
+```
+timber1500, harrier on full up elevator, person-paced pilot, last 10 s of 20
+  Manual  mix   0%  bank sd 30.0 deg, worst 80.3, period 1.25 s, pitch 11.9 deg, 9.0 m/s
+  Manual  mix  25%  bank sd 25.2 deg, worst 95.1, period 0.69 s, pitch 29.8 deg, 7.5 m/s
+  Manual  mix  50%  bank sd 32.8 deg, worst 75.8, period 1.25 s, pitch 21.9 deg, 7.8 m/s
+  Manual  mix  75%  bank sd 34.1 deg, worst 112.7, period 0.80 s, pitch 19.7 deg, 8.5 m/s
+  Manual  mix 100%  bank sd 35.5 deg, worst 125.4, period 0.80 s, pitch 16.0 deg, 8.7 m/s
+  AS3X    mix   0%  bank sd 30.0 deg, worst 80.3, period 1.25 s, pitch 11.9 deg, 9.0 m/s
+  AS3X    mix  25%  bank sd 25.2 deg, worst 95.1, period 0.69 s, pitch 29.8 deg, 7.5 m/s
+  AS3X    mix  50%  bank sd 32.8 deg, worst 75.8, period 1.25 s, pitch 21.9 deg, 7.8 m/s
+  AS3X    mix  75%  bank sd 34.1 deg, worst 112.7, period 0.80 s, pitch 19.7 deg, 8.5 m/s
+  AS3X    mix 100%  bank sd 35.5 deg, worst 125.4, period 0.80 s, pitch 16.0 deg, 8.7 m/s
+```
+
+What it shows, honestly: with the mix off the Timber rocks, bank sd 30
+deg, worst 80, at a 1.25 s period: the video's mix-off rock (10 to 30 deg
+at about 1.5 s). The mix does not calm it as the video's does: 25 percent
+lowers the spread a little (sd 25) but the worst bank and the period get
+worse, and more mix is worse again. The cause found: the plant lays the
+flaps' lift over every strip of the span (strip_stall takes the one dcl_f
+on all of them), so lowered flaps raise the tips' angle as much as the
+root's and stall them together. A real flap is inboard (the Timber's spans
+the inner part of each panel, the ailerons outboard), so it makes the root
+stall first and keeps the tips, and the ailerons, flying: the mechanism
+the mix works by. Flaps over their own strips only is a stall model change
+in strip_stall, the 3D lane's code; it is proposed there, not made here.

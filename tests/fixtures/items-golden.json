@@ -439,7 +439,7 @@
      "label": "Customise",
      "action": "customise",
      "card": "hangar-customise",
-     "blurb": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+     "blurb": "The power and the paint of the quad you are flying. Save puts them on it where it is.",
      "facts": [],
      "svg": "<svg 1448 chars>",
      "drives": {}
@@ -17131,7 +17131,7 @@
     {
      "id": "quick:a-customise",
      "label": "Customise",
-     "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+     "note": "The power and the paint of the quad you are flying. Save puts them on it where it is.",
      "action": "customise",
      "drives": {}
     },
@@ -17278,7 +17278,7 @@
     {
      "id": "quick:a-customise",
      "label": "Customise",
-     "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+     "note": "The power and the paint of the quad you are flying. Save puts them on it where it is.",
      "action": "customise",
      "drives": {}
     },
@@ -24570,7 +24570,7 @@
      "label": "Personalizar",
      "action": "customise",
      "card": "hangar-customise",
-     "blurb": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+     "blurb": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está.",
      "facts": [],
      "svg": "<svg 1448 chars>",
      "drives": {}
@@ -25659,7 +25659,7 @@
      "id": "friends:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -25837,7 +25837,7 @@
      "id": "friends:aeronave",
      "label": "Aeronave",
      "value": "Seven inch",
-     "note": "A 979 gram 7 inch long range quad on a 6S Li-ion pack, built to carry a payload slung under its belly. The heavier the payload, the more of the stick it takes to hold it up. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de largo alcance de 7 pulgadas y 979 gramos con una batería Li-ion 6S, hecho para llevar una carga colgada bajo la panza. Cuanto más pesa la carga, más stick hace falta para sostenerlo. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "7inch",
      "options": [
@@ -26026,7 +26026,7 @@
      "id": "friends:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -26975,7 +26975,7 @@
      "id": "tricks:a-noop",
      "label": "1 Trippy Spin",
      "value": "100",
-     "note": "Fiable. Block. Un giro completo o más alrededor de un poste, volado panza arriba. Visto from above.",
+     "note": "Fiable. Bloque básico. Un giro completo o más alrededor de un poste, volado panza arriba. Visto from above.",
      "action": "noop",
      "drives": {}
     },
@@ -26983,7 +26983,7 @@
      "id": "tricks:a-noop~2",
      "label": "Matty Flip",
      "value": "200",
-     "note": "Fiable. Novice. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto from the side.",
+     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -26991,7 +26991,7 @@
      "id": "tricks:a-noop~3",
      "label": "Anti Matty",
      "value": "250",
-     "note": "Fiable. Novice. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto from the side.",
+     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -26999,7 +26999,7 @@
      "id": "tricks:a-noop~4",
      "label": "Power Matty",
      "value": "300",
-     "note": "Fiable. Intermediate. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto from the side.",
+     "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27007,7 +27007,7 @@
      "id": "tricks:a-noop~5",
      "label": "Matty Roll",
      "value": "425",
-     "note": "Fiable. Advanced. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip and un giro completo de roll. Visto from the side.",
+     "note": "Fiable. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip y un giro completo de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27015,7 +27015,7 @@
      "id": "tricks:a-noop~6",
      "label": "Matty 360",
      "value": "425",
-     "note": "Exigente. Advanced. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip and un giro completo de yaw spin. Visto from the side.",
+     "note": "Exigente. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip y un giro completo de yaw spin. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27023,7 +27023,7 @@
      "id": "tricks:a-noop~7",
      "label": "Maverick Loop",
      "value": "100",
-     "note": "Fiable. Beginner. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto from the side.",
+     "note": "Fiable. Principiante. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27031,7 +27031,7 @@
      "id": "tricks:a-noop~8",
      "label": "Mavvy Roll",
      "value": "250",
-     "note": "Fiable. Novice. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto from the side.",
+     "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27039,7 +27039,7 @@
      "id": "tricks:a-noop~9",
      "label": "Donkey Loop",
      "value": "600",
-     "note": "Fiable. Master. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip and un giro completo de roll and un giro completo de yaw spin. Visto from the side.",
+     "note": "Fiable. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip y un giro completo de roll y un giro completo de yaw spin. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27047,7 +27047,7 @@
      "id": "tricks:a-noop~10",
      "label": "Yaw Spin",
      "value": "50",
-     "note": "Fiable. Beginner. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto from above.",
+     "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto from above.",
      "action": "noop",
      "drives": {}
     },
@@ -27055,7 +27055,7 @@
      "id": "tricks:a-noop~11",
      "label": "Flip",
      "value": "50",
-     "note": "Fiable. Beginner. Un giro completo de flip. Visto from the side.",
+     "note": "Fiable. Principiante. Un giro completo de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27063,7 +27063,7 @@
      "id": "tricks:a-noop~12",
      "label": "Roll",
      "value": "50",
-     "note": "Fiable. Beginner. Un giro completo de roll. Visto from behind.",
+     "note": "Fiable. Principiante. Un giro completo de roll. Visto from behind.",
      "action": "noop",
      "drives": {}
     },
@@ -27071,7 +27071,7 @@
      "id": "tricks:a-noop~13",
      "label": "Segmented Flips/Rolls",
      "value": "75",
-     "note": "Fiable. Beginner. Medio giro de rotation, luego medio giro de rotation otra vez en el mismo sentido, tras una pausa. Visto from the side.",
+     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation otra vez en el mismo sentido, tras una pausa. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27079,7 +27079,7 @@
      "id": "tricks:a-noop~14",
      "label": "Invert Rewind",
      "value": "75",
-     "note": "Fiable. Beginner. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto from the side.",
+     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27087,7 +27087,7 @@
      "id": "tricks:a-noop~15",
      "label": "Vanny Roll",
      "value": "125",
-     "note": "Fiable. Beginner. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto from above.",
+     "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto from above.",
      "action": "noop",
      "drives": {}
     },
@@ -27095,7 +27095,7 @@
      "id": "tricks:a-noop~16",
      "label": "Double Flip",
      "value": "150",
-     "note": "Fiable. Beginner. Dos giros completos de flip. Visto from the side.",
+     "note": "Fiable. Principiante. Dos giros completos de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27103,7 +27103,7 @@
      "id": "tricks:a-noop~17",
      "label": "Double Roll",
      "value": "150",
-     "note": "Fiable. Beginner. Dos giros completos de roll. Visto from behind.",
+     "note": "Fiable. Principiante. Dos giros completos de roll. Visto from behind.",
      "action": "noop",
      "drives": {}
     },
@@ -27111,7 +27111,7 @@
      "id": "tricks:a-noop~18",
      "label": "Juicy Flick",
      "value": "200",
-     "note": "Fiable. Novice. Medio giro de flip, luego medio giro de roll. Visto from the side.",
+     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27119,7 +27119,7 @@
      "id": "tricks:a-noop~19",
      "label": "Snapback",
      "value": "200",
-     "note": "Fiable. Novice. Medio giro de flip, luego medio giro de roll. Visto from the side.",
+     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27127,7 +27127,7 @@
      "id": "tricks:a-noop~20",
      "label": "Rubik's Cube",
      "value": "325",
-     "note": "Fiable. Intermediate. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto from the side.",
+     "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27135,7 +27135,7 @@
      "id": "tricks:a-noop~21",
      "label": "Cubik's Rube",
      "value": "325",
-     "note": "Fiable. Intermediate. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto from the side.",
+     "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27143,7 +27143,7 @@
      "id": "tricks:a-noop~22",
      "label": "Inverted Yaw Spin",
      "value": "400",
-     "note": "Fiable. Advanced. Un giro completo de yaw spin, boca abajo. Visto from above.",
+     "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto from above.",
      "action": "noop",
      "drives": {}
     },
@@ -27151,7 +27151,7 @@
      "id": "tricks:a-noop~23",
      "label": "Inverted Yaw Tracking",
      "value": "425",
-     "note": "Fiable. Advanced. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto from above.",
+     "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto from above.",
      "action": "noop",
      "drives": {}
     },
@@ -27159,7 +27159,7 @@
      "id": "tricks:a-noop~24",
      "label": "Eject Roll",
      "value": "200",
-     "note": "Fiable. Novice. Medio giro de flip, luego un giro completo de roll. Visto from the side.",
+     "note": "Fiable. Novato. Medio giro de flip, luego un giro completo de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27167,7 +27167,7 @@
      "id": "tricks:a-noop~25",
      "label": "Orbit x2",
      "value": "75",
-     "note": "Fiable. Beginner. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto from above.",
+     "note": "Fiable. Principiante. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto from above.",
      "action": "noop",
      "drives": {}
     },
@@ -27175,7 +27175,7 @@
      "id": "tricks:a-noop~26",
      "label": "Trippy Spin x2",
      "value": "500",
-     "note": "Fiable. Advanced. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto from above.",
+     "note": "Fiable. Avanzado. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto from above.",
      "action": "noop",
      "drives": {}
     },
@@ -27183,7 +27183,7 @@
      "id": "tricks:a-noop~27",
      "label": "Powerloop",
      "value": "200",
-     "note": "Fiable. Novice. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto from the side.",
+     "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27191,7 +27191,7 @@
      "id": "tricks:a-noop~28",
      "label": "Immelmann Turn",
      "value": "250",
-     "note": "Fiable. Novice. Media vuelta alrededor de un riel, entrando por debajo, llevando medio giro de flip, luego medio giro de roll. Visto from the side.",
+     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por debajo, llevando medio giro de flip, luego medio giro de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27199,7 +27199,7 @@
      "id": "tricks:a-noop~29",
      "label": "Power Flip",
      "value": "350",
-     "note": "Fiable. Intermediate. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto from the side.",
+     "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27207,7 +27207,7 @@
      "id": "tricks:a-noop~30",
      "label": "Power Roll",
      "value": "450",
-     "note": "Exigente. Advanced. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip and un giro completo de roll. Visto from the side.",
+     "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27215,7 +27215,7 @@
      "id": "tricks:a-noop~31",
      "label": "Inverted 360 Powerloop",
      "value": "650",
-     "note": "Exigente. Master. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip and un giro completo de yaw spin. Visto from the side.",
+     "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27223,7 +27223,7 @@
      "id": "tricks:a-noop~32",
      "label": "Flip Stall Rewind",
      "value": "275",
-     "note": "Fiable. Novice. Un giro completo de flip, tras una pausa. Visto from the side.",
+     "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27231,7 +27231,7 @@
      "id": "tricks:a-noop~33",
      "label": "360 Stall Rewind",
      "value": "275",
-     "note": "Fiable. Novice. Un giro completo de roll, tras una pausa. Visto from behind.",
+     "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto from behind.",
      "action": "noop",
      "drives": {}
     },
@@ -27239,7 +27239,7 @@
      "id": "tricks:a-noop~34",
      "label": "Split-S",
      "value": "100",
-     "note": "Exigente. Beginner. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll and medio giro de flip. Visto from the side.",
+     "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto from the side.",
      "action": "noop",
      "drives": {}
     },
@@ -27247,7 +27247,7 @@
      "id": "tricks:a-noop~35",
      "label": "Split Yaw",
      "value": "300",
-     "note": "Exigente. Intermediate. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll and medio giro de flip and medio giro de yaw spin. Visto from the side.",
+     "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto from the side.",
      "action": "noop",
      "drives": {}
     }
@@ -27674,7 +27674,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -27827,7 +27827,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -27849,29 +27849,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -27915,7 +27915,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -27941,8 +27941,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -27995,7 +27995,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -28148,7 +28148,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -28170,29 +28170,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -28236,7 +28236,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -28262,8 +28262,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -28316,7 +28316,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica. Toma el relevo donde estás: mismo sitio, mismo rumbo.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica. Toma el relevo donde estás: mismo sitio, mismo rumbo.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -28457,7 +28457,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -28479,29 +28479,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -28535,7 +28535,7 @@
     {
      "id": "quad:modo-de-vuelo",
      "label": "Modo de vuelo",
-     "value": "Angle",
+     "value": "Ángulo",
      "note": "Acro: los sticks son rates, sin manos mantiene la actitud. Angle: los sticks son inclinación, sin manos nivela. Las carreras con teclado siempre usan Angle. Freestyle usa este ajuste vueles con lo que vueles, porque Angle limita el quad a unos treinta grados de inclinación y ningún truco del libro se puede volar así.",
      "current": "angle",
      "options": [
@@ -28545,7 +28545,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -28571,8 +28571,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "On",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -28625,7 +28625,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -28778,7 +28778,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -28804,29 +28804,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -28870,7 +28870,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -28896,8 +28896,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -28950,7 +28950,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -29103,7 +29103,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -29125,29 +29125,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -29191,7 +29191,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -29217,8 +29217,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -29271,7 +29271,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -29424,7 +29424,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -29446,29 +29446,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -29512,7 +29512,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -29538,8 +29538,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -29592,7 +29592,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -29745,7 +29745,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -29767,29 +29767,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -29833,7 +29833,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -29859,8 +29859,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -29913,7 +29913,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -30066,7 +30066,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "90 degrees",
+     "value": "90 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 90 grados, el 100 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -30088,29 +30088,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "120 degrees vertical",
+     "value": "120 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 120,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -30154,7 +30154,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -30180,8 +30180,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -30234,7 +30234,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -30387,7 +30387,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -30409,29 +30409,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -30475,7 +30475,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -30501,8 +30501,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -30555,7 +30555,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -30708,7 +30708,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -30730,29 +30730,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -30796,7 +30796,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -30822,8 +30822,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -30876,7 +30876,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Piper Cub",
-     "note": "A 1400 mm Piper J-3 Cub on 3S, a taildragger with ailerons, elevator and rudder. Take off from the strip on its wheels and land it back on them. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un Piper J-3 Cub de 1400 mm en 3S, de rueda de cola, con alerones, timón de profundidad y timón de dirección. Despega de la pista sobre sus ruedas y vuelve a aterrizarlo en ellas. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "cub1400",
      "options": [
@@ -31029,7 +31029,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -31051,29 +31051,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -31117,7 +31117,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -31143,8 +31143,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -41262,7 +41262,7 @@
     {
      "id": "quick:a-customise",
      "label": "Personalizar",
-     "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+     "note": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está.",
      "action": "customise",
      "drives": {}
     },
@@ -41409,7 +41409,7 @@
     {
      "id": "quick:a-customise",
      "label": "Personalizar",
-     "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+     "note": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está.",
      "action": "customise",
      "drives": {}
     },
@@ -42760,10 +42760,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -42862,9 +42862,9 @@
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -42900,9 +42900,9 @@
      }
     },
     {
-     "id": "rates:max-rate",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-m-xima",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -42940,7 +42940,7 @@
     {
      "id": "rates:expo",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -42971,15 +42971,15 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity~2",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central~2",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -43012,9 +43012,9 @@
      }
     },
     {
-     "id": "rates:max-rate~2",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
+     "id": "rates:tasa-m-xima~2",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -43049,7 +43049,7 @@
     {
      "id": "rates:expo~2",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -43078,8 +43078,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -43150,9 +43150,9 @@
      }
     },
     {
-     "id": "rates:throttle-mid",
-     "label": "Throttle mid",
-     "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:acelerador-medio",
+     "label": "Acelerador medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -43185,9 +43185,9 @@
      }
     },
     {
-     "id": "rates:throttle-expo",
-     "label": "Throttle expo",
-     "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+     "id": "rates:expo-de-acelerador",
+     "label": "Expo de acelerador",
+     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -43216,15 +43216,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -43265,10 +43265,10 @@
      "drives": {}
     },
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -43372,15 +43372,15 @@
      }
     },
     {
-     "id": "rates:s-roll",
-     "label": "Roll",
+     "id": "rates:s-alabeo",
+     "label": "Alabeo",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 800 deg/s.",
+     "id": "rates:sensibilidad-central",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 800 deg/s.",
      "num": {
       "cli": 10,
       "text": "100",
@@ -43413,9 +43413,9 @@
      }
     },
     {
-     "id": "rates:max-rate",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 800 deg/s.",
+     "id": "rates:tasa-m-xima",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 800 deg/s.",
      "num": {
       "cli": 80,
       "text": "800",
@@ -43450,7 +43450,7 @@
     {
      "id": "rates:expo",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 20,
       "text": "0.20",
@@ -43483,15 +43483,15 @@
      }
     },
     {
-     "id": "rates:s-pitch",
-     "label": "Pitch",
+     "id": "rates:s-cabeceo",
+     "label": "Cabeceo",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity~2",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central~2",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -43524,9 +43524,9 @@
      }
     },
     {
-     "id": "rates:max-rate~2",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-m-xima~2",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -43561,7 +43561,7 @@
     {
      "id": "rates:expo~2",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -43590,15 +43590,15 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity~3",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central~3",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -43631,9 +43631,9 @@
      }
     },
     {
-     "id": "rates:max-rate~3",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 45 grados hacia arriba, así que el 71 por ciento de un yaw rueda el horizonte en vez de girarlo: 474 deg/s de roll de imagen a pedal a fondo.",
+     "id": "rates:tasa-m-xima~3",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 45 grados hacia arriba, así que el 71 por ciento de un yaw rueda el horizonte en vez de girarlo: 474 deg/s de roll de imagen a pedal a fondo.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -43668,7 +43668,7 @@
     {
      "id": "rates:expo~3",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -43697,8 +43697,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -43769,9 +43769,9 @@
      }
     },
     {
-     "id": "rates:throttle-mid",
-     "label": "Throttle mid",
-     "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. Este quad hace hover cerca del 28.9 por ciento del stick con la curva de fábrica.",
+     "id": "rates:acelerador-medio",
+     "label": "Acelerador medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 28.9 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 40,
       "text": "0.40",
@@ -43804,9 +43804,9 @@
      }
     },
     {
-     "id": "rates:throttle-expo",
-     "label": "Throttle expo",
-     "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+     "id": "rates:expo-de-acelerador",
+     "label": "Expo de acelerador",
+     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 10,
       "text": "0.10",
@@ -43839,8 +43839,8 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
@@ -43856,7 +43856,7 @@
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -43889,10 +43889,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Bando",
-     "note": "Un perfil guardado. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Un perfil guardado. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "pickOnly": true,
      "current": "rp-golden-0",
      "options": [
@@ -44006,9 +44006,9 @@
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -44044,9 +44044,9 @@
      }
     },
     {
-     "id": "rates:max-rate",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-m-xima",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -44084,7 +44084,7 @@
     {
      "id": "rates:expo",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -44115,15 +44115,15 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity~2",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central~2",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -44156,9 +44156,9 @@
      }
     },
     {
-     "id": "rates:max-rate~2",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
+     "id": "rates:tasa-m-xima~2",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -44193,7 +44193,7 @@
     {
      "id": "rates:expo~2",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -44222,8 +44222,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -44294,9 +44294,9 @@
      }
     },
     {
-     "id": "rates:throttle-mid",
-     "label": "Throttle mid",
-     "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:acelerador-medio",
+     "label": "Acelerador medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -44329,9 +44329,9 @@
      }
     },
     {
-     "id": "rates:throttle-expo",
-     "label": "Throttle expo",
-     "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+     "id": "rates:expo-de-acelerador",
+     "label": "Expo de acelerador",
+     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -44360,15 +44360,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Guarda estos números otra vez bajo un nombre. Ya coinciden con Bando, así que guardarlos con ese nombre lo reemplaza y cualquier otro nombre crea un segundo perfil. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda estos números otra vez bajo un nombre. Ya coinciden con Bando, así que guardarlos con ese nombre lo reemplaza y cualquier otro nombre crea un segundo perfil. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -44400,10 +44400,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "De fábrica",
-     "note": "2 saved profiles. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "2 perfiles guardados. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "pickOnly": true,
      "current": "",
      "options": [
@@ -44537,9 +44537,9 @@
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -44575,9 +44575,9 @@
      }
     },
     {
-     "id": "rates:max-rate",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-m-xima",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -44615,7 +44615,7 @@
     {
      "id": "rates:expo",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -44646,15 +44646,15 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity~2",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central~2",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -44687,9 +44687,9 @@
      }
     },
     {
-     "id": "rates:max-rate~2",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
+     "id": "rates:tasa-m-xima~2",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -44724,7 +44724,7 @@
     {
      "id": "rates:expo~2",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -44753,8 +44753,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -44825,9 +44825,9 @@
      }
     },
     {
-     "id": "rates:throttle-mid",
-     "label": "Throttle mid",
-     "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:acelerador-medio",
+     "label": "Acelerador medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -44860,9 +44860,9 @@
      }
     },
     {
-     "id": "rates:throttle-expo",
-     "label": "Throttle expo",
-     "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+     "id": "rates:expo-de-acelerador",
+     "label": "Expo de acelerador",
+     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -44891,15 +44891,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -44940,10 +44940,10 @@
      "drives": {}
     },
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -45042,9 +45042,9 @@
      "drives": {}
     },
     {
-     "id": "rates:rc-rate",
-     "label": "RC rate",
-     "note": "The slope at centre, in Classic units: 1.00 is 200 deg/s of centre sensitivity. Quick rates work out the super rate for you from this and Max rate. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-rc",
+     "label": "Tasa RC",
+     "note": "La pendiente en el centro, en unidades Clásicas: 1.00 son 200 °/s de sensibilidad central. Las tasas Quick calculan el super rate por ti a partir de esto y de la tasa máxima. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "0.07",
@@ -45080,9 +45080,9 @@
      }
     },
     {
-     "id": "rates:max-rate",
-     "label": "Max rate",
-     "note": "What the quad does at full stick. Quick rates are Classic rates with the super rate solved for you, so this end of the curve is exact and the middle is whatever RC rate says. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-m-xima",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo. Las tasas Quick son tasas Clásicas con el super rate resuelto por ti, así que este extremo de la curva es exacto y el centro es lo que diga la tasa RC. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -45120,7 +45120,7 @@
     {
      "id": "rates:expo",
      "label": "Expo",
-     "note": "Softens the middle of the stick and leaves the ends alone.",
+     "note": "Suaviza el centro del stick y deja los extremos como están.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -45151,15 +45151,15 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:rc-rate~2",
-     "label": "RC rate",
-     "note": "The slope at centre, in Classic units: 1.00 is 200 deg/s of centre sensitivity. Quick rates work out the super rate for you from this and Max rate. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-rc~2",
+     "label": "Tasa RC",
+     "note": "La pendiente en el centro, en unidades Clásicas: 1.00 son 200 °/s de sensibilidad central. Las tasas Quick calculan el super rate por ti a partir de esto y de la tasa máxima. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "0.07",
@@ -45192,9 +45192,9 @@
      }
     },
     {
-     "id": "rates:max-rate~2",
-     "label": "Max rate",
-     "note": "What the quad does at full stick. Quick rates are Classic rates with the super rate solved for you, so this end of the curve is exact and the middle is whatever RC rate says. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
+     "id": "rates:tasa-m-xima~2",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo. Las tasas Quick son tasas Clásicas con el super rate resuelto por ti, así que este extremo de la curva es exacto y el centro es lo que diga la tasa RC. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -45229,7 +45229,7 @@
     {
      "id": "rates:expo~2",
      "label": "Expo",
-     "note": "Softens the middle of the stick and leaves the ends alone.",
+     "note": "Suaviza el centro del stick y deja los extremos como están.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -45258,8 +45258,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -45330,9 +45330,9 @@
      }
     },
     {
-     "id": "rates:throttle-mid",
-     "label": "Throttle mid",
-     "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:acelerador-medio",
+     "label": "Acelerador medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -45365,9 +45365,9 @@
      }
     },
     {
-     "id": "rates:throttle-expo",
-     "label": "Throttle expo",
-     "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+     "id": "rates:expo-de-acelerador",
+     "label": "Expo de acelerador",
+     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -45396,15 +45396,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -45437,10 +45437,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -45539,9 +45539,9 @@
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -45577,9 +45577,9 @@
      }
     },
     {
-     "id": "rates:max-rate",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s.",
+     "id": "rates:tasa-m-xima",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -45617,7 +45617,7 @@
     {
      "id": "rates:expo",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -45648,15 +45648,15 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
     {
-     "id": "rates:centre-sensitivity~2",
-     "label": "Centre sensitivity",
-     "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+     "id": "rates:sensibilidad-central~2",
+     "label": "Sensibilidad central",
+     "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
      "num": {
       "cli": 7,
       "text": "70",
@@ -45689,9 +45689,9 @@
      }
     },
     {
-     "id": "rates:max-rate~2",
-     "label": "Max rate",
-     "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
+     "id": "rates:tasa-m-xima~2",
+     "label": "Tasa máxima",
+     "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
      "num": {
       "cli": 67,
       "text": "670",
@@ -45726,7 +45726,7 @@
     {
      "id": "rates:expo~2",
      "label": "Expo",
-     "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+     "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -45755,8 +45755,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -45827,9 +45827,9 @@
      }
     },
     {
-     "id": "rates:throttle-mid",
-     "label": "Throttle mid",
-     "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:acelerador-medio",
+     "label": "Acelerador medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -45862,9 +45862,9 @@
      }
     },
     {
-     "id": "rates:throttle-expo",
-     "label": "Throttle expo",
-     "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+     "id": "rates:expo-de-acelerador",
+     "label": "Expo de acelerador",
+     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -45893,15 +45893,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -46153,9 +46153,9 @@
      "drives": {}
     },
     {
-     "id": "pids:master-multiplier",
-     "label": "Master multiplier",
-     "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for.",
+     "id": "pids:multiplicador-maestro",
+     "label": "Multiplicador maestro",
+     "note": "Todo a la vez: P, I, D y feedforward escalan juntos, con sus proporciones. Es la perilla de \"hazlo más rígido\", la que pedía la opinión de sensación de vuelo. El de fábrica está en 100; el preset rígido que venía aquí estaba en 185, más o menos el tamaño de paso que pedía esa opinión.",
      "range": {
       "min": 30,
       "max": 200
@@ -46207,9 +46207,9 @@
      }
     },
     {
-     "id": "pids:tracking-p-and-i",
-     "label": "Tracking, P and I",
-     "note": "How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.",
+     "id": "pids:seguimiento-p-e-i",
+     "label": "Seguimiento, P e I",
+     "note": "Con qué fuerza persigue el dron la tasa que pide el stick. Bajo es perezoso y suave, alto se clava en el objetivo y lo sostiene.",
      "range": {
       "min": 30,
       "max": 200
@@ -46261,9 +46261,9 @@
      }
     },
     {
-     "id": "pids:drift-and-wobble-i",
-     "label": "Drift and wobble, I",
-     "note": "The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.",
+     "id": "pids:deriva-y-bamboleo-i",
+     "label": "Deriva y bamboleo, I",
+     "note": "El término de error lento por sí solo. Muy bajo deriva de la actitud en movimientos largos; muy alto acumula durante un movimiento largo y lo suelta como un tirón al centrar el stick. En este modelo el tirón llega mucho antes que la deriva.",
      "range": {
       "min": 30,
       "max": 200
@@ -46315,9 +46315,9 @@
      }
     },
     {
-     "id": "pids:damping-d",
-     "label": "Damping, D",
-     "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high.",
+     "id": "pids:amortiguaci-n-d",
+     "label": "Amortiguación, D",
+     "note": "Resiste la rotación, suaviza las paradas, calma el propwash. En un dron real la D se paga en calor de motores y ruido del giroscopio; el giroscopio de este modelo está limpio, así que amortiguar es casi gratis y los ajustes rígidos la llevan alta.",
      "range": {
       "min": 30,
       "max": 200
@@ -46369,9 +46369,9 @@
      }
     },
     {
-     "id": "pids:dynamic-damping-d-max",
-     "label": "Dynamic damping, D max",
-     "note": "How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.",
+     "id": "pids:amortiguaci-n-din-mica-d-max",
+     "label": "Amortiguación dinámica, D max",
+     "note": "Cuánta D extra llega en movimientos rápidos y paradas, sobre la D base. Cero mantiene la D constante.",
      "range": {
       "min": 0,
       "max": 200
@@ -46423,9 +46423,9 @@
      }
     },
     {
-     "id": "pids:stick-response-ff",
-     "label": "Stick response, FF",
-     "note": "Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.",
+     "id": "pids:respuesta-al-stick-ff",
+     "label": "Respuesta al stick, FF",
+     "note": "El feedforward empuja con el propio movimiento del stick, antes de que exista error. Alto es inmediato; demasiado alto se pasa al inicio de cada movimiento. Cero vuela solo con P y D.",
      "range": {
       "min": 0,
       "max": 200
@@ -46477,9 +46477,9 @@
      }
     },
     {
-     "id": "pids:pitch-tracking",
-     "label": "Pitch tracking",
-     "note": "Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.",
+     "id": "pids:seguimiento-de-cabeceo",
+     "label": "Seguimiento de cabeceo",
+     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -46531,9 +46531,9 @@
      }
     },
     {
-     "id": "pids:pitch-damping",
-     "label": "Pitch damping",
-     "note": "Pitch D relative to roll, for the same reason pitch tracking exists.",
+     "id": "pids:amortiguaci-n-de-cabeceo",
+     "label": "Amortiguación de cabeceo",
+     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
      "range": {
       "min": 30,
       "max": 200
@@ -46712,9 +46712,9 @@
      "drives": {}
     },
     {
-     "id": "pids:master-multiplier",
-     "label": "Master multiplier",
-     "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for. De fábrica trae esto en 100; volver a ponerlo ahí olvida el cambio. De fábrica ejecuta los deslizadores en modo RP, así que alcanzan roll y pitch y dejan yaw en sus valores de fábrica, exactamente como lo haría una app de configuración.",
+     "id": "pids:multiplicador-maestro",
+     "label": "Multiplicador maestro",
+     "note": "Todo a la vez: P, I, D y feedforward escalan juntos, con sus proporciones. Es la perilla de \"hazlo más rígido\", la que pedía la opinión de sensación de vuelo. El de fábrica está en 100; el preset rígido que venía aquí estaba en 185, más o menos el tamaño de paso que pedía esa opinión. De fábrica trae esto en 100; volver a ponerlo ahí olvida el cambio. De fábrica ejecuta los deslizadores en modo RP, así que alcanzan roll y pitch y dejan yaw en sus valores de fábrica, exactamente como lo haría una app de configuración.",
      "range": {
       "min": 30,
       "max": 200
@@ -46751,9 +46751,9 @@
      }
     },
     {
-     "id": "pids:tracking-p-and-i",
-     "label": "Tracking, P and I",
-     "note": "How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.",
+     "id": "pids:seguimiento-p-e-i",
+     "label": "Seguimiento, P e I",
+     "note": "Con qué fuerza persigue el dron la tasa que pide el stick. Bajo es perezoso y suave, alto se clava en el objetivo y lo sostiene.",
      "range": {
       "min": 30,
       "max": 200
@@ -46790,9 +46790,9 @@
      }
     },
     {
-     "id": "pids:drift-and-wobble-i",
-     "label": "Drift and wobble, I",
-     "note": "The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.",
+     "id": "pids:deriva-y-bamboleo-i",
+     "label": "Deriva y bamboleo, I",
+     "note": "El término de error lento por sí solo. Muy bajo deriva de la actitud en movimientos largos; muy alto acumula durante un movimiento largo y lo suelta como un tirón al centrar el stick. En este modelo el tirón llega mucho antes que la deriva.",
      "range": {
       "min": 30,
       "max": 200
@@ -46829,9 +46829,9 @@
      }
     },
     {
-     "id": "pids:damping-d",
-     "label": "Damping, D",
-     "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high. De fábrica trae esto en 100; volver a ponerlo ahí olvida el cambio.",
+     "id": "pids:amortiguaci-n-d",
+     "label": "Amortiguación, D",
+     "note": "Resiste la rotación, suaviza las paradas, calma el propwash. En un dron real la D se paga en calor de motores y ruido del giroscopio; el giroscopio de este modelo está limpio, así que amortiguar es casi gratis y los ajustes rígidos la llevan alta. De fábrica trae esto en 100; volver a ponerlo ahí olvida el cambio.",
      "range": {
       "min": 30,
       "max": 200
@@ -46868,9 +46868,9 @@
      }
     },
     {
-     "id": "pids:dynamic-damping-d-max",
-     "label": "Dynamic damping, D max",
-     "note": "How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.",
+     "id": "pids:amortiguaci-n-din-mica-d-max",
+     "label": "Amortiguación dinámica, D max",
+     "note": "Cuánta D extra llega en movimientos rápidos y paradas, sobre la D base. Cero mantiene la D constante.",
      "range": {
       "min": 0,
       "max": 200
@@ -46907,9 +46907,9 @@
      }
     },
     {
-     "id": "pids:stick-response-ff",
-     "label": "Stick response, FF",
-     "note": "Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.",
+     "id": "pids:respuesta-al-stick-ff",
+     "label": "Respuesta al stick, FF",
+     "note": "El feedforward empuja con el propio movimiento del stick, antes de que exista error. Alto es inmediato; demasiado alto se pasa al inicio de cada movimiento. Cero vuela solo con P y D.",
      "range": {
       "min": 0,
       "max": 200
@@ -46946,9 +46946,9 @@
      }
     },
     {
-     "id": "pids:pitch-tracking",
-     "label": "Pitch tracking",
-     "note": "Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.",
+     "id": "pids:seguimiento-de-cabeceo",
+     "label": "Seguimiento de cabeceo",
+     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -46985,9 +46985,9 @@
      }
     },
     {
-     "id": "pids:pitch-damping",
-     "label": "Pitch damping",
-     "note": "Pitch D relative to roll, for the same reason pitch tracking exists.",
+     "id": "pids:amortiguaci-n-de-cabeceo",
+     "label": "Amortiguación de cabeceo",
+     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
      "range": {
       "min": 30,
       "max": 200
@@ -47099,15 +47099,15 @@
      }
     },
     {
-     "id": "pids:s-roll",
-     "label": "Roll",
+     "id": "pids:s-alabeo",
+     "label": "Alabeo",
      "section": true,
      "drives": {}
     },
     {
      "id": "pids:p",
      "label": "P",
-     "note": "Proportional: how hard the quad pushes toward the rate the stick asks for, right now. The stiffness knob.",
+     "note": "Proporcional: con qué fuerza empuja el dron hacia la tasa que pide el stick, ahora mismo. La perilla de rigidez.",
      "num": {
       "cli": 40,
       "text": "40",
@@ -47142,7 +47142,7 @@
     {
      "id": "pids:i",
      "label": "I",
-     "note": "Integral: holds attitude against slow, persistent error. Too high winds during a held move and twitches when the stick centres.",
+     "note": "Integral: sostiene la actitud contra un error lento y persistente. Muy alto acumula durante un movimiento sostenido y da un tirón al centrar el stick.",
      "num": {
       "cli": 47,
       "text": "47",
@@ -47177,7 +47177,7 @@
     {
      "id": "pids:d",
      "label": "D",
-     "note": "Damping. This is the CLI’s d_min: the D flown most of the time. Configurator apps call it D, the firmware calls it d_min, and both mean this number.",
+     "note": "Amortiguación. Es el d_min de la CLI: la D que se vuela la mayor parte del tiempo. Las apps de configuración la llaman D, el firmware d_min, y ambas son este número.",
      "num": {
       "cli": 54,
       "text": "54",
@@ -47212,7 +47212,7 @@
     {
      "id": "pids:d-max",
      "label": "D max",
-     "note": "The ceiling D rises to during fast moves and stops. This is the CLI’s d_roll / d_pitch / d_yaw. Careful at the bottom: at or below D the firmware turns the D-to-D-max range off and flies THIS value constant (pid_init.c gates on d_min < D), so D max 0 is zero damping, not damping held at D.",
+     "note": "El techo al que sube la D en movimientos rápidos y paradas. Es el d_roll / d_pitch / d_yaw de la CLI. Cuidado abajo: en D o por debajo, el firmware apaga el rango de D a D max y vuela ESTE valor constante (pid_init.c lo condiciona a d_min < D), así que D max 0 es cero amortiguación, no amortiguación fija en D.",
      "num": {
       "cli": 61,
       "text": "61",
@@ -47247,7 +47247,7 @@
     {
      "id": "pids:feedforward",
      "label": "Feedforward",
-     "note": "Pushes on stick movement itself, before any error exists. The immediacy knob.",
+     "note": "Empuja con el propio movimiento del stick, antes de que exista error. La perilla de inmediatez.",
      "num": {
       "cli": 68,
       "text": "68",
@@ -47280,15 +47280,15 @@
      }
     },
     {
-     "id": "pids:s-pitch",
-     "label": "Pitch",
+     "id": "pids:s-cabeceo",
+     "label": "Cabeceo",
      "section": true,
      "drives": {}
     },
     {
      "id": "pids:p~2",
      "label": "P",
-     "note": "Proportional: how hard the quad pushes toward the rate the stick asks for, right now. The stiffness knob.",
+     "note": "Proporcional: con qué fuerza empuja el dron hacia la tasa que pide el stick, ahora mismo. La perilla de rigidez.",
      "num": {
       "cli": 40,
       "text": "40",
@@ -47323,7 +47323,7 @@
     {
      "id": "pids:i~2",
      "label": "I",
-     "note": "Integral: holds attitude against slow, persistent error. Too high winds during a held move and twitches when the stick centres.",
+     "note": "Integral: sostiene la actitud contra un error lento y persistente. Muy alto acumula durante un movimiento sostenido y da un tirón al centrar el stick.",
      "num": {
       "cli": 47,
       "text": "47",
@@ -47358,7 +47358,7 @@
     {
      "id": "pids:d~2",
      "label": "D",
-     "note": "Damping. This is the CLI’s d_min: the D flown most of the time. Configurator apps call it D, the firmware calls it d_min, and both mean this number.",
+     "note": "Amortiguación. Es el d_min de la CLI: la D que se vuela la mayor parte del tiempo. Las apps de configuración la llaman D, el firmware d_min, y ambas son este número.",
      "num": {
       "cli": 54,
       "text": "54",
@@ -47393,7 +47393,7 @@
     {
      "id": "pids:d-max~2",
      "label": "D max",
-     "note": "The ceiling D rises to during fast moves and stops. This is the CLI’s d_roll / d_pitch / d_yaw. Careful at the bottom: at or below D the firmware turns the D-to-D-max range off and flies THIS value constant (pid_init.c gates on d_min < D), so D max 0 is zero damping, not damping held at D.",
+     "note": "El techo al que sube la D en movimientos rápidos y paradas. Es el d_roll / d_pitch / d_yaw de la CLI. Cuidado abajo: en D o por debajo, el firmware apaga el rango de D a D max y vuela ESTE valor constante (pid_init.c lo condiciona a d_min < D), así que D max 0 es cero amortiguación, no amortiguación fija en D.",
      "num": {
       "cli": 61,
       "text": "61",
@@ -47428,7 +47428,7 @@
     {
      "id": "pids:feedforward~2",
      "label": "Feedforward",
-     "note": "Pushes on stick movement itself, before any error exists. The immediacy knob.",
+     "note": "Empuja con el propio movimiento del stick, antes de que exista error. La perilla de inmediatez.",
      "num": {
       "cli": 68,
       "text": "68",
@@ -47461,15 +47461,15 @@
      }
     },
     {
-     "id": "pids:s-yaw",
-     "label": "Yaw",
+     "id": "pids:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
     {
      "id": "pids:p~3",
      "label": "P",
-     "note": "Proportional: how hard the quad pushes toward the rate the stick asks for, right now. The stiffness knob.",
+     "note": "Proporcional: con qué fuerza empuja el dron hacia la tasa que pide el stick, ahora mismo. La perilla de rigidez.",
      "num": {
       "cli": 40,
       "text": "40",
@@ -47504,7 +47504,7 @@
     {
      "id": "pids:i~3",
      "label": "I",
-     "note": "Integral: holds attitude against slow, persistent error. Too high winds during a held move and twitches when the stick centres.",
+     "note": "Integral: sostiene la actitud contra un error lento y persistente. Muy alto acumula durante un movimiento sostenido y da un tirón al centrar el stick.",
      "num": {
       "cli": 47,
       "text": "47",
@@ -47539,7 +47539,7 @@
     {
      "id": "pids:d~3",
      "label": "D",
-     "note": "Damping. This is the CLI’s d_min: the D flown most of the time. Configurator apps call it D, the firmware calls it d_min, and both mean this number.",
+     "note": "Amortiguación. Es el d_min de la CLI: la D que se vuela la mayor parte del tiempo. Las apps de configuración la llaman D, el firmware d_min, y ambas son este número.",
      "num": {
       "cli": 54,
       "text": "54",
@@ -47574,7 +47574,7 @@
     {
      "id": "pids:d-max~3",
      "label": "D max",
-     "note": "The ceiling D rises to during fast moves and stops. This is the CLI’s d_roll / d_pitch / d_yaw. Careful at the bottom: at or below D the firmware turns the D-to-D-max range off and flies THIS value constant (pid_init.c gates on d_min < D), so D max 0 is zero damping, not damping held at D.",
+     "note": "El techo al que sube la D en movimientos rápidos y paradas. Es el d_roll / d_pitch / d_yaw de la CLI. Cuidado abajo: en D o por debajo, el firmware apaga el rango de D a D max y vuela ESTE valor constante (pid_init.c lo condiciona a d_min < D), así que D max 0 es cero amortiguación, no amortiguación fija en D.",
      "num": {
       "cli": 61,
       "text": "61",
@@ -47609,7 +47609,7 @@
     {
      "id": "pids:feedforward~3",
      "label": "Feedforward",
-     "note": "Pushes on stick movement itself, before any error exists. The immediacy knob.",
+     "note": "Empuja con el propio movimiento del stick, antes de que exista error. La perilla de inmediatez.",
      "num": {
       "cli": 68,
       "text": "68",
@@ -47791,9 +47791,9 @@
      "drives": {}
     },
     {
-     "id": "pids:master-multiplier",
-     "label": "Master multiplier",
-     "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for.",
+     "id": "pids:multiplicador-maestro",
+     "label": "Multiplicador maestro",
+     "note": "Todo a la vez: P, I, D y feedforward escalan juntos, con sus proporciones. Es la perilla de \"hazlo más rígido\", la que pedía la opinión de sensación de vuelo. El de fábrica está en 100; el preset rígido que venía aquí estaba en 185, más o menos el tamaño de paso que pedía esa opinión.",
      "range": {
       "min": 30,
       "max": 200
@@ -47845,9 +47845,9 @@
      }
     },
     {
-     "id": "pids:tracking-p-and-i",
-     "label": "Tracking, P and I",
-     "note": "How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.",
+     "id": "pids:seguimiento-p-e-i",
+     "label": "Seguimiento, P e I",
+     "note": "Con qué fuerza persigue el dron la tasa que pide el stick. Bajo es perezoso y suave, alto se clava en el objetivo y lo sostiene.",
      "range": {
       "min": 30,
       "max": 200
@@ -47899,9 +47899,9 @@
      }
     },
     {
-     "id": "pids:drift-and-wobble-i",
-     "label": "Drift and wobble, I",
-     "note": "The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.",
+     "id": "pids:deriva-y-bamboleo-i",
+     "label": "Deriva y bamboleo, I",
+     "note": "El término de error lento por sí solo. Muy bajo deriva de la actitud en movimientos largos; muy alto acumula durante un movimiento largo y lo suelta como un tirón al centrar el stick. En este modelo el tirón llega mucho antes que la deriva.",
      "range": {
       "min": 30,
       "max": 200
@@ -47953,9 +47953,9 @@
      }
     },
     {
-     "id": "pids:damping-d",
-     "label": "Damping, D",
-     "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high.",
+     "id": "pids:amortiguaci-n-d",
+     "label": "Amortiguación, D",
+     "note": "Resiste la rotación, suaviza las paradas, calma el propwash. En un dron real la D se paga en calor de motores y ruido del giroscopio; el giroscopio de este modelo está limpio, así que amortiguar es casi gratis y los ajustes rígidos la llevan alta.",
      "range": {
       "min": 30,
       "max": 200
@@ -48007,9 +48007,9 @@
      }
     },
     {
-     "id": "pids:dynamic-damping-d-max",
-     "label": "Dynamic damping, D max",
-     "note": "How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.",
+     "id": "pids:amortiguaci-n-din-mica-d-max",
+     "label": "Amortiguación dinámica, D max",
+     "note": "Cuánta D extra llega en movimientos rápidos y paradas, sobre la D base. Cero mantiene la D constante.",
      "range": {
       "min": 0,
       "max": 200
@@ -48061,9 +48061,9 @@
      }
     },
     {
-     "id": "pids:stick-response-ff",
-     "label": "Stick response, FF",
-     "note": "Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.",
+     "id": "pids:respuesta-al-stick-ff",
+     "label": "Respuesta al stick, FF",
+     "note": "El feedforward empuja con el propio movimiento del stick, antes de que exista error. Alto es inmediato; demasiado alto se pasa al inicio de cada movimiento. Cero vuela solo con P y D.",
      "range": {
       "min": 0,
       "max": 200
@@ -48115,9 +48115,9 @@
      }
     },
     {
-     "id": "pids:pitch-tracking",
-     "label": "Pitch tracking",
-     "note": "Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.",
+     "id": "pids:seguimiento-de-cabeceo",
+     "label": "Seguimiento de cabeceo",
+     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -48169,9 +48169,9 @@
      }
     },
     {
-     "id": "pids:pitch-damping",
-     "label": "Pitch damping",
-     "note": "Pitch D relative to roll, for the same reason pitch tracking exists.",
+     "id": "pids:amortiguaci-n-de-cabeceo",
+     "label": "Amortiguación de cabeceo",
+     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
      "range": {
       "min": 30,
       "max": 200
