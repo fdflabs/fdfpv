@@ -4937,7 +4937,7 @@ const FixedWingParams FW_CAP1702 = {
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
   .as3x_k = { 0.0366, 0.2261, 0.5556 }, /* npm run as3x:derive */
   .as3x_kh = { 0.6533, 4.0359, 9.9174 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.794, -2.435, -2.602 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.794, -2.441, -2.609 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */
