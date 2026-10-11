@@ -14,7 +14,10 @@
  *   4. The callouts stay in the left column: no row reaches the middle
  *      fifth of the screen, where the attitude cues are.
  *   5. With the setting off, nothing is called out.
- * Pictures go to the out directory (default ~/.cache/fdfpv-tricks).
+ * Pictures only when an out directory is given: every row here reads the
+ * DOM, and on a software rasteriser (CI) a frame of the world takes
+ * seconds that every read queues behind, so the world is drawn only for
+ * a picture (as pilot-stats-check.js does).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -33,7 +36,6 @@
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,8 +49,8 @@ import es from '../src/strings/es.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outArg = process.argv.find((a) => a.startsWith('--out='));
-const out = outArg ? outArg.slice(6) : join(homedir(), '.cache/fdfpv-tricks');
-await mkdir(out, { recursive: true });
+const out = outArg ? outArg.slice(6) : null;
+if (out) await mkdir(out, { recursive: true });
 
 let pass = 0;
 let fail = 0;
@@ -109,8 +111,18 @@ async function untilSim(page, expr, simMs, stallMs = 30000) {
   }
 }
 
+/* Until the sim clock has moved: at least one score frame has run since. */
+async function aFrame(page) {
+  const lap0 = await page.evaluate('window.__traffic().lap');
+  await until(page, `window.__traffic().lap > ${lap0}`);
+}
+
 async function shot(page, name) {
+  if (!out) return;
+  await page.evaluate('window.__drawOff(false)');
+  await page.evaluate('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))');
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+  await page.evaluate('window.__drawOff(true)');
   await writeFile(join(out, `${name}.png`), Buffer.from(data, 'base64'));
 }
 
@@ -145,18 +157,18 @@ for (const lang of ['en', 'es']) {
     const page = await openPage({ root, width, height, seed: seeds(lang) });
     try {
       await until(page, 'window.__shellReady && window.__ui');
+      await page.evaluate('window.__drawOff(true)');
       await page.evaluate("(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = 'freestyle'; ui.show('title'); ui.renderMenu(); return true; })()");
       const row = await page.evaluate(`window.__ui.settings.trickCallouts === true && window.__ui.settings.freestyleScoring === 'off'`);
       check(`${tag}: callouts on and the score off by default`, row);
       await page.evaluate("window.__ui.onAction('fly')");
       await until(page, FLYING);
-      await new Promise((r) => setTimeout(r, 1500));
 
+      const want = S['aerobatic.loop'].toUpperCase();
       await page.evaluate(land('loop', 8.5));
-      await new Promise((r) => setTimeout(r, 350));
+      await until(page, `[...document.querySelectorAll('.score-name')].some((r) => r.textContent.toUpperCase().includes(${JSON.stringify(want)}))`);
       const one = await page.evaluate(HUD);
       await shot(page, `callout-${tag}-loop`);
-      const want = S['aerobatic.loop'].toUpperCase();
       const word = S['aerobatic.grade_sharp'];
       const grade = lang === 'es' ? '8,5' : '8.5';
       const r0 = one.rows.at(-1);
@@ -170,7 +182,7 @@ for (const lang of ['en', 'es']) {
       /* The loop's combo banks first, so the chain below is exactly three. */
       await untilSim(page, "getComputedStyle(document.querySelector('.score-combo')).display === 'none'", COMBO_WINDOW_MS + 1000);
       await page.evaluate(`${land('half_roll', 9)}; ${land('aileron_roll', 10)}; ${land('hammerhead', 5.5)}; true`);
-      await new Promise((r) => setTimeout(r, 400));
+      await until(page, "document.querySelectorAll('.score-name.is-sloppy').length > 0");
       const three = await page.evaluate(HUD);
       await shot(page, `callout-${tag}-chain`);
       check(`${tag}: a chain of three shows the combo with its multiplier`, three.combo && /x\s*3/.test(three.combo), three.combo);
@@ -183,7 +195,7 @@ for (const lang of ['en', 'es']) {
 
       await page.evaluate("(() => { window.__ui.settings.trickCallouts = false; window.__ui.syncScoreVisible(); return true; })()");
       await page.evaluate(land('loop', 9));
-      await new Promise((r) => setTimeout(r, 300));
+      await aFrame(page);
       const off = await page.evaluate(HUD);
       check(`${tag}: with the setting off nothing is called out`, !off.shown, off.cls);
       check(`${tag}: no console errors`, page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
@@ -194,5 +206,5 @@ for (const lang of ['en', 'es']) {
     }
   }
 }
-console.log(`\ncallouts check: ${pass} passed, ${fail} failed; pictures in ${out}`);
+console.log(`\ncallouts check: ${pass} passed, ${fail} failed${out ? `; pictures in ${out}` : ''}`);
 process.exit(fail ? 1 : 0);

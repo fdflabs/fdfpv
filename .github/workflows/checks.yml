@@ -268,7 +268,7 @@ jobs:
       # The trick callouts on the flight screen, en and es, desktop and
       # phone, clear of the attitude cues (scripts/callouts-check.js,
       # docs/TRICKS-CATALOG.md).
-      - run: npm run callouts:check -- --out=/tmp/callouts
+      - run: npm run callouts:check
       # Flight Club's pilot stats read off the screen in en and es, a sync
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
