@@ -259,6 +259,7 @@ jobs:
       # A solo race's debrief in the real page: the facts, Watch the replay
       # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
       - run: npm run debrief:race
+      - run: npm run debrief:free
       # The race results' lap table ends above the menu at 1280x720
       # (scripts/results-layout-check.js).
       - run: npm run results:layout

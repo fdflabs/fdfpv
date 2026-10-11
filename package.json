@@ -141,6 +141,7 @@
     "score:selftest": "node scripts/score-selftest.js",
     "debrief:selftest": "node scripts/debrief-selftest.js",
     "debrief:race": "node scripts/debrief-race-check.js",
+    "debrief:free": "node scripts/debrief-free-check.js",
     "score:golden": "node scripts/score-golden.js",
     "scorehud:golden": "node scripts/scorehud-golden.js",
     "tricks:golden": "node scripts/tricks-golden.js",
