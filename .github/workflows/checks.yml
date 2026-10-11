@@ -8,6 +8,19 @@ on:
   push:
     branches: [main]
   pull_request:
+  # GitHub's merge queue tests each pull request merged onto the queue's
+  # head before it lands, so two green pull requests can no longer make a
+  # red main together (docs/MERGE-QUEUE.md). `node` is the required check
+  # in deploy/github/ruleset-main.json.
+  merge_group:
+
+# A new push to a pull request cancels that PR's older run: with a dozen
+# lanes pushing, superseded runs held the org's 20 concurrent jobs and
+# queued fresh ones for over an hour (2026-10-09). Main is never
+# cancelled, so every main commit keeps its own result for the merge gate.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   node:
@@ -71,6 +84,13 @@ jobs:
       - run: npm run panels:golden
       - run: npm run rooms:selftest
       - run: npm run bots:selftest
+      # The valley's shared world data against the page's own terrain
+      # modules, which import three: the page loads three from its CDN
+      # import map (index.html), so the same version is unpacked here.
+      - run: |
+          npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
+          npm run world:layer -- --three="$RUNNER_TEMP/package"
       - run: npm run jam:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
@@ -98,6 +118,7 @@ jobs:
       - run: npm run rooms:load -- --quick
       - run: npm run hulls:check
       - run: npm run airframes:selftest
+      - run: npm run aircraft:folder
       - run: npm run midair:plant
       # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
       # by hand (npm run midair:harness) and its numbers go in the pull
@@ -179,6 +200,7 @@ jobs:
       - run: npm run nighttimber:gates
       - run: npm run combat:gates
       - run: npm run input:selftest
+      - run: npm run padprofiles:selftest
       - run: npm run touchsticks:selftest
       - run: npm run input:trace
       - run: npm run stickmode:selftest
@@ -186,6 +208,8 @@ jobs:
       # The in-browser flight recorder and its blackbox CSV
       # (src/share/flightlog.js), against a pinned transcript.
       - run: npm run flightlog:selftest
+      # The control recorder's rows and thumb numbers (src/share/controlrec.js).
+      - run: npm run controlrec:selftest
       # The ghost and live frame wire formats (src/share/ghostdata.js), bit
       # for bit against a pinned transcript.
       - run: npm run ghostdata:selftest
@@ -267,6 +291,9 @@ jobs:
       # The game's own domain: which servers the page picks, the probe's
       # fallback to the VM's address, the rooms allowlist and the Caddyfile.
       - run: npm run domain:selftest
+      # The merge queue's required checks run on merge_group, or the queue
+      # would wait on them forever (docs/MERGE-QUEUE.md).
+      - run: npm run mergequeue:selftest
       # A pull request's preview, staged and stamped as preview.yml does,
       # boots on a host that is not the game's with no sign-in and no
       # request to the production API (docs/PREVIEWS.md).
@@ -346,6 +373,10 @@ jobs:
       # What this browser tells the board's statistics page, and when it
       # refuses (src/share/stats.js), against a pinned transcript.
       - run: npm run stats:selftest
+      # What a page error or a minute of frame times may say when it
+      # leaves the browser: a fuzz for planted personal data, the opt out
+      # (src/share/clientreport.js).
+      - run: npm run clientreport:selftest
       # The language and statistics keys shared with the board, through
       # their move to fdfpv.* names (src/share/sharedkeys.js).
       - run: npm run sharedkeys:selftest
@@ -386,6 +417,7 @@ jobs:
       # No em or en dash in any text the repository holds (CLAUDE.md),
       # outside vendor/.
       - run: npm run lint:dashes
+      - run: npm run lint:owner-rules
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest

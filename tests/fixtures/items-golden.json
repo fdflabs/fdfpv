@@ -8054,6 +8054,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -9078,6 +9085,13 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
@@ -10108,6 +10122,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -11135,6 +11156,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -12151,6 +12179,13 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
@@ -13345,6 +13380,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -14337,6 +14379,13 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
@@ -15372,6 +15421,13 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Download control recording",
+     "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
@@ -32129,6 +32185,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -33153,6 +33216,13 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
@@ -34183,6 +34253,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -35210,6 +35287,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -36226,6 +36310,13 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
@@ -37420,6 +37511,13 @@
      "drives": {}
     },
     {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -38412,6 +38510,13 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
@@ -39447,6 +39552,13 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-downloadcontrolrec",
+     "label": "Descargar grabación de mandos",
+     "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
+     "action": "downloadcontrolrec",
      "drives": {}
     },
     {
