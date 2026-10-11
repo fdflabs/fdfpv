@@ -2223,7 +2223,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* A table with its own measured lateral derivatives past the stall
    * (hi_lat, the F-16's from NASA TP-1538) takes them as ratios on its
    * own: the dihedral, the weathercock, the roll and yaw damping, the
-   * ailerons and the rudder, each against the body's angle of attack. Its
+   * ailerons and the rudder, each against the body's angle of attack, and
+   * the cross derivatives Cl_r and Cn_p as increments on the table's. Its
    * roll damping is then the measured whole aircraft's, so the strips'
    * stall moments below are not added to it. */
   const int hi_lat = fw->hi_lat[0][0] != 0.0;
@@ -2231,6 +2232,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double r_clp = hi_lat ? hi_lat_at(fw->hi_lat[2], a_body) : 1.0;
   const double r_cnr = hi_lat ? hi_lat_at(fw->hi_lat[3], a_body) : 1.0;
   const double r_ail = hi_lat ? hi_lat_at(fw->hi_lat[4], a_body) : 1.0;
+  const double d_clr = hi_lat && a_body > HI_LAT_DEG[0] ? hi_lat_at(fw->hi_lat[6], a_body) : 0.0;
+  const double d_cnp = hi_lat && a_body > HI_LAT_DEG[0] ? hi_lat_at(fw->hi_lat[7], a_body) : 0.0;
   if (hi_lat) {
     cnb *= hi_lat_at(fw->hi_lat[0], a_body);
     clb *= hi_lat_at(fw->hi_lat[1], a_body);
@@ -2575,9 +2578,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   cl_sum = add_term(cl_sum, cl_sep);
 
   cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
+  cl_sum = add_term(cl_sum, d_clr * rs * b2v);
   cl_sum = add_term(cl_sum, cldr * delta_r);
   double cn_sum = cnb * beta_s + fw->cn_r * r_cnr * rs * b2v;
   cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
+  cn_sum = add_term(cn_sum, d_cnp * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, cndr * delta_r);
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
@@ -4332,25 +4337,32 @@ const FixedWingParams FW_F16878 = {
   .cy_beta = -0.470,
   .cy_dr = 0.2134,
   .cl_beta = -0.1061,     /* the sweep's effective dihedral and the fin */
-  /* Past the stall the full size F-16's measured lateral derivatives as
-   * ratios to their value at 20 deg (NASA TP-1538 table III, read from the
-   * scan; ~/Desktop/fdfpv-loop/research/F16-HIGH-ALPHA.md): cn_beta,
-   * cl_beta, cl_p and cn_r with the leading edge flap retracted to 45 deg,
-   * the Freewing's fixed leading edge, the base table past it; the
-   * ailerons' roll (with TP-1538's 5 deg of differential tail, which the
-   * Freewing lacks) and the rudder's yaw from the base table. Cn beta goes
-   * unstable from 30 to 50 deg, as the paper's tables do (fig. 12 reads
-   * it about half as large above 35). The subscale tunnel models' Reynolds
-   * number is not given; ESTIMATED within 2 to 3 times the Freewing's.
-   * The ailerons' measured loss is hi_lat's, so ail_keep stays whole. */
+  /* Past the stall the full size F-16's measured lateral derivatives (NASA
+   * TP-1538 table III, the rates read from the scan, the digitized copy's
+   * damping tables being wrong past 15 to 30 deg;
+   * ~/Desktop/fdfpv-loop/research/F16-HIGH-ALPHA.md): with the leading
+   * edge flap retracted to 45 deg, the Freewing's fixed leading edge, the
+   * base table past it; turned from TP-1538's body axes into the stability
+   * axes the plant's derivatives are in (Etkin and Reid); as ratios to
+   * their value at 20 deg, the Freewing's stall, so attached flight is the
+   * table's: cn_beta, cl_beta, cl_p, cn_r, the ailerons' roll (with
+   * TP-1538's 5 deg of differential tail, which the Freewing lacks) and
+   * the rudder's yaw; and Cl_r, Cn_p as increments from their 20 deg
+   * values, per radian. Cn beta goes unstable at 35 to 50 deg as the
+   * tables do (fig. 12 reads it about half as large above 35); Cn beta dyn
+   * stays positive throughout. The subscale tunnel models' Reynolds number
+   * is not given; ESTIMATED within 2 to 3 times the Freewing's. The
+   * ailerons' measured loss is hi_lat's, so ail_keep stays whole. */
   .ail_keep = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 },
   .hi_lat = {
-    { 1.0, 0.022, -0.376, -2.348, -2.017, -3.448, -1.887, 0.070, 1.887, 2.019, -0.113, -0.296 },
-    { 1.0, 1.657, 1.396, 0.941, 1.746, 1.485, 0.694, 0.475, 0.483, 0.639, 0.395, 0.361 },
-    { 1.0, 1.159, 1.033, -0.503, -0.245, 0.010, 0.304, 0.365, 0.426, 0.304, 0.456, 0.608 },
-    { 1.0, 1.041, 1.386, 1.645, 1.306, 1.158, 0.984, 0.636, 0.636, 0.127, 0.273, 0.273 },
-    { 1.0, 0.890, 0.737, 0.612, 0.397, 0.292, 0.182, 0.227, 0.220, 0.179, 0.098, -0.053 },
-    { 1.0, 1.017, 1.040, 0.945, 0.691, 0.341, 0.171, 0.084, 0.025, 0.032, 0.128, 0.051 },
+    { 1.0, 0.535, 0.259, -1.127, -0.395, -1.157, -0.236, 0.696, 1.589, 1.660, 0.639, 0.610 },
+    { 1.0, 2.601, 2.460, 3.860, 4.753, 6.385, 4.949, 0.956, -2.633, -3.302, 0.516, 0.650 },
+    { 1.0, 1.070, 0.671, 1.673, 0.976, 3.358, 2.317, 1.848, 2.319, 0.049, 0.798, 0.886 },
+    { 1.0, 1.080, 1.404, 0.813, 0.781, 0.242, 0.317, 0.200, 0.124, 0.206, 0.210, 0.255 },
+    { 1.0, 0.811, 0.597, 0.390, 0.252, 0.045, -0.129, -0.210, -0.284, -0.303, -0.328, -0.319 },
+    { 1.0, 1.014, 0.995, 0.878, 0.586, 0.242, 0.146, 0.078, 0.039, 0.026, -0.024, 0.036 },
+    { 0.0, -0.134, -0.189, -1.335, -1.261, -1.255, -0.589, -0.279, -0.190, -0.461, -0.341, -0.344 },
+    { 0.0, 0.075, -0.113, -0.029, 0.210, 0.314, -0.022, -0.098, -0.071, 0.136, 0.071, 0.174 },
   },
   .cl_p = -0.3495,
   .cl_da = 0.1226,
