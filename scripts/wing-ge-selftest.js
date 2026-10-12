@@ -85,7 +85,7 @@ const PINS = {
   cubf: '5ac20d20bbd4806c',
   bombshell: 'ff71b23a2e794b1f',
   kadet: 'b714f21b5921bf43',
-  p51: 'd5c756f505e731e8',
+  p51: 'abac6a7e41b406b5',
   f16: '68bf198f7585f9e2',
   zagi: 'abccd77d1b7b9034',
   uglystik: 'cdcfaeaef321c312',
