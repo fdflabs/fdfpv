@@ -111,6 +111,7 @@
       "k": 6,
       "source": "Aresti 1.1.1.1 + 9.1.3.1 + 9.1.3.1 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -133,6 +134,11 @@
         "others": {
           "cap": 9.5,
           "slick": 10
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -145,6 +151,7 @@
       "k": 46,
       "source": "Aresti 2.4.2.1 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -163,6 +170,11 @@
         "others": {
           "cap": null,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -173,6 +185,7 @@
       "k": 17,
       "source": "Aresti 5.2.1.1 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -197,6 +210,11 @@
         "others": {
           "cap": 5.5,
           "slick": 6
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -209,6 +227,7 @@
       "k": 15,
       "source": "Aresti 6.2.1.1 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -233,6 +252,11 @@
         "others": {
           "cap": 9.5,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -245,6 +269,7 @@
       "k": 10,
       "source": "Aresti 7.4.1.1 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "scripts/figures-plant-check.js (npm run figures:plant, graded 4 to 10)",
         "phases": null
@@ -258,6 +283,7 @@
       "k": 15,
       "source": "Aresti 7.4.1.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -278,6 +304,11 @@
         "others": {
           "cap": 8,
           "slick": 8
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -288,6 +319,7 @@
       "k": 10,
       "source": "Aresti 7.2.1.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -309,6 +341,11 @@
         "others": {
           "cap": 5,
           "slick": 6.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -319,6 +356,7 @@
       "k": 10,
       "source": "Aresti 7.2.2.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -340,6 +378,11 @@
         "others": {
           "cap": 5,
           "slick": 2
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -350,6 +393,7 @@
       "k": 28,
       "source": "Aresti 7.8.1.1 + 9.1.3.2 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -378,6 +422,11 @@
         "others": {
           "cap": 4.5,
           "slick": 0
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -390,6 +439,7 @@
       "k": 28,
       "source": "Aresti 7.8.5.1 + 9.1.3.2 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -418,6 +468,11 @@
         "others": {
           "cap": 4,
           "slick": 2
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -430,6 +485,7 @@
       "k": 21,
       "source": "Aresti 7.4.1.1 + 9.9.3.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -440,6 +496,7 @@
       "k": 15,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -463,6 +520,11 @@
         "others": {
           "cap": 9,
           "slick": 5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -476,6 +538,7 @@
       "k": 14,
       "source": "Aresti 8.5.6.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -500,6 +563,11 @@
         "others": {
           "cap": 7,
           "slick": 7.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -512,6 +580,7 @@
       "k": 14,
       "source": "Aresti 8.5.2.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -536,6 +605,11 @@
         "others": {
           "cap": 7,
           "slick": 7
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -548,6 +622,7 @@
       "k": 13,
       "source": "Aresti 8.4.1.1 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -572,6 +647,11 @@
         "others": {
           "cap": 7,
           "slick": 7.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -584,6 +664,7 @@
       "k": 4,
       "source": "Aresti 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -604,6 +685,11 @@
         "others": {
           "cap": 8,
           "slick": 8
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -614,6 +700,7 @@
       "k": 8,
       "source": "Aresti 9.1.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "scripts/figures-plant-check.js (npm run figures:plant, graded 4 to 10)",
         "phases": null
@@ -627,6 +714,7 @@
       "k": 16,
       "source": "Aresti 9.1.3.4 + 9.1.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -647,6 +735,11 @@
         "others": {
           "cap": 8,
           "slick": 8.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -657,6 +750,7 @@
       "k": 10,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -677,6 +771,11 @@
         "others": {
           "cap": 8.5,
           "slick": 8.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -687,6 +786,7 @@
       "k": 9,
       "source": "Aresti 9.2.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -707,6 +807,11 @@
         "others": {
           "cap": 7,
           "slick": 7.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -717,6 +822,7 @@
       "k": 11,
       "source": "Aresti 9.4.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "scripts/figures-plant-check.js (npm run figures:plant, graded 4 to 10)",
         "phases": null
@@ -730,6 +836,7 @@
       "k": 15,
       "source": "Aresti 9.8.3.4 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -750,6 +857,11 @@
         "others": {
           "cap": 0,
           "slick": 1
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -760,6 +872,7 @@
       "k": 6,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -780,6 +893,11 @@
         "others": {
           "cap": 10,
           "slick": 9.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -790,6 +908,7 @@
       "k": 11,
       "source": "Aresti 9.9.3.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -800,6 +919,7 @@
       "k": 13,
       "source": "Aresti 9.10.3.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -810,6 +930,7 @@
       "k": 5,
       "source": "Aresti 9.11.1.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -820,6 +941,7 @@
       "k": 7,
       "source": "Aresti 9.12.1.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -830,6 +952,7 @@
       "k": 12,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -840,6 +963,7 @@
       "k": 14,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -850,6 +974,7 @@
       "k": 14,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -860,6 +985,7 @@
       "k": 6,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -881,6 +1007,11 @@
         "others": {
           "cap": null,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -893,6 +1024,7 @@
       "k": 10,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -914,6 +1046,11 @@
         "others": {
           "cap": null,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -926,6 +1063,7 @@
       "k": 8,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -944,6 +1082,11 @@
         "others": {
           "cap": null,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -954,6 +1097,7 @@
       "k": 11,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -977,6 +1121,11 @@
         "others": {
           "cap": null,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -987,6 +1136,7 @@
       "k": 16,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -1006,6 +1156,11 @@
         "others": {
           "cap": null,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": null
@@ -1015,25 +1170,39 @@
       "family": "3d",
       "k": 12,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": {
+        "a": "extreme",
+        "e": "extreme"
+      },
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "pull 0.55 0.50pi",
-          "line 0.00,0.00,1.00",
-          "hold 0,-1,0,1",
+          "pull 0.55 0.42pi",
+          "line 0.26,0.00,0.97",
+          "waterfall 2",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 6,
+        "flew": [
+          "waterfall 6"
+        ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": {
+            "a": "extreme",
+            "e": "extreme"
+          },
           "cap": null,
           "slick": null
         }
@@ -1048,6 +1217,7 @@
       "k": 18,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -1058,6 +1228,7 @@
       "k": 15,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -1068,6 +1239,7 @@
       "k": 16,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -1078,6 +1250,7 @@
       "k": 9,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -1088,6 +1261,7 @@
       "k": 8,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -1109,6 +1283,11 @@
         "others": {
           "cap": null,
           "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
         }
       },
       "margin": [
@@ -1121,6 +1300,7 @@
       "k": 14,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -1131,6 +1311,7 @@
       "k": 10,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null

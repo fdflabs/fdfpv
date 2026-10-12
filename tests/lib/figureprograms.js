@@ -26,6 +26,8 @@ import { loadSim } from './simmod.js';
 import { must, EXTRA_AIRFRAME, hangSticks, personLoop } from './wingpilot.js';
 import { clamp, quant, eyes, PERSON } from './personpilot.js';
 import { FigureDetector } from '../../src/game/figuredetect.js';
+import { SURFACES, tierBlock, tierThrowsDeg, tierPoints, pointsInertia } from '../../configs/surfaces.js';
+import { addonParams } from '../../configs/hangar-parts.js';
 
 const MS = 2;
 /* The hand moves every 50 ms, twice PERSON's ten a second: the figures'
@@ -486,12 +488,53 @@ const slide = () => ({
     return [back ? [0, 0, 0, 0] : holdLine(d, m, UP, 0), m.t > 600 && (d.nz < -0.3 || (back && m.t - m.backAt > SLIDE_LET_GO_MS))];
   },
 });
-/* Sticks held as given for a time. */
-const hold = (st, ms) => ({ name: `hold ${st}`, step: (d, m) => [st, m.t >= ms] });
+/*
+ * A waterfall as David Scott teaches it ("Master the 3D Waterfall", Model
+ * Airplane News): "maintaining full up-elevator, and applying full power
+ * and a little right rudder", the wings level or it "will barrel roll
+ * out of this stunt", `turns` times round, then out level (Scott: "increase
+ * the throttle and exit"). The right rudder (positive stick, the nose right) holds off the
+ * yaw the prop's gyroscope puts on the pitch rotation: with none the
+ * Extra yawed left at 1.5 rad/s through it. At full power and next to no
+ * airspeed the prop's torque rolls the Extra left at 2 rad/s, so the
+ * person feeds in right aileron with the power, as a torque roll is held,
+ * and then keeps the wings on the ailerons (the bank they see, through
+ * the attitude: dl_z/dt = p u_z).
+ *
+ * Scott's throttle cut "on the back side of the loop" and the "few clicks
+ * of power" at the bottom are not flown: at the values below, the power
+ * cut at 0.6 or 0.75 of a turn (to idle or to half, the rudder centred,
+ * back at 0.9) broke the pivot at the cut, 0.8 to 0.9 of a turn, and none
+ * of the four was named; nor was any of 81 cut flights over the first
+ * sweep's values. Round 3 found the same from rest (the rate under 2
+ * rad/s within 0.3 s; at these speeds the elevator's authority is the
+ * prop's wash). A plant finding (docs/TRICKS-CATALOG.md), not a choice.
+ *
+ * rudder, aileron and wings are FITTED, swept 2026-10-12 on the Extra at
+ * the Extreme aileron and elevator (PROGRAM_TIERS) from the 75 deg upline
+ * at 4 m/s over rudder 0.1 to 0.2, aileron 0.6 to 1 and wings 0 to 2 per
+ * unit of l_z, 53 flights: the waterfall was named in 26, at 3.5 to 7.
+ * With the aileron at 0.8 or more and the wings at 0.75 or less, 25 of
+ * 29 (one a tumble); at 0.6 of aileron none (the torque rolled it, two
+ * tumbles); the wings at 1 or more, through the person's 0.2 s, rang and
+ * named it once in 18. Round the values taken (rudder 0.12 to 0.18,
+ * aileron 0.9 and 1, wings 0.25 to 0.75) 16 of 18, at 4 to 7, no tumble.
+ * No margin is measured for these loops.
+ */
+export const WATERFALL = { rudder: 0.15, aileron: 1, wings: 0.5 };
+const waterfall = (turns) => ({
+  name: `waterfall ${turns}`,
+  step: (d, m) => {
+    m.turned = (m.turned ?? 0) + Math.abs(d.q) * H;
+    const ail = quant(clamp(WATERFALL.aileron - WATERFALL.wings * d.lz * Math.sign(d.uz || 1)));
+    return [[ail, 1, WATERFALL.rudder, 1], m.turned > turns * 2 * PI - Math.abs(d.q) * 0.25];
+  },
+});
 
 const L = (ms = 3000) => level(ms);
 const D45 = [Math.SQRT1_2, 0, -Math.SQRT1_2];
 const U45 = [Math.SQRT1_2, 0, Math.SQRT1_2];
+const U75 = [Math.cos(75 * PI / 180), 0, Math.sin(75 * PI / 180)];
 const B45 = [-Math.SQRT1_2, 0, -Math.SQRT1_2];
 const B_U45 = [-Math.SQRT1_2, 0, Math.SQRT1_2];
 
@@ -555,17 +598,62 @@ export const PROGRAMS = {
   harrier: [slow(12), harrier(5000), L()],
   inverted_harrier: [L(), roll(0.5, PI), slow(12), harrier(5000, { inverted: true }), roll(0.5, PI), L()],
   rolling_harrier: [slow(12), harrier(1500), harrier(4000, { rollStick: 0.35 }), L()],
-  waterfall: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.6, (d) => d.v < 8), hold([0, -1, 0, 1], 1500), L()],
+  /* Entered from an upline bled to 4 m/s at the tailslide's 0.4, the
+   * nose 75 deg up. From a stable elevator, Scott's entry (9 m/s and
+   * sinking at a third of the throttle), the Extra flew micro loops at 8
+   * to 13 m/s and 2 to 4 rad/s, no pivot; from the vertical upline it
+   * pivoted 0.63 of a turn and spun. Two turns: the Extreme elevator's. */
+  waterfall: [L(), pull(0.55, 75 * PI / 180), line(U75, 8000, 0.4, (d) => d.v < 4), waterfall(2), L()],
   wall: [slow(13), pull(1, 0.5 * PI, 1), hang(2500), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
 };
 
+/* What the hangar seats for `tiers` ({ a, e, r }, configs/surfaces.js) on
+ * the plant `airframe`, as scripts/surfaces-gates.js seatTiers does: the
+ * tier block, the tier's throws over the table's tune, the bigger servos
+ * as add-ons. Returns the tiers seated: an aircraft the hangar offers no
+ * surface tiers on flies stock whatever is asked. */
+function seatTiers(sim, airframe, tiers) {
+  const id = Object.keys(SURFACES).find((k) => SURFACES[k].sim === airframe);
+  const block = id ? tierBlock(id, tiers) : null;
+  if (!block) return null;
+  must(sim.setTiers(block), 'sim_wing_set_tiers');
+  must(sim.clearTune(), 'sim_wing_tune_clear');
+  const tune = sim.tune();
+  const th = tierThrowsDeg(id, tiers);
+  tune[3] = th[0] * PI / 180;
+  tune[4] = th[1] * PI / 180;
+  tune[5] = th[2] * PI / 180;
+  must(sim.setTune(tune), 'sim_wing_set_tune');
+  const pts = tierPoints(id, tiers);
+  if (pts.length) {
+    must(sim.setAddons(addonParams(id, { prop: 'stock', addons: [] }, null, 0, pts)), 'sim_set_addons');
+    must(sim.setAddonInertia(Float64Array.from(pointsInertia(pts))), 'sim_set_addon_inertia');
+  }
+  return tiers;
+}
+
+/* The hangar's control surface tiers (configs/surfaces.js) a program
+ * needs, where stock throws do not fly it. The waterfall program on the
+ * Extra, 2026-10-12: stock, its first pivot 0.56 of a turn, named two
+ * snap rolls; the 3D elevator with the stock, 3D or Extreme aileron and
+ * the sport elevator with the Extreme, 0.7 to 0.8 of a turn and a spin
+ * or snap; the Extreme elevator with the stock aileron,
+ * 0.77 and a half roll, the torque winning; the Extreme elevator with the
+ * sport, 3D or Extreme aileron names it (6, 5 and 6). The CAP and the
+ * Slick have no tiers in the hangar (configs/surfaces-tiers.js), so they
+ * fly it stock. */
+export const PROGRAM_TIERS = { waterfall: { a: 'extreme', e: 'extreme' } };
+
 /* airframe: the plant's id, the Extra's by default; the CAP and the Slick
- * fly the same programs at the same launch to check a promotion. */
-export async function fly(program, { wasmBytes, configText, trace = false, airframe = EXTRA_AIRFRAME }) {
+ * fly the same programs at the same launch to check a promotion. tiers:
+ * the hangar's control surface tiers to seat (PROGRAM_TIERS), stock when
+ * null; the flight says what it seated (null for stock). */
+export async function fly(program, { wasmBytes, configText, trace = false, airframe = EXTRA_AIRFRAME, tiers = null }) {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
   must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  const seated = tiers ? seatTiers(sim, airframe, tiers) : null;
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 150, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_wing_launch(22), 'sim_wing_launch');
@@ -605,5 +693,5 @@ export async function fly(program, { wasmBytes, configText, trace = false, airfr
     must(sim.step(MS), 'sim_step');
   }
   det.flush();
-  return { got, finished: i >= program.length, crashed, ms, minZ };
+  return { got, finished: i >= program.length, crashed, ms, minZ, seated };
 }

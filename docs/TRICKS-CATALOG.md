@@ -55,7 +55,9 @@ lane's stall, spin and snap work (the detector knows it and is tested on
 synthetic paths, and it lights up when the physics lands); **unproven** =
 no person paced flight names it on the plant yet. The column is
 `src/game/figures.js`'s, and `docs/figures-table.json` carries each
-program's grade on the Extra, the CAP and the Slick.
+program's grade on the Extra, the CAP and the Slick, and the hangar's
+control surface tiers it needs where stock throws do not fly it (`tiers`;
+the waterfall's are the Extreme elevator and aileron).
 
 | Figure (en) | (es) | Family | K | Aresti | Physics |
 |---|---|---|---|---|---|
@@ -94,7 +96,7 @@ program's grade on the Extra, the CAP and the Slick.
 | Harrier | Harrier | 3D | 8 | game scale | unproven |
 | Inverted Harrier | Harrier invertido | 3D | 11 | game scale | unproven |
 | Rolling Harrier | Harrier con tonel | 3D | 16 | game scale | unproven |
-| Waterfall | Cascada | 3D | 12 | game scale | unproven |
+| Waterfall | Cascada | 3D | 12 | game scale | flown (Extreme tier) |
 | Blender | Licuadora | 3D | 18 | game scale | waits |
 | Tumble | Voltereta | 3D | 15 | game scale | waits |
 | Lomcevak | Lomcovák | 3D | 16 | game scale | waits |
@@ -174,6 +176,10 @@ guides say:
   tenth of its diameter) and heading.
 - **Spins, snaps, tumbles**: the stop, to the nearest quarter turn (1 point
   per 15 deg), and the heading kept through a snap.
+- **Waterfall**: the stop as a tumble's, the plane of the pivot (1 point
+  per 15 deg of tilt) and a point per 2 m the pivot moved, the hover's
+  scale ("Ideally this is performed with little altitude gain or forward
+  motion", Wikipedia, "3D Aerobatics").
 - **Point rolls**: each point at its mark, 1 point per 15 deg off it
   (BAeA judging, "Slow Rolls": "each hesitation must be at the correct
   angle of roll").
@@ -266,7 +272,7 @@ with the loops whose phase and gain margins are measured
 ones to it. A figure is promoted to flown when the Extra's flight is named
 and graded honestly; the CAP and the Slick are recorded beside it.
 
-### Where every figure stands (2026-10-12, round 3)
+### Where every figure stands (2026-10-12, round 4)
 
 Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 4-point roll are `figures:plant`'s own flights.
@@ -297,7 +303,73 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 | Barrel Roll | flown | 9 / 10 / 9.5 | |
 | Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
-| Waterfall | unproven | - | not flown, and not for want of a program alone (round 3, below): flown open loop from rest on the Extra at full elevator and full throttle, the speed the thrust builds along the nose stops the rotation nose down, at best 272 deg round; every throttle cut on the back side, the technique Scott describes, stops it sooner, the elevator's authority there being the wash's. The detector also names a whole rotation at 6 rad/s or more a tumble, and this one peaks at 6 to 7.7. The pitching moment data (w36-3d-sideforce): at full throttle and full down elevator with no airspeed it balances at 8.0 rad/s, slowed to 5.7 to 3.4 rad/s by 5 to 8 m/s across the wing from below and stopped by 8 m/s from above |
+| Waterfall | flown | 6 / - / - | on the Extra's Extreme elevator with an aileron tier over stock, flown on the Extreme aileron (round 4, below); the CAP and the Slick have no surface tiers in the hangar and fly it stock, unnamed. Scott's throttle cut on the back side is not flown: on this plant it stops the rotation. The pivot's plane tilts 38 deg (2.5 points) |
+
+### Round 4 (2026-10-12, w36-tricks-r4)
+
+- **Waterfall, flown, on the Extreme tier.** The person flies David
+  Scott's waterfall ("Master the 3D Waterfall", Model Airplane News:
+  "maintaining full up-elevator, and applying full power and a little
+  right rudder", wings level) from a 75 deg upline bled to 4 m/s at 0.4
+  throttle: full up elevator, full throttle, 0.15 of right rudder against
+  the prop gyroscope's yaw (none, and the Extra yawed left at 1.5 rad/s
+  through the pivot), full right aileron fed in with the power against the
+  torque (2 rad/s of left roll at full power and no airspeed) and the
+  wings held on it at 0.5 per unit of l_z, two turns, out level. On the
+  Extra at the Extreme elevator (50 deg, 67 % chord) and aileron it pivots
+  1.72 turns in 1.9 s at up to 8.2 rad/s and 2.8 to 6.4 m/s, ending 2.9 m
+  from where it began: named waterfall 6 (the pivot's plane tilted 38
+  deg, 2.5 points, the span 33 deg off level on average; the drift 1;
+  the stop 0.5). The values are FITTED: over
+  rudder 0.1 to 0.2, aileron 0.6 to 1 and wings 0 to 2, 26 of 53 flights
+  named it (3.5 to 7); round the values taken, 16 of 18 (4 to 7), no
+  tumble. Promoted to flown, the row's `tiers` saying it needs the
+  Extreme tier.
+- **Which tiers fly it.** The same program on the Extra: stock, 0.56 of a
+  turn and two snap rolls; the 3D elevator with the stock, 3D or Extreme
+  aileron and the sport elevator with the Extreme, 0.7 to 0.8 of a turn
+  then a spin or a snap; the Extreme elevator with the stock aileron, 0.77
+  and a half roll, the torque winning; the Extreme elevator with the
+  sport, 3D or Extreme aileron names it, 6, 5 and 6. So it is not flyable
+  on stock throws, and the elevator's 3D tier does not fly it either.
+- **What was not flown, and why.** Scott's throttle cut "on the back side
+  of the loop" and the "few clicks of power" at the bottom: cut at 0.6 or
+  0.75 of a turn, to idle or to half, the pivot broke at the cut (0.8 to
+  0.9 of a turn) and none of the four flights at the program's values was
+  named, nor any of 81 cut flights over an earlier sweep, as round 3
+  found from rest (the elevator's authority at these speeds is the
+  prop's wash). Scott's entry from a stable elevator (9 m/s,
+  sinking, a third of the throttle) flew micro loops at 8 to 13 m/s and 2
+  to 4 rad/s, no pivot; the vertical upline pivoted 0.63 of a turn and
+  spun. A plant finding for the physics lane: the real technique's cut
+  should keep the rotation going, here it stops it.
+- **The CAP and the Slick.** The brief asked for them at their 3D tiers;
+  the hangar has none for them (configs/surfaces-tiers.js offers tiers on
+  the Extra and the Cub only), so they fly the program stock and neither
+  names it.
+- **The detector: tumble or waterfall by axis, not rate.** A whole pitch
+  rotation of 6 rad/s or more was a tumble, with no source, and every
+  waterfall the Extra flies peaks at 8 to 10.8 rad/s. Now a waterfall is a
+  pivot about the pitch axis alone ("pivot 360 degrees in the pitch axes",
+  Wikipedia, "3D Aerobatics"; "micro loop", wings level, Scott): no more
+  than a quarter turn of roll or yaw in it, the span on average nearer
+  the horizontal than the vertical, graded on the drift as well. A pitch
+  rotation coupled into roll or yaw past the quarter is a tumble, the
+  lomcevak family's ("rotates on chosen axes ... due to the gyroscopic
+  precession and torque of the rotating propeller", Wikipedia,
+  "Lomcovak"), and half a turn of roll still a lomcevak. And a spin turns
+  about the vertical ("a shallow, rotating, downward path approximately
+  centred on a vertical axis", Wikipedia, "Spin (aerodynamics)"): the
+  spin token now wants the rotation's axis within 45 deg of it, so a
+  waterfall falling through its back side, its pivot about a near level
+  span, is no longer cut into spin pieces. New synthetic cases both ways:
+  a 10 rad/s pure pivot is a waterfall (it was a tumble); 0.4 of a turn
+  of yaw or 0.31 of roll in a pivot is a tumble (the yawed one was a
+  waterfall); a pivot sinking 5 m/s, wings 15 deg off, is a waterfall
+  (it was nothing); banked 60 deg it is none; drifting 4 m/s it grades 7
+  against 10. Every other synthetic case, the plant check, the knife
+  edge check, the goldens, the CAP's gates and every other row of the
+  manoeuvre table name and grade exactly as before.
 
 ### Round 3 (2026-10-12, w36-tricks-r3)
 
