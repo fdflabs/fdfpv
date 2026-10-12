@@ -240,55 +240,27 @@ export const AIRFRAMES = [
    * the contact box's floor and roof in src/native/plant.c.
    */
   airframeOf('bramor2300'),
-  {
-    /*
-     * The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md: 1176 mm, 420 g, simId 5
-     * on the fixed wing plant. Three channels and no ailerons: the roll
-     * stick drives the rudder as well as the yaw stick does, and it banks
-     * through its dihedral, which also levels it when the sticks are let
-     * go, and it rises in the airfield's thermals as the Radian does. It
-     * stands on a wire gear and a tailwheel like the Cub, so
-     * throttle rolls it off the strip (L still throws it); `gear` is the
-     * plant's settled pose, which the drawn wheels in
-     * src/render/slowstickcraft.js match: the CG 0.1349 m over the ground
-     * and 6.9 degrees nose up.
-     */
-    id: 'slowstick1180',
-    simId: 5,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/slowstick-thresholds.json s2_stall. */
-    stall: 4.43,
-    /* Level speed at full throttle, m/s: tests/slowstick-thresholds.json s4_top, derived. */
-    topSpeed: 10.28,
-    gear: { restHeight: 0.1349, restPitch: 6.91 * Math.PI / 180 },
-    name: 'Slow Stick',
-    short: 'Stick',
-    blurb: 'A 1176 mm GWS Slow Stick on 2S: rudder, elevator and throttle, no ailerons. The roll stick works the rudder, it floats at a jog, and it levels itself when you let go.',
-    facts: ['2S', '1176 mm', 'Three channels'],
-    sizeMm: 1176,
-    grams: 420,
-    trackClass: 'wing',
-    cells: 2,
-    ...packStates(),
-    defaultTune: 'slowstick-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/slowstickcraft.js SLOWSTICK_DIMS: the
-     * furthest reach in plan, the elevator's outer trailing corner, the
-     * wheels' lowest drawn point and the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1397,
-      hullR: 0.6391,
-      vHalfDown: 0.1575,
-      vHalfUp: 0.1975,
-      bodyLength: 0.952,
-      bodyWidth: 1.176,
-      bodyHeight: 0.355,
-    },
-  },
+  /*
+   * The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md: 1176 mm, 420 g, simId 5
+   * on the fixed wing plant. Three channels and no ailerons: the roll
+   * stick drives the rudder as well as the yaw stick does, and it banks
+   * through its dihedral, which also levels it when the sticks are let
+   * go, and it rises in the airfield's thermals as the Radian does. It
+   * stands on a wire gear and a tailwheel like the Cub, so
+   * throttle rolls it off the strip (L still throws it); `gear` is the
+   * plant's settled pose, which the drawn wheels in
+   * src/render/slowstickcraft.js match: the CG 0.1349 m over the ground
+   * and 6.9 degrees nose up.
+   *
+   * The row is its folder's, aircraft/slowstick1180/aircraft.js. `stall`:
+   * Clean stall, m/s, sqrt(2W / rho S CLmax):
+   * tests/slowstick-thresholds.json s2_stall. `topSpeed`: Level speed at
+   * full throttle, m/s: tests/slowstick-thresholds.json s4_top, derived.
+   * `dims`: The drawn machine, src/render/slowstickcraft.js
+   * SLOWSTICK_DIMS: the furthest reach in plan, the elevator's outer
+   * trailing corner, the wheels' lowest drawn point and the fin's top.
+   */
+  airframeOf('slowstick1180'),
   {
     /*
      * The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md: a

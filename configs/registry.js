@@ -109,30 +109,15 @@ export const TUNES = [
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '7inch'),
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '10inch'),
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'interceptor'),
-  {
-    /* The Slow Stick, a GWS kit with a receiver and servos and no gyro:
-     * Manual. It has no ailerons, so the gyro's roll term has no surface
-     * and AS3X damps pitch and yaw only; Stabilised's roll loop works
-     * the rudder. On its wheels every mode flies as Manual. */
-    id: 'slowstick-manual',
-    airframe: 'slowstick1180',
-    name: 'Manual',
-    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the tailwheel, and the pitch stick the elevator. Let go and the dihedral levels the wings.',
-  },
-  {
-    id: 'slowstick-as3x',
-    airframe: 'slowstick1180',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevator and the rudder; in pitch and yaw, centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'slowstick-stab',
-    airframe: 'slowstick1180',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 45 degrees, flown on the rudder, pitch stick for a pitch up to 25, and centred sticks fly level.',
-    wingStab: 1,
-  },
+  /*
+   * The Slow Stick, a GWS kit with a receiver and servos and no gyro:
+   * Manual. It has no ailerons, so the gyro's roll term has no surface and
+   * AS3X damps pitch and yaw only; Stabilised's roll loop works the
+   * rudder. On its wheels every mode flies as Manual.
+   *
+   * Its tunes are its folder's, aircraft/slowstick1180/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'slowstick1180'),
   {
     /* The Timber's are the real aircraft's: E-flite's BNF receiver flies
      * AS3X with SAFE Select off unless bound for it, so AS3X is the

@@ -103,7 +103,6 @@ export const MARGIN_WARN = 0.05;
 export const TRIM_MAX_DEG = 4;
 
 const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
-const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
@@ -155,13 +154,7 @@ export const TUNING = {
    * rounds onto CL max. */
   radian2000: AIRCRAFT.TUNING.radian2000,
   bramor2300: AIRCRAFT.TUNING.bramor2300,
-  slowstick1180: {
-    chord: 0.2776, area: 0.3264, margin: 0.073,
-    cg: { mm: 100, datum: 'tuning.datum.le', range: [95, 105], source: `GWS manual, "95-105mm (3.74"-4.13") from the leading edge of wing at central wing chord"; ${SLOWSTICK_MANUAL}` },
-    packKg: 0.10, nose: 0.286, tail: -0.50,
-    throws: { high: [0, 15, 30], low: [0, 10.5, 21], source: `GWS manual: elevator 15 to 20 deg, rudder 25 to 35 deg, "Maximum control throws", one set; ${LOW_70}; ${SLOWSTICK_MANUAL}` },
-    flaps: null,
-  },
+  slowstick1180: AIRCRAFT.TUNING.slowstick1180,
   timber1500: {
     chord: 0.2322, area: 0.361, margin: 0.191,
     cg: { mm: 60, datum: 'tuning.datum.root_le', range: [55, 65], source: `E-flite manual, "60mm +/-5mm back from the leading edge of the wing, measured at the wing root", pp. 3 and 13; ${TIMBER_MANUAL}` },
