@@ -77,7 +77,7 @@ export const FIGURES = [
   fig('cuban_8', 'loops', 28, ['7.8.1.1', '9.1.3.2', '9.1.3.2'], 'unproven'),
   fig('reverse_cuban_8', 'loops', 28, ['7.8.5.1', '9.1.3.2', '9.1.3.2'], 'unproven'),
   fig('avalanche', 'loops', 21, ['7.4.1.1', '9.9.3.4'], 'waits'),
-  fig('ke_loop', 'loops', 15, null, 'unproven'),
+  fig('ke_loop', 'loops', 15, null, 'flown'),
   /* Family 8, combinations. */
   fig('half_cuban', 'combinations', 14, ['8.5.6.1', '9.1.3.2'], 'flown'),
   fig('reverse_half_cuban', 'combinations', 14, ['8.5.2.1', '9.1.3.2'], 'flown'),
