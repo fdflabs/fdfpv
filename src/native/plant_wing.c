@@ -5862,7 +5862,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .ge_wing = { 0.0085, 0.0, -0.05 }, /* the drawn model's wing quarter chord, npm run ge:derive */
   .ge_tail = { -0.701, 0.0, 0.0 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
-  .side_cda = 0.1323,
+  .side_cda = 0.1723,     /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run extra:derive */
   .rot_k = { 0.01580, 0.04108, 0.03462 },
   .j_prop = 0.000249,     /* a 35 g wood blade and the outrunner's can, ESTIMATED */
 };
@@ -6298,7 +6298,7 @@ const FixedWingParams FW_CAP1702 = {
   .ge_wing = { 0.0215, 0.0, -0.085 }, /* the drawn model's wing quarter chord, npm run ge:derive */
   .ge_tail = { -0.8425, 0.0, 0.027 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
-  .side_cda = 0.1985,     /* npm run cap580:derive */
+  .side_cda = 0.2583,     /* npm run cap580:derive */
   .rot_k = { 0.05099, 0.12406, 0.08237 }, /* npm run cap580:derive */
   .j_prop = 0.000866,     /* npm run cap580:derive: a 60 g carbon 18 in blade and the AM670's can, ESTIMATED */
 };
@@ -6427,7 +6427,7 @@ const FixedWingParams FW_SLICK2680 = {
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0878, 0.434, 0.8287 }, /* npm run as3x:derive */
   .as3x_kh = { 1.5672, 7.7469, 14.7923 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.646, -3.639, -2.11 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.646, -3.631, -2.116 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
@@ -6498,7 +6498,7 @@ const FixedWingParams FW_SLICK2680 = {
   .ge_wing = { 0.0372, 0.0, 0.005 }, /* the drawn model's wing quarter chord, npm run ge:derive */
   .ge_tail = { -1.325, 0.0, 0.053 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
-  .side_cda = 0.4914, /* scripts/slick-derive.js */
+  .side_cda = 0.6616, /* scripts/slick-derive.js */
   .rot_k = { 0.3889, 0.9415, 0.782 }, /* scripts/slick-derive.js */
   .j_prop = 0.00931,      /* the listed 28 x 10 blades' masses and the crank, ESTIMATED, scripts/slick-derive.js */
 };

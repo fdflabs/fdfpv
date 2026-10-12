@@ -205,10 +205,14 @@ linear x = a (angle) at small angles, **saturates on a flat plate's**
 1.17 (Hoerner): x / (1 + (x / 1.17)^4)^(1/4). A surface in a crossflow, or
 a control past what its surface can carry, pushes no harder than a plate.
 The share in the wash saturates the same way at its angle in the wash's
-own stream. `side_cda`, 0.132 m² (the fuselage's 1.26 by 0.125 m side at
-Allen and Perkins' crossflow coefficient of 1.2 times their eta of 0.7), is
-the crossflow drag against the body's sideways speed squared that a knife
-edge is flown on.
+own stream. `side_cda`, 0.172 m² (the fuselage's 1.26 by 0.125 m side at
+Allen and Perkins' crossflow coefficient of 1.2 times their eta of 0.7,
+the 1.2 a round body's taken over to the drawn rounded box's sections,
+1.30 times the circle's: NACA TN 3038 Table I, the 1:2 ellipse 1.6, the
+1:1 rounded square at r/b 0.333 1.0 and the 1:2 rectangle at r/b 0.25
+1.6 over the same tunnel's circle 1.0, scripts/lib/crossflow.js; 0.132
+until 2026-10-12), is the crossflow drag against the body's sideways
+speed squared that a knife edge is flown on.
 
 ### 3. The air a slow aircraft turns through (`rot_k`)
 
