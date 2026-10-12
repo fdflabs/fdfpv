@@ -75,11 +75,11 @@ const PLANES = [
  * the ground's term unchanged. The Extra, CAP and Slick re-pinned for
  * their fuselages' measured crossflow drag (w36-3d-sideforce 84c873e57;
  * were b293b09e73f99993, 2e4df1c22374a4e2 and 1eec01c5f11adf28), the
- * ground's term unchanged. Sixteen tables flying their tails in the
- * wash (cub to slick below; the wing, Skyhunter, Bramor, F-16, Zagi, NRJ
- * and Strikers unmoved) re-pinned for the seated pack's thrust and the
- * tail's measured wash on one plant (w36-physics: w36-seat-voltage and
- * w36-wash-speed), the ground's term unchanged. */
+ * ground's term unchanged. Sixteen tables re-pinned for the seated
+ * pack's thrust and the tail's measured wash on one plant (w36-physics:
+ * w36-seat-voltage and w36-wash-speed), the ground's term unchanged; the
+ * wing, Skyhunter, Bramor, F-16, Zagi, NRJ and the two Strikers did not
+ * move. */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
   sky: '67c0dfd1d6dce1d1',
