@@ -281,7 +281,7 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 | Outside Loop | flown | 7 / 8 / 8 | radius spread (a constant push) |
 | Immelmann | flown | 4 / 5 / 6.5 | an egg shaped half loop on a fixed pull |
 | Split-S | flown | 3.5 / 5 / 2 | the pull tightens as it dives |
-| Cuban Eight | unproven | 1 / 4.5 / 0 | the 3/4 loop's radius spreads 61 % as the speed falls 26 to 11 m/s, faster than the round loop's integral follows |
+| Cuban Eight | unproven | 1 / 4.5 / 0 | the 3/4 loop's radius spreads 61 % as the speed falls 26 to 11 m/s, faster than the round loop's integral follows. Round 3 tried the throttle by the climb (0.6 to 1 climbing, 0.2 to 0.6 descending) and the round law's gains (kp 0.1 and 0.2, ki 0.2 to 1): at best 3.5 / 4 / 0; the Slick flies the 0.6 throttle at 35 to 50 m/s, its 3/4 loop 47 m round and spread 62 % |
 | Reverse Cuban Eight | unproven | 0 / 4 / 2 | the same, both loops |
 | Knife-Edge Loop | flown | 9 / 9 / 5 | the Slick's arc opens late and it comes out 64 m under where the arc began (the radius spread 19 %); the pace, the rudder's share and the floor are FITTED (round 3, below) |
 | Half Cuban | flown | 7.5 / 7 / 7.5 | |
@@ -297,7 +297,7 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 | Barrel Roll | flown | 9 / 10 / 9.5 | |
 | Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
-| Waterfall | unproven | - | program: at full throttle and full down elevator with no airspeed the Extra's pitching moment balances at 8.0 rad/s (8.2 with 3 to 10 m/s along the axis), 99 rad/s^2 from rest; the wind across the wing is what slows it, to 5.7 to 3.4 rad/s at 5 to 8 m/s from below and stopping it at 8 m/s from above, the stabiliser broadside and the elevator's wash share lost past 40 deg as TN 3307 and Ma 2022 measure it (w36-3d-sideforce). The program holds full throttle through the nose down half, which drives it to 10 m/s. No independent hover elevator measurement was compared (the 2025 tailsitter data stop at 20 deg) |
+| Waterfall | unproven | - | not flown, and not for want of a program alone (round 3, below): flown open loop from rest on the Extra at full elevator and full throttle, the speed the thrust builds along the nose stops the rotation nose down, at best 272 deg round; every throttle cut on the back side, the technique Scott describes, stops it sooner, the elevator's authority there being the wash's. The detector also names a whole rotation at 6 rad/s or more a tumble, and this one peaks at 6 to 7.7. The pitching moment data (w36-3d-sideforce): at full throttle and full down elevator with no airspeed it balances at 8.0 rad/s, slowed to 5.7 to 3.4 rad/s by 5 to 8 m/s across the wing from below and stopped by 8 m/s from above |
 
 ### Round 3 (2026-10-12, w36-tricks-r3)
 
@@ -330,6 +330,31 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
   arc, and the Extra's knife edge rudder per g as the feed forward left
   the CAP and the Slick behind the mark (their knife edges trim at 0.58
   to 0.68 of rudder against the Extra's 0.44).
+- **Waterfall, not built.** Flown open loop on the Extra (no person, from
+  rest at nose angles of 30 to 90 deg up, still or sinking 5 to 11 m/s,
+  full elevator either way, full throttle): the speed the thrust builds
+  along the nose stops the rotation nose down. The best, nose 45 deg up,
+  still, full up elevator, turned 272 deg before its rate fell under the
+  detector's 2.5 rad/s, at 8.5 m/s, and then flew out at 16 m/s; a
+  sinking entry turned no further. Cutting the throttle on the
+  back side, the technique David Scott gives ("Master the 3D Waterfall",
+  Model Airplane News: from a stable elevator, "full up-elevator, and
+  applying full power", then "quickly cut the power" on the back side
+  and "add a few clicks of power" at the bottom), stopped it sooner: the
+  rate fell from 5 to 6 rad/s to under 2 within 0.3 s at every cut from
+  0.4 to 0.55 of a turn, since at these speeds the elevator's authority
+  is the prop's wash (E10). And the rotation peaks at 6 to 7.7 rad/s from
+  a still entry, where the detector names a whole pitch rotation of 6
+  rad/s or more a tumble; that split has no source yet. Both are for the
+  physics and detector owners; no program was changed.
+- **Cuban eights, not built.** Table above.
+- **Rolling circle, not built.** Unchanged from round 2: one roll in the
+  turn at the judge's slowest roll, 1.2 rad/s, asks 2.7 g toward the
+  centre at 22 m/s, all on the rudder where the wings are level. The
+  Extra's full rudder gives 2.6 to 2.7 g at 20 to 35 m/s, measured 0.4
+  to 0.7 s after the step, and in that time the drag of the sideslip
+  takes 12 to 16 m/s^2 off the speed: at the limit for a moment, not a
+  turn held round 360 deg.
 
 ### Round 2 (2026-10-12, w36-tricks-r2)
 
