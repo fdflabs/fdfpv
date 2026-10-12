@@ -184,28 +184,43 @@ const LINE_KI = 1;
  * 12.5 rad/s. LINE_GAINS' fixed 0.2 keeps 3.2 and 0 dB at a third and
  * two thirds, and at full throttle none (-2.6 dB): the humpty's up line
  * went stop to stop on the
- * elevator and snapped the wing. The rudder keeps LINE_GAINS: its
- * step response turns over with the airspeed (the fin weathervanes the
- * yaw back within the 0.25 s), so it has no gain to schedule on the
- * step. Its frequency response does not keep the criterion
- * (2026-10-12, on the combined plant, w36-physics, measured as the
- * elevator's, level, responseAt on the yaw rate): the yaw rate per stick
- * rises to the loop's 180 deg frequency, 12 to 16 rad/s, where it is
- * 6.2, 8.4 and 9 on the Extra at a third, two thirds and full throttle
- * (the elevator's is flat, 4.2 to 4.9), so kr 0.2 keeps -1.9 to -5 dB,
- * the CAP 1.4 to 5.7 and the Slick about 3. The Extra's yaw rings on the
- * Cuban's 45 down lines at 29 m/s (1.2 rad/s rms over the lines of
- * seven figures). The gains that keep 6 dB level (Extra 0.05, CAP 0.09,
- * Slick 0.13) calm it (0.5 rad/s rms) and name the Cuban 8 on the Extra
- * (3), but lose the Slick's hammerhead at every kick 6 to 12 m/s and the
- * tailslide on all three at an entry of 28 m/s: kept at 0.2 until the
- * rudder's response is measured where the lines fly, 4 to 30 m/s
- * climbing and diving, not level. */
+ * elevator and snapped the wing. The rudder's is LINE_YAW_KR, below. */
 export const LINE_PITCH_K = { a: 1.695, b: 1.782, c: 0.00274 };
 export const LINE_GM = 0.39;
 export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
+/* The rudder's share of the line hold, kept at the bandwidth criterion's
+ * 6 dB on each aircraft's measured frequency response where the lines
+ * are flown (scripts/figures-margins.js lineRudder): [speed m/s, kr] by
+ * speed, straight between, held past the ends. Its response is not a
+ * gain (it rises to the loop's 180 deg frequency, 12 to 16 rad/s on the
+ * Extra; its step response turns over with the airspeed, the fin
+ * weathervaning the yaw back within the 0.25 s, so a step fit like the
+ * elevator's has nothing to fit), and up the vertical, up the 45 and
+ * level it varies with the speed more than with the line (the Extra 0.07
+ * to 0.09 at 14 m/s, 0.057 to 0.066 at 22), so kr goes by the speed and
+ * each speed takes the least of its lines. Measured 2026-10-12 on the
+ * combined plant (w36-physics); the diving lines settle (idle holds
+ * them) only at 30 m/s on the Extra. LINE_GAINS' 0.2, flown until then,
+ * kept -1.9 to -5 dB on the Extra (its yaw rang at 1.2 rad/s rms over
+ * the lines of seven figures, the Cuban 8's 45s at 29 m/s worst), 1.4 to
+ * 5.7 on the CAP and about 3 on the Slick at the speeds they fly level;
+ * on these the Extra's rings at 0.5. Pinned here and checked there. */
+export const LINE_YAW_KR = {
+  [EXTRA_AIRFRAME]: [[8, 0.097], [14, 0.07], [18, 0.062], [22, 0.057], [26, 0.058], [30, 0.059]],
+  [CAP_AIRFRAME]: [[8, 0.264], [14, 0.161], [18, 0.138], [22, 0.117], [26, 0.105], [30, 0.098]],
+  [SLICK_AIRFRAME]: [[8, 0.473], [14, 0.327], [18, 0.244], [22, 0.214], [26, 0.179], [30, 0.156]],
+};
+export function lineYawKr(airframe, v) {
+  const t = LINE_YAW_KR[airframe];
+  if (v <= t[0][0]) return t[0][1];
+  for (let i = 1; i < t.length; i += 1) {
+    if (v <= t[i][0]) return t[i - 1][1] + (v - t[i - 1][0]) / (t[i][0] - t[i - 1][0]) * (t[i][1] - t[i - 1][1]);
+  }
+  return t[t.length - 1][1];
+}
 const holdLine = (d, m, target, thr) => {
-  const [r, , y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  const [r] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  const y = hangSticks(d.s, { target, rollStick: 0, kp: LINE_GAINS.kp, kr: lineYawKr(m.flight.airframe, d.v) })[2];
   const p = hangSticks(d.s, { target, rollStick: 0, kp: LINE_GAINS.kp, kr: lineKr(thr, d.v) })[1];
   m.trimP = clamp((m.trimP ?? 0) + LINE_KI * p * H, 0.5);
   m.trimY = clamp((m.trimY ?? 0) + LINE_KI * y * H, 0.5);
@@ -625,14 +640,15 @@ const waterfall = (turns) => ({
  * on the gates' 4.1 V seat and the measured wash speed (w36-physics) the
  * Extra's tailslide and the Slick's hammerhead are lost from it. ENTRY_V
  * is FITTED, swept 2026-10-12 over 22 to 34 m/s on the Extra, the CAP
- * and the Slick (tailslide, hammerhead): the tailslide is named on the
- * Extra and the CAP at every entry 24 to 33 (Extra 10, CAP 9.5 to 10),
- * the hammerhead on all three from 27 to 33 but the Slick's at 0 at 25,
- * 26 and 34 and 3.5 at 29; 30, the middle of 28 to 32, names both on
- * every aircraft (tailslide 10 / 10 / -, hammerhead 7 / 6 / 6). The
- * Extra does not reach 34 (its top is 34.7 m/s).
+ * and the Slick (tailslide, hammerhead), with the line's rudder on
+ * LINE_YAW_KR: the hammerhead is named on all three at every entry (3.5
+ * to 7.5), the tailslide on the CAP at every entry and on the Extra at
+ * all but 22 and 28; 32, near the middle of 29 to 34, names the
+ * tailslide on all three (10 / 10 / 9.5) and the hammerhead 7 / 6.5 / 7.
+ * On LINE_GAINS' rudder it was 30, the middle of 28 to 32, where the
+ * Slick's hammerhead was named.
  */
-export const ENTRY_V = 30;
+export const ENTRY_V = 32;
 const ENTRY_MS = 15000;
 const entry = (V = ENTRY_V) => ({
   name: `entry ${V}`,
@@ -684,8 +700,11 @@ export const PROGRAMS = {
    * plant (w36-physics, 2026-10-12) the Cuban 8 grades 0 on the Extra at
    * every lead 0.2 to 0.35, line throttle 0.5 to 0.7 and entry from the
    * level pass or 24 to 30 m/s but two (3.5): its 3/4 loop's radius
-   * spreads 65 % (6 points) as the yaw rings on the 45 before it (the
-   * rudder's kr, LINE_GAINS). */
+   * spreads 65 % (6 points) as the yaw rings on the 45 before it, the
+   * rudder on LINE_GAINS' 0.2. On LINE_YAW_KR it is named 3 / 3.5 / 2,
+   * and the lead swept again over 0.2 to 0.35 names the half Cuban
+   * highest at 0.25 and 0.3 (7 / 6.5 / 6.5 and 6.5 / 7 / 6.5): 0.25
+   * kept. */
   half_cuban: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
   cuban_8: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6),
     round(0.3, 1.5 * PI, 0.6), line(D45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(D45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
@@ -703,9 +722,9 @@ export const PROGRAMS = {
    * 4.1 V seat (2026-10-12): 9, 10 and 11 name it on all three (Extra,
    * CAP, Slick 6 / 4.5 / 6 at 9); the CAP takes 0 at 7 and 8, is not
    * named at 6 and crashes at 5. Swept again from ENTRY_V on the combined
-   * plant (w36-physics, 2026-10-12): 8, 9 and 10 name it on all three
-   * (7 / 6 / 6 at 9); 7 gives the CAP 0, 11 the Extra 0, and under 7 the
-   * CAP is not named. */
+   * plant (w36-physics, 2026-10-12) on LINE_YAW_KR: 8 to 11 name it on
+   * all three (7 / 6.5 / 7 at 9; the CAP 1.5 at 8); under 8 the CAP is not
+   * named. */
   hammerhead: [L(), entry(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < 9), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   /* On the gates' 4.1 V seat (w36-seat-voltage, 2026-10-12), from the
    * level pass at the throttle that holds 22 m/s (SEATED), the Extra slides
@@ -721,7 +740,7 @@ export const PROGRAMS = {
    * seen speed along the nose of -1, 0, 1, 2 and 3 m/s; none of the 15
    * names it on the Extra (a parachute, 9 to 10: the nose yaws round,
    * 1.5 to 3 rad/s, as it slides back, with the rudder centred too). From
-   * ENTRY_V it is named with the let go unchanged (Extra 10, CAP 10). */
+   * ENTRY_V it is named with the let go unchanged (10 / 10 / 9.5). */
   tailslide: [L(), entry(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), knife(3000), roll(-0.5, 0.5 * PI), L()],
   ke_loop: [L(), roll(0.5, 0.5 * PI, 1), knife(1000), knifeLoop(), roll(-0.5, 0.5 * PI), L()],
@@ -805,7 +824,7 @@ export async function fly(program, { wasmBytes, configText, trace = false, airfr
   let i = 0;
   /* What one phase leaves the next in this flight (the knife edge's
    * sticks for the loop flown from it). */
-  const flight = { seat: SEATED[airframe] };
+  const flight = { seat: SEATED[airframe], airframe };
   let mem = { t: 0, flight };
   let st = [0, 0, 0, flight.seat.level];
   let ms = 0;
