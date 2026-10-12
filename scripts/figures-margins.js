@@ -353,7 +353,8 @@ export function marginFailures(m) {
     if (k.wc !== KNIFE[name].wc || !same(k.gain, KNIFE[name].gain)) out.push(`figureprograms.js KNIFE.${name} ${JSON.stringify(KNIFE[name])} is not the plant's crossover ${k.wc} rad/s, gain ${k.gain}`);
     if (!(k.pmDeg >= 45 && (k.gmDb === null || k.gmDb >= 6))) out.push(`the knife edge's ${name} loop keeps ${k.gmDb} dB and ${k.pmDeg} deg`);
   }
-  if (Math.abs(m.knife.trim.rudder - KNIFE.trim.rudder) > 0.005 || Math.abs(m.knife.trim.elevation - KNIFE.trim.elevation) > 0.0005) {
+  if (Math.abs(m.knife.trim.rudder - KNIFE.trim.rudder) > 0.005 || Math.abs(m.knife.trim.elevation - KNIFE.trim.elevation) > 0.0005
+    || Math.abs(m.knife.trim.speed - KNIFE.trim.speed) > 0.05) {
     out.push(`figureprograms.js KNIFE.trim ${JSON.stringify(KNIFE.trim)} is not where the knife edge settles ${JSON.stringify(m.knife.trim)}`);
   }
   return out;

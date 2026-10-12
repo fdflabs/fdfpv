@@ -133,25 +133,27 @@
       "family": "turns",
       "k": 46,
       "source": "Aresti 2.4.2.1 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "rolling circle",
+          "rolling circle 4",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 6.5,
+        "flew": [
+          "rolling_circle 6.5"
+        ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": null,
-          "slick": null
+          "cap": 8,
+          "slick": 9.5
         }
       },
       "margin": null

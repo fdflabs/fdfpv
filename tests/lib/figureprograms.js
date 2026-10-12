@@ -217,7 +217,7 @@ export const KNIFE = {
   bank: { wc: 2, gain: 12.01 },
   elevation: { wc: 0.8, gain: 1.093 },
   heading: { wc: 2, gain: 5.367 },
-  trim: { rudder: 0.48, elevation: 0.246 },
+  trim: { rudder: 0.48, elevation: 0.246, speed: 28.5 },
 };
 const G = 9.80665;
 const knife = (ms) => ({
@@ -246,6 +246,61 @@ const knife = (ms) => ({
       1,
     ];
     return [m.sticks, done];
+  },
+});
+/*
+ * A rolling circle: a 360 deg turn rolled continuously. "The rate of roll
+ * must be constant", "The rate of change of direction throughout the turn
+ * should be constant", "CGT should be horizontal, with constant
+ * altitude" (British Aerobatic Association, judging, "Rolling Circles",
+ * https://www.aerobatics.org.uk/judging/topics/rolling-turns-1). The
+ * ailerons hold the slow roll's rate (rateRoll's law, 1.6 rad/s), the
+ * turn's rate is that over the rolls asked, and the person puts the
+ * force the circle needs, toward its centre and up against the weight,
+ * on whichever surface faces it as the wings come round: the elevator
+ * for the share along the wings' up, the rudder (the sideslip, as in a
+ * knife edge) for the share along the span. A g on the elevator is
+ * 1/ELEVATOR_G of stick, measured on the Extra level at full throttle
+ * (12.2, 13.3 and 14.4 g per unit stick at 20, 24 and 28 m/s, the
+ * normal acceleration 0.3 to 0.6 s after a twentieth or a tenth of
+ * elevator, 2026-10-12), a g on the rudder the knife edge's trim rudder
+ * (KNIFE.trim) scaled by its dynamic pressure. The person paces the turn
+ * on the roll they count, a turn of heading for every `rolls` of roll,
+ * and lets the roll go on the last as roll() does, so the two finish
+ * together, wings level on the heading; the heading's
+ * lag behind that and the climb rate the person sees add to the force:
+ * kpsi 1/s and kz 2/s, FITTED: swept over kpsi 0.5 and 1, kz 1 and 2,
+ * and the surfaces' per g taken a half under and over, 6 of the 12 name
+ * it on all three and this is the only one over 6 on each (Extra 6.5,
+ * CAP 8, Slick 9.5); a third under on the surfaces loses the Slick, a
+ * half over the Extra. No margin is measured for these loops.
+ */
+const ELEVATOR_G = (v) => 12.16 + 0.286 * (v - 20);
+const rollingCircle = (rolls, rate = 1.6) => ({
+  name: `rolling circle ${rolls}`,
+  step: (d, m) => {
+    const [w, x, y, z] = [d.s[7], d.s[8], d.s[9], d.s[10]];
+    const hv = Math.hypot(d.s[4], d.s[5]);
+    const track = Math.atan2(d.s[5], d.s[4]);
+    m.prev = m.prev ?? track;
+    let step = track - m.prev;
+    if (step > PI) step -= 2 * PI;
+    if (step < -PI) step += 2 * PI;
+    m.turned = (m.turned ?? 0) + step;
+    m.prev = track;
+    m.rolled = (m.rolled ?? 0) + d.p * H;
+    const omega = rate / rolls;
+    const toCentre = d.v * (omega + (m.rolled / rolls - m.turned));
+    const a = [toCentre * -d.s[5] / hv, toCentre * d.s[4] / hv, G - 2 * d.vz];
+    const up = [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
+    const span = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
+    const gUp = (a[0] * up[0] + a[1] * up[1] + a[2] * up[2]) / G;
+    const gSpan = (a[0] * span[0] + a[1] * span[1] + a[2] * span[2]) / G;
+    const err = rate - d.p;
+    m.i = clamp((m.i ?? 0.15) + 0.2 * err * H);
+    const q = (KNIFE.trim.speed / Math.max(10, d.v)) ** 2;
+    return [[quant(clamp(m.i + 0.03 * err)), quant(clamp(gUp / ELEVATOR_G(d.v))), quant(clamp(-gSpan * KNIFE.trim.rudder * q)), 1],
+      m.rolled > rolls * 2 * PI - Math.abs(d.p) * 0.35];
   },
 });
 /* Hang on the prop: the nose up, the height on the throttle. */
@@ -390,7 +445,7 @@ export const PROGRAMS = {
   tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), knife(3000), roll(-0.5, 0.5 * PI), L()],
   ke_loop: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -1, 1], 7000), L()],
-  rolling_circle: [L(), { name: 'rolling circle', step: (d, m) => [[0.3, quant(0.35 * d.uz), quant(-0.5 * d.lz), 1], m.t > 9000] }, L()],
+  rolling_circle: [L(), rollingCircle(4), L()],
   hover: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   torque_roll: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000, { rollStick: 0.15 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   harrier: [slow(12), harrier(5000), L()],

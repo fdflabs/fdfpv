@@ -65,7 +65,7 @@ export const FIGURES = [
   /* Family 1, lines, with rolls on them. */
   fig('knife_edge_pass', 'lines', 6, ['1.1.1.1', '9.1.3.1', '9.1.3.1'], 'flown'),
   /* Family 2, turns. */
-  fig('rolling_circle', 'turns', 46, ['2.4.2.1'], 'unproven'),
+  fig('rolling_circle', 'turns', 46, ['2.4.2.1'], 'flown'),
   /* Families 5 and 6, stall turns and tail slides. */
   fig('hammerhead', 'stall_turns', 17, ['5.2.1.1'], 'flown'),
   fig('tailslide', 'tail_slides', 15, ['6.2.1.1'], 'flown'),
