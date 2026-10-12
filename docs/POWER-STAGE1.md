@@ -49,11 +49,54 @@ through the pack's internal resistance, the plant's existing r_cell. The
 same paper finds the resistance flat to 30 percent and 1.6 times higher by
 5 percent; that rise is not modelled.
 
-**Power fade.** A motor's speed is its kV times the voltage it gets, so the
-duty the prop turns at is the stick's times the loaded voltage now over the
-loaded voltage at the seat, at last step's current. At the seat the ratio is
-exactly 1.0, so a fresh pack flies exactly as the table always did; as the
-pack empties the thrust (speed squared) and the pitch speed (speed) fall.
+**The seat and the fade.** A motor's speed is its kV times the voltage it
+gets, so the duty the prop turns at is the stick's times the pack's loaded
+voltage now, at last step's current, over `v_meas`: the loaded voltage a
+cell the table's thrust and current were measured at. Drela's motor law
+(plant_wing.c prop_spool) turns that duty into the prop's speed, a fan's
+spool (fan_spool) into its own, and the thrust goes as the speed squared
+and the pitch speed as the speed. So the seated pack changes the thrust
+from the first step, as a real pack's does: a full pack over the measured
+voltage pushes harder than the table's figure, the "Half" and "Nearly
+empty" packs less, and every pack fades further as it drains and sags.
+Until 2026-10-12 the denominator was the loaded voltage at the seat
+itself, so the ratio was exactly 1.0 at any seat and a nearly empty pack
+started as strong as a full one (lead decision 2026-10-12, physics
+follows reality, w36-seat-voltage).
+
+`v_meas`, per table, from its source: a bench row's watts over its amps
+over the cells where the source is a wattmeter (Slow Stick, GWS, 7.2 V at
+6.1 A on 2S, 3.600; Cub, HobbyKing's 295 W at 27 A on 3S, 3.642; Timber,
+660 W at 44 A on 4S, 3.750; Skyhunter, 669 W at 43.2 A on 4S, 3.872;
+Radian, 251 W at 21.8 A on 3S, 3.838; CAP, T-Motor's 21.55 V at 111.1 A on
+6S, 3.592); rc-castle's "At 22.2v (70A)" for the F-16's fan, 3.700, taken
+as the loaded voltage; for a motor balanced on its pack in a derivation
+(P-51, Extra, Night Timber, Hercules) the balance's own pack, 3.7 V open
+circuit less the static current through its cell resistance (3.258,
+3.185, 3.401, 3.479); and for a figure no source gives a voltage for (the
+Zagi's, the 1000 mm wing's) that same convention, ESTIMATED (3.460,
+3.364). The Bramor's thrust is derived from C-Astral's published climb,
+so its `v_meas` is DERIVED with it: the full pack's loaded voltage at the
+static current, 4.009 (scripts/bramor-derive.js). An option seated
+through `sim_set_power` keeps its airframe's `v_meas` (the block carries
+none); an electric option on a glow airframe (the Bombshell's and the
+Kadet's) takes the convention from the block's current and resistance.
+That is an approximation for alternatives measured at another voltage
+than the stock motor's (Skyhunter's SunnySky rows), which the block would
+need a field to carry.
+
+**Which seat a figure is.** A maker's published speed or climb is flown
+on a full pack: Freewing's F-16 manual, "before flying, we need a fully
+charged battery". So a fit to one (the F-16's cd0 to 165 km/h, the
+Bramor's thrust to its 5 m/s climb) is made at 4.2 V a cell, and every
+gate band is derived at the 4.1 V the gate scripts seat
+(`SEAT_FULL` and `SEAT_GATES` in scripts/lib/propcurve.js, whose
+`wingSeat` mirrors the plant's seat for every derivation).
+
+**A launch.** A thrown or catapulted plane starts its prop at its duty's
+speed before it has drawn any current, so the first step takes the pack
+under the current that speed draws (plant_wing.c launch_ratio), not an
+unloaded pack.
 
 **Current.** The table's full throttle current is the static current. At a
 duty the motor's current goes as the speed squared and the pack's, through
@@ -68,7 +111,9 @@ in flight at half the static; the APC shape is measured.
 **The ESC.** Its soft low voltage cutoff: when the loaded cell voltage
 falls under its threshold it caps the duty at the one whose current leaves
 it there, and the cap holds until the pack is changed, as a hobby ESC's
-does until re-armed. Thresholds: Spektrum Avian 3.4 V (Timber, the
+does until re-armed. The cap is taken from the rotor's speed, whose
+current it is, and the duty that holds the capped speed; taken from the
+duty, with the prop lagging it, it fell again every step down to nothing. Thresholds: Spektrum Avian 3.4 V (Timber, the
 SPMXAE1060 programming guide's default), ZTW Beatles 3.0 V soft to 70
 percent (Cub, FMS's ESC manual), E-flite 30 A Pro 74 percent of the plug in
 voltage, 3.11 V (Radian, EFLA1030B manual), GWS ICS-300Li 2.7 V (Slow
@@ -182,7 +227,10 @@ Each alternative's figures and derivation are beside it in
   estimate's 0.65 prop and 0.82 motor need. It was 22000, 488 Wh, when
   the full throttle current was an estimated 45 A and the static thrust 35 N;
   both now come from the published climb and APC's 12 x 8E
-  (scripts/bramor-derive.js).
+  (scripts/bramor-derive.js). On the seated pack (2026-10-12) the motor
+  cruises on less stick and 11000 lasts 186.2 min at 4.2 V, 3.4 percent
+  over the 3 h, inside P2's 5 percent; the capacity is left at the
+  round 11000 rather than refitted to 10,630.
 - **Slow Stick.** Sold without power. Stock: GWS EPS-300C D on the EP1180,
   2S 1300. Alternatives, each GWS's own full throttle row with rpm: the
   brushless 2212/13T on an EP1047 and on an EP1060 (2S 1300 or 2200), and
@@ -230,17 +278,33 @@ airspeed, throttle on the height) and at full throttle, to LOW BATTERY
 
 | Plane | Full throttle | Cruise | Maker | P2 holds |
 | --- | --- | --- | --- | --- |
-| Turbo Timber | 8.0 min | 34.6 min at 13 m/s | manual timers 4 and 7 min; Model Aviation flew 5 to 8 | timer: flat out outlasts 7 |
-| Timber floats | 7.1 | 25.2 | as above | timer |
-| Piper Cub | 9.4 | 22.2 at 12 | FMS "approx. 6 min" | timer |
-| Cub floats | 8.2 | 15.4 | as above | timer |
-| Skyhunter | 17.0 | 46.0 at 15 | Model Aviation "10 minutes and longer" | at least 10 |
-| Radian | 5.9 (motor run) | 68.8 at 7.7 | "over 30 min" with limited motor run, not comparable | runs out sooner flat out |
-| Bramor | 53.3 | 179.2 at 16 | C-Astral 3 h (the capacity is derived from it) | within 5 percent |
-| Slow Stick | 23.3 | 38.5 at 5.5 | none | runs out sooner flat out |
-| 1000 mm wing | 9.8 | 28.9 at 15 | none | runs out sooner flat out |
-| Bombshell | 4.6 | 5.4 at 8 | none (Menon's flow gives 4 to 4.6 min at full throttle) | runs out sooner flat out |
-| Kadet Senior | 19.4 | 32.2 at 10 | O.S. 12 min on 220 cc, 19.4 on 355 | mixed: between the two |
+| Turbo Timber | 6.5 min | 54.4 min at 13 m/s | manual timers 4 and 7 min; Model Aviation flew 5 to 8 | timer: flat out outlasts the derived least, 3.8 |
+| Timber floats | 5.6 | 39.3 | as above | timer |
+| Piper Cub | 6.0 | 35.4 at 12 | FMS "approx. 6 min" | timer |
+| Cub floats | 4.7 | 24.7 | as above | timer |
+| Skyhunter | 12.6 | 76.9 at 15 | Model Aviation "10 minutes and longer" | at least 10 |
+| Radian | 3.8 (motor run) | 100.9 at 7.7 | "over 30 min" with limited motor run, not comparable | runs out sooner flat out |
+| Bramor | 52.0 | 186.2 at 16 | C-Astral 3 h (the capacity is derived from it) | within 5 percent |
+| Slow Stick | 14.8 | 60.1 at 5.5 | none | runs out sooner flat out |
+| 1000 mm wing | 5.1 | 50.1 at 15 | none | runs out sooner flat out |
+| Extra 300 3D | 1.5 | 29.7 at 15 | E-flite's 3 min timer | timer |
+| Night Timber | 5.5 | 32.9 at 13 | E-flite's 4 min timer | timer |
+| P-51 | 3.8 | 25.8 at 15.1 | FMS 8 min, a mix of throttle | between the two |
+| F-16 | 0.7 | 21.0 at 20 | Model Aviation's 4 min | between the two |
+| Zagi | 2.7 | 114.2 at 10.3 | none | runs out sooner flat out |
+| Hercules | 11.9 | 81.5 at 15.46 | none | runs out sooner flat out |
+| CAP 580 | 4.5 | 28.6 at 18 | none | runs out sooner flat out |
+| Bombshell | 4.6 | 6.4 at 8 | none (Menon's flow gives 4 to 4.6 min at full throttle) | runs out sooner flat out |
+| Kadet Senior | 19.4 | 39.6 at 10 | O.S. 12 min on 220 cc, 19.4 on 355 | mixed: between the two |
+
+Flown by `npm run power:check` on 2026-10-12 (w36-seat-voltage), seated
+at 4.2 V a cell. The seat moved them: a full pack over its `v_meas` runs
+the motor faster than the table's figure and draws more current, so flat
+out runs out sooner, and the cruise, flown on less stick, lasts longer.
+Full throttle times end at the OSD's LOW BATTERY, which a heavy draw's
+sag reaches with charge left (the Extra at 50 percent of its 2200 mAh,
+the F-16 at about a quarter used): Betaflight's warning reads the loaded
+voltage, as a real one does on a punch.
 
 A maker's timer is set to land with charge to spare after sport flying,
 so it cannot bound the flight from above; Model Aviation's measured 5 to 8

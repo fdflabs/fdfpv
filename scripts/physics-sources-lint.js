@@ -50,7 +50,7 @@ export const FILES = [
   'src/native/crash.c',
   'src/native/crash_parts.h',
 ];
-export const PINNED_COUNT = 2751;
+export const PINNED_COUNT = 2749;
 const BASELINE = 'scripts/physics-sources-baseline.txt';
 
 export const CITE = /FITTED:|docs\/[\w./-]+\.md|https?:\/\/|scripts\/[\w./-]+\.js|npm run [\w:-]+/;
