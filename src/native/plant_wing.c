@@ -6065,7 +6065,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_i_max = 0.30,
   .as3x_k = { 0.0481, 0.1124, 0.3553 }, /* npm run as3x:derive */
   .as3x_kh = { 0.4293, 1.0032, 3.171 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.157, -5.465, -3.112 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.157, -5.456, -3.132 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6114,7 +6114,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .ge_wing = { 0.0293, 0.0, 0.065 }, /* the drawn model's wing quarter chord, npm run ge:derive */
   .ge_tail = { -0.5362, 0.0, -0.113 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
-  .side_cda = 0.1152,
+  .side_cda = 0.1522,     /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run nighttimber:derive */
   .rot_k = { 0.01132, 0.01439, 0.01218 },
 };
 

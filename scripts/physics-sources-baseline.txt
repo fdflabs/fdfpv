@@ -1539,7 +1539,6 @@ src/native/plant_wing.c FW_NIGHTTIMBER1200.tail_at = 3.812
 src/native/plant_wing.c FW_NIGHTTIMBER1200.tail_av = 3.394
 src/native/plant_wing.c FW_NIGHTTIMBER1200.tail_deda = 0.569
 src/native/plant_wing.c FW_NIGHTTIMBER1200.tail_cn = 1.17
-src/native/plant_wing.c FW_NIGHTTIMBER1200.side_cda = 0.1152
 src/native/plant_wing.c FW_NIGHTTIMBER1200.rot_k = { 0.01132, 0.01439, 0.01218 }
 src/native/plant.c PLANT_TABLE.mass_kg = 0.71
 src/native/plant.c PLANT_TABLE.inertia = { 0.0035, 0.0038, 0.0068 }

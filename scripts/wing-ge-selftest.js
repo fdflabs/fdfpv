@@ -79,7 +79,9 @@ const PLANES = [
  * pack's thrust and the tail's measured wash on one plant (w36-physics:
  * w36-seat-voltage and w36-wash-speed), the ground's term unchanged; the
  * wing, Skyhunter, Bramor, F-16, Zagi, NRJ and the two Strikers did not
- * move. */
+ * move. The Night Timber re-pinned for its fuselage's measured crossflow
+ * drag (w37-physics-servo; was f34bb151437c1dde), the ground's term
+ * unchanged. */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
   sky: '67c0dfd1d6dce1d1',
@@ -101,7 +103,7 @@ const PINS = {
   strikerprop: 'ac1ebe1d9baba2ed',
   strikerjet: '2c30dccda291887d',
   extra: '3507628f2a5cfd82',
-  nighttimber: 'f34bb151437c1dde',
+  nighttimber: '964632c1e2defb8e',
   hercules: '4405e5e3b684abe5',
   cap580: '8abf9aeac1ba645b',
   slick: 'd7e7790e169321bc',
