@@ -1802,10 +1802,10 @@ What a 3D harrier is flown with, from measured data, on every aircraft:
   at 0 deg (hi_lat, npm run f16:derive-hilat), the strips' stall moments
   off. The first try anchored the ratios at 20 deg, where the table's
   stability axis Cl beta is half the plant's, and departed S9; anchored at
-  0 it holds the mush. S9's spin check still fails on the fan's
-  precession in the entry's 44 deg overshoot (0.26 s, 7.3 against 6.6
-  deg/s). The inertias stay ESTIMATED (a parts build up gives Iz/Ix 8.9
-  against 5.7).
+  0 it holds the mush. S9 is entered from the normal approach speed
+  (FAA-H-8083-3C ch. 5); full up from 25.7 m/s overshot to 44 deg and the
+  fan's precession tripped the spin check there. The inertias stay
+  ESTIMATED (a parts build up gives Iz/Ix 8.9 against 5.7).
 - **The Tiger Moth** (ESTIMATE, ~/Desktop/fdfpv-loop/research/TIGERMOTH-HIGH-ALPHA.md):
   its sideslip split from tigermoth-derive; the fin kept past the stall
   from the NY-1's spinning balance (NACA TR 456) and the two wings' wake

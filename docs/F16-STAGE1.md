@@ -140,7 +140,7 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 
 ## The intended behaviour, and how each part is proven
 
-`npm run f16:gates`, 23 of 24 (S9 fails its spin check, below), flown in Manual:
+`npm run f16:gates`, 24 of 24, flown in Manual:
 
 | Check | Derived | Band | Measured |
 | --- | --- | --- | --- |
@@ -152,7 +152,7 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 | S6 30 deg bank let go, 6 s | 17.2 deg | 8 to 26 | 15.0 (18.6 before the measured lateral set) |
 | S7 full aileron at 30 m/s | 515 deg/s (p b/2V 0.132) | 386 to 644 | 498, p b/2V 0.123 (the full size F-16: 0.107; 460 before the measured lateral set) |
 | S8 45 deg bank held | V²/(g tan) | within 15 percent, level | 163 m, 2 percent |
-| S9 full up held, 60 percent, wings held | 31.5 deg of alpha | 22 to 40, wing tilt 15, no spin | 26.2, tilt 8.8; FAIL: body yaw 7.3 deg/s against the spin check's 6.6 at 0.26 s; hands off 1 deg of bank in 12 s |
+| S9 full up held, 60 percent, wings held, from the approach speed | 31.5 deg of alpha | 22 to 40, wing tilt 15, no spin | 26.4 (peak 41.4), tilt 3.9, yaw 5.3 deg/s under the spin line; hands off 0 deg of bank in 12 s |
 | S10 phugoid | 9.84 s | 8.15 to 11.52 | 9.86 |
 | S11a spool from stopped to 90 percent thrust | 0.562 s | 0.506 to 0.618 | 0.562 |
 | S11b from 30 percent turning | 0.343 s | 0.309 to 0.377 | 0.343 |
@@ -234,21 +234,39 @@ same tables hold S9: hands off the wings tilt at most 9.9 deg, 5.8 after the
 entry's first 5 s (the old plant spiralled to 63), and the pilot holds them
 within 8.8.
 
-What is left failing, S9's spin check: in the first 0.26 s full up from
-25.7 m/s overshoots to 44 deg of alpha at 230 deg/s of pitch, and the fan's
-precession (j_prop) yaws the body 7.3 deg/s against the check's 6.6. With
-j_prop zero the flight is exactly symmetric and passes; the margin past the
-old plant's comes from the measured Cn beta and Cl beta (neutralising either
-row passes it), Cn beta being unstable past 30 deg as TP-1538 measured it
-("Above alpha = 30 deg, Cn beta reached large unstable (negative) values", pp.
-11 to 12). It is a quarter second of transient, not autorotation; the gate
-is left failing and its definition is the lead's call.
+S9's entry. Full up from level at 60 percent, 25.7 m/s, overshot to 44 deg
+of alpha in 0.24 s at 230 deg/s of pitch, and the fan's precession (j_prop)
+yawed the body 7.3 deg/s against the spin check's 6.6 (with j_prop zero the
+flight is exactly symmetric and passes; the margin past the old plant's came
+from the measured Cn beta and Cl beta, Cn beta being unstable past 30 deg as
+TP-1538 measured it, "Above alpha = 30 deg, Cn beta reached large unstable
+(negative) values", pp. 11 to 12). That entry is not how a stall is set up:
+FAA-H-8083-3C ch. 5, "Airspeed in excess of the normal approach speed should
+not be carried into a stall entry since it could result in an abnormally
+nose-high attitude ... When the approach attitude and airspeed have
+stabilized, the pilot should smoothly raise the airplane's nose". S9 is now
+entered level at the normal approach speed, 1.3 times the middle of S2's
+band (15.78 m/s, on 0.463 of the throttle), the power then set to 60 percent
+and the stick brought up by the person's hand (wingpilot.js person). It
+peaks at 41.4 deg of alpha, holds 26.4, the wings within 3.9 deg, the yaw
+5.3 deg/s under the check's line; the batch's old lateral terms on the same
+entry: 10.2 deg and 1.8 under. The spin check is unchanged, sample by
+sample.
 
-S9's bank is now the span's tilt off the horizon, not the Euler bank: the
-entry zooms to 78 to 80 deg of pitch, where the Euler bank is singular and
-read 31 to 37 deg with the wings within 9 of level. Tilt is never larger than
-the Euler bank and equal to it at level pitch; with the Euler sensing pilot
-the tilt is 14.5, with the tilt sensing pilot 8.8, both inside 15.
+The hand is a step to full up 0.2 s late, not a paced loop: the measured
+margin loop (crossoverFor on the pitch stick) cannot be taken at the
+approach speed, whose lightly damped phugoid near 0.7 rad/s puts the pitch
+response's phase at +52 deg at the grid's 0.4 rad/s (magnitude 1.5, 3.5,
+10.9 per unit stick at 0.4, 0.6, 0.8 rad/s; -79 to -84 deg from 1.2 to 4),
+which crossoverFor's sense check rejects; and alpha on the stick is no
+integrator, so it has no crossover of its kind either.
+
+S9's bank is the span's tilt off the horizon (attitude().bank), not the
+Euler bank: the old entry zoomed to 78 to 80 deg of pitch, where the Euler
+bank is singular and read 31 to 37 deg with the wings within 9 of level.
+Tilt is never larger than the Euler bank and equal to it at level pitch; on
+the old entry the Euler sensing pilot held the tilt within 14.5 and the tilt
+sensing pilot within 8.8, both inside 15.
 
 Is S9's expectation sourced? Freewing claims the jet "can maintain a high
 alpha of 30 degrees", which says nothing of the ailerons. TP-1538 has the
@@ -269,7 +287,12 @@ scaled jet's 5.7; Cn beta dyn and inertia coupling go with it. Flown in a
 scratch build it moves S7 to 504 deg/s and S6 not at all, and S9's spin
 check then trips at 4.1 s (15.0 against 13.6 deg/s) in the zoom's stall.
 Both sets are estimates; neither is measured, so the plant keeps the
-scaled one. A bifilar measurement of the model would settle it.
+scaled one, ESTIMATED. A measurement would settle it: hang the model by two
+parallel wires and time its swing about each axis in turn, the bifilar
+pendulum (Habeck and Seiler, "Moment of Inertia Estimation Using a Bifilar
+Pendulum", University of Minnesota, https://conservancy.umn.edu/items/93c40732-5e50-4c4b-97dd-23a7ab4c05c2):
+I = m g D^2 T^2 / (16 pi^2 L), D the wires' spacing, L their length, T the
+period.
 
 ## The gear
 

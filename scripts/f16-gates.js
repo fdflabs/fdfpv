@@ -54,7 +54,7 @@ import {
   slowstickGroundPrelude, skyPrelude, kadetGroundPrelude, p51RecPrelude, p51AirPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
   timberFloatRecPrelude, RC_STEP_MS,
-  turnYawLimitDeg, spinWatch,
+  turnYawLimitDeg, spinWatch, person,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -87,12 +87,6 @@ const within = (v, b) => v >= b.min && v <= b.max;
 const band = (b) => `${b.min} to ${b.max}`;
 const heading = (s) => Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
 const fullBank = (s) => Math.atan2(2 * (s[9] * s[10] + s[7] * s[8]), 1 - 2 * (s[8] * s[8] + s[9] * s[9]));
-/* The span's tilt off the horizon, the body y axis's world z: a wing's
- * drop at any pitch. The Euler bank above runs away near a vertical nose
- * (phi dot = p + (q sin phi + r cos phi) tan theta, Etkin and Reid's
- * kinematic equations, singular at theta 90), where a yaw of a few deg/s
- * reads as tens of degrees of bank with the wings level. */
-const wingTilt = (s) => Math.asin(Math.max(-1, Math.min(1, 2 * (s[9] * s[10] + s[7] * s[8]))));
 const speed = (s) => Math.hypot(s[4], s[5], s[6]);
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -252,37 +246,59 @@ check: {
       `within ${t8.maxOffPercent} percent, level`);
   }
 
-  /* S9: full up held from 20 m/s at 60 percent: the high alpha Freewing
-   * advertises, with no wing drop and no spin. The wings are held, and
-   * judged, on their tilt off the horizon: the entry zooms to 80 deg of
-   * pitch, where the Euler bank is not the wings' (wingTilt). */
+  /* S9: full up held at 60 percent: the high alpha Freewing advertises,
+   * with no wing drop and no spin. Entered as FAA-H-8083-3C ch. 5 sets a
+   * stall up ("Full Stalls, Power-Off", as bombshell-gates.js S9a quotes
+   * it): "Airspeed in excess of the normal approach speed should not be
+   * carried into a stall entry since it could result in an abnormally
+   * nose-high attitude ... When the approach attitude and airspeed have
+   * stabilized, the pilot should smoothly raise the airplane's nose": level
+   * at the normal approach speed, 1.3 times the middle of S2's stall band,
+   * on the throttle that holds it there; then the power set and the stick
+   * brought up by the person's hand (wingpilot.js person: 0.2 s late, ten
+   * looks a second, fiftieths of the stick), the wings held level on the
+   * ailerons. The wings are held, and judged, on their tilt off the
+   * horizon (attitude().bank, the span's angle), which stays the wings'
+   * where the Euler bank does not: near a vertical nose that is singular
+   * (Etkin and Reid's kinematic equations). */
   {
     const t9 = th.s9_high_alpha;
-    clockMs = flyUp(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
+    const vApp = t9.entryOverStall * (th.s2_stall.min + th.s2_stall.max) / 2;
+    const atApproach = (duty) => flyUp(sim, { duty, vTarget: vApp, seconds: 25, ...pattern, speed0: vApp });
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 14; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (atApproach(mid).vz < 0) lo = mid; else hi = mid;
+    }
+    const dutyApp = (lo + hi) / 2;
+    clockMs = atApproach(dutyApp).endMs;
     const psi0 = heading(sim.readState().state);
     let worstBank = 0;
     let worstR = 0;
+    let peakAlpha = 0;
     const spin = spinWatch(th.s2_stall.alphaStall, t9.maxBankDeg);
     let worstHead = 0;
     let alphaSum = 0;
     let n = 0;
     let o = { s: sim.readState().state };
+    const hand = person((s) => [-0.8 * attitude(s).bank - 0.05 * s[11], 1]);
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) {
-      const roll = Math.max(-1, Math.min(1, -0.8 * wingTilt(o.s) - 0.05 * o.s[11]));
-      o = step(sim, [roll, 1, 0, t9.duty]);
-      worstBank = Math.max(worstBank, Math.abs(wingTilt(o.s) * DEG));
+      const [roll, pitch] = hand(ms, o.s);
+      o = step(sim, [roll, pitch, 0, t9.duty]);
+      worstBank = Math.max(worstBank, Math.abs(attitude(o.s).bank * DEG));
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
+      peakAlpha = Math.max(peakAlpha, wingDebug(sim)[0] * DEG);
       spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       worstHead = Math.max(worstHead, Math.abs(wrap(heading(o.s) - psi0)) * DEG);
       if (ms >= t9.seconds * 1000 - 2000) { alphaSum += wingDebug(sim)[0] * DEG; n += 1; }
     }
     const alpha = alphaSum / n;
-    /* The same hands off, for the record: the slow spiral it is. */
-    clockMs = flyUp(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
+    /* The same hands off, for the record. */
+    clockMs = atApproach(dutyApp).endMs;
     let free = null;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) free = step(sim, [0, 1, 0, t9.duty]);
     gate('S9', 'full up held: 30 deg of alpha, the wings held', alpha >= t9.alphaMinDeg && alpha <= t9.alphaMaxDeg && worstBank <= t9.maxBankDeg && spin.ok(),
-      `alpha ${alpha.toFixed(1)} deg, bank ${worstBank.toFixed(1)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), heading ${worstHead.toFixed(0)} deg, ${speed(o.s).toFixed(2)} m/s, sink ${(-o.s[6]).toFixed(2)}; hands off ${(fullBank(free.s) * DEG).toFixed(0)} deg of bank after ${t9.seconds} s`,
+      `from ${vApp.toFixed(2)} m/s on ${dutyApp.toFixed(3)}: alpha ${alpha.toFixed(1)} deg (peak ${peakAlpha.toFixed(1)}), bank ${worstBank.toFixed(1)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), heading ${worstHead.toFixed(0)} deg, ${speed(o.s).toFixed(2)} m/s, sink ${(-o.s[6]).toFixed(2)}; hands off ${(attitude(free.s).bank * DEG).toFixed(0)} deg of bank after ${t9.seconds} s`,
       `alpha ${t9.alphaMinDeg} to ${t9.alphaMaxDeg}, bank ${t9.maxBankDeg}, yaw under the turn its bank allows at its speed while stalled`);
   }
 
