@@ -400,6 +400,11 @@ one's source text.
 | S8 level turn at 45 deg, 90 percent | 8.36 to 10.26 m | 7.1 to 9.62, now 8.72 to 11.81 |
 | S10 phugoid | 6.08 to 6.16 s | 5.0 to 7.1, now 5.07 to 7.19 |
 | S11 prop torque, static | times 1.145 | 0.028 to 0.065, now 0.0321 to 0.0744 |
+
+With the swirl's force on the whole stream as well (w36-wash-speed,
+docs/FLIGHTMODEL.md), S6 is re-derived on the plant that has both: the
+flown model gives 18.3, 15.8 and 10.5 deg after 2, 4 and 6 s, 5.96 m/s at
+6 s, and the plant flies 19.8, 15.9 and 10.1, within 1.6 of it.
 | S15 take off roll | 2.22 to 1.88 m | 1.6 to 3.39, now 1.36 to 2.87 m |
 | S19 thermal pass | 22.5 to 22.8 m | 16.9 to 28.1, now 17.1 to 28.5 |
 
