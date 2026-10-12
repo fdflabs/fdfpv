@@ -455,6 +455,16 @@ R-474) on each fuselage's side area from its derivation or render model.
   side force is war:legacy's and is not this lane's to move.
 - The floats' own side area is not in the float versions' figure: the
   land fuselage's is, ESTIMATED.
+- The 1.2 is a round body's. The Extra, CAP, Slick (63d1a6073) and the
+  Night Timber (w37-physics-servo) take theirs on their drawn rounded box
+  sections, NACA TN 3038 through `scripts/lib/crossflow.js`. Still on the
+  round body's, with what their drawn FUSE tables give (2026-10-12, not
+  applied: each moves its own gates): the Timber 1.19, Cub 1.40, Tiger
+  Moth 1.48, Radian 1.34, Bombshell 1.52, Hercules 1.02 times it (the
+  Hercules is at 0.78 of its side view, another source). The Kadet's box
+  sections (squareness 5) are past the lib's 4 and need TN 3038's sharper
+  rounded squares; the P-51, F-16 and Ugly Stik draw their fuselages in
+  other forms.
 
 ### The probe, PR 3 to PR 4
 
