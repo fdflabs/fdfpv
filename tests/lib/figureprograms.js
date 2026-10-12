@@ -680,7 +680,21 @@ export const PROGRAMS = {
    * short of their marks. On the combined plant (w36-physics,
    * 2026-10-12) the Extra names it at 0.21, 0.22, 0.24, 0.26 and 0.27 (1
    * to 3.5) and not at 0.23 or 0.25 (the CAP 0, the Slick 0.5 at 0.25):
-   * a figure on a hair, its stick not moved to land between two misses. */
+   * a figure on a hair, its stick not moved to land between two misses.
+   * Flown instead to its judging rule ("the aircraft stops rotation ...
+   * at regular intervals. The rate of the roll, when not in pause, must
+   * be constant throughout"; "The pauses will be of identical duration.
+   * Each pause ... must be clearly recognizable", FAI/CIVA Sporting Code
+   * Section 6 Part 1, B.9.26.2 and B.9.26.3), the slow roll's 1.7 rad/s
+   * held on rateRoll's law between 45 deg stops let go at POINT_LEAD,
+   * each stop held 400 ms: named on none of the three (2026-10-12). The
+   * detector sees 4 or 5 pauses, not 7: with no aileron in the hold the
+   * roll runs on through a stop (as the 4-point roll's knife edge stops
+   * do under the top rudder), so the stops are not recognizable. Here, at
+   * 0.25, the Extra's roll is seen with 6 pauses; the CAP's and the
+   * Slick's (0 and 0.5) lose 4 to 4.5 points to the path off its line and
+   * 2.5 to 3.5 to the roll's total, the points' angles 1.5 to 2.
+   * The hold's stop, not the stick, is what is missing. */
   eight_point_roll: [L(), points(8, 0.25), L()],
   barrel_roll: [L(), roll(0.35, 2 * PI, 1, 0.3, false), L()],
   outside_loop: [L(), pull(-0.55, 2 * PI), L()],
