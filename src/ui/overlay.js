@@ -53,6 +53,9 @@ const AIR_HINT_MS = 10000;
 const RUN_CLOCK_FULL = '2:00';
 const RUN_LATE_MS = 10_000;
 
+/* The comparison's channels this frame, written in place by StickRef.at. */
+const REF_STICKS = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
+
 /* String keys, resolved per frame through str() so a locale change reads
  * right on the next frame. */
 const FLIGHT_MODE_KEYS = { angle: 'ui.angle', stab: 'ui.stabilised', manual: 'ui.manual', as3x: 'ui.as3x' };
@@ -422,20 +425,37 @@ export const overlayMethods = {
   },
 
   /*
-   * The keyboard's stick ghosts, in the pilot's stick mode. `show` hides
-   * the two gimbals only: the block also holds the air slider, which is
-   * setAirSlider's to show. The view itself carries the four channels, so
-   * it is handed on as is.
+   * The stick ghosts, in the pilot's stick mode. `show` is the input's
+   * call (keyboard and mouse always show them); a view with a clock (t,
+   * the plant's seconds, and air) is a frame in flight, where the Show
+   * sticks setting or a loaded comparison (src/ui/stickref.js) shows them
+   * for any input too, the comparison as a ring under the pilot's nub.
+   * Hiding hides the two gimbals only: the block also holds the air
+   * slider, which is setAirSlider's to show. The view itself carries the
+   * four channels, so it is handed on as is.
    */
   setStickOverlay(view) {
     if (!this.osdSticks) {
       return;
     }
-    const cls = view.show ? 'osd-gimbal' : 'osd-gimbal is-off';
+    const flying = view.t !== undefined;
+    const ref = this.stickRef && this.osdRefLeft ? this.stickRef : null;
+    const show = view.show || (flying && (this.settings.showSticks === true || (ref !== null && ref.loaded)));
+    const cls = show ? 'osd-gimbal' : 'osd-gimbal is-off';
     Ui.klass(this.osdStickLeft.box, cls);
     Ui.klass(this.osdStickRight.box, cls);
-    if (view.show) {
+    if (show) {
       placeSticks(this.osdStickLeft, this.osdStickRight, view, this.settings.stickMode);
+    }
+    if (!ref) {
+      return;
+    }
+    const theirs = show && flying ? ref.at(view.t, view.air === true, REF_STICKS) : null;
+    const ring = theirs ? 'osd-nub osd-nub-ref' : 'osd-nub osd-nub-ref is-off';
+    Ui.klass(this.osdRefLeft.nub, ring);
+    Ui.klass(this.osdRefRight.nub, ring);
+    if (theirs) {
+      placeSticks(this.osdRefLeft, this.osdRefRight, theirs, this.settings.stickMode);
     }
   },
 

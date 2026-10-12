@@ -19224,6 +19224,7 @@ export async function boot({
     progressTick(powerNow);
     const ch = input.channels;
     const vis = turtleAxes(ch.roll, ch.pitch);
+    const inAir = !landed && !launchStaging && !crashed && !poseLock;
     ui.setStickOverlay({
       /* window.__showSticks: a capture's own switch, so a recorded flight
        * shows the sticks whatever flies it (scripts/hover-video.js). */
@@ -19232,11 +19233,14 @@ export async function boot({
       pitch: vis[1],
       yaw: ch.yaw,
       throttle: ch.throttle,
+      /* The clock a compared recording plays on (src/ui/stickref.js). */
+      t: stateCurr[0],
+      air: inAir,
     });
     /* The air slider belongs to every pilot, radio, keyboard and thumbs
      * alike, so it is up whenever there is a quad in the air to try it on;
      * its first run hint is raised in there too. */
-    ui.setAirSlider(true, !landed && !launchStaging && !crashed && !poseLock);
+    ui.setAirSlider(true, inAir);
     updateTargetLock();
     hudChrome();
   }
