@@ -1857,6 +1857,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   const double cla = wing_cla(fw);
   const double alpha_stall = clmax / cla;
   const double aa = sim_fabs(add_term(alpha, dcl_f / cla));
+  const double round = fw->stall_round > 0.0 ? fw->stall_round : fw->stall_blend;
   /* With the tail's own angle (hi_alpha) and the wing's own slope, the
    * tail's lift, the elevator's with it, is the tail's, taken in
    * plant_wing_step on the tail's angle; this is the wing's alone. */
@@ -1880,13 +1881,13 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
    * were: the drag rises before the peak, as a real section's does, and
    * the gates measure the stall at the linear crossing. */
   const double aw = add_term(alpha, dcl_f / cla);
-  const double a0 = alpha_stall - fw->stall_blend;
-  const double a1 = alpha_stall + fw->stall_blend;
+  const double a0 = alpha_stall - round;
+  const double a1 = alpha_stall + round;
   double wing = clmax;
   if (aa < a0) {
     wing = cla * aa;
   } else if (aa < a1) {
-    wing = clmax - cla * (a1 - aa) * (a1 - aa) / (4.0 * fw->stall_blend);
+    wing = clmax - cla * (a1 - aa) * (a1 - aa) / (4.0 * round);
   }
   const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * de_w;
   const double s_hi = smoothstep(a1, a1 + 2.0 * fw->stall_blend, aa);
@@ -1901,6 +1902,10 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
     const int neg = add_term(alpha, shift) < 0.0;
     const double cl_s = neg ? clmax - fw->cl_de * de_w : clmax + fw->cl_de * de_w;
     cl_st = stalled_lift(fw, k_stall, fw->stall_top, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
+    /* The curve goes over to the stalled lift as it rounds to its peak. */
+    if (fw->stall_round > 0.0) {
+      past = smoothstep(alpha_stall, alpha_stall + round, aa);
+    }
   }
   o->cl_lin = cl_lin;
   o->sigma = sigma;
@@ -2077,7 +2082,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     fw_re.cl_max = fw->stall_clmax[0] + x * (fw->stall_clmax[1] - fw->stall_clmax[0]);
     const double peak = fw->stall_peak[0] + x * (fw->stall_peak[1] - fw->stall_peak[0]);
     const double b = peak - fw_re.cl_max / wing_cla(fw);
-    fw_re.stall_blend = b > fw->stall_blend ? b : fw->stall_blend;
+    if (fw->stall_round > 0.0) {
+      fw_re.stall_round = b > fw->stall_round ? b : fw->stall_round;
+    } else {
+      fw_re.stall_blend = b > fw->stall_blend ? b : fw->stall_blend;
+    }
     fw = &fw_re;
   }
   /* The discus launch's zoom lasts as long as the climb does. */
@@ -4721,7 +4730,18 @@ const FixedWingParams FW_P51D1450 = {
   .chord = 0.24413793103448276, /* S/b */
   .cl_alpha = 4.960,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
   .cl_alpha_wing = 4.665, /* the wing alone, a_w, scripts/p51-derive.js */
-  .cl_max = 1.05,         /* the laminar section at 2e5, ESTIMATED */
+  .cl_max = 1.0711,       /* npm run p51:derive: the wing's CL max at the clean stall's Reynolds number */
+  /* The stall across the Reynolds numbers, docs/P51-STAGE1.md: the UIUC
+   * NACA 2415 and 64A010 standing for the laminar section either side of
+   * its thickness, the wing's CL max on the strips' own terms and its peak
+   * the critical strip's section's plus CL / (pi A e), npm run p51:derive. */
+  .stall_re = { 1.0e5, 2.0e5 },
+  .stall_clmax = { 1.0330, 1.0903 },
+  .stall_peak = { 0.3136, 0.3229 },    /* 17.97 and 18.50 deg */
+  /* The rounding to the peak apart from the fall: the 2415 at 2e5 rounds
+   * 5.4 deg to its peak and falls 1.222 to 0.749 within 0.8 deg, so the
+   * fall, the strips and the stall's drag and moments keep stall_blend. */
+  .stall_round = 3.0 * WING_PI / 180.0,
   /* The zero lift line 1.28 degrees under the thrust line: a 6 series
    * section's 1.3 deg under its chord at the wing's mean incidence of 0.13
    * deg, less the tail's share. sin and cos of minus 1.28 degrees. */
