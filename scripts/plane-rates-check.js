@@ -3,12 +3,14 @@
  * driven through the real shell with a real pointer and keys:
  *   npm run planerates:check -- [outdir]   (build/plane-rates-check)
  * The Timber flies on the Swiss valley; Escape pauses it. The pause
- * menu's Flight panel's Rates row reads the Timber's high rate throws (configs/tuning.js),
- * not the quad's Actual 670, and opens the plane's Rates screen. Two
- * presses left on its Rate row pick the manual's low rate, and the plant
- * flies those throws at once, in the paused run (sim_wing_tune). One press
- * left on the aileron expo takes 30 percent to 20, which the plant flies
- * too, and one press right on the elevator to flap mix takes it from off
+ * menu's Flight panel's Rates row reads the Timber's own stock rate, the
+ * manual's first flight low rate (configs/tuning.js THE STOCK RATE: "Take
+ * first flights in Low Rate"), not the quad's Actual 670, and opens the
+ * plane's Rates screen. Two presses right on its Rate row pick the high
+ * rate, and the plant flies those throws at once, in the paused run
+ * (sim_wing_tune). One press right on the aileron expo takes the manual's
+ * low rate 5 percent to the next step, 10, which the plant flies too, and
+ * one press right on the elevator to flap mix takes it from off
  * to 25 percent in the plant. Escape returns to the Flight panel. No page
  * error. Pictures in outdir.
  *
@@ -33,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/settings.js';
-import { throwsFor } from '../configs/tuning.js';
+import { stockEntry, throwsFor } from '../configs/tuning.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || join(root, 'build', 'plane-rates-check');
@@ -96,8 +98,9 @@ try {
   await page.until("window.__ui.screen === 'quick'", 10000).catch(() => {});
   const row = await page.evaluate("(() => { const it = window.__ui.items().find((i) => i.label === 'Rates'); return it ? { action: it.action, value: it.value, id: it.id } : null; })()");
   const high = round(throwsFor(AF, 'high'));
-  check('the pause menu\'s Flight panel Rates row is the Timber\'s high rate, not the quad\'s Actual 670',
-    row && row.action === 'planerates' && row.value === `High, ${high.map((d) => `${d}°`).join(' ')}` && !/670/.test(row.value), JSON.stringify(row));
+  const low = round(throwsFor(AF, 'low'));
+  check('the pause menu\'s Flight panel Rates row is the Timber\'s stock rate, the manual\'s low, not the quad\'s Actual 670',
+    stockEntry(AF).rate === 'low' && row && row.action === 'planerates' && row.value === `Low, ${low.map((d) => `${d}°`).join(' ')}` && !/670/.test(row.value), JSON.stringify(row));
   await shot(page, 'paused');
   const before = await plant(page);
   await click(page, `[data-row-id="${row.id}"] .row-label`);
@@ -105,30 +108,29 @@ try {
   check('a click on it opens the plane\'s Rates screen', (await page.evaluate('window.__ui.screen')) === 'planerates');
   await shot(page, 'planerates');
   await click(page, '[data-row-id^="planerates:"] .row-label');
-  await page.tap('ArrowLeft');
+  await page.tap('ArrowRight');
   await page.sleep(200);
-  await page.tap('ArrowLeft');
+  await page.tap('ArrowRight');
   await page.sleep(500);
-  const low = round(throwsFor(AF, 'low'));
   const after = await plant(page);
   const stored = await page.evaluate(`window.__ui.settings.tuning[${JSON.stringify(AF)}]`);
-  check('two presses left pick the manual\'s low rate, stored as the hangar stores it', stored && stored.rate === 'low', JSON.stringify(stored));
-  check('and the plant flies the low throws at once, still in the paused run', after && near(after.throws, low) && after.mode === before.mode && before && near(before.throws.length ? before.throws : high, high),
-    `${JSON.stringify(before)} -> ${JSON.stringify(after)}, low ${low}`);
+  check('two presses right pick the high rate, stored as the hangar stores it', stored && stored.rate === 'high', JSON.stringify(stored));
+  check('and the plant flies the high throws at once, still in the paused run, from the stock low', after && near(after.throws, high) && after.mode === before.mode && before && near(before.throws, low),
+    `${JSON.stringify(before)} -> ${JSON.stringify(after)}, high ${high}`);
   const rows = await page.evaluate("window.__ui.items().map((i) => i.id)");
   const expoRow = rows.find((id) => /expo/.test(id) && /aileron/i.test(id));
   await click(page, `[data-row-id="${expoRow}"] .row-label`);
-  await page.tap('ArrowLeft');
+  await page.tap('ArrowRight');
   await page.sleep(500);
   const expo = await plant(page);
-  check('one press left on the aileron expo takes it from 30 to 20 percent in the plant', expo && Math.abs(expo.expoA - 0.2) < 1e-9, `${expoRow}: ${JSON.stringify(expo)}`);
+  check('one press right on the aileron expo takes it from the manual\'s low rate 5 to 10 percent in the plant', before && Math.abs(before.expoA - 0.05) < 1e-9 && expo && Math.abs(expo.expoA - 0.1) < 1e-9, `${expoRow}: ${JSON.stringify(expo)}`);
   const mixRow = rows.find((id) => /elevator-to-flap/.test(id));
   await click(page, `[data-row-id="${mixRow}"] .row-label`);
   await page.tap('ArrowRight');
   await page.sleep(500);
   const mixed = await plant(page);
   check('one press right on the Timber\'s elevator to flap mix takes it from off to 25 percent in the plant', mixed && Math.abs(mixed.elevFlap - 0.25) < 1e-9, `${mixRow}: ${JSON.stringify(mixed)}`);
-  await shot(page, 'low');
+  await shot(page, 'high');
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'quick'", 10000).catch(() => {});
   check('Escape goes back to the Flight panel it came from', (await page.evaluate('window.__ui.screen')) === 'quick');
