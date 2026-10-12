@@ -69,6 +69,14 @@
  *    had one carries none; a trim keeps it; the version 8 file round trip
  *    bit for bit with a crown and without, version 7 and 3 still written
  *    without the clock, and its refusals.
+ * 23. The pilot's sticks (src/replay/sticks.js): each row's channels,
+ *    mode, flaps, velocity and rates kept, quantised and clamped; a row
+ *    that never had them leaves the clip without; between two rows the
+ *    sticks run on and the mode holds; a trim keeps them; the version 16
+ *    file round trip bit for bit beside peers, paper and the clock, the
+ *    clip without sticks still the version before and read back without
+ *    them, and its refusals; the export a control recording that parses
+ *    and that Compare sticks loads.
  *
  * Run: npm run crashcam:selftest
  *
@@ -123,6 +131,11 @@ import { FLAG_CRASHED, FLAG_QUAD } from '../src/share/roomwire.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
+import {
+  BODY_N, MODES, STICK, STICK_N, STICK_SCALE, controlRows, createSticksRing, sticksAt,
+} from '../src/replay/sticks.js';
+import { COLUMN as CR, parseCsv, toCsv } from '../src/share/controlrec.js';
+import { StickRef } from '../src/ui/stickref.js';
 import {
   cut, defaultEdit, fromKeys, movieTime, setCam, setEnter, setSpeed,
 } from '../src/replay/edit.js';
@@ -2076,6 +2089,7 @@ function animRecord() {
   gateFile(withClock, refused);
   soundFile(withClock, refused);
   voiceFile(withClock, refused);
+  sticksFile(withClock, refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -2755,6 +2769,135 @@ function gateFile(withClock, refused) {
   check(new DataView(encodeReplay(none)).getUint32(4, true) === 11, 'the same war without gates is version 11, as before');
   refused(() => reheader(buf, 11), 'a gate state in a file that says version 11');
   refused(() => encodeReplay({ ...clip, war: { ...war, world: [{ ...m, gates: [{ gate: 'the-moon', at: 1, open_m: 1 }] }] } }), 'a gate entry that is not one');
+}
+
+/*
+ * 23. The pilot's sticks (src/replay/sticks.js), kept beside the rows as
+ * src/replay/crashcam.js keeps them: one write a row the recorder began.
+ * Saved as version 16; a clip without them is still the version before.
+ */
+function sticksFile(withClock, refused) {
+  console.log('23. the pilot\'s sticks, mode and flaps, played, exported and saved (version 16)');
+  const n = withClock.n;
+  const ring = createSticksRing(n + 4);
+  const chAt = (k) => ({
+    roll: Math.sin(k * 0.3), pitch: -0.5 + k / (2 * n), yaw: k % 7 === 0 ? 1.4 : -0.25, throttle: k / n,
+  });
+  const modeAt = (k) => (k < n / 2 ? 'as3x' : 'stab');
+  const flapsAt = (k) => (k < 10 ? 0 : 2);
+  const st = new Float64Array(20);
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    for (let j = 0; j < 3; j += 1) {
+      st[4 + j] = 10 + k + j * 0.25;
+      st[11 + j] = -1 + k * 0.01 + j;
+    }
+    ring.write(chAt(k), modeAt(k), flapsAt(k), st);
+  }
+  const sticks = ring.clip(0, n);
+  let wrong = '';
+  for (let k = 0; k < n; k += 1) {
+    const c = chAt(k);
+    const o = k * STICK_N;
+    const want = [Math.max(-1, Math.min(1, c.roll)), c.pitch, Math.max(-1, Math.min(1, c.yaw)), c.throttle];
+    const got = [STICK.roll, STICK.pitch, STICK.yaw, STICK.throttle].map((i) => sticks.ch[o + i] / STICK_SCALE);
+    if (got.some((x, i) => Math.abs(x - want[i]) > 0.5 / STICK_SCALE + 1e-9)
+      || MODES[sticks.ch[o + STICK.mode]] !== modeAt(k) || sticks.ch[o + STICK.flaps] !== flapsAt(k)
+      || Math.fround(10 + k) !== sticks.body[k * BODY_N] || Math.fround(-1 + k * 0.01 + 1) !== sticks.body[k * BODY_N + 4]) {
+      wrong = wrong || `row ${k}: ${got.join(' ')}`;
+    }
+  }
+  check(sticks && !wrong, 'each row keeps the four sticks to half a step of 1/32767, the mode, the flaps, the velocity and the rates',
+    wrong || `${n} rows, yaw 1.4 kept as ${sticks.ch[STICK.yaw] / STICK_SCALE}`);
+  ring.begin(n);
+  check(ring.clip(1, n) === null, 'a span holding a row that never had its sticks makes a clip without them');
+  let unknown = null;
+  try {
+    ring.write(chAt(0), 'hover-assist', 0, st);
+  } catch (err) {
+    unknown = err;
+  }
+  check(unknown instanceof Error, 'a mode the file has no number for is an error, not saved as another', unknown ? unknown.message : 'written');
+
+  const out = {};
+  sticksAt(sticks, n, 3, 0.5, out);
+  const mid = (i) => (sticks.ch[3 * STICK_N + i] + sticks.ch[4 * STICK_N + i]) / 2 / STICK_SCALE;
+  check(Math.abs(out.roll - mid(STICK.roll)) < 1e-12 && Math.abs(out.throttle - mid(STICK.throttle)) < 1e-12 && out.mode === 'as3x' && out.flaps === 0,
+    'between two rows the sticks run on, the mode and the flaps are the row before\'s', JSON.stringify(out));
+  const half = Math.floor(n / 2);
+  sticksAt(sticks, n, half - 1, 0.9, out);
+  check(out.mode === modeAt(half - 1), 'a mode switch shows at its own row, not before', out.mode);
+
+  const clip = { ...withClock, sticks };
+  const t = trimWhole(clip, clip.time[5], clip.time[n - 3]);
+  check(t.sticks && t.sticks.ch.length === t.n * STICK_N && same(t.sticks.ch.subarray(0, STICK_N), sticks.ch.subarray(5 * STICK_N, 6 * STICK_N))
+    && same(t.sticks.body, sticks.body.subarray(5 * BODY_N, (5 + t.n) * BODY_N)), 'a trim keeps the sticks of the rows it keeps', `${t.n} rows`);
+
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  const before = encodeReplay(withClock);
+  check(new DataView(buf).getUint32(4, true) === 16 && same(back.sticks.ch, sticks.ch) && same(back.sticks.body, sticks.body)
+    && same(back.anim, withClock.anim) && same(back.peers.cols, withClock.peers.cols) && same(back.paper.bytes, withClock.paper.bytes),
+  'a clip with its sticks is saved as version 16 and comes back as it was, beside the pilots, the paper and the clock',
+  `${buf.byteLength - before.byteLength} bytes for ${n} rows of sticks`);
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  const old = decodeReplay(before);
+  check(new DataView(before).getUint32(4, true) === 8 && old.sticks === undefined
+    && Buffer.from(new Uint8Array(encodeReplay(old))).equals(Buffer.from(new Uint8Array(before))),
+  'the same clip without sticks is still version 8, and reads back without them');
+  let noClock = null;
+  try {
+    const bare = { ...clip };
+    delete bare.anim;
+    encodeReplay(bare);
+  } catch (err) {
+    noClock = err;
+  }
+  check(noClock instanceof Error, 'a clip with sticks and no clock is refused when written', noClock ? noClock.message : 'written');
+  refused(() => reheader(buf, 8), 'sticks in a file that says version 8');
+  refused(() => reheader(before, 16), 'a version 16 file without its sticks');
+  refused(() => buf.slice(0, buf.byteLength - 4), 'a version 16 file cut short of its sticks');
+  const at = buf.byteLength - n * BODY_N * 4 - n * STICK_N * 2;
+  const poke = (off, v) => {
+    const b = buf.slice(0);
+    new DataView(b).setInt16(at + off * 2, v, true);
+    return b;
+  };
+  refused(() => poke(STICK.mode, MODES.length), 'a mode the file has no name for');
+  refused(() => poke(STICK_N + STICK.flaps, 3), 'a flap notch past full');
+  refused(() => poke(2 * STICK_N + STICK.throttle, -5), 'a throttle under zero');
+  refused(() => poke(STICK.roll, -32768), 'a stick past full');
+  refused(() => {
+    const b = buf.slice(0);
+    new DataView(b).setFloat32(buf.byteLength - 4, NaN, true);
+    return b;
+  }, 'a rate that is not a number');
+
+  /* The export: one control recording row a clip row, and Compare sticks
+   * (src/ui/stickref.js) takes it. */
+  const rows = parseCsv(toCsv(controlRows(back)));
+  let off = '';
+  rows.forEach((r, k) => {
+    const o = k * STICK_N;
+    if (Math.abs(r[CR.roll] - sticks.ch[o] / STICK_SCALE) > 1e-6 || Math.abs(r[CR.throttle] - sticks.ch[o + STICK.throttle] / STICK_SCALE) > 1e-6
+      || Math.abs(r[CR.t_s] - back.time[k]) > 1e-6 * Math.max(1, back.time[k]) || Math.abs(r[CR.qw] - back.plant[k * PLANT_N + 3]) > 1e-6
+      || Math.abs(r[CR.vx] - sticks.body[k * BODY_N]) > 1e-5 * Math.abs(sticks.body[k * BODY_N]) || !Number.isNaN(r[CR.frame_wall_ms])) {
+      off = off || `row ${k}`;
+    }
+  });
+  check(rows.length === n && !off, 'the export is a control recording with the clip\'s clock, sticks, attitude and velocity, the frame\'s wall clock empty',
+    off || `${rows.length} rows`);
+  const ref = new StickRef();
+  ref.loadCsv(toCsv(controlRows(back)), 'clip');
+  const ch = ref.at(0, true, {}) && ref.at((back.time[4] + back.time[5]) / 2, true, {});
+  check(ref.loaded && Math.abs(ch.roll - sticks.ch[4 * STICK_N] / STICK_SCALE) < 1e-6, 'Compare sticks loads it and plays its sticks on its clock', `${ref.seconds.toFixed(2)} s`);
+  let none = null;
+  try {
+    controlRows(old);
+  } catch (err) {
+    none = err;
+  }
+  check(none instanceof Error, 'a clip saved before the sticks has no export, and says so', none ? none.message : 'exported');
 }
 
 ring();

@@ -19272,6 +19272,18 @@ export async function boot({
     }
   }
 
+  /* The flight mode the OSD names, and the crash cam keeps with each row
+   * (src/replay/sticks.js MODES). */
+  function flightModeNow() {
+    if (airframeById(runAirframe).fixedWing) {
+      return ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
+    }
+    if (turtleWait || turtleFlip.active) {
+      return 'turtle';
+    }
+    return angleModeOn ? 'angle' : 'acro';
+  }
+
   /*
    * The readout. Altitude is measured against the surface UNDER the craft
    * through the same biased query every contact test uses, so a pilot over
@@ -19285,14 +19297,7 @@ export async function boot({
     const p = shell.quad.position;
     const nextGt = view.gates && view.gates[race.nextSceneIndex()];
     const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
-    let flightMode;
-    if (af.fixedWing) {
-      flightMode = ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
-    } else if (turtleWait || turtleFlip.active) {
-      flightMode = 'turtle';
-    } else {
-      flightMode = angleModeOn ? 'angle' : 'acro';
-    }
+    const flightMode = flightModeNow();
     /* Native launch state 3 latches until the L switch drops; the GO flash
      * is 900 ms, after which the overlay hides. */
     const launchState = (crashflipOn || turtleRecover || crashed)
@@ -21271,6 +21276,12 @@ export async function boot({
     },
     speed: () => speedNow,
     throttle: () => input.channels.throttle,
+    /* The rest of what the sticks and switches said, for the replay's
+     * gimbals (src/replay/sticks.js): the mode, the flap switch's notch
+     * (-1 without flaps), and the stick mode a replay draws them in. */
+    flightMode: flightModeNow,
+    flapNotch: () => (airframeById(runAirframe).flaps ? flapNotch : -1),
+    stickMode: () => ui.settings.stickMode,
     agl: () => lastClearance,
     surfaces: () => (shell.setSurfaces && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null),
     flaps: () => (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0),
