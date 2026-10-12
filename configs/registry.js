@@ -157,17 +157,12 @@ export const TUNES = [
    * is not only a tune: it is the configuration stage 1 verification and
    * the module checks fly plant 0 on (tests/, scripts/fc-trace.js).
    *
-   * The 7 inch's and the 10 inch's tunes are their folders',
-   * aircraft/7inch/aircraft.js and aircraft/10inch/aircraft.js.
+   * The three quads' tunes are their folders', aircraft/7inch,
+   * aircraft/10inch and aircraft/interceptor.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '7inch'),
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '10inch'),
-  {
-    id: 'betaflight-interceptor',
-    airframe: 'interceptor',
-    name: 'Factory default',
-    note: 'Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo.',
-  },
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'interceptor'),
   {
     /* The Slow Stick, a GWS kit with a receiver and servos and no gyro:
      * Manual. It has no ailerons, so the gyro's roll term has no surface

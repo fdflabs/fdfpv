@@ -129,81 +129,42 @@ export const AIRFRAMES = [
    * what makes it heavy (docs/COMBAT-DRONES.md section 1).
    */
   airframeOf('10inch'),
-  {
-    /*
-     * THE INTERCEPTOR, plant 26, docs/COMBAT-DRONES.md: the fast chaser
-     * that runs a Striker down and rams it. A stretched X 7 inch speed
-     * build on T-Motor Velox V2808 1300 kV motors and APC 7 x 9E two
-     * blades, on one Tattu 6S 1800 LiPo, the owner's reference photograph
-     * of 2026-10-01, every part a published one. Every number is
-     * scripts/combat-derive.js's from a parts list. It trades the 7 inch's
-     * pack and payload for speed: the fastest quad here, flat out and off
-     * the floor, for under half the 7 inch's charge, on a machine that
-     * rolls with the five inch. Flown at that speed it sits 70 degrees nose
-     * down, so its camera is tilted like a racer's.
-     *
-     * AND THE RACER since the five inch and the whoop were removed
-     * (2026-10-03): DEFAULT_AIRFRAME below, the quad a blank profile, Track
-     * Day and every retired quad id are seated on. It is the closest kind
-     * of machine left to a 6S five inch, a LiPo speed build on Betaflight
-     * at over 8 to 1 and the same top speed; the 7 and the 10 inch are
-     * Li-ion payload carriers at under 5 to 1. Outside a war it flies
-     * bare (src/ui/ui.js DEFAULTS.combat), and on its own weight, not the
-     * five inch's 1.62.
-     */
-    id: 'interceptor',
-    simId: 26,
-    name: 'Interceptor',
-    short: 'Interceptor',
-    blurb: 'An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack.',
-    facts: ['6S LiPo', '312 mm', '201 km/h'],
-    sizeMm: 312,
-    grams: 880,
-    trackClass: 'full',
-    /* Level at full throttle on a fresh pack, bare, measured on the module
-     * (scripts/combat-gates.js); the static thrust to weight is
-     * combat-derive's. */
-    topSpeed: 55.9,
-    thrustToWeight: 8.33,
-    cells: 6,
-    ...packStates(),
-    defaultTune: 'betaflight-interceptor',
-    /* Its real weight, as the other combat quads (docs/COMBAT-DRONES.md
-     * section 1). */
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 95,
-    cameraAngle: 45,
-    dims: {
-      /* Half the motor diagonal; the stretch is plant.c's arm_x 0.120 and
-       * arm_y 0.100. */
-      arm: 0.1562,
-      propR: 0.0889,
-      hullR: 0.0889,
-      /* plant.c's hull_hz_down and hull_hz_up: the legs reach the
-       * payload's belly, and up is the GPS puck's top. */
-      vHalfDown: 0.075,
-      vHalfUp: 0.057,
-      /* The plates as drawn, src/render/combatcraft.js COMBAT_FRAMES
-       * interceptor.plates, from the reference photograph: dims is the
-       * airframe as the renderer draws it. It read 0.22 with no source,
-       * which verify's check 15 found once the interceptor was the aircraft
-       * it seats (2026-10-03). */
-      bodyLength: 0.16,
-      bodyWidth: 0.06,
-      bodyHeight: 0.045,
-    },
-    combat: {
-      frame: 'interceptor',
-      payloads: [
-        { id: 'proximity', warhead: 'standard', massKg: 0.2, dragArea_m2: 0.004506, cgOffset_m: [0.0184, 0, -0.0523], dims: { d: 0.045, len: 0.16 } },
-      ],
-      accessories: [
-        { id: 'lrantenna', massKg: 0.02, cgOffset_m: [-0.0766, 0, 0.0602] },
-        { id: 'gps', massKg: 0.015, cgOffset_m: [-0.0666, 0, 0.0532] },
-      ],
-    },
-  },
+  /*
+   * THE INTERCEPTOR, plant 26, docs/COMBAT-DRONES.md: the fast chaser
+   * that runs a Striker down and rams it. A stretched X 7 inch speed
+   * build on T-Motor Velox V2808 1300 kV motors and APC 7 x 9E two
+   * blades, on one Tattu 6S 1800 LiPo, the owner's reference photograph
+   * of 2026-10-01, every part a published one. Every number is
+   * scripts/combat-derive.js's from a parts list. It trades the 7 inch's
+   * pack and payload for speed: the fastest quad here, flat out and off
+   * the floor, for under half the 7 inch's charge, on a machine that
+   * rolls with the five inch. Flown at that speed it sits 70 degrees nose
+   * down, so its camera is tilted like a racer's.
+   *
+   * AND THE RACER since the five inch and the whoop were removed
+   * (2026-10-03): DEFAULT_AIRFRAME below, the quad a blank profile, Track
+   * Day and every retired quad id are seated on. It is the closest kind
+   * of machine left to a 6S five inch, a LiPo speed build on Betaflight
+   * at over 8 to 1 and the same top speed; the 7 and the 10 inch are
+   * Li-ion payload carriers at under 5 to 1. Outside a war it flies
+   * bare (src/ui/ui.js DEFAULTS.combat), and on its own weight, not the
+   * five inch's 1.62.
+   *
+   * The row is its folder's, aircraft/interceptor/aircraft.js. `topSpeed`:
+   * Level at full throttle on a fresh pack, bare, measured on the module
+   * (scripts/combat-gates.js); the static thrust to weight is
+   * combat-derive's. `gravityBase`: Its real weight, as the other combat
+   * quads (docs/COMBAT-DRONES.md section 1). `arm`: Half the motor
+   * diagonal; the stretch is plant.c's arm_x 0.120 and arm_y 0.100.
+   * `vHalfDown`: plant.c's hull_hz_down and hull_hz_up: the legs reach the
+   * payload's belly, and up is the GPS puck's top. `bodyLength`: The
+   * plates as drawn, src/render/combatcraft.js COMBAT_FRAMES
+   * interceptor.plates, from the reference photograph: dims is the
+   * airframe as the renderer draws it. It read 0.22 with no source, which
+   * verify's check 15 found once the interceptor was the aircraft it seats
+   * (2026-10-03).
+   */
+  airframeOf('interceptor'),
   {
     /*
      * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md: a twin boom pusher

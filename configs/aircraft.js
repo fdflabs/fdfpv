@@ -27,10 +27,11 @@
 import a10inch from '../aircraft/10inch/aircraft.js';
 import a7inch from '../aircraft/7inch/aircraft.js';
 import cap1702 from '../aircraft/cap1702/aircraft.js';
+import interceptor from '../aircraft/interceptor/aircraft.js';
 import p51d1450 from '../aircraft/p51d1450/aircraft.js';
 import slick2680 from '../aircraft/slick2680/aircraft.js';
 
-export const FOLDERS = [a10inch, a7inch, cap1702, p51d1450, slick2680];
+export const FOLDERS = [a10inch, a7inch, cap1702, interceptor, p51d1450, slick2680];
 
 export const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];
 
