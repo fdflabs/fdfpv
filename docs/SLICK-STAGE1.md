@@ -416,7 +416,7 @@ INTRO_SPAN), or its lens would orbit inside this wing.
   recommended that you recruit an experienced giant scale RC enthusiast",
   as the F-16 at 11 opens on its maker's ask for experience. No aircraft
   has a price; its kit items are KIT_PRICE as every kit's.
-- `aircraft/slick2680/aircraft.json`, born with its folder: `npm run
+- `aircraft/slick2680/aircraft.js`, born with its folder: `npm run
   aircraft:folder` holds it equal to every hand row (foundations item 5).
 - The figures: `npm run slick:figures` flies figures-plant-check.js's
   person paced pilot on it (loop 7, aileron roll 8.5, a sagging 4-point

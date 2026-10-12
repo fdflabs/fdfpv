@@ -1,4 +1,26 @@
-{
+/*
+ * aircraft/cap1702/aircraft.js: the CAP 580 as data, one aircraft's rows
+ * for configs/aircraft.js to assemble (docs/AIRCRAFT-FOLDER.md). Plain
+ * JSON after `export default`, which scripts/aircraft-folder-selftest.js
+ * holds: no expression, no import.
+ *
+ * This file is part of the Paraguayan Drone Combat Simulator.
+ *
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+export default {
   "id": "cap1702",
   "airframe": {
     "id": "cap1702",
@@ -7,7 +29,8 @@
     "stall": 10.62,
     "topSpeed": 33.09,
     "gear": {
-      "restHeight": 0.313
+      "restHeight": 0.313,
+      "restPitchDeg": 10.87
     },
     "name": "CAP 580",
     "short": "CAP",
@@ -22,8 +45,37 @@
     "grams": 3628.7,
     "trackClass": "wing",
     "cells": 6,
+    "packVoltages": [
+      4.2,
+      3.8,
+      3.5
+    ],
+    "packLabels": {
+      "4.2": "Charged",
+      "3.8": "Half",
+      "3.5": "Nearly empty"
+    },
     "defaultTune": "cap-manual",
     "gravityBase": 1,
+    "rates": {
+      "type": "ACTUAL",
+      "roll": {
+        "rcRate": 7,
+        "srate": 67,
+        "expo": 0
+      },
+      "pitch": {
+        "rcRate": 7,
+        "srate": 67,
+        "expo": 0
+      },
+      "yaw": {
+        "rcRate": 7,
+        "srate": 67,
+        "expo": 0
+      },
+      "throttleCap": 100
+    },
     "cameraFov": 100,
     "cameraAngle": 5,
     "dims": {
@@ -312,4 +364,4 @@
       "livery.scheme.cap1702.greenred": "Verde, blanco y rojo"
     }
   }
-}
+};
