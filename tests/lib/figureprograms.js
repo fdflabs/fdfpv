@@ -639,9 +639,9 @@ function seatTiers(sim, airframe, tiers) {
  * the sport elevator with the Extreme, 0.7 to 0.8 of a turn and a spin
  * or snap; the Extreme elevator with the stock aileron,
  * 0.77 and a half roll, the torque winning; the Extreme elevator with the
- * sport, 3D or Extreme aileron names it (6, 5 and 6). The CAP and the
- * Slick have no tiers in the hangar (configs/surfaces-tiers.js), so they
- * fly it stock. */
+ * sport, 3D or Extreme aileron names it (6, 5 and 6). The CAP has no
+ * tiers in the hangar (configs/surfaces-tiers.js), so it flies it stock;
+ * the Slick has them (w36-surface-tiers, 4cf3179d1). */
 export const PROGRAM_TIERS = { waterfall: { a: 'extreme', e: 'extreme' } };
 
 /* airframe: the plant's id, the Extra's by default; the CAP and the Slick
