@@ -5,8 +5,8 @@ aileron, elevator and rudder, a tier from Stock through Sport and 3D to
 Extreme. Each tier draws the surface bigger, lets it travel further, and
 flies as a real aircraft with those surfaces does. This file is every
 number behind them, with its formula and source. Slice 1 is the plant and
-the data for the Extra 300 3D and the Cub; the hangar's tab, the account
-sync and the room lineup follow (`~/Desktop/fdfpv-loop/CONTROL-SURFACES-PLAN.md`).
+the data for the Extra 300 3D and the Cub (the Slick 580 since); the
+hangar's tab, the account sync and the room lineup follow (`~/Desktop/fdfpv-loop/CONTROL-SURFACES-PLAN.md`).
 
 ## What a tier is
 
@@ -90,13 +90,40 @@ lightest catalogue servo covering the tier's moment is fitted (Hitec, at
 D645MW 60.0 g 11.3, D950TW 68 g 29.0; sources in `configs/surfaces.js`),
 and the difference in mass goes on as add-ons at the servos' places,
 through `configs/hangar-parts.js addonParams`, the aileron pair's spread
-through `sim_set_addon_inertia`. The surface itself adds no area, so no
-structure mass.
+through `sim_set_addon_inertia` (a servo off the centreline is mirrored,
+half each side). The surface itself adds no area, so no structure mass.
+
+Where no catalogue servo covers a tier's moment the surface takes more
+servos, as a builder gangs them: one more a side for a pair, one more for
+a single, the moment shared among them. The Slick needs it: it already
+flies EF's biggest listed class, the Savox SB-2290SG (45 kg-cm, 81 g at
+6.0 V, Extreme Flight's listing), two per aileron, one per elevator half
+and one on the rudder (EF's data sheet: seven servos, four aileron arms,
+two elevator arms, one rudder arm). The absolute check holds there too:
+C_h about -0.55 per rad, at the Slick's 42.5 m/s top speed (q 1108 Pa),
+on one aileron's 0.148 m^2 (0.32 of the 0.463 m^2 of wing it runs along)
+and 0.136 m mean chord at 37.5 deg, gives 82 kg-cm an aileron, 41 a servo,
+against the SB-2290SG's 45. So "stock just covers" leaves the Slick under
+10 percent of margin, and every tier over stock adds servos (162 g on the
+Sport and 324 g on the 3D and Extreme ailerons, 1.3 to 2.6 percent of its
+12.5 kg). The table's servos and their sources are `configs/surfaces.js`.
 
 **Not offered.** A surface whose Extreme adds under 10 percent of control
 power over stock is left stock: the Extra's rudder (cf 0.76 at 55 deg is
 already the reference's class), whose Extreme would add 1.4 percent and a
 35 g servo.
+
+**The CAP 580 has none.** The reference's aileron and elevator are the
+CAP's own (cf 0.43 and 0.67), and its stock throws are EF's 3D ones
+(aileron 38 up 34 down, elevator 50, rudder 50 to 55: the data sheet's
+high rates, which `configs/tuning.js` already flies). Its Extreme would add
+8.4 percent on the aileron (the throw 36 to 40 deg), nothing on the
+elevator and 4.0 percent on the rudder (cf 0.70 to 0.80 at its 52.5 deg),
+all under the 10 percent rule, so it is not in `configs/surfaces.js`
+rather than given a tab of three "not offered" rows. Its stock elevator is
+the Extra's Extreme one. EF's Slick sheet does publish a bigger elevator
+setting, "XA/Tumbling: 60+ deg", but 50 deg is where Roskam's K' (Mason's
+fit) stops falling, so no tier goes past it and the XA throw is not one.
 
 ### Extra 300 3D (sim 29)
 
@@ -128,6 +155,32 @@ already the reference's class), whose Extreme would add 1.4 percent and a
 | | sport | 0.600 | 26.67 | 0.721 | 1.282 | 0.0071 | D89MW | 17 g |
 | | 3d | 0.700 | 38.33 | 0.661 | 1.690 | 0.0143 | D645MW | 52 g |
 | | extreme | 0.800 | 50.00 | 0.661 | 2.203 | 0.0214 | D645MW | 52 g |
+
+### Slick 580 (sim 33)
+
+| surface | tier | cf | throw deg | k | power | cd | servos | added |
+|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.320 | 37.50 | 1.000 | 1.000 | 0 | 4 SB-2290SG | 0 |
+| | sport | 0.357 | 38.33 | 1.043 | 1.066 | 0.0295 | 6 SB-2290SG | 162 g |
+| | 3d | 0.393 | 39.17 | 1.082 | 1.130 | 0.0591 | 8 SB-2290SG | 324 g |
+| | extreme | 0.430 | 40.00 | 1.117 | 1.192 | 0.0886 | 8 SB-2290SG | 324 g |
+| elevator | stock | 0.566 | 47.50 | 1.000 | 1.000 | 0 | 2 SB-2290SG | 0 |
+| | sport | 0.601 | 48.33 | 1.020 | 1.038 | 0.0075 | 4 SB-2290SG | 162 g |
+| | 3d | 0.635 | 49.17 | 1.039 | 1.076 | 0.0150 | 4 SB-2290SG | 162 g |
+| | extreme | 0.670 | 50.00 | 1.057 | 1.113 | 0.0225 | 4 SB-2290SG | 162 g |
+| rudder | stock | 0.680 | 45.00 | 1.000 | 1.000 | 0 | 1 SB-2290SG | 0 |
+| | sport | 0.720 | 46.67 | 1.014 | 1.051 | 0.0050 | 2 SB-2290SG | 81 g |
+| | 3d | 0.760 | 48.33 | 1.026 | 1.102 | 0.0100 | 2 SB-2290SG | 81 g |
+| | extreme | 0.800 | 50.00 | 1.039 | 1.155 | 0.0150 | 2 SB-2290SG | 81 g |
+
+Its stock cf (aileron 0.32, elevator 0.566, rudder 0.68) and throws
+(37.5, 47.5, 45) are `scripts/slick-derive.js`'s off EF's 105.5 in data
+sheet; its Extreme is the reference, so its ladder is short: 19, 11 and 15
+percent of control power. Measured on batch 8193fc829 (full stick deg/s /
+a fifth of a stick deg/s / speed kept): roll 672 / 60 / 0.964 stock to
+767 / 72 / 0.894 Extreme; pitch 298 / 56 / 0.752 to 308 / 64 / 0.683; yaw
+211 / 22 / 0.828 to 235 / 25 / 0.702. The pitch rate barely moves at
+cruise; a fifth of a stick and the speed kept do.
 
 The Cub's k falls below one: its stock throws are under 18 deg, where K'
 is near one, and K' at 40 to 50 deg is 0.55 to 0.57. Per degree a big
