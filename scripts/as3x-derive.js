@@ -22,6 +22,14 @@
  * formula, so the plant's loop is also kicked at 35 m/s below and must
  * settle.
  *
+ * The top speed the gains are set at is the one on the pack the table's
+ * thrust and current were measured on (held at its v_meas: ratedPlane
+ * below), not the 4.1 V the gates seat: E-flite sets the receiver's
+ * gains once, at the factory, on its rated setup, and a test harness's
+ * seat voltage must never move a receiver constant (lead decision
+ * 2026-10-12). An engine, which has no pack, flies its 4.1 V seat as
+ * before; nothing about it reads the pack.
+ *
  * With --check it fails when a table differs from what it derives. Run
  * with npm run as3x:derive (dist/sim.wasm built first).
  *
@@ -47,7 +55,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, attitude } from '../tests/lib/wingpilot.js';
-import { TABLE } from '../configs/power.js';
+import { POWER, TABLE, powerBlock } from '../configs/power.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -91,11 +99,31 @@ const AS3X = {
   FW_SLICK2680: { sim: 33 },
 };
 
-async function planeSim(id) {
+/* The rated setup: the stock power on a supply that holds v_meas at any
+ * current, as the bench rows were measured (a pack of no resistance seated
+ * at v_meas, big enough that the 30 s top speed flight does not drain it),
+ * so the motor runs at the table's own figures, ratio 1, everywhere; and
+ * no ESC cutoff (the balances' loaded voltage sits under some ESCs'
+ * thresholds, the P-51's 3.4 V among them, and the rated point is the
+ * motor's, not the cutoff's). */
+async function ratedPlane(simId, rated) {
+  const id = Object.keys(TABLE).find((k) => TABLE[k].simId === simId);
+  const o = POWER[id][0];
+  const block = powerBlock(id, o.id, o.pack);
+  block[4] = 0;
+  block[5] = 1.0e6;
+  block[16] = 0;
+  const sim = await planeSim(simId);
+  must(sim.setPower(block), 'sim_set_power');
+  must(sim.setCellVoltage(rated.vMeas), 'sim_set_cell_voltage');
+  return sim;
+}
+
+async function planeSim(id, volts = SEAT_GATES) {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
   must(sim.e.sim_set_airframe(id), 'sim_set_airframe');
-  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.setCellVoltage(volts), 'sim_set_cell_voltage');
   sim.surfPtr = sim.e.malloc(4 * 8);
   return sim;
 }
@@ -286,8 +314,11 @@ const r4 = (x) => Number(x.toFixed(4));
 let bad = 0;
 for (const [name, a] of Object.entries(AS3X)) {
   const sim = await planeSim(a.sim);
-  const V = topSpeed(sim);
-  const M = power(sim, V);
+  const rowBody = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
+  const rated = /\.current_full = [1-9]/.test(rowBody) ? wingSeat(name) : null;
+  const ratedSim = rated ? await ratedPlane(a.sim, rated) : sim;
+  const V = topSpeed(ratedSim);
+  const M = power(ratedSim, V);
   const TAU = frameOf(src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0]);
   const k = M.map((m) => (m > 0 ? r4(Math.PI / (4 * m * TAU)) : 0));
   /* The heading's integral corner a quarter of the rate loop's crossover,
