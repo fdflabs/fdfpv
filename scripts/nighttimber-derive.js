@@ -25,7 +25,7 @@
  */
 
 import { washKw } from './lib/washcontrol.js';
-import { electricN, wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { shares, wash as washOf } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -289,8 +289,11 @@ const Qs = apcAt(nStatic, 1), Ts = apcAt(nStatic, 2), Is = Qs / kt + i0;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 4 * 0.0254;
 const torqueArm = Qs / Ts;
 const prop = wingProp('FW_NIGHTTIMBER1200');
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_NIGHTTIMBER1200');
 /* d is the stick; the prop turns at the motor's steady share of it. */
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 /* The prop's inertia, ESTIMATED: a 13 in prop of about 25 g, a tapered
  * blade's 0.7 of a rod's m D^2 / 12, and the BL10's can. */
 const propJ = 0.7 * 0.025 * (2 * propR) ** 2 / 12 + 0.04 * 0.017 * 0.017;
@@ -310,11 +313,12 @@ const pb2v = Clda * throwA / -Clp;
 const rollAt = (V) => pb2v * 2 * V / b;
 
 /* THE 3D REGIME, as the Extra's derivation takes it. */
-/* The prop's speed at the hover, sqrt(W / Ts) of full, and the duty the
- * electric motor settles at it on (plant_wing.c prop_spool): n^2 + K_M n
- * = (K_M + 1) d, K_M = 0.85 / 0.15. */
+/* The prop's speed at the hover, sqrt(W / Ts) of full, and the stick the
+ * electric motor settles at it on at the gates' seat (plant_wing.c
+ * prop_spool, n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15, and
+ * power_duty's pack over v_meas: wingSeat). */
 const hoverN = Math.sqrt(W / Ts);
-const hoverDuty = (hoverN * hoverN + (0.85 / 0.15) * hoverN) / (0.85 / 0.15 + 1);
+const hoverDuty = seat.stickFor(SEAT_GATES, hoverN, 0);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 

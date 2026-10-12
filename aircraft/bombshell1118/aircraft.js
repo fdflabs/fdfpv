@@ -292,8 +292,8 @@ export default {
       },
       "electric": {
         "3s850": {
-          "topSpeed": 20.37,
-          "minutes": 41.4
+          "topSpeed": 23.45,
+          "minutes": 54.1
         }
       }
     }

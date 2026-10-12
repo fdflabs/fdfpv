@@ -32,6 +32,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { planeTable, propMoments, wash } from './lib/wash.js';
+import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, capPrelude, capGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold } from '../tests/lib/wingpilot.js';
@@ -51,6 +53,7 @@ function check(name, ok, detail = '') {
   }
 }
 
+const TH = JSON.parse(await readFile(join(root, 'tests/cap580-thresholds.json'), 'utf8'));
 const sim = await loadSim(new Uint8Array(await readFile(join(root, 'dist/sim.wasm'))));
 must(sim.init(await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8')), 'init');
 must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E), 'ground');
@@ -144,7 +147,11 @@ const level = fly(0, 0, 0, 0.75, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
-check('and straight: under 15 m off the line after 10 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
+/* The cross track the right thrust, the motor's torque at the throw and
+ * the roll loop that levels it fly, derived (npm run cap580:derive,
+ * tests/cap580-thresholds.json stab_straight). */
+const straight = TH.stab_straight;
+check(`and on the derived line: ${straight.derived} m after 10 s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${level.y.toFixed(2)} m`);
 check('at a cruising speed, between 1.2 times its stall and its top speed (npm run cap580:derive)', level.v > 1.2 * 10.62 && level.v < 33.1, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.95, 4);
@@ -334,6 +341,27 @@ for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   check('and no wind up: released, every surface is back at zero on the next step', sf.every((x) => x === 0), sf.map(deg).join(' '));
 }
 
+/* The aileron a pilot holds against the prop's known torque on the take
+ * off roll, at full throttle and ground speed V on the seated pack: the
+ * roll moment the prop puts on the airframe (scripts/lib/wash.js
+ * propMoments: its torque, the swirl on the fin, the wing root's share)
+ * over the ailerons' authority per stick, in the wash (dp fa) and the free
+ * stream (q), through the expo. Until 2026-10-12 the hand held the wings
+ * on the bank alone; the seated pack's spin up from rest (its ratio 1.14
+ * at n = 0) rolled it 6.5 deg before that caught it. */
+const CAP_T = planeTable('FW_CAP1702');
+const CAP_SEAT = wingSeat('FW_CAP1702');
+function torqueLead(V) {
+  const fw = CAP_T.fw;
+  const pm = propMoments(CAP_T, CAP_SEAT.at(SEAT_GATES, 1, V).n, V);
+  const w = wash(fw, pm.T, V);
+  const share = -pm.L / ((w.dp * w.fa + 0.5 * 1.225 * V * V) * fw.area * fw.span * fw.cl_da * fw.throw_a);
+  const want = Math.min(1, Math.abs(share));
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (fw.expo * mid ** 3 + (1 - fw.expo) * mid < want) lo = mid; else hi = mid; }
+  return Math.sign(share) * lo;
+}
+
 /* The take off roll at full throttle. On its wheels every mode flies as
  * Manual, so with the rudder left alone the prop's swirl on the fin swings
  * it left in each (docs/FLIGHTMODEL.md); with the pilot's right rudder
@@ -347,7 +375,7 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
      * the Extra's, and on the roll it lifts the left wheel unless the
      * ailerons answer it, as a pilot's do. Hands off, the swing is the
      * check. */
-    const wings = (s) => (feet ? Math.max(-1, Math.min(1, -1.0 * fullBank(s) - 0.1 * s[11])) : 0);
+    const wings = (s) => (feet ? Math.max(-1, Math.min(1, torqueLead(Math.hypot(s[4], s[5], s[6])) - 1.0 * fullBank(s) - 0.1 * s[11])) : 0);
     const run = roll(() => { const s = sim.readState().state; return [wings(s), 0, feet ? rudderHold(s) : 0, 1]; }, 8, { untilAirborneMs: 2000 });
     const lof = run.liftoff;
     check(`${name}, full throttle, ${feet ? 'the heading held on the rudder' : 'the sticks centred'}: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
@@ -364,19 +392,22 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
 /* Taxiing on the Cub's taxi thrust, 1.65 N, scaled by the weight (3.6
  * against the Cub's 1.32 kg): 4.5 N, the prop at sqrt(4.5 / 94.31), 0.218
  * of full, which the bench's measured curve (throttle_rpm,
- * docs/CAP580-STAGE1.md) turns at a stick of 0.175. The heading's change
+ * docs/CAP580-STAGE1.md) turns at a stick of 0.175 at the bench's voltage;
+ * on the 4.1 V pack this check seats, loaded over the table's v_meas
+ * (power_duty), at 0.154 (scripts/lib/propcurve.js wingSeat stickFor).
+ * The heading's change
  * is summed step by step, as the Extra's: past half a circle the end
  * points wrap. */
 for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
-  roll(() => [0, 0, 0, 0.175], 2);
+  roll(() => [0, 0, 0, 0.154], 2);
   let last = heading(sim.readState().state);
   let turnedRad = 0;
   roll(() => {
     const h = heading(sim.readState().state);
     turnedRad += Math.atan2(Math.sin(h - last), Math.cos(h - last));
     last = h;
-    return [0, 0, 1, 0.175];
+    return [0, 0, 1, 0.154];
   }, 4);
   const turned = turnedRad * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);

@@ -24,7 +24,7 @@
 
 import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { plateCnOf, wingDrag, wingLift } from './lib/liftcurve.js';
-import { electricN, wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { planeTable, wash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -68,8 +68,11 @@ const Cndr = -VV * av * tauR, CYdr = av * (Sv / S) * tauR, Cldr = CYdr * zv / b;
 const rpmNL = kv * volts, Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const prop = wingProp('FW_CUB1400');
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_CUB1400');
 /* d is the stick; the prop turns at the motor's steady share of it. */
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 6, hi = 40;
@@ -311,7 +314,7 @@ const taxiTurn = (() => {
     }
     const L = qbar * fw.area * CL, D = qbar * fw.area * CD;
     const F = [L * (-w / Vxz) - D * u / V, -D * v / V - qbar * fw.area * (fw.cy_beta * beta + cydr * dr), L * (u / Vxz) - D * w / V];
-    const n = electricN(d);
+    const n = seat.at(SEAT_GATES, d, Math.max(0, u)).n;
     const thrust = prop.thrust(fw.thrust_static, Math.max(0, u), n);
     F[0] += thrust;
     const qAir = fw.torque_arm * fw.thrust_static * n * n * prop.cp(Math.max(0, u) / (fw.pitch_speed * n));
@@ -411,6 +414,10 @@ const rows = [
   ['C7 best climb m/s at m/s', `${f(best.vz, 2)} ${f(best.V, 2)}`],
   ['C11 sideslip deg', f(betaSS * DEG, 1)],
   ['C12 Dutch roll wn, zeta, peak r deg/s', `${f(wnDR, 2)} ${f(zetaDR, 3)} ${f(rPeak * DEG, 1)}`],
+  /* The gate steps the rudder at the 65 percent stick (wingpilot.js
+   * rudderStep): wn goes with V and zeta and beta_ss do not, so the peak
+   * rate goes with the speed. */
+  ['    the same at the 65 percent stick\'s level speed, deg/s at m/s', `${f(rPeak * DEG * level(0.65) / V12, 1)} at ${f(level(0.65), 2)}`],
   ['C13 steady roll from rudder deg/s', f(rudderRoll * DEG, 1)],
   ['C15 P factor, level at 1.1 Vs', JSON.stringify(pfactorAt(1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(4) : v))],
   ['C16 tail share, wheelbase m', `${f(tailShare, 4)} ${f(wheelbase, 3)}`],
@@ -419,12 +426,12 @@ const rows = [
   ['    asphalt', JSON.stringify(takeoff(muAsphalt, 7, 1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['    three point, hands off: CL, liftoff', `${f(CL3)} ${f(V3, 2)} ${JSON.stringify(takeoff(muGrass, 99, V3), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))}`],
   ['C19 taxi radius m, the wheels alone', f(wheelbase / Math.tan(throwR), 2)],
-  ...[0.28, 0.30, 0.32, 0.34, 0.35].map((d) => {
+  ...[0.26, 0.27, 0.28, 0.30, 0.32, 0.34, 0.35].map((d) => {
     const fr = taxiTurn(d, -throwR, false), gr = taxiTurn(d, -throwR, true);
     const s = (t) => (t ? `${f(t.radius, 3)} m at ${f(t.V, 2)} m/s, tail ${f(t.Nt, 3)} N` : 'none');
     return [`   steady taxi turn at ${d}: free air; the ground`, `${s(fr)}; ${s(gr)}`];
   }),
-  ['   at 0.30 with the ground, a tenth more and less grip:', ['muTail', 'muMain'].map((k) => [0.9, 1.1].map((x) => f(taxiTurn(0.30, -throwR, true, { [k]: { muTail: 0.60, muMain: 0.70 }[k] * x }).radius, 3)).join(' ')).join('; ')],
+  ['   at 0.27 with the ground, a tenth more and less grip:', ['muTail', 'muMain'].map((k) => [0.9, 1.1].map((x) => f(taxiTurn(0.27, -throwR, true, { [k]: { muTail: 0.60, muMain: 0.70 }[k] * x }).radius, 3)).join(' ')).join('; ')],
 ];
 const lc = centredModes(0.65);
 rows.push(['C10 sticks centred at 65 percent: V, climb m/s, theta', `${f(lc.V, 2)} ${f(lc.climb, 2)} ${f(lc.thetaDeg, 2)}`]);

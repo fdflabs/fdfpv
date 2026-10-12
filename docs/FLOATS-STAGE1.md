@@ -656,3 +656,22 @@ vectors in the plant's world frame, the wind's the way it blows to. The
 buoyancy's g is the plant's own, not the weight slider: a pilot making
 the aircraft heavier sinks it deeper, as a heavier aircraft would. The
 waves' g is 9.81 always.
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+ The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/floats-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| F8 breakaway on grass, Timber | 52 to 44.2 percent | 0.52, now 0.44, 8 points either side |
+| F8 breakaway on grass, Cub | 62 to 53.2 percent | 0.62, now 0.53, 8 points either side |
+
+The breakaway is now the stick that turns the prop at the speed whose static thrust is mu W on the seated pack, through the motor's law, where it had been the stick taken as the prop's speed share.

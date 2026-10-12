@@ -42,6 +42,8 @@ import { decodeRec } from '../tests/lib/recfile.js';
 import { findChrome, runBrowserHarness } from '../tests/lib/browser.js';
 import { startServer } from '../tests/lib/server.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
+import { planeTable } from './lib/wash.js';
+import { SEAT_GATES, wingProp, wingSeat } from './lib/propcurve.js';
 import {
   ZAGI_AIRFRAME, ZAGI_THROW, zagiPrelude, zagiHold, levelSpeed, glide, bestClimb, stallSpeed, fly,
   wingDebug, attitude, must, fullBank, RC_STEP_MS,
@@ -258,6 +260,20 @@ const sim = await zagiSim();
     `full roll held: ${spun.toFixed(0)} deg round; the bank held: within ${calm.toFixed(0)} deg`, `${t.spinDeg} deg or more; within ${t.calmDeg}`);
 }
 
+/* The stick that holds the full throttle thrust line's moment at V, Z11's
+ * thrower's anticipation (the table's own figures, wash.js planeTable, and
+ * the seated pack's thrust, propcurve.js wingSeat). */
+const ZAGI = planeTable('FW_ZAGI1219').fw;
+const ZAGI_SEAT = wingSeat('FW_ZAGI1219');
+const ZAGI_PROP = wingProp('FW_ZAGI1219');
+function motorTrim(V) {
+  const T = ZAGI_PROP.thrust(ZAGI.thrust_static, V, ZAGI_SEAT.at(SEAT_GATES, 1, V).n);
+  const share = ZAGI.thrust_z * T / (0.5 * 1.225 * V * V * ZAGI.area * ZAGI.chord * ZAGI.cm_de * ZAGI.throw_e);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (ZAGI.expo * mid ** 3 + (1 - ZAGI.expo) * mid < share) lo = mid; else hi = mid; }
+  return lo;
+}
+
 /* Z11: the hand throw. */
 {
   const t = th.z11_throw;
@@ -272,6 +288,14 @@ const sim = await zagiSim();
   for (let ms = 0; ms < t.afterS * 1000; ms += RC_STEP_MS) {
     const s = sim.readState().state;
     const motor = ms >= t.motorOffS * 1000;
+    /* And as the motor comes on the thrower already holds the up elevon
+     * that its nose down moment takes at the speed it is flying, the
+     * thrust line's arm times the full throttle thrust on the seated pack
+     * over q S c cm_de, through the radio's expo (motorTrim): a person who
+     * knows the Zagi's motor pitches it down does not wait for the dip.
+     * Until 2026-10-12 the hand's integral alone caught it; the seated
+     * pack's 25 percent more thrust put it on the grass first. */
+    if (ms === t.motorOffS * 1000) trim.i = motorTrim(Math.hypot(s[4], s[5], s[6]));
     const [roll, pitch] = zagiHold(s, { pitch: motor ? 0.35 : 0.03, trim });
     must(sim.input(ms / 1000, roll, pitch, 0, motor ? 1 : 0), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');

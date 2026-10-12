@@ -23,7 +23,7 @@
  */
 
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
-import { electricN, wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { planeTable, propMoments, wash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -108,8 +108,11 @@ const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 /* Thrust on the prop's APC curve as the plant flies it (plant_wing.c
  * prop_curve, scripts/lib/propcurve.js). */
 const prop = wingProp('FW_SLOWSTICK1180');
-/* The stick d turns the prop at the motor's law's speed (electricN). */
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_SLOWSTICK1180');
+/* The stick d turns the prop at the motor's law's speed on the seated pack. */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 3, hi = 20;
@@ -199,7 +202,7 @@ function longitudinalModes(V) {
   const res = (p) => { const r = deriv([V * Math.cos(p[0]), -V * Math.sin(p[0]), 0, p[0]], p[1], p[2]); return [r[0], r[1], r[2]]; };
   /* Started near full duty: on the curve a low duty at cruise speed is past
    * the prop's zero thrust, where the clipped thrust has no slope and the
-   * step is singular. Short of 1, since electricN holds the duty at 1 and
+   * step is singular. Short of 1, since the seat holds the stick at 1 and
    * the step's forward difference there has no slope either (it printed
    * NaN from the motor law's change until 2026-10-12). */
   let p = [0.02, 0, 0.95];
@@ -507,7 +510,7 @@ const lat = lateral(Vcruise);
  * (plant_wing.c, docs/FLIGHTMODEL.md "The prop's torque, from the
  * drive"), from the table as the plant has it, a constant input to the
  * lateral model: side force over m V, roll over Ixx, yaw over Izz. */
-const propAt = propMoments(planeTable('FW_SLOWSTICK1180'), electricN(0.75), Vcruise);
+const propAt = propMoments(planeTable('FW_SLOWSTICK1180'), seat.at(SEAT_GATES, 0.75, Vcruise).n, Vcruise);
 const propForce = [propAt.Y / (m * Vcruise), propAt.L / Ixx, propAt.N / Izz, 0];
 const latS = lateral(1.2 * Vs);
 const rows = [
@@ -534,7 +537,10 @@ const rows = [
   ['   roll tau s, Dutch roll wn zeta period', `${f(lat.roll.tau)} ${lat.dutch ? `${f(lat.dutch.wn, 2)} ${f(lat.dutch.zeta)} ${f(lat.dutch.period, 2)}` : 'none'}`],
   ['   30 deg bank, hands off: bank after 2, 4, 6 s', `${f(bankAfter(lat, 30 / DEG, 2) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6) * DEG, 1)}`],
   ['   the same with the prop\'s torque and swirl (Q, L, N at cruise)', `${f(bankAfter(lat, 30 / DEG, 2, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6, propForce) * DEG, 1)} (${f(propAt.Q, 4)} ${f(propAt.L, 4)} ${f(propAt.N, 4)})`],
-  ['   flown: the speed and pitch with it, the fin in the wash, bank after 2, 4, 6 s, speed and pitch at 6 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), electricN(0.75), V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt, fz, true)); return `${r.map((x) => f(x.phi * DEG, 1)).join(' ')}; ${f(r[2].V, 2)} m/s, ${f(r[2].thetaDeg, 1)} deg`; })()],
+  ['   flown: the speed and pitch with it, the fin in the wash, bank after 2, 4, 6 s, speed and pitch at 6 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), seat.at(SEAT_GATES, 0.75, V).n, V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt, fz, true)); return `${r.map((x) => f(x.phi * DEG, 1)).join(' ')}; ${f(r[2].V, 2)} m/s, ${f(r[2].thetaDeg, 1)} deg`; })()],
+  /* slowstick:stab's Manual let go: from the full rudder roll's 62.8 deg
+   * (55.7 on the pack as the table was measured), 8 s hands off. */
+  ['   flown from the stab selftest\'s 62.8 deg let go: bank after 8 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), seat.at(SEAT_GATES, 0.75, V).n, V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; return f(bankAfterFlown(0.75, 62.8 / DEG, 8, fz, true).phi * DEG, 2); })()],
   ['   flown, without the prop', (() => { const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt)); return r.map((x) => f(x.phi * DEG, 1)).join(' '); })()],
   ['lateral at 1.2 Vs: spiral root, t_half', `${f(latS.spiral.root, 4)} ${f(latS.spiral.tHalf, 1)}`],
   ['full right rudder from cruise, after 1 s', JSON.stringify(rudderStep(lat, -throwR, 1), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],

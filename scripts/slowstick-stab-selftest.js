@@ -146,7 +146,11 @@ check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * D
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
 check('and straight: under 10 m off the line after 10 s', Math.abs(level.y) < 10, `${level.y.toFixed(1)} m`);
-check('at the Slow Stick\'s cruise', level.v > 4.5 && level.v < 7, `${level.v.toFixed(1)} m/s`);
+/* The 75 percent stick's level speed, S1's derived band (tests/slowstick-thresholds.json):
+ * the 4.5 to 7 m/s this held until 2026-10-12 was the cruise on the straight line thrust,
+ * and the seated pack (w36-seat-voltage) puts the 75 percent stick's speed at 8.67. */
+const s1 = JSON.parse(await readFile(join(root, 'tests/slowstick-thresholds.json'), 'utf8')).s1_level_75;
+check(`at the 75 percent stick's level speed, S1's ${s1.min} to ${s1.max} m/s`, level.v > s1.min && level.v < s1.max, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 1 m/s', Math.abs(level.vz) < 1, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.9, 5);
 check('full right roll stick banks right on the rudder, 35 to 50 degrees', banked.bank * DEG > 35 && banked.bank * DEG < 50, `${deg(banked.bank)} deg`);
@@ -209,7 +213,11 @@ fly(0, 0, 0, 0.75, 2);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full roll stick banks it right on the rudder, past 30 degrees', manual.endBank * DEG > 30, `${deg(manual.endBank)} deg in 1.5 s`);
 const selfLevel = fly(0, 0, 0, 0.75, 8);
-check('and let go, the dihedral levels it: under 15 degrees 8 s later, no roll through', Math.abs(selfLevel.endBank * DEG) < 15 && selfLevel.endBank > -5 / DEG, `${deg(selfLevel.endBank)} deg`);
+/* The flown model (slowstick:derive, the stab selftest's let go) gave 11.60 deg
+ * after 8 s from 55.7, which this bound held at 15; on the gates' seated pack
+ * (w36-seat-voltage) the cruise is faster and the roll steeper, 62.8, and the
+ * model gives 15.76: the same 1.29 of it is 20.4. */
+check('and let go, the dihedral levels it: under 20.4 degrees 8 s later, no roll through', Math.abs(selfLevel.endBank * DEG) < 20.4 && selfLevel.endBank > -5 / DEG, `${deg(selfLevel.endBank)} deg`);
 must(sim.reset(), 'reset');
 check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 
@@ -341,13 +349,18 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']]) {
   onGround(mode);
   /* Half throttle: at the Cub's 35 percent this aircraft's thrust only
    * just meets its rolling resistance. The heading summed step by step,
-   * since a turn this tight goes round more than once in 4 s. */
-  roll(() => [0, 0, 0, 0.5], 2);
+   * since a turn this tight goes round more than once in 4 s. On the
+   * gates' seated 4.1 V pack (w36-seat-voltage) the stick that turns the
+   * prop as half did on GWS's 7.2 V is 0.44 (scripts/lib/propcurve.js
+   * wingSeat, n 0.537); half itself pivots it at 2.7 m/s, faster than a
+   * taxi, and lifts the outside wheel. */
+  const TAXI = 0.44;
+  roll(() => [0, 0, 0, TAXI], 2);
   let prev = heading(sim.readState().state);
   let turned = 0;
   let allLoaded = true;
   for (let k = 0; k < 40; k += 1) {
-    const taxi = roll(() => [1, 0, 0, 0.5], 0.1);
+    const taxi = roll(() => [1, 0, 0, TAXI], 0.1);
     const h = heading(taxi.s);
     turned += Math.atan2(Math.sin(h - prev), Math.cos(h - prev)) * DEG;
     prev = h;

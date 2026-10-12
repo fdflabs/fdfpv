@@ -33,6 +33,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { planeTable } from './lib/wash.js';
+import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll } from '../tests/lib/wingpilot.js';
@@ -200,8 +201,14 @@ const pullRates = bothModes((mode) => {
   return fly(0, 1, 0, 1.0, 0.5).q;
 });
 check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
-const HOVER_DUTY = 0.625;
-for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.75]]) {
+/* The hover's stick, the one that hangs the weight on the prop on the
+ * 4.1 V pack this seats (scripts/lib/propcurve.js wingSeat, E6's
+ * derivation), and the stick that flies level at 16 m/s there, 0.393
+ * (npm run extra:derive). Until 2026-10-12 they were 0.625, the hover's
+ * prop speed share taken as a stick, and 0.75, neither derived: on the
+ * seated pack the one climbs off the prop and the other is not level. */
+const HOVER_DUTY = wingSeat('FW_EXTRA3D1308').hoverStick(SEAT_GATES);
+for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.393]]) {
   for (const [axis, k] of [['roll', 11], ['pitch', 12], ['yaw', 13]]) {
     const turned = bothModes((mode) => {
       mode();
@@ -394,19 +401,22 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
 
 /* Taxiing on the Cub's taxi thrust, 1.65 N: the prop at sqrt(1.65 /
  * 37.86), 0.209 of full, which the electric motor's law (plant_wing.c
- * prop_spool) turns at a duty of (0.209^2 + 5.667 0.209) / 6.667, 0.184,
- * where the Cub's check takes 0.35 of its own. The heading's change is
+ * prop_spool) turns at a duty of (0.209^2 + 5.667 0.209) / 6.667, 0.184
+ * at the pack the balance was taken at; on the 4.1 V pack this check
+ * seats, loaded over the table's v_meas (power_duty), at a stick of 0.143
+ * (scripts/lib/propcurve.js wingSeat stickFor). The Cub's check takes
+ * 0.35 of its own. The heading's change is
  * summed step by step: past half a circle the end points wrap. */
 for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
-  roll(() => [0, 0, 0, 0.184], 2);
+  roll(() => [0, 0, 0, 0.143], 2);
   let last = heading(sim.readState().state);
   let turnedRad = 0;
   roll(() => {
     const h = heading(sim.readState().state);
     turnedRad += Math.atan2(Math.sin(h - last), Math.cos(h - last));
     last = h;
-    return [0, 0, 1, 0.184];
+    return [0, 0, 1, 0.143];
   }, 4);
   const turned = turnedRad * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);

@@ -22,7 +22,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -175,8 +175,11 @@ const discP = Ts ** 1.5 / Math.sqrt(2 * rho * Math.PI * propR * propR);
  * prop_curve); open past its last tenth it carries on along the last two,
  * which is the folding prop's braking. */
 const prop = wingProp('FW_RADIAN2000');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
-const Tunclipped = (V, d) => prop.thrust(Ts, V, d);
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_RADIAN2000');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
+const Tunclipped = (V, d) => prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n);
 const drag = (V, n1 = 1) => { const q = 0.5 * rho * V * V; const CL = n1 * W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 6, hi = 40;

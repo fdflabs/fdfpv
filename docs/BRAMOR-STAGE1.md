@@ -303,3 +303,21 @@ aircraft's where it says so.
 switch are `scripts/bramor-stab-selftest.js` (npm run bramor:stab); the
 recordings the cross host check replays are made by npm run
 bramor:record.
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+C-Astral publishes no pack voltage: the static thrust is sized to the published 5 m/s climb on a full pack (4.2 V), 22.9 N (was 22.6), and v_meas is that pack's loaded voltage at the static current, 4.009 V, DERIVED (scripts/bramor-derive.js). The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/bramor-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| B1 cruise: the throttle that holds 16 m/s | 0.596 to 0.5495 | duty 0.596, now 0.55; the band is the published cruise's |
+| B4 top speed | 28.48 to 28.29 m/s | 25.06 to 30.0, now 24.90 to 30.0 |
+| B7 best climb at the gates' seat | 5.0 (published, a full pack's) to 4.69 | 4.0 to 6.0, now 3.75 to 5.63 |

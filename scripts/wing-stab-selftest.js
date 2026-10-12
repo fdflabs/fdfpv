@@ -97,7 +97,11 @@ check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * D
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${(level.worstBank * DEG).toFixed(1)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${(level.pitch * DEG).toFixed(1)} deg`);
 check('and straight: under 15 m off the line after 10 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
-check('at a cruising speed', level.v > 12 && level.v < 22, `${level.v.toFixed(1)} m/s`);
+/* The 65 percent stick's level speed, W1's derived band (tests/wing-thresholds.json):
+ * the 12 to 22 m/s this held until 2026-10-12 had no derivation, and the seated
+ * pack's thrust (w36-seat-voltage) puts the 65 percent stick's speed at 22.88. */
+const w1 = JSON.parse(await readFile(join(root, 'tests/wing-thresholds.json'), 'utf8')).w1_level_65;
+check(`at the 65 percent stick's level speed, W1's ${w1.min} to ${w1.max} m/s`, level.v > w1.min && level.v < w1.max, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 
 const banked = hold(1, 0, 0.75, 3);

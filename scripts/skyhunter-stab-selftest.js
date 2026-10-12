@@ -176,8 +176,9 @@ check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitc
 check('and straight: under 15 m off the line after 10 s', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
 
 /* The throttle that holds about 20 m/s level, S5's (skyhunter-thresholds.json):
- * 0.85 on the straight line, 0.69 on the prop curves. */
-const ACRO_THROTTLE = 0.69;
+ * 0.85 on the straight line, 0.69 on the prop curves, 0.63 on the gates'
+ * seated pack through the motor's law (w36-seat-voltage). */
+const ACRO_THROTTLE = 0.63;
 throwAt(120, 18);
 fly(0, 0, 0, ACRO_THROTTLE, 1);
 const rolling = fly(1, 0, 0, ACRO_THROTTLE, 0.8);

@@ -152,7 +152,9 @@ check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 3
 /* The Cub's 15 m over its 120 m of flight, in proportion to the F-16's
  * 200 m. */
 check('and straight: under 25 m off the line after 10 s', Math.abs(level.y) < 25, `${level.y.toFixed(1)} m`);
-check('at the pattern speed, S1\'s band', level.v > 16.72 && level.v < 22.62, `${level.v.toFixed(1)} m/s`);
+/* S1's band (tests/f16-thresholds.json s1_level_50), re-derived 2026-10-12
+ * on the gates' 4.1 V seat. */
+check('at the pattern speed, S1\'s band', level.v > 19.07 && level.v < 25.79, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.6, 5);
 check('full right stick banks right, to the 60 degree cap: 50 to 65 degrees', banked.bank * DEG > 50 && banked.bank * DEG < 65, `${deg(banked.bank)} deg`);

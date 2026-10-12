@@ -346,12 +346,11 @@ typedef struct {
   double vbat_load;       /* pack voltage under load, volts */
   /* What is left in the pack and the tank, docs/POWER-STAGE1.md. A fixed
    * wing's alone: the quad plant never reads or writes them. soc0 is the
-   * state of charge cell_voltage_oc names on the LiPo curve, v_cell0 that
-   * curve's voltage there and v_cell its voltage now, per cell, open
-   * circuit. power_out is 1 once the pack is flat or the tank dry. */
+   * state of charge cell_voltage_oc names on the LiPo curve and v_cell
+   * that curve's voltage now, per cell, open circuit. power_out is 1 once
+   * the pack is flat or the tank dry. */
   double charge_c;        /* drawn since reset, coulombs */
   double soc0;
-  double v_cell0;
   double v_cell;
   double fuel_m3;         /* left in the tank */
   double lvc_cap;         /* the ESC's low voltage cutoff's duty cap; huge until it acts */
@@ -585,6 +584,9 @@ typedef struct FixedWingParams {
                          * which is a prop turning clockwise seen from behind.
                          * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
+  double v_meas;        /* V a cell, loaded, that thrust_static and current_full
+                         * were measured at: an electric's duty runs at the
+                         * pack's loaded voltage over it (power_duty) */
   /* Stabilised: a bank and a pitch held by a rate damped proportional loop. */
   double stab_bank_max;
   double stab_pitch_max;

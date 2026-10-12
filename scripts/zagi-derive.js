@@ -36,7 +36,7 @@
  */
 
 import { derivatives, lattice } from './lib/lattice.js';
-import { wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_FULL, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -218,14 +218,17 @@ const jProp = 2 * 0.004 * propR * propR / 3 + 0.025 * 0.006 * 0.006 / 2;
 
 /* Performance, the plant's own motor and drag model. */
 const prop = wingProp('FW_ZAGI1219');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_ZAGI1219');
+const T = (V, d, vCell = SEAT_GATES) => Math.max(0, prop.thrust(Ts, V, seat.at(vCell, d, V).n));
 const Dr = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
-const level = (d) => {
+const level = (d, vCell = SEAT_GATES) => {
   let ok = false;
-  for (let V = 6; V < 60; V += 0.1) if (T(V, d) > Dr(V)) ok = true;
+  for (let V = 6; V < 60; V += 0.1) if (T(V, d, vCell) > Dr(V)) ok = true;
   if (!ok) return null;
   let lo = 6, hi = 60;
-  for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d) > Dr(mid)) lo = mid; else hi = mid; }
+  for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d, vCell) > Dr(mid)) lo = mid; else hi = mid; }
   return lo;
 };
 const CLopt = Math.sqrt(CD0 / k), LDmax = CLopt / (2 * CD0), Vmd = Math.sqrt(2 * W / (rho * S * CLopt));
@@ -452,6 +455,8 @@ const rows = [
   ['motor: Kt, omega, P shaft W, Ts N, T/W', `${f(Kt, 6)} ${f(omegaLoaded, 1)} ${f(Pshaft, 1)} ${f(Ts)} ${f(Ts / W, 3)}`],
   ['   rpm NL (rule), Vp m/s, torque arm m, J prop', `${f(rpmNL, 1)} ${f(Vp)} ${f(torqueArm, 5)} ${jProp.toPrecision(4)}`],
   ['level at 100, 75, 65, 50 percent', `${f(level(1), 2)} ${f(level(0.75), 2)} ${f(level(0.65), 2)} ${f(level(0.5), 2)}`],
+  /* Zagi's "Top Speed 85 MPH" is a full pack's (SEAT_FULL), the gates' 4.1 V seat the line above. */
+  ['top speed on a full pack, against Zagi\'s 85 mph (38.0 m/s)', `${f(level(1, SEAT_FULL), 2)}`],
   ['glide: L/D max at V; L/D at 12', `${f(LDmax, 2)} ${f(Vmd, 2)}; ${f(ld(12), 2)}`],
   ['min sink m/s at V', `${f(minSink.sink, 3)} ${f(minSink.V, 2)}`],
   ['Z9 mush sink bracket m/s: attached at CLmax, separated plate at 30 deg', `${f(mushLo, 2)} ${f(mushPlate, 2)}`],

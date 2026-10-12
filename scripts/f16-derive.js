@@ -28,7 +28,7 @@
  */
 
 import { groundTerms, wingGround } from './lib/groundeffect.js';
-import { wingProp } from './lib/propcurve.js';
+import { SEAT_FULL, SEAT_GATES, wingProp, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -235,18 +235,24 @@ const Vz = J0 * (rpm / 60) * D;
 /* The thrust on the curve the plant flies, its axial_curve: for the fan
  * that line again, on the table's pitch_speed, Vz to two places. */
 const fan = wingProp('FW_F16878');
-const T = (V, n = 1) => Math.max(0, fan.thrust(T0, V, n));
+/* At a fan speed share n; and at a stick on a seated pack, the fan at its
+ * duty, the stick times the loaded pack over v_meas (wingSeat,
+ * plant_wing.c power_duty and fan_spool), the gates' seat unless named. */
+const Tn = (V, n) => Math.max(0, fan.thrust(T0, V, n));
+const seat = wingSeat('FW_F16878');
+const T = (V, d = 1, vCell = SEAT_GATES) => Tn(V, seat.at(vCell, d, V).n);
 /* Its static efflux speed through 90 percent of the swept annulus (a 30
  * mm hub): the momentum thrust's jet, for the ideal power it asks. */
 const Aexit = 0.9 * Math.PI / 4 * (D * D - 0.030 * 0.030);
 const Vjet = Math.sqrt(T0 / (rho * Aexit));
 const currentFull = 70;
 /* Freewing: "a maximum flying speed of 165kph". CD0 is what flies it
- * there on this fan, level. */
+ * there on this fan, level, FITTED, on a full pack: the same manual's
+ * "before flying, we need a fully charged battery" (SEAT_FULL). */
 const Vtop = 165 / 3.6;
 {
   const q = 0.5 * rho * Vtop * Vtop, CL = W / (q * S);
-  CD0fit.value = T(Vtop) / (q * S) - k * CL * CL;
+  CD0fit.value = T(Vtop, 1, SEAT_FULL) / (q * S) - k * CL * CL;
 }
 const CD0 = CD0fit.value;
 /* The gear down adds its drag, the P-51's retracts in the plant taking it
@@ -288,16 +294,24 @@ for (let V = 1.2 * Vs; V < 40; V += 0.02) { const vz = (T(V) - Dg(V)) * V / W; i
  * so the top of that. The start: the ESC's manual, Normal startup, "300ms"
  * from initial throttle advance to full. */
 const fanTau = 0.08, escStart = 0.3;
+/* Standing, from the fan settled at the stick `from` on the gates' pack:
+ * its command is the stick `to` times the pack's loaded voltage over
+ * v_meas at last step's current (plant_wing.c power_duty), so a fan
+ * started with no current drawn is driven harder until its current sags
+ * the pack. */
 function spool({ from = 0, to = 1, started = false, seconds = 3 }) {
-  let n = from, v = 0, ramp = started ? 1 : 0;
+  const at0 = seat.at(SEAT_GATES, from, 0);
+  let n = from > 0 ? at0.n : 0, v = 0, ramp = started ? 1 : 0, I = from > 0 ? at0.I : 0, r = at0.r;
   const dt = 0.001;
   const out = [];
   for (let t = 0; t < seconds; t += dt) {
-    let target = to;
+    r = (SEAT_GATES - I * seat.rCell) / seat.vMeas;
+    let target = to * r;
     if (!(to > 0)) { target = 0; ramp = 0; } else if (ramp < 1) { ramp += dt / escStart; if (ramp >= target) ramp = 1; else target = ramp; }
     const acc = (target - n) / (fanTau * fanTau) - 2 * v / fanTau;
     v += acc * dt; n += v * dt;
     if (n < 0) { n = 0; v = 0; }
+    I = seat.currentFull * n * n * n * fan.cp(0) / r;
     out.push({ t: t + dt, n, thrust: T0 * n * n });
   }
   return out;
@@ -443,12 +457,12 @@ function takeoff(stick, vRot, mu = 0.08) {
   let V = 0, x = 0, t = 0, n = 0, v = 0, ramp = 0;
   const dt = 0.001;
   while (V < vRot && t < 60) {
-    let target = stick;
+    let target = seat.at(SEAT_GATES, stick, V).n;
     if (ramp < 1) { ramp += dt / escStart; if (ramp >= target) ramp = 1; else target = ramp; }
     const acc = (target - n) / (fanTau * fanTau) - 2 * v / fanTau;
     v += acc * dt; n += v * dt;
     const q = 0.5 * rho * V * V;
-    const a = (T(V, n) - q * S * CD - mu * Math.max(0, W - q * S * CL)) / m;
+    const a = (Tn(V, n) - q * S * CD - mu * Math.max(0, W - q * S * CL)) / m;
     V = Math.max(0, V + a * dt); x += V * dt; t += dt;
   }
   return { x, t, V };
@@ -481,13 +495,13 @@ function rotation(stick, mu = 0.08, ge = false) {
   let V = 0, x = 0, t = 0, n = 0, v = 0, ramp = 0;
   const dt = 0.001;
   while (t < 60) {
-    let target = stick;
+    let target = seat.at(SEAT_GATES, stick, V).n;
     if (ramp < 1) { ramp += dt / escStart; if (ramp >= target) ramp = 1; else target = ramp; }
     const acc = (target - n) / (fanTau * fanTau) - 2 * v / fanTau;
     v += acc * dt; n += v * dt;
     const q = 0.5 * rho * V * V;
     const CLg = CLa * aRest, CDg = CD0g + k * CLg * CLg;
-    const L = q * S * (CLg + CLde * throwE), Dr = q * S * CDg, Tt = T(V, n);
+    const L = q * S * (CLg + CLde * throwE), Dr = q * S * CDg, Tt = Tn(V, n);
     const gr = ge ? onGround(0) : { dCL: 0, dCm: 0 };
     const moment = q * S * mac * (Cm0 + Cma * aRest + Cmde * throwE + gr.dCm) + (L + q * S * gr.dCL - W) * xm - (Tt - Dr) * h;
     if (moment > 0 && V > 1) return { V, x, t };

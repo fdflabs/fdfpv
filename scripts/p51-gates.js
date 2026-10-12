@@ -333,15 +333,24 @@ check: {
     }
     const tail = vs.filter((p) => p.t >= vs[vs.length - 1].t - 10);
     const mean = tail.reduce((a, p) => a + p.v, 0) / tail.length;
-    const ups = [];
-    for (let i = 1; i < vs.length; i += 1) {
-      const a = vs[i - 1].v - mean;
-      const b = vs[i].v - mean;
-      if (a < 0 && b >= 0) ups.push(vs[i - 1].t + (vs[i].t - vs[i - 1].t) * (-a / (b - a)));
+    /* The derivation's phugoid at the 75 percent trim is damped at zeta
+     * 0.69 (p51:derive): its overshoot is exp(-pi zeta / sqrt(1 - zeta^2)),
+     * 5 percent, so no period can be read off crossings, and the plant
+     * returns without one. What zeta and omega predict is the envelope's
+     * decay: the excursion from the settled speed falls by e every
+     * 1 / (zeta omega_n). It is fitted here, log-linear, over the decay
+     * from 2 s past the largest excursion until it is a twentieth of it. */
+    const peak = vs.reduce((b, p) => (Math.abs(p.v - mean) > Math.abs(b.v - mean) ? p : b), vs[0]);
+    const big = Math.abs(peak.v - mean);
+    const fit = vs.filter((p) => p.t >= peak.t + 2 && Math.abs(p.v - mean) > 0.05 * big && Math.sign(p.v - mean) === Math.sign(peak.v - mean));
+    let efold = null;
+    if (fit.length > 10) {
+      const xs = fit.map((p) => p.t), ys = fit.map((p) => Math.log(Math.abs(p.v - mean)));
+      const mx = xs.reduce((a, x) => a + x, 0) / xs.length, my = ys.reduce((a, y) => a + y, 0) / ys.length;
+      const slope = xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+      efold = slope < 0 ? -1 / slope : null;
     }
-    const period = ups.length >= 2 ? (ups[ups.length - 1] - ups[0]) / (ups.length - 1) : null;
-    const swing = Math.max(...vs.map((p) => p.v)) - Math.min(...vs.map((p) => p.v));
-    gate('P9', 'phugoid period', period != null && within(period, th.p9_phugoid), period == null ? `no oscillation, swing ${swing.toFixed(2)} m/s` : `${period.toFixed(2)} s over ${ups.length - 1} cycles, swing ${swing.toFixed(2)} m/s about ${mean.toFixed(2)}`, band(th.p9_phugoid));
+    gate('P9', 'phugoid decay', efold != null && within(efold, th.p9_phugoid), efold == null ? `no decay fitted, excursion ${big.toFixed(2)} m/s` : `${efold.toFixed(2)} s to fall by e, excursion ${big.toFixed(2)} m/s about ${mean.toFixed(2)}`, band(th.p9_phugoid));
   }
 
   /* P10: at rest at full throttle, the prop spun up; the roll moment is
