@@ -22,136 +22,136 @@ export const SURFACE_STATS = {
   "extra3d1308": {
     "a": [
       {
-        "full": 720,
-        "fifth": 95.1,
-        "kept": 0.83
+        "full": 846,
+        "fifth": 113.7,
+        "kept": 0.883
       },
       {
-        "full": 767,
-        "fifth": 104.8,
-        "kept": 0.778
+        "full": 896,
+        "fifth": 125.2,
+        "kept": 0.834
       },
       {
-        "full": 807,
-        "fifth": 114.1,
-        "kept": 0.724
+        "full": 938,
+        "fifth": 136.1,
+        "kept": 0.784
       },
       {
-        "full": 841,
-        "fifth": 123,
-        "kept": 0.668
+        "full": 970,
+        "fifth": 146.6,
+        "kept": 0.734
       }
     ],
     "e": [
       {
-        "full": 281,
-        "fifth": 54.1,
-        "kept": 0.909
+        "full": 349,
+        "fifth": 72.3,
+        "kept": 0.858
       },
       {
-        "full": 303,
-        "fifth": 60.5,
-        "kept": 0.833
+        "full": 374,
+        "fifth": 80.1,
+        "kept": 0.841
       },
       {
-        "full": 320,
-        "fifth": 66.8,
-        "kept": 0.773
+        "full": 394,
+        "fifth": 87.9,
+        "kept": 0.771
       },
       {
-        "full": 334,
-        "fifth": 73.2,
-        "kept": 0.717
+        "full": 410,
+        "fifth": 95.8,
+        "kept": 0.706
       }
     ],
     "r": [
       {
-        "full": 268,
-        "fifth": 43,
-        "kept": 0.496
+        "full": 322,
+        "fifth": 53,
+        "kept": 0.467
       },
       {
-        "full": 268,
-        "fifth": 43,
-        "kept": 0.496
+        "full": 322,
+        "fifth": 53,
+        "kept": 0.467
       },
       {
-        "full": 268,
-        "fifth": 43,
-        "kept": 0.496
+        "full": 322,
+        "fifth": 53,
+        "kept": 0.467
       },
       {
-        "full": 268,
-        "fifth": 43,
-        "kept": 0.496
+        "full": 322,
+        "fifth": 53,
+        "kept": 0.467
       }
     ]
   },
   "cub1400": {
     "a": [
       {
-        "full": 196,
-        "fifth": 20.8,
-        "kept": 0.815
+        "full": 204,
+        "fifth": 23,
+        "kept": 0.847
       },
       {
-        "full": 240,
-        "fifth": 25.7,
-        "kept": 0.733
+        "full": 246,
+        "fifth": 28.4,
+        "kept": 0.783
       },
       {
-        "full": 293,
-        "fifth": 32,
-        "kept": 0.652
+        "full": 313,
+        "fifth": 35.3,
+        "kept": 0.717
       },
       {
-        "full": 395,
-        "fifth": 39.4,
-        "kept": 0.507
+        "full": 422,
+        "fifth": 43.3,
+        "kept": 0.598
       }
     ],
     "e": [
       {
-        "full": 140,
-        "fifth": 26.3,
-        "kept": 1.037
+        "full": 158,
+        "fifth": 33.4,
+        "kept": 1.058
       },
       {
-        "full": 172,
-        "fifth": 33.5,
-        "kept": 0.997
+        "full": 195,
+        "fifth": 41.3,
+        "kept": 1.018
       },
       {
-        "full": 211,
-        "fifth": 45.2,
-        "kept": 0.887
+        "full": 239,
+        "fifth": 54,
+        "kept": 0.912
       },
       {
-        "full": 253,
-        "fifth": 57.2,
-        "kept": 0.708
+        "full": 287,
+        "fifth": 67.1,
+        "kept": 0.685
       }
     ],
     "r": [
       {
-        "full": 52,
-        "fifth": 8.2,
-        "kept": 1.014
+        "full": 57,
+        "fifth": 9.3,
+        "kept": 1.041
       },
       {
-        "full": 66,
-        "fifth": 10.3,
-        "kept": 0.998
+        "full": 73,
+        "fifth": 11.6,
+        "kept": 1.023
       },
       {
-        "full": 87,
-        "fifth": 13.4,
-        "kept": 0.966
+        "full": 96,
+        "fifth": 15,
+        "kept": 0.986
       },
       {
-        "full": 113,
-        "fifth": 17.1,
-        "kept": 0.891
+        "full": 124,
+        "fifth": 19.1,
+        "kept": 0.907
       }
     ]
   }
