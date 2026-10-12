@@ -142,28 +142,13 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/kadet1981/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'kadet1981'),
-  {
-    /* The Ugly Stik, RCM's kit: no gyro, Manual. On its wheels every
-     * mode flies as Manual, the rudder steering the nose wheel. */
-    id: 'uglystik-manual',
-    airframe: 'uglystik1567',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel, at RCM\'s travel limits. It goes where you point it and stays there: it holds a bank, loops round at full throttle and flies on its back with half the stick pushed. Throttle closed, the two stroke idles.',
-  },
-  {
-    id: 'uglystik-as3x',
-    airframe: 'uglystik1567',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'uglystik-stab',
-    airframe: 'uglystik1567',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Throttle closed, it lowers the nose onto its glide.',
-    wingStab: 1,
-  },
+  /*
+   * The Ugly Stik, RCM's kit: no gyro, Manual. On its wheels every mode
+   * flies as Manual, the rudder steering the nose wheel.
+   *
+   * Its tunes are its folder's, aircraft/uglystik1567/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'uglystik1567'),
   {
     /* The Tiger Moth, Great Planes' GPMA1330 ARF on a glow two stroke:
      * no gyro in the box, Manual. On its wheels every mode flies as

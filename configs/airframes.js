@@ -365,62 +365,33 @@ export const AIRFRAMES = [
    * point the wheels' and the highest the fin's top.
    */
   airframeOf('kadet1981'),
-  {
-    /*
-     * Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
-     * plan 939, docs/UGLYSTIK-STAGE1.md: a 62 in balsa sport aerobat, 96 oz
-     * ready to fly, simId 19 on the fixed wing plant. A constant chord
-     * shoulder wing on a section within a percent of symmetric, strip
-     * ailerons, a flat stabiliser under the tail and the egg of a fin over
-     * it: it rolls on its ailerons, loops, flies on its back with a push,
-     * holds the bank it is left in and drops its nose, not a wing, when it
-     * stalls. An O.S. 61FX two stroke on a 12 x 6: the stick runs it from
-     * its 2,000 rpm idle to full and it never stops, and `voice` is the two
-     * stroke's note in the mix (src/render/audio.js). The pack is a 4.8 V
-     * receiver pack, which the engine draws nothing from. It stands on a
-     * tricycle gear whose nose wheel steers with the rudder, nose down as
-     * the plan draws it; `gear` is the plant's settled pose idling, which
-     * the drawn wheels in src/render/uglystikcraft.js match: the CG 0.2024
-     * m over the ground and 2.06 degrees nose down.
-     */
-    id: 'uglystik1567',
-    simId: 19,
-    fixedWing: true,
-    voice: 'glow2',
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/uglystik-thresholds.json u2_stall. */
-    stall: 9.48,
-    /* Level speed at full throttle, m/s: tests/uglystik-thresholds.json u4_top, derived. */
-    topSpeed: 28.29,
-    gear: { restHeight: 0.2024, restPitch: -2.06 * Math.PI / 180 },
-    name: 'Ugly Stik',
-    short: 'Stik',
-    blurb: 'Phil Kraft\'s Das Ugly Stik, 62 in of slab sided balsa in RCM\'s red with white panels and black crosses, on an O.S. .61 two stroke. The sport plane after the trainer: it rolls on its strip ailerons, loops round at full throttle, flies on its back with a push and goes where you point it until you tell it otherwise.',
-    facts: ['Two stroke .61', '1567 mm', 'Four channels'],
-    sizeMm: 1567,
-    grams: 2721.6,
-    trackClass: 'wing',
-    cells: 2,
-    ...packStates(),
-    defaultTune: 'uglystik-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/uglystikcraft.js UGLYSTIK_DIMS: the
-     * furthest reach in plan is the rudder's trailing edge, 0.884 m aft,
-     * further than the tips; the lowest drawn point the mains' and the
-     * highest the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1524,
-      hullR: 0.8844,
-      vHalfDown: 0.2032,
-      vHalfUp: 0.1735,
-      bodyLength: 1.3061,
-      bodyWidth: 1.5682,
-      bodyHeight: 0.3767,
-    },
-  },
+  /*
+   * Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
+   * plan 939, docs/UGLYSTIK-STAGE1.md: a 62 in balsa sport aerobat, 96 oz
+   * ready to fly, simId 19 on the fixed wing plant. A constant chord
+   * shoulder wing on a section within a percent of symmetric, strip
+   * ailerons, a flat stabiliser under the tail and the egg of a fin over
+   * it: it rolls on its ailerons, loops, flies on its back with a push,
+   * holds the bank it is left in and drops its nose, not a wing, when it
+   * stalls. An O.S. 61FX two stroke on a 12 x 6: the stick runs it from
+   * its 2,000 rpm idle to full and it never stops, and `voice` is the two
+   * stroke's note in the mix (src/render/audio.js). The pack is a 4.8 V
+   * receiver pack, which the engine draws nothing from. It stands on a
+   * tricycle gear whose nose wheel steers with the rudder, nose down as
+   * the plan draws it; `gear` is the plant's settled pose idling, which
+   * the drawn wheels in src/render/uglystikcraft.js match: the CG 0.2024
+   * m over the ground and 2.06 degrees nose down.
+   *
+   * The row is its folder's, aircraft/uglystik1567/aircraft.js. `stall`:
+   * Clean stall, m/s, sqrt(2W / rho S CLmax):
+   * tests/uglystik-thresholds.json u2_stall. `topSpeed`: Level speed at
+   * full throttle, m/s: tests/uglystik-thresholds.json u4_top, derived.
+   * `dims`: The drawn machine, src/render/uglystikcraft.js UGLYSTIK_DIMS:
+   * the furthest reach in plan is the rudder's trailing edge, 0.884 m aft,
+   * further than the tips; the lowest drawn point the mains' and the
+   * highest the fin's top.
+   */
+  airframeOf('uglystik1567'),
   {
     /*
      * Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md: a 71

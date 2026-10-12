@@ -105,7 +105,6 @@ export const TRIM_MAX_DEG = 4;
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
-const STIK_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
 const TIGER_MANUAL = 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
@@ -157,13 +156,7 @@ export const TUNING = {
    * (scripts/bombshell-derive.js); linear, 0.287. */
   bombshell1118: AIRCRAFT.TUNING.bombshell1118,
   kadet1981: AIRCRAFT.TUNING.kadet1981,
-  uglystik1567: {
-    chord: 0.3256, area: 0.51055, margin: 0.101,
-    cg: { mm: 119.1, datum: 'tuning.datum.root_le', range: null, source: `RCM plan 939, its C.G. mark 4.69 in behind the leading edge, and Kraft's "It should balance approximately on the main spar", no range; ${STIK_PLAN}` },
-    packKg: 0.10, nose: 0.2985, tail: -0.785,
-    throws: { high: [12.5969, 12.9765, 14.6270], low: [8.8, 9.1, 10.2], source: `RCM plan 939's "Control Surface Travel Limits (measured at trailing edge)": ailerons 5/16 in up and 1/4 down on the 1.29 in strip aileron, their mean, elevator 3/8 in on its 1.67 in, rudder 1 in on its 3.96 in (docs/UGLYSTIK-STAGE1.md), one set; ${LOW_70}; ${STIK_PLAN}` },
-    flaps: null,
-  },
+  uglystik1567: AIRCRAFT.TUNING.uglystik1567,
   tigermoth1803: {
     chord: 0.2683, area: 0.87742, margin: 0.038,
     cg: { mm: 70, datum: 'tuning.datum.bottom_le', range: [64, 76], source: `Great Planes manual p. 21, "measure back 2-3/4\" [70mm]" on the top of the bottom wing next to the fuselage, and "up to 2-1/2\" [64mm] back from the leading edge or 3\" [76mm]"; ${TIGER_MANUAL}` },
