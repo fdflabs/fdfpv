@@ -71,30 +71,14 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/sky1800/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'sky1800'),
-  {
-    /* The Cub's: the FMS 1400 mm PNP has no gyro (FMS sells a Reflex
-     * combo apart), so Manual is the default; AS3X and Stabilised are
-     * electronics a pilot may fit. On its wheels every mode flies as
-     * Manual. */
-    id: 'cub-manual',
-    airframe: 'cub1400',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel.',
-  },
-  {
-    id: 'cub-as3x',
-    airframe: 'cub1400',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'cub-stab',
-    airframe: 'cub1400',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
+  /*
+   * The Cub's: the FMS 1400 mm PNP has no gyro (FMS sells a Reflex combo
+   * apart), so Manual is the default; AS3X and Stabilised are electronics
+   * a pilot may fit. On its wheels every mode flies as Manual.
+   *
+   * Its tunes are its folder's, aircraft/cub1400/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'cub1400'),
   {
     /* The Radian Pro (PKZ5475) is a PNP with no gyro, so Manual is the
      * default. The throttle folds the prop in every mode. */

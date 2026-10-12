@@ -181,51 +181,23 @@ export const AIRFRAMES = [
    * fins' tops 0.219 m over it.
    */
   airframeOf('sky1800'),
-  {
-    /*
-     * The Piper J-3 Cub, docs/CUB-STAGE1.md: the FMS 1400 mm, a high wing
-     * taildragger with a tractor prop, simId 4 on the fixed wing plant.
-     * The first aircraft here with wheels: it sits on its gear and takes
-     * off down the strip rather than being thrown (L still throws it).
-     * `gear` is where it rests, from the plant's settled pose, which the
-     * drawn wheels in src/render/cubcraft.js match: the CG 0.1463 m over
-     * the ground and 11 degrees nose up, tail down.
-     */
-    id: 'cub1400',
-    simId: 4,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/cub-thresholds.json c2_stall. */
-    stall: 8.1,
-    /* Level speed at full throttle, m/s: tests/cub-thresholds.json c4_top, derived. */
-    topSpeed: 22.4,
-    gear: { restHeight: 0.1463, restPitch: 11.0 * Math.PI / 180 },
-    name: 'Piper Cub',
-    short: 'Cub',
-    blurb: 'A 1400 mm Piper J-3 Cub on 3S, a taildragger with ailerons, elevator and rudder. Take off from the strip on its wheels and land it back on them.',
-    facts: ['3S', '1400 mm', 'Taildragger'],
-    sizeMm: 1400,
-    grams: 1320,
-    trackClass: 'wing',
-    cells: 3,
-    ...packStates(),
-    defaultTune: 'cub-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/cubcraft.js CUB_DIMS: half span, the
-     * wheels' lowest drawn point and the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1397,
-      hullR: 0.70,
-      vHalfDown: 0.163,
-      vHalfUp: 0.160,
-      bodyLength: 0.9,
-      bodyWidth: 1.4,
-      bodyHeight: 0.323,
-    },
-  },
+  /*
+   * The Piper J-3 Cub, docs/CUB-STAGE1.md: the FMS 1400 mm, a high wing
+   * taildragger with a tractor prop, simId 4 on the fixed wing plant.
+   * The first aircraft here with wheels: it sits on its gear and takes
+   * off down the strip rather than being thrown (L still throws it).
+   * `gear` is where it rests, from the plant's settled pose, which the
+   * drawn wheels in src/render/cubcraft.js match: the CG 0.1463 m over
+   * the ground and 11 degrees nose up, tail down.
+   *
+   * The row is its folder's, aircraft/cub1400/aircraft.js. `stall`: Clean
+   * stall, m/s, sqrt(2W / rho S CLmax): tests/cub-thresholds.json
+   * c2_stall. `topSpeed`: Level speed at full throttle, m/s:
+   * tests/cub-thresholds.json c4_top, derived. `dims`: The drawn machine,
+   * src/render/cubcraft.js CUB_DIMS: half span, the wheels' lowest drawn
+   * point and the fin's top.
+   */
+  airframeOf('cub1400'),
   {
     /*
      * The E-flite Radian Pro, docs/GLIDER-STAGE1.md: a 2 m powered glider

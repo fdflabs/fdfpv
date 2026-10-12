@@ -103,7 +103,6 @@ export const MARGIN_WARN = 0.05;
 export const TRIM_MAX_DEG = 4;
 
 const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
-const CUB_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf';
 const RADIAN_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL4750-Manual-EN.pdf';
 const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/PKZ5480-Manual_EN.pdf';
 const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
@@ -152,13 +151,7 @@ export const TUNING = {
     flaps: null,
   },
   sky1800: AIRCRAFT.TUNING.sky1800,
-  cub1400: {
-    chord: 0.20, area: 0.28, margin: 0.119,
-    cg: { mm: 60, datum: 'tuning.datum.le', range: [55, 65], source: `FMS manual, "(55-65mm) from the leading edge of the main wing", p. 11; ${CUB_MANUAL}` },
-    packKg: 0.19, nose: 0.20, tail: -0.54,
-    throws: { high: [18, 15, 15], low: [13.4, 11.2, 11.6], source: `FMS manual p. 10: high 16, 16, 18 mm, low 12, 12, 14 mm, on 50, 60 and 70 mm horn chords; ${CUB_MANUAL}` },
-    flaps: null,
-  },
+  cub1400: AIRCRAFT.TUNING.cub1400,
   radian2000: {
     /* -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234 was read off the plant
      * past the linear lift, where its curve now rounds onto CL max. */
