@@ -647,10 +647,39 @@ export function revive(m) {
   return m;
 }
 
+/* The cores this process may use: the tightest CPU quota (cgroup v2
+ * cpu.max, quota over period) on its cgroup or any parent, since a job
+ * slice's quota sits above the scope a check runs in and the core count
+ * the process sees ignores it; the cores seen where there is none. */
+export function coresAllowed() {
+  let cores = availableParallelism();
+  let path;
+  try {
+    path = readFileSync('/proc/self/cgroup', 'utf8').split('\n').find((l) => l.startsWith('0::')).slice(3).trim();
+  } catch {
+    return cores;
+  }
+  for (let dir = path; dir; dir = dir.slice(0, dir.lastIndexOf('/'))) {
+    let max;
+    try {
+      max = readFileSync(`/sys/fs/cgroup${dir}/cpu.max`, 'utf8').trim().split(/\s+/);
+    } catch {
+      continue;
+    }
+    if (max[0] !== 'max') cores = Math.min(cores, Math.max(1, Math.floor(Number(max[0]) / Number(max[1]))));
+  }
+  return cores;
+}
+
+/* At most 4 at once in CI (lead decision 2026-10-12): a runner shares its
+ * host with the other jobs of the batch. */
+const CI_WORKERS = 4;
+
 /* Each aircraft measured in its own process, as many at once as the
- * machine has cores: script --plane NAME prints its measure as JSON. */
+ * quota allows: script --plane NAME prints its measure as JSON. */
 export function fanOut(script, names, args = []) {
-  const n = Math.max(1, Math.min(names.length, availableParallelism()));
+  const cap = process.env.CI ? CI_WORKERS : Infinity;
+  const n = Math.max(1, Math.min(names.length, coresAllowed(), cap));
   const out = {};
   let next = 0;
   const run = () => {

@@ -348,25 +348,37 @@ check: {
      * disturbance itself does to the bank, the kicked flight's bank less
      * the same flight's unkicked (the harrier rocks by itself, E11, and
      * that rock is in both), integrated over the 12 s after, must be the
-     * less in AS3X both ways, at the receiver's default Heading, zero
-     * (the AR631's). The disturbance is the airframe's, not the pilot's:
+     * less in AS3X both ways. Holding the harrier is what the AR631's
+     * Heading is for ("You can increase this value to make the aircraft
+     * hold its attitude when control input is neutral"; it is "defaulted
+     * to zero"), so E11b flies AS3X at the full Heading, as extra:stab's
+     * turns, slick:stab's stall and cap580's C11b do (lead decision
+     * 2026-10-12). The disturbance is the airframe's, not the pilot's:
      * the roll rate a half stick of roll for 0.3 s puts on it in Manual,
      * given to the body at once. Until 2026-10-12 it was that stick pulse
      * itself, which past 40 percent stick hands the gyro over to the
      * pilot (Spektrum's priority 160), so it measured the pilot's command
      * and not the gyro, and its bank was judged against the settled mean,
-     * so the rock's own phase was in it (lead decision 2026-10-12). */
+     * so the rock's own phase was in it. At the receiver's default
+     * Heading, zero, the same ratio is printed and not judged. */
     const own = (mode, rate) => {
       const still = harrier(mode, 0, 0, true).after, kicked = harrier(mode, 0, rate).after;
       return kicked.reduce((x, b, i) => x + Math.abs(b - still[i]) * RC_STEP_MS / 1000, 0);
     };
-    const kicks = t11.kickStick.map((k) => {
+    const kicksAt = (heading) => t11.kickStick.map((k) => {
       const rate = harrier(0, k).pKick;
-      return { k, rate, m: own(0, rate), g: own(3, rate) };
+      const m = own(0, rate);
+      must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
+      const gk = own(3, rate);
+      must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
+      return { k, rate, m, g: gk };
     });
-    gate('E11b', 'harrier in AS3X: the gyro damps the rock', kicks.every((x) => x.g / x.m < t11.as3xIaeRatioMax) && g.drift <= t11.maxHeightDrift,
-      kicks.map((x) => `kick ${x.k} (${(x.rate * DEG).toFixed(0)} deg/s): ${x.g.toFixed(1)} against Manual's ${x.m.toFixed(1)} deg s, ${(x.g / x.m).toFixed(2)}`).join('; ') + `, height within ${g.drift.toFixed(2)} m`,
+    const said = (kicks) => kicks.map((x) => `kick ${x.k} (${(x.rate * DEG).toFixed(0)} deg/s): ${x.g.toFixed(1)} against Manual's ${x.m.toFixed(1)} deg s, ${(x.g / x.m).toFixed(2)}`).join('; ');
+    const kicks = kicksAt(1);
+    gate('E11b', 'harrier in AS3X at the full Heading: the gyro damps the rock', kicks.every((x) => x.g / x.m < t11.as3xIaeRatioMax) && g.drift <= t11.maxHeightDrift,
+      `${said(kicks)}, height within ${g.drift.toFixed(2)} m`,
       `under ${t11.as3xIaeRatioMax} of Manual's, within ${t11.maxHeightDrift} m`);
+    console.log(`  info  E11b at the receiver's default Heading, zero, recorded and not judged: ${said(kicksAt(0))}`);
   }
 
   /* E12: the knife edge. From level at 15 m/s, rolled right to 90 deg on
