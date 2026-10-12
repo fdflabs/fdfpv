@@ -123,7 +123,7 @@ radian. `npm run p51:derive` prints every one.
 | Cl p, Cl da | -0.648, 0.2270 | strip theory; the ailerons 0.45 to 0.68 m out, 22 percent chord, tau 0.49 |
 | Cn dr, CY dr, Cl dr | -0.0969, +0.1982, +0.0177 | tau_r 0.84 for the rudder's 54 percent |
 | CD0, e | 0.030 clean, 0.038 with the gear down, 0.80 | ESTIMATED: a painted foam warbird; the gear's 0.008 its two 88 mm wheels, legs and doors at a wheel's 0.25 on frontal area and the doors |
-| CL max, stall blend | 1.05, 3 deg | the UIUC low speed data's 15 percent NACA 2415 at 2e5, 1.22, times 0.9 for the wing and less for a laminar nose, ESTIMATED |
+| CL max, its peak | 1.033 at Re 1e5 to 1.090 at 2e5 (1.071 at the clean stall's), peaking at 17.97 to 18.50 deg; stall_blend 3 deg the floor | measured sections at the kit's Reynolds numbers, below ("The stall from measured sections"); was 1.05 at 15.9 deg, 0.9 of the 2415's 1.22 less an unsourced laminar nose, ESTIMATED |
 | stall_top, stall_k | 4.2 deg, 0.76 | the NACA 2415's UIUC curve at 2e5, standing for the laminar section as scripts/stall-derive.js's table does for every kit |
 | Stall arms, stall_dw | 0.1303, 0.0254, 0.1347 | the CG 31.8 mm behind the quarter chord line; the plate's centre of pressure at 0.40 of the mean chord; eta V_H a_t (d eps/d alpha)/a_w |
 | Washout | 1.967 deg | the full size's, NOT fitted (every other aircraft's is, docs/STALL-STAGE1.md) |
@@ -273,6 +273,88 @@ How much each gives on the take off roll (`p51:derive`, "roll yaw"): at
 a 0.5 rad/s tail raise. The tail wheel's grip holds all of it until the
 tail comes up, which is when the swing arrives, as it does on the real
 aircraft.
+
+## The stall from measured sections, and the three point attitude
+
+The landing lane (w36-p51-threepoint-diag, 7c3296496) found the plant
+past its own lift peak sitting on three points: a foot up in ground
+effect with full flap the trimmed lift peaked at 11 to 12 deg of pitch
+against the 13.13 deg rest (P13). FAA-H-8083-3C ch. 14: "All modern
+tailwheel aircraft can be lifted off in the three-point attitude. That
+is, the AOA with all three wheels on the ground does not exceed the
+critical AOA", and "it is rare to encounter tailwheel planes designed so
+that the wings are beyond critical AOA in the three-point attitude".
+
+**The section.** No 45-100 was tested at the kit's Reynolds numbers
+(1.3 to 1.7e5 on the 0.244 m chord at its stalls). The UIUC books hold
+two sections either side of its thickness: the NACA 2415 (vol. 2, fig.
+5.52) and the 6 series NACA 64A010 (vol. 1, fig. 4.73), read from the
+tabulated runs (LIFT02.TXT, LIFT01.TXT): the highest lift on the rising
+branch, its angle, and the run's zero lift, a line through -3 to 6 deg.
+
+| Section, Re | CL max | at deg | from zero lift | the line's crossing of CL max |
+| --- | --- | --- | --- | --- |
+| 2415, 1.01e5 | 1.188 | 13.65 | 15.78 | 11.35 |
+| 2415, 2.02e5 | 1.226 | 14.79 | 16.71 | 11.34 |
+| 64A010, 1.01e5 | 0.816 | 12.66 (0.80 from 9.7) | 12.48 | 7.07 |
+| 64A010, 2.04e5 | 0.857 | 10.77 | 10.69 | 7.69 |
+
+**CL max was not off its source.** On the strips' own terms (strip_k:
+the strip nearest its limit stalls when the wing's CL is its section's
+CL max over its share r, kmin 0.869 of the root strip's) the 2415 at the
+root strip's Reynolds number gives 1.033 at 1e5 and 1.090 at 2e5, 1.071
+at the clean stall's 1.67e5: within 2 percent of 1.05. The "laminar nose"
+allowance has no support at these Reynolds numbers (the 64A010 holds
+0.816 at 1e5 against the 4 digit NACA 0009's 0.836, vol. 1). The 45-100
+has less camber than the 2415 (zero lift 1.3 deg under its chord against
+1.9 to 2.1 measured), not corrected: ESTIMATED.
+
+**The angle was.** A section's lift at these Reynolds numbers leaves its
+line far short of the peak: the 2415 at 2e5 peaks 5.4 deg past its
+line's crossing of CL max, where the plant's 3 deg stall_blend put every
+aircraft's. The wing's peak, the house method (scripts/cap580-derive.js
+STALL_PEAK): the critical strip's section (5/8 of the semispan, 12.8
+percent, straight by thickness between the 64A010 and the 2415 as
+strip_top takes its shape), 13.8 to 14.1 deg from its zero lift, plus
+CL / (pi A e), 4.0 to 4.2 deg, plus the strip's 0.36 deg under the
+wing's mean incidence, less the wing's zero lift line's 0.15 deg over
+the aircraft's: 17.97 deg at 1e5 and 18.50 at 2e5, against 15.9. The
+table takes them as stall_re (`npm run p51:derive`).
+
+**What it does to the three points** (flaps full, gear down, throttle
+closed, 9 m/s, the elevator neutral; the plant's CL, sim_wing_debug):
+
+| Pitch of the lift's peak | Before | After |
+| --- | --- | --- |
+| clean, free air; a foot up; on the wheels | 16.00; 15.00; 15.00 deg | 16.50; 15.50; 15.50 deg |
+| full flap, free air; a foot up; on the wheels | 13.25; 11.75; 11.75 deg | 15.00; 13.50; 13.50 deg |
+
+With full flap in ground effect the wing went from 1.4 deg past its
+critical angle on three points to 0.4 deg short of it; clean, 2.4 deg
+short. The trimmed peak, the landing lane's measure, barely moves (11.25
+to 11.5 deg a foot up, 12.75 to 13.0 in free air): holding the attitude
+against the stall's nose down moment costs elevator lift, and ground
+effect asks 0.73 of the stick for 13 deg against 0.32 in free air, as
+the XP-51 did: "The elevator deflections noted are about 8 [deg]
+greater than those required to stall at altitude in the same condition"
+(White, Hoover and Garris 1943, three point landings). The stall a foot
+up with full flap is at 8.3 m/s.
+
+**The flap increment stays.** Roskam VI figs. 8.31 to 8.33 (DATCOM
+6.1.1.3, as FAST-GA digitises them) for a 25 percent plain flap at the
+kit's 35 deg on a 14 percent section, 1.08 x 1.0 x 0.82, and Raymer eq.
+12.21, give 0.445 against the table's 0.452. The XP-51's measured 1.5
+gliding clean and 1.9 landing at 50 deg (White, Hoover and Garris, the
+maximum lift table) is 0.4 read to one decimal, 0.38 +- 0.06 scaled to
+35 deg by the same k2; it does not discriminate, and it was flown at
+some 50 times the kit's Reynolds number.
+
+**Open: the stall's fall.** stall_re sets stall_blend for the whole
+step, so the stalled lift's fall and every strip's blend widen with the
+rounding to 10.6 deg, where the 2415 at 2e5 falls 1.222 to 0.749 within
+0.8 deg; P19 and P19w fail (first second pb/2V 0.0255). Kept apart (the
+prototype w36-p51-clmax-blend-proto), all 26 gates hold, P19 0.0755 and
+29.0 deg. That is a shared plant change.
 
 ## The intended behaviour, and how each part is proven
 
@@ -463,6 +545,8 @@ gear and it slides in on its belly and bends its prop.
 
 - War Department, Pilot's Flight Operating Instructions for P-51-D-5, AN 01-60JE-1, 5 April 1944 (wwiiaircraftperformance.org/mustang/P-51D-manual-5april44.pdf), section II 18, Stalls.
 - M. D. White, H. H. Hoover and H. W. Garris, Flying Qualities and Stalling Characteristics of North American XP-51 Airplane, NACA wartime report, 1943 (ntrs.nasa.gov, 19930092575), the stall section and fig. 42.
+- FAA, Airplane Flying Handbook, FAA-H-8083-3C, ch. 14, Liftoff and Landing.
+- J. Roskam, Airplane Design part VI, figs. 8.31 to 8.33, as digitised by FAST-GA (k2.csv, base_increment.csv, k1.csv).
 - G. B. McCullough and D. E. Gault, Examples of Three Representative Types of Airfoil-Section Stall at Low Speed, NACA TN 2502, 1951 (ntrs.nasa.gov, 19930083422), fig. 3.
 - HobbySquawk, "Official FMS 1400mm P-51D V8 Thread", p. 14: owners on its tip stall.
 
@@ -472,4 +556,4 @@ gear and it slides in on its belly and bends its prop.
 - HobbySquawk, "Official FMS 1400mm P-51D V8 Thread" p. 22 and "FMS 1400mm P-51 The Need for Speed": the stock motor's speed, the 650 kV upgrade, the ESC it wants.
 - FMS, 4258-KV650 motor (fmshobby.com/products/4258-kv650-motor).
 - Dynam, 14.8V 2600mAh 25C LiPo (dynamrc.com), 295 g, for the pack's mass.
-- Selig et al., Summary of Low-Speed Airfoil Data (UIUC), the NACA 2415 and the Reynolds number trend; the UIUC propeller data site, APC 14 x 8E; Abbott and von Doenhoff, Theory of Wing Sections; Nelson, Flight Stability and Automatic Control; USAF DATCOM; Raymer, Aircraft Design: A Conceptual Approach; Schrenk, NACA TM 948.
+- Selig et al., Summary of Low-Speed Airfoil Data (UIUC), vol. 1 (1995) fig. 4.73 the NACA 64A010 and vol. 2 (1996) fig. 5.52 the NACA 2415, their tabulated runs LIFT01.TXT and LIFT02.TXT (m-selig.ae.illinois.edu/pd/pub/lsat), and the Reynolds number trend; the UIUC propeller data site, APC 14 x 8E; Abbott and von Doenhoff, Theory of Wing Sections; Nelson, Flight Stability and Automatic Control; USAF DATCOM; Raymer, Aircraft Design: A Conceptual Approach; Schrenk, NACA TM 948.
