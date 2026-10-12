@@ -221,11 +221,12 @@ fly(0, 0, 0, 0.75, 2);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full roll stick banks it right on the rudder, past 20 degrees', manual.endBank * DEG > 20, `${deg(manual.endBank)} deg in 1.5 s`);
 const selfLevel = fly(0, 0, 0, 0.75, 8);
-/* The spiral at cruise halves a bank in 9.9 s (kadet:derive), so 8 s
- * after the stick is let go 0.57 of the bank is left: under 0.8 of it and
- * over 0.3, the same side, no roll through. */
+/* The dihedral and the prop's torque and swirl level it: the flown
+ * model's share of the bank 8 s later (kadet:derive, tests/kadet-thresholds.json
+ * stab_letgo). */
+const letgo = JSON.parse(await readFile(join(root, 'tests/kadet-thresholds.json'), 'utf8')).stab_letgo;
 const left = selfLevel.endBank / manual.endBank;
-check('and let go, the dihedral levels it: 0.3 to 0.8 of the bank 8 s later, no roll through', left > 0.3 && left < 0.8, `${deg(selfLevel.endBank)} deg, ${left.toFixed(2)} of it`);
+check(`and let go, it levels: on the derived ${letgo.derived} of the bank 8 s later, within ${letgo.tol}`, left >= letgo.min && left <= letgo.max, `${deg(selfLevel.endBank)} deg, ${left.toFixed(3)} of it`);
 must(sim.reset(), 'reset');
 check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 

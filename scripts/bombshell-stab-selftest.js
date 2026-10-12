@@ -218,7 +218,10 @@ fly(0, 0, 0, 0.75, 2);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full roll stick banks it right on the rudder, past 30 degrees', manual.endBank * DEG > 30, `${deg(manual.endBank)} deg in 1.5 s`);
 const selfLevel = fly(0, 0, 0, 0.75, 8);
-check('and let go, the dihedral levels it: under 15 degrees 8 s later, no roll through', Math.abs(selfLevel.endBank * DEG) < 15 && selfLevel.endBank > -5 / DEG, `${deg(selfLevel.endBank)} deg`);
+/* Let go, the prop's yaw rolls it through level: the flown model's bank 8 s
+ * later (bombshell:derive, tests/bombshell-thresholds.json stab_letgo). */
+const letgo = JSON.parse(await readFile(join(root, 'tests/bombshell-thresholds.json'), 'utf8')).stab_letgo;
+check(`and let go, on the derived ${letgo.derived} degrees 8 s later, within ${letgo.tol}`, selfLevel.endBank * DEG >= letgo.min && selfLevel.endBank * DEG <= letgo.max, `${deg(selfLevel.endBank)} deg`);
 must(sim.reset(), 'reset');
 check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 

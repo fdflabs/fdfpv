@@ -540,7 +540,7 @@ const rows = [
   ['   flown: the speed and pitch with it, the fin in the wash, bank after 2, 4, 6 s, speed and pitch at 6 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), seat.at(SEAT_GATES, 0.75, V).n, V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt, fz, true)); return `${r.map((x) => f(x.phi * DEG, 1)).join(' ')}; ${f(r[2].V, 2)} m/s, ${f(r[2].thetaDeg, 1)} deg`; })()],
   /* slowstick:stab's Manual let go: from the full rudder roll's 62.8 deg
    * (55.7 on the pack as the table was measured), 8 s hands off. */
-  ['   flown from the stab selftest\'s 62.8 deg let go: bank after 8 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), seat.at(SEAT_GATES, 0.75, V).n, V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; return f(bankAfterFlown(0.75, 62.8 / DEG, 8, fz, true).phi * DEG, 2); })()],
+  ['   flown from the stab selftest\'s 56.2 deg let go: bank after 2, 4, 8 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), seat.at(SEAT_GATES, 0.75, V).n, V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; return [2, 4, 8].map((tt) => f(bankAfterFlown(0.75, 56.2 / DEG, tt, fz, true).phi * DEG, 2)).join(' '); })()],
   ['   flown, without the prop', (() => { const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt)); return r.map((x) => f(x.phi * DEG, 1)).join(' '); })()],
   ['lateral at 1.2 Vs: spiral root, t_half', `${f(latS.spiral.root, 4)} ${f(latS.spiral.tHalf, 1)}`],
   ['full right rudder from cruise, after 1 s', JSON.stringify(rudderStep(lat, -throwR, 1), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
