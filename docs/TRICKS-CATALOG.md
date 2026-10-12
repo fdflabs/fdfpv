@@ -303,9 +303,73 @@ below). The loop, aileron roll and 4-point roll are
 | 4-Point Roll | flown | 6.5 / 6 / 6 (`figures:plant`) | each point stopped on the ailerons (round 6); before, the knife edge points rolled on under the top rudder |
 | 8-Point Roll | unproven | 3.5 / 0.5 / 2 | named on all three with each point stopped on the ailerons (round 6): all 7 pauses seen; the path off its line (3 to 4.5) and the roll's total (2 to 3) take the rest |
 | Barrel Roll | flown | 9 / 10 / 9.5 | |
-| Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
+| Hover | unproven | 7.5 / 8 / 8.5 | **BIG FAILURE against the bar**: named on all three by the person's hover (round 7, below), but its rudder loop is short of the criterion on the Extra (35 deg, 2.3 dB) and the CAP (47 deg, 5.3 dB) at the best crossover and lead there is; `figures:table:check` keeps it unproven while it is |
+| Torque Roll | unproven | 7.5 / 8 / 7.5 | the same hover, the ailerons let go 3 s in; the same short rudder loop |
+| Wall | unproven | 5.5 / - / - | named on the Extra in 7 of 78 entries swept, never on the CAP or the Slick: not a fit (round 7) |
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
 | Waterfall | **unproven** (was flown) | - / - / - | **BIG FAILURE against the RealFlight bar**: not flyable on the measured slipstream (Deters, Ananda and Selig 2015). Data gap: no tail-plane survey behind a prop with a fuselage; the plant's static elevator authority at x/D 3 is FITTED and ESTIMATED. On the combined plant none of about 1000 flights is named; the elevator's static-wash authority leaves the pivot too slow, and inverted after the first half turn the yaw runs away to 7 rad/s with full right rudder (named a spin). On the seat alone, from 28 m/s, 87 of round 4's 175. Flown (round 4) on the Extra's Extreme elevator and aileron |
+
+### Round 7 (2026-10-12, w37-tricks-hover): the person's hover
+
+The hover, the torque roll and the wall flew a hang law (hangSticks at
+kp 4, kr 0.5) through the person's 0.2 s; it rang stop to stop on the
+elevator and rudder and named nothing. They now fly the person's hover
+(`tests/lib/figureprograms.js` hoverLaw, HOVER): a quarter loop into the
+vertical, the hover caught as the speed falls (HOVER_CATCH), and "the
+tail, elevator and rudder will keep the plane in a perfect vertical
+position", "Throttle needs to be adjusted so that the plane
+stays in one position", and for the torque roll the ailerons let go once
+it hangs still, "some left aileron to keep the plane rotating" when the
+drift slows it (Quique Somenzini, "The Torque Roll", Model Airplane
+News). Four loops at PERSON's pace, each designed on the measured plant
+hanging still (`scripts/figures-margins.js` hoverLoops): the nose's tilt
+on the elevator and on the rudder, the roll rate on the ailerons, the
+climb rate on the throttle; drift, position and height outer loops a
+quarter as fast.
+
+- **The tilt needs the person's lead.** The tilt per stick is a double
+  integrator under 0.6 rad/s (crossoverFor reads its -180 deg as the
+  wrong sense and throws) and 105 to 156 deg behind from 0.8 to 4 rad/s,
+  so a gain alone keeps under 35 deg anywhere. On such an element the
+  person adds lead (McRuer and Jex 1967; the crossover model's pilot on
+  an acceleration element, McRuer and Krendel, AGARDograph 188), and the
+  design is crossoverFor's criterion on the tilt plus lead times its
+  rate. Not modelled: the extra delay lead generation costs a person
+  (McRuer's approximate delays by equalisation, cited in Bachelder and
+  Aponso, NASA 20170000748; the table itself was not in hand), so the
+  tilt's margins are optimistic by that much.
+- **Measured (2026-10-12, PM / GM at the design):**
+
+  | Loop | Extra | CAP | Slick |
+  |---|---|---|---|
+  | elevator, tilt | 2 rad/s, lead 0.15 s, 46.3 / 6.2 | 2.2, 0.25, 51.1 / 6.4 | 2.4, 0.3, 48.3 / 6.1 |
+  | rudder, tilt | **2.8, 0.15, 35 / 2.3, short** | **1.4, 0.2, 47 / 5.3, short** | 2.2, 0.35, 53.7 / 6.3 |
+  | ailerons, roll rate | 2.4, 47.4 / 8.1 | 2.8, 48.9 / 7.8 | 2.8, 50.9 / 6.3 |
+  | throttle, climb rate | 1.8, 45 / 9.2 | 1.8, 46.4 / 9.4 | 0.8, 72.7 / 11.4 |
+  | torque roll, let go | -3.31 rad/s | -3.29 | -2.26 |
+
+- **BIG FAILURE: the rudder in the hover.** On the Extra no crossover
+  from 0.8 to 4 rad/s with any lead from 0 to 0.5 s reaches 45 deg (35
+  at best, at 2.3 dB); on the CAP the best at 45 deg keeps 5.3 dB. The
+  rudder's tilt per stick is near flat on the Extra, 0.55 to 0.70 from 1
+  to 4 rad/s, its phase -105 to -111 deg from 2 to 4, where the
+  elevator's falls from 1.1 to 0.6: the delay reaches -180 deg near 7 rad/s with the
+  loop's gain barely down. Held by the person's own loops instead of the
+  zero delay hold the hump stays (0.72 at -103 deg at 2.4 rad/s), and
+  the roll loop's crossover halved or raised to 4 rad/s moves it by
+  under 10 %. A plant question for the
+  physics lane (what holds the yaw tilt stiff from 1 to 4 rad/s in the
+  wash); the pilot cannot be honestly tuned round it, so the hover and
+  the torque roll stay unproven though named (7.5 / 8 / 8.5 and 7.5 / 8
+  / 7.5), and `figures:table:check` fails any figure flown on a short
+  hover loop.
+- **The catch speed** (HOVER_CATCH 7 m/s, FITTED): 5 to 10 name both on
+  all three, 4 drops the Extra off the line into the ground.
+- **The wall** is the hover after a full-stick pull at the hover's
+  throttle from 13 m/s: named on the Extra only (5.5), in 7 of 78
+  entries swept over 9 to 16 m/s and five pull throttles, never on the
+  CAP or the Slick. At full throttle, as flown before, the Extra snaps
+  into the ground. Not a fit.
 
 ### Round 6 (2026-10-12, w36-tricks-r6): the combined plant
 

@@ -64,12 +64,22 @@
  * that crossover. Its pace, its share of the rudder and its floor are
  * not measured.
  *
+ * The hover (figureprograms.js HOVER, hoverLoops below): four loops of
+ * personLoop at PERSON's pace on each aircraft hanging still at its hover
+ * stick, the tilt on the elevator and rudder flown with the person's lead,
+ * the roll rate and the climb rate on a gain, each designed to the
+ * criterion as crossoverFor does; where none keeps it, the best at 45 deg
+ * is flown and printed SHORT. Its drift, position and height outer loops
+ * are not measured.
+ *
  *   node scripts/figures-margins.js
  *
  * Exits 1 if a constant pinned in figureprograms.js (the line's fit, the
- * rudder's gains, the knife edge's crossovers and trims, each seated
- * aircraft's level throttle) is not what the plant measures, or a
- * measured margin is short of the criterion.
+ * rudder's gains, the knife edge's crossovers and trims, the hover's
+ * designs and torque, each seated aircraft's level throttle) is not what
+ * the plant measures, or a measured margin is short of the criterion. A
+ * hover loop short of it does not fail here: figures-table.js keeps every
+ * figure flown on it from being promoted.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -94,7 +104,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, attitude, responseAt, crossoverFor, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
-import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP } from '../tests/lib/figureprograms.js';
+import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP, HOVER } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -518,6 +528,133 @@ export async function knifeLoopPath() {
   return { crossoverFor: x.wc, gain: Number(x.gain.toFixed(3)), wc: KNIFE_LOOP.path.wc, ...flown };
 }
 
+/*
+ * The hover (figureprograms.js HOVER): each aircraft hanging still, nose
+ * up at 300 m at its hover stick (SEATED), held there as extra-gates.js
+ * E6 holds it (hangSticks with no delay, the roll rate held at nothing,
+ * the height on the throttle), while a stick is swept (responseAt): the
+ * nose's tilt about the body pitch axis on the elevator and about the yaw
+ * axis on the rudder, the roll rate on the ailerons, the climb rate on the
+ * throttle. Holding the swept flight on the person's own loops instead
+ * (their 0.2 s, at HOVER's gains) moves the response by a few per cent:
+ * the Extra's rudder 0.72 at -103 deg at 2.4 rad/s against 0.70 at -105,
+ * 2026-10-12. A looser hold with no delay lets the flight wander off the
+ * hover under the sweep, and its grid jumps, as yawPoint rejects.
+ *
+ * The design is crossoverFor's, the bandwidth criterion's 45 deg and 6 dB
+ * on the loop as flown (personLoop's gain, its trim's integral cornered at
+ * a quarter of the crossover, the 0.25 s of delay and hold), the highest
+ * crossover from 0.8 to 4 rad/s whose loop keeps them and above it never
+ * comes back to unity, nor past half beyond -180 deg. The rate loops are
+ * flown on a gain. The tilt is a double integrator below 0.6 rad/s, where
+ * crossoverFor's check reads its -180 deg as the wrong sense, and from 0.8
+ * to 4 rad/s 105 to 156 deg behind, so a gain keeps under 35 deg: the
+ * person adds lead (s), from 0 to 0.5 by 0.05, the plant flown being the
+ * tilt plus lead times its rate. Where no crossover and lead keep the
+ * criterion, the design is the one with the most gain margin at 45 deg of
+ * phase (or, where none reaches 45 deg, the most phase), flown and marked
+ * short. torque: the roll rate hanging still with
+ * the ailerons let go, the mean over 3 to 6 s, E8's.
+ */
+const HOVER_LEADS = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
+const PERSON_TAU = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
+function hoverRig(airframe) {
+  const stick = SEATED[airframe].hover;
+  let iT = stick;
+  const start = (s) => {
+    setUp(s, airframe);
+    must(s.e.sim_set_pose(0, 0, 300, Math.SQRT1_2, 0, -Math.SQRT1_2, 0), 'sim_set_pose');
+    iT = stick;
+    return [0, 0, 0, stick];
+  };
+  const hold = (s, rollStick = null) => {
+    iT = Math.max(0, Math.min(1, iT - 0.0008 * s[6]));
+    return [...hangSticks(s, rollStick === null ? { rollRate: 0 } : { rollStick }), Math.max(0, Math.min(1, iT - 0.08 * s[6]))];
+  };
+  return { start, hold };
+}
+/* The nose's tilt off the vertical on the body pitch and yaw axes, rising
+ * with up elevator and right rudder (figureprograms.js hoverLaw's). */
+const tiltOf = (s) => {
+  const [w, x, y, z] = [s[7], s[8], s[9], s[10]];
+  const nose = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+  const c = [nose[1], -nose[0], 0];
+  return [
+    2 * (x * y - w * z) * c[0] + (1 - 2 * (x * x + z * z)) * c[1],
+    2 * (x * z + w * y) * c[0] + 2 * (y * z - w * x) * c[1],
+  ];
+};
+function hoverGrid(sim, rig, axis, read) {
+  const g = [];
+  for (let i = 2; i <= 60; i += 1) g.push({ w: i / 5, ...responseAt(sim, rig.start, rig.hold, i / 5, axis, read) });
+  for (let i = 1; i < g.length; i += 1) g[i].phase = g[i - 1].phase + Math.atan2(Math.sin(g[i].phase - g[i - 1].phase), Math.cos(g[i].phase - g[i - 1].phase));
+  /* Unwrapped from 0.4 rad/s, where the tilt sits at -180 deg either side
+   * of the cut: the turn is the one that puts 2 rad/s in -180 to 180. */
+  const at2 = g.find((x) => Math.abs(x.w - 2) < 1e-9);
+  const shift = Math.atan2(Math.sin(at2.phase), Math.cos(at2.phase)) - at2.phase;
+  for (const x of g) x.phase += shift;
+  return g;
+}
+/* The loop as flown at crossover wc with lead on the grid: its margins
+ * and whether it keeps the criterion. */
+function leadLoop(g, wc, lead) {
+  const c = g.find((x) => Math.abs(x.w - wc) < 1e-9);
+  const k = 1 / (c.mag * Math.hypot(1, lead * wc));
+  const L = g.map((x) => {
+    const i = wc / (4 * x.w);
+    return { w: x.w, mag: k * x.mag * Math.hypot(1, lead * x.w) * Math.hypot(1, i), phase: x.phase + Math.atan(lead * x.w) - x.w * PERSON_TAU - Math.atan(i) };
+  });
+  const cross = L.find((l) => l.w >= wc - 1e-9 && l.mag < 1) ?? L[L.length - 1];
+  const turn = L.find((l) => l.w > cross.w && l.phase <= -Math.PI);
+  const pmDeg = (Math.PI + cross.phase) * 180 / Math.PI;
+  const gmDb = turn ? -DB(turn.mag) : null;
+  const above = L.filter((l) => l.w > cross.w + 1e-9);
+  const meets = pmDeg >= 45 && (gmDb === null || gmDb >= 6) && above.every((l) => l.mag < 1 && (l.phase > -Math.PI || l.mag <= 0.5));
+  return { wc, gain: Number((c.mag * Math.hypot(1, lead * wc) * wc).toFixed(3)), lead, pmDeg: Number(pmDeg.toFixed(1)), gmDb: gmDb === null ? null : Number(gmDb.toFixed(1)), meets };
+}
+function hoverDesign(g, leads) {
+  let best = null;
+  let fallback = null;
+  for (const lead of leads) {
+    for (let i = 4; i <= 20; i += 1) {
+      const l = leadLoop(g, i / 5, lead);
+      if (l.meets && (!best || l.wc > best.wc || (l.wc === best.wc && l.pmDeg > best.pmDeg))) best = l;
+      const gm = l.gmDb ?? Infinity;
+      const better = !fallback || (l.pmDeg >= 45 ? fallback.pmDeg < 45 || gm > (fallback.gmDb ?? Infinity) : fallback.pmDeg < 45 && l.pmDeg > fallback.pmDeg);
+      if (better) fallback = l;
+    }
+  }
+  const pick = best ?? fallback;
+  const { meets, ...rest } = pick;
+  return { ...rest, short: !best };
+}
+export async function hoverLoops(airframe) {
+  const sim = await fresh();
+  const rig = hoverRig(airframe);
+  const axes = {
+    pitch: [1, (s) => tiltOf(s)[0], HOVER_LEADS],
+    yaw: [2, (s) => tiltOf(s)[1], HOVER_LEADS],
+    roll: [0, (s) => s[11], [0]],
+    climb: [3, (s) => s[6], [0]],
+  };
+  const out = { airframe };
+  for (const [name, [axis, read, leads]] of Object.entries(axes)) {
+    const d = hoverDesign(hoverGrid(sim, rig, axis, read), leads);
+    out[name] = name === 'roll' || name === 'climb' ? (({ lead, ...r }) => r)(d) : d;
+  }
+  rig.start(sim);
+  let sum = 0;
+  let n = 0;
+  for (let ms = 0; ms < 6000; ms += 4) {
+    const s = sim.readState().state;
+    must(sim.input(ms / 1000, ...rig.hold(s, 0)), 'sim_input');
+    must(sim.step(4), 'sim_step');
+    if (ms >= 3000) { sum += s[11]; n += 1; }
+  }
+  out.torque = Number((sum / n).toFixed(2));
+  return out;
+}
+
 /* Every loop's measured margins, as the manoeuvre table carries them,
  * and what is wrong with them: a fit that is not the plant's, or a
  * margin short of the criterion. */
@@ -553,8 +690,13 @@ export async function measureMargins() {
   for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
     lineRudders[name] = await lineRudder(airframe);
   }
+  const hovers = {};
+  for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
+    hovers[name] = await hoverLoops(airframe);
+  }
   return {
     levelThrottle: levelThrottles,
+    hover: hovers,
     lineRudder: lineRudders,
     pointStop: pointStops,
     knife: await knifeLoops(),
@@ -600,10 +742,29 @@ export function marginFailures(m) {
   for (const [name, r] of Object.entries(m.lineRudder)) {
     if (JSON.stringify(LINE_YAW_KR[r.airframe]) !== JSON.stringify(r.kr)) out.push(`figureprograms.js LINE_YAW_KR for the ${name} ${JSON.stringify(LINE_YAW_KR[r.airframe])} is not the plant's ${JSON.stringify(r.kr)}`);
   }
+  for (const [name, h] of Object.entries(m.hover)) {
+    const pin = HOVER[h.airframe];
+    for (const loop of HOVER_AXES) {
+      const d = h[loop];
+      if (!(pin[loop].wc === d.wc && same(pin[loop].gain, d.gain) && (pin[loop].lead ?? null) === (d.lead ?? null))) {
+        out.push(`figureprograms.js HOVER for the ${name}'s ${loop} ${JSON.stringify(pin[loop])} is not the plant's design ${JSON.stringify(d)}`);
+      }
+    }
+    if (Math.abs(pin.torque - h.torque) > 0.005) out.push(`figureprograms.js HOVER for the ${name}'s torque ${pin.torque} is not the plant's ${h.torque} rad/s`);
+  }
   for (const [name, l] of Object.entries(m.levelThrottle)) {
     if (Math.abs(LEVEL_THROTTLE[l.airframe] - l.throttle) > 0.0005) out.push(`figureprograms.js LEVEL_THROTTLE for the ${name} ${LEVEL_THROTTLE[l.airframe]} is not the throttle that holds 22 m/s level, ${l.throttle}`);
   }
   return out;
+}
+
+/* The hover loops whose design is short of the criterion, by aircraft
+ * ('extra pitch' and so on): not a failure of the pins, but no figure
+ * flown on them (scripts/figures-table.js HOVER_FIGURES) may be promoted
+ * while any are short on the aircraft it is promoted on. */
+export const HOVER_AXES = ['pitch', 'yaw', 'roll', 'climb'];
+export function hoverShort(m) {
+  return Object.entries(m.hover).flatMap(([name, h]) => HOVER_AXES.filter((loop) => h[loop].short).map((loop) => `${name} ${loop} (${h[loop].pmDeg} deg, ${h[loop].gmDb} dB)`));
 }
 
 const main = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
@@ -624,6 +785,14 @@ if (main) {
   console.log(`knife edge trim: rudder ${m.knife.trim.rudder}, elevation ${m.knife.trim.elevation} rad at ${m.knife.trim.speed} m/s`);
   const p = m.knifeLoop.path;
   console.log(`knife-edge loop path: crossoverFor ${p.crossoverFor} rad/s on a plant gain of ${p.gain}, flown at ${p.wc} rad/s, PM ${p.pmDeg} deg at ${p.wcFound} rad/s, GM ${p.gmDb === null ? 'none to 12 rad/s' : `${p.gmDb} dB at ${p.w180} rad/s`}`);
+  for (const [name, h] of Object.entries(m.hover)) {
+    for (const loop of HOVER_AXES) {
+      const d = h[loop];
+      console.log(`hover, the ${name}'s ${loop}: ${d.wc} rad/s on a plant gain of ${d.gain}${d.lead === undefined ? '' : `, lead ${d.lead} s`}, PM ${d.pmDeg} deg, GM ${d.gmDb === null ? 'none to 12 rad/s' : `${d.gmDb} dB`}${d.short ? ', SHORT of the criterion' : ''}`);
+    }
+    console.log(`hover, the ${name}'s torque: ${h.torque} rad/s with the ailerons let go`);
+  }
+  for (const s of hoverShort(m)) console.log(`SHORT hover loop: ${s}`);
   const bad = marginFailures(m);
   for (const b of bad) console.log(`FAIL ${b}`);
   console.log(`\nfigures margins: ${bad.length ? `${bad.length} failed` : 'all hold'}`);

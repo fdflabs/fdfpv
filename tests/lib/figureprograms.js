@@ -91,12 +91,13 @@ const levelSticks = (d, thr) => [
   0, thr,
 ];
 const level = (ms, thr = 'level') => ({ name: `level ${ms}`, step: (d, m) => [levelSticks(d, thrOf(thr, m)), m.t >= ms] });
-/* Elevator held until the nose has turned `rad` (seen), let go early. */
+/* Elevator held until the nose has turned `rad` (seen), let go early; the
+ * throttle a stick or the name of one SEATED sets. */
 const pull = (stick, rad, thr = 1) => ({
   name: `pull ${stick} ${(rad / PI).toFixed(2)}pi`,
   step: (d, m) => {
     m.turned = (m.turned ?? 0) + Math.abs(d.q) * H;
-    return [[0, stick, 0, thr], m.turned > rad - Math.abs(d.q) * 0.25];
+    return [[0, stick, 0, thrOf(thr, m)], m.turned > rad - Math.abs(d.q) * 0.25];
   },
 });
 /* A part loop flown round: "the pull or push half-loop must also be of
@@ -536,13 +537,140 @@ const rollingCircle = (rolls, rate = 1.6) => ({
       m.rolled > rolls * 2 * PI - Math.abs(d.p) * 0.35];
   },
 });
-/* Hang on the prop: the nose up, the height on the throttle. */
-const hang = (ms, { rollStick = 0 } = {}) => ({
-  name: `hang ${ms}`,
+/*
+ * The hover as a person flies one ("the tail, elevator and rudder will
+ * keep the plane in a perfect vertical position", "Throttle needs to be
+ * adjusted so that the plane stays in one position; no climbing or going
+ * down", "you have to move all four channels to keep the plane precisely
+ * positioned": Quique Somenzini, "The Torque Roll", Model Airplane News,
+ * https://www.modelairplanenews.com/quique-somenzini-the-torque-roll/),
+ * the loops through the eyes and the hand at PERSON's pace (a look every
+ * 100 ms, its 0.25 s of delay and hold): the nose on the vertical by the
+ * elevator and the rudder, each on its own axis of the nose's tilt; the
+ * roll rate held out on the ailerons (the torque's, as a pilot learns to
+ * hold it), or let go for the torque roll, with aileron only to the
+ * torque's side when the rotation sags under the rate the torque alone
+ * turns it at hanging still (design.torque, rad/s, right positive): "If
+ * there is any wind, you will need some left aileron to keep the plane
+ * rotating", "When the plane is facing into the wind, it has a tendency
+ * to stop rotating" (Somenzini), the hover's own drift the wind here;
+ * the climb rate on the throttle. Outer loops a quarter as fast
+ * (PERSON.outer) set what the inner ones hold: the height the climb rate,
+ * the drift the person sees against the ground the tilt (a radian of it
+ * accelerates the hover at g), and where the hover stopped the drift. Each stops being zero once
+ * the person sees the aircraft stopped (under the detector's 3 m/s).
+ *
+ * HOVER is each aircraft's design, scripts/figures-margins.js hoverLoops
+ * on its measured response hanging still at its hover stick (SEATED),
+ * pinned here and checked there: the crossover wc (rad/s), the plant gain
+ * personLoop takes, and for the tilt the lead (s) the person adds. The
+ * nose's tilt per stick is near a double integrator below 0.6 rad/s (its
+ * phase within 30 deg of -180), and from there to 4 rad/s the plant's
+ * phase stays 105 to 156 deg behind, so a person flying it on a gain, as
+ * crossoverFor designs, keeps under 35 deg at every crossover: on such an
+ * element the person adds lead, flying the tilt and its rate together
+ * (McRuer and Jex 1967; McRuer and Krendel, AGARDograph 188, 1974, the
+ * crossover model's pilot on an acceleration element, Kp s e^-tau s). The
+ * seen rate is the body rate the eyes read off two looks. The roll rate
+ * and the climb rate are rate plants, flown on a gain as crossoverFor
+ * designs them. A loop whose design cannot keep the bandwidth criterion
+ * flies the best there is at a 45 deg phase margin and says so (short),
+ * and blocks the figures flown on it (scripts/figures-table.js).
+ */
+export const HOVER = {
+  [EXTRA_AIRFRAME]: {
+    pitch: { wc: 2, gain: 2.086, lead: 0.15 }, yaw: { wc: 2.8, gain: 2.127, lead: 0.15 }, roll: { wc: 2.4, gain: 7.637 }, climb: { wc: 1.8, gain: 34.936 }, torque: -3.31,
+  },
+  [CAP_AIRFRAME]: {
+    pitch: { wc: 2.2, gain: 1.702, lead: 0.25 }, yaw: { wc: 1.4, gain: 0.666, lead: 0.2 }, roll: { wc: 2.8, gain: 8.281 }, climb: { wc: 1.8, gain: 33.317 }, torque: -3.29,
+  },
+  [SLICK_AIRFRAME]: {
+    pitch: { wc: 2.4, gain: 1.635, lead: 0.3 }, yaw: { wc: 2.2, gain: 0.902, lead: 0.35 }, roll: { wc: 2.8, gain: 2.378 }, climb: { wc: 0.8, gain: 22.656 }, torque: -2.26,
+  },
+};
+/* The drift's tilt and the height's climb rate a person asks for at most:
+ * 0.25 rad (14 deg, a point's band off the vertical on the judge's
+ * hoverDeduction) and 2 m/s (under the 3 m/s that ends the hover). */
+const HOVER_TILT = 0.25;
+const HOVER_CLIMB = 2;
+const HOVER_STOP = 3;
+const bodyTilt = (s, target) => {
+  const [w, x, y, z] = [s[7], s[8], s[9], s[10]];
+  const nose = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+  const c = [nose[1] * target[2] - nose[2] * target[1], nose[2] * target[0] - nose[0] * target[2], nose[0] * target[1] - nose[1] * target[0]];
+  return [
+    2 * (x * y - w * z) * c[0] + (1 - 2 * (x * x + z * z)) * c[1] + 2 * (y * z + w * x) * c[2],
+    2 * (x * z + w * y) * c[0] + 2 * (y * z - w * x) * c[1] + (1 - 2 * (x * x + y * y)) * c[2],
+  ];
+};
+/* The hover's law on the seen state s, stepped every PERSON.everyMs:
+ * returns [roll, pitch, yaw, throttle], unquantised (the hand's fiftieths
+ * are the phase's). The nose's tilt about the body pitch axis (rising
+ * with up elevator) and the yaw axis (rising with right rudder), seen
+ * with its rate (the body rates -q and -r, the tilts' own rates at the
+ * vertical). design is HOVER's;
+ * hoverStick the throttle the law starts trimmed at. Its state: where the
+ * hover stopped (null until it has), the time since, and letRoll. */
+export function hoverLaw(design, hoverStick) {
+  const outer = design.pitch.wc * PERSON.outer;
+  const L = {
+    pitch: personLoop(design.pitch.wc, design.pitch.gain),
+    yaw: personLoop(design.yaw.wc, design.yaw.gain),
+    roll: personLoop(design.roll.wc, design.roll.gain),
+    spin: personLoop(design.roll.wc, design.roll.gain, design.torque < 0 ? { min: -1, max: 0 } : { min: 0, max: 1 }),
+    climb: personLoop(design.climb.wc, design.climb.gain, { min: 0, max: 1, u0: hoverStick }),
+    height: personLoop(design.climb.wc * PERSON.outer, 1, { min: -HOVER_CLIMB, max: HOVER_CLIMB }),
+    vx: personLoop(outer, G, { min: -HOVER_TILT, max: HOVER_TILT }),
+    vy: personLoop(outer, G, { min: -HOVER_TILT, max: HOVER_TILT }),
+    x: personLoop(outer * PERSON.outer, 1, { min: -HOVER_CLIMB, max: HOVER_CLIMB }),
+    y: personLoop(outer * PERSON.outer, 1, { min: -HOVER_CLIMB, max: HOVER_CLIMB }),
+  };
+  const st = { at: null, ms: 0, letRoll: false };
+  return {
+    st,
+    step(s) {
+      if (st.at === null && Math.hypot(s[4], s[5], s[6]) < HOVER_STOP) st.at = [s[1], s[2], s[3]];
+      if (st.at !== null) st.ms += PERSON.everyMs;
+      const [wx, wy, wz] = st.at === null ? [0, 0, 0] : [L.x.step(st.at[0] - s[1]), L.y.step(st.at[1] - s[2]), L.height.step(st.at[2] - s[3])];
+      const tx = L.vx.step(wx - s[4]);
+      const ty = L.vy.step(wy - s[5]);
+      const n = Math.hypot(tx, ty, 1);
+      const [ep, ey] = bodyTilt(s, [tx / n, ty / n, 1 / n]);
+      return [
+        st.letRoll ? L.spin.step(design.torque - s[11]) : L.roll.step(-s[11]),
+        L.pitch.step(-(ep - design.pitch.lead * s[12])),
+        L.yaw.step(-(ey - design.yaw.lead * s[13])),
+        L.climb.step(wz - s[6]),
+      ];
+    },
+  };
+}
+/* Catch the hover from the vertical and hold it holdMs once stopped; for
+ * the torque roll, let the ailerons go letGoMs into it, once it hangs
+ * still, as E8 does (extra-gates.js): let go while it still drifts, the
+ * Extra's roll sagged under 1 rad/s against the 3.3 it turns at still
+ * (Somenzini's wind, above). Gives up at HOVER_GIVE_UP_MS if it never
+ * stops. */
+const HOVER_GIVE_UP_MS = 15000;
+/* The hover is caught off an up line, a quarter loop into the vertical as
+ * the tailslide is entered: the line held at the tailslide's 0.4 until the
+ * speed the person sees falls under HOVER_CATCH m/s, then the hover's
+ * loops take the throttle to hold it where it stops. FITTED, swept 2026-10-12 over 4
+ * to 10 m/s on all three: 5 to 10 name the hover and the torque roll on
+ * each (at 7, 7.5 / 8 / 8.5 and 7.5 / 8 / 7.5), 4 lets the Extra fall off
+ * the line into the ground. The pull to the vertical at 0.6 of stick from
+ * 14 m/s, flown before, snapped the Slick onto its back and the hover was
+ * caught 15 m over the ground. */
+const HOVER_CATCH = 7;
+const hover = (holdMs, { letGoMs = Infinity } = {}) => ({
+  name: `hover ${holdMs}`,
   step: (d, m) => {
-    m.thr = clamp((m.thr ?? m.flight.seat.hover) - H * (0.4 * d.vz), 1);
-    const [r, pi, y] = hangSticks(d.s, { target: UP, rollStick, kp: 4, kr: 0.5 });
-    return [[quant(r), quant(pi), quant(y), Math.max(0, quant(m.thr))], m.t >= ms];
+    m.law = m.law ?? hoverLaw(HOVER[m.flight.airframe], m.flight.seat.hover);
+    const done = m.law.st.ms >= holdMs || m.t >= HOVER_GIVE_UP_MS;
+    if (m.sticks && m.t % PERSON.everyMs !== 0) return [m.sticks, done];
+    m.law.st.letRoll = m.law.st.ms >= letGoMs;
+    m.sticks = m.law.step(d.s).map((x) => quant(x));
+    return [m.sticks, done];
   },
 });
 /* A harrier, flown as extra-gates.js's E11 flies it, by what a person
@@ -812,8 +940,13 @@ export const PROGRAMS = {
    * sweep name four rolls in none; one roll in 10 on the Extra or the CAP
    * (0 to 6.5), on all three in none. */
   rolling_circle: [L(), rollingCircle(1), L()],
-  hover: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
-  torque_roll: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000, { rollStick: 0.15 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+  /* Not promoted (2026-10-12): the hover's rudder loop keeps 35 deg and
+   * 2.3 dB on the Extra and 47 deg and 5.3 dB on the CAP at the best
+   * crossover and lead there is (scripts/figures-margins.js hoverLoops),
+   * short of the criterion, so these hovers are held by gains a person
+   * could not hold to it. docs/TRICKS-CATALOG.md, "Hover". */
+  hover: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < HOVER_CATCH), hover(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+  torque_roll: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < HOVER_CATCH), hover(7000, { letGoMs: 3000 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   harrier: [slow(12), harrier(5000), L()],
   inverted_harrier: [L(), roll(0.5, PI), slow(12), harrier(5000, { inverted: true }), roll(0.5, PI), L()],
   rolling_harrier: [slow(12), harrier(1500), harrier(4000, { rollStick: 0.35 }), L()],
@@ -823,7 +956,17 @@ export const PROGRAMS = {
    * to 13 m/s and 2 to 4 rad/s, no pivot; from the vertical upline it
    * pivoted 0.63 of a turn and spun. Two turns: the Extreme elevator's. */
   waterfall: [L(), entry(), pull(0.55, 75 * PI / 180), line(U75, 8000, 0.4, (d) => d.v < 4), waterfall(2), L()],
-  wall: [slow(13), pull(1, 0.5 * PI, 1), hang(2500), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+  /* The wall stops the aircraft dead out of a fast pull: a quarter turn
+   * inside 700 ms and the hover or the harrier right after it
+   * (figuredetect.js). The pull at full stick and the hover's throttle
+   * from 13 m/s, swept 2026-10-12 over 9 to 16 m/s and the pull's
+   * throttle at 0.4, 0.5, 0.6, the hover's and full, 78 flights: named on
+   * the Extra only, in 7, at 5.5 to 6.5, from 12 to 14 m/s at 0.5, 0.6
+   * or the hover's, and never on the CAP or the Slick (a hover after the
+   * pull, a snap, or the line up between); at full throttle, flown before,
+   * the Extra snapped and flew into the ground from 9, 11, 12, 13 and 14
+   * m/s. Not a fit. */
+  wall: [slow(13), pull(1, 0.5 * PI, 'hover'), hover(3000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
 };
 
 /* What the hangar seats for `tiers` ({ a, e, r }, configs/surfaces.js) on
