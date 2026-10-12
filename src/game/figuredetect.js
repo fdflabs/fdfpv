@@ -163,6 +163,8 @@ class Prim {
     this.stoppedMs = 0;
     this.pausedMs = 0;
     this.sMin = Infinity;
+    /* The farthest the nose yawed from where the piece began (rad). */
+    this.yawFar = 0;
   }
 
   get ms() {
@@ -198,6 +200,7 @@ class Prim {
     this.alphaSum += s.alphaPos ? 1 : -1;
     if (s.stalled) this.stalled += 1;
     if (s.speed < this.sMin) this.sMin = s.speed;
+    if (abs(s.tot[2] - this.tot0[2]) > this.yawFar) this.yawFar = abs(s.tot[2] - this.tot0[2]);
     const ap = abs(s.p);
     if (ap > this.maxP) this.maxP = ap;
     if (abs(s.q) > this.maxQ) this.maxQ = abs(s.q);
@@ -287,6 +290,45 @@ const arc = (lo, hi, more = () => true) => step((p) => p.kind === 'arc' && p.swe
   && abs(p.plane()[2]) < 0.6 && more(p));
 const rollOf = (turns, tol, more = () => true) => step((p) => p.kind === 'roll' && near(p.roll, turns, tol) && more(p));
 const kind = (k, more = () => true, skip = ['line']) => step((p) => p.kind === k && more(p), skip);
+/* A run: the step takes every primitive in a row that `is` holds for, at
+ * least one, and `whole` must hold for the run. The deduction gets the
+ * run as an array. */
+const run = (is, whole) => ({ is, skip: [], many: true, whole });
+
+/*
+ * A stall turn's vertical line, as a judge watches it: the whole line,
+ * not its longest piece. "The up and down-lines must be ZLA vertical",
+ * "Check that the wing trailing edges are parallel to the horizon during
+ * the vertical line - ie. no yaw or wing-low", "During the verticals the
+ * usual 1 point per 5 deg applies in pitch for both the up and down
+ * lines" (British Aerobatic Association, judging, "Stall Turns" 1 and 2,
+ * https://www.aerobatics.org.uk/judging/topics/stall-turns-1). Below 8
+ * m/s a rudder correction on the line yaws the nose fast enough to be a
+ * yawover sample, and the line's path, slow, curves past the arc's
+ * threshold as it weaves, so the line arrives in pieces: lines, short
+ * arcs and yawovers that put the nose back where it was. Each is part of
+ * the line a judge sees and marks: a piece within 45 deg of the line's
+ * vertical (past that it is no line, it is the pivot or a pull), an arc
+ * sweeping under the line step's 0.15 of a turn, a yawover that does not
+ * turn the nose round (stallTurnPivot does). The run's mean direction
+ * must be the line's (lineClass), and it is graded by its worst piece
+ * and the yaw put on it (verticalLineDeduction).
+ */
+const reversesNose = (p) => dot3(p.n0, p.n1) < 0;
+const verticalLine = (cls) => run(
+  (p) => {
+    const dz = cls === 'up' ? p.dir[2] : -p.dir[2];
+    if (dz < COS45) return false;
+    if (p.kind === 'line') return true;
+    if (p.kind === 'arc') return p.swept < 0.15;
+    return p.kind === 'yawover' && !reversesNose(p);
+  },
+  (parts) => lineClass({ dir: norm3(parts.reduce((a, q) => [a[0] + q.dSum[0], a[1] + q.dSum[1], a[2] + q.dSum[2]], [0, 0, 0])) }) === cls,
+);
+/* The turn round: "In the turn-round you should see yaw without any pitch
+ * or roll" (BAeA "Stall Turns" 2), the nose yawed from the up line round
+ * to the down line. */
+const stallTurnPivot = kind('yawover', reversesNose, ['hover']);
 
 /* Deductions shared by the figures, in points. */
 function lineDeduction(p, cls) {
@@ -299,6 +341,21 @@ function lineDeduction(p, cls) {
   else if (cls === 'up45') c = COS45 * (h + d[2]);
   else if (cls === 'down45') c = COS45 * (h - d[2]);
   return bandDeduction(c);
+}
+
+/* A vertical line run, a point per 15 deg (this judge's F3A scale) of its
+ * worst piece off the vertical, and of the farthest the nose was yawed off
+ * it along the run: a correction is yaw the judge sees whether or not the
+ * path followed it, once however many pieces it came in. */
+function verticalLineDeduction(parts, cls) {
+  const worst = Math.min(...parts.map((q) => (cls === 'up' ? q.dir[2] : -q.dir[2])));
+  let yaw = 0;
+  let far = 0;
+  for (const q of parts) {
+    if (abs(yaw) * TURN + q.yawFar > far) far = abs(yaw) * TURN + q.yawFar;
+    yaw += q.yaw;
+  }
+  return bandDeduction(worst) + radDeduction(far);
 }
 
 /* A loop: one radius (1 point per 10 % spread of it), in one plane, and
@@ -374,8 +431,9 @@ const TABLE = [
   ['avalanche', [arc(0.3, 0.7), kind('snap', snapish), arc(0.3, 0.7)],
     ([a1, s, a2]) => loopDeduction(a1) + loopDeduction(a2) + stopDeduction(s.roll) + bandDeduction(headingCos(a1.d0, a2.d1))
       + (near(a1.swept + a2.swept, 1, 0.15) ? 0 : 2)],
-  ['hammerhead', [line('up'), kind('yawover', () => true, ['line', 'hover']), line('down')],
-    ([up, , down]) => lineDeduction(up, 'up') + lineDeduction(down, 'down') + bandDeduction(-dot3(up.n1, down.n0))],
+  ['hammerhead', [verticalLine('up'), stallTurnPivot, verticalLine('down')],
+    ([up, , down]) => verticalLineDeduction(up, 'up') + verticalLineDeduction(down, 'down')
+      + bandDeduction(-dot3(up[up.length - 1].n1, down[0].n0))],
   ['humpty_bump', [line('up'), arc(0.35, 0.65), line('down')],
     ([up, a, down]) => lineDeduction(up, 'up') + lineDeduction(down, 'down') + loopDeduction(a)],
   ['blender', [rollOf(2.5, 1, (p) => lineClass(p) === 'down'), kind('spin', (p) => abs(p.frac(p.nzSum)) < 0.5, [])],
@@ -448,8 +506,15 @@ function matchRow(steps, b) {
   for (const st of steps) {
     while (i < b.length && st.skip.includes(b[i].kind) && !st.is(b[i])) i += 1;
     if (i >= b.length || !st.is(b[i])) return null;
-    parts.push(b[i]);
-    i += 1;
+    if (!st.many) {
+      parts.push(b[i]);
+      i += 1;
+      continue;
+    }
+    const got = [];
+    while (i < b.length && st.is(b[i])) got.push(b[i++]);
+    if (!st.whole(got)) return null;
+    parts.push(got);
   }
   return [i, parts];
 }

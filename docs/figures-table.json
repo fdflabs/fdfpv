@@ -137,9 +137,11 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 2.5,
+        "flew": [
+          "hammerhead 2.5"
+        ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,

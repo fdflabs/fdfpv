@@ -235,6 +235,20 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a humpty with its lines 20 deg off vertical is graded lower', got && clean && got.grade <= clean.grade - 1,
     `${clean ? clean.grade : '-'} vs ${got ? got.grade : 'not named'}`);
 }
+/* A stall turn's lines as a judge watches them (BAeA judging, "Stall
+ * Turns"): a rudder correction on the up line, the nose yawed 18 deg and
+ * back below 8 m/s, is yaw on the line, marked off the line, not a turn
+ * round; the hammerhead is still named, and graded under the clean one. */
+{
+  const corrected = [lead, pull(V, 20, 0.25), { ms: 1400, speed: V, dSpeed: -9 }, { r: 3, ms: 105, keepVel: true },
+    { r: -3, ms: 105, keepVel: true }, { ms: 390, dSpeed: -9 }, { r: 3, ms: Math.round(Math.PI / 3 * 1000), speed: 2 },
+    { ms: 1500, speed: 4, dSpeed: 9 }, pull(V, 20, 0.25), tail];
+  const got = detect(corrected);
+  const h = got.find((g) => g.figure === 'hammerhead');
+  const clean = run('hammerhead').find((g) => g.figure === 'hammerhead');
+  check('a hammerhead with an 18 deg yaw correction on its up line is named and graded under the clean one',
+    h && clean && h.grade < clean.grade && got.length === 1, `${clean ? clean.grade : '-'} vs ${got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing'}`);
+}
 /* A knife edge is the wing in the vertical plane along the line (FAI
  * F3P-AA 23: "During the knife edge the wing must be in the vertical
  * plane"), however much sideslip holds it up: the CAP 580 holds 30 deg at
