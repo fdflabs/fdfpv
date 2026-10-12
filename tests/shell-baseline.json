@@ -6,7 +6,7 @@
   },
   "screens": {
     "title": {
-      "overflow": 3,
+      "overflow": 0,
       "belowFold": 0
     },
     "courses": {
@@ -18,27 +18,27 @@
       "belowFold": 0
     },
     "quad": {
-      "overflow": 1,
+      "overflow": 0,
       "belowFold": 0
     },
     "pilot": {
-      "overflow": 1077,
+      "overflow": 1440,
       "belowFold": 0
     },
     "launch": {
-      "overflow": 43,
+      "overflow": 0,
       "belowFold": 0
     },
     "rates": {
-      "overflow": 502,
+      "overflow": 353,
       "belowFold": 0
     },
     "pids": {
-      "overflow": 199,
+      "overflow": 90,
       "belowFold": 0
     },
     "fc": {
-      "overflow": 3739,
+      "overflow": 3723,
       "belowFold": 0
     },
     "paused": {
@@ -51,10 +51,10 @@
     },
     "howto": {
       "overflow": 0,
-      "belowFold": 35
+      "belowFold": 0
     },
     "tricks": {
-      "overflow": 1821,
+      "overflow": 1122,
       "belowFold": 0
     },
     "credits": {
