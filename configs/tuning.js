@@ -39,6 +39,12 @@
  * manual here publishes one. Degrees are written out, not computed with
  * Math.asin, which is not specified to the bit.
  *
+ * THE STOCK RATE is the table's high rate, unless the manual says to take
+ * the first flights on low: then the stock setup is low, at the manual's
+ * low rate expo where it gives one (an entry's `firstFlight`, with the
+ * manual quoted; lead decision 2026-10-12, the owner's "stable, gentle,
+ * predictable"). High stays one control away.
+ *
  * THE EXPO is the plant's cubic, x (1 - e) + x^3 e, the curve EdgeTX and
  * OpenTX call expo; 30 percent is every table's, one figure for all three
  * surfaces, unless an entry's `expo` gives the plant table's own (the Night
@@ -81,6 +87,20 @@ export const RATES = ['low', 'mid', 'high'];
  * steady a harrier (docs/FLIGHTMODEL.md). Off as every kit ships; the
  * steps are a transmitter's coarse ones, the amount is the pilot's. */
 export const ELEV_FLAPS = [0, 25, 50, 75, 100];
+/* THE HEADING, on an aircraft with an AS3X receiver (a tune that flies
+ * plant mode 3): the AR631's Heading gain on each axis, percent of the
+ * table's as3x_kh, "defaulted to zero. You can increase this value to
+ * make the aircraft hold its attitude when control input is neutral"
+ * (the AR631 manual). Seated with sim_wing_set_heading. */
+export const HEADING_STEP = 10;
+export function hasHeading(airframeId) {
+  return AIRCRAFT.TUNES.some((tune) => tune.airframe === airframeId && tune.wingStab === 3);
+}
+/* The entry's Heading as the plant takes it, a share of as3x_kh per axis. */
+export function headingShare(entry) {
+  const h = (entry && entry.heading) || {};
+  return ['a', 'e', 'r'].map((k) => (num(h[k]) ? h[k] / 100 : 0));
+}
 export const STOCK_EXPO = 30;
 /* How far a pack slides in its bay either way, mm: ESTIMATED, no kit
  * publishes it; the hook and loop trays of these kits leave about an inch
@@ -184,15 +204,19 @@ export function tuningFor(airframeId) {
   return TUNING[airframeId] || null;
 }
 
-/* The stock setup's fields. */
+/* The stock setup's fields: the rate and expo the maker says to take
+ * the first flights on, where the manual says so (an entry's
+ * `firstFlight`, quoted there: "Take first flights in Low Rate"), else
+ * the table's own high rate and expo. */
 export function stockEntry(airframeId) {
   const t = tuningFor(airframeId);
-  const x = t?.expo ?? STOCK_EXPO;
+  const x = t?.firstFlight?.expo ?? t?.expo ?? STOCK_EXPO;
   return {
     packMm: 0,
     ballastG: 0,
-    rate: 'high',
+    rate: t?.firstFlight?.rate ?? 'high',
     expo: { a: x, e: x, r: x },
+    heading: { a: 0, e: 0, r: 0 },
     trimDeg: 0,
     flapStart: 0,
     flapMix: Boolean(t && t.flaps),
@@ -290,6 +314,21 @@ export function normalizeEntry(airframeId, raw, limits) {
       out.expo = expo;
     }
   }
+  if (hasHeading(airframeId) && raw.heading && typeof raw.heading === 'object') {
+    const heading = {};
+    for (const k of ['a', 'e', 'r']) {
+      const v = raw.heading[k];
+      if (num(v)) {
+        const s = Math.round(clampTo(v, 0, 100) / HEADING_STEP) * HEADING_STEP;
+        if (s !== 0) {
+          heading[k] = s;
+        }
+      }
+    }
+    if (Object.keys(heading).length) {
+      out.heading = heading;
+    }
+  }
   if (num(raw.trimDeg)) {
     const v = Math.round(clampTo(raw.trimDeg, -TRIM_MAX_DEG, TRIM_MAX_DEG) * 4) / 4;
     if (v !== 0) {
@@ -318,6 +357,7 @@ export function fullEntry(airframeId, entry) {
     ...s,
     ...e,
     expo: { ...s.expo, ...(e.expo || {}) },
+    heading: { ...s.heading, ...(e.heading || {}) },
   };
 }
 
@@ -344,10 +384,12 @@ export function isStock(airframeId, entry) {
 
 /*
  * The sim_wing_set_tune block for a (normalised) entry, or null for the
- * stock setup. massKg and packKg as balance() takes them.
+ * stock setup where the stock is the plant's own table (its high rate and
+ * expo); a stock on the manual's first flight rate is a block like any
+ * other. massKg and packKg as balance() takes them.
  */
 export function tuneBlock(airframeId, entry, massKg, packKg, high = null) {
-  if (isStock(airframeId, entry) && !high) {
+  if (isStock(airframeId, entry) && !high && !tuningFor(airframeId).firstFlight) {
     return null;
   }
   const t = tuningFor(airframeId);

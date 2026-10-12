@@ -50,8 +50,8 @@
 
 import { registerHangarTab } from './hangar.js';
 import {
-  MARGIN_WARN, RATES, TRIM_MAX_DEG, balance, curve, fullEntry, normalizeEntry, setupFor, throwsFor,
-  tuneBlock, tuningFor,
+  HEADING_STEP, MARGIN_WARN, RATES, TRIM_MAX_DEG, balance, curve, fullEntry, hasHeading, normalizeEntry, setupFor,
+  throwsFor, tuneBlock, tuningFor,
 } from '../../configs/tuning.js';
 import { TABLE, powerCells, powerOption, powerParams } from '../../configs/power.js';
 import { airframeById } from '../../configs/airframes.js';
@@ -146,6 +146,11 @@ function changed(h, key, sound = 'select') {
 /* The entry with one field moved, snapped and clamped by the config. */
 function setField(h, key, field, value) {
   T.entry = fullEntry(T.id, normalised(h, { ...T.entry, [field]: value }));
+  changed(h, key, 'adjust');
+}
+
+function setHeading(h, key, surface, value) {
+  T.entry = fullEntry(T.id, normalised(h, { ...T.entry, heading: { ...T.entry.heading, [surface]: value } }));
   changed(h, key, 'adjust');
 }
 
@@ -447,6 +452,29 @@ function ratesPage(h, box) {
       inc: () => setExpo(h, `expo-${k}-inc`, k, v + EXPO_STEP),
     }));
   });
+
+  /* The AS3X receiver's Heading, where the plane flies one: zero as the
+   * receiver ships (the AR631's default), a pilot's to turn up. */
+  if (hasHeading(T.id)) {
+    box.append(el('h3', 'hangar-h', str('tuning.heading')));
+    SURFACES.forEach((k, i) => {
+      if (!(throws[i] > 0)) {
+        return;
+      }
+      const v = e.heading[k];
+      box.append(stepper(h, {
+        key: `heading-${k}`,
+        label: str(`tuning.surface.${k}`),
+        value: v === 0 ? str('tuning.heading_off') : str('tuning.percent', { n: number(v) }),
+        focus: k === 'a' ? 'wing' : 'tail',
+        canDec: v > 0,
+        canInc: v < 100,
+        dec: () => setHeading(h, `heading-${k}-dec`, k, v - HEADING_STEP),
+        inc: () => setHeading(h, `heading-${k}-inc`, k, v + HEADING_STEP),
+      }));
+    });
+    box.append(el('p', 'tn-caption', str('tuning.heading_note')));
+  }
 
   box.append(el('h3', 'hangar-h', str('tuning.trim')));
   const tr = e.trimDeg;
