@@ -52,9 +52,6 @@ const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
  */
 /* The Timber stands on tundra tyres already. */
 const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
-/* The Extra's spats are stock, so no wheels slot; side force generators
- * are the aerobatic tip it is known for. */
-const EXTRA = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold'), slot('wingtips', 'sfg')];
 /* The Hercules' four spinners and its flight deck's glazing; its gear is
  * in sponsons, so no wheels slot. */
 const HERCULES = [slot('spinner', 'twotone'), slot('canopy', 'smoke')];
@@ -87,7 +84,11 @@ export const KITS = {
   cub1400: AIRCRAFT.KITS.cub1400, kadet1981: AIRCRAFT.KITS.kadet1981,
   slowstick1180: AIRCRAFT.KITS.slowstick1180,
   uglystik1567: AIRCRAFT.KITS.uglystik1567, timber1500: TIMBER,
-  extra3d1308: EXTRA,
+  /*
+   * The Extra's spats are stock, so no wheels slot; side force generators
+   * are the aerobatic tip it is known for.
+   */
+  extra3d1308: AIRCRAFT.KITS.extra3d1308,
   nighttimber1200: TIMBER,
   hercules3077: HERCULES,
   /* The CAP 580's side force generators are stock on its tips, so no

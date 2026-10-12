@@ -72,7 +72,6 @@ export const SIM_TUNE_DOUBLES = 12;
 
 /* The plant writes its throws as degrees * pi / 180, and so does this, so
  * the high rate is the very double the table holds. */
-const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
 const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
 const PI = 3.14159265358979323846;
@@ -157,13 +156,7 @@ export const TUNING = {
   kadet1981: AIRCRAFT.TUNING.kadet1981,
   uglystik1567: AIRCRAFT.TUNING.uglystik1567,
   tigermoth1803: AIRCRAFT.TUNING.tigermoth1803,
-  extra3d1308: {
-    chord: 0.2927, area: 0.369, margin: 0.154,
-    cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
-    packKg: 0.27, nose: 0.26, tail: -0.83,
-    throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
-    flaps: null,
-  },
+  extra3d1308: AIRCRAFT.TUNING.extra3d1308,
   nighttimber1200: {
     /* The margin U2 reads off the hi_alpha plant at the zero lift line's 5 deg, 0.0666
      * (scripts/nighttimber-derive.js); the linear h_n's is 0.068. */

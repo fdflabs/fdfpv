@@ -156,36 +156,20 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/tigermoth1803/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'tigermoth1803'),
-  {
-    /* The Extra's three are the real aircraft's: E-flite's receiver flies
-     * AS3X out of the box, a gyro with no self levelling and no caps
-     * (here a heading lock gyro, plant_wing.c mode 3) ("When the normal
-     * bind process is followed, the SAFE Select
-     * system is disabled, leaving specially tuned AS3X technology in place
-     * to deliver a pure, unrestricted flight experience", the manual p. 4),
-     * which is its default here; Manual is the receiver without the gyro;
-     * SAFE Select is the optional bind with "bank and pitch limitations"
-     * and "automatic self-leveling", which cannot hover by design. On its
-     * wheels every mode flies as Manual. */
-    id: 'extra-as3x',
-    airframe: 'extra3d1308',
-    name: 'AS3X',
-    note: 'A 3D gyro, as the Extra ships with one. The sticks are the surfaces at the 3D throws; centred, the gyro holds the attitude you left it in, against the torque and the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'extra-manual',
-    airframe: 'extra3d1308',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at E-flite\'s 3D throws. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons, which work in the slipstream at no airspeed at all.',
-  },
-  {
-    id: 'extra-stab',
-    airframe: 'extra3d1308',
-    name: 'SAFE Select',
-    note: 'E-flite\'s beginner bind. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.',
-    wingStab: 1,
-  },
+  /*
+   * The Extra's three are the real aircraft's: E-flite's receiver flies
+   * AS3X out of the box, a gyro with no self levelling and no caps (here a
+   * heading lock gyro, plant_wing.c mode 3) ("When the normal bind process
+   * is followed, the SAFE Select system is disabled, leaving specially
+   * tuned AS3X technology in place to deliver a pure, unrestricted flight
+   * experience", the manual p. 4), which is its default here; Manual is
+   * the receiver without the gyro; SAFE Select is the optional bind with
+   * "bank and pitch limitations" and "automatic self-leveling", which
+   * cannot hover by design. On its wheels every mode flies as Manual.
+   *
+   * Its tunes are its folder's, aircraft/extra3d1308/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'extra3d1308'),
   {
     /* The Night Timber's three are its AR637TA's, as the Extra's are its
      * receiver's: AS3X out of the box, Manual without the gyro, SAFE
