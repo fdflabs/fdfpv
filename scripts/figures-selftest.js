@@ -244,6 +244,14 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a rolling circle that rolls a quarter past its last roll is graded under one that stops wings level', over && clean && over.grade <= clean.grade - 1,
     `${clean ? clean.grade : '-'} vs ${over ? over.grade : 'not named'}`);
 }
+/* Four rolls round the circle is Aresti 2.4.7.1, not the catalogue's
+ * one-roll 2.4.2.1: "If the number of rolls is wrong ... Hard Zero" (BAeA
+ * judging, "Rolling Circles"). */
+{
+  const four = detect([lead, { p: 6.4, worldRate: [0, 0, 1.6], ms: 3927, speed: V }, tail]);
+  check('a circle rolled four times is no rolling circle', !four.some((g) => g.figure === 'rolling_circle'),
+    four.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+}
 /* A stall turn's lines as a judge watches them (BAeA judging, "Stall
  * Turns"): a rudder correction on the up line, the nose yawed 18 deg and
  * back below 8 m/s, is yaw on the line, marked off the line, not a turn

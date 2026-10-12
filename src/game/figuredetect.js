@@ -458,11 +458,16 @@ const TABLE = [
   ['loop', [arc(0.85, 1.2, (p) => p.liftU > 0 && abs(p.liftL) <= abs(p.liftU))], ([a]) => loopDeduction(a, true)],
   ['outside_loop', [arc(0.85, 1.2, (p) => p.liftU < 0 && abs(p.liftL) <= abs(p.liftU))], ([a]) => loopDeduction(a, true)],
   ['ke_loop', [arc(0.85, 1.2, (p) => abs(p.liftL) > abs(p.liftU))], ([a]) => loopDeduction(a, true)],
-  /* Out wings level: "Stop on heading and without any remaining bank
-   * angle or yaw" (BAeA judging, "Rolling Circles",
-   * https://www.aerobatics.org.uk/judging/topics/rolling-turns-1), the
-   * rolls a whole number, a point per 15 deg left over or short. */
-  ['rolling_circle', [kind('roll', (p) => abs(p.roll) >= 0.85 && abs(p.heading) >= 0.85)],
+  /* The catalogue's rolling circle is Aresti 2.4.2.1, a 360 deg turn
+   * with one roll (OpenAero figures19.js: "2.4.2.1-4 (1 roll)"; four
+   * rolls is 2.4.7.1, K 38): "If the number of rolls is wrong - too many
+   * or too few - then give the figure a Hard Zero" (BAeA judging,
+   * "Rolling Circles",
+   * https://www.aerobatics.org.uk/judging/topics/rolling-turns-1), so
+   * one roll, to the nearest whole. And out wings level: "Stop on heading
+   * and without any remaining bank angle or yaw", a point per 15 deg
+   * left over or short. */
+  ['rolling_circle', [kind('roll', (p) => abs(p.roll) >= 0.85 && abs(p.roll) < 1.5 && abs(p.heading) >= 0.85)],
     ([r]) => {
       const climb = r.frac(r.dzAbsSum);
       const whole = Math.floor(abs(r.roll) + 0.5);

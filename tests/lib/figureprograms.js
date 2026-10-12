@@ -269,11 +269,11 @@ const knife = (ms) => ({
  * and lets the roll go on the last as roll() does, so the two finish
  * together, wings level on the heading; the heading's
  * lag behind that and the climb rate the person sees add to the force:
- * kpsi 1/s and kz 2/s, FITTED: swept over kpsi 0.5 and 1, kz 1 and 2,
- * and the surfaces' per g taken a half under and over, 6 of the 12 name
- * it on all three and this is the only one over 6 on each (Extra 6.5,
- * CAP 8, Slick 9.5); a third under on the surfaces loses the Slick, a
- * half over the Extra. No margin is measured for these loops.
+ * kpsi 1/s and kz 2/s, FITTED on a four-roll circle: swept over kpsi 0.5
+ * and 1, kz 1 and 2, and the surfaces' per g taken a half under and over,
+ * 6 of the 12 name it on all three and this is the only one over 6 on
+ * each (Extra 6.5, CAP 8, Slick 9.5). No margin is measured for these
+ * loops.
  */
 const ELEVATOR_G = (v) => 12.16 + 0.286 * (v - 20);
 const rollingCircle = (rolls, rate = 1.6) => ({
@@ -445,7 +445,13 @@ export const PROGRAMS = {
   tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), knife(3000), roll(-0.5, 0.5 * PI), L()],
   ke_loop: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -1, 1], 7000), L()],
-  rolling_circle: [L(), rollingCircle(4), L()],
+  /* One roll, the catalogue's 2.4.2.1: a turn as fast as the judge's
+   * slowest roll (1.2 rad/s) asks 2.7 g toward the centre at 22 m/s, all
+   * of it on the rudder where the wings are level, near three times the
+   * weight the Extra's knife edge holds on it; not named on any of the
+   * three at 1.25 to 1.6 rad/s. Four rolls named it 6.5 / 8 / 9.5 on the
+   * Extra, CAP and Slick, but four rolls is Aresti 2.4.7.1. */
+  rolling_circle: [L(), rollingCircle(1), L()],
   hover: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   torque_roll: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000, { rollStick: 0.15 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   harrier: [slow(12), harrier(5000), L()],

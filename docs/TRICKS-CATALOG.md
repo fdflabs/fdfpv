@@ -60,7 +60,7 @@ program's grade on the Extra, the CAP and the Slick.
 | Figure (en) | (es) | Family | K | Aresti | Physics |
 |---|---|---|---|---|---|
 | Knife-Edge Pass | Pasada a cuchillo | lines | 6 | 1.1.1.1 + 9.1.3.1 + 9.1.3.1 | flown |
-| Rolling Circle | Círculo con tonel | turns | 46 | 2.4.2.1 | flown |
+| Rolling Circle | Círculo con tonel | turns | 46 | 2.4.2.1 | unproven |
 | Hammerhead | Martillo | stall turns | 17 | 5.2.1.1 | flown |
 | Tailslide | Campana | tail slides | 15 | 6.2.1.1 | flown |
 | Loop | Rizo | loops | 10 | 7.4.1.1 | flown |
@@ -181,9 +181,10 @@ guides say:
   the vertical and the farthest the nose was yawed off it (BAeA judging,
   "Stall Turns": "no yaw or wing-low"), 1 point per 15 deg each; the pivot
   is a yaw that turns the nose round.
-- **Rolling circles**: the rolls a whole number at the finish, 1 point per
-  15 deg left over or short (BAeA judging, "Rolling Circles": "Stop on
-  heading and without any remaining bank angle").
+- **Rolling circles**: one roll (Aresti 2.4.2.1; a wrong count is a hard
+  zero), and 1 point per 15 deg of it left over or short at the finish
+  (BAeA judging, "Rolling Circles": "Stop on heading and without any
+  remaining bank angle").
 - **Hover**: the nose on vertical (1 per 15 deg at worst) and a point per
   2 m of drift.
 
@@ -273,7 +274,7 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 | Figure | Physics | Grades | What is left |
 |---|---|---|---|
 | Knife-Edge Pass | flown | 9.5 / 9.5 / 10 | |
-| Rolling Circle | flown | 6.5 / 8 / 9.5 | the Extra climbs 33 m over the circle; its law's height and heading gains are fitted, no margin measured |
+| Rolling Circle | unproven | - / - / - | physics: the catalogue's is Aresti 2.4.2.1, one roll in the 360; at the judge's slowest roll, 1.2 rad/s, the turn asks 2.7 g toward the centre at 22 m/s, on the rudder where the wings are level, near three times the weight the Extra's knife edge holds there. The program's law flies four rolls round a circle (6.5 / 8 / 9.5), but that is 2.4.7.1, K 38, not in the catalogue |
 | Hammerhead | flown | 7 / 5.5 / 7 | the CAP's rudder has little air under 9 m/s: 0 to 6 across kick speeds |
 | Tailslide | flown | 9.5 / 9.5 / - | the Slick's pull out is named a parachute too (its lane's) |
 | Loop | flown | 7 / 7 / 6 (`figures:plant`) | |
@@ -328,8 +329,12 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 - **Hammerhead.** The up line at 0.4 throttle (the Slick never slowed at
   0.6), the kick at 9 m/s with the throttle at 0.2 (at 0.5 the torque
   rolled it through the pivot).
-- **Rolling circle.** The force the circle needs, put on the surface that
-  faces it as the wings come round, the turn paced on the counted roll.
+- **Rolling circle, not promoted.** The person puts the force the circle
+  needs on the surface that faces it as the wings come round, the turn
+  paced on the counted roll: four rolls round the circle are named 6.5,
+  8 and 9.5. The catalogue's figure is one roll (Aresti 2.4.2.1), which
+  the Extra cannot turn tight enough on its rudder (table above), and a
+  wrong number of rolls is a hard zero, so the judge now names only one.
 - **Not built:** the 4-point roll's knife edge points: an aileron hold on
   the 0.4 s points (the knife edge's bank loop, gains 0.1 to 0.5) lost
   the 4-point roll on the Extra and the CAP every time: the loop first
@@ -380,7 +385,7 @@ its reasons:
 | Harrier, Inverted Harrier, Rolling Harrier | nothing | | pilot: the harrier program loses height to the ground; needs the 3D lane's harrier technique (elevator to flap mix, #908) |
 
 Detector and judge changes from the sweeps, each a correction to reality,
-none a loosening (the synthetic suite passes 106 of 106):
+none a loosening (the synthetic suite passes 107 of 107):
 
 - **Snap token on angle of attack**: a snap was any fast roll with the nose
   15 deg off the path. A real aileron roll on the Extra reaches that with
@@ -413,9 +418,13 @@ none a loosening (the synthetic suite passes 106 of 106):
   first correction was taken for the pivot. A vertical line is now the
   run of its pieces, graded by its worst and the farthest it yawed; the
   pivot is a yaw that turns the nose round. A tightening.
-- **A rolling circle's last roll** (round 2): BAeA judging, "Rolling
-  Circles": "Stop on heading and without any remaining bank angle". The
-  rolls must be whole, a point per 15 deg over or short.
+- **A rolling circle's rolls** (round 2): BAeA judging, "Rolling
+  Circles": "If the number of rolls is wrong - too many or too few - then
+  give the figure a Hard Zero" and "Stop on heading and without any
+  remaining bank angle". The catalogue's is Aresti 2.4.2.1, one roll
+  (OpenAero figures19.js): a circle rolled four times is no longer named
+  one, and the roll left over or short at the finish costs a point per
+  15 deg.
 
 ## Owner questions (recommendation first)
 
