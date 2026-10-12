@@ -6,7 +6,8 @@
  * head (the clip's name, the shot under the playhead, its camera and speed,
  * the movie's length), a dock at the bottom (the strip of shots with its
  * cuts and moments, the transport, the cameras, the looks and the ways to
- * keep a shot), a small replay OSD, the export dialog and My clips. The
+ * keep a shot), a small replay OSD with the pilot's sticks on the flight
+ * overlay's two gimbals, the export dialog and My clips. The
  * reference is a console replay editor made casual: every control is one
  * click or one key, and the key is printed on the button.
  *
@@ -48,6 +49,7 @@ import { HEAD } from './recorder.js';
 import { FILE_EXT, NAME_MAX } from './file.js';
 import { downloadBlob } from './store.js';
 import { CRASHCAM_CSS } from './style.js';
+import { makeGimbal, placeSticks } from '../ui/widgets.js';
 
 const ICONS = {
   play: '<svg viewBox="0 0 20 20"><path d="M6 3.5v13l11-6.5z"/></svg>',
@@ -67,6 +69,13 @@ const GRIP_GLYPHS = {
   in: '<svg viewBox="0 0 12 24"><path d="M9 2.5H4v19h5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>',
   out: '<svg viewBox="0 0 12 24"><path d="M3 2.5h5v19H3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>',
 };
+
+/* The words for a row's flight mode (src/replay/sticks.js MODES), the
+ * flight OSD's own, and for its flap notch. */
+const MODE_KEYS = {
+  acro: 'ui.acro', angle: 'ui.angle', manual: 'ui.manual', stab: 'ui.stabilised', as3x: 'ui.as3x', turtle: 'ui.turtle',
+};
+const FLAP_KEYS = ['ui.flaps_up', 'ui.flaps_half', 'ui.flaps_full'];
 
 /* The rigs, their names and their number keys. */
 const RIG_KEYS = { chase: '1', orbit: '2', free: '3', tripod: '4', fpv: '5', follow: '6' };
@@ -258,6 +267,17 @@ export function createEditor(api) {
   osdThr.append(osdThrFill);
   osd.append(el('span', 'k', str('replay.osd_speed')), osdSpeed, el('span', 'k', str('replay.osd_height')), osdAlt,
     el('span', 'k', str('replay.osd_throttle')), osdThr);
+  /* The pilot's sticks as the flight drew them, or a word that this clip
+   * never kept them (saved before replays did). */
+  const sticks = el('div', 'cc-sticks');
+  const stickLeft = makeGimbal(str('ui.yaw_throttle'));
+  const stickRight = makeGimbal(str('ui.roll_pitch'));
+  const gimbals = el('div', 'cc-gimbals');
+  gimbals.append(stickLeft.box, stickRight.box);
+  const stickMode = el('div', 'cc-stick-mode');
+  const stickNone = el('div', 'cc-stick-none', str('replay.sticks_none'));
+  sticks.append(gimbals, stickMode, stickNone);
+  osd.append(sticks);
   root.append(osd);
 
   /* With the controls hidden, one quiet line says how to have them back. */
@@ -370,7 +390,9 @@ export function createEditor(api) {
   const bPhoto = button('cc-btn small', str('replay.photo'), 'P', () => api.photo());
   const bExport = button('cc-btn small', str('replay.export_movie'), 'C', () => openExport());
   const bSave = button('cc-btn small', str('replay.save'), 'G', () => api.saveReplay());
-  keep.append(el('span', 'cc-label', str('replay.keep')), bPhoto, bExport, bSave);
+  const bSticks = button('cc-btn small', str('replay.export_sticks'), '', () => api.exportSticks());
+  bSticks.title = str('replay.export_sticks_title');
+  keep.append(el('span', 'cc-label', str('replay.keep')), bPhoto, bExport, bSave, bSticks);
   const bTake = button('cc-btn primary', str('replay.take_over'), 'Enter', () => api.takeOver());
   row2.append(keep, bTake);
   dock.append(row2);
@@ -892,6 +914,23 @@ export function createEditor(api) {
       osdAlt.textContent = str('replay.metres', { v: h[HEAD.agl].toFixed(1) });
       osdThrFill.style.width = `${Math.round(Math.max(0, Math.min(1, h[HEAD.throttle])) * 100)}%`;
     });
+    const st = v.sticks;
+    set('sticksOn', Boolean(st), (on) => {
+      gimbals.hidden = !on;
+      stickMode.hidden = !on;
+      stickNone.hidden = on;
+      bSticks.disabled = !on;
+    });
+    if (st) {
+      placeSticks(stickLeft, stickRight, st, v.stickMode);
+      set('stickMode', `${st.mode}|${st.flaps}`, () => {
+        const words = [str(MODE_KEYS[st.mode])];
+        if (st.flaps >= 0) {
+          words.push(str(FLAP_KEYS[st.flaps]));
+        }
+        stickMode.textContent = words.join(' \u00b7 ');
+      });
+    }
     /* A word of the screen's own (flash) holds the toast until it is read;
      * the view's toast, usually empty, would otherwise wipe it next frame. */
     if (performance.now() < flashUntil) {

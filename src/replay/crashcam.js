@@ -71,6 +71,8 @@ import {
 import {
   MIMES, SEGMENT_MS, createVoiceRing, voiceClockAt, voicesAt,
 } from './voicerec.js';
+import { controlRows, createSticksRing, sticksAt } from './sticks.js';
+import { toCsv } from '../share/controlrec.js';
 import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
 } from './cameras.js';
@@ -133,6 +135,8 @@ export function createCrashCam(host) {
   const soundRing = createSoundRing(rec.capacity);
   /* The room's voices as heard here (src/replay/voicerec.js). */
   const voiceRing = createVoiceRing(rec.capacity);
+  /* The pilot's sticks, the flight mode and the flaps (src/replay/sticks.js). */
+  const sticksRing = createSticksRing(rec.capacity);
   /* Harness only: the paper as recorded, by ring row, while switched on. */
   let paperLog = null;
   /* Harness only: the peers as recorded, by ring row, while switched on. */
@@ -179,6 +183,7 @@ export function createCrashCam(host) {
     warRing.begin(-1);
     soundRing.begin(-1);
     voiceRing.begin(-1);
+    sticksRing.begin(-1);
     if (S) {
       return;
     }
@@ -213,6 +218,7 @@ export function createCrashCam(host) {
       warRing.clear();
       soundRing.clear();
       voiceRing.clear();
+      sticksRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -226,6 +232,7 @@ export function createCrashCam(host) {
     warRing.begin(i);
     soundRing.begin(i);
     voiceRing.begin(i);
+    sticksRing.begin(i);
     const roomMs = host.roomNow ? host.roomNow() : null;
     voiceRing.at(roomMs);
     if (roomMs != null) {
@@ -251,6 +258,7 @@ export function createCrashCam(host) {
       spawnScratch[4], spawnScratch[5], spawnScratch[6], spawnScratch[7]);
     const flags = host.flags();
     rec.status(i, journal.mark(), sp, flags, host.wrecked(), host.speed(), host.throttle(), host.agl());
+    sticksRing.write(input.channels, host.flightMode(), host.flapNotch(), st);
     const parts = host.parts();
     const count = parts ? host.partCount() : 0;
     if (parts && count > 1) {
@@ -754,6 +762,10 @@ export function createCrashCam(host) {
       if (voice) {
         clip.voice = voice;
       }
+      const sticks = sticksRing.clip(first, n);
+      if (sticks) {
+        clip.sticks = sticks;
+      }
     }
     /* A saved clip of one frame is a still, and plays as one. */
     if (clip.n < (saved ? 1 : 2)) {
@@ -797,6 +809,10 @@ export function createCrashCam(host) {
       osd: true,
       bare: false,
       sample: createSample(),
+      /* The pilot's sticks at the frame drawn, while the clip has them. */
+      sticks: {
+        roll: 0, pitch: 0, yaw: 0, throttle: 0, mode: 'acro', flaps: -1,
+      },
       /* The clip's animation clock at the frame drawn (show). */
       animMs: null,
       probe: createSample(),
@@ -1230,6 +1246,9 @@ export function createCrashCam(host) {
     S.t = t;
     const s = sampleAt(S.clip, t, S.sample);
     S.animMs = s.anim;
+    if (S.clip.sticks) {
+      sticksAt(S.clip.sticks, S.clip.n, s.k, s.a, S.sticks);
+    }
     events(from, t, speed);
     bedsFrame(t, speed, running);
     voicesFrame(s.k, s.a, speed, running);
@@ -1508,6 +1527,10 @@ export function createCrashCam(host) {
       canTakeOver: canTakeOver(),
       exporting: S.exporting ? { ...S.exporting.job.progress } : null,
       readout: S.sample.head,
+      /* The pilot's sticks, or null for a clip saved before replays kept
+       * them; drawn in the viewer's own stick mode. */
+      sticks: S.clip.sticks ? S.sticks : null,
+      stickMode: host.stickMode(),
       toast: S.toast,
       name: c.meta.name,
       peers: S.scene.peers ? S.scene.peers.list() : [],
@@ -2096,6 +2119,23 @@ export function createCrashCam(host) {
     }
   }
 
+  /* The movie's range as a control recording (src/replay/sticks.js
+   * controlRows), handed over as a CSV: the range Save keeps. Returns the
+   * file name, or null for a clip without sticks. */
+  function exportSticks() {
+    const clip = rangeClip();
+    if (!clip.sticks) {
+      toast(str('replay.sticks_none'));
+      return null;
+    }
+    const name = store.stampedName(clip.meta.map, '-sticks.csv');
+    const csv = toCsv(controlRows(clip));
+    store.downloadBlob(name, new Blob([csv], { type: 'text/csv' }));
+    window.__crashCamLast = { ...(window.__crashCamLast || {}), sticks: { name, rows: clip.n, csv } };
+    toast(str('replay.sticks_saved', { name }));
+    return name;
+  }
+
   function known() {
     return { airframe: host.knownAirframe, map: host.knownMap };
   }
@@ -2263,6 +2303,7 @@ export function createCrashCam(host) {
       exportMovie,
       cancelExport,
       saveReplay,
+      exportSticks,
       takeOver,
       close,
       drag,
