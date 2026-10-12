@@ -5,8 +5,9 @@
  * by, and what one flight of that law on the compiled plant measured. A
  * figure with a program (tests/lib/figureprograms.js) is flown once on
  * the Extra 330 in Manual, level at 22 m/s, 150 m up: whether the judge
- * named it, its grade, what else it named, whether the program finished
- * and the lowest height. The loop, the aileron roll and the 4-point roll
+ * named it, its grade, what else it named, whether the program finished,
+ * whether it reached the ground (150 m below its start) and the lowest
+ * height. The loop, the aileron roll and the 4-point roll
  * are flown by figures-plant-check.js's own program, a gate with its own
  * pass band, and the row says so. The 'waits' figures have no law yet.
  *
@@ -73,6 +74,7 @@ async function build() {
         grade: hit ? hit.grade : null,
         flew: r.got.map((g) => `${g.figure} ${g.grade}`),
         finished: r.finished,
+        crashed: r.crashed,
         lowestM: Number(r.minZ.toFixed(1)),
       };
     }

@@ -33,6 +33,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 112.1
       },
       "margin": null
@@ -56,6 +57,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -82,10 +84,11 @@
         "named": false,
         "grade": null,
         "flew": [
-          "flat_spin 7.5"
+          "flat_spin 8"
         ],
         "finished": false,
-        "lowestM": -336.4
+        "crashed": true,
+        "lowestM": 0
       },
       "margin": null
     },
@@ -114,6 +117,7 @@
           "tailslide 9.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 142.6
       },
       "margin": null
@@ -152,6 +156,7 @@
           "outside_loop 7"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 130.5
       },
       "margin": null
@@ -178,6 +183,7 @@
           "immelmann 4"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -204,6 +210,7 @@
           "split_s 3.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 133.9
       },
       "margin": null
@@ -235,6 +242,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 107
       },
       "margin": null
@@ -268,6 +276,7 @@
           "half_roll 7"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -304,6 +313,7 @@
           "inverted_spin 9.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 82.2
       },
       "margin": null
@@ -331,6 +341,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 132.8
       },
       "margin": null
@@ -360,6 +371,7 @@
           "half_roll 7"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -387,6 +399,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 131
       },
       "margin": null
@@ -412,6 +425,7 @@
           "half_roll 9"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 148.7
       },
       "margin": null
@@ -450,6 +464,7 @@
           "double_roll 5.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -473,6 +488,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -498,6 +514,7 @@
           "two_point_roll 5.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 146.7
       },
       "margin": null
@@ -536,6 +553,7 @@
           "eight_point_roll 0"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 130.4
       },
       "margin": null
@@ -561,6 +579,7 @@
           "barrel_roll 9"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -657,6 +676,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 142.3
       },
       "margin": null
@@ -683,6 +703,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 145.5
       },
       "margin": null
@@ -706,7 +727,8 @@
         "grade": null,
         "flew": [],
         "finished": false,
-        "lowestM": -32
+        "crashed": true,
+        "lowestM": 0
       },
       "margin": null
     },
@@ -734,7 +756,8 @@
           "half_roll 9"
         ],
         "finished": false,
-        "lowestM": -94.5
+        "crashed": true,
+        "lowestM": 0
       },
       "margin": null
     },
@@ -758,7 +781,8 @@
         "grade": null,
         "flew": [],
         "finished": false,
-        "lowestM": -32
+        "crashed": true,
+        "lowestM": 0
       },
       "margin": null
     },
@@ -783,6 +807,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -849,6 +874,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 102.7
       },
       "margin": null

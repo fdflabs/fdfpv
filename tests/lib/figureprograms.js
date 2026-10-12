@@ -161,7 +161,11 @@ const D45 = [Math.SQRT1_2, 0, -Math.SQRT1_2];
 const U45 = [Math.SQRT1_2, 0, Math.SQRT1_2];
 const B45 = [-Math.SQRT1_2, 0, -Math.SQRT1_2];
 
-/* The programs. The aircraft starts level at 22 m/s heading +x, 150 m up. */
+/* The programs. The aircraft starts level at 22 m/s heading +x, 150 m up,
+ * over no ground: the plant raises none unless the host does, so fly()
+ * ends a flight that reaches the height it started from less 150 m and
+ * calls it crashed. A program that loses that much has flown into the
+ * field it would be flown over. */
 export const PROGRAMS = {
   half_roll: [L(), roll(0.5, PI), level(3000)],
   double_roll: [L(), roll(0.6, 4 * PI), L()],
@@ -209,10 +213,15 @@ export async function fly(program, { wasmBytes, configText, trace = false }) {
   let st = [0, 0, 0, 0.75];
   let ms = 0;
   let minZ = Infinity;
+  let crashed = false;
   for (; ms < 90000 && i < program.length; ms += MS) {
     const o = see(sim.readState().state);
     eye.push(o);
     if (o.z < minZ) minZ = o.z;
+    if (o.z <= 0) {
+      crashed = true;
+      break;
+    }
     det.step(MS / 1000, o.s);
     mem.t += MS;
     if (eye.looks(ms)) {
@@ -229,5 +238,5 @@ export async function fly(program, { wasmBytes, configText, trace = false }) {
     must(sim.step(MS), 'sim_step');
   }
   det.flush();
-  return { got, finished: i >= program.length, ms, minZ };
+  return { got, finished: i >= program.length, crashed, ms, minZ };
 }
