@@ -17,7 +17,9 @@
  * 'waits' figures have no law yet.
  *
  * margin: the loops a program closes through the person whose phase and
- * gain margins are measured (scripts/figures-margins.js, on the Extra),
+ * gain margins are measured (scripts/figures-margins.js, on the Extra; the
+ * hover's on all three, and a hover loop short of the criterion blocks
+ * every figure flown on it from being flown),
  * named per row, their numbers under pilot.margins; --check fails when a
  * margin is short of the bandwidth criterion or the line hold's fit is
  * not the plant's. The other phases (pulls, rolls, points, the 3D holds)
@@ -53,7 +55,7 @@ import { FIGURES } from '../src/game/figures.js';
 import { PERSON } from '../tests/lib/personpilot.js';
 import { PROGRAMS, PROGRAM_TIERS, EVERY, LINE_GAINS, fly } from '../tests/lib/figureprograms.js';
 import { CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
-import { measureMargins, marginFailures } from './figures-margins.js';
+import { measureMargins, marginFailures, hoverShort } from './figures-margins.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -62,7 +64,7 @@ const FILE = join(root, 'docs/figures-table.json');
 
 const PLANT_CHECK = new Set(['loop', 'aileron_roll', 'four_point_roll']);
 /* The measured loops, by the phase names that fly them. */
-const MEASURED_LOOPS = [['line ', ['lineElevator', 'lineRudder']], ['knife ', ['knife']], ['knife loop', ['knifeLoop']]];
+const MEASURED_LOOPS = [['line ', ['lineElevator', 'lineRudder']], ['knife ', ['knife']], ['knife loop', ['knifeLoop']], ['hover ', ['hover']]];
 const marginOf = (phases) => {
   const loops = MEASURED_LOOPS.filter(([prefix]) => phases.some((p) => p.startsWith(prefix))).flatMap(([, loop]) => loop);
   return loops.length ? loops : null;
@@ -200,6 +202,16 @@ const short = marginFailures(table.pilot.margins);
 check('every measured loop keeps the bandwidth criterion\'s margins and the line hold\'s fit is the plant\'s', short.length === 0, short.join('; '));
 check('negative control: a loop at 5 dB is caught', marginFailures({ ...table.pilot.margins,
   lineElevator: { ...table.pilot.margins.lineElevator, level: [{ ...table.pilot.margins.lineElevator.level[0], gmDb: 5 }] } }).length === 1);
+/* A figure flown on the hover's loops is promoted only while every one of
+ * them keeps the criterion on the three aircraft it is flown on: a hover
+ * held on a loop short of it is a hover held by luck, not by a person. */
+const onShortHover = (rows, short) => rows.filter((r) => r.physics === 'flown' && r.margin && r.margin.includes('hover') && short.length).map((r) => r.id);
+const shortHover = hoverShort(table.pilot.margins);
+for (const s2 of shortHover) console.log(`     hover loop short of the criterion: ${s2}`);
+const promotedShort = onShortHover(table.rows, shortHover);
+check('no figure flown on a hover loop short of the criterion', promotedShort.length === 0, promotedShort.join(', '));
+check('negative control: a hover row marked flown on a short loop is caught',
+  onShortHover(table.rows.map((r) => (r.id === 'hover' ? { ...r, physics: 'flown' } : r)), ['extra yaw']).includes('hover'));
 const named = table.rows.filter((r) => r.measured && r.measured.named).length;
 const flown = table.rows.filter((r) => r.measured).length;
 console.log(`\nfigures table: ${named} of ${flown} programs named as flown; ${fail ? `${fail} failed` : 'all hold'}`);
