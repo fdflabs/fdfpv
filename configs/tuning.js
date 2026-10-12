@@ -99,7 +99,6 @@ export const MARGIN_WARN = 0.05;
  * clicks, a radio's trim steps. */
 export const TRIM_MAX_DEG = 4;
 
-const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
 /*
@@ -172,13 +171,7 @@ export const TUNING = {
   slick2680: AIRCRAFT.TUNING.slick2680,
 
   p51d1450: AIRCRAFT.TUNING.p51d1450,
-  nrj1490: {
-    chord: 0.1378, area: 0.190, margin: 0.170,
-    cg: { mm: 66, datum: 'tuning.datum.root_le', range: [64.5, 66.5], source: `OA Composites' manual, "CG between 64.5 and 66.5mm", 66 for the empty glider; ${NRJ_MANUAL}` },
-    packKg: 0.015, nose: 0.23, tail: -0.66,
-    throws: { high: [19.0, 17.5, 15.5], low: [13.3, 12.25, 10.85], source: `OA Composites' manual: ailerons 13 mm each way, elevator 8 to 10 mm, rudder 12 mm, on the 40, 30 and 45 mm surfaces at the horn (docs/DLG-STAGE1.md); no low rate is published, so it is 70 percent; ${NRJ_MANUAL}` },
-    flaps: null,
-  },
+  nrj1490: AIRCRAFT.TUNING.nrj1490,
   f16878: AIRCRAFT.TUNING.f16878,
   zagi1219: AIRCRAFT.TUNING.zagi1219,
 };

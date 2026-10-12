@@ -37,6 +37,7 @@ import hercules3077 from '../aircraft/hercules3077/aircraft.js';
 import interceptor from '../aircraft/interceptor/aircraft.js';
 import kadet1981 from '../aircraft/kadet1981/aircraft.js';
 import nighttimber1200 from '../aircraft/nighttimber1200/aircraft.js';
+import nrj1490 from '../aircraft/nrj1490/aircraft.js';
 import p51d1450 from '../aircraft/p51d1450/aircraft.js';
 import radian2000 from '../aircraft/radian2000/aircraft.js';
 import sky1800 from '../aircraft/sky1800/aircraft.js';
@@ -50,8 +51,8 @@ import zagi1219 from '../aircraft/zagi1219/aircraft.js';
 
 export const FOLDERS = [
   a10inch, a7inch, bombshell1118, bramor2300, cap1702, cub1400, cub1400f, extra3d1308, f16878,
-  hercules3077, interceptor, kadet1981, nighttimber1200, p51d1450, radian2000, sky1800, slick2680,
-  slowstick1180, tigermoth1803, timber1500, timber1500f, uglystik1567, zagi1219,
+  hercules3077, interceptor, kadet1981, nighttimber1200, nrj1490, p51d1450, radian2000, sky1800,
+  slick2680, slowstick1180, tigermoth1803, timber1500, timber1500f, uglystik1567, zagi1219,
 ];
 
 export const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];

@@ -52,7 +52,6 @@ const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
  */
 /* The Timber stands on tundra tyres already. */
 const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
-const NRJ = [slot('nose', 'pointed')];
 const QUAD = [
   slot('arms', 'cutout', 'blade', 'tapered'),
   slot('top', 'vented', 'armoured'),
@@ -111,7 +110,7 @@ export const KITS = {
    * throw glider with no canopy and no tips a winglet belongs on.
    */
   radian2000: AIRCRAFT.KITS.radian2000,
-  nrj1490: NRJ,
+  nrj1490: AIRCRAFT.KITS.nrj1490,
   /*
    * The Zagi's winglets already set its height and its aftmost point, so a
    * taller one would grow the box the referee meets: raked and split keep

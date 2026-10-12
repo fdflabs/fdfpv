@@ -78,21 +78,13 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/radian2000/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'radian2000'),
-  {
-    /* The NRJ, an F3K glider: a receiver and four servos, no gyro, so
-     * Manual. There is no throttle to close; the stick up throws it. */
-    id: 'nrj-manual',
-    airframe: 'nrj1490',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the flaperons, the elevator and the rudder; the launch preset trims the elevator down for the climb and lets go at the top.',
-  },
-  {
-    id: 'nrj-stab',
-    airframe: 'nrj1490',
-    name: 'Stabilised',
-    note: 'A gyro holds the glider. Roll stick asks for a bank up to 50 degrees, pitch stick for a pitch up to 30, centred sticks glide level, and the rudder is coordinated for you. The launch preset holds the climb after the throw.',
-    wingStab: 1,
-  },
+  /*
+   * The NRJ, an F3K glider: a receiver and four servos, no gyro, so
+   * Manual. There is no throttle to close; the stick up throws it.
+   *
+   * Its tunes are its folder's, aircraft/nrj1490/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'nrj1490'),
   /*
    * The quads' (docs/COMBAT-DRONES.md): stock 4.5.1, on their own plants,
    * with the build's motor kV, pack size and Li-ion cell limits written
