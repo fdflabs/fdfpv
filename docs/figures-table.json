@@ -44,6 +44,17 @@
           "speed": 28.5
         }
       },
+      "knifeLoop": {
+        "path": {
+          "crossoverFor": 1.6,
+          "gain": 1.013,
+          "wc": 0.8,
+          "pmDeg": 62.2,
+          "wcFound": 1,
+          "gmDb": 15.2,
+          "w180": 5
+        }
+      },
       "criterion": "bandwidth criterion: 45 deg phase margin, 6 dB gain margin (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, NASA NCC2-338, 1986)",
       "delayS": 0.225,
       "lineElevator": {
@@ -428,31 +439,36 @@
       "family": "loops",
       "k": 15,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
           "roll 0.5 0.50pi",
-          "hold 0,0,-1,1",
+          "knife 1000",
+          "knife loop",
+          "roll -0.5 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 9,
         "flew": [
-          "inverted_spin 7.5"
+          "ke_loop 9"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 80.2,
+        "lowestM": 148.2,
         "others": {
-          "cap": null,
-          "slick": null
+          "cap": 9,
+          "slick": 5
         }
       },
-      "margin": null
+      "margin": [
+        "knife",
+        "knifeLoop"
+      ]
     },
     {
       "id": "half_cuban",
