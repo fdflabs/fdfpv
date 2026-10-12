@@ -46,44 +46,44 @@ export const SURFACE_STATS = {
       {
         "full": 281,
         "fifth": 54.1,
-        "kept": 0.909
+        "kept": 0.918
       },
       {
         "full": 303,
-        "fifth": 60.5,
-        "kept": 0.833
+        "fifth": 60.4,
+        "kept": 0.844
       },
       {
         "full": 320,
-        "fifth": 66.8,
-        "kept": 0.773
+        "fifth": 66.7,
+        "kept": 0.786
       },
       {
         "full": 334,
         "fifth": 73.2,
-        "kept": 0.717
+        "kept": 0.734
       }
     ],
     "r": [
       {
-        "full": 268,
+        "full": 267,
         "fifth": 43,
-        "kept": 0.432
+        "kept": 0.506
       },
       {
-        "full": 268,
+        "full": 267,
         "fifth": 43,
-        "kept": 0.432
+        "kept": 0.506
       },
       {
-        "full": 268,
+        "full": 267,
         "fifth": 43,
-        "kept": 0.432
+        "kept": 0.506
       },
       {
-        "full": 268,
+        "full": 267,
         "fifth": 43,
-        "kept": 0.432
+        "kept": 0.506
       }
     ]
   },
@@ -102,7 +102,7 @@ export const SURFACE_STATS = {
       {
         "full": 293,
         "fifth": 32,
-        "kept": 0.652
+        "kept": 0.653
       },
       {
         "full": 395,
@@ -112,46 +112,46 @@ export const SURFACE_STATS = {
     ],
     "e": [
       {
-        "full": 140,
-        "fifth": 26.3,
-        "kept": 1.037
+        "full": 139,
+        "fifth": 26.2,
+        "kept": 1.038
       },
       {
         "full": 172,
         "fifth": 33.5,
-        "kept": 0.997
+        "kept": 1
       },
       {
-        "full": 211,
-        "fifth": 45.2,
-        "kept": 0.887
+        "full": 210,
+        "fifth": 45.1,
+        "kept": 0.893
       },
       {
         "full": 253,
-        "fifth": 57.2,
-        "kept": 0.708
+        "fifth": 57.1,
+        "kept": 0.716
       }
     ],
     "r": [
       {
         "full": 52,
-        "fifth": 8.2,
+        "fifth": 8.1,
         "kept": 1.014
       },
       {
         "full": 66,
-        "fifth": 10.3,
+        "fifth": 10.2,
         "kept": 0.998
       },
       {
         "full": 87,
-        "fifth": 13.4,
-        "kept": 0.966
+        "fifth": 13.3,
+        "kept": 0.967
       },
       {
         "full": 113,
-        "fifth": 17.1,
-        "kept": 0.891
+        "fifth": 17,
+        "kept": 0.894
       }
     ]
   },
@@ -182,44 +182,44 @@ export const SURFACE_STATS = {
       {
         "full": 298,
         "fifth": 55.6,
-        "kept": 0.752
+        "kept": 0.757
       },
       {
         "full": 301,
         "fifth": 61.1,
-        "kept": 0.723
+        "kept": 0.729
       },
       {
         "full": 305,
         "fifth": 62.6,
-        "kept": 0.703
+        "kept": 0.71
       },
       {
         "full": 308,
         "fifth": 64.1,
-        "kept": 0.683
+        "kept": 0.691
       }
     ],
     "r": [
       {
         "full": 211,
         "fifth": 22.1,
-        "kept": 0.828
+        "kept": 0.832
       },
       {
         "full": 217,
         "fifth": 22.8,
-        "kept": 0.785
+        "kept": 0.791
       },
       {
         "full": 226,
         "fifth": 23.9,
-        "kept": 0.745
+        "kept": 0.753
       },
       {
         "full": 235,
         "fifth": 24.9,
-        "kept": 0.702
+        "kept": 0.712
       }
     ]
   }
