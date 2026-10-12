@@ -69,6 +69,28 @@ const roll = (stick, rad, thr = 0.75, pitch = 0, push = true) => ({
     return [[stick, pitch + (push && d.uz < -0.3 ? -0.12 : 0), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * 0.35];
   },
 });
+/* A slow roll: "The rate of roll must be constant" (British Aerobatic
+ * Association, judging, "Slow Rolls",
+ * https://www.aerobatics.org.uk/judging/topics/slow-rolls). A fixed 0.15
+ * of stick rolled the Extra at 2 rad/s wings level and under the judge's
+ * 1.2 through the knife edges, where the top rudder's yaw rolls against
+ * it, so the roll came apart in two. The person holds the rate they see
+ * on the aileron instead: kp of stick per rad/s of the rate's error and
+ * the hand settling on what holds it (ki per second). The rate is the
+ * person's, 1.7 rad/s, a turn in 3.7 s, over the judge's 3 s and its 1.2
+ * with room. Gains measured 2026-10-12 over kp 0 to 0.06 and ki 0.05 to
+ * 0.4 on the Extra, CAP and Slick: kp 0.03, ki 0.2 named the slow roll
+ * on all three (8, 8, 8.5); ki 0.05 lost it on the Slick. */
+const rateRoll = (rate, rad, thr = 0.9) => ({
+  name: `rate roll ${rate} ${(rad / PI).toFixed(2)}pi`,
+  step: (d, m) => {
+    m.turned = (m.turned ?? 0) + d.p * H;
+    const err = rate - d.p;
+    m.i = clamp((m.i ?? 0.15) + 0.2 * err * H);
+    const ail = quant(clamp(m.i + 0.03 * err));
+    return [[ail, d.uz < -0.3 ? -0.12 : 0, Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * 0.35];
+  },
+});
 /* The gains a line is held with: the nose's error to a rate (kp, 1/s) and
  * the rate's error to the stick (kr, s), figures-plant-check.js's. With
  * this pilot's 0.2 s lag a rate gain of 0.5 rang on every plant (the
@@ -218,7 +240,7 @@ const B45 = [-Math.SQRT1_2, 0, -Math.SQRT1_2];
 export const PROGRAMS = {
   half_roll: [L(), roll(0.5, PI), level(3000)],
   double_roll: [L(), roll(0.6, 4 * PI), L()],
-  slow_roll: [L(), roll(0.15, 2 * PI, 0.9), L()],
+  slow_roll: [L(), rateRoll(1.7, 2 * PI), L()],
   two_point_roll: [L(), points(2), L()],
   /* An eighth at 0.6 of stick (6.4 rad/s) passed in 0.12 s, inside the
    * 0.2 s the person has not seen: its points fell anywhere (117 to 408

@@ -86,7 +86,7 @@ export const FIGURES = [
   fig('half_roll', 'rolls', 4, ['9.1.3.2'], 'flown'),
   fig('aileron_roll', 'rolls', 8, ['9.1.3.4'], 'flown'),
   fig('double_roll', 'rolls', 16, ['9.1.3.4', '9.1.3.4'], 'flown'),
-  fig('slow_roll', 'rolls', 10, null, 'unproven'),
+  fig('slow_roll', 'rolls', 10, null, 'flown'),
   fig('two_point_roll', 'rolls', 9, ['9.2.3.4'], 'flown'),
   fig('four_point_roll', 'rolls', 11, ['9.4.3.4'], 'flown'),
   fig('eight_point_roll', 'rolls', 15, ['9.8.3.4'], 'unproven'),

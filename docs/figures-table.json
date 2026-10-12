@@ -540,25 +540,27 @@
       "family": "rolls",
       "k": 10,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "roll 0.15 2.00pi",
+          "rate roll 1.7 2.00pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 8,
+        "flew": [
+          "slow_roll 8"
+        ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": null,
-          "slick": null
+          "cap": 8,
+          "slick": 8.5
         }
       },
       "margin": null
