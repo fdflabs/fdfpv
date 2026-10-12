@@ -41,26 +41,18 @@ import { AIRFRAMES } from './airframes.js';
 import { AIRCRAFT } from './aircraft.js';
 
 export const TUNES = [
-  {
-    /* The Bramor's, which fly the C4EYE since it took the 1000 mm wing's
-     * place (configs/airframes.js); the ids stayed, so a profile keeps
-     * its mode. The real aircraft flies its own autopilot, so Stabilised
-     * is its default and the autopilot has no acro mode to offer (OWNER
-     * 2026-10-08: modes are real controllers only). The diff is the
-     * stock one, parsed and ignored: the row is what switches
-     * plant_wing.c's stabiliser, Betaflight has no wing mode. */
-    id: 'wing-stab',
-    airframe: 'bramor2300',
-    name: 'Stabilised',
-    note: 'A gyro holds the wing, as its autopilot does. Roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, and centred sticks fly level.',
-    wingStab: 1,
-  },
-  {
-    id: 'wing-manual',
-    airframe: 'bramor2300',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the elevons: 6 degrees of pitch and 10 of roll at full stick, with a little expo.',
-  },
+  /*
+   * The Bramor's, which fly the C4EYE since it took the 1000 mm wing's
+   * place (configs/airframes.js); the ids stayed, so a profile keeps its
+   * mode. The real aircraft flies its own autopilot, so Stabilised is its
+   * default and the autopilot has no acro mode to offer (OWNER 2026-10-08:
+   * modes are real controllers only). The diff is the stock one, parsed
+   * and ignored: the row is what switches plant_wing.c's stabiliser,
+   * Betaflight has no wing mode.
+   *
+   * Its tunes are its folder's, aircraft/bramor2300/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'bramor2300'),
   /*
    * The Skyhunter is a kit, and the flight controller its builders fit is
    * INAV, whose ACRO this Acro is: rates at INAV's defaults, roll_rate and

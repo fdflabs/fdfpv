@@ -26,6 +26,7 @@
 
 import a10inch from '../aircraft/10inch/aircraft.js';
 import a7inch from '../aircraft/7inch/aircraft.js';
+import bramor2300 from '../aircraft/bramor2300/aircraft.js';
 import cap1702 from '../aircraft/cap1702/aircraft.js';
 import cub1400 from '../aircraft/cub1400/aircraft.js';
 import interceptor from '../aircraft/interceptor/aircraft.js';
@@ -35,7 +36,8 @@ import sky1800 from '../aircraft/sky1800/aircraft.js';
 import slick2680 from '../aircraft/slick2680/aircraft.js';
 
 export const FOLDERS = [
-  a10inch, a7inch, cap1702, cub1400, interceptor, p51d1450, radian2000, sky1800, slick2680,
+  a10inch, a7inch, bramor2300, cap1702, cub1400, interceptor, p51d1450, radian2000, sky1800,
+  slick2680,
 ];
 
 export const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];

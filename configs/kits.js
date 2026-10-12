@@ -78,8 +78,6 @@ const NRJ = [slot('nose', 'pointed')];
  * taller one would grow the box the referee meets: raked and split keep
  * the stock outline's corners instead. */
 const ZAGI = [slot('winglets', 'raked', 'split'), slot('nose', 'bubble')];
-/* The Bramor's nose is its gimbal ball, the box's front, so no bubble. */
-const BRAMOR = [slot('winglets', 'raked', 'split')];
 const QUAD = [
   slot('arms', 'cutout', 'blade', 'tapered'),
   slot('top', 'vented', 'armoured'),
@@ -117,7 +115,11 @@ export const KITS = {
    */
   radian2000: AIRCRAFT.KITS.radian2000,
   nrj1490: NRJ,
-  zagi1219: ZAGI, bramor2300: BRAMOR,
+  zagi1219: ZAGI,
+  /*
+   * The Bramor's nose is its gimbal ball, the box's front, so no bubble.
+   */
+  bramor2300: AIRCRAFT.KITS.bramor2300,
   '7inch': QUAD, '10inch': QUAD, interceptor: ARMOURED_QUAD,
   striker2500: STRIKER,
 };

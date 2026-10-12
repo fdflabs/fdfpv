@@ -41,9 +41,10 @@ import { AIRCRAFT } from './aircraft.js';
  * From the Italian Army's photograph, docs/BRAMOR-STAGE1.md, all of it
  * ESTIMATED: a 3.1 m rail at 20 deg with its foot on the ground, the
  * aircraft's CG 1.17 m up on the cradle at the top, let go at 17 m/s,
- * 1.3 times its stall.
+ * 1.3 times its stall. It is the row's own object, stated in the Bramor's
+ * folder, aircraft/bramor2300/aircraft.js.
  */
-export const BRAMOR_CATAPULT = { speed: 17, pitchDeg: 20, railLength: 3.1, height: 1.17 };
+export const BRAMOR_CATAPULT = airframeOf('bramor2300').catapult;
 
 /*
  * THE STRIKER'S RAIL, docs/COMBAT-DRONES.md section 7: a 3 m launch rail
@@ -215,59 +216,30 @@ export const AIRFRAMES = [
    * plant's hull rests it, and the fin's top.
    */
   airframeOf('radian2000'),
-  {
-    /*
-     * The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md: a 2.3 m blended
-     * wing body flying wing with a gimballed camera ball in its nose,
-     * simId 8 on the fixed wing plant. It took the flying wing's place:
-     * the 1000 mm wing (simId 2) is still in the module, where its gates
-     * and recorded laps live, but the shell no longer seats it, and a
-     * profile or a link that names 'wing1000' is seated on this aircraft
-     * instead (src/ui/ui.js, RETIRED_AIRFRAMES). The three wing tunes are
-     * this aircraft's now for the same reason.
-     *
-     * It is launched off a catapult rather than thrown: `catapult` is the
-     * rail, BRAMOR_CATAPULT above, and where the aircraft sits on it at
-     * release. It comes home under a parachute, which `chute` says it
-     * carries. Parked, it is drawn on the rail.
-     */
-    id: 'bramor2300',
-    simId: 8,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): the published figure, tests/bramor-thresholds.json b2_stall. */
-    stall: 13,
-    /* Level speed at full throttle, m/s: tests/bramor-thresholds.json b4_top, derived. */
-    topSpeed: 28.48,
-    catapult: BRAMOR_CATAPULT,
-    chute: true,
-    name: 'Bramor C4EYE',
-    short: 'Bramor',
-    blurb: 'A 2.3 m C-Astral Bramor C4EYE on 6S, a survey flying wing with a camera ball in its nose. Catapult it off the rail, fly it long, bring it down under its parachute.',
-    facts: ['6S', '2300 mm', 'Catapult'],
-    sizeMm: 2300,
-    grams: 4500,
-    trackClass: 'wing',
-    cells: 6,
-    ...packStates(),
-    defaultTune: 'wing-stab',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/bramorcraft.js BRAMOR_DIMS: half span,
-     * the belly 65 mm under the CG and the winglets' tops 0.25 m over it,
-     * the contact box's floor and roof in src/native/plant.c. */
-    dims: {
-      arm: 0,
-      propR: 0.1524,
-      hullR: 1.15,
-      vHalfDown: 0.065,
-      vHalfUp: 0.25,
-      bodyLength: 0.96,
-      bodyWidth: 2.3,
-      bodyHeight: 0.315,
-    },
-  },
+  /*
+   * The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md: a 2.3 m blended
+   * wing body flying wing with a gimballed camera ball in its nose,
+   * simId 8 on the fixed wing plant. It took the flying wing's place:
+   * the 1000 mm wing (simId 2) is still in the module, where its gates
+   * and recorded laps live, but the shell no longer seats it, and a
+   * profile or a link that names 'wing1000' is seated on this aircraft
+   * instead (src/ui/ui.js, RETIRED_AIRFRAMES). The three wing tunes are
+   * this aircraft's now for the same reason.
+   *
+   * It is launched off a catapult rather than thrown: `catapult` is the
+   * rail, BRAMOR_CATAPULT above, and where the aircraft sits on it at
+   * release. It comes home under a parachute, which `chute` says it
+   * carries. Parked, it is drawn on the rail.
+   *
+   * The row is its folder's, aircraft/bramor2300/aircraft.js. `stall`:
+   * Clean stall, m/s, sqrt(2W / rho S CLmax): the published figure,
+   * tests/bramor-thresholds.json b2_stall. `topSpeed`: Level speed at full
+   * throttle, m/s: tests/bramor-thresholds.json b4_top, derived. `dims`:
+   * The drawn machine, src/render/bramorcraft.js BRAMOR_DIMS: half span,
+   * the belly 65 mm under the CG and the winglets' tops 0.25 m over it,
+   * the contact box's floor and roof in src/native/plant.c.
+   */
+  airframeOf('bramor2300'),
   {
     /*
      * The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md: 1176 mm, 420 g, simId 5

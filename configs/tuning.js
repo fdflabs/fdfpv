@@ -154,13 +154,7 @@ export const TUNING = {
    * was read off the plant past the linear lift, where its curve now
    * rounds onto CL max. */
   radian2000: AIRCRAFT.TUNING.radian2000,
-  bramor2300: {
-    chord: 0.257, area: 0.591, margin: 0.088,
-    cg: { mm: null, datum: 'tuning.datum.stock', range: null, source: 'C-Astral publishes no CG and no throws; the plant\'s 7 percent static margin is ESTIMATED (docs/BRAMOR-STAGE1.md)' },
-    packKg: 1.30, nose: 0.39, tail: -0.35, elevons: true,
-    throws: { high: [10, 6, 0], low: [7, 4.2, 0], source: `high: the plant's, docs/BRAMOR-STAGE1.md; ${LOW_70}` },
-    flaps: null,
-  },
+  bramor2300: AIRCRAFT.TUNING.bramor2300,
   slowstick1180: {
     chord: 0.2776, area: 0.3264, margin: 0.073,
     cg: { mm: 100, datum: 'tuning.datum.le', range: [95, 105], source: `GWS manual, "95-105mm (3.74"-4.13") from the leading edge of wing at central wing chord"; ${SLOWSTICK_MANUAL}` },
