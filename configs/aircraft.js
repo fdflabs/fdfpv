@@ -1,10 +1,12 @@
 /*
  * aircraft.js: assembles the id-keyed config tables from aircraft folders,
- * aircraft/<id>/aircraft.json, one folder per aircraft (docs/AIRCRAFT-FOLDER.md).
+ * aircraft/<id>/aircraft.js, one folder per aircraft (docs/AIRCRAFT-FOLDER.md).
  *
- * Node only for now: it reads the folders with node:fs. Nothing in the game
- * imports it yet; scripts/aircraft-folder-selftest.js proves its tables
- * equal the hand modules' rows before any module is switched over to it.
+ * The folders are ES modules whose default export is plain JSON, imported
+ * statically so the browser, the servers and the scripts load them alike;
+ * scripts/aircraft-folder-selftest.js holds that FOLDERS names every folder
+ * on disk and that each is data only, and that the assembled rows equal the
+ * hand modules' rows for the aircraft still kept there.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -22,50 +24,51 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import cap1702 from '../aircraft/cap1702/aircraft.js';
+import p51d1450 from '../aircraft/p51d1450/aircraft.js';
+import slick2680 from '../aircraft/slick2680/aircraft.js';
 
-export const AIRCRAFT_DIR = fileURLToPath(new URL('../aircraft/', import.meta.url));
+export const FOLDERS = [cap1702, p51d1450, slick2680];
 
-const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];
+export const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];
 
-/* A folder is a boundary: a missing or extra section, or a folder name that
- * is not its id, fails here rather than as a missing row somewhere later. */
-export function readAircraft(id, dir = AIRCRAFT_DIR) {
-  const folder = JSON.parse(readFileSync(join(dir, id, 'aircraft.json'), 'utf8'));
+/* A folder is a boundary: a missing or extra section, or an airframe id
+ * that is not the folder's, fails here rather than as a missing row
+ * somewhere later. */
+export function checkFolder(folder) {
   const keys = Object.keys(folder);
   const missing = SECTIONS.filter((k) => !keys.includes(k));
   const extra = keys.filter((k) => !SECTIONS.includes(k));
   if (missing.length || extra.length) {
-    throw new Error(`aircraft/${id}: missing [${missing}] extra [${extra}]`);
+    throw new Error(`aircraft/${folder.id}: missing [${missing}] extra [${extra}]`);
   }
-  if (folder.id !== id || folder.airframe.id !== id) {
-    throw new Error(`aircraft/${id}: folder id ${folder.id}, airframe id ${folder.airframe.id}`);
+  if (folder.airframe.id !== folder.id) {
+    throw new Error(`aircraft/${folder.id}: airframe id ${folder.airframe.id}`);
   }
   return folder;
 }
 
-export function aircraftIds(dir = AIRCRAFT_DIR) {
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && existsSync(join(dir, e.name, 'aircraft.json')))
-    .map((e) => e.name)
-    .sort();
+/* A folder states a resting pitch in degrees, as the hand rows write it;
+ * the row carries radians, by the same product the hand rows compute, so
+ * the double is the same. */
+const POSES = new Set(['gear', 'floats']);
+const pose = ({ restHeight, restPitchDeg }) => ({ restHeight, restPitch: restPitchDeg * Math.PI / 180 });
+
+function airframeRow(airframe) {
+  return Object.fromEntries(Object.entries(airframe).map(([k, v]) => [k, POSES.has(k) ? pose(v) : v]));
 }
 
 /* The tables in the shapes their hand modules export them: AIRFRAMES and
  * TUNES are lists of rows, the rest are keyed by airframe id, DRAWN is the
- * ids whose builders draw their kit. Airframe fields a hand module computes
- * (configs/airframes.js packStates(), stockRates(), gear.restPitch) are not
- * in the folders yet. */
+ * ids whose builders draw their kit. */
 export function assemble(folders) {
   const t = {
     AIRFRAMES: [], KITS: {}, DRAWN: [], TUNING: {}, TABLE: {}, POWER: {}, ESTIMATES: {},
     PROPS: {}, ANCHORS: {}, LIVERIES: {}, TUNES: [], PLANE_LEVELS: {}, STRINGS: { en: {}, es: {} },
   };
-  for (const f of folders) {
+  for (const f of folders.map(checkFolder)) {
     const id = f.id;
-    t.AIRFRAMES.push(f.airframe);
+    t.AIRFRAMES.push(airframeRow(f.airframe));
     t.KITS[id] = f.kit.slots;
     if (f.kit.drawn) t.DRAWN.push(id);
     t.TUNING[id] = f.tuning;
@@ -83,6 +86,4 @@ export function assemble(folders) {
   return t;
 }
 
-export function loadAircraft(dir = AIRCRAFT_DIR) {
-  return assemble(aircraftIds(dir).map((id) => readAircraft(id, dir)));
-}
+export const AIRCRAFT = assemble(FOLDERS);

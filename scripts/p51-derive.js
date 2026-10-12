@@ -119,13 +119,11 @@ const expo = 0.30;
 
 /*
  * The wing's section, the NAA/NACA 45-100 laminar flow family, 15.1
- * percent at the root and 11.4 near the tip: CL max 1.05 for the wing at
- * the kit's Reynolds number, 2e5 (12 m/s on 0.244 m), ESTIMATED from the
- * UIUC low speed data's 15 percent NACA 2415 at 2e5, 1.22, times 0.9 for
- * the wing and less for a laminar section's thinner nose. Zero lift 1.3
- * deg under its chord, a 6 series section's design lift of 0.2.
+ * percent at the root and 11.4 near the tip; its CL max and the angle its
+ * lift peaks at are below, with the strips (STALL). Zero lift 1.3 deg
+ * under its chord, a 6 series section's design lift of 0.2.
  */
-const CLmax = 1.05, CD0 = 0.030, e = 0.80, k = 1 / (Math.PI * e * AR);
+const CD0 = 0.030, e = 0.80, k = 1 / (Math.PI * e * AR);
 const cdGear = 0.008;
 const alphaZLwing = -1.3 / DEG;
 /* The wing's incidence, 1 deg at the root falling linearly to minus 58
@@ -274,8 +272,133 @@ const level = (d, cd0 = CD0) => {
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d) > D(mid, cd0)) lo = mid; else hi = mid; }
   return lo;
 };
-const Vs = Math.sqrt(2 * W / (rho * S * CLmax));
-const VsFull = Math.sqrt(2 * W / (rho * S * (CLmax + dclmaxFull)));
+/*
+ * STALL. The wing's CL max and the angle its lift peaks at, at two
+ * Reynolds numbers on the plant's chord S/b, straight between them as the
+ * plant takes them (plant_wing.c stall_re), from measured sections at
+ * the kit's Reynolds numbers. No 45-100 was ever tested there, so two UIUC
+ * sections stand for it either side of its thickness: the NACA 2415 (Selig
+ * et al., Summary of Low-Speed Airfoil Data vol. 2, 1996, fig. 5.52, the
+ * thick section, 15 percent, the one stall-derive already takes for this
+ * wing's stall shape) and the NACA 64A010 (vol. 1, 1995, fig. 4.73, a
+ * thin 6 series section, 10 percent). From LIFT02.TXT and LIFT01.TXT, the
+ * books' own tabulated runs: each run's highest lift on the rising branch,
+ * the angle it is at, and the run's zero lift angle, a straight line
+ * through its points from -3 to 6 deg. The 64A010 at 1e5 holds 0.80 to
+ * 0.82 from 9.7 to 12.7 deg; its highest point, 12.66, is taken.
+ */
+const AIR_MU = 1.789e-5; /* plant_wing.c's */
+const SEC_2415 = [
+  { re: 60700, clmax: 1.149, peak: 13.70, a0: -0.97 },
+  { re: 101100, clmax: 1.188, peak: 13.65, a0: -2.13 },
+  { re: 201700, clmax: 1.226, peak: 14.79, a0: -1.92 },
+  { re: 302500, clmax: 1.303, peak: 16.68, a0: -1.96 },
+];
+const SEC_64A010 = [
+  { re: 80800, clmax: 0.830, peak: 10.70, a0: 0.08 },
+  { re: 101000, clmax: 0.816, peak: 12.66, a0: 0.18 },
+  { re: 204000, clmax: 0.857, peak: 10.77, a0: 0.08 },
+  { re: 305400, clmax: 0.868, peak: 10.78, a0: 0.05 },
+];
+/* A run's figure at a Reynolds number, straight between the runs, held
+ * past the ends. */
+const secAt = (tab, re, key) => {
+  if (re <= tab[0].re) return tab[0][key];
+  for (let i = 1; i < tab.length; i += 1) {
+    if (re <= tab[i].re) return tab[i - 1][key] + (tab[i][key] - tab[i - 1][key]) * (re - tab[i - 1].re) / (tab[i].re - tab[i - 1].re);
+  }
+  return tab[tab.length - 1][key];
+};
+const peakZL = (tab, re) => secAt(tab, re, 'peak') - secAt(tab, re, 'a0');
+
+/* The strips' chords over the mean chord and the section's CL max at
+ * each, stall-derive's convention, and the strips' own stall order. */
+const strips = [0.125, 0.375, 0.625, 0.875];
+const stripC = strips.map((e2) => chordAt(e2 * b / 2) / c);
+/* Each strip's section CL max over the root strip's: its Reynolds number
+ * against the root's, 0.12 of CL max per halving of it (the UIUC low
+ * speed data between 1e5 and 3e5), and its thickness, 15.1 percent at the
+ * root to 11.4 at the tip, 0.022 of CL max per percent (Abbott and von
+ * Doenhoff, the 63 and 64 series between 12 and 15 percent). */
+const tAt = (eta2) => 15.1 - (15.1 - 11.4) * eta2;
+const stripK = strips.map((e2, i) => 1 - 0.12 * Math.log2(stripC[0] / stripC[i]) - 0.022 * (tAt(strips[0]) - tAt(e2)));
+/* How each strip stalls, by its thickness: a 15 percent section at 2e5
+ * the NACA 2415's UIUC curve (held 4.2 deg past its stall, falling to
+ * 0.76), a 12 percent one McCullough and Gault's 63-012 (NACA TN 2502,
+ * fig. 3: a sharp peak, no rounding, and its lift down to 0.57 of it at
+ * once), linear between and clamped at the ends. */
+const stripTop = strips.map((e2) => 4.2 * Math.min(1, Math.max(0, (tAt(e2) - 12) / 3)));
+const stripFall = strips.map((e2) => 0.57 + (0.76 - 0.57) * Math.min(1, Math.max(0, (tAt(e2) - 12) / 3)));
+const schrenk = strips.map((e2, i) => 0.5 * (1 + 4 / Math.PI * Math.sqrt(1 - e2 * e2) / stripC[i]));
+const stallOrder = strips.map((e2, i) => ({ eta: e2, rel: stripK[i] / schrenk[i] }));
+const relMin = Math.min(...stallOrder.map((o) => o.rel));
+/*
+ * The wing's CL max on the strips' own terms: the strip nearest its limit
+ * (k / r the least, stallOrder) stalls when the wing's CL is its section's
+ * CL max over its share r, which is kmin of the root strip's section CL
+ * max, so the wing's is kmin times the root strip's. The root strip is
+ * the 2415 at its chord's Reynolds number, thinner by its thickness at
+ * strip_k's 0.022 a percent. This replaces 0.9 of the 2415 (Raymer sec.
+ * 12.4) less an unsourced allowance for a laminar nose: the 64A010 holds
+ * as much as the 4 digit NACA 0009 at 1e5 (0.816 and 0.836, vol. 1), so
+ * at these Reynolds numbers a 6 series nose costs nothing measurable.
+ * The 45-100's camber is less than the 2415's (zero lift 1.3 deg under
+ * its chord against the 2415's measured 1.9 to 2.1), which is not
+ * corrected: ESTIMATED.
+ *
+ * The angle the lift peaks at, the plant's alpha (the zero lift line of
+ * wing and tail): the critical strip's section at its own thickness and
+ * Reynolds number, straight by thickness between the 64A010 and the 2415
+ * as stripTop takes its stall shape, its peak from its zero lift; plus
+ * the induced angle at the wing's CL max, CL / (pi A e), the house method
+ * (scripts/cap580-derive.js STALL_PEAK); plus the strip's incidence under
+ * the wing's mean (the washout); less the wing's zero lift line over the
+ * aircraft's, alphaZL - (alphaZLwing - incidence). The section's lift
+ * leaves its straight line well short of the peak, 5.4 deg of the 2415's
+ * at 2e5 between its line's crossing of CL max and its peak, which the
+ * plant's 3 deg stall_blend held at 3: this is what moves.
+ */
+const STALL_RE = [1.0e5, 2.0e5];
+const iCrit = stallOrder.findIndex((o) => o.rel === relMin);
+const tCrit = tAt(strips[iCrit]);
+const stallClmaxAt = (reMac) => (secAt(SEC_2415, reMac * stripC[0], 'clmax') - 0.022 * (15 - tAt(strips[0]))) * relMin;
+const stallPeakAt = (reMac) => {
+  const re = reMac * stripC[iCrit];
+  const fr = (tCrit - 10) / 5;
+  const sec = peakZL(SEC_64A010, re) + fr * (peakZL(SEC_2415, re) - peakZL(SEC_64A010, re));
+  const twist = incidence - (1 / DEG - washout * strips[iCrit]);
+  return sec / DEG + stallClmaxAt(reMac) / (Math.PI * AR * e) + twist - (alphaZL - (alphaZLwing - incidence));
+};
+const STALL_CLMAX = STALL_RE.map(stallClmaxAt);
+const STALL_PEAK = STALL_RE.map(stallPeakAt);
+const reOf = (V) => rho * V * c / AIR_MU;
+const clmaxAt = (V) => {
+  const re = reOf(V);
+  const x = re <= STALL_RE[0] ? 0 : (re >= STALL_RE[1] ? 1 : (re - STALL_RE[0]) / (STALL_RE[1] - STALL_RE[0]));
+  return STALL_CLMAX[0] + x * (STALL_CLMAX[1] - STALL_CLMAX[0]);
+};
+/* The stall's speed on the CL max at its own Reynolds number, clean and
+ * with full flap; the table's cl_max is the clean one's. */
+const stallAt = (dcl) => {
+  let V = 10;
+  for (let i = 0; i < 50; i += 1) V = Math.sqrt(2 * W / (rho * S * (clmaxAt(V) + dcl)));
+  return V;
+};
+const Vs = stallAt(0);
+const VsFull = stallAt(dclmaxFull);
+const CLmax = clmaxAt(Vs);
+/* What p51:gates P2 measures: the speed where alpha reaches the stall
+ * angle, CL max over the wing's own slope (with the flaps their lift's
+ * share off it), where the plant's CL is the wing's CL max and the tail's
+ * share of the slope at that angle, (CLa - a_w) sin a cos a. */
+const gateStall = (dclmax, dcl) => {
+  let V = 10, a = 0;
+  for (let i = 0; i < 50; i += 1) {
+    a = (clmaxAt(V) + dclmax - dcl) / aw;
+    V = Math.sqrt(2 * W / (rho * S * (clmaxAt(V) + dclmax + (CLa - aw) * Math.sin(a) * Math.cos(a))));
+  }
+  return { V, alphaStall: a, re: reOf(V) };
+};
 const CLopt = Math.sqrt(CD0 / k), LDmax = CLopt / (2 * CD0), Vmd = Math.sqrt(2 * W / (rho * S * CLopt));
 const ld = (V, cd0 = CD0) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return CL / (cd0 + k * CL * CL); };
 let best = { vz: -1, V: 0 };
@@ -336,27 +459,6 @@ const rollYaw = (V) => {
 };
 const gyroKick = (qRate) => jProp * Oml * qRate;
 
-/* The strips' chords over the mean chord and the section's CL max at
- * each, stall-derive's convention, and the strips' own stall order. */
-const strips = [0.125, 0.375, 0.625, 0.875];
-const stripC = strips.map((e2) => chordAt(e2 * b / 2) / c);
-/* Each strip's section CL max over the root strip's: its Reynolds number
- * against the root's, 0.12 of CL max per halving of it (the UIUC low
- * speed data between 1e5 and 3e5), and its thickness, 15.1 percent at the
- * root to 11.4 at the tip, 0.022 of CL max per percent (Abbott and von
- * Doenhoff, the 63 and 64 series between 12 and 15 percent). */
-const tAt = (eta2) => 15.1 - (15.1 - 11.4) * eta2;
-const stripK = strips.map((e2, i) => 1 - 0.12 * Math.log2(stripC[0] / stripC[i]) - 0.022 * (tAt(strips[0]) - tAt(e2)));
-/* How each strip stalls, by its thickness: a 15 percent section at 2e5
- * the NACA 2415's UIUC curve (held 4.2 deg past its stall, falling to
- * 0.76), a 12 percent one McCullough and Gault's 63-012 (NACA TN 2502,
- * fig. 3: a sharp peak, no rounding, and its lift down to 0.57 of it at
- * once), linear between and clamped at the ends. */
-const stripTop = strips.map((e2) => 4.2 * Math.min(1, Math.max(0, (tAt(e2) - 12) / 3)));
-const stripFall = strips.map((e2) => 0.57 + (0.76 - 0.57) * Math.min(1, Math.max(0, (tAt(e2) - 12) / 3)));
-const schrenk = strips.map((e2, i) => 0.5 * (1 + 4 / Math.PI * Math.sqrt(1 - e2 * e2) / stripC[i]));
-const stallOrder = strips.map((e2, i) => ({ eta: e2, rel: stripK[i] / schrenk[i] }));
-const relMin = Math.min(...stallOrder.map((o) => o.rel));
 const alphaS = CLmax / CLa;
 
 /* The longitudinal model, the plant's equations, trimmed and linearised:
@@ -502,6 +604,11 @@ const rows = [
   ['level at 100, 75, 50 percent, gear up', `${f(level(1), 2)} ${f(level(0.75), 2)} ${f(level(0.5), 2)}`],
   ['level at 100 percent, gear down', f(level(1, CD0 + cdGear), 2)],
   ['stall clean, full flap (formula)', `${f(Vs, 2)} ${f(VsFull, 2)}`],
+  ['stall_re; stall_clmax; stall_peak deg', `${STALL_RE.join(', ')}; ${STALL_CLMAX.map((x) => f(x, 4)).join(', ')}; ${STALL_PEAK.map((x) => f(x * DEG, 2)).join(', ')}`],
+  ['   stall_peak rad; cl_max at the clean stall\'s Re', `${STALL_PEAK.map((x) => f(x, 4)).join(', ')}; ${f(CLmax, 4)} at ${f(reOf(Vs), 0)}`],
+  ['   the critical strip: eta, thickness; peak over the line\'s crossing deg', `${strips[iCrit]} ${f(tCrit, 2)}; ${STALL_RE.map((r, i) => f((STALL_PEAK[i] - STALL_CLMAX[i] / aw) * DEG, 2)).join(', ')}`],
+  ['P2 gate, clean: V, alphaStall, Re', J(gateStall(0, 0), 5)],
+  ['P2 gate, full flap: V, alphaStall, Re', J(gateStall(dclmaxFull, dclFull), 5)],
   ['approach 1.3 Vs full flap, clean', `${f(1.3 * VsFull, 2)} ${f(1.3 * Vs, 2)}`],
   ['glide: best L/D at, at 14, gear down at 14', `${f(LDmax, 2)} ${f(Vmd, 2)}; ${f(ld(14), 2)}; ${f(ld(14, CD0 + cdGear), 2)}`],
   ['energy: decel at top speed throttle closed m/s2, time const s', `${f(D(level(1)) / m, 3)} ${f(level(1) * m / (2 * D(level(1))), 2)}`],

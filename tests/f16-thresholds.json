@@ -164,9 +164,9 @@
     "timber": "1d6ee5feb714ea01",
     "timberf": "b68f11f7ea7a2b63",
     "kadet": "857c414cde8a01e2",
-    "p51": "7219c30ebb48a05c",
-    "p51Air": "4646a1ba51f005db",
-    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was."
+    "p51": "51cbbdb7aeeb7ebc",
+    "p51Air": "beb4fa574780f908",
+    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was. Re-pinned 2026-10-12 (w36-p51-clmax): the P-51's two recorded flights (p51 was 7219c30ebb48a05c, p51-air 4646a1ba51f005db) moved with its stall taken from measured sections, stall_re and stall_round on its own table (docs/P51-STAGE1.md); this aircraft's own recordings are unmoved."
   },
   "s18_cross_host": {
     "source": "the F-16's recorded take off and flight, state trace hash, Node against headless Chrome"
