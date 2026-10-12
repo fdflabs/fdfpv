@@ -27,7 +27,7 @@ import { readFileSync } from 'node:fs';
 import { loadSim } from './simmod.js';
 import { must, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME, hangSticks, personLoop } from './wingpilot.js';
 import { clamp, quant, eyes, PERSON } from './personpilot.js';
-import { FigureDetector } from '../../src/game/figuredetect.js';
+import { FigureDetector, ROLL_STOP } from '../../src/game/figuredetect.js';
 import { SURFACES, tierBlock, tierThrowsDeg, tierPoints, pointsInertia } from '../../configs/surfaces.js';
 import { addonParams } from '../../configs/hangar-parts.js';
 import { SEAT_GATES, wingSeat } from '../../scripts/lib/propcurve.js';
@@ -249,19 +249,71 @@ const DOWN = [0, 0, -1];
  * to 0.5 rad/s of roll on, over the judge's stop, and the figure is lost:
  * the hold has no aileron, a gap of the hold, not of the lead. */
 const POINT_LEAD = 0.35;
+/*
+ * The point's stop (FAI/CIVA Sporting Code Section 6 Part 1, B.9.26.2 and
+ * B.9.26.3: the rotation stops at regular intervals, each pause clearly
+ * recognizable and of identical duration; B.9.25.3: "The wings must stop
+ * precisely after the desired degree of rotation"). Let go at the mark,
+ * the roll's own damping slows it; once the person sees it stopped (the
+ * judge's own stop, figuredetect.js ROLL_STOP, 0.35 rad/s) they hold the
+ * point's bank on the ailerons, a loop at PERSON's pace on the roll they
+ * count: before, the hold had no aileron, the roll ran on through a stop
+ * (the knife edge's top rudder keeps 0.4 to 0.5 rad/s on) and the judge
+ * saw 4 or 5 of an 8-point roll's 7 pauses. POINT_STOP is each
+ * aircraft's crossover and plant gain from scripts/figures-margins.js
+ * pointStop, the bandwidth criterion's 45 deg and 6 dB kept at every
+ * point's bank, at the level pass; proportional, no trim's integral: a
+ * point is held under half a second, where a trim cornered at a quarter
+ * of the crossover settles nothing and costs 14 deg of phase. Pinned
+ * here and checked there.
+ *
+ * POINT_HOLD_MS, every stop's length, identical (B.9.26.3); no source
+ * gives one. FITTED from the judge's recognition: a pause is seen from
+ * 100 ms stopped (figuredetect.js PAUSE_MIN_MS) and the roll is one roll
+ * while a pause lasts under 800 ms (ROLL_BRIDGE_MS). Swept 2026-10-12
+ * over 200 to 700 ms on the 2- and 8-point rolls on all three and
+ * figures-plant-check.js's 4-point roll: 400, 450 and 500 name the 2-
+ * and 8-point rolls on all three (the 8-point 3.5 / 0.5 / 2, 4 / 0.5 /
+ * 3, 4 / 0.5 / 2.5); at 450 the Extra's clean 4-point grades 6, no
+ * better than its sagging one, and its gate fails; 400, the points'
+ * hold before, keeps all three. 300 and 350 lose the Extra's 8-point,
+ * 200 its 2-point, 550 and over the Slick's 8-point.
+ */
+export const POINT_STOP = {
+  [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.341 },
+  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.048 },
+  [SLICK_AIRFRAME]: { wc: 2.6, gain: 5.191 },
+};
+export const POINT_HOLD_MS = 400;
+/* The point's stop as the person flies it: e is the roll still to go to
+ * the point (rad, in the roll's own sense) on the roll the person counts,
+ * the judge's own measure (figuredetect.js marks each stop on the roll's
+ * running total, not the bank: on the bank seen, the 8-point roll's stops
+ * after the half came out 10 to 40 deg short on the judge's count); call
+ * every look (EVERY) with the memory of this point and the phase's clock.
+ * Returns the aileron, in the roll's own sense. */
+export function pointStop(mem, airframe, seenP, e, t) {
+  if (Math.abs(seenP) < ROLL_STOP) mem.engaged = true;
+  if (mem.ail === undefined || t % PERSON.everyMs === 0) {
+    const { wc, gain } = POINT_STOP[airframe];
+    mem.ail = mem.engaged ? quant(clamp((wc / gain) * e)) : 0;
+  }
+  return mem.ail;
+}
 const points = (n, stick = 0.5) => ({
   name: `${n} points`,
   step: (d, m) => {
     m.q = m.q ?? 0;
-    m.hold = m.hold ?? 0;
     m.turned = (m.turned ?? 0) + Math.sign(stick) * d.p * H;
-    if (m.hold > 0) {
-      m.hold -= EVERY;
-      return [[0, d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0, Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, m.flight.seat.level], false];
+    if (m.stop) {
+      m.stop.held += EVERY;
+      const ail = Math.sign(stick) * pointStop(m.stop, m.flight.airframe, d.p, m.q * 2 * PI / n - m.turned, m.t);
+      if (m.stop.held >= POINT_HOLD_MS) m.stop = null;
+      return [[ail, d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0, Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, m.flight.seat.level], false];
     }
     if (m.turned > (m.q + 1) * 2 * PI / n - Math.abs(d.p) * POINT_LEAD) {
       m.q += 1;
-      m.hold = 400;
+      if (m.q < n) m.stop = { held: 0 };
     }
     return [[stick, 0.05, 0, m.flight.seat.level], m.q >= n];
   },
@@ -678,23 +730,15 @@ export const PROGRAMS = {
    * 0.2 s the person has not seen: its points fell anywhere (117 to 408
    * deg). At 0.25 an eighth takes 0.3 s and the points sit 3 to 21 deg
    * short of their marks. On the combined plant (w36-physics,
-   * 2026-10-12) the Extra names it at 0.21, 0.22, 0.24, 0.26 and 0.27 (1
-   * to 3.5) and not at 0.23 or 0.25 (the CAP 0, the Slick 0.5 at 0.25):
-   * a figure on a hair, its stick not moved to land between two misses.
-   * Flown instead to its judging rule ("the aircraft stops rotation ...
-   * at regular intervals. The rate of the roll, when not in pause, must
-   * be constant throughout"; "The pauses will be of identical duration.
-   * Each pause ... must be clearly recognizable", FAI/CIVA Sporting Code
-   * Section 6 Part 1, B.9.26.2 and B.9.26.3), the slow roll's 1.7 rad/s
-   * held on rateRoll's law between 45 deg stops let go at POINT_LEAD,
-   * each stop held 400 ms: named on none of the three (2026-10-12). The
-   * detector sees 4 or 5 pauses, not 7: with no aileron in the hold the
-   * roll runs on through a stop (as the 4-point roll's knife edge stops
-   * do under the top rudder), so the stops are not recognizable. Here, at
-   * 0.25, the Extra's roll is seen with 6 pauses; the CAP's and the
-   * Slick's (0 and 0.5) lose 4 to 4.5 points to the path off its line and
-   * 2.5 to 3.5 to the roll's total, the points' angles 1.5 to 2.
-   * The hold's stop, not the stick, is what is missing. */
+   * 2026-10-12), with no aileron in the hold, the roll ran on through
+   * the stops and the judge saw 4 to 6 of the 7 pauses (named on the
+   * Extra only at some sticks, 0.21 to 0.27, not at 0.25). With the
+   * point's stop (pointStop, POINT_STOP) every one of the 7 is seen on
+   * all three and it is named 3.5 / 0.5 / 2: the points within 1 to 1.5
+   * of their marks, the rate between them steady (0 to 1 point), the
+   * path off its line (3 to 4.5) and the roll's total (2 to 3) the rest.
+   * The stick is the program's 0.25, not re-fitted: B.9.26.2's constant
+   * rate between the stops is what it is judged on. */
   eight_point_roll: [L(), points(8, 0.25), L()],
   barrel_roll: [L(), roll(0.35, 2 * PI, 1, 0.3, false), L()],
   outside_loop: [L(), pull(-0.55, 2 * PI), L()],

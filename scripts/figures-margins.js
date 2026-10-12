@@ -39,6 +39,15 @@
  * not taken; the kr at a speed is the least of the lines'. Like the
  * elevator's, the trim's integral (LINE_KI) is not in the loop measured.
  *
+ * The point's stop (figureprograms.js POINT_STOP): the bank held on the
+ * ailerons at a point, a proportional loop at PERSON's pace (a look
+ * every 100 ms, its 0.25 s of delay and hold), on each aircraft at its
+ * level pass (SEATED's level throttle, launched at 22 m/s) and at every
+ * point's bank, 0 to 315 deg in 45s, each held there by an attitude hold
+ * with no delay. The design is the highest crossover on crossoverFor's
+ * grid (0.8 to 4 rad/s, by 0.2) whose loop, on the highest plant gain
+ * of the eight there, keeps 45 deg and 6 dB at all eight.
+ *
  * The knife edge (figureprograms.js KNIFE): three loops of personLoop
  * (wingpilot.js) at PERSON's own pace, a look every 100 ms, the bank on
  * the ailerons, the nose's elevation on the rudder and the heading on the
@@ -85,7 +94,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, attitude, responseAt, crossoverFor, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
-import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE } from '../tests/lib/figureprograms.js';
+import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -328,6 +337,55 @@ function yawPoint(sim, airframe, pitchDeg, V) {
   return null;
 }
 
+/* Each aircraft's point stop (see the head): its design and the worst
+ * margins over the eight banks. */
+const POINT_BANKS = [0, 45, 90, 135, 180, 225, 270, 315];
+export async function pointStopDesign(airframe) {
+  const sim = await fresh();
+  const thr = SEATED[airframe].level;
+  const bankOfS = (s) => Math.atan2(2 * (s[9] * s[10] + s[7] * s[8]), 1 - 2 * (s[8] * s[8] + s[9] * s[9]));
+  const wrap = (x) => Math.atan2(Math.sin(x), Math.cos(x));
+  const grids = [];
+  for (const deg of POINT_BANKS) {
+    const phi = deg * Math.PI / 180;
+    let e = 0;
+    const start = (s) => {
+      setUp(s, airframe);
+      must(s.e.sim_set_pose(0, 0, 300, Math.cos(phi / 2), Math.sin(phi / 2), 0, 0), 'sim_set_pose');
+      must(s.e.sim_wing_launch(22), 'sim_wing_launch');
+      e = 0.05;
+      return [0, 0, 0, thr];
+    };
+    const hold = (s) => {
+      e = Math.max(-0.5, Math.min(0.6, e - 0.0005 * s[6]));
+      const el = e - 0.05 * s[6];
+      const [, p, y] = hangSticks(s, { target: [Math.cos(el), 0, Math.sin(el)], rollStick: 0, kp: 4, kr: 0.3 });
+      return [clip(-0.8 * wrap(bankOfS(s) - phi) - 0.05 * s[11]), p, y, thr];
+    };
+    const g = [];
+    for (let i = 2; i <= 60; i += 1) g.push({ w: i / 5, ...responseAt(sim, start, hold, i / 5, 0, (s) => wrap(bankOfS(s) - phi)) });
+    for (let i = 1; i < g.length; i += 1) g[i].phase = g[i - 1].phase + Math.atan2(Math.sin(g[i].phase - g[i - 1].phase), Math.cos(g[i].phase - g[i - 1].phase));
+    grids.push(g);
+  }
+  const tau = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
+  const margins = (g, k) => {
+    const L = g.map((x) => ({ mag: k * x.mag, phase: x.phase - x.w * tau }));
+    const cross = L.find((l, i) => l.mag < 1 && i > 0 && L[i - 1].mag >= 1) ?? L.find((l) => l.mag < 1);
+    const turn = L.find((l) => l.phase <= -Math.PI);
+    return { pmDeg: cross ? (Math.PI + cross.phase) * 180 / Math.PI : null, gmDb: turn ? -DB(turn.mag) : null };
+  };
+  let best = null;
+  for (let i = 4; i <= 20; i += 1) {
+    const wc = i / 5;
+    const gain = Math.max(...grids.map((g) => g.find((x) => Math.abs(x.w - wc) < 1e-9).mag * wc));
+    const ms = grids.map((g) => margins(g, wc / gain));
+    const pm = Math.min(...ms.map((m) => m.pmDeg ?? Infinity));
+    const gm = Math.min(...ms.map((m) => m.gmDb ?? Infinity));
+    if (pm >= 45 && gm >= 6) best = { wc, gain: Number(gain.toFixed(3)), pmDeg: Number(pm.toFixed(1)), gmDb: Number(gm.toFixed(1)) };
+  }
+  return { airframe, ...best };
+}
+
 /* Each aircraft's rudder gain by speed: [V, kr] for every speed some line
  * settles at, kr the least the lines allow at 6 dB, and what each line
  * measured. */
@@ -487,6 +545,10 @@ export async function measureMargins() {
   for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME]]) {
     levelThrottles[name] = { airframe, ...await levelThrottle(airframe) };
   }
+  const pointStops = {};
+  for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
+    pointStops[name] = await pointStopDesign(airframe);
+  }
   const lineRudders = {};
   for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
     lineRudders[name] = await lineRudder(airframe);
@@ -494,6 +556,7 @@ export async function measureMargins() {
   return {
     levelThrottle: levelThrottles,
     lineRudder: lineRudders,
+    pointStop: pointStops,
     knife: await knifeLoops(),
     knifeLoop: { path: await knifeLoopPath() },
     criterion: 'bandwidth criterion: 45 deg phase margin, 6 dB gain margin (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, NASA NCC2-338, 1986)',
@@ -530,6 +593,10 @@ export function marginFailures(m) {
     || Math.abs(m.knife.trim.speed - KNIFE.trim.speed) > 0.05) {
     out.push(`figureprograms.js KNIFE.trim ${JSON.stringify(KNIFE.trim)} is not where the knife edge settles ${JSON.stringify(m.knife.trim)}`);
   }
+  for (const [name, d] of Object.entries(m.pointStop)) {
+    const pin = POINT_STOP[d.airframe];
+    if (!(pin && pin.wc === d.wc && same(pin.gain, d.gain))) out.push(`figureprograms.js POINT_STOP for the ${name} ${JSON.stringify(pin)} is not the plant's crossover ${d.wc} rad/s, gain ${d.gain}`);
+  }
   for (const [name, r] of Object.entries(m.lineRudder)) {
     if (JSON.stringify(LINE_YAW_KR[r.airframe]) !== JSON.stringify(r.kr)) out.push(`figureprograms.js LINE_YAW_KR for the ${name} ${JSON.stringify(LINE_YAW_KR[r.airframe])} is not the plant's ${JSON.stringify(r.kr)}`);
   }
@@ -547,6 +614,7 @@ if (main) {
   for (const l of m.lineElevator.level) {
     console.log(`  level at throttle ${l.throttle} (${l.speed} m/s): kr ${l.kr} GM ${l.gmDb} dB at ${l.w180} rad/s, PM ${l.pmDeg} deg at ${l.wc} rad/s, plant phase within ${l.plantPhaseDeg} deg to 16 rad/s; the fixed kr 0.2 ${l.fixedKr02GmDb === null ? 'over unity to 16 rad/s, unstable' : `${l.fixedKr02GmDb} dB`}`);
   }
+  for (const [name, d] of Object.entries(m.pointStop)) console.log(`point stop, the ${name}: ${d.wc} rad/s on a plant gain of ${d.gain}, PM ${d.pmDeg} deg, GM ${d.gmDb} dB at the worst of eight banks`);
   for (const [name, r] of Object.entries(m.lineRudder)) console.log(`line rudder, the ${name}: kr ${r.kr.map(([v, k]) => `${k} at ${v}`).join(', ')} m/s`);
   for (const [name, l] of Object.entries(m.levelThrottle)) console.log(`level at 22 m/s, the ${name}: throttle ${l.throttle} (settles at ${l.speed} m/s)`);
   for (const name of ['bank', 'elevation', 'heading']) {

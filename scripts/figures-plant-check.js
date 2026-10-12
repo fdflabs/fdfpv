@@ -55,7 +55,7 @@ import { loadSim } from '../tests/lib/simmod.js';
 import { must, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { clamp, quant, eyes } from '../tests/lib/personpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
-import { SEATED } from '../tests/lib/figureprograms.js';
+import { SEATED, POINT_HOLD_MS, pointStop } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -183,6 +183,7 @@ async function flight({ sag = false } = {}) {
   let loopI = 0;
   let quarter = 0;
   let holdMs = 0;
+  let stop = null;
   let line0 = null;
   let back = false;
   const upTrim = { pitch: 0, yaw: 0 };
@@ -259,7 +260,10 @@ async function flight({ sag = false } = {}) {
            * prop's gyroscope pitches it off the line as the rudder yaws
            * the nose up, docs/FLIGHTMODEL.md). */
           const line = !sag && Math.abs(d.lz) > 0.5 ? quant(1.2 * (line0[0] * d.up[0] + line0[1] * d.up[1])) : 0;
-          st = [0, clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, levelThr];
+          /* And the point's stop on the ailerons (figureprograms.js
+           * pointStop): without it the knife edge's top rudder rolled the
+           * wings on through the point at 0.4 to 0.5 rad/s. */
+          st = [sag ? 0 : pointStop(stop, plane.sim, d.p, quarter * Math.PI / 2 - turned, phaseMs), clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, levelThr];
         } else {
           st = [0.5, 0.05, 0, levelThr];
           /* Let go by what the roll still carries, the aileron roll's
@@ -269,7 +273,8 @@ async function flight({ sag = false } = {}) {
            * Slick's at 54, 124 and 206. */
           if (turned > (quarter + 1) * Math.PI / 2 - d.p * 0.35) {
             quarter += 1;
-            holdMs = 400;
+            holdMs = POINT_HOLD_MS;
+            stop = {};
             if (quarter === 4) { phase += 1; phaseMs = 0; marks.push(ms); }
           }
         }
@@ -293,9 +298,10 @@ for (const id of want.filter((id) => id !== 'four_point_roll')) {
 }
 /* The judge's sag deduction, apart from how well this person flies: on
  * the Extra the same 4-point roll is flown twice, clean (the line held on
- * the elevator through each point, as a person does, eb3ba037f) and as the
- * person flew it before, the elevator left alone so the nose falls off the
- * line over the four holds. Both must be named, the clean one graded 4 to
+ * the elevator through each point, as a person does, eb3ba037f, and each
+ * point stopped on the ailerons, figureprograms.js pointStop) and as the
+ * person flew it before, the elevator and the ailerons left alone so the
+ * nose falls off the line over the four holds. Both must be named, the clean one graded 4 to
  * 10 and the sagging one under it (a point per 15 deg off the line). On the
  * other aircraft the clean program's points still sag, and are graded
  * under the aileron roll. */
