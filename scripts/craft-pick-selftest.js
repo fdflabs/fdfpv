@@ -130,14 +130,16 @@ console.log('5. the Floats toggle');
   seatAirframe(s, 'timber1500');
   s.power = { timber1500: { option: '3s', pack: '3s2200' } };
   s.parts = { timber1500: { prop: '11x7e', addons: [], damage: null } };
-  s.tuning = { timber1500: { rate: 'low' } };
+  /* High: the Timber's stock is the manual's first flight low rate
+   * (configs/tuning.js THE STOCK RATE), and a setup at stock is no setup. */
+  s.tuning = { timber1500: { rate: 'high' } };
   const tune = tunesFor('timber1500').map((t) => t.id).find((t) => t !== airframeById('timber1500').defaultTune);
   s.tune = tune;
   seatAirframe(s, floatVersionOf('timber1500'));
   check('the toggle follows the seat', s.airframe === 'timber1500f' && s.floats.timber1500 === true && s.floats.cub1400 === true, JSON.stringify(s.floats));
   check('the tune, the power, the prop and the bench setup go across to the floats',
     s.tune === tune && JSON.stringify(s.power.timber1500f) === JSON.stringify(s.power.timber1500)
-      && s.parts.timber1500f && s.parts.timber1500f.prop === '11x7e' && s.tuning.timber1500f && s.tuning.timber1500f.rate === 'low',
+      && s.parts.timber1500f && s.parts.timber1500f.prop === '11x7e' && s.tuning.timber1500f && s.tuning.timber1500f.rate === 'high',
     `${s.tune} ${JSON.stringify(s.power.timber1500f)} ${JSON.stringify(s.parts.timber1500f)} ${JSON.stringify(s.tuning.timber1500f)}`);
   /* A broken part is an index into the table it broke on: the Timber's 19
    * parts are not the float Timber's 18, so its damage stays behind. */
