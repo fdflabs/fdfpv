@@ -44,8 +44,19 @@
  *       same span, so it grows as cf^2 times the throw. The stock servo
  *       is taken as just covering the stock surface (ESTIMATED: a kit's
  *       servo has some margin, so this sizes up a little early), and the
- *       lightest catalogue servo covering the tier's is fitted.
- *   dKg the servos' mass over the stock ones'.
+ *       lightest catalogue servo covering the tier's is fitted. Where none
+ *       does, the surface takes more servos, as a builder ganging them
+ *       does (the Slick's ailerons already run two each): one more a side
+ *       for a pair, one more for a single, the moment shared among them.
+ *   n   the servos on the surface, both sides together.
+ *   dKg the servos' mass over the stock ones', never below zero: a
+ *       lighter catalogue servo that covers the moment is not fitted for
+ *       its few grams, as an add-on only adds.
+ *   flaperon  where the flaps fly as ailerons too (configs/surfaces.js
+ *       flaperons, the Night Timber): the flap panels keep their hinge,
+ *       so their share of k is K' alone, and their servos are sized for
+ *       the tier's throw on the same panel; its servo, n and dKg, which
+ *       the row's dKg includes.
  *
  * A surface whose Extreme tier would add less than OFFER_MIN of control
  * power over stock (the aircraft already flies surfaces near the
@@ -113,14 +124,31 @@ export function fitSurfDrag() {
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 const r6 = (x) => Math.round(x * 1e6) / 1e6;
 
-function servoFor(kgcm, stockModel) {
+/* The lightest catalogue servo from the stock class up that covers each
+ * servo's share of `kgcm`, the surface's moment in units of one stock
+ * servo's; past the catalogue's biggest, one more servo per place (two
+ * for a pair either side of the centreline). */
+function servoFor(kgcm, stockModel, n0, places) {
   const from = SERVO_ORDER.indexOf(stockModel);
-  for (const id of SERVO_ORDER.slice(from)) {
-    if (SERVOS[id].kgcm >= kgcm) {
-      return id;
+  for (let n = n0; n <= 4 * n0; n += places) {
+    for (const id of SERVO_ORDER.slice(from)) {
+      if (SERVOS[id].kgcm >= kgcm * n0 / n) {
+        return { id, n };
+      }
     }
   }
   return null;
+}
+
+/* A group of `n` servos whose moment grows `hinge` times the stock one's:
+ * the servo fitted and the mass it adds. */
+function servoGroup(id, key, tier, model, hinge, n0, places) {
+  const stock = SERVOS[model];
+  const fit = servoFor(stock.kgcm * hinge, model, n0, places);
+  if (!fit) {
+    throw new Error(`${id} ${key} ${tier}: no catalogue servo covers ${(stock.kgcm * hinge).toFixed(1)} kg-cm on up to ${4 * n0} servos`);
+  }
+  return { servo: fit.id, n: fit.n, dKg: r6(Math.max(0, fit.n * SERVOS[fit.id].kg - n0 * stock.kg)) };
 }
 
 export function deriveSurface(id, key) {
@@ -129,31 +157,39 @@ export function deriveSurface(id, key) {
   const th0 = s.throwDeg[key];
   const cfTop = Math.max(cf0, REFERENCE.cf[key]);
   const thTop = Math.max(th0, REFERENCE.throwDeg[key]);
-  const stock = SERVOS[s.servo.model];
-  const n = s.servo[key].n;
+  const n0 = s.servo[key].n;
+  const places = s.servo[key].at[1] === 0 ? 1 : 2;
+  const fl = key === 'a' ? s.flaperons : null;
+  const share = fl ? fl.share : 0;
   return TIERS.map((tier, i) => {
     const f = TIER_STEP[i];
     const cf = cf0 + f * (cfTop - cf0);
     const throwDeg = th0 + f * (thTop - th0);
-    const k = (tauOf(cf) * kPrime(throwDeg)) / (tauOf(cf0) * kPrime(th0));
+    /* The panels whose hinge moves take tau(cf), the flaperons keep the
+     * stock tau; with no flaperons, share 0, this is tau(cf) exactly. */
+    const tau = (1 - share) * tauOf(cf) + share * tauOf(cf0);
+    const k = (tau * kPrime(throwDeg)) / (tauOf(cf0) * kPrime(th0));
     const cd = (cf - cf0) * s.flapped[key];
     const hinge = (cf / cf0) ** 2 * (throwDeg / th0);
-    const servo = servoFor(stock.kgcm * hinge, s.servo.model);
-    if (!servo) {
-      throw new Error(`${id} ${key} ${tier}: no catalogue servo covers ${(stock.kgcm * hinge).toFixed(1)} kg-cm`);
-    }
-    return {
+    const main = servoGroup(id, key, tier, s.servo.model, hinge, n0, places);
+    const row = {
       tier,
       cf: r4(cf),
       throwDeg: r4(throwDeg),
       k: r6(k),
       cd: r6(cd),
       hinge: r4(hinge),
-      servo,
-      dKg: r6(n * (SERVOS[servo].kg - stock.kg)),
+      servo: main.servo,
+      n: main.n,
+      dKg: main.dKg,
       /* The control power at full stick over the stock's: k times the throw. */
       power: r4(k * throwDeg / th0),
     };
+    if (fl) {
+      row.flaperon = servoGroup(id, 'flaperon', tier, s.servo.model, throwDeg / th0, fl.n, 2);
+      row.dKg = r6(main.dKg + row.flaperon.dKg);
+    }
+    return row;
   });
 }
 
@@ -198,13 +234,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const table = deriveAll();
   for (const [id, surf] of Object.entries(table)) {
     console.log(`\n${id}`);
-    console.log('surface tier      cf     throw    k       power   cd        servo   dKg');
+    console.log('surface tier      cf     throw    k       power   cd        servos     dKg');
     for (const key of SURFACE_KEYS) {
       if (!surf.offered[key]) {
         console.log(`${key}       not offered: Extreme adds ${((surf[key][TIERS.length - 1].power - 1) * 100).toFixed(1)} percent, under ${((OFFER_MIN - 1) * 100).toFixed(0)}`);
       }
       for (const row of surf[key]) {
-        console.log(`${key}       ${row.tier.padEnd(8)}  ${row.cf.toFixed(3)}  ${row.throwDeg.toFixed(2).padStart(6)}  ${row.k.toFixed(4)}  ${row.power.toFixed(3)}  ${row.cd.toFixed(5)}  ${row.servo.padEnd(7)} ${(row.dKg * 1000).toFixed(1)} g`);
+        const fl = row.flaperon ? `, flaperons ${row.flaperon.n} ${row.flaperon.servo}` : '';
+        console.log(`${key}       ${row.tier.padEnd(8)}  ${row.cf.toFixed(3)}  ${row.throwDeg.toFixed(2).padStart(6)}  ${row.k.toFixed(4)}  ${row.power.toFixed(3)}  ${row.cd.toFixed(5)}  ${`${row.n} ${row.servo}`.padEnd(10)} ${(row.dKg * 1000).toFixed(1)} g${fl}`);
       }
     }
   }
