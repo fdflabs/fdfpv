@@ -180,25 +180,25 @@ the Extra's width for the same reason (docs/EXTRA-STAGE1.md). **17 of
 17**, measured 2026-10-11 on the batch with the aero lane's plant
 (w34-3d-wingslope a83fc2a4: the finite wing's broadside force, Viterna's
 B2, the tail's own lift at its own angle), the propulsion stack (the
-prop's torque from the drive) and the 3 deg of right thrust:
+prop's torque from the drive), the 3 deg of right thrust, and the propulsion lane's APC curves with the DA-120 floating on its map up to DA's 6,900 rpm (w35-prop-ctj 91061d8cb):
 
 | Gate | What | Derived | Band | Measured |
 | --- | --- | --- | --- | --- |
-| S1 | level at 75 percent of the stick (0.94 of the rpm) | 39.94 m/s | 35.15 to 44.74 | 39.87 |
+| S1 | level at 75 percent of the stick (the engine at DA's 6,900 rpm cap) | 41.70 m/s | 36.70 to 46.71 | 41.65 |
 | S2 | stall, power off | 13.88 m/s | 13.05 to 15.82 | 13.91 |
 | S3 | glide ratio at 1.4 Vs, 19.4 m/s | 14.06 | 12.38 to 15.75 | 13.49 |
-| S4 | top speed | 42.53 m/s | 38.28 to 46.79 | 42.47 |
+| S4 | top speed (6,900 rpm cap) | 41.70 m/s | 37.53 to 45.87 | 41.66 |
 | S5 | roll, full aileron, pb/2V | 0.370 | 0.277 to 0.462 | 0.366 (550 deg/s at 35.2 m/s) |
-| S6 | hover stick, height held | 0.3930 (an rpm share of 0.6348 on the curve) | 0.373 to 0.413 | 0.3925, within 0.00 m |
-| S7 | vertical climb, full throttle | 26.31 m/s | 23.68 to 28.94 | 25.94 |
+| S6 | hover stick, height held | 0.3736 (an rpm share of 0.6348 on the engine's map) | 0.355 to 0.392 | 0.3742, within 0.10 m |
+| S7 | vertical climb, full throttle | 30.03 m/s | 27.03 to 33.03 | 29.75 |
 | S8 | torque roll, ailerons let go | 136 deg/s left | 102 to 170 | 152 left |
-| S9 | full right aileron, hanging | 139 deg/s right | 84 to 195 | 151 right |
+| S9 | full right aileron, hanging | 139 deg/s right | 84 to 195 | 144 right |
 | S10 | full elevator at zero airspeed | 12.06 rad/s² | 9.05 to 15.08; at idle under 0.147 of it | 10.5; at idle 1.04 |
 | S10b | full rudder at zero airspeed, over the same kick with it centred | 8.00 rad/s² | 6 to 10; the same | 9.1 (8.1 less -1.1 centred); at idle 0.90 |
-| S11 | harrier at 40 deg of alpha | 11.34 m/s at a stick of 0.346, elevator 74 percent | 9.07 to 13.60, 0.294 to 0.398, short of full | 12.65 at 0.350, stick 0.91, within 0.37 m |
-| S12 | knife edge at 30 m/s, rolled right | 25.5 deg of sideslip at 0.565, rudder 85 percent | 19.2 to 31.9, 0.480 to 0.649, short of full | 24.9 at 0.564, stick -0.91 |
+| S11 | harrier at 40 deg of alpha | 11.34 m/s at a stick of 0.315, elevator 74 percent | 9.07 to 13.60, 0.268 to 0.363, short of full | 12.67 at 0.321, stick 0.92 |
+| S12 | knife edge at 30 m/s, rolled right | 25.5 deg of sideslip at 0.440, rudder 85 percent | 19.2 to 31.9, 0.374 to 0.506, short of full | 24.9 at 0.438, stick -0.91 |
 | S13 | standing on its wheels, engine idling | 9.38 deg, 0.4082 m, 10.9 percent on the tail | half a degree, 5 mm, 3.5 points | 9.36, 0.4088, 10.9 (mains 53.18 and 53.99 N, the right thrust's yaw) |
-| S14 | take off roll | 8.61 m | 5.17 to 13.78 | 12.37, 0.36 m off the line |
+| S14 | take off roll | 8.01 m | 4.80 to 12.81 | 11.72, 0.22 m off the line |
 | S15 | every other aircraft unmoved | the hashes extra:gates E15 pins | identical | identical |
 | S16 | Node and Chrome agree | | identical | identical |
 
@@ -224,6 +224,17 @@ Where this derivation goes further than the Extra's, and why:
   thrust line points 3 deg down from the axis, so it meets the flight path
   at the sideslip less 3 deg, and its yaw pitches the nose down with the
   weathercock's moment, against the rudder (24.8 to 25.5 deg).
+- **The engine on its map and APC's curves** (w35-prop-ctj). In the air
+  the DA-120 floats: its map's torque at the stick and the speed it
+  turns, against the 28 x 10's torque curve and its tips' Mach load, read
+  through propcurve.js `wingEngine`, the same solve stab:glide now flies.
+  At 75 percent and at full it reaches DA's 6,900 rpm cap, so S1 and S4
+  are one speed; idling in the 26 m/s glide it runs 3,407 rpm. The hover
+  stick is the one that holds the hover's rpm standing on the map, 0.3736
+  (the throttle curve gave 0.393). S6's pilot halves its integral: on the
+  map the stick moves the hover's rpm 1.24 times as much and the rotor
+  answers 1.18 times slower (slick:derive prints both), and the full
+  integral hunted the height in a growing 3 s swing (0.50 m).
 - **S10b: the rudder's own.** Hanging, the aircraft yaws with the rudder
   centred too (-1.1 rad/s² at the hover: the swirl on the fin's left turn
   less the right thrust's 0.7), so the gate takes the full rudder's kick
@@ -265,10 +276,20 @@ way. The checks now hold the drop to the right and a touch of rudder
 moving it the way it yaws. Short of the stall nothing picks a side in
 Manual and Acro; AS3X, whose heading hold answers the precession's yaw on
 the rudder, rolls right 5 deg there (level within 3 deg with `j_prop`
-zeroed). Its level flight is flown at the stabiliser's trim stick, 0.306
-(a three quarter stick is 94 percent of the engine and climbs), and its
+zeroed). Its level flight is flown at the stabiliser's trim stick, 0.155 (the
+engine floats on its map, so a small stick holds 22 m/s), and its
 taxi on the idle's 12 N, turning over 26 deg in 4 s: the Extra's 45 on
 its 0.98 m wheelbase at this one's 1.69.
+
+**OPEN, red: the Manual quarter pull reads 4.3 deg (limit 3) on the
+prop curves.** The engine now idles at 3,407 rpm in the 26 m/s glide, not
+1,300: 2.6 times the gyroscope, and as the pull slows it the rotor's spin
+down comes back through the mount. Scratch builds keyed on this table:
+without the gyroscope's moment 2.1 deg, without the mount's torque 2.4,
+with both 4.3; both roll it right. The check's premise (short of the
+stall nothing picks a side) held at a 1,300 rpm idle and no longer does;
+whether the check becomes "drops right, by the gyroscope's and the
+spin down's own" or the pilot holds the wings is the lead's to decide.
 
 **The power off pulls fly trimmed in Manual.** With the propulsion
 stack's prop torque from the drive, the engine held at its 1,300 rpm idle
@@ -281,14 +302,28 @@ it out: the first second holds the wings on the wings' level law
 (wingpilot.js loopHold's), and the pull flies on that aileron, frozen
 (stick -0.007, a check of its own). Then the quarter pull holds 2.2 deg,
 the half pull drops the right wing 27 deg, the rudder touches 22 and 32.
-Acro and AS3X fly centred: their sticks are rates. With the right thrust
+Acro and AS3X fly centred: their sticks are rates.
+
+**What AS3X does through the idle stall.** The half stick pull is a zoom:
+the nose passes 60 deg and the speed goes at the top, where the wing
+drops. On the merged plant with the aero lane's lateral model (w34-3d-
+batchlat 39f64822), scratch builds split the cause: with `j_prop` zeroed
+and the driven idle's torque clipped every mode stayed level to 0.0 deg;
+with either one alone the drop was right in every mode. Acro holds the
+rate until the ailerons run out of air, then drops 12 deg in the last half
+second; AS3X also holds the attitude (Spektrum's heading hold,
+`as3x_kh`) and its drop has only begun by the end, 2.4 deg. The check
+holds what the physics gives: right, the gyroscope's and the torque's
+side, and less than Acro's. The 9 deg it read before, and the 3 deg it
+was held over, came from AS3X fighting a strip aileron reversal in the
+stall that NACA TR 419 says does not happen. With the right thrust
 the take off with the sticks centred still swings left, by 1.1 deg at
 liftoff where it was 12.8: the thrust line takes out most of the swirl's
 and the P factor's turn, which is what EF builds it in for.
 
 Stabilised and AS3X use the Extra's loops; `stab_pitch_down` 2.47 deg and
-`stab_trim_throttle` 0.306 from `npm run stab:glide` (which now reads an
-engine's `throttle_rpm`), `as3x_k`, `as3x_kh` and `as3x_rate` from `npm
+`stab_trim_throttle` 0.155 from `npm run stab:glide` (which now floats a
+mapped engine, propcurve.js `wingEngine`), `as3x_k`, `as3x_kh` and `as3x_rate` from `npm
 run as3x:derive` (its dive check flown at sim_wing_launch's 60 m/s cap,
 under this aircraft's 1.45 times 42 m/s), `as3x_frame` 11 ms for the
 sheet's digital servos; `stab:chop` holds its power off glide.

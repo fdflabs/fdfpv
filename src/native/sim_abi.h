@@ -657,6 +657,10 @@ int sim_wing_slip(double *out);
  * stalls first. Additive, version unchanged. */
 int sim_wing_strips(double *out);
 int sim_wing_set_gyro(int on);
+/* sim_wing_set_mount(on): a measurement switch, the drive's torque on the
+ * motor's mount off (the prop's torque and its spin up or down); every
+ * reset puts it back on. */
+int sim_wing_set_mount(int on);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an

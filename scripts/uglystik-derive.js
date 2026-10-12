@@ -30,6 +30,7 @@
  */
 
 import { wash } from './lib/wash.js';
+import { wingProp } from './lib/propcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
 
 const SLIP = deriveWash('FW_UGLYSTIK1567');
@@ -265,13 +266,17 @@ const Cndr = -VV * av * tauR, CYdr = av * (Sv / S) * tauR, Cldr = CYdr * zv / b;
 const ClrPerCL = 0.25, CnpPerCL = -0.125, CndaPerCL = -0.06;
 
 /* The engine, the Kadet's law: the throttle runs the rpm from the idle to
- * full, linearly, and the thrust falls with airspeed to nothing at the
- * pitch speed times that. */
+ * full, linearly, and the thrust falls with airspeed along APC's curve
+ * for the 12 x 6, to nothing at 1.36 times the pitch speed times that. */
 const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 const dutyOf = (stick) => idle + (1 - idle) * stick;
-const T = (V, stick) => { const d = dutyOf(stick); return Math.max(0, Ts * d * d * (1 - V / (Vp * d))); };
+/* The thrust on APC's curve the plant flies (scripts/lib/propcurve.js),
+ * whose pitch speed is this one: the prop's geometric pitch at full rpm. */
+const prop = wingProp('FW_UGLYSTIK1567');
+if (Math.abs(prop.pitchSpeed - Vp) > 0.01) throw new Error(`uglystik-derive: the plant's pitch speed ${prop.pitchSpeed} is not V_p ${Vp}`);
+const T = (V, stick) => Math.max(0, prop.thrust(Ts, V, dutyOf(stick)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 4, hi = 40;

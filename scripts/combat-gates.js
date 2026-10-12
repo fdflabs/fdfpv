@@ -764,7 +764,11 @@ for (const af of strikers) {
         touch ? `down at ${touch.v.toFixed(1)} m/s, ${(-touch.vz).toFixed(2)} m/s sink` : 'never down', end ? `at rest ${end.z.toFixed(3)} m up` : '');
     }
   }
-  report(`${af.id} the jet is the fast one`, tops.jet > 2 * tops.prop, `${tops.jet.toFixed(1)} against ${tops.prop.toFixed(1)} m/s`);
+  /* The jet is the faster of the two. Twice is asked of it against the
+   * raid's own speed above (runs the raid's Strikers down); twice the prop's
+   * top speed stood for that only while the prop flew the raid's 26.6 m/s,
+   * on the straight line thrust law (docs/COMBAT-DRONES.md). */
+  report(`${af.id} the jet is the fast one`, tops.jet > tops.prop, `${tops.jet.toFixed(1)} against ${tops.prop.toFixed(1)} m/s`);
   /* The war's mapping holds for it as for the quads, and the propulsion
    * is the pilot's, kept whatever the warhead. */
   const cases = [

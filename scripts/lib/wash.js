@@ -86,7 +86,7 @@ export function gain(dp, share, V) {
 /*
  * A table as the plant has it, read from src/native/plant_wing.c: its
  * numeric fields, scalars and { } arrays, WING_PI expressions evaluated;
- * and the plant's SWIRL_KEEP, CP_OF_CT and CP_OF_CT_TAIL. For a
+ * and the plant's SWIRL_KEEP. For a
  * derivation that puts the prop's torque and swirl into what it predicts.
  */
 const PLANT_WING = new URL('../../src/native/plant_wing.c', import.meta.url);
@@ -101,23 +101,20 @@ export function planeTable(name) {
     else if (/^[-+*/().\s\dWING_PIe]+$/.test(e)) out[m[1]] = num(e);
   }
   const keep = Number(/#define SWIRL_KEEP ([\d.]+)/.exec(src)[1]);
-  const cp = /static const double CP_OF_CT\[CP_OF_CT_N\] = \{([^}]*)\}/.exec(src)[1].split(',').map((x) => x.trim()).filter(Boolean).map(Number);
-  const tail = Number(/#define CP_OF_CT_TAIL ([\d.]+)/.exec(src)[1]);
-  return { fw: new Proxy(out, { get: (o, k) => (k in o ? o[k] : 0) }), keep, cp, tail };
+  return { fw: new Proxy(out, { get: (o, k) => (k in o ? o[k] : 0) }), keep };
 }
 
-/* Cp over its static value at the thrust law's ct, plant_wing.c cp_of_ct. */
-export function cpOfCt(t, ct) {
-  if (!(ct < 1)) return t.cp[t.cp.length - 1];
-  if (ct < 0) return t.cp[0] + t.tail * ct;
-  const x = ct * (t.cp.length - 1), i = Math.floor(x);
-  return t.cp[i] + (x - i) * (t.cp[i + 1] - t.cp[i]);
+/* A curve at mu, plant_wing.c prop_curve: straight between the tenths and
+ * on along the last two. */
+function curveAt(c, mu) {
+  const x = Math.max(0, mu) * 10, i = Math.min(c.length - 2, Math.floor(x));
+  return c[i] + (x - i) * (c[i + 1] - c[i]);
 }
 
 /*
  * The prop's steady moments on the airframe at a driven speed n (of full)
  * and forward speed u, wings level, no sideslip and no rates, as
- * plant_wing.c takes them: the prop's torque Q = Q_f n^2 cp_of_ct against
+ * plant_wing.c takes them: the prop's torque Q = Q_f n^2 torque_curve against
  * the airframe; the wing root's (1 - SWIRL_KEEP) of it back; the swirl at
  * the fin, a sideways speed SWIRL_KEEP Q (up - dn) / (mdot rw^2), through
  * the fin's slip terms. Aero convention: L roll right, N nose right, Y to
@@ -125,9 +122,9 @@ export function cpOfCt(t, ct) {
  */
 export function propMoments(t, n, u) {
   const fw = t.fw;
-  const ct = 1 - Math.max(0, u) / (fw.pitch_speed * n);
-  const T = Math.max(0, fw.thrust_static * n * n * ct);
-  const Q = fw.torque_arm * fw.thrust_static * n * n * cpOfCt(t, ct);
+  const mu = Math.max(0, u) / (fw.pitch_speed * n);
+  const T = Math.max(0, fw.thrust_static * n * n * curveAt(fw.axial_curve, mu));
+  const Q = fw.torque_arm * fw.thrust_static * n * n * curveAt(fw.torque_curve, mu);
   if (!(fw.slip_r > 0) || !(T > 0)) return { L: -Q, N: 0, Y: 0, Q, T };
   const w = wash(fw, T, u);
   const up = Math.max(0, u);

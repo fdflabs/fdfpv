@@ -1257,14 +1257,13 @@ momentum into the airframe.
   airframe's; a braked one gives it back. A motor that is not driving
   (zero duty on a free wheeling ESC, folded, cut, flat, dead) puts nothing
   on the airframe.
-- The prop's torque is APC's at the step's thrust share, cp_of_ct (the
-  CP_OF_CT table the pack's current already used, APC's 11 x 7E): at half
-  the thrust 0.90 of the static torque, at the pitch speed 0.19, where the
-  thrust law gave 0.5 and 0. Past APC's last row it goes on straight
-  (CP_OF_CT_TAIL 1.676, the 11 x 7E's last three rows; `npm run cp:tail`
-  prints it and seven more props, 1.38 to 1.83), to zero at a thrust share
-  of -0.112, and below it the air drives the prop. FITTED: the straight
-  line past the data's end.
+- The prop's torque is APC's at the step's advance ratio: the table's
+  torque_curve since "The prop's curves" below (it was cp_of_ct, one
+  11 x 7E table through the thrust share). Past APC's last row it goes on
+  straight with the thrust at the last three rows' slope (the cp:tail
+  method; `npm run cp:tail` prints it for eight props, 1.38 to 1.83), to
+  zero past the zero thrust, and beyond it the air drives the prop.
+  FITTED: the straight line past the data's end.
 - The swirl is the prop's torque, the angular momentum the wash carries.
 - The gyroscope takes the rotor's speed, so a cut motor's coasting prop
   still precesses.
@@ -1798,15 +1797,22 @@ What a 3D harrier is flown with, from measured data, on every aircraft:
   keep curves (ail_keep, fin_keep, at 0, 4, 10, 15, 20, 25 and 35 deg past
   its stall); without them the defaults above apply. A biplane's ailerons
   judge the stall on the wing they sit on.
-- **OPEN GAP, the F-16 and the Tiger Moth**, known too strong past the
-  stall: both keep their ailerons whole and no sideslip split (the old
-  plant's arithmetic) until each has its own data. The F-16 needs NASA
-  TP-1538's Cn beta and Cl beta to 90 deg and its LEX and vortex lift:
-  with TP-1538 fig. 13's measured ailerons and differential tail alone
-  (0.78, 0.64, 0.54, 0.36 at 4 to 20 deg past) S9 holds 21.6 deg of bank
-  against 15. The Tiger Moth needs a biplane tail in its cell's wake (NACA
-  biplane spin and tail data): with TR 419's ailerons T8b's half throttle
-  stall rolls off at 29 deg/s against 20.
+- **OPEN GAP, the F-16**, known too strong past the stall: it keeps its
+  ailerons whole and no sideslip split (the old plant's arithmetic). NASA
+  TP-1538's full lateral set, turned into the plant's stability axes as
+  ratios to the 20 deg values, departs S9 (bank 73): its Cl beta ratio
+  multiplies the plant's attached Cl beta, already 1.5 times TP-1538's at
+  20 deg. Needs: the attached Cl beta matched to TP-1538 first, and the
+  Freewing's measured inertias; the set is kept as
+  ~/Desktop/fdfpv-loop/research/f16-hi-lat.patch.
+- **The Tiger Moth** (ESTIMATE, ~/Desktop/fdfpv-loop/research/TIGERMOTH-HIGH-ALPHA.md):
+  its sideslip split from tigermoth-derive; the fin kept past the stall
+  from the NY-1's spinning balance (NACA TR 456) and the two wings' wake
+  geometry {1.0, 0.84, 0.74, 0.60, 0.31, 0.17, 0.10}; the bottom wing's
+  ailerons on TR 419's curve shifted 2.5 deg; and the bottom wing
+  stalling 2.5 deg later than potential flow puts it (bip_dstall), from
+  NACA TN 310's 5 to 6 deg against bip_r's 3. T8b is judged on the 1938
+  text's wing drop and recovery, not a held wing.
 - **The CAP 580 and the Slick 580** (their own branches) match the Extra's
   measured layout, a stabiliser on the fuselage at the thrust line with
   the rudder over it and running under the fuselage (CAP580-STAGE1.md,
@@ -1829,3 +1835,112 @@ share (about 16 N on the Night Timber) far exceeds the drag at 3 m/s
 Still open, a BIG FAILURE: the Night Timber's harrier (harrier-probe.js)
 rocks about twice the video's (bank sd 26 to 37 deg with the mix off)
 and the elevator flaps mix does not calm it as the video's does.
+
+## The engine at a closed throttle (BLOCKED on the Slick's gates)
+
+The Slick lane found the plant held the DA-120 at its 1,300 rpm idle in a
+26 m/s glide while the air drove the prop: 1.05 N m back through the
+mount, a roll to the right of 1.3 deg/s. A real two stroke at a closed
+throttle speeds up until its friction and pumping hold the prop.
+
+**The engine's map** (FixedWingParams.engine_q, `npm run da120:derive`):
+HFE's part throttle dyno (DA120 EFI data sheet fig. 3, 20 to 100 percent
+throttle, 2,000 to 8,000 rpm) scaled by 0.931 to Falcon's measured full
+throttle, as rows of torque against speed. HFE ran nothing at the idle
+stop; that row holds the prop's load at DA's 1,300 rpm and falls with the
+speed as the 20 percent row's least squares slope, 0.484 N m a 1,000 rpm
+(FITTED: the nearest measured throttle), through zero at 2,010 rpm: past
+it the closed throttle's friction and pumping outgrow what the idle burns
+and the engine brakes. Past each part throttle row's last point HFE's
+engine "could not produce torque" (its words); the row falls to nothing a
+column on, then at the closed throttle's slope (FITTED).
+
+**The rotor floats.** Where a table has the map its engine drives the
+rotor by it at the speed it turns, against the air's own torque on the
+prop (torque_curve, APC's), not the static load the glow method holds every
+rotor to. A big prop's tips near the speed of sound add their own load,
+from APC's 22x8 rows (Cp 0.0182 to 0.0313 from tip Mach 0.52 to 0.95,
+CP_MACH), taken over the measured full point's. Every other table is
+unchanged to the bit (extra:gates E15, nighttimber N15).
+
+**Measured on the Slick:** standing still the speeds are the throttle
+curve's (1,300, 3,557, 5,163, 6,089, 6,550 rpm at the stick's 0, 0.3, 0.5,
+0.7, 1). In the 26 m/s idle glide the engine runs up to 2,885 rpm, where
+its braking, 0.42 N m, holds the prop against the air: the mount gives
+back 0.42 N m, where it gave 1.05.
+
+**The ceiling.** The same physics unloads the engine at full throttle in
+fast flight. On HFE's map alone, which runs on to 8,000 rpm, the prop ran
+to 8,394 rpm (static 6,550) and the Slick flew 54.5 m/s. That is not the
+floating balance going wrong: APC's own 22x8 tables, read at the 28 x 10's
+tip speed, put the balance at 8,436 rpm and 52.5 m/s (the 22x8, pitch over
+diameter 0.364, pulls to an advance ratio of 0.55, 1.5 times its pitch
+over diameter, not to its geometric pitch). Desert Aircraft publishes the
+DA-120's range as 1,300 to 6,900 rpm (desertaircraft.com), so the map
+stops there (FixedWingParams.engine_rpm_max): past it the engine gives
+only its closed throttle torque. A real engine can over-rev with its prop
+unloaded in flight; no in-flight rpm for a DA-120 on a 28 x 10 is
+published (Model Aviation and the control line boards report engines
+running over their static rpm in the air, without a number for this one),
+so the published range is the bound. Level at full throttle the Slick now
+flies 44.76 m/s at 6,895 rpm; APC's tables at 6,900 rpm give 42.40, the
+plant's straight line thrust law (zero thrust at J 0.60 where APC's is
+0.55) the rest.
+
+**Why this is blocked.** S4 (top speed, 38.28 to 46.79) and S7 hold. The
+Slick's S1 (level at 75 percent, derived at a held 0.94 of full rpm; the
+floating engine reaches the ceiling there too, 44.74 against 44.74 at
+most), S12 (knife edge throttle 0.442 against 0.48 to 0.649), slick:stab's
+cruise (31.9 against 22.35) and Manual quarter pull power off (3.3 deg
+against 3, the idle prop turning 2,885 rpm, not 1,300, so more
+precession), and stab:chop's glide (1.344 m/s sink at 25.0) were derived
+on the static load and the held idle; they are the Slick lane's to
+re-derive on this map.
+
+## The prop's curves
+
+The plant's thrust fell straight from static to nothing at the pitch
+speed, T = T_s n^2 (1 - u / (V_p n)), and the torque followed one table
+(APC's 11 x 7E) through the thrust's share. APC's performance files say
+otherwise for every prop the fleet flies: the thrust holds up and runs on
+past the geometric pitch, to zero at an advance ratio 1.15 to 1.5 times
+the pitch over diameter (the 22 x 8, 0.55 at a pitch over diameter of
+0.364). The line under-read the thrust at cruise by a third and over-read
+it near zero thrust (the Slick's top speed, "The engine at a closed
+throttle").
+
+**What the plant does now.** Each table carries its prop's thrust and
+shaft torque over their static values, axial_curve and torque_curve, at
+mu = u / (V_p n), mu 0 to 2 by tenths, straight between and on along the
+last two (plant_wing.c prop_curve). V_p, pitch_speed, is the prop's own
+geometric pitch at its full rpm, the axis the quads' axial_curve and the
+hangar's parts already use, so a swapped prop flies the stock prop's shape
+on its own pitch speed. `npm run prop:curves -- wings` prints every
+table's curves from APC's files (fetched, not copied), read at J = mu times
+the file's pitch over diameter, at the APC speed row whose tips run as
+fast as the flown prop's at full rpm; where APC makes no such prop the
+nearest pitch over diameter stands in, and the WINGS list names it (the
+Slick's 28 x 10 is the 22 x 8 at its tips' speed; the Bombshell's Cox 7 x
+3.5 is half APC's 7 x 3 and half its 7 x 4). Past APC's last row, FITTED:
+the thrust goes on at its last three rows' slope, the torque with the
+thrust at theirs. The F-16's fan and the jet keep their sourced straight
+lines, written out as curves.
+
+**Measured.** Full throttle level, the plant's thrust against the curve
+at the speed flown: within 1.5 percent on every table. The CAP's pitch
+speed had been fitted through APC's 18 x 8E top point; on its own curve,
+unfitted, it lands on APC's top speed, 32.21 against 32.18 m/s. Top speeds
+on the electric and glow planes rose 18 to 37 percent (Cub 17.9 to 21.8,
+Skyhunter 23.2 to 28.9, Zagi 28.9 to 35.6 m/s); the Slick, at its 6,900 rpm
+ceiling, fell from 44.75 to 41.66 (APC's balance there, 42.40).
+
+**What moved with it.** Every derivation that predicted the plant's speeds
+reads the plant's curve through scripts/lib/propcurve.js, and every gate
+band derived from them was re-derived in its own proportion. The tables'
+own derived values moved with the derivations: the Stabilised trims
+(stab:glide), the AS3X gains (as3x:derive), the 3/4 throttle trims of
+the Kadet, P-51, Ugly Stik and Tiger Moth (cm_0), and the Bramor's static
+thrust, the thrust that gives C-Astral's 5 m/s climb, 22.6 N on its 12 x
+8E curve (APC's static row at its rpm gives about 25 N; 35 was more than
+the prop makes).
+

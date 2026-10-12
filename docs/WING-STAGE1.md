@@ -44,13 +44,13 @@ inputs, and never wider.
 
 | Check | Derived | Band |
 | --- | --- | --- |
-| W1 level speed at 65 percent throttle | 15.2 m/s | 13.5 to 17.5 |
+| W1 level speed at 65 percent throttle | 18.53 m/s (15.2 on the straight line) | 16.46 to 21.33 |
 | W2 stall speed, level, power off | 7.25 m/s | 6.8 to 8.2 |
 | W3 glide ratio, power off, best glide | 9.76 at 9.0 m/s | 8.5 to 11 |
-| W4 top speed, level, full throttle | 23.8 m/s | 22 to 27 |
+| W4 top speed, level, full throttle | 28.74 m/s (23.8 on the straight line) | 26.57 to 32.60 |
 | W5 roll rate, full elevon at 20 m/s | 250 deg/s | 180 to 300 |
 | W6 turn radius at 60 deg bank | V²/(g tan 60°), 23.5 m at 20 m/s | within 15 percent of the formula at the speed flown |
-| W7 climb rate, full throttle, best | 11.5 m/s at 12.5 m/s | 8 to 13 |
+| W7 climb rate, full throttle, best | 17.92 m/s at 16.2 m/s (11.5 at 12.5 on the straight line) | 12.47 to 20.26 |
 | W8 hand throw at 10 m/s, 60 percent throttle, an eighth of up stick for two seconds | above 1 m and faster than 9 m/s after 3 s | pass or fail |
 | W9 throttle chop from cruise | glides, pitch stays within ±30 deg for 3 s | pass or fail |
 | W10 the five inch unmoved | verify check 2 hash | identical |
@@ -194,7 +194,9 @@ banked wing's bank against its own sideslip roll, which a proportional
 term alone let creep 5 deg in 3 s.
 
 Motor: duty d from the throttle stick, floored at 0.02 so the prop never
-stops on screen, thrust T = T_s d² (1 − V / (V_p d)) clipped at zero, rpm
+stops on screen, thrust T = T_s d² ct(V / (V_p d)) clipped at zero, ct APC's 6 x 4E
+curve (the plant's axial_curve, docs/FLIGHTMODEL.md "The prop's curves";
+until 2026-10-11 the straight line 1 − V / (V_p d)), rpm
 for the renderer and the sound = 0.85 d rpm_no_load.
 
 Integration: semi-implicit Euler at 1 ms as the quad, quaternion
@@ -211,6 +213,10 @@ standing start at 1.5 m; there is no launch stand.
 ```
 rho=1.225 g=9.81 b=1.0 S=0.22 m=0.65 CLmax=0.90 CD0=0.030 e=0.80
 k=1/(pi e AR); Vs=sqrt(2W/(rho S CLmax)); CLopt=sqrt(CD0/k); LDmax=CLopt/(2 CD0)
-T(V,d)=max(0, Ts d^2 (1 - V/(Vp d))); D(V)=q S (CD0 + k CL^2) with CL=W/(q S)
+T(V,d)=max(0, Ts d^2 ct(V/(Vp d))), ct APC's 6 x 4E curve; D(V)=q S (CD0 + k CL^2) with CL=W/(q S)
 level speed at duty d: bisect T(V,d)=D(V); climb=(T-D)V/W; roll p=(Clda δ)/(-Clp)(2V/b)
 ```
+
+`node scripts/wing-derive.js` runs it. W1, W4 and W7 were re-derived on
+2026-10-11 when the plant's thrust moved to the prop's measured curve;
+each band keeps its proportion about the derived figure.

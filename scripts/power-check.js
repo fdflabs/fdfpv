@@ -43,6 +43,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -510,13 +511,16 @@ for (const id of ids) {
     const mass = powerBlock(id, o.id, o.pack)[1];
     /*
      * What the data imply, through the plant's own thrust law at full
-     * throttle, T(V) = Ts (1 - V / Vp): more thrust than stock at the stock
+     * throttle, T(V) = Ts ct(V / Vp), the table's prop curve on each
+     * option's own pitch speed as the plant flies it (propcurve.js): more
+     * thrust than stock at the stock
      * top speed is a higher top speed, and more thrust per kilogram at the
      * climb speed is a better climb (the drag at a speed barely moves with
      * the mass). Within 3 percent the data imply nothing and nothing is
      * asserted, only reported.
      */
-    const thrustAt = (a, v) => a.thrustN * (1 - v / a.pitchSpeedMs);
+    const prop = wingProp(`FW_${id.toUpperCase()}`);
+    const thrustAt = (a, v) => a.thrustN * prop.ct(v / a.pitchSpeedMs);
     const dTop = thrustAt(o, topStock) - thrustAt(stock, topStock);
     const dTopRef = 0.03 * stock.thrustN;
     const perKg = (a, m) => thrustAt(a, t.cruiseMs) / m;

@@ -212,19 +212,21 @@ check: {
     c17 == null ? 'never left the ground' : `heading within ${(c17.worstHeading * DEG).toFixed(1)} deg, ${c17.worstY.toFixed(2)} m off the line`,
     `under ${t18.maxHeadingDeg} deg, under ${t18.maxOffLine} m`);
 
-  /* Taxi: full right rudder at walking pace; the radius from the speed and
-   * the heading rate over the last two of five seconds. */
+  /* Taxi: full right rudder at c19_taxi.duty; the radius from the speed
+   * and the heading rate over the last two of twenty seconds, the turn
+   * settled (cub:derive's steady taxi turn; the plant takes about fifteen
+   * seconds to settle at 30 percent). */
   onStrip(sim);
   for (let ms = 0; ms < 2000; ms += RC_STEP_MS) step(sim, [0, 0, 0, th.c19_taxi.duty]);
   let h0 = null;
   let vSum = 0;
   let n19 = 0;
   let allLoaded = true;
-  for (let ms = 0; ms < 5000; ms += RC_STEP_MS) {
+  for (let ms = 0; ms < 20000; ms += RC_STEP_MS) {
     o = step(sim, [0, 0, 1, th.c19_taxi.duty]);
     allLoaded = allLoaded && o.loads.slice(0, 3).every((f) => f > 0);
-    if (ms === 3000) h0 = heading(o.s);
-    if (ms > 3000) { vSum += speed(o.s); n19 += 1; }
+    if (ms === 18000) h0 = heading(o.s);
+    if (ms > 18000) { vSum += speed(o.s); n19 += 1; }
   }
   let dh = heading(o.s) - h0;
   dh = Math.atan2(Math.sin(dh), Math.cos(dh));
@@ -233,7 +235,13 @@ check: {
 
   /* A landing: from 4 m at 11 m/s, a powered descent holding the nose level,
    * a flare to 6 deg at a metre, throttle closed, and on the wheels full up
-   * stick to hold the tail down through the roll out. */
+   * stick to hold the tail down through the roll out. The round out raises
+   * the nose to the landing attitude and holds it (FAA-H-8083-3C,
+   * Approaches and Landings): the hand keeps pulling until the nose is
+   * there, an integral over a second as the take off pilots' hands
+   * (wingpilot.js herculesTakeoffSticks). Proportional alone it held 1.2
+   * deg of the 6, and in the ground effect's nose down moment (plant_wing.c
+   * GROUND EFFECT) it drooped through level onto the wheels nose low. */
   must(sim.reset(), 'sim_reset');
   cubGroundPrelude(sim, { mu: GROUND_MU, e: GROUND_E });
   must(sim.e.sim_set_pose(0, 0, 4, 1, 0, 0, 0), 'sim_set_pose');
@@ -243,6 +251,7 @@ check: {
   let hullLanding = 0;
   let bounces = 0;
   let wasLoaded = false;
+  let hand = 0;
   o = { s: sim.readState().state, loaded: false };
   for (let ms = 0; ms < 16000; ms += RC_STEP_MS) {
     const { pitch, bank } = attitude(o.s);
@@ -253,7 +262,9 @@ check: {
     } else if (o.s[3] > 1.0) {
       sticks = [roll, Math.max(-1, Math.min(1, 2.5 * (0 - pitch) + 0.25 * o.s[12])), 0, 0.3];
     } else {
-      sticks = [roll, Math.max(-1, Math.min(1, 2.5 * (6 / DEG - pitch) + 0.25 * o.s[12])), 0, 0];
+      const err = 6 / DEG - pitch;
+      hand = Math.max(-1, Math.min(1, hand + 4 * err * RC_STEP_MS / 1000));
+      sticks = [roll, Math.max(-1, Math.min(1, 2.5 * err + 0.25 * o.s[12] + hand)), 0, 0];
     }
     o = step(sim, sticks);
     if (o.loaded && touched === null) touched = { v: speed(o.s), vz: o.s[6], x: o.s[1] };

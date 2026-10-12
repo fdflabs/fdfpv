@@ -232,17 +232,45 @@ const AXES = ['roll', 'pitch', 'yaw'];
  * named part broken (the left panel for 'wing') 300 ms before each stick
  * is held at half one way and then the other for 300 ms. moved[a] is the
  * mean body rate the axis a stick moved, plus minus; surf[a] the surfaces
- * at the end of each of the two holds.
+ * at the end of each of the two holds; speed the airspeed as the holds
+ * begin, the same in each since the sticks are the only difference.
  */
-/* The Cub's cruise duty: the prop at 0.6 of full, as these scenarios were
- * written for, which the electric motor's own law (plant_wing.c
- * prop_spool, n^2 + 5.667 n = 6.667 d) turns at a duty of 0.5642. */
+/* The Cub's cruise duty: the prop at CUB_CRUISE_N of full, as these
+ * scenarios were written for, which the electric motor's own law
+ * (plant_wing.c prop_spool, n^2 + 5.667 n = 6.667 d) turns at a duty of
+ * 0.5642. */
+const CUB_CRUISE_N = 0.6;
 const CUB_CRUISE = 0.5642;
+
+/*
+ * What a control gives gliding against what it gave in the prop's wash,
+ * per axis (roll, pitch, yaw), derived as scripts/lib/wash.js and
+ * docs/FLIGHTMODEL.md (PR 2) take the wash: each surface meets the free
+ * stream's q and, on its share of the wash, the disc's pressure jump dp
+ * (momentum theory, dp = T / A), so its moment goes as q + dp share. T is
+ * APC's curve at the cruise's n and the whole aircraft's airspeed
+ * (scripts/lib/propcurve.js). Over a 300 ms hold the rate is still
+ * rising (the Cub's yaw ends at 1.5 times its mean), so the mean rate goes
+ * with the control's moment, and the ratio is the gliding q over the
+ * powered q + dp share. The wash's damping, which grows only as
+ * 1 + 2 v_i share / V, is left out: it slows the powered aircraft's rate,
+ * so the plant's gliding share sits above this, not below. Node only: it
+ * reads the table from plant_wing.c, and the Chrome run of this file
+ * keeps only the digests (tests/browser/crash-harness.js).
+ */
+async function cubControlRatios(vWhole, vGlide) {
+  const { planeTable, wash, gain } = await import('./wash.js');
+  const { wingProp } = await import('./propcurve.js');
+  const { fw } = planeTable('FW_CUB1400');
+  const w = wash(fw, wingProp('FW_CUB1400').thrust(fw.thrust_static, vWhole, CUB_CRUISE_N), vWhole);
+  return [w.fa, w.fh, w.fv].map((share) => (vGlide * vGlide) / (vWhole * vWhole * gain(w.dp, share, vWhole)));
+}
 
 async function cubStickRates(mk, kind) {
   const moved = [];
   const surf = [];
   const rigs = [];
+  let speed = 0;
   for (let a = 0; a < 3; a += 1) {
     const mean = [];
     surf.push([]);
@@ -255,6 +283,7 @@ async function cubStickRates(mk, kind) {
       r.run(1500, [0, 0, 0, CUB_CRUISE]);
       if (kind) r.sim.e.sim_part_break(r.index(kind, (p) => kind !== 'wing' || p.cg[1] > 0));
       r.run(300, [0, 0, 0, CUB_CRUISE]);
+      speed = speedOf(r.state());
       const stick = [0, 0, 0, CUB_CRUISE];
       stick[a] = 0.5 * sign;
       const acc = [0, 0, 0];
@@ -264,7 +293,7 @@ async function cubStickRates(mk, kind) {
     }
     moved.push(mean[0].map((v, k) => v - mean[1][k]));
   }
-  return { moved, surf, rigs };
+  return { moved, surf, rigs, speed };
 }
 
 /*
@@ -916,13 +945,14 @@ export const CRASH_SCENARIOS = [
       const off = await cubStickRates(mk, 'prop');
       const thrust = off.rigs[0].motors()[0].thrust;
       const out = [{ name: 'the prop gives no thrust', ok: thrust === 0, detail: `${thrust}` }];
+      const ratio = globalThis.process?.versions?.node ? await cubControlRatios(intact.speed, off.speed) : null;
       for (let a = 0; a < 3; a += 1) {
-        const want = intact.moved[a][a];
+        const want = ratio ? intact.moved[a][a] * ratio[a] : NaN;
         const got = off.moved[a][a];
         out.push({
-          name: `the ${AXES[a]} stick moves its rate as it did with the prop on, within 20%`,
+          name: `the ${AXES[a]} stick moves its rate as the wash it lost says, within 20%`,
           ok: Math.sign(got) === Math.sign(want) && Math.abs(got - want) < 0.2 * Math.abs(want),
-          detail: `${want.toFixed(3)} rad/s whole, ${got.toFixed(3)} gliding`,
+          detail: `${intact.moved[a][a].toFixed(3)} rad/s whole at ${intact.speed.toFixed(2)} m/s, ${got.toFixed(3)} gliding at ${off.speed.toFixed(2)}, derived ${want.toFixed(3)} (x ${ratio ? ratio[a].toFixed(3) : '-'})`,
         });
       }
       return out;
@@ -1290,8 +1320,13 @@ export const CRASH_SCENARIOS = [
   {
     /*
      * The same clip with the host the shell now is for a fixed wing: its
-     * hull the parts' own boxes (src/game/airframehull.js), met every
-     * 4 ms, naming the part it met (sim_contact_part) at the point on it.
+     * hull the parts' own boxes (src/game/airframehull.js), swept over
+     * each 4 ms step from the pose and the parts it began with, as the
+     * shell's collider sweeps a frame, naming the part it met
+     * (sim_contact_part) at the point on it. Sampled only at the step's
+     * end it can miss the contact: the plant meets the pole it was told of
+     * with the parts themselves, and a panel that reaches the pole and
+     * breaks inside one step has left the hull by the step's end.
      * On the disc the Slow Stick's contact went to its motor and the
      * Bramor's to its nose, and the Bramor stopped dead (docs/CRASH-STAGE1.md
      * section 3). Now a pole 60 percent of the half span out meets the wing
@@ -1316,50 +1351,53 @@ export const CRASH_SCENARIOS = [
         let firstPart = -1;
         let firstY = 0;
         let keepAt = null;
+        const ps = new Float64Array(r.n * PART_STATE_DOUBLES);
         for (let ms = 0; ms < 1200; ms += 4) {
-          /* The prop at 0.75 of full, as written, on the motor's own law. */
-          r.run(4, [0, 0, 0, 0.7219]);
-          if (first !== null && keepAt === null && Math.round(r.state()[0] * 1000) >= first + 150) {
-            keepAt = speedOf(r.state()) / v0;
-          }
-          const s = r.state();
-          const st = r.sim.readState().state;
-          const ps = new Float64Array(r.n * PART_STATE_DOUBLES);
+          const s0 = r.state();
           r.partsState().forEach((p, i) => {
             ps[i * PART_STATE_DOUBLES] = p.status;
             ps[i * PART_STATE_DOUBLES + 2] = p.pos[0];
             ps[i * PART_STATE_DOUBLES + 3] = p.pos[1];
             ps[i * PART_STATE_DOUBLES + 4] = p.pos[2];
           });
-          hullFromPartsState(hull, ps, PART_STATE_DOUBLES, 0, 2, st);
-          bodyAxes(s[8], s[9], s[10], s[7], ax);
+          hullFromPartsState(hull, ps, PART_STATE_DOUBLES, 0, 2, s0);
+          bodyAxes(s0[8], s0[9], s0[10], s0[7], ax);
+          /* The prop at 0.75 of full, as written, on the motor's own law. */
+          r.run(4, [0, 0, 0, 0.7219]);
+          const s = r.state();
+          if (first !== null && keepAt === null && Math.round(s[0] * 1000) >= first + 150) {
+            keepAt = speedOf(s) / v0;
+          }
+          const d = [s[1] - s0[1], s[2] - s0[2], s[3] - s0[3]];
           let best = null;
           for (let k = 0; k < hull.n; k += 1) {
             if (!hull.live[k]) {
               continue;
             }
-            const t = sweepPartCapsule(hull, k, ax, s[1], s[2], s[3], 0, 0, 0, pole[0], pole[1], 0, pole[0], pole[1], 30, pole[2], got);
-            if (t >= 0 && (!best || got.depth > best.depth)) {
+            const t = sweepPartCapsule(hull, k, ax, s0[1], s0[2], s0[3], d[0], d[1], d[2], pole[0], pole[1], 0, pole[0], pole[1], 30, pole[2], got);
+            if (t >= 0 && (!best || got.t < best.t || (got.t === best.t && got.depth > best.depth))) {
               best = { ...got };
             }
           }
-          if (!best || s[4] * best.nx + s[5] * best.ny + s[6] * best.nz > -0.05) {
+          if (!best || s0[4] * best.nx + s0[5] * best.ny + s0[6] * best.nz > -0.05) {
             continue;
           }
+          /* Where the craft stood when its hull met the pole. */
+          const c = [s0[1] + d[0] * best.t, s0[2] + d[1] * best.t, s0[3] + d[2] * best.t];
           if (first === null) {
-            first = Math.round(s[0] * 1000);
+            first = Math.round((s0[0] + (s[0] - s0[0]) * best.t) * 1000);
             firstPart = best.part;
-            const dx = best.px - s[1];
-            const dy = best.py - s[2];
-            const dz = best.pz - s[3];
+            const dx = best.px - c[0];
+            const dy = best.py - c[1];
+            const dz = best.pz - c[2];
             /* The contact point's body y, level and heading along x. */
-            firstY = 2 * (s[8] * s[9] - s[7] * s[10]) * dx + (1 - 2 * (s[8] * s[8] + s[10] * s[10])) * dy + 2 * (s[9] * s[10] + s[7] * s[8]) * dz;
+            firstY = 2 * (s0[8] * s0[9] - s0[7] * s0[10]) * dx + (1 - 2 * (s0[8] * s0[8] + s0[10] * s0[10])) * dy + 2 * (s0[9] * s0[10] + s0[7] * s0[8]) * dz;
           }
           const sep = best.depth + 0.008;
           r.sim.e.sim_contact_part(best.part);
           r.sim.e.sim_contact_at_mat(best.nx, best.ny, best.nz, SURFACE.wood,
-            s[1] + best.nx * sep, s[2] + best.ny * sep, s[3] + best.nz * sep,
-            0, 0, 0, best.px - s[1], best.py - s[2], best.pz - s[3]);
+            c[0] + best.nx * sep, c[1] + best.ny * sep, c[2] + best.nz * sep,
+            0, 0, 0, best.px - c[0], best.py - c[1], best.pz - c[2]);
           r.prev = r.state();
         }
         const panel = r.parts[firstPart];

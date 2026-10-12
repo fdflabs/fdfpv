@@ -101,7 +101,12 @@ function dynoAt(th, rpm) {
  * the dyno's own there, inside its +/-10 percent. */
 const qDyno = dynoAt(1.0, rpmFull);
 const dynoScale = torqueFull / qDyno;
-const qProp = (rpm) => torqueFull * (rpm / rpmFull) ** 2;
+/* The tips' Mach number lifts a big prop's load (plant_wing.c CP_MACH,
+ * APC's 22x8 rows): the load over the measured full point's own. */
+const CP_MACH = [1.000, 1.011, 1.049, 1.191, 1.532, 1.941];
+const cpMach = (m) => { const x = (m - 0.5) / 0.1; if (!(x > 0)) return 1; if (x >= 5) return CP_MACH[5]; const i = Math.floor(x); return CP_MACH[i] + (x - i) * (CP_MACH[i + 1] - CP_MACH[i]); };
+const tip = (rpm) => Math.PI * D * rpm / 60 / 340;
+const qProp = (rpm) => torqueFull * (rpm / rpmFull) ** 2 * cpMach(tip(rpm)) / cpMach(tip(rpmFull));
 /* Each throttle's steady speed: where the engine's torque meets the prop's. */
 function steadyRpm(th) {
   let lo = 2000, hi = 8000;
@@ -135,6 +140,54 @@ for (let i = 0; i <= 10; i += 1) {
  * percent puts a higher throttle's crossing under a lower one's (80 and
  * 90 percent), the higher takes the lower's. */
 for (let i = 1; i < curve.length; i += 1) curve[i] = Math.max(curve[i], curve[i - 1]);
+
+/*
+ * THE ENGINE'S MAP for the plant (FixedWingParams.engine_q): its torque,
+ * N m, at the stick's idle stop and at 20, 30, ... 100 percent throttle,
+ * across 1,000 to 8,000 rpm in 500s, the dyno's rows scaled as above.
+ * Where HFE ran no point inside a row it is straight between its
+ * neighbours; under 2,000 rpm straight on from its first two (FITTED);
+ * past its last point it falls to nothing a column on, where HFE says the
+ * engine stopped producing torque, and on at the closed throttle's slope. The idle stop is
+ * the row HFE could not run: the torque that holds the prop's static load
+ * at DA's 1,300 rpm, falling with the speed as the 20 percent row's least
+ * squares slope does (FITTED: the nearest measured throttle). A closed
+ * throttle's engine torque falls through zero as the speed rises, its
+ * friction and pumping outgrowing what the idle's air burns, so a prop the
+ * air drives faster is braked by it.
+ */
+const MAP_RPM = Array.from({ length: 15 }, (_, i) => 1000 + 500 * i);
+const lsSlope = (() => {
+  const pts = RPM.map((r, i) => [r, DYNO[0.2][i]]).filter((q) => q[1] != null);
+  const mx = pts.reduce((a, q) => a + q[0], 0) / pts.length, my = pts.reduce((a, q) => a + q[1], 0) / pts.length;
+  return dynoScale * pts.reduce((a, q) => a + (q[0] - mx) * (q[1] - my), 0) / pts.reduce((a, q) => a + (q[0] - mx) ** 2, 0);
+})();
+function rowOf(th) {
+  const row = DYNO[th];
+  const pts = RPM.map((r, i) => [r, row[i]]).filter((q) => q[1] != null);
+  const last = pts[pts.length - 1];
+  const at = (rpm) => {
+    let a = pts[0], b = pts[1];
+    /* Past a row's last point HFE's engine could not hold torque ("low
+     * throttle cut off points were determined by the engines ability to
+     * produce torque at a given speed"): nothing a column on, then the
+     * closed throttle's fall. */
+    if (rpm > last[0] && last[0] < 8000) {
+      return rpm <= last[0] + 500 ? last[1] * (last[0] + 500 - rpm) / 500 : lsSlope / dynoScale * (rpm - last[0] - 500);
+    }
+    if (rpm >= last[0]) { a = pts[pts.length - 2]; b = pts[pts.length - 1]; }
+    else {
+      for (let i = 1; i < pts.length; i += 1) {
+        if (rpm <= pts[i][0]) { a = pts[i - 1]; b = pts[i]; break; }
+      }
+    }
+    return a[1] + (rpm - a[0]) * (b[1] - a[1]) / (b[0] - a[0]);
+  };
+  return MAP_RPM.map((r) => dynoScale * at(r));
+}
+const stopRow = MAP_RPM.map((r) => qProp(rpmIdle) + lsSlope * (r - rpmIdle));
+const MAP = [stopRow, ...[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0].map(rowOf)];
+const stopZero = rpmIdle - qProp(rpmIdle) / lsSlope;
 
 /* The rotor: 0.7 of the blades' rod inertia (the fleet's convention,
  * docs/FLIGHTMODEL.md PR 3) on the three listed 28 x 10 masses' mean,
@@ -196,3 +249,7 @@ console.log(`  .flow_full = ${f(flowFull * 1e6, 4)}e-6, /* BSFC 575 g/kWh at ${f
 console.log(`  .flow_idle = ${f(idle)} * (${f(flowFull * 1e6, 4)}e-6),`);
 console.log('  .lean_frac = 0.05, .lean_gain = 0.05, /* the Bombshell\'s lean run, ESTIMATED */');
 console.log(`  .j_prop = ${f(jProp, 5)}, /* the 28 x 10's blades and the crank, ESTIMATED, npm run da120:derive */`);
+console.log(`\nthe idle stop's torque: ${f(qProp(rpmIdle), 3)} N m at 1,300 rpm, falling ${f(-lsSlope * 1000, 3)} N m a 1,000 rpm (the 20 percent row's), zero at ${f(stopZero, 0)} rpm`);
+console.log('  .engine_q = {');
+MAP.forEach((row, i) => console.log(`    { ${row.map((x) => f(x, 3)).join(', ')} }, /* ${i === 0 ? 'the idle stop' : `${(i + 1) * 10} percent`} */`));
+console.log('  }, /* N m at 1,000 to 8,000 rpm in 500s, npm run da120:derive */');

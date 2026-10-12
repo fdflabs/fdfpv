@@ -22,8 +22,9 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingLift } from './lib/liftcurve.js';
-import { planeTable, propMoments } from './lib/wash.js';
+import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
+import { electricN, wingProp } from './lib/propcurve.js';
+import { planeTable, propMoments, wash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -104,7 +105,11 @@ const ClrPerCL = 0.25, CnpPerCL = -0.125;
 const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+/* Thrust on the prop's APC curve as the plant flies it (plant_wing.c
+ * prop_curve, scripts/lib/propcurve.js). */
+const prop = wingProp('FW_SLOWSTICK1180');
+/* The stick d turns the prop at the motor's law's speed (electricN). */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 3, hi = 20;
@@ -160,7 +165,12 @@ function charPoly(A) {
 }
 
 /* The longitudinal model, the plant's equations, trimmed and linearised. */
-function deriv(x, de, d) {
+/* phi and r, the bank and the body yaw rate of a turn flown with it: q is
+ * the body's pitch rate, which in a turn carries the turn's share (Etkin
+ * and Reid ch. 4: q = psi' sin(phi) cos(theta)), so the pitch damping
+ * meets it and the pitch attitude goes as q cos(phi) - r sin(phi); the
+ * weight's share across the body is g cos(theta) cos(phi). */
+function deriv(x, de, d, phi = 0, rTurn = 0) {
   const [u, w, q, thp] = x;
   const V = Math.hypot(u, w);
   const a = Math.atan2(-w, u) - alphaZL;
@@ -171,7 +181,7 @@ function deriv(x, de, d) {
   const Fx = L * (-w / V) - Dr * u / V + Tt;
   const Fz = L * (u / V) - Dr * w / V;
   const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt;
-  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) - q * u, My / Iyy, q];
+  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) * Math.cos(phi) - q * u, My / Iyy, q * Math.cos(phi) - rTurn * Math.sin(phi)];
 }
 function solve3(A, bb) {
   const M = A.map((r, i) => [...r, bb[i]]);
@@ -187,7 +197,10 @@ function solve3(A, bb) {
 }
 function longitudinalModes(V) {
   const res = (p) => { const r = deriv([V * Math.cos(p[0]), -V * Math.sin(p[0]), 0, p[0]], p[1], p[2]); return [r[0], r[1], r[2]]; };
-  let p = [0.02, 0, 0.5];
+  /* Started at full duty: on the curve a low duty at cruise speed is past
+   * the prop's zero thrust, where the clipped thrust has no slope and the
+   * step is singular. */
+  let p = [0.02, 0, 1.0];
   for (let it = 0; it < 60; it += 1) {
     const r = res(p);
     const J = [0, 1, 2].map((j) => { const pp = p.slice(); pp[j] += 1e-7; const rr = res(pp); return rr.map((v, i) => (v - r[i]) / 1e-7); });
@@ -195,27 +208,44 @@ function longitudinalModes(V) {
     p = p.map((v, i) => v + dx[i]);
   }
   const x0 = [V * Math.cos(p[0]), -V * Math.sin(p[0]), 0, p[0]];
+  return { thetaDeg: p[0] * DEG, deDeg: p[1] * DEG, duty: p[2], ...modesAt(x0, p[1], p[2]) };
+}
+function modesAt(x0, de, d) {
   const A = [0, 1, 2, 3].map((i) => [0, 1, 2, 3].map((j) => {
     const xp = x0.slice(), xm = x0.slice(); xp[j] += 1e-6; xm[j] -= 1e-6;
-    return (deriv(xp, p[1], p[2])[i] - deriv(xm, p[1], p[2])[i]) / 2e-6;
+    return (deriv(xp, de, d)[i] - deriv(xm, de, d)[i]) / 2e-6;
   }));
   const modes = roots(charPoly(A)).filter((r) => r.im > 1e-6).map((r) => { const wn = Math.hypot(r.re, r.im); return { period: 2 * Math.PI / r.im, zeta: -r.re / wn }; });
   modes.sort((x, y) => y.period - x.period);
-  return { thetaDeg: p[0] * DEG, deDeg: p[1] * DEG, duty: p[2], phugoid: modes[0], short: modes[1] };
+  return { phugoid: modes[0], short: modes[1] };
+}
+/* The stick left alone, the elevator and the duty fixed: where it
+ * settles (theta, the flight path and the speed unknown) and its modes. */
+function handsOffModes(de, d) {
+  const state = (p) => [p[2] * Math.cos(p[0] - p[1]), -p[2] * Math.sin(p[0] - p[1]), 0, p[0]];
+  const res = (p) => deriv(state(p), de, d).slice(0, 3);
+  let p = [0.1, 0.05, 5.5];
+  for (let it = 0; it < 60; it += 1) {
+    const r = res(p);
+    const J = [0, 1, 2].map((j) => { const pp = p.slice(); pp[j] += 1e-7; const rr = res(pp); return rr.map((v, i) => (v - r[i]) / 1e-7); });
+    const dx = solve3([0, 1, 2].map((i) => [0, 1, 2].map((j) => J[j][i])), r.map((v) => -v));
+    p = p.map((v, i) => v + dx[i]);
+  }
+  return { V: p[2], thetaDeg: p[0] * DEG, gammaDeg: p[1] * DEG, ...modesAt(state(p), de, d) };
 }
 
 /*
  * The lateral model at a speed, Nelson ch. 5, states beta, p, r, phi in
  * the aero convention: the spiral, the roll subsidence and the Dutch roll.
  */
-function lateral(V) {
-  const q = 0.5 * rho * V * V, CL = W / (q * S);
+function lateral(V, CLflown = null, theta = 0) {
+  const q = 0.5 * rho * V * V, CL = CLflown ?? W / (q * S);
   const bv = b / (2 * V);
   const Yb = q * S * CYb / m, Ydr = q * S * CYdr / m;
   const Lb = q * S * b * Clb / Ixx, Lp = q * S * b * Clp * bv / Ixx, Lr = q * S * b * ClrPerCL * CL * bv / Ixx, Ldr = q * S * b * Cldr / Ixx;
   const Nb = q * S * b * Cnb / Izz, Np = q * S * b * CnpPerCL * CL * bv / Izz, Nr = q * S * b * Cnr * bv / Izz, Ndr = q * S * b * Cndr / Izz;
   const A = [
-    [Yb / V, 0, -1, g / V],
+    [Yb / V, 0, -1, g * Math.cos(theta) / V],
     [Lb, Lp, Lr, 0],
     [Nb, Np, Nr, 0],
     [0, 1, 0, 0],
@@ -245,6 +275,65 @@ function bankAfter(lat, phi0, tEnd, force = [0, 0, 0, 0]) {
     x = x.map((v, i) => v + dx[i] * dt);
   }
   return x[3];
+}
+
+/*
+ * The hands off levelling as the gate flies it: level at the throttle's
+ * cruise, the elevator at that trim, then rolled to phi0 and every stick
+ * let go. The elevator going to neutral and the bank's lost lift change
+ * the speed and the pitch as the bank comes off (the aircraft slows to
+ * its hands off trim and pitches up), so the longitudinal model (deriv)
+ * runs alongside, the bank taking cos(phi) off the lift it needs, and
+ * the lateral model is taken at each step's speed, lift and pitch.
+ */
+/* The fin in the prop's wash meets the aircraft's own sideslip and yaw
+ * rate at the wash's speed too (plant_wing.c, the slipstream's angle and
+ * rate terms: rho v_i times the crossflow over the fin's share fv), so
+ * its weathercock, side force, dihedral share and yaw damping grow with
+ * the thrust. The lateral derivatives' increments at a speed and thrust,
+ * per unit beta and r, added to the free stream's. */
+function washFin(V, thrust) {
+  const tb = planeTable('FW_SLOWSTICK1180').fw;
+  const w = wash(tb, thrust, V);
+  const kv = rho * w.vi * w.fv;
+  return {
+    Yb: S * kv * tb.slip_cy_b * V / (m * V),
+    Lb: S * b * kv * tb.slip_cl_b * V / Ixx,
+    Nb: S * b * kv * tb.slip_cn_b * V / Izz,
+    Nr: S * b * kv * tb.slip_cn_r * 0.5 * b / Izz,
+  };
+}
+function bankAfterFlown(duty, phi0, tEnd, force = () => [0, 0, 0, 0], withWash = false) {
+  const V0 = level(duty);
+  const th0 = longitudinalModes(V0).thetaDeg / DEG;
+  let xl = [V0 * Math.cos(th0), -V0 * Math.sin(th0), 0, th0];
+  let xa = [0, 0, 0, phi0];
+  const dt = 0.001;
+  for (let t = 0; t < tEnd; t += dt) {
+    const [u, w, , th] = xl;
+    const V = Math.hypot(u, w);
+    const a = Math.atan2(-w, u) - alphaZL;
+    const lat = lateral(V, CLa * a, th);
+    if (withWash) {
+      const wf = washFin(V, T(u, duty));
+      lat.A = lat.A.map((row) => row.slice());
+      lat.A[0][0] += wf.Yb;
+      lat.A[1][0] += wf.Lb;
+      lat.A[2][0] += wf.Nb;
+      lat.A[2][2] += wf.Nr;
+    }
+    const dl = deriv(xl, 0, duty, xa[3], xa[2]);
+    const f = force(V);
+    const dx = lat.A.map((row, i) => row.reduce((sum, v, j) => sum + v * xa[j], 0) + f[i]);
+    /* The bank's rate is not the roll rate alone once the nose is up: phi'
+     * = p + tan(theta) (q sin(phi) + r cos(phi)) (Etkin and Reid ch. 4),
+     * the linear model's phi' = p at level; here the pitch climbs past 10
+     * deg in a turn, where the turn's yaw rate holds the bank on. */
+    dx[3] += Math.tan(th) * (xl[2] * Math.sin(xa[3]) + xa[2] * Math.cos(xa[3]));
+    xl = xl.map((v, i) => v + dl[i] * dt);
+    xa = xa.map((v, i) => v + dx[i] * dt);
+  }
+  return { phi: xa[3], V: Math.hypot(xl[0], xl[1]), thetaDeg: xl[3] * DEG };
 }
 
 /* The linear lateral model from level with the rudder held at dr (aero
@@ -286,13 +375,13 @@ const stallBlend = 4 / DEG;
 /* The plant's wing, scripts/lib/liftcurve.js: CL max at the top of the
  * curve. stall_top and stall_k the table's, scripts/stall-derive.js's for
  * this section. */
-const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK });
+const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK, claWing: aw, plateCn: plateCnOf(b, S) });
 function coeffs(alpha) {
   const lc = wingLift(curve(), alpha);
   const clLin = CLa * alpha;
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
   };
 }
 const stallTop = 4.4 / DEG, stallK = 0.72;
@@ -324,10 +413,10 @@ const stallDw = 0.1313;
 function stalledAt(alpha, de) {
   const clLin = CLa * alpha + CLde * de;
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
-  const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const plate = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   const cmLow = -lc.sigma * (armAc * clLin + armCp * plate);
   if (!(lc.sigma > 0)) return { CL: lc.CL, cmStall: cmLow };
-  const cnSt = 2 * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha);
+  const cnSt = curve().plateCn * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha) + wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).b2c * Math.sin(alpha);
   const cmPost = lc.sigma * (((1 - lc.past) * armAc - lc.past * armCp) * cnSt - armAc * clLin - stallDw * (clLin - lc.clSt));
   return { CL: lc.CL, cmStall: cmLow + lc.past * (cmPost - cmLow) };
 }
@@ -335,7 +424,10 @@ function cmAt(alpha, de) {
   return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
 }
 function mush(de) {
-  let lo = 0.05, hi = 1.2;
+  /* The bracket has to hold the root (the Kadet's floor at 0.05 rad
+   * printed its own end, kadet-derive.js). */
+  let lo = -0.1, hi = 1.2;
+  if (!(cmAt(lo, de) > 0 && cmAt(hi, de) < 0)) throw new Error(`mush: no trim between ${lo} and ${hi} rad at de ${de}`);
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (cmAt(mid, de) > 0) lo = mid; else hi = mid; }
   const alpha = lo;
   const CL = stalledAt(alpha, de).CL;
@@ -356,10 +448,10 @@ function mush(de) {
 function plantCoeffs(alpha, de) {
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const clLin = CLa * alpha + CLde * de;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const clFlat = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
     sigma: lc.sigma, clLin, clFlat,
   };
 }
@@ -413,7 +505,7 @@ const lat = lateral(Vcruise);
  * (plant_wing.c, docs/FLIGHTMODEL.md "The prop's torque, from the
  * drive"), from the table as the plant has it, a constant input to the
  * lateral model: side force over m V, roll over Ixx, yaw over Izz. */
-const propAt = propMoments(planeTable('FW_SLOWSTICK1180'), 0.75, Vcruise);
+const propAt = propMoments(planeTable('FW_SLOWSTICK1180'), electricN(0.75), Vcruise);
 const propForce = [propAt.Y / (m * Vcruise), propAt.L / Ixx, propAt.N / Izz, 0];
 const latS = lateral(1.2 * Vs);
 const rows = [
@@ -440,6 +532,8 @@ const rows = [
   ['   roll tau s, Dutch roll wn zeta period', `${f(lat.roll.tau)} ${lat.dutch ? `${f(lat.dutch.wn, 2)} ${f(lat.dutch.zeta)} ${f(lat.dutch.period, 2)}` : 'none'}`],
   ['   30 deg bank, hands off: bank after 2, 4, 6 s', `${f(bankAfter(lat, 30 / DEG, 2) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6) * DEG, 1)}`],
   ['   the same with the prop\'s torque and swirl (Q, L, N at cruise)', `${f(bankAfter(lat, 30 / DEG, 2, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6, propForce) * DEG, 1)} (${f(propAt.Q, 4)} ${f(propAt.L, 4)} ${f(propAt.N, 4)})`],
+  ['   flown: the speed and pitch with it, the fin in the wash, bank after 2, 4, 6 s, speed and pitch at 6 s', (() => { const fz = (V) => { const pm = propMoments(planeTable('FW_SLOWSTICK1180'), electricN(0.75), V); return [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0]; }; const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt, fz, true)); return `${r.map((x) => f(x.phi * DEG, 1)).join(' ')}; ${f(r[2].V, 2)} m/s, ${f(r[2].thetaDeg, 1)} deg`; })()],
+  ['   flown, without the prop', (() => { const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt)); return r.map((x) => f(x.phi * DEG, 1)).join(' '); })()],
   ['lateral at 1.2 Vs: spiral root, t_half', `${f(latS.spiral.root, 4)} ${f(latS.spiral.tHalf, 1)}`],
   ['full right rudder from cruise, after 1 s', JSON.stringify(rudderStep(lat, -throwR, 1), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['   after 2 s', JSON.stringify(rudderStep(lat, -throwR, 2), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
@@ -453,6 +547,12 @@ const rows = [
 const lm = longitudinalModes(Vcruise);
 rows.push(['trim at the 75 percent speed', `theta ${f(lm.thetaDeg, 2)} de ${f(lm.deDeg, 2)} duty ${f(lm.duty)}`]);
 rows.push(['   phugoid s, zeta; short period s, zeta', `${f(lm.phugoid && lm.phugoid.period, 2)} ${f(lm.phugoid && lm.phugoid.zeta)}; ${f(lm.short && lm.short.period, 2)} ${f(lm.short && lm.short.zeta)}`]);
+/* Hands off at 75 percent, the elevator neutral, as S10 and S19 fly it:
+ * the neutral elevator trims the 5.5 m/s glide's lift coefficient, so on
+ * the curve it climbs at about that speed and not at the level cruise. */
+const ho = handsOffModes(0, 0.75);
+rows.push(['hands off at 75 percent, elevator neutral', `V ${f(ho.V, 2)} theta ${f(ho.thetaDeg, 2)} gamma ${f(ho.gammaDeg, 2)}`]);
+rows.push(['   phugoid s, zeta; short period s, zeta', `${f(ho.phugoid && ho.phugoid.period, 2)} ${f(ho.phugoid && ho.phugoid.zeta)}; ${f(ho.short && ho.short.period, 2)} ${f(ho.short && ho.short.zeta)}`]);
 const lmT = longitudinalModes(Vtrim);
 rows.push([`trim at ${Vtrim} m/s`, `theta ${f(lmT.thetaDeg, 2)} de ${f(lmT.deDeg, 2)} duty ${f(lmT.duty)}, stick ${f(stickFor(lmT.deDeg / DEG, throwE))}`]);
 /* Full up elevator: where the linear pitching moment trims, as an angle of
@@ -463,10 +563,11 @@ rows.push(['stall arms ac, cp (per chord)', `${f(armAc, 4)} ${f(armCp, 4)}`]);
 rows.push(['full up mush', JSON.stringify(mush(throwE), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 90 percent', JSON.stringify(levelTurn(45 / DEG, 0.9), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DEG, 1.0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
-/* A straight pass at cruise through the core of the strongest thermal,
- * plant_wing.c's 2.5 m/s over 45 m: the aircraft rises with the air, so
- * its gain is the air's rise integrated over the time it spends in it. */
-rows.push(['thermal pass at cruise: gain m', f(2.5 * (16 / 15) * 45 / Vcruise, 1)]);
+/* A straight pass at 75 percent through the core of the strongest thermal,
+ * plant_wing.c's 2.5 m/s over 45 m, the pitch stick centred, so at the
+ * hands off speed: the aircraft rises with the air, so its gain is the
+ * air's rise integrated over the time it spends in it. */
+rows.push(['thermal pass, pitch stick centred: gain m', f(2.5 * (16 / 15) * 45 / ho.V, 1)]);
 rows.push(['level turn at 30 deg, 75 percent', JSON.stringify(levelTurn(30 / DEG, 0.75), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(48)} ${v}`);

@@ -301,7 +301,7 @@ widened to pass.
 | P15 take off, rudder left alone | swings left | at least 3 deg left at liftoff | 7.9 deg left |
 | P16 retracts | 6 s each way | 0.05 s, refused without retracts | 6.001 s up and down |
 | P17 landing with the gear up | on the belly | hull contact, no wheel load, stopped | hull 2, prop tip 55 N, wheels 0 |
-| P18 full flap approach at 1.3 Vs (10.94 m/s) | touch under 11.6 m/s | on the wheels, at rest at P13's pitch | 8.24 m/s, rolled 28 m, 13.13 deg |
+| P18 full flap approach at 1.3 Vs (10.94 m/s), stabilised from 500 ft scaled (FAA-H-8083-3C ch. 9), flown by the person pilot | touch under 11.6 m/s | at most 3 go arounds, bank within 15 deg, on the wheels, at rest at P13's pitch, no hull or prop | 0 go arounds, bank within 2.9 deg, 10.51 m/s sinking 0.52, rolled 49 m, 13.02 deg |
 | P19 the slow pull (8 s to full up from 15.6 m/s, gear up, idle): the first second after the roll off's onset | the XP-51's 0.079 and 39 deg | pb/2V 0.040 to 0.118, bank 20 to 59 deg | 0.1115, 32.7 deg, the left wing |
 | S17 other aircraft unmoved | main's hashes | identical | identical, the Kadet's included |
 | S18, S18b Node and Chrome | | identical | 466b9f93facc53d1 (the take off), 4f2f51d56c7edd01 (gear up, the stall), both |

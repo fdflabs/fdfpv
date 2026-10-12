@@ -63,6 +63,9 @@ jobs:
       - run: npm run wash:derive -- --check
       - run: npm run stab:hold
       - run: npm run as3x:derive
+      # The wings' ground effect against its sources and its surfaces
+      # against the drawn model (scripts/ge-derive.js).
+      - run: npm run ge:derive
       - run: npm run spool:derive
       # The host's vertical air at the craft (sim_set_air_vertical).
       - run: npm run air:vertical
@@ -136,6 +139,22 @@ jobs:
       # The scoring chain end to end, the real aircraft flying the tricks
       # (a powerloop round a rail by a closed loop pilot) included.
       - run: npm run score:selftest
+      # Every aircraft's own gates and stabiliser checks run here, not only
+      # the ones a branch happened to add: these six were in package.json and
+      # never in CI, so their regressions went unseen (2026-10-11). About
+      # 17 s together, measured locally, on the lightest shard.
+      - run: npm run lint:ci-coverage
+      - run: npm run bombshell:gates
+      - run: npm run bombshell:stab
+      - run: npm run bramor:gates
+      - run: npm run bramor:stab
+      - run: npm run floats:gates
+      - run: npm run kadet:gates
+      - run: npm run kadet:stab
+      - run: npm run slowstick:gates
+      - run: npm run slowstick:stab
+      - run: npm run timber:gates
+      - run: npm run timber:stab
 
   shard-2:
     runs-on: ubuntu-latest
@@ -217,6 +236,7 @@ jobs:
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
+      - run: npm run reset:determinism
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
@@ -375,6 +395,7 @@ jobs:
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
+      - run: npm run wing:ge
       - run: npm run wing:stab
       - run: npm run skyhunter:gates
       - run: npm run skyhunter:stab

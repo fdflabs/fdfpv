@@ -294,7 +294,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/skyhunter-thresholds.json s2_stall. */
     stall: 9.2,
     /* Level speed at full throttle, m/s: tests/skyhunter-thresholds.json s4_top, derived. */
-    topSpeed: 23.5,
+    topSpeed: 29.26,
     name: 'Skyhunter',
     short: 'Skyhunter',
     blurb: 'An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it, fly it long, land it on its skid.',
@@ -339,7 +339,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/cub-thresholds.json c2_stall. */
     stall: 8.1,
     /* Level speed at full throttle, m/s: tests/cub-thresholds.json c4_top, derived. */
-    topSpeed: 18.4,
+    topSpeed: 22.4,
     gear: { restHeight: 0.1463, restPitch: 11.0 * Math.PI / 180 },
     name: 'Piper Cub',
     short: 'Cub',
@@ -383,7 +383,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/glider-thresholds.json g3_stall. */
     stall: 6.49,
     /* Level speed at full throttle, m/s: npm run glider:derive, G5 at 100 percent. */
-    topSpeed: 21.89,
+    topSpeed: 26.51,
     name: 'Radian',
     short: 'Radian',
     blurb: 'A 2 m E-flite Radian motor glider on 3S, with ailerons, elevator and rudder. Climb on the motor, fold the prop, and find the thermals over the field to stay up.',
@@ -434,7 +434,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): the published figure, tests/bramor-thresholds.json b2_stall. */
     stall: 13,
     /* Level speed at full throttle, m/s: tests/bramor-thresholds.json b4_top, derived. */
-    topSpeed: 25.0,
+    topSpeed: 28.48,
     catapult: BRAMOR_CATAPULT,
     chute: true,
     name: 'Bramor C4EYE',
@@ -484,7 +484,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/slowstick-thresholds.json s2_stall. */
     stall: 4.43,
     /* Level speed at full throttle, m/s: tests/slowstick-thresholds.json s4_top, derived. */
-    topSpeed: 8.37,
+    topSpeed: 10.28,
     gear: { restHeight: 0.1349, restPitch: 6.91 * Math.PI / 180 },
     name: 'Slow Stick',
     short: 'Stick',
@@ -532,7 +532,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): flaps up, slats on, tests/timber-thresholds.json t2_stall_slats. */
     stall: 7.20,
     /* Level speed at full throttle, m/s: docs/TIMBER-STAGE1.md T1, measured in the plant. */
-    topSpeed: 24.2,
+    topSpeed: 27.2,
     gear: { restHeight: 0.2115, restPitch: 11.81 * Math.PI / 180 },
     flaps: true,
     name: 'Turbo Timber',
@@ -582,7 +582,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): the landplane's 7.20 at 1.934 kg over 1.70, docs/FLOATS-STAGE1.md. */
     stall: 7.68,
     /* Level speed at full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant. */
-    topSpeed: 22.4,
+    topSpeed: 25.3,
     gear: { restHeight: 0.2464, restPitch: 0.48 * Math.PI / 180 },
     floats: { restHeight: 0.2074, restPitch: 2.52 * Math.PI / 180 },
     flaps: true,
@@ -626,7 +626,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): docs/FLOATS-STAGE1.md, the Cub having no flaps. */
     stall: 8.73,
     /* Level speed at full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant. */
-    topSpeed: 16.9,
+    topSpeed: 20.2,
     gear: { restHeight: 0.2171, restPitch: 0.43 * Math.PI / 180 },
     floats: { restHeight: 0.1765, restPitch: 0.64 * Math.PI / 180 },
     name: 'Piper Cub, floats',
@@ -679,7 +679,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/bombshell-thresholds.json s2_stall. */
     stall: 6.49,
     /* Level speed at full throttle, m/s: tests/bombshell-thresholds.json s4_top, derived. */
-    topSpeed: 10.11,
+    topSpeed: 12.52,
     gear: { restHeight: 0.1318, restPitch: 8.50 * Math.PI / 180 },
     name: 'Buzzard Bombshell',
     short: 'Bombshell',
@@ -735,7 +735,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/kadet-thresholds.json s2_stall. */
     stall: 7.15,
     /* Level speed at full throttle, m/s: tests/kadet-thresholds.json s4_top, derived. */
-    topSpeed: 18.28,
+    topSpeed: 23.12,
     gear: { restHeight: 0.3072, restPitch: 0 },
     name: 'Kadet Senior',
     short: 'Kadet',
@@ -790,7 +790,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/uglystik-thresholds.json u2_stall. */
     stall: 9.48,
     /* Level speed at full throttle, m/s: tests/uglystik-thresholds.json u4_top, derived. */
-    topSpeed: 22.10,
+    topSpeed: 28.29,
     gear: { restHeight: 0.2024, restPitch: -2.06 * Math.PI / 180 },
     name: 'Ugly Stik',
     short: 'Stik',
@@ -846,7 +846,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax) on the cell: tests/tigermoth-thresholds.json t2_stall. */
     stall: 9.47,
     /* Level speed at full throttle, m/s: tests/tigermoth-thresholds.json t4_top, derived. */
-    topSpeed: 18.69,
+    topSpeed: 23.24,
     gear: { restHeight: 0.2654, restPitch: 8.16 * Math.PI / 180 },
     name: 'Tiger Moth',
     short: 'Tiger',
@@ -895,7 +895,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/extra-thresholds.json e2_stall. */
     stall: 8.31,
     /* Level speed at full throttle, m/s: tests/extra-thresholds.json e4_top, derived. */
-    topSpeed: 24.34,
+    topSpeed: 30.30,
     gear: { restHeight: 0.2221, restPitch: 6.7 * Math.PI / 180 },
     name: 'Extra 300 3D',
     short: 'Extra',
@@ -945,7 +945,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/nighttimber-thresholds.json n2_stall. */
     stall: 9.08,
     /* Level speed at full throttle, m/s: tests/nighttimber-thresholds.json n4_top, derived. */
-    topSpeed: 17.10,
+    topSpeed: 23.58,
     gear: { restHeight: 0.2569, restPitch: 4.63 * Math.PI / 180 },
     flaps: true,
     name: 'Night Timber X',
@@ -998,7 +998,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/hercules-thresholds.json h1_stall. */
     stall: 9.67,
     /* Level speed at full throttle, m/s: tests/hercules-thresholds.json h4_top, derived. */
-    topSpeed: 23.46,
+    topSpeed: 28.64,
     gear: { restHeight: 0.2604, restPitch: 0 },
     name: 'C-130 Hercules',
     short: 'Hercules',
@@ -1146,7 +1146,7 @@ export const AIRFRAMES = [
     /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/p51-thresholds.json p2_stall. */
     stall: 10.06,
     /* Level speed at full throttle with the gear up, m/s: tests/p51-thresholds.json p4_top, derived. */
-    topSpeed: 20.64,
+    topSpeed: 26.60,
     gear: { restHeight: 0.2291, restPitch: 13.13 * Math.PI / 180 },
     flaps: true,
     retracts: true,
@@ -1247,7 +1247,7 @@ export const AIRFRAMES = [
      * tests/zagi-thresholds.json z2_stall. */
     stall: 7.36,
     /* Level speed at full throttle, m/s: tests/zagi-thresholds.json z4_top, derived. */
-    topSpeed: 29.69,
+    topSpeed: 36.80,
     name: 'Zagi HP',
     short: 'Zagi',
     blurb: 'A 48 in Zagi HP on 3S, the EPP flying wing that taught a generation to fly on the slope and in combat. Throw it hard, and go easy on the elevons: it rolls fast and it answers the smallest touch in pitch. No rudder. It glides a long way and slides in on its belly.',
@@ -1347,9 +1347,9 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Its stall, m/s, trimmed with the standard warhead in the nose:
      * combat-derive's, which npm run combat:gates holds the module to. */
-    stall: 12.98,
+    stall: 13.53,
     /* Level at full throttle, m/s, combat-derive's, held the same way. */
-    topSpeed: 26.8,
+    topSpeed: 34.2,
     catapult: STRIKER_RAIL,
     voice: 'glow2',
     name: 'Striker',
@@ -1386,7 +1386,7 @@ export const AIRFRAMES = [
     combat: {
       frame: 'striker',
       propulsion: [
-        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 12.98, topSpeed: 26.8, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
+        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 13.53, topSpeed: 34.2, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
         { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 14.07, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
       ],
       payloads: [

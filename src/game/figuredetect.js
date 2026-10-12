@@ -154,6 +154,7 @@ class Prim {
     this.lzSum = 0;
     this.lzMax = 0;
     this.knifeSum = 0;
+    this.offLineCos = 1;
     this.alphaSum = 0;
     this.stalled = 0;
     this.pauses = 0;
@@ -190,6 +191,8 @@ class Prim {
     this.lzSum += abs(s.l[2]);
     if (abs(s.l[2]) > this.lzMax) this.lzMax = abs(s.l[2]);
     this.knifeSum += s.knifeCos;
+    const onLine = dot3(s.d, this.d0);
+    if (onLine < this.offLineCos) this.offLineCos = onLine;
     this.alphaSum += s.alphaPos ? 1 : -1;
     if (s.stalled) this.stalled += 1;
     if (s.speed < this.sMin) this.sMin = s.speed;
@@ -313,8 +316,11 @@ function loopDeduction(p, whole) {
  * point per 15 % spread of it), stopped on the attitude and the line held
  * through it (a point per 15 deg each). */
 function rollDeduction(p, turns) {
+  /* The line through it, not only out of it: a roll that sags off its line
+   * and comes back to it ends where it began (F3A Annex 5B: the flight
+   * path stays on its line, a point per 15 deg). */
   return Math.floor(p.rateCv() / 0.15) + radDeduction((abs(p.roll) - turns) * TURN)
-    + bandDeduction(headingCos(p.d0, p.d1)) + bandDeduction(dot3(p.d0, p.d1)) * 0.5;
+    + bandDeduction(headingCos(p.d0, p.d1)) + bandDeduction(p.offLineCos);
 }
 
 /* A held attitude: the wings level (a point per 15 deg of bank at worst)
@@ -579,9 +585,14 @@ export class FigureDetector {
       if (open.pausedMs === 0) {
         this.paused = [];
         open.stoppedMs = 0;
+        open.pauseSign = this.prev && this.prev.p < 0 ? -1 : 1;
       }
       open.pausedMs += SAMPLE_MS;
-      if (abs(s.p) < ROLL_STOP) open.stoppedMs += SAMPLE_MS;
+      /* Stopped is not rolling on: a point the wings rock back from has
+       * stopped the rotation as surely as one held still (F3A Annex 5B
+       * marks the rock back off the point's attitude, it does not make it
+       * no point); a barrel roll's sag keeps rolling on and stays out. */
+      if (s.p * open.pauseSign < ROLL_STOP) open.stoppedMs += SAMPLE_MS;
       this.paused.push(s);
       this.cand = null;
       if (open.pausedMs <= ROLL_BRIDGE_MS) return;
@@ -590,7 +601,9 @@ export class FigureDetector {
       return;
     }
     if (open.kind === 'roll' && open.pausedMs > 0) {
-      if (tok === 'roll' && open.stoppedMs >= PAUSE_MIN_MS) open.pauses += 1;
+      /* A point is a stop the roll then goes on from, the way it was going:
+       * the wings rocking back after the last one start no next quarter. */
+      if (tok === 'roll' && s.p * open.pauseSign > 0 && open.stoppedMs >= PAUSE_MIN_MS) open.pauses += 1;
       /* The pause was part of the roll (or of what ends it, below). */
       let prev = this.prev && this.paused.length ? null : this.prev;
       for (const c of this.paused) {

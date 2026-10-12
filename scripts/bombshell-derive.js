@@ -24,8 +24,10 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingLift } from './lib/liftcurve.js';
-import { planeTable, propMoments } from './lib/wash.js';
+import { groundTerms, wingGround } from './lib/groundeffect.js';
+import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
+import { wingProp } from './lib/propcurve.js';
+import { planeTable, propMoments, wash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -141,7 +143,11 @@ const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 const dutyOf = (stick) => idle + (1 - idle) * stick;
-const T = (V, stick) => { const d = dutyOf(stick); return Math.max(0, Ts * d * d * (1 - V / (Vp * d))); };
+/* The thrust on APC's curve the plant flies (scripts/lib/propcurve.js),
+ * whose pitch speed is this one: the prop's geometric pitch at full rpm. */
+const prop = wingProp('FW_BOMBSHELL1118');
+if (Math.abs(prop.pitchSpeed - Vp) > 0.01) throw new Error(`bombshell-derive: the plant's pitch speed ${prop.pitchSpeed} is not V_p ${Vp}`);
+const T = (V, stick) => Math.max(0, prop.thrust(Ts, V, dutyOf(stick)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 3, hi = 20;
@@ -328,13 +334,13 @@ const stallBlend = 3 / DEG;
 /* The plant's wing, scripts/lib/liftcurve.js: CL max at the top of the
  * curve. stall_top and stall_k are set below with the stall's other
  * numbers. */
-const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK });
+const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK, claWing: aw, plateCn: plateCnOf(b, S) });
 function coeffs(alpha) {
   const lc = wingLift(curve(), alpha);
   const clLin = CLa * alpha;
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
   };
 }
 function takeoff(mu, muTail) {
@@ -349,6 +355,91 @@ function takeoff(mu, muTail) {
     V += a * dt; x += V * dt; t += dt;
   }
   return { CL, CD, vLof, x, t, V };
+}
+/*
+ * The roll out after a level arrival on the wheels at V0, the sticks let
+ * go (the glow's idle stop): the plant's lift and drag at the rest
+ * attitude (scripts/lib/liftcurve.js, the finite wing's plate), the idle's
+ * thrust on the prop curve, rolling resistance on the mains' load and the
+ * skid's sliding friction on its own. The skid's load is the moment
+ * balance about the mains: the weight less the lift at the CG behind them,
+ * the aero pitching moment at the rest attitude, elevator neutral, and the
+ * idle's wash over the stabiliser, a nose down moment lifting the tail
+ * off its skid. It arrives level (the
+ * wing:contact arrival's pose), on its mains with the tail up, and the
+ * tail settles to the skid once that moment no longer holds it up.
+ * Returns the time and distance to 0.05 m/s, the arrival's "rolls to a
+ * stop", and when the tail came down.
+ */
+/* The idle's wash over the stabiliser, as plant_wing.c takes it (scripts/
+ * lib/wash.js): the crossflow V sin(theta - a0) at the far wake's
+ * induced speed, a nose down moment that lifts the tail. */
+const slipTab = planeTable('FW_BOMBSHELL1118').fw;
+const washPitch = (V, th) => {
+  const w = wash(slipTab, T(V, 0), V * Math.cos(th));
+  return S * c * rho * w.vi * w.fh * slipTab.slip_cm_a * V * Math.sin(th - slipTab.slip_a0);
+};
+/* About the wheels the idle's thrust acts at its line's height over them,
+ * and the CG's inertia as it slows at the CG's: both lift the tail. */
+const hMainC = -rest.main[1];
+const groundPitch = (V, acc) => -T(V, 0) * (hMainC + thrustZ) + m * acc * hMainC;
+/* Near the ground (plant_wing.c GROUND EFFECT, scripts/lib/groundeffect.js)
+ * on its wheels at pitch th, the wing's quarter chord over the grass as
+ * the airframe stands on its mains (0.144 m under the CG, 0.0731 ahead):
+ * the changes in lift, drag and pitching moment, the whole aircraft's
+ * curve at the shifted angle and the tail at its own, as the plant takes
+ * them. */
+const geo = { b, S, aw, dd: deda, clmax: CLmax, ...wingGround('FW_BOMBSHELL1118') };
+const tailCl = (CLa - aw) / (1 - deda);
+function ground(alpha, th) {
+  const hCg = 0.144 * Math.cos(th) - 0.0731 * Math.sin(th);
+  const h = hCg + geo.wing[0] * Math.sin(th) + geo.wing[1] * Math.cos(th);
+  const gt = groundTerms(geo, h, th, alpha);
+  const a1 = alpha + gt.dAlpha;
+  const c0 = coeffs(alpha), c1 = coeffs(a1);
+  const blend = wingLift(curve(), a1).sigma;
+  return {
+    h, sigma: gt.sigma,
+    dCL: c1.CL - c0.CL + tailCl * gt.dTail,
+    dCD: c1.CD - c0.CD - (1 - blend) * gt.clw * gt.dAlpha,
+    dCm: cmAt(a1, 0) - cmAt(alpha, 0) + tailCl * geo.tail[0] / c * gt.dTail,
+  };
+}
+
+function rollOut(V0, ge = false) {
+  const arm = tailAft - mainAft;
+  const aftAt = (pt, th) => pt[1] * Math.sin(th) + pt[2] * Math.cos(th);
+  const hMain = -rest.main[1];
+  const Im = Iyy + m * (rest.main[2] * rest.main[2] + hMain * hMain);
+  let V = V0, x = 0, t = 0, th = 0, qth = 0, tDown = null, accPrev = 0;
+  const dt = 0.001;
+  while (V > 0.05 && t < 60) {
+    const a = th - alphaZL;
+    const gr = ge ? ground(a, th) : { dCL: 0, dCD: 0, dCm: 0 };
+    const c0 = coeffs(a);
+    const CL = c0.CL + gr.dCL, CD = c0.CD + gr.dCD;
+    const q = 0.5 * rho * V * V;
+    const L = q * S * CL;
+    let nTail = 0;
+    if (tDown === null) {
+      /* On the mains, the tail up: it pitches about them, the weight less
+       * the lift at the CG behind them and the aero moment with its pitch
+       * damping, until the skid meets the grass at the rest attitude. */
+      const dCG = -aftAt(rest.main, th);
+      const mNose = (W - L) * dCG + q * S * c * (cmAt(a, 0) + gr.dCm + Cmq * qth * c / (2 * Math.max(V, 0.5))) + washPitch(V, th) + groundPitch(V, accPrev);
+      qth += mNose / Im * dt;
+      th = Math.max(0, th + qth * dt);
+      if (th >= rp) { th = rp; qth = 0; tDown = t; }
+    } else {
+      nTail = Math.max(0, Math.min(W - L, ((W - L) * -mainAft + q * S * c * (cmAt(a, 0) + gr.dCm) + washPitch(V, th) + groundPitch(V, accPrev)) / arm));
+    }
+    const nMain = Math.max(0, W - L - nTail);
+    const acc = (T(V, 0) - q * S * CD - muGrass * nMain - muSkid * nTail) / m;
+    accPrev = acc;
+    V += acc * dt; x += V * dt; t += dt;
+    if (acc >= 0 && V < 1) break;
+  }
+  return { t, x, V, tailDownAt: tDown };
 }
 /* The same roll with the tail up, the fuselage level on the mains, which
  * is how a taildragger whose three point attitude is past its stall takes
@@ -398,10 +489,10 @@ const smooth = (a0, a1, x) => {
 function stalledAt(alpha, de) {
   const clLin = CLa * alpha + CLde * de;
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
-  const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const plate = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   const cmLow = -lc.sigma * (armAc * clLin + armCp * plate);
   if (!(lc.sigma > 0)) return { CL: lc.CL, cmStall: cmLow };
-  const cnSt = 2 * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha);
+  const cnSt = curve().plateCn * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha) + wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).b2c * Math.sin(alpha);
   const cmPost = lc.sigma * (((1 - lc.past) * armAc - lc.past * armCp) * cnSt - armAc * clLin - stallDw * (clLin - lc.clSt));
   return { CL: lc.CL, cmStall: cmLow + lc.past * (cmPost - cmLow) };
 }
@@ -409,7 +500,10 @@ function cmAt(alpha, de) {
   return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
 }
 function mush(de) {
-  let lo = 0.05, hi = 1.2;
+  /* The bracket has to hold the root: a trim under 0.05 rad, the Kadet's
+   * glide on the prop curves' Cm0, came back as the bracket's end. */
+  let lo = -0.1, hi = 1.2;
+  if (!(cmAt(lo, de) > 0 && cmAt(hi, de) < 0)) throw new Error(`mush: no trim between ${lo} and ${hi} rad at de ${de}`);
   for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (cmAt(mid, de) > 0) lo = mid; else hi = mid; }
   const alpha = lo;
   const CL = stalledAt(alpha, de).CL;
@@ -430,10 +524,10 @@ function mush(de) {
 function plantCoeffs(alpha, de) {
   const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const clLin = CLa * alpha + CLde * de;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const clFlat = curve().plateCn * Math.sin(alpha) * Math.cos(alpha);
   return {
     CL: lc.CL,
-    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CD: wingDrag(curve(), alpha, { cd0: CD0, k, clLin }).CD,
     sigma: lc.sigma, clLin, clFlat,
   };
 }
@@ -535,6 +629,11 @@ rows.push(['trim at the 75 percent speed', `theta ${f(lm.thetaDeg, 2)} de ${f(lm
 rows.push(['   phugoid s, zeta; short period s, zeta', `${f(lm.phugoid && lm.phugoid.period, 2)} ${f(lm.phugoid && lm.phugoid.zeta)}; ${f(lm.short && lm.short.period, 2)} ${f(lm.short && lm.short.zeta)}`]);
 const lmT = longitudinalModes(Vtrim);
 rows.push([`trim at ${Vtrim} m/s`, `theta ${f(lmT.thetaDeg, 2)} de ${f(lmT.deDeg, 2)} throttle stick ${f(lmT.duty)}, pitch stick ${f(stickFor(lmT.deDeg / DEG, throwE))}`]);
+/* Hands off the aircraft flies where the neutral elevator trims, Vtrim,
+ * not at the 75 percent level speed: on the prop's curve the two parted,
+ * and the 75 percent stick climbs it there. The phugoid and the thermal
+ * pass (S10, S19) are flown hands off. */
+rows.push(['   phugoid s, zeta at that trim; thermal pass there: gain m', `${f(lmT.phugoid && lmT.phugoid.period, 2)} ${f(lmT.phugoid && lmT.phugoid.zeta)}; ${f(2.5 * (16 / 15) * 45 / Vtrim, 1)}`]);
 /* Full up elevator: where the linear pitching moment trims, as an angle of
  * the zero lift line, against the stall's. */
 rows.push(['alpha trim at full up, linear moment; alpha stall (deg)', `${f((Cm0 + Cmde * throwE) / -Cma * DEG, 1)} ${f(CLmax / CLa * DEG, 1)}`]);
@@ -542,14 +641,18 @@ rows.push(['plant CL max on the unstalled branch, its stall m/s', `${f(plantCLma
 rows.push(['stall arms ac, cp (per chord)', `${f(armAc, 4)} ${f(armCp, 4)}`]);
 rows.push(['full up mush', JSON.stringify(mush(throwE), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 /* The same balance with the elevator neutral is the throttle chop with the
- * sticks let go: the idle's thrust is nil over its 5.5 m/s pitch speed, so
- * the aircraft settles on the glide its pitching moment trims. */
+ * sticks let go: the idle's thrust is nil past 1.27 times its 5.5 m/s pitch
+ * speed, 7.0 m/s, where the curve crosses zero, so the aircraft settles
+ * on the glide its pitching moment trims. */
 rows.push(['hands off glide, throttle closed', JSON.stringify(mush(0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 90 percent', JSON.stringify(levelTurn(45 / DEG, 0.9), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DEG, 1.0), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 /* A straight pass at cruise through the core of the strongest thermal,
  * plant_wing.c's 2.5 m/s over 45 m: the aircraft rises with the air, so
  * its gain is the air's rise integrated over the time it spends in it. */
+rows.push(['roll out from an 8 m/s arrival, idle: s, m', JSON.stringify(rollOut(8), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
+rows.push(['   with the ground effect; from S16 touchdown, 7.6 m/s, free and with it', JSON.stringify([rollOut(8, true), rollOut(7.6), rollOut(7.6, true)], (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))]);
+rows.push(['   at rest attitude: wing height m, sigma, dCL dCD dCm', JSON.stringify(ground(rp - alphaZL, rp), (kk, v) => (typeof v === 'number' ? +v.toFixed(4) : v))]);
 rows.push(['thermal pass at cruise: gain m', f(2.5 * (16 / 15) * 45 / Vcruise, 1)]);
 rows.push(['level turn at 30 deg, 75 percent', JSON.stringify(levelTurn(30 / DEG, 0.75), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 for (const [name, v] of rows) {
