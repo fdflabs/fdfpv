@@ -157,15 +157,11 @@ export const TUNES = [
    * is not only a tune: it is the configuration stage 1 verification and
    * the module checks fly plant 0 on (tests/, scripts/fc-trace.js).
    *
-   * The 7 inch's tune is its folder's, aircraft/7inch/aircraft.js.
+   * The 7 inch's and the 10 inch's tunes are their folders',
+   * aircraft/7inch/aircraft.js and aircraft/10inch/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '7inch'),
-  {
-    id: 'betaflight-10inch',
-    airframe: '10inch',
-    name: 'Factory default',
-    note: 'Factory 4.5.1 on the 10 inch: 900 kV, an 8400 mAh Li-ion pack.',
-  },
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '10inch'),
   {
     id: 'betaflight-interceptor',
     airframe: 'interceptor',

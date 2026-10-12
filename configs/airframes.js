@@ -117,59 +117,18 @@ export const AIRFRAMES = [
    * payload's belly, and up is the second pack's top.
    */
   airframeOf('7inch'),
-  {
-    /*
-     * THE 10 INCH COMBAT QUAD, plant 25, docs/COMBAT-DRONES.md: the 7
-     * inch's build a size up, on 3115 motors and 10 inch three blades, its
-     * 6S2P pack two bricks strapped side by side, which is the reference
-     * photograph's pair. It carries more than twice the 7 inch's payload
-     * and turns like the heavy machine it is.
-     */
-    id: '10inch',
-    simId: 25,
-    name: 'Ten inch',
-    short: '10 inch',
-    blurb: 'A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it.',
-    facts: ['6S2P Li-ion', '420 mm', 'Heavy payload'],
-    sizeMm: 420,
-    grams: 1848,
-    trackClass: 'full',
-    topSpeed: 33.3,
-    thrustToWeight: 4.69,
-    cells: 6,
-    ...packStates(),
-    defaultTune: 'betaflight-10inch',
-    /* Its real weight, not the five inch's feel multiplier: the payload is
-     * what makes it heavy (docs/COMBAT-DRONES.md section 1). */
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 90,
-    cameraAngle: 20,
-    dims: {
-      arm: 0.210,
-      propR: 0.127,
-      hullR: 0.127,
-      vHalfDown: 0.141,
-      vHalfUp: 0.055,
-      bodyLength: 0.24,
-      bodyWidth: 0.13,
-      bodyHeight: 0.05,
-    },
-    combat: {
-      frame: '10in',
-      payloads: [
-        { id: 'standard', warhead: 'standard', massKg: 1.2, dragArea_m2: 0.01691, cgOffset_m: [0.0284, 0, -0.081], dims: { d: 0.08, len: 0.34 } },
-        { id: 'wide', warhead: 'wide', massKg: 1.8, dragArea_m2: 0.02012, cgOffset_m: [0.0184, 0, -0.091], dims: { d: 0.1, len: 0.32 } },
-        { id: 'penetrator', warhead: 'penetrator', massKg: 1.3, dragArea_m2: 0.01677, cgOffset_m: [0.0534, 0, -0.0735], dims: { d: 0.065, len: 0.42 } },
-        { id: 'emp', warhead: 'emp', massKg: 1, dragArea_m2: 0.0129, cgOffset_m: [0.0034, 0, -0.0835], dims: { d: 0.085, len: 0.24 } },
-      ],
-      accessories: [
-        { id: 'cage', massKg: 0.045, cgOffset_m: [0.1034, 0, -0.021] },
-        { id: 'lrantenna', massKg: 0.035, cgOffset_m: [-0.0866, 0, 0.075] },
-        { id: 'gps', massKg: 0.02, cgOffset_m: [-0.0666, 0, 0.045] },
-      ],
-    },
-  },
+  /*
+   * THE 10 INCH COMBAT QUAD, plant 25, docs/COMBAT-DRONES.md: the 7
+   * inch's build a size up, on 3115 motors and 10 inch three blades, its
+   * 6S2P pack two bricks strapped side by side, which is the reference
+   * photograph's pair. It carries more than twice the 7 inch's payload
+   * and turns like the heavy machine it is.
+   *
+   * The row is its folder's, aircraft/10inch/aircraft.js. `gravityBase`:
+   * Its real weight, not the five inch's feel multiplier: the payload is
+   * what makes it heavy (docs/COMBAT-DRONES.md section 1).
+   */
+  airframeOf('10inch'),
   {
     /*
      * THE INTERCEPTOR, plant 26, docs/COMBAT-DRONES.md: the fast chaser
