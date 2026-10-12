@@ -73,6 +73,7 @@ import {
 import {
   swissGroundGeometry, wallRise, apronAt, bayLayout,
 } from './swiss2/terrain.js';
+import { SWISS_WORLD } from './swiss2/field.js';
 import {
   natureSites, buildShore, buildReeds, buildDrifts,
 } from './alps/nature.js';
@@ -227,6 +228,7 @@ function photoStyle() {
   const sunDir = sunDirection();
   const style = {
     id: 'swiss2',
+    world: SWISS_WORLD,
     name: () => str('registry.swiss2'),
     look: null,
     mats: null,

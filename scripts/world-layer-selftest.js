@@ -69,6 +69,7 @@ const THREE = await import('three');
 const { HALF, farRange } = await import('../src/maps/alps/terrain.js');
 const { buildHeadwall } = await import('../src/maps/alps/nature.js');
 const { makeValleyWorld } = await import('../src/share/valley/world.js');
+const { SWISS_WORLD } = await import('../src/maps/swiss2/field.js');
 const { groundOf } = await import('../edge/rooms/grounds.js');
 const ITAIPU_TERRAIN = await import('../src/maps/itaipu/terrain/index.js');
 const INTERIOR_TERRAIN = await import('../src/maps/interior/terrain.js');
@@ -94,7 +95,7 @@ const check = (ok, okMsg, failMsg) => (ok ? console.log(`ok ${okMsg}`) : fail(fa
 const alpsSrc = readFileSync(new URL('../src/maps/alps.js', import.meta.url), 'utf8');
 const swissSrc = readFileSync(new URL('../src/maps/swiss2.js', import.meta.url), 'utf8');
 const wiring = [
-  'const world = makeValleyWorld(style.id);',
+  'const world = makeValleyWorld(style.id, style.world);',
   'const far = farRange(world.far, style.look);',
   'roofs.height(x, z, fromY, world.groundAt(x, z))',
   '?? world.surfaceAt(x, z),',
@@ -172,7 +173,7 @@ const look = { parts: () => new THREE.MeshBasicMaterial() };
 
 for (const map of ['alps', 'swiss2']) {
   const t0 = Date.now();
-  const world = makeValleyWorld(map);
+  const world = makeValleyWorld(map, map === 'swiss2' ? SWISS_WORLD : undefined);
   const built = Date.now() - t0;
 
   /* The far range as drawn: every vertex of its mesh stands on the

@@ -9,7 +9,7 @@
  * the top of them, a second, broken band of cliff stands over the bench,
  * and only then do alpine slopes go on up to the ridge. This file gives
  * swiss2 those walls, and the cel alps keep theirs: the valley's world
- * builds this field for swiss2 only (src/share/valley/world.js MAPS).
+ * builds this field for swiss2 only (SWISS_WORLD, field.js).
  *
  * THE SHAPE is the alps' ground plus a wall profile across the valley,
  * added where the walls are and nowhere else:
