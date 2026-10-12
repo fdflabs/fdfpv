@@ -124,6 +124,7 @@ export default {
     "packKg": 0.19,
     "nose": 0.2,
     "tail": -0.54,
+    "firstFlight": { "rate": "low", "source": "FMS manual, control throws: \"Tips: On the first flight, fly the model in low rate.\" It gives no expo, so the stock expo stays; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf" },
     "throws": {
       "high": [
         18,

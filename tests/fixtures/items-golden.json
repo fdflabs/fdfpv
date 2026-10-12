@@ -7532,7 +7532,7 @@
     {
      "id": "quad:a-planerates",
      "label": "Rates",
-     "value": "High, 18° 15° 15°",
+     "value": "Low, 13.4° 11.2° 11.6°",
      "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
      "action": "planerates",
      "drives": {}
@@ -18218,7 +18218,7 @@
     {
      "id": "quick:a-planerates",
      "label": "Rates",
-     "value": "High, 18° 15° 15°",
+     "value": "Low, 13.4° 11.2° 11.6°",
      "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
      "action": "planerates",
      "drives": {}
@@ -18365,7 +18365,7 @@
     {
      "id": "quick:a-planerates",
      "label": "Rates",
-     "value": "High, 36.5° 39.7° 55°",
+     "value": "Low, 20.9° 28.6° 35°",
      "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
      "action": "planerates",
      "drives": {}
@@ -32427,7 +32427,7 @@
     {
      "id": "quad:a-planerates",
      "label": "Tasas",
-     "value": "Alto, 18° 15° 15°",
+     "value": "Bajo, 13.4° 11.2° 11.6°",
      "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
      "action": "planerates",
      "drives": {}
@@ -43113,7 +43113,7 @@
     {
      "id": "quick:a-planerates",
      "label": "Tasas",
-     "value": "Alto, 18° 15° 15°",
+     "value": "Bajo, 13.4° 11.2° 11.6°",
      "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
      "action": "planerates",
      "drives": {}
@@ -43260,7 +43260,7 @@
     {
      "id": "quick:a-planerates",
      "label": "Tasas",
-     "value": "Alto, 36.5° 39.7° 55°",
+     "value": "Bajo, 20.9° 28.6° 35°",
      "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
      "action": "planerates",
      "drives": {}
