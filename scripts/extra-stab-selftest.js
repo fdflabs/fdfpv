@@ -141,7 +141,13 @@ const deg = (x) => (x * DEG).toFixed(1);
 
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
-throwAt(3, 12);
+/* Thrown 30 m up: at the trim stick Stabilised's 2 deg of pitch is
+ * under the 3.6 deg the cruise's lift takes at 15.3 m/s, so it settles
+ * sinking 0.44 m/s (npm run stab:straight flies the same), and from the
+ * 3 m it was thrown at until w36-physics it passed z = 0 at 5 s and ended
+ * 2.27 m under the ground plane, the rest of this section flown from
+ * there. */
+throwAt(30, 12);
 /* Centred sticks at the stick that flies it level, the table's
  * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
  * prop curves gave the prop its thrust at speed. */

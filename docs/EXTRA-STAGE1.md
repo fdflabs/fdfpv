@@ -449,3 +449,4 @@ The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at th
 - E11's derivation needs the elevator's whole throw at 40 deg and cannot trim 45 (w36-wash-speed, inherited): the plant holds 40 deg at 0.98 of the stick.
 
 The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.
+- extra:stab's Stabilised "level" throw is a real sink, not a start height: at the trim stick (stab_trim_throttle 0.365, elevator neutral level at 14.9 m/s) Stabilised holds 2 deg of pitch, under the 3.6 deg of alpha the lift takes at 15.3 m/s, so it settles sinking 0.44 m/s; the throw model gives the same. Thrown from 3 m it crossed z = 0 at 5 s and ended 2.27 m under the ground plane, the rest of the section flown from there; it is thrown from 30 m now. Its straight line, 2.97 m, does not move.
