@@ -218,7 +218,11 @@ export const PROGRAMS = {
   double_roll: [L(), roll(0.6, 4 * PI), L()],
   slow_roll: [L(), roll(0.15, 2 * PI, 0.9), L()],
   two_point_roll: [L(), points(2), L()],
-  eight_point_roll: [L(), points(8, 0.6), L()],
+  /* An eighth at 0.6 of stick (6.4 rad/s) passed in 0.12 s, inside the
+   * 0.2 s the person has not seen: its points fell anywhere (117 to 408
+   * deg). At 0.25 an eighth takes 0.3 s and the points sit 3 to 21 deg
+   * short of their marks. */
+  eight_point_roll: [L(), points(8, 0.25), L()],
   barrel_roll: [L(), roll(0.35, 2 * PI, 1, 0.3, false), L()],
   outside_loop: [L(), pull(-0.55, 2 * PI), L()],
   immelmann: [L(), pull(0.55, PI), roll(0.5, PI), L()],

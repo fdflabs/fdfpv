@@ -150,9 +150,9 @@ check('negative control: a row with its law dropped is caught',
  * sat flown for a day while its program flew an aileron roll (the prop
  * curves, 562dc785e, rolled it faster than its points law let go for). */
 const staleFlown = (rows) => rows.filter((r) => r.physics === 'flown' && r.measured
-  && !(r.measured.named && r.measured.finished && !r.measured.crashed)).map((r) => r.id);
+  && !(r.measured.named && r.measured.grade > 0 && r.measured.finished && !r.measured.crashed)).map((r) => r.id);
 const stale = staleFlown(table.rows);
-check('every flown figure with a program is named by it, finished and clear of the ground', stale.length === 0, stale.join(', '));
+check('every flown figure with a program is named by it above zero, finished and clear of the ground', stale.length === 0, stale.join(', '));
 check('negative control: a flown row its program no longer names is caught',
   staleFlown(table.rows.map((r) => (r.id === 'tailslide' ? { ...r, measured: { ...r.measured, named: false } } : r))).includes('tailslide'));
 const named = table.rows.filter((r) => r.measured && r.measured.named).length;

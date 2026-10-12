@@ -554,13 +554,13 @@
       },
       "measured": {
         "named": true,
-        "grade": 0,
+        "grade": 2,
         "flew": [
-          "eight_point_roll 0"
+          "eight_point_roll 2"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 130.4
+        "lowestM": 119.2
       },
       "margin": null
     },

@@ -50,11 +50,13 @@ const only = onlyArg ? onlyArg.slice(7).split(',') : null;
 const rows = [];
 for (const f of FIGURES.filter((x) => x.physics === 'unproven' && PROGRAMS[x.id] && (!only || only.includes(x.id)))) {
   const r = await fly(PROGRAMS[f.id], { wasmBytes, configText, trace });
-  const hit = r.got.find((g) => g.figure === f.id);
+  /* Named at grade 0 is a figure a judge gives nothing: no pin protects it. */
+  const hit = r.got.find((g) => g.figure === f.id && g.grade > 0);
+  const zero = !hit && r.got.some((g) => g.figure === f.id);
   const named = r.got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing';
   rows.push({ id: f.id, hit: Boolean(hit), grade: hit ? hit.grade : null, named, finished: r.finished, minZ: r.minZ });
   const end = r.crashed ? ' (CRASHED, program unfinished)' : r.finished ? '' : ' (program unfinished)';
-  console.log(`${hit ? 'NAMED ' : 'MISSED'} ${f.id.padEnd(20)} ${hit ? `grade ${hit.grade}` : ''}  flew: ${named}${end}  lowest ${r.minZ.toFixed(0)} m`);
+  console.log(`${hit ? 'NAMED ' : zero ? 'ZERO  ' : 'MISSED'} ${f.id.padEnd(20)} ${hit ? `grade ${hit.grade}` : ''}  flew: ${named}${end}  lowest ${r.minZ.toFixed(0)} m`);
 }
 const n = rows.filter((r) => r.hit).length;
 console.log(`\nfigures plant sweep: ${n} of ${rows.length} named as flown`);
