@@ -147,20 +147,19 @@ export const TUNES = [
     note: 'A gyro holds the glider. Roll stick asks for a bank up to 50 degrees, pitch stick for a pitch up to 30, centred sticks glide level, and the rudder is coordinated for you. The launch preset holds the climb after the throw.',
     wingStab: 1,
   },
-  {
-    /* The quads' (docs/COMBAT-DRONES.md): stock 4.5.1, on their own
-     * plants, with the build's motor kV, pack size and Li-ion cell limits
-     * written in.
-     *
-     * betaflight-default.diff, untouched 4.5.1, has no row since the five
-     * inch it was offered on went (2026-10-03). It stays on disk because
-     * it is not only a tune: it is the configuration stage 1 verification
-     * and the module checks fly plant 0 on (tests/, scripts/fc-trace.js). */
-    id: 'betaflight-7inch',
-    airframe: '7inch',
-    name: 'Factory default',
-    note: 'Factory 4.5.1 on the 7 inch: 1300 kV, a 4200 mAh Li-ion pack.',
-  },
+  /*
+   * The quads' (docs/COMBAT-DRONES.md): stock 4.5.1, on their own plants,
+   * with the build's motor kV, pack size and Li-ion cell limits written
+   * in.
+   *
+   * betaflight-default.diff, untouched 4.5.1, has no row since the five
+   * inch it was offered on went (2026-10-03). It stays on disk because it
+   * is not only a tune: it is the configuration stage 1 verification and
+   * the module checks fly plant 0 on (tests/, scripts/fc-trace.js).
+   *
+   * The 7 inch's tune is its folder's, aircraft/7inch/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '7inch'),
   {
     id: 'betaflight-10inch',
     airframe: '10inch',
