@@ -36,6 +36,13 @@
  * hold) keeps the criterion too. The climb rate's outer loop, a quarter
  * as fast (PERSON.outer), is not measured.
  *
+ * The knife-edge loop (figureprograms.js KNIFE_LOOP) flies the knife
+ * edge's bank and heading loops and one more, the path's angle on the
+ * rudder, measured in the same level knife edge: crossoverFor's
+ * crossover and plant gain, and the margins of the loop as flown at half
+ * that crossover. Its pace, its share of the rudder and its floor are
+ * not measured.
+ *
  *   node scripts/figures-margins.js
  *
  * Exits 1 if a constant pinned in figureprograms.js (the line's fit, the
@@ -65,7 +72,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, attitude, responseAt, crossoverFor, EXTRA_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
-import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, KNIFE } from '../tests/lib/figureprograms.js';
+import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, KNIFE, KNIFE_LOOP } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -304,6 +311,19 @@ export async function knifeLoops() {
   return out;
 }
 
+/* The knife-edge loop's rudder on the path's angle (figureprograms.js
+ * KNIFE_LOOP): where crossoverFor puts it in the level knife edge, and
+ * the margins of the loop flown at half that crossover on the same plant
+ * gain, its trim's integral and the 0.25 s of delay and hold included. */
+const pathOf = (s) => -Math.asin(Math.max(-1, Math.min(1, s[6] / Math.hypot(s[4], s[5], s[6]))));
+export async function knifeLoopPath() {
+  const sim = await fresh();
+  const { start, hold } = knifeFlight();
+  const x = crossoverFor(sim, start, hold, 2, pathOf);
+  const flown = loopMargins(sim, start, hold, 2, pathOf, KNIFE_LOOP.path);
+  return { crossoverFor: x.wc, gain: Number(x.gain.toFixed(3)), wc: KNIFE_LOOP.path.wc, ...flown };
+}
+
 /* Every loop's measured margins, as the manoeuvre table carries them,
  * and what is wrong with them: a fit that is not the plant's, or a
  * margin short of the criterion. */
@@ -328,6 +348,7 @@ export async function measureMargins() {
   }
   return {
     knife: await knifeLoops(),
+    knifeLoop: { path: await knifeLoopPath() },
     criterion: 'bandwidth criterion: 45 deg phase margin, 6 dB gain margin (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, NASA NCC2-338, 1986)',
     delayS: TAU,
     lineElevator: {
@@ -353,6 +374,11 @@ export function marginFailures(m) {
     if (k.wc !== KNIFE[name].wc || !same(k.gain, KNIFE[name].gain)) out.push(`figureprograms.js KNIFE.${name} ${JSON.stringify(KNIFE[name])} is not the plant's crossover ${k.wc} rad/s, gain ${k.gain}`);
     if (!(k.pmDeg >= 45 && (k.gmDb === null || k.gmDb >= 6))) out.push(`the knife edge's ${name} loop keeps ${k.gmDb} dB and ${k.pmDeg} deg`);
   }
+  const p = m.knifeLoop.path;
+  if (p.crossoverFor !== 2 * KNIFE_LOOP.path.wc || !same(p.gain, KNIFE_LOOP.path.gain)) {
+    out.push(`figureprograms.js KNIFE_LOOP.path ${JSON.stringify(KNIFE_LOOP.path)} is not half the plant's crossover ${p.crossoverFor} rad/s on its gain ${p.gain}`);
+  }
+  if (!(p.pmDeg >= 45 && (p.gmDb === null || p.gmDb >= 6))) out.push(`the knife-edge loop's path loop keeps ${p.gmDb} dB and ${p.pmDeg} deg`);
   if (Math.abs(m.knife.trim.rudder - KNIFE.trim.rudder) > 0.005 || Math.abs(m.knife.trim.elevation - KNIFE.trim.elevation) > 0.0005
     || Math.abs(m.knife.trim.speed - KNIFE.trim.speed) > 0.05) {
     out.push(`figureprograms.js KNIFE.trim ${JSON.stringify(KNIFE.trim)} is not where the knife edge settles ${JSON.stringify(m.knife.trim)}`);
@@ -373,6 +399,8 @@ if (main) {
     console.log(`knife edge ${name}: crossoverFor ${k.crossoverFor} rad/s, flown at ${k.wc} rad/s on a plant gain of ${k.gain}, PM ${k.pmDeg} deg at ${k.wcFound} rad/s, GM ${k.gmDb === null ? 'none to 12 rad/s' : `${k.gmDb} dB at ${k.w180} rad/s`}`);
   }
   console.log(`knife edge trim: rudder ${m.knife.trim.rudder}, elevation ${m.knife.trim.elevation} rad at ${m.knife.trim.speed} m/s`);
+  const p = m.knifeLoop.path;
+  console.log(`knife-edge loop path: crossoverFor ${p.crossoverFor} rad/s on a plant gain of ${p.gain}, flown at ${p.wc} rad/s, PM ${p.pmDeg} deg at ${p.wcFound} rad/s, GM ${p.gmDb === null ? 'none to 12 rad/s' : `${p.gmDb} dB at ${p.w180} rad/s`}`);
   const bad = marginFailures(m);
   for (const b of bad) console.log(`FAIL ${b}`);
   console.log(`\nfigures margins: ${bad.length ? `${bad.length} failed` : 'all hold'}`);

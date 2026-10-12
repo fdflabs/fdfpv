@@ -245,6 +245,104 @@ const knife = (ms) => ({
       quant(-m.side * m.elevation.step(want - Math.asin(clamp(d.nz)))),
       1,
     ];
+    m.flight.knife = m.sticks;
+    return [m.sticks, done];
+  },
+});
+/*
+ * A knife-edge loop: a loop flown on its knife edge, the rudder pulling
+ * the nose round and the wings square to the loop's plane. The person
+ * enters from the knife edge above, whose sticks are where they start:
+ * the ailerons hold the bank (the wing square to the plane) and the
+ * elevator the plane (the nose in it), on the knife edge's own two loops
+ * (KNIFE.bank, KNIFE.heading), the rudder the path round the loop, full
+ * throttle throughout.
+ *
+ * The rudder flies the path's angle round the loop onto a mark the
+ * person moves on at V / R, R set at the entry speed by the loop's pace
+ * (rate, rad/s): a constant radius as the speed changes ("the radius
+ * kept constant", BAeA judging, "Loops and Part Loops"), as round()
+ * does for an inside loop. The mark is brought up to pace over rampS,
+ * the rudder fed in as a person does, not stepped. Its loop is
+ * personLoop's on the rudder's measured response in the level knife
+ * edge, read as the path's angle (scripts/figures-margins.js: crossoverFor
+ * puts it at 1.6 rad/s on a plant gain of 1.013), flown at half that
+ * crossover: the CAP's side force per rudder near the stop is about
+ * twice its slope at the knife edge's trim (0.4, 1.2 and 2.8 g at half,
+ * three quarters and full rudder, launched at 25 m/s at full throttle,
+ * against the Extra's 1.1, 2.0 and 2.7; 2026-10-12, the side force 0.4
+ * to 0.7 s after the step), and the loop flown at the trim's crossover
+ * rang on it at 3 rad/s, the rudder from the stop to 0.46 and back. On
+ * top the person asks the rudder the turn needs as a share of the knife
+ * edge's: the side force toward the loop's centre (V^2 / R and the
+ * weight's share) in g, times the rudder that held the 1 g knife edge
+ * (ff of it), the rest the loop's.
+ *
+ * rate, rateMin, rampS and ff are FITTED, swept 2026-10-12 on all three
+ * from the level entry: rate 0.45 to 0.55, rateMin none, 0.4 and 0.45,
+ * ff 0.4 to 0.7, rampS 1 and 2. With rateMin 0.4 and rampS 2, ff 0.4 and
+ * 0.55 named it on all three at every rate; ff 0.7 lost the CAP (its
+ * rudder overshot and the path's rate fell under the detector's arc),
+ * rampS 1 lost the CAP at every rate and ff, rateMin 0.45 took the Slick
+ * to 0 to 3. The floor is over the top, where the speed is lowest: at
+ * V / R alone the path turned 0.3 rad/s there, a breath over the
+ * detector's arc (ARC_OFF 0.25), and one dip took the loop apart. No
+ * margin is measured for the pace, the share or the floor. The gains are
+ * not scheduled on the speed (20 to 38 m/s round the loop): scaled by
+ * the entry speed over V it lost the CAP and the Slick, by its square
+ * it spun the CAP off at 4 m/s; the knife edge's loops keep 9 dB, past
+ * the 2.5 dB a third more speed than their 28.5 m/s adds. With the
+ * throttle cut over the top (to 0.2 or 0.5, from 0.9 or 1.1 of a half
+ * turn) the Extra did not finish the loop and reached the ground in all
+ * four. It lets go 0.3 s of the path's rate early.
+ */
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 1.013 }, rate: 0.5, rateMin: 0.4, rampS: 2, ff: 0.55 };
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const knifeLoop = () => ({
+  name: 'knife loop',
+  step: (d, m) => {
+    const [w, x, y, z] = [d.s[7], d.s[8], d.s[9], d.s[10]];
+    const n = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+    const l = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
+    const u = [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
+    const v = [d.s[4] / d.v, d.s[5] / d.v, d.s[6] / d.v];
+    if (!m.normal) {
+      /* The loop's plane is the vertical one along the path, its normal
+       * the wings' up as the knife edge holds it, and its centre on the
+       * top wing's side. */
+      const [ail, ele, rud] = m.flight.knife;
+      m.side = Math.sign(l[2]) || 1;
+      const hu = Math.hypot(u[0], u[1]);
+      const hv = Math.hypot(v[0], v[1]);
+      m.normal = [u[0] / hu, u[1] / hu, 0];
+      m.along = [v[0] / hv, v[1] / hv, 0];
+      m.R = d.v / KNIFE_LOOP.rate;
+      m.rudder = -m.side * rud;
+      m.bank = personLoop(KNIFE.bank.wc, KNIFE.bank.gain, { u0: ail });
+      m.plane = personLoop(KNIFE.heading.wc, KNIFE.heading.gain, { u0: -ele });
+      m.path = personLoop(KNIFE_LOOP.path.wc, KNIFE_LOOP.path.gain, { u0: m.rudder * (1 - KNIFE_LOOP.ff) });
+      m.was = Math.atan2(v[2], dot3(v, m.along));
+      m.turned = 0;
+      m.mark = 0;
+    }
+    const at = Math.atan2(v[2], dot3(v, m.along));
+    let step = at - m.was;
+    if (step > PI) step -= 2 * PI;
+    if (step < -PI) step += 2 * PI;
+    m.was = at;
+    m.turned += step;
+    const done = m.turned > 2 * PI - 0.3 * d.v / m.R;
+    if (m.sticks && m.t % PERSON.everyMs !== 0) return [m.sticks, done];
+    const pace = Math.max(KNIFE_LOOP.rateMin, d.v / m.R) * Math.min(1, m.t / 1000 / KNIFE_LOOP.rampS);
+    m.mark = Math.min(2 * PI, m.mark + pace * PERSON.everyMs / 1000);
+    const g = (d.v * pace + G * m.side * l[2]) / G;
+    const rud = clamp(KNIFE_LOOP.ff * m.rudder * g + m.path.step(m.mark - m.turned));
+    m.sticks = [
+      quant(m.bank.step(-Math.atan2(dot3(l, m.normal), dot3(u, m.normal)))),
+      quant(-m.plane.step(dot3(n, m.normal))),
+      quant(-m.side * rud),
+      1,
+    ];
     return [m.sticks, done];
   },
 });
@@ -444,7 +542,7 @@ export const PROGRAMS = {
   hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < 9), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), knife(3000), roll(-0.5, 0.5 * PI), L()],
-  ke_loop: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -1, 1], 7000), L()],
+  ke_loop: [L(), roll(0.5, 0.5 * PI, 1), knife(1000), knifeLoop(), roll(-0.5, 0.5 * PI), L()],
   /* One roll, the catalogue's 2.4.2.1: a turn as fast as the judge's
    * slowest roll (1.2 rad/s) asks 2.7 g toward the centre at 22 m/s, all
    * of it on the rudder where the wings are level, near three times the
@@ -475,7 +573,10 @@ export async function fly(program, { wasmBytes, configText, trace = false, airfr
   const det = new FigureDetector((f) => got.push(f));
   const eye = eyes({ stepMs: MS, everyMs: EVERY });
   let i = 0;
-  let mem = { t: 0 };
+  /* What one phase leaves the next in this flight (the knife edge's
+   * sticks for the loop flown from it). */
+  const flight = {};
+  let mem = { t: 0, flight };
   let st = [0, 0, 0, 0.75];
   let ms = 0;
   let minZ = Infinity;
@@ -497,7 +598,7 @@ export async function fly(program, { wasmBytes, configText, trace = false, airfr
       if (trace) console.log(`  ${ms} ${program[i].name} along ${o.along.toFixed(1)} q ${o.q.toFixed(2)} r ${o.r.toFixed(2)} v ${o.v.toFixed(1)} z ${o.z.toFixed(0)} nz ${o.nz.toFixed(2)} uz ${o.uz.toFixed(2)} [${st.join(',')}]`);
       if (done) {
         i += 1;
-        mem = { t: 0 };
+        mem = { t: 0, flight };
       }
     }
     must(sim.input(ms / 1000, ...st), 'sim_input');
