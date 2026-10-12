@@ -272,7 +272,7 @@ check: {
    * must damp the rock: its bank's spread under Manual's. */
   {
     const t11 = th.e11_harrier;
-    const harrier = (mode) => {
+    const harrier = (mode, kick = 0) => {
       must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
       const r = fly(sim, { duty: 0.384, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
       clockMs = r.endMs;
@@ -284,7 +284,8 @@ check: {
       const psi0 = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
       let sv = 0, sd = 0, se = 0, n = 0, worstBank = 0, zMin = Infinity, zMax = -Infinity, sa = 0;
       const banks = [];
-      for (let ms = 0; ms < 20000; ms += RC_STEP_MS) {
+      let pre = 0, preN = 0, iae = 0;
+      for (let ms = 0; ms < (kick ? 32000 : 20000); ms += RC_STEP_MS) {
         const alpha = wingDebug(sim)[0];
         const bank = fullBank(s);
         const psi = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
@@ -292,14 +293,16 @@ check: {
         iP = Math.max(-1, Math.min(1, iP + 1.5 * (at - alpha) * RC_STEP_MS / 1000));
         const pitchStick = clamp(1.5 * (at - alpha) + 0.15 * s[12] + iP);
         iB = Math.max(-0.5, Math.min(0.5, iB - 1.0 * bank * RC_STEP_MS / 1000));
-        const roll = clamp(-0.6 * bank - 0.06 * s[11] + iB);
+        const roll = clamp(-0.6 * bank - 0.06 * s[11] + iB + (kick && ms >= 20000 && ms < 20300 ? kick : 0));
         let dpsi = psi - psi0;
         while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
         while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
         const yaw = clamp(1.0 * dpsi + 0.2 * s[13]);
         const t = thr(s);
         s = step(sim, [roll, pitchStick, yaw, t]);
-        if (ms >= 10000) {
+        if (kick && ms >= 15000 && ms < 20000) { pre += bank * DEG; preN += 1; }
+        if (kick && ms >= 20000) iae += Math.abs(bank * DEG - pre / preN) * RC_STEP_MS / 1000;
+        if (ms >= 10000 && ms < 20000) {
           banks.push(bank * DEG);
           worstBank = Math.max(worstBank, Math.abs(bank * DEG));
           zMin = Math.min(zMin, s[3]); zMax = Math.max(zMax, s[3]);
@@ -313,7 +316,7 @@ check: {
       let cross = 0;
       for (let i = 1; i < banks.length; i += 1) if ((banks[i - 1] - mean) * (banks[i] - mean) < 0) cross += 1;
       must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-      return { v: sv / n, d: sd / n, e: se / n, a: sa / n * DEG, worstBank, spread, period: cross > 1 ? (2 * 10) / cross : null, drift: zMax - zMin };
+      return { iae, v: sv / n, d: sd / n, e: se / n, a: sa / n * DEG, worstBank, spread, period: cross > 1 ? (2 * 10) / cross : null, drift: zMax - zMin };
     };
     const m = harrier(0);
     const g = harrier(3);
@@ -322,9 +325,14 @@ check: {
         && m.drift <= t11.maxHeightDrift,
       `${m.v.toFixed(2)} m/s at throttle ${m.d.toFixed(3)}, alpha ${m.a.toFixed(1)} deg, elevator stick ${m.e.toFixed(2)}, bank under ${m.worstBank.toFixed(1)} (sd ${m.spread.toFixed(1)}), period ${m.period === null ? 'none' : m.period.toFixed(2)} s, height within ${m.drift.toFixed(2)} m`,
       `${t11.vMin} to ${t11.vMax} m/s, ${t11.dutyMin} to ${t11.dutyMax}, elevator short of full, bank under ${t11.maxBankDeg}, within ${t11.maxHeightDrift} m`);
-    gate('E11b', 'harrier in AS3X: the gyro damps the rock', g.spread < m.spread && g.drift <= t11.maxHeightDrift,
-      `bank sd ${g.spread.toFixed(1)} against Manual's ${m.spread.toFixed(1)}, worst ${g.worstBank.toFixed(1)}, height within ${g.drift.toFixed(2)} m`,
-      `under Manual's, within ${t11.maxHeightDrift} m`);
+    /* E11b: the same disturbance in each mode, a half stick of roll for
+     * 0.3 s each way from the settled harrier (at 20 s); the bank's
+     * departure from its settled mean, integrated over the 12 s after,
+     * must be the less in AS3X both ways. */
+    const kicks = t11.kickStick.map((k) => ({ k, m: harrier(0, k).iae, g: harrier(3, k).iae }));
+    gate('E11b', 'harrier in AS3X: the gyro damps the rock', kicks.every((x) => x.g / x.m < t11.as3xIaeRatioMax) && g.drift <= t11.maxHeightDrift,
+      kicks.map((x) => `kick ${x.k}: ${x.g.toFixed(1)} against Manual's ${x.m.toFixed(1)} deg s, ${(x.g / x.m).toFixed(2)}`).join('; ') + `, height within ${g.drift.toFixed(2)} m`,
+      `under ${t11.as3xIaeRatioMax} of Manual's, within ${t11.maxHeightDrift} m`);
   }
 
   /* E12: the knife edge. From level at 15 m/s, rolled right to 90 deg on
