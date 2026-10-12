@@ -582,36 +582,156 @@ function knifeEdge(V) {
   return null;
 }
 /*
- * The Stabilised throw cap580:stab flies: 16 m/s, 75 percent, the wings
- * held level and the turn coordinator holding the sideslip at nought. The
- * right thrust's side force, T sin(thrust_yaw), and the rudder the
- * coordinator holds against its yaw moment about the CG, prop_x T
- * sin(thrust_yaw), whose own side force is that moment times CYdr / (b
- * Cndr), turn the path at Y / (m V) with the wings level. The swirl's
- * side force and its rudder cancel (the fin carries both, in the same
- * ratio). The speed comes up from the throw on T - D, level. Returns the
- * path's sideways offset after 10 s, m, right negative as the plant's y.
- * It holds the plant's late turn (0.53 deg/s here, 0.61 flown) but not
- * the throw's first seconds: the motor's torque rolls the wings left at
- * the throw (2.3 deg at 0.5 s, flown) before Stabilised's roll loop and
- * its integrator level them, turning the path against the right thrust,
- * and that roll transient is not in this model. So it gives -24.8 m
- * where the plant flies -17.8, and cap580:stab's 15 m, which has no
- * source, stays red until the transient is derived (2026-10-12).
+ * THE STABILISED THROW, cap580:stab's "straight": thrown level at 16 m/s,
+ * 75 percent, every stick centred for 10 s. The right thrust turns its
+ * path right; the motor's torque rolls it left at the throw, before the
+ * roll loop has met it, and the bank turns the path back left; Stabilised's
+ * pitch loop holds 2 deg of trim pitch, which at this power is a climb,
+ * and the climb takes thrust, which the right thrust's turn goes with. So
+ * the throw is flown here whole: the body's six rates and speeds on this
+ * derivation's own coefficients, the wash's terms as the plant takes them
+ * (scripts/lib/wash.js), the receiver's loops and the motor's spool
+ * written out as plant_wing.c has them.
+ *
+ * The receiver, plant_wing.c "THE STABILISER", mode 1 (not AS3X, mode 3,
+ * whose gains are as3x:derive's): the roll stick is -kp bank - kd p plus
+ * an integrator, ArduPilot's roll controller (RLL2SRV_I 0.05 on the rate
+ * its RLL2SRV_TCONST of 0.5 s asks for the bank error less the rate
+ * flown, over the aileron's throw, held to RLL2SRV_IMAX's third of the
+ * travel, https://ardupilot.org/plane/docs/roll-pitch-controller-tuning.html);
+ * the pitch stick kp and kd on the pitch against the 2 deg trim (75
+ * percent is over stab_trim_throttle, so nothing lowers it); the yaw stick
+ * the turn coordinator, yaw_coord_k times the body yaw rate less the
+ * coordinated g sin(bank) cos(pitch) / V. That is a yaw rate damper, not a
+ * sideslip hold: the right thrust's yaw is held by the weathervane
+ * (Cn_beta) and the swirl on the fin, the coordinator's rudder taking
+ * about a sixth of it. Each stick through the expo to its surface; the
+ * CAP's servos are not slowed (FW_CAP1702 has no servo_rate). The gains
+ * are the Extra's, FITTED there (docs/EXTRA-STAGE1.md); --check holds the
+ * table and the plant's defines to them.
  */
-function throwDrift() {
-  let V = 16, psi = 0, y = 0;
+const STAB = { kp: 0.6, kd: 0.06, i: 0.05, tconst: 0.5, imax: 1 / 3, yawK: 0.25, pitchKp: 2.0, pitchKd: 0.2, trimPitch: 2 / DEG };
+/* Every table's lateral cross terms (docs/EXTRA-STAGE1.md): the roll a
+ * yaw rate makes and the yaw a roll rate and the ailerons make, per CL. */
+const CL_R_PER_CL = 0.25, CN_P_PER_CL = -0.125, CN_DA_PER_CL = -0.08;
+/* Selig's jet normal force behind a cowling, 80 percent (AIAA
+ * 2010-7938), and the P factor, the Cub's blade element figure FITTED
+ * (no figure measured for an 18 in prop), as the table has them. */
+const JET_KJ = 0.80, PFACTOR = 1.89;
+/*
+ * The motor at the throw, plant_wing.c prop_spool: a launch starts the
+ * prop at its duty's speed share, n = d, and Drela's motor (MIT 16.50,
+ * 2007) spools it on to n^2 + K_M n = (K_M + 1) d against the prop's
+ * static torque, J w_f n' = Q_f (K_M (d - n) + d - n^2). The airframe takes
+ * the prop's torque in the air, Q_f n^2 Cp(mu) over its static Cp, and
+ * the rotor's own acceleration, J w_f n', through the mount, at once: a
+ * step of torque at the throw that the roll loop has not yet met. The
+ * wing's root gives back 1 - SWIRL_KEEP of the air's torque, and the rest
+ * of the swirl crosses the fin.
+ */
+const K_M = 0.85 / 0.15;
+const wFull = 0.85 * rpmNL * 2 * Math.PI / 60;
+const qFull = torqueArm * Ts;
+const surfaceOf = (stick, thr) => { const x = Math.max(-1, Math.min(1, stick)); return (EXPO * x * x * x + (1 - EXPO) * x) * thr; };
+/*
+ * Flown at the plant's 1 ms step (Etkin and Reid, Dynamics of Flight,
+ * ch. 4, in the plant's axes). Body axes: x forward, y left, z up; p roll
+ * right, qn nose up, r nose left; bank right wing down positive; heading
+ * and cross track left positive, so a path to the right reads negative as
+ * the plant's y. Lift on the wing's own slope with the tail's about its
+ * zero at slip_a0 (plant_wing.c with hi_alpha), the drag on the whole
+ * curve's. mount false takes the drive's torque off the airframe, as
+ * sim_wing_set_mount(0). Returns the state at the times asked.
+ */
+const THROW_AT = [0.5, 1, 2, 3, 5, 10];
+function throwFlight(mount = true) {
   const dt = 0.001;
-  for (let t = 0; t < 10; t += dt) {
-    const Tt = T(V, nAt(0.75, V));
-    const fy = Tt * Math.sin(THRUST_YAW);
-    const Y = fy * (1 - propX * CYdr / (b * Cndr));
-    psi += Y / (m * V) * dt;
-    V += (Tt - D(V)) / m * dt;
-    y -= V * Math.sin(psi) * dt;
+  let u = 16, v = 0, w = 0, p = 0, qn = 0, r = 0, phi = 0, theta = 0, psi = 0, y = 0, z = 0, integ = 0;
+  let n = seat.at(SEAT_GATES, 0.75, u).d;
+  const out = [];
+  let next = 0;
+  for (let step = 1; step <= 10000; step += 1) {
+    const V = Math.hypot(u, v, w);
+    const q = 0.5 * rho * V * V;
+    const alpha = Math.atan2(-w, u), ca = Math.cos(alpha), sa = Math.sin(alpha);
+    const beta = -v / V;
+    const d = seat.at(SEAT_GATES, 0.75, u).d;
+    const ndot = qFull * (K_M * (d - n) + d - n * n) / (propJ * wFull);
+    const mu = u / (prop.pitchSpeed * n);
+    const thrust = T(u, n);
+    const qAir = qFull * n * n * prop.cp(mu);
+    const qReact = mount ? qAir + propJ * wFull * ndot : 0;
+    /* The receiver. */
+    integ += STAB.i * (-phi / STAB.tconst - p) / throwA * dt;
+    integ = Math.max(-STAB.imax, Math.min(STAB.imax, integ));
+    const da = surfaceOf(-STAB.kp * phi - STAB.kd * p + integ, throwA);
+    const de = surfaceOf(STAB.pitchKp * (STAB.trimPitch - theta) - STAB.pitchKd * qn, throwE);
+    const rCoord = -g * Math.sin(phi) * Math.cos(theta) / Math.max(V, 5);
+    const dr = -surfaceOf(STAB.yawK * (r - rCoord), throwR);
+    /* The air. The lift: the wing's own slope, and the tail's lift about
+     * its zero at slip_a0 with the elevator's (plant_wing.c, hi_alpha);
+     * the drag on the whole curve's lift. */
+    const CLlin = CLa * alpha + CLde * de;
+    const CL = aw * alpha + (CLa - aw) * (alpha - slip.slip_a0) + CLde * de;
+    const cm = Cm0 + Cma * alpha + Cmq * qn * c / (2 * V) + Cmde * de;
+    /* Stability axes turned to the body's (plant_wing.c). */
+    const ra = -r, b2v = b / (2 * V);
+    const ps = p * ca + ra * sa, rs = ra * ca - p * sa;
+    const cl = Clb * beta + Clp * ps * b2v + Clda * da + CL_R_PER_CL * CL * rs * b2v + Cldr * dr;
+    const cn = Cnb * beta + Cnr * rs * b2v + CN_P_PER_CL * CL * ps * b2v + CN_DA_PER_CL * CL * da + Cndr * dr;
+    const lAero = q * S * b * (cl * ca - cn * sa), nAero = q * S * b * (cn * ca + cl * sa);
+    const yAero = q * S * (CYb * beta + CYdr * dr);
+    /* The wash: the swirl's sideways speed at the fin, xs; the
+     * stabiliser's crossflow from its zero lift, xa. */
+    const wa = washOf(slip, thrust, u);
+    const mdot = rho * Math.PI * propR * propR * (u + wa.vi);
+    const xs = SWIRL_KEEP * qAir * (Math.min(wa.rw, hvUp) - Math.min(wa.rw, hvDn)) / (mdot * wa.rw * wa.rw);
+    const xb = -v - xs, kv = rho * wa.vi * wa.fv, pv = wa.dp * wa.fv;
+    const xa = -w * Math.cos(slip.slip_a0) - u * Math.sin(slip.slip_a0);
+    const kh = rho * wa.vi * wa.fh, ph = wa.dp * wa.fh;
+    const ySlip = S * (kv * slip.slip_cy_b * xb + pv * CYdr * dr);
+    const nSlip = S * b * (kv * (slip.slip_cn_b * xb + slip.slip_cn_r * ra * 0.5 * b) + pv * Cndr * dr);
+    const lSlip = S * b * (kv * slip.slip_cl_b * xb + pv * Cldr * dr + wa.dp * wa.fa * Clda * da) + (1 - SWIRL_KEEP) * qAir;
+    const zSlip = S * (kh * slip.slip_cl_a * xa + ph * CLde * de);
+    const mSlip = S * c * (kh * (slip.slip_cm_a * xa + Cmq * qn * 0.5 * c) + ph * Cmde * de);
+    /* Selig's jet normal force at the disc, prop_x ahead. */
+    const aDisc = Math.PI * propR * propR;
+    const kj = JET_KJ * rho * aDisc * Math.sqrt(thrust / (2 * rho * aDisc)) * wa.vi / (u + wa.vi);
+    const fJet = -kj * (v + r * propX), zJet = -kj * (w + qn * propX);
+    const fThrust = -thrust * Math.sin(THRUST_YAW);
+    const lift = q * S * CL, drag = q * S * (CD0 + k * CLlin * CLlin);
+    const Fx = lift * sa - drag * u / V + thrust * Math.cos(THRUST_YAW);
+    const Fy = fThrust - yAero - ySlip + fJet - 0.5 * rho * sideCda * v * Math.abs(v) - drag * v / V;
+    const Fz = lift * ca - drag * w / V + zSlip + zJet;
+    /* The prop as a gyroscope, H = J n w_f along the body's x: a pitch
+     * up yaws the nose right, a yaw right pitches it down. */
+    const H = propJ * n * wFull;
+    const L = lAero - qReact + lSlip;
+    const M = q * S * c * cm + mSlip + propX * zJet + r * H;
+    const N = -nAero + propX * fThrust - nSlip + propX * fJet + PFACTOR * thrust * -w / (n * wFull) - qn * H;
+    /* Etkin and Reid ch. 4, body axes, z up, qn nose up: gravity and the
+     * rates' turning of the velocity; the attitude's rates. */
+    const sph = Math.sin(phi), cph = Math.cos(phi), sth = Math.sin(theta), cth = Math.cos(theta);
+    u += (Fx / m - g * sth + qn * w + r * v) * dt;
+    v += (Fy / m - g * sph * cth - r * u + p * w) * dt;
+    w += (Fz / m - g * cph * cth - p * v - qn * u) * dt;
+    p += L / Ixx * dt;
+    qn += M / Iyy * dt;
+    r += N / Izz * dt;
+    phi += (p + (qn * sph - r * cph) * Math.tan(theta)) * dt;
+    theta += (qn * cph + r * sph) * dt;
+    psi += (r * cph - qn * sph) / cth * dt;
+    y += (u * Math.sin(psi) + v * Math.cos(psi)) * dt;
+    z += (u * sth + v * sph * cth + w * cph * cth) * dt;
+    n += ndot * dt;
+    if (next < THROW_AT.length && step === Math.round(THROW_AT[next] / dt)) {
+      out.push({ t: THROW_AT[next], y, bank: phi * DEG, psi: psi * DEG, da: da * DEG, dr: dr * DEG, beta: beta * DEG, r: r * DEG, V, pitch: theta * DEG, z, thrust });
+      next += 1;
+    }
   }
-  return y;
+  return out;
 }
+const throwOn = throwFlight(true), throwOff = throwFlight(false);
 
 /* The take off roll, full throttle, the tail held to 6 m/s, then 2 deg,
  * and 8 deg from the rotation speed, the Extra's. */
@@ -647,7 +767,10 @@ export const FW = {
   cn_dr: r(Cndr, 4),
   throw_a: deg(throwA), throw_e: deg(throwE), throw_r: deg(throwR), surface_max: deg(throwA), expo: r(EXPO, 2),
   thrust_static: r(Ts, 2), pitch_speed: r(Vp, 3), rpm_no_load: r(rpmNL, 1), torque_arm: r(torqueArm, 5),
-  current_full: r(Is, 2), jet_kj: '0.80', prop_x: r(propX, 3),
+  current_full: r(Is, 2), jet_kj: r(JET_KJ, 2), prop_x: r(propX, 3), pfactor: r(PFACTOR, 2),
+  cl_r_per_cl: r(CL_R_PER_CL, 2), cn_p_per_cl: r(CN_P_PER_CL, 3), cn_da_per_cl: r(CN_DA_PER_CL, 2),
+  stab_roll_kp: r(STAB.kp, 1), stab_roll_kd: r(STAB.kd, 2), stab_pitch_kp: r(STAB.pitchKp, 1), stab_pitch_kd: r(STAB.pitchKd, 1),
+  stab_trim_pitch: deg(STAB.trimPitch, 1), yaw_coord_k: r(STAB.yawK, 2),
   throttle_rpm: arr(THROTTLE_RPM, 4), thrust_yaw: deg(THRUST_YAW),
   stall_arm_ac: r(armAc, 4), stall_arm_cp: r(armCp, 4), stall_dw: r(stallDw, 4), stall_k: r(stallK, 2),
   stall_top: deg(stallTop, 1), strip_c: arr(stripC, 3),
@@ -668,7 +791,12 @@ export const DERIVED = {
   W, Ts, Vp, Vs, CLa, aw, CLmax, hoverDuty, hoverBench, vClimb, pb2v, torqueRoll: torqueRoll * DEG, aileronRollNet: aileronRollNet * DEG,
   pitchAccHover, yawAccHover, restPitchDeg, cgHeight, tailShare, level75: level(0.75), top: level(1), ld: ld(14),
   harrier40: harrier(40), knife20: knifeEdge(20), takeoff: takeoff(), vRotate, ld15: ld(15),
+  straight: throwOn[throwOn.length - 1].y,
 };
+/* The plant's own constants the throw flies on, as plant_wing.c defines them. */
+export const DEFINES = [
+  `#define STAB_ROLL_I ${STAB.i}`, `#define STAB_ROLL_TCONST ${STAB.tconst}`, '#define STAB_ROLL_IMAX (1.0 / 3.0)', `#define SWIRL_KEEP ${SWIRL_KEEP}`,
+];
 
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const J = (o, n = 3) => JSON.stringify(o, (kk, v) => (typeof v === 'number' ? +v.toFixed(n) : v));
@@ -719,7 +847,9 @@ const rows = [
   ['   22', J(knifeEdge(22))],
   ['C13 rest: pitch deg, CG height m, tail share', `${f(restPitchDeg, 2)} ${f(cgHeight, 4)} ${f(tailShare, 4)}`],
   ['C14 take off roll, rotation speed', `${J(takeoff())} ${f(vRotate, 2)}`],
-  ['cap580:stab straight: the throw at 75 percent, its offset after 10 s, m', f(throwDrift(), 2)],
+  ['cap580:stab straight: the throw at 75 percent, t s: cross track m, bank deg, heading deg, aileron deg', throwOn.map((o) => `${o.t}: ${f(o.y, 2)} ${f(o.bank, 2)} ${f(o.psi, 2)} ${f(o.da, 3)}`).join('  ')],
+  ['   at 10 s: rudder deg, sideslip deg, yaw rate deg/s, speed m/s, pitch deg, height gained m, thrust N', `${f(throwOn[5].dr, 3)} ${f(throwOn[5].beta, 3)} ${f(throwOn[5].r, 3)} ${f(throwOn[5].V, 2)} ${f(throwOn[5].pitch, 2)} ${f(throwOn[5].z, 2)} ${f(throwOn[5].thrust, 2)}`],
+  ['   the drive\'s torque off the mount: cross track m, bank deg', throwOff.map((o) => `${o.t}: ${f(o.y, 2)} ${f(o.bank, 2)}`).join('  ')],
   ['gear: wheelbase, loads main tail N; k main tail; c main tail', `${f(wheelbase, 4)} ${f(mainLoad, 3)} ${f(tailLoad, 3)}; ${f(kMain, 0)} ${f(kTail, 0)}; ${f(cMain, 2)} ${f(cTail, 2)}`],
   ['stall: arm_ac, arm_cp, dw', `${f(armAc, 4)} ${f(armCp, 4)} ${f(stallDw, 4)}`],
 ];
@@ -789,6 +919,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     r13.pitchDerived = fix(D.restPitchDeg, 2); r13.pitchMin = up(D.restPitchDeg - 0.5, 2); r13.pitchMax = dn(D.restPitchDeg + 0.5, 2);
     r13.zDerived = fix(D.cgHeight, 4); r13.zMin = up(D.cgHeight - 0.005, 3); r13.zMax = dn(D.cgHeight + 0.005, 3);
     r13.tailDerived = fix(D.tailShare, 4); r13.tailMin = up(D.tailShare - 0.035, 3); r13.tailMax = dn(D.tailShare + 0.035, 3);
+    /* The throw's cross track, its stated width either way. */
+    const st = th.stab_straight;
+    st.derived = fix(D.straight, 2); st.min = up(D.straight - st.tol, 2); st.max = dn(D.straight + st.tol, 2);
     const text = `{\n${Object.entries(th).map(([kk, v]) => `  ${JSON.stringify(kk)}: ${JSON.stringify(v).replace(/,"/g, ', "').replace(/":/g, '": ')}`).join(',\n')}\n}\n`;
     writeFileSync(file, text);
     console.log('wrote tests/cap580-thresholds.json');
@@ -805,6 +938,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     if (!fw.includes('FW_CAP1702')) { console.log('no FW_CAP1702 in plant_wing.c'); bad += 1; }
     for (const [kk, v] of Object.entries(FW)) want(fw, kk, v);
     for (const [kk, v] of Object.entries(PT)) want(pt, kk, v);
+    for (const line of DEFINES) {
+      if (!wing.includes(line)) { console.log(`DIFFERS: plant_wing.c has no ${line}`); bad += 1; }
+    }
     const wheel = ([x, y, z, rr, kk, cc]) => `.pos = { ${r(x, 4)}, ${r(y, 4)}, ${r(z, 4)} }, .r = ${r(rr, 4)}, .k = ${r(kk, 1)}, .c = ${r(cc, 2)},`;
     for (const [name, w] of [['main', GEAR.main], ['main, left', [GEAR.main[0], -GEAR.main[1], ...GEAR.main.slice(2)]], ['tail', GEAR.tail]]) {
       if (!pt.includes(wheel(w))) { console.log(`DIFFERS ${name} wheel: derived ${wheel(w)}`); bad += 1; }
@@ -825,12 +961,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       ['c12_knife_edge.betaDerived', th.c12_knife_edge.betaDerived, D.knife20.betaDeg], ['c12_knife_edge.dutyDerived', th.c12_knife_edge.dutyDerived, D.knife20.duty],
       ['c13_rest.pitchDerived', th.c13_rest.pitchDerived, D.restPitchDeg], ['c13_rest.zDerived', th.c13_rest.zDerived, D.cgHeight],
       ['c13_rest.tailDerived', th.c13_rest.tailDerived, D.tailShare], ['c14_takeoff.derived', th.c14_takeoff.derived, D.takeoff.x],
+      ['stab_straight.derived', th.stab_straight.derived, D.straight],
     ];
     for (const [name, written, derived] of centres) {
       const digits = (String(written).split('.')[1] || '').length;
       if (!(Math.abs(written - derived) <= 0.5 * 10 ** -digits + 1e-12)) { console.log(`DIFFERS ${name}: written ${written}, derived ${derived}`); bad += 1; }
     }
-    console.log(bad ? `cap580:derive: ${bad} constant(s) differ from the derivation` : `cap580:derive: every FW_CAP1702 and PLANT_TABLE constant and every band's centre is the derivation's (${Object.keys(FW).length + Object.keys(PT).length + 3} and ${centres.length})`);
+    console.log(bad ? `cap580:derive: ${bad} constant(s) differ from the derivation` : `cap580:derive: every FW_CAP1702 and PLANT_TABLE constant and every band's centre is the derivation's (${Object.keys(FW).length + Object.keys(PT).length + 3}, the plant's ${DEFINES.length} defines and ${centres.length})`);
     process.exit(bad ? 1 : 0);
   }
 }
