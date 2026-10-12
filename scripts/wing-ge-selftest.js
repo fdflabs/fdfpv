@@ -80,7 +80,7 @@ const PINS = {
   slowstick: '43095fa2e51c171c',
   radian: 'd5e167ca716b8c23',
   timber: '23e48652f96f239a',
-  bramor: '893072700f529f8e',
+  bramor: '639bbf37df657ca7',
   timberf: 'c85de04cc87fd8b4',
   cubf: '5ac20d20bbd4806c',
   bombshell: 'ff71b23a2e794b1f',
