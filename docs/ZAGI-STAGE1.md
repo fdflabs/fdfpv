@@ -259,7 +259,7 @@ and never widened.
 | Z8 | no rudder: full yaw stick changes nothing | | bit identical | identical |
 | Z9 | the straight stall, full up held: wings level, balloons and breaks, mushes | | bank under 5 deg, break within 3 s, past the stall sinking 0.61 to 4.25 m/s (zagi-derive.js, 2026-10-11; docs/FLIGHTMODEL.md) | 0.3 deg, 2.36 s, alpha 14.9 deg sinking 1.86 |
 | Z10 | a stall in a turn: full roll held into a 30 deg bank spins it; the bank held on the stick does not | | once round within 4 s; within 20 deg | 449 deg; 14 deg |
-| Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | FAILS since the seated pack (2026-10-12): the throw sinks to 0.87 m in its motor off second, and full throttle's nose down moment (the line 52 mm over the CG, 8.2 N against 7.3) drops it onto the grass before the scripted thrower's hold answers; it then flies away |
+| Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 0.77 m, 49 m up after 5 s. On the seated pack (2026-10-12) full throttle's nose down moment (the line 52 mm over the CG, 8.2 N against 7.3) dropped the throw onto the grass before the thrower's hand trim caught it; the thrower now holds, as the motor comes on, the up elevon that moment takes at its speed (thrust_z T over q S c cm_de, through the expo), as a person who knows the Zagi does |
 | Z12 | the belly landing | | at rest upright, the CG 12 mm up | slid 1.4 m, at rest at 10.9 mm, level |
 | Z13 | circling a thermal's core, power off | | at least 0.3 m/s up, sinking in still air | 0.58 m/s up; 0.84 m/s down |
 | Z17 | every other aircraft's recorded hash | | 16 unmoved | all 16 |

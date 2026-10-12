@@ -166,7 +166,7 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 | S17 other aircraft unmoved, the P-51's two included | main's hashes | identical | identical |
 | S18 Node and Chrome | | identical | identical |
 | S20 stick closed on the strip | fan stopped | 0 rpm, stands | 0 rpm, stands |
-| S21 chop at 75 percent, hands off | 22.29 m/s sinking 3.46 | 2.94 to 3.98 | FAILS: 4.21 at 23.24, entered from the unsagged fan's faster cruise |
+| S21 chop at 75 percent, hands off | 22.29 m/s sinking 3.46 | 2.94 to 3.98, read 40 to 60 s after the chop, three of the derived phugoid's 10.9 s decay times | 3.49 at 22.35 (read 8 to 20 s it caught the transient, 4.06) |
 | S22 chop at the trim speed | | pitch within 30 deg | 6.8 |
 
 Three things the first run taught, each a finding and not a band moved:

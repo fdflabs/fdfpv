@@ -118,7 +118,7 @@ radian. `npm run p51:derive` prints every one.
 | Static margin | 0.034 | V_H 0.342; the long nose's own moment (Raymer eq. 16.25, K_fus 0.007 per deg) takes 0.015 of it; FMS's 110 mm is 37.5 percent of the mean chord |
 | Zero lift line | 1.28 deg under the thrust line | a 6 series section's 1.3 deg under its chord at the wing's mean incidence, 0.13 deg, and the tail's share |
 | Cm alpha, Cm q | -0.1684, -8.305 | -CLa SM; -2 eta a_t V_H l_h / c |
-| Cm0 | +0.0183 | level at three quarter throttle, gear up, elevator neutral, the thrust line's moment included (the manual's trim flight, taken at the cruise since half stick is half the pitch speed, 11.5 m/s, under the stall) |
+| Cm0 | +0.0058 | level at three quarter throttle, gear up, elevator neutral, the thrust line's moment and the slipstream's over the stabiliser included (the manual's trim flight, taken at the cruise since half stick is half the pitch speed, 11.5 m/s, under the stall), on the gates' 4.1 V pack. The slipstream's term, 2 v_i fh slip_cm_a sin(alpha - slip_a0) / V, plant_wing.c m_slip, was left out until 2026-10-12, when the seated pack's thrust made it 0.0024 of nose up and moved the hands off trim 3 m/s |
 | Cm de, CL de | 1.168, -0.412 | tau_e 0.80 for the elevator's 47 percent (thin aerofoil) |
 | CY beta, Cn beta, Cn r | -0.336, +0.0992, -0.1202 | the fin, less the long fuselage's -0.0160 (Nelson eq. 2.64) |
 | Cl beta | -0.0925 | the dihedral's, the fin's, and the low wing's +0.0189 (DATCOM) |
@@ -402,7 +402,7 @@ widened to pass.
 | P6 full aileron roll, pb/2V | 0.1216 (144 deg/s at 15 m/s) | 0.091 to 0.152 | 0.1368 |
 | P7 throttle closed from top speed, height held, after 3 s | 24.28 m/s (the Kadet: 12.72) | 23.00 to 25.56 | 23.89 from 29.72 |
 | P8 full up, power off, from 1.2 Vs: a wing drops | an outer strip stalls first | at least 20 deg within 3 s of the break | 68.9 deg, right wing (the windmill's gyroscope, above) |
-| P9 phugoid | 20.21 s, damping 0.69 | 16.60 to 23.50 | FAILS: 31.55 over one crossing; hands off the plant settles climbing at 21.6 m/s where the derivation trims level at 24.56 (an open finding) |
+| P9 phugoid decay | 20.21 s at damping 0.69: no observable period (5 percent overshoot); the envelope falls by e in 1 / (zeta omega_n) = 3.36 s | 2.76 to 3.91 s | 3.28 s, settling at 24.36 m/s (the slipstream's term in the trim) |
 | P10 prop torque, static | 0.485 N m disc, 0.95 shaft | 0.41 to 1.08, rolling left | 0.485, rolling left |
 | P11 P factor at 8 m/s, 10 deg nose up, full throttle | 1.6 T (-w)/Omega | 2 percent, nose left | 0.06307 against 0.06307 |
 | P12 gyroscopic yaw at q 0.5 rad/s, full throttle | J Omega q | 2 percent, nose left | 0.41616 against 0.41616 |
