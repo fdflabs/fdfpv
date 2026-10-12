@@ -37,6 +37,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { freemem, totalmem } from 'node:os';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -82,7 +83,13 @@ const boot = async (url, map, timeOfDay) => {
   const p = await openPage({ root, url, width: 960, height: 540, seed: seedFor(map, timeOfDay) });
   open = p;
   await p.until('window.__shellReady === true', BOOT_MS);
-  await p.until(`window.__map && window.__map().ready && window.__map().id === '${map}'`, BOOT_MS);
+  await p.until(`window.__map && window.__map().ready && window.__map().id === '${map}'`, BOOT_MS).catch(async (err) => {
+    // Say why the world never stood: its state and what the page logged.
+    const state = await p.evaluate("JSON.stringify(window.__map ? window.__map() : null)").catch((e) => `unreadable: ${e.message}`);
+    console.log(`  map state: ${String(state).slice(0, 800)}; host memory free ${Math.round(freemem() / 2 ** 20)} of ${Math.round(totalmem() / 2 ** 20)} MiB`);
+    for (const line of [...p.errors, ...(p.warnings || [])].slice(-20)) console.log(`  page: ${line.slice(0, 400)}`);
+    throw err;
+  });
   await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await p.until("window.__craftState && window.__craftState().mode === 'flight'", BOOT_MS);
   return p;
