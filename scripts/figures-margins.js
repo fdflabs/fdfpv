@@ -70,9 +70,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, attitude, responseAt, crossoverFor, EXTRA_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { must, attitude, responseAt, crossoverFor, EXTRA_AIRFRAME, CAP_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
-import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, KNIFE, KNIFE_LOOP } from '../tests/lib/figureprograms.js';
+import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -212,6 +212,41 @@ async function trimSpeed(thr) {
   return Math.hypot(s[4], s[5], s[6]);
 }
 
+/* The throttle that holds the programs' launch speed level
+ * (figureprograms.js LEVEL_THROTTLE): launched at 22 m/s, the wings and
+ * the height held on the ailerons and elevator with no delay, the speed
+ * it settles at over the last 5 of 30 s, bisected to a thousandth. */
+const LAUNCH_V = 22;
+async function levelSpeed(airframe, thr) {
+  const sim = await fresh();
+  setUp(sim, airframe);
+  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(LAUNCH_V), 'sim_wing_launch');
+  let iz = 0, ip = 0, sv = 0, n = 0;
+  for (let ms = 0; ms < 30000; ms += 4) {
+    const s = sim.readState().state;
+    const a = attitude(s);
+    const dz = s[3] - 300;
+    iz = Math.max(-0.3, Math.min(0.3, iz - 0.002 * dz * 0.004));
+    const want = Math.max(-0.3, Math.min(0.3, -0.02 * dz - 0.05 * s[6] + iz));
+    ip = Math.max(-0.5, Math.min(0.5, ip + 0.5 * (want - a.pitch) * 0.004));
+    must(sim.input(ms / 1000, Math.max(-0.9, Math.min(0.9, -1.2 * a.bank - 0.12 * s[11])),
+      Math.max(-0.9, Math.min(0.9, 2 * (want - a.pitch) + 0.15 * s[12] + ip)), 0, thr), 'sim_input');
+    must(sim.step(4), 'sim_step');
+    if (ms >= 25000) { sv += Math.hypot(s[4], s[5], s[6]); n += 1; }
+  }
+  return sv / n;
+}
+export async function levelThrottle(airframe) {
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 10; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (await levelSpeed(airframe, mid) < LAUNCH_V) lo = mid; else hi = mid;
+  }
+  const thr = Number(((lo + hi) / 2).toFixed(3));
+  return { throttle: thr, speed: Number((await levelSpeed(airframe, thr)).toFixed(1)) };
+}
+
 /*
  * The knife edge (figureprograms.js knife): the Extra rolled to 90 deg at
  * 22 m/s and full throttle, held there by an attitude hold with no delay
@@ -346,7 +381,13 @@ export async function measureMargins() {
       fixedKr02GmDb: was.gmDb === null ? null : Number(was.gmDb.toFixed(1)),
     });
   }
+  const levelThrottles = {};
+  /* The aircraft with a pack to seat; the Slick's engine has none. */
+  for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME]]) {
+    levelThrottles[name] = { airframe, ...await levelThrottle(airframe) };
+  }
   return {
+    levelThrottle: levelThrottles,
     knife: await knifeLoops(),
     knifeLoop: { path: await knifeLoopPath() },
     criterion: 'bandwidth criterion: 45 deg phase margin, 6 dB gain margin (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, NASA NCC2-338, 1986)',
@@ -383,6 +424,9 @@ export function marginFailures(m) {
     || Math.abs(m.knife.trim.speed - KNIFE.trim.speed) > 0.05) {
     out.push(`figureprograms.js KNIFE.trim ${JSON.stringify(KNIFE.trim)} is not where the knife edge settles ${JSON.stringify(m.knife.trim)}`);
   }
+  for (const [name, l] of Object.entries(m.levelThrottle)) {
+    if (Math.abs(LEVEL_THROTTLE[l.airframe] - l.throttle) > 0.0005) out.push(`figureprograms.js LEVEL_THROTTLE for the ${name} ${LEVEL_THROTTLE[l.airframe]} is not the throttle that holds 22 m/s level, ${l.throttle}`);
+  }
   return out;
 }
 
@@ -394,6 +438,7 @@ if (main) {
   for (const l of m.lineElevator.level) {
     console.log(`  level at throttle ${l.throttle} (${l.speed} m/s): kr ${l.kr} GM ${l.gmDb} dB at ${l.w180} rad/s, PM ${l.pmDeg} deg at ${l.wc} rad/s, plant phase within ${l.plantPhaseDeg} deg to 16 rad/s; the fixed kr 0.2 ${l.fixedKr02GmDb === null ? 'over unity to 16 rad/s, unstable' : `${l.fixedKr02GmDb} dB`}`);
   }
+  for (const [name, l] of Object.entries(m.levelThrottle)) console.log(`level at 22 m/s, the ${name}: throttle ${l.throttle} (settles at ${l.speed} m/s)`);
   for (const name of ['bank', 'elevation', 'heading']) {
     const k = m.knife[name];
     console.log(`knife edge ${name}: crossoverFor ${k.crossoverFor} rad/s, flown at ${k.wc} rad/s on a plant gain of ${k.gain}, PM ${k.pmDeg} deg at ${k.wcFound} rad/s, GM ${k.gmDb === null ? 'none to 12 rad/s' : `${k.gmDb} dB at ${k.w180} rad/s`}`);
