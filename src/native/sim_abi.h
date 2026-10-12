@@ -627,6 +627,11 @@ double sim_boost(void);
  * swirl's sideways speed over the fin (m/s), for the gates that take one
  * term of the moment alone. Zeros on an aircraft without a wash.
  * Additive, version unchanged.
+ * sim_wing_command(out[3]): what the receiver last wrote to the aileron,
+ * elevator and rudder servos, rad, after the gyro and before the servos
+ * slew or the air blows them back (plant_wing.c hinge_hold), so a gate
+ * can tell the receiver's command from the surface the servo holds.
+ * Additive, version unchanged.
  * sim_wing_set_gyro(on): a measurement switch for a gate that takes the
  * airframe's own aero apart from its prop's gyroscope (p51 P19, a full
  * scale stall anchor that cannot carry a model's gyroscope, docs/
@@ -650,6 +655,7 @@ int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
 int sim_wing_slip(double *out);
+int sim_wing_command(double *out);
 /* sim_wing_strips(out[8]): each stall strip's lift lost to separation as
  * the last step left it, left half root to tip then right half, in units
  * of the wing's lift coefficient over the strip's share: zero on a strip

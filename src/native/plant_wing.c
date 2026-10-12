@@ -298,6 +298,16 @@ void plant_wing_strips(double out[8]) {
   }
 }
 
+/* What the receiver last wrote to the aileron, elevator and rudder
+ * servos, rad, before the servos slew or the air blows them back. */
+static double g_cmd[3] = { 0.0, 0.0, 0.0 };
+
+void plant_wing_command(double out[3]) {
+  for (int i = 0; i < 3; i += 1) {
+    out[i] = g_cmd[i];
+  }
+}
+
 void plant_wing_debug(double out[20]) {
   for (int i = 0; i < 20; i += 1) {
     out[i] = g_debug[i];
@@ -1200,6 +1210,9 @@ void plant_wing_reset(void) {
   g_servo[0] = 0.0;
   g_servo[1] = 0.0;
   g_servo[2] = 0.0;
+  g_cmd[0] = 0.0;
+  g_cmd[1] = 0.0;
+  g_cmd[2] = 0.0;
   g_on_wheels = 0;
   g_brake = 0.0;
   g_chute = 0;
@@ -2373,6 +2386,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     }
     g_as3x_t = 0.0;
   }
+  g_cmd[0] = da;
+  g_cmd[1] = de;
+  g_cmd[2] = delta_r;
   /* The servos turn at their rate, not in the step they are asked. */
   if (fw->servo_rate > 0.0) {
     const double cmd[3] = { da, de, delta_r };

@@ -36,7 +36,7 @@ import { planeTable } from './lib/wash.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll } from '../tests/lib/wingpilot.js';
+import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll, wingCommand } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -200,9 +200,15 @@ const rollRates = bothModes((mode) => {
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
   mode();
-  return fly(1, 0, 0, 1.0, 0.5).p;
+  const p = fly(1, 0, 0, 1.0, 0.5).p;
+  return { p, aileron: wingCommand(sim)[0] };
 });
-check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x / rollRates.manual - 1) < 0.02, `${deg(rollRates.as3x)} against ${deg(rollRates.manual)} deg/s`);
+/* No cap is the receiver's: its aileron command at full stick is
+ * Manual's. The roll rate it flies is the surface the servos hold
+ * against the air (servo blow back, plant_wing.c hinge_hold), which the
+ * gyro holding pitch and yaw moves through the wing's angle, so the rate
+ * is printed and the command is held to it. */
+check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x.aileron / rollRates.manual.aileron - 1) < 0.02, `aileron command ${deg(rollRates.as3x.aileron)} against ${deg(rollRates.manual.aileron)} deg; rolling ${deg(rollRates.as3x.p)} against ${deg(rollRates.manual.p)} deg/s`);
 /* Full up at full throttle from 16 m/s departs into a snap in Manual
  * (roll to -380 deg/s, yaw to -133 by 0.5 s), which AS3X's roll axis, its
  * stick centred, holds to -40: a mean over the last quarter second (the
