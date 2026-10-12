@@ -64,7 +64,10 @@ const PLANES = [
   ['extra', 29, 'EXTRA3D1308'], ['nighttimber', 30, 'NIGHTTIMBER1200'], ['hercules', 31, 'HERCULES3077'],
   ['cap580', 32, 'CAP1702'], ['slick', 33, 'SLICK2680'],
 ].map(([name, id, suffix]) => ({ name, id, table: `FW_${suffix}`, frame: `SIM_AIRFRAME_${suffix}` }));
-/* The traces of part 1 on the build before the term. */
+/* The traces of part 1 on the build before the term. A table's start
+ * height is its wing's (ge_wing), so a table that takes the term later is
+ * re-pinned from the build before it at its new height: the Hercules from
+ * batch/2026-10-12 f93dd7f87 (was ebba6d702410187f with no wing point). */
 const PINS = {
   wing: 'd113bc284e487a8e',
   sky: '8a6fa77e69a7567a',
@@ -87,7 +90,7 @@ const PINS = {
   strikerjet: '2c30dccda291887d',
   extra: 'b293b09e73f99993',
   nighttimber: '199b12e1bb145922',
-  hercules: 'ebba6d702410187f',
+  hercules: '1563b7113809f296',
   cap580: '2e4df1c22374a4e2',
   slick: '1eec01c5f11adf28',
 };
@@ -110,7 +113,8 @@ function tableOf(plane) {
   const t = {
     on: /\.ground_effect = 1/.test(body),
     b: field(body, 'span'), S: field(body, 'area'), c: field(body, 'chord'),
-    cla: field(body, 'cl_alpha'), cma: field(body, 'cm_alpha'), slipCma: field(body, 'slip_cm_a'), hi: /\.hi_alpha = 1/.test(body), aw: field(body, 'cl_alpha_wing') || field(body, 'cl_alpha'),
+    cla: field(body, 'cl_alpha'), cma: field(body, 'cm_alpha'), slipCma: field(body, 'slip_cm_a'), hi: /\.hi_alpha = 1/.test(body), aw: field(body, 'ge_cla_wing') || field(body, 'cl_alpha_wing') || field(body, 'cl_alpha'),
+    claStall: field(body, 'cl_alpha_wing') || field(body, 'cl_alpha'),
     dd: field(body, 'tail_deda'), clmax: field(body, 'cl_max'), azl: field(body, 'alpha_zl'),
     wing: vec(body, 'ge_wing'), tail: vec(body, 'ge_tail'),
     m: Number(/\.mass_kg = ([\d.]+)/.exec(pbody)[1]), iyy: Number(/\.inertia = \{ [\d.]+, ([\d.]+)/.exec(pbody)[1]), rho: Number(/\.rho = ([\d.]+)/.exec(pbody)[1]),
@@ -207,7 +211,8 @@ for (const plane of PLANES) {
     if (run.contacts === 0) break;
   }
   const { dvz, dq, alphaBody, contacts } = run;
-  const g = groundTerms({ b: t.b, S: t.S, aw: t.aw, dd: t.dd, clmax: t.clmax, wing: [t.wing[0], t.wing[2]], tail: t.tail[0] < 0 ? [t.tail[0], t.tail[2]] : null },
+  /* The wing's own lift at the plant's stall angle holds its term. */
+  const g = groundTerms({ b: t.b, S: t.S, aw: t.aw, dd: t.dd, clmax: t.clmax * (t.aw / t.claStall), wing: [t.wing[0], t.wing[2]], tail: t.tail[0] < 0 ? [t.tail[0], t.tail[2]] : null },
     hb * t.b, alphaBody, alphaBody - t.azl);
   const tailCl = (t.cla - t.aw) / (1 - t.dd);
   const dCl = t.cla * g.dAlpha + tailCl * g.dTail;

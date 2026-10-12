@@ -132,10 +132,11 @@ for (const t of wingC.matchAll(/const FixedWingParams (FW_\w+) = \{([\s\S]*?)\n\
   const gw = vec(body, 'ge_wing'), gt = vec(body, 'ge_tail') ?? [0, 0, 0];
   const same = (a, b) => a && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 5e-5);
   /* A tail's term reads the table's own d eps / d alpha, and its share of
-   * the lift slope over the wing's own (cl_alpha_wing). */
-  if (tl[0] < 0 && !(num(body, 'tail_deda') > 0 && num(body, 'cl_alpha_wing') > 0)) {
+   * the lift slope over the wing's own (cl_alpha_wing, or ge_cla_wing on a
+   * table that stalls on the whole curve). */
+  if (tl[0] < 0 && !(num(body, 'tail_deda') > 0 && (num(body, 'cl_alpha_wing') > 0 || num(body, 'ge_cla_wing') > 0))) {
     bad += 1;
-    console.log(`  ${table} takes the term with a tail and no tail_deda or cl_alpha_wing`);
+    console.log(`  ${table} takes the term with a tail and no tail_deda, or no cl_alpha_wing or ge_cla_wing`);
   }
   /* The linear tail's moment per rad of its angle is its lift share at
    * its arm; a hi_alpha table's is slip_cm_a / (1 - d eps / d alpha): at

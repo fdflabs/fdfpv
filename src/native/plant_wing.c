@@ -436,6 +436,13 @@ static double add_term(double sum, double term) {
   return sum - (0.0 - term);
 }
 
+/* The wing's own slope GROUND EFFECT splits cl_alpha on
+ * (FixedWingParams.ge_cla_wing): the table's own where it stalls on the
+ * whole curve, else wing_cla. */
+static double ge_cla(const FixedWingParams *fw) {
+  return fw->ge_cla_wing > 0.0 ? fw->ge_cla_wing : wing_cla(fw);
+}
+
 /*
  * GROUND EFFECT, on a table with ground_effect (scripts/lib/groundeffect.js
  * mirrors it for the derivations, npm run ge:derive checks it against its
@@ -486,9 +493,11 @@ static double add_term(double sum, double term) {
  * height; the roll a low tip would add is not modelled. The wing's lift
  * the terms are taken on is its attached line's, held to its CL max: past
  * the stall it overstates them by up to the stall's loss (stall_k),
- * ESTIMATED. Two tables do not take the term yet: the Tiger Moth, whose
- * two wings are TM 77's four terms, and the Hercules, which has no
- * cl_alpha_wing to split its tail's share from its wing's.
+ * ESTIMATED. The terms split cl_alpha into the wing's and the tail's on
+ * the wing's own slope: cl_alpha_wing, or on a table that stalls on the
+ * whole curve (the Hercules) ge_cla_wing, which nothing else reads, so
+ * its stall stays where every band was derived. The Tiger Moth does not
+ * take the term yet: its two wings are TM 77's four terms.
  */
 #define GE_HB_MAX (1.0 / 1.32)
 static double smoothstep(double a, double b, double x);
@@ -541,10 +550,14 @@ static int ground_terms(const SimState *s, const FixedWingParams *fw, double alp
   if (hb >= GE_HB_MAX) return 0;
   const double sigma = (1.0 - 1.32 * hb) / (1.05 + 7.4 * hb);
   const double pia = WING_PI * fw->span * fw->span / fw->area;
-  const double aw = wing_cla(fw);
+  const double aw = ge_cla(fw);
+  /* The wing's own lift at the plant's stall angle, clmax / wing_cla: on a
+   * table that stalls on the whole curve (ge_cla_wing) less than clmax by
+   * the tail's share, on every other exactly clmax. */
+  const double clw_max = clmax * (aw / wing_cla(fw));
   double clw = aw * alpha_w / (1.0 - sigma * aw / pia);
-  if (clw > clmax) clw = clmax;
-  if (clw < -clmax) clw = -clmax;
+  if (clw > clw_max) clw = clw_max;
+  if (clw < -clw_max) clw = -clw_max;
   g->clw = clw;
   g->da = sigma * clw / pia;
   g->dt = -g->da;
@@ -2392,13 +2405,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     cndr = fw->cn_dr * rv;
     cl_lin_m = add_term(fw->cl_alpha * sin_a + fw->cl_de * delta_e, dcl_f);
     stall_dw = 0.0;
-  } else if (ge_on && fw->cl_alpha_wing > 0.0) {
+  } else if (ge_on && (fw->cl_alpha_wing > 0.0 || fw->ge_cla_wing > 0.0)) {
     /* The linear tail: the whole aircraft's curve took it at the wing's
      * shifted angle, and the ground puts it at ge.dt over that. Its lift
      * per rad of its own angle is the curve's tail share over (1 - d eps
      * / d alpha) (Nelson eq. 2.52), its moment that lift at its arm. */
     const double keep = CRASH.active ? CRASH.hstab_keep : 1.0;
-    const double dcl_t = keep * (fw->cl_alpha - fw->cl_alpha_wing) / (1.0 - fw->tail_deda) * ge.dt;
+    const double dcl_t = keep * (fw->cl_alpha - ge_cla(fw)) / (1.0 - fw->tail_deda) * ge.dt;
     CL += dcl_t;
     cm_stiff += dcl_t * fw->ge_tail[0] / fw->chord;
   }
@@ -5935,6 +5948,14 @@ const FixedWingParams FW_HERCULES3077 = {
   .door_time = 4.0,
   .cd_door = 0.0259,      /* npm run hercules:derive */
   .cm_door = -0.0091,     /* npm run hercules:derive */
+  .tail_deda = 0.362, /* d eps / d alpha, scripts/hercules-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0282, 0.0, 0.1675 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -1.07, 0.0, 0.067 }, /* the stabiliser's, npm run ge:derive */
+  /* The wing's own slope, a_w, scripts/hercules-derive.js (Nelson eq.
+   * 2.52 splits cl_alpha into it and the tail's 0.554): read only by GROUND
+   * EFFECT, so the stall stays the whole curve's every band was derived on. */
+  .ge_cla_wing = 5.134,
 };
 
 /* Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md and
