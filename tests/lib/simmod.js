@@ -88,6 +88,7 @@ const BLOCKS_IN = [
   ['setAddonInertia', 'sim_set_addon_inertia', 'the add-on inertia block'],
   ['setTune', 'sim_wing_set_tune', 'the tune block'],
   ['setTiers', 'sim_wing_set_tiers', 'the surface tier block'],
+  ['setHeading', 'sim_wing_set_heading', 'the AS3X heading block'],
 ];
 
 /* A block the module writes into, kept for the instance's life and keyed

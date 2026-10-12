@@ -272,8 +272,8 @@ check: {
    * a trim, for 20 s. The wing rocks as it goes into the stall, which is
    * what a harrier does; the mean of the last 5 s, and the rock's spread
    * over the last 10 s. C11b: flown again in AS3X, the receiver the CAP
-   * flies with, which must damp the rock, its bank's spread under
-   * Manual's, as the Extra's E11b. */
+   * flies with, at the full Heading, which must damp the rock, its
+   * bank's spread under Manual's. */
   {
     const t11 = th.c11_harrier;
     const harrier = (mode) => {
@@ -318,7 +318,12 @@ check: {
       return { v: sv / n, d: sd / n, e: se / n, a: sa / n * DEG, worstBank, spread, drift: zMax - zMin };
     };
     const m = harrier(0);
+    /* Damping the rock with the sticks held on it is the Heading's: the
+     * AR631's "make the aircraft hold its attitude when control input is
+     * neutral", "defaulted to zero", so C11b flies it at the full Heading. */
+    must(sim.setHeading([1, 1, 1]), 'sim_wing_set_heading');
     const g = harrier(3);
+    must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
     gate('C11', 'harrier: level at 40 deg of alpha', m.v >= t11.vMin && m.v <= t11.vMax && m.d >= t11.dutyMin && m.d <= t11.dutyMax && m.e < 1 && m.worstBank <= t11.maxBankDeg && m.drift <= t11.maxHeightDrift,
       `${m.v.toFixed(2)} m/s at throttle ${m.d.toFixed(3)}, alpha ${m.a.toFixed(1)} deg, elevator stick ${m.e.toFixed(2)}, bank under ${m.worstBank.toFixed(1)} (sd ${m.spread.toFixed(1)}), height within ${m.drift.toFixed(2)} m`,
       `${t11.vMin} to ${t11.vMax} m/s, ${t11.dutyMin} to ${t11.dutyMax}, elevator short of full, bank under ${t11.maxBankDeg}, within ${t11.maxHeightDrift} m`);

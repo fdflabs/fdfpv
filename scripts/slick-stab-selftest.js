@@ -295,6 +295,11 @@ console.log('power off pull');
  * happen (the aero lane's lateral model). */
 const halfBank = {};
 for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
+  /* AS3X holds the attitude here through its Heading, which the AR631
+   * has only where a pilot turns it up ("You can increase this value to
+   * make the aircraft hold its attitude when control input is neutral";
+   * it is "defaulted to zero"): these pulls fly it at the full Heading. */
+  must(sim.setHeading(mode === 3 ? [1, 1, 1] : [0, 0, 0]), 'sim_wing_set_heading');
   const quarter = powerOffPull(mode, 0.25, 0);
   if (mode === 0) {
     check('Manual: the idle glide wants a touch of left aileron, against the driven idle prop\'s roll to the right', quarter.trim < 0 && quarter.trim > -0.05, `stick ${quarter.trim.toFixed(4)}`);
@@ -325,6 +330,7 @@ for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
   const right = powerOffPull(mode, 0.5, 0.05);
   check(`${name}: a touch of left rudder takes the drop left of it, right rudder right of it`, left.bank < half.bank && right.bank > half.bank, `${deg(left.bank)}, ${deg(half.bank)} and ${deg(right.bank)} deg`);
 }
+must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
 
 console.log('manual');
 must(sim.e.sim_wing_set_stab(0), 'clear stab');
