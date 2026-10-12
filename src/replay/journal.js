@@ -74,6 +74,7 @@ export const POINTERS = {
   sim_set_prop_pack: { in: 0, doubles: 36 },
   sim_wing_set_tune: { in: 0, doubles: 12 },
   sim_wing_set_tiers: { in: 0, doubles: 9 },
+  sim_wing_set_heading: { in: 0, doubles: 3 },
   sim_set_addons: { in: 0, doubles: 10 },
   sim_set_addon_inertia: { in: 0, doubles: 3 },
   sim_wing_tune: { out: 0 },
