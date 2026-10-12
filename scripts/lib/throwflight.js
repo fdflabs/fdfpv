@@ -35,7 +35,9 @@
  * Left out, and so the limits of what it derives: the stall (it says when
  * a step's alpha reaches the curve's top), ground effect (a throw must
  * clear GE_HB_MAX of its span), the pack's drain over the flight, crash
- * damage, flaps, a mapped engine and a ducted fan.
+ * damage, flaps, a mapped engine, and a biplane's cell taken as its
+ * equivalent monoplane, which in the linear range is exactly the table's
+ * cl_alpha and k_induced (plant_wing.c biplane_lift).
  *
  * throwFlight(table, { duty, speed, z, pitchDeg, seconds, at, mount, mode })
  * throws it along its nose, pitchDeg up (a catapult's rail), flies it in
@@ -136,11 +138,10 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
   const { m, g, rho, inertia } = airframe(table);
   const [Ix, Iy, Iz] = inertia;
   if (fw.engine_q && fw.engine_q.length) throw new Error(`throwflight: ${table}'s engine is mapped; not modelled`);
-  if (fw.fan_tau > 0) throw new Error(`throwflight: ${table} is a ducted fan; not modelled`);
-  if (fw.bip_w && fw.bip_w[0] > 0) throw new Error(`throwflight: ${table} is a biplane; not modelled`);
   const electric = fw.current_full > 0;
   const seat = electric ? wingSeat(table) : null;
-  const spools = fw.j_prop > 0 && fw.thrust_static > 0;
+  const fan = fw.fan_tau > 0;
+  const spools = fw.j_prop > 0 && fw.thrust_static > 0 && !fan;
   const wF = 0.85 * fw.rpm_no_load * 2 * Math.PI / 60;
   const qF = fw.torque_arm * fw.thrust_static;
   const cla = fw.cl_alpha_wing > 0 ? fw.cl_alpha_wing : fw.cl_alpha;
@@ -161,6 +162,10 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
   let vel = rotate(quat, [speed, 0, 0]);
   let om = [0, 0, 0];
   let n = null, dn = 0, rollI = 0;
+  /* A fan's speed and rate and its ESC's start ramp, plant_wing.c
+   * fan_spool: a launch leaves an electric fan at rest, the stick's
+   * opening a start. */
+  let fanN = fan && fw.throttle_idle > 0 ? fw.throttle_idle : 0, fanV = 0, ramp = 0;
   let acroQ = null, acroIRoll = 0, acroIPitch = 0;
   const servo = [0, 0, 0];
   let sigmaMax = 0;
@@ -263,7 +268,8 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const qbar = 0.5 * rho * V * V;
     const sinB = Vxz > 0.5 ? -w / Vxz : 0, cosB = Vxz > 0.5 ? u / Vxz : 1;
     const sinA = sinB * fw.cos_zl - cosB * fw.sin_zl, cosA = cosB * fw.cos_zl + sinB * fw.sin_zl;
-    const clmax = fw.cl_max;
+    /* The slats, fitted unless a pilot takes them off (plant_wing.c g_slats). */
+    const clmax = fw.cl_max + fw.slat_dclmax;
     const aStall = clmax / cla;
     const aa = Math.abs(alpha);
     const sigma = smoothstep(aStall - fw.stall_blend, aStall + fw.stall_blend, aa);
@@ -274,7 +280,7 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const clLin = fw.cl_alpha * alpha + fw.cl_de * dE;
     let CL = (alpha < 0 ? -wingCl : wingCl) + (tailOwn ? 0 : fw.cl_de * dE);
     if (fw.cl_alpha_wing > 0 && !tailOwn) CL += (fw.cl_alpha - fw.cl_alpha_wing) * sinA * cosA;
-    let cd0 = fw.cd0;
+    let cd0 = fw.cd0 + fw.slat_cd0;
     if (fw.cd0_re > 0) { const re = V * fw.chord * rho / AIR_MU; cd0 *= Math.sqrt(fw.cd0_re / Math.max(re, 0.5 * fw.cd0_re)); }
     if (fw.surf_cd && (fw.surf_cd[0] > 0 || fw.surf_cd[1] > 0 || fw.surf_cd[2] > 0)) cd0 += fw.surf_cd[0] * surfDrag(dA) + fw.surf_cd[1] * surfDrag(dE) + fw.surf_cd[2] * surfDrag(dR);
     const sS = Math.sin(aStall), cS = Math.cos(aStall);
@@ -306,6 +312,10 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
       cydr *= rv; cldr *= rv; cndr *= rv;
     }
 
+    if (fw.hi_lat && fw.hi_lat.length === 8) {
+      const ab = Math.atan2(sinB, cosB) * 180 / Math.PI;
+      cydr *= hiLatAt(fw.hi_lat[5], ab);
+    }
     const F = [0, 0, 0];
     if (V > 1e-6) {
       const L = qbar * fw.area * CL, D = qbar * fw.area * CD;
@@ -317,7 +327,17 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
 
     /* The motor. */
     const dutyE = stickDuty(duty, uPos);
-    if (n === null) { n = dutyE; dn = 0; } else if (spools) {
+    if (fan) {
+      let target = dutyE;
+      if (!(duty > 0) && !(fw.throttle_idle > 0)) { target = 0; ramp = 0; } else if (ramp < 1) {
+        ramp = fw.esc_start > 0 ? ramp + DT / fw.esc_start : 1;
+        if (ramp >= target) ramp = 1; else target = ramp;
+      }
+      fanV += ((target - fanN) / (fw.fan_tau * fw.fan_tau) - 2 * fanV / fw.fan_tau) * DT;
+      fanN += fanV * DT;
+      if (fanN < 0) { fanN = 0; fanV = 0; }
+      n = fanN;
+    } else if (n === null) { n = dutyE; dn = 0; } else if (spools) {
       const drive = electric ? K_M * (dutyE - n) + dutyE : dutyE * dutyE;
       const nNew = Math.max(0, n + DT * qF * (drive - n * n) / (fw.j_prop * wF));
       dn = (nNew - n) / DT;
@@ -394,8 +414,17 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const p = om[0], qAero = -om[1], rAero = -om[2];
     const Vr = Math.max(V, 1), b2v = fw.span / (2 * Vr), c2v = fw.chord / (2 * Vr);
     const ps = p * cosB + rAero * sinB, rs = rAero * cosB - p * sinB;
-    const clS = clb * betaS + fw.cl_p * ps * b2v + fw.cl_da * dA + fw.cl_r_per_cl * CL * rs * b2v + cldr * dR;
-    const cnS = cnb * betaS + fw.cn_r * rs * b2v + fw.cn_p_per_cl * CL * ps * b2v + fw.cn_da_per_cl * CL * dA + cndr * dR;
+    /* A table's measured lateral derivatives against the body's angle
+     * (hi_lat, the F-16's), as plant_wing.c takes them. */
+    const hl = fw.hi_lat && fw.hi_lat.length === 8 ? fw.hi_lat : null;
+    const aBody = Math.atan2(sinB, cosB) * 180 / Math.PI;
+    const hlAt = (i) => hiLatAt(hl[i], aBody);
+    let clbL = clb, cnbL = cnb, cldrL = cldr, cndrL = cndr;
+    const rClp = hl ? hlAt(2) : 1, rCnr = hl ? hlAt(3) : 1, rAil = hl ? hlAt(4) : 1;
+    if (hl) { cnbL *= hlAt(0); clbL *= hlAt(1); const rr = hlAt(5); cldrL *= rr; cndrL *= rr; }
+    const dAm = dA * rAil;
+    const clS = clbL * betaS + fw.cl_p * rClp * ps * b2v + fw.cl_da * dAm + (hl ? hlAt(6) : fw.cl_r_per_cl * CL) * rs * b2v + cldrL * dR;
+    const cnS = cnbL * betaS + fw.cn_r * rCnr * rs * b2v + (hl ? hlAt(7) : fw.cn_p_per_cl * CL) * ps * b2v + fw.cn_da_per_cl * CL * dAm + cndrL * dR;
     const clBody = clS * cosB - cnS * sinB, cnBody = cnS * cosB + clS * sinB;
     const clFlat = plateCn * sinA * cosA;
     const cmLow = -sigma * (fw.lowre_arm_ac * clLin + fw.lowre_arm_cp * clFlat);
@@ -450,6 +479,14 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     }
   }
   return out;
+}
+
+/* plant_wing.c hi_lat_at: TP-1538's angles, straight between, held past. */
+const HI_LAT_DEG = [-20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90];
+function hiLatAt(row, deg) {
+  if (!(deg > HI_LAT_DEG[0])) return row[0];
+  for (let i = 0; i < 19; i += 1) if (deg <= HI_LAT_DEG[i + 1]) return row[i] + (row[i + 1] - row[i]) * (deg - HI_LAT_DEG[i]) / (HI_LAT_DEG[i + 1] - HI_LAT_DEG[i]);
+  return row[19];
 }
 
 /* plant_wing.c root_swirl: the swirl over the wing's root, its roll

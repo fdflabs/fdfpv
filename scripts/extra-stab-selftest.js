@@ -141,7 +141,13 @@ const deg = (x) => (x * DEG).toFixed(1);
 
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
-throwAt(3, 12);
+/* Thrown 30 m up: at the trim stick Stabilised's 2 deg of pitch is
+ * under the 3.6 deg the cruise's lift takes at 15.3 m/s, so it settles
+ * sinking 0.44 m/s (npm run stab:straight flies the same), and from the
+ * 3 m it was thrown at until w36-physics it passed z = 0 at 5 s and ended
+ * 2.27 m under the ground plane, the rest of this section flown from
+ * there. */
+throwAt(30, 12);
 /* Centred sticks at the stick that flies it level, the table's
  * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
  * prop curves gave the prop its thrust at speed. */
@@ -197,13 +203,38 @@ const rollRates = bothModes((mode) => {
   return fly(1, 0, 0, 1.0, 0.5).p;
 });
 check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x / rollRates.manual - 1) < 0.02, `${deg(rollRates.as3x)} against ${deg(rollRates.manual)} deg/s`);
-const pullRates = bothModes((mode) => {
+/* Full up at full throttle from 16 m/s departs into a snap in Manual
+ * (roll to -380 deg/s, yaw to -133 by 0.5 s), which AS3X's roll axis, its
+ * stick centred, holds to -40: a mean over the last quarter second (the
+ * check until w36-physics, 148.4 against 159.3 deg/s) compared the snap
+ * against a held roll, not the pitch. The scratch build that showed it:
+ * the Extra's roll gains zeroed alone gave 159.3 against 159.3, its yaw
+ * gains zeroed alone 148.2. So the pitch is judged from the stick to the
+ * first step either mode rolls past PULL_ROLL_DEG, 20 deg/s, a twentieth
+ * of the pull's own 427 deg/s peak: the mean pitch rate there, AS3X
+ * within the same 2 percent of Manual's (Spektrum's priority hands the
+ * pitch axis to a full stick). */
+const PULL_ROLL_DEG = 20;
+const pulls = bothModes((mode) => {
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
   mode();
-  return fly(0, 1, 0, 1.0, 0.5).q;
+  const q = [], p = [];
+  for (let ms = 0; ms < 500; ms += RC_STEP_MS) {
+    must(sim.input((clockMs + ms) / 1000, 0, 1, 0, 1.0), 'input');
+    must(sim.step(RC_STEP_MS), 'step');
+    const st = sim.readState().state;
+    q.push(-st[12]);
+    p.push(st[11]);
+  }
+  clockMs += 500;
+  return { q, p };
 });
-check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
+const rolled = (p) => { const i = p.findIndex((x) => Math.abs(x * DEG) > PULL_ROLL_DEG); return i < 0 ? p.length : i; };
+const pullEnd = Math.min(rolled(pulls.manual.p), rolled(pulls.as3x.p));
+const meanQ = (q) => q.slice(0, pullEnd).reduce((a, b) => a + b, 0) / pullEnd;
+const pullRates = { manual: meanQ(pulls.manual.q), as3x: meanQ(pulls.as3x.q) };
+check(`full up stick pitches at Manual's rate until either rolls past ${PULL_ROLL_DEG} deg/s, within 2 percent: no cap`, pullEnd > 0 && Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s over ${pullEnd * RC_STEP_MS} ms`);
 /* The hover's stick, the one that hangs the weight on the prop on the
  * 4.1 V pack this seats (scripts/lib/propcurve.js wingSeat, E6's
  * derivation), and the stick that flies level at 16 m/s there, 0.393

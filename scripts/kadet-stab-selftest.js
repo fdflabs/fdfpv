@@ -145,7 +145,10 @@ check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `
 check('and hold the trim pitch within 4 degrees', Math.abs((level.pitch - TRIM_PITCH) * DEG) < 4, `${deg(level.pitch)} deg`);
 /* The Bombshell's 10 m over its 80 m of flight, in proportion to the
  * Kadet's 145 m. */
-check('and straight: under 18 m off the line after 10 s', Math.abs(level.y) < 18, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/kadet-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/kadet-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${(level.y).toFixed(2)} m`);
 check('at the Kadet\'s cruise, S1\'s band', level.v > 16.00 && level.v < 21.67, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 1 m/s', Math.abs(level.vz) < 1, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.9, 5);
