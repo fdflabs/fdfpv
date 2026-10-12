@@ -118,31 +118,15 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/slowstick1180/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'slowstick1180'),
-  {
-    /* The Timber's are the real aircraft's: E-flite's BNF receiver flies
-     * AS3X with SAFE Select off unless bound for it, so AS3X is the
-     * default and SAFE Select the beginner bind. On its wheels every
-     * mode flies as Manual; the flaps are a switch on top of every mode,
-     * F. */
-    id: 'timber-as3x',
-    airframe: 'timber1500',
-    name: 'AS3X',
-    note: 'E-flite\'s gyro, as the Timber ships. The sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. F sets the flaps.',
-    wingStab: 3,
-  },
-  {
-    id: 'timber-manual',
-    airframe: 'timber1500',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel. F sets the flaps, with a little down elevator mixed in as the radio would.',
-  },
-  {
-    id: 'timber-stab',
-    airframe: 'timber1500',
-    name: 'SAFE Select',
-    note: 'E-flite\'s beginner bind, once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. F sets the flaps.',
-    wingStab: 1,
-  },
+  /*
+   * The Timber's are the real aircraft's: E-flite's BNF receiver flies
+   * AS3X with SAFE Select off unless bound for it, so AS3X is the default
+   * and SAFE Select the beginner bind. On its wheels every mode flies as
+   * Manual; the flaps are a switch on top of every mode, F.
+   *
+   * Its tunes are its folder's, aircraft/timber1500/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'timber1500'),
   {
     /* The Bombshell, a balsa kit on a Cox .049: no gyro, Manual. No
      * ailerons, so AS3X damps pitch and yaw only and Stabilised's roll

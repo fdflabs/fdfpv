@@ -191,7 +191,7 @@ export const PARTS_PLANES = Object.keys(PROPS);
  * A plane with an aircraft folder keeps its anchors there.
  */
 export const ANCHORS = {
-  timber1500: { prop: [0.29, 0, 0], belly: [0, 0, -0.07], tail: [-0.66, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.053, 0.23, 0.072], [0.037, 0.70, 0.068]] },
+  timber1500: AIRCRAFT.ANCHORS.timber1500,
   timber1500f: { prop: [0.29, 0, 0.027], belly: [0, 0, -0.043], tail: [-0.66, 0, -0.003], tank: [-0.01, 0, -0.003], led: [[0.054, 0.23, 0.098], [0.038, 0.70, 0.094]] },
   cub1400: AIRCRAFT.ANCHORS.cub1400,
   cub1400f: { prop: [0.23, 0, 0.028], belly: [0, 0, -0.030], tail: [-0.58, 0, 0.016], tank: [-0.01, 0, 0.006], led: [[0.038, 0.21, 0.126], [0.038, 0.63, 0.133]] },

@@ -102,7 +102,6 @@ export const MARGIN_WARN = 0.05;
  * clicks, a radio's trim steps. */
 export const TRIM_MAX_DEG = 4;
 
-const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
@@ -155,13 +154,7 @@ export const TUNING = {
   radian2000: AIRCRAFT.TUNING.radian2000,
   bramor2300: AIRCRAFT.TUNING.bramor2300,
   slowstick1180: AIRCRAFT.TUNING.slowstick1180,
-  timber1500: {
-    chord: 0.2322, area: 0.361, margin: 0.191,
-    cg: { mm: 60, datum: 'tuning.datum.root_le', range: [55, 65], source: `E-flite manual, "60mm +/-5mm back from the leading edge of the wing, measured at the wing root", pp. 3 and 13; ${TIMBER_MANUAL}` },
-    packKg: 0.33, nose: 0.255, tail: -0.56,
-    throws: { high: [30, 20, 27], low: [22.2, 14.9, 17.6], source: `E-flite manual pp. 3 and 14: high 33, 20, 30 mm, low 25, 15, 20 mm, on 64.8, 60 and 65 mm horn chords; ${TIMBER_MANUAL}` },
-    flaps: { mix: -0.183531, angles: [0, 0.31376497222433070, 0.57058379792549596], source: `E-flite manual p. 3: half 20 mm, full 35 mm; "Flap/Down-Elevator Compensation 16% 30%"; ${TIMBER_MANUAL}` },
-  },
+  timber1500: AIRCRAFT.TUNING.timber1500,
   bombshell1118: {
     /* The margin U2 reads with the wing's own stall slope and the tail's
      * share on sin cos, 0.2881 (scripts/bombshell-derive.js); linear, 0.287. */

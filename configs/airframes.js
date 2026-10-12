@@ -261,55 +261,26 @@ export const AIRFRAMES = [
    * trailing corner, the wheels' lowest drawn point and the fin's top.
    */
   airframeOf('slowstick1180'),
-  {
-    /*
-     * The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md: a
-     * STOL bush plane on 4S, simId 7 on the fixed wing plant, with
-     * ailerons, an elevator, a rudder, slotted flaps and fixed slats. It
-     * stands on big foam tyres and a tailwheel like the Cub, so throttle
-     * rolls it off the strip (L still throws it); `gear` is the plant's
-     * settled pose, which the drawn wheels in src/render/timbercraft.js
-     * match: the CG 0.2115 m over the ground and 11.8 degrees nose up.
-     * `flaps` says it has them: F steps them up, half and full, and the
-     * OSD says where they are.
-     */
-    id: 'timber1500',
-    simId: 7,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): flaps up, slats on, tests/timber-thresholds.json t2_stall_slats. */
-    stall: 7.20,
-    /* Level speed at full throttle, m/s: docs/TIMBER-STAGE1.md T1, measured in the plant. */
-    topSpeed: 27.2,
-    gear: { restHeight: 0.2115, restPitch: 11.81 * Math.PI / 180 },
-    flaps: true,
-    name: 'Turbo Timber',
-    short: 'Timber',
-    blurb: 'A 1555 mm E-flite Turbo Timber Evolution on 4S, a bush plane with slats and big flaps. Full flaps and it is off the strip in two metres and crawls nose high; flaps up and it is quick and aerobatic. F sets the flaps.',
-    facts: ['4S', '1555 mm', 'STOL, flaps'],
-    sizeMm: 1555,
-    grams: 1700,
-    trackClass: 'wing',
-    cells: 4,
-    ...packStates(),
-    defaultTune: 'timber-as3x',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/timbercraft.js TIMBER_DIMS: the
-     * furthest reach in plan, the drooped tip's trailing corner, the tyres'
-     * lowest drawn point and the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1397,
-      hullR: 0.7981,
-      vHalfDown: 0.227,
-      vHalfUp: 0.195,
-      bodyLength: 1.04,
-      bodyWidth: 1.555,
-      bodyHeight: 0.422,
-    },
-  },
+  /*
+   * The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md: a
+   * STOL bush plane on 4S, simId 7 on the fixed wing plant, with
+   * ailerons, an elevator, a rudder, slotted flaps and fixed slats. It
+   * stands on big foam tyres and a tailwheel like the Cub, so throttle
+   * rolls it off the strip (L still throws it); `gear` is the plant's
+   * settled pose, which the drawn wheels in src/render/timbercraft.js
+   * match: the CG 0.2115 m over the ground and 11.8 degrees nose up.
+   * `flaps` says it has them: F steps them up, half and full, and the
+   * OSD says where they are.
+   *
+   * The row is its folder's, aircraft/timber1500/aircraft.js. `stall`:
+   * Clean stall, m/s, sqrt(2W / rho S CLmax): flaps up, slats on,
+   * tests/timber-thresholds.json t2_stall_slats. `topSpeed`: Level speed
+   * at full throttle, m/s: docs/TIMBER-STAGE1.md T1, measured in the
+   * plant. `dims`: The drawn machine, src/render/timbercraft.js
+   * TIMBER_DIMS: the furthest reach in plan, the drooped tip's trailing
+   * corner, the tyres' lowest drawn point and the fin's top.
+   */
+  airframeOf('timber1500'),
   {
     /*
      * The Turbo Timber on the float set it ships with, docs/FLOATS-STAGE1.md:
