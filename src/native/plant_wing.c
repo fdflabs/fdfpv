@@ -405,6 +405,23 @@ static double keep_at(const double tab[7], const double def[7], double past) {
   }
   return k[6];
 }
+/* A wash control's share kept at a body angle, deg (plant_wing_step, the
+ * wash's controls): all of it to deg[0], k[0] being 1, then straight
+ * between the points, held past the last. */
+static double wash_keep(const double deg[9], const double k[9], double a) {
+  if (!(a > 0.0)) {
+    return 1.0;
+  }
+  if (a <= deg[0]) {
+    return k[0];
+  }
+  for (int i = 0; i < 8; i += 1) {
+    if (a <= deg[i + 1]) {
+      return k[i] + (k[i + 1] - k[i]) * (a - deg[i]) / (deg[i + 1] - deg[i]);
+    }
+  }
+  return k[8];
+}
 /* NACA TR 419 table II, an unswept Clark Y wing's ailerons (below). */
 static const double AIL_KEEP_TR419[7] = { 1.0, 0.40, 0.22, 0.108, 0.148, 0.18, 0.18 };
 /* NASA TP-2011 fig. 55a, a rudder over a low stabiliser (below). */
@@ -2636,35 +2653,34 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     }
     const double xs = keep * q_prop * (up - dn) / (mdot * rw * rw);
     const double xb = add_term(-v, -xs);
-    /* A control surface in the wash loses it past about 30 deg of the
-     * airframe's angle, though the wash still runs along it: NACA TN 3307
-     * (Kuhn and Draper 1954, a 30 percent flap in the slipstream of two
-     * large props, figs. 13c and 16c) at Tc'' 0.71 keeps of its pitching
-     * moment 1 to 20 deg, 0.47 at 40, 0.30 at 50, 0.13 at 60, 0.10 at 70,
-     * 0.07 at 80 and 0.05 at 90 (Tc'' 0.5 and 0.91 bracket it within 0.1);
-     * the freestream's crossflow turns the wash off the surface. Taken on
-     * the wash's elevator and aileron terms, FITTED to that curve as kw:
-     * the elevator's angle in the wash and its share both, so the tail's
-     * saturating normal force stays monotonic in the stick. */
-    static const double KW_DEG[7] = { 20.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0 };
-    static const double KW[7] = { 1.0, 0.47, 0.30, 0.13, 0.10, 0.07, 0.05 };
+    /* A control surface in the wash loses its effect past about 30 deg of
+     * the airframe's angle, though the wash still runs along it, by how
+     * much as it is deflected (scripts/lib/washcontrol.js, its sources,
+     * ~/Desktop/fdfpv-loop/research/wash-control/WASH-CONTROL.md): with the
+     * incidence, to the windward side, NACA TN 3307's 30 percent flap at
+     * Tc'' 0.71 (figs. 13c and 16c), which Ma, Smeur and de Croon 2022's
+     * flapped wing at 70 percent throttle repeats (4TU doi:10.4121/16620226);
+     * against it, to the leeward side, Ma 2022's, which keeps far more
+     * (0.89 at 40 deg against 0.47). Each FITTED to its data as a curve on
+     * the body's angle. The elevator takes the side its deflection is on
+     * against the stabiliser's crossflow (nose up elevator at a positive
+     * angle is against it, the harrier's), the ailerons, one each way, the
+     * mean of the two; on the elevator's angle in the wash and its share
+     * both, so the tail's saturating normal force stays monotonic in the
+     * stick. */
+    static const double KW_DEG[9] = { 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0 };
+    static const double KW_WITH[9] = { 1.0, 1.0, 0.735, 0.47, 0.30, 0.13, 0.10, 0.07, 0.05 };
+    static const double KW_AGAINST[9] = { 1.0, 0.95, 0.93, 0.89, 0.74, 0.55, 0.37, 0.25, 0.16 };
     const double a_w = sim_fabs(sim_atan2(-w, u_pos > 0.0 ? u_pos : 0.0)) * 180.0 / WING_PI;
-    double kw = 1.0;
-    if (a_w > KW_DEG[0]) {
-      kw = KW[6];
-      for (int i = 0; i < 6; i += 1) {
-        if (a_w <= KW_DEG[i + 1]) {
-          kw = KW[i] + (KW[i + 1] - KW[i]) * (a_w - KW_DEG[i]) / (KW_DEG[i + 1] - KW_DEG[i]);
-          break;
-        }
-      }
-    }
     /* With no freestream (Tc'' 1, the hover) nothing turns the wash off
      * the surface and the angle means nothing: the loss fades out between
      * TN 3307's highest Tc'', 0.91, where it is whole, and 1. */
     const double tcl = dp / (dp + 0.5 * PLANT.rho * V * V);
     const double fade = tcl <= 0.91 ? 1.0 : tcl >= 1.0 ? 0.0 : (1.0 - tcl) / 0.09;
-    kw = 1.0 - fade * (1.0 - kw);
+    const double k_with = 1.0 - fade * (1.0 - wash_keep(KW_DEG, KW_WITH, a_w));
+    const double k_against = 1.0 - fade * (1.0 - wash_keep(KW_DEG, KW_AGAINST, a_w));
+    const double kw = fw->cm_de * delta_e * xa > 0.0 ? k_against : k_with;
+    const double kwa = 0.5 * (k_with + k_against);
     /* With hi_alpha each surface's share in the wash saturates as its
      * free stream share does, at its angle in the wash's own stream, the
      * crossflow over the far wake's speed, and its control's. */
@@ -2686,7 +2702,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     n_slip = fw->area * fw->span *
              (kv * (fw->slip_cn_b * xb + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
     l_slip = fw->area * fw->span *
-             (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * kw * fw->cl_da * delta_a);
+             (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * kwa * fw->cl_da * delta_a);
     l_slip = add_term(l_slip, root);
     g_slip[0] = l_slip;
     g_slip[1] = -m_slip;
@@ -5746,7 +5762,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_i_max = 0.30,
   .as3x_k = { 0.0497, 0.1147, 0.3603 }, /* npm run as3x:derive */
   .as3x_kh = { 0.4436, 1.0237, 3.2157 }, /* npm run as3x:derive */
-  .as3x_rate = { 7.553, -6.115, -2.644 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.553, -6.115, -2.645 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6200,7 +6216,7 @@ const FixedWingParams FW_SLICK2680 = {
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0878, 0.434, 0.8287 }, /* npm run as3x:derive */
   .as3x_kh = { 1.5672, 7.7469, 14.7923 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.646, -3.693, -2.129 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.646, -3.639, -2.11 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to

@@ -434,8 +434,9 @@ function harrier(alphaDeg) {
   const alphaT = sa - deda * CL / CLa - slipA0 * (1 - deda);
   const xa = V * Math.sin(a - slipA0);
   const vw = u + 2 * w.vi;
-  const kw = washKw(a, w.dp, V, rho); /* scripts/lib/washcontrol.js, as the plant */
+  /* scripts/lib/washcontrol.js, as the plant: the side the elevator is on against the crossflow. */
   const cm = (de) => {
+    const kw = washKw(a, w.dp, V, rho, Cmde * de * xa > 0 ? 'against' : 'with');
     const xt = at * alphaT - Cmde * de / vhT;
     const free = Cm0 + (Cma - slipCma) * sa + slipCma * slipA0 - vhT * xt * plateRatio(xt) + past * cmPost;
     const rh = plateRatio(at * xa / vw - kw * Cmde * de / vhT);
