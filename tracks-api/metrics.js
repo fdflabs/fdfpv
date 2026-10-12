@@ -38,10 +38,33 @@
 import { readFileSync, readdirSync, statfsSync, existsSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 
+/* The rooms server runs as fdfpv-rooms@8797 and fdfpv-rooms@8798, one live
+ * and the other draining (deploy/vm/rooms-deploy.sh), and as the single
+ * unit fdfpv-rooms until the first of those deploys. */
+export const ROOMS_UNITS = ['fdfpv-rooms', 'fdfpv-rooms@8797', 'fdfpv-rooms@8798'];
+
 /* The units the panel names; any other service on the VM is listed too,
  * but only these get a line in the history. */
-export const UNITS = ['fdfpv-rooms', 'fdfpv-tracks', 'fdfpv-board', 'caddy', 'postgresql', 'coturn'];
+export const UNITS = [...ROOMS_UNITS, 'fdfpv-tracks', 'fdfpv-board', 'caddy', 'postgresql', 'coturn'];
 const CGROUPS = '/sys/fs/cgroup/system.slice';
+export const ROOMS_LIVE = '/etc/fdfpv/rooms-live';
+
+/* Which rooms instance Caddy sends pilots to: { port, unit }, from
+ * rooms-deploy.sh's ROOMS_LIVE file. A missing file is the VM before its
+ * first rooms-deploy.sh, where the one unit fdfpv-rooms listened on 8797.
+ * A file that cannot be read, or names another port, is { error }: the
+ * callers probe nothing and the panel says so, instead of probing a
+ * guess. */
+export function liveRooms(file = ROOMS_LIVE) {
+  let text;
+  try {
+    text = readFileSync(file, 'utf8').trim();
+  } catch (e) {
+    return e.code === 'ENOENT' ? { port: 8797, unit: 'fdfpv-rooms' } : { error: `${file} could not be read: ${e.code || e.message}` };
+  }
+  const unit = `fdfpv-rooms@${text}`;
+  return ROOMS_UNITS.includes(unit) ? { port: Number(text), unit } : { error: `${file} says '${text.slice(0, 20)}', not 8797 or 8798` };
+}
 
 function read(path) {
   try {
@@ -137,17 +160,20 @@ export function countConnections(port = 443, files = ['/proc/net/tcp', '/proc/ne
 }
 
 /* Every service's cgroup: memory now, its ceiling, its peak, and CPU
- * seconds since it started. */
+ * seconds since it started. Instances of a template unit (fdfpv-rooms@8797)
+ * sit one level down, in a system-<template>.slice directory. */
 export function readServices(root = CGROUPS) {
   if (!existsSync(root)) {
     return [];
   }
+  const names = readdirSync(root);
+  const dirs = names.filter((d) => d.endsWith('.service')).map((d) => [root, d]);
+  for (const slice of names.filter((d) => d.startsWith('system-') && d.endsWith('.slice'))) {
+    dirs.push(...readdirSync(`${root}/${slice}`).filter((d) => d.endsWith('.service')).map((d) => [`${root}/${slice}`, d]));
+  }
   const out = [];
-  for (const dir of readdirSync(root)) {
-    if (!dir.endsWith('.service')) {
-      continue;
-    }
-    const at = (f) => read(`${root}/${dir}/${f}`);
+  for (const [parent, dir] of dirs) {
+    const at = (f) => read(`${parent}/${dir}/${f}`);
     const cur = Number(at('memory.current'));
     if (!Number.isFinite(cur)) {
       continue;
@@ -449,7 +475,7 @@ async function getJson(url, headers = {}) {
  * report and closed after, so a collector that has not run yet, or a
  * store being written, costs one refused open and nothing else.
  */
-export function serverReport({ metricsDb = '', latency, secret = '', revision = null, rooms = 'http://127.0.0.1:8797', board = 'http://127.0.0.1:3180', liveMs = 1000 }) {
+export function serverReport({ metricsDb = '', latency, secret = '', revision = null, rooms, roomsLiveFile = ROOMS_LIVE, board = 'http://127.0.0.1:3180', liveMs = 1000 }) {
   async function live() {
     const a = snapshot();
     await new Promise((r) => setTimeout(r, liveMs));
@@ -476,12 +502,16 @@ export function serverReport({ metricsDb = '', latency, secret = '', revision = 
     sample: () => ({ latency: latency.report(1) }),
     async report(range) {
       const auth = secret ? { authorization: `Bearer ${secret}` } : {};
+      const roomsLive = liveRooms(roomsLiveFile);
+      const roomsAt = rooms || (roomsLive.port ? `http://127.0.0.1:${roomsLive.port}` : null);
+      const none = { body: null };
       const [host, roomsHealth, roomsVersion, boardVersion] = await Promise.all([
-        live(), getJson(`${rooms}/v2/admin/health`, auth), getJson(`${rooms}/v2/version`), getJson(`${board}/api/version`),
+        live(), roomsAt ? getJson(`${roomsAt}/v2/admin/health`, auth) : none, roomsAt ? getJson(`${roomsAt}/v2/version`) : none, getJson(`${board}/api/version`),
       ]);
       return {
         range: RANGES[range] ? range : '24h',
         host,
+        roomsLive,
         latency: { m1: latency.report(1), m5: latency.report(5), m60: latency.report(60) },
         rooms: roomsHealth.body,
         versions: { tracks: revision, rooms: roomsVersion.body, board: boardVersion.body },

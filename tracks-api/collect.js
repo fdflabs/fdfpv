@@ -38,7 +38,7 @@ import { X509Certificate } from 'node:crypto';
 import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { UNITS, getState, mask, openStore, rates, setState, snapshot, writeMinute } from './metrics.js';
+import { ROOMS_LIVE, UNITS, getState, liveRooms, mask, openStore, rates, setState, snapshot, writeMinute } from './metrics.js';
 
 const GAP_MS = 5 * 60 * 1000;
 const TAIL = 100;
@@ -138,6 +138,9 @@ export function certificates(root = CERTS) {
 
 function logGroup(e) {
   const unit = String(e._SYSTEMD_UNIT || '').replace(/\.service$/, '');
+  if (unit.startsWith('fdfpv-rooms@')) {
+    return 'fdfpv-rooms';
+  }
   if (UNITS.includes(unit)) {
     return unit;
   }
@@ -194,7 +197,7 @@ async function timed(url, headers = {}) {
 }
 
 export async function collect({
-  store, secret = '', tracks = 'http://127.0.0.1:8787', rooms = 'http://127.0.0.1:8797', board = 'http://127.0.0.1:3180',
+  store, secret = '', tracks = 'http://127.0.0.1:8787', rooms, roomsLiveFile = ROOMS_LIVE, board = 'http://127.0.0.1:3180',
   paths = PATHS, units = UNITS, readJournal = journal, now = () => Date.now(),
 }) {
   let before = getState(store, 'raw');
@@ -206,9 +209,12 @@ export async function collect({
   }
   const r = rates(before, snap);
   const auth = secret ? { authorization: `Bearer ${secret}` } : {};
+  const roomsLive = liveRooms(roomsLiveFile);
+  const roomsAt = rooms || (roomsLive.port ? `http://127.0.0.1:${roomsLive.port}` : null);
+  const failed = { ms: null, ok: false, body: null };
   const [pTracks, pRooms, pBoard, health, sample] = await Promise.all([
-    timed(`${tracks}/api/health`), timed(`${rooms}/v2/version`), timed(`${board}/api/health`),
-    timed(`${rooms}/v2/admin/health`, auth), timed(`${tracks}/api/admin/server/sample`, auth),
+    timed(`${tracks}/api/health`), roomsAt ? timed(`${roomsAt}/v2/version`) : failed, timed(`${board}/api/health`),
+    roomsAt ? timed(`${roomsAt}/v2/admin/health`, auth) : failed, timed(`${tracks}/api/admin/server/sample`, auth),
   ]);
   const log = readJournal(getState(store, 'journalCursor'));
   const sizes = Object.fromEntries(Object.entries(paths).map(([k, p]) => [k, du(p)]));
@@ -251,6 +257,7 @@ export async function collect({
   setState(store, 'snapshot', {
     at: new Date(snap.at).toISOString(), sizes, units: unitStates(units), postgresConnections: postgresConnections(),
     certificates: certificates(), journalRead: log.read,
+    roomsLive,
     probes: { tracks: pTracks.ok, rooms: pRooms.ok, board: pBoard.ok, roomsHealth: Boolean(health.body), tracksSample: Boolean(sample.body) },
   });
   return v;
