@@ -48,6 +48,7 @@
  */
 
 import { SEAT_GATES, wingEngine, wingProp, wingSeat } from './lib/propcurve.js';
+import { wash } from './lib/wash.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -125,6 +126,10 @@ async function tables() {
       fw.engine = fw.thrust_static > 0 ? wingEngine(m[1]) : null;
       /* An electric's pack, the gates' seat (wingSeat, power_duty). */
       fw.seat = fw.current_full > 0 ? wingSeat(m[1]) : null;
+      /* Its slipstream's geometry, for the wash's moment over the
+       * stabiliser: the two lists fields() leaves out, and its scalars. */
+      const pair = (k) => { const x = new RegExp(`\\.${k} = \\{ ([^}]*) \\}`).exec(m[2]); return x ? x[1].split(',').map(Number) : [0, 0]; };
+      fw.slip = fw.slip_r > 0 ? { ...fw, slip_hv: pair('slip_hv'), slip_ya: pair('slip_ya') } : null;
       /* An engine's dyno curve (throttle_rpm), which fields() leaves out as
        * a list: the stick to its speed over full, straight between tenths. */
       const curve = m[2].match(/\.throttle_rpm = \{ ([^}]*) \}/);
@@ -173,6 +178,18 @@ function coeffs(fw, alpha) {
  * thrust line's moment, and where a load has moved the CG by sh ([x, z]
  * about the table's), every force's arm less the shift, as plant_wing.c
  * sums them. */
+/* The slipstream's own pitching moment over the stabiliser, over q S c,
+ * as plant_wing.c takes it with the elevator neutral and no pitch rate
+ * (m_slip): the wash's crossflow from the stabiliser's zero lift, V sin(ab
+ * - slip_a0), through slip_cm_a on rho v_i fh. Left out until 2026-10-12;
+ * the seated pack's thrust made it big enough to move the P-51's trim. */
+function slipCm(fw, q, T, ab) {
+  if (!fw.slip || !(T > 0)) return 0;
+  const V = Math.sqrt(2 * q / 1.225);
+  const w = wash(fw.slip, T, V * Math.cos(ab));
+  return 1.225 * w.vi * w.fh * fw.slip.slip_cm_a * V * Math.sin(ab - fw.slip.slip_a0) / q;
+}
+
 function trimAlpha(fw, q, T, sh = [0, 0]) {
   const S = fw.area;
   const net = (alpha) => {
@@ -180,7 +197,7 @@ function trimAlpha(fw, q, T, sh = [0, 0]) {
     const ab = alpha + fw.alpha_zl;
     const Fx = q * S * (CL * Math.sin(ab) - CD * Math.cos(ab)) + T;
     const Fz = q * S * (CL * Math.cos(ab) + CD * Math.sin(ab));
-    return Cm - fw.thrust_z * T / (q * S * fw.chord) + (sh[1] * Fx - sh[0] * Fz) / (q * S * fw.chord);
+    return Cm - fw.thrust_z * T / (q * S * fw.chord) + slipCm(fw, q, T, ab) + (sh[1] * Fx - sh[0] * Fz) / (q * S * fw.chord);
   };
   let lo = -0.2, hi = coeffs(fw, 0).aStall;
   if (net(lo) < 0 || net(hi) > 0) return null;

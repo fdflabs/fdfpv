@@ -27,6 +27,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { planeTable, wash } from './lib/wash.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
@@ -420,8 +421,21 @@ const Izz = Ixx + Iyy - 0.01;
  * Half the stick is half the prop's pitch speed, 11.5 m/s, under the
  * stall, so no speed is level there: the trim is taken at three quarters,
  * the cruise, as the Kadet's is. */
+/* The slipstream's own pitching moment over the stabiliser at that trim,
+ * as plant_wing.c takes it (m_slip with the elevator neutral and no pitch
+ * rate): the wash's crossflow over the stabiliser from its zero lift, V
+ * sin(body alpha - slip_a0), through slip_cm_a, on rho v_i fh, over q S c,
+ * 2 v_i fh slip_cm_a sin(alpha - a0) / V. Left out until 2026-10-12, when
+ * the seated pack's thrust grew it to 0.0024 nose up at the trim and the
+ * plant's hands off trim sat 3 m/s under the derivation's (P9). */
+const slipFw = planeTable('FW_P51D1450').fw;
+const cmSlip = (V, T, alphaBody) => {
+  const w = wash(slipFw, T, V);
+  return 2 * w.vi * w.fh * slipFw.slip_cm_a * Math.sin(alphaBody - slipFw.slip_a0) / V;
+};
 const Vtrim = level(0.75), CLtrim = 2 * W / (rho * Vtrim * Vtrim * S);
-const Cm0 = -Cma * CLtrim / CLa + thrustZ * D(Vtrim) / (0.5 * rho * Vtrim * Vtrim * S * c);
+const cmSlipTrim = cmSlip(Vtrim, D(Vtrim), CLtrim / CLa + alphaZL);
+const Cm0 = -Cma * CLtrim / CLa + thrustZ * D(Vtrim) / (0.5 * rho * Vtrim * Vtrim * S * c) - cmSlipTrim;
 
 /*
  * The gear as drawn (the side view, scaled): the mains 0.0633 m ahead of
