@@ -107,14 +107,22 @@ function floatsOf(name) {
   return partsOf(m[1]).map((p) => ({ kind: p.kind, pts: p.pts.map((q) => [q[0], q[1], q[2] + dz]) }));
 }
 
-/* The surfaces' points for a table whose parts are drawn. */
-function derive(name) {
+/* The surfaces' points for a table whose parts are drawn. A biplane's
+ * wing panels are its two wings, told apart by their mid heights: the
+ * top wing's (ge_wing) over the panels' mean, the bottom's (ge_wing2)
+ * under it. */
+function derive(name, biplane) {
   const ps = partsOf(name) ?? floatsOf(name);
   if (!ps) return null;
-  const wing = ps.filter((p) => p.kind === 'WING').flatMap((p) => p.pts);
+  const panels = ps.filter((p) => p.kind === 'WING');
   const tail = ps.filter((p) => p.kind === 'HSTAB' || p.kind === 'ELEVATOR').flatMap((p) => p.pts);
-  if (!wing.length) return null;
-  return { wing: quarterChord(wing), tail: tail.length ? quarterChord(tail) : [0, 0, 0] };
+  if (!panels.length) return null;
+  const midZ = (p) => p.pts.reduce((a, q) => a + q[2], 0) / p.pts.length;
+  const mean = panels.reduce((a, p) => a + midZ(p), 0) / panels.length;
+  const top = biplane ? panels.filter((p) => midZ(p) > mean) : panels;
+  const out = { wing: quarterChord(top.flatMap((p) => p.pts)), tail: tail.length ? quarterChord(tail) : [0, 0, 0] };
+  if (biplane) out.wing2 = quarterChord(panels.filter((p) => midZ(p) <= mean).flatMap((p) => p.pts));
+  return out;
 }
 
 const r4 = (x) => Math.round(x * 10000) / 10000;
@@ -123,11 +131,14 @@ console.log('ge:derive, the lifting surfaces over the CG, m (src/native/crash_pa
 console.log('table                 wing x, z          tail x, z          tail arm   ge');
 for (const t of wingC.matchAll(/const FixedWingParams (FW_\w+) = \{([\s\S]*?)\n\};/g)) {
   const [, table, body] = t;
-  const d = derive(table.slice(3));
+  const biplane = (vec(body, 'bip_w') ?? [0])[0] > 0;
+  const d = derive(table.slice(3), biplane);
   const on = /\.ground_effect = 1/.test(body);
   if (!d) { console.log(`${table.padEnd(21)} no drawn parts`); continue; }
   const w = d.wing.map(r4), tl = d.tail.map(r4);
   console.log(`${table.padEnd(21)} ${String(w[0]).padStart(8)} ${String(w[2]).padStart(8)}  ${String(tl[0]).padStart(8)} ${String(tl[2]).padStart(8)}  ${(tl[0] ? r4(w[0] - tl[0]) : 0).toString().padStart(8)}   ${on ? 'on' : '-'}`);
+  const w2 = d.wing2 && d.wing2.map(r4);
+  if (w2) console.log(`  the bottom wing        ${String(w2[0]).padStart(8)} ${String(w2[2]).padStart(8)}  ${''.padStart(17)}  ${r4(w2[0] - tl[0]).toString().padStart(8)}`);
   if (!on) continue;
   const gw = vec(body, 'ge_wing'), gt = vec(body, 'ge_tail') ?? [0, 0, 0];
   const same = (a, b) => a && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 5e-5);
@@ -151,6 +162,10 @@ for (const t of wingC.matchAll(/const FixedWingParams (FW_\w+) = \{([\s\S]*?)\n\
   if (!same(gw, w) || !same(gt, tl)) {
     bad += 1;
     console.log(`  ${table} has ge_wing ${gw} ge_tail ${gt}, derived { ${w.join(', ')} } { ${tl.join(', ')} }`);
+  }
+  if (w2 && !same(vec(body, 'ge_wing2'), w2)) {
+    bad += 1;
+    console.log(`  ${table} has ge_wing2 ${vec(body, 'ge_wing2')}, derived { ${w2.join(', ')} }`);
   }
 }
 

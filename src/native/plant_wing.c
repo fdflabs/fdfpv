@@ -496,8 +496,8 @@ static double ge_cla(const FixedWingParams *fw) {
  * ESTIMATED. The terms split cl_alpha into the wing's and the tail's on
  * the wing's own slope: cl_alpha_wing, or on a table that stalls on the
  * whole curve (the Hercules) ge_cla_wing, which nothing else reads, so
- * its stall stays where every band was derived. The Tiger Moth does not
- * take the term yet: its two wings are TM 77's four terms.
+ * its stall stays where every band was derived. A biplane's two wings
+ * are TM 77's four terms, biplane_ground_terms below.
  */
 #define GE_HB_MAX (1.0 / 1.32)
 static double smoothstep(double a, double b, double x);
@@ -534,7 +534,106 @@ typedef struct {
   double da;  /* the wing's upwash, added to its angle, rad */
   double clw; /* the wing's lift it was taken on */
   double dt;  /* the tail's angle over what the shifted curve gives it, rad */
+  /* A biplane's wings (biplane_ground_terms): each one's angle over r
+   * times the cell's shifted angle, rad, and the drag its lift tilted by
+   * its upwash takes off, on the reference area. */
+  double bip_da[2];
+  double bip_cd[2];
 } GroundTerms;
+
+/* A body point's height over the ground's plane, m. */
+static double ge_height(const SimState *s, const double pt[3]) {
+  double ww[3];
+  wquat_rotate(s->quat, pt, ww);
+  return s->ground_h + s->ground_n[0] * ww[0] + s->ground_n[1] * ww[1] + s->ground_n[2] * ww[2];
+}
+
+/* TM 77's sigma at a height over the span; none from GE_HB_MAX. */
+static double ge_sigma(double hb) {
+  return hb >= GE_HB_MAX ? 0.0 : (1.0 - 1.32 * hb) / (1.05 + 7.4 * hb);
+}
+
+/* The share of a wing's downwash at the tail its image takes away, the
+ * wing's quarter chord at wing, h over the ground: zero without a tail. */
+static double ge_tail_r(const FixedWingParams *fw, const double wing[3], double h, double hb, double sin_b, double cos_b) {
+  if (!(fw->ge_tail[0] < 0.0)) return 0.0;
+  const double semi = 0.5 * fw->span;
+  const double dx = fw->ge_tail[0] - wing[0], dz = fw->ge_tail[2] - wing[2];
+  const double x = (-dx * cos_b + dz * sin_b) / semi, m = (dx * sin_b + dz * cos_b) / semi;
+  /* A tail that the wind meets before the wing (an aircraft hanging on
+   * its prop) is not behind the sheet the method reads. */
+  if (!(x > 0.0)) return 0.0;
+  return ge_sheet(x, 2.0 * h / semi + m) / ge_sheet(x, m) * (1.0 - smoothstep(0.5, GE_HB_MAX, hb));
+}
+
+/*
+ * A BIPLANE NEAR THE GROUND, TM 77 p. 6: the ground is both wings'
+ * images, and the drag falls by four terms, each wing's own image's and
+ * each wing in the other's, W' = 2 W12' + W11' + W22' (eq. 7), each
+ * sigma_ij L_i L_j / (pi q b^2) with sigma at the distance from wing i to
+ * the image of wing j (eq. 3; the spans equal, mu = 1, so the monoplane's
+ * curve, eq. 4). In heights over the span: sigma_11 at the top wing's,
+ * sigma_22 at the bottom's, sigma_12 at their mean. That drag is each
+ * wing's lift tilted forward by its upwash, Delta alpha_i = (sigma_ii
+ * CL_i + sigma_ij CL_j) / (pi A), on the reference area; so each wing is
+ * taken at its angle plus its own upwash, as the monoplane is (Report 738),
+ * and the two lifts solved together. sigma_12 is read in the lifting
+ * lines' plane, the stagger left out (Munk's theorem leaves the sum of the
+ * drags unmoved by it, not each wing's upwash): ESTIMATED. Each wing's
+ * lift is held at its own lift at the plant's stall (biplane_lift's
+ * cmax). The cell's angle takes the area weighted upwash, its lift
+ * change over cl_alpha; each wing the rest of its own, so the top wing,
+ * further from the ground and ahead, gains less than the bottom one and
+ * the cell pitches nose down at their aerodynamic centres (biplane_lift).
+ * The tail: Report 738's image for each wing's sheet, from its own quarter
+ * chord and height, weighted by the lift each sheet carries, ESTIMATED.
+ * With one wing it is the monoplane's term.
+ */
+static int biplane_ground_terms(const SimState *s, const FixedWingParams *fw, double alpha_w, double sin_b, double cos_b,
+                                double clmax, GroundTerms *g) {
+  const double *pt[2] = { fw->ge_wing, fw->ge_wing2 };
+  double h[2], hb[2];
+  for (int i = 0; i < 2; i += 1) {
+    h[i] = ge_height(s, pt[i]);
+    hb[i] = (h[i] > 0.0 ? h[i] : 0.0) / fw->span;
+  }
+  if (hb[0] >= GE_HB_MAX && hb[1] >= GE_HB_MAX) return 0;
+  const double sg[2] = { ge_sigma(hb[0]), ge_sigma(hb[1]) };
+  const double s12 = ge_sigma(0.5 * (hb[0] + hb[1]));
+  const double pia = WING_PI * fw->span * fw->span / fw->area;
+  const double aw = ge_cla(fw);
+  double area[2], p[2], rhs[2];
+  for (int i = 0; i < 2; i += 1) {
+    area[i] = fw->bip_w[i] / fw->bip_r[i];
+    p[i] = area[i] * aw / pia;
+    rhs[i] = fw->bip_w[i] * aw * alpha_w;
+  }
+  /* C_i (1 - p_i sigma_ii) - p_i sigma_12 C_j = bip_w_i a_w alpha. */
+  const double a00 = 1.0 - p[0] * sg[0], a01 = -p[0] * s12, a10 = -p[1] * s12, a11 = 1.0 - p[1] * sg[1];
+  const double det = a00 * a11 - a01 * a10;
+  double c[2] = { (rhs[0] * a11 - a01 * rhs[1]) / det, (a00 * rhs[1] - a10 * rhs[0]) / det };
+  for (int i = 0; i < 2; i += 1) {
+    const double cmax = add_term(clmax, wing_cla(fw) * fw->bip_r[i] * fw->bip_dstall[i]);
+    const double most = area[i] * cmax * (aw / wing_cla(fw));
+    if (c[i] > most) c[i] = most;
+    if (c[i] < -most) c[i] = -most;
+  }
+  double up[2];
+  g->da = 0.0;
+  g->clw = 0.0;
+  for (int i = 0; i < 2; i += 1) {
+    up[i] = (sg[i] * c[i] + s12 * c[1 - i]) / pia;
+    g->da += area[i] * up[i];
+    g->clw += c[i];
+    g->bip_cd[i] = c[i] * up[i];
+  }
+  g->dt = -g->da;
+  for (int i = 0; i < 2; i += 1) {
+    g->bip_da[i] = up[i] - fw->bip_r[i] * g->da;
+    g->dt += fw->tail_deda * ge_tail_r(fw, pt[i], h[i], hb[i], sin_b, cos_b) * c[i] / aw;
+  }
+  return 1;
+}
 
 /* Zero terms when the host has raised no ground or the wing is past
  * GE_HB_MAX of its span over it; the caller takes no branch then. alpha_w
@@ -543,12 +642,11 @@ typedef struct {
 static int ground_terms(const SimState *s, const FixedWingParams *fw, double alpha_w, double sin_b, double cos_b,
                         double clmax, GroundTerms *g) {
   if (!fw->ground_effect || !(s->ground_h >= 0.0)) return 0;
-  double ww[3];
-  wquat_rotate(s->quat, fw->ge_wing, ww);
-  const double h = s->ground_h + s->ground_n[0] * ww[0] + s->ground_n[1] * ww[1] + s->ground_n[2] * ww[2];
+  if (fw->bip_w[0] > 0.0) return biplane_ground_terms(s, fw, alpha_w, sin_b, cos_b, clmax, g);
+  const double h = ge_height(s, fw->ge_wing);
   const double hb = (h > 0.0 ? h : 0.0) / fw->span;
   if (hb >= GE_HB_MAX) return 0;
-  const double sigma = (1.0 - 1.32 * hb) / (1.05 + 7.4 * hb);
+  const double sigma = ge_sigma(hb);
   const double pia = WING_PI * fw->span * fw->span / fw->area;
   const double aw = ge_cla(fw);
   /* The wing's own lift at the plant's stall angle, clmax / wing_cla: on a
@@ -562,15 +660,7 @@ static int ground_terms(const SimState *s, const FixedWingParams *fw, double alp
   g->da = sigma * clw / pia;
   g->dt = -g->da;
   if (fw->ge_tail[0] < 0.0) {
-    const double semi = 0.5 * fw->span;
-    const double dx = fw->ge_tail[0] - fw->ge_wing[0], dz = fw->ge_tail[2] - fw->ge_wing[2];
-    const double x = (-dx * cos_b + dz * sin_b) / semi, m = (dx * sin_b + dz * cos_b) / semi;
-    /* A tail that the wind meets before the wing (an aircraft hanging on
-     * its prop) is not behind the sheet the method reads. */
-    if (x > 0.0) {
-      const double r = ge_sheet(x, 2.0 * h / semi + m) / ge_sheet(x, m) * (1.0 - smoothstep(0.5, GE_HB_MAX, hb));
-      g->dt += fw->tail_deda * r * clw / aw;
-    }
+    g->dt += fw->tail_deda * ge_tail_r(fw, fw->ge_wing, h, hb, sin_b, cos_b) * clw / aw;
   }
   return 1;
 }
@@ -1845,11 +1935,18 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
  * own arm, the stall model's (plant_wing_step's cm_post) with the arms
  * moved by bip_x, and the lift a wing gains from its partner's stall at
  * its aerodynamic centre. The low Reynolds number arms (lowre_arm_*) are
- * the Slow Stick's alone and are not taken here. Nothing here runs for a
+ * the Slow Stick's alone and are not taken here. Near the ground (ge, none
+ * in free air; biplane_ground_terms) each wing in its partner's wash takes
+ * its own upwash over the cell's, and the drag its lift tilted forward by
+ * it; the cell's lift change rides on alpha. A wing alone stays at the
+ * cell's angle, so the uneven upwash's lift is gained at each wing's
+ * aerodynamic centre, as a stalled partner's is, and pitches the cell; the
+ * partner's stall is read without it, ESTIMATED. Nothing here runs for a
  * monoplane.
  */
 static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e, double dcl_f, double clmax, double k_stall,
-                         double fre, double sin_a, double cos_a, double cd0, double b2c, double *CL, double *CD, double *cm) {
+                         double fre, double sin_a, double cos_a, double cd0, double b2c, const GroundTerms *ge,
+                         double *CL, double *CD, double *cm) {
   WingLift alone[2], wl[2];
   /* bip_dstall: how much later than potential flow each wing stalls, in
    * the cell's angle, the lift it holds to that angle its own CL max. */
@@ -1864,7 +1961,11 @@ static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e
   for (int i = 0; i < 2; i += 1) {
     const double r = fw->bip_r[i];
     const double lost = alone[1 - i].cl - alone[1 - i].cl_lin;
-    wing_lift(fw, r * alpha - fw->bip_m[i] * lost / fw->cl_alpha, r * delta_e, r * dcl_f, cmax[i], k_stall, fre, sin_a, cos_a, &wl[i]);
+    double a = r * alpha;
+    if (ge) {
+      a = add_term(a, ge->bip_da[i]);
+    }
+    wing_lift(fw, a - fw->bip_m[i] * lost / fw->cl_alpha, r * delta_e, r * dcl_f, cmax[i], k_stall, fre, sin_a, cos_a, &wl[i]);
   }
   /* The broadside coefficient and Viterna's B2 are the cell's, on its
    * span over its area: the two wings stall in each other's flow. */
@@ -1879,6 +1980,9 @@ static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e
     const double area = fw->bip_w[i] / fw->bip_r[i];
     cl += area * a->cl;
     cd += area * a->sigma * plate + (1.0 - a->sigma) * a->cl_lin * (fw->bip_ki[i] * a->cl_lin + fw->bip_kx[i] * wl[1 - i].cl_lin);
+    if (ge) {
+      cd -= (1.0 - a->sigma) * ge->bip_cd[i];
+    }
     const double ac = fw->stall_arm_ac + fw->bip_x[i];
     const double cp = fw->stall_arm_cp - fw->bip_x[i];
     const double lin = alone[i].cl_lin;
@@ -2338,7 +2442,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cm_bip = 0.0, alpha_strip = alpha_stall;
   const int biplane = fw->bip_w[0] > 0.0;
   if (biplane) {
-    biplane_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, cd0, b2c, &CL, &CD, &cm_bip);
+    biplane_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, cd0, b2c, ge_on ? &ge : 0, &CL, &CD, &cm_bip);
     alpha_strip = alpha_stall / (fw->bip_r[0] > fw->bip_r[1] ? fw->bip_r[0] : fw->bip_r[1]);
   }
 
@@ -5285,6 +5389,15 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .slip_a0 = -0.007186, .slip_cl_a = 0.2292, .slip_cm_a = -0.7162, .slip_cn_b = 0.1077,
   .slip_cn_r = -0.1117, .slip_cy_b = -0.2081, .slip_cl_b = -0.01166,
   .side_cda = 0.1436, /* 0.84 of 0.171 m^2, the fuselage in side view, scripts/tigermoth-derive.js */
+  .tail_deda = 0.4416, /* d eps / d alpha, scripts/tigermoth-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77's biplane, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0748, 0.0, 0.2276 }, /* the drawn model's top wing quarter chord, npm run ge:derive */
+  .ge_wing2 = { -0.0325, 0.0, -0.0777 }, /* the bottom wing's, npm run ge:derive */
+  .ge_tail = { -0.8578, 0.0, 0.008 }, /* the stabiliser's, npm run ge:derive */
+  /* The wings' own slope, the cell's a_w, scripts/tigermoth-derive.js (the
+   * tail 0.229 of 4.6328): read only by GROUND EFFECT, so the stall stays
+   * the whole curve's every band was derived on. */
+  .ge_cla_wing = 4.4036,
 };
 
 /* The Striker, docs/COMBAT-DRONES.md section 7: the war's pusher delta as

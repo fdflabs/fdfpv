@@ -1093,12 +1093,15 @@ typedef struct FixedWingParams {
    * wing's own lift slope, per rad, for a table whose stall is the whole
    * curve's (cl_alpha_wing zero): the term needs the wing's share of
    * cl_alpha apart from the tail's, and nothing else reads it. Zero: the
-   * table's wing_cla.
+   * table's wing_cla. On a biplane (bip_w) ge_wing is the top wing's
+   * quarter chord and ge_wing2 the bottom one's; a monoplane leaves it
+   * zero.
    */
   int ground_effect;
   double ge_wing[3];
   double ge_tail[3];
   double ge_cla_wing;
+  double ge_wing2[3];
   /*
    * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
    * open in flight, sim_wing_set_door. door_time is their travel each way,
