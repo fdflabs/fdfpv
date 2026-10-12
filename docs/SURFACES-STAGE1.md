@@ -122,6 +122,35 @@ the rudder at 20.9 and the aileron at 29.7; the Slick's SB-2290SGs the
 rudder at 31.3 and the elevator at 37.3; the Cub's HS-55s hold all three
 past 48 m/s.
 
+**Cross-checked (2026-10-12).** Two hobby servo sizing formulas, flat
+plates at a steady angle, at a 1:1 linkage, give the hinge moment per
+(m/s)^2 against this one's at full throw. StraightEdge's (BARCS
+Builders Workshop, "Servo torque calculator wanted", 22 July 2024: 1.3
+x length cm x chord cm^2 x (m/s)^2 x deflection deg / (2,000,000 x
+9.81), kg-cm): this model over it 0.78 to 1.31 across the Night Timber's
+three surfaces, the Timber's aileron and elevator, the Extra's rudder,
+the CAP's elevator, the Slick's rudder and the Cub's aileron. Chuck
+Gadd's (8.5e-6 x chord^2 x mph^2 x length x sin x tan / tan, oz-in, as
+Model Airplane News' calculator gives it) reads 16 times lower with
+chord and length in inches, as that page states them, and agrees within
+1.14 to 1.66 with them in centimetres, so the inches look like the
+page's slip. The full throw's blow back speeds the three give through
+the same linkage and servo: the Night Timber's elevator 12.0 here, 11.7
+StraightEdge, 13.4 Gadd; its aileron 17.9, 18.9, 21.5; the Timber's
+aileron 20.8, 21.2, 24.1; the Extra's rudder 20.9, 18.5, 22.4. They
+agree inside what the inputs allow. No measured blow back report was
+found for these kits.
+
+The input that is weakest is the servo. The Night Timber's Avian 60 A
+ESC (SPMXAE1060) gives a 6.0 V BEC (Horizon Hobby's listing, "6V/7.2V
+adjustable"), but Spektrum publishes no 6.0 V torque for the A332, and
+its only published figure, 0.9 kg-cm at 4.8 V, comes from listings
+(lindinger.at, flashrc.com) whose same spec block reads 6 g and nylon
+gears, against the A332's 9 g and metal gears. So no 6 V scaling is
+taken, by rule, and the 0.9 is the number to check first: a 9 g metal
+gear servo's usual 1.5 to 2 kg-cm would move the elevator's 12.0 m/s to
+about 15.5 to 18.
+
 **Not offered.** A surface whose Extreme adds under 10 percent of control
 power over stock is left stock: the Extra's rudder (cf 0.76 at 55 deg is
 already the reference's class), whose Extreme would add 1.4 percent and a
