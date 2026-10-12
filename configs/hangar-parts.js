@@ -211,7 +211,7 @@ export const ANCHORS = {
   hercules3077: AIRCRAFT.ANCHORS.hercules3077,
   cap1702: AIRCRAFT.ANCHORS.cap1702,
   p51d1450: AIRCRAFT.ANCHORS.p51d1450,
-  zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },
+  zagi1219: AIRCRAFT.ANCHORS.zagi1219,
 };
 
 /* A body frame point: one mass or drag and where it is. */

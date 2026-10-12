@@ -217,28 +217,13 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/f16878/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'f16878'),
-  {
-    /* The Zagi HP, a kit wing: no gyro, Manual. No rudder, so AS3X damps
-     * roll and pitch only and the yaw stick does nothing. */
-    id: 'zagi-manual',
-    airframe: 'zagi1219',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the elevons, 14.5 degrees each way on both: it rolls fast, and a small touch of up is a lot, so be gentle in pitch. No rudder: it turns on the bank alone.',
-  },
-  {
-    id: 'zagi-as3x',
-    airframe: 'zagi1219',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevons; in roll and pitch, centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. No rudder.',
-    wingStab: 3,
-  },
-  {
-    id: 'zagi-stab',
-    airframe: 'zagi1219',
-    name: 'Stabilised',
-    note: 'A gyro holds the wing. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, and centred sticks fly level. It has no rudder: the yaw stick does nothing.',
-    wingStab: 1,
-  },
+  /*
+   * The Zagi HP, a kit wing: no gyro, Manual. No rudder, so AS3X damps
+   * roll and pitch only and the yaw stick does nothing.
+   *
+   * Its tunes are its folder's, aircraft/zagi1219/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'zagi1219'),
   {
     /* The Striker flies what a one way attack drone flies, an
      * autopilot's stabilised mode, its default; Manual is the sticks on

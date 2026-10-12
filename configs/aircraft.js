@@ -46,11 +46,12 @@ import tigermoth1803 from '../aircraft/tigermoth1803/aircraft.js';
 import timber1500 from '../aircraft/timber1500/aircraft.js';
 import timber1500f from '../aircraft/timber1500f/aircraft.js';
 import uglystik1567 from '../aircraft/uglystik1567/aircraft.js';
+import zagi1219 from '../aircraft/zagi1219/aircraft.js';
 
 export const FOLDERS = [
   a10inch, a7inch, bombshell1118, bramor2300, cap1702, cub1400, cub1400f, extra3d1308, f16878,
   hercules3077, interceptor, kadet1981, nighttimber1200, p51d1450, radian2000, sky1800, slick2680,
-  slowstick1180, tigermoth1803, timber1500, timber1500f, uglystik1567,
+  slowstick1180, tigermoth1803, timber1500, timber1500f, uglystik1567, zagi1219,
 ];
 
 export const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];

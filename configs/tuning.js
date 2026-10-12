@@ -100,7 +100,6 @@ export const MARGIN_WARN = 0.05;
 export const TRIM_MAX_DEG = 4;
 
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
-const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
 /*
@@ -181,13 +180,7 @@ export const TUNING = {
     flaps: null,
   },
   f16878: AIRCRAFT.TUNING.f16878,
-  zagi1219: {
-    chord: 0.21335338, area: 0.26012851, margin: 0.099,
-    cg: { mm: 203.2, datum: 'tuning.datum.root_le', range: null, source: `Zagi HP manual, "designed to balance at 8" measured back from the nose", the "suggested starting point", moved back in 1/8 in steps "until it is almost unflyable (too elevator sensitive)", no range; ${ZAGI_HP_MANUAL}` },
-    packKg: 0.185, nose: 0.19, tail: -0.10, elevons: true,
-    throws: { high: [14.4775, 14.4775, 0], low: [10.1, 10.1, 0], source: `Zagi manuals: the elevon throw "3/8" in each direction measured 1" from the tip" on either stick, one set, on the 1.5 in elevon (docs/ZAGI-STAGE1.md); ${LOW_70}; ${ZAGI_HP_MANUAL}` },
-    flaps: null,
-  },
+  zagi1219: AIRCRAFT.TUNING.zagi1219,
 };
 /* The float planes are their land planes', balanced back to the manual's
  * CG with nose weight as docs/FLOATS-STAGE1.md has it. */
