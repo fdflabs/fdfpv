@@ -46,36 +46,42 @@ K is the FAI Aresti catalogue's powered coefficient as OpenAero encodes it
 (github.com/OpenAero/main, `data/figures/figures19.js`, GPLv3), summed over
 the parts the figure is built from, as an Aresti sequence card sums them.
 Figures Aresti has no number for carry K on this game's own scale (below).
-`physics`: **flown** = a person paced pilot flies it on today's plant
-(`figures:plant`); **waits** = needs the 3D lane's stall, spin and snap
-work (the detector knows it and is tested on synthetic paths, and it lights
-up when the physics lands); **unproven** = no plant check has flown it yet.
+`physics`: **flown** = a person paced pilot flies it on today's plant on
+the Extra and the judge names it above zero (`figures:plant` for the loop,
+the aileron roll and the 4-point roll; `figures:table:check` for every
+figure with a program, which fails a flown row its program no longer
+names, finishes or keeps clear of the ground); **waits** = needs the 3D
+lane's stall, spin and snap work (the detector knows it and is tested on
+synthetic paths, and it lights up when the physics lands); **unproven** =
+no person paced flight names it on the plant yet. The column is
+`src/game/figures.js`'s, and `docs/figures-table.json` carries each
+program's grade on the Extra, the CAP and the Slick.
 
 | Figure (en) | (es) | Family | K | Aresti | Physics |
 |---|---|---|---|---|---|
-| Knife-Edge Pass | Pasada a cuchillo | lines | 6 | 1.1.1.1 + 9.1.3.1 + 9.1.3.1 | unproven |
+| Knife-Edge Pass | Pasada a cuchillo | lines | 6 | 1.1.1.1 + 9.1.3.1 + 9.1.3.1 | flown |
 | Rolling Circle | Círculo con tonel | turns | 46 | 2.4.2.1 | unproven |
-| Hammerhead | Martillo | stall turns | 17 | 5.2.1.1 | unproven |
+| Hammerhead | Martillo | stall turns | 17 | 5.2.1.1 | flown |
 | Tailslide | Campana | tail slides | 15 | 6.2.1.1 | flown |
 | Loop | Rizo | loops | 10 | 7.4.1.1 | flown |
-| Outside Loop | Rizo exterior | loops | 15 | 7.4.1.2 | unproven |
-| Immelmann | Immelmann | loops | 10 | 7.2.1.1 + 9.1.3.2 | unproven |
-| Split-S | Medio rizo invertido | loops | 10 | 7.2.2.1 + 9.1.3.2 | unproven |
+| Outside Loop | Rizo exterior | loops | 15 | 7.4.1.2 | flown |
+| Immelmann | Immelmann | loops | 10 | 7.2.1.1 + 9.1.3.2 | flown |
+| Split-S | Medio rizo invertido | loops | 10 | 7.2.2.1 + 9.1.3.2 | flown |
 | Cuban Eight | Ocho cubano | loops | 28 | 7.8.1.1 + 9.1.3.2 + 9.1.3.2 | unproven |
 | Reverse Cuban Eight | Ocho cubano inverso | loops | 28 | 7.8.5.1 + 9.1.3.2 + 9.1.3.2 | unproven |
 | Avalanche | Avalancha | loops | 21 | 7.4.1.1 + 9.9.3.4 | waits |
 | Knife-Edge Loop | Rizo a cuchillo | loops | 15 | game scale | unproven |
-| Half Cuban | Medio ocho cubano | combinations | 14 | 8.5.6.1 + 9.1.3.2 | unproven |
-| Reverse Half Cuban | Medio ocho cubano inverso | combinations | 14 | 8.5.2.1 + 9.1.3.2 | unproven |
-| Humpty Bump | Joroba | combinations | 13 | 8.4.1.1 | unproven |
-| Half Roll | Medio tonel | rolls | 4 | 9.1.3.2 | unproven |
+| Half Cuban | Medio ocho cubano | combinations | 14 | 8.5.6.1 + 9.1.3.2 | flown |
+| Reverse Half Cuban | Medio ocho cubano inverso | combinations | 14 | 8.5.2.1 + 9.1.3.2 | flown |
+| Humpty Bump | Joroba | combinations | 13 | 8.4.1.1 | flown |
+| Half Roll | Medio tonel | rolls | 4 | 9.1.3.2 | flown |
 | Aileron Roll | Tonel | rolls | 8 | 9.1.3.4 | flown |
-| Double Roll | Doble tonel | rolls | 16 | 9.1.3.4 + 9.1.3.4 | unproven |
-| Slow Roll | Tonel lento | rolls | 10 | game scale | unproven |
-| 2-Point Roll | Tonel de 2 tiempos | rolls | 9 | 9.2.3.4 | unproven |
+| Double Roll | Doble tonel | rolls | 16 | 9.1.3.4 + 9.1.3.4 | flown |
+| Slow Roll | Tonel lento | rolls | 10 | game scale | flown |
+| 2-Point Roll | Tonel de 2 tiempos | rolls | 9 | 9.2.3.4 | flown |
 | 4-Point Roll | Tonel de 4 tiempos | rolls | 11 | 9.4.3.4 | flown |
 | 8-Point Roll | Tonel de 8 tiempos | rolls | 15 | 9.8.3.4 | unproven |
-| Barrel Roll | Tonel volado | rolls | 6 | game scale | unproven |
+| Barrel Roll | Tonel volado | rolls | 6 | game scale | flown |
 | Snap Roll | Tonel rápido | rolls | 11 | 9.9.3.4 | waits |
 | Negative Snap Roll | Tonel rápido negativo | rolls | 13 | 9.10.3.4 | waits |
 | Spin | Barrena | spins | 5 | 9.11.1.4 | waits |
@@ -168,6 +174,17 @@ guides say:
   tenth of its diameter) and heading.
 - **Spins, snaps, tumbles**: the stop, to the nearest quarter turn (1 point
   per 15 deg), and the heading kept through a snap.
+- **Point rolls**: each point at its mark, 1 point per 15 deg off it
+  (BAeA judging, "Slow Rolls": "each hesitation must be at the correct
+  angle of roll").
+- **Stall turns**: each vertical line judged whole, by its worst piece off
+  the vertical and the farthest the nose was yawed off it (BAeA judging,
+  "Stall Turns": "no yaw or wing-low"), 1 point per 15 deg each; the pivot
+  is a yaw that turns the nose round.
+- **Rolling circles**: one roll (Aresti 2.4.2.1; a wrong count is a hard
+  zero), and 1 point per 15 deg of it left over or short at the finish
+  (BAeA judging, "Rolling Circles": "Stop on heading and without any
+  remaining bank angle").
 - **Hover**: the nose on vertical (1 per 15 deg at worst) and a point per
   2 m of drift.
 
@@ -235,14 +252,117 @@ sequence card (that is a later competition mode, not callouts).
 3. **The watchers' callouts** (room `last.grade` / `last.figure`): rooms and
    jam selftests, `jam:twopage`. Needs a VM deploy.
 
-## Plant sweep (2026-10-09, `npm run figures:sweep`)
+## Plant sweep (`npm run figures:sweep`, `npm run figures:table`)
 
-Each of the 26 figures no plant check had flown, flown once by the person
-paced pilot (0.2 s late, 10 Hz, fiftieths) on the Extra 330 in Manual from
-level at 22 m/s, as a program of phases a pilot calls to themselves. It
-measures, it gates nothing. 7 of 26 are named; those are now `flown`.
-Re-run 2026-10-10 on main with the Extra's jet normal force (Selig, AIAA
-2010-7938): the Tailslide is named too (9), so 8 of 26 are `flown`.
+Every figure with a program (`tests/lib/figureprograms.js`) is flown by
+the person paced pilot (`tests/lib/personpilot.js`: seen 0.2 s late, the
+hand on a 50 ms beat in fiftieths) from level at 22 m/s, 150 m up, as a
+program of phases a pilot calls to themselves. `figures:sweep` flies the
+unproven ones on the Extra and fails if one it named before
+(`tests/figures-sweep-named.json`) is lost; `figures:table` flies every
+program on the Extra, the CAP and the Slick into `docs/figures-table.json`,
+with the loops whose phase and gain margins are measured
+(`scripts/figures-margins.js`), and `figures:table:check` holds the flown
+ones to it. A figure is promoted to flown when the Extra's flight is named
+and graded honestly; the CAP and the Slick are recorded beside it.
+
+### Where every figure stands (2026-10-12, round 2)
+
+Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
+4-point roll are `figures:plant`'s own flights.
+
+| Figure | Physics | Grades | What is left |
+|---|---|---|---|
+| Knife-Edge Pass | flown | 9.5 / 9.5 / 10 | |
+| Rolling Circle | unproven | - / - / - | physics: the catalogue's is Aresti 2.4.2.1, one roll in the 360; at the judge's slowest roll, 1.2 rad/s, the turn asks 2.7 g toward the centre at 22 m/s, on the rudder where the wings are level, near three times the weight the Extra's knife edge holds there. The program's law flies four rolls round a circle (6.5 / 8 / 9.5), but that is 2.4.7.1, K 38, not in the catalogue |
+| Hammerhead | flown | 7 / 5.5 / 7 | the CAP's rudder has little air under 9 m/s: 0 to 6 across kick speeds |
+| Tailslide | flown | 9.5 / 9.5 / - | the Slick's pull out is named a parachute too (its lane's) |
+| Loop | flown | 7 / 7 / 6 (`figures:plant`) | |
+| Outside Loop | flown | 7 / 8 / 8 | radius spread (a constant push) |
+| Immelmann | flown | 4 / 5 / 6.5 | an egg shaped half loop on a fixed pull |
+| Split-S | flown | 3.5 / 5 / 2 | the pull tightens as it dives |
+| Cuban Eight | unproven | 1 / 4.5 / 0 | the 3/4 loop's radius spreads 61 % as the speed falls 26 to 11 m/s, faster than the round loop's integral follows |
+| Reverse Cuban Eight | unproven | 0 / 4 / 2 | the same, both loops |
+| Knife-Edge Loop | unproven | - / - / 2 | physics: with full top rudder from a knife edge the Extra's path rose 6 m in 2 s as the speed fell from 26 to 12 m/s, its side force about the weight and no more; a knife-edge loop needs V^2/R + g. The 3D lane's |
+| Half Cuban | flown | 7.5 / 7 / 7.5 | |
+| Reverse Half Cuban | flown | 4 / 7 / 7 | on the Extra the line after the roll still curves into the loop (radius spread 51 %) |
+| Humpty Bump | flown | 8 / 7 / 7.5 | |
+| Half Roll | flown | 9 / 8 / 8 | |
+| Aileron Roll | flown | 7 / 7.5 / 7.5 (`figures:plant`) | |
+| Double Roll | flown | 5.5 / 8 / 8.5 | |
+| Slow Roll | flown | 8 / 8 / 8.5 | |
+| 2-Point Roll | flown | 5.5 / 7 / 7.5 | its point at 164 deg; lost and regained in round 1 (below) |
+| 4-Point Roll | flown | 7 / 4.5 / 5 (`figures:plant`) | the knife edge points still roll on under the top rudder (below) |
+| 8-Point Roll | unproven | 2 / 0 / 1 | points 3 to 21 deg short of their marks |
+| Barrel Roll | flown | 9 / 10 / 9.5 | |
+| Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
+| Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
+| Waterfall | unproven | - | physics and the 3D lane's: from a vertical at 3 to 8 m/s at full throttle and full elevator the Extra pitches 6.3 rad/s at first, but as the nose passes down it gathers speed through 10 m/s and the rate falls to 2.5 rad/s in half a turn: the pitchover pieces measured 0.43 and 0.46 of a turn, and no entry speed (2 to 8 m/s), elevator sense or throttle cut swept named it |
+
+### Round 2 (2026-10-12, w36-tricks-r2)
+
+- **Lines on a measured margin.** The lines' elevator rate gain was a
+  fixed 0.2, which `figures-margins.js` measures at 3.3, 1.3 and -1.8 dB
+  of gain margin level at a third, two thirds and full throttle: the
+  humpty's up line went stop to stop on the elevator and snapped the
+  wing. It is now 0.36 over the elevator's pitch rate per stick, fitted
+  over idle to full throttle and 6 to 30 m/s, 6.1 to 8.1 dB and 92 to 93
+  deg on the measured response. The tailslide's slide then settled
+  falling flat at 10 m/s; the person flies the nose down 1.5 s after it
+  slides back.
+- **Knife edge.** The fixed top rudder rolled the Extra on through the
+  knife edge at up to 0.87 rad/s. The person now flies three personLoops
+  at PERSON's pace: bank on the ailerons (2.0 rad/s, PM 45.3 deg, GM 9.2
+  dB), the nose's elevation on the rudder (0.8, 92.9 deg, 6.6 dB), the
+  heading on the elevator (2.0, 46.4 deg, 9.2 dB), each designed with
+  crossoverFor on the Extra's measured response and stepped down until
+  the loop as flown keeps the criterion; the climb rate's outer loop is
+  not measured.
+- **Slow roll.** The rate held on the aileron at 1.7 rad/s ("The rate of
+  roll must be constant", BAeA): a fixed stick sank under the judge's 1.2
+  rad/s through the knife edges.
+- **Humpty and Cubans.** The part loops fly the plant check's round loop
+  law from the Extra's 0.3 (the full stick humpty top stalled the wing;
+  the Cubans' 0.55 overshot the 45). The Cubans' 45 rolls let go at the
+  measured carry, 0.25 s (FITTED; the level rolls keep 0.35). The reverse
+  Cubans held the wrong 45 after each roll.
+- **Hammerhead.** The up line at 0.4 throttle (the Slick never slowed at
+  0.6), the kick at 9 m/s with the throttle at 0.2 (at 0.5 the torque
+  rolled it through the pivot).
+- **Rolling circle, not promoted.** The person puts the force the circle
+  needs on the surface that faces it as the wings come round, the turn
+  paced on the counted roll: four rolls round the circle are named 6.5,
+  8 and 9.5. The catalogue's figure is one roll (Aresti 2.4.2.1), which
+  the Extra cannot turn tight enough on its rudder (table above), and a
+  wrong number of rolls is a hard zero, so the judge now names only one.
+- **Not built:** the 4-point roll's knife edge points: an aileron hold on
+  the 0.4 s points (the knife edge's bank loop, gains 0.1 to 0.5) lost
+  the 4-point roll on the Extra and the CAP every time: the loop first
+  acts as the point ends and its correction rolls back past the judge's
+  1.2 rad/s. The knife-edge loop and the waterfall (table above).
+
+### Round 1 (2026-10-12, w36-tricks-table)
+
+- The 2-point roll was marked flown but its program flew an aileron roll
+  (6.5) since the prop curves (562dc785e) rolled the Extra at 5.1 rad/s;
+  its point sat at 105 deg even when it was named. The points law counts
+  the roll through the holds and lets go at 0.35 s; named 5.5, its point
+  at 164 deg.
+- The 8-point roll at 0.25 of stick, an eighth in 0.3 s the person can
+  see: named 2. A figure named at 0 counts as not named.
+- A program that loses 150 m has flown into the field: it ends there,
+  crashed.
+- The lines' rate gain 0.2 with the hand settling on its trim (the
+  hammerhead's up line went stop to stop at 0.3).
+- The harriers slow on the elevator to 12 m/s and fly extra-gates.js
+  E11's law; none named, none reaches the ground.
+- The manoeuvre table and its check (Foundations #11).
+
+### Before (2026-10-09 to 2026-10-11)
+
+26 figures swept, 7 named and promoted; the tailslide named 2026-10-10
+on the jet normal force and promoted. The first sweep's table, kept for
+its reasons:
 
 | Figure | Result | Grade | What it says needs tuning |
 |---|---|---|---|
@@ -264,8 +384,8 @@ Re-run 2026-10-10 on main with the Extra's jet normal force (Selig, AIAA
 | Hover, Torque Roll, Wall | nothing | | physics and pilot: the 3D lane measures 24 % of person paced pilots holding a 10 s hover on the Extra; this one does not hold it |
 | Harrier, Inverted Harrier, Rolling Harrier | nothing | | pilot: the harrier program loses height to the ground; needs the 3D lane's harrier technique (elevator to flap mix, #908) |
 
-Detector and judge changes from this sweep, each a correction to reality,
-none a loosening (the synthetic suite still passes 100 of 100):
+Detector and judge changes from the sweeps, each a correction to reality,
+none a loosening (the synthetic suite passes 107 of 107):
 
 - **Snap token on angle of attack**: a snap was any fast roll with the nose
   15 deg off the path. A real aileron roll on the Extra reaches that with
@@ -288,6 +408,23 @@ none a loosening (the synthetic suite still passes 100 of 100):
   same 26 deg tolerance (no source for it beyond the old choice), and the
   pass's grade off the same measure. `npm run figures:knife` flies E12's
   and C12's knife edges and must name both.
+- **Each point at its mark** (2026-10-12, round 1): BAeA judging, "Slow
+  Rolls": "each hesitation must be at the correct angle of roll", a point
+  per 15 deg off for each point. A 2-point roll paused at 105 deg is now
+  graded 5 under one paused on its back.
+- **A stall turn's lines whole** (round 2): BAeA judging, "Stall Turns":
+  below 8 m/s a rudder correction on the line is yaw samples and the slow
+  path weaves past the arc threshold, so the line came in pieces and the
+  first correction was taken for the pivot. A vertical line is now the
+  run of its pieces, graded by its worst and the farthest it yawed; the
+  pivot is a yaw that turns the nose round. A tightening.
+- **A rolling circle's rolls** (round 2): BAeA judging, "Rolling
+  Circles": "If the number of rolls is wrong - too many or too few - then
+  give the figure a Hard Zero" and "Stop on heading and without any
+  remaining bank angle". The catalogue's is Aresti 2.4.2.1, one roll
+  (OpenAero figures19.js): a circle rolled four times is no longer named
+  one, and the roll left over or short at the finish costs a point per
+  15 deg.
 
 ## Owner questions (recommendation first)
 
