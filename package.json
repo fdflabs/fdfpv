@@ -418,6 +418,7 @@
     "f16:stab": "node scripts/f16-stab-selftest.js",
     "f16:record": "node scripts/wing-record.js f16",
     "f16:derive": "node scripts/f16-derive.js",
+    "f16:derive-hilat": "node scripts/f16-derive-hilat.js",
     "f16:shell": "node scripts/bombshell-shell.js f16878",
     "p51:gates": "node scripts/p51-gates.js",
     "p51:stab": "node scripts/p51-stab-selftest.js",

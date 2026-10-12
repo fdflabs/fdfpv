@@ -87,6 +87,12 @@ const within = (v, b) => v >= b.min && v <= b.max;
 const band = (b) => `${b.min} to ${b.max}`;
 const heading = (s) => Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
 const fullBank = (s) => Math.atan2(2 * (s[9] * s[10] + s[7] * s[8]), 1 - 2 * (s[8] * s[8] + s[9] * s[9]));
+/* The span's tilt off the horizon, the body y axis's world z: a wing's
+ * drop at any pitch. The Euler bank above runs away near a vertical nose
+ * (phi dot = p + (q sin phi + r cos phi) tan theta, Etkin and Reid's
+ * kinematic equations, singular at theta 90), where a yaw of a few deg/s
+ * reads as tens of degrees of bank with the wings level. */
+const wingTilt = (s) => Math.asin(Math.max(-1, Math.min(1, 2 * (s[9] * s[10] + s[7] * s[8]))));
 const speed = (s) => Math.hypot(s[4], s[5], s[6]);
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -247,7 +253,9 @@ check: {
   }
 
   /* S9: full up held from 20 m/s at 60 percent: the high alpha Freewing
-   * advertises, with no wing drop and no spin. */
+   * advertises, with no wing drop and no spin. The wings are held, and
+   * judged, on their tilt off the horizon: the entry zooms to 80 deg of
+   * pitch, where the Euler bank is not the wings' (wingTilt). */
   {
     const t9 = th.s9_high_alpha;
     clockMs = flyUp(sim, { duty: t9.duty, vzTarget: 0, seconds: 20, ...pattern, speed0: t9.entry }).endMs;
@@ -260,9 +268,9 @@ check: {
     let n = 0;
     let o = { s: sim.readState().state };
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) {
-      const roll = Math.max(-1, Math.min(1, -0.8 * fullBank(o.s) - 0.05 * o.s[11]));
+      const roll = Math.max(-1, Math.min(1, -0.8 * wingTilt(o.s) - 0.05 * o.s[11]));
       o = step(sim, [roll, 1, 0, t9.duty]);
-      worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));
+      worstBank = Math.max(worstBank, Math.abs(wingTilt(o.s) * DEG));
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
       spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       worstHead = Math.max(worstHead, Math.abs(wrap(heading(o.s) - psi0)) * DEG);

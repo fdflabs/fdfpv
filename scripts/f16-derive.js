@@ -159,6 +159,65 @@ const throwA = 21.5 / DEG, throwE = 25 / DEG, throwR = 30 / DEG, expo = 0.30;
 const Ixx = 12875 / (9299 * 9.144 * 9.144) * m * 0.82 * 0.82;
 const Iyy = 75674 / (9299 * 15.03 * 15.03) * m * 1.25 * 1.25;
 const Izz = 85552 / (9299 * 15.03 * 15.03) * m * 1.25 * 1.25;
+/*
+ * The same inertia built up from the model's parts, for comparison: the
+ * plant still flies the scaled jet's above. Nobody has measured a
+ * Freewing F-16's (a search for a bifilar or torque rig figure on any RC
+ * EDF F-16 found none, 2026-10-12). The pack is Motion RC's 566 g and the
+ * rest of the airframe Freewing's 1550 g; every split of that 1550 g below
+ * is ESTIMATED, typical of a 70 mm EDF's parts, none weighed: the fan with
+ * its 2957 inrunner 290 g centred 0.24 m behind the CG (the plant's fan
+ * station), the 80 A ESC 75 g, three retracts with struts and wheels 40 g
+ * each at the drawn gear, six 9 g servos at their surfaces, receiver,
+ * wiring and pitot 50 g, and the foam and plastic left over split 55
+ * percent fuselage, 30 percent the two wings outboard of a 0.13 m wide
+ * body, 8 the stabilators, 7 the fin. The pack sits where the parts
+ * balance at Freewing's CG. Each part a point, a rod or a plate about the
+ * CG, x forward, y left, z up, m; products of inertia left out.
+ */
+const inertiaBuildUp = (() => {
+  const parts = [];
+  const pt = (mass, x, y, z) => parts.push({ mass, x, y, z, ixx: 0, iyy: 0, izz: 0 });
+  const fan = 0.290, esc = 0.075, gear = 0.040, servo = 0.009, avionics = 0.050;
+  pt(fan, -0.24, 0, 0);
+  pt(esc, -0.11, 0, 0);
+  pt(gear, -0.052, 0.1025, -0.05); pt(gear, -0.052, -0.1025, -0.05); pt(gear, 0.296, 0, -0.06);
+  pt(servo, -0.12, 0.21, 0); pt(servo, -0.12, -0.21, 0); pt(servo, -0.45, 0.06, 0); pt(servo, -0.45, -0.06, 0);
+  pt(servo, -0.42, 0, 0.05); pt(servo, 0.30, 0, 0);
+  pt(avionics, 0.15, 0, 0);
+  const foam = 1.550 - (fan + esc + 3 * gear + 6 * servo + avionics);
+  /* The fuselage, a 1.306 m rod from the pitot's tip, 0.13 m wide and
+   * 0.15 m deep. */
+  const mf = 0.55 * foam, lfus = 1.306, xf = xCG - lfus / 2;
+  parts.push({ mass: mf, x: xf, y: 0, z: 0, ixx: mf * (0.13 * 0.13 + 0.15 * 0.15) / 12, iyy: mf * lfus * lfus / 12, izz: mf * lfus * lfus / 12 });
+  /* Each wing outboard of the body, its mass along the span as its chord,
+   * at 0.45 of the local chord. */
+  const mw = 0.30 * foam / 2, y0 = 0.065, n = 200;
+  let area = 0;
+  for (let i = 0; i < n; i += 1) area += chordAt(y0 + (i + 0.5) * (semi - y0) / n) * (semi - y0) / n;
+  for (let i = 0; i < n; i += 1) {
+    const y = y0 + (i + 0.5) * (semi - y0) / n, c = chordAt(y);
+    const dm = mw * c * (semi - y0) / n / area;
+    const x = xCG - (xApex / 1000 + tanLE * y + 0.45 * c);
+    for (const sy of [1, -1]) parts.push({ mass: dm, x, y: sy * y, z: 0, ixx: 0, iyy: dm * c * c / 12, izz: dm * c * c / 12 });
+  }
+  /* The stabilators at their mean chord's quarter, half way out; the fin
+   * at f16:derive's l_v and z_v. */
+  const ms = 0.08 * foam / 2, ys = mm(88) + stSpan / 2;
+  pt(ms, xCG - xAcTail, ys, 0); pt(ms, xCG - xAcTail, -ys, 0);
+  pt(0.07 * foam, -lv, 0, zv);
+  /* The pack where the moment about the CG closes, on the centreline. */
+  const mx = parts.reduce((acc, q) => acc + q.mass * q.x, 0);
+  const pack = 0.566;
+  pt(pack, -mx / pack, 0, 0);
+  const sum = (fn) => parts.reduce((acc, q) => acc + fn(q), 0);
+  return {
+    packX: -mx / pack,
+    Ixx: sum((q) => q.ixx + q.mass * (q.y * q.y + q.z * q.z)),
+    Iyy: sum((q) => q.iyy + q.mass * (q.x * q.x + q.z * q.z)),
+    Izz: sum((q) => q.izz + q.mass * (q.x * q.x + q.y * q.y)),
+  };
+})();
 
 /*
  * THE FAN. Freewing's 70 mm 12 blade unit on its 2957 2210 kV inrunner,
@@ -575,6 +634,7 @@ const rows = [
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['k, Ixx Iyy Izz', `${f(k, 4)} ${f(Ixx, 4)} ${f(Iyy, 4)} ${f(Izz, 4)}`],
+  ['   built up from the parts, ESTIMATED: Ixx Iyy Izz, Iz/Ix (scaled), pack x', `${f(inertiaBuildUp.Ixx, 4)} ${f(inertiaBuildUp.Iyy, 4)} ${f(inertiaBuildUp.Izz, 4)}, ${f(inertiaBuildUp.Izz / inertiaBuildUp.Ixx, 2)} (${f(Izz / Ixx, 2)}), ${f(inertiaBuildUp.packX, 3)}`],
   ['fan: static N, rpm no load, loaded, J0, zero thrust m/s', `${f(T0, 3)} ${f(rpmNL, 0)} ${f(rpm, 0)} ${f(J0, 3)} ${f(Vz, 2)}`],
   ['   exit area m^2, static jet m/s, ideal W', `${f(Aexit, 6)} ${f(Vjet, 1)} ${f(T0 * Vjet / 2, 0)}`],
   ['   thrust at 0, 15, 30, 45 m/s full', `${f(T(0), 2)} ${f(T(15), 2)} ${f(T(30), 2)} ${f(T(45), 2)}; ratio at 40 ${f(T(40) / T0, 3)}`],

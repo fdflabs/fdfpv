@@ -47,7 +47,7 @@ with experience flying at least two EDFs".
 | Top speed | 165 km/h, 45.8 m/s | the manual; Motion RC "103mph" |
 | Throws | high rate aileron, elevator, rudder 34, 34, 35 mm; low 65, 80, 85 percent | the manual p. 11. The surfaces' chords are not published, so the angles are the full size F-16's limits (NASA TP-1538: stabilator 25 deg, flaperons 21.5, rudder 30) |
 | Gear | tricycle, track 0.205 m, wheelbase 0.348 m, tyres 60 and 40 mm | the F-16's 2.36 m track and 4.00 m wheelbase (sirviper.com, after Jane's) and its 27.75 and 18 in tyres at 1/11.5; ESTIMATED, Freewing publishes none |
-| Inertia | 0.0236, 0.1191, 0.1347 kg m² | NASA TP-1538's full size F-16 over its mass and size, put on the model's mass and size; ESTIMATED |
+| Inertia | 0.0236, 0.1191, 0.1347 kg m² | NASA TP-1538's full size F-16 over its mass and size, put on the model's mass and size; ESTIMATED. A build up from the model's parts (f16:derive, every split of the 1550 g ESTIMATED, none measured) gives 0.0211, 0.1714, 0.1881, Iz/Ix 8.9 against 5.7; not taken, see "Past the stall" |
 
 The wing proper is the full size F-16's (aspect ratio 3.09, NACA 64A204,
 Joe Baugher's structure notes), the stabilators and fin the manual's top
@@ -140,7 +140,7 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 
 ## The intended behaviour, and how each part is proven
 
-`npm run f16:gates`, 24 of 24, flown in Manual:
+`npm run f16:gates`, 23 of 24 (S9 fails its spin check, below), flown in Manual:
 
 | Check | Derived | Band | Measured |
 | --- | --- | --- | --- |
@@ -149,10 +149,10 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 | S3 glide at 1.3 Vs, gear down | L/D 6.21 (7.09 clean) | 5.53 to 6.95 | 6.28 at 15.76 |
 | S4 top speed, gear up | 45.83 m/s (Freewing) | 41.25 to 50.41 | 43.24, 156 km/h (the pack sags) |
 | S5 best climb | 14.94 m/s at 25.5 | 10.16 to 17.93 | 14.50 at 24.1 |
-| S6 30 deg bank let go, 6 s | 17.2 deg | 8 to 26 | 17.8 |
-| S7 full aileron at 30 m/s | 515 deg/s (p b/2V 0.132) | 386 to 644 | 460, p b/2V 0.114 (the full size F-16: 0.107) |
+| S6 30 deg bank let go, 6 s | 17.2 deg | 8 to 26 | 15.0 (18.6 before the measured lateral set) |
+| S7 full aileron at 30 m/s | 515 deg/s (p b/2V 0.132) | 386 to 644 | 498, p b/2V 0.123 (the full size F-16: 0.107; 460 before the measured lateral set) |
 | S8 45 deg bank held | V²/(g tan) | within 15 percent, level | 163 m, 2 percent |
-| S9 full up held, 60 percent, wings held | 31.5 deg of alpha | 22 to 40, bank 15 | 31.6, bank 2.7; hands off a slow spiral, 31 deg of bank in 12 s |
+| S9 full up held, 60 percent, wings held | 31.5 deg of alpha | 22 to 40, wing tilt 15, no spin | 26.2, tilt 8.8; FAIL: body yaw 7.3 deg/s against the spin check's 6.6 at 0.26 s; hands off 1 deg of bank in 12 s |
 | S10 phugoid | 9.84 s | 8.15 to 11.52 | 9.86 |
 | S11a spool from stopped to 90 percent thrust | 0.562 s | 0.506 to 0.618 | 0.562 |
 | S11b from 30 percent turning | 0.343 s | 0.309 to 0.377 | 0.343 |
@@ -203,6 +203,72 @@ stab:glide reads the table: 6.63 deg, trim throttle 0.531. `npm run
 stab:chop`: sink 3.250 at 19.61 m/s against the derived 3.278. `npm run stall:probe -- --only f16`: stalls, the nose drops 31 deg,
 mushes at 31.6 deg of alpha; full back and rudder spins it, and it
 recovers in 0.3 s.
+
+## Past the stall: the measured lateral set
+
+The F-16 takes the full size F-16's measured lateral derivatives against
+alpha, -20 to 90 deg (NASA TP-1538 table III, transcribed and checked in
+~/Desktop/fdfpv-loop/research/F16-HIGH-ALPHA.md; `npm run f16:derive-hilat`
+prints every row): Cn beta, Cl beta, Cl p, Cn r, the ailerons' and the
+rudder's moments as ratios to their own value at 0 deg, where f16:derive's
+linear derivatives are; Cl r and Cn p the measured ones per rad, in place of
+the 0.25 CL and -0.125 CL rules (which they match within 0.07 below the
+stall). All are turned into the stability axes the plant's lateral terms are
+in; the leading edge flap retracted to 45 deg, the Freewing's fixed leading
+edge, and the base table past. The ailerons' ratio scales their yaw with
+their roll, as ail_keep does. The strips' stall moments are off for it: they
+take back the linear roll damping strip by strip, and the measured Cl p is
+the whole aircraft's through its stall and never goes propelling; with both,
+it spun hands off at 505 deg/s out of the S9 mush.
+
+Why the first try at this set departed S9 (bank 73): it took the ratios to
+the table's value at 20 deg in the stability axes. There Cn beta sin alpha
+cancels most of Cl beta cos alpha, so the table's Cl beta is -0.056 per rad
+against the plant's attached -0.106: every Cl beta past the stall came out
+1.9 times TP-1538's (the earlier "1.5 times" was this, not a wrong table),
+with Cl p 2.1 times and Cn r 0.29 times. The dihedral that strong against
+the ailerons' adverse yaw made the aileron only roll reverse (LCDP below
+zero) at 26 deg, where TP-1538 keeps it positive to about 30 (fig. 14). It
+also scaled the ailerons' roll and not their yaw. Anchored at 0 deg, the
+same tables hold S9: hands off the wings stay within 6 deg (the old plant
+spiralled to 63), and the pilot holds them within 8.8.
+
+What is left failing, S9's spin check: in the first 0.26 s full up from
+25.7 m/s overshoots to 44 deg of alpha at 230 deg/s of pitch, and the fan's
+precession (j_prop) yaws the body 7.3 deg/s against the check's 6.6. With
+j_prop zero the flight is exactly symmetric and passes; the margin past the
+old plant's comes from the measured Cn beta and Cl beta (neutralising either
+row passes it), Cn beta being unstable past 30 deg as TP-1538 measured it
+("Above alpha = 30 deg, Cn beta reached large unstable (negative) values", pp.
+11 to 12). It is a quarter second of transient, not autorotation; the gate
+is left failing and its definition is the lead's call.
+
+S9's bank is now the span's tilt off the horizon, not the Euler bank: the
+entry zooms to 78 to 80 deg of pitch, where the Euler bank is singular and
+read 31 to 37 deg with the wings within 9 of level. Tilt is never larger than
+the Euler bank and equal to it at level pitch; with the Euler sensing pilot
+the tilt is 14.5, with the tilt sensing pilot 8.8, both inside 15.
+
+Is S9's expectation sourced? Freewing claims the jet "can maintain a high
+alpha of 30 degrees", which says nothing of the ailerons. TP-1538 has the
+full size F-16 "statically stable (both directionally and laterally) for
+angles of attack up to about 28 deg", with the aileron only roll reversing
+above about 30 (LCDP, fig. 14). So holding the wings on the ailerons at the
+26 deg S9 flies is inside the source; at 35 to 40, the band's top, it is not.
+
+`npm run stall:probe -- --only f16`: full back and rudder no longer spins
+flat (it was 18.9 turns in 8 s at 1445 deg/s and alpha 88 on the batch):
+0.73 turns, yaw 65 deg/s and oscillating, alpha 34.5, and it recovers in
+0.64 s. TP-1538's Cn r strengthening to -1.0 at 40 deg is what stops it, the
+research note's reading (an oscillatory, yaw damped motion, not a steady
+spin).
+
+Open: the inertias. The build up from the parts gives Iz/Ix 8.9 against the
+scaled jet's 5.7; Cn beta dyn and inertia coupling go with it. Flown in a
+scratch build it moves S7 to 504 deg/s and S6 not at all, and S9's spin
+check then trips at 4.1 s (15.0 against 13.6 deg/s) in the zoom's stall.
+Both sets are estimates; neither is measured, so the plant keeps the
+scaled one. A bifilar measurement of the model would settle it.
 
 ## The gear
 

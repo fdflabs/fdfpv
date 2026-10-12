@@ -951,6 +951,12 @@ typedef struct FixedWingParams {
   double cl_beta_wing;
   double cl_beta_fin;
   double cn_beta_fin;
+  /* Measured lateral derivatives against the body's angle of attack, at
+   * -20 to 90 deg (plant_wing.c, HI_LAT_DEG): cn_beta, cl_beta, cl_p,
+   * cn_r, the ailerons' and the rudder's moments, as ratios to their value
+   * at 0 deg; then Cl_r and Cn_p, per rad, in place of the CL rules. Zero:
+   * none, the linear derivatives at every angle. */
+  double hi_lat[8][20];
   /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
    * deg past the wing's own stall angle: the ailerons' and the fin's and
    * rudder's. Zero: the measured defaults, an unswept wing's ailerons (NACA

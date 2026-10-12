@@ -520,7 +520,7 @@ probe):
 | Bramor | 395 deg/s, alpha 15.7: spin | 0.18 turns, 0.67 s |
 | Bombshell | 139 deg/s, alpha 12.3: spin | 0.01 turns, 0.53 s |
 | Kadet | 51 deg/s, alpha 10.6: no spin | 0.05 turns, 0.53 s |
-| F-16 | 283 deg/s, alpha 40.2: spin | 0.04 turns, 0.65 s |
+| F-16 | 65 deg/s, alpha 34.5: oscillating, not steady (TP-1538's lateral set, 2026-10-12) | 0.00 turns, 0.64 s |
 | Ugly Stik | 39 deg/s, alpha 12.9: no spin | 0.06 turns, 0.60 s |
 | Tiger Moth | 87 deg/s, alpha 16.6: spin | 0.09 turns, 0.63 s |
 
@@ -1797,14 +1797,15 @@ What a 3D harrier is flown with, from measured data, on every aircraft:
   keep curves (ail_keep, fin_keep, at 0, 4, 10, 15, 20, 25 and 35 deg past
   its stall); without them the defaults above apply. A biplane's ailerons
   judge the stall on the wing they sit on.
-- **OPEN GAP, the F-16**, known too strong past the stall: it keeps its
-  ailerons whole and no sideslip split (the old plant's arithmetic). NASA
-  TP-1538's full lateral set, turned into the plant's stability axes as
-  ratios to the 20 deg values, departs S9 (bank 73): its Cl beta ratio
-  multiplies the plant's attached Cl beta, already 1.5 times TP-1538's at
-  20 deg. Needs: the attached Cl beta matched to TP-1538 first, and the
-  Freewing's measured inertias; the set is kept as
-  ~/Desktop/fdfpv-loop/research/f16-hi-lat.patch.
+- **The F-16** (docs/F16-STAGE1.md, "Past the stall"): NASA TP-1538's
+  measured lateral derivatives against alpha, as ratios to their own value
+  at 0 deg (hi_lat, npm run f16:derive-hilat), the strips' stall moments
+  off. The first try anchored the ratios at 20 deg, where the table's
+  stability axis Cl beta is half the plant's, and departed S9; anchored at
+  0 it holds the mush. S9's spin check still fails on the fan's
+  precession in the entry's 44 deg overshoot (0.26 s, 7.3 against 6.6
+  deg/s). The inertias stay ESTIMATED (a parts build up gives Iz/Ix 8.9
+  against 5.7).
 - **The Tiger Moth** (ESTIMATE, ~/Desktop/fdfpv-loop/research/TIGERMOTH-HIGH-ALPHA.md):
   its sideslip split from tigermoth-derive; the fin kept past the stall
   from the NY-1's spinning balance (NACA TR 456) and the two wings' wake
