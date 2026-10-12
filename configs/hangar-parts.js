@@ -192,7 +192,7 @@ export const PARTS_PLANES = Object.keys(PROPS);
  */
 export const ANCHORS = {
   timber1500: AIRCRAFT.ANCHORS.timber1500,
-  timber1500f: { prop: [0.29, 0, 0.027], belly: [0, 0, -0.043], tail: [-0.66, 0, -0.003], tank: [-0.01, 0, -0.003], led: [[0.054, 0.23, 0.098], [0.038, 0.70, 0.094]] },
+  timber1500f: AIRCRAFT.ANCHORS.timber1500f,
   cub1400: AIRCRAFT.ANCHORS.cub1400,
   cub1400f: { prop: [0.23, 0, 0.028], belly: [0, 0, -0.030], tail: [-0.58, 0, 0.016], tank: [-0.01, 0, 0.006], led: [[0.038, 0.21, 0.126], [0.038, 0.63, 0.133]] },
   sky1800: AIRCRAFT.ANCHORS.sky1800,

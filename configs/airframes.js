@@ -281,56 +281,25 @@ export const AIRFRAMES = [
    * corner, the tyres' lowest drawn point and the fin's top.
    */
   airframeOf('timber1500'),
-  {
-    /*
-     * The Turbo Timber on the float set it ships with, docs/FLOATS-STAGE1.md:
-     * simId 9, the same aircraft with its main gear off and the floats on.
-     * It floats and planes on a map's water (src/game/water.js names the
-     * Alps' lake, which swiss2 shares) and starts afloat on it; on a map
-     * without water it stands on its keels on the strip, where they slide,
-     * so it needs half throttle to move and full power to drag itself off.
-     * `floats` is where it rests on still water and `gear` where it rests on
-     * its keels on the ground, both the plant's settled poses; the drawn
-     * floats in src/render/timbercraft.js are the plant's floats.
-     */
-    id: 'timber1500f',
-    simId: 9,
-    tunesOf: 'timber1500',
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): the landplane's 7.20 at 1.934 kg over 1.70, docs/FLOATS-STAGE1.md. */
-    stall: 7.68,
-    /* Level speed at full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant. */
-    topSpeed: 25.3,
-    gear: { restHeight: 0.2464, restPitch: 0.48 * Math.PI / 180 },
-    floats: { restHeight: 0.2074, restPitch: 2.52 * Math.PI / 180 },
-    flaps: true,
-    name: 'Turbo Timber, floats',
-    short: 'Timber floats',
-    blurb: 'The Turbo Timber on its floats, on 4S. Half flaps, stick back until the floats get on the step, then let it run and rotate; land it back on the lake with full flaps and the stick held back. The water rudders steer it on the water.',
-    facts: ['4S', '1555 mm', 'Floats'],
-    sizeMm: 1555,
-    grams: 1934,
-    trackClass: 'wing',
-    cells: 4,
-    ...packStates(),
-    defaultTune: 'timber-as3x',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine on floats, TIMBER_FLOAT_DIMS: the keels are its
-     * lowest point, the fin's top the CG's 26.6 mm drop higher. */
-    dims: {
-      arm: 0,
-      propR: 0.1397,
-      hullR: 0.7981,
-      vHalfDown: 0.2484,
-      vHalfUp: 0.2216,
-      bodyLength: 1.04,
-      bodyWidth: 1.555,
-      bodyHeight: 0.47,
-    },
-  },
+  /*
+   * The Turbo Timber on the float set it ships with, docs/FLOATS-STAGE1.md:
+   * simId 9, the same aircraft with its main gear off and the floats on.
+   * It floats and planes on a map's water (src/game/water.js names the
+   * Alps' lake, which swiss2 shares) and starts afloat on it; on a map
+   * without water it stands on its keels on the strip, where they slide,
+   * so it needs half throttle to move and full power to drag itself off.
+   * `floats` is where it rests on still water and `gear` where it rests on
+   * its keels on the ground, both the plant's settled poses; the drawn
+   * floats in src/render/timbercraft.js are the plant's floats.
+   *
+   * The row is its folder's, aircraft/timber1500f/aircraft.js. `stall`:
+   * Clean stall, m/s, sqrt(2W / rho S CLmax): the landplane's 7.20 at
+   * 1.934 kg over 1.70, docs/FLOATS-STAGE1.md. `topSpeed`: Level speed at
+   * full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant.
+   * `dims`: The drawn machine on floats, TIMBER_FLOAT_DIMS: the keels are
+   * its lowest point, the fin's top the CG's 26.6 mm drop higher.
+   */
+  airframeOf('timber1500f'),
   {
     /*
      * The FMS Cub on its floats, docs/FLOATS-STAGE1.md: simId 10, on the
