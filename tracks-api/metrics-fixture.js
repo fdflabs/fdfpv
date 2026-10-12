@@ -26,7 +26,11 @@
  */
 
 import { pathToFileURL } from 'node:url';
-import { UNITS, openStore, setState, writeMinute } from './metrics.js';
+import { ROOMS_UNITS, UNITS, openStore, setState, writeMinute } from './metrics.js';
+
+/* One rooms instance up, as on a VM past its second rooms deploy. */
+const LIVE_ROOMS = 'fdfpv-rooms@8798';
+const RUNNING = UNITS.filter((u) => !ROOMS_UNITS.includes(u) || u === LIVE_ROOMS);
 
 const GB = 1024 ** 3;
 const MB = 1024 ** 2;
@@ -61,9 +65,9 @@ export function minuteAt(ts, start, rand) {
     'log.warn': rand() < 0.05 ? 2 : 0, 'log.err': rand() < 0.01 ? 1 : 0,
     'log.sshd': rand() < 0.05 ? 2 : 0, 'log.fdfpv-rooms': rand() < 0.005 ? 1 : 0,
   };
-  for (const [i, u] of UNITS.entries()) {
+  for (const [i, u] of RUNNING.entries()) {
     v[`svc.${u}.mem`] = (30 + i * 10) * MB + pilots * MB;
-    v[`svc.${u}.cpu`] = u === 'fdfpv-rooms' ? pilots * 0.003 : u === 'caddy' ? pilots * 0.002 : 0.002;
+    v[`svc.${u}.cpu`] = u === LIVE_ROOMS ? pilots * 0.003 : u === 'caddy' ? pilots * 0.002 : 0.002;
   }
   return v;
 }
@@ -79,7 +83,8 @@ export function writeFixture(path, { days = 21, nowS = Math.floor(Date.now() / 1
   setState(db, 'snapshot', {
     at: new Date(end * 1000).toISOString(),
     sizes: { postgres: 67 * MB, tracksDb: 0.9 * MB, roomsDb: 0.2 * MB, journal: 107 * MB, boardCode: 12 * MB, simCode: 180 * MB, caddy: 0.05 * MB, metrics: 9 * MB },
-    units: Object.fromEntries(UNITS.map((u, i) => [u, { restarts: i === 2 ? 1 : 0, active: 'active', sinceUtc: new Date((end - (i + 1) * 86400) * 1000).toISOString() }])),
+    units: Object.fromEntries(RUNNING.map((u, i) => [u, { restarts: i === 2 ? 1 : 0, active: 'active', sinceUtc: new Date((end - (i + 1) * 86400) * 1000).toISOString() }])),
+    roomsLive: { port: 8798, unit: LIVE_ROOMS },
     postgresConnections: 3,
     certificates: { '129.151.39.48': new Date((end + 4 * 86400) * 1000).toISOString(), 'api.paraguayandronecombatsimulator.com': new Date((end + 70 * 86400) * 1000).toISOString() },
     journalRead: true,

@@ -519,7 +519,7 @@
         const units = (r.snapshot && r.snapshot.units) || {};
         const rev = {
           'fdfpv-tracks': r.versions.tracks && r.versions.tracks.commit,
-          'fdfpv-rooms': r.versions.rooms && r.versions.rooms.commit,
+          [r.roomsLive.unit]: r.versions.rooms && r.versions.rooms.commit,
           'fdfpv-board': r.versions.board && r.versions.board.commit,
         };
         t.replaceChildren(head(['Service', 'Memory / ceiling', '', 'Peak', 'CPU', 'Up since', 'Restarts', 'Revision']));
@@ -533,7 +533,8 @@
           const cells = el('td');
           cells.append(bar(f ?? 0, peakF > 0.8 ? 'down' : peakF > 0.6 ? 'warn' : ''));
           t.append(row([
-            s.unit,
+            /* The other rooms instance still holding rooms until its pilots leave. */
+            r.roomsLive.unit && s.unit.startsWith('fdfpv-rooms') && s.unit !== r.roomsLive.unit ? `${s.unit} (draining)` : s.unit,
             el('td', 'num', `${bytes(s.mem)} / ${s.max ? bytes(s.max) : 'no cap'}`),
             cells,
             el('td', 'num', s.peak ? `${bytes(s.peak)}${peakF ? ` (${pct(peakF)})` : ''}` : ''),
@@ -826,7 +827,7 @@
           return;
         }
         const snapAge = r.snapshot ? (Date.now() - Date.parse(r.snapshot.at)) / 1000 : null;
-        say($('srv-say'), r.error || snapAge > 180 ? 'fail' : '', r.error
+        say($('srv-say'), r.error || r.roomsLive.error || snapAge > 180 ? 'fail' : '', r.error || r.roomsLive.error
           || (snapAge > 180 ? `The collector last wrote ${span(snapAge)} ago: is fdfpv-metrics.timer running?` : ''));
         $('srv-at').textContent = `read ${new Date(r.host.at).toLocaleTimeString()}`;
         drawVerdict(r);
