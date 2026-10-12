@@ -227,7 +227,7 @@ otherwise, and are in `tests/timber-thresholds.json`.
 | T3 the same, slats off | 8.10, 9.79; faster than T2 | 7.6 to 10.0, and over T2 |
 | T4 the same, slats on, flaps full | 6.31, 7.92; slower than T2 | 5.9 to 8.1, and under T2 |
 | T5 slowest level flight, flaps full, power on | 6.29 m/s at full throttle, 7.3 deg nose up, alpha a blend short of the stall | 5.7 to 7.2, the wings within 10 deg |
-| T6 roll, full aileron, pb/2V | 0.254 (280 deg/s at 15 m/s) | 0.18 to 0.34 |
+| T6 roll, full aileron, pb/2V | 0.254 (280 deg/s at 15 m/s); flown from the 28.56 m/s top speed, past the 20.8 m/s where the A370s let the aileron go (servo blow back, `npm run servo:derive`), the aileron at 13.92 deg: 0.118 | 0.084 to 0.158 (was 0.18 to 0.34) |
 | T7 the flaps' moment and lift at full | ΔCm +0.046, ΔCL 0.489 | 0.025 to 0.067 nose up, 0.42 to 0.56 |
 | T8 the manual's mix | takes the flaps' pitch up out | the nose rises under half as far as without it |
 | T9 standing on its wheels | 11.81 deg, CG 0.2117 m, 12.8 percent on the tail | 10.8 to 12.8, 0.205 to 0.218, 9 to 17 percent, no hull |
@@ -275,7 +275,7 @@ they are rather than tuned to a marketing figure.
 | T3 stall, slats off | 8.75 m/s, 1.00 over T2 | 7.6 to 10.0 |
 | T4 stall, flaps full | 6.71 m/s, 1.04 under T2 | 5.9 to 8.1 |
 | T5 slowest level, flaps full | 6.86 m/s, then the stall alpha; bank under 5.3 deg | 5.7 to 7.2 |
-| T6 roll, pb/2V | 0.247, 472 deg/s at 26.0 m/s | 0.18 to 0.34 |
+| T6 roll, pb/2V | 0.123, 247 deg/s at 27.3 m/s, the A370s holding the aileron short of its throw (servo blow back) | 0.084 to 0.158 |
 | T7 flaps' moment and lift | ΔCm +0.0460, ΔCL 0.489 at 32.7 deg; the mix 6.00 deg down | 0.025 to 0.067, 0.42 to 0.56 |
 | T8 the mix | the nose up 9.2 deg with it, 55.1 without, ratio 0.17 | under 0.5 |
 | T9 at rest | 11.81 deg, CG 0.2115 m, 12.9 percent on the tail, loads 7.26, 7.27, 2.15 N | 10.8 to 12.8, 0.205 to 0.218, 9 to 17 |

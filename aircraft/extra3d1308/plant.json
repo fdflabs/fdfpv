@@ -144,6 +144,8 @@
         {"field":"ge_tail","expr":"{ -0.701, 0.0, 0.0 }","comment":"the stabiliser's, npm run ge:derive"},
         {"field":"tail_cn","expr":"1.17","comment":"a flat plate normal to the flow, Hoerner","gap":8},
         {"field":"side_cda","expr":"0.1723","comment":"the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run extra:derive","gap":5},
+        {"field":"hinge_hold","expr":"{ 304.8, 358.7, 209 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.4471, 0.5119, 0.8591 }","comment":"npm run servo:derive"},
         {"field":"rot_k","expr":"{ 0.01580, 0.04108, 0.03462 }"},
         {"field":"j_prop","expr":"0.000249","comment":"a 35 g wood blade and the outrunner's can, ESTIMATED","gap":5}
       ]

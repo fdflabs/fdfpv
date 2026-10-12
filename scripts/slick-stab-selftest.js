@@ -33,6 +33,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
+import { hold } from './lib/hinge.js';
+import { FLEET, heldAt } from './servo-derive.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, slickPrelude, slickGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold } from '../tests/lib/wingpilot.js';
 
@@ -170,8 +172,12 @@ const settled = fly(0, 0, 0, 0.75, 4);
 check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
 const yawed = fly(0, 0, 1, 0.75, 1);
 /* The coordinator's gain is the Cub's over a rudder twelve times its
- * authority; the stick still wins. */
-check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] * DEG < -27.5, `rudder ${deg(surfaces()[3])} deg`);
+ * authority; the stick still wins: past 27.5 of the 45 deg the rudder
+ * can reach. At this cruise the SB-2290SG holds the rudder short of 45
+ * (servo blow back, scripts/servo-derive.js), so the 27.5 is taken of
+ * what it holds at the speed flown. */
+const reach = heldAt(hold({ ...FLEET.FW_SLICK2680.r, throwDeg: 45, kgcm: FLEET.FW_SLICK2680.r.servo.kgcm }), 45, yawed.v);
+check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] * DEG < -27.5 * reach / 45, `rudder ${deg(surfaces()[3])} deg of the ${reach.toFixed(1)} held at ${yawed.v.toFixed(1)} m/s`);
 check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
 const unyawed = fly(0, 0, 0, 0.75, 4);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);

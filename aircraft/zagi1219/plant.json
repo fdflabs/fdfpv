@@ -95,7 +95,9 @@
         {"field":"surf_sep","expr":"0.3325","comment":"the elevon's chord fraction at the MAC over its tau","gap":5},
         {"field":"strip_r","expr":"{ 0.8308, 1.0065, 1.1188, 1.1386 }","comment":"the lattice's span loading: the tips most"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive"},
-        {"field":"ge_wing","expr":"{ -0.014, 0.0, 0.001 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"}
+        {"field":"ge_wing","expr":"{ -0.014, 0.0, 0.001 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"},
+        {"field":"hinge_hold","expr":"{ 1855.7, 0, 0 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.3509, 0, 0 }","comment":"npm run servo:derive"}
       ]
     }
   ]

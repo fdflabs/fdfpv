@@ -23,6 +23,8 @@
  */
 
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
+import { hold } from './lib/hinge.js';
+import { FLEET, heldAt } from './servo-derive.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -305,6 +307,11 @@ function trimAt(V) {
 
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
 const J = (o, n = 3) => JSON.stringify(o, (kk, v) => (typeof v === 'number' ? +v.toFixed(n) : v));
+/* T6 flies full aileron from level at full throttle, its top speed, past
+ * the 20.8 m/s where the servos let the aileron go (servo blow back,
+ * scripts/servo-derive.js): the helix angle at the angle they hold. */
+const t6Held = heldAt(hold({ ...FLEET.FW_TIMBER1500.a, throwDeg: 30, kgcm: FLEET.FW_TIMBER1500.a.servo.kgcm }), 30, level(1));
+
 const rows = [
   ['AR, c, k, W/S N/m2', `${f(AR)} ${f(c, 4)} ${f(k, 4)} ${f(W / S, 1)}`],
   ['a_w, a_t, a_v /rad', `${f(aw)} ${f(at)} ${f(av)}`],
@@ -337,6 +344,7 @@ const rows = [
   ['T5 slowest level, flaps full, slats', J(slowest(flapFull, true))],
   ['   slowest level, flaps up, slats', J(slowest(0, true))],
   ['T6 pb/2V, deg/s at 15 m/s', `${f(Clda * throwA / -Clp)} ${f(Clda * throwA / -Clp * 2 * 15 / b * DEG, 0)}`],
+  ['T6 at the top speed, the aileron as far as its A370 holds it: deg, pb/2V', `${f(t6Held, 2)} ${f(Clda * t6Held / DEG / -Clp)}`],
   ['T9 rest: tail share, wheelbase m, loads N', `${f(tailShare, 4)} ${f(wheelbase, 3)} ${f(mainLoad, 2)} ${f(tailLoad, 2)}`],
   ['   gear: main c, tail m_eff, tail c', `${f(cMain, 1)} ${f(mTail, 3)} ${f(cTail, 1)}`],
   ['   static deflection mm main, tail', `${f(mainLoad / kMain * 1000, 2)} ${f(tailLoad / kTail * 1000, 2)}`],

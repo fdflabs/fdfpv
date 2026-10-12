@@ -1945,3 +1945,40 @@ thrust, the thrust that gives C-Astral's 5 m/s climb, 22.6 N on its 12 x
 8E curve (APC's static row at its rpm gives about 25 N; 35 was more than
 the prop makes).
 
+
+## Servo blow back (2026-10-12)
+
+A control surface's hinge moment grows with the dynamic pressure, and a
+real servo stops where its stall torque, through its linkage, no longer
+holds it: the air pushes the surface back short of what the stick asked.
+The plant had no such limit on any aircraft. Now each table carries
+`hinge_hold` (aileron or elevon, elevator, rudder) and `hinge_alpha`,
+derived by `scripts/servo-derive.js` (`npm run servo:derive`) from each
+aircraft's surface geometry and its servos' published torque, ESTIMATED
+with a reason where a kit names none.
+
+- The hinge moment: q b_f c_f^2 (Ch_delta shape(delta) + Ch_alpha alpha_s),
+  NACA Report 721 (Ames and Sears 1941) eq. (3) and (11) for the slopes,
+  NACA TN 759 fig. 13(d) for the shape past the small angles
+  (`scripts/lib/hinge.js`, where each read is recorded with its plus or
+  minus). alpha_s is the surface's own angle of attack: the wing's for
+  the ailerons and elevons, the stabiliser's (off its zero lift angle,
+  less the downwash's share) for the elevator, the sideslip for the
+  rudder, each as its sine.
+- The servo's torque at the hinge: its stall torque times 45 deg over the
+  throw (the linkage, ESTIMATED).
+- `plant_wing.c` hinge_blow: past the hold the surface stands where the
+  moment equals it, at most at its travel; inside it the angle is the
+  commanded one, untouched. The Extra's slewing servos are pushed back
+  with their surfaces. The surface tiers carry their own servos' hold
+  (`sim_wing_set_tiers` HOLD_A, HOLD_E, HOLD_R).
+
+Measured: of the 20 other aircraft's recorded flights `npm run
+nighttimber:gates` pins, 19 are bit identical with the limit in; the
+Timber's moved, and so did the Night Timber's own. The first version took the slope at a constant angle
+of attack alone; it held the Extra's rudder to 19.7 deg at its 32.9 m/s
+knife edge and its knife-edge loop crashed. The surface's own angle,
+the same report's other term, carries the knife edge's sideslip against
+the rudder's deflection, and the loop flies again. Not in it: the
+slipstream's dynamic pressure over the tail, and the body's rates' share
+of each surface's angle (docs/SURFACES-STAGE1.md, known limits).

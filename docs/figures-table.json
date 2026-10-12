@@ -563,7 +563,7 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 6.5,
+          "cap": 6,
           "slick": 7
         },
         "seated": {

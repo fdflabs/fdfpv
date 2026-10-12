@@ -108,6 +108,8 @@
         {"field":"gear_time","expr":"4.0"},
         {"field":"cd_gear","expr":"0.013"},
         {"field":"side_cda","expr":"0.126","comment":"0.84 of 0.15 m^2, the fuselage in side view, scripts/f16-derive.js"},
+        {"field":"hinge_hold","expr":"{ 1192.4, 0, 1361.5 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.2647, 0, 0.2355 }","comment":"npm run servo:derive"},
         {"field":"tail_deda","expr":"0.647","comment":"d eps / d alpha, scripts/f16-derive.js, Nelson, the one its slope takes; read only by GROUND EFFECT on a linear table"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive"},
         {"field":"ge_wing","expr":"{ -0.0413, 0.0, 0.0 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"},

@@ -79,34 +79,48 @@ stops and the same form is taken on. The plant adds it after the skin
 friction's Reynolds scaling, since it is a pressure drag. Gate T5 checks
 the plant against the formula to 1 percent.
 
-**Servo and mass.** The hinge moment, C_h q S_f c_f delta, at the same
-airspeed and C_h: on the same span S_f and c_f both go with cf, so it grows
-as (cf / cf0)^2 (throw / throw0). The stock servo is taken as just covering
-the stock surface. That is ESTIMATED, and an absolute check bears it out
-for the Extra's aileron: C_h about -0.55 per rad at cf 0.29, 25 m/s, 0.046
-m^2 and 0.083 m at 36.5 deg give 5.2 kg-cm against the D89MW's 6.4. The
-lightest catalogue servo covering the tier's moment is fitted (Hitec, at
-6.0 V: HS-55 8.0 g 1.30 kg-cm, HS-65MG 12.47 g 2.2, D89MW 25.0 g 6.4,
-D645MW 60.0 g 11.3, D950TW 68 g 29.0; sources in `configs/surfaces.js`),
-and the difference in mass goes on as add-ons at the servos' places,
-through `configs/hangar-parts.js addonParams`, the aileron pair's spread
-through `sim_set_addon_inertia` (a servo off the centreline is mirrored,
-half each side). The surface itself adds no area, so no structure mass.
+**Servo and mass.** A plain flap's hinge moment is H = q b_f c_f^2 (Ch_delta
+shape(delta) + Ch_alpha alpha), b_f its span and c_f its root mean square
+chord (`scripts/lib/hinge.js`). Ch_delta at a constant angle of attack
+comes from Ames and Sears, NACA Report 721 (1941), the NACA 0009's plain
+flap data read off its figs. 1(b), 2(a) and 2(b), through its eq. (3),
+with the surface's aspect ratio by its eq. (11): -0.59 to -0.78 per rad
+over this hangar's surfaces. The surfaces lane's first figure, "about
+-0.55 per rad", had no source and is replaced. Ch_alpha is the same
+report's (dch/dcn) times the finite surface's slope, 0.2 to 0.9 of
+Ch_delta. The shape past the small angles is Ames and Sears, NACA TN 759,
+fig. 13(d), the 0.30c flap at alpha 0.5 deg, its moment at 0 to 45 deg
+over its small angle slope (0.94 of linear at 30 deg, 0.84 at 45). The
+servo meets it through its linkage, which turns its +-45 deg of travel
+into the surface's throw (ESTIMATED: no kit publishes its arm and horn
+holes), so the servo's torque at the surface is its stall torque times
+45 over the throw.
 
-Where no catalogue servo covers a tier's moment the surface takes more
-servos, as a builder gangs them: one more a side for a pair, one more for
-a single, the moment shared among them. The Slick needs it: it already
-flies EF's biggest listed class, the Savox SB-2290SG (45 kg-cm, 81 g at
-6.0 V, Extreme Flight's listing), two per aileron, one per elevator half
-and one on the rudder (EF's data sheet: seven servos, four aileron arms,
-two elevator arms, one rudder arm). The absolute check holds there too:
-C_h about -0.55 per rad, at the Slick's 42.5 m/s top speed (q 1108 Pa),
-on one aileron's 0.148 m^2 (0.32 of the 0.463 m^2 of wing it runs along)
-and 0.136 m mean chord at 37.5 deg, gives 82 kg-cm an aileron, 41 a servo,
-against the SB-2290SG's 45. So "stock just covers" leaves the Slick under
-10 percent of margin, and every tier over stock adds servos (162 g on the
-Sport and 324 g on the 3D and Extreme ailerons, 1.3 to 2.6 percent of its
-12.5 kg). The table's servos and their sources are `configs/surfaces.js`.
+The stock surfaces fly the kit's servos, at the torque published for
+them (`scripts/servo-derive.js`), and blow back where the hinge moment
+passes it (`plant_wing.c` hinge_hold, below). A tier's servos are sized
+to hold its full throw at the aircraft's top speed (configs/surfaces.js
+vTop): the lightest catalogue servo from the stock class up (Hitec, at
+6.0 V: HS-55 8.0 g 1.30 kg-cm, HS-65MG 12.47 g 2.2, D89MW 25.0 g 6.4,
+D645MW 60.0 g 11.3, D950TW 68 g 29.0; Savox SB-2290SG 81 g 45.0; sources
+in `configs/surfaces.js`), and where none covers it more of them, as a
+builder gangs servos: one more a side for a pair, one more for a single,
+the moment shared. The difference in mass goes on as add-ons at the
+servos' places, through `configs/hangar-parts.js addonParams`, the
+aileron pair's spread through `sim_set_addon_inertia` (a servo off the
+centreline is mirrored, half each side). The surface itself adds no
+area, so no structure mass. The `hold` column is the tier's servo hold
+over the stock's, which `sim_wing_set_tiers` carries to the plant
+(HOLD_A, HOLD_E, HOLD_R). The table's servos and their sources are
+`configs/surfaces.js`.
+
+Where the stock servos blow back, at full throw and level flight
+(`npm run servo:derive`): the Night Timber's A332s let the elevator go
+at 12.0 m/s, the aileron at 17.9 and the rudder at 18.2; the Timber's
+A370s the aileron at 20.8 and the elevator at 25.8; the Extra's D89MWs
+the rudder at 20.9 and the aileron at 29.7; the Slick's SB-2290SGs the
+rudder at 31.3 and the elevator at 37.3; the Cub's HS-55s hold all three
+past 48 m/s.
 
 **Not offered.** A surface whose Extreme adds under 10 percent of control
 power over stock is left stock: the Extra's rudder (cf 0.76 at 55 deg is
@@ -127,51 +141,54 @@ fit) stops falling, so no tier goes past it and the XA throw is not one.
 
 ### Extra 300 3D (sim 29)
 
-| surface | tier | cf | throw deg | k | power | cd | servo | added |
-|---|---|---|---|---|---|---|---|---|
-| aileron | stock | 0.290 | 36.53 | 1.000 | 1.000 | 0 | D89MW | 0 |
-| | sport | 0.337 | 37.69 | 1.059 | 1.093 | 0.0402 | D645MW | 70 g |
-| | 3d | 0.383 | 38.84 | 1.112 | 1.182 | 0.0804 | D950TW | 86 g |
-| | extreme | 0.430 | 40.00 | 1.159 | 1.269 | 0.1206 | D950TW | 86 g |
-| elevator | stock | 0.450 | 39.67 | 1.000 | 1.000 | 0 | D89MW | 0 |
-| | sport | 0.523 | 43.11 | 1.045 | 1.135 | 0.0174 | D645MW | 35 g |
-| | 3d | 0.597 | 46.56 | 1.085 | 1.273 | 0.0349 | D950TW | 43 g |
-| | extreme | 0.670 | 50.00 | 1.123 | 1.415 | 0.0523 | D950TW | 43 g |
-| rudder | | | | | | | | not offered |
+| surface | tier | cf | throw deg | k | power | cd | servos | added | hold |
+|---|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.290 | 36.53 | 1.000 | 1.000 | 0 | 2 D89MW | 0 | 1.00 |
+|  | sport | 0.337 | 37.69 | 1.059 | 1.093 | 0.0402 | 2 D950TW | 86 g | 3.17 |
+|  | 3d | 0.383 | 38.84 | 1.112 | 1.182 | 0.0804 | 2 D950TW | 86 g | 2.31 |
+|  | extreme | 0.430 | 40.00 | 1.159 | 1.269 | 0.1206 | 2 D950TW | 86 g | 1.75 |
+| elevator | stock | 0.450 | 39.67 | 1.000 | 1.000 | 0 | D89MW | 0 | 1.00 |
+|  | sport | 0.523 | 43.11 | 1.045 | 1.135 | 0.0174 | D950TW | 43 g | 3.10 |
+|  | 3d | 0.597 | 46.56 | 1.085 | 1.273 | 0.0349 | D950TW | 43 g | 2.26 |
+|  | extreme | 0.670 | 50.00 | 1.123 | 1.415 | 0.0523 | D950TW | 43 g | 1.73 |
+| rudder | stock | 0.760 | 55.05 | 1.000 | 1.000 | 0 | D89MW | 0 | 1.00 |
+|  | sport | 0.773 | 55.05 | 1.005 | 1.005 | 0.0012 | D950TW | 43 g | 4.38 |
+|  | 3d | 0.787 | 55.05 | 1.010 | 1.010 | 0.0025 | D950TW | 43 g | 4.24 |
+|  | extreme | 0.800 | 55.05 | 1.014 | 1.014 | 0.0037 | D950TW | 43 g | 4.11 |
 
 ### Cub (sim 4)
 
-| surface | tier | cf | throw deg | k | power | cd | servo | added |
-|---|---|---|---|---|---|---|---|---|
-| aileron | stock | 0.250 | 18.00 | 1.000 | 1.000 | 0 | HS-55 | 0 |
-| | sport | 0.310 | 25.33 | 0.871 | 1.226 | 0.0326 | D89MW | 34 g |
-| | 3d | 0.370 | 32.67 | 0.833 | 1.511 | 0.0651 | D89MW | 34 g |
-| | extreme | 0.430 | 40.00 | 0.839 | 1.864 | 0.0977 | D645MW | 104 g |
-| elevator | stock | 0.400 | 15.00 | 1.000 | 1.000 | 0 | HS-55 | 0 |
-| | sport | 0.490 | 26.67 | 0.731 | 1.300 | 0.0151 | D89MW | 17 g |
-| | 3d | 0.580 | 38.33 | 0.679 | 1.734 | 0.0302 | D645MW | 52 g |
-| | extreme | 0.670 | 50.00 | 0.686 | 2.286 | 0.0453 | D950TW | 60 g |
-| rudder | stock | 0.500 | 15.00 | 1.000 | 1.000 | 0 | HS-55 | 0 |
-| | sport | 0.600 | 26.67 | 0.721 | 1.282 | 0.0071 | D89MW | 17 g |
-| | 3d | 0.700 | 38.33 | 0.661 | 1.690 | 0.0143 | D645MW | 52 g |
-| | extreme | 0.800 | 50.00 | 0.661 | 2.203 | 0.0214 | D645MW | 52 g |
+| surface | tier | cf | throw deg | k | power | cd | servos | added | hold |
+|---|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.250 | 18.00 | 1.000 | 1.000 | 0 | 2 HS-55 | 0 | 1.00 |
+|  | sport | 0.310 | 25.33 | 0.871 | 1.226 | 0.0326 | 2 HS-55 | 0 | 0.44 |
+|  | 3d | 0.370 | 32.67 | 0.832 | 1.511 | 0.0651 | 2 HS-65MG | 8.9 g | 0.39 |
+|  | extreme | 0.430 | 40.00 | 0.839 | 1.864 | 0.0977 | 2 D89MW | 34 g | 0.65 |
+| elevator | stock | 0.400 | 15.00 | 1.000 | 1.000 | 0 | HS-55 | 0 | 1.00 |
+|  | sport | 0.490 | 26.67 | 0.731 | 1.300 | 0.0151 | HS-55 | 0 | 0.37 |
+|  | 3d | 0.580 | 38.33 | 0.679 | 1.734 | 0.0302 | HS-65MG | 4.5 g | 0.32 |
+|  | extreme | 0.670 | 50.00 | 0.686 | 2.286 | 0.0453 | D89MW | 17 g | 0.55 |
+| rudder | stock | 0.500 | 15.00 | 1.000 | 1.000 | 0 | HS-55 | 0 | 1.00 |
+|  | sport | 0.600 | 26.67 | 0.721 | 1.282 | 0.0071 | HS-55 | 0 | 0.42 |
+|  | 3d | 0.700 | 38.33 | 0.661 | 1.690 | 0.0143 | HS-55 | 0 | 0.24 |
+|  | extreme | 0.800 | 50.00 | 0.661 | 2.203 | 0.0214 | HS-65MG | 4.5 g | 0.25 |
 
 ### Slick 580 (sim 33)
 
-| surface | tier | cf | throw deg | k | power | cd | servos | added |
-|---|---|---|---|---|---|---|---|---|
-| aileron | stock | 0.320 | 37.50 | 1.000 | 1.000 | 0 | 4 SB-2290SG | 0 |
-| | sport | 0.357 | 38.33 | 1.043 | 1.066 | 0.0295 | 6 SB-2290SG | 162 g |
-| | 3d | 0.393 | 39.17 | 1.082 | 1.130 | 0.0591 | 8 SB-2290SG | 324 g |
-| | extreme | 0.430 | 40.00 | 1.117 | 1.192 | 0.0886 | 8 SB-2290SG | 324 g |
-| elevator | stock | 0.566 | 47.50 | 1.000 | 1.000 | 0 | 2 SB-2290SG | 0 |
-| | sport | 0.601 | 48.33 | 1.020 | 1.038 | 0.0075 | 4 SB-2290SG | 162 g |
-| | 3d | 0.635 | 49.17 | 1.039 | 1.076 | 0.0150 | 4 SB-2290SG | 162 g |
-| | extreme | 0.670 | 50.00 | 1.057 | 1.113 | 0.0225 | 4 SB-2290SG | 162 g |
-| rudder | stock | 0.680 | 45.00 | 1.000 | 1.000 | 0 | 1 SB-2290SG | 0 |
-| | sport | 0.720 | 46.67 | 1.014 | 1.051 | 0.0050 | 2 SB-2290SG | 81 g |
-| | 3d | 0.760 | 48.33 | 1.026 | 1.102 | 0.0100 | 2 SB-2290SG | 81 g |
-| | extreme | 0.800 | 50.00 | 1.039 | 1.155 | 0.0150 | 2 SB-2290SG | 81 g |
+| surface | tier | cf | throw deg | k | power | cd | servos | added | hold |
+|---|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.320 | 37.50 | 1.000 | 1.000 | 0 | 4 SB-2290SG | 0 | 1.00 |
+|  | sport | 0.357 | 38.33 | 1.043 | 1.066 | 0.0295 | 6 SB-2290SG | 162 g | 1.15 |
+|  | 3d | 0.393 | 39.17 | 1.082 | 1.130 | 0.0591 | 6 SB-2290SG | 162 g | 0.90 |
+|  | extreme | 0.430 | 40.00 | 1.117 | 1.192 | 0.0886 | 8 SB-2290SG | 324 g | 0.97 |
+| elevator | stock | 0.566 | 47.50 | 1.000 | 1.000 | 0 | 2 SB-2290SG | 0 | 1.00 |
+|  | sport | 0.601 | 48.33 | 1.020 | 1.038 | 0.0075 | 4 SB-2290SG | 162 g | 1.74 |
+|  | 3d | 0.635 | 49.17 | 1.039 | 1.076 | 0.0150 | 4 SB-2290SG | 162 g | 1.53 |
+|  | extreme | 0.670 | 50.00 | 1.057 | 1.113 | 0.0225 | 4 SB-2290SG | 162 g | 1.35 |
+| rudder | stock | 0.680 | 45.00 | 1.000 | 1.000 | 0 | SB-2290SG | 0 | 1.00 |
+|  | sport | 0.720 | 46.67 | 1.013 | 1.051 | 0.0050 | 3 SB-2290SG | 162 g | 2.59 |
+|  | 3d | 0.760 | 48.33 | 1.026 | 1.102 | 0.0100 | 3 SB-2290SG | 162 g | 2.25 |
+|  | extreme | 0.800 | 50.00 | 1.039 | 1.155 | 0.0150 | 3 SB-2290SG | 162 g | 1.96 |
 
 Its stock cf (aileron 0.32, elevator 0.566, rudder 0.68) and throws
 (37.5, 47.5, 45) are `scripts/slick-derive.js`'s off EF's 105.5 in data
@@ -184,20 +201,20 @@ cruise; a fifth of a stick and the speed kept do.
 
 ### Night Timber X (sim 30)
 
-| surface | tier | cf | throw deg | k | power | cd | servos | added |
-|---|---|---|---|---|---|---|---|---|
-| aileron | stock | 0.383 | 28.92 | 1.000 | 1.000 | 0 | 2 A332, flaperons 2 A332 | 0 |
-| | sport | 0.399 | 32.61 | 0.963 | 1.085 | 0.0064 | 2 HS-55, flaperons 2 HS-55 | 0 |
-| | 3d | 0.414 | 36.31 | 0.942 | 1.182 | 0.0127 | 2 HS-65MG, flaperons 2 HS-55 | 7 g |
-| | extreme | 0.430 | 40.00 | 0.931 | 1.287 | 0.0191 | 2 HS-65MG, flaperons 2 HS-55 | 7 g |
-| elevator | stock | 0.525 | 35.81 | 1.000 | 1.000 | 0 | A332 | 0 |
-| | sport | 0.573 | 40.54 | 1.004 | 1.137 | 0.0134 | HS-55 | 0 |
-| | 3d | 0.622 | 45.27 | 1.014 | 1.282 | 0.0268 | HS-65MG | 3.5 g |
-| | extreme | 0.670 | 50.00 | 1.031 | 1.440 | 0.0402 | HS-65MG | 3.5 g |
-| rudder | stock | 0.600 | 33.75 | 1.000 | 1.000 | 0 | A332 | 0 |
-| | sport | 0.667 | 39.17 | 0.997 | 1.156 | 0.0079 | HS-55 | 0 |
-| | 3d | 0.733 | 44.58 | 1.003 | 1.325 | 0.0158 | HS-65MG | 3.5 g |
-| | extreme | 0.800 | 50.00 | 1.017 | 1.506 | 0.0237 | D89MW | 16 g |
+| surface | tier | cf | throw deg | k | power | cd | servos | added | hold |
+|---|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.383 | 28.92 | 1.000 | 1.000 | 0 | 2 A332, flaperons 2 A332 | 0 | 1.00 |
+|  | sport | 0.399 | 32.61 | 0.962 | 1.085 | 0.0064 | 2 D89MW, flaperons 2 HS-65MG | 38.9 g | 5.76 |
+|  | 3d | 0.414 | 36.31 | 0.942 | 1.182 | 0.0127 | 2 D89MW, flaperons 2 D89MW | 64 g | 4.76 |
+|  | extreme | 0.430 | 40.00 | 0.930 | 1.287 | 0.0191 | 2 D89MW, flaperons 2 D89MW | 64 g | 3.98 |
+| elevator | stock | 0.525 | 35.81 | 1.000 | 1.000 | 0 | A332 | 0 | 1.00 |
+|  | sport | 0.573 | 40.54 | 1.004 | 1.137 | 0.0134 | D89MW | 16 g | 5.33 |
+|  | 3d | 0.622 | 45.27 | 1.014 | 1.282 | 0.0268 | D645MW | 51 g | 7.28 |
+|  | extreme | 0.670 | 50.00 | 1.031 | 1.440 | 0.0402 | D950TW | 59 g | 14.85 |
+| rudder | stock | 0.600 | 33.75 | 1.000 | 1.000 | 0 | A332 | 0 | 1.00 |
+|  | sport | 0.667 | 39.17 | 0.996 | 1.156 | 0.0079 | D89MW | 16 g | 5.16 |
+|  | 3d | 0.733 | 44.58 | 1.003 | 1.325 | 0.0158 | D89MW | 16 g | 3.86 |
+|  | extreme | 0.800 | 50.00 | 1.017 | 1.506 | 0.0237 | D89MW | 16 g | 2.94 |
 
 Its stock cf (aileron and flap 0.383, elevator 0.525, rudder 0.60) and
 throws (28.92, 35.81, 33.75, E-flite's high rates of 45, 55 and 55 mm) are
@@ -248,52 +265,48 @@ tau, and the ailerons carry the rest at tau(cf):
 k = ((1 - 0.302) tau(cf) + 0.302 tau(cf0)) K'(throw) / (tau(cf0) K'(throw0))
 (`configs/surfaces.js` flaperons). The drag cd is taken on the
 ailerons' wing alone, 2 (0.563 - 0.319) / 1.2 = 0.406 of the area. The
-ailerons' servos are sized for (cf / cf0)^2 times the throw, and the
-flaperons' for the throw alone.
+ailerons' servos are sized to hold the tier's chord and throw at the
+top speed, and the flaperons' the stock chord at the tier's throw, on
+their own 0.226 m panels.
 
 **The servos.** E-flite fits six Spektrum A332 9 g metal gear servos
 (manual p. 3, "5 x SPMSA332, 1 x SPMSA332R"): two ailerons, two flaps, the
 elevator and the rudder. The A332's only published torque is 0.9 kg-cm at
-4.8 V (lindinger.at, flashrc.com), which is taken against the catalogue's
-6.0 V figures. That rates it low and sizes up early, the safe side.
-Every tier over stock needs more than 0.9 kg-cm. Where an HS-55 covers
-it (1.30 kg-cm at 8.0 g, a gram lighter than the A332) the row adds
-nothing: a derived servo mass never goes below zero, since an add-on
-only adds and a builder does not swap a servo to save a gram. The
-absolute check (C_h about -0.55 per rad, one aileron's 0.0223 m^2 and
-0.0915 m chord at 28.9 deg) needs 0.73 kg-cm at the gates' 14.4 m/s
-level cruise, which the A332 covers. At the plant's 23.6 m/s top speed it
-needs 1.97 kg-cm, and the A332 covers it only up to about 16 m/s. So on
-this aircraft "stock just covers" holds at cruise, not flat out. At top
-speed the real servo would blow back short of full throw, which the
-plant does not model on any aircraft.
+4.8 V (lindinger.at, "Torque kg/cm (4,8V): 0,9"), which is taken as it
+stands. Through the +-45 deg linkage the aileron (one 0.244 m panel, 0.092
+m of flap chord, Ch_delta -0.72 per rad) holds its 28.9 deg to 17.9 m/s
+and 13.3 deg at 25 m/s; the elevator (0.495 m, 0.084 m, -0.65) holds its
+35.8 deg only to 12.0 m/s, 18.5 deg at 15 and 7.3 deg at 25; the rudder
+its 33.8 deg to 18.2 m/s. The flaperons fly on the same servos at the
+same angle on a 0.226 m panel, so the aileron's hold stands for them.
 
-Measured on this branch (full stick deg/s / a fifth of a stick deg/s /
-speed kept): roll 521 / 92 / 0.791 stock to 717 / 123 / 0.384 Extreme;
-pitch 243 / 72 / 0.809 to 297 / 99 / 0.612; yaw 127 / 26 / 0.921 to
-186 / 39 / 0.743. The roll's speed kept drops furthest. Its 2 s full roll
-from cruise is a falling barrel roll, 17 m down in 2 s, so
-sqrt(v^2 + 2 g dz) is the difference of two near numbers. The Extreme
-roll's bigger yaw and pitch excursion costs 2 m/s at the bottom, and
-that difference shows up nearly whole in the bar. Zeroing the tier's
-deflection drag moves it by under 0.2 m/s.
+Measured on this branch, the servos blowing back (full stick deg/s / a
+fifth of a stick deg/s / speed kept, from level at the cruise throttle):
+roll 504 / 105 / 0.833 stock to 772 / 140 / 0.550 Extreme; pitch 177 /
+89 / 0.969 to 361 / 125 / 0.692; yaw 149 / 31 / 0.927 to 219 / 46 /
+0.706. The stock pitch rate is the A332 letting the elevator go: its
+Sport D89MW holds the throw and pitches at 322. The roll's speed kept
+drops furthest. Its 2 s full roll from cruise is a falling barrel roll,
+so sqrt(v^2 + 2 g dz) is the difference of two near numbers, and the
+Extreme roll's bigger yaw and pitch excursion shows up nearly whole in
+the bar.
 
 ### Turbo Timber Evolution (sim 7)
 
-| surface | tier | cf | throw deg | k | power | cd | servo | added |
-|---|---|---|---|---|---|---|---|---|
-| aileron | stock | 0.270 | 30.00 | 1.000 | 1.000 | 0 | 2 A370 | 0 |
-| | sport | 0.323 | 33.33 | 1.040 | 1.155 | 0.0255 | 2 HS-65MG | 7 g |
-| | 3d | 0.377 | 36.67 | 1.079 | 1.319 | 0.0511 | 2 HS-65MG | 7 g |
-| | extreme | 0.430 | 40.00 | 1.118 | 1.490 | 0.0766 | 2 D89MW | 32 g |
-| elevator | stock | 0.440 | 20.00 | 1.000 | 1.000 | 0 | A370 | 0 |
-| | sport | 0.517 | 30.00 | 0.834 | 1.250 | 0.0151 | HS-65MG | 3.5 g |
-| | 3d | 0.593 | 40.00 | 0.803 | 1.606 | 0.0302 | D89MW | 16 g |
-| | extreme | 0.670 | 50.00 | 0.812 | 2.030 | 0.0452 | D89MW | 16 g |
-| rudder | stock | 0.460 | 27.00 | 1.000 | 1.000 | 0 | A370 | 0 |
-| | sport | 0.573 | 34.67 | 0.980 | 1.258 | 0.0099 | HS-65MG | 3.5 g |
-| | 3d | 0.687 | 42.33 | 0.995 | 1.561 | 0.0197 | D89MW | 16 g |
-| | extreme | 0.800 | 50.00 | 1.021 | 1.891 | 0.0296 | D89MW | 16 g |
+| surface | tier | cf | throw deg | k | power | cd | servos | added | hold |
+|---|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.270 | 30.00 | 1.000 | 1.000 | 0 | 2 A370 | 0 | 1.00 |
+|  | sport | 0.323 | 33.33 | 1.040 | 1.155 | 0.0255 | 2 D89MW | 32 g | 4.26 |
+|  | 3d | 0.377 | 36.67 | 1.079 | 1.319 | 0.0511 | 2 D89MW | 32 g | 2.75 |
+|  | extreme | 0.430 | 40.00 | 1.118 | 1.490 | 0.0766 | 2 D645MW | 102 g | 3.30 |
+| elevator | stock | 0.440 | 20.00 | 1.000 | 1.000 | 0 | A370 | 0 | 1.00 |
+|  | sport | 0.517 | 30.00 | 0.834 | 1.250 | 0.0151 | D89MW | 16 g | 3.34 |
+|  | 3d | 0.593 | 40.00 | 0.803 | 1.606 | 0.0302 | D89MW | 16 g | 1.88 |
+|  | extreme | 0.670 | 50.00 | 0.812 | 2.030 | 0.0452 | D950TW | 59 g | 5.36 |
+| rudder | stock | 0.460 | 27.00 | 1.000 | 1.000 | 0 | A370 | 0 | 1.00 |
+|  | sport | 0.573 | 34.67 | 0.980 | 1.258 | 0.0099 | HS-65MG | 3.5 g | 1.29 |
+|  | 3d | 0.687 | 42.33 | 0.995 | 1.561 | 0.0197 | D89MW | 16 g | 2.33 |
+|  | extreme | 0.800 | 50.00 | 1.021 | 1.891 | 0.0296 | D89MW | 16 g | 1.53 |
 
 The aileron's cf (the aft 27 percent) and the throws (E-flite's high
 rates, 33, 20 and 30 mm, over the drawn chords at the horns, 30, 20 and
@@ -319,18 +332,18 @@ alone. The servos: E-flite's manual lists six 9 g metal gear digital
 servos, SPMSA370 (two ailerons, elevator, rudder, two flaps). No torque
 is published for the A370 (Spektrum's page and servo charts list none),
 so it is taken as the A332's 0.9 kg-cm, the same maker's 9 g metal gear
-class, ESTIMATED. The absolute check (one aileron 0.36 m by 0.0648 m at
-30 deg) needs 0.79 kg-cm at the gates' 17.0 m/s level cruise and 2.0 at
-its 27.2 m/s top speed, so it holds to about 18 m/s, as the Night
-Timber's does. The floats variant (timber1500f) is a different airframe
-id and has no row.
+class, ESTIMATED. The aileron (0.36 m by 0.065 m, Ch_delta -0.68 per rad)
+holds its 30 deg to 20.8 m/s and 17.6 deg at 25; the elevator its 20 deg
+to 25.8 m/s; the rudder its 27 deg to 31.3 m/s. The floats variant
+(timber1500f) is a different airframe id and has no row; its table
+takes the Timber's holds.
 
-Measured on this branch (full stick deg/s / a fifth of a stick deg/s /
-speed kept): roll 368 / 42 / 0.853 stock to 533 / 62 / 0.684 Extreme;
-pitch 228 / 47 / 1.020 to 403 / 80 / 0.664; yaw 118 / 18 / 1.003 to
-224 / 33 / 0.745. The elevator's k falls to 0.81, as the Cub's does:
-its stock 20 deg is near where K' is one, and 50 deg buys less per
-degree, which the throw more than makes up for.
+Measured on this branch, the servos blowing back (full stick deg/s / a
+fifth of a stick deg/s / speed kept): roll 371 / 44 / 0.872 stock to 558
+/ 66 / 0.729 Extreme; pitch 247 / 54 / 0.990 to 436 / 90 / 0.685; yaw 126
+/ 19 / 1.017 to 238 / 35 / 0.773. The elevator's k falls to 0.81, as the
+Cub's does: its stock 20 deg is near where K' is one, and 50 deg buys
+less per degree, which the throw more than makes up for.
 
 The Cub's k falls below one: its stock throws are under 18 deg, where K'
 is near one, and K' at 40 to 50 deg is 0.55 to 0.57. Per degree a big
@@ -410,9 +423,21 @@ wire format change, left for a versioned protocol bump.
   its increment over stock. Adding the stock term fleet wide is the aero
   lane's call. The tiers' numbers would not change, since the increment is
   already the difference.
-- Hinge moment sizing assumes the stock servo just covers the stock
-  surface, which sizes up early (the Extra's Sport ailerons already take a
-  D645MW).
+- The hinge moment takes the free stream's dynamic pressure: the
+  slipstream's over the tail (dp, up to the hover's W / A and more at full
+  throttle) is not in it, so a tail surface in the wash blows back later
+  than a real one. It would move the hover and harrier gates, the next
+  item. The body's rates' share of each surface's angle of attack (p y /
+  V on an aileron, about 12 deg at the Timber's full roll; q l_t / V and
+  r l_v / V on the tail) is not in it either; it relieves a steady roll's
+  down going aileron. Past the stall the surface's angle enters as its
+  sine, not as the plate's saturating load.
+- The linkage is ESTIMATED at +-45 deg of servo travel for the full
+  throw; a 3D setup on extended endpoints (125 to 150 percent) gives its
+  servo more advantage. The torque is the one published, at 4.8 V where
+  that is all there is, against a 5 to 6 V BEC. NACA's data are a sealed
+  gap at a Reynolds number of 3.4 million; a foam surface's unsealed gap
+  and a model's Reynolds number are not in them.
 - The servo slew rate stays the table's. The D645MW and D950TW are as fast
   as the D89MW or faster.
 - The drag acts at the CG. The aileron pair's drag difference (proverse

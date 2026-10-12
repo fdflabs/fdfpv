@@ -1135,13 +1135,17 @@ int sim_wing_tune(double *out);
  *   CD_A, CD_E, CD_R  the drag each surface adds deflected over the
  *        table's, on the wing's area, per unit of the plain flap shape
  *        (plant_wing.c SURF_DRAG_A, SURF_DRAG_B), 0 to 0.5
+ *   HOLD_A, HOLD_E, HOLD_R  each surface's servo hold (the table's
+ *        hinge_hold, servo blow back) times this: the tier's servos and
+ *        its bigger surface's hinge moment, 0.1 to 100
  * A MODE like the tuning: kept across sim_reset and sim_init, kept by
  * sim_set_power and sim_power_clear, cleared by sim_set_airframe to a
  * different airframe and by sim_wing_tiers_clear. SIM_ERR_BAD_ARG for a
  * null pointer, a value out of range, a flying wing, and K_A or CD_A other
  * than 1 and 0 on an aircraft without ailerons; SIM_ERR_BAD_STATE before
  * sim_init.
- * sim_wing_tiers(out): the block in force, ones and zeros with none.
+ * sim_wing_tiers(out): the block in force, ones and zeros with none (the
+ * holds one).
  *
  * Additive, version unchanged: nothing seated, no step reads any of it,
  * and seated at ones and zeros every trace is bit identical
@@ -1153,7 +1157,10 @@ int sim_wing_tune(double *out);
 #define SIM_TIER_CD_A 3
 #define SIM_TIER_CD_E 4
 #define SIM_TIER_CD_R 5
-#define SIM_TIER_DOUBLES 6
+#define SIM_TIER_HOLD_A 6
+#define SIM_TIER_HOLD_E 7
+#define SIM_TIER_HOLD_R 8
+#define SIM_TIER_DOUBLES 9
 int sim_wing_set_tiers(const double *in);
 int sim_wing_tiers_clear(void);
 int sim_wing_tiers(double *out);

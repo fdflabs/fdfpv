@@ -137,6 +137,8 @@
         {"field":"slip_cl_b","expr":"-0.02099","packed":true},
         {"field":"slip_loss","expr":"{ 0.2506, 0.3193, 0.5109 }","comment":"scripts/wash-derive.js"},
         {"field":"side_cda","expr":"0.0882","comment":"0.84 of 0.105 m^2, the fuselage in side view, scripts/p51-derive.js"},
+        {"field":"hinge_hold","expr":"{ 1945.6, 450.6, 749.7 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.3968, 0.6795, 0.5318 }","comment":"npm run servo:derive"},
         {"field":"tail_deda","expr":"0.429","comment":"d eps / d alpha, scripts/p51-derive.js, DATCOM; read only by GROUND EFFECT on a linear table"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive"},
         {"field":"ge_wing","expr":"{ 0.0316, 0.0, -0.0226 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"},

@@ -143,6 +143,8 @@
         {"field":"slip_cl_b","expr":"-0.01166","packed":true},
         {"field":"slip_loss","expr":"{ 0.2655, 0.3114, 0.5856 }","comment":"scripts/wash-derive.js"},
         {"field":"side_cda","expr":"0.1436","comment":"0.84 of 0.171 m^2, the fuselage in side view, scripts/tigermoth-derive.js"},
+        {"field":"hinge_hold","expr":"{ 491.8, 393, 334.4 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.451, 0.6322, 0.9173 }","comment":"npm run servo:derive"},
         {"field":"tail_deda","expr":"0.4416","comment":"d eps / d alpha, scripts/tigermoth-derive.js, DATCOM; read only by GROUND EFFECT on a linear table"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77's biplane, Report 738; npm run ge:derive"},
         {"field":"ge_wing","expr":"{ 0.0748, 0.0, 0.2276 }","comment":"the drawn model's top wing quarter chord, npm run ge:derive"},
