@@ -1209,7 +1209,10 @@
             "e": "extreme"
           },
           "cap": null,
-          "slick": null
+          "slick": {
+            "a": "extreme",
+            "e": "extreme"
+          }
         }
       },
       "margin": [

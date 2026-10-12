@@ -39,7 +39,7 @@ export const SURFACE_STATS = {
       {
         "full": 841,
         "fifth": 123,
-        "kept": 0.668
+        "kept": 0.669
       }
     ],
     "e": [
@@ -68,22 +68,22 @@ export const SURFACE_STATS = {
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       },
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       },
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       },
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       }
     ]
   },
@@ -152,6 +152,74 @@ export const SURFACE_STATS = {
         "full": 113,
         "fifth": 17.1,
         "kept": 0.891
+      }
+    ]
+  },
+  "slick2680": {
+    "a": [
+      {
+        "full": 672,
+        "fifth": 60,
+        "kept": 0.964
+      },
+      {
+        "full": 704,
+        "fifth": 64,
+        "kept": 0.941
+      },
+      {
+        "full": 731,
+        "fifth": 67.8,
+        "kept": 0.918
+      },
+      {
+        "full": 767,
+        "fifth": 71.6,
+        "kept": 0.894
+      }
+    ],
+    "e": [
+      {
+        "full": 298,
+        "fifth": 55.6,
+        "kept": 0.752
+      },
+      {
+        "full": 301,
+        "fifth": 61.1,
+        "kept": 0.723
+      },
+      {
+        "full": 305,
+        "fifth": 62.6,
+        "kept": 0.703
+      },
+      {
+        "full": 308,
+        "fifth": 64.1,
+        "kept": 0.683
+      }
+    ],
+    "r": [
+      {
+        "full": 211,
+        "fifth": 22.1,
+        "kept": 0.828
+      },
+      {
+        "full": 217,
+        "fifth": 22.8,
+        "kept": 0.785
+      },
+      {
+        "full": 226,
+        "fifth": 23.9,
+        "kept": 0.745
+      },
+      {
+        "full": 235,
+        "fifth": 24.9,
+        "kept": 0.702
       }
     ]
   }
