@@ -30,6 +30,7 @@
  */
 
 import { biplaneCell } from './lib/biplane.js';
+import { biplaneGroundTerms, wingGround } from './lib/groundeffect.js';
 import { wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
@@ -453,12 +454,34 @@ const propClearRest = propX * Math.sin(th) + (thrustZ - propR) * Math.cos(th) + 
 /* The wing's angle standing on its three points, over its stall. */
 const alphaRest = restPitch - alphaZL;
 
-function takeoff(mu, vRot, Vtail) {
+/*
+ * Near the ground (plant_wing.c GROUND EFFECT, biplane_ground_terms; TM 77's
+ * four terms): at a pitch on the mains, each wing's quarter chord over the
+ * grass (the drawn model's, wingGround) as the airframe pivots on their
+ * contact, the lift and the drag the ground adds. The term splits the
+ * slope on the wings' own a_w, and the bottom wing stalls bip_dstall
+ * later, as the plant has it.
+ */
+const geo = {
+  b, S, aw, cla: CLa, dd: deda, clmax: CLmaxWing, bipW: cell.bipW, bipR: cell.bipR, bipDstall: [0, 2.5 / DEG],
+  ...wingGround('FW_TIGERMOTH1803'),
+};
+function onGround(th) {
+  const hCg = -((mZ - wheelR) * Math.cos(th) + mainX * Math.sin(th));
+  const at = (p) => hCg + p[0] * Math.sin(th) + p[1] * Math.cos(th);
+  const gt = biplaneGroundTerms(geo, [at(geo.wing), at(geo.wing2)], th, th - alphaZL);
+  const tailCl = (CLa - aw) / (1 - deda);
+  return { h: [at(geo.wing), at(geo.wing2)], sigma: gt.sigma, dCL: CLa * gt.dAlpha + tailCl * gt.dTail, dCD: -gt.dCd };
+}
+
+function takeoff(mu, vRot, Vtail, ge = false) {
   let V = 0, x = 0, t = 0;
   const dt = 0.001;
   while (V < vRot && t < 30) {
-    const a = (V < Vtail ? restPitch : 0) - alphaZL;
-    const CL = CLa * a, CD = CD0 + kInduced * CL * CL;
+    const th = V < Vtail ? restPitch : 0;
+    const a = th - alphaZL;
+    const gr = ge ? onGround(th) : { dCL: 0, dCD: 0 };
+    const CL = CLa * a + gr.dCL, CD = CD0 + kInduced * CL * CL + gr.dCD;
     const q = 0.5 * rho * V * V;
     const acc = (T(V, 1) - q * S * CD - mu * Math.max(0, W - q * S * CL)) / m;
     V += acc * dt; x += V * dt; t += dt;
@@ -517,7 +540,9 @@ const rows = [
   ['   k main, c main, k tail, c tail', `${f(kMain, 0)} ${f(cMain, 2)} ${f(kTail, 0)} ${f(cTail, 2)}`],
   ['   prop tip clearance at rest m; prop x', `${f(propClearRest, 4)}; ${f(propX, 4)}`],
   ['   CG behind the mains, wheelbase, ratio', `${f(mainW, 4)} ${f(mainW - tailW, 4)} ${f(mainW / (mainW - tailW), 4)}`],
-  ['T12 take off, grass, rotated at 1.2 Vs, tail up at 0.5 Vs', JSON.stringify(takeoff(0.08, 1.2 * Vs, 0.5 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
+  ['T12 take off, grass, rotated at 1.2 Vs, tail up at 0.5 Vs', JSON.stringify(takeoff(0.08, 1.2 * Vs, 0.5 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))],
+  ['   with the ground effect', JSON.stringify(takeoff(0.08, 1.2 * Vs, 0.5 * Vs, true), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))],
+  ['   the ground at the tail down and level attitudes: wings\' h m, sigma 11 22 12, dCL, dCD', [restPitch, 0].map((th) => { const o = onGround(th); return `${o.h.map((v) => f(v, 3)).join(' ')}, ${o.sigma.map((v) => f(v, 3)).join(' ')}, ${f(o.dCL, 4)}, ${f(o.dCD, 4)}`; }).join('; ')],
   ['T14 taxi radius at full rudder, the tail wheel turning with the rudder', f((mainW - tailW) / Math.tan(throwR), 3)],
   ['T10 prop torque N m', f(shaftTorque, 4)],
 ];

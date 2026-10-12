@@ -56,6 +56,7 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import { tunesFor } from '../configs/registry.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { wingDebug, must } from '../tests/lib/wingpilot.js';
+import { PERSON, clamp, quant, eyes } from '../tests/lib/personpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -65,10 +66,7 @@ const G = 9.80665;
 const MS = 4;
 const NOSE_UP = [Math.SQRT1_2, 0, -Math.SQRT1_2, 0];
 
-/* The pilot's limits and the grid of pilots. */
-const LAG_DEFAULT_S = 0.2;
-const EVERY_MS = 100;
-const STEPS = 50;
+/* The grid of pilots, flown through a person's eyes and hands. */
 const SECONDS = 10;
 const GRID = { kp: [0.2, 0.4, 0.7, 1, 1.5, 2.5], kd: [0, 0.1, 0.2, 0.4, 0.7, 1], kr: [0.1, 0.3], kv: [0.1, 0.2, 0.3], kt: [0.02, 0.05, 0.1] };
 
@@ -77,13 +75,10 @@ const arg = (k) => {
   return i > 0 ? process.argv[i + 1] : null;
 };
 const only = arg('--only') ? new Set(arg('--only').split(',')) : null;
-const LAG_S = arg('--lag') === null ? LAG_DEFAULT_S : Number(arg('--lag'));
+const LAG_S = arg('--lag') === null ? PERSON.delayMs / 1000 : Number(arg('--lag'));
 if (!(LAG_S >= 0 && LAG_S <= 1)) {
   throw new Error(`hover-probe: --lag wants seconds from 0 to 1, got ${arg('--lag')}`);
 }
-
-const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
-const quant = (x) => clamp(Math.round(x * STEPS) / STEPS);
 
 /* The fixed wings with a power table, a glider's skipped at its zero
  * thrust: the war drone, which has none, flies at plant.c's mass. */
@@ -145,23 +140,22 @@ function tw(sim, af) {
 
 function fly(sim, mode, g) {
   start(sim, mode, 0.6);
-  const lag = Math.round(LAG_S * 1000 / MS);
-  const seen = [];
+  const eye = eyes({ stepMs: MS, delayMs: LAG_S * 1000 });
   let st = [0, 0, 0, 0.6], base = 0.6, trim = 0, held = 0, worst = 0, roll = 0;
   for (let ms = 0; ms < SECONDS * 1000; ms += MS) {
     const o = read(sim.readState().state);
-    seen.push(o);
+    eye.push(o);
     const off = Math.acos(clamp(o.upB[0])) * DEG;
     if (held === ms && off < 20 && Math.abs(o.z - 50) < 10) {
       held = ms + MS;
       worst = Math.max(worst, off);
     }
     roll += o.p * MS / 1000;
-    if (ms % EVERY_MS === 0 && seen.length > lag + 25) {
-      const d = seen[seen.length - 1 - lag];
-      const was = seen[seen.length - 26 - lag];
+    if (eye.looks(ms, 25)) {
+      const d = eye.ago();
+      const was = eye.ago(25);
       const dt = 25 * MS / 1000;
-      const h = EVERY_MS / 1000;
+      const h = PERSON.everyMs / 1000;
       base = Math.max(0, clamp(base - h * (0.05 * (d.z - 50) + 0.1 * d.vz)));
       trim = clamp(trim - 0.3 * h * d.p);
       const lean = (a) => clamp(g.kv * (a[0] * d.s[4] + a[1] * d.s[5]), 0.3);

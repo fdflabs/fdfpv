@@ -26,6 +26,12 @@
  * The tail's share is faded out between h/b 0.5 and the wing's zero, the
  * plant's FITTED end to it.
  *
+ * A biplane (biplaneGroundTerms): TM 77's four terms (p. 6, eq. 7), each
+ * wing's own image and each wing in the other's, sigma_12 at the wings'
+ * mean height; each wing at its angle plus its upwash, the two lifts
+ * solved together, and Report 738's tail image for each wing's sheet,
+ * weighted by its lift (plant_wing.c biplane_ground_terms).
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -49,8 +55,9 @@ import { fileURLToPath } from 'node:url';
 const WING_C = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))), 'src/native/plant_wing.c');
 
 /* A table's surfaces as the plant takes them (ge_wing, ge_tail, npm run
- * ge:derive), [x, z] from the CG, m; the tail null on a tailless table.
- * Throws where the table does not take the term. */
+ * ge:derive), [x, z] from the CG, m; the tail null on a tailless table,
+ * wing2 a biplane's bottom wing (ge_wing2), else null. Throws where the
+ * table does not take the term. */
 export function wingGround(table) {
   const src = readFileSync(WING_C, 'utf8');
   const m = new RegExp(`const FixedWingParams ${table} = \\{([\\s\\S]*?)\\n\\};`).exec(src);
@@ -59,8 +66,8 @@ export function wingGround(table) {
     const v = new RegExp(`\\.${name} = \\{([^}]*)\\}`).exec(m[1]);
     return v ? v[1].split(',').map(Number) : null;
   };
-  const w = vec('ge_wing'), t = vec('ge_tail');
-  return { wing: [w[0], w[2]], tail: t && t[0] < 0 ? [t[0], t[2]] : null };
+  const w = vec('ge_wing'), t = vec('ge_tail'), w2 = vec('ge_wing2');
+  return { wing: [w[0], w[2]], tail: t && t[0] < 0 ? [t[0], t[2]] : null, wing2: w2 ? [w2[0], w2[2]] : null };
 }
 
 /* The height over the span past which the wing meets no ground: TM 77's
@@ -100,6 +107,17 @@ const smoothstep = (a, b, x) => {
 /* The share of the wing's downwash at the tail its image takes away. */
 export const tailR = (x, m, z) => sheetW(x, 2 * z + m) / sheetW(x, m);
 
+/* The same for a wing at [x, z] h over the ground, faded as the plant
+ * fades it; zero without a tail or with the tail ahead of the sheet. */
+function tailShare(g, wing, h, alphaBody) {
+  if (!g.tail) return 0;
+  const semi = g.b / 2;
+  const dx = g.tail[0] - wing[0], dz = g.tail[1] - wing[1];
+  const sb = Math.sin(alphaBody), cb = Math.cos(alphaBody);
+  const x = (-dx * cb + dz * sb) / semi, m = (dx * sb + dz * cb) / semi;
+  return x > 0 ? tailR(x, m, h / semi) * (1 - smoothstep(0.5, GE_HB_MAX, h / g.b)) : 0;
+}
+
 /*
  * The terms at one state. g: { b, S, aw, dd, clmax, wing: [x, z], tail:
  * [x, z] } (body frame from the CG, m), h the wing's height over the
@@ -116,14 +134,42 @@ export function groundTerms(g, h, alphaBody, alphaW) {
   const lin = g.aw * alphaW / (1 - sigma * g.aw / piA);
   const clw = Math.max(-g.clmax, Math.min(g.clmax, lin));
   const dAlpha = sigma * clw / piA;
-  let R = 0;
-  if (g.tail) {
-    const semi = g.b / 2;
-    const dx = g.tail[0] - g.wing[0], dz = g.tail[1] - g.wing[1];
-    const sb = Math.sin(alphaBody), cb = Math.cos(alphaBody);
-    const x = (-dx * cb + dz * sb) / semi, m = (dx * sb + dz * cb) / semi;
-    if (x > 0) R = tailR(x, m, h / semi) * (1 - smoothstep(0.5, GE_HB_MAX, h / g.b));
-  }
+  const R = tailShare(g, g.wing, h, alphaBody);
   const dTail = g.dd * R * clw / g.aw - dAlpha;
   return { sigma, dAlpha, clw, dTail, dCd: clw * dAlpha, R };
+}
+
+/*
+ * A biplane's terms at one state. g as groundTerms's, with cla (the
+ * table's cl_alpha, the curve the stall is on), bipW, bipR and bipDstall
+ * (the table's bip_*) and wing2, the bottom wing; clmax the table's cell
+ * CL max. h: [top, bottom] heights over the ground, m. Returns each wing's
+ * upwash (up, rad) and lift on the reference area (C), the cell's angle
+ * change dAlpha (its lift change over cl_alpha), each wing's angle over
+ * r times that (bipDa), dTail, and the drag taken off (dCd, before the
+ * stall blend).
+ */
+export function biplaneGroundTerms(g, h, alphaBody, alphaW) {
+  const hb = h.map((x) => Math.max(0, x) / g.b);
+  if (hb.every((x) => x >= GE_HB_MAX)) return { sigma: [0, 0, 0], dAlpha: 0, C: [0, 0], up: [0, 0], bipDa: [0, 0], dTail: 0, dCd: 0, R: [0, 0] };
+  const sg = [sigmaOf(hb[0]), sigmaOf(hb[1])], s12 = sigmaOf((hb[0] + hb[1]) / 2);
+  const piA = Math.PI * g.b * g.b / g.S;
+  const area = [0, 1].map((i) => g.bipW[i] / g.bipR[i]);
+  const p = area.map((a) => a * g.aw / piA);
+  const rhs = [0, 1].map((i) => g.bipW[i] * g.aw * alphaW);
+  const a00 = 1 - p[0] * sg[0], a01 = -p[0] * s12, a10 = -p[1] * s12, a11 = 1 - p[1] * sg[1];
+  const det = a00 * a11 - a01 * a10;
+  const C = [(rhs[0] * a11 - a01 * rhs[1]) / det, (a00 * rhs[1] - a10 * rhs[0]) / det].map((c, i) => {
+    const most = area[i] * (g.clmax + g.cla * g.bipR[i] * g.bipDstall[i]) * (g.aw / g.cla);
+    return Math.max(-most, Math.min(most, c));
+  });
+  const up = [0, 1].map((i) => (sg[i] * C[i] + s12 * C[1 - i]) / piA);
+  const dAlpha = area[0] * up[0] + area[1] * up[1];
+  const wings = [g.wing, g.wing2];
+  const R = [0, 1].map((i) => tailShare(g, wings[i], h[i], alphaBody));
+  const dTail = g.dd * (R[0] * C[0] + R[1] * C[1]) / g.aw - dAlpha;
+  return {
+    sigma: [sg[0], sg[1], s12], C, up, dAlpha, bipDa: [0, 1].map((i) => up[i] - g.bipR[i] * dAlpha), dTail,
+    dCd: C[0] * up[0] + C[1] * up[1], R,
+  };
 }

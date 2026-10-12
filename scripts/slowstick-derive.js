@@ -197,10 +197,12 @@ function solve3(A, bb) {
 }
 function longitudinalModes(V) {
   const res = (p) => { const r = deriv([V * Math.cos(p[0]), -V * Math.sin(p[0]), 0, p[0]], p[1], p[2]); return [r[0], r[1], r[2]]; };
-  /* Started at full duty: on the curve a low duty at cruise speed is past
+  /* Started near full duty: on the curve a low duty at cruise speed is past
    * the prop's zero thrust, where the clipped thrust has no slope and the
-   * step is singular. */
-  let p = [0.02, 0, 1.0];
+   * step is singular. Short of 1, since electricN holds the duty at 1 and
+   * the step's forward difference there has no slope either (it printed
+   * NaN from the motor law's change until 2026-10-12). */
+  let p = [0.02, 0, 0.95];
   for (let it = 0; it < 60; it += 1) {
     const r = res(p);
     const J = [0, 1, 2].map((j) => { const pp = p.slice(); pp[j] += 1e-7; const rr = res(pp); return rr.map((v, i) => (v - r[i]) / 1e-7); });

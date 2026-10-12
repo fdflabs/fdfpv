@@ -964,6 +964,15 @@ typedef struct FixedWingParams {
   double stall_re[2];
   double stall_clmax[2];
   double stall_peak[2];
+  /* The width of the lift's rounding to its peak, rad: the wing's curve
+   * leaves its line this far short of the stall angle and tops out this
+   * far past it (wing_lift). Zero: stall_blend, which also sets the stalled
+   * lift's fall, the drag's and moments' blend and the strips'. A table
+   * that sets it keeps those on stall_blend, and stall_re moves this in
+   * place of stall_blend, held to it as a floor: a section at a low
+   * Reynolds number rounds over 5 deg to its peak and then falls within
+   * one (docs/P51-STAGE1.md). */
+  double stall_round;
   /*
    * THE DISCUS LAUNCH, docs/DLG-STAGE1.md, for a glider thrown by its
    * wingtip. Zero discus_v is an aircraft that is not, which
@@ -1089,11 +1098,19 @@ typedef struct FixedWingParams {
    * ge_tail are the wing's and the stabiliser's quarter chords on their
    * mean chords, body frame from the CG, m, from the drawn model
    * (crash_parts.h, npm run ge:derive); a table without a tail leaves
-   * ge_tail zero. The tail's term reads tail_deda.
+   * ge_tail zero. The tail's term reads tail_deda. ge_cla_wing is the
+   * wing's own lift slope, per rad, for a table whose stall is the whole
+   * curve's (cl_alpha_wing zero): the term needs the wing's share of
+   * cl_alpha apart from the tail's, and nothing else reads it. Zero: the
+   * table's wing_cla. On a biplane (bip_w) ge_wing is the top wing's
+   * quarter chord and ge_wing2 the bottom one's; a monoplane leaves it
+   * zero.
    */
   int ground_effect;
   double ge_wing[3];
   double ge_tail[3];
+  double ge_cla_wing;
+  double ge_wing2[3];
   /*
    * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
    * open in flight, sim_wing_set_door. door_time is their travel each way,

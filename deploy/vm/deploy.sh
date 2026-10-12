@@ -10,7 +10,7 @@
 #   1. host.sh as root on the VM: Node 24, Caddy, dnf-automatic, firewalld,
 #      the service users, /opt/fdfpv,
 #   2. refuses to go on if the VM's sshd allows passwords,
-#   3. rsyncs what the servers import (package*.json, src/, configs/,
+#   3. rsyncs what the servers import (package*.json, src/, configs/, aircraft/,
 #      edge/, tracks-api/, deploy/vm/) into /opt/fdfpv, and npm ci there,
 #      and writes the commit it copied to /opt/fdfpv/REVISION, with
 #      " dirty" after it when this checkout has uncommitted changes; each
@@ -74,7 +74,7 @@ echo '3. the code'
 cd "$ROOT"
 rsync -a --delete --relative -e "ssh -i $KEY -o BatchMode=yes" \
   --exclude '.wrangler/' --exclude '*.db' --exclude '*.db-*' --exclude '.dev.vars' \
-  package.json package-lock.json src configs edge tracks-api deploy/vm \
+  package.json package-lock.json src configs aircraft edge tracks-api deploy/vm \
   "$VM:/opt/fdfpv/"
 remote 'cd /opt/fdfpv && npm ci --omit=dev --no-audit --no-fund --loglevel=error'
 # Written before step 5 restarts the servers, so each reads the commit of

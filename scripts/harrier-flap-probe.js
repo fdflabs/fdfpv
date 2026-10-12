@@ -44,15 +44,13 @@ import { TABLE } from '../configs/power.js';
 import { ELEV_FLAPS, setupFor, tuneBlock } from '../configs/tuning.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { attitude, must } from '../tests/lib/wingpilot.js';
+import { PERSON, clamp, quant, eyes } from '../tests/lib/personpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 const DEG = 180 / Math.PI;
 const MS = 4;
-const LAG_S = 0.2;
-const EVERY_MS = 100;
-const STEPS = 50;
 const SECONDS = 20;
 const GRID = { kb: [0.3, 0.6, 1, 1.5, 2.5], kp: [0, 0.05, 0.1, 0.2, 0.4] };
 
@@ -61,8 +59,6 @@ const arg = (k, d) => {
   return i > 0 ? process.argv[i + 1] : d;
 };
 const af = AIRFRAMES.find((a) => a.id === arg('--plane', 'nighttimber1200'));
-const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
-const quant = (x) => clamp(Math.round(x * STEPS) / STEPS);
 
 const sim = await loadSim(wasmBytes);
 must(sim.init(configText), 'sim_init');
@@ -77,18 +73,17 @@ function fly(mode, elevFlap, g) {
   must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 100, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_wing_launch(1.3 * af.stall), 'sim_wing_launch');
-  const lag = Math.round(LAG_S * 1000 / MS);
-  const seen = [];
+  const eye = eyes({ stepMs: MS });
   const out = [];
   let st = [0, 0, 0, 0.7], base = 0.7;
   for (let ms = 0; ms < SECONDS * 1000; ms += MS) {
     const s = sim.readState().state;
     const bank = Math.atan2(2 * (s[9] * s[10] + s[7] * s[8]), 1 - 2 * (s[8] * s[8] + s[9] * s[9]));
-    seen.push({ bank, p: s[11], z: s[3], vz: s[6] });
+    eye.push({ bank, p: s[11], z: s[3], vz: s[6] });
     if (ms >= 10000) out.push({ bank, pitch: attitude(s).pitch, v: Math.hypot(s[4], s[5], s[6]), z: s[3] });
-    if (ms % EVERY_MS === 0 && seen.length > lag) {
-      const d = seen[seen.length - 1 - lag];
-      const h = EVERY_MS / 1000;
+    if (eye.looks(ms)) {
+      const d = eye.ago();
+      const h = PERSON.everyMs / 1000;
       base = clamp(base - h * (0.05 * (d.z - 100) + 0.3 * d.vz), 1);
       st = [
         quant(-g.kb * d.bank - g.kp * d.p),

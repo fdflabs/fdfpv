@@ -144,6 +144,10 @@ jobs:
       # never in CI, so their regressions went unseen (2026-10-11). About
       # 17 s together, measured locally, on the lightest shard.
       - run: npm run lint:ci-coverage
+      # Every file a VM server imports is in deploy.sh's rsync list: aircraft/
+      # was missing once and would have crashed the rooms server on the VM
+      # (scripts/deploy-files-check.js). Pure Node, under a second.
+      - run: npm run deploy:files
       - run: npm run bombshell:gates
       - run: npm run bombshell:stab
       - run: npm run bramor:gates
@@ -182,6 +186,9 @@ jobs:
       - run: npm run nighttimber:gates
       - run: npm run figures:plant
       - run: npm run figures:sweep
+      # The manoeuvre table flies every figure program: a physics change that
+      # moves a grade regenerates it (npm run figures:table) in the same PR.
+      - run: npm run figures:table:check
       - run: npm run figures:knife
       - run: npm run combat:gates
       - run: npm run input:selftest
@@ -508,15 +515,19 @@ jobs:
       - run: npm run panels:golden
       - run: npm run rooms:selftest
       - run: npm run bots:selftest
-      # The valley's shared world data against the page's own terrain
+      # Each map's shared world data against the page's own terrain
       # modules, which import three: the page loads three from its CDN
       # import map (index.html), so the same version is unpacked here.
+      # Itaipu's ground is read from the data checked out above.
       - run: |
           npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
           tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
           npm run world:layer -- --three="$RUNNER_TEMP/package"
+        env:
+          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       - run: npm run jam:selftest
       - run: npm run figures:selftest
+      - run: npm run personpilot:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest

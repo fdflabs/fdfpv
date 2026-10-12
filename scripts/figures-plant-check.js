@@ -3,11 +3,12 @@
  * real compiled plant are named and graded sensibly.
  *
  * The pilot is hover-probe.js's person (the 3D lane's): it sees the
- * aircraft 0.2 s late (McRuer and Jex 1967), moves the sticks ten times a
- * second in fiftieths of their travel, and flies by what is visible: bank,
+ * aircraft 0.2 s late (McRuer and Jex 1967), moves the sticks twenty times
+ * a second in fiftieths of their travel, and flies by what is visible: bank,
  * pitch and how far the aircraft has turned. It flies the Extra 330 in
- * Manual, the way IMAC pilots fly: a level pass, a loop (a steady pull
- * until the nose is back on the horizon), a level pass, an aileron roll
+ * Manual, the way IMAC pilots fly: a level pass, a round loop (a pull
+ * that sets its size, then the pitch rate that holds that radius as the
+ * speed changes), a level pass, an aileron roll
  * (full stick until the wings come round, let go a little early as a
  * person anticipates), a level pass, a 4-point roll, a level pass, then a
  * tailslide (a pull to the vertical, the line held until the speed is
@@ -52,6 +53,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { clamp, quant, eyes } from '../tests/lib/personpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -60,7 +62,12 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 
 /* Each aircraft, the speed it is thrown at and the loop's pull, the
  * person's for the aircraft: a round IMAC loop is flown short of the
- * wing's stall. The Extra at 22 m/s and 0.55; the CAP, whose elevator has
+ * wing's stall. loopEntry is the pull that sets the round loop's size:
+ * the Extra's 0.3 holds it at 5 to 8 deg of alpha all the way round,
+ * against its stall's 12.4; its 0.55, flown as a fixed stick, took the
+ * wing to 13 and 14 deg, past the stall, in a 16 m loop whose grade then
+ * turned on the stall's last details (3 or 4). loopPull is the quarter
+ * loops' of the tailslide. The Extra at 22 m/s and 0.55; the CAP, whose elevator has
  * 50 deg of throw over a tail volume half again the Extra's, at 0.35, since
  * 0.55 takes its wing to 15 deg of alpha, past its 11.7 (CL max over the
  * wing's slope, npm run cap580:derive); the Slick at its trimmed sport
@@ -71,9 +78,9 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * the Slick the pull out is named a parachute too: their own lanes' to
  * fly, so not yet asked of them here. */
 const PLANES = {
-  extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55, tailslide: true, sagPair: true },
-  cap: { sim: CAP_AIRFRAME, name: 'the CAP', launch: 22, loopPull: 0.35 },
-  slick: { sim: SLICK_AIRFRAME, name: 'the Slick', launch: 22, loopPull: 0.55 },
+  extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55, loopEntry: 0.3, tailslide: true, sagPair: true },
+  cap: { sim: CAP_AIRFRAME, name: 'the CAP', launch: 22, loopPull: 0.35, loopEntry: 0.35 },
+  slick: { sim: SLICK_AIRFRAME, name: 'the Slick', launch: 22, loopPull: 0.55, loopEntry: 0.55 },
 };
 const at = process.argv.indexOf('--plane');
 const asked = at > 0 ? process.argv[at + 1] : (process.argv[2] || 'extra');
@@ -84,10 +91,9 @@ if (!plane) {
 }
 
 const MS = 2;
-const LAG = 100;
+/* The hand moves every 50 ms, twice PERSON's ten a second: the figures'
+ * gains and let go leads below were measured at this pace. */
 const EVERY = 50;
-const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
-const quant = (x) => clamp(Math.round(x * 50) / 50);
 /* The vertical lines' gains: the nose's error to a rate (kp, 1/s) and the
  * rate's error to the stick (kr, s). With this person's 0.2 s lag 0.5
  * rang on every plant, and on the prop curves (91061d8cb, the elevator in
@@ -104,6 +110,17 @@ const DOWN = [0, 0, -1];
  * the path off the line before the slide. ki per second, on the stick the
  * hold asks for; each line starts its own. */
 const LINE_KI = 1;
+/* The round loop: "as the speed changes during execution of a loop or
+ * part-loop, the angular velocity ... has to change in order to keep the
+ * radius constant" (British Aerobatic Association, judging, "Loops and
+ * Part Loops", https://www.aerobatics.org.uk/judging/topics/loops-radii;
+ * IMAC's Basic guide: a point off for each change of radius). The person
+ * takes the radius their entry pull makes once the nose has come 30 deg
+ * round, then flies the pitch rate it asks at the speed they see, V / R,
+ * on the stick: kp per rad/s of the rate's error and ki on its integral,
+ * the smallest that held the Extra's rate to its radius without ringing
+ * through the person's 0.2 s (0.25 rang; measured 2026-10-12). */
+const LOOP_GAINS = { kp: 0.1, ki: 0.2 };
 const holdLine = (d, target, thr, trim) => {
   const [r, p, y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
   trim.pitch = clamp(trim.pitch + LINE_KI * p * EVERY / 1000, 0.5);
@@ -143,13 +160,15 @@ async function flight({ sag = false } = {}) {
   const figures = [];
   const marks = [];
   const det = new FigureDetector((f) => figures.push({ ...f, atMs: f.endMs }));
-  const seen = [];
+  const eye = eyes({ stepMs: MS, everyMs: EVERY });
   /* The program: [phase, ms or a done test]. */
   const program = ['level', 'loop', 'level', 'roll', 'level', 'points', 'level',
     ...(plane.tailslide ? ['pullup', 'up', 'slide', 'down', 'pullout', 'level'] : [])];
   let phase = 0;
   let phaseMs = 0;
   let turned = 0;
+  let loopR = null;
+  let loopI = 0;
   let quarter = 0;
   let holdMs = 0;
   let line0 = null;
@@ -159,12 +178,12 @@ async function flight({ sag = false } = {}) {
   let st = [0, 0, 0, 0.75];
   for (let ms = 0; ms < 90000 && phase < program.length; ms += MS) {
     const o = see(sim.readState().state);
-    seen.push(o);
+    eye.push(o);
     det.step(MS / 1000, o.s);
     phaseMs += MS;
     const name = program[phase];
-    if (seen.length > LAG && ms % EVERY === 0) {
-      const d = seen[seen.length - 1 - LAG];
+    if (eye.looks(ms)) {
+      const d = eye.ago();
       /* Level: wings level on the ailerons, the nose on the horizon. */
       const levelRoll = quant(clamp(-0.4 * d.lz * Math.sign(d.uz || 1) - 0.04 * d.p, 0.4));
       const levelPitch = quant(clamp(-1.2 * d.nz + 0.12 * d.q + 0.04, 0.3));
@@ -174,7 +193,14 @@ async function flight({ sag = false } = {}) {
         if (phaseMs >= 4000) { phase += 1; phaseMs = 0; turned = 0; marks.push(ms); }
       } else if (name === 'loop') {
         turned += -d.q * h;
-        st = [0, plane.loopPull, 0, 1];
+        if (loopR === null && turned > 0.5) loopR = d.v / Math.max(0.5, -d.q);
+        if (loopR === null) {
+          st = [0, plane.loopEntry, 0, 1];
+        } else {
+          const err = d.v / loopR + d.q;
+          loopI = clamp(loopI + LOOP_GAINS.ki * err * h, 0.5);
+          st = [0, quant(clamp(plane.loopEntry + LOOP_GAINS.kp * err + loopI)), 0, 1];
+        }
         if (turned > 2 * Math.PI - 0.6) { phase += 1; phaseMs = 0; marks.push(ms); }
       } else if (name === 'roll') {
         turned += d.p * h;
@@ -221,7 +247,12 @@ async function flight({ sag = false } = {}) {
           st = [0, clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75];
         } else {
           st = [0.5, 0.05, 0, 0.75];
-          if (turned > (quarter + 1) * Math.PI / 2 - d.p * 0.6) {
+          /* Let go by what the roll still carries, the aileron roll's
+           * 0.35 s above: the judge now marks each point off its quarter
+           * (figuredetect.js pointsDeduction), and the 0.6 s this let go
+           * at put the CAP's points at 66, 136 and 210 deg and the
+           * Slick's at 54, 124 and 206. */
+          if (turned > (quarter + 1) * Math.PI / 2 - d.p * 0.35) {
             quarter += 1;
             holdMs = 400;
             if (quarter === 4) { phase += 1; phaseMs = 0; marks.push(ms); }

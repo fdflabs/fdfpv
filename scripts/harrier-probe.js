@@ -43,14 +43,13 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import { ELEV_FLAPS, setupFor, tuneBlock } from '../configs/tuning.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
+import { PERSON, clamp, quant, eyes } from '../tests/lib/personpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 const DEG = 180 / Math.PI;
 const MS = 4;
-const EVERY_MS = 100;
-const STEPS = 50;
 const SECONDS = 25;
 /* The video's harrier, nose 40 to 45 deg to its path: its middle. */
 const HARRIER_DEG = 42.5;
@@ -66,8 +65,6 @@ const LAG_S = Number(arg('--lag', '0.2'));
 /* --full-back: the video's pilot, "full back on the elevator" (05:00), the
  * angle what full up and the mix make of it, instead of a held angle. */
 const FULL_BACK = process.argv.includes('--full-back');
-const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
-const quant = (x) => clamp(Math.round(x * STEPS) / STEPS);
 
 const sim = await loadSim(wasmBytes);
 must(sim.init(configText), 'sim_init');
@@ -92,23 +89,22 @@ function fly(mode, elevFlap, g) {
   must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 100, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_wing_launch(1.3 * af.stall), 'sim_wing_launch');
-  const lag = Math.round(LAG_S * 1000 / MS);
-  const seen = [];
+  const eye = eyes({ stepMs: MS, delayMs: LAG_S * 1000 });
   const out = [];
   let st = [0, 0, 0, 0.5];
   let thr = 0.5, pitchI = 0, elevI = 0, phase = 'slow', t0 = 0;
   for (let ms = 0; ms < SECONDS * 1000; ms += MS) {
     const s = sim.readState().state;
     const e = euler(s);
-    seen.push({ ...e, p: s[11], q: s[12], r: s[13], z: s[3], vz: s[6], v: Math.hypot(s[4], s[5], s[6]), alpha: wingDebug(sim)[0] });
+    eye.push({ ...e, p: s[11], q: s[12], r: s[13], z: s[3], vz: s[6], v: Math.hypot(s[4], s[5], s[6]), alpha: wingDebug(sim)[0] });
     if (ms >= (SECONDS - 10) * 1000) {
       const v = Math.hypot(s[4], s[5], s[6]);
       const path = Math.asin(clamp(s[6] / Math.max(v, 1e-6)));
       out.push({ bank: e.bank, pitch: e.pitch, path, v, z: s[3], alpha: wingDebug(sim)[0] });
     }
-    if (ms % EVERY_MS === 0 && seen.length > lag) {
-      const d = seen[seen.length - 1 - lag];
-      const h = EVERY_MS / 1000;
+    if (eye.looks(ms)) {
+      const d = eye.ago();
+      const h = PERSON.everyMs / 1000;
       const dz = d.z - 100;
       let elev;
       if (phase === 'slow') {
