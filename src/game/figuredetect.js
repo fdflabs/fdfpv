@@ -158,6 +158,8 @@ class Prim {
     this.alphaSum = 0;
     this.stalled = 0;
     this.pauses = 0;
+    /* The roll, in turns, each point held at. */
+    this.stops = [];
     this.stoppedMs = 0;
     this.pausedMs = 0;
     this.sMin = Infinity;
@@ -323,6 +325,17 @@ function rollDeduction(p, turns) {
     + bandDeduction(headingCos(p.d0, p.d1)) + bandDeduction(p.offLineCos);
 }
 
+/* A point roll's points, each at its mark: "each hesitation must be at
+ * the correct angle of roll (with the usual 1 point per 5 deg error
+ * deductions)" (British Aerobatic Association, judging, "Slow Rolls",
+ * https://www.aerobatics.org.uk/judging/topics/slow-rolls), taken on this
+ * judge's F3A scale, a point per 15 deg, for each point. A 2-point roll
+ * paused at 105 deg was graded as if it paused on its back. */
+function pointsDeduction(p) {
+  const n = p.stops.length + 1;
+  return p.stops.reduce((sum, at, i) => sum + radDeduction((abs(at) - (i + 1) / n) * TURN), 0);
+}
+
 /* A held attitude: the wings level (a point per 15 deg of bank at worst)
  * and the heading kept. */
 function holdDeduction(p) {
@@ -396,9 +409,9 @@ const TABLE = [
    * turns a third of a turn or more where an aileron roll's barely moves. */
   ['barrel_roll', [rollOf(1, 0.25, (p) => p.pauses === 0 && p.swept >= 0.3 && abs(p.heading) <= 0.3)],
     ([r]) => Math.floor(r.rateCv() / 0.15) + bandDeduction(headingCos(r.d0, r.d1))],
-  ['eight_point_roll', [rollOf(1, 0.2, (p) => p.pauses === 7)], ([r]) => rollDeduction(r, 1)],
-  ['four_point_roll', [rollOf(1, 0.2, (p) => p.pauses === 3)], ([r]) => rollDeduction(r, 1)],
-  ['two_point_roll', [rollOf(1, 0.2, (p) => p.pauses === 1)], ([r]) => rollDeduction(r, 1)],
+  ['eight_point_roll', [rollOf(1, 0.2, (p) => p.pauses === 7)], ([r]) => rollDeduction(r, 1) + pointsDeduction(r)],
+  ['four_point_roll', [rollOf(1, 0.2, (p) => p.pauses === 3)], ([r]) => rollDeduction(r, 1) + pointsDeduction(r)],
+  ['two_point_roll', [rollOf(1, 0.2, (p) => p.pauses === 1)], ([r]) => rollDeduction(r, 1) + pointsDeduction(r)],
   ['double_roll', [rollOf(2, 0.25, (p) => p.pauses === 0)], ([r]) => rollDeduction(r, 2)],
   ['slow_roll', [rollOf(1, 0.2, (p) => p.pauses === 0 && p.ms >= 3000)], ([r]) => rollDeduction(r, 1)],
   ['aileron_roll', [rollOf(1, 0.2, (p) => p.pauses === 0)], ([r]) => rollDeduction(r, 1)],
@@ -603,7 +616,10 @@ export class FigureDetector {
     if (open.kind === 'roll' && open.pausedMs > 0) {
       /* A point is a stop the roll then goes on from, the way it was going:
        * the wings rocking back after the last one start no next quarter. */
-      if (tok === 'roll' && s.p * open.pauseSign > 0 && open.stoppedMs >= PAUSE_MIN_MS) open.pauses += 1;
+      if (tok === 'roll' && s.p * open.pauseSign > 0 && open.stoppedMs >= PAUSE_MIN_MS) {
+        open.pauses += 1;
+        open.stops.push((this.paused[this.paused.length - 1].tot[0] - open.tot0[0]) / TURN);
+      }
       /* The pause was part of the roll (or of what ends it, below). */
       let prev = this.prev && this.paused.length ? null : this.prev;
       for (const c of this.paused) {

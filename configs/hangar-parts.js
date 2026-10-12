@@ -62,6 +62,7 @@ import { PART_KINDS } from './parts.js';
 import { PROP_ESTIMATES } from './prop-estimates.js';
 import { MOTORS, hasMotors } from './motors.js';
 import { normaliseWearRecord } from './wear.js';
+import { AIRCRAFT } from './aircraft.js';
 
 /* sim_abi.h's SIM_ADDON_* layout. */
 export const SIM_ADDON = { MASS: 0, CG: 1, CDA: 4, DRAG: 5, WHEEL_R: 8, ROLL_K: 9 };
@@ -187,6 +188,7 @@ export const PARTS_PLANES = Object.keys(PROPS);
  *          Bramor's and the Skyhunter's pod, the Slow Stick's stick)
  *   led    one wing's light strip, from inboard to the tip under the
  *          leading edge, [x, y, z] twice; the other wing mirrors it
+ * A plane with an aircraft folder keeps its anchors there.
  */
 export const ANCHORS = {
   timber1500: { prop: [0.29, 0, 0], belly: [0, 0, -0.07], tail: [-0.66, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.053, 0.23, 0.072], [0.037, 0.70, 0.068]] },
@@ -205,10 +207,10 @@ export const ANCHORS = {
   tigermoth1803: { prop: [0.3808, 0, 0.0074], belly: [0, 0, -0.122], tail: [-1.035, 0, -0.073], tank: [-0.01, 0, -0.04], led: [[0.17, 0.15, 0.215], [0.12, 0.80, 0.245]] },
   nighttimber1200: { prop: [0.308, 0, 0], belly: [0, 0, -0.10], tail: [-0.62, 0, -0.11], tank: [-0.01, 0, -0.06], led: [[0.07, 0.20, 0.05], [0.07, 0.50, 0.06]] },
   extra3d1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
-  slick2680: { prop: [0.6093, 0, 0.039], belly: [0, 0, -0.138], tail: [-1.50, 0, 0.0], tank: [-0.01, 0, -0.04], led: [[0.12, 0.30, -0.03], [0.05, 1.20, -0.01]] },
+  slick2680: AIRCRAFT.ANCHORS.slick2680,
   hercules3077: { prop: [0.315, 0.3846, 0.0998], belly: [0, 0, -0.195], tail: [-1.25, 0, 0.05], tank: [-0.05, 0, -0.13], led: [[0.10, 1.40, 0.175], [0.10, 0.90, 0.17]] },
-  cap1702: { prop: [0.56, 0, 0], belly: [0, 0, -0.13], tail: [-1.03, 0, -0.05], tank: [0.0, 0, -0.10], led: [[0.11, 0.25, -0.115], [0.08, 0.75, -0.10]] },
-  p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
+  cap1702: AIRCRAFT.ANCHORS.cap1702,
+  p51d1450: AIRCRAFT.ANCHORS.p51d1450,
   zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },
 };
 

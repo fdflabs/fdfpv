@@ -5,8 +5,9 @@
  * by, and what one flight of that law on the compiled plant measured. A
  * figure with a program (tests/lib/figureprograms.js) is flown once on
  * the Extra 330 in Manual, level at 22 m/s, 150 m up: whether the judge
- * named it, its grade, what else it named, whether the program finished
- * and the lowest height. The loop, the aileron roll and the 4-point roll
+ * named it, its grade, what else it named, whether the program finished,
+ * whether it reached the ground (150 m below its start) and the lowest
+ * height. The loop, the aileron roll and the 4-point roll
  * are flown by figures-plant-check.js's own program, a gate with its own
  * pass band, and the row says so. The 'waits' figures have no law yet.
  *
@@ -73,6 +74,7 @@ async function build() {
         grade: hit ? hit.grade : null,
         flew: r.got.map((g) => `${g.figure} ${g.grade}`),
         finished: r.finished,
+        crashed: r.crashed,
         lowestM: Number(r.minZ.toFixed(1)),
       };
     }
@@ -141,6 +143,18 @@ check(`every catalogue figure has a row and every one not waiting a law (${table
 check('negative control: a table missing a row is caught', structureBroken({ rows: table.rows.slice(1) }) !== '');
 check('negative control: a row with its law dropped is caught',
   structureBroken({ rows: table.rows.map((r) => (r.id === 'loop' ? { ...r, law: null } : r)) }) !== '');
+/* A figure marked flown is one the person names on today's plant
+ * (src/game/figures.js): a flown row whose program no longer names it, or
+ * that never finishes or flies into the ground, means the status is stale
+ * or the plant moved under the program, and must be seen. two_point_roll
+ * sat flown for a day while its program flew an aileron roll (the prop
+ * curves, 562dc785e, rolled it faster than its points law let go for). */
+const staleFlown = (rows) => rows.filter((r) => r.physics === 'flown' && r.measured
+  && !(r.measured.named && r.measured.grade > 0 && r.measured.finished && !r.measured.crashed)).map((r) => r.id);
+const stale = staleFlown(table.rows);
+check('every flown figure with a program is named by it above zero, finished and clear of the ground', stale.length === 0, stale.join(', '));
+check('negative control: a flown row its program no longer names is caught',
+  staleFlown(table.rows.map((r) => (r.id === 'tailslide' ? { ...r, measured: { ...r.measured, named: false } } : r))).includes('tailslide'));
 const named = table.rows.filter((r) => r.measured && r.measured.named).length;
 const flown = table.rows.filter((r) => r.measured).length;
 console.log(`\nfigures table: ${named} of ${flown} programs named as flown; ${fail ? `${fail} failed` : 'all hold'}`);
