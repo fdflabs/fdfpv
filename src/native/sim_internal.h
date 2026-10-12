@@ -1083,6 +1083,21 @@ typedef struct FixedWingParams {
    */
   double surf_knee;
   /*
+   * THE SERVOS' HOLD, scripts/servo-derive.js and scripts/lib/hinge.js: a
+   * plain flap's hinge moment grows with the dynamic pressure, and past
+   * the servo's stall torque, through its linkage, the air pushes the
+   * surface back short of what it was asked. hinge_hold, aileron (each
+   * aileron, or each elevon), elevator and rudder: the dynamic pressure
+   * times the surface's equivalent linear angle (plant_wing.c
+   * HINGE_SHAPE, rad) that its servos stand against, Pa rad. Zero is a
+   * surface without a limit, and then nothing is read.
+   */
+  double hinge_hold[3];
+  /* And the hinge moment the surface's own angle of attack brings, over
+   * its deflection's at a constant angle (NACA Report 721, eq. 3 and 11):
+   * (dch/dcn) dCN/dalpha over (dCh/d delta)_alpha, scripts/lib/hinge.js. */
+  double hinge_alpha[3];
+  /*
    * PAST THE LINEAR ANGLES, docs/EXTRA-STAGE1.md, for an aircraft flown
    * hanging on its prop, sideways and backwards. hi_alpha 1: the pitching
    * moment's stiffness term takes the sine of the zero lift line's angle
@@ -1232,6 +1247,7 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
+void plant_wing_command(double out[3]);
 void plant_wing_strips(double out[8]);
 void plant_wing_set_gyro(int on);
 void plant_wing_set_mount(int on);

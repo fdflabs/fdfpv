@@ -136,6 +136,8 @@
         {"field":"ge_tail","expr":"{ -0.8425, 0.0, 0.027 }","comment":"the stabiliser's, npm run ge:derive"},
         {"field":"tail_cn","expr":"1.17","comment":"a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md","gap":8},
         {"field":"side_cda","expr":"0.2583","comment":"npm run cap580:derive","gap":5},
+        {"field":"hinge_hold","expr":"{ 218.6, 119.3, 408.5 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.6199, 0.7625, 0.7958 }","comment":"npm run servo:derive"},
         {"field":"rot_k","expr":"{ 0.05099, 0.12406, 0.08237 }","comment":"npm run cap580:derive"},
         {"field":"j_prop","expr":"0.000866","comment":"npm run cap580:derive: a 60 g carbon 18 in blade and the AM670's can, ESTIMATED","gap":5}
       ]

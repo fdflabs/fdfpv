@@ -95,7 +95,7 @@
         {"field":"acro_i_max","expr":"0.30"},
         {"field":"as3x_k","expr":"{ 0.0189, 0.0433, 0.1417 }","comment":"npm run as3x:derive"},
         {"field":"as3x_kh","expr":"{ 0.1686, 0.3864, 1.2646 }","comment":"npm run as3x:derive"},
-        {"field":"as3x_rate","expr":"{ 6.157, -5.465, -3.112 }","comment":"npm run as3x:derive"},
+        {"field":"as3x_rate","expr":"{ 6.157, -5.456, -3.132 }","comment":"npm run as3x:derive"},
         {"field":"yaw_coord_k","expr":"1.0","comment":"the Timber's 2.0 over a rudder twice its authority","gap":5},
         {"note":["The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm","plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's","\"SPEED 2.0S\"). The mix is the manual's 14 and 20 percent of the","elevator's travel, taken down, as one gain through both notches."]},
         {"field":"flap_half","expr":"0.328206"},
@@ -139,7 +139,9 @@
         {"field":"ge_wing","expr":"{ 0.0293, 0.0, 0.065 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"},
         {"field":"ge_tail","expr":"{ -0.5362, 0.0, -0.113 }","comment":"the stabiliser's, npm run ge:derive"},
         {"field":"tail_cn","expr":"1.17","comment":"a flat plate normal to the flow, Hoerner","gap":8},
-        {"field":"side_cda","expr":"0.1152"},
+        {"field":"side_cda","expr":"0.1522","comment":"the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run nighttimber:derive","gap":5},
+        {"field":"hinge_hold","expr":"{ 186.7, 97.6, 216.4 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.5645, 0.6062, 0.6549 }","comment":"npm run servo:derive"},
         {"field":"rot_k","expr":"{ 0.01132, 0.01439, 0.01218 }"}
       ]
     }

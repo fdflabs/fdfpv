@@ -38,8 +38,8 @@
 import { SURFACE_TIERS } from './surfaces-tiers.js';
 
 /* sim_wing_set_tiers, src/native/sim_abi.h. */
-export const SIM_TIER = { K_A: 0, K_E: 1, K_R: 2, CD_A: 3, CD_E: 4, CD_R: 5 };
-export const SIM_TIER_DOUBLES = 6;
+export const SIM_TIER = { K_A: 0, K_E: 1, K_R: 2, CD_A: 3, CD_E: 4, CD_R: 5, HOLD_A: 6, HOLD_E: 7, HOLD_R: 8 };
+export const SIM_TIER_DOUBLES = 9;
 
 export const TIERS = ['stock', 'sport', '3d', 'extreme'];
 export const TIER_STEP = [0, 1 / 3, 2 / 3, 1];
@@ -66,8 +66,8 @@ export const SERVOS = {
   d89mw: { kg: 0.025, kgcm: 6.4, source: 'Hitec D89MW: 25.0 g, 74 / 89 / 118 oz-in in Hitec\'s 4.8 / 6.0 / 7.4 V order, 89 oz-in = 6.4 kg-cm at 6.0 V (hitecrcd.com/products/servos/digital)' },
   d645mw: { kg: 0.060, kgcm: 11.3, source: 'Hitec D645MW: 60.0 g, 11.3 kg-cm at 6.0 V (hitecrcd.com/d645mw-32-bit-high-torque-metal-gear-servo)' },
   d950tw: { kg: 0.068, kgcm: 29.0, source: 'Hitec D950TW: 68 g, 21.0 / 29.0 / 35.0 kg-cm at 4.8 / 6.0 / 7.4 V (motionrc.com HRC36950; shop.multiplex-rc.de 68 g)' },
-  spmsa332: { kg: 0.009, kgcm: 0.9, source: 'Spektrum A332 (SPMSA332), 9 g metal gear: 9 g, 0.9 kg-cm at 4.8 V, the only torque published (lindinger.at 9770338; flashrc.com, which gives 6.0 g); the 9 g of its name and E-flite\'s parts list taken. Its 6.0 V figure is not published, so it is rated low against the 6.0 V figures here, which sizes up early' },
-  spmsa370: { kg: 0.009, kgcm: 0.9, source: 'Spektrum A370 (SPMSA370), 9 g digital metal gear: no torque is published (Spektrum\'s page and its servo charts list none); taken as the A332\'s 0.9 kg-cm, the same maker\'s 9 g metal gear class, ESTIMATED' },
+  spmsa332: { kg: 0.009, kgcm: 1.80, source: 'Spektrum A332 (SPMSA332), 9 g analog metal gear: Spektrum\'s page lists no torque. The 0.9 kg-cm at 4.8 V of lindinger.at 9770338 and flashrc.com is not taken: the same spec block reads 6.0 g, 4.8 to 5.3 V and nylon gears, another servo. Taken at the median 6.0 V torque of Spektrum\'s own published sub-micro metal gear aircraft servos, ESTIMATED: A3020 "18.0 oz-in" at 4.8 V, "22 oz-in @ 6.0V", and A3040 "23.0 oz-in" at 4.8 V, "28 oz-in @ 6.0V" (Spektrum Servo Reference Chart, spektrumrc.com/Content/Media/PDF/servoChart_print.pdf; the A3040\'s page, spektrumrc.com SPMSA3040, "23 oz-in (1.66 kg-cm) @ 4.8V; 28 oz-in (2 kg-cm) @ 6.0V"), 25 oz-in, 1.80 kg-cm; both 12.6 g, Spektrum publishing no torque for any 9 g metal gear servo (its heli sub-micro metal gear H3000 30.5, H3020 22 and SH3055M 36 oz-in at 6.0 V would give 28, 2.0 kg-cm)' },
+  spmsa370: { kg: 0.009, kgcm: 1.80, source: 'Spektrum A370 (SPMSA370), 9 g digital metal gear: no torque is published (Spektrum\'s page and its servo charts list none). Taken at the median 6.0 V torque of Spektrum\'s own published sub-micro metal gear aircraft servos, ESTIMATED: A3020 "18.0 oz-in" at 4.8 V, "22 oz-in @ 6.0V", and A3040 "23.0 oz-in" at 4.8 V, "28 oz-in @ 6.0V" (Spektrum Servo Reference Chart, spektrumrc.com/Content/Media/PDF/servoChart_print.pdf; the A3040\'s page, spektrumrc.com SPMSA3040, "23 oz-in (1.66 kg-cm) @ 4.8V; 28 oz-in (2 kg-cm) @ 6.0V"), 25 oz-in, 1.80 kg-cm; both 12.6 g, Spektrum publishing no torque for any 9 g metal gear servo (its heli sub-micro metal gear H3000 30.5, H3020 22 and SH3055M 36 oz-in at 6.0 V would give 28, 2.0 kg-cm)' },
   sb2290sg: { kg: 0.081, kgcm: 45.0, source: 'Savox SB-2290SG: 81 g, 45.0 / 55.0 / 70.0 kg-cm at 6.0 / 7.4 / 8.4 V (Extreme Flight\'s own listing, extremeflightrc.com/products/savox-sv1280sgp-servo-copy)' },
 };
 export const SERVO_ORDER = ['spmsa332', 'spmsa370', 'hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw', 'sb2290sg'];
@@ -87,6 +87,7 @@ export const SERVO_ORDER = ['spmsa332', 'spmsa370', 'hs55', 'hs65mg', 'd89mw', '
 export const SURFACES = {
   extra3d1308: {
     sim: 29,
+    vTop: 33.86, /* the level speed at full throttle the hangar's gates fly, configs/surfaces-stats.js */
     cf: { a: 0.29, e: 0.45, r: 0.76 },
     throwDeg: { a: 36.53, e: 39.67, r: 55.05 },
     /* The ailerons from 0.077 m to the 0.654 m tip on the 0.366 to 0.204 m
@@ -103,6 +104,7 @@ export const SURFACES = {
   },
   cub1400: {
     sim: 4,
+    vTop: 22.92, /* the level speed at full throttle the hangar's gates fly, configs/surfaces-stats.js */
     cf: { a: 0.25, e: 0.40, r: 0.50 },
     throwDeg: { a: 18, e: 15, r: 15 },
     /* The ailerons 0.28 to 0.66 m out on the 0.20 m chord, both sides, over
@@ -119,6 +121,7 @@ export const SURFACES = {
   },
   slick2680: {
     sim: 33,
+    vTop: 41.65, /* the level speed at full throttle the hangar's gates fly, configs/surfaces-stats.js */
     cf: { a: 0.32, e: 0.566, r: 0.68 },
     throwDeg: { a: 37.5, e: 47.5, r: 45 },
     /* The ailerons 0.181 m out to the 1.270 m tip rib, 0.463 m^2 of wing a
@@ -135,6 +138,7 @@ export const SURFACES = {
   },
   nighttimber1200: {
     sim: 30,
+    vTop: 26.20, /* the level speed at full throttle the hangar's gates fly, configs/surfaces-stats.js */
     cf: { a: 0.383, e: 0.525, r: 0.60 },
     throwDeg: { a: 28.92, e: 35.81, r: 33.75 },
     /* The ailerons 0.319 to 0.563 m out on the constant 0.239 m chord, both
@@ -156,11 +160,13 @@ export const SURFACES = {
       share: (0.3191 ** 2 - 0.0935 ** 2) / (0.5629 ** 2 - 0.0935 ** 2),
       n: 2,
       at: [0.0, 0.206, 0.0],
+      span: 0.3191 - 0.0935,
     },
     source: 'cf, throws, flapped area and the panels\' spans: scripts/nighttimber-derive.js off E-flite\'s top and side views (docs/NIGHTTIMBER-STAGE1.md) and its manual\'s high rates (p. 3); the servos: E-flite\'s manual, "5 x SPMSA332, 1 x SPMSA332R", two ailerons, two flaps, elevator and rudder (pp. 3, 18); the wing servos mid panel and the tail servos where the derivation puts them, ESTIMATED; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf',
   },
   timber1500: {
     sim: 7,
+    vTop: 28.02, /* the level speed at full throttle the hangar's gates fly, configs/surfaces-stats.js */
     cf: { a: 0.27, e: 0.44, r: 0.46 },
     throwDeg: { a: 30, e: 20, r: 27 },
     /* The ailerons 0.340 to 0.700 m out on the 0.240 m chord, both sides,
@@ -226,6 +232,7 @@ export function tierBlock(id, tiers) {
     const row = rowOf(id, k, t[k]);
     out[SIM_TIER.K_A + i] = row.k;
     out[SIM_TIER.CD_A + i] = row.cd;
+    out[SIM_TIER.HOLD_A + i] = row.hold;
   });
   return out;
 }

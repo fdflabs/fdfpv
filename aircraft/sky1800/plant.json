@@ -89,6 +89,8 @@
         {"field":"strip_c","expr":"{ 1.132, 1.044, 0.956, 0.868 }"},
         {"field":"washout","expr":"5.0 * WING_PI / 180.0","comment":"FITTED to review behaviour, docs/STALL-STAGE1.md"},
         {"field":"side_cda","expr":"0.0722","comment":"0.84 of 0.086 m^2, the pod in side view, the render model's, ESTIMATED"},
+        {"field":"hinge_hold","expr":"{ 926.2, 461.5, 971.7 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.3952, 0.5061, 0.3471 }","comment":"npm run servo:derive"},
         {"note":["The slipstream, scripts/wash-derive.js."]},
         {"field":"slip_r","expr":"0.1397"},
         {"field":"slip_yh","expr":"0.228","packed":true},

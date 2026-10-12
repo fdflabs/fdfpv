@@ -98,7 +98,9 @@
         {"field":"tail_deda","expr":"0.292","comment":"d eps / d alpha, scripts/dlg-derive.js, Nelson; read only by GROUND EFFECT on a linear table"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive"},
         {"field":"ge_wing","expr":"{ -0.008, 0.0, 0.0363 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"},
-        {"field":"ge_tail","expr":"{ -0.5677, 0.0, -0.028 }","comment":"the stabiliser's, npm run ge:derive"}
+        {"field":"ge_tail","expr":"{ -0.5677, 0.0, -0.028 }","comment":"the stabiliser's, npm run ge:derive"},
+        {"field":"hinge_hold","expr":"{ 647.2, 1667.4, 1300 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.4763, 0.6189, 0.6965 }","comment":"npm run servo:derive"}
       ]
     }
   ]

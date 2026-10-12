@@ -39,24 +39,33 @@
  *       area, per unit of plant_wing.c's plain flap shape (fitted to
  *       Roskam VI fig. 4.44, linear in cf): (cf - cf_stock) times the
  *       share of the wing's area the surface runs along.
- *   servo  the hinge moment, C_h q S_f c_f delta, at the same airspeed
- *       and hinge moment coefficient: S_f and c_f both go with cf on the
- *       same span, so it grows as cf^2 times the throw. The stock servo
- *       is taken as just covering the stock surface (ESTIMATED: a kit's
- *       servo has some margin, so this sizes up a little early), and the
- *       lightest catalogue servo covering the tier's is fitted. Where none
+ *   servo  a tier's servos hold its full throw at the aircraft's top
+ *       speed (configs/surfaces.js vTop): the hinge moment there,
+ *       |dCh/d delta|(cf) q b_f c_f^2 times the throw's shape (NACA
+ *       Report 721 and TN 759, scripts/lib/hinge.js), through the
+ *       linkage, the throw over the servo's 45 deg, on the same span with
+ *       c_f going with cf. Stock keeps the kit's servos, which may not
+ *       (they blow back, plant_wing.c hinge_hold). The lightest catalogue
+ *       servo from the stock class up covering it is fitted. Where none
  *       does, the surface takes more servos, as a builder ganging them
  *       does (the Slick's ailerons already run two each): one more a side
  *       for a pair, one more for a single, the moment shared among them.
  *   n   the servos on the surface, both sides together.
+ *   hold  the tier's servo hold over the stock one's, which the plant
+ *       multiplies the table's hinge_hold by (servo blow back,
+ *       scripts/servo-derive.js): the same panel's hold, scripts/lib/
+ *       hinge.js, with the tier's chord fraction, throw and servos. On the
+ *       Night Timber the aileron's stands for the flaperons, as the
+ *       table's does.
  *   dKg the servos' mass over the stock ones', never below zero: a
  *       lighter catalogue servo that covers the moment is not fitted for
  *       its few grams, as an add-on only adds.
  *   flaperon  where the flaps fly as ailerons too (configs/surfaces.js
  *       flaperons, the Night Timber): the flap panels keep their hinge,
- *       so their share of k is K' alone, and their servos are sized for
- *       the tier's throw on the same panel; its servo, n and dKg, which
- *       the row's dKg includes.
+ *       so their share of k is K' alone, and their servos are sized to
+ *       hold the tier's throw at the stock chord on their own panels
+ *       (flaperons.span); its servo, n and dKg, which the row's dKg
+ *       includes.
  *
  * A surface whose Extreme tier would add less than OFFER_MIN of control
  * power over stock (the aircraft already flies surfaces near the
@@ -69,6 +78,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { TIERS, TIER_STEP, SURFACE_KEYS, REFERENCE, SERVOS, SERVO_ORDER, SURFACES } from '../configs/surfaces.js';
+import { hold, hingeSlope, shapeDeg, KGCM, SERVO_TRAVEL_DEG } from './lib/hinge.js';
+
+const DEG_RAD = 180 / Math.PI;
+import { FLEET } from './servo-derive.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(root, 'configs/surfaces-tiers.js');
@@ -170,8 +183,16 @@ export function deriveSurface(id, key) {
     const tau = (1 - share) * tauOf(cf) + share * tauOf(cf0);
     const k = (tau * kPrime(throwDeg)) / (tauOf(cf0) * kPrime(th0));
     const cd = (cf - cf0) * s.flapped[key];
-    const hinge = (cf / cf0) ** 2 * (throwDeg / th0);
-    const main = servoGroup(id, key, tier, s.servo.model, hinge, n0, places);
+    const panel = FLEET[`FW_${id.toUpperCase()}`][key];
+    /* The torque the servo meets at full throw at one dynamic pressure,
+     * over the stock's: the hinge moment, |dCh/d delta| c_f^2 on the same
+     * span and the shape of the throw (scripts/lib/hinge.js), through the
+     * linkage, throw over the servo's 45 deg. */
+    const q = 0.5 * 1.225 * s.vTop * s.vTop;
+    const torque = (c, th) => q * shapeDeg(th) / DEG_RAD * Math.abs(hingeSlope(c, panel.ar)) * panel.span * (panel.chordRms * c / cf0) ** 2 * th / SERVO_TRAVEL_DEG / KGCM;
+    const hinge = torque(cf, throwDeg) / panel.servosPerPanel / SERVOS[s.servo.model].kgcm;
+    const main = i === 0 ? { servo: s.servo.model, n: n0, dKg: 0 } : servoGroup(id, key, tier, s.servo.model, hinge, n0, places);
+    const holdOf = (c, th, n, model) => hold({ ...panel, cf: c, chordRms: panel.chordRms * c / cf0, throwDeg: th, servosPerPanel: panel.servosPerPanel * n / n0, kgcm: SERVOS[model].kgcm });
     const row = {
       tier,
       cf: r4(cf),
@@ -182,11 +203,13 @@ export function deriveSurface(id, key) {
       servo: main.servo,
       n: main.n,
       dKg: main.dKg,
+      hold: r6(holdOf(cf, throwDeg, main.n, main.servo) / holdOf(cf0, th0, n0, s.servo.model)),
       /* The control power at full stick over the stock's: k times the throw. */
       power: r4(k * throwDeg / th0),
     };
     if (fl) {
-      row.flaperon = servoGroup(id, 'flaperon', tier, s.servo.model, throwDeg / th0, fl.n, 2);
+      const flap = torque(cf0, throwDeg) * fl.span / panel.span / SERVOS[s.servo.model].kgcm;
+      row.flaperon = i === 0 ? { servo: s.servo.model, n: fl.n, dKg: 0 } : servoGroup(id, 'flaperon', tier, s.servo.model, flap, fl.n, 2);
       row.dKg = r6(main.dKg + row.flaperon.dKg);
     }
     return row;

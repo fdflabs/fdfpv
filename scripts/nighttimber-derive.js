@@ -24,6 +24,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { fuselageRatio } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { shares, wash as washOf } from './lib/wash.js';
@@ -341,8 +342,23 @@ const rotK = [
   plate(() => fusD, fusX[0], fusX[1]) + 0.5 * rho * CN * Sv * lv ** 3 + plate(() => b, -c / 2, c / 2) * 0.2,
 ];
 /* The side crossflow drag area: the fuselage's side at Allen and Perkins'
- * 1.2 times their eta of 0.7, as the Extra's and the Timber's. */
-const sideCda = fusL * 0.13 * 1.2 * 0.7;
+ * 1.2 times their eta of 0.7, the 1.2 a round body's taken over to the
+ * drawn rounded box's sections (scripts/lib/crossflow.js, NACA TN 3038),
+ * as the Extra's. The sections: station aft of the spinner's tip, half
+ * width, top, bottom, squareness, m, the drawn model's FUSE
+ * (src/render/nighttimbercraft.js, the rudder's post at 0.956). Its fuseAt
+ * blends the windscreen's segment straight, not smoothstepped as the
+ * lib does; the ratio is the same to five places either way. The tail
+ * post finer than 1:2 takes 1:2's 1.6, the lib's lower bound, on 5
+ * percent of the side view's depth. */
+const FUSE = [
+  [0.045, 0.036, 0.028, -0.032, 2.4], [0.070, 0.045, 0.034, -0.050, 2.6], [0.120, 0.052, 0.038, -0.072, 2.8],
+  [0.180, 0.056, 0.040, -0.092, 3.2], [0.250, 0.056, 0.052, -0.100, 3.6], [0.490, 0.056, 0.052, -0.100, 3.6],
+  [0.560, 0.050, 0.030, -0.104, 3.2], [0.720, 0.034, -0.020, -0.122, 2.8], [0.880, 0.020, -0.056, -0.136, 2.4],
+  [0.956, 0.010, -0.066, -0.140, 2.2],
+];
+const sectionK = fuselageRatio(FUSE);
+const sideCda = fusL * 0.13 * 1.2 * sectionK * 0.7;
 
 /* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
  * (Selig, AIAA 2010-7938; docs/FLIGHTMODEL.md). */
@@ -547,7 +563,7 @@ const rows = [
   ['prop J kg m2, shaft power W', `${f(propJ, 6)} ${f(Qs * nStatic * 2 * Math.PI / 60, 0)}`],
   ['slipstream', J(slip, 4)],
   ['rot_k roll pitch yaw N m s2', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}`],
-  ['side crossflow drag area m2', f(sideCda, 4)],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['N1 level at 75 percent', f(level(0.75), 2)],
   ['N2 stall clean, CLmax / CLα; full flaps', `${f(Vs, 2)} ${f(CLmax / CLa, 5)}; ${f(VsFull, 2)}`],
   ['N3 L/D at 11, 13 m/s', `${f(ld(11), 2)} ${f(ld(13), 2)}`],

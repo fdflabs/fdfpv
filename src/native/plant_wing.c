@@ -301,6 +301,16 @@ void plant_wing_strips(double out[8]) {
   }
 }
 
+/* What the receiver last wrote to the aileron, elevator and rudder
+ * servos, rad, before the servos slew or the air blows them back. */
+static double g_cmd[3] = { 0.0, 0.0, 0.0 };
+
+void plant_wing_command(double out[3]) {
+  for (int i = 0; i < 3; i += 1) {
+    out[i] = g_cmd[i];
+  }
+}
+
 void plant_wing_debug(double out[20]) {
   for (int i = 0; i < 20; i += 1) {
     out[i] = g_debug[i];
@@ -371,6 +381,50 @@ static double clip(double x, double lim) {
   if (x > lim) return lim;
   if (x < -lim) return -lim;
   return x;
+}
+
+/*
+ * SERVO BLOW BACK (FixedWingParams.hinge_hold, scripts/lib/hinge.js): a
+ * plain flap's hinge moment over its small angle slope, as the angle a
+ * linear flap would need for it, deg against deg: NACA TN 759 fig. 13(d),
+ * the NACA 0009's 0.30c flap at alpha 0.5 deg, its moment at 0, 5, 10,
+ * 20, 30 and 45 deg over its 0.012 per deg to 10; past 45 deg its last
+ * segment's slope (ESTIMATED: the report stops there).
+ */
+static const double HINGE_SHAPE_DEG[6] = { 0.0, 5.0, 10.0, 20.0, 30.0, 45.0 };
+static const double HINGE_SHAPE_EQ[6] = { 0.0, 5.0, 10.0, 22.083333333333332, 27.916666666666668, 37.916666666666664 };
+
+/* A deflection's equivalent linear angle, deg, signed, and back. */
+static double hinge_shape(double deg) {
+  const double d = sim_fabs(deg);
+  int i = 0;
+  while (i < 4 && d > HINGE_SHAPE_DEG[i + 1]) i += 1;
+  const double e = HINGE_SHAPE_EQ[i] + (HINGE_SHAPE_EQ[i + 1] - HINGE_SHAPE_EQ[i]) * (d - HINGE_SHAPE_DEG[i]) / (HINGE_SHAPE_DEG[i + 1] - HINGE_SHAPE_DEG[i]);
+  return deg < 0.0 ? -e : e;
+}
+static double hinge_shape_inv(double eq) {
+  const double e = sim_fabs(eq);
+  int j = 0;
+  while (j < 4 && e > HINGE_SHAPE_EQ[j + 1]) j += 1;
+  const double d = HINGE_SHAPE_DEG[j] + (HINGE_SHAPE_DEG[j + 1] - HINGE_SHAPE_DEG[j]) * (e - HINGE_SHAPE_EQ[j]) / (HINGE_SHAPE_EQ[j + 1] - HINGE_SHAPE_EQ[j]);
+  return eq < 0.0 ? -d : d;
+}
+
+/* The surface's angle, delta, as far as its servos hold it at dynamic
+ * pressure q against `hold`, Pa rad: the hinge moment goes as the shape
+ * of delta plus f, the surface's own angle of attack's share of it (deg,
+ * hinge_alpha times the angle, signed as a deflection that loads it the
+ * same way). Where the moment passes the hold the air pushes the surface
+ * back to where it equals it, at most to the travel `lim`, rad. Inside
+ * the hold it is delta itself, untouched, so a surface the servos hold
+ * flies exactly as before. */
+static double hinge_blow(double delta, double hold, double q, double f, double lim) {
+  if (!(hold > 0.0) || !(q > 0.0)) return delta;
+  const double held = hold / q * 180.0 / WING_PI;
+  const double eq = hinge_shape(delta * 180.0 / WING_PI);
+  if (sim_fabs(eq + f) <= held) return delta;
+  const double to = eq + f > 0.0 ? held - f : -held - f;
+  return clip(hinge_shape_inv(to) * WING_PI / 180.0, lim);
 }
 
 /*
@@ -1170,6 +1224,9 @@ void plant_wing_reset(void) {
   g_servo[0] = 0.0;
   g_servo[1] = 0.0;
   g_servo[2] = 0.0;
+  g_cmd[0] = 0.0;
+  g_cmd[1] = 0.0;
+  g_cmd[2] = 0.0;
   g_on_wheels = 0;
   g_brake = 0.0;
   g_chute = 0;
@@ -2347,6 +2404,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     }
     g_as3x_t = 0.0;
   }
+  g_cmd[0] = da;
+  g_cmd[1] = de;
+  g_cmd[2] = delta_r;
   /* The servos turn at their rate, not in the step they are asked. */
   if (fw->servo_rate > 0.0) {
     const double cmd[3] = { da, de, delta_r };
@@ -2376,6 +2436,48 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_surf[2] = clip(add_term(de, fw->de_df * g_flap), fw->throw_e);
     g_surf[3] = delta_r;
     delta_e = g_surf[2];
+  }
+  /* Servo blow back (hinge_hold): each surface as far as its servos hold
+   * it against the air at the free stream's dynamic pressure. The wash
+   * over the tail is not in q (ESTIMATED: the slipstream's share is the
+   * next item, docs/SURFACES-STAGE1.md). Each surface's own angle of
+   * attack loads its hinge too (hinge_alpha): the wing's for the
+   * ailerons and elevons, the stabiliser's (its zero lift angle off, the
+   * downwash's share off) for the elevator, the sideslip for the rudder,
+   * each the sine of the angle as the high angle terms take it, so it
+   * stays bounded; a positive deflection (trailing edge up, or left) sheds
+   * the load a positive angle brings, so they enter against it. The body's
+   * rates' share of each surface's angle is not in it. A servo that
+   * slews is pushed back with its surface, so it drives out again at its
+   * own rate. */
+  if (fw->hinge_hold[0] > 0.0 || fw->hinge_hold[1] > 0.0 || fw->hinge_hold[2] > 0.0) {
+    const double q_h = 0.5 * PLANT.rho * V2;
+    const double v_h = sim_sqrt(V2);
+    const double s_w = v_h > 1e-6 ? -w / v_h : 0.0, c_w = v_h > 1e-6 ? u / v_h : 1.0;
+    const double s_wing = s_w * fw->cos_zl - c_w * fw->sin_zl;
+    const double s_tail = (s_w * sim_cos(fw->slip_a0) - c_w * sim_sin(fw->slip_a0)) * (1.0 - fw->tail_deda);
+    const double s_fin = v_h > 1e-6 ? -v / v_h : 0.0;
+    const double DEG_H = 180.0 / WING_PI;
+    const double f_a = -fw->hinge_alpha[0] * s_wing * DEG_H;
+    const double f_e = -fw->hinge_alpha[1] * s_tail * DEG_H;
+    const double f_r = -fw->hinge_alpha[2] * s_fin * DEG_H;
+    const double lim_a = fw->mix == FW_MIX_ELEVON ? fw->surface_max : fw->throw_a;
+    const double was[4] = { g_surf[0], g_surf[1], g_surf[2], g_surf[3] };
+    g_surf[0] = hinge_blow(g_surf[0], fw->hinge_hold[0], q_h, f_a, lim_a);
+    g_surf[1] = hinge_blow(g_surf[1], fw->hinge_hold[0], q_h, f_a, lim_a);
+    g_surf[2] = hinge_blow(g_surf[2], fw->hinge_hold[1], q_h, f_e, fw->throw_e);
+    g_surf[3] = hinge_blow(g_surf[3], fw->hinge_hold[2], q_h, f_r, fw->throw_r);
+    if (g_surf[0] != was[0] || g_surf[1] != was[1] || g_surf[2] != was[2]) {
+      delta_e = fw->mix == FW_MIX_ELEVON ? 0.5 * (g_surf[0] + g_surf[1]) : g_surf[2];
+    }
+    if (g_surf[3] != was[3]) {
+      delta_r = g_surf[3];
+    }
+    if (fw->servo_rate > 0.0 && fw->mix == FW_MIX_TAIL) {
+      g_servo[0] -= was[1] - g_surf[1];
+      g_servo[1] -= was[2] - g_surf[2];
+      g_servo[2] -= was[3] - g_surf[3];
+    }
   }
   /* A surface that has left moves nothing, and with the pack gone every
    * servo goes limp and trails. */
@@ -3620,6 +3722,8 @@ const FixedWingParams FW_SKY1800 = {
   .strip_c = { 1.132, 1.044, 0.956, 0.868 },
   .washout = 5.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
   .side_cda = 0.0722, /* 0.84 of 0.086 m^2, the pod in side view, the render model's, ESTIMATED */
+  .hinge_hold = { 926.2, 461.5, 971.7 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.3952, 0.5061, 0.3471 }, /* npm run servo:derive */
   /* The slipstream, scripts/wash-derive.js. */
   .slip_r = 0.1397, .slip_yh = 0.228, .slip_hv = { 0, 0 }, .slip_ya = { 0.45, 0.85 },
   .slip_a0 = 0.005368, .slip_cl_a = 0.3771, .slip_cm_a = -1.305, .slip_cn_b = 0.1552,
@@ -3741,6 +3845,8 @@ const FixedWingParams FW_CUB1400 = {
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
   .slip_loss = { 0.2312, 0.2836, 0.4694 }, /* scripts/wash-derive.js */
   .side_cda = 0.0924, /* 0.84 of 0.11 m^2, 0.9 m by 0.14 m of fuselage side, docs/CUB-STAGE1.md */
+  .hinge_hold = { 501.2, 635.5, 1128.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4472, 0.4686, 0.473 }, /* npm run servo:derive */
   .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { 0.0079, 0.0, 0.105 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -3863,6 +3969,8 @@ const FixedWingParams FW_RADIAN2000 = {
   .slip_cn_r = -0.06673, .slip_cy_b = -0.3254, .slip_cl_b = -0.02115,
   .slip_loss = { 0.2655, 0.2809, 0.4993 }, /* scripts/wash-derive.js */
   .side_cda = 0.0697, /* 0.84 of 0.083 m^2, the fuselage in side view, the render model's */
+  .hinge_hold = { 772.7, 1026.3, 229.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4746, 0.4306, 0.4657 }, /* npm run servo:derive */
   .tail_deda = 0.301, /* d eps / d alpha, scripts/glider-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.0092, 0.0, 0.0613 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -3972,6 +4080,8 @@ const FixedWingParams FW_NRJ1490 = {
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.008, 0.0, 0.0363 }, /* the drawn model's wing quarter chord, npm run ge:derive */
   .ge_tail = { -0.5677, 0.0, -0.028 }, /* the stabiliser's, npm run ge:derive */
+  .hinge_hold = { 647.2, 1667.4, 1300 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4763, 0.6189, 0.6965 }, /* npm run servo:derive */
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
@@ -4086,6 +4196,8 @@ const FixedWingParams FW_BRAMOR2300 = {
   .stall_top = 0.6 * WING_PI / 180.0,
   .strip_c = { 2.041, 0.875, 0.701, 0.527 },
   .side_cda = 0.047, /* 0.84 of 0.056 m^2, the pod in side view, ESTIMATED */
+  .hinge_hold = { 1033.3, 0, 0 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4626, 0, 0 }, /* npm run servo:derive */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.1738, 0.0, 0.01 }, /* the drawn model's wing quarter chord, npm run ge:derive */
 };
@@ -4211,6 +4323,8 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.0516, 0.0, 0.0939 }, /* the drawn model's wing quarter chord, npm run ge:derive */
   .ge_tail = { -0.5148, 0.0, 0.005 }, /* the stabiliser's, npm run ge:derive */
+  .hinge_hold = { 0, 324.9, 274.1 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0, 0.5578, 0.5014 }, /* npm run servo:derive */
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
@@ -4341,6 +4455,8 @@ const FixedWingParams FW_TIMBER1500 = {
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
   .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, 1.04 m by 0.13 m of fuselage side, docs/TIMBER-STAGE1.md */
+  .hinge_hold = { 257, 315.5, 548.4 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4677, 0.6053, 0.4596 }, /* npm run servo:derive */
   .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { 0.0061, 0.0, 0.07 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -4478,6 +4594,8 @@ const FixedWingParams FW_TIMBER1500F = {
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
   .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, the Timber's fuselage; the floats' own side is not in it, ESTIMATED */
+  .hinge_hold = { 257, 315.5, 548.4 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4677, 0.6053, 0.4596 }, /* npm run servo:derive */
   .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { 0.0061, 0.0, 0.0966 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -4592,6 +4710,8 @@ const FixedWingParams FW_CUB1400F = {
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
   .slip_loss = { 0.2312, 0.2836, 0.4694 }, /* scripts/wash-derive.js */
   .side_cda = 0.0924, /* 0.84 of 0.11 m^2, the Cub's fuselage; the floats' own side is not in it, ESTIMATED */
+  .hinge_hold = { 501.2, 635.5, 1128.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4472, 0.4686, 0.473 }, /* npm run servo:derive */
   .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { 0.0079, 0.0, 0.1314 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -4730,6 +4850,8 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .slip_cn_r = -0.08896, .slip_cy_b = -0.1948, .slip_cl_b = -0.009061,
   .slip_loss = { 0.2655, 0.2847, 0.5182 }, /* scripts/wash-derive.js */
   .side_cda = 0.0428, /* 0.84 of 0.051 m^2, the fuselage in side view, scripts/bombshell-derive.js */
+  .hinge_hold = { 0, 1200.6, 938.4 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0, 0.396, 0.5102 }, /* npm run servo:derive */
   .tail_deda = 0.341, /* d eps / d alpha, scripts/bombshell-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { 0.0082, 0.0, 0.0918 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -4863,6 +4985,8 @@ const FixedWingParams FW_KADET1981 = {
   .slip_cn_r = -0.1269, .slip_cy_b = -0.2654, .slip_cl_b = -0.01018,
   .slip_loss = { 0.2655, 0.3311, 0 }, /* scripts/wash-derive.js */
   .side_cda = 0.2016, /* 0.84 of 0.24 m^2, the box fuselage in side view, scripts/kadet-derive.js */
+  .hinge_hold = { 0, 321, 533.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0, 0.5115, 0.4531 }, /* npm run servo:derive */
   .tail_deda = 0.38, /* d eps / d alpha, scripts/kadet-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.0097, 0.0, 0.1158 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -5019,6 +5143,8 @@ const FixedWingParams FW_P51D1450 = {
   .slip_cn_r = -0.1126, .slip_cy_b = -0.236, .slip_cl_b = -0.02099,
   .slip_loss = { 0.2506, 0.3193, 0.5109 }, /* scripts/wash-derive.js */
   .side_cda = 0.0882, /* 0.84 of 0.105 m^2, the fuselage in side view, scripts/p51-derive.js */
+  .hinge_hold = { 1945.6, 450.6, 749.7 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.3968, 0.6795, 0.5318 }, /* npm run servo:derive */
   .tail_deda = 0.429, /* d eps / d alpha, scripts/p51-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { 0.0316, 0.0, -0.0226 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -5168,6 +5294,8 @@ const FixedWingParams FW_F16878 = {
   .gear_time = 4.0,
   .cd_gear = 0.013,
   .side_cda = 0.126, /* 0.84 of 0.15 m^2, the fuselage in side view, scripts/f16-derive.js */
+  .hinge_hold = { 1192.4, 0, 1361.5 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.2647, 0, 0.2355 }, /* npm run servo:derive */
   .tail_deda = 0.647, /* d eps / d alpha, scripts/f16-derive.js, Nelson, the one its slope takes; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.0413, 0.0, 0.0 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -5275,6 +5403,8 @@ const FixedWingParams FW_ZAGI1219 = {
   .strip_r = { 0.8308, 1.0065, 1.1188, 1.1386 }, /* the lattice's span loading: the tips most */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.014, 0.0, 0.001 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .hinge_hold = { 1855.7, 0, 0 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.3509, 0, 0 }, /* npm run servo:derive */
 };
 
 /* Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
@@ -5414,6 +5544,8 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .slip_cn_r = -0.1107, .slip_cy_b = -0.2505, .slip_cl_b = -0.01054,
   .slip_loss = { 0.2655, 0.3281, 0.5629 }, /* scripts/wash-derive.js */
   .side_cda = 0.084, /* 0.84 of 0.1 m^2, the slab fuselage in side view, scripts/uglystik-derive.js */
+  .hinge_hold = { 1620.4, 1638.3, 1144.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.2169, 0.3004, 0.3297 }, /* npm run servo:derive */
   .tail_deda = 0.416, /* d eps / d alpha, scripts/uglystik-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.056, 0.0, 0.0646 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -5581,6 +5713,8 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .slip_cn_r = -0.1117, .slip_cy_b = -0.2081, .slip_cl_b = -0.01166,
   .slip_loss = { 0.2655, 0.3114, 0.5856 }, /* scripts/wash-derive.js */
   .side_cda = 0.1436, /* 0.84 of 0.171 m^2, the fuselage in side view, scripts/tigermoth-derive.js */
+  .hinge_hold = { 491.8, 393, 334.4 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.451, 0.6322, 0.9173 }, /* npm run servo:derive */
   .tail_deda = 0.4416, /* d eps / d alpha, scripts/tigermoth-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77's biplane, Report 738; npm run ge:derive */
   .ge_wing = { 0.0748, 0.0, 0.2276 }, /* the drawn model's top wing quarter chord, npm run ge:derive */
@@ -5980,6 +6114,8 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .ge_tail = { -0.701, 0.0, 0.0 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
   .side_cda = 0.1723,     /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run extra:derive */
+  .hinge_hold = { 304.8, 358.7, 209 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4471, 0.5119, 0.8591 }, /* npm run servo:derive */
   .rot_k = { 0.01580, 0.04108, 0.03462 },
   .j_prop = 0.000249,     /* a 35 g wood blade and the outrunner's can, ESTIMATED */
 };
@@ -6083,7 +6219,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_i_max = 0.30,
   .as3x_k = { 0.0189, 0.0433, 0.1417 }, /* npm run as3x:derive */
   .as3x_kh = { 0.1686, 0.3864, 1.2646 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.157, -5.465, -3.112 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.157, -5.456, -3.132 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6132,7 +6268,9 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .ge_wing = { 0.0293, 0.0, 0.065 }, /* the drawn model's wing quarter chord, npm run ge:derive */
   .ge_tail = { -0.5362, 0.0, -0.113 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
-  .side_cda = 0.1152,
+  .side_cda = 0.1522,     /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run nighttimber:derive */
+  .hinge_hold = { 186.7, 97.6, 216.4 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.5645, 0.6062, 0.6549 }, /* npm run servo:derive */
   .rot_k = { 0.01132, 0.01439, 0.01218 },
 };
 
@@ -6252,6 +6390,8 @@ const FixedWingParams FW_HERCULES3077 = {
   .washout = 3.0 * WING_PI / 180.0, /* the full size's 3 deg root, 0 tip; npm run hercules:derive */
   .j_prop = 0.000687,     /* four 26 g 12 x 8Es, spinners and cans, ESTIMATED; npm run hercules:derive */
   .side_cda = 0.5225,     /* 0.78 of the 0.67 m^2 side view, scripts/hercules-derive.js */
+  .hinge_hold = { 743.9, 333.6, 253.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.4631, 0.5662, 0.4024 }, /* npm run servo:derive */
   /* The rear ramp and door, ESTIMATED (scripts/hercules-derive.js): open
    * in 4 s, a model's slow servo; the open hold's base drag and the hanging
    * ramp's, 0.0259 on the wing's area, under the CG, so nose down. */
@@ -6421,6 +6561,8 @@ const FixedWingParams FW_CAP1702 = {
   .ge_tail = { -0.8425, 0.0, 0.027 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
   .side_cda = 0.2583,     /* npm run cap580:derive */
+  .hinge_hold = { 218.6, 119.3, 408.5 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.6199, 0.7625, 0.7958 }, /* npm run servo:derive */
   .rot_k = { 0.05099, 0.12406, 0.08237 }, /* npm run cap580:derive */
   .j_prop = 0.000866,     /* npm run cap580:derive: a 60 g carbon 18 in blade and the AM670's can, ESTIMATED */
 };
@@ -6622,6 +6764,8 @@ const FixedWingParams FW_SLICK2680 = {
   .ge_tail = { -1.325, 0.0, 0.053 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
   .side_cda = 0.6616, /* scripts/slick-derive.js */
+  .hinge_hold = { 741.9, 590.3, 397.8 }, /* servo blow back, npm run servo:derive */
+  .hinge_alpha = { 0.5197, 0.7309, 0.8009 }, /* npm run servo:derive */
   .rot_k = { 0.3889, 0.9415, 0.782 }, /* scripts/slick-derive.js */
   .j_prop = 0.00931,      /* the listed 28 x 10 blades' masses and the crank, ESTIMATED, scripts/slick-derive.js */
 };

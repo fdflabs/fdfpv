@@ -627,6 +627,11 @@ double sim_boost(void);
  * swirl's sideways speed over the fin (m/s), for the gates that take one
  * term of the moment alone. Zeros on an aircraft without a wash.
  * Additive, version unchanged.
+ * sim_wing_command(out[3]): what the receiver last wrote to the aileron,
+ * elevator and rudder servos, rad, after the gyro and before the servos
+ * slew or the air blows them back (plant_wing.c hinge_hold), so a gate
+ * can tell the receiver's command from the surface the servo holds.
+ * Additive, version unchanged.
  * sim_wing_set_gyro(on): a measurement switch for a gate that takes the
  * airframe's own aero apart from its prop's gyroscope (p51 P19, a full
  * scale stall anchor that cannot carry a model's gyroscope, docs/
@@ -656,6 +661,7 @@ int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
 int sim_wing_slip(double *out);
+int sim_wing_command(double *out);
 /* sim_wing_strips(out[8]): each stall strip's lift lost to separation as
  * the last step left it, left half root to tip then right half, in units
  * of the wing's lift coefficient over the strip's share: zero on a strip
@@ -1141,17 +1147,25 @@ int sim_wing_tune(double *out);
  *   CD_A, CD_E, CD_R  the drag each surface adds deflected over the
  *        table's, on the wing's area, per unit of the plain flap shape
  *        (plant_wing.c SURF_DRAG_A, SURF_DRAG_B), 0 to 0.5
+ *   HOLD_A, HOLD_E, HOLD_R  each surface's servo hold (the table's
+ *        hinge_hold, servo blow back) times this: the tier's servos and
+ *        its bigger surface's hinge moment, 0.1 to 100
  * A MODE like the tuning: kept across sim_reset and sim_init, kept by
  * sim_set_power and sim_power_clear, cleared by sim_set_airframe to a
  * different airframe and by sim_wing_tiers_clear. SIM_ERR_BAD_ARG for a
  * null pointer, a value out of range, a flying wing, and K_A or CD_A other
  * than 1 and 0 on an aircraft without ailerons; SIM_ERR_BAD_STATE before
  * sim_init.
- * sim_wing_tiers(out): the block in force, ones and zeros with none.
+ * sim_wing_tiers(out): the block in force, ones and zeros with none (the
+ * holds one).
  *
  * Additive, version unchanged: nothing seated, no step reads any of it,
- * and seated at ones and zeros every trace is bit identical
- * (scripts/surfaces-gates.js).
+ * and seated at ones and zeros (the holds one) every trace is bit
+ * identical (scripts/surfaces-gates.js). The block grew from 6 doubles to
+ * 9 on 2026-10-12 (the holds, servo blow back): the module and its
+ * callers ship together, and the crash cam's journal, which copies the
+ * block, lives in memory only, so no saved recording carries the old
+ * size.
  */
 #define SIM_TIER_K_A 0
 #define SIM_TIER_K_E 1
@@ -1159,7 +1173,10 @@ int sim_wing_tune(double *out);
 #define SIM_TIER_CD_A 3
 #define SIM_TIER_CD_E 4
 #define SIM_TIER_CD_R 5
-#define SIM_TIER_DOUBLES 6
+#define SIM_TIER_HOLD_A 6
+#define SIM_TIER_HOLD_E 7
+#define SIM_TIER_HOLD_R 8
+#define SIM_TIER_DOUBLES 9
 int sim_wing_set_tiers(const double *in);
 int sim_wing_tiers_clear(void);
 int sim_wing_tiers(double *out);

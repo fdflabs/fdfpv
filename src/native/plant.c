@@ -2302,6 +2302,9 @@ static const PlantParams *plant_tiers_over(const PlantParams *base) {
   g_fw_tier.surf_cd[0] = g_tier[SIM_TIER_CD_A];
   g_fw_tier.surf_cd[1] = g_tier[SIM_TIER_CD_E];
   g_fw_tier.surf_cd[2] = g_tier[SIM_TIER_CD_R];
+  for (int i = 0; i < 3; i += 1) {
+    g_fw_tier.hinge_hold[i] = base->fw->hinge_hold[i] * g_tier[SIM_TIER_HOLD_A + i];
+  }
   g_plant_tier = *base;
   g_plant_tier.fw = &g_fw_tier;
   return &g_plant_tier;
@@ -2322,8 +2325,15 @@ int plant_set_tiers(const double *in) {
       return SIM_ERR_BAD_ARG;
     }
   }
+  /* A tier's servos over the stock ones', against its bigger surface's
+   * hinge moment: the Slick's ganged servos reach 13 times. */
+  for (int i = SIM_TIER_HOLD_A; i <= SIM_TIER_HOLD_R; i += 1) {
+    if (!in_range(in[i], 0.1, 100.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
   /* A rudder mix has no ailerons to make bigger. */
-  if (base->fw->mix == FW_MIX_RUDDER && (in[SIM_TIER_K_A] != 1.0 || in[SIM_TIER_CD_A] != 0.0)) {
+  if (base->fw->mix == FW_MIX_RUDDER && (in[SIM_TIER_K_A] != 1.0 || in[SIM_TIER_CD_A] != 0.0 || in[SIM_TIER_HOLD_A] != 1.0)) {
     return SIM_ERR_BAD_ARG;
   }
   for (int i = 0; i < SIM_TIER_DOUBLES; i += 1) {
@@ -2341,7 +2351,7 @@ void plant_tiers_clear(void) {
 
 void plant_tiers_read(double *out) {
   for (int i = 0; i < SIM_TIER_DOUBLES; i += 1) {
-    out[i] = g_tier_on ? g_tier[i] : (i <= SIM_TIER_K_R ? 1.0 : 0.0);
+    out[i] = g_tier_on ? g_tier[i] : (i <= SIM_TIER_K_R || i >= SIM_TIER_HOLD_A ? 1.0 : 0.0);
   }
 }
 

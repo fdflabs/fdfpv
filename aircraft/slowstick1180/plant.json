@@ -120,7 +120,9 @@
         {"field":"tail_deda","expr":"0.494","comment":"d eps / d alpha, scripts/slowstick-derive.js, DATCOM; read only by GROUND EFFECT on a linear table"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive"},
         {"field":"ge_wing","expr":"{ -0.0516, 0.0, 0.0939 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"},
-        {"field":"ge_tail","expr":"{ -0.5148, 0.0, 0.005 }","comment":"the stabiliser's, npm run ge:derive"}
+        {"field":"ge_tail","expr":"{ -0.5148, 0.0, 0.005 }","comment":"the stabiliser's, npm run ge:derive"},
+        {"field":"hinge_hold","expr":"{ 0, 324.9, 274.1 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0, 0.5578, 0.5014 }","comment":"npm run servo:derive"}
       ]
     }
   ]

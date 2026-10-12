@@ -106,6 +106,8 @@
         {"field":"washout","expr":"3.0 * WING_PI / 180.0","comment":"the full size's 3 deg root, 0 tip; npm run hercules:derive"},
         {"field":"j_prop","expr":"0.000687","comment":"four 26 g 12 x 8Es, spinners and cans, ESTIMATED; npm run hercules:derive","gap":5},
         {"field":"side_cda","expr":"0.5225","comment":"0.78 of the 0.67 m^2 side view, scripts/hercules-derive.js","gap":5},
+        {"field":"hinge_hold","expr":"{ 743.9, 333.6, 253.2 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.4631, 0.5662, 0.4024 }","comment":"npm run servo:derive"},
         {"note":["The rear ramp and door, ESTIMATED (scripts/hercules-derive.js): open","in 4 s, a model's slow servo; the open hold's base drag and the hanging","ramp's, 0.0259 on the wing's area, under the CG, so nose down."]},
         {"field":"door_time","expr":"4.0"},
         {"field":"cd_door","expr":"0.0259","comment":"npm run hercules:derive","gap":6},

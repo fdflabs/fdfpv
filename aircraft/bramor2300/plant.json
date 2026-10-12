@@ -95,6 +95,8 @@
         {"field":"stall_top","expr":"0.6 * WING_PI / 180.0"},
         {"field":"strip_c","expr":"{ 2.041, 0.875, 0.701, 0.527 }"},
         {"field":"side_cda","expr":"0.047","comment":"0.84 of 0.056 m^2, the pod in side view, ESTIMATED"},
+        {"field":"hinge_hold","expr":"{ 1033.3, 0, 0 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_alpha","expr":"{ 0.4626, 0, 0 }","comment":"npm run servo:derive"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive"},
         {"field":"ge_wing","expr":"{ -0.1738, 0.0, 0.01 }","comment":"the drawn model's wing quarter chord, npm run ge:derive"}
       ]
