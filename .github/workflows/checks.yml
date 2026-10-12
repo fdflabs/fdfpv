@@ -144,6 +144,10 @@ jobs:
       # never in CI, so their regressions went unseen (2026-10-11). About
       # 17 s together, measured locally, on the lightest shard.
       - run: npm run lint:ci-coverage
+      # Every file a VM server imports is in deploy.sh's rsync list: aircraft/
+      # was missing once and would have crashed the rooms server on the VM
+      # (scripts/deploy-files-check.js). Pure Node, under a second.
+      - run: npm run deploy:files
       - run: npm run bombshell:gates
       - run: npm run bombshell:stab
       - run: npm run bramor:gates
