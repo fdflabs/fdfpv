@@ -27,7 +27,8 @@
  *   H3  pressing tiers moves the bars (agility up, stability and speed
  *       kept down), and Save keeps them in settings.surfaces.
  *   H4  the shell seats them: sim_wing_tiers is the tier block, the
- *       tune's throws the tier's, the servos' grams in the add-ons.
+ *       tune's throws the tier's at the stock rate, the servos' grams in
+ *       the add-ons.
  *   H5  the Tuning tab's rates show the tier's throws, as the plant
  *       flies them.
  *   H6  a pilot who has not earned them flies stock and sees the cards
@@ -43,6 +44,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { SURFACE_TIERS } from '../configs/surfaces-tiers.js';
 import { tierBlock, tierPoints, tierThrowsDeg } from '../configs/surfaces.js';
+import { stockEntry, throwsFor } from '../configs/tuning.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = resolve(process.argv[2] || join(root, 'tmp', 'surfaces-hangar-check'));
@@ -169,7 +171,9 @@ try {
   const tiers = { a: 'extreme', e: '3d', r: 'stock' };
   const seated = await craft(page);
   const block = Array.from(tierBlock(ID, tiers));
-  const th = tierThrowsDeg(ID, tiers).map((d) => d * Math.PI / 180);
+  /* At the stock rate, the manual's first flight rate where it has one
+   * (configs/tuning.js THE STOCK RATE), in the tier's proportion. */
+  const th = throwsFor(ID, stockEntry(ID).rate, tierThrowsDeg(ID, tiers)).map((d) => d * Math.PI / 180);
   const grams = tierPoints(ID, tiers).reduce((a, p) => a + p.kg, 0);
   say(JSON.stringify(seated.tiers) === JSON.stringify(block), `H4 sim_wing_tiers is the tier block: ${JSON.stringify(seated.tiers)}`);
   say(seated.tune && [3, 4, 5].every((i, j) => Math.abs(seated.tune[i] - th[j]) < 1e-12), `H4 the tune's throws are the tier's: ${seated.tune && seated.tune.slice(3, 6).map((x) => (x * 180 / Math.PI).toFixed(2)).join(', ')} deg`);
@@ -183,9 +187,9 @@ try {
   await press(page, '.hangar [data-key="tuning-rates"]');
   await page.sleep(800);
   const shown = await page.evaluate("[...document.querySelectorAll('.hangar .tn-surface-throw')].map((e) => e.textContent)");
-  const rate = await page.evaluate(`(window.__ui.settings.tuning[${JSON.stringify(ID)}] || {}).rate || 'high'`);
-  const wantDeg = tierThrowsDeg(ID, tiers);
-  say(rate === 'high' && shown.length === 3 && shown.every((t, i) => parseFloat(t) === Math.round(wantDeg[i] * 10) / 10),
+  const rate = await page.evaluate(`(window.__ui.settings.tuning[${JSON.stringify(ID)}] || {}).rate || ${JSON.stringify(stockEntry(ID).rate)}`);
+  const wantDeg = throwsFor(ID, rate, tierThrowsDeg(ID, tiers));
+  say(rate === stockEntry(ID).rate && shown.length === 3 && shown.every((t, i) => parseFloat(t) === Math.round(wantDeg[i] * 10) / 10),
     `H5 the Tuning tab's rates show the tier's throws: ${shown.join(', ')} (${rate} rate, the tier's ${wantDeg.map((d) => d.toFixed(1)).join(', ')})`);
   await shot(page, 'cub-4-rates');
   await page.tap('Escape');

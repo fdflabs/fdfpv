@@ -645,6 +645,12 @@ int sim_wing_discus(void);
 int sim_wing_discus_phase(void);
 int sim_wing_set_stab(int mode);
 int sim_wing_stab(void);
+/* sim_wing_set_heading(in[3]): mode 3's Heading gain on roll, pitch and
+ * yaw, each 0 to 1 of the table's as3x_kh, the AR631's Heading setting,
+ * which is zero by default: a centred stick then holds the attitude at
+ * that share. Out of range or NaN is SIM_ERR_BAD_ARG. Kept across resets.
+ * Additive, version unchanged. */
+int sim_wing_set_heading(const double *in);
 int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);

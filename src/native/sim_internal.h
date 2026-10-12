@@ -1236,6 +1236,7 @@ void plant_wing_strips(double out[8]);
 void plant_wing_set_gyro(int on);
 void plant_wing_set_mount(int on);
 void plant_wing_set_stab(int mode);
+void plant_wing_set_heading(const double share[3]);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any
  * wheel carried load. The stabiliser reads it; nothing else does. */

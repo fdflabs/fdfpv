@@ -27,7 +27,8 @@
  *      The Kadet's Power tab fits with no scroll at 1600x900 and above.
  *   6. The Timber's Tuning tab (src/ui/hangar-tuning.js): the battery slid
  *      forward and lead in the nose move the CG on the tab and on the
- *      model's mark; low rates, more elevator expo, a click of up trim,
+ *      model's mark; high rates (its stock is the manual's first flight
+ *      low rate), more elevator expo, a click of up trim,
  *      takeoff flaps and the flap mix off; the test stand runs the motor
  *      (the plant's thrust, rpm and current live, the prop turning on the
  *      model, the motor's voice on the audio) and runs the pack down;
@@ -422,7 +423,7 @@ async function partsCheck(page) {
 
 const TUNE_STATE = '(async () => (await import("/src/ui/hangar-tuning.js")).tuningState())()';
 const TUNING_TAB = '(window.__ui.hangar.frame() || { hangar: { tabs: {} } }).hangar.tabs.tuning';
-const WANT_TUNE = { packMm: 10, ballastG: 20, rate: 'low', expo: { e: 35 }, trimDeg: 1, flapStart: 1, flapMix: false };
+const WANT_TUNE = { packMm: 10, ballastG: 20, rate: 'high', expo: { e: 10 }, trimDeg: 1, flapStart: 1, flapMix: false };
 
 /* The block the plant should hold for the Timber's stored setup, on its
  * stored power. */
@@ -459,13 +460,13 @@ async function tuningCheck(page) {
   say(cg0 === 0 && cg1 > 0 && text1 !== text0,
     `the battery 10 mm forward and 20 g of nose lead move the CG ${(cg1 * 1000).toFixed(2)} mm forward: "${text0}" to "${text1}", and the model's mark with it`);
   await page.evaluate(click('tuning-rates'));
-  for (const k of ['rate-low', 'expo-e-inc', 'trim-inc', 'trim-inc', 'trim-inc', 'trim-inc', 'flap-1', 'mix-off']) {
+  for (const k of ['rate-high', 'expo-e-inc', 'trim-inc', 'trim-inc', 'trim-inc', 'trim-inc', 'flap-1', 'mix-off']) {
     await page.evaluate(click(k));
   }
   const surf = await page.evaluate(`${TUNING_TAB}.surfaces`);
   say(Array.isArray(surf) && surf.length === 4, `the Rates page sweeps the model's surfaces: ${JSON.stringify(surf && surf.map((x) => +x.toFixed(3)))}`);
   const st = await page.evaluate(TUNE_STATE);
-  say(same(st.entry, { packMm: 10, ballastG: 20, rate: 'low', expo: { a: 30, e: 35, r: 30 }, trimDeg: 1, flapStart: 1, flapMix: false, elevFlap: 0 }),
+  say(same(st.entry, { packMm: 10, ballastG: 20, rate: 'high', expo: { a: 5, e: 10, r: 5 }, heading: { a: 0, e: 0, r: 0 }, trimDeg: 1, flapStart: 1, flapMix: false, elevFlap: 0 }),
     `the tab holds the setup: ${JSON.stringify(st.entry)}`);
 
   await page.evaluate(click('tuning-stand'));
