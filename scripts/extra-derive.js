@@ -316,7 +316,7 @@ const Qprop = torqueArm * W;
  * right rolling moment is near 40% of the propeller torque". The fin's
  * roll is linear in K, so K solves it directly; the fuselage's coil, which
  * Selig counts, is in the root's share here. */
-const swirlFinPerK = (Qp) => S * b * rho * hov.vi * hov.fv * slipClb * -(Qp * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
+const swirlFinPerK = (Qp) => S * b * rho * hov.vi * hov.fv * slipClb * -hov.keepS * (Qp * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
 const SELIG_SHARE = 0.40;
 const SWIRL_KEEP_DERIVED = (1 - SELIG_SHARE) / (1 - swirlFinPerK(1));
 const SWIRL_KEEP = Number(SWIRL_KEEP_DERIVED.toFixed(2));

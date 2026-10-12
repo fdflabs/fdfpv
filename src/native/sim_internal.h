@@ -1037,10 +1037,11 @@ typedef struct FixedWingParams {
   double slip_cl_b;
   /* The share of dp the stabiliser's (slip_loss[0]) and the fin's
    * (slip_loss[1]) controls lose in a static wash, its jet spread by
-   * mixing with still air by the time it reaches them (Deters, Ananda and
-   * Selig 2015, scripts/lib/wash.js tailKeep), and nothing of in a
-   * slipstream with way on. Zero keeps the far wake's dp whole. */
-  double slip_loss[2];
+   * mixing with still air by the time it reaches them, and of the swirl
+   * the fin meets (slip_loss[2]) (Deters, Ananda and Selig 2015,
+   * scripts/lib/wash.js tailKeep and swirlKeep); nothing of either in a
+   * slipstream with way on. Zero keeps the far wake whole. */
+  double slip_loss[3];
   /* 1 is a pusher: its prop is behind the wing, so no wing root turns its
    * swirl back (SWIRL_KEEP is for a tractor's root), and its fin may stand
    * outside the wash altogether, slip_hv both zero (the Skyhunter's boom

@@ -82,7 +82,7 @@ export function derive(name) {
 }
 
 export function cLine(d) {
-  const a = (v) => `{ ${v[0]}, ${v[1]} }`;
+  const a = (v) => `{ ${v.join(', ')} }`;
   return `  .slip_r = ${d.slip_r}, .slip_yh = ${d.slip_yh}, .slip_hv = ${a(d.slip_hv)}, .slip_ya = ${a(d.slip_ya)},\n` +
     `  .slip_a0 = ${d.slip_a0}, .slip_cl_a = ${d.slip_cl_a}, .slip_cm_a = ${d.slip_cm_a}, .slip_cn_b = ${d.slip_cn_b},\n` +
     `  .slip_cn_r = ${d.slip_cn_r}, .slip_cy_b = ${d.slip_cy_b}, .slip_cl_b = ${d.slip_cl_b},${d.slip_pusher ? ' .slip_pusher = 1,' : ''}\n` +

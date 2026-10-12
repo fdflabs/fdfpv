@@ -438,11 +438,11 @@ const FUSE = [
 const sectionK = fuselageRatio(FUSE);
 const sideCda = fusL * fusD * 0.8 * 1.2 * sectionK * 0.7;
 
-/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.74
+/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
  * (Selig, AIAA 2010-7938; docs/FLIGHTMODEL.md). */
-const SWIRL_KEEP = 0.74;
+const SWIRL_KEEP = 0.65;
 const Qprop = torqueArm * W;
-const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -(Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
+const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -hov.keepS * (Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
 /* A pilot hanging it holds the nose on the rudder (wingpilot.js
  * hangSticks, the gate's pilot): the swirl's side wind on the fin yaws the
  * nose, and the rudder that stops the yaw pushes back on the same surface,
@@ -452,7 +452,7 @@ const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -(Qprop * (Mat
  * force, and the net torque is the prop's less the root's share alone.
  * (The Extra's derivation took the fin's roll with no rudder; its plant
  * gate E8 flies with the rudder held and reads above it for this reason.) */
-const xsHover = SWIRL_KEEP * Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw);
+const xsHover = hov.keepS * SWIRL_KEEP * Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw);
 const finHeld = S * b * rho * hov.vi * hov.fv * -xsHover * (slip.slip_cl_b - Cldr * slip.slip_cn_b / Cndr);
 const Qhover = Qprop - (1 - SWIRL_KEEP) * Qprop + finHeld;
 const torqueRoll = Math.sign(Qhover) * Math.sqrt(Math.abs(Qhover) / rotK[0]);

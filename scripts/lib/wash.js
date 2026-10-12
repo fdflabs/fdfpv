@@ -100,6 +100,58 @@ export function tailKeep(xd, lo, hi) {
 }
 
 /*
+ * THE STATIC SWIRL AT THE FIN, the same surveys (figs. 15a and 15b): the
+ * GWS's axial speed times its swirl, u v, over the plant's 2 v_i times
+ * Omega R, Omega the plant's solid body 2 Q / (mdot rw^2) on the paper's
+ * C_P0 0.080, on a 0.05 R grid from the axis out to where both surveys end
+ * (~/Desktop/fdfpv-loop/research/wash-speed/swirlprofile.py). Its angular
+ * momentum closes on the torque at x/D 0.5 and 1 (1.06, 0.98); at 2 and 3
+ * it closes 0.72 and 0.61, the shortfall at the large radii past 1.45 R
+ * and the probe's 56 deg, where no fin is, so the fin's integral stands.
+ * The APC's swirl brackets it (its C_P read off fig. 16, ESTIMATED) and is
+ * left out.
+ */
+const STATIC_SWIRL = [
+  [0.5, [0.0961, 0.178, 0.2544, 0.2945, 0.331, 0.4434, 0.5496, 0.5336, 0.3668, 0.4799, 0.4936, 0.553, 0.5264, 0.4118, 0.3927, 0.1784, 0.0673]],
+  [1, [0.0496, 0.2191, 0.2832, 0.363, 0.3529, 0.3814, 0.5099, 0.5515, 0.4978, 0.5234, 0.452, 0.4312, 0.4369, 0.3526, 0.2202, 0.1355, 0.1239, 0.0421, 0.0283]],
+  [2, [0.1412, 0.2265, 0.2218, 0.3104, 0.3017, 0.3409, 0.3175, 0.3046, 0.2532, 0.263, 0.2221, 0.1805, 0.1761, 0.151, 0.1355, 0.0829, 0.0877, 0.0817, 0.0564,
+    0.0636, 0.0359, 0.0405, 0.0173, 0.0159]],
+  [3, [0.1278, 0.175, 0.1941, 0.2243, 0.2005, 0.194, 0.1887, 0.1624, 0.1558, 0.1328, 0.1243, 0.1247, 0.109, 0.0947, 0.0938, 0.0831, 0.0812, 0.0626, 0.0605,
+    0.0449, 0.0447, 0.0282, 0.0308, 0.0193, 0.0076, 0.0141, 0.0103, 0.0054, 0.0056]],
+];
+
+/* The integral of one u v profile from the axis out to y (in R). */
+function uv(g, y) {
+  let s = 0;
+  for (let i = 1; i < g.length && 0.05 * (i - 1) < y; i += 1) {
+    const ye = Math.min(y, 0.05 * i), ge = g[i - 1] + (g[i] - g[i - 1]) * (ye - 0.05 * (i - 1)) / 0.05;
+    s += 0.5 * (g[i - 1] + ge) * (ye - 0.05 * (i - 1));
+  }
+  return s;
+}
+
+/*
+ * The share of the plant's swirl force a fin through the static jet's axis
+ * meets, from lo below the axis to hi above it (in R), xd prop diameters
+ * behind the disc: the swirl blows the two sides opposite ways, so each is
+ * the integral above less the integral below, the measured over the
+ * plant's solid body inside R / sqrt 2. Straight between the stations,
+ * held before x/D 0.5 and past 3, the last FITTED. A fin whose wash the
+ * plant gives no net swirl keeps 1.
+ */
+export function swirlKeep(xd, lo, hi) {
+  const a = Math.min(hi, Math.SQRT1_2), b = Math.min(lo, Math.SQRT1_2);
+  const plant = (a * a - b * b) / 2;
+  if (!(Math.abs(plant) > 1e-9)) return 1;
+  const at = STATIC_SWIRL.map(([x, g]) => [x, (uv(g, hi) - uv(g, lo)) / plant]);
+  if (xd <= at[0][0]) return at[0][1];
+  for (let i = 1; i < at.length; i += 1) {
+    if (xd <= at[i][0]) return at[i - 1][1] + (at[i][1] - at[i - 1][1]) * (xd - at[i - 1][0]) / (at[i][0] - at[i - 1][0]);
+  }
+  return at[at.length - 1][1];
+}
+
+/*
  * The table's slip_* from the drawn geometry. g: propR, the prop's radius;
  * S, b, the wing's reference; Sh, bh, the stabiliser's area and span; Sv,
  * the fin's area; hv, the fin's height over and under the thrust line; ya,
@@ -129,23 +181,25 @@ export function shares(g) {
   };
 }
 
-/* The table's slip_loss from shares()'s propR, bh, hv, xh and xv. */
+/* The table's slip_loss from shares()'s propR, bh, hv, xh and xv: the
+ * stabiliser's dp, the fin's, and the fin's swirl. */
 export function slipLoss(g) {
-  const D = 2 * g.propR, yh = g.bh / 2 / g.propR;
-  return [1 - tailKeep(g.xh / D, yh, yh), 1 - tailKeep(g.xv / D, g.hv[1] / g.propR, g.hv[0] / g.propR)];
+  const D = 2 * g.propR, yh = g.bh / 2 / g.propR, lo = g.hv[1] / g.propR, hi = g.hv[0] / g.propR;
+  return [1 - tailKeep(g.xh / D, yh, yh), 1 - tailKeep(g.xv / D, lo, hi), 1 - swirlKeep(g.xv / D, lo, hi)];
 }
 
 /*
  * The share of dp the stabiliser's and the fin's controls meet, keepH and
- * keepV, a table's slip_loss weighted by the jet's mixing ratio v_i / (u
- * + v_i), and the wash's speed over each, vwH and vwV, whose dynamic
+ * keepV, and of the swirl the fin meets, keepS, a table's slip_loss
+ * weighted by the jet's mixing ratio v_i / (u + v_i), and the wash's
+ * speed over each surface, vwH and vwV, whose dynamic
  * pressure is the free stream's and that share of dp (plant_wing.c, the
  * wash at the tail).
  */
 export function tailWash(loss, vi, u) {
   const lam = vi / (u + vi), ex = 4 * vi * (u + vi);
-  const keepH = 1 - loss[0] * lam, keepV = 1 - loss[1] * lam;
-  return { keepH, keepV, vwH: Math.sqrt(u * u + keepH * ex), vwV: Math.sqrt(u * u + keepV * ex) };
+  const keepH = 1 - loss[0] * lam, keepV = 1 - loss[1] * lam, keepS = 1 - loss[2] * lam;
+  return { keepH, keepV, keepS, vwH: Math.sqrt(u * u + keepH * ex), vwV: Math.sqrt(u * u + keepV * ex) };
 }
 
 /*
@@ -221,7 +275,7 @@ export function propMoments(t, n, u) {
   const up = Math.max(0, u);
   const mdot = RHO * Math.PI * fw.slip_r * fw.slip_r * (up + w.vi);
   const keep = fw.slip_pusher ? 1 : t.keep;
-  const xs = keep * Q * (Math.min(w.rw, fw.slip_hv[0]) - Math.min(w.rw, fw.slip_hv[1])) / (mdot * w.rw * w.rw);
+  const xs = w.keepS * keep * Q * (Math.min(w.rw, fw.slip_hv[0]) - Math.min(w.rw, fw.slip_hv[1])) / (mdot * w.rw * w.rw);
   const kv = RHO * w.vi * w.fv;
   const xb = -xs;
   return {

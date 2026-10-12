@@ -340,11 +340,11 @@ const rotK = [
  * 1.2 times their eta of 0.7, as the Extra's and the Timber's. */
 const sideCda = fusL * 0.13 * 1.2 * 0.7;
 
-/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.74
+/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
  * (Selig, AIAA 2010-7938; docs/FLIGHTMODEL.md). */
-const SWIRL_KEEP = 0.74;
+const SWIRL_KEEP = 0.65;
 const Qprop = torqueArm * W;
-const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -(Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
+const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -hov.keepS * (Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
 const Qhover = Qprop - (1 - SWIRL_KEEP) * Qprop - SWIRL_KEEP * finSwirl;
 const torqueRoll = Math.sign(Qhover) * Math.sqrt(Math.abs(Qhover) / rotK[0]);
 const aileronHover = hov.dp * hov.fa * S * b * Clda * throwA;
