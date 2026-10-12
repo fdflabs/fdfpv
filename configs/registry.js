@@ -149,29 +149,13 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/uglystik1567/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'uglystik1567'),
-  {
-    /* The Tiger Moth, Great Planes' GPMA1330 ARF on a glow two stroke:
-     * no gyro in the box, Manual. On its wheels every mode flies as
-     * Manual. */
-    id: 'tigermoth-manual',
-    airframe: 'tigermoth1803',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes\' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles.',
-  },
-  {
-    id: 'tigermoth-as3x',
-    airframe: 'tigermoth1803',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. The adverse yaw is still yours to feed rudder against.',
-    wingStab: 3,
-  },
-  {
-    id: 'tigermoth-stab',
-    airframe: 'tigermoth1803',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you, which on a Tiger Moth is most of flying it. Throttle closed, it lowers the nose onto its glide.',
-    wingStab: 1,
-  },
+  /*
+   * The Tiger Moth, Great Planes' GPMA1330 ARF on a glow two stroke: no
+   * gyro in the box, Manual. On its wheels every mode flies as Manual.
+   *
+   * Its tunes are its folder's, aircraft/tigermoth1803/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'tigermoth1803'),
   {
     /* The Extra's three are the real aircraft's: E-flite's receiver flies
      * AS3X out of the box, a gyro with no self levelling and no caps

@@ -204,7 +204,7 @@ export const ANCHORS = {
   bombshell1118: AIRCRAFT.ANCHORS.bombshell1118,
   kadet1981: AIRCRAFT.ANCHORS.kadet1981,
   uglystik1567: AIRCRAFT.ANCHORS.uglystik1567,
-  tigermoth1803: { prop: [0.3808, 0, 0.0074], belly: [0, 0, -0.122], tail: [-1.035, 0, -0.073], tank: [-0.01, 0, -0.04], led: [[0.17, 0.15, 0.215], [0.12, 0.80, 0.245]] },
+  tigermoth1803: AIRCRAFT.ANCHORS.tigermoth1803,
   nighttimber1200: { prop: [0.308, 0, 0], belly: [0, 0, -0.10], tail: [-0.62, 0, -0.11], tank: [-0.01, 0, -0.06], led: [[0.07, 0.20, 0.05], [0.07, 0.50, 0.06]] },
   extra3d1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
   slick2680: AIRCRAFT.ANCHORS.slick2680,
