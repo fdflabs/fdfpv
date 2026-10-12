@@ -66,8 +66,9 @@ export const SERVOS = {
   d89mw: { kg: 0.025, kgcm: 6.4, source: 'Hitec D89MW: 25.0 g, 74 / 89 / 118 oz-in in Hitec\'s 4.8 / 6.0 / 7.4 V order, 89 oz-in = 6.4 kg-cm at 6.0 V (hitecrcd.com/products/servos/digital)' },
   d645mw: { kg: 0.060, kgcm: 11.3, source: 'Hitec D645MW: 60.0 g, 11.3 kg-cm at 6.0 V (hitecrcd.com/d645mw-32-bit-high-torque-metal-gear-servo)' },
   d950tw: { kg: 0.068, kgcm: 29.0, source: 'Hitec D950TW: 68 g, 21.0 / 29.0 / 35.0 kg-cm at 4.8 / 6.0 / 7.4 V (motionrc.com HRC36950; shop.multiplex-rc.de 68 g)' },
+  sb2290sg: { kg: 0.081, kgcm: 45.0, source: 'Savox SB-2290SG: 81 g, 45.0 / 55.0 / 70.0 kg-cm at 6.0 / 7.4 / 8.4 V (Extreme Flight\'s own listing, extremeflightrc.com/products/savox-sv1280sgp-servo-copy)' },
 };
-export const SERVO_ORDER = ['hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw'];
+export const SERVO_ORDER = ['hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw', 'sb2290sg'];
 
 /*
  * The aircraft. cf: the stock surfaces' chord fractions; throwDeg: the
@@ -75,7 +76,8 @@ export const SERVO_ORDER = ['hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw'];
  * surface runs along over the wing's reference area (both ailerons
  * together), which the deflected surface's drag is taken on; servo: the
  * stock servo's class, and for each surface how many and where (body
- * frame about the table's CG, m), where the bigger servo's mass goes.
+ * frame about the table's CG, m), where the bigger servo's mass goes,
+ * mirrored half each side where `at` is off the centreline.
  */
 export const SURFACES = {
   extra3d1308: {
@@ -109,6 +111,22 @@ export const SURFACES = {
       r: { n: 1, at: [-0.10, 0.0, 0.0] },
     },
     source: 'cf: docs/CUB-STAGE1.md (aileron a quarter of the chord, elevator about 40 percent of the tail chord, rudder about half the fin\'s); flapped area: scripts/cub-derive.js; the servo class: FMS\'s 9 g servos, Hitec HS-55 taken for them; the aileron servos mid aileron and the tail servos 0.10 m behind the CG, ESTIMATED',
+  },
+  slick2680: {
+    sim: 33,
+    cf: { a: 0.32, e: 0.566, r: 0.68 },
+    throwDeg: { a: 37.5, e: 47.5, r: 45 },
+    /* The ailerons 0.181 m out to the 1.270 m tip rib, 0.463 m^2 of wing a
+     * side, over 1.15 m^2; the stabiliser 0.2484 m^2; the fin and rudder
+     * 0.1436 m^2, the rudder its full height (scripts/slick-derive.js). */
+    flapped: { a: 2 * 0.4631 / 1.15, e: 0.2484 / 1.15, r: 0.1436 / 1.15 },
+    servo: {
+      model: 'sb2290sg',
+      a: { n: 4, at: [0.0, 0.725, 0.0] },
+      e: { n: 2, at: [-1.376, 0.20, 0.0] },
+      r: { n: 1, at: [-1.553, 0.0, 0.15] },
+    },
+    source: 'cf, flapped area and the tail servos\' stations: scripts/slick-derive.js (EF\'s 105.5 in data sheet drawing; its parts list puts the elevator servos in the stabiliser and the rudder servo at the rudder); the servos: EF\'s data sheet, "Qty. 7 high torque metal gear servos, MKS HBL 380, MKS HBL 599, MKS HV777A+, Savox SB2290SG", two per aileron (its four 1.5 in aileron arms), one per elevator half, one rudder; the SB2290SG taken for the class; the aileron servos mid aileron and the elevator servos 0.20 m out, ESTIMATED; https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf',
   },
 };
 
@@ -187,9 +205,9 @@ export function tierPoints(id, tiers) {
     if (row.dKg === 0) {
       continue;
     }
-    const { n, at } = s.servo[k];
-    const each = row.dKg / n;
-    if (n === 2) {
+    const { at } = s.servo[k];
+    if (at[1] !== 0) {
+      const each = row.dKg / 2;
       pts.push({ at: [at[0], at[1], at[2]], kg: each, cda: 0 }, { at: [at[0], -at[1], at[2]], kg: each, cda: 0 });
     } else {
       pts.push({ at: at.slice(), kg: row.dKg, cda: 0 });
