@@ -249,30 +249,30 @@ export default {
     "estimates": {
       "stock": {
         "4s2200": {
-          "topSpeed": 25.18,
-          "minutes": 25.4
+          "topSpeed": 25.72,
+          "minutes": 28.1
         },
         "4s3200": {
-          "topSpeed": 25.39,
-          "minutes": 35.4
+          "topSpeed": 26.52,
+          "minutes": 39.3
         },
         "4s4000": {
-          "topSpeed": 25.47,
-          "minutes": 42.6
+          "topSpeed": 26.88,
+          "minutes": 47.4
         },
         "4s5000": {
-          "topSpeed": 25.52,
-          "minutes": 49.2
+          "topSpeed": 27.17,
+          "minutes": 54.7
         }
       },
       "3s": {
         "3s2200": {
-          "topSpeed": 18.9,
-          "minutes": 20.6
+          "topSpeed": 19.95,
+          "minutes": 22.8
         },
         "3s3200": {
-          "topSpeed": 18.96,
-          "minutes": 28.5
+          "topSpeed": 20.3,
+          "minutes": 31.5
         }
       }
     }

@@ -187,8 +187,8 @@ export default {
     "estimates": {
       "stock": {
         "3s5000x4": {
-          "topSpeed": 28.38,
-          "minutes": 67.8
+          "topSpeed": 32.32,
+          "minutes": 81.5
         }
       }
     }

@@ -166,15 +166,15 @@ export const ESTIMATES = {
   },
   bramor2300: {
     stock: {
-      '6s11000': {
+      '6s10000': {
         topSpeed: 28.35,
-        minutes: 200.8
+        minutes: 182.5
       }
     },
     '500kv': {
-      '6s11000': {
-        topSpeed: 30.08,
-        minutes: 198.1
+      '6s10000': {
+        topSpeed: 30.07,
+        minutes: 180.1
       }
     }
   },

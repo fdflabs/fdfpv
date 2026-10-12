@@ -219,7 +219,7 @@ Each alternative's figures and derivation are beside it in
 - **Radian.** Stock only: E-flite 480 960 kV, 9.75 x 7.5 folding, 30 A.
   Packs 3S 1300, 1500, 1800, 2200 (the Night Radian's range on the same
   system). No motor alternative with figures was found.
-- **Bramor C4EYE.** Stock only. C-Astral publishes no pack; 6S 11000 is
+- **Bramor C4EYE.** Stock only. C-Astral publishes no pack; 6S 10000 is
   derived so that cruise at the published 16 m/s lasts the published 3 h on
   this plant. Re-derived 2026-10-11 on the prop curves (w35-prop-ctj): the
   plant cruises at 16 m/s on a mean 3.68 A, so 22000 mAh lasted 358 min
@@ -227,10 +227,10 @@ Each alternative's figures and derivation are beside it in
   estimate's 0.65 prop and 0.82 motor need. It was 22000, 488 Wh, when
   the full throttle current was an estimated 45 A and the static thrust 35 N;
   both now come from the published climb and APC's 12 x 8E
-  (scripts/bramor-derive.js). On the seated pack (2026-10-12) the motor
-  cruises on less stick and 11000 lasts 186.2 min at 4.2 V, 3.4 percent
-  over the 3 h, inside P2's 5 percent; the capacity is left at the
-  round 11000 rather than refitted to 10,630.
+  (scripts/bramor-derive.js). On the seated pack (2026-10-12), with the
+  re-derived 19.08 A full throttle current, the motor cruises on less
+  stick and 11000 lasted 200.8 min at 4.2 V, so 9,860 mAh flies the 3 h;
+  the pack is the nearest one sold, 6S 10000 (Tattu's), 182.5 min.
 - **Slow Stick.** Sold without power. Stock: GWS EPS-300C D on the EP1180,
   2S 1300. Alternatives, each GWS's own full throttle row with rpm: the
   brushless 2212/13T on an EP1047 and on an EP1060 (2S 1300 or 2200), and
@@ -284,13 +284,13 @@ airspeed, throttle on the height) and at full throttle, to LOW BATTERY
 | Cub floats | 4.7 | 24.7 | as above | timer |
 | Skyhunter | 12.6 | 76.9 at 15 | Model Aviation "10 minutes and longer" | at least 10 |
 | Radian | 3.8 (motor run) | 100.9 at 7.7 | "over 30 min" with limited motor run, not comparable | runs out sooner flat out |
-| Bramor | 52.0 | 186.2 at 16 | C-Astral 3 h (the capacity is derived from it) | within 5 percent |
+| Bramor | 50.5 | 182.5 at 16 | C-Astral 3 h (the capacity is derived from it) | within 5 percent |
 | Slow Stick | 14.8 | 60.1 at 5.5 | none | runs out sooner flat out |
 | 1000 mm wing | 5.1 | 50.1 at 15 | none | runs out sooner flat out |
 | Extra 300 3D | 1.5 | 29.7 at 15 | E-flite's 3 min timer | timer |
 | Night Timber | 5.5 | 32.9 at 13 | E-flite's 4 min timer | timer |
 | P-51 | 3.8 | 25.8 at 15.1 | FMS 8 min, a mix of throttle | between the two |
-| F-16 | 0.7 | 21.0 at 20 | Model Aviation's 4 min | between the two |
+| F-16 | 1.5 | 20.7 at 20 | Model Aviation's 4 min | between the two |
 | Zagi | 2.7 | 114.2 at 10.3 | none | runs out sooner flat out |
 | Hercules | 11.9 | 81.5 at 15.46 | none | runs out sooner flat out |
 | CAP 580 | 4.5 | 28.6 at 18 | none | runs out sooner flat out |
@@ -302,8 +302,8 @@ at 4.2 V a cell. The seat moved them: a full pack over its `v_meas` runs
 the motor faster than the table's figure and draws more current, so flat
 out runs out sooner, and the cruise, flown on less stick, lasts longer.
 Full throttle times end at the OSD's LOW BATTERY, which a heavy draw's
-sag reaches with charge left (the Extra at 50 percent of its 2200 mAh,
-the F-16 at about a quarter used): Betaflight's warning reads the loaded
+sag reaches with charge left (the Extra at 50 percent of its 2200 mAh):
+Betaflight's warning reads the loaded
 voltage, as a real one does on a punch.
 
 A maker's timer is set to land with charge to spare after sport flying,

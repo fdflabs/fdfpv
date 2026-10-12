@@ -249,22 +249,22 @@ export default {
     "estimates": {
       "stock": {
         "4s2200": {
-          "topSpeed": 23.18,
-          "minutes": 26.8
+          "topSpeed": 26.7,
+          "minutes": 32.9
         },
         "4s3200": {
-          "topSpeed": 23.28,
-          "minutes": 37.2
+          "topSpeed": 27.18,
+          "minutes": 45.8
         }
       },
       "3s": {
         "3s2200": {
-          "topSpeed": 17.24,
-          "minutes": 22.1
+          "topSpeed": 20.35,
+          "minutes": 27.1
         },
         "3s3200": {
-          "topSpeed": 17.25,
-          "minutes": 30.1
+          "topSpeed": 20.55,
+          "minutes": 37
         }
       }
     }

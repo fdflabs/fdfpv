@@ -346,11 +346,11 @@ const RADIAN = [
 ];
 
 /* The Bramor C4EYE: C-Astral publishes neither motor nor pack, only 3 h on
- * LiPo. The 6S 11000 is derived from that endurance on this plant
+ * LiPo. The 6S 10000 is derived from that endurance on this plant
  * (docs/POWER-STAGE1.md) and its mass is inside the published 4.5 kg.
  * Stock stays the published aircraft; the one alternative is an uprate
  * the owner asked for, to make it more forgiving. */
-const BRAMOR_6S = [lipo('6s11000', 6, 11000, null, 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye')];
+const BRAMOR_6S = [lipo('6s10000', 6, 10000, null, 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye')];
 /* ESTIMATED, no maker's figure: a 500 kV motor of the stock one's size on
  * the same 12 x 8 and 6S pack. The prop's coefficients are unchanged, so
  * with speed in proportion to kV the static thrust goes with its square,
@@ -366,7 +366,7 @@ const BRAMOR = [
     thrustN: 22.9, currentA: 19.08, rpmNoLoad: 10434, pitchSpeedMs: 30.036, lvcV: 0,
     massKg: 4.5, cgShiftM: 0,
     packs: BRAMOR_6S,
-    pack: '6s11000',
+    pack: '6s10000',
     source: ['https://www.c-astral.com/en/unmanned-systems/bramor-c4eye', 'https://www.c-astral.com/media/uploads/fm/catalogue/c-astral_katalog2019-spread.pdf'],
   },
   {
@@ -376,7 +376,7 @@ const BRAMOR = [
     rpmNoLoad: 10434 * BRAMOR_KV_UP, pitchSpeedMs: 30.036 * BRAMOR_KV_UP, lvcV: 0,
     massKg: 4.54, cgShiftM: -(0.040 * 0.35) / 4.54,
     packs: BRAMOR_6S,
-    pack: '6s11000',
+    pack: '6s10000',
     source: ['https://www.c-astral.com/en/unmanned-systems/bramor-c4eye'],
   },
 ];

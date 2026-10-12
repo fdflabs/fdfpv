@@ -539,12 +539,11 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .cells = 6.0,
   .r_cell = 0.010,
   /* DERIVED, docs/POWER-STAGE1.md: C-Astral publishes no pack, only
-   * 3 h at 16 m/s; 11 Ah on 6S flies that on this plant (179.2 min to the
-   * cut at a mean 3.68 A, 82 W, on the 12 x 8's curve and the 20.3 A full
-   * throttle current APC's 12 x 8E gives). That is 244 Wh, against the
-   * 330 Wh the drag estimate's 0.65 prop and 0.82 motor need. The
-   * autopilot, not an ESC, manages the end. */
-  .pack_c = 11000.0 * 3.6,
+   * 3 h at 16 m/s; on the seated pack (2026-10-12) 11 Ah on 6S flies 200.8
+   * min to the cut, so 9.86 Ah flies the 3 h, and the 6S 10 Ah, the
+   * nearest pack sold (Tattu's), 182.5. The autopilot, not an ESC,
+   * manages the end. */
+  .pack_c = 10000.0 * 3.6,
   .lvc = 0.0,
   .rho = 1.225,
   .prop_r = 0.1524,
