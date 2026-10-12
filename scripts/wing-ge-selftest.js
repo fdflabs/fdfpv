@@ -72,7 +72,10 @@ const PLANES = [
  * the Tiger Moth from batch/2026-10-12 f93dd7f87 (were ebba6d702410187f
  * and 4ab14916f3d11e9d with no wing point). The F-16 re-pinned for its
  * measured lateral derivatives (w36-f16-hilat; was e31ccb8e492d3f50),
- * the ground's term unchanged. */
+ * the ground's term unchanged. The Extra, CAP and Slick re-pinned for
+ * their fuselages' measured crossflow drag (w36-3d-sideforce 84c873e57;
+ * were b293b09e73f99993, 2e4df1c22374a4e2 and 1eec01c5f11adf28), the
+ * ground's term unchanged. */
 const PINS = {
   wing: 'd113bc284e487a8e',
   sky: '8a6fa77e69a7567a',
@@ -93,11 +96,11 @@ const PINS = {
   tigermoth: 'b137c22cbd00dca4',
   strikerprop: 'ac1ebe1d9baba2ed',
   strikerjet: '2c30dccda291887d',
-  extra: 'b293b09e73f99993',
+  extra: '600d4952ce0224b7',
   nighttimber: '199b12e1bb145922',
   hercules: '1563b7113809f296',
-  cap580: '2e4df1c22374a4e2',
-  slick: '1eec01c5f11adf28',
+  cap580: 'cb61e013c0930fcc',
+  slick: '1c36540a86ef8c85',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */
