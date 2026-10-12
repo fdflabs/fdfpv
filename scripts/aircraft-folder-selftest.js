@@ -1,9 +1,11 @@
 /*
  * aircraft-folder-selftest.js: every row configs/aircraft.js assembles from
- * aircraft/<id>/aircraft.json equals the row today's hand module holds for
+ * aircraft/<id>/aircraft.js equals the row today's hand module holds for
  * that id, field for field, key order, types and doubles exact (Object.is).
  * Then a negative control: one field changed in memory must fail, or the
- * comparison proves nothing. Plain Node. Run with npm run aircraft:folder.
+ * comparison proves nothing. Also that the assembler's FOLDERS are the
+ * folders on disk, each plain JSON after `export default`. Plain Node. Run
+ * with npm run aircraft:folder.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -32,13 +34,18 @@ import * as R from '../configs/registry.js';
 import { PLANE_LEVELS } from '../src/game/progress.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
-import { aircraftIds, readAircraft, assemble } from '../configs/aircraft.js';
+import { FOLDERS, assemble } from '../configs/aircraft.js';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 
-/* Airframe fields configs/airframes.js computes rather than states
- * (packStates(), stockRates(), a degrees to radians product). The folder
- * leaves them out until a later slice decides how a folder says them; the
- * hand row must still have each, so this list cannot go stale silently. */
-const COMPUTED = [['gear', 'restPitch'], ['packVoltages'], ['packLabels'], ['rates']];
+const AIRCRAFT_DIR = fileURLToPath(new URL('../aircraft/', import.meta.url));
+
+/* The fields every hand row computes the same way (configs/airframes.js
+ * packStates(), stockRates()). A folder states them as data, so they must
+ * equal a hand row's, or the stock packs and rates could change for the
+ * hand rows and not the folders. */
+const STOCK = ['packVoltages', 'packLabels', 'rates'];
 
 function diff(a, b, path, out) {
   if (typeof a !== typeof b) return out.push(`${path}: ${typeof a} vs ${typeof b}`);
@@ -52,23 +59,12 @@ function diff(a, b, path, out) {
   for (const k of ka) diff(a[k], b[k], `${path}.${k}`, out);
 }
 
-function withoutComputed(row, id, out) {
-  const copy = structuredClone(row);
-  for (const p of COMPUTED) {
-    const parent = p.slice(0, -1).reduce((o, k) => o?.[k], copy);
-    const leaf = p.at(-1);
-    if (!parent || !(leaf in parent)) out.push(`airframe ${id}: computed field ${p.join('.')} gone from the hand row`);
-    else delete parent[leaf];
-  }
-  return copy;
-}
-
 /* The hand modules' rows for one id, in the assembled tables' shapes. The
  * strings are the keys the folders carry, looked up in src/strings. */
-function handRows(id, out) {
+function handRows(id) {
   const strings = (s, keys) => Object.fromEntries(keys.map((k) => [k, s[k]]));
   return {
-    airframe: withoutComputed(A.AIRFRAMES.find((a) => a.id === id), id, out),
+    airframe: A.AIRFRAMES.find((a) => a.id === id),
     kit: K.KITS[id], drawn: K.DRAWN.has(id), tuning: T.TUNING[id],
     table: P.TABLE[id], power: P.POWER[id], estimates: E.ESTIMATES[id],
     props: H.PROPS[id], anchors: H.ANCHORS[id], livery: L.LIVERIES[id],
@@ -83,7 +79,7 @@ function compare(t) {
   if (ids.length !== new Set(ids).size) out.push(`duplicate ids [${ids}]`);
   for (const row of t.AIRFRAMES) {
     const id = row.id;
-    const want = handRows(id, out);
+    const want = handRows(id);
     const got = {
       airframe: row, kit: t.KITS[id], drawn: t.DRAWN.includes(id), tuning: t.TUNING[id],
       table: t.TABLE[id], power: t.POWER[id], estimates: t.ESTIMATES[id],
@@ -103,7 +99,51 @@ function stringsPaired(t) {
   return en === es ? [] : [`strings: en [${en}] vs es [${es}]`];
 }
 
-const folders = aircraftIds().map((id) => readAircraft(id));
+/* FOLDERS against the disk: one folder per directory holding an
+ * aircraft.js, in name order, each the module at its own path. */
+async function onDisk() {
+  const out = [];
+  const dirs = readdirSync(AIRCRAFT_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && existsSync(join(AIRCRAFT_DIR, e.name, 'aircraft.js')))
+    .map((e) => e.name).sort();
+  const ids = FOLDERS.map((f) => f.id);
+  if (ids.join() !== dirs.join()) out.push(`FOLDERS [${ids}] vs aircraft/ [${dirs}]`);
+  for (const dir of dirs) {
+    const mod = await import(pathToFileURL(join(AIRCRAFT_DIR, dir, 'aircraft.js')).href);
+    if (!FOLDERS.includes(mod.default)) out.push(`aircraft/${dir}/aircraft.js is not in FOLDERS`);
+    if (mod.default.id !== dir) out.push(`aircraft/${dir}: id ${mod.default.id}`);
+  }
+  return out;
+}
+
+/* Each folder is its header comment, then `export default ` and plain JSON:
+ * no expression, no import, nothing a generator in another language could
+ * not read. */
+function dataOnly(folder) {
+  const out = [];
+  const text = readFileSync(join(AIRCRAFT_DIR, folder.id, 'aircraft.js'), 'utf8');
+  const m = /^\/\*[\s\S]*?\*\/\n\nexport default ([\s\S]*);\n$/.exec(text);
+  if (!m) return [`aircraft/${folder.id}: not a header, export default and JSON`];
+  let data;
+  try {
+    data = JSON.parse(m[1]);
+  } catch (e) {
+    return [`aircraft/${folder.id}: ${e.message}`];
+  }
+  diff(data, folder, `aircraft/${folder.id}`, out);
+  return out;
+}
+
+function stockFields(t) {
+  const out = [];
+  const hand = A.AIRFRAMES.find((a) => !FOLDERS.some((f) => f.id === a.id));
+  for (const row of t.AIRFRAMES) {
+    for (const k of STOCK) diff(row[k], hand[k], `${row.id}.${k} vs ${hand.id}`, out);
+  }
+  return out;
+}
+
+const folders = FOLDERS;
 const built = assemble(folders);
 let failed = 0;
 const report = (name, problems) => {
@@ -113,11 +153,15 @@ const report = (name, problems) => {
 };
 
 if (folders.length === 0) report('aircraft folders found', ['none under aircraft/']);
+report('FOLDERS are the folders on disk', await onDisk());
+report('each folder is plain JSON after export default', folders.flatMap(dataOnly));
+report('folder rows carry the stock packs and rates', stockFields(built));
 report(`assembled rows equal the hand modules (${folders.map((f) => f.id).join(', ')})`, [...compare(built), ...stringsPaired(built)]);
 
 /* Negative controls: each change, made to a copy, must be caught. */
 const MUTATIONS = [
   ['airframe stall', (f) => { f.airframe.stall += 1e-9; }],
+  ['gear rest pitch', (f) => { f.airframe.gear.restPitchDeg += 1e-9; }],
   ['tuning cg mm', (f) => { f.tuning.cg.mm += 1; }],
   ['power option kv', (f) => { f.power.options[0].kv += 1; }],
   ['hangar anchor', (f) => { f.hangar.anchors.prop[0] = -f.hangar.anchors.prop[0]; }],

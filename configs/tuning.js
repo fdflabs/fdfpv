@@ -61,6 +61,7 @@
  */
 
 import { TABLE, powerBlock, powerOption } from './power.js';
+import { AIRCRAFT } from './aircraft.js';
 
 /* sim_abi.h's SIM_TUNE_* layout. */
 export const SIM_TUNE = {
@@ -74,9 +75,6 @@ export const SIM_TUNE_DOUBLES = 12;
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
 const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
-const CAP_SHEET = 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_67_CAP_ecb0e58c-fdbf-409f-85e7-0af3bab79c00.pdf';
-const CAP_GUIDE = 'https://extremeflightrc.com/cdn/shop/files/67_Extra260_ARF_Build_guide.pdf';
-const SLICK_SHEET = 'https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -113,7 +111,6 @@ const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
-const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
@@ -252,30 +249,16 @@ export const TUNING = {
     throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
     flaps: null,
   },
-  cap1702: {
-    chord: 0.338, area: 0.5548, margin: 0.21,
-    cg: { mm: 130, datum: 'tuning.datum.root_le', range: [130, 150], source: `Extreme Flight's data sheet, "Center of wing tube for maiden, sport and precision flight", and the 67 in line's build guide, "at the former immediately behind the wing tube"; the tube's station FITTED at 130 mm (docs/CAP580-STAGE1.md), the former about 20 mm behind it; ${CAP_SHEET}` },
-    packKg: 0.652, nose: 0.47, tail: -1.03,
-    expo: 60, /* the data sheet's high rate expo, one figure for all three, as FW_CAP1702 flies (docs/CAP580-STAGE1.md) */
-    throws: { high: [36, 50, 52.5], low: [17.5, 11, 20], source: `Extreme Flight's data sheet, in degrees: high aileron 38 up 34 down (36 each way), elevator 50, rudder 50 to 55 (52.5); low aileron 15 to 20, elevator 10 to 12, rudder 20 (docs/CAP580-STAGE1.md); ${CAP_SHEET}; ${CAP_GUIDE}` },
-    flaps: null,
-  },
-  slick2680: {
-    chord: 0.4577, area: 1.150, margin: 0.185,
-    expo: 55, /* the sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies */
-    cg: { mm: 169, datum: 'tuning.datum.root_le', range: [160, 179], source: `EF's data sheet, "Center of main wing tube to rear of main wing tube as starting position": the 38 mm tube's centre at 28 percent of the drawn 570 mm root, 160 mm, to its rear, 179; the middle taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
-    packKg: 0.30, nose: 0.48, tail: -1.30, /* the receiver's two packs; the lead at the firewall or in the aft fuselage ahead of the stabiliser, where 8 percent of the mass moves the CG under the plant's 0.1 m */
-    throws: { high: [37.5, 47.5, 45], low: [20, 11, 20], source: `EF's data sheet and 120cc build guide, in degrees: aileron 38 up and 37 down high, 20 low; elevator 45 to 50 for 3D, 10 to 12 low; rudder 45 and more high, 20 low; the middles taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
-    flaps: null,
-  },
+  /* The CAP's expo is the data sheet's high rate expo, one figure for all
+   * three, as FW_CAP1702 flies (docs/CAP580-STAGE1.md). The Slick's is the
+   * sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies; its
+   * pack is the receiver's two; its lead goes at the firewall or in the aft
+   * fuselage ahead of the stabiliser, where 8 percent of the mass moves the
+   * CG under the plant's 0.1 m. Both rows are their folders'. */
+  cap1702: AIRCRAFT.TUNING.cap1702,
+  slick2680: AIRCRAFT.TUNING.slick2680,
 
-  p51d1450: {
-    chord: 0.24413793103448276, area: 0.354, margin: 0.034,
-    cg: { mm: 110, datum: 'tuning.datum.root_le', range: null, source: `FMS manual, "110mm from the wing's leading edge (measured at point of contact with fuselage)", no range, p. 26; ${P51_MANUAL}` },
-    packKg: 0.295, nose: 0.30, tail: -0.70,
-    throws: { high: [19.8769, 25.8721, 12.1224], low: [13.9, 18.1, 8.5], source: `FMS manual pp. 19 and 20: the low rates, 17, 24 and 21 mm, which the manual says are for normal flying, on the 50, 55 and 100 mm surfaces (docs/P51-STAGE1.md), are the plant's; ${LOW_70}; ${P51_MANUAL}` },
-    flaps: { mix: 0, angles: [0, 0.28510428711100527, 0.61297025535831962], source: `FMS manual p. 20: mid 22 mm, full 45 mm, no elevator mix given; ${P51_MANUAL}` },
-  },
+  p51d1450: AIRCRAFT.TUNING.p51d1450,
   nrj1490: {
     chord: 0.1378, area: 0.190, margin: 0.170,
     cg: { mm: 66, datum: 'tuning.datum.root_le', range: [64.5, 66.5], source: `OA Composites' manual, "CG between 64.5 and 66.5mm", 66 for the empty glider; ${NRJ_MANUAL}` },
