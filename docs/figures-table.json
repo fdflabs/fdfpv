@@ -492,13 +492,13 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 5.5,
         "flew": [
-          "aileron_roll 6.5"
+          "two_point_roll 5.5"
         ],
         "finished": true,
-        "lowestM": 147.7
+        "lowestM": 146.7
       },
       "margin": null
     },
@@ -530,11 +530,13 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 0,
+        "flew": [
+          "eight_point_roll 0"
+        ],
         "finished": true,
-        "lowestM": 96.7
+        "lowestM": 130.4
       },
       "margin": null
     },

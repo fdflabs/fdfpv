@@ -247,7 +247,12 @@ async function flight({ sag = false } = {}) {
           st = [0, clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75];
         } else {
           st = [0.5, 0.05, 0, 0.75];
-          if (turned > (quarter + 1) * Math.PI / 2 - d.p * 0.6) {
+          /* Let go by what the roll still carries, the aileron roll's
+           * 0.35 s above: the judge now marks each point off its quarter
+           * (figuredetect.js pointsDeduction), and the 0.6 s this let go
+           * at put the CAP's points at 66, 136 and 210 deg and the
+           * Slick's at 54, 124 and 206. */
+          if (turned > (quarter + 1) * Math.PI / 2 - d.p * 0.35) {
             quarter += 1;
             holdMs = 400;
             if (quarter === 4) { phase += 1; phaseMs = 0; marks.push(ms); }

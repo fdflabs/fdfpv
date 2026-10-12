@@ -86,18 +86,31 @@ const line = (target, ms, thr = 1, until = null) => ({
 });
 const UP = [0, 0, 1];
 const DOWN = [0, 0, -1];
-/* Point rolls: n stops in a full roll, each held a beat. */
+/* Point rolls: n stops in a full roll, each held a beat. The person
+ * counts the roll they see all the way, the run on past each let go
+ * included (figures-plant-check.js's points): counting only while the
+ * stick was in lost what each hold carried, and once the prop curves
+ * (562dc785e) rolled the Extra at 5.1 rad/s at half stick, the 2-point
+ * roll's 0.6 s lead let go at 36 deg and stopped at 105, still rolling
+ * at 0.4 rad/s, not on its back: the judge saw no point and named an
+ * aileron roll. POINT_LEAD is the roll's let go (roll() above and
+ * figures-plant-check.js's aileron roll): the roll carries 68 deg after
+ * a 5.1 rad/s let go, 0.23 s (the person's 0.2 s unseen, half a 50 ms
+ * beat, and the Extra's own 0.03 s run on, measured 2026-10-12), and
+ * the person lets go a little earlier still, landing a point at or short
+ * of its mark rather than rolled past it. */
+const POINT_LEAD = 0.35;
 const points = (n, stick = 0.5) => ({
   name: `${n} points`,
   step: (d, m) => {
     m.q = m.q ?? 0;
     m.hold = m.hold ?? 0;
+    m.turned = (m.turned ?? 0) + Math.sign(stick) * d.p * H;
     if (m.hold > 0) {
       m.hold -= EVERY;
       return [[0, d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0, Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75], false];
     }
-    m.turned = (m.turned ?? 0) + Math.abs(d.p) * H;
-    if (m.turned > (m.q + 1) * 2 * PI / n - Math.abs(d.p) * 0.6) {
+    if (m.turned > (m.q + 1) * 2 * PI / n - Math.abs(d.p) * POINT_LEAD) {
       m.q += 1;
       m.hold = 400;
     }
