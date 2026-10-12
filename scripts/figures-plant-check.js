@@ -79,7 +79,11 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * engine has no pack to seat), which holds 41.7 m/s. Its loop at the
  * Extra's 0.55 took the wing to 13.8 deg, past its 10.9 (CL max over the
  * wing's slope, slick:derive); 0.4 reaches 9.8 and 0.45 11.1, so 0.4
- * (2026-10-12), loop 7 where 0.55 named it 6. */
+ * (2026-10-12), loop 7 where 0.55 named it 6. Measured again on the
+ * combined plant (w36-physics, 2026-10-12), the most alpha round the
+ * loop: the Extra 8.4 deg at 0.3, the CAP 10.3 at 0.35 (11.7 at 0.4),
+ * the Slick 9.8, 11.1 and 13.8 at 0.4, 0.45 and 0.55; the entries
+ * stand. */
 /* The tailslide is proven on the Extra (named 9 to 10 on four of its
  * flight models, figures-plant-sweep.js); on the CAP this program's up
  * line at 0.4 throttle hangs at 4.5 m/s and falls off sideways, and on

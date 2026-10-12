@@ -186,7 +186,21 @@ const LINE_KI = 1;
  * went stop to stop on the
  * elevator and snapped the wing. The rudder keeps LINE_GAINS: its
  * step response turns over with the airspeed (the fin weathervanes the
- * yaw back within the 0.25 s), so it has no gain to schedule on. */
+ * yaw back within the 0.25 s), so it has no gain to schedule on the
+ * step. Its frequency response does not keep the criterion
+ * (2026-10-12, on the combined plant, w36-physics, measured as the
+ * elevator's, level, responseAt on the yaw rate): the yaw rate per stick
+ * rises to the loop's 180 deg frequency, 12 to 16 rad/s, where it is
+ * 6.2, 8.4 and 9 on the Extra at a third, two thirds and full throttle
+ * (the elevator's is flat, 4.2 to 4.9), so kr 0.2 keeps -1.9 to -5 dB,
+ * the CAP 1.4 to 5.7 and the Slick about 3. The Extra's yaw rings on the
+ * Cuban's 45 down lines at 29 m/s (1.2 rad/s rms over the lines of
+ * seven figures). The gains that keep 6 dB level (Extra 0.05, CAP 0.09,
+ * Slick 0.13) calm it (0.5 rad/s rms) and name the Cuban 8 on the Extra
+ * (3), but lose the Slick's hammerhead at every kick 6 to 12 m/s and the
+ * tailslide on all three at an entry of 28 m/s: kept at 0.2 until the
+ * rudder's response is measured where the lines fly, 4 to 30 m/s
+ * climbing and diving, not level. */
 export const LINE_PITCH_K = { a: 1.695, b: 1.782, c: 0.00274 };
 export const LINE_GM = 0.39;
 export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
@@ -337,7 +351,11 @@ const knife = (ms) => ({
  * 0.55 names it 9 / 8 / 3; ff 0.7 loses the CAP at every rate either
  * way, rampS 1 loses it in 23 of the 27, and the floor at 0.45
  * gives the Slick 0 at ff 0.4 and 0.55. So no floor (rateMin 0). No
- * margin is measured for the pace, the share or the floor. The gains are
+ * margin is measured for the pace, the share or the floor. Swept again
+ * over the same 54 on the combined plant (w36-physics, 2026-10-12): no
+ * floor, rampS 2 and ff 0.4 or 0.55 name it on all three at every rate
+ * (10 / 8 / 6 at these values); ff 0.7 loses the CAP in 14 of 18 and
+ * rampS 1 at ff 0.55 in 4 of 9; the floor at 0.45 gives the Slick 0 to 2. The gains are
  * not scheduled on the speed (20 to 38 m/s round the loop): scaled by
  * the entry speed over V it lost the CAP and the Slick, by its square
  * it spun the CAP off at 4 m/s; the knife edge's loops keep 9 dB, past
@@ -577,6 +595,15 @@ const slide = () => ({
  * waterfall's own throttle at 0.7 to 1 changes nothing; the entry does:
  * from a level pass at 0.65 the grid names it in 13 of the 175, at 0.75
  * (27.3 m/s) in 77, at these values 5.5. Lost, not refitted here.
+ * On the combined plant (w36-physics, 2026-10-12) it is named in none of
+ * about 1000 flights: the 175 from the level pass and from ENTRY_V and
+ * 22 to 32 m/s; the rudder 0 to 1, and a yaw rate damper on it of 0.1
+ * to 0.8 per rad/s; the waterfall's throttle 0.5 to 1; the elevator 0.7
+ * and 1; the upline at 60, 75 and 90 deg, let go at 2, 4 and 7 m/s. The
+ * same 175 from 28 m/s on the seat alone (c44822817's module) name it in
+ * 87. Inverted after the first half turn at 5 to 9 m/s in the static
+ * wash, the yaw runs away to the left to 7 rad/s with the rudder full
+ * right, and it is named a spin: a plant finding, the wash lane's.
  * No margin is measured for these loops.
  */
 export const WATERFALL = { rudder: 0.15, aileron: 1, wings: 0.5 };
@@ -634,7 +661,10 @@ export const PROGRAMS = {
   /* An eighth at 0.6 of stick (6.4 rad/s) passed in 0.12 s, inside the
    * 0.2 s the person has not seen: its points fell anywhere (117 to 408
    * deg). At 0.25 an eighth takes 0.3 s and the points sit 3 to 21 deg
-   * short of their marks. */
+   * short of their marks. On the combined plant (w36-physics,
+   * 2026-10-12) the Extra names it at 0.21, 0.22, 0.24, 0.26 and 0.27 (1
+   * to 3.5) and not at 0.23 or 0.25 (the CAP 0, the Slick 0.5 at 0.25):
+   * a figure on a hair, its stick not moved to land between two misses. */
   eight_point_roll: [L(), points(8, 0.25), L()],
   barrel_roll: [L(), roll(0.35, 2 * PI, 1, 0.3, false), L()],
   outside_loop: [L(), pull(-0.55, 2 * PI), L()],
@@ -650,7 +680,12 @@ export const PROGRAMS = {
    * Cuban highest on all three; the level rolls keep 0.35, which 0.25
    * moves (the Extra's half roll 9 to 7). The reverse Cubans' lines
    * after each roll hold the 45 they rolled on; they held the other 45,
-   * 90 deg round, and the rudder fought the nose there. */
+   * 90 deg round, and the rudder fought the nose there. On the combined
+   * plant (w36-physics, 2026-10-12) the Cuban 8 grades 0 on the Extra at
+   * every lead 0.2 to 0.35, line throttle 0.5 to 0.7 and entry from the
+   * level pass or 24 to 30 m/s but two (3.5): its 3/4 loop's radius
+   * spreads 65 % (6 points) as the yaw rings on the 45 before it (the
+   * rudder's kr, LINE_GAINS). */
   half_cuban: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
   cuban_8: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6),
     round(0.3, 1.5 * PI, 0.6), line(D45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(D45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
@@ -695,7 +730,10 @@ export const PROGRAMS = {
    * of it on the rudder where the wings are level, near three times the
    * weight the Extra's knife edge holds on it; not named on any of the
    * three at 1.25 to 1.6 rad/s. Four rolls named it 6.5 / 8 / 9.5 on the
-   * Extra, CAP and Slick, but four rolls is Aresti 2.4.7.1. */
+   * Extra, CAP and Slick, but four rolls is Aresti 2.4.7.1. On the
+   * combined plant (w36-physics, 2026-10-12) the 36 of kpsi and kz's
+   * sweep name four rolls in none; one roll in 10 on the Extra or the CAP
+   * (0 to 6.5), on all three in none. */
   rolling_circle: [L(), rollingCircle(1), L()],
   hover: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   torque_roll: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000, { rollStick: 0.15 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
