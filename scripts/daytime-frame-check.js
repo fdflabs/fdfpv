@@ -81,17 +81,22 @@ const show = (d) => (d ? `flag ${d.flag}, light ${d.light}, audio ${d.audio}, ti
 const boot = async (url, map, timeOfDay) => {
   const p = await openPage({ root, url, width: 960, height: 540, seed: seedFor(map, timeOfDay) });
   open = p;
-  await p.until('window.__shellReady === true', 180000);
-  await p.until(`window.__map && window.__map().ready && window.__map().id === '${map}'`, 180000);
+  await p.until('window.__shellReady === true', BOOT_MS);
+  await p.until(`window.__map && window.__map().ready && window.__map().id === '${map}'`, BOOT_MS);
   await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-  await p.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
+  await p.until("window.__craftState && window.__craftState().mode === 'flight'", BOOT_MS);
   return p;
 };
 
 /* A hard limit on the whole check, so a world that never builds fails it
  * rather than holding its slot: three boots, measured at 135 s with every
- * check slot busy (2026-10-11), given 12 min. The open page is closed first. */
-const LIMIT_MS = 12 * 60000;
+ * check slot busy (2026-10-11), given 30 min, since a runner boot can take 600 s (below). The open page is closed first. */
+/* A boot's budget: on the GitHub runner (software GL, #967 shard-4 job
+ * 114614123276) the Interior's boot took 194 s and Itaipu's map was not ready
+ * in 180 s; perf-play gives Itaipu 600 s on the same runners. Locally a boot
+ * is about 45 s. */
+const BOOT_MS = 600000;
+const LIMIT_MS = 30 * 60000;
 let open = null;
 setTimeout(async () => {
   console.log(`  FAIL  the check ran past its hard limit of ${LIMIT_MS / 60000} min`);
