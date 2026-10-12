@@ -182,6 +182,9 @@ jobs:
       - run: npm run nighttimber:gates
       - run: npm run figures:plant
       - run: npm run figures:sweep
+      # The manoeuvre table flies every figure program: a physics change that
+      # moves a grade regenerates it (npm run figures:table) in the same PR.
+      - run: npm run figures:table:check
       - run: npm run figures:knife
       - run: npm run combat:gates
       - run: npm run input:selftest
@@ -517,6 +520,7 @@ jobs:
           npm run world:layer -- --three="$RUNNER_TEMP/package"
       - run: npm run jam:selftest
       - run: npm run figures:selftest
+      - run: npm run personpilot:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest

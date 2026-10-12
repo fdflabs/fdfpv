@@ -3,8 +3,8 @@
  * real compiled plant are named and graded sensibly.
  *
  * The pilot is hover-probe.js's person (the 3D lane's): it sees the
- * aircraft 0.2 s late (McRuer and Jex 1967), moves the sticks ten times a
- * second in fiftieths of their travel, and flies by what is visible: bank,
+ * aircraft 0.2 s late (McRuer and Jex 1967), moves the sticks twenty times
+ * a second in fiftieths of their travel, and flies by what is visible: bank,
  * pitch and how far the aircraft has turned. It flies the Extra 330 in
  * Manual, the way IMAC pilots fly: a level pass, a round loop (a pull
  * that sets its size, then the pitch rate that holds that radius as the
@@ -53,6 +53,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { clamp, quant, eyes } from '../tests/lib/personpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -90,10 +91,9 @@ if (!plane) {
 }
 
 const MS = 2;
-const LAG = 100;
+/* The hand moves every 50 ms, twice PERSON's ten a second: the figures'
+ * gains and let go leads below were measured at this pace. */
 const EVERY = 50;
-const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
-const quant = (x) => clamp(Math.round(x * 50) / 50);
 /* The vertical lines' gains: the nose's error to a rate (kp, 1/s) and the
  * rate's error to the stick (kr, s). With this person's 0.2 s lag 0.5
  * rang on every plant, and on the prop curves (91061d8cb, the elevator in
@@ -160,7 +160,7 @@ async function flight({ sag = false } = {}) {
   const figures = [];
   const marks = [];
   const det = new FigureDetector((f) => figures.push({ ...f, atMs: f.endMs }));
-  const seen = [];
+  const eye = eyes({ stepMs: MS, everyMs: EVERY });
   /* The program: [phase, ms or a done test]. */
   const program = ['level', 'loop', 'level', 'roll', 'level', 'points', 'level',
     ...(plane.tailslide ? ['pullup', 'up', 'slide', 'down', 'pullout', 'level'] : [])];
@@ -178,12 +178,12 @@ async function flight({ sag = false } = {}) {
   let st = [0, 0, 0, 0.75];
   for (let ms = 0; ms < 90000 && phase < program.length; ms += MS) {
     const o = see(sim.readState().state);
-    seen.push(o);
+    eye.push(o);
     det.step(MS / 1000, o.s);
     phaseMs += MS;
     const name = program[phase];
-    if (seen.length > LAG && ms % EVERY === 0) {
-      const d = seen[seen.length - 1 - LAG];
+    if (eye.looks(ms)) {
+      const d = eye.ago();
       /* Level: wings level on the ailerons, the nose on the horizon. */
       const levelRoll = quant(clamp(-0.4 * d.lz * Math.sign(d.uz || 1) - 0.04 * d.p, 0.4));
       const levelPitch = quant(clamp(-1.2 * d.nz + 0.12 * d.q + 0.04, 0.3));
