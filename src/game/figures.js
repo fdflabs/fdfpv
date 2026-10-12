@@ -104,7 +104,9 @@ export const FIGURES = [
   fig('harrier', '3d', 8, null, 'unproven'),
   fig('inverted_harrier', '3d', 11, null, 'unproven'),
   fig('rolling_harrier', '3d', 16, null, 'unproven'),
-  fig('waterfall', '3d', 12, null, 'unproven'),
+  /* Flown on the Extra's Extreme elevator and aileron, not on stock throws
+   * (tests/lib/figureprograms.js PROGRAM_TIERS). */
+  fig('waterfall', '3d', 12, null, 'flown'),
   fig('blender', '3d', 18, null, 'waits'),
   fig('tumble', '3d', 15, null, 'waits'),
   fig('lomcevak', '3d', 16, null, 'waits'),
