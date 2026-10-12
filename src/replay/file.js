@@ -131,6 +131,15 @@
  * hold `gates`, [{ gate, at, open_m }]. A clip whose matches hold none
  * is written as before, byte for byte.
  *
+ * Version 16 added the pilot's sticks (src/replay/sticks.js; the owner,
+ * 2026-10-12, of a replay whose behaviour against his sticks looked
+ * strange): the header's `sticks: true`, and after everything else each
+ * row's roll, pitch, yaw, throttle, flight mode and flap notch,
+ * i16[n x STICK_N], then the plant's velocity and body rates,
+ * f32[n x BODY_N]. A clip without them is written as the version before,
+ * byte for byte, and versions 1 to 15 are read without them: their
+ * replay says it has no sticks to show.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -171,8 +180,11 @@ import {
 import { HUNTER_N, checkWar } from './warrec.js';
 import { AIR_N, checkSound } from './sound.js';
 import { SEGMENT_BYTES_MAX, SEGMENTS_MAX, checkVoice } from './voicerec.js';
+import { BODY_N, STICK_N, checkSticks } from './sticks.js';
 
-export const FILE_VERSION = 15;
+export const FILE_VERSION = 16;
+/* A clip with a war's gate state and no sticks. */
+const GATES_VERSION = 15;
 /* A clip with explosions on the map's clock and no gate state. */
 const BOOMS_VERSION = 14;
 /* A clip with voices and no explosions on the map's clock. */
@@ -203,14 +215,20 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
+  if (clip.sticks) {
+    if (!clip.anim) {
+      throw new Error('a clip with its sticks and no animation clock');
+    }
+    return FILE_VERSION;
+  }
   if (clip.war && clip.war.world && clip.war.world.some((m) => m.gates)) {
     if (!clip.anim) {
       throw new Error('a clip with a war\'s gate state and no animation clock');
     }
-    return FILE_VERSION;
+    return GATES_VERSION;
   }
   if (clip.war && clip.war.booms) {
     if (!clip.anim) {
@@ -305,6 +323,11 @@ function animBytes(n, version) {
   return version >= 8 ? n * 8 : 0;
 }
 
+/* The sticks' bytes: their channels, then the plant's velocity and rates. */
+function sticksBytes(n) {
+  return n * (STICK_N * 2 + BODY_N * 4);
+}
+
 /* The pose column's bytes with its padding to 8. */
 function poseBytes(n) {
   const b = n * POSE_N * 4;
@@ -321,7 +344,7 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice', 'sticks'];
 const SOUND_KEYS = ['events'];
 const VOICE_KEYS = ['pieces'];
 const PIECE_KEYS = ['seat', 'from', 'to', 'mime', 'bytes'];
@@ -404,6 +427,9 @@ export function encodeReplay(clip) {
       })),
     };
   }
+  if (clip.sticks) {
+    header.sticks = true;
+  }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
@@ -413,7 +439,8 @@ export function encodeReplay(clip) {
     + (paper ? paper.bytes.byteLength : 0)
     + (war ? n * 8 + n * war.slots * HUNTER_N * 4 + (war.world ? n * 8 : 0) : 0)
     + (clip.sound ? n * AIR_N * 4 : 0)
-    + (clip.voice ? n * 8 + clip.voice.pieces.reduce((x, s) => x + s.bytes.length, 0) : 0);
+    + (clip.voice ? n * 8 + clip.voice.pieces.reduce((x, s) => x + s.bytes.length, 0) : 0)
+    + (clip.sticks ? sticksBytes(n) : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -480,6 +507,13 @@ export function encodeReplay(clip) {
       u8.set(s.bytes, o);
       o += s.bytes.length;
     }
+  }
+  if (clip.sticks) {
+    const { ch, body } = clip.sticks;
+    u8.set(new Uint8Array(ch.buffer, ch.byteOffset, n * STICK_N * 2), o);
+    o += n * STICK_N * 2;
+    u8.set(new Uint8Array(body.buffer, body.byteOffset, n * BODY_N * 4), o);
+    o += n * BODY_N * 4;
   }
   return buf;
 }
@@ -785,6 +819,12 @@ export function decodeReplay(buf, known = null) {
   if (version === 15 && !gated) {
     throw new ReplayFileError('a version 15 file without its war\'s gate state');
   }
+  if (version < 16 && header.sticks !== undefined) {
+    throw new ReplayFileError('sticks in a file older than version 16');
+  }
+  if (version === 16 && header.sticks !== true) {
+    throw new ReplayFileError('a version 16 file without its sticks');
+  }
   if (version < 13 && header.voice !== undefined) {
     throw new ReplayFileError('voices in a file older than version 13');
   }
@@ -865,7 +905,8 @@ export function decodeReplay(buf, known = null) {
   const hunterBytes = header.war ? n * header.war.slots * HUNTER_N * 4 : 0;
   const warBytes = header.war ? n * 8 + hunterBytes + (mapped ? n * 8 : 0) : 0;
   const soundBytes = header.sound !== undefined ? n * AIR_N * 4 : 0;
-  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes + soundBytes + voiceBytes !== buf.byteLength) {
+  const stickBytes = header.sticks ? sticksBytes(n) : 0;
+  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes + soundBytes + voiceBytes + stickBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant, smoke, ...(anim ? [anim] : [])]) {
@@ -966,6 +1007,18 @@ export function decodeReplay(buf, known = null) {
       throw new ReplayFileError(err.message);
     }
     clip.voice = { clock, pieces };
+  }
+  if (header.sticks) {
+    const sticks = {
+      ch: new Int16Array(buf.slice(o, o + n * STICK_N * 2)),
+      body: new Float32Array(buf.slice(o + n * STICK_N * 2, o + stickBytes)),
+    };
+    try {
+      checkSticks(sticks, n);
+    } catch (err) {
+      throw new ReplayFileError(err.message);
+    }
+    clip.sticks = sticks;
   }
   return clip;
 }

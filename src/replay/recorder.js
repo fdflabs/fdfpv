@@ -6,7 +6,9 @@
  * plant's pose of the craft and of every part (so a replay can draw the
  * pieces through src/render/wreck.js exactly as the flight did), the
  * damage flags, the throttle, and where the plant's journal stood
- * (src/replay/journal.js), which is what TAKE OVER flies back to. Events
+ * (src/replay/journal.js), which is what TAKE OVER flies back to. The
+ * rest of the sticks, the flight mode and the flaps are kept beside the
+ * rows (src/replay/sticks.js), as the other pilots and the sound are. Events
  * that are not a pose (a part leaving, a hit, a splash of debris, a crunch
  * on the sound) go in a list beside the rows, stamped with the same clock.
  *
@@ -51,6 +53,7 @@ import { trimPaper } from './paper.js';
 import { trimWar } from './warrec.js';
 import { trimSound } from './sound.js';
 import { trimVoice } from './voicerec.js';
+import { trimSticks } from './sticks.js';
 
 /* Seconds of flight a replay holds, and the most rows it takes to hold
  * them: 120 a second. A faster display is sampled down to that; a slower
@@ -383,6 +386,7 @@ export function trimClip(clip, t0, t1) {
     ...(clip.war ? { war: trimWar(clip.war, a, b) } : {}),
     ...(clip.sound ? { sound: trimSound(clip.sound, a, b, base, clip.time[b]) } : {}),
     ...(clip.voice ? { voice: trimVoice(clip.voice, a, b) } : {}),
+    ...(clip.sticks ? { sticks: trimSticks(clip.sticks, a, b) } : {}),
   };
 }
 
