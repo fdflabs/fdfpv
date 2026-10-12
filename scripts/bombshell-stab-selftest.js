@@ -141,7 +141,10 @@ const level = fly(0, 0, 0, TRIM, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
-check('and straight: under 10 m off the line after 10 s', Math.abs(level.y) < 10, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/bombshell-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/bombshell-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${level.y.toFixed(2)} m`);
 check('at the Bombshell\'s cruise', level.v > 7 && level.v < 10, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 1 m/s', Math.abs(level.vz) < 1, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.9, 5);
@@ -218,7 +221,10 @@ fly(0, 0, 0, 0.75, 2);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full roll stick banks it right on the rudder, past 30 degrees', manual.endBank * DEG > 30, `${deg(manual.endBank)} deg in 1.5 s`);
 const selfLevel = fly(0, 0, 0, 0.75, 8);
-check('and let go, the dihedral levels it: under 15 degrees 8 s later, no roll through', Math.abs(selfLevel.endBank * DEG) < 15 && selfLevel.endBank > -5 / DEG, `${deg(selfLevel.endBank)} deg`);
+/* Let go, the prop's yaw rolls it through level: the flown model's bank 8 s
+ * later (bombshell:derive, tests/bombshell-thresholds.json stab_letgo). */
+const letgo = JSON.parse(await readFile(join(root, 'tests/bombshell-thresholds.json'), 'utf8')).stab_letgo;
+check(`and let go, on the derived ${letgo.derived} degrees 8 s later, within ${letgo.tol}`, selfLevel.endBank * DEG >= letgo.min && selfLevel.endBank * DEG <= letgo.max, `${deg(selfLevel.endBank)} deg`);
 must(sim.reset(), 'reset');
 check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 

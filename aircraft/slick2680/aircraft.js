@@ -200,7 +200,7 @@ export default {
       "stock": {
         "1006cc": {
           "topSpeed": 41.66,
-          "minutes": 33.2
+          "minutes": 33.1
         }
       }
     }

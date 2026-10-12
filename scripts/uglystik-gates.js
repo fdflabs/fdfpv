@@ -310,7 +310,7 @@ check: {
       if (ms + RC_STEP_MS === 2000) at = b;
     }
     const b10 = fullBank(o.s) * DEG;
-    gate('U10', 'hands off from a 30 deg bank: it holds it', Math.sign(b10) === Math.sign(b0) && within(Math.abs(b10), t10) && worst <= t10.maxBankDeg,
+    gate('U10', 'hands off from a 30 deg bank: the prop rolls it back', Math.sign(b10) === Math.sign(b0) && within(Math.abs(b10), t10) && worst <= t10.maxBankDeg,
       `${b0.toFixed(1)} deg, ${at.toFixed(1)} at 2 s, ${b10.toFixed(1)} at ${t10.atS} s, never past ${worst.toFixed(1)}, ${speed(o.s).toFixed(2)} m/s`,
       `${band(t10)} deg at ${t10.atS} s, never past ${t10.maxBankDeg}`);
   }

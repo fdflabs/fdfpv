@@ -366,3 +366,10 @@ the film glows yellow and red and the ribs and spars show through.
 - RC Universe forums: "OS FS-52 Prop Size" (9,500 rpm on a 12 x 6), "OS 52 Surpass rpms, throw" (idle 2,300 to 2,400), "Kadet Senior" (engines owners use, transparent coverings, flight character).
 - Top Flite MonoKote transparent colours (monokote.com/transparent.html, archived 2019).
 - Nelson, Flight Stability and Automatic Control, ch. 2, 3 and 5; USAF DATCOM, the downwash gradient and the wing height term; Selig et al., Summary of Low-Speed Airfoil Data; the UIUC propeller data site; Heywood, Internal Combustion Engine Fundamentals, 1988; USDA Forest Products Laboratory, Wood Handbook.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- S6, 30 deg let go at cruise: flown with the prop's torque and swirl (kadet:derive bankAfterFlown), 21.4, 14.4 and 9.6 deg after 2, 4 and 6 s; the band its 0.462 to 1.548, 4.5 to 14.8 deg (was 9 to 30 about 19.4 with no prop).
+- kadet:stab, the Manual let go from 38.2 deg: derived 0.203 of the bank 8 s later, held within 0.137 (was 0.3 to 0.8, the spiral alone).

@@ -62,6 +62,8 @@ jobs:
       # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
       - run: npm run wash:derive -- --check
       - run: npm run stab:hold
+      # Each stab selftest's straight throw, derived (scripts/lib/throwflight.js).
+      - run: npm run stab:straight
       - run: npm run as3x:derive
       # The wings' ground effect against its sources and its surfaces
       # against the drawn model (scripts/ge-derive.js).

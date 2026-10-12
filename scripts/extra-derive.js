@@ -25,7 +25,8 @@
 
 import { fuselageRatio } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
-import { wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
+import { slipLoss, tailWash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -192,7 +193,10 @@ const torqueArm = Qs / Ts;
  * prop_spool): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
 const nOf = (d) => (-(0.85 / 0.15) + Math.sqrt((0.85 / 0.15) ** 2 + 4 * (0.85 / 0.15 + 1) * d)) / 2;
 const prop = wingProp('FW_EXTRA3D1308');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, nOf(d)));
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_EXTRA3D1308');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 /* The prop's inertia, ESTIMATED: a 13 in wood blade of about 35 g, a
  * tapered blade's 0.7 of a rod's m D^2 / 12, and the outrunner's can. */
 const propJ = 0.7 * 0.035 * (2 * propR) ** 2 / 12 + 0.06 * 0.021 * 0.021;
@@ -227,17 +231,21 @@ const rollAt = (V) => pb2v * 2 * V / b;
  * The vertical climb: full throttle, straight up, where the thrust meets
  * the weight and the drag at zero lift.
  */
-/* The prop's speed there, sqrt(W / Ts) of full, and the duty the electric
- * motor settles at it on (plant_wing.c prop_spool, Drela's law with the
- * plant's 0.85 rule): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
+/* The prop's speed there, sqrt(W / Ts) of full, and the stick the electric
+ * motor settles at it on at the gates' seat (plant_wing.c prop_spool,
+ * Drela's law with the plant's 0.85 rule, n^2 + K_M n = (K_M + 1) d, K_M =
+ * 0.85 / 0.15, and power_duty's pack over v_meas: wingSeat). */
 const hoverN = Math.sqrt(W / Ts);
-const KM = 0.85 / 0.15;
-const hoverDuty = (hoverN * hoverN + KM * hoverN) / (KM + 1);
+const hoverDuty = seat.stickFor(SEAT_GATES, hoverN, 0);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 
 /* The slipstream at a thrust and an axial speed, momentum theory, as the
- * plant takes it: dp, v_i, the contracted radius, the shares. */
+ * plant takes it: dp, v_i, the contracted radius, the shares, and what
+ * of dp the static jet brings the tail, the stabiliser's and the fin's
+ * quarter chords lh and lv behind the CG, the disc propX ahead of it
+ * (scripts/lib/wash.js tailWash). */
+const slipLoss_ = slipLoss({ propR, bh, hv: [hvUp, hvDn], xh: propX + lh, xv: propX + lv });
 function wash(thrust, u) {
   const dp = thrust / (Math.PI * propR * propR);
   const vi = 0.5 * (Math.sqrt(u * u + 2 * dp / rho) - u);
@@ -246,7 +254,7 @@ function wash(thrust, u) {
   const fv = (Math.min(rw, hvUp) + Math.min(rw, hvDn)) / (hvUp + hvDn);
   const ye = Math.min(rw, aileronOut);
   const fa = rw > aileronIn ? (ye * ye - aileronIn * aileronIn) / (aileronOut * aileronOut - aileronIn * aileronIn) : 0;
-  return { dp, vi, rw, fh, fv, fa };
+  return { dp, vi, rw, fh, fv, fa, ...tailWash(slipLoss_, vi, u) };
 }
 /* The tail's shares of the derivatives (plant_wing.c, THE SLIPSTREAM):
  * the stabiliser's lift slope and pitch stiffness, the fin's
@@ -311,7 +319,7 @@ const Qprop = torqueArm * W;
  * right rolling moment is near 40% of the propeller torque". The fin's
  * roll is linear in K, so K solves it directly; the fuselage's coil, which
  * Selig counts, is in the root's share here. */
-const swirlFinPerK = (Qp) => S * b * rho * hov.vi * hov.fv * slipClb * -(Qp * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
+const swirlFinPerK = (Qp) => S * b * rho * hov.vi * hov.fv * slipClb * -hov.keepS * (Qp * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
 const SELIG_SHARE = 0.40;
 const SWIRL_KEEP_DERIVED = (1 - SELIG_SHARE) / (1 - swirlFinPerK(1));
 const SWIRL_KEEP = Number(SWIRL_KEEP_DERIVED.toFixed(2));
@@ -373,8 +381,8 @@ const vhT = -slipCma / (at * (1 - deda)), vvF = slipCnb / av;
  * angular accelerations, each surface's share of the wash's dp on its
  * control, saturated at the control's own angle, and what the same sticks
  * do with the prop stopped, which is nothing. */
-const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
-const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
+const pitchAccHover = hov.dp * hov.keepH * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
+const yawAccHover = hov.dp * hov.keepV * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 /* The prop's precession: a yaw rate r pitches the airframe at r h / Iy. */
 const hHover = propJ * 0.85 * hoverN * rpmNL * 2 * Math.PI / 60;
 
@@ -444,14 +452,14 @@ function harrier(alphaDeg) {
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * clLinM);
   const alphaT = sa - deda * CL / CLa - slipA0 * (1 - deda);
   const xa = V * Math.sin(a - slipA0);
-  const vw = u + 2 * w.vi;
+  const vw = w.vwH;
   /* scripts/lib/washcontrol.js, as the plant: the side the elevator is on against the crossflow. */
   const cm = (de) => {
     const kw = washKw(a, w.dp, V, rho, Cmde * de * xa > 0 ? 'against' : 'with');
     const xt = at * alphaT - Cmde * de / vhT;
     const free = Cm0 + (Cma - slipCma) * sa + slipCma * slipA0 - vhT * xt * plateRatio(xt) + past * cmPost;
     const rh = plateRatio(at * xa / vw - kw * Cmde * de / vhT);
-    const wsh = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.fh * rh * kw * Cmde * de) / qb;
+    const wsh = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.keepH * w.fh * rh * kw * Cmde * de) / qb;
     return free + wsh;
   };
   let dLo = -throwE, dHi = throwE;
@@ -482,10 +490,10 @@ function knifeEdge(V) {
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
       const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slipCnb * (V * sb);
-      const nPerDr = qb * S * b * Cndr + w.dp * w.fv * S * b * Cndr;
+      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
-        - (qb + w.dp * w.fv) * S * CYdr * Math.abs(dr);
+        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
     if (T(u, 1) < thrust) break;
@@ -586,6 +594,7 @@ const rows = [
   ['E10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],
   ['   prop angular momentum at hover N m s', f(hHover, 4)],
   ['E11 entry: the throttle level at 12 m/s', f(levelDuty(12), 3)],
+  ['extra:stab kick: the throttle level at 16 m/s', f(levelDuty(16), 3)],
   ['E11 harrier at 35, 40, 45 deg', ''],
   ['   35', J(harrier(35))],
   ['   40', J(harrier(40))],

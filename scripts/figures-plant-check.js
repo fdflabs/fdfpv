@@ -55,6 +55,7 @@ import { loadSim } from '../tests/lib/simmod.js';
 import { must, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { clamp, quant, eyes } from '../tests/lib/personpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
+import { SEATED, POINT_HOLD_MS, pointStop } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -63,15 +64,26 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 /* Each aircraft, the speed it is thrown at and the loop's pull, the
  * person's for the aircraft: a round IMAC loop is flown short of the
  * wing's stall. loopEntry is the pull that sets the round loop's size:
- * the Extra's 0.3 holds it at 5 to 8 deg of alpha all the way round,
- * against its stall's 12.4; its 0.55, flown as a fixed stick, took the
+ * the Extra's 0.3 holds it at 5 to 8 deg of alpha all the way round
+ * (8.5 at most on the gates' 4.1 V seat, entered from the level pass at
+ * the throttle that holds 22 m/s, figureprograms.js SEATED), against its
+ * stall's 12.4; its 0.55, flown as a fixed stick, took the
  * wing to 13 and 14 deg, past the stall, in a 16 m loop whose grade then
  * turned on the stall's last details (3 or 4). loopPull is the quarter
  * loops' of the tailslide. The Extra at 22 m/s and 0.55; the CAP, whose elevator has
  * 50 deg of throw over a tail volume half again the Extra's, at 0.35, since
  * 0.55 takes its wing to 15 deg of alpha, past its 11.7 (CL max over the
- * wing's slope, npm run cap580:derive); the Slick at its trimmed sport
- * pace, 22 m/s too (npm run slick:derive), at the Extra's pull. */
+ * wing's slope, npm run cap580:derive; 0.35 reaches 10.4 on the seated
+ * pack, 0.4 11.8); the Slick launched at its trimmed sport pace, 22 m/s
+ * too (npm run slick:derive), but flown level at its 0.75 (SEATED: its
+ * engine has no pack to seat), which holds 41.7 m/s. Its loop at the
+ * Extra's 0.55 took the wing to 13.8 deg, past its 10.9 (CL max over the
+ * wing's slope, slick:derive); 0.4 reaches 9.8 and 0.45 11.1, so 0.4
+ * (2026-10-12), loop 7 where 0.55 named it 6. Measured again on the
+ * combined plant (w36-physics, 2026-10-12), the most alpha round the
+ * loop: the Extra 8.4 deg at 0.3, the CAP 10.3 at 0.35 (11.7 at 0.4),
+ * the Slick 9.8, 11.1 and 13.8 at 0.4, 0.45 and 0.55; the entries
+ * stand. */
 /* The tailslide is proven on the Extra (named 9 to 10 on four of its
  * flight models, figures-plant-sweep.js); on the CAP this program's up
  * line at 0.4 throttle hangs at 4.5 m/s and falls off sideways, and on
@@ -80,7 +92,7 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const PLANES = {
   extra: { sim: EXTRA_AIRFRAME, name: 'the Extra', launch: 22, loopPull: 0.55, loopEntry: 0.3, tailslide: true, sagPair: true },
   cap: { sim: CAP_AIRFRAME, name: 'the CAP', launch: 22, loopPull: 0.35, loopEntry: 0.35 },
-  slick: { sim: SLICK_AIRFRAME, name: 'the Slick', launch: 22, loopPull: 0.55, loopEntry: 0.55 },
+  slick: { sim: SLICK_AIRFRAME, name: 'the Slick', launch: 22, loopPull: 0.55, loopEntry: 0.4 },
 };
 const at = process.argv.indexOf('--plane');
 const asked = at > 0 ? process.argv[at + 1] : (process.argv[2] || 'extra');
@@ -171,11 +183,15 @@ async function flight({ sag = false } = {}) {
   let loopI = 0;
   let quarter = 0;
   let holdMs = 0;
+  let stop = null;
   let line0 = null;
   let back = false;
   const upTrim = { pitch: 0, yaw: 0 };
   const downTrim = { pitch: 0, yaw: 0 };
-  let st = [0, 0, 0, 0.75];
+  /* The level passes, the rolls and the points at the throttle that holds
+   * the launch's 22 m/s level (figureprograms.js LEVEL_THROTTLE). */
+  const levelThr = SEATED[plane.sim].level;
+  let st = [0, 0, 0, levelThr];
   for (let ms = 0; ms < 90000 && phase < program.length; ms += MS) {
     const o = see(sim.readState().state);
     eye.push(o);
@@ -189,7 +205,7 @@ async function flight({ sag = false } = {}) {
       const levelPitch = quant(clamp(-1.2 * d.nz + 0.12 * d.q + 0.04, 0.3));
       const h = EVERY / 1000;
       if (name === 'level') {
-        st = [levelRoll, levelPitch, 0, 0.75];
+        st = [levelRoll, levelPitch, 0, levelThr];
         if (phaseMs >= 4000) { phase += 1; phaseMs = 0; turned = 0; marks.push(ms); }
       } else if (name === 'loop') {
         turned += -d.q * h;
@@ -204,7 +220,7 @@ async function flight({ sag = false } = {}) {
         if (turned > 2 * Math.PI - 0.6) { phase += 1; phaseMs = 0; marks.push(ms); }
       } else if (name === 'roll') {
         turned += d.p * h;
-        st = [0.5, 0.05, 0, 0.75];
+        st = [0.5, 0.05, 0, levelThr];
         /* A person lets go early by what the roll will still carry: what
          * they have not seen yet (0.2 s) and the roll's own run on. */
         if (turned > 2 * Math.PI - d.p * 0.35) { phase += 1; phaseMs = 0; marks.push(ms); }
@@ -244,9 +260,12 @@ async function flight({ sag = false } = {}) {
            * prop's gyroscope pitches it off the line as the rudder yaws
            * the nose up, docs/FLIGHTMODEL.md). */
           const line = !sag && Math.abs(d.lz) > 0.5 ? quant(1.2 * (line0[0] * d.up[0] + line0[1] * d.up[1])) : 0;
-          st = [0, clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, 0.75];
+          /* And the point's stop on the ailerons (figureprograms.js
+           * pointStop): without it the knife edge's top rudder rolled the
+           * wings on through the point at 0.4 to 0.5 rad/s. */
+          st = [sag ? 0 : pointStop(stop, plane.sim, d.p, quarter * Math.PI / 2 - turned, phaseMs), clamp((d.uz < -0.5 ? -0.15 : d.uz > 0.5 ? 0.05 : 0) + line), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, levelThr];
         } else {
-          st = [0.5, 0.05, 0, 0.75];
+          st = [0.5, 0.05, 0, levelThr];
           /* Let go by what the roll still carries, the aileron roll's
            * 0.35 s above: the judge now marks each point off its quarter
            * (figuredetect.js pointsDeduction), and the 0.6 s this let go
@@ -254,7 +273,8 @@ async function flight({ sag = false } = {}) {
            * Slick's at 54, 124 and 206. */
           if (turned > (quarter + 1) * Math.PI / 2 - d.p * 0.35) {
             quarter += 1;
-            holdMs = 400;
+            holdMs = POINT_HOLD_MS;
+            stop = {};
             if (quarter === 4) { phase += 1; phaseMs = 0; marks.push(ms); }
           }
         }
@@ -278,9 +298,10 @@ for (const id of want.filter((id) => id !== 'four_point_roll')) {
 }
 /* The judge's sag deduction, apart from how well this person flies: on
  * the Extra the same 4-point roll is flown twice, clean (the line held on
- * the elevator through each point, as a person does, eb3ba037f) and as the
- * person flew it before, the elevator left alone so the nose falls off the
- * line over the four holds. Both must be named, the clean one graded 4 to
+ * the elevator through each point, as a person does, eb3ba037f, and each
+ * point stopped on the ailerons, figureprograms.js pointStop) and as the
+ * person flew it before, the elevator and the ailerons left alone so the
+ * nose falls off the line over the four holds. Both must be named, the clean one graded 4 to
  * 10 and the sagging one under it (a point per 15 deg off the line). On the
  * other aircraft the clean program's points still sag, and are graded
  * under the aileron roll. */

@@ -110,18 +110,18 @@ What it gives, derived, and what the plant flies (npm run nighttimber:gates):
 
 | | Derived | Band |
 |---|---|---|
-| Level at 75 percent | 12.34 m/s | 10.86 to 13.82 |
+| Level at 75 percent | 21.08 m/s on the gates' 4.1 V pack | 18.56 to 23.60 |
 | Stall, flaps up | 9.08 m/s | 8.54 to 10.35 |
 | Stall, full flaps | 8.08 m/s formula; the plant 7.29 since #854 | 6.7 to 8.0, the video pilot's own figure (see below) |
-| Top speed | 17.10 m/s | 15.39 to 18.81 |
+| Top speed | 26.67 m/s (4.1 V pack) | 24.01 to 29.33 |
 | Roll, full span ailerons | pb/2V 0.301, 373 deg/s at 13 m/s | 0.226 to 0.376 |
-| Hover stick | 0.8015 | 0.761 to 0.842 |
-| Vertical climb, full throttle | 6.60 m/s | 5.94 to 7.26 |
+| Hover stick | the prop at 0.8015 of full, a stick of 0.6665 on the 4.1 V pack | 0.634 to 0.700 |
+| Vertical climb, full throttle | 14.98 m/s (4.1 V pack) | 13.49 to 16.47 |
 | Torque roll, ailerons let go | 216 deg/s left | 162 to 270 |
 | Full aileron in the wash | 151 deg/s right | 91 to 211 |
-| Full elevator, rudder hanging | 40.8, 22.3 rad/s^2 | 25 percent |
+| Full elevator, rudder hanging | 40.8, 22.3 rad/s^2 at the hover; 54.6, 29.9 at the gate's stick, 0.8015, which on the 4.1 V pack makes 1.34 times the weight | 41.0 to 68.2, 22.4 to 37.3 |
 | At rest | 4.5 deg, CG 0.2562 m, 21.5 percent on the tail | 4 to 5 deg, 0.251 to 0.261 m |
-| Take off, half flaps | 3.91 m, 8.5 m/s | 2.35 to 6.25 m |
+| Take off, half flaps | 2.51 m, 8.5 m/s (4.1 V pack) | 1.51 to 4.02 m |
 
 ### Its controller
 

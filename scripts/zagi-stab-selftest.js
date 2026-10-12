@@ -122,6 +122,13 @@ function fly(roll, pitch, duty, seconds, refBank = null) {
   };
 }
 const deg = (x) => (x * DEG).toFixed(1);
+/* The stick that flies it level with the surfaces neutral, the table's
+ * stab_trim_throttle (npm run stab:glide): where Stabilised's pitch loop
+ * holds its trim pitch with no droop. The trim pitch checks fly there;
+ * until 2026-10-12 they flew a fixed stick, and the proportional loop's
+ * droop there grew with the seated pack's speed past their 4 degrees. */
+const WING_SRC = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
+const TRIM_STICK = Number(new RegExp('const FixedWingParams FW_ZAGI1219 = \\{[\\s\\S]*?\\.stab_trim_throttle = ([0-9.]+)').exec(WING_SRC)[1]);
 
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
@@ -129,9 +136,13 @@ launch();
 const level = fly(0, 0, 0.6, 12);
 check('off the hand, centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
-check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
-check('and straight: under 15 m off the line after 12 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/zagi-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/zagi-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${level.y.toFixed(2)} m`);
 check('and it flew away from the throw: above 3 m after 12 s', level.z > 3, `${level.z.toFixed(1)} m`);
+const trimmed = fly(0, 0, TRIM_STICK, 8);
+check(`and at the trim stick, ${TRIM_STICK}, hold the trim pitch within 4 degrees`, Math.abs(trimmed.pitch * DEG - 2) < 4, `${deg(trimmed.pitch)} deg`);
 const banked = fly(1, 0, 0.7, 4);
 check('full right stick banks right, 52 to 66 degrees', banked.bank * DEG > 52 && banked.bank * DEG < 66, `${deg(banked.bank)} deg`);
 const rolledBack = fly(0, 0, 0.6, 4);
@@ -141,7 +152,7 @@ check('half left stick banks left about 30 degrees', leftBank.bank * DEG < -22 &
 fly(0, 0, 0.6, 3);
 const nosedUp = fly(0, 0.8, 1.0, 3);
 check('up stick lifts the nose, 16 to 30 degrees, no tumble', nosedUp.pitch * DEG > 16 && nosedUp.pitch * DEG < 30 && nosedUp.worstBank * DEG < 20, `${deg(nosedUp.pitch)} deg, bank ${deg(nosedUp.worstBank)}`);
-const settled = fly(0, 0, 0.6, 5);
+const settled = fly(0, 0, TRIM_STICK, 5);
 check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
 
 console.log('acro');
@@ -151,7 +162,10 @@ const acroLevel = fly(0, 0, 0.6, 1);
 const acroHold = fly(0, 0, 0.6, 9, acroLevel.endBank);
 check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHold.worst * DEG < 3, `${deg(acroHold.worst)} deg`);
 check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
-check('and straight: under 15 m off the line', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
+/* The cross track Acro's hold flies, derived (npm run stab:straight,
+ * tests/zagi-thresholds.json stab_straight_acro). */
+const straightAcro = JSON.parse(await readFile(join(root, 'tests/zagi-thresholds.json'), 'utf8')).stab_straight_acro;
+check(`and on the derived line: ${straightAcro.derived} m after ${straightAcro.atS} s, within ${straightAcro.tol} m`, acroHold.y >= straightAcro.min && acroHold.y <= straightAcro.max, `${acroHold.y.toFixed(2)} m`);
 
 launchHigh(18);
 fly(0, 0, 0.8, 1);

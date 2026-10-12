@@ -539,12 +539,11 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .cells = 6.0,
   .r_cell = 0.010,
   /* DERIVED, docs/POWER-STAGE1.md: C-Astral publishes no pack, only
-   * 3 h at 16 m/s; 11 Ah on 6S flies that on this plant (179.2 min to the
-   * cut at a mean 3.68 A, 82 W, on the 12 x 8's curve and the 20.3 A full
-   * throttle current APC's 12 x 8E gives). That is 244 Wh, against the
-   * 330 Wh the drag estimate's 0.65 prop and 0.82 motor need. The
-   * autopilot, not an ESC, manages the end. */
-  .pack_c = 11000.0 * 3.6,
+   * 3 h at 16 m/s; on the seated pack (2026-10-12) 11 Ah on 6S flies 200.8
+   * min to the cut, so 9.86 Ah flies the 3 h, and the 6S 10 Ah, the
+   * nearest pack sold (Tattu's), 182.5. The autopilot, not an ESC,
+   * manages the end. */
+  .pack_c = 10000.0 * 3.6,
   .lvc = 0.0,
   .rho = 1.225,
   .prop_r = 0.1524,
@@ -2029,7 +2028,18 @@ int plant_set_power(const double *in) {
   if (glow != (in[SIM_POWER_IDLE] > 0.0) || (!glow && in[SIM_POWER_TANK] > 0.0)) {
     return SIM_ERR_BAD_ARG;
   }
+  /* The block names no voltage its figures were measured at, so an option
+   * takes its airframe's table's (the same motor's, on another pack or
+   * prop), and an electric option on a glow airframe, whose table has none,
+   * the fleet convention for a figure no source gives a voltage for: 3.7 V
+   * a cell open circuit less the option's static current through its cell
+   * resistance, ESTIMATED. docs/POWER-STAGE1.md "The seat". */
+  const double v_meas = base->fw->v_meas > 0.0 ? base->fw->v_meas : 3.7 - in[SIM_POWER_CURRENT] * in[SIM_POWER_R_CELL];
+  if (!glow && !(v_meas >= 2.5)) {
+    return SIM_ERR_BAD_ARG;
+  }
   g_fw_live = *base->fw;
+  g_fw_live.v_meas = v_meas;
   g_fw_live.thrust_static = in[SIM_POWER_THRUST];
   g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
   g_fw_live.rpm_no_load = in[SIM_POWER_RPM];

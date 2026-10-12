@@ -391,80 +391,80 @@ export default {
     "estimates": {
       "stock": {
         "4s4000": {
-          "topSpeed": 28.91,
-          "minutes": 61.7
+          "topSpeed": 29.49,
+          "minutes": 66.4
         },
         "4s5000": {
-          "topSpeed": 28.95,
-          "minutes": 71.4
+          "topSpeed": 29.82,
+          "minutes": 76.9
         },
         "4s6000": {
-          "topSpeed": 28.98,
-          "minutes": 80.8
+          "topSpeed": 30.05,
+          "minutes": 87.1
         },
         "4s16000": {
-          "topSpeed": 29.02,
-          "minutes": 145.9
+          "topSpeed": 30.76,
+          "minutes": 157.7
         }
       },
       "920-11x7": {
         "4s4000": {
-          "topSpeed": 32.57,
-          "minutes": 68.9
+          "topSpeed": 32.84,
+          "minutes": 74.2
         },
         "4s5000": {
-          "topSpeed": 32.64,
-          "minutes": 79.7
+          "topSpeed": 33.29,
+          "minutes": 85.9
         },
         "4s6000": {
-          "topSpeed": 32.69,
-          "minutes": 90.2
+          "topSpeed": 33.61,
+          "minutes": 97.3
         },
         "4s16000": {
-          "topSpeed": 32.77,
-          "minutes": 162.9
+          "topSpeed": 34.62,
+          "minutes": 176.2
         }
       },
       "920-12x6": {
         "4s4000": {
-          "topSpeed": 30.17,
-          "minutes": 60.5
+          "topSpeed": 30.55,
+          "minutes": 65.1
         },
         "4s5000": {
-          "topSpeed": 30.23,
-          "minutes": 70
+          "topSpeed": 30.95,
+          "minutes": 75.4
         },
         "4s6000": {
-          "topSpeed": 30.27,
-          "minutes": 79.2
+          "topSpeed": 31.22,
+          "minutes": 85.4
         },
         "4s16000": {
-          "topSpeed": 30.33,
-          "minutes": 143.1
+          "topSpeed": 32.08,
+          "minutes": 154.7
         }
       },
       "920-12x6-3s": {
         "3s5000": {
-          "topSpeed": 22.96,
-          "minutes": 57.6
+          "topSpeed": 23.96,
+          "minutes": 61.9
         }
       },
       "800-13x8": {
         "4s4000": {
-          "topSpeed": 33.08,
-          "minutes": 74.8
+          "topSpeed": 33.41,
+          "minutes": 80.6
         },
         "4s5000": {
-          "topSpeed": 33.15,
-          "minutes": 86.5
+          "topSpeed": 33.86,
+          "minutes": 93.3
         },
         "4s6000": {
-          "topSpeed": 33.2,
-          "minutes": 97.9
+          "topSpeed": 34.17,
+          "minutes": 105.7
         },
         "4s16000": {
-          "topSpeed": 33.29,
-          "minutes": 176.8
+          "topSpeed": 35.18,
+          "minutes": 191.3
         }
       }
     }

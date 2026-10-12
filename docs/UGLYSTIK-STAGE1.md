@@ -185,7 +185,7 @@ plant was flown. `npm run uglystik:gates`: **24 of 24**.
 | U8c on its back, stall speed | as upright | within 6 percent | 10.41 against 10.34 |
 | U8d on its back, roll rate | as upright | within 5 percent | 122 against 128 deg/s |
 | U9 a loop, half stick, full throttle | 41.35 m up, 32.56 along, 13.55 m/s over the top, out 4.52 m under | 35.1 to 47.6, 27.7 to 37.4, 11.5 to 15.6, −7.5 to −1.5; heading and wings within 15 deg | 41.3, 32.7, 13.6, out 4.6 m under, heading within 6.8, wings within 5.3 |
-| U10 30 deg bank let go, at 6 s | 26.6 deg (spiral half life 46 s) | 12 to 35, never past 40 | 14.9 |
+| U10 30 deg bank let go, at 6 s | 8.3 deg: the spiral's half life 25 s, and the prop's torque and swirl rolling it left (24.9 without them) | 3.8 to 10.9, never past 40 | 7.9 (w36-physics) |
 | U11a full up held from 1.2 Vs, power off | a stall with no wing drop | bank 15, yaw 20 deg/s, pitch over −35 | bank 5.4, yaw 4.5, roll 1.7 deg/s, alpha 15.4 |
 | U11b the same at half throttle, wings held | | and roll under 20 deg/s, ailerons under half | bank 7.4, roll 2.0 deg/s, ailerons 0.07 |
 | U12 prop torque | 0.612 N m | 0.52 to 0.70, rolling left | 0.612, rolling left |
@@ -365,8 +365,10 @@ A lively sport plane that does what it is told and nothing else. On the
 strip it stands a little nose down with the two stroke's buzz at idle;
 full throttle and it runs straight and needs a firm pull at about 11 m/s
 to lift off. At three quarter throttle it cruises at 17 m/s hands off,
-but it does not level its own wings: bank it and let go and it stays
-banked for seconds. Full aileron rolls it once round in a little over three
+but it does not level its own wings: its spiral is neutral, and what
+moves a bank let go is the prop, whose torque and swirl roll it left.
+Bank it 30 deg right and let go and it comes most of the way back to
+level in six seconds. Full aileron rolls it once round in a little over three
 seconds, about its own axis, the nose falling as it goes unless it is
 held. Half up stick at full throttle loops it, a tall loop that comes out
 a few metres under where it went in. On its back it needs about half the

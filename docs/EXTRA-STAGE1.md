@@ -253,21 +253,21 @@ figures from `npm run extra:derive`. Bands are never widened to pass.
 
 | Gate | What | Derived | Band | Measured |
 | --- | --- | --- | --- | --- |
-| E1 | level at 75 percent | 18.11 m/s | 15.94 to 20.28 | 17.99 |
+| E1 | level at 75 percent | 28.17 m/s (on the gates' 4.1 V pack) | 24.80 to 31.54 | 27.67 |
 | E2 | stall, power off | 8.31 m/s | 7.81 to 9.47 | 8.92 |
 | E3 | glide ratio at 12 m/s | 7.12 | 6.27 to 7.97 | 7.09 |
-| E4 | top speed | 24.34 m/s | 21.9 to 26.8 | 23.56 |
+| E4 | top speed | 34.73 m/s (4.1 V pack) | 31.26 to 38.20 | 33.44 |
 | E5 | roll, full aileron, pb/2V | 0.378 (497 deg/s at 15 m/s) | 0.284 to 0.473 | 0.376 (553 deg/s at 16.8) |
-| E6 | hover throttle, height held | sqrt(W / T_s) = 0.6255 | 0.594 to 0.657 | 0.6269, within 0.01 m |
-| E7 | vertical climb, full throttle | 15.76 m/s | 14.2 to 17.3 | 15.29 |
+| E6 | hover throttle, height held | the prop at sqrt(W / T_s) = 0.6255 of full, a stick of 0.4701 on the 4.1 V pack | 0.447 to 0.493 | 0.4708, within 0.02 m |
+| E7 | vertical climb, full throttle | 26.39 m/s (4.1 V pack) | 23.75 to 29.03 | 25.87 |
 | E8 | torque roll, ailerons let go | 230 deg/s left | 172 to 288 left | 230 left |
 | E9 | full right aileron, hanging | 149 deg/s right | 89 to 209 right | 149 right |
-| E10 | full elevator at zero airspeed | 38.86 rad/s² | 29.1 to 48.6 | 36.9; prop stopped 0.04 |
-| E10b | full rudder at zero airspeed | 32.47 rad/s² | 24.4 to 40.6 | 31.5; prop stopped 0.04 |
-| E11 | harrier at 40 deg of alpha | 6.25 m/s, 0.603 throttle, elevator 66 percent | 5.0 to 7.5, 0.51 to 0.69, short of full | 7.08, 0.633, stick 0.83 |
-| E12 | knife edge at 15 m/s | 31.8 deg sideslip, 0.618 throttle, rudder 73 percent | 23.9 to 39.7, 0.526 to 0.71, short of full | 30.2, 0.620, stick -0.77 |
+| E10 | full elevator at zero airspeed | 38.86 rad/s² at the hover, flown at the hover's own stick on the 4.1 V pack, 0.470 (until 2026-10-12 the gate flew sqrt(W/Ts), 0.6255, the prop's speed share, as its stick) | 29.1 to 48.6 | 36.8; prop stopped 0.00 |
+| E10b | full rudder at zero airspeed | 32.47 rad/s² at the hover | 24.4 to 40.6 | 31.1; prop stopped 0.00 |
+| E11 | harrier at 40 deg of alpha | 7.76 m/s, 0.408 throttle (4.1 V pack), elevator 86 percent; entered from 0.300, level at 12 m/s, the height hold starting at the 0.408 | 6.21 to 9.31, 0.348 to 0.468, short of full | 7.47, 0.373, stick 0.94 |
+| E12 | knife edge at 15 m/s | 31.8 deg sideslip, 0.493 throttle (4.1 V pack), rudder 73 percent | 23.9 to 39.7, 0.42 to 0.566, short of full | 30.2, 0.495, stick -0.77 |
 | E13 | standing on its wheels | 6.7 deg, 0.2221 m, 18.3 percent on the tail | half a degree, 5 mm, 15 to 22 percent | 6.69, 0.2222, 18.0 |
-| E14 | take off roll | 2.78 m | 1.7 to 4.5 | 4.07 |
+| E14 | take off roll | 1.96 m (4.1 V pack) | 1.18 to 3.13 | 2.83 |
 | E15 | every other aircraft unmoved | main's hashes | identical | identical |
 | E16 | Node and Chrome agree | | identical | identical |
 
@@ -439,3 +439,14 @@ Rolled on its side at a brisk pace it holds height on most of the rudder.
   crossflow term); Raymer, Aircraft Design; Sheldahl and Klimas,
   SAND80-2114 (symmetric sections past the stall), as the other stage
   files cite them.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 10 s, derived 2.97 m, held within 0.03 (was an underived bound).
+- extra:stab "full up stick pitches at Manual's rate, within 2 percent" was red: 148.4 against 159.3 deg/s, the mean over the last quarter second of a 0.5 s pull. Manual's full up pull at full throttle from 16 m/s departs into a snap (pitch rate 427 then 92 deg/s, roll to -380 deg/s, yaw to -133 by 0.5 s), and AS3X's roll axis, its stick centred, holds the roll to -40. Zeroing the roll gains alone gave 159.3 against 159.3; zeroing the yaw gains alone 148.2. It is the gyro doing what it is built to, not a gain derived without the term. Re-posed (the lead's decision): the mean pitch rate from the stick to the first step either mode rolls past 20 deg/s, AS3X within 2 percent of Manual's, which is pitch authority alone: 241.1 against 240.8 deg/s over 180 ms.
+- E11's derivation needs the elevator's whole throw at 40 deg and cannot trim 45 (w36-wash-speed, inherited): the plant holds 40 deg at 0.98 of the stick.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.
+- extra:stab's Stabilised "level" throw is a real sink, not a start height: at the trim stick (stab_trim_throttle 0.365, elevator neutral level at 14.9 m/s) Stabilised holds 2 deg of pitch, under the 3.6 deg of alpha the lift takes at 15.3 m/s, so it settles sinking 0.44 m/s; the throw model gives the same. Thrown from 3 m it crossed z = 0 at 5 s and ended 2.27 m under the ground plane, the rest of the section flown from there; it is thrown from 30 m now. Its straight line, 2.97 m, does not move.

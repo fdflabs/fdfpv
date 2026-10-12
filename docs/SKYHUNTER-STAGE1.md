@@ -283,3 +283,33 @@ plant's thrust moved to the prop's measured curve; each band keeps its
 proportion about the derived figure. The curve's thrust falls more gently
 with speed than the line's (dT/du -0.517 against -0.634 N s/m at 15 m/s),
 which damps the phugoid less and shortens it a little.
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+Its v_meas is the review's 669 W at 43.2 A on 4S, 3.872 V; at 4.1 V the static pack sags under it and the prop turns 0.977 of the table's speed. The derivation also flies the stick through the motor's law now. The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/skyhunter-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| S1 level at 65 percent | 18.80 to 20.58 m/s | 16.4 to 21.45, now 17.95 to 23.48 |
+| S4 top speed | 29.26 to 29.53 m/s | 26.77 to 33.0, now 27.02 to 33.3 |
+| S5 roll: the throttle that holds 20 m/s | 0.6893 to 0.6297 | duty 0.69, now 0.63 (skyhunter:stab's Acro throttle with it) |
+| S7 best climb | 12.44 to 11.68 m/s | 8.55 to 14.77, now 8.03 to 13.87 |
+| S10 phugoid | 9.63 to 9.62 s | 7.86 to 11.3, now 7.85 to 11.29 |
+| S14 prop torque, static | times 0.955 | 0.25 to 0.45, now 0.239 to 0.43 |
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 10 s, derived 3.36 m, held within 0.03 (was an underived bound).
+- Acro's hold, the same throw: derived 1.16 m within 0.02.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

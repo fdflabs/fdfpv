@@ -96,7 +96,7 @@ the waterfall's are the Extreme elevator and aileron).
 | Harrier | Harrier | 3D | 8 | game scale | unproven |
 | Inverted Harrier | Harrier invertido | 3D | 11 | game scale | unproven |
 | Rolling Harrier | Harrier con tonel | 3D | 16 | game scale | unproven |
-| Waterfall | Cascada | 3D | 12 | game scale | flown (Extreme tier) |
+| Waterfall | Cascada | 3D | 12 | game scale | unproven (not flyable on the measured slipstream, round 6; was flown on the Extreme tier) |
 | Blender | Licuadora | 3D | 18 | game scale | waits |
 | Tumble | Voltereta | 3D | 15 | game scale | waits |
 | Lomcevak | Lomcovák | 3D | 16 | game scale | waits |
@@ -272,38 +272,205 @@ with the loops whose phase and gain margins are measured
 ones to it. A figure is promoted to flown when the Extra's flight is named
 and graded honestly; the CAP and the Slick are recorded beside it.
 
-### Where every figure stands (2026-10-12, round 4)
+### Where every figure stands (2026-10-12, round 6)
 
-Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
-4-point roll are `figures:plant`'s own flights.
+Grades: Extra / CAP / Slick, `-` not named, on the combined plant (the
+gates' 4.1 V seat and the measured wash speed, w36-physics; round 6,
+below). The loop, aileron roll and 4-point roll are
+`figures:plant`'s own flights.
 
 | Figure | Physics | Grades | What is left |
 |---|---|---|---|
-| Knife-Edge Pass | flown | 9.5 / 9.5 / 10 | |
+| Knife-Edge Pass | flown | 9.5 / 9 / 10 | |
 | Rolling Circle | unproven | - / - / - | physics: the catalogue's is Aresti 2.4.2.1, one roll in the 360; at the judge's slowest roll, 1.2 rad/s, the turn asks 2.7 g toward the centre at 22 m/s, on the rudder where the wings are level, near three times the weight the Extra's knife edge holds there. The program's law flies four rolls round a circle (6.5 / 8 / 9.5), but that is 2.4.7.1, K 38, not in the catalogue |
-| Hammerhead | flown | 7 / 5.5 / 6 | the CAP's rudder has little air under 9 m/s: 0 to 6 across kick speeds |
-| Tailslide | flown | 9.5 / 9.5 / - | the Slick's pull out is named a parachute too (its lane's) |
-| Loop | flown | 7 / 7 / 6 (`figures:plant`) | |
-| Outside Loop | flown | 7 / 8 / 8 | radius spread (a constant push) |
-| Immelmann | flown | 4 / 5 / 6.5 | an egg shaped half loop on a fixed pull |
-| Split-S | flown | 3.5 / 5 / 2 | the pull tightens as it dives |
-| Cuban Eight | unproven | 1 / 4.5 / 0 | the 3/4 loop's radius spreads 61 % as the speed falls 26 to 11 m/s, faster than the round loop's integral follows. Round 3 tried the throttle by the climb (0.6 to 1 climbing, 0.2 to 0.6 descending) and the round law's gains (kp 0.1 and 0.2, ki 0.2 to 1): at best 3.5 / 4 / 0; the Slick flies the 0.6 throttle at 35 to 50 m/s, its 3/4 loop 47 m round and spread 62 % |
-| Reverse Cuban Eight | unproven | 0 / 4 / 2 | the same, both loops |
-| Knife-Edge Loop | flown | 9 / 9 / 5 | the Slick's arc opens late and it comes out 64 m under where the arc began (the radius spread 19 %); the pace, the rudder's share and the floor are FITTED (round 3, below) |
-| Half Cuban | flown | 7.5 / 7 / 7.5 | |
-| Reverse Half Cuban | flown | 5 / 7 / 7 | on the Extra the line after the roll still curves into the loop (radius spread 51 %) |
-| Humpty Bump | flown | 8 / 7 / 7.5 | |
-| Half Roll | flown | 9 / 8 / 8 | |
+| Hammerhead | flown | 7 / 6.5 / 7 | entered at 32 m/s on the measured rudder (round 6) |
+| Tailslide | flown | 10 / 10 / 9.5 (`figures:plant` 9 on the Extra) | entered at 32 m/s (round 6); from the 22 m/s pass the nose yaws round as it slides back (a parachute); the Extra's is not named from 22 or 28 m/s |
+| Loop | flown | 6 / 6 / 7 (`figures:plant`) | |
+| Outside Loop | flown | 4 / 8 / 8 | radius spread (a constant push) |
+| Immelmann | flown | 3.5 / 5 / 6.5 | an egg shaped half loop on a fixed pull |
+| Split-S | flown | 2.5 / 4 / 2 | the pull tightens as it dives |
+| Cuban Eight | unproven | 3 / 3.5 / 2 | named on the Extra again on the measured rudder (round 6; on the old 0.2 its yaw rang on the 45s and the 3/4 loop spread 65 %). Before: the 3/4 loop's radius spreads 61 % as the speed falls 26 to 11 m/s, faster than the round loop's integral follows. Round 3 tried the throttle by the climb (0.6 to 1 climbing, 0.2 to 0.6 descending) and the round law's gains (kp 0.1 and 0.2, ki 0.2 to 1): at best 3.5 / 4 / 0; the Slick flies the 0.6 throttle at 35 to 50 m/s, its 3/4 loop 47 m round and spread 62 % |
+| Reverse Cuban Eight | unproven | 0 / 2 / 2 | the same, both loops |
+| Knife-Edge Loop | flown | 10 / 8 / 6 | the Slick's arc opens late and it comes out 64 m under where the arc began (the radius spread 19 %); the pace, the rudder's share and the floor are FITTED (round 3, below) |
+| Half Cuban | flown | 7 / 6.5 / 6.5 | |
+| Reverse Half Cuban | flown | 3 / 7.5 / 7 | on the Extra the line after the roll still curves into the loop (radius spread 51 %) |
+| Humpty Bump | flown | 7.5 / 6 / 7.5 | |
+| Half Roll | flown | 7.5 / 9 / 8 | |
 | Aileron Roll | flown | 7 / 7.5 / 7.5 (`figures:plant`) | |
-| Double Roll | flown | 5.5 / 8 / 8.5 | |
-| Slow Roll | flown | 8 / 8.5 / 8.5 | |
-| 2-Point Roll | flown | 5.5 / 7 / 7.5 | its point at 164 deg; lost and regained in round 1 (below) |
-| 4-Point Roll | flown | 7 / 4.5 / 5 (`figures:plant`) | the knife edge points still roll on under the top rudder (below) |
-| 8-Point Roll | unproven | 3 / 0 / 1 | points 3 to 21 deg short of their marks |
+| Double Roll | flown | 6 / 7.5 / 8.5 | |
+| Slow Roll | flown | 7.5 / 8.5 / 8.5 | |
+| 2-Point Roll | flown | 5.5 / 6.5 / 7 | its point at 164 deg; lost and regained in round 1 (below) |
+| 4-Point Roll | flown | 6.5 / 6 / 6 (`figures:plant`) | each point stopped on the ailerons (round 6); before, the knife edge points rolled on under the top rudder |
+| 8-Point Roll | unproven | 3.5 / 0.5 / 2 | named on all three with each point stopped on the ailerons (round 6): all 7 pauses seen; the path off its line (3 to 4.5) and the roll's total (2 to 3) take the rest |
 | Barrel Roll | flown | 9 / 10 / 9.5 | |
 | Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
-| Waterfall | flown | 6 / - / - | on the Extra's Extreme elevator with an aileron tier over stock, flown on the Extreme aileron (round 4, below); the CAP has no surface tiers in the hangar and flies it stock, unnamed; the Slick has them (w36-surface-tiers, 4cf3179d1). Scott's throttle cut on the back side is not flown: on this plant it stops the rotation. The pivot's plane tilts 38 deg (2.5 points) |
+| Waterfall | **unproven** (was flown) | - / - / - | **BIG FAILURE against the RealFlight bar**: not flyable on the measured slipstream (Deters, Ananda and Selig 2015). Data gap: no tail-plane survey behind a prop with a fuselage; the plant's static elevator authority at x/D 3 is FITTED and ESTIMATED. On the combined plant none of about 1000 flights is named; the elevator's static-wash authority leaves the pivot too slow, and inverted after the first half turn the yaw runs away to 7 rad/s with full right rudder (named a spin). On the seat alone, from 28 m/s, 87 of round 4's 175. Flown (round 4) on the Extra's Extreme elevator and aileron |
+
+### Round 6 (2026-10-12, w36-tricks-r6): the combined plant
+
+w36-physics carries the seat (round 5) and the measured wash speed
+(w36-wash-speed: the static jet's spread at the tail, the swirl's decay
+and its force on the whole stream). Round 5's approach was re-applied on
+it (its four commits cherry-picked) and every derived and FITTED value
+regenerated or re-swept.
+
+- **Derived constants re-pinned** (`scripts/figures-margins.js`, all
+  hold): the line hold's fit K = 1.695 + 1.782 thr + 0.00274 V^2, LINE_GM
+  0.39 (6.1, 6.7, 7.9 dB at a third, two thirds and full throttle; 0.40
+  keeps 5.9 at a third), the knife edge's plant gains 13.731, 1.078 and
+  6.041 and its trim rudder 0.38 (elevation 0.187 at 32.9 m/s), the
+  knife-edge loop's path gain 0.971. The level throttles did not move
+  (Extra 0.563, CAP 0.507).
+- **The line's rudder, measured** (`figures-margins.js` lineRudder,
+  `LINE_YAW_KR`). It flew LINE_GAINS' fixed 0.2, on the grounds that its
+  step response turns over with the airspeed. Its frequency response
+  (responseAt on the yaw rate, as the elevator's) rises to the loop's
+  180 deg frequency, 12 to 16 rad/s on the Extra (the elevator's is
+  flat), and 0.2 kept -1.9 to -5 dB on the Extra, 1.4 to 5.7 on the CAP
+  and about 3 on the Slick, level; the Extra's yaw rang at 1.2 rad/s rms
+  over the lines of seven figures, worst on the Cuban 8's 45s. Measured
+  now where the lines fly, each aircraft held on a line by an attitude
+  hold with no delay and the throttle on the speed (up the vertical, up
+  the 45 and level, 8 to 30 m/s; a flight that does not settle within a
+  metre a second, or whose response jumps between neighbouring
+  frequencies, is not taken). It goes with the speed far more than the
+  line, so kr is pinned by speed at the criterion's 6 dB, the least of
+  the lines: the Extra 0.097 at 8 m/s to 0.057 at 22 and 0.059 at 30, the
+  CAP 0.264 to 0.098, the Slick 0.473 to 0.156. A level-only first try
+  (0.05 / 0.09 / 0.13, one gain each) lost the Slick's hammerhead and the
+  tailslide at a 28 m/s entry; by speed, the low lines keep their gain.
+  On it the Extra's yaw over the lines falls to 0.5 rad/s rms and the
+  Cuban 8 is named on the Extra again (3 / 3.5 / 2).
+- **The point's stop** (`pointStop`, `POINT_STOP`, `POINT_HOLD_MS`).
+  Flown to its judging rule (FAI/CIVA Sporting Code Section 6 Part 1,
+  B.9.26.2 and B.9.26.3: the rotation stops at regular intervals, the
+  rate constant between, the pauses of identical duration and each
+  clearly recognizable; B.9.25.3: the wings stop precisely), the 8-point
+  roll was named on none of the three: the hold had no aileron, the roll
+  ran on through each stop and the judge saw 4 or 5 of the 7 pauses (the
+  4-point roll's knife edge points the same, round 2). Now, once the
+  person sees the roll stopped (the judge's 0.35 rad/s), they hold the
+  point's bank on the ailerons, a proportional loop at their pace on the
+  roll they count (the judge's own measure: on the bank seen, the stops
+  after the half came out 10 to 40 deg short on the judge's count),
+  designed as the knife edge's bank loop was: each aircraft's response at
+  its level pass at all eight 45 deg banks, the highest crossover keeping
+  45 deg and 6 dB at every one (Extra 2.8 rad/s on 9.341, 46.7 deg and
+  7 dB; CAP 2.8 on 5.048, 47.9 and 6.6; Slick 2.6 on 5.191, 46.1 and
+  7.5). No trim's integral: a point is held under half a second, and its
+  corner at a quarter of the crossover costs 14 deg, which took the
+  Extra's 45 deg banks to 42 at best. No speed schedule: the points are
+  flown at the level pass. The pause, 400 ms, is FITTED from the judge's
+  recognition (a pause seen from 100 ms stopped, the roll one roll while
+  a pause lasts under 800 ms): over 200 to 700 ms, 400, 450 and 500 name
+  the 2- and 8-point rolls on all three; at 450 the Extra's clean 4-point
+  roll grades no better than its sagging one and `figures:plant` fails,
+  so 400, the points' hold before. Point rolls now: 2-point 5.5 / 6.5 /
+  7, 4-point 6.5 / 6 / 6 (was 6.5 / 4.5 / 5), 8-point 3.5 / 0.5 / 2
+  (named again on the Extra; `figures:sweep`'s pin holds).
+- **A set entry speed** (owner's decision: fix the vertical figures'
+  entries, no demotion). A person brings the speed to ENTRY_V on the level
+  pass, full throttle under it, closed over it, before the tailslide, the
+  hammerhead and the waterfall. FITTED over 22 to 34 m/s on all three, on
+  the measured rudder: the hammerhead is named on all three at every
+  entry (3.5 to 7.5), the tailslide on the CAP at every entry and on the
+  Extra at all but 22 and 28; 32, near the middle of 29 to 34, names the
+  tailslide on all three (10 / 10 / 9.5) and the hammerhead 7 / 6.5 / 7.
+  (On the old rudder it was 30, where the Slick's hammerhead held.)
+- **The slide's let go**, swept from the 22 m/s pass: the line held, the
+  line held with the rudder centred, or the sticks let go at the throttle
+  cut, each let go at a seen speed of -1 to 3 m/s; none of the 15 names
+  it (the nose yaws round at 1.5 to 3 rad/s as it slides back, with the
+  rudder centred too). Unchanged; the entry names it.
+- **Re-swept, kept:** the hammerhead's kick over 5 to 11 m/s from 32 m/s
+  (8 to 11 name all three, 9 kept); the Cubans' lead over 0.2 to 0.35
+  (0.25 and 0.3 name the half Cuban highest, 7 / 6.5 / 6.5 and
+  6.5 / 7 / 6.5; 0.25 kept); the knife-edge loop's 54 (no floor, rampS 2,
+  ff 0.4 or 0.55 name all three at every rate, 10 / 8 / 6 at the values);
+  the round loops' entries by the stall rule (Extra 8.4 deg at 0.3, CAP
+  10.3 at 0.35, Slick 9.8 at 0.4, each short of its stall).
+- `figures-plant-check.js` keeps its own fixed line gains (kr 0.2 on both
+  surfaces) as before; its gates pass.
+- **Lost, with numbers:**
+  - *Waterfall*: none of about 1000 flights: the 175 from the level pass,
+    from 22 to 32 m/s; the rudder 0 to 1 and a yaw rate damper of 0.1 to
+    0.8 on it; its throttle 0.5 to 1; the elevator 0.7 and 1; the upline at
+    60, 75 and 90 deg let go at 2, 4 and 7 m/s. The same 175 from 28 m/s on
+    the seat's module alone (c44822817) name it in 87. Inverted after the
+    first half turn, 5 to 9 m/s in the static wash, the yaw runs away to
+    the left to 7 rad/s with full right rudder: a spin. The wash lane's
+    (its 09:00 note already had the program turning into a spin).
+    The physics lane confirmed it (the plant follows its best source;
+    no technique flies it), and the owner moved it from flown to
+    unproven: not flyable on the measured slipstream (Deters, Ananda and
+    Selig 2015); data gap: no tail-plane survey behind a prop with a
+    fuselage; the plant's static elevator authority at x/D 3 is FITTED
+    and ESTIMATED. A big failure against the RealFlight bar, where a 3D
+    plane waterfalls; reported as one.
+  - *Rolling Circle* (unproven): kpsi and kz's 36 name four rolls in none
+    (6 of 12 when it was fitted), one roll in 10 on the Extra or the CAP, on all
+    three in none.
+
+### Round 5 (2026-10-12, w36-tricks-r5): the seated pack
+
+w36-seat-voltage seats the pack's loaded voltage over the table's v_meas
+in the duty from the first step: on the gates' 4.1 V seat the Extra's
+prop gives 14 to 18 % more thrust at a stick, its hover stick moved from
+0.59 to 0.47 and its harrier throttle from 0.516 to 0.408. The programs
+were re-derived and re-fitted on it.
+
+- **Derived constants re-pinned** (`scripts/figures-margins.js`): the line
+  hold's fit K = 1.738 + 1.89 thr + 0.0026 V^2 (was 1.637 + 1.563 thr +
+  0.00281 V^2), LINE_GM 0.40, the largest keeping 6 dB at a third, two
+  thirds and full throttle (6.1, 6.5, 7.6 dB; was 0.36); the knife edge's
+  bank, elevation and heading plant gains 13.725, 1.085 and 6.049, its
+  trim rudder 0.39 and elevation 0.187 at 32.9 m/s (was 0.46, 0.232, 28.5);
+  the knife-edge loop's path gain 0.978. Every loop keeps 45 deg and 6 dB.
+- **The level throttle, derived.** Every program flew its level passes,
+  rolls and points at 0.75 on every aircraft. On the old plant that held
+  the Extra at 22.7 m/s, the programs' 22; on the seated pack it holds
+  27.7. Now each phase flies the aircraft's own (`SEATED`): the throttle
+  that holds the launch's 22 m/s level, measured on the plant and checked
+  by `figures-margins.js` (the Extra 0.563, the CAP 0.507). The Slick's
+  engine has no pack to seat and keeps 0.75 (41.7 m/s): at its 0.158 that
+  holds 22 its 0.55 pulls take the wing to 15.3 deg against a 10.9 stall
+  and the loop, the Immelmann, the humpty and the knife edge are lost. A
+  refit at 22 m/s is the Slick's own. The hover's and the harrier's start
+  throttles are the aircraft's derived ones (E6 / C6 / S6, E11 / C11 / S11).
+  `figures:plant` passes on all three again (the Extra's 4-point roll 6.5,
+  0.5 at 0.75).
+- **Re-fitted:** the knife-edge loop's floor, over round 3's 54: with no
+  floor and rampS 2 it names on all three at every rate, so rateMin 0
+  (9 / 8 / 5; with the 0.4 floor 9 / 8 / 3). The hammerhead's kick, over
+  5 to 11 m/s: 9, 10 and 11 name it on all three, 9 kept. The Cubans' roll lead over 0.2 to 0.35 and the
+  waterfall's grid kept their values (below). The Slick's round loop entry,
+  by the plant check's own rule (short of the stall): 0.55 reached 13.8
+  deg against its 10.9, 0.4 reaches 9.8 (loop 7). The Extra's 0.3 reaches
+  8.5 deg, the CAP's 0.35 10.4, both short of their stalls.
+- **Lost, not re-fitted (the 3D lane's, or a program change):**
+  - *Tailslide, the Extra's table program*: from the level pass that holds
+    22 m/s the nose pivots on the yaw as it slides back (the up line's
+    rudder trim held into the reversed flow), it falls flat, and the down
+    line cannot bring the nose down at 7 m/s: named a parachute 9.5. The
+    tailslide in none of 7 entries at 0.543 to 0.583; 9.5 from 0.65 (25
+    m/s and more). The CAP names it 8.5 at its own 0.507, but in only 4 of
+    7 entries round it, and `figures:plant`'s tailslide (its slide on the
+    climb's trims) names it 9 on the Extra. Carrying the up line's trims
+    into the table's slide did not bring it back.
+  - *Waterfall*: 4 of round 4's 175 (rudder 0.1 to 0.2, aileron 0.6 to 1,
+    wings 0 to 2) from the 22 m/s level pass, none of them in more than 3
+    of 7 entries round it, so not refitted: the pivot decays from 7 to 3
+    or 4 rad/s after the first half turn and the second turn is flown as a
+    loop at 7 m/s. Its own throttle 0.7 to 1 changes nothing; the entry
+    does: from a level pass at 0.65, 13 of 175; at 0.75, 77.
+  - *Cuban Eight*: 0 on the Extra at every lead 0.2 to 0.35 and at every
+    level throttle 0.563 to 0.75 (1 on the old plant), so
+    `figures:sweep` fails on its pin, as built to.
+  `figures:table:check` fails on the tailslide and the waterfall rows, and
+  `figures:sweep` on the Cuban Eight's pin, until the lead decides: a
+  program change (the slide's let go, an entry speed for the vertical
+  figures) or the 3D lane's. No band, pin or status was moved.
 
 ### Round 4 (2026-10-12, w36-tricks-r4)
 

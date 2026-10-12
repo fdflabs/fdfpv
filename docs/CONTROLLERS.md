@@ -71,8 +71,12 @@ With the heading lock (#877, docs/FLIGHTMODEL.md) each table also carries
 is the table's own (22 ms unless it names one), and the rate per stick is
 the larger of the level one and the hanging one, the level one read at the
 table's own cruise (configs/power.js) and level throttle
-(stab_trim_throttle), the Extra and the Night Timber at the 16 m/s and
-0.624 they were derived at. Only an aircraft the derivation's hold keeps
+(stab_trim_throttle), every row alike (the Extra and the Night Timber took
+16 m/s at 0.624 until 2026-10-12, the Extra's old trim throttle, which
+climbs on the seated pack). The hanging one is held from the stick that
+hangs the weight on the prop on the 4.1 V pack (propcurve.js wingSeat
+hoverStick; 0.6 for an engine, which no row hovers): from 0.6 the seated
+Extra climbed out of the hold. Only an aircraft the derivation's hold keeps
 hanging (the nose within 20 deg and the height within 10 m over the last
 3 s, hover-probe's bounds) has a hanging rate: of these, the Extra and the
 Night Timber. The rest, short of thrust or of control in the wash, take

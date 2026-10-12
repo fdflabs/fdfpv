@@ -160,8 +160,8 @@ export default {
         "propIn": 12,
         "pitchIn": 8,
         "blades": 2,
-        "thrustN": 22.6,
-        "currentA": 20.3,
+        "thrustN": 22.9,
+        "currentA": 19.08,
         "rpmNoLoad": 10434,
         "pitchSpeedMs": 30.036,
         "lvcV": 0,
@@ -169,14 +169,14 @@ export default {
         "cgShiftM": 0,
         "packs": [
           {
-            "id": "6s11000",
+            "id": "6s10000",
             "cells": 6,
-            "mAh": 11000,
+            "mAh": 10000,
             "massKg": null,
             "source": "https://www.c-astral.com/en/unmanned-systems/bramor-c4eye"
           }
         ],
-        "pack": "6s11000",
+        "pack": "6s10000",
         "source": [
           "https://www.c-astral.com/en/unmanned-systems/bramor-c4eye",
           "https://www.c-astral.com/media/uploads/fm/catalogue/c-astral_katalog2019-spread.pdf"
@@ -191,8 +191,8 @@ export default {
         "propIn": 12,
         "pitchIn": 8,
         "blades": 2,
-        "thrustN": 25.577184246265276,
-        "currentA": 24.440634541479245,
+        "thrustN": 25.916704391127205,
+        "currentA": 22.97178852470069,
         "rpmNoLoad": 11100,
         "pitchSpeedMs": 31.953191489361704,
         "lvcV": 0,
@@ -200,14 +200,14 @@ export default {
         "cgShiftM": -0.003083700440528634,
         "packs": [
           {
-            "id": "6s11000",
+            "id": "6s10000",
             "cells": 6,
-            "mAh": 11000,
+            "mAh": 10000,
             "massKg": null,
             "source": "https://www.c-astral.com/en/unmanned-systems/bramor-c4eye"
           }
         ],
-        "pack": "6s11000",
+        "pack": "6s10000",
         "source": [
           "https://www.c-astral.com/en/unmanned-systems/bramor-c4eye"
         ]
@@ -215,15 +215,15 @@ export default {
     ],
     "estimates": {
       "stock": {
-        "6s11000": {
-          "topSpeed": 27.96,
-          "minutes": 179.2
+        "6s10000": {
+          "topSpeed": 28.35,
+          "minutes": 182.5
         }
       },
       "500kv": {
-        "6s11000": {
-          "topSpeed": 29.84,
-          "minutes": 176.8
+        "6s10000": {
+          "topSpeed": 30.07,
+          "minutes": 180.1
         }
       }
     }

@@ -140,10 +140,10 @@ Each band is the Kadet's in proportion about the derived figure.
 | Gate | Derived | Band |
 | --- | --- | --- |
 | H1 stall, power off | 9.67 m/s | 9.08 to 10.98 |
-| H2 cruise, level at 75 percent stick | 17.36 m/s | 14.93 to 20.22 |
+| H2 cruise, level at 75 percent stick | 25.25 m/s on the gates' 4.1 V pack | 21.73 to 29.40 |
 | H3 glide at 1.25 Vs | L/D 12.43, sink 0.97 m/s | 11.06 to 13.92, sink 0.86 to 1.09 |
-| H4 top speed, level | 23.46 m/s | 21.35 to 26.35 |
-| H5 take off run on grass | 7.06 to 15.80 m, 1.1 to 1.5 Vs | the same, no tail strike |
+| H4 top speed, level | 31.98 m/s (4.1 V pack) | 29.11 to 35.90 |
+| H5 take off run on grass | rolls of 4.65 to 9.20 m to 1.1 and 1.5 Vs (4.1 V pack) | 7.08 to 14.01 m, no tail strike |
 | H6 rest | level, CG 0.2604 m, nose 10.75 percent | half a degree, 5 mm, a fifth of the share |
 | H7 every other aircraft unmoved | | every pinned hash |
 | H8 Node and Chrome agree | | identical |

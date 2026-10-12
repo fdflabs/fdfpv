@@ -347,8 +347,8 @@ export default {
       },
       "electric": {
         "5s5000": {
-          "topSpeed": 27.35,
-          "minutes": 99
+          "topSpeed": 30.74,
+          "minutes": 118.3
         }
       }
     }

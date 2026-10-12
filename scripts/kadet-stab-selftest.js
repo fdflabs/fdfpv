@@ -145,7 +145,10 @@ check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `
 check('and hold the trim pitch within 4 degrees', Math.abs((level.pitch - TRIM_PITCH) * DEG) < 4, `${deg(level.pitch)} deg`);
 /* The Bombshell's 10 m over its 80 m of flight, in proportion to the
  * Kadet's 145 m. */
-check('and straight: under 18 m off the line after 10 s', Math.abs(level.y) < 18, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/kadet-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/kadet-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${(level.y).toFixed(2)} m`);
 check('at the Kadet\'s cruise, S1\'s band', level.v > 16.00 && level.v < 21.67, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 1 m/s', Math.abs(level.vz) < 1, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.9, 5);
@@ -221,11 +224,12 @@ fly(0, 0, 0, 0.75, 2);
 const manual = fly(1, 0, 0, 0.75, 1.5);
 check('with the stabiliser off, full roll stick banks it right on the rudder, past 20 degrees', manual.endBank * DEG > 20, `${deg(manual.endBank)} deg in 1.5 s`);
 const selfLevel = fly(0, 0, 0, 0.75, 8);
-/* The spiral at cruise halves a bank in 9.9 s (kadet:derive), so 8 s
- * after the stick is let go 0.57 of the bank is left: under 0.8 of it and
- * over 0.3, the same side, no roll through. */
+/* The dihedral and the prop's torque and swirl level it: the flown
+ * model's share of the bank 8 s later (kadet:derive, tests/kadet-thresholds.json
+ * stab_letgo). */
+const letgo = JSON.parse(await readFile(join(root, 'tests/kadet-thresholds.json'), 'utf8')).stab_letgo;
 const left = selfLevel.endBank / manual.endBank;
-check('and let go, the dihedral levels it: 0.3 to 0.8 of the bank 8 s later, no roll through', left > 0.3 && left < 0.8, `${deg(selfLevel.endBank)} deg, ${left.toFixed(2)} of it`);
+check(`and let go, it levels: on the derived ${letgo.derived} of the bank 8 s later, within ${letgo.tol}`, left >= letgo.min && left <= letgo.max, `${deg(selfLevel.endBank)} deg, ${left.toFixed(3)} of it`);
 must(sim.reset(), 'reset');
 check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 

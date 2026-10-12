@@ -33,6 +33,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { planeTable } from './lib/wash.js';
+import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll } from '../tests/lib/wingpilot.js';
@@ -140,7 +141,13 @@ const deg = (x) => (x * DEG).toFixed(1);
 
 console.log('stabilised');
 must(sim.e.sim_wing_set_stab(1), 'set stab');
-throwAt(3, 12);
+/* Thrown 30 m up: at the trim stick Stabilised's 2 deg of pitch is
+ * under the 3.6 deg the cruise's lift takes at 15.3 m/s, so it settles
+ * sinking 0.44 m/s (npm run stab:straight flies the same), and from the
+ * 3 m it was thrown at until w36-physics it passed z = 0 at 5 s and ended
+ * 2.27 m under the ground plane, the rest of this section flown from
+ * there. */
+throwAt(30, 12);
 /* Centred sticks at the stick that flies it level, the table's
  * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
  * prop curves gave the prop its thrust at speed. */
@@ -148,7 +155,10 @@ const level = fly(0, 0, 0, planeTable('FW_EXTRA3D1308').fw.stab_trim_throttle, 1
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
-check('and straight: under 15 m off the line after 10 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/extra-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/extra-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${level.y.toFixed(2)} m`);
 check('at a cruising speed', level.v > 12 && level.v < 22, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.95, 4);
@@ -193,15 +203,46 @@ const rollRates = bothModes((mode) => {
   return fly(1, 0, 0, 1.0, 0.5).p;
 });
 check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x / rollRates.manual - 1) < 0.02, `${deg(rollRates.as3x)} against ${deg(rollRates.manual)} deg/s`);
-const pullRates = bothModes((mode) => {
+/* Full up at full throttle from 16 m/s departs into a snap in Manual
+ * (roll to -380 deg/s, yaw to -133 by 0.5 s), which AS3X's roll axis, its
+ * stick centred, holds to -40: a mean over the last quarter second (the
+ * check until w36-physics, 148.4 against 159.3 deg/s) compared the snap
+ * against a held roll, not the pitch. The scratch build that showed it:
+ * the Extra's roll gains zeroed alone gave 159.3 against 159.3, its yaw
+ * gains zeroed alone 148.2. So the pitch is judged from the stick to the
+ * first step either mode rolls past PULL_ROLL_DEG, 20 deg/s, a twentieth
+ * of the pull's own 427 deg/s peak: the mean pitch rate there, AS3X
+ * within the same 2 percent of Manual's (Spektrum's priority hands the
+ * pitch axis to a full stick). */
+const PULL_ROLL_DEG = 20;
+const pulls = bothModes((mode) => {
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
   mode();
-  return fly(0, 1, 0, 1.0, 0.5).q;
+  const q = [], p = [];
+  for (let ms = 0; ms < 500; ms += RC_STEP_MS) {
+    must(sim.input((clockMs + ms) / 1000, 0, 1, 0, 1.0), 'input');
+    must(sim.step(RC_STEP_MS), 'step');
+    const st = sim.readState().state;
+    q.push(-st[12]);
+    p.push(st[11]);
+  }
+  clockMs += 500;
+  return { q, p };
 });
-check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
-const HOVER_DUTY = 0.625;
-for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.75]]) {
+const rolled = (p) => { const i = p.findIndex((x) => Math.abs(x * DEG) > PULL_ROLL_DEG); return i < 0 ? p.length : i; };
+const pullEnd = Math.min(rolled(pulls.manual.p), rolled(pulls.as3x.p));
+const meanQ = (q) => q.slice(0, pullEnd).reduce((a, b) => a + b, 0) / pullEnd;
+const pullRates = { manual: meanQ(pulls.manual.q), as3x: meanQ(pulls.as3x.q) };
+check(`full up stick pitches at Manual's rate until either rolls past ${PULL_ROLL_DEG} deg/s, within 2 percent: no cap`, pullEnd > 0 && Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s over ${pullEnd * RC_STEP_MS} ms`);
+/* The hover's stick, the one that hangs the weight on the prop on the
+ * 4.1 V pack this seats (scripts/lib/propcurve.js wingSeat, E6's
+ * derivation), and the stick that flies level at 16 m/s there, 0.393
+ * (npm run extra:derive). Until 2026-10-12 they were 0.625, the hover's
+ * prop speed share taken as a stick, and 0.75, neither derived: on the
+ * seated pack the one climbs off the prop and the other is not level. */
+const HOVER_DUTY = wingSeat('FW_EXTRA3D1308').hoverStick(SEAT_GATES);
+for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.393]]) {
   for (const [axis, k] of [['roll', 11], ['pitch', 12], ['yaw', 13]]) {
     const turned = bothModes((mode) => {
       mode();
@@ -394,19 +435,22 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
 
 /* Taxiing on the Cub's taxi thrust, 1.65 N: the prop at sqrt(1.65 /
  * 37.86), 0.209 of full, which the electric motor's law (plant_wing.c
- * prop_spool) turns at a duty of (0.209^2 + 5.667 0.209) / 6.667, 0.184,
- * where the Cub's check takes 0.35 of its own. The heading's change is
+ * prop_spool) turns at a duty of (0.209^2 + 5.667 0.209) / 6.667, 0.184
+ * at the pack the balance was taken at; on the 4.1 V pack this check
+ * seats, loaded over the table's v_meas (power_duty), at a stick of 0.143
+ * (scripts/lib/propcurve.js wingSeat stickFor). The Cub's check takes
+ * 0.35 of its own. The heading's change is
  * summed step by step: past half a circle the end points wrap. */
 for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
-  roll(() => [0, 0, 0, 0.184], 2);
+  roll(() => [0, 0, 0, 0.143], 2);
   let last = heading(sim.readState().state);
   let turnedRad = 0;
   roll(() => {
     const h = heading(sim.readState().state);
     turnedRad += Math.atan2(Math.sin(h - last), Math.cos(h - last));
     last = h;
-    return [0, 0, 1, 0.184];
+    return [0, 0, 1, 0.143];
   }, 4);
   const turned = turnedRad * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);

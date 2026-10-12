@@ -53,7 +53,7 @@ for (const [name, h] of Object.entries(HOLDS)) {
   const d = h.idle + (1 - h.idle) * h.stick;
   const T = h.Ts * d * d * (1 - h.V / (h.Vp * d));
   const w = wash(derive(name), T, h.V);
-  const g = gain(w.dp, w.fv, h.V);
+  const g = gain(w.dp * w.keepV, w.fv, h.V);
   const kp = r2(h.kp / g), kd = r2(h.kd / g);
   const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
   const ok = body.includes(`.stab_roll_kp = ${kp},`) && body.includes(`.stab_roll_kd = ${kd},`);

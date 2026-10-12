@@ -75,32 +75,36 @@ const PLANES = [
  * the ground's term unchanged. The Extra, CAP and Slick re-pinned for
  * their fuselages' measured crossflow drag (w36-3d-sideforce 84c873e57;
  * were b293b09e73f99993, 2e4df1c22374a4e2 and 1eec01c5f11adf28), the
- * ground's term unchanged. */
+ * ground's term unchanged. Sixteen tables re-pinned for the seated
+ * pack's thrust and the tail's measured wash on one plant (w36-physics:
+ * w36-seat-voltage and w36-wash-speed), the ground's term unchanged; the
+ * wing, Skyhunter, Bramor, F-16, Zagi, NRJ and the two Strikers did not
+ * move. */
 const PINS = {
-  wing: 'd113bc284e487a8e',
-  sky: '8a6fa77e69a7567a',
-  cub: '447631b3c704ba8a',
-  slowstick: 'a896c98ada88637b',
-  radian: '31d875fb7a13d850',
-  timber: '7aa3cc225b9a63fd',
-  bramor: 'b36022a49633899c',
-  timberf: '83212b730ba98465',
-  cubf: 'a15c0bd20d1447ac',
-  bombshell: 'ff71b23a2e794b1f',
-  kadet: 'b714f21b5921bf43',
-  p51: '0f69bafe8dd0fe26',
-  f16: '1e768094e5d55ce0',
-  zagi: '87d02284937a6fe9',
-  uglystik: 'cdcfaeaef321c312',
+  wing: 'ad4d4675b539f7ac',
+  sky: '67c0dfd1d6dce1d1',
+  cub: 'b8541ee8b370c6f4',
+  slowstick: '731483e6eb017e98',
+  radian: '08b9109d261f83b5',
+  timber: '42cf55e4be2ce1de',
+  bramor: '639bbf37df657ca7',
+  timberf: '1714bd0bf5b41596',
+  cubf: '6df7666ef3a9b593',
+  bombshell: 'cb55e508b565c328',
+  kadet: '2af0141678d16393',
+  p51: '3f5b18c3d6fd6773',
+  f16: '68bf198f7585f9e2',
+  zagi: 'abccd77d1b7b9034',
+  uglystik: '7eed8ee1f43b5c98',
   nrj: '31151485dea980a5',
-  tigermoth: 'b137c22cbd00dca4',
+  tigermoth: '1617c025e09104fb',
   strikerprop: 'ac1ebe1d9baba2ed',
   strikerjet: '2c30dccda291887d',
-  extra: '600d4952ce0224b7',
-  nighttimber: '199b12e1bb145922',
-  hercules: '1563b7113809f296',
-  cap580: 'cb61e013c0930fcc',
-  slick: '1c36540a86ef8c85',
+  extra: '3507628f2a5cfd82',
+  nighttimber: 'f34bb151437c1dde',
+  hercules: '4405e5e3b684abe5',
+  cap580: '8abf9aeac1ba645b',
+  slick: 'd7e7790e169321bc',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */
