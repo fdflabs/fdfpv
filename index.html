@@ -606,8 +606,9 @@
 
       /* THE STICK GHOST: two Mode 2 gimbals (yaw and throttle left, roll
          and pitch right) with the air slider between them, bottom centre.
-         Shown only for keyboard flying, so a radio never grows a second
-         pair of sticks, and faint enough to see a gate through. */
+         Shown for keyboard flying, and for a radio only when the pilot
+         asks (Show sticks, Compare sticks), and faint enough to see a gate
+         through. */
       .osd-sticks {
         position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
         display: flex; align-items: flex-end; gap: 14px;
@@ -634,6 +635,14 @@
         width: 11px; height: 11px; border-radius: 50%; background: var(--amber);
         box-shadow: 0 0 0 1px rgba(12, 18, 14, 0.55), 0 1px 6px rgba(0, 0, 0, 0.45);
       }
+      /* A compared recording's sticks (src/ui/stickref.js): a slate ring
+         the pilot's own amber nub passes over, so the two read apart at a
+         glance and where they agree the amber sits in the ring. */
+      .osd-nub-ref {
+        background: transparent; width: 15px; height: 15px;
+        box-shadow: inset 0 0 0 2px var(--slate), 0 0 0 1px rgba(12, 18, 14, 0.55);
+      }
+      .osd-nub-ref.is-off { display: none; }
       .osd-gimbal-cap, .osd-air-end {
         color: var(--slate); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
       }

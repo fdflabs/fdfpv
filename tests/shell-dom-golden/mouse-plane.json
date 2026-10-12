@@ -309,6 +309,15 @@
              "attrs": [
               [
                "class",
+               "osd-nub osd-nub-ref is-off"
+              ]
+             ]
+            },
+            {
+             "tag": "div",
+             "attrs": [
+              [
+               "class",
                "osd-nub"
               ]
              ]
@@ -555,6 +564,15 @@
               [
                "class",
                "osd-cross-y"
+              ]
+             ]
+            },
+            {
+             "tag": "div",
+             "attrs": [
+              [
+               "class",
+               "osd-nub osd-nub-ref is-off"
               ]
              ]
             },
@@ -8909,6 +8927,15 @@
              "attrs": [
               [
                "class",
+               "osd-nub osd-nub-ref is-off"
+              ]
+             ]
+            },
+            {
+             "tag": "div",
+             "attrs": [
+              [
+               "class",
                "osd-nub"
               ]
              ]
@@ -9155,6 +9182,15 @@
               [
                "class",
                "osd-cross-y"
+              ]
+             ]
+            },
+            {
+             "tag": "div",
+             "attrs": [
+              [
+               "class",
+               "osd-nub osd-nub-ref is-off"
               ]
              ]
             },
@@ -17636,6 +17672,26 @@
   "osdPackBar": {
    "node": "#ui/div.osd.1.2.0"
   },
+  "osdRefLeft": {
+   "keys": [
+    [
+     "nub",
+     {
+      "node": "#ui/div.osd.3.0.0.2"
+     }
+    ]
+   ]
+  },
+  "osdRefRight": {
+   "keys": [
+    [
+     "nub",
+     {
+      "node": "#ui/div.osd.3.2.0.2"
+     }
+    ]
+   ]
+  },
   "osdSpeed": {
    "node": "#ui/div.osd.2.0"
   },
@@ -17650,7 +17706,7 @@
     [
      "nub",
      {
-      "node": "#ui/div.osd.3.0.0.2"
+      "node": "#ui/div.osd.3.0.0.3"
      }
     ],
     [
@@ -17672,7 +17728,7 @@
     [
      "nub",
      {
-      "node": "#ui/div.osd.3.2.0.2"
+      "node": "#ui/div.osd.3.2.0.3"
      }
     ],
     [
@@ -18084,6 +18140,9 @@
   },
   "standingsTable": {
    "node": "#ui/div.screen.screen-page.screen-standings.2.0"
+  },
+  "stickRef": {
+   "instance": "StickRef"
   },
   "swapChip": {
    "node": "#ui/button.bug-chip.swap-chip"

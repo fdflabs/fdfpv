@@ -15,7 +15,14 @@
  * vertical and the height within 10 m, and the best one's figures. It
  * measures, it does not judge.
  *
- *   node scripts/hover-probe.js [--only key,...] [--lag seconds]
+ *   node scripts/hover-probe.js [--only key,...] [--lag seconds] [--csv dir]
+ *
+ * --csv writes each mode's best pilot's flight as a control recording,
+ * <dir>/hover-probe-<aircraft>-<tune>.csv (src/share/controlrec.js
+ * COLUMNS), for /dev/hover.html and the flight overlay's Compare sticks
+ * row (src/ui/stickref.js) to lay against a person's own. The probe
+ * steps 4 ms, so its rows are 4 ms apart, not the recorder's 1 ms; the
+ * frame and wall clock columns are empty, there being no frames.
  *
  * --lag replaces the pilot's 0.2 s delay: 0.2 is a person looking at a
  * real aircraft, so 0.2 plus the sim's stick to picture time (docs/PERF.md,
@@ -47,7 +54,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -57,6 +64,7 @@ import { tunesFor } from '../configs/registry.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { wingDebug, must } from '../tests/lib/wingpilot.js';
 import { PERSON, clamp, quant, eyes } from '../tests/lib/personpilot.js';
+import { COLUMNS, toCsv } from '../src/share/controlrec.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -79,6 +87,7 @@ const LAG_S = arg('--lag') === null ? PERSON.delayMs / 1000 : Number(arg('--lag'
 if (!(LAG_S >= 0 && LAG_S <= 1)) {
   throw new Error(`hover-probe: --lag wants seconds from 0 to 1, got ${arg('--lag')}`);
 }
+const CSV_DIR = arg('--csv');
 
 /* The fixed wings with a power table, a glider's skipped at its zero
  * thrust: the war drone, which has none, flies at plant.c's mass. */
@@ -138,7 +147,30 @@ function tw(sim, af) {
   return thrust / (massOf(af) * G);
 }
 
-function fly(sim, mode, g) {
+/* One control recording row after a step: the stick in force, the
+ * surfaces and the state block, as ControlRecorder.step writes them. */
+const ROW = new Array(COLUMNS.length).fill(NaN);
+const AT = Object.fromEntries(COLUMNS.map((c, i) => [c, i]));
+function row(sim, surfPtr, st) {
+  must(sim.e.sim_plane_surfaces(surfPtr), 'sim_plane_surfaces');
+  const surf = new Float64Array(sim.e.memory.buffer, surfPtr, 4);
+  const s = sim.readState().state;
+  const r = ROW.slice();
+  r[AT.t_s] = s[0];
+  for (let k = 0; k < 4; k += 1) {
+    r[AT.roll + k] = st[k];
+    r[AT.ail_l + k] = surf[k];
+  }
+  for (let k = 0; k < 13; k += 1) {
+    r[AT.x + k] = s[1 + k];
+  }
+  return r;
+}
+
+/* rec, when given, is { rows, surfPtr }: a control recording row is
+ * pushed after every step, the surfaces read through surfPtr, four
+ * doubles of this sim's memory. */
+function fly(sim, mode, g, rec = null) {
   start(sim, mode, 0.6);
   const eye = eyes({ stepMs: MS, delayMs: LAG_S * 1000 });
   let st = [0, 0, 0, 0.6], base = 0.6, trim = 0, held = 0, worst = 0, roll = 0;
@@ -168,6 +200,9 @@ function fly(sim, mode, g) {
     }
     must(sim.input(ms / 1000, ...st), 'sim_input');
     must(sim.step(MS), 'sim_step');
+    if (rec) {
+      rec.rows.push(row(sim, rec.surfPtr, st));
+    }
   }
   return { held: held / 1000, worst, thr: st[3], turns: roll / (2 * Math.PI) };
 }
@@ -185,18 +220,28 @@ const pilots = grid();
 for (const af of planes()) {
   if (only && !only.has(af.id)) continue;
   const sim = await planeSim(af);
-  const modes = tunesFor(af.id).map((t) => [t.wingStab || 0, `${t.name}${t.id === af.defaultTune ? ' *' : ''}`]);
+  const modes = tunesFor(af.id).map((t) => [t.wingStab || 0, `${t.name}${t.id === af.defaultTune ? ' *' : ''}`, t.id]);
   const ratio = tw(sim, af);
   if (!(ratio > 0)) {
     continue;
   }
   console.log(`${af.id}  TW ${f(ratio, 2)}  pilot delay ${LAG_S} s`);
-  for (const [mode, name] of modes) {
-    let n = 0, best = null;
+  for (const [mode, name, tune] of modes) {
+    let n = 0, best = null, bestPilot = null;
     for (const g of pilots) {
       const r = fly(sim, mode, g);
       if (r.held >= SECONDS) n += 1;
-      if (!best || r.held > best.held) best = r;
+      if (!best || r.held > best.held) {
+        best = r;
+        bestPilot = g;
+      }
+    }
+    if (CSV_DIR) {
+      const rec = { rows: [], surfPtr: sim.e.malloc(4 * 8) };
+      fly(sim, mode, bestPilot, rec);
+      sim.e.free(rec.surfPtr);
+      await mkdir(CSV_DIR, { recursive: true });
+      await writeFile(join(CSV_DIR, `hover-probe-${af.id}-${tune}.csv`), toCsv(rec.rows));
     }
     console.log(`  ${name.padEnd(12)} ${String(n).padStart(3)} of ${pilots.length} pilots hold 10 s; best ${f(best.held)} s, nose within ${f(best.worst, 0)} deg, throttle ${f(best.thr, 2)}, torque roll ${f(best.turns, 1)} turns`);
   }

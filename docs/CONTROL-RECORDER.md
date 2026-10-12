@@ -14,6 +14,22 @@ pilots on its delay alone), and only real flying says how hard the sim is agains
 - `/dev/hover.html` opens a saved CSV or the last flight. It plots the sticks against the nose off
   vertical and the roll rate, and prints the thumb numbers below.
 
+## Sticks on the flight overlay
+
+Added 2026-10-12 (Foundations #11, slice 3).
+
+- Settings, Pilot, Sticks: **Show sticks** (off by default) puts the two stick gimbals over the flight
+  for every input. Keyboard and mouse flying shows them whatever it says, as before.
+- **Compare sticks** opens a control recording and plays its sticks as a slate ring on the same gimbals,
+  under the pilot's amber nub, from the first frame this run is in the air (src/ui/stickref.js). A clock
+  that goes back (R, a new run) starts it again; past its last row the ring goes. Choosing the row again
+  puts it away. It lives for the session only, and a loaded recording shows the gimbals too.
+- `node scripts/hover-probe.js --csv <dir>` writes each mode's best person paced pilot as
+  `hover-probe-<aircraft>-<tune>.csv` in this format: rows every 4 ms (the probe's step), frame and wall
+  clock columns empty. Open it at `/dev/hover.html` or in Compare sticks.
+- The replay editor's clips (src/replay/recorder.js) carry the throttle only, so a replay cannot show
+  sticks yet; that needs roll, pitch and yaw columns in the saved replay format.
+
 ## Data
 
 One row per 1 ms plant step, in flight (not on the launch stand or a perch). Columns
