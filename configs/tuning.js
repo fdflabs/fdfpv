@@ -100,7 +100,6 @@ export const MARGIN_WARN = 0.05;
 export const TRIM_MAX_DEG = 4;
 
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
-const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
@@ -181,13 +180,7 @@ export const TUNING = {
     throws: { high: [19.0, 17.5, 15.5], low: [13.3, 12.25, 10.85], source: `OA Composites' manual: ailerons 13 mm each way, elevator 8 to 10 mm, rudder 12 mm, on the 40, 30 and 45 mm surfaces at the horn (docs/DLG-STAGE1.md); no low rate is published, so it is 70 percent; ${NRJ_MANUAL}` },
     flaps: null,
   },
-  f16878: {
-    chord: 0.2856, area: 0.21484, margin: 0.115,
-    cg: { mm: 90, datum: 'tuning.datum.root_le', range: null, source: `Freewing V3 manual p. 9, "90mm (3-1/2")" from the wing's leading edge at the root, no range; ${F16_MANUAL}` },
-    packKg: 0.566, nose: 0.60, tail: -0.55,
-    throws: { high: [21.5, 25, 30], low: [13.975, 20, 25.5], source: `high: the full size F-16's surface limits (NASA TP-1538), Freewing's high rate, 100 percent; low: the manual's own dual rates p. 11, "D/R Rate: 65%", "80%", "85%" of it; ${F16_MANUAL}` },
-    flaps: null,
-  },
+  f16878: AIRCRAFT.TUNING.f16878,
   zagi1219: {
     chord: 0.21335338, area: 0.26012851, margin: 0.099,
     cg: { mm: 203.2, datum: 'tuning.datum.root_le', range: null, source: `Zagi HP manual, "designed to balance at 8" measured back from the nose", the "suggested starting point", moved back in 1/8 in steps "until it is almost unflyable (too elevator sensitive)", no range; ${ZAGI_HP_MANUAL}` },

@@ -210,28 +210,13 @@ export const TUNES = [
    * on its wheels every mode flies as Manual. Its tunes are its folder's,
    * aircraft/p51d1450/aircraft.js. */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'p51d1450'),
-  {
-    /* The F-16, Freewing's PNP: no gyro, Manual. The fan is the pilot's
-     * in every mode. */
-    id: 'f16-manual',
-    airframe: 'f16878',
-    name: 'Manual',
-    note: 'No flight controller. The sticks work the ailerons, the all moving stabilators and the rudder, which also steers the nose wheel. The fan spools behind the throttle stick and stops when it is closed.',
-  },
-  {
-    id: 'f16-as3x',
-    airframe: 'f16878',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'f16-stab',
-    airframe: 'f16878',
-    name: 'Stabilised',
-    note: 'A gyro holds the jet once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, and centred sticks fly level. Throttle closed, it lowers the nose onto its glide. The fan still takes a moment to spool.',
-    wingStab: 1,
-  },
+  /*
+   * The F-16, Freewing's PNP: no gyro, Manual. The fan is the pilot's in
+   * every mode.
+   *
+   * Its tunes are its folder's, aircraft/f16878/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'f16878'),
   {
     /* The Zagi HP, a kit wing: no gyro, Manual. No rudder, so AS3X damps
      * roll and pitch only and the yaw stick does nothing. */

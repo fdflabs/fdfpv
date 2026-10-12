@@ -52,9 +52,6 @@ const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
  */
 /* The Timber stands on tundra tyres already. */
 const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
-/* The F-16's canopy is already gold tinted and a paint region of its own,
- * so a tint slot would only repeat the Paint page. */
-const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
 const NRJ = [slot('nose', 'pointed')];
 /* The Zagi's winglets already set its height and its aftmost point, so a
  * taller one would grow the box the referee meets: raked and split keep
@@ -108,7 +105,11 @@ export const KITS = {
    * engine has no exhaust stacks to change.
    */
   bombshell1118: AIRCRAFT.KITS.bombshell1118,
-  f16878: JET,
+  /*
+   * The F-16's canopy is already gold tinted and a paint region of its
+   * own, so a tint slot would only repeat the Paint page.
+   */
+  f16878: AIRCRAFT.KITS.f16878,
   /*
    * The Radian's canopy is a paint region, so no tint slot; the NRJ is a
    * throw glider with no canopy and no tips a winglet belongs on.
