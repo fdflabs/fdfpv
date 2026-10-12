@@ -277,7 +277,9 @@ export function propMoments(t, n, u) {
   const keep = fw.slip_pusher ? 1 : t.keep;
   const xs = w.keepS * keep * Q * (Math.min(w.rw, fw.slip_hv[0]) - Math.min(w.rw, fw.slip_hv[1])) / (mdot * w.rw * w.rw);
   const kv = RHO * w.vi * w.fv;
-  const xb = -xs;
+  /* The swirl meets the whole stream, 1/2 rho (u + 2 v_i) per unit of it,
+   * as plant_wing.c takes it. */
+  const xb = -xs * (up + 2 * w.vi) / (2 * w.vi);
   return {
     L: -Q + fw.area * fw.span * kv * fw.slip_cl_b * xb + (1 - keep) * Q,
     N: fw.area * fw.span * kv * fw.slip_cn_b * xb,

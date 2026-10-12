@@ -146,7 +146,7 @@ const LINE_KI = 1;
  * elevator and snapped the wing. The rudder keeps LINE_GAINS: its
  * step response turns over with the airspeed (the fin weathervanes the
  * yaw back within the 0.25 s), so it has no gain to schedule on. */
-export const LINE_PITCH_K = { a: 1.604, b: 1.471, c: 0.00292 };
+export const LINE_PITCH_K = { a: 1.603, b: 1.471, c: 0.00292 };
 export const LINE_GM = 0.36;
 export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
 const holdLine = (d, m, target, thr) => {
@@ -216,8 +216,8 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 11.989 },
-  elevation: { wc: 0.8, gain: 1.138 },
+  bank: { wc: 2, gain: 11.997 },
+  elevation: { wc: 0.8, gain: 1.132 },
   heading: { wc: 2, gain: 5.335 },
   trim: { rudder: 0.46, elevation: 0.232, speed: 28.5 },
 };
@@ -298,7 +298,7 @@ const knife = (ms) => ({
  * turn) the Extra did not finish the loop and reached the ground in all
  * four. It lets go 0.3 s of the path's rate early.
  */
-export const KNIFE_LOOP = { path: { wc: 0.8, gain: 1.01 }, rate: 0.5, rateMin: 0.4, rampS: 2, ff: 0.55 };
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 1.005 }, rate: 0.5, rateMin: 0.4, rampS: 2, ff: 0.55 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const knifeLoop = () => ({
   name: 'knife loop',

@@ -14,8 +14,8 @@
         "bank": {
           "crossoverFor": 2,
           "wc": 2,
-          "gain": 11.992,
-          "pmDeg": 45.2,
+          "gain": 11.997,
+          "pmDeg": 45.1,
           "wcFound": 2.2,
           "gmDb": 9.2,
           "w180": 5.8
@@ -23,8 +23,8 @@
         "elevation": {
           "crossoverFor": 0.8,
           "wc": 0.8,
-          "gain": 1.138,
-          "pmDeg": 91.2,
+          "gain": 1.132,
+          "pmDeg": 91,
           "wcFound": 1,
           "gmDb": 7.3,
           "w180": 10
@@ -47,9 +47,9 @@
       "knifeLoop": {
         "path": {
           "crossoverFor": 1.6,
-          "gain": 1.01,
+          "gain": 1.005,
           "wc": 0.8,
-          "pmDeg": 62.5,
+          "pmDeg": 62.3,
           "wcFound": 1,
           "gmDb": 15.2,
           "w180": 5
@@ -59,7 +59,7 @@
       "delayS": 0.225,
       "lineElevator": {
         "fit": {
-          "a": 1.604,
+          "a": 1.603,
           "b": 1.471,
           "c": 0.00292,
           "steps": 84,
@@ -208,9 +208,9 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 145.2,
+        "lowestM": 145.9,
         "others": {
-          "cap": 0,
+          "cap": 1.5,
           "slick": 0
         },
         "seated": {
@@ -246,12 +246,11 @@
         "named": true,
         "grade": 10,
         "flew": [
-          "tailslide 10",
-          "parachute 9.5"
+          "tailslide 10"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 138.7,
+        "lowestM": 138.6,
         "others": {
           "cap": 9.5,
           "slick": null
@@ -297,9 +296,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 6,
+        "grade": 8,
         "flew": [
-          "outside_loop 6"
+          "outside_loop 8"
         ],
         "finished": true,
         "crashed": false,
@@ -334,16 +333,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 4.5,
+        "grade": 5,
         "flew": [
-          "immelmann 4.5"
+          "immelmann 5"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 5,
-          "slick": 6
+          "cap": 6,
+          "slick": 6.5
         },
         "seated": {
           "extra": null,
@@ -377,7 +376,7 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 133.8,
+        "lowestM": 133.7,
         "others": {
           "cap": 5,
           "slick": 2
@@ -415,9 +414,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 1,
+        "grade": 0,
         "flew": [
-          "cuban_8 1"
+          "cuban_8 0"
         ],
         "finished": true,
         "crashed": false,
@@ -469,7 +468,7 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 4,
+          "cap": 5,
           "slick": 2
         },
         "seated": {
@@ -519,10 +518,10 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 147.4,
+        "lowestM": 146.6,
         "others": {
           "cap": 9,
-          "slick": 4
+          "slick": 6
         },
         "seated": {
           "extra": null,
@@ -556,13 +555,13 @@
       },
       "measured": {
         "named": true,
-        "grade": 7.5,
+        "grade": 6.5,
         "flew": [
-          "half_cuban 7.5"
+          "half_cuban 6.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 128.5,
+        "lowestM": 128.6,
         "others": {
           "cap": 6.5,
           "slick": 7.5
@@ -598,9 +597,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 5,
+        "grade": 4,
         "flew": [
-          "reverse_half_cuban 5"
+          "reverse_half_cuban 4"
         ],
         "finished": true,
         "crashed": false,
@@ -646,7 +645,7 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 144.5,
+        "lowestM": 144.2,
         "others": {
           "cap": 7,
           "slick": 7.5
@@ -684,7 +683,7 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 148.6,
+        "lowestM": 148.5,
         "others": {
           "cap": 8,
           "slick": 8
@@ -736,7 +735,7 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 8,
+          "cap": 7.5,
           "slick": 8.5
         },
         "seated": {
@@ -772,7 +771,7 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 8,
+          "cap": 8.5,
           "slick": 8.5
         },
         "seated": {
@@ -800,15 +799,15 @@
       },
       "measured": {
         "named": true,
-        "grade": 5.5,
+        "grade": 6,
         "flew": [
-          "two_point_roll 5.5"
+          "two_point_roll 6"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 146.7,
+        "lowestM": 146.4,
         "others": {
-          "cap": 7,
+          "cap": 6.5,
           "slick": 7
         },
         "seated": {
@@ -854,9 +853,9 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 121.4,
+        "lowestM": 121.2,
         "others": {
-          "cap": 0.5,
+          "cap": 0,
           "slick": 0.5
         },
         "seated": {
@@ -893,7 +892,7 @@
         "lowestM": 150,
         "others": {
           "cap": 10,
-          "slick": 10
+          "slick": 9.5
         },
         "seated": {
           "extra": null,
@@ -1004,7 +1003,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 145.7,
+        "lowestM": 139.3,
         "others": {
           "cap": null,
           "slick": null
@@ -1043,7 +1042,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 144.5,
+        "lowestM": 117,
         "others": {
           "cap": null,
           "slick": null
@@ -1079,7 +1078,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 146.3,
+        "lowestM": 140.2,
         "others": {
           "cap": null,
           "slick": null
@@ -1118,7 +1117,7 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 139.2,
+        "lowestM": 137.1,
         "others": {
           "cap": null,
           "slick": null
@@ -1150,10 +1149,12 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
+        "flew": [
+          "half_roll 0"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 107.2,
+        "lowestM": 101.3,
         "others": {
           "cap": null,
           "slick": null
@@ -1190,11 +1191,11 @@
         "named": false,
         "grade": null,
         "flew": [
-          "spin 9.5"
+          "spin 10"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 121.9,
+        "lowestM": 137.8,
         "others": {
           "cap": null,
           "slick": null
@@ -1283,7 +1284,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 117.3,
+        "lowestM": 125.8,
         "others": {
           "cap": null,
           "slick": null
