@@ -103,12 +103,14 @@ const DOWN = [0, 0, -1];
  * (562dc785e) rolled the Extra at 5.1 rad/s at half stick, the 2-point
  * roll's 0.6 s lead let go at 36 deg and stopped at 105, still rolling
  * at 0.4 rad/s, not on its back: the judge saw no point and named an
- * aileron roll. POINT_LEAD is the roll's let go (roll() above and
- * figures-plant-check.js's aileron roll): the roll carries 68 deg after
- * a 5.1 rad/s let go, 0.23 s (the person's 0.2 s unseen, half a 50 ms
- * beat, and the Extra's own 0.03 s run on, measured 2026-10-12), and
- * the person lets go a little earlier still, landing a point at or short
- * of its mark rather than rolled past it. */
+ * aileron roll. POINT_LEAD is taken from roll() above (and
+ * figures-plant-check.js's aileron roll), one person's one anticipation,
+ * not measured for points. The roll measured carrying 68 deg after a
+ * 5.1 rad/s let go, 0.23 s (the person's 0.2 s unseen, half a 50 ms beat,
+ * the Extra's own 0.03 s run on, 2026-10-12), but a 0.25 s lead lands the
+ * Extra's first 4-point stop at 102 deg, where the top rudder keeps 0.4
+ * to 0.5 rad/s of roll on, over the judge's stop, and the figure is lost:
+ * the hold has no aileron, a gap of the hold, not of the lead. */
 const POINT_LEAD = 0.35;
 const points = (n, stick = 0.5) => ({
   name: `${n} points`,
