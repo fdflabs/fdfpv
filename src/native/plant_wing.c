@@ -4736,12 +4736,12 @@ const FixedWingParams FW_P51D1450 = {
    * its thickness, the wing's CL max on the strips' own terms and its peak
    * the critical strip's section's plus CL / (pi A e), npm run p51:derive. */
   .stall_re = { 1.0e5, 2.0e5 },
-  .stall_clmax = { 1.0330, 1.0903 },
-  .stall_peak = { 0.3136, 0.3229 },    /* 17.97 and 18.50 deg */
+  .stall_clmax = { 1.0330, 1.0903 },  /* npm run p51:derive, docs/P51-STAGE1.md */
+  .stall_peak = { 0.3136, 0.3229 },    /* 17.97 and 18.50 deg, npm run p51:derive */
   /* The rounding to the peak apart from the fall: the 2415 at 2e5 rounds
    * 5.4 deg to its peak and falls 1.222 to 0.749 within 0.8 deg, so the
    * fall, the strips and the stall's drag and moments keep stall_blend. */
-  .stall_round = 3.0 * WING_PI / 180.0,
+  .stall_round = 3.0 * WING_PI / 180.0,  /* the floor, docs/P51-STAGE1.md "stall_round" */
   /* The zero lift line 1.28 degrees under the thrust line: a 6 series
    * section's 1.3 deg under its chord at the wing's mean incidence of 0.13
    * deg, less the tail's share. sin and cos of minus 1.28 degrees. */
