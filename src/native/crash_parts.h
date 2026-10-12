@@ -1918,4 +1918,179 @@ static const PartDef PARTS_HERCULES3077[] = {
     BOX(-0.84, -0.60, -0.115, 0.115, -0.17, -0.12) },
 };
 
+/* ------------------------------------------------------------------------
+ * EXTREME FLIGHT 67 IN CAP 580, SIM_AIRFRAME_CAP1702, capcraft.js.
+ * 3.63 kg of balsa and ply under film, docs/CAP580-STAGE1.md: nothing
+ * foam, so nothing crushes; a joint past its onset cracks, as the Ugly
+ * Stik's balsa does. A sheeted box fuselage on a fibreglass cowl, the two
+ * wing panels on a 20 mm carbon tube, the tail feathers built up and
+ * hinged, carbon gear legs, an AM670 on a ply firewall. Wheels: 0 left
+ * main, 1 right main, 2 tailwheel, 3 the prop tip's skid.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_CAP1702[] = {
+  /* 0 the fuselage from the wing's trailing edge to the firewall: the
+   * cowl, the ESC, the four servos, the receiver and the wing's saddle:
+   * the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.31, 0.47, -0.075, 0.075, -0.13, 0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 1 the rear fuselage, a sheeted box tapering to the tail. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.20, .joint = { -0.31, 0.0, -0.03 }, .m_max = 150.0, .f_max = 700.0, .k = 4.0e4, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { -0.31, 0.075, -0.13 }, { -0.31, -0.075, -0.13 }, { -0.31, 0.075, 0.07 }, { -0.31, -0.075, 0.07 }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+                        { -1.03, 0.015, -0.05 }, { -1.03, -0.015, -0.05 }, { -1.03, 0.015, 0.06 }, { -1.03, -0.015, 0.06 } } },
+  /* 2 the stabiliser on the fuselage, 3 the elevators, 67 percent of it. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -0.82, 0.0, 0.027 }, .m_max = 2.0 * BALSA_M(0.0127, 0.0127), /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .f_max = 120.0, .k = 2500.0, BOX(-0.87, -0.77, -0.375, 0.375, 0.017, 0.037) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -0.87, 0.0, 0.027 }, .m_max = 1.5, .f_max = 40.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-1.06, -0.87, -0.375, 0.375, 0.019, 0.035) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 4 the fin on the fuselage's top, 5 the rudder, which runs down under
+   * the fuselage to its foot. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.04, .joint = { -0.88, 0.0, 0.06 }, .m_max = 2.0 * BALSA_M(0.0127, 0.0127), .f_max = 80.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.95, -0.80, -0.005, 0.005, 0.06, 0.277) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.95, 0.0, 0.10 }, .m_max = 1.2, .f_max = 35.0, .k = 1500.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-1.076, -0.95, -0.005, 0.005, -0.075, 0.277) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 6, 7 the two panels on the 20 mm carbon tube (its size air-rc's, docs/CAP580-STAGE1.md): a 1 mm wall's section,
+   * 2.7e-7 m^3, 160 N m at a carbon tube's 600 MPa, FITTED; fore and aft
+   * the panel's sheeted leading and trailing edges, 90 N m. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.25, .joint = { -0.01, 0.075, -0.085 }, CARBON_SPAR(0.010), .m_max = 160.0, .m_max_z = 90.0, .f_max = 800.0, .k = 3000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { 0.13, 0.075, -0.115 }, { -0.305, 0.075, -0.115 }, { 0.13, 0.075, -0.055 }, { -0.305, 0.075, -0.055 }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+                        { 0.076, 0.851, -0.10 }, { -0.141, 0.851, -0.10 }, { 0.076, 0.851, -0.07 }, { -0.141, 0.851, -0.07 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.25, .joint = { -0.01, -0.075, -0.085 }, CARBON_SPAR(0.010), .m_max = 160.0, .m_max_z = 90.0, .f_max = 800.0, .k = 3000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { 0.13, -0.075, -0.115 }, { -0.305, -0.075, -0.115 }, { 0.13, -0.075, -0.055 }, { -0.305, -0.075, -0.055 }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+                        { 0.076, -0.851, -0.10 }, { -0.141, -0.851, -0.10 }, { 0.076, -0.851, -0.07 }, { -0.141, -0.851, -0.07 } } },
+  /* 8, 9 the ailerons, 43 percent of the chord from 0.115 m to the tip. */
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.12, 0.48, -0.085 }, .m_max = 1.0, .f_max = 30.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.29, -0.06, 0.115, 0.851, -0.095, -0.075) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -0.12, -0.48, -0.085 }, .m_max = 1.0, .f_max = 30.0, .k = 2000.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.29, -0.06, -0.851, -0.115, -0.095, -0.075) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 10 the AM670, 416 g (T-Motor), on its mount through the 1/4 in ply
+   * firewall: four bolts, the Ugly Stik's 800 N and 24 N m. 11 the 18 x 8
+   * carbon prop and the 76 mm spinner. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.416, .joint = { 0.47, 0.0, 0.0 }, .m_max = 24.0, .f_max = 800.0, .k = 1.0e6, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.47, 0.545, -0.032, 0.032, -0.032, 0.032) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_CF_PLATE, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.06, .joint = { 0.56, 0.0, 0.0 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 8, .pts = { { 0.56, 0.0, 0.0 }, { 0.2286, 0.0, 0.0 } } }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 12 the 6S 4500 on the fuselage's floor under the canopy, slid to the
+   * CG (npm run cap580:derive), 13 the canopy hatch. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.652, .joint = { 0.024, 0.0, -0.09 }, .m_max = 8.0, .f_max = 2.0 * VELCRO_12, .k = 3.0e5, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.055, 0.105, -0.025, 0.025, -0.12, -0.06) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.08, .joint = { 0.10, 0.0, 0.07 }, .m_max = 1.0, .f_max = MAGNET_2, .k = 2.0e4, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.10, 0.25, -0.06, 0.06, 0.07, 0.15) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* 14, 15 the carbon main legs, the 67 in line's (docs/CAP580-STAGE1.md),
+   * with their pants and wheels; 16 the carbon tailwheel assembly. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 0,
+    .mass = 0.09, .joint = { 0.13, 0.05, -0.13 }, .m_max = 30.0, .f_max = 800.0, .k = 2959.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.08, 0.17, 0.05, 0.21, -0.347, -0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 1,
+    .mass = 0.09, .joint = { 0.13, -0.05, -0.13 }, .m_max = 30.0, .f_max = 800.0, .k = 2959.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.08, 0.17, -0.21, -0.05, -0.347, -0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 2,
+    .mass = 0.03, .joint = { -0.93, 0.0, -0.06 }, .m_max = 4.0, .f_max = 150.0, .k = 1201.0, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(-0.955, -0.925, -0.008, 0.008, -0.143, -0.06) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.10, 0.0, 0.12 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    BOX(0.09, 0.115, -0.010, 0.010, 0.11, 0.13) }, /* shape docs/CAP580-STAGE1.md, the outline off Extreme Flight's photographs */
+  /* Not drawn: where an FPV conversion carries its whip, behind the canopy. */
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.40, 0.0, 0.06 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3, /* masses docs/CAP580-STAGE1.md, strengths FITTED: the Kadet's and Ugly Stik's balsa scaled */
+    .npts = 2, .pts = { { -0.40, 0.0, 0.06 }, { -0.40, 0.0, 0.15 } } }, /* shape docs/CAP580-STAGE1.md */
+};
+
+/* ------------------------------------------------------------------------
+ * EXTREME FLIGHT 105.5 in SLICK 580 EXP, SIM_AIRFRAME_SLICK2680,
+ * slickcraft.js. 12.474 kg on a balsa and ply frame with composite parts,
+ * a two piece wing on a 38 mm carbon tube, a DA-120 on stand offs, a 28 x
+ * 10 carbon prop (docs/SLICK-STAGE1.md). Wheels: 0 left main, 1 right
+ * main, 2 tailwheel, 3 the prop tip's skid. Masses from the derivation's
+ * build up; strengths ESTIMATED for the class: the wing's root at twelve
+ * times its half's weight on the half span's lift centroid, the engine on
+ * its four bolts and stand offs, the carbon gear at four landings' worth.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_SLICK2680[] = {
+  /* 0 the fuselage forward of the cockpit's back: the engine box, the
+   * firewall, the tank, the receiver, the tube sleeves, the gear plate,
+   * the cowl: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 6.0e5, BOX(-0.45, 0.62, -0.15, 0.15, -0.14, 0.30) }, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+  /* 1 the aft fuselage, a sheeted box tapering to the tail post. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.70, .joint = { -0.45, 0.0, 0.03 }, .m_max = 300.0, .f_max = 2500.0, .k = 1.0e5, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-1.73, -0.45, -0.09, 0.09, -0.12, 0.17) },
+  /* 2 the stabiliser on its tube, 3 the elevators with their servos. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.20, .joint = { -1.30, 0.0, 0.053 }, .m_max = 60.0, .f_max = 400.0, .k = 5000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-1.42, -1.24, -0.52, 0.52, 0.043, 0.063) },
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.35, .joint = { -1.42, 0.0, 0.053 }, .m_max = 10.0, .f_max = 150.0, .k = 4000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-1.58, -1.42, -0.52, 0.52, 0.045, 0.061) },
+  /* 4 the fin, 5 the rudder down to the fuselage's foot, its servo in it. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -1.38, 0.0, 0.15 }, .m_max = 40.0, .f_max = 300.0, .k = 4000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-1.48, -1.27, -0.012, 0.012, 0.15, 0.505) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.27, .joint = { -1.48, 0.0, 0.22 }, .m_max = 10.0, .f_max = 150.0, .k = 4000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-1.73, -1.48, -0.012, 0.012, -0.057, 0.505) },
+  /* 6, 7 the panels on the 38 mm carbon tube, 8, 9 the ailerons from
+   * 0.181 m out to the tip rib. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 1.20, .joint = { 0.0, 0.163, 0.005 }, .m_max = 400.0, .m_max_z = 250.0, .f_max = 2000.0, .k = 6000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    .npts = 8, .pts = { { 0.169, 0.163, -0.03 }, { -0.401, 0.163, -0.03 }, { 0.169, 0.163, 0.04 }, { -0.401, 0.163, 0.04 }, /* shape docs/SLICK-STAGE1.md, FITTED: the sheet's three view, drawn */
+                        { 0.102, 1.340, -0.01 }, { -0.098, 1.340, -0.01 }, { 0.102, 1.340, 0.02 }, { -0.098, 1.340, 0.02 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 1.20, .joint = { 0.0, -0.163, 0.005 }, .m_max = 400.0, .m_max_z = 250.0, .f_max = 2000.0, .k = 6000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    .npts = 8, .pts = { { 0.169, -0.163, -0.03 }, { -0.401, -0.163, -0.03 }, { 0.169, -0.163, 0.04 }, { -0.401, -0.163, 0.04 }, /* shape docs/SLICK-STAGE1.md, FITTED: the sheet's three view, drawn */
+                        { 0.102, -1.340, -0.01 }, { -0.098, -1.340, -0.01 }, { 0.102, -1.340, 0.02 }, { -0.098, -1.340, 0.02 } } },
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.15, .joint = { -0.25, 0.70, 0.005 }, .m_max = 8.0, .f_max = 150.0, .k = 4000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-0.40, -0.17, 0.181, 1.270, -0.02, 0.025) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.15, .joint = { -0.25, -0.70, 0.005 }, .m_max = 8.0, .f_max = 150.0, .k = 4000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-0.40, -0.17, -1.270, -0.181, -0.02, 0.025) },
+  /* 10 the DA-120 and its mufflers on the stand offs, 11 Falcon's 28 x 10
+   * carbon prop and the 5 in spinner. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 2.55, .joint = { 0.40, 0.0, 0.039 }, .m_max = 200.0, .f_max = 3000.0, .k = 1.0e6, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(0.40, 0.60, -0.13, 0.13, -0.10, 0.10) },
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_CF_PLATE, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.29, .joint = { 0.60, 0.0, 0.039 }, .m_max = 60.0, .f_max = 1500.0, .k = 5000.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    .npts = 8, .pts = { { 0.6093, 0.0, 0.039 }, { 0.3556, 0.0, 0.0 } } }, /* shape docs/SLICK-STAGE1.md, FITTED: the sheet's three view, drawn */
+  /* 12 the two receiver packs alongside the receiver, strapped, 13 the
+   * canopy on its pins and latch. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.30, .joint = { -0.15, 0.0, -0.02 }, .m_max = 20.0, .f_max = 2.0 * VELCRO_12, .k = 3.0e5, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-0.20, -0.10, -0.06, 0.06, -0.06, -0.01) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.30, .joint = { 0.0, 0.0, 0.25 }, .m_max = 10.0, .f_max = 150.0, .k = 2.0e4, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-0.35, 0.37, -0.13, 0.13, 0.19, 0.315) },
+  /* 14, 15 the carbon legs with their wheels and pants, 16 the tailwheel. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 0,
+    .mass = 0.36, .joint = { 0.16, 0.10, -0.14 }, .m_max = 150.0, .f_max = 1500.0, .k = 10581.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(0.12, 0.22, 0.10, 0.34, -0.44, -0.14) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = 1,
+    .mass = 0.36, .joint = { 0.16, -0.10, -0.14 }, .m_max = 150.0, .f_max = 1500.0, .k = 10581.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(0.12, 0.22, -0.34, -0.10, -0.44, -0.14) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.10, .joint = { -1.45, 0.0, -0.10 }, .m_max = 20.0, .f_max = 400.0, .k = 3312.0, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(-1.53, -1.45, -0.02, 0.02, -0.17, -0.10) },
+  /* 17 the FPV camera on the canopy's front, 18 its antenna behind the canopy. */
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.22, 0.0, 0.30 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    BOX(0.21, 0.235, -0.010, 0.010, 0.29, 0.31) },
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.50, 0.0, 0.17 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3, /* masses docs/SLICK-STAGE1.md, strengths FITTED: a 35 percent balsa and composite airframe, docs/SLICK-STAGE1.md */
+    .npts = 2, .pts = { { -0.50, 0.0, 0.17 }, { -0.50, 0.0, 0.26 } } }, /* shape docs/SLICK-STAGE1.md, FITTED: the sheet's three view, drawn */
+};
+
 #endif /* CRASH_PARTS_H */

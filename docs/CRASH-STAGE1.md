@@ -525,6 +525,41 @@ its props and arms break and the frame, 5e6 N/m against concrete's 5e7, is
 a spring of half a millisecond, inside one step; a frame that crushes needs
 a crush in the tables.
 
+**The parts' hull test sweeps the step** (w35, the prop curves). On APC's
+curves the Slow Stick reaches the pole about 2 percent faster, and the
+plant, meeting the pole with the panel itself, reaches it and breaks the
+panel at 474 to 475 ms, inside one 4 ms step. `crash:core`'s "a pole met
+by the parts' hull" looked for overlap only at each step's end, when the
+panel had already left the hull, and read no contact. It now sweeps the
+hull it began the step with over the step's displacement
+(`sweepPartCapsule`, as the shell's collider sweeps a frame) and takes the
+point where the craft stood when the hull met the pole: the panel at 473
+ms, body y -0.357 against the pole's -0.353; on d01c08cfe's wasm, 491 ms
+and -0.356. Its three assertions are the same.
+
+**A Cub whose prop breaks: what the wash it lost says** (w35). The check
+held each stick's gliding rate to the powered one within 20 percent. With
+the prop on, each surface meets the free stream's q and, on its share of
+the wash, the disc's pressure jump dp = T / A (momentum theory,
+docs/FLIGHTMODEL.md PR 2, `scripts/lib/wash.js`), so its moment goes as
+q + dp share. On the curves the cruise prop (0.6 of full, 12.15 m/s) pushes
+2.08 N (APC's 11 x 7, `scripts/lib/propcurve.js`; the plant's own wash
+reads 33.90 Pa, the curve 33.88), dp 33.9 Pa: the fin's share 0.860 lifts
+the rudder's moment 1.322 times, the stabiliser's 0.708 the elevator's
+1.264 times, and the ailerons stand outside it. Over the 300 ms hold the
+rate is still rising (the yaw ends at 1.5 times its mean), so the mean
+goes with the moment, and gliding at 11.69 m/s each stick should give
+(11.69 / 12.15)^2 / gain of its powered rate: roll 0.925, pitch 0.732, yaw
+0.700. The plant gives 0.922, 0.833 and 0.727. The check now holds each to
+that derived figure within the same 20 percent. The wash's damping, which
+grows only as 1 + 2 v_i share / V (1.15 on the fin), is left out; it slows
+the powered rate, so the plant sits above the derivation, not below, and
+most on pitch, whose short period settles inside the hold so that the
+stabiliser's damping and stiffness in the wash count against the elevator's
+gain. On the straight line the same arithmetic with the plant's 16.7 Pa
+gave yaw 0.808 against the plant's 0.821, which is why equality passed
+before.
+
 **A wreck on its side, and on its back** (round 5, `sim.c`, mode on only).
 A craft between upright and inverted met the ground at one support vertex,
 a rule from the rigid contact so that four coplanar contacts could not
@@ -1523,16 +1558,69 @@ with part 1, and 18, 16 and 21 ms with part 2 (turning 1.6, 1.5 and 1.9
 degrees): the corners' own friction carries nearly all of it, so the
 settle's share was small either way.
 
-**Open, not sourced: the five inch's grip with the damage mode off.** The
-same settled slide reads 3.43 g with the mode off (measured 2026-10-11,
-idle rotors), 2.45 times the shell's grass mu of 1.40, so the mode off
-contact also charges friction beyond its own mu; the share of the corners
-and of the settle in it has not been separated. No source supports either
-number: 1.40 was never measured, and the only turf measurement this
-project cites, Linthorne and Cooper's, is 0.45 for a smooth sled and
-about 0.6 on uneven turf. Nothing asserts it. It is left as it is, loud
-here, until the mode off contact is either retired or given a measured
-grip.
+**The mode off contact charged the grip twice; now once** (2026-10-11).
+With the damage mode off the settle added Coulomb friction for the whole
+weight on top of the corners' own: the same settled five inch slid at
+3.43 g against the shell's grass mu of 1.40, and a Skyhunter slid on its
+belly at 4 m/s at 2.76 g and stopped dead in 147 ms. crash:core's row for
+it, "at the shell's 1.40 with it off", read 1.387 only because it took
+the speed lost from 50 to 250 ms over 0.2 s and the aircraft had already
+stopped: it measured nothing. Both parts of the fix above (the overshoot's
+friction given back, and the settle's load being what the plant drives
+into the ground less what the corners carried) now act with the mode off
+too. Coulomb's F = mu N, with N the force the ground really gives, is the
+whole source; no constant moved. Measured, the grip over the real normal
+force while it slides (crash:core's method; the Skyhunter's lift taken
+from its plant's own force):
+
+| mode off | before | now |
+| --- | --- | --- |
+| Skyhunter belly slide at 4 m/s, grass | 2.76 g (stopped in 147 ms) | 1.403, stops in 291 ms |
+| five inch settled slide at 1 m/s, grass | 3.43 | 1.403 |
+| the same on dirt (mu 1.00) | 2.55 | 1.010 |
+| the same on pvc (mu 0.30) | 0.83 | 0.305 |
+
+The shell's 1.40 itself still has no source: the only turf measurement
+this project cites is Linthorne and Cooper's, 0.45 for a smooth sled and
+about 0.6 on uneven turf. That is an open question for the mode off
+ground, which the mode on answers with the sled's grip.
+
+**The settled five inch's spun up motors were the bridge, not Betaflight**
+(found and fixed 2026-10-11). After the 1.5 m drop with the sticks at rest
+two diagonal motors wound up, to 9,500 rpm on snow and 12,000 on sand with
+the mode off and about 6,000 with it on, so the rotors carried up to most
+of the weight and the snow, sand and pvc rows above measured the thrust
+estimate as much as the grip. The cause was a stub: `isAirmodeActivated`
+returned true from arming. In Betaflight (fc/core.c processRx, vendor
+77d01ba3, lines 778 to 795) airmode latches only once the throttle stick
+reaches airmode_start_throttle_percent (25 by default, pg/rx.c) and holds
+until disarm; before that a throttle under min_check (1050) resets the I
+term every loop, the PID still stabilising (pid_at_min_throttle ON). The
+bridge now runs that block where processRx would (bf_glue.c
+bf_airmode_latch). A craft that never left zero throttle keeps its four
+motors at idle, 2,215 rpm, on every ground. One that has flown (a 150 ms
+punch at 40 percent before the same drop) has the latch set and winds up
+on the ground as a real armed quad in airmode does, 6,600 rpm on sand: the
+fix for that on a real quad is the pilot's, disarming. Runaway takeoff
+prevention (core.c, on by default, armed only until the first takeoff:
+it disarms on a PID sum over 60 percent for 75 ms) is not compiled here;
+with the I term held at zero the dropped craft's PID sum stays far under
+it, and crash recovery is off by default (pid.c). Neither acts on a craft
+lying still that never took off.
+
+Measured again with the latch, the same drop and method, idle rotors:
+
+| ground | face grip | mode on, #956 | mode on, now | mode off, now |
+| --- | --- | --- | --- | --- |
+| snow | 0.20 | 0.205 | 0.204 | 0.204 |
+| grass | 0.45 / 1.40 | 0.456 | 0.454 | 1.403 |
+| sand | 0.60 | 0.610 | 0.604 | 0.604 |
+| pvc | 0.30 | 0.311 | 0.304 | 0.304 |
+| dirt | 1.00 | 1.009 | 1.004 | 1.004 |
+
+#956's sand and pvc rows (0.610, 0.311) were measured with the spun up
+rotors and are superseded by these. Every ground is now within one percent
+of its face grip, the rest the rotors' drag at 1 m/s.
 
 The 0.7 MPa is DERIVED from two studs 13 mm long, each 170 mm^2 in side
 profile, under 350 N on a sand based natural turf pitch's samples. Fully

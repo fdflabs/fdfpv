@@ -74,6 +74,9 @@ export const SIM_TUNE_DOUBLES = 12;
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
 const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
+const CAP_SHEET = 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_67_CAP_ecb0e58c-fdbf-409f-85e7-0af3bab79c00.pdf';
+const CAP_GUIDE = 'https://extremeflightrc.com/cdn/shop/files/67_Extra260_ARF_Build_guide.pdf';
+const SLICK_SHEET = 'https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -197,7 +200,9 @@ export const TUNING = {
     flaps: { mix: -0.183531, angles: [0, 0.31376497222433070, 0.57058379792549596], source: `E-flite manual p. 3: half 20 mm, full 35 mm; "Flap/Down-Elevator Compensation 16% 30%"; ${TIMBER_MANUAL}` },
   },
   bombshell1118: {
-    chord: 0.1905, area: 0.212903, margin: 0.287,
+    /* The margin U2 reads with the wing's own stall slope and the tail's
+     * share on sin cos, 0.2881 (scripts/bombshell-derive.js); linear, 0.287. */
+    chord: 0.1905, area: 0.212903, margin: 0.288,
     cg: { mm: 62.9, datum: 'tuning.datum.le', range: [55.2, 81.9], source: `the plan's "BALANCE POINT RANGE" bracket, which carries no number, measured at 29 to 43 percent of the chord (docs/BOMBSHELL-STAGE1.md); ${BOMBSHELL_PLAN}` },
     packKg: 0.07, nose: 0.107, tail: -0.58,
     throws: { high: [0, 15, 20], low: [0, 10.5, 14], source: `high: ESTIMATED, no throws published (docs/BOMBSHELL-STAGE1.md); ${LOW_70}` },
@@ -245,6 +250,22 @@ export const TUNING = {
     cg: { mm: 145, datum: 'tuning.datum.root_le', range: [145, 173.5], source: `AeroTetris, "CG (16%): 923.8 mm" and "CG (8%): 952.3 mm" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
     packKg: 1.64, nose: 0.92, tail: -1.20, /* the lead inside the tail cone, ahead of its post */
     throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
+    flaps: null,
+  },
+  cap1702: {
+    chord: 0.338, area: 0.5548, margin: 0.21,
+    cg: { mm: 130, datum: 'tuning.datum.root_le', range: [130, 150], source: `Extreme Flight's data sheet, "Center of wing tube for maiden, sport and precision flight", and the 67 in line's build guide, "at the former immediately behind the wing tube"; the tube's station FITTED at 130 mm (docs/CAP580-STAGE1.md), the former about 20 mm behind it; ${CAP_SHEET}` },
+    packKg: 0.652, nose: 0.47, tail: -1.03,
+    expo: 60, /* the data sheet's high rate expo, one figure for all three, as FW_CAP1702 flies (docs/CAP580-STAGE1.md) */
+    throws: { high: [36, 50, 52.5], low: [17.5, 11, 20], source: `Extreme Flight's data sheet, in degrees: high aileron 38 up 34 down (36 each way), elevator 50, rudder 50 to 55 (52.5); low aileron 15 to 20, elevator 10 to 12, rudder 20 (docs/CAP580-STAGE1.md); ${CAP_SHEET}; ${CAP_GUIDE}` },
+    flaps: null,
+  },
+  slick2680: {
+    chord: 0.4577, area: 1.150, margin: 0.185,
+    expo: 55, /* the sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies */
+    cg: { mm: 169, datum: 'tuning.datum.root_le', range: [160, 179], source: `EF's data sheet, "Center of main wing tube to rear of main wing tube as starting position": the 38 mm tube's centre at 28 percent of the drawn 570 mm root, 160 mm, to its rear, 179; the middle taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
+    packKg: 0.30, nose: 0.48, tail: -1.30, /* the receiver's two packs; the lead at the firewall or in the aft fuselage ahead of the stabiliser, where 8 percent of the mass moves the CG under the plant's 0.1 m */
+    throws: { high: [37.5, 47.5, 45], low: [20, 11, 20], source: `EF's data sheet and 120cc build guide, in degrees: aileron 38 up and 37 down high, 20 low; elevator 45 to 50 for 3D, 10 to 12 low; rudder 45 and more high, 20 low; the middles taken (docs/SLICK-STAGE1.md); ${SLICK_SHEET}` },
     flaps: null,
   },
 
@@ -303,15 +324,19 @@ export function stockEntry(airframeId) {
 }
 
 /* The throws a rate gives, degrees [a, e, r]. */
-export function throwsFor(airframeId, rate) {
+export function throwsFor(airframeId, rate, high = null) {
   const t = tuningFor(airframeId).throws;
+  /* A bigger surface's own high throws (configs/surfaces.js tierThrowsDeg):
+   * low keeps the manual's share of high. */
+  const hi = high ?? t.high;
+  const low = t.low.map((l, i) => (high ? l * hi[i] / t.high[i] : l));
   if (rate === 'low') {
-    return t.low.slice();
+    return low.slice();
   }
   if (rate === 'mid') {
-    return t.high.map((h, i) => (h + t.low[i]) / 2);
+    return hi.map((h, i) => (h + low[i]) / 2);
   }
-  return t.high.slice();
+  return hi.slice();
 }
 
 /*
@@ -444,14 +469,14 @@ export function isStock(airframeId, entry) {
  * The sim_wing_set_tune block for a (normalised) entry, or null for the
  * stock setup. massKg and packKg as balance() takes them.
  */
-export function tuneBlock(airframeId, entry, massKg, packKg) {
-  if (isStock(airframeId, entry)) {
+export function tuneBlock(airframeId, entry, massKg, packKg, high = null) {
+  if (isStock(airframeId, entry) && !high) {
     return null;
   }
   const t = tuningFor(airframeId);
   const e = fullEntry(airframeId, entry);
   const b = balance(airframeId, entry, massKg, packKg);
-  const th = throwsFor(airframeId, e.rate);
+  const th = throwsFor(airframeId, e.rate, high);
   const out = new Float64Array(SIM_TUNE_DOUBLES);
   out[SIM_TUNE.CG_SHIFT] = b.shift;
   out[SIM_TUNE.BALLAST_KG] = b.ballastKg;

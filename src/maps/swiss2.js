@@ -16,11 +16,11 @@
  * environment and its post chain are built here and freed on dispose.
  * The shell, the HUD and the other maps see a MapInstance like any other.
  *
- *   swiss2/assets.js     the photographs: texture arrays, surfaces, sky
+ *   swiss2/assets.js     the photographs: sky and marks (layers and surfaces: library/surfaces.js)
  *   swiss2/terrain.js    the walls' shape, the field and the ground's mesh
  *   swiss2/ground.js     the terrain's splat, and its masks
- *   swiss2/light.js      the sun, its cascades and the mountains' shadow
- *   swiss2/look.js       the material every builder asks for, by name
+ *   swiss2/light.js      the mountains' shadow (the sun: library/sun.js)
+ *   library/photolook.js the material every builder asks for, by name
  *   swiss2/post.js       occlusion, aerial perspective, the camera, AgX, FXAA
  *   swiss2/clouds.js     the low cloud in the valley, marched in the post chain
  *   swiss2/rock/         the carved rock on the walls' cliffs and faces
@@ -79,16 +79,16 @@ import {
 import { ribbon } from './alps/ribbon.js';
 import { standWalls } from '../render/library/roofs.js';
 import { PAINT } from '../render/library/vehicles/vehicles.js';
-import {
-  loadTerrainArrays, loadSurface, loadSky, loadMark, SURFACES, SKY_K, SKY_SPAN_DEG,
-} from './swiss2/assets.js';
+import { loadSky, loadMark, SKY_K, SKY_SPAN_DEG } from './swiss2/assets.js';
+import { loadTerrainArrays, loadSurface, SURFACES } from '../render/library/surfaces.js';
 import {
   groundMasks, pathMask, groundMaterial, floorUnderTrees, wallUniform, wallMask, craftUniforms, craftFootprint,
 } from './swiss2/ground.js';
 import {
-  sunDirection, makeSun, makeLit, bakeTerrainShadow, SUN_COLOR, SUN_IRRADIANCE,
+  sunDirection, makeLit, bakeTerrainShadow, SUN_COLOR, SUN_IRRADIANCE,
 } from './swiss2/light.js';
-import { makePhotoLook, finishScene } from './swiss2/look.js';
+import { makePhotoLook, finishScene } from '../render/library/photolook.js';
+import { makeSun } from '../render/library/sun.js';
 import { buildPhotoComposer, AIR } from './swiss2/post.js';
 import { makeClouds } from './swiss2/clouds.js';
 import { buildVegetation } from './swiss2/vegetation/index.js';
@@ -270,7 +270,7 @@ function photoStyle() {
       camera.far = CAMERA_FAR;
       camera.updateProjectionMatrix();
 
-      const sun = makeSun(scene, q, sunDir);
+      const sun = makeSun(scene, q, sunDir, { color: SUN_COLOR, irradiance: SUN_IRRADIANCE });
       style.clouds = makeClouds({
         sun: { direction: sunDir, color: SUN_COLOR, irradiance: SUN_IRRADIANCE },
         sky: AIR.haze,

@@ -1,6 +1,8 @@
 /*
- * look.js: the photographic valley's answer to every material the alps'
- * builders ask for.
+ * photolook.js: the asset library's photographic material kit, first the
+ * Swiss valley's (src/maps/swiss2/look.js until it moved), which Itaipu
+ * and the Interior finish their buildings and props with too: the answer
+ * to every material the alps' builders ask for.
  *
  * The builders name what a surface is (src/maps/alps/look.js), and this
  * look answers with a physically based material: the village's table by
@@ -35,7 +37,7 @@
  */
 
 import * as THREE from 'three';
-import { thermalKind } from '../../render/thermal.js';
+import { thermalKind } from '../thermal.js';
 
 /* Metres one tile of each surface covers, read off the photographs'
  * own published sizes where they have one. */
@@ -554,7 +556,7 @@ export function makePhotoLook({ surfaces, marks, ground, heights }) {
   const buildingFinish = (key) => {
     const b = BUILDING[key];
     if (!b) {
-      throw new Error(`swiss2 look: no building finish named ${key}; say what it is made of in src/maps/swiss2/look.js`);
+      throw new Error(`swiss2 look: no building finish named ${key}; say what it is made of in src/render/library/photolook.js`);
     }
     const finish = b.group === 'plain'
       ? [b.rough ?? 1, b.metal ?? 0, 0]
@@ -733,7 +735,7 @@ export function makePhotoLook({ surfaces, marks, ground, heights }) {
   const ask = (table, kind, name, opts) => {
     const make = table[name];
     if (!make) {
-      throw new Error(`swiss2 look: no ${kind} named ${name}; say what it is made of in src/maps/swiss2/look.js`);
+      throw new Error(`swiss2 look: no ${kind} named ${name}; say what it is made of in src/render/library/photolook.js`);
     }
     return make(opts || {});
   };

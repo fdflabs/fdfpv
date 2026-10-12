@@ -2,7 +2,7 @@
  * perf-mirror-check.js: the swiss2 lake's mirror, drawn only where the
  * water can read it, must give the picture the whole mirror gives.
  *
- * src/maps/swiss2/water/lake.js scissors the mirror's draw to the texels
+ * src/render/library/water/mirror.js scissors the mirror's draw to the texels
  * the lake's surfaces can sample. This parks the camera at the swiss2
  * views the lake is in, holds the clocks, and draws the scene four times
  * in turn: scissored, whole, scissored, whole. Whole is the scissor

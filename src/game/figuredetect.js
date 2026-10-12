@@ -153,6 +153,8 @@ class Prim {
     this.uzSum = 0;
     this.lzSum = 0;
     this.lzMax = 0;
+    this.knifeSum = 0;
+    this.offLineCos = 1;
     this.alphaSum = 0;
     this.stalled = 0;
     this.pauses = 0;
@@ -188,6 +190,9 @@ class Prim {
     this.uzSum += s.u[2];
     this.lzSum += abs(s.l[2]);
     if (abs(s.l[2]) > this.lzMax) this.lzMax = abs(s.l[2]);
+    this.knifeSum += s.knifeCos;
+    const onLine = dot3(s.d, this.d0);
+    if (onLine < this.offLineCos) this.offLineCos = onLine;
     this.alphaSum += s.alphaPos ? 1 : -1;
     if (s.stalled) this.stalled += 1;
     if (s.speed < this.sMin) this.sMin = s.speed;
@@ -311,8 +316,11 @@ function loopDeduction(p, whole) {
  * point per 15 % spread of it), stopped on the attitude and the line held
  * through it (a point per 15 deg each). */
 function rollDeduction(p, turns) {
+  /* The line through it, not only out of it: a roll that sags off its line
+   * and comes back to it ends where it began (F3A Annex 5B: the flight
+   * path stays on its line, a point per 15 deg). */
   return Math.floor(p.rateCv() / 0.15) + radDeduction((abs(p.roll) - turns) * TURN)
-    + bandDeduction(headingCos(p.d0, p.d1)) + bandDeduction(dot3(p.d0, p.d1)) * 0.5;
+    + bandDeduction(headingCos(p.d0, p.d1)) + bandDeduction(p.offLineCos);
 }
 
 /* A held attitude: the wings level (a point per 15 deg of bank at worst)
@@ -412,7 +420,7 @@ const TABLE = [
   ['inverted_harrier', [kind('harrier', (p) => p.ms >= 3000 && p.frac(p.uzSum) < 0)], ([h]) => holdDeduction(h)],
   ['harrier', [kind('harrier', (p) => p.ms >= 3000)], ([h]) => holdDeduction(h)],
   ['knife_edge_pass', [kind('knife', (p) => p.ms >= 2000)],
-    ([k]) => lineDeduction(k, 'level') + bandDeduction(k.frac(k.lzSum)) + bandDeduction(headingCos(k.d0, k.d1))],
+    ([k]) => lineDeduction(k, 'level') + bandDeduction(k.frac(k.knifeSum)) + bandDeduction(headingCos(k.d0, k.d1))],
   ['elevator', [kind('elevator', (p) => p.ms >= 2000)], ([e]) => holdDeduction(e)],
   ['lomcevak', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && abs(p.roll) >= 0.5)], ([t]) => stopDeduction(t.pitch)],
   ['tumble', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && p.maxQ >= 6)], ([t]) => stopDeduction(t.pitch)],
@@ -520,10 +528,18 @@ export class FigureDetector {
       if (h0 > 0.3 && h1 > 0.3) headRad = (prev.d[0] * d[1] - prev.d[1] * d[0]) / (h0 * h1);
     }
     const cosA = speed > 1 ? dot3(n, d) : 1;
+    /* How near the wing is to the vertical plane along the path, as a
+     * judge sees a knife edge (FAI F3P-AA 23: "During the knife edge the
+     * wing must be in the vertical plane"): the cosine between the wing's
+     * normal and the path's horizontal normal. Sideslip yaws the nose up
+     * inside that plane and leaves it 1; a bank short of 90 takes it to
+     * the cosine of the shortfall. */
+    const hd = Math.sqrt(d[0] * d[0] + d[1] * d[1]);
+    const knifeCos = hd > 0.3 ? abs(u[0] * d[1] - u[1] * d[0]) / hd : 0;
     const s = {
       t: this.nowMs, x: st[1], y: st[2], z: st[3], n, l, u, d, speed, p, q, r, wzWorld,
       pathRad, pathRate: pathRad / (SAMPLE_MS / 1000), headRad,
-      alphaPos: dot3(d, u) <= 0, stalled: speed > 1 && cosA < COS25, cosA,
+      alphaPos: dot3(d, u) <= 0, stalled: speed > 1 && cosA < COS25, cosA, knifeCos,
       tot: this.tot.slice(),
     };
     this.advance(s, this.token(s));
@@ -547,7 +563,9 @@ export class FigureDetector {
     if (d[2] * speed < -2 && speed < 12 && cosA < COS45 && u[2] > 0.7) return 'elevator';
     /* Slow, nose high over a level path: a harrier, wings level or rolling. */
     if (speed >= 1 && speed < 10 && cosA < COS30 && abs(d[2]) < 0.5 && (ap >= ROLL_ON || (n[2] > 0.1 && abs(l[2]) < 0.6))) return 'harrier';
-    if (abs(l[2]) > 0.9 && abs(d[2]) < SIN15 && speed >= 5 && ap < 1 && s.pathRate < ARC_OFF) return 'knife';
+    /* Within 26 deg of the vertical plane: cos 26 deg, the bank the span's
+     * own |l_z| > 0.9 allowed before, now measured so sideslip is free. */
+    if (s.knifeCos > 0.9 && abs(d[2]) < SIN15 && speed >= 5 && ap < 1 && s.pathRate < ARC_OFF) return 'knife';
     if (ap >= ROLL_ON) return 'roll';
     const arcing = this.open && this.open.kind === 'arc' ? s.pathRate >= ARC_OFF : s.pathRate >= ARC_ON;
     return arcing ? 'arc' : 'line';
@@ -567,9 +585,14 @@ export class FigureDetector {
       if (open.pausedMs === 0) {
         this.paused = [];
         open.stoppedMs = 0;
+        open.pauseSign = this.prev && this.prev.p < 0 ? -1 : 1;
       }
       open.pausedMs += SAMPLE_MS;
-      if (abs(s.p) < ROLL_STOP) open.stoppedMs += SAMPLE_MS;
+      /* Stopped is not rolling on: a point the wings rock back from has
+       * stopped the rotation as surely as one held still (F3A Annex 5B
+       * marks the rock back off the point's attitude, it does not make it
+       * no point); a barrel roll's sag keeps rolling on and stays out. */
+      if (s.p * open.pauseSign < ROLL_STOP) open.stoppedMs += SAMPLE_MS;
       this.paused.push(s);
       this.cand = null;
       if (open.pausedMs <= ROLL_BRIDGE_MS) return;
@@ -578,7 +601,9 @@ export class FigureDetector {
       return;
     }
     if (open.kind === 'roll' && open.pausedMs > 0) {
-      if (tok === 'roll' && open.stoppedMs >= PAUSE_MIN_MS) open.pauses += 1;
+      /* A point is a stop the roll then goes on from, the way it was going:
+       * the wings rocking back after the last one start no next quarter. */
+      if (tok === 'roll' && s.p * open.pauseSign > 0 && open.stoppedMs >= PAUSE_MIN_MS) open.pauses += 1;
       /* The pause was part of the roll (or of what ends it, below). */
       let prev = this.prev && this.paused.length ? null : this.prev;
       for (const c of this.paused) {

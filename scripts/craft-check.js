@@ -144,11 +144,23 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
  *             the CG's 0.339 m behind the spinner), reaches further than
  *             its tips, 0.600 m out: width and reach 1432 mm, the span
  *             held by src/render/nighttimbercraft.js NIGHTTIMBER_DIMS.
+ *   cap1702   Extreme Flight's 67 in CAP 580, whose rudder's trailing
+ *             edge, 1.076 m aft (the sheet's 66 in length less the CG's
+ *             0.600 m behind the spinner's tip, docs/CAP580-STAGE1.md),
+ *             reaches further than its tips, 0.851 m out, so the width and
+ *             the reach this file measures are both 2152 mm and the sheet's
+ *             67 in span is held by src/render/capcraft.js CAP_DIMS.
  *   hercules3077 AeroTetris's 3077 mm C-130 Hercules: its tips, 1.5385 m
  *             out, reach further than its nose (0.924 m) or its tail
  *             (1.326 m), so the width is the kit's span; the sweep is a
  *             tip's trailing corner, 0.239 m aft at the tip, 1557 mm out.
  *             src/render/herculescraft.js draws it.
+ *   slick2680 Extreme Flight's 105.5 in Slick 580, whose rudder's foot's
+ *             trailing edge, 1.728 m behind the CG on the data sheet's
+ *             side view (the 2497 mm drawn length less the CG's 0.769 m
+ *             behind the spinner), reaches further than its tips, 1.340
+ *             m out: width and reach 3455 mm, the 2680 mm span held by
+ *             src/render/slickcraft.js SLICK_DIMS.
  *   uglystik1567 RCM's 62 in Das Ugly Stik, whose rudder's trailing edge,
  *             0.884 m behind the CG on the plan (station 50.82 against the
  *             CG's 16.00), reaches further than its tips, 0.784 m out, so
@@ -204,6 +216,8 @@ const REAL = {
   extra3d1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   nighttimber1200: { spanMm: 1432.0, sweepMm: 1432.0, tolMm: 6 },
   hercules3077: { spanMm: 3077.0, sweepMm: 3114.0, tolMm: 6 },
+  cap1702: { spanMm: 2152.0, sweepMm: 2152.0, tolMm: 6 },
+  slick2680: { spanMm: 3455.4, sweepMm: 3455.4, tolMm: 6 },
   '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
   '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
   interceptor: { spanMm: 417.8, sweepMm: 490.2, tolMm: 6, wheelbaseMm: 312.4 },

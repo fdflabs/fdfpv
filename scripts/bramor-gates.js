@@ -117,10 +117,51 @@ check: {
     down ? `${c.sink.toFixed(2)} m/s, touchdown ${c.touchdown.t.toFixed(1)} s after the pull, opening load ${c.peakG.toFixed(1)} g` : 'never came down', band(th.b10_chute_sink));
   gate('B11', 'under the chute: on its back', down && c.upzWorst <= th.b11_chute_attitude.maxUpZ,
     down ? `body up axis at ${(Math.acos(-c.upzWorst) * DEG).toFixed(1)} deg from straight down at worst` : 'never came down', `within ${(Math.acos(-th.b11_chute_attitude.maxUpZ) * DEG).toFixed(0)} deg`);
+  /* B12: at rest on its back, on its winglets. Which rest a bounce picks
+   * is not the aircraft's to decide (a 5.45 m/s touchdown on the finite
+   * wing's broadside force ends 10 deg nose down, a 5.0 one flat), so the
+   * rest is judged on what the source says, on its back within 15 deg of
+   * flat and on the winglets, with the CG's height bounded by the hulls'
+   * own geometry across that band: for every orientation within 15 deg
+   * where a winglet tip is the support, the CG over the ground is the
+   * hulls' furthest point along the ground's direction (sim_part_hull). */
   const r12 = th.b12_chute_rest;
-  gate('B12', 'at rest on its back', down && c.rest.upz <= r12.maxUpZ && Math.abs(c.rest.z - r12.restHeight) <= r12.tolerance && c.rest.v === 0 && c.rest.w === 0 && c.rpmAfter === 0,
-    `${(Math.acos(-c.rest.upz) * DEG).toFixed(1)} deg from flat, CG ${c.rest.z.toFixed(3)} m up, ${c.rest.v.toFixed(2)} m/s, motor ${c.rpmAfter} rpm`,
-    `within ${(Math.acos(-r12.maxUpZ) * DEG).toFixed(0)} deg, ${r12.restHeight} m, stopped`);
+  const SIM_PART_FIN = 11; /* src/native/sim_abi.h */
+  const hulls = [];
+  for (let i = 0; i < sim.e.sim_parts_count(); i += 1) {
+    const info = sim.e.malloc(8 * 24), hp = sim.e.malloc(8 * 25);
+    sim.e.sim_part_info(i, info);
+    sim.e.sim_part_hull(i, hp);
+    const kind = new Float64Array(sim.e.memory.buffer, info, 24)[0];
+    const h = new Float64Array(sim.e.memory.buffer, hp, 25);
+    for (let k = 0; k < h[0]; k += 1) hulls.push({ fin: kind === SIM_PART_FIN, p: [h[1 + 3 * k], h[2 + 3 * k], h[3 + 3 * k]] });
+  }
+  const maxTilt = Math.acos(-r12.maxUpZ);
+  let hMin = Infinity, hMax = -Infinity;
+  for (let tilt = 0; tilt <= maxTilt + 1e-9; tilt += 0.25 / DEG) {
+    for (let psi = 0; psi < 2 * Math.PI; psi += 2 / DEG) {
+      const d = [Math.sin(tilt) * Math.cos(psi), Math.sin(tilt) * Math.sin(psi), Math.cos(tilt)];
+      let all = -Infinity, fin = -Infinity;
+      for (const { fin: f, p } of hulls) {
+        const x = p[0] * d[0] + p[1] * d[1] + p[2] * d[2];
+        all = Math.max(all, x);
+        if (f) fin = Math.max(fin, x);
+      }
+      if (fin >= all - 1e-6) { hMin = Math.min(hMin, all); hMax = Math.max(hMax, all); }
+    }
+  }
+  const s12 = c.end;
+  const q = [s12[7], s12[8], s12[9], s12[10]];
+  const zOf = (p) => {
+    const [w, x, y, z] = q;
+    return s12[3] + 2 * (x * z - w * y) * p[0] + 2 * (y * z + w * x) * p[1] + (1 - 2 * (x * x + y * y)) * p[2];
+  };
+  const lowest = Math.min(...hulls.map((h) => zOf(h.p)));
+  const onFins = Math.min(...hulls.filter((h) => h.fin).map((h) => zOf(h.p))) <= lowest + r12.contactTol;
+  gate('B12', 'at rest on its back, on its winglets', down && c.rest.upz <= r12.maxUpZ && onFins && c.rest.z >= hMin - r12.contactTol && c.rest.z <= hMax + r12.contactTol
+    && c.rest.v === 0 && c.rest.w === 0 && c.rpmAfter === 0,
+    `${(Math.acos(-c.rest.upz) * DEG).toFixed(1)} deg from flat, CG ${c.rest.z.toFixed(3)} m up, ${onFins ? 'on the winglets' : 'NOT on the winglets'}, ${c.rest.v.toFixed(2)} m/s, motor ${c.rpmAfter} rpm`,
+    `within ${(maxTilt * DEG).toFixed(0)} deg, on the winglets, CG ${hMin.toFixed(3)} to ${hMax.toFixed(3)} m (the hulls across that band), stopped`);
 }
 
 const quadTh = JSON.parse(await readFile(join(root, 'tests/thresholds.json'), 'utf8'));

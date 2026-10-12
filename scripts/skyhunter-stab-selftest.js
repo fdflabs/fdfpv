@@ -175,21 +175,24 @@ check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHo
 check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
 check('and straight: under 15 m off the line after 10 s', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
 
+/* The throttle that holds about 20 m/s level, S5's (skyhunter-thresholds.json):
+ * 0.85 on the straight line, 0.69 on the prop curves. */
+const ACRO_THROTTLE = 0.69;
 throwAt(120, 18);
-fly(0, 0, 0, 0.85, 1);
-const rolling = fly(1, 0, 0, 0.85, 0.8);
+fly(0, 0, 0, ACRO_THROTTLE, 1);
+const rolling = fly(1, 0, 0, ACRO_THROTTLE, 0.8);
 check('full right stick rolls at 102 to 132 degrees a second', rolling.p * DEG > 102 && rolling.p * DEG < 132, `${deg(rolling.p)} deg/s`);
-const inverted = fly(1, 0, 0, 0.85, 0.55);
-const invHold = fly(0, 0, 0, 0.85, 0.3);
-const invLater = fly(0, 0, 0, 0.85, 2, invHold.endBank);
+const inverted = fly(1, 0, 0, ACRO_THROTTLE, 0.55);
+const invHold = fly(0, 0, 0, ACRO_THROTTLE, 0.3);
+const invLater = fly(0, 0, 0, ACRO_THROTTLE, 2, invHold.endBank);
 check('and it keeps going past the stabilised cap: 150 degrees or more', Math.abs(inverted.endBank) * DEG > 150, `${deg(inverted.endBank)} deg`);
 check('centred, it stays where it stopped: within 5 degrees for 2 s', invLater.worst * DEG < 5, `${deg(invHold.endBank)} deg, moved ${deg(invLater.worst)}`);
 
 throwAt(120, 18);
-fly(0, 0, 0, 0.85, 1);
-const partial = fly(0.6, 0, 0, 0.85, 0.5);
-const stop = fly(0, 0, 0, 0.85, 0.25);
-const stopHeld = fly(0, 0, 0, 0.85, 3, stop.endBank);
+fly(0, 0, 0, ACRO_THROTTLE, 1);
+const partial = fly(0.6, 0, 0, ACRO_THROTTLE, 0.5);
+const stop = fly(0, 0, 0, ACRO_THROTTLE, 0.25);
+const stopHeld = fly(0, 0, 0, ACRO_THROTTLE, 3, stop.endBank);
 check('a partial roll stops sharply: rate under 10 degrees a second 0.25 s after centring', Math.abs(stop.p * DEG) < 10, `${deg(stop.p)} deg/s`);
 check('within about 5 degrees of where the stick was centred', Math.abs((stop.endBank - partial.endBank) * DEG) < 6, `${deg(partial.endBank)} -> ${deg(stop.endBank)} deg`);
 check('and holds that bank, no levelling, within 4 degrees over 3 s', stop.endBank * DEG > 15 && stopHeld.worst * DEG < 4, `${deg(stop.endBank)} deg, moved ${deg(stopHeld.worst)}`);

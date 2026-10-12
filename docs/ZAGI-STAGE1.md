@@ -178,23 +178,23 @@ back does.
 
 | | Derived | How |
 | --- | --- | --- |
-| Level at 75 percent | 22.14 m/s | thrust against drag |
-| Top speed, level | 29.69 m/s (66 mph) | the same at full throttle |
+| Level at 75 percent | 27.53 m/s | thrust against drag, on APC's 5 x 5E curve (22.14 on the straight line until 2026-10-11) |
+| Top speed, level | 36.80 m/s (82 mph) | the same at full throttle (29.69 on the straight line) |
 | Trimmed stall | 7.36 m/s | the stall angle's CL max less the lift of the 3.54 deg of up elevon that holds it there: 0.821 |
 | Best glide | 13.49 at 9.41 m/s | CL sqrt(CD0/k), 0.503, where the elevons neutral trim it |
 | Minimum sink | 0.612 m/s at 7.27 m/s | |
-| Best climb | 8.88 m/s at 16.2 m/s | |
+| Best climb | 15.10 m/s at 22.2 m/s | (8.88 at 16.2 on the straight line) |
 | Full elevon roll | pb/2V 0.2236: 315 deg/s at 15 m/s, once round in 1.19 s | -Clda da / Clp, and the roll's lag Ixx over the damping, 0.045 s |
 | Pitch | 0.098 s to the pitch rate's first peak after a step from the glide; 1.67 deg of alpha per deg of elevon | the linear short period, speed held; -cm_de / cm_alpha |
 | Short period | 0.34 s, damping 0.51, at 12 m/s | |
 | Hand throw | 10 m/s, from 1.2 m | the shell's throw (`src/main.js` throwWing), 1.36 times the trimmed stall |
 
-Zagi's "Top Speed 85 MPH", 38 m/s, is not reached: on the plant's thrust
-model, falling linearly to the pitch speed, the published motor and prop
-level out at 29.7 m/s, and even the 20 percent more rpm Zagi says the
-motor finds in flight would give 31.5. To fly 38 m/s level the prop would
-have to hold 4.6 N at 38 m/s. 85 mph is a claim no measurement is given
-for, and it is left as the upper bound it probably is (in a dive).
+Zagi's "Top Speed 85 MPH", 38 m/s: on the straight line thrust model the
+plant flew until 2026-10-11, falling to zero at the pitch speed, the
+published motor and prop levelled out at 29.7 m/s, short of it. On APC's
+measured curve for the 5 x 5E, whose thrust holds up past the geometric
+pitch, they level out at 36.8 m/s, 3 percent under the claim and inside
+Z4's band. 85 mph is still a claim no measurement is given for.
 
 ## What is new in the plant
 
@@ -244,15 +244,15 @@ and never widened.
 
 | Gate | What | Derived | Band | Measured |
 | --- | --- | --- | --- | --- |
-| Z1 | level speed at 75 percent | 22.14 | 19.48 to 24.80 | 21.51 m/s |
+| Z1 | level speed at 75 percent | 27.53 (22.14 on the straight line) | 24.22 to 30.84 | 27.83 m/s |
 | Z2 | the trimmed stall, power off | 7.36 | 6.92 to 8.39 | 7.65 m/s |
 | Z3 | best glide | 13.49 | 12.01 to 15.11 | 13.61 at 9.54 m/s |
-| Z4 | top speed | 29.69 | 27.01 to 33.26 | 28.73 m/s |
-| Z5 | best climb | 8.88 | 6.66 to 11.10 | 8.79 m/s |
+| Z4 | top speed | 36.80 (29.69) | 33.48 to 41.22 | 35.50 m/s |
+| Z5 | best climb, swept at 18 to 26 m/s | 15.10 (8.88) | 11.32 to 18.87 | 14.89 m/s |
 | Z6 | full elevon roll, as its helix angle from a full roll's time | 0.2236 | 0.168 to 0.280 | 0.2197, once round in 1.26 s |
 | Z7 | pitch: the pitch rate's first peak after a tenth of up stick, and the glide's alpha per degree of elevon | 0.098 s; 1.672 | 0.063 to 0.146 s; 1.42 to 1.92 | 0.096 s; 1.678 |
 | Z8 | no rudder: full yaw stick changes nothing | | bit identical | identical |
-| Z9 | the straight stall, full up held: wings level, balloons and breaks, mushes | | bank under 5 deg, break within 3 s, past the stall sinking 2 to 6 m/s | 0.7 deg, 1.17 s, alpha 17 deg sinking 3.45 |
+| Z9 | the straight stall, full up held: wings level, balloons and breaks, mushes | | bank under 5 deg, break within 3 s, past the stall sinking 0.61 to 4.25 m/s (zagi-derive.js, 2026-10-11; docs/FLIGHTMODEL.md) | 0.3 deg, 2.36 s, alpha 14.9 deg sinking 1.86 |
 | Z10 | a stall in a turn: full roll held into a 30 deg bank spins it; the bank held on the stick does not | | once round within 4 s; within 20 deg | 449 deg; 14 deg |
 | Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 0.21 m, 22.8 m: the shell's throw from shoulder height dips close to the grass before the motor comes on |
 | Z12 | the belly landing | | at rest upright, the CG 12 mm up | slid 1.4 m, at rest at 10.9 mm, level |

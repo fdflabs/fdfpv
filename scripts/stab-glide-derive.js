@@ -13,8 +13,9 @@
  *   line's moment included; the aero force and what the closed throttle
  *   still pulls carry the weight, and the body's pitch is the zero lift
  *   line's alpha, less its angle under the body axis, less the glide
- *   path's. A propeller pulls nothing there (every prop's idle, or none
- *   pitch speed is under its glide, which is checked); a turbine idles
+ *   path's. A propeller pulls nothing there (every engine's idle pitch
+ *   speed is under its glide, which is checked), and an electric one free
+ *   wheels and windmills, dragging (thrust() below); a turbine idles
  *   rather than stops (fan_tau, the Striker's jet), and its idle thrust is
  *   in the balance.
  *
@@ -46,7 +47,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingLift } from './lib/liftcurve.js';
+import { wingEngine, wingProp } from './lib/propcurve.js';
+import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -118,7 +120,13 @@ async function tables() {
     const key = /\[(SIM_AIRFRAME_\w+)\]\s*=\s*\{/.exec(plant.slice(start, at));
     if (!key || !(key[1] in ids)) throw new Error(`${m[1]}: no airframe id for its plant.c entry`);
     for (const l of loadsOf(ids[key[1]], own.mass_kg)) {
-      planes.push({ name: m[1], fw: fields(m[2]), m: own.mass_kg + l.dm, g: own.gravity, rho: own.rho, ...l });
+      const fw = fields(m[2]);
+      if (fw.thrust_static > 0) fw.prop = wingProp(m[1]);
+      fw.engine = fw.thrust_static > 0 ? wingEngine(m[1]) : null;
+      /* An engine's dyno curve (throttle_rpm), which fields() leaves out as
+       * a list: the stick to its speed over full, straight between tenths. */
+      const curve = m[2].match(/\.throttle_rpm = \{ ([^}]*) \}/);
+      planes.push({ name: m[1], fw, curve: curve ? curve[1].split(',').map(Number) : null, m: own.mass_kg + l.dm, g: own.gravity, rho: own.rho, ...l });
     }
   }
   return planes;
@@ -135,18 +143,24 @@ const smoothstep = (a, b, x) => {
  * and flaps neutral, the slats as fitted by default. */
 function coeffs(fw, alpha) {
   const clmax = fw.cl_max + fw.slat_dclmax;
-  const aStall = clmax / fw.cl_alpha;
-  const sigma = smoothstep(aStall - fw.stall_blend, aStall + fw.stall_blend, Math.abs(alpha));
+  const w = {
+    cla: fw.cl_alpha, clmax, blend: fw.stall_blend, top: fw.stall_top, k: fw.stall_k,
+    claWing: fw.cl_alpha_wing, plateCn: plateCnOf(fw.span, fw.area),
+  };
+  const aStall = clmax / (fw.cl_alpha_wing > 0 ? fw.cl_alpha_wing : fw.cl_alpha);
   const clLin = fw.cl_alpha * alpha;
-  const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const clFlat = w.plateCn * Math.sin(alpha) * Math.cos(alpha);
   const cd0 = fw.cd0 + fw.slat_cd0;
-  /* The lift is the plant's curve, CL max at its top (scripts/lib/liftcurve.js);
-   * the glides and cruises solved here are short of the stall, where the
-   * stalled section's own terms are not reached. */
-  const lc = wingLift({ cla: fw.cl_alpha, clmax, blend: fw.stall_blend, top: fw.stall_top, k: fw.stall_k }, alpha);
+  /* The lift and drag are the plant's curve (scripts/lib/liftcurve.js): the
+   * wing's own slope to its stall, the tail's share past it, the finite
+   * wing's plate and Viterna's B2; the glides and cruises solved here are
+   * short of the stall, where the stalled section's own terms are not
+   * reached. */
+  const lc = wingLift(w, alpha);
+  const { CD, sigma } = wingDrag(w, alpha, { cd0, k: fw.k_induced, clLin });
   return {
     CL: lc.CL,
-    CD: (1 - sigma) * (cd0 + fw.k_induced * clLin * clLin) + sigma * (cd0 + 2 * Math.sin(alpha) ** 2),
+    CD,
     Cm: fw.cm_0 + fw.cm_alpha * alpha - sigma * (fw.stall_arm_ac * clLin + fw.stall_arm_cp * clFlat),
     aStall,
   };
@@ -176,14 +190,67 @@ function trimAlpha(fw, q, T, sh = [0, 0]) {
 }
 
 /* plant_wing.c's motor: the stick to thrust along body x at forward speed u. */
-function thrust(fw, stick, u) {
+/* The windmill, plant_wing.c's free rotor: past its windmill the prop's
+ * torque curve (torque_curve, propcurve.js) is negative, and the air's
+ * torque on it balances the motor's friction, PROP_FRICTION of the static
+ * torque. */
+const WING_SRC = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
+const FRICTION = Number(/#define PROP_FRICTION ([\d.]+)/.exec(WING_SRC)[1]);
+
+/* The free rotor's speed at airspeed u: the fastest n where the air's
+ * torque, n^2 cp(u / (V_p n)), holds the friction; 0 where none does.
+ * Down from the speed whose torque is zero, in steps, then halved. */
+function windmill(fw, u) {
+  const g = (n) => n * n * fw.prop.cp(u / (fw.pitch_speed * n)) + FRICTION;
+  let mu0 = 0;
+  while (mu0 < 4 && fw.prop.cp(mu0) > 0) mu0 += 0.001;
+  let hi = u / (fw.pitch_speed * mu0);
+  for (let lo = hi * 0.99; lo > 1e-4; lo *= 0.99) {
+    if (g(lo) < 0) {
+      for (let k = 0; k < 60; k += 1) {
+        const mid = (lo + hi) / 2;
+        if (g(mid) < 0) lo = mid; else hi = mid;
+      }
+      return hi;
+    }
+    hi = lo;
+  }
+  return 0;
+}
+
+function thrust(fw, stick, u, curve = null) {
   /* No motor at all (the DLG): no thrust, as the plant has it. */
   if (!(fw.thrust_static > 0)) return 0;
   if (fw.fold_duty > 0 && stick < fw.fold_duty) return 0;
   let duty = fw.throttle_idle > 0 ? fw.throttle_idle + (1 - fw.throttle_idle) * stick : stick;
+  if (curve) {
+    const x = Math.min(1, Math.max(0, stick)) * 10;
+    const i = Math.min(9, Math.floor(x));
+    duty = curve[i] + (x - i) * (curve[i + 1] - curve[i]);
+  }
   duty = Math.min(1, Math.max(0, duty));
-  if (!(duty > 0)) return 0;
-  const t = fw.thrust_static * duty * duty * (1 - Math.max(0, u) / (fw.pitch_speed * duty));
+  /* A mapped engine floats: the speed its map and the air's torque on the
+   * prop settle at, the stick its map's row (propcurve.js wingEngine). A
+   * driven prop slower than the air stops at zero thrust. */
+  if (fw.engine) {
+    const t = fw.prop.thrust(fw.thrust_static, u, fw.engine.nAt(stick, u));
+    return t < 0 ? 0 : t;
+  }
+  /* An electric prop at zero duty free wheels and windmills (plant_wing.c
+   * prop_free): it settles where the air's torque meets the motor's
+   * friction, n^2 cp(mu) + f = 0 at mu = u / (V_p n), the fastest such
+   * speed, and drags there, T_s n^2 ct(mu); under the speed that turns it
+   * at all it stops. A fan, or a table with no rotor, stops. */
+  if (!(duty > 0)) {
+    if (!(fw.current_full > 0) || !(fw.j_prop > 0) || fw.fan_tau > 0 || !(u > 0)) return 0;
+    const n = windmill(fw, u);
+    return n > 0 ? fw.prop.thrust(fw.thrust_static, u, n) : 0;
+  }
+  /* The prop's speed at the duty: an electric motor's own law (plant_wing.c
+   * prop_spool), n^2 + K_M n = (K_M + 1) d; an engine's, and a fan's (fan_spool), is the duty. */
+  const KM = 0.85 / 0.15;
+  const n = fw.current_full > 0 && !(fw.fan_tau > 0) ? (-KM + Math.sqrt(KM * KM + 4 * (KM + 1) * duty)) / 2 : duty;
+  const t = fw.prop.thrust(fw.thrust_static, u, n);
   return fw.fold_duty === 0 && t < 0 ? 0 : t;
 }
 
@@ -198,7 +265,7 @@ function glide(p) {
     for (let it = 0; it < 60; it += 1) {
       alpha = trimAlpha(fw, q, T, p.sh);
       if (alpha === null) return null;
-      T = thrust(fw, 0, V * Math.cos(alpha + fw.alpha_zl));
+      T = thrust(fw, 0, V * Math.cos(alpha + fw.alpha_zl), p.curve);
     }
     const ab = alpha + fw.alpha_zl;
     const { CL, CD } = coeffs(fw, alpha);
@@ -245,11 +312,11 @@ function levelAt(p, V) {
     const { CD } = coeffs(fw, alpha);
     T = q * fw.area * CD / Math.cos(ab);
     const u = V * Math.cos(ab);
-    if (thrust(fw, 1, u) < T) return null;
+    if (thrust(fw, 1, u, p.curve) < T) return null;
     let lo = 0, hi = 1;
     for (let i = 0; i < 60; i += 1) {
       const mid = (lo + hi) / 2;
-      if (thrust(fw, mid, u) < T) lo = mid; else hi = mid;
+      if (thrust(fw, mid, u, p.curve) < T) lo = mid; else hi = mid;
     }
     stick = hi;
   }
@@ -307,9 +374,11 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       bad += 1;
       continue;
     }
-    if (gl.idleThrust !== 0 && !(fw.fan_tau > 0)) {
+    if (gl.idleThrust > 0 && !(fw.fan_tau > 0)) {
       console.log(`${name.padEnd(20)} the closed throttle still pulls ${f(gl.idleThrust, 3)} N in the glide, and it is a propeller`);
       bad += 1;
+    } else if (gl.idleThrust < 0) {
+      console.log(`${name.padEnd(20)} a free prop: it glides against its windmill's ${f(-gl.idleThrust, 3)} N`);
     } else if (gl.idleThrust !== 0) {
       console.log(`${name.padEnd(20)} a turbine: it glides on its idle's ${f(gl.idleThrust, 3)} N`);
     }

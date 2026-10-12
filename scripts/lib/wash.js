@@ -26,6 +26,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { readFileSync } from 'node:fs';
+
 const RHO = 1.225;
 
 /*
@@ -79,4 +81,62 @@ export function wash(slip, T, u) {
  * the elevator's with share fh, the rudder's with fv. */
 export function gain(dp, share, V) {
   return 1 + dp * share / (0.5 * RHO * V * V);
+}
+
+/*
+ * A table as the plant has it, read from src/native/plant_wing.c: its
+ * numeric fields, scalars and { } arrays, WING_PI expressions evaluated;
+ * and the plant's SWIRL_KEEP. For a
+ * derivation that puts the prop's torque and swirl into what it predicts.
+ */
+const PLANT_WING = new URL('../../src/native/plant_wing.c', import.meta.url);
+export function planeTable(name) {
+  const src = readFileSync(PLANT_WING, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const body = new RegExp(`const FixedWingParams ${name} = \\{([\\s\\S]*?)\\n\\};`).exec(src)[1];
+  const num = (e) => Function('WING_PI', `return (${e});`)(Math.PI);
+  const out = {};
+  for (const m of body.matchAll(/\.(\w+)\s*=\s*(\{[^}]*\}|[^,{}\n]+),/g)) {
+    const e = m[2].trim();
+    if (e.startsWith('{')) out[m[1]] = e.slice(1, -1).split(',').map((x) => x.trim()).filter(Boolean).map(num);
+    else if (/^[-+*/().\s\dWING_PIe]+$/.test(e)) out[m[1]] = num(e);
+  }
+  const keep = Number(/#define SWIRL_KEEP ([\d.]+)/.exec(src)[1]);
+  return { fw: new Proxy(out, { get: (o, k) => (k in o ? o[k] : 0) }), keep };
+}
+
+/* A curve at mu, plant_wing.c prop_curve: straight between the tenths and
+ * on along the last two. */
+function curveAt(c, mu) {
+  const x = Math.max(0, mu) * 10, i = Math.min(c.length - 2, Math.floor(x));
+  return c[i] + (x - i) * (c[i + 1] - c[i]);
+}
+
+/*
+ * The prop's steady moments on the airframe at a driven speed n (of full)
+ * and forward speed u, wings level, no sideslip and no rates, as
+ * plant_wing.c takes them: the prop's torque Q = Q_f n^2 torque_curve against
+ * the airframe; the wing root's (1 - SWIRL_KEEP) of it back; the swirl at
+ * the fin, a sideways speed SWIRL_KEEP Q (up - dn) / (mdot rw^2), through
+ * the fin's slip terms. Aero convention: L roll right, N nose right, Y to
+ * the right, N m and N.
+ */
+export function propMoments(t, n, u) {
+  const fw = t.fw;
+  const mu = Math.max(0, u) / (fw.pitch_speed * n);
+  const T = Math.max(0, fw.thrust_static * n * n * curveAt(fw.axial_curve, mu));
+  const Q = fw.torque_arm * fw.thrust_static * n * n * curveAt(fw.torque_curve, mu);
+  if (!(fw.slip_r > 0) || !(T > 0)) return { L: -Q, N: 0, Y: 0, Q, T };
+  const w = wash(fw, T, u);
+  const up = Math.max(0, u);
+  const mdot = RHO * Math.PI * fw.slip_r * fw.slip_r * (up + w.vi);
+  const keep = fw.slip_pusher ? 1 : t.keep;
+  const xs = keep * Q * (Math.min(w.rw, fw.slip_hv[0]) - Math.min(w.rw, fw.slip_hv[1])) / (mdot * w.rw * w.rw);
+  const kv = RHO * w.vi * w.fv;
+  const xb = -xs;
+  return {
+    L: -Q + fw.area * fw.span * kv * fw.slip_cl_b * xb + (1 - keep) * Q,
+    N: fw.area * fw.span * kv * fw.slip_cn_b * xb,
+    Y: fw.area * kv * fw.slip_cy_b * xb,
+    Q, T,
+  };
 }

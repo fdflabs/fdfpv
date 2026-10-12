@@ -67,15 +67,15 @@ const PINNED = {
   'trace.baseline.30.7.vnull': '0cbbaec9f1eebc99a4843b25f453f161af329d5b76e4f74b6b8bcb6445744c78',
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
-  'trace.wing.60.10': '7d838bb6dd376d5532dd6dbdb31392db3bae4226318ed88a056336cefa81b29c',
-  'trace.wing.50.10.v3.9': '7d838bb6dd376d5532dd6dbdb31392db3bae4226318ed88a056336cefa81b29c',
+  'trace.wing.60.10': 'e1d647d2ab967f547e99053c75dfb77ac696b42d15f26787ef5634df06da38f2',
+  'trace.wing.50.10.v3.9': 'e1d647d2ab967f547e99053c75dfb77ac696b42d15f26787ef5634df06da38f2',
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the Skyhunter's wash (docs/FLIGHTMODEL.md). */
   /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
   /* Re-pinned: no built in stall side on any aircraft (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': '807e746454fc63c9d9d0af79eb177b87d5f99ea5d85a7c4211ee7c8f1739086b',
+  'trace.sky.60.10': '712a90759747c956a2555a017626728bce9d30e3cc3f45229c179276ac988631',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
@@ -98,7 +98,9 @@ const PINNED = {
   'sched.real.144.7': 'b0f7d9c437008bf40dc804f82bae41d63fcc90cb2f3665a3e998cbc693b84f85',
   'script.fake.onstep': '8a0d0b56cf43028093ddd65733263debdf84f701e969e0595765e7a7d02db256',
   'script.fake.silent': 'd68e1a6ae877a297cbf895499964fc9d38ce1cdb2bdb3baf5b97a0307e6204b1',
-  'script.real': '4ea9d60c79bb86a820684788adc963e02694253036e2db91b2ba6452c4761ee6',
+  /* Re-pinned: its first 50 ms at zero throttle hold the I term at zero,
+   * Betaflight's airmode start throttle (bf_glue.c bf_airmode_latch). */
+  'script.real': 'ad919494f33627ddb52357e160d9d9d339969825eda50577aa5417e6b5363dff',
   'must.codes': 'f898483a4aed452cac3fbb8f03200e9805447a167ee567c2e0f46781f8ea4c57',
   'sha256.chunks': 'eee950733a3d409c9c55da61fe66390b89d6b031f58f0739a2365a7021f64ac2',
   'st': 'bceac134e553c23ea84317029ee8c2255dd5bcc145e47bdb12c026fd649a6b7a',

@@ -1,7 +1,7 @@
 /*
  * front.js: the rooms server's HTTP front, for either platform.
  *
- *   POST /v2/create          { map, friendly, public, name, mode } -> { code },
+ *   POST /v2/create          { map, friendly, public, name, mode, daytime } -> { code },
  *                            a new room; public only while env.PUBLIC_ROOMS
  *                            is "on"; 400 { error: 'name' } for a name the
  *                            shape or the word filter refuses
@@ -80,6 +80,7 @@ import {
   LIST_EVERY_MS, PUBLIC_CAP, ROOM_SETUPS, codeFromBytes, normaliseCode, normaliseRoomName,
 } from '../../src/share/roomwire.js';
 import { MISSIONS } from '../../src/share/war/missions/index.js';
+import { TIME_NAMES } from '../../src/share/daytime.js';
 import { released } from '../../src/game/campaign.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { sha256Base64 } from '../../src/share/identity.js';
@@ -349,8 +350,11 @@ async function create(request, env, origin) {
   if (name === false) {
     return refuse(400, 'name');
   }
+  /* The creator's time of day (src/share/daytime.js TIME_NAMES), the
+   * room's from its start, or null for each world's own. */
+  const daytime = TIME_NAMES.includes(body.daytime) ? body.daytime : null;
   const room = {
-    map: body.map, friendly: Boolean(body.friendly), public: open, name, mode: body.mode ?? null, mission,
+    map: body.map, friendly: Boolean(body.friendly), public: open, name, mode: body.mode ?? null, mission, daytime,
   };
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = newCode();

@@ -37,8 +37,9 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
 import {
   bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight,
-  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordUglystikFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, recordZagiFlight, recordDlgFlight, recordTigermothFlight, recordExtraFlight, recordHerculesFlight, recordNightTimberFlight, skyPrelude, wingPrelude,
+  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordUglystikFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, recordZagiFlight, recordDlgFlight, recordTigermothFlight, recordExtraFlight, recordHerculesFlight, recordNightTimberFlight, recordSlickFlight, skyPrelude, wingPrelude,
 } from '../tests/lib/wingpilot.js';
+import { recordCapFlight } from '../tests/lib/wingpilot.js';
 
 /* The wing by default; `sky` records the Skyhunter, with its rudder in the
  * flight, for skyhunter-gates.js S16; `cub` the Cub's take off and flight
@@ -63,7 +64,10 @@ import {
  * tigermoth-gates.js T17; `extra` the Extra 300 3D's take off, hover,
  * torque roll and flight for extra-gates.js E16; `nighttimber` the Night
  * Timber X's for nighttimber-gates.js N16; `hercules` the Hercules'
- * take off, climb, turn and glide for hercules-gates.js H8. */
+ * take off, climb, turn and glide for hercules-gates.js H8; `cap` the CAP
+ * 580's take off, hover and torque roll for cap580-gates.js C16; `slick`
+ * the Slick 580's take off, hover, torque roll and flight for
+ * slick-gates.js S16. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
   sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
@@ -85,7 +89,9 @@ const PLANES = {
   zagi: { file: 'tests/inputs/zagi-baseline.rec', record: recordZagiFlight },
   extra: { file: 'tests/inputs/extra-baseline.rec', record: recordExtraFlight },
   hercules: { file: 'tests/inputs/hercules-baseline.rec', record: recordHerculesFlight },
+  slick: { file: 'tests/inputs/slick-baseline.rec', record: recordSlickFlight },
   nighttimber: { file: 'tests/inputs/nighttimber-baseline.rec', record: recordNightTimberFlight },
+  cap: { file: 'tests/inputs/cap580-baseline.rec', record: recordCapFlight },
 };
 const plane = PLANES[process.argv[2] || 'wing'];
 if (!plane) {

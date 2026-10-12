@@ -60,7 +60,7 @@ import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle,
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
-import { courseKind } from './game/progress.js';
+import { courseKind, lockOf } from './game/progress.js';
 import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
 import { createGlidePath } from './render/glidepath.js';
 import { createGateCue } from './ui/gatecue.js';
@@ -90,7 +90,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager, thermalMode } from './avionics/sensors.js';
@@ -154,7 +154,6 @@ import { feedSnow } from './share/ops/feed.js';
 import { HOLD_BANK, holdOf, holdPose } from './share/ops/hold.js';
 import { opsWorldOf } from './share/opsworlds.js';
 import { resolve as opsResolve } from './share/ops/stages.js';
-import { localHour } from './share/interior/clock.js';
 import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics/camball.js';
 import { createCapture, createStillStore } from './avionics/capture.js';
 import { OpsHud, heldRolesOf } from './ui/opshud.js';
@@ -183,7 +182,7 @@ import {
 } from './share/war/nudge.js';
 import VOICE_LENGTHS from './share/war/voicelen.js';
 import { createCampaignScreen } from './ui/campaign.js';
-import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
+import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
 import { briefingOf } from './ui/briefing.js';
 import {
   ACT1, createCampaignStore, markSeen, released, seenFilm,
@@ -236,6 +235,7 @@ import { ESTIMATES } from '../configs/power-estimates.js';
 import { MOTORS, choiceKey, hasMotors, motorChoice, motorStats, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
+import { flownTiers, pointsInertia, surfaceGrowth, tierBlock, tierPoints, tierThrowsDeg } from '../configs/surfaces.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import {
@@ -243,6 +243,7 @@ import {
 } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
+import { drawnChords, setSurfacesSource, surfacesFor } from './render/surfacesource.js';
 import { setAtlasPreset } from './render/decals.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normalisePlane, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
@@ -263,8 +264,12 @@ import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraf
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP } from './render/nighttimbercraft.js';
-import { setWorldNight, worldNight } from './render/worldlight.js';
+import {
+  TIME_NAMES, clockOf, clockOfTime, daytimeNow, hourAt, nightOfTime, publishDaytime, timeOfClock, timeOfHour,
+} from './share/daytime.js';
+import { CAP_MOUNT_FORWARD, CAP_MOUNT_UP } from './render/capcraft.js';
 import { HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP } from './render/herculescraft.js';
+import { SLICK_MOUNT_FORWARD, SLICK_MOUNT_UP } from './render/slickcraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -286,7 +291,9 @@ const WING_MOUNTS = {
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
   extra3d1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   nighttimber1200: [NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP],
+  cap1702: [CAP_MOUNT_FORWARD, CAP_MOUNT_UP],
   hercules3077: [HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP],
+  slick2680: [SLICK_MOUNT_FORWARD, SLICK_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
@@ -445,6 +452,10 @@ const INTRO_APPROACH_RADIUS = 0.40;
 const INTRO_APPROACH_HEIGHT = 0.14;
 const INTRO_FOV = 40;
 const INTRO_FLOOR_CLEAR = 0.12;
+/* The orbit's radii and heights are for a craft up to this wide, world
+ * metres; a wider one takes them in proportion, or the lens orbits inside
+ * its wing (the Kadet's 1.98 m, the Hercules' 3.08). */
+const INTRO_SPAN = 1.5;
 /* The closing shot: off the FPV lens to a three-quarter view of the frozen
  * craft, in world metres, then a slow sway. (The FPV lens keeps its own
  * floor, fpvLensClear in src/render/lens.js.) */
@@ -557,25 +568,38 @@ const MAP_MODULE_COUNT = { swiss2: 46, itaipu: 34 };
 const FLOOR_WORLD = 'alps';
 
 /*
- * `?time=night` (Itaipu's mission 4, "Night raid"; src/maps/itaipu.js
- * options.time), or one of Itaipu's other times of day (`morning`,
- * `noon`, `golden`: src/maps/itaipu/look/light.js TIMES, named here and
- * not imported, so the shell does not load a map's module before the map
- * is picked): read once, here, rather than at every loadMap call site,
- * and left out of `options` entirely unless it names one, so a map with
- * no notion of time sees nothing new. Not stored: a link with it in
- * stays a link into the night, never a standing setting. A caller's own
- * time (the night raid's) wins over the address's. */
-const ADDRESS_TIMES = new Set(['night', 'morning', 'noon', 'golden']);
-function withTimeOption(options) {
-  const time = new URLSearchParams(window.location.search).get('time');
-  return ADDRESS_TIMES.has(time) && !(options && options.time) ? { ...options, time } : options;
+ * A solo run's game clock (docs/DAYTIME-CONTRACT.md): the address's
+ * `?hour=` (the Interior's hours) or `?time=` (a src/share/daytime.js
+ * TIME_NAMES name: Itaipu's mission 4 "Night raid", morning, noon,
+ * golden), else the pilot's Time of day setting, whose 'own' is no clock:
+ * each world at its own time. The address is not stored: a link with it
+ * in stays a link into the night, never a standing setting. In a room the
+ * room's clock is the clock (gameClock).
+ */
+function soloClock(settings) {
+  const q = new URLSearchParams(window.location.search);
+  const hour = Number(q.get('hour'));
+  if (q.has('hour') && hour > 0) {
+    return clockOf({ hour, rate: 0, at: 0 });
+  }
+  const time = q.get('time');
+  if (TIME_NAMES.includes(time)) {
+    return clockOfTime(time);
+  }
+  return clockOfTime(chosenTime(settings));
 }
 
-/* The time a world is built at: the night raid's night when a caller
- * asks for it, else the address's ?time=, else day. */
+/* A world's build options for a clock: the named time a world built once
+ * is built at (Itaipu's options.time) and the hour a world that moves its
+ * sun starts at (the Interior's options.hour), or nothing for each world's
+ * own. */
+function timeOptionsOf(clock) {
+  return clock ? { time: timeOfClock(clock), hour: clock.hour } : {};
+}
+
+/* The time a world is built at, by its options: day unless they name one. */
 function timeOf(options) {
-  return withTimeOption(options).time || 'day';
+  return options.time || 'day';
 }
 
 /* The map module's import, as the loading screen's module stage. It is a
@@ -602,8 +626,7 @@ async function importMapModule(entry, loading) {
 /* Builds world `id` and returns it: its module fetched, its scene built
  * through the loading screen's world stage, its water and the ground over
  * that water attached. */
-async function loadMap(shell, id, loading, mapOptions) {
-  const options = withTimeOption(mapOptions);
+async function loadMap(shell, id, loading, options) {
   /* Liveries dressed in this world draw their layers at its preset. */
   setAtlasPreset(options.quality);
   const entry = mapById(id);
@@ -1045,8 +1068,8 @@ export async function boot({
   let opsCampMark = null;
   /* Which mission's camps the map shows (mission.camp.world), told once. */
   let opsCampWorld = null;
-  /* What the map was last told, for the checks: the hour, the looks. */
-  let opsHourTold = null;
+  /* What the map was last told, for the checks: the looks (the hour is
+   * daytimeFrame's hourTold). */
   let opsLooksTold = [];
   let ball = null;
   let ballAirframe = null;
@@ -1527,11 +1550,6 @@ export async function boot({
     view.setContacts(list, now);
     opsDrawn = true;
     opsLooksTold = list.map((c) => `${c.id}:${c.kind}`);
-    const clock = v.clock ?? mission.clock;
-    if (clock && v.goAt != null && typeof view.setLocalTime === 'function') {
-      opsHourTold = localHour(clock, v.goAt, now);
-      view.setLocalTime(opsHourTold);
-    }
     const markOfView = v.camp ? v.camp.mark : (mission.camp && mission.camp.mark != null ? opsResolve(mission.camp.mark, v.dials || {}) : null);
     if (markOfView != null && typeof view.setCamp === 'function') {
       const mark = markOfView;
@@ -2078,7 +2096,7 @@ export async function boot({
       }),
     }),
     /* What the map was last told of the room: mark, hour, contacts. */
-    drawn: () => ({ mark: opsCampMark, hour: opsHourTold, looks: opsLooksTold.slice() }),
+    drawn: () => ({ mark: opsCampMark, hour: hourTold, looks: opsLooksTold.slice() }),
     /* Checks only: the host's end of the match. */
     end: () => roomOps.end(),
     /* Checks only: lock the ball on a point (ops frame). */
@@ -2409,7 +2427,7 @@ export async function boot({
         /* This pilot's own aircraft as the shell dresses it, the others'
          * from their room profiles as a visit's are. */
         walkRoom.view.setLineup(ui.walk.roomLineup.map((e) => (e.own
-          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false }), e.airframe), e.airframe)
+          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false, surfaces: surfacesFor(e.airframe) ?? undefined }), e.airframe), e.airframe)
           : visitCraft(e))));
         walkRoom.view.setCraft(null);
         walkRoom.craftKey = 'lineup';
@@ -2524,7 +2542,9 @@ export async function boot({
    * account's, so a colour or a part this build does not know is dropped. */
   function visitCraft(visit) {
     const id = airframeById(currentAirframeId(visit.airframe)).id;
-    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false });
+    /* The surface tiers they fly, in their parts (configs/surfaces.js). */
+    const surfaces = surfaceGrowth(id, visit.parts && visit.parts.surfaces);
+    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false, surfaces: surfaces ?? undefined });
     if (paintable(id)) {
       dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), visit.look)));
     }
@@ -2540,8 +2560,11 @@ export async function boot({
    * (src/ui/ui.js pickerLook), or a stock aircraft in the pilot's own
    * paint and parts, as the main stand's. */
   function bayCraft({ airframe, build }) {
-    const craft = craftBuilderFor(airframe)({ name: 'bay-craft', fog: false });
     const b = build ? ui.myBuilds.find((x) => x.id === build) : null;
+    /* A build's own surfaces; the stock aircraft's the pilot's, through
+     * src/render/surfacesource.js as the main stand's. */
+    const surfaces = b ? surfaceGrowth(airframe, b.fit.surfaces) : surfacesFor(airframe);
+    const craft = craftBuilderFor(airframe)({ name: 'bay-craft', fog: false, surfaces: surfaces ?? undefined });
     if (!b) {
       return dressParts(dressLivery(craft, airframe), airframe);
     }
@@ -3050,7 +3073,8 @@ export async function boot({
    * the smallest world, and the one the Swiss valley builds through, so if
    * they fail there is nothing under them and the error stands.
    */
-  const worldOptions = () => ({ quality: ui.settings.graphics, renderScale: renderScaleOf(ui.settings) });
+  /* At the solo clock: no room is joined before the first world. */
+  const worldOptions = () => ({ quality: ui.settings.graphics, renderScale: renderScaleOf(ui.settings), ...timeOptionsOf(soloClock(ui.settings)) });
   const firstWorld = worldId();
   try {
     view = await loadMap(shell, firstWorld, loading, worldOptions());
@@ -3766,6 +3790,14 @@ export async function boot({
   function roomHereText(text, bots) {
     return bots ? `${text}, ${plural('count.ai_pilots_extra', bots)}` : text;
   }
+  /* The surface tiers this pilot flies on `id`, for the room's lineup
+   * and the others' drawings: the seated ones on the aircraft in the air
+   * (a change waits for the next run, as the plant's does), none when
+   * stock, and so none in a stock only room. */
+  function profileTiers(id) {
+    const key = id === runAirframe ? runTierKey : tierKeyOf(ui.settings, id);
+    return key === 'null' ? {} : { surfaces: JSON.parse(key) };
+  }
   function roomProfile() {
     const status = roomStatus();
     /* Off the air in a war room (its lobby, its briefing) the aircraft the
@@ -3781,7 +3813,7 @@ export async function boot({
       /* Packed (configs/paint.js packEntry), so MAX_DECALS layers fit the
        * room's PROFILE_MAX_BYTES. */
       livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) ? packEntry(ui.settings.livery[liveryKey(id)]) : null,
-      parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
+      parts: parts ? { prop: parts.prop, addons: parts.addons, ...profileTiers(id) } : null,
       ...(ui.roomGame ? { game: ui.roomGame } : {}),
       ...(status ? { status } : {}),
     };
@@ -4374,22 +4406,21 @@ export async function boot({
    * so the crash cam's journal keeps it like the chase boost.
    */
   /*
-   * THE MISSION'S TIME OF DAY (its `time`, TECH-NEEDS T1.11: First Light's
-   * morning, the night raid's night): the world is built at that time
-   * (src/maps/itaipu.js options.time, through syncWorld) while a pilot
-   * waits on the room's lobby with that mission named, so the briefing
-   * seldom has to rebuild it (the frame loop stops while a world is
-   * built), and from the briefing whatever the lobby; at night the
-   * attackers wear nav lights. It stays so over the mission's end and its
-   * result, so the banner is not hidden behind a rebuild; the map's own
-   * time comes back with a mission that has none, or when the room is
-   * left (its view is the lobby's, and there is no lobby). Every pilot's
-   * screen does this from the room, so all of them fly the same light.
+   * THE GAME CLOCK'S TIME OF DAY (docs/DAYTIME-CONTRACT.md): a world
+   * built once at a named time (Itaipu, src/maps/itaipu.js options.time)
+   * is rebuilt through syncWorld when the clock's named time moves. In a
+   * room the clock is the room's (edge/rooms/core.js daytime), so every
+   * pilot's screen flies the same light: the host's time, or a mission's
+   * (TECH-NEEDS T1.11: First Light's morning, the night raid's night),
+   * which the room names from its lobby on, so the briefing seldom has to
+   * rebuild (the frame loop stops while a world is built), and keeps over
+   * the mission's end and its result, so the banner is not hidden behind
+   * a rebuild. Solo, the pilot's setting or the address (soloClock).
    */
-  let warTime = null;
+  let clockTime = null;
   /* Each switch, its room ms and when the rebuild was done, for checks. */
   const warTimeLog = [];
-  function warTimeFrame() {
+  function clockTimeFrame() {
     /*
      * A WAR ROOM'S WORLD IS THE ROOM'S (docs/FLOW-AUDIT.md rules 2 and 3):
      * the title's world and the builder's end on entering one, by any way
@@ -4404,16 +4435,13 @@ export async function boot({
       paintBest();
       syncWorld();
     }
-    const lobby = ui.screen === 'friends' && lobbyGame() === 'war' ? gameLobby() : null;
-    const time = lobby ? missionTime(WAR_MISSIONS[lobby.mission]) : roomWar.view().state !== 'lobby' ? roomWar.time() : null;
-    if (time === warTime) {
+    const time = timeOfClock(gameClock());
+    if (time === clockTime) {
       return;
     }
-    warTime = time;
-    const night = time === 'night';
-    warAttackers.setNavLights(night);
+    clockTime = time;
     const entry = {
-      time, night, at: roomLinkState.roomNow(), state: roomWar.view().state, done: null,
+      time, night: nightOfTime(time), at: roomLinkState.roomNow(), state: roomWar.view().state, done: null,
     };
     warTimeLog.push(entry);
     syncWorld().then(() => {
@@ -5111,7 +5139,9 @@ export async function boot({
       try {
         const found = await roomBrowser.bestRoom(game, world);
         const name = normaliseRoomName(str(`lobby.room_name_${game || 'free'}`, { name: roomName(ownName()) })) || null;
-        const code = found || await roomLinkState.create(world, false, { name, mode: game, public: true });
+        const code = found || await roomLinkState.create(world, false, {
+          name, mode: game, public: true, daytime: chosenTime(ui.settings),
+        });
         if (ui.settings.map !== world) {
           ui.seatMap(world, { stay: true });
         }
@@ -5621,7 +5651,7 @@ export async function boot({
       warIntroPlay('watch');
     }
     /* Not until the mission's world stands (warFilmWorldUp): not while it
-     * is built at the mission's time of day (warTimeFrame, at the
+     * is built at the mission's time of day (clockTimeFrame, at the
      * briefing's start), nor over another map. It starts once the world
      * is up, where the room is by then, the film's preload span having
      * covered most of it. */
@@ -5958,7 +5988,7 @@ export async function boot({
     warFeedFrame(wallMs);
     const v = roomWar.view();
     warGatesFrame(v);
-    warTimeFrame();
+    clockTimeFrame();
     warWorldTell();
     warIntroFrame(v);
     warCraftFrame(v);
@@ -7204,6 +7234,8 @@ export async function boot({
       mode: st.welcome ? st.welcome.mode ?? null : null,
       lobby: st.welcome && st.welcome.lobby ? { ...st.welcome.lobby } : null,
       host: st.welcome ? st.welcome.host : null,
+      /* The host's stock surfaces only (edge/rooms/core.js stockSurfaces). */
+      stockSurfaces: Boolean(st.welcome && st.welcome.stockSurfaces),
       /* The watch seat: the pilot the camera follows, and how far the
        * camera is from where that pilot is drawn, metres. */
       watch: Boolean(st.welcome && st.welcome.watch),
@@ -7219,6 +7251,7 @@ export async function boot({
         airframe: p.profile.airframe,
         map: p.profile.map,
         livery: p.profile.livery,
+        parts: p.profile.parts ?? null,
         drawn: Boolean(p.rig && p.rig.group.visible),
         drawnAirframe: p.rig ? p.rig.airframe : null,
         at: p.rig ? p.rig.group.position.toArray() : null,
@@ -7491,9 +7524,11 @@ export async function boot({
     if (roomLinkState.state().phase !== 'open') {
       return [];
     }
-    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true };
+    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true, surfaces: profileTiers(runAirframe).surfaces ?? null };
     const others = [...roomPeers.values()].filter((p) => p.profile && p.profile.airframe)
-      .map((p) => ({ name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts }));
+      .map((p) => ({
+        name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts, surfaces: (p.profile.parts && p.profile.parts.surfaces) ?? null,
+      }));
     return [own, ...others];
   };
   ui.friendsRows = () => {
@@ -10085,6 +10120,7 @@ export async function boot({
   /* The model drawn: TITLE_CRAFT on the title, else the seated aircraft. */
   let drawnCraft = DEFAULT_AIRFRAME;
   let drawnCombat = null;
+  let drawnTiers = 'null';
   /* The camera mount in the seated aircraft's frame: lens.js's for the
    * quad, the pod's nose for a wing. */
   let camMountFwd = CAMERA_MOUNT_FORWARD;
@@ -10920,12 +10956,45 @@ export async function boot({
     const parts = partsEntry(s.parts, af.id);
     /* The Hercules' cargo still aboard rides as add-ons too (THE HOLD). */
     const cargo = af.ramp ? holdPoints(holdLeft) : [];
-    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS], cargo);
+    /* The bigger surfaces' servos (configs/surfaces.js), the pair of
+     * aileron servos' spread handed over as the add-ons' own inertia. */
+    const servos = tierPoints(af.id, seatedTiers(s, af.id));
+    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS], [...cargo, ...servos]);
     const code = block ? sim.setAddons(block) : sim.clearAddons();
-    if (code !== SIM_OK) {
-      throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
+    const spread = code === SIM_OK && block && servos.length ? sim.setAddonInertia(Float64Array.from(pointsInertia(servos))) : code;
+    if (spread !== SIM_OK) {
+      throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(spread)}`);
     }
   }
+
+  /*
+   * THE CONTROL SURFACE TIERS (configs/surfaces.js, the hangar's Surfaces
+   * tab): what the plane flies is the pilot's stored tiers, less any not
+   * yet earned, and stock in a room whose host asked for stock only
+   * (roomStockOnly). applyTuning seats the plant's block and the tiers'
+   * throws, applyParts their servos; runTierKey is what was seated.
+   */
+  let runTierKey = 'null';
+  /* A room whose host set stock surfaces only (edge/rooms/core.js
+   * stockSurfaces); off outside a room. */
+  function roomStockOnly() {
+    const w = roomLinkState.state().welcome;
+    return roomLinkState.state().phase === 'open' && Boolean(w && w.stockSurfaces);
+  }
+  function seatedTiers(s, id) {
+    const progress = s.progress;
+    return flownTiers(id, s.surfaces && s.surfaces[id], {
+      locked: (af, unlock) => lockOf(progress, 'surface', unlock, af) !== null,
+      stockOnly: roomStockOnly(),
+    });
+  }
+  /* What runTierKey holds for these settings: 'null' for stock. */
+  function tierKeyOf(s, id) {
+    const tiers = seatedTiers(s, id);
+    return tierBlock(id, tiers) ? JSON.stringify(tiers) : 'null';
+  }
+  /* Every model of a plane is drawn with the surfaces it flies. */
+  setSurfacesSource((id) => surfaceGrowth(id, seatedTiers(ui.settings, id)));
 
   /* A combat quad's payload and accessories, on the hangar parts' path and
    * rule: one lumped mass and its spread, laid over the table between
@@ -10965,11 +11034,23 @@ export async function boot({
     const af = airframeById(runAirframe);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
+      runTierKey = 'null';
       return;
     }
     const set = setupFor(af.id, powerChoice(af.id, s.power));
     const entry = normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits);
-    const block = tuneBlock(af.id, entry, set.massKg, set.packKg);
+    /* Mid run the tiers in the air stay (they wait for the next run, with
+     * their servos and their drawing); only the tune is laid again. */
+    const tiers = midRun ? (runTierKey === 'null' ? null : JSON.parse(runTierKey)) : seatedTiers(s, af.id);
+    const tierSet = tiers ? tierBlock(af.id, tiers) : null;
+    if (!midRun) {
+      const tierCode = tierSet ? sim.setTiers(tierSet) : sim.clearTiers();
+      if (tierCode !== SIM_OK) {
+        throw new Error(`sim_wing_set_tiers refused ${JSON.stringify(tiers)} on ${af.id}: ${simErrorName(tierCode)}`);
+      }
+      runTierKey = tierKeyOf(s, af.id);
+    }
+    const block = tuneBlock(af.id, entry, set.massKg, set.packKg, tierSet ? tierThrowsDeg(af.id, tiers) : null);
     const code = block ? sim.setTune(block) : sim.clearTune();
     if (code !== SIM_OK) {
       throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
@@ -12594,6 +12675,7 @@ export async function boot({
   function seatWeather() {
     const welcome = roomLinkState.state().welcome;
     offerRoomWeather(ui.settings);
+    offerRoomDaytime(ui.settings);
     /* Free flight only: a race map's records, a war and a mission are
      * flown in still air, the same for everyone who ever flew them. */
     const free = view.mode === 'freestyle' && !roomWar.on() && !roomOps.on();
@@ -12706,6 +12788,24 @@ export async function boot({
     const w = roomLinkState.state().welcome;
     if (roomHost(w) && w.weather && w.weather.preset !== s.weather) {
       roomLinkState.sendWeather(s.weather);
+    }
+    /* And stock surfaces only, the same way, at the same moment. */
+    if (roomHost(w) && Boolean(w.stockSurfaces) !== (s.roomStockSurfaces === true)) {
+      roomLinkState.sendStockSurfaces(s.roomStockSurfaces === true);
+    }
+  }
+  /* And the room's time of day, at the same moment, a run's start: told
+   * once per welcome and setting, since the room's clock may be a
+   * mission's, which governs while its game is the room's
+   * (edge/rooms/core.js daytime) and is no answer to compare with. The
+   * room's creator's setting was its time from the start. */
+  let daytimeOffered = null;
+  function offerRoomDaytime(s) {
+    const w = roomLinkState.state().welcome;
+    const want = chosenTime(s);
+    if (roomHost(w) && !(daytimeOffered && daytimeOffered.w === w && daytimeOffered.want === want)) {
+      daytimeOffered = { w, want };
+      roomLinkState.sendDaytime(want);
     }
   }
 
@@ -13536,7 +13636,7 @@ export async function boot({
       paintBest();
       mode = stayMode === 'flight' ? 'paused' : stayMode;
       /* Only if the pilot is still on it: a war lobby builds its mission's
-       * world while the pilot waits (warTimeFrame), about 5 s, and one who
+       * world while the pilot waits (clockTimeFrame), about 5 s, and one who
        * left the room and opened Make a room meanwhile was thrown back to
        * the room screen, with no room. */
       if (stayScreen && ui.screen === stayScreen) {
@@ -13661,7 +13761,7 @@ export async function boot({
     return id === view.id
       && quality === view.graphics
       && wantedCourseKey(id) === loadedCourseKey(view)
-      && worldTime === timeOf(worldTimeOptions());
+      && worldTimeMatches();
   }
 
   /*
@@ -13672,11 +13772,23 @@ export async function boot({
    * still up.
    */
   let worldSync = null;
+  /* The game clock (docs/DAYTIME-CONTRACT.md): the room's in a room
+   * (src/share/rooms.js checks it at the network's edge), else solo's. */
+  function gameClock() {
+    const w = roomLinkState.state().welcome;
+    return w ? w.daytime ?? null : soloClock(ui.settings);
+  }
   /* The time the standing world was built at, and what a build asks for
-   * now: the mission's while a war with one is on (warTime). */
-  let worldTime = timeOf({});
+   * now: the game clock's. */
+  let worldTime = timeOf(timeOptionsOf(soloClock(ui.settings)));
   function worldTimeOptions() {
-    return warTime ? { time: warTime } : {};
+    return timeOptionsOf(gameClock());
+  }
+  /* A world that moves its sun (the Interior's setLocalTime) follows the
+   * clock every frame (daytimeFrame) and is never rebuilt for it; a world
+   * built once at a named time is rebuilt when the time moves. */
+  function worldTimeMatches() {
+    return typeof view.setLocalTime === 'function' || worldTime === timeOf(worldTimeOptions());
   }
   function syncWorld() {
     if (!worldSync) {
@@ -13710,7 +13822,7 @@ export async function boot({
      * of a minute to build and a course a few milliseconds, so the world
      * stays and only the course and the run change. Anything else is a swap.
      */
-    if (mapReady && wantId === view.id && wantQ === view.graphics && worldTime === timeOf(worldTimeOptions())) {
+    if (mapReady && wantId === view.id && wantQ === view.graphics && worldTimeMatches()) {
       swapInFlight = true;
       mapReady = false;
       try {
@@ -13764,8 +13876,11 @@ export async function boot({
     /* A new world starts native: its cost is not the old one's. */
     dynres.reset();
     try {
-      await loadWorldInto(wantId, wantQ, worldTimeOptions());
-      worldTime = timeOf(worldTimeOptions());
+      /* Read once: the clock may move while the world builds, and the
+       * time recorded must be the one built. */
+      const timeOptions = worldTimeOptions();
+      await loadWorldInto(wantId, wantQ, timeOptions);
+      worldTime = timeOf(timeOptions);
       await seatMapCourse();
       loading.start('frame');
       adoptLoadedView(keepPlace, stayMode, stayScreen);
@@ -14036,13 +14151,17 @@ export async function boot({
      * which is between runs. */
     const combat = !airframeById(want).combat ? null
       : want === runAirframe ? combatSeatKey : JSON.stringify(combatSeated(want));
-    if ((want === drawnCraft && combat === drawnCombat) || typeof shell.swapCraft !== 'function') {
+    /* And a plane whose surface tiers were seated since: their size is
+     * in the drawing (src/render/surfacesource.js). */
+    const tiers = want === runAirframe ? runTierKey : 'null';
+    if ((want === drawnCraft && combat === drawnCombat && tiers === drawnTiers) || typeof shell.swapCraft !== 'function') {
       return;
     }
     shell.swapCraft(want);
     prewarm([shell.quad]);
     drawnCraft = want;
     drawnCombat = combat;
+    drawnTiers = tiers;
   }
 
   /*
@@ -14222,6 +14341,8 @@ export async function boot({
       return;
     }
     const set = setupFor(af.id, powerChoice(af.id, s.power));
+    /* Not the surface tiers: they are mass and aero and wait for the
+     * next run, which seats them with their servos and draws them. */
     if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
       applyTuning(s, true);
     }
@@ -14809,8 +14930,9 @@ export async function boot({
     }
     const partsChanged = Boolean(res.settings && res.settings.parts);
     /* The tuning is the plane's own, not its family's. */
-    const tuned = id === runAirframe && res.settings && res.settings.tuning
-      && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
+    const tuned = id === runAirframe && res.settings && (
+      (res.settings.tuning && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey)
+      || (res.settings.surfaces && tierKeyOf(ui.settings, id) !== runTierKey));
     /* And a combat quad's loadout is the quad's own (src/ui/hangar-combat.js). */
     const loaded = id === runAirframe && Boolean(res.settings && res.settings.combat)
       && JSON.stringify(combatSeated(id)) !== combatSeatKey;
@@ -17210,7 +17332,6 @@ export async function boot({
       }
       sensors.setMotorTemp(motorC);
       sensors.update(tS, dtS, avxVideo);
-      avxEnv.light = roomWar.night() ? 0.05 : 1;
       perception.update(tS, sensors.state, truth, avxOwn, avxEnv);
       tracks.update(tS, perception.detections, avxOwn);
     }
@@ -18201,6 +18322,65 @@ export async function boot({
    * aliased fraction of true RPM; on the title a cruise spin stands in.
    */
   const LED_BATTERY = { ok: 1, warning: 0.4, critical: 0 };
+  /*
+   * THE FRAME'S DAYTIME (docs/DAYTIME-CONTRACT.md), once a frame before
+   * anything reads it. A world that moves its sun (the Interior) is told
+   * the game clock's hour: on an ops mission's clock it moves through the
+   * flight, the room's for every screen; with no clock, its own hour.
+   * Then the craft's world's own night flag, which that sun or Itaipu's
+   * night build wrote, is published (src/share/daytime.js
+   * publishDaytime), and detection's light, the world's sounds, the
+   * thermal weather, a Night Timber's factory lights and the war's
+   * attackers' nav lights all read that one value, so they turn with the
+   * sky the pilot sees. The hangar's scene has no flag: day.
+   */
+  let hourTold = null;
+  let hourView = null;
+  let navNight = false;
+  function daytimeFrame() {
+    const moving = Boolean(view) && typeof view.setLocalTime === 'function';
+    if (moving) {
+      const c = gameClock();
+      const ms = roomLinkState.roomNow();
+      /* A moving clock in a room waits for the room's time to sync. */
+      const h = !c ? view.ownHour : (c.rate === 0 || Number.isFinite(ms) ? hourAt(c, ms) : null);
+      if (hourView !== view) {
+        hourView = view;
+        hourTold = view.builtHour;
+      }
+      if (Number.isFinite(h) && h !== hourTold) {
+        hourTold = h;
+        view.setLocalTime(h);
+      }
+    }
+    const scene = shell.quad.parent;
+    publishDaytime(Boolean(scene) && scene.userData.timeOfDay === 'night', moving ? timeOfHour(hourTold) : worldTime);
+    const night = daytimeNow().night;
+    avxEnv.light = night ? 0.05 : 1;
+    if (night !== navNight) {
+      navNight = night;
+      warAttackers.setNavLights(night);
+    }
+  }
+  /* The frame's daytime and everything that reads it, for the daytime
+   * checks (scripts/daytime-frame-check.js, daytime-room-check.js). */
+  window.__daytime = () => {
+    const it = view && view.scene && view.scene.userData.itaipu;
+    return {
+      clock: gameClock(),
+      built: worldTime,
+      hour: hourTold,
+      flag: view && view.scene ? view.scene.userData.timeOfDay ?? null : null,
+      night: daytimeNow().night,
+      time: daytimeNow().time,
+      light: avxEnv.light,
+      audio: worldAudio.cells.time ?? null,
+      look: it && it.look ? it.look.time : null,
+      map: view ? view.id : null,
+      ready: mapReady && !worldSync && !swapInFlight,
+    };
+  };
+
   function dressWorld() {
     const freezeWorld = Boolean(ui.reelFreezeWorld);
     fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
@@ -18240,10 +18420,7 @@ export async function boot({
     }
     /* The kit's arm LEDs (docs/KITS.md section 4) on the flight clock, so
      * a replay flashes as the flight did; the pack as the OSD bands it. */
-    /* A Night Timber's factory lights come on with the map's own night
-     * (docs/NIGHTTIMBER-STAGE1.md section 5), read every frame because
-     * the interior's sun sets mid flight. */
-    setWorldNight(Boolean(shell.quad.parent) && shell.quad.parent.userData.timeOfDay === 'night');
+    daytimeFrame();
     if (shell.quad.userData.setLights) {
       shell.quad.userData.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
     }
@@ -18500,8 +18677,9 @@ export async function boot({
     const approachU = introEase((introMs - INTRO_ORBIT) / INTRO_APPROACH);
     const zoomU = introEase((introMs - INTRO_FLY) / INTRO_ZOOM);
     const theta = INTRO_THETA0 - INTRO_ORBIT_SPAN * orbitU;
-    const radius = INTRO_ORBIT_RADIUS + (INTRO_APPROACH_RADIUS - INTRO_ORBIT_RADIUS) * approachU;
-    const height = INTRO_ORBIT_HEIGHT + (INTRO_APPROACH_HEIGHT - INTRO_ORBIT_HEIGHT) * approachU;
+    const wide = Math.max(1, airframeById(runAirframe).dims.bodyWidth / INTRO_SPAN);
+    const radius = wide * (INTRO_ORBIT_RADIUS + (INTRO_APPROACH_RADIUS - INTRO_ORBIT_RADIUS) * approachU);
+    const height = wide * (INTRO_ORBIT_HEIGHT + (INTRO_APPROACH_HEIGHT - INTRO_ORBIT_HEIGHT) * approachU);
     introFwd.copy(camFwd);
     introFwd.y = 0;
     if (introFwd.lengthSq() < 1e-6) {
@@ -18908,7 +19086,7 @@ export async function boot({
       }
     }
     const c = shell.camera.position;
-    worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, worldTime);
+    worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, daytimeNow().time);
     const st = stateCurr;
     const audioStart = performance.now();
     const motorsTurning = mode === 'flight' && !landed && !crashed && !isTurtleParked();
@@ -19551,6 +19729,7 @@ export async function boot({
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
+  window.__carouselChords = (id) => pickStage.chords(id);
   /* The exploded part at client pixels on the hangar's model, for a check. */
   window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
   window.__walkStats = () => (ui.walk ? {
@@ -19606,12 +19785,16 @@ export async function boot({
       smoke: { on: smokeOn, puffs: smoke.live() },
       bladeScale: audio.bladeScale,
       tune: af.fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
+      /* The surface tiers seated (sim_wing_tiers) and how big each moving
+       * surface is drawn: its box along the chord, metres. */
+      tiers: af.fixedWing && typeof sim.e.sim_wing_tiers === 'function' ? Array.from(sim.tiers()) : null,
+      surfaceChords: drawnChords(shell.quad),
       flapNotch,
       /* A Night Timber's factory lights, drawn or not, and the world's
        * night they follow (nighttimber:lights). */
       factoryLights: (() => {
         const f = shell.quad.getObjectByName('factory-lights');
-        return f ? { visible: f.visible, night: worldNight() } : null;
+        return f ? { visible: f.visible, night: daytimeNow().night } : null;
       })(),
       standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
     };
@@ -21108,7 +21291,12 @@ export async function boot({
     /* The hangar parts it flies with, as a saved replay keeps them. */
     fit: () => {
       const f = partsFor(runAirframe);
-      return f && f.entry ? { entry: f.entry, option: f.option ? f.option.id : null } : null;
+      if (!f || !f.entry) {
+        return null;
+      }
+      /* The surfaces it flew with, so the replay draws them that size. */
+      const tiers = seatedTiers(ui.settings, runAirframe);
+      return { entry: f.entry, option: f.option ? f.option.id : null, ...(surfaceGrowth(runAirframe, tiers) ? { surfaces: tiers } : {}) };
     },
   });
   crashCam.tap(debris);

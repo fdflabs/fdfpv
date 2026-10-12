@@ -22,6 +22,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { electricN, wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -126,7 +128,9 @@ const nStatic = Math.cbrt(0.8 * 660 / (0.061 * rho * D5));
 const TsBlade = 0.13 * rho * nStatic * nStatic * D4;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const discP = Math.pow(Ts, 1.5) / Math.sqrt(2 * rho * Math.PI * propR * propR);
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+const prop = wingProp('FW_TIMBER1500');
+/* d is the stick; the prop turns at the motor's steady share of it. */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
 
 /* Drag polar and level speed, clean (flaps up) with the slats on. */
 const cd0Clean = CD0 + slatCd0;
@@ -306,6 +310,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['Clβ, Clp, Clδa (tau)', `${f(Clb, 4)} ${f(Clp)} ${f(Clda)} (${f(tauA)})`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['27 percent surface: tau, cm per rad', `${f(tauTE)} ${f(cmTE)}`],
   ['flap chord m, half, full deg, S_f/S', `${f(cf, 4)} ${f(flapHalf * DEG, 2)} ${f(flapFull * DEG, 2)} ${f(SfS)}`],

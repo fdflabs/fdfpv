@@ -54,9 +54,10 @@ import { PROPS, normaliseParts } from '../../configs/hangar-parts.js';
 import { combatChoice } from '../../configs/combat.js';
 import { Carousel, cycleCraft, flightTimeText, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
-/* Registers the hangar's Tuning tab, then the Parts tab. */
+/* Registers the hangar's Tuning tab, then the Parts and Surfaces tabs. */
 import './hangar-tuning.js';
 import './hangar-parts.js';
+import './hangar-surfaces.js';
 import './hangar-shop.js';
 import './hangar-combat.js';
 import './hangar-kit.js';
@@ -188,7 +189,7 @@ import {
   SETTINGS_KEY, FLIGHT_MODES, PACK_VOLTAGES, LAP_COUNTS, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES,
   hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor,
   FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats,
-  seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices,
+  seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices, chosenTime,
 } from './settings.js';
 import {
   choice, cycle, fitsAsSegments, number, stampIds, stepper, toggle,
@@ -262,7 +263,7 @@ export {
   SETTINGS_KEY, FLIGHT_MODES, CAMERA_FOVS, CAMERA_FOV_DEFAULT, CAMERA_ANGLE_MIN, CAMERA_ANGLE_MAX, CAMERA_ANGLE_DEFAULT, PACK_VOLTAGES,
   LAP_COUNTS, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES, hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN,
   WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor, FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS,
-  AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe,
+  AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe, chosenTime,
 };
 
 export const FREESTYLE_SCORING_LABEL = { off: 'Off', free: str('ui.free_flight'), scored: str('ui.scored_run') };
@@ -1438,6 +1439,7 @@ export class Ui {
           parts: res.settings.parts ? res.settings.parts[id] : held.parts,
           tuning: res.settings.tuning ? res.settings.tuning[id] : held.tuning,
           combat: res.settings.combat ? res.settings.combat[id] : held.combat,
+          surfaces: res.settings.surfaces ? res.settings.surfaces[id] : held.surfaces,
         });
         /* A wing taped is the airframe mended, whatever was edited: its
          * damage is the slots'. */

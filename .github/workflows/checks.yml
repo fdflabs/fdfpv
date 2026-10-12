@@ -63,6 +63,9 @@ jobs:
       - run: npm run wash:derive -- --check
       - run: npm run stab:hold
       - run: npm run as3x:derive
+      # The wings' ground effect against its sources and its surfaces
+      # against the drawn model (scripts/ge-derive.js).
+      - run: npm run ge:derive
       - run: npm run spool:derive
       # The host's vertical air at the craft (sim_set_air_vertical).
       - run: npm run air:vertical
@@ -136,6 +139,22 @@ jobs:
       # The scoring chain end to end, the real aircraft flying the tricks
       # (a powerloop round a rail by a closed loop pilot) included.
       - run: npm run score:selftest
+      # Every aircraft's own gates and stabiliser checks run here, not only
+      # the ones a branch happened to add: these six were in package.json and
+      # never in CI, so their regressions went unseen (2026-10-11). About
+      # 17 s together, measured locally, on the lightest shard.
+      - run: npm run lint:ci-coverage
+      - run: npm run bombshell:gates
+      - run: npm run bombshell:stab
+      - run: npm run bramor:gates
+      - run: npm run bramor:stab
+      - run: npm run floats:gates
+      - run: npm run kadet:gates
+      - run: npm run kadet:stab
+      - run: npm run slowstick:gates
+      - run: npm run slowstick:stab
+      - run: npm run timber:gates
+      - run: npm run timber:stab
 
   shard-2:
     runs-on: ubuntu-latest
@@ -162,6 +181,8 @@ jobs:
       - run: npm run extra:stab
       - run: npm run nighttimber:gates
       - run: npm run figures:plant
+      - run: npm run figures:sweep
+      - run: npm run figures:knife
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
@@ -215,6 +236,7 @@ jobs:
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
+      - run: npm run reset:determinism
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
@@ -297,6 +319,14 @@ jobs:
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
       - run: npm run hercules:gates
+      - run: npm run cap580:derive
+      - run: npm run cap580:gates
+      - run: npm run cap580:figures
+      - run: npm run cap580:stab
+      # The control surface tiers: derived numbers, then the plant flies each tier (docs/SURFACES-STAGE1.md).
+      - run: npm run surfaces:derive
+      - run: npm run surfaces:gates
+      - run: npm run surfaces:selftest
       - run: npm run paradrop:selftest
       # The pilot on foot (docs/ON-FOOT.md): the walk never ends inside a
       # solid, steps and slopes, pace; then on swiss2 in the real shell,
@@ -304,6 +334,13 @@ jobs:
       # again from where the pilot stands, pad and touch.
       - run: npm run foot:node
       - run: npm run foot:walk
+      # Extreme Flight's 105.5 in Slick 580 (docs/SLICK-STAGE1.md): its
+      # table, plant row and bands against the derivation, its gates and
+      # its stabiliser.
+      - run: npm run slick:derive -- --check
+      - run: npm run slick:gates
+      - run: npm run slick:stab
+      - run: npm run slick:figures
 
   shard-3:
     runs-on: ubuntu-latest
@@ -358,6 +395,7 @@ jobs:
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
+      - run: npm run wing:ge
       - run: npm run wing:stab
       - run: npm run skyhunter:gates
       - run: npm run skyhunter:stab
@@ -445,6 +483,23 @@ jobs:
       # The shared time of day agrees with the maps and missions that ship
       # (src/share/daytime.js, docs/DAYTIME-CONTRACT.md).
       - run: npm run daytime:selftest
+      # The frame's one daytime in the real shell: detection's light and the
+      # world's sounds turn with the sky (scripts/daytime-frame-check.js),
+      # and two pilots in one room see the room's time (daytime-room-check.js).
+      # Itaipu's map data is its own public repository, not this one; the
+      # daytime checks fly Itaipu, so they read it at a pinned commit
+      # (tests/lib/server.js serves FDFPV_ITAIPU_DATA as itaipu-data/).
+      - uses: actions/checkout@v4
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
+      - run: npm run daytime:frame
+        env:
+          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
+      - run: npm run daytime:room
+        env:
+          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest

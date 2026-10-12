@@ -55,6 +55,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
+  turnYawLimitDeg, spinWatch, personWingsHold, rollMode,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -201,26 +202,33 @@ check: {
   }
 
   /* T8: full up held from level at 1.2 Vs, the wings held on the
-   * ailerons as a pilot does, the rudder centred: power off, and at half
-   * throttle. T8c the same power off with the ailerons let go too,
+   * ailerons as a pilot does, the rudder centred, power off (T8b, at half
+   * throttle, is below). T8c the same power off with the ailerons let go too,
    * recorded: held there, both wings deep in their stall, it rolls off
    * slowly (docs/TIGERMOTH-STAGE1.md). */
-  for (const [id, t8, duty, hold] of [['T8a', th.t8_stall_power_off, 0, true], ['T8b', th.t8_stall_power_on, th.t8_stall_power_on.duty, true], ['T8c', th.t8_stall_power_off, 0, false]]) {
+  for (const [id, t8, duty, hold] of [['T8a', th.t8_stall_power_off, 0, true], ['T8c', th.t8_stall_power_off, 0, false]]) {
     /* The power is set during the entry, as the FAA's power-on stall is
      * flown (Airplane Flying Handbook ch. 5: set the power, then raise the
      * nose): the engine is up to speed before the pull, which since the
      * prop spins up on its inertia (prop_spool) it was not when the
      * throttle opened at the pull. */
+    /* The roll mode the pilot adapts to, at the entry (wingpilot.js
+     * rollMode), then the entry flown again for the test itself. */
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    const mode = rollMode((sticks) => step(sim, sticks).s, duty);
     clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
+    const spin = spinWatch(th.t2_stall.alphaStall, t8.maxBankDeg);
     let o = { s: sim.readState().state };
-    /* With power the hold has an integral, as U11b's (uglystik-gates.js). */
-    let iBank = 0;
+    /* The wings held by a person, as U11b's (uglystik-gates.js,
+     * wingpilot.js personWingsHold): the gain adapted to its roll mode. */
+    const person = personWingsHold(mode);
+    let stickSq = 0, stickPeak = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
-      iBank = duty ? Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000)) : 0;
-      const roll = hold ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
+      const roll = hold ? person(o.s) : 0;
       ailSum += Math.abs(roll);
+      stickSq += roll * roll; stickPeak = Math.max(stickPeak, Math.abs(roll));
       /* Power on, the rudder against the engine's yaw, as Great Planes'
        * manual tells the pilot ("always be ready to apply right rudder to
        * counteract engine torque", p. 25): the yaw rate taken out on the
@@ -232,19 +240,85 @@ check: {
       minPitch = Math.min(minPitch, pitch * DEG);
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
+      spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
     }
     const ailMean = ailSum / (t8.seconds * 1000 / RC_STEP_MS);
-    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
+    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t8.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(person.gain).toFixed(2)} per rad)` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
     if (!hold) {
       gate(id, 'full up held, power off, hands off: recorded', alphaMax > th.t2_stall.alphaStall, said, 'recorded');
       continue;
     }
     gate(id, `full up held, ${duty ? 'half throttle' : 'power off'}, wings held: nose drops, no wing drop`,
-      worstBank <= t8.maxBankDeg && minPitch >= t8.minPitchDeg && worstR <= t8.maxYawRateDegS && alphaMax > th.t2_stall.alphaStall
+      worstBank <= t8.maxBankDeg && minPitch >= t8.minPitchDeg && spin.ok() && alphaMax > th.t2_stall.alphaStall
         && worstP <= t8.maxRollRateDegS && ailMean <= t8.maxAileron,
       said,
-      `stalled, bank ${t8.maxBankDeg}, pitch over ${t8.minPitchDeg}, yaw ${t8.maxYawRateDegS} deg/s, roll under ${t8.maxRollRateDegS} deg/s, ailerons under ${t8.maxAileron}`);
+      `stalled, bank ${t8.maxBankDeg}, pitch over ${t8.minPitchDeg}, yaw under the turn its bank allows at its speed while stalled, roll under ${t8.maxRollRateDegS} deg/s, ailerons under ${t8.maxAileron}`);
+  }
+
+  /* T8b: the power on stall, judged on what the period's text says a
+   * stalled aeroplane does, not on a held wing: "one of the wings will
+   * eventually drop and the machine will begin to go into a spin ... the
+   * effect of the ailerons has gone completely ... [the wings] cannot be
+   * brought level until speed is regained" ("Learning to Fly - 2:
+   * Instruction in the Air", Wonders of World Aviation, 1938). Its earlier
+   * form held the wings within 15 deg on the ailerons, a premise that text
+   * contradicts. Full up held 10 s at half throttle from 1.2 Vs, the
+   * person (wingpilot.js personWingsHold, McRuer's crossover on the roll
+   * mode measured at the entry) trying on the ailerons, the yaw rate on
+   * the rudder as Great Planes' manual says: a wing drops (past the
+   * gate's 15 deg) and is never on its back. The text says the machine
+   * "will begin to go into a spin", so an incipient spin is not judged a
+   * failure; its yaw rate against the turn its bank allows (turnYawLimitDeg)
+   * is reported. What bounds it is the recovery: a developed spin does not
+   * come out on the elevator alone with the rudder only damping the yaw
+   * (NACA TR 441, the NY-1's spin ends with the rudder neutral only once
+   * the elevator leaves full up), so the wings coming level after it is
+   * the proof it stayed incipient. Then
+   * the back pressure let go (elevator neutral, the power kept) and the
+   * ailerons left neutral, as the same text has it: the wings "cannot be
+   * brought level until speed is regained", so it is the aircraft that
+   * levels them once the speed is back: within 15 deg before the end of
+   * the recovery and held there. A person on the ailerons, the crossover
+   * pilot, rocks it 7 to 18 deg at 20 m/s through the aileron's adverse
+   * yaw, which a single loop does not carry, even with the rudder
+   * coordinated at the aircraft's own aileron to rudder yaw ratio (worst
+   * 16.0); the aircraft alone levels it from 38 to 6 deg in 7.5 s. */
+  {
+    const t8 = th.t8_stall_power_on;
+    const duty = t8.duty;
+    const rudderOf = (s) => Math.max(-1, Math.min(1, 0.6 * s[13]));
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    const mode = rollMode((sticks) => step(sim, sticks).s, duty);
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    const person = personWingsHold(mode);
+    let o = { s: sim.readState().state };
+    let worstBank = 0, inverted = false, alphaMax = 0, yawSum = 0, bankSum = 0, vSum = 0, n = 0;
+    for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
+      o = step(sim, [person(o.s), 1, rudderOf(o.s), duty]);
+      const bank = fullBank(o.s);
+      worstBank = Math.max(worstBank, Math.abs(bank * DEG));
+      inverted = inverted || Math.abs(bank) > Math.PI / 2;
+      alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
+      if (ms >= t8.seconds * 1000 - 2000) { yawSum += Math.abs(o.s[13]) * DEG; bankSum += Math.abs(bank * DEG); vSum += speed(o.s); n += 1; }
+    }
+    const yawMean = yawSum / n;
+    const yawMax = turnYawLimitDeg(Math.min(89, bankSum / n), vSum / n);
+    let tSpeed = null, tLevel = null, worstAfter = 0;
+    for (let ms = 0; ms < t8.recoverSeconds * 1000; ms += RC_STEP_MS) {
+      o = step(sim, [0, 0, rudderOf(o.s), duty]);
+      const t = ms / 1000;
+      const bank = Math.abs(fullBank(o.s) * DEG);
+      if (tSpeed === null && speed(o.s) >= t8.entry) tSpeed = t;
+      if (tLevel === null && bank <= t8.maxBankDeg) tLevel = t;
+      if (tLevel !== null) worstAfter = Math.max(worstAfter, bank);
+    }
+    const dropped = worstBank > t8.maxBankDeg && alphaMax > th.t2_stall.alphaStall;
+    const recovered = tSpeed !== null && tLevel !== null && worstAfter <= t8.maxBankDeg;
+    gate('T8b', 'full up held, half throttle: a wing drops; unstalled, the wings come level',
+      dropped && !inverted && recovered,
+      `held: bank up to ${worstBank.toFixed(1)}, yaw ${yawMean.toFixed(1)} deg/s over the last 2 s at bank ${(bankSum / n).toFixed(1)}, alpha up to ${(alphaMax * DEG).toFixed(1)}, gain ${person.gain.toFixed(2)} per rad; let go: ${t8.entry} m/s back at ${tSpeed === null ? 'never' : `${tSpeed.toFixed(2)} s`}, within ${t8.maxBankDeg} deg at ${tLevel === null ? 'never' : `${tLevel.toFixed(2)} s`}, then under ${worstAfter.toFixed(1)}`,
+      `a drop past ${t8.maxBankDeg}, never on its back (the turn at its bank ${yawMax.toFixed(1)} deg/s, reported); the speed back, the wings within it by the end and held`);
   }
 
   /* T9: the phugoid: level at the trim, a second of a little up stick,

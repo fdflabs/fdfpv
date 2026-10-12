@@ -59,6 +59,7 @@ import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
+import { tierUnlockables } from '../../configs/surfaces.js';
 import {
   DECAL_KINDS, DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
 } from '../../configs/paint.js';
@@ -127,8 +128,19 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'strike
  * (docs/NIGHTTIMBER-STAGE1.md) opens at 6, the lead's call: the Timber's
  * STOL wing a starter pilot knows, with the 3D the Extra asks for. The
  * Hercules opens at 8 (the lead's decision, 2026-10-08,
- * docs/HERCULES-CONTRACT.md); 10 opens no plane. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, f16878: 11 };
+ * docs/HERCULES-CONTRACT.md). Extreme Flight's CAP 580
+ * (docs/CAP580-STAGE1.md) opens at 10, the lane's call by analogy with
+ * the Extra (2026-10-11): the Extra's hover, torque roll and harrier on a
+ * balsa IMAC airframe 2.4 times its mass and 1.6 times its wing loading,
+ * faster and heavier in every figure, so after the Extra at 9 and before
+ * the F-16 at 11. The Slick 580
+ * (docs/SLICK-STAGE1.md) opens last, at 12, its lane's call by analogy for the
+ * biggest and most advanced: the Extra's hover and torque roll with
+ * twelve and a half kilograms of momentum, and its maker asks for
+ * experience, "If this is your first aerobatic RC aircraft, it is highly
+ * recommended that you recruit an experienced giant scale RC enthusiast"
+ * (the 120cc build guide), as Motion RC asks of the F-16's. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, cap1702: 10, f16878: 11, slick2680: 12 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;
@@ -398,6 +410,12 @@ export function unlockables() {
         key: itemKey('addon', a, id), kind: 'addon', id: a, airframe: id, level: Math.max(planeLevel(id), 2 + ADDON_ORDER.indexOf(a)), name: `parts.addon.${a}`,
       });
     }
+  }
+  /* The control surface tiers (configs/surfaces.js): Sport, 3D and
+   * Extreme a level, two and three after their plane, earned and never
+   * bought, since they change how it flies. */
+  for (const t of tierUnlockables()) {
+    add({ key: itemKey('surface', t.id, t.airframe), kind: 'surface', id: t.id, airframe: t.airframe, level: planeLevel(t.airframe) + t.step, name: t.name });
   }
   /* The paint shop's (src/ui/hangar-paint.js), on every plane alike: the
    * first finish and the first few decals are free, so a new pilot can

@@ -5,7 +5,7 @@
     "simId": 15,
     "fixedWing": true,
     "stall": 10.06,
-    "topSpeed": 20.64,
+    "topSpeed": 26.6,
     "gear": {
       "restHeight": 0.2291
     },
@@ -191,14 +191,14 @@
     "estimates": {
       "stock": {
         "4s2600": {
-          "topSpeed": 19.9,
-          "minutes": 12.7
+          "topSpeed": 25.45,
+          "minutes": 20.2
         }
       },
       "kv650": {
         "4s2600": {
-          "topSpeed": 23.3,
-          "minutes": 13
+          "topSpeed": 29.54,
+          "minutes": 20.2
         }
       }
     }

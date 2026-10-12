@@ -235,6 +235,38 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a humpty with its lines 20 deg off vertical is graded lower', got && clean && got.grade <= clean.grade - 1,
     `${clean ? clean.grade : '-'} vs ${got ? got.grade : 'not named'}`);
 }
+/* A knife edge is the wing in the vertical plane along the line (FAI
+ * F3P-AA 23: "During the knife edge the wing must be in the vertical
+ * plane"), however much sideslip holds it up: the CAP 580 holds 30 deg at
+ * 20 m/s (docs/CAP580-STAGE1.md C12). The nose yaws up to the sideslip as
+ * the line stays level, as a real one does. */
+{
+  const quarter = Math.round((Math.PI / 2 / 6) * 1000);
+  const slip = (deg) => {
+    const k = deg * DEG;
+    return [lead, { p: 6, ms: quarter, speed: V }, { r: k, dBeta: k, ms: 1000 }, straight(2500, V),
+      { r: -k, dBeta: -k, ms: 1000 }, { p: -6, ms: quarter, speed: V }, tail];
+  };
+  const got = detect(slip(30));
+  const k = got.find((g) => g.figure === 'knife_edge_pass');
+  check('a knife edge held on 30 deg of sideslip is named and graded 8 or better', k && k.grade >= 8,
+    got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  /* Banked 55 deg, the wing 35 deg out of the vertical plane: no knife edge. */
+  const bank = Math.round((55 * DEG / 6) * 1000);
+  const lean = detect([lead, { p: 6, ms: bank, speed: V }, straight(3500, V), { p: -6, ms: bank, speed: V }, tail]);
+  check('a pass banked 55 deg is no knife edge', !lean.some((g) => g.figure === 'knife_edge_pass'),
+    lean.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+}
+/* A point the wings rock back from (0.5 rad/s against the roll, as the
+ * Extra's knife edge does on the lateral model) is still a point, and a
+ * rock back after the last starts no fifth. */
+{
+  const q = roll(4, 0.25, V);
+  const back = { p: -0.5, ms: 300, speed: V };
+  const got = detect([lead, q, straight(300, V), q, straight(300, V), q, back, q, back, tail]);
+  check('a 4-point roll whose wings rock back on its points is named a 4-point roll', got.some((g) => g.figure === 'four_point_roll'),
+    got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+}
 /* A crash in the middle forgets the figure. */
 {
   const got = [];

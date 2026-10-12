@@ -57,6 +57,8 @@ import { TABLE, powerCells, powerOption, powerParams } from '../../configs/power
 import { airframeById } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
 import { el } from './dom.js';
+import { flownTiers, tierBlock, tierThrowsDeg } from '../../configs/surfaces.js';
+import { lockOf } from '../game/progress.js';
 
 const SECTIONS = ['balance', 'rates', 'stand'];
 const FOCUS = { balance: 'fuselage', rates: 'trim', stand: 'nose' };
@@ -382,10 +384,19 @@ function curveSvg(t, throws, expo) {
   return svg;
 }
 
+/* The high throws of the plane's saved and earned surface tiers
+ * (configs/surfaces.js), which the rates scale as the plant flies them,
+ * or null for stock. */
+function tierHigh() {
+  const s = T.settings ?? {};
+  const tiers = flownTiers(T.id, s.surfaces && s.surfaces[T.id], { locked: (af, u) => lockOf(s.progress, 'surface', u, af) !== null });
+  return tierBlock(T.id, tiers) ? tierThrowsDeg(T.id, tiers) : null;
+}
+
 function ratesPage(h, box) {
   const t = tuningFor(T.id);
   const e = T.entry;
-  const throws = throwsFor(T.id, e.rate);
+  const throws = throwsFor(T.id, e.rate, tierHigh());
   box.append(el('h3', 'hangar-h', str('tuning.rates')));
   box.append(segmented(h, {
     key: 'rate',
@@ -748,7 +759,7 @@ function frame(h, now) {
       : null;
     out.cg = { shift: b.shift, reach: reachOf(h), range, warn: balanceWarning(t, b) !== '' };
   } else if (T.section === 'rates') {
-    const th = throwsFor(T.id, T.entry.rate).map((d) => (d * Math.PI) / 180);
+    const th = throwsFor(T.id, T.entry.rate, tierHigh()).map((d) => (d * Math.PI) / 180);
     const phase = ((now - T.sweepT0) / 1000 / SWEEP_S) % 1;
     const x = Math.sin(phase * 2 * Math.PI);
     const e = T.entry.expo;

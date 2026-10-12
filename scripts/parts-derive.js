@@ -125,9 +125,16 @@ function at(rows, rpm, key) {
 }
 
 /* The loaded rpm an option's figures imply: its pitch speed over its
- * prop's pitch. */
+ * prop's pitch, or the rpm a bench measured where the option gives one
+ * (`rpmFull`, the CAP 580's: its pitch speed is APC's curve's, not the
+ * geometric pitch's, docs/CAP580-STAGE1.md). The new prop keeps the
+ * option's ratio of its pitch speed to the geometric one, 1 for every
+ * option without a bench rpm. */
 function loadedRpm(o) {
-  return (o.pitchSpeedMs * 60) / (o.pitchIn * IN);
+  return o.rpmFull ?? (o.pitchSpeedMs * 60) / (o.pitchIn * IN);
+}
+function pitchRatio(o) {
+  return o.rpmFull ? (o.pitchSpeedMs * 60) / (o.rpmFull * o.pitchIn * IN) : 1;
 }
 
 async function derive(o, prop) {
@@ -165,7 +172,7 @@ async function derive(o, prop) {
   const thrustN = o.thrustN * (at(b, n, 'thrust') / at(a, n0, 'thrust'));
   const out = {
     thrustN: Number(thrustN.toFixed(4)),
-    pitchSpeedMs: Number(((n * prop.pitchIn * IN) / 60).toFixed(4)),
+    pitchSpeedMs: Number(((n * prop.pitchIn * IN * pitchRatio(o)) / 60).toFixed(4)),
   };
   if (o.kind === 'electric') {
     out.currentA = Number((o.currentA * (at(b, n, 'torque') / q0)).toFixed(3));

@@ -24,6 +24,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { electricN, wingProp } from './lib/propcurve.js';
 import { shares, wash as washOf } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -286,7 +287,9 @@ for (let it = 0; it < 400; it += 1) {
 const Qs = apcAt(nStatic, 1), Ts = apcAt(nStatic, 2), Is = Qs / kt + i0;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 4 * 0.0254;
 const torqueArm = Qs / Ts;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - Math.max(0, V) / (Vp * d)));
+const prop = wingProp('FW_NIGHTTIMBER1200');
+/* d is the stick; the prop turns at the motor's steady share of it. */
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
 /* The prop's inertia, ESTIMATED: a 13 in prop of about 25 g, a tapered
  * blade's 0.7 of a rod's m D^2 / 12, and the BL10's can. */
 const propJ = 0.7 * 0.025 * (2 * propR) ** 2 / 12 + 0.04 * 0.017 * 0.017;
@@ -306,7 +309,11 @@ const pb2v = Clda * throwA / -Clp;
 const rollAt = (V) => pb2v * 2 * V / b;
 
 /* THE 3D REGIME, as the Extra's derivation takes it. */
-const hoverDuty = Math.sqrt(W / Ts);
+/* The prop's speed at the hover, sqrt(W / Ts) of full, and the duty the
+ * electric motor settles at it on (plant_wing.c prop_spool): n^2 + K_M n
+ * = (K_M + 1) d, K_M = 0.85 / 0.15. */
+const hoverN = Math.sqrt(W / Ts);
+const hoverDuty = (hoverN * hoverN + (0.85 / 0.15) * hoverN) / (0.85 / 0.15 + 1);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 
@@ -372,6 +379,9 @@ const cgHeight = (mainHw + tailHw) / 2;
 const armAc = hCG - 0.25, armCp = 0.40 - hCG, stallDw = eta * VH * at * deda / aw;
 const stallTop = 3.7 / DEG, stallK = 0.63;
 
+/* The wing's normal force broadside, Viterna and Janetzke's finite wing
+ * 1.11 + 0.018 AR (NASA TM-82944 eq. 12), as plant_wing.c plate_cn. */
+const PCN = 1.11 + 0.018 * Math.min(AR, 50);
 /*
  * The plant's post stall lift on the whole wing (plant_wing.c,
  * stalled_lift), as the Extra's derivation takes it, for the harrier and
@@ -381,24 +391,24 @@ function smooth(a0, a1, x) { if (x <= a0) return 0; if (x >= a1) return 1; const
 function clPlant(alpha) {
   const aS = CLmax / CLa;
   const sig = smooth(aS - blend, aS + blend, Math.abs(alpha));
-  const lin = CLa * alpha, plateL = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const lin = CLa * alpha, plateL = PCN * Math.sin(alpha) * Math.cos(alpha);
   const old = (1 - sig) * lin + sig * plateL;
   if (sig <= 0) return { CL: lin, CD: CD0 + k * lin * lin, sig, clSt: lin, fall: 0, past: 0 };
   let clS = 0;
   for (let i = 0; i <= 16; i += 1) {
     const ai = aS - blend + blend * 0.125 * i;
     const si = smooth(aS - blend, aS + blend, ai);
-    clS = Math.max(clS, (1 - si) * CLa * ai + si * 2 * Math.sin(ai) * Math.cos(ai));
+    clS = Math.max(clS, (1 - si) * CLa * ai + si * PCN * Math.sin(ai) * Math.cos(ai));
   }
   const a0 = aS + stallTop, a1 = a0 + 2 * blend;
   const t = smooth(a0, a1, Math.abs(alpha));
   const st = Math.min(a1, 0.5);
-  const a2 = (stallK * clS - 2 * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
+  const a2 = (stallK * clS - PCN * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
   const vit = Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05 ? a2 * Math.cos(alpha) ** 2 / Math.sin(alpha) : 0;
   const clSt = (1 - t) * clS + t * (plateL + vit);
   const past = smooth(aS, aS + blend, Math.abs(alpha));
   const CL = old + past * (clSt - old);
-  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + 2 * Math.sin(alpha) ** 2);
+  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + PCN * Math.sin(alpha) ** 2);
   return { CL, CD, sig, clSt, fall: t, past };
 }
 const tailCnH = 1.17;
@@ -440,7 +450,7 @@ function harrier(alphaDeg) {
   const qb = 0.5 * rho * V * V;
   const w = washOf(slip, thrust, u);
   const sa = Math.sin(a);
-  const cnSt = 2 * sa + (clSt - 2 * sa * Math.cos(a)) * Math.cos(a);
+  const cnSt = PCN * sa + (clSt - PCN * sa * Math.cos(a)) * Math.cos(a);
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * CLa * sa);
   const alphaT = sa - deda * CL / CLa - slip.slip_a0 * (1 - deda);
   const xa = V * Math.sin(a - slip.slip_a0);
@@ -517,6 +527,7 @@ const rows = [
   ['CD0, k', `${f(CD0, 4)} ${f(k, 5)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['Clβ (fin, high wing), Clp, Clδa', `${f(Clb, 4)} (${f(ClbFin, 4)} ${f(ClbHigh, 4)}) ${f(Clp, 4)} ${f(Clda, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['throws deg a e r; K\' a e r; tau a e r', `${f(throwA * DEG, 2)} ${f(throwE * DEG, 2)} ${f(throwR * DEG, 2)}; ${f(kPrime(throwA))} ${f(kPrime(throwE))} ${f(kPrime(throwR))}; ${f(tauA)} ${f(tauE)} ${f(tauR)}`],
   ['strip_tau', J(stripTau, 4)],

@@ -4,7 +4,9 @@
  * what the detector and the judge make of it. It measures, it does not
  * gate: docs/TRICKS-CATALOG.md ("Plant sweep") records the answers and
  * what each one says needs tuning, in the detector, the judge, the pilot
- * program or the physics.
+ * program or the physics. One thing it does gate: a figure it has named
+ * before (tests/figures-sweep-named.json) must still be named, or it
+ * exits 1, so a change cannot lose one silently.
  *
  *   node scripts/figures-plant-sweep.js [--only id,id] [--trace]
  *
@@ -89,11 +91,18 @@ const roll = (stick, rad, thr = 0.75, pitch = 0, push = true) => ({
     return [[stick, pitch + (push && d.uz < -0.3 ? -0.12 : 0), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * 0.35];
   },
 });
+/* The gains a line is held with: the nose's error to a rate (kp, 1/s) and
+ * the rate's error to the stick (kr, s). With this pilot's 0.2 s lag a
+ * rate gain of 0.5 rings: the Extra's vertical weaved 0.24 rms in its up
+ * component (29 deg peaks) and its rudder banged stop to stop; 0.3 holds
+ * it to 0.10 rms. Measured over kp 1.5 to 4 and kr 0.2 to 0.5 on the
+ * tailslide's up line, 2026-10-11: kr 0.4 and over ring at every kp. */
+const LINE_GAINS = { kp: 4, kr: 0.3 };
 /* The nose held on a world direction (a vertical or a 45 line). */
 const line = (target, ms, thr = 1, until = null) => ({
   name: `line ${target.map((x) => x.toFixed(2))}`,
   step: (d, m) => {
-    const [r, pi, y] = hangSticks(d.s, { target, rollStick: 0, kp: 4, kr: 0.5 });
+    const [r, pi, y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
     return [[quant(r), quant(pi), quant(y), thr], m.t >= ms || (until && until(d))];
   },
 });
@@ -140,9 +149,19 @@ const harrier = (ms, { inverted = false, rollStick = null } = {}) => ({
 const slow = (to) => ({ name: `slow to ${to}`, step: (d) => [[...levelSticks(d, 0).slice(0, 3), 0], d.v < to] });
 /* Full rudder until the nose points down (a stall turn's pivot). */
 const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.5], d.nz < -0.6] });
-/* Throttle off, sticks held, until the aircraft slides back and then
- * falls through (a tailslide). */
-const slide = () => ({ name: 'slide', step: (d, m) => [[0, 0, 0, 0], m.t > 600 && d.nz < -0.3] });
+/* Throttle off, the nose held up the vertical on the elevator and rudder
+ * until the aircraft slides back, then the sticks let go until it falls
+ * through (a tailslide). A pilot who lets go at the stop leaves the yaw
+ * rate the climb's rudder was holding against the slipstream, and the
+ * nose pivots over before it slides. */
+const slide = () => ({
+  name: 'slide',
+  step: (d, m) => {
+    m.back = m.back || d.along < -1;
+    const [r, pi, y] = m.back ? [0, 0, 0] : hangSticks(d.s, { target: UP, rollStick: 0, ...LINE_GAINS });
+    return [[quant(r), quant(pi), quant(y), 0], m.t > 600 && d.nz < -0.3];
+  },
+});
 /* Sticks held as given for a time. */
 const hold = (st, ms) => ({ name: `hold ${st}`, step: (d, m) => [st, m.t >= ms] });
 
@@ -209,7 +228,7 @@ async function fly(program) {
       const d = seen[seen.length - 1 - LAG];
       const [sticks, done] = program[i].step(d, mem);
       st = sticks;
-      if (trace) console.log(`  ${ms} ${program[i].name} v ${o.v.toFixed(1)} z ${o.z.toFixed(0)} nz ${o.nz.toFixed(2)} uz ${o.uz.toFixed(2)} [${st.join(',')}]`);
+      if (trace) console.log(`  ${ms} ${program[i].name} along ${o.along.toFixed(1)} q ${o.q.toFixed(2)} r ${o.r.toFixed(2)} v ${o.v.toFixed(1)} z ${o.z.toFixed(0)} nz ${o.nz.toFixed(2)} uz ${o.uz.toFixed(2)} [${st.join(',')}]`);
       if (done) {
         i += 1;
         mem = { t: 0 };
@@ -232,3 +251,15 @@ for (const f of FIGURES.filter((x) => x.physics === 'unproven' && PROGRAMS[x.id]
 }
 const n = rows.filter((r) => r.hit).length;
 console.log(`\nfigures plant sweep: ${n} of ${rows.length} named as flown`);
+
+const pinned = JSON.parse(await readFile(join(root, 'tests/figures-sweep-named.json'), 'utf8')).named;
+const swept = new Set(FIGURES.filter((x) => x.physics === 'unproven' && PROGRAMS[x.id]).map((x) => x.id));
+/* A pinned figure the sweep no longer flies has been promoted or lost its
+ * program: either way the pin is stale and says so. */
+const stale = pinned.filter((id) => !swept.has(id));
+const lost = rows.filter((r) => pinned.includes(r.id) && !r.hit).map((r) => r.id);
+const fresh = rows.filter((r) => r.hit && !pinned.includes(r.id)).map((r) => r.id);
+if (fresh.length) console.log(`newly named (pin them in tests/figures-sweep-named.json): ${fresh.join(', ')}`);
+if (stale.length) console.log(`FAIL pinned but not swept (promoted to flown or no program; unpin): ${stale.join(', ')}`);
+if (lost.length) console.log(`FAIL named before and not now: ${lost.join(', ')}`);
+process.exit(stale.length || lost.length ? 1 : 0);

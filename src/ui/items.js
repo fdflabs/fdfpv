@@ -70,7 +70,7 @@ import { EVENT_TIERS } from '../game/economy.js';
 import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
 import {
-  AVX_PALETTES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
+  AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, tuneChoices,
 } from './settings.js';
 import { VIEW_LABEL, trickLevel } from './trickfilm.js';
@@ -265,6 +265,12 @@ const crashDamageRow = (s) => toggle(str('ui.crash_damage'), str('ui.crash_damag
   s.crashDamage = Boolean(v);
 });
 
+/* Stock control surfaces only, in a room this pilot hosts: every pilot's
+ * next run flies stock surfaces (edge/rooms/core.js stockSurfaces). */
+const stockSurfacesRow = (s) => toggle(str('ui.stock_surfaces'), str('ui.stock_surfaces_note'), s.roomStockSurfaces === true, (v) => {
+  s.roomStockSurfaces = Boolean(v);
+});
+
 /* The air: the preset's own note, and in a room the host's choice is the
  * room's (docs/WEATHER-CONTRACT.md). */
 const weatherRow = (s) => choice(
@@ -274,6 +280,17 @@ const weatherRow = (s) => choice(
   s.weather,
   (id) => str(`weather.${id}`),
   (id) => { s.weather = id; },
+);
+
+/* The time of day (docs/DAYTIME-CONTRACT.md): in a room the host's
+ * choice is the room's, as the air is, and a mission's own time wins. */
+const daytimeRow = (s) => choice(
+  str('ui.time_of_day'),
+  str(`daytime.${s.timeOfDay}_note`),
+  DAYTIME_CHOICES,
+  s.timeOfDay,
+  (id) => str(`daytime.${id}`),
+  (id) => { s.timeOfDay = id; },
 );
 
 /* The radio link preset, with the figures of the chosen one in the note. */
@@ -562,6 +579,8 @@ function freestyleRows(ui, s) {
     flightStyleRow(str('ui.physics_model'), str('ui.arcade_the_ideal_quad_no_propwash'), str('ui.expert_the_full_physics_propwash_gyro'), s),
     crashDamageRow(s),
     weatherRow(s),
+    daytimeRow(s),
+    stockSurfacesRow(s),
     backRow(),
   ];
 }

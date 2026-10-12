@@ -423,9 +423,13 @@ int sim_set_flight_style(int arcade);
  * prop as the Extra does, and 31 AeroTetris's C-130 Hercules 3077
  * (docs/HERCULES-STAGE1.md), a 3 m balsa C-130H on four electric motors
  * whose props the plant takes as one thrust line, with a rear ramp and
- * cargo door that open in flight. Returns SIM_ERR_BAD_ARG for any id
- * without an aircraft.
- * 2 to 23 and 27 to 31 are fixed wings: no Betaflight, the sticks go to the
+ * cargo door that open in flight, 32 Extreme Flight's 67 in CAP 580
+ * (docs/CAP580-STAGE1.md), a 3.6 kg balsa IMAC and 3D aerobat on a
+ * T-Motor AM670 whose measured thrust is 2.6 times its weight, and 33
+ * Extreme Flight's 105.5 in Slick 580 EXP (docs/SLICK-STAGE1.md), a
+ * 12.5 kg IMAC and 3D aerobat on a DA-120 petrol twin. Returns
+ * SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 23 and 27 to 33 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply. 0, 1 and 24 to 26 are quads.
  *
@@ -476,6 +480,8 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_EXTRA3D1308_ID 29
 #define SIM_AIRFRAME_NIGHTTIMBER1200_ID 30
 #define SIM_AIRFRAME_HERCULES3077_ID 31
+#define SIM_AIRFRAME_CAP1702_ID 32
+#define SIM_AIRFRAME_SLICK2680_ID 33
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -621,6 +627,12 @@ double sim_boost(void);
  * swirl's sideways speed over the fin (m/s), for the gates that take one
  * term of the moment alone. Zeros on an aircraft without a wash.
  * Additive, version unchanged.
+ * sim_wing_set_gyro(on): a measurement switch for a gate that takes the
+ * airframe's own aero apart from its prop's gyroscope (p51 P19, a full
+ * scale stall anchor that cannot carry a model's gyroscope, docs/
+ * FLIGHTMODEL.md): 0 takes the prop's gyroscopic moment out of the step,
+ * 1 puts it back, and every reset puts it back. The shell never calls it;
+ * a flight never flies without it. Additive, version unchanged.
  */
 int sim_wing_launch(double speed);
 /* THE DISCUS LAUNCH, docs/DLG-STAGE1.md, on an aircraft thrown by its
@@ -644,6 +656,11 @@ int sim_wing_slip(double *out);
  * short of its stall. For the gates that ask where along the span a wing
  * stalls first. Additive, version unchanged. */
 int sim_wing_strips(double *out);
+int sim_wing_set_gyro(int on);
+/* sim_wing_set_mount(on): a measurement switch, the drive's torque on the
+ * motor's mount off (the prop's torque and its spin up or down); every
+ * reset puts it back on. */
+int sim_wing_set_mount(int on);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
@@ -1098,6 +1115,48 @@ int sim_set_addon_inertia(const double *in);
 int sim_wing_set_tune(const double *in);
 int sim_wing_tune_clear(void);
 int sim_wing_tune(double *out);
+
+/*
+ * THE SURFACE TIERS, fixed wings with ailerons, elevator and rudder
+ * (FW_MIX_TAIL) or elevator and rudder (FW_MIX_RUDDER): the hangar's
+ * bigger control surfaces, configs/surfaces.js and
+ * docs/SURFACES-STAGE1.md. A tier moves a surface's hinge line forward on
+ * the same wing, stabiliser or fin, so the aircraft's stability terms stay
+ * the table's and only its control terms grow; the throws a tier allows
+ * go through sim_wing_set_tune, and its servos' mass through
+ * sim_set_addons, as before.
+ *
+ * sim_wing_set_tiers(in): SIM_TIER_DOUBLES below, laid over the power
+ * option in force or the table, under the tuning and the add-ons.
+ *   K_A  the aileron's terms (Cl delta_a, its adverse yaw, and each
+ *        strip's tau) times this, 0.25 to 4
+ *   K_E  the elevator's (Cm delta_e, CL delta_e) times this, 0.25 to 4
+ *   K_R  the rudder's (Cn, CY and Cl delta_r) times this, 0.25 to 4
+ *   CD_A, CD_E, CD_R  the drag each surface adds deflected over the
+ *        table's, on the wing's area, per unit of the plain flap shape
+ *        (plant_wing.c SURF_DRAG_A, SURF_DRAG_B), 0 to 0.5
+ * A MODE like the tuning: kept across sim_reset and sim_init, kept by
+ * sim_set_power and sim_power_clear, cleared by sim_set_airframe to a
+ * different airframe and by sim_wing_tiers_clear. SIM_ERR_BAD_ARG for a
+ * null pointer, a value out of range, a flying wing, and K_A or CD_A other
+ * than 1 and 0 on an aircraft without ailerons; SIM_ERR_BAD_STATE before
+ * sim_init.
+ * sim_wing_tiers(out): the block in force, ones and zeros with none.
+ *
+ * Additive, version unchanged: nothing seated, no step reads any of it,
+ * and seated at ones and zeros every trace is bit identical
+ * (scripts/surfaces-gates.js).
+ */
+#define SIM_TIER_K_A 0
+#define SIM_TIER_K_E 1
+#define SIM_TIER_K_R 2
+#define SIM_TIER_CD_A 3
+#define SIM_TIER_CD_E 4
+#define SIM_TIER_CD_R 5
+#define SIM_TIER_DOUBLES 6
+int sim_wing_set_tiers(const double *in);
+int sim_wing_tiers_clear(void);
+int sim_wing_tiers(double *out);
 
 /*
  * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the

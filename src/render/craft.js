@@ -38,7 +38,9 @@ import { buildUglystikCraft } from './uglystikcraft.js';
 import { buildTigermothCraft } from './tigermothcraft.js';
 import { buildExtraCraft } from './extracraft.js';
 import { buildNightTimberCraft } from './nighttimbercraft.js';
+import { buildCapCraft } from './capcraft.js';
 import { buildHerculesCraft } from './herculescraft.js';
+import { buildSlickCraft } from './slickcraft.js';
 import { buildDlgCraft } from './dlgcraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
@@ -50,6 +52,7 @@ import { bodyPosToModel } from './frame.js';
 import { AIRFRAMES, DEFAULT_AIRFRAME, airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
 import { dressLivery, liveryFor } from './livery.js';
+import { surfacesFor } from './surfacesource.js';
 import { dressParts } from './partsfit.js';
 import { addNavLights } from './navlights.js';
 
@@ -112,7 +115,9 @@ const BUILDERS = {
   tigermoth1803: buildTigermothCraft,
   extra3d1308: buildExtraCraft,
   nighttimber1200: buildNightTimberCraft,
+  cap1702: buildCapCraft,
   hercules3077: buildHerculesCraft,
+  slick2680: buildSlickCraft,
   nrj1490: buildDlgCraft,
   p51d1450: buildP51Craft,
   zagi1219: buildZagiCraft,
@@ -180,6 +185,7 @@ export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
     worldScale: true,
     measure: true,
     combat: combat ?? combatFor(lastBuiltId) ?? undefined,
+    surfaces: surfacesFor(lastBuiltId) ?? undefined,
   });
   return addNavLights(dressParts(dressLivery(built, lastBuiltId, look), lastBuiltId), look && look.lights);
 }

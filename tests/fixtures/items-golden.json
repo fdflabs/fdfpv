@@ -1629,6 +1629,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -1821,6 +1829,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -2026,6 +2042,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -3425,6 +3449,86 @@
      }
     },
     {
+     "id": "freestyle:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Back",
      "action": "back",
@@ -3655,6 +3759,86 @@
      }
     },
     {
+     "id": "freestyle:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Back",
      "action": "back",
@@ -3750,6 +3934,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -4081,6 +4273,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4410,6 +4610,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4725,6 +4933,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -5060,6 +5276,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -5387,6 +5611,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -5718,6 +5950,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -6045,6 +6285,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -6376,6 +6624,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -6705,6 +6961,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -7032,6 +7296,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -25980,6 +26252,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -26172,6 +26452,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -26377,6 +26665,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -27776,6 +28072,86 @@
      }
     },
     {
+     "id": "freestyle:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "Off",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Volver",
      "action": "back",
@@ -28006,6 +28382,86 @@
      }
     },
     {
+     "id": "freestyle:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "Off",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Volver",
      "action": "back",
@@ -28101,6 +28557,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -28432,6 +28896,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -28761,6 +29233,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -29076,6 +29556,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -29411,6 +29899,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -29738,6 +30234,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -30069,6 +30573,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -30396,6 +30908,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",
@@ -30727,6 +31247,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -31056,6 +31584,14 @@
        "label": "C-130 Hercules"
       },
       {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -31383,6 +31919,14 @@
       {
        "value": "hercules3077",
        "label": "C-130 Hercules"
+      },
+      {
+       "value": "cap1702",
+       "label": "CAP 580"
+      },
+      {
+       "value": "slick2680",
+       "label": "Slick 580"
       },
       {
        "value": "p51d1450",

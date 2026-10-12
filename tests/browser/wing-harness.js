@@ -18,7 +18,8 @@
  * Zagi's, thrown by hand, and ?plane=dlg the NRJ's, thrown by its wingtip
  * from the grass into a thermal, ?plane=tigermoth the Tiger Moth's, from standing on its three points,
  * ?plane=extra the Extra 300 3D's, from standing on its wheels through a hover and a torque roll,
- * and ?plane=nighttimber the Night Timber X's, the same from half flaps;
+ * ?plane=nighttimber the Night Timber X's, the same from half flaps,
+ * and ?plane=cap the CAP 580's, from standing through a hover and a torque roll;
  * with no query
  * it is the wing's, exactly as it always was.
  *
@@ -42,10 +43,11 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, extraGroundPrelude, herculesGroundPrelude, nighttimberGroundPrelude, uglystikGroundPrelude, zagiPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, extraGroundPrelude, herculesGroundPrelude, nighttimberGroundPrelude, slickGroundPrelude, uglystikGroundPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
+import { capGroundPrelude } from '../lib/wingpilot.js';
 
 const PLANES = {
   wing: { rec: '/tests/inputs/wing-baseline.rec', prelude: wingPrelude },
@@ -64,7 +66,9 @@ const PLANES = {
   tigermoth: { rec: '/tests/inputs/tigermoth-baseline.rec', prelude: (sim) => tigermothGroundPrelude(sim) },
   extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
   hercules: { rec: '/tests/inputs/hercules-baseline.rec', prelude: (sim) => herculesGroundPrelude(sim) },
+  slick: { rec: '/tests/inputs/slick-baseline.rec', prelude: (sim) => slickGroundPrelude(sim) },
   nighttimber: { rec: '/tests/inputs/nighttimber-baseline.rec', prelude: (sim) => nighttimberGroundPrelude(sim, { flaps: 1 }) },
+  cap: { rec: '/tests/inputs/cap580-baseline.rec', prelude: (sim) => capGroundPrelude(sim) },
   f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
   'p51-air': { rec: '/tests/inputs/p51-air.rec', prelude: p51AirPrelude },

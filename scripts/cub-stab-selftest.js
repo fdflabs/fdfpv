@@ -340,9 +340,18 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']]) {
 for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   onGround(mode);
   roll(() => [0, 0, 0, 0.35], 2);
-  const h0 = heading(sim.readState().state);
-  const taxi = roll(() => [0, 0, 1, 0.35], 4);
-  const turned = (heading(taxi.s) - h0) * DEG;
+  /* Summed step by step, as the Timber's: on the prop's curve the Cub taxis
+   * faster and comes more than half way round in the 4 s, where the end
+   * points' difference alone wraps and reads the wrong way. */
+  let prevH = heading(sim.readState().state);
+  let turnedRad = 0;
+  for (let i = 0; i < 40; i += 1) {
+    const taxi = roll(() => [0, 0, 1, 0.35], 0.1);
+    const h = heading(taxi.s);
+    turnedRad += Math.atan2(Math.sin(h - prevH), Math.cos(h - prevH));
+    prevH = h;
+  }
+  const turned = turnedRad * DEG;
   check(`${name}, taxiing: full right yaw stick steers the tailwheel right, over 45 degrees in 4 s`, turned < -45 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `${turned.toFixed(0)} deg`);
 }
 

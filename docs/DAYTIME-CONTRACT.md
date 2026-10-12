@@ -27,21 +27,90 @@ audio and nav lights can disagree with the sky the pilot sees: solo
 The values are copied from the map modules, not imported, because those need
 three. The selftest makes the copy safe.
 
+## Slice 2: the room's game clock (owner decisions 2026-10-10)
+
+Owner: night is reachable in normal play; one game time per room, shared by
+all its players (free, race, tag, combat, jam, war, ops).
+
+**The clock.** `{ hour, rate, at }`: the local solar hour `hour` at room ms
+`at`, and `rate` hours of day per hour of room; `null` is no clock, each
+world at its own time (what every world did before clocks). Added to
+`src/share/daytime.js`:
+
+| Export | Meaning |
+|---|---|
+| `TIME_HOUR[name]` | the hour a named time stands for: the hour whose sun (`sunSinAt`, the Interior's `sun.js`) is nearest `SUN_OF`'s elevation, within a degree; noon is the sun's highest |
+| `timeOfHour(h)` | night when `isNightSun`, else the nearest daylight name |
+| `clockOfTime(name)` | a standing clock (`rate` 0) at the name's hour; null for null |
+| `clockOf(x)` | a clock from the network or the address, checked, or null |
+| `hourAt(clock, roomMs)` | `localHour`'s arithmetic (`src/share/interior/clock.js`) |
+| `timeOfClock(clock)` | the named time a world built once is built at: its clock's start |
+| `publishDaytime(night, builtAt)`, `daytimeNow()` | the frame's one `{ night, time }` |
+
+**Who owns it.** The room server (`edge/rooms/core.js daytime`):
+
+- an ops match: its mission's clock, `{ startHour, 0, 0 }` until the go,
+  then `{ startHour, rate, goAt }`, so the Interior's sun moves for every
+  screen from the go (it did before, computed on each screen);
+- a war: the match's mission time while it is on; in a war room the
+  lobby's mission's time between matches (so every screen builds the
+  mission's world before the briefing, as `warTimeFrame` did from the
+  client's lobby); a war started in another room keeps its time over its
+  end and its result, as the client did;
+- any other room: the time its host set, `meta.daytime`, a `TIME_NAMES`
+  name or null. The room's creator's setting is its time from its start
+  (`POST /v2/create { daytime }`); after that the host's
+  `{ type: 'daytime', time }`, offered at the host's run start as the
+  weather is. Only the host; anything not a name or null is nothing.
+
+It goes to every pilot and watcher in the welcome (`daytime`) and as
+`{ type: 'daytime', daytime }` whenever it changes (checked after every
+text message and every tick). A build from before this passes over both.
+`src/share/rooms.js` checks it at the network's edge (`clockOf`).
+
+**Solo.** The address's `?hour=` or `?time=`, else the pilot's **Time of
+day** setting: `own` (the default, each world's own time, so nothing
+changes for anyone who never touches it), day, morning, noon, golden,
+night. The row sits under Weather in Free Flight's settings, the least
+intrusive place: the same screen, the same room rule as the air, and no
+new UI. In a room the host's choice is everyone's, as the air is.
+
+**The world.** A world built once at a named time (Itaipu) is built at
+`timeOfClock` and rebuilt through `syncWorld` when that moves. A world that
+moves its sun (the Interior, `setLocalTime`) is never rebuilt for the time:
+`daytimeFrame` tells it `hourAt(clock, roomMs)` every frame, or its own
+hour (`ownHour`) with no clock. Swiss2 and the Alps draw their one sun
+whatever the clock (slice 3); their scene has no night flag, so everything
+below stays day there, agreeing with the sky.
+
+**One value per frame.** `src/main.js daytimeFrame`, first in the frame
+(`dressWorld`), publishes the craft's world's `scene.userData.timeOfDay`.
+Everything that acts on the dark reads `daytimeNow()`:
+
+| Reader | Before |
+|---|---|
+| detection's light, `avxEnv.light` | `roomWar.night()`: war rooms only |
+| world audio (`worldAudio.post` time) | `worldTime`, the build's name: night sounds over swiss2's day sky |
+| the sensors' time of day (`sensors.js`) | the scene flag, re-read once a second |
+| thermal weather (`thermal.js sceneWeather`) | the scene flag |
+| Night Timber factory lights (`nighttimbercraft.js`) | `src/render/worldlight.js` (#914), folded in and deleted |
+| war attackers' nav lights | the war's mission time |
+
+`roomwar.js time()` and `night()` lost their last reader and are gone.
+
 ## What it does NOT do (yet)
 
-- No existing file reads it in this slice. Nothing the player sees changes.
 - Maps keep their own looks: colour, irradiance, exposure, sky stay in the map.
-- No room state: free rooms do not share a time (owner question).
+- A free room's time stands (rate 0): no map but the Interior can draw a
+  moving sun, and the Interior's moving clock is its missions'.
 - Thermal's own fade (-0.05 to 0.15) is a blend, not a night verdict; left alone.
+- Swiss2 and alps still take a time they cannot draw (slice 3, owner
+  question if a night valley is wanted).
 
-## Next slices
-
-2. After #914 merges: the flight loop publishes one daytime from
-   `scene.userData.timeOfDay`; perception light, world audio, attacker nav
-   lights and `worldlight.js` read it instead of war state or `worldTime`.
-   Browser check at `?map=interior&hour=22` and `?map=itaipu&time=night`.
-3. Swiss2 and alps stop accepting a `?time=` they cannot draw (owner question
-   if a night valley is wanted).
+**Release order.** The rooms server needs a VM deploy. A new page on an old
+server is told no clock, so a night war mission would be built by day until
+the VM is deployed; an old page on the new server passes over the clock and
+works as before. Deploy the VM first, or with the page.
 
 ## The check
 

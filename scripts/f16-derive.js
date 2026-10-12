@@ -27,6 +27,9 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { groundTerms, wingGround } from './lib/groundeffect.js';
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -170,7 +173,10 @@ const Izz = 85552 / (9299 * 15.03 * 15.03) * m * 1.25 * 1.25;
 const T0 = 2.400 * 9.80665, rpmNL = 2210 * 3.7 * 6, rpm = 0.85 * rpmNL, D = mm(69);
 const J0 = 0.313 + 1.248 / 0.9675;
 const Vz = J0 * (rpm / 60) * D;
-const T = (V, n = 1) => (n > 0 ? Math.max(0, T0 * n * n * (1 - V / (Vz * n))) : 0);
+/* The thrust on the curve the plant flies, its axial_curve: for the fan
+ * that line again, on the table's pitch_speed, Vz to two places. */
+const fan = wingProp('FW_F16878');
+const T = (V, n = 1) => Math.max(0, fan.thrust(T0, V, n));
 /* Its static efflux speed through 90 percent of the swept annulus (a 30
  * mm hub): the momentum thrust's jet, for the ideal power it asks. */
 const Aexit = 0.9 * Math.PI / 4 * (D * D - 0.030 * 0.030);
@@ -398,7 +404,20 @@ function takeoff(stick, vRot, mu = 0.08) {
  * that happens at, at a throttle, and the roll to it: a jet with a high
  * thrust line on a short wheelbase rotates late.
  */
-function rotation(stick, mu = 0.08) {
+/* Near the ground (plant_wing.c GROUND EFFECT, scripts/lib/groundeffect.js)
+ * at a pitch on the mains: the lift and pitching moment the ground adds,
+ * the wing's quarter chord over the runway as the airframe pivots on the
+ * mains' contact, the CG 0.140 m over it and 52 mm ahead. */
+const geo = { b, S, aw, dd: deda, clmax: CLmax, ...wingGround('FW_F16878') };
+function onGround(th) {
+  const hCg = rest.cgHeight * Math.cos(th) + rest.mainAft * Math.sin(th);
+  const h = hCg + geo.wing[0] * Math.sin(th) + geo.wing[1] * Math.cos(th);
+  const gt = groundTerms(geo, h, th, th - alphaZL);
+  const tailCl = (CLa - aw) / (1 - deda);
+  return { h, sigma: gt.sigma, dCL: CLa * gt.dAlpha + tailCl * gt.dTail, dCm: Cma * gt.dAlpha + tailCl * geo.tail[0] / mac * gt.dTail };
+}
+
+function rotation(stick, mu = 0.08, ge = false) {
   const aRest = -alphaZL, xm = rest.mainAft, h = rest.cgHeight;
   let V = 0, x = 0, t = 0, n = 0, v = 0, ramp = 0;
   const dt = 0.001;
@@ -410,12 +429,26 @@ function rotation(stick, mu = 0.08) {
     const q = 0.5 * rho * V * V;
     const CLg = CLa * aRest, CDg = CD0g + k * CLg * CLg;
     const L = q * S * (CLg + CLde * throwE), Dr = q * S * CDg, Tt = T(V, n);
-    const moment = q * S * mac * (Cm0 + Cma * aRest + Cmde * throwE) + (L - W) * xm - (Tt - Dr) * h;
+    const gr = ge ? onGround(0) : { dCL: 0, dCm: 0 };
+    const moment = q * S * mac * (Cm0 + Cma * aRest + Cmde * throwE + gr.dCm) + (L + q * S * gr.dCL - W) * xm - (Tt - Dr) * h;
     if (moment > 0 && V > 1) return { V, x, t };
     const a = (Tt - Dr - mu * Math.max(0, W - q * S * CLg)) / m;
     V = Math.max(0, V + a * dt); x += V * dt; t += dt;
   }
   return null;
+}
+
+/* The lift off: the take off pilot holds the nose at 8 deg (wingpilot.js
+ * f16TakeoffSticks) on the elevator that trims it there, and the jet
+ * leaves at the speed that attitude's lift is its weight. Near the ground
+ * the ground's lift helps and its nose down moment takes up elevator, the
+ * stabilator's down load with it. */
+function liftoffHeld(thDeg, ge) {
+  const th = thDeg / DEG, a = th - alphaZL;
+  const gr = ge ? onGround(th) : { dCL: 0, dCm: 0, h: 0, sigma: 0 };
+  const de = -(Cm0 + Cma * a + gr.dCm) / Cmde;
+  const CL = CLa * a + CLde * de + gr.dCL;
+  return { V: Math.sqrt(2 * W / (rho * S * CL)), de: de * DEG, CL, h: gr.h, sigma: gr.sigma };
 }
 
 /* Energy: from cruise the throttle closed, level, how far and how long it
@@ -539,6 +572,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['Clβ, Clp, Clδa', `${f(Clb, 4)} ${f(Clp, 4)} ${f(Clda, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['k, Ixx Iyy Izz', `${f(k, 4)} ${f(Ixx, 4)} ${f(Iyy, 4)} ${f(Izz, 4)}`],
   ['fan: static N, rpm no load, loaded, J0, zero thrust m/s', `${f(T0, 3)} ${f(rpmNL, 0)} ${f(rpm, 0)} ${f(J0, 3)} ${f(Vz, 2)}`],
@@ -575,6 +609,8 @@ const rows = [
   ['take off 55 percent (Model Aviation 50 to 60) to 1.2 Vs', JSON.stringify(takeoff(0.55, 1.2 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['full up rotates it at, full throttle', JSON.stringify(rotation(1), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['   at 55 percent', JSON.stringify(rotation(0.55), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
+  ['   with the ground effect, full throttle, 55 percent', `${JSON.stringify(rotation(1, 0.08, true), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))} ${JSON.stringify(rotation(0.55, 0.08, true), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))}`],
+  ['lift off at the held 8 deg: free air, the ground', `${JSON.stringify(liftoffHeld(8, false), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))} ${JSON.stringify(liftoffHeld(8, true), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))}`],
   ['   at 55 percent, the roll to 1.6 Vs', JSON.stringify(takeoff(0.55, 1.6 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['   full throttle, the roll to 1.6 Vs', JSON.stringify(takeoff(1, 1.6 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['energy: chop at 75 percent level, to 1.3 Vs', JSON.stringify(slowDown(V75, 1.3 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(1) : v))],

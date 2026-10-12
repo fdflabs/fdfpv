@@ -539,11 +539,12 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .cells = 6.0,
   .r_cell = 0.010,
   /* DERIVED, docs/POWER-STAGE1.md: C-Astral publishes no pack, only
-   * 3 h at 16 m/s; 22 Ah on 6S flies that on this plant. That is 488 Wh,
-   * against the 330 Wh the drag estimate needs: this plant's cruise
-   * power is high, which the estimated 45 A full throttle current is the
-   * likeliest cause of. The autopilot, not an ESC, manages the end. */
-  .pack_c = 22000.0 * 3.6,
+   * 3 h at 16 m/s; 11 Ah on 6S flies that on this plant (179.2 min to the
+   * cut at a mean 3.68 A, 82 W, on the 12 x 8's curve and the 20.3 A full
+   * throttle current APC's 12 x 8E gives). That is 244 Wh, against the
+   * 330 Wh the drag estimate's 0.65 prop and 0.82 motor need. The
+   * autopilot, not an ESC, manages the end. */
+  .pack_c = 11000.0 * 3.6,
   .lvc = 0.0,
   .rho = 1.225,
   .prop_r = 0.1524,
@@ -1699,6 +1700,118 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { -0.95, 0.0, -0.12 }, .r = 0.0, .k = 6000.0, .c = 120.0, .mu_roll = 0.60, .mu_side = 0.60, .steer = 0.0 },
   },
 },
+/*
+ * Extreme Flight's 67 in CAP 580, docs/CAP580-STAGE1.md: 3.63 kg (the
+ * data sheet's 8 lb) on a 6S 4500, an 18 x 8 0.56 m ahead of the CG on a
+ * thrust line through it. The hull is only what a crash lands on: the
+ * belly 0.13 m under the CG, the canopy's top 0.15 over it, the half span
+ * wide. The camera sits at the canopy's front. Every figure here from npm
+ * run cap580:derive unless its line says otherwise.
+ */
+[SIM_AIRFRAME_CAP1702] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 3.6287,        /* the data sheet's 8 lb, docs/CAP580-STAGE1.md */
+  .inertia = { 0.1399, 0.5496, 0.6575 }, /* npm run cap580:derive, built up from the parts */
+  .gravity = 9.81, /* docs/CAP580-STAGE1.md, the plant's g */
+  .cells = 6.0,             /* docs/CAP580-STAGE1.md: T-Motor's 6S, the AM670's pack */
+  .r_cell = 0.00346,        /* npm run cap580:derive: the bench source's sag over six cells */
+  /* The 6S 4500, docs/CAP580-STAGE1.md. */
+  .pack_c = 4500.0 * 3.6,
+  .lvc = 3.0,               /* FITTED: the AM116A's cutoff is unpublished; a hobby ESC's usual 3.0 V a cell */
+  .rho = 1.225, /* docs/CAP580-STAGE1.md, ISA sea level */
+  .prop_r = 0.2286,         /* the 18 in prop, docs/CAP580-STAGE1.md */
+  .spin = { -1.0, 0.0, 0.0, 0.0 }, /* clockwise seen from behind, docs/CAP580-STAGE1.md */
+  .pos_x = { 0.560, 0.0, 0.0, 0.0 }, /* npm run cap580:derive: the disc ahead of the CG */
+  /* The hull, off the outline in docs/CAP580-STAGE1.md: the fuselage's
+   * length about the CG, the half span, the belly and the canopy. */
+  .hull_hx = 0.47,          /* docs/CAP580-STAGE1.md */
+  .hull_hy = 0.851,         /* docs/CAP580-STAGE1.md, the half span */
+  .hull_hz_down = 0.13,     /* docs/CAP580-STAGE1.md */
+  .hull_hz_up = 0.15,       /* docs/CAP580-STAGE1.md */
+  .contact_patch_r = 0.10,  /* FITTED: the Extra's 0.08 grown with the fuselage's width */
+  .contact_arm_max = 1.08,  /* docs/CAP580-STAGE1.md: the rudder's trailing edge behind the CG */
+  .vib_ref_w = 1000.0,      /* FITTED: the other fixed wings' reference */
+  .camera_x = 0.10,         /* docs/CAP580-STAGE1.md: the canopy's front */
+  .camera_y = 0.0, /* docs/CAP580-STAGE1.md, on the centreline */
+  .camera_z = 0.12,         /* docs/CAP580-STAGE1.md */
+  .fw = &FW_CAP1702, /* docs/CAP580-STAGE1.md */
+  /*
+   * The gear off Extreme Flight's side photograph (npm run cap580:derive):
+   * the main axles 0.12 m ahead of the CG and 0.31 m under it on a 0.38 m
+   * track with 2.5 in wheels, the tailwheel's axle 0.941 m behind and
+   * 0.127 m under with a 22 mm wheel. Each axle is lowered by its 5 mm of
+   * static deflection, so the plant settles onto the photographed pose:
+   * 10.9 deg nose up, the CG 0.313 m over the grass, 16.9 percent of the
+   * weight on the tail. Stiffness for that, damping at 0.6 of critical.
+   * The tailwheel steers off the rudder through its springs as the
+   * Extra's does.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    /* npm run cap580:derive */
+    { .pos = { 0.1200, 0.1900, -0.3150 }, .r = 0.0318, .k = 2959.1, .c = 87.93, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    /* npm run cap580:derive */
+    { .pos = { 0.1200, -0.1900, -0.3150 }, .r = 0.0318, .k = 2959.1, .c = 87.93, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    /* npm run cap580:derive; steered at 0.45 of the rudder, the Extra's (docs/EXTRA-STAGE1.md) */
+    { .pos = { -0.9410, 0.0000, -0.1320 }, .r = 0.0110, .k = 1201.5, .c = 31.52, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.45, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.2286 m under the hub on the thrust
+     * line through the CG, docs/CAP580-STAGE1.md. */
+    { .pos = { 0.560, 0.0, -0.2286 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
+/*
+ * Extreme Flight's 105.5 in Slick 580 EXP, docs/SLICK-STAGE1.md: 12.474 kg
+ * with the 34 oz tank full (27.5 lb, the middle of the overlap of EF's two
+ * V3 ranges), Falcon's 28 x 10 0.609 m ahead of the CG on a thrust line
+ * 39 mm over it, npm run slick:derive. The receiver's 2S pack is the one
+ * the shell reads; the engine burns fuel, not it. The hull is only what a
+ * crash lands on: the belly 0.138 m under the CG, the canopy's top 0.315
+ * over it, the half span wide. The camera sits on the canopy's front, high
+ * enough to see over the cowl past the 5 in spinner.
+ */
+[SIM_AIRFRAME_SLICK2680] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 12.474,       /* scripts/slick-derive.js */
+  .inertia = { 1.512, 4.163, 5.463 }, /* ESTIMATED from the parts, scripts/slick-derive.js */
+  .gravity = 9.81, /* every table's standard air, docs/SLICK-STAGE1.md */
+  .cells = 2.0,            /* the receiver's 2S, as the Ugly Stik's, docs/UGLYSTIK-STAGE1.md */
+  .r_cell = 0.030,         /* the Ugly Stik's receiver pack, docs/UGLYSTIK-STAGE1.md */
+  .rho = 1.225, /* every table's standard air, docs/SLICK-STAGE1.md */
+  .prop_r = 0.3556,        /* Falcon's 28 in, docs/SLICK-STAGE1.md */
+  .spin = { -1.0, 0.0, 0.0, 0.0 }, /* clockwise from behind, the DA-120 on a tractor prop, docs/SLICK-STAGE1.md */
+  .pos_x = { 0.6093, 0.0, 0.0, 0.0 }, /* the drawing's spinner back plate, scripts/slick-derive.js */
+  .hull_hx = 0.69,         /* FITTED: the Extra's 0.35 on its 1.26 m, at this fuselage's 2.5 m, docs/SLICK-STAGE1.md */
+  .hull_hy = 1.340,        /* the half span, docs/SLICK-STAGE1.md */
+  .hull_hz_down = 0.138,   /* the drawn belly, docs/SLICK-STAGE1.md */
+  .hull_hz_up = 0.315,     /* the drawn canopy's top, docs/SLICK-STAGE1.md */
+  .contact_patch_r = 0.15, /* FITTED: a resting friction lever, the fleet's */
+  .contact_arm_max = 1.75, /* FITTED: the rudder's trailing edge, 1.73 m aft, docs/SLICK-STAGE1.md */
+  .vib_ref_w = 1000.0,     /* FITTED: the fleet's gyro reference */
+  .camera_x = 0.22,        /* FITTED: on the canopy's front, over the cowl and the spinner, drawn, docs/SLICK-STAGE1.md */
+  .camera_y = 0.0, /* FITTED: on the centreline, docs/SLICK-STAGE1.md */
+  .camera_z = 0.30,        /* FITTED: the canopy's front, drawn, docs/SLICK-STAGE1.md */
+  .fw = &FW_SLICK2680, /* docs/SLICK-STAGE1.md */
+  /*
+   * The gear off the sheet's side view (scripts/slick-derive.js): the main
+   * axles 0.159 m ahead of the CG and 0.388 m under it on the sheet's
+   * 630 mm track with 105 mm wheels, the tailwheel's axle 1.509 m behind
+   * and 0.145 m under with a 38 mm wheel. Each axle is lowered by its 5 mm
+   * of static deflection, so the plant settles onto the drawn pose: 9.38
+   * deg nose up, the CG 0.408 m over the grass, 13.5 percent of the weight
+   * on the tail. Stiffness for that, damping at 0.6 of critical (the Cub's
+   * rule). The tailwheel steers off the rudder through its springs, 0.45 of
+   * the rudder's angle, the Extra's (docs/EXTRA-STAGE1.md).
+   */
+  .wheel_count = 4, /* docs/SLICK-STAGE1.md */
+  .wheel = {
+    { .pos = { 0.1592, 0.315, -0.3925 }, .r = 0.0525, .k = 10581.0, .c = 308.27, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.1592, -0.315, -0.3925 }, .r = 0.0525, .k = 10581.0, .c = 308.27, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -1.5088, 0.0, -0.1504 }, .r = 0.019, .k = 3312.0, .c = 89.64, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.45, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.3556 m under the hub: 0.195 m over
+     * the grass at rest, scripts/slick-derive.js. */
+    { .pos = { 0.6093, 0.0, -0.3166 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 
 };
 
@@ -1847,6 +1960,7 @@ static int g_power_on = 0;
 static int g_motors_on = 0;
 static int g_prop_pack_on = 0;
 static int g_tune_on = 0;
+static int g_tier_on = 0;
 static int g_addons_on = 0;
 static void plant_seat(void);
 
@@ -1859,6 +1973,7 @@ void plant_set_airframe(int id) {
   g_motors_on = 0;
   g_prop_pack_on = 0;
   g_tune_on = 0;
+  g_tier_on = 0;
   g_addons_on = 0;
   PLANT_P = &PLANT_TABLE[id];
 }
@@ -2148,6 +2263,78 @@ void plant_tune_read(double *out) {
   out[SIM_TUNE_ELEV_FLAP] = fw ? fw->elev_flap : 0.0;
 }
 
+/*
+ * THE SURFACE TIERS, sim_wing_set_tiers in sim_abi.h: a copy of the
+ * wing table with its control terms scaled, owned by this file like the
+ * tuning's. A tier moves a hinge line on the same wing, stabiliser and
+ * fin, so only the control terms move; the slipstream's share of each
+ * surface reads the same terms (plant_wing.c) and scales with them. The
+ * strips' tau is the aileron's share of each strip's zero lift angle, so
+ * a bigger aileron also takes its strip to the stall sooner.
+ */
+static PlantParams g_plant_tier;
+static FixedWingParams g_fw_tier;
+static double g_tier[SIM_TIER_DOUBLES];
+
+static const PlantParams *plant_tiers_over(const PlantParams *base) {
+  const double ka = g_tier[SIM_TIER_K_A], ke = g_tier[SIM_TIER_K_E], kr = g_tier[SIM_TIER_K_R];
+  g_fw_tier = *base->fw;
+  g_fw_tier.cl_da = base->fw->cl_da * ka;
+  g_fw_tier.cn_da_per_cl = base->fw->cn_da_per_cl * ka;
+  for (int i = 0; i < 4; i += 1) {
+    g_fw_tier.strip_tau[i] = base->fw->strip_tau[i] * ka;
+  }
+  g_fw_tier.cm_de = base->fw->cm_de * ke;
+  g_fw_tier.cl_de = base->fw->cl_de * ke;
+  g_fw_tier.cn_dr = base->fw->cn_dr * kr;
+  g_fw_tier.cy_dr = base->fw->cy_dr * kr;
+  g_fw_tier.cl_dr = base->fw->cl_dr * kr;
+  g_fw_tier.surf_cd[0] = g_tier[SIM_TIER_CD_A];
+  g_fw_tier.surf_cd[1] = g_tier[SIM_TIER_CD_E];
+  g_fw_tier.surf_cd[2] = g_tier[SIM_TIER_CD_R];
+  g_plant_tier = *base;
+  g_plant_tier.fw = &g_fw_tier;
+  return &g_plant_tier;
+}
+
+int plant_set_tiers(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0 || base->fw->mix == FW_MIX_ELEVON) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = SIM_TIER_K_A; i <= SIM_TIER_K_R; i += 1) {
+    if (!in_range(in[i], 0.25, 4.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  for (int i = SIM_TIER_CD_A; i <= SIM_TIER_CD_R; i += 1) {
+    if (!in_range(in[i], 0.0, 0.5)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  /* A rudder mix has no ailerons to make bigger. */
+  if (base->fw->mix == FW_MIX_RUDDER && (in[SIM_TIER_K_A] != 1.0 || in[SIM_TIER_CD_A] != 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < SIM_TIER_DOUBLES; i += 1) {
+    g_tier[i] = in[i];
+  }
+  g_tier_on = 1;
+  plant_seat();
+  return SIM_OK;
+}
+
+void plant_tiers_clear(void) {
+  g_tier_on = 0;
+  plant_seat();
+}
+
+void plant_tiers_read(double *out) {
+  for (int i = 0; i < SIM_TIER_DOUBLES; i += 1) {
+    out[i] = g_tier_on ? g_tier[i] : (i <= SIM_TIER_K_R ? 1.0 : 0.0);
+  }
+}
+
 int plant_tune_on(void) {
   return g_tune_on;
 }
@@ -2167,10 +2354,13 @@ static double g_addons_in[SIM_ADDON_DOUBLES];
  * zero unless the host hands it over after sim_set_addons. */
 static double g_addons_own_i[SIM_ADDON_INERTIA_DOUBLES];
 
-/* What the add-ons are laid over: the tuning over the power option over
- * the table, as far as each is seated. */
+/* What the add-ons are laid over: the tuning over the surface tiers over
+ * the power option over the table, as far as each is seated. */
 static const PlantParams *plant_under_addons(void) {
   const PlantParams *base = g_power_on ? &g_plant_live : &PLANT_TABLE[g_airframe];
+  if (g_tier_on) {
+    base = plant_tiers_over(base);
+  }
   return g_tune_on ? plant_tune_over(base) : base;
 }
 

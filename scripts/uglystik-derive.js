@@ -30,6 +30,7 @@
  */
 
 import { wash } from './lib/wash.js';
+import { wingProp } from './lib/propcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
 
 const SLIP = deriveWash('FW_UGLYSTIK1567');
@@ -265,13 +266,17 @@ const Cndr = -VV * av * tauR, CYdr = av * (Sv / S) * tauR, Cldr = CYdr * zv / b;
 const ClrPerCL = 0.25, CnpPerCL = -0.125, CndaPerCL = -0.06;
 
 /* The engine, the Kadet's law: the throttle runs the rpm from the idle to
- * full, linearly, and the thrust falls with airspeed to nothing at the
- * pitch speed times that. */
+ * full, linearly, and the thrust falls with airspeed along APC's curve
+ * for the 12 x 6, to nothing at 1.36 times the pitch speed times that. */
 const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = rpmLoaded * 2 * Math.PI / 60;
 const dutyOf = (stick) => idle + (1 - idle) * stick;
-const T = (V, stick) => { const d = dutyOf(stick); return Math.max(0, Ts * d * d * (1 - V / (Vp * d))); };
+/* The thrust on APC's curve the plant flies (scripts/lib/propcurve.js),
+ * whose pitch speed is this one: the prop's geometric pitch at full rpm. */
+const prop = wingProp('FW_UGLYSTIK1567');
+if (Math.abs(prop.pitchSpeed - Vp) > 0.01) throw new Error(`uglystik-derive: the plant's pitch speed ${prop.pitchSpeed} is not V_p ${Vp}`);
+const T = (V, stick) => Math.max(0, prop.thrust(Ts, V, dutyOf(stick)));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 4, hi = 40;
@@ -618,6 +623,7 @@ const rows = [
   ['Cmδe, CLδe', `${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['Clβ: dihedral, fin, shoulder wing, total', `${f(ClbDihedral, 4)} ${f(ClbFin, 4)} ${f(ClbHigh, 4)} ${f(Clb, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Clp, Clδa', `${f(Clp, 4)} ${f(ClDa, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['throws deg: aileron up, down, mean; elevator; rudder', `${f(throwAup * DEG, 4)} ${f(throwAdown * DEG, 4)} ${f(throwA * DEG, 4)}; ${f(throwE * DEG, 4)}; ${f(throwR * DEG, 4)}`],

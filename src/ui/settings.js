@@ -45,9 +45,11 @@ import { normalisePlane, normaliseParts } from '../../configs/hangar-parts.js';
 import { normalisePacks } from '../../configs/wear.js';
 import { normaliseCombat } from '../../configs/combat.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
+import { normaliseSurfaces } from '../../configs/surfaces.js';
 import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../configs/liveries.js';
 import { FC_DUMP_AIRFRAME_KEY, FC_DUMP_KEY } from '../fc/dump.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
+import { TIME_NAMES } from '../share/daytime.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
 import { hasKeybinds, normaliseKeybinds } from '../input/keybinds.js';
 import { LINK_PRESETS } from '../input/link.js';
@@ -115,6 +117,14 @@ export const FREESTYLE_SCORING = ['off', 'free', 'scored'];
 export const AVX_INSETS = ['small', 'medium', 'large'];
 export const AVX_LEVELS = ['full', 'standard', 'minimal'];
 export const AVX_PALETTES = ['whitehot', 'ironbow', 'rainbow', 'arctic'];
+/* The time of day a solo run flies, and a room its host makes or hosts:
+ * 'own' is each world's own time, the rest src/share/daytime.js's. */
+export const DAYTIME_CHOICES = ['own', ...TIME_NAMES];
+/* The setting as the wire and src/share/daytime.js name it: a TIME_NAMES
+ * name, or null for 'own'. */
+export function chosenTime(settings) {
+  return settings.timeOfDay === 'own' ? null : settings.timeOfDay;
+}
 
 /*
  * The weight slider, a percentage of the aircraft's stock weight. It
@@ -222,8 +232,12 @@ export const DEFAULTS = {
   launchControl: false,
   missionGuidance: true,
   crashDamage: true,
+  /* A room this pilot hosts flies stock control surfaces (configs/surfaces.js). */
+  roomStockSurfaces: false,
   /* The air a solo run flies; in a room the host's is the room's. */
   weather: 'calm',
+  /* The time of day, likewise (docs/DAYTIME-CONTRACT.md). */
+  timeOfDay: 'own',
   ghost: 'best',
   live: 'off',
   cameraAngle: CAMERA_ANGLE_DEFAULT,
@@ -248,6 +262,7 @@ export const DEFAULTS = {
   packs: {},
   combat: {},
   tuning: {},
+  surfaces: {},
   floats: {},
   buildFits: {},
   weight: WEIGHT_STOCK,
@@ -490,6 +505,7 @@ const ONE_OF = {
   live: () => ['off', 'on'],
   freestyleScoring: () => FREESTYLE_SCORING,
   weather: () => WEATHER_PRESETS,
+  timeOfDay: () => DAYTIME_CHOICES,
   mouseSens: () => MOUSE_SENS,
   mouseExpo: () => MOUSE_EXPOS,
   mouseCentre: () => MOUSE_CENTRES,
@@ -555,6 +571,7 @@ export function loadSettings() {
   s.combat = normaliseCombat(s.combat, airframeById);
   s.floats = normaliseFloats(s.floats, s.airframe);
   s.tuning = normalizeTuning(s.tuning, limitsWith(s.power));
+  s.surfaces = normaliseSurfaces(s.surfaces);
   s.buildFits = normaliseBuildFits(s.buildFits);
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
   s.weight = clampWeight(s.weight);

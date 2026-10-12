@@ -27,6 +27,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -257,7 +259,10 @@ const jProp = blades * 0.025 * propR * propR / 3 + 0.060 * 0.03 * 0.03 + 0.100 *
  * same prop class.
  */
 const pfactor = 1.6;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+/* Thrust on the prop's APC curve as the plant flies it (plant_wing.c
+ * prop_curve, scripts/lib/propcurve.js). */
+const prop = wingProp('FW_P51D1450');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 const D = (V, cd0 = CD0) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (cd0 + k * CL * CL); };
 const level = (d, cd0 = CD0) => {
   let lo = 5, hi = 40;
@@ -482,6 +487,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['Clβ (the low wing\'s), Clp, Clδa', `${f(Clb, 4)} (${f(ClbLow, 4)}) ${f(Clp)} ${f(Clda, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr; tau e, r, a', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}; ${f(tauE)} ${f(tauR)} ${f(tauAil)}`],
   ['throws a, e, r deg; flaps half, full deg', `${f(throwA * DEG, 4)} ${f(throwE * DEG, 4)} ${f(throwR * DEG, 4)}; ${f(flapHalf * DEG, 2)} ${f(flapFull * DEG, 2)}`],
   ['   in rad a, e, r, flaps half, full', `${throwA.toPrecision(17)} ${throwE.toPrecision(17)} ${throwR.toPrecision(17)} ${flapHalf.toPrecision(17)} ${flapFull.toPrecision(17)}`],

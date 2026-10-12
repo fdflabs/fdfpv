@@ -293,6 +293,8 @@ typedef struct {
 #define SIM_AIRFRAME_EXTRA3D1308 29
 #define SIM_AIRFRAME_NIGHTTIMBER1200 30
 #define SIM_AIRFRAME_HERCULES3077 31
+#define SIM_AIRFRAME_CAP1702 32
+#define SIM_AIRFRAME_SLICK2680 33
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -304,8 +306,10 @@ typedef struct {
  * the flight model lane, the Extra 300 3D under a new id, 14 staying
  * reserved (docs/FLIGHTMODEL.md). 30 is E-flite's Night Timber X 1.2m
  * (docs/NIGHTTIMBER-STAGE1.md). 31 is the owner's balsa C-130 Hercules of
- * 2026-10-08 (docs/HERCULES-CONTRACT.md). */
-#define SIM_AIRFRAME_COUNT 32
+ * 2026-10-08 (docs/HERCULES-CONTRACT.md). 32 is Extreme Flight's 67 in
+ * CAP 580 (docs/CAP580-STAGE1.md). 33 is Extreme Flight's 105.5 in Slick
+ * 580 on a DA-120 (docs/SLICK-STAGE1.md). */
+#define SIM_AIRFRAME_COUNT 34
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -517,6 +521,7 @@ extern int SIM_RATE_GUARD_TRIPS;
 #define FW_MIX_ELEVON 0 /* two elevons, delta_e plus and minus delta_a; no rudder */
 #define FW_MIX_TAIL 1   /* ailerons, an elevator and a rudder, each its own surface */
 #define FW_MIX_RUDDER 2 /* no ailerons: an elevator, and a rudder the roll stick drives too */
+#define FW_CURVE_N 21  /* mu = 0, 0.1, ... 2 in axial_curve and torque_curve */
 
 typedef struct FixedWingParams {
   int mix;             /* FW_MIX_ELEVON, FW_MIX_TAIL or FW_MIX_RUDDER */
@@ -561,7 +566,13 @@ typedef struct FixedWingParams {
   double expo;
   /* The motor. */
   double thrust_static; /* N */
-  double pitch_speed;   /* m/s at full duty */
+  double pitch_speed;   /* m/s at full duty: the prop's pitch times its full
+                         * rpm (a fan's or a jet's zero thrust speed) */
+  /* The prop's thrust and shaft torque over their static values at mu =
+   * u / (pitch_speed n), mu = 0, 0.1, ... 2, from APC's performance files
+   * (npm run prop:curves -- wings); straight on past mu = 2. */
+  double axial_curve[FW_CURVE_N];
+  double torque_curve[FW_CURVE_N];
   double rpm_no_load;
   double torque_arm;    /* prop reaction, roll moment per newton of thrust, m */
   double thrust_z;      /* thrust line height above the CG, m: a line under
@@ -616,6 +627,14 @@ typedef struct FixedWingParams {
    * distance ahead of the CG, m. Zero k_j leaves it out. */
   double jet_kj;
   double prop_x;
+  /* The thrust line's angle right of the body's axis, rad, seen from
+   * above: an engine mounted with right thrust, as an aerobat's is against
+   * its torque, swirl and P factor (the Slick's data sheet's "Right
+   * thrust: 3 deg"). The thrust's sideways part acts at prop_x ahead of the
+   * CG, so it yaws the nose right. Zero on every table without, which
+   * keeps the thrust along the axis exactly. The thrust line's height over
+   * the CG is thrust_z. */
+  double thrust_yaw;
   /* The surfaces' servos' rate, rad/s; zero moves them in the step. */
   double servo_rate;
   double as3x_k[3];
@@ -745,6 +764,16 @@ typedef struct FixedWingParams {
    * first is the idle's own. A butterfly opens most of the speed in its
    * first half. Zero on every table without, which keeps the line. */
   double throttle_rpm[11];
+  /* An engine's torque map, N m, docs/FLIGHTMODEL.md "The engine at a
+   * closed throttle": rows the stick's idle stop and 20, 30, ... 100
+   * percent throttle, columns 1,000 to 8,000 rpm in 500s, straight between
+   * and straight on past the ends. Where it is set the engine drives its
+   * rotor by it against the air's own torque on the prop, so its speed
+   * floats with the airspeed: a closed throttle in a dive brakes a prop the
+   * air drives. Zero on every table without, which keeps the glow method's
+   * flat torque against the static load. */
+  double engine_q[10][15];
+  double engine_rpm_max;
   /*
    * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
    * Its volume, m^3; the fuel it burns per second at full rpm and at the
@@ -864,7 +893,7 @@ typedef struct FixedWingParams {
    * ratio that paper fits (its Table 16); pitch_speed is the fan's zero
    * thrust speed at full throttle. Its current goes with the cube of the
    * speed and not with the thrust: a fan's power hardly falls with
-   * airspeed (the same paper, Fig. 5f), where a prop's does (CP_OF_CT).
+   * airspeed (the same paper, Fig. 5f), where a prop's does (torque_curve).
    * esc_start: the ESC's startup ramp, s from a stopped motor to full,
    * which holds the command back as it rises from a closed throttle; zero
    * is none.
@@ -897,6 +926,9 @@ typedef struct FixedWingParams {
   double bip_x[2];
   double bip_ki[2];
   double bip_kx[2];
+  /* Each wing's stall later than potential flow puts it, rad of the cell's
+   * angle (the slot effect of the wing above); zero: bip_r's alone. */
+  double bip_dstall[2];
   /*
    * THE DRAG ACROSS THE REYNOLDS NUMBERS, docs/DLG-STAGE1.md. Zero cd0_re
    * is a CD0 that is the same at every speed, every other table's, and then
@@ -912,6 +944,19 @@ typedef struct FixedWingParams {
    * tail's: the stall angle is the wing's, CL max over this, and the
    * tail's share of the slope lifts on past it. Zero: cl_alpha for both. */
   double cl_alpha_wing;
+  /* The sideslip derivatives' shares, from each derivation (docs/
+   * FLIGHTMODEL.md, sideslip past the stall): the wing's (dihedral, wing
+   * position) and the fin's of cl_beta, and the fin's of cn_beta. Zero:
+   * the linear derivatives through the stall. */
+  double cl_beta_wing;
+  double cl_beta_fin;
+  double cn_beta_fin;
+  /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
+   * deg past the wing's own stall angle: the ailerons' and the fin's and
+   * rudder's. Zero: the measured defaults, an unswept wing's ailerons (NACA
+   * TR 419) and a rudder over a low stabiliser (NASA TP-2011). */
+  double ail_keep[7];
+  double fin_keep[7];
   /* The stall across the Reynolds numbers on the chord: at stall_re[0]
    * and [1], the wing's CL max and the angle its lift peaks at, rad,
    * straight between them and held past them. Zero leaves cl_max and
@@ -1039,6 +1084,17 @@ typedef struct FixedWingParams {
   double tail_cn;
   double rot_k[3];
   /*
+   * GROUND EFFECT, plant_wing.c: ground_effect 1 takes the term, 0 (every
+   * table that does not set it) leaves the plant as it was. ge_wing and
+   * ge_tail are the wing's and the stabiliser's quarter chords on their
+   * mean chords, body frame from the CG, m, from the drawn model
+   * (crash_parts.h, npm run ge:derive); a table without a tail leaves
+   * ge_tail zero. The tail's term reads tail_deda.
+   */
+  int ground_effect;
+  double ge_wing[3];
+  double ge_tail[3];
+  /*
    * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
    * open in flight, sim_wing_set_door. door_time is their travel each way,
    * s; cd_door the drag they add fully open, on the wing's area; cm_door
@@ -1049,6 +1105,13 @@ typedef struct FixedWingParams {
   double door_time;
   double cd_door;
   double cm_door;
+  /*
+   * THE SURFACE TIERS' DRAG, sim_wing_set_tiers: the drag a deflected
+   * surface adds over the table's, on the wing's area, per unit of
+   * SURF_DRAG's shape (plant_wing.c), aileron, elevator and rudder. Zero
+   * on every table; only the copy a seated tier builds sets it.
+   */
+  double surf_cd[3];
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -1070,6 +1133,8 @@ extern const FixedWingParams FW_STRIKER_JET;
 extern const FixedWingParams FW_EXTRA3D1308;
 extern const FixedWingParams FW_NIGHTTIMBER1200;
 extern const FixedWingParams FW_HERCULES3077;
+extern const FixedWingParams FW_CAP1702;
+extern const FixedWingParams FW_SLICK2680;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_TIGERMOTH1803;
@@ -1105,6 +1170,13 @@ void plant_addons_clear(void);
  * power option, tuning and add-ons all. */
 int plant_set_tune(const double *in);
 void plant_tune_clear(void);
+/* THE SURFACE TIERS, sim_wing_set_tiers in sim_abi.h: seated between
+ * the power option and the tuning, SIM_OK or SIM_ERR_BAD_ARG;
+ * plant_tiers_clear takes them off; plant_tiers_read fills the
+ * block in force, ones and zeros where none is seated. */
+int plant_set_tiers(const double *in);
+void plant_tiers_clear(void);
+void plant_tiers_read(double *out);
 void plant_tune_read(double *out);
 int plant_tune_on(void);
 void plant_reseat(void);
@@ -1129,6 +1201,8 @@ void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
 void plant_wing_strips(double out[8]);
+void plant_wing_set_gyro(int on);
+void plant_wing_set_mount(int on);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any

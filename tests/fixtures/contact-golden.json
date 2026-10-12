@@ -2,9 +2,9 @@
  "quad-wall": {
   "what": "the interceptor into the face of an Alps wall at 25 m/s",
   "steps": 1500,
-  "pre": "defc919f8cd08d01afe397ed",
-  "plane": "d3702adc3893048d1419014e",
-  "post": "22696ae143e1d5e7b363b4ab",
+  "pre": "c1f279bc9e07de07ce6fee1f",
+  "plane": "03ace9c3776e2bf36780744e",
+  "post": "e5a991afcdd9371f45540fb1",
   "throw": {
    "x": 44,
    "y": 1.6,
@@ -17,7 +17,7 @@
   },
   "met": {
    "obstacleEvents": 14,
-   "contactEvents": 29,
+   "contactEvents": 25,
    "damage": [
     "battery:crack",
     "antenna left:knock",
@@ -29,19 +29,20 @@
     "battery:break",
     "arm rear right:break",
     "arm rear left:break",
-    "arm front right:settle",
     "arm front left:settle",
+    "arm front right:settle",
     "camera:settle",
-    "battery:settle"
+    "battery:settle",
+    "arm rear left:settle"
    ],
    "pass": {
     "resolved": 0,
-    "resting": 29,
+    "resting": 25,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
     "inbound": 16,
-    "outbound": 13,
+    "outbound": 9,
     "plantHeld": 0,
     "unheld": 0
    }
@@ -162,9 +163,9 @@
  "quad-roof": {
   "what": "the interceptor dropped onto a swiss2 roof at 8 m/s, 35 degrees down",
   "steps": 1500,
-  "pre": "2b7c683132e53dbd7a4ff6a2",
-  "plane": "57a494460dadd3b8b9dc7ff6",
-  "post": "01a7470e1d25f0ceb81f16a6",
+  "pre": "97a4fb0142a24ea3dc4f493b",
+  "plane": "58bf3291777d1444164beb01",
+  "post": "b86bbe734f4997922e7b10ed",
   "throw": {
    "x": -48.41424594319382,
    "y": 3.863259449943706,
@@ -195,9 +196,9 @@
  "quad-ground-skid": {
   "what": "the interceptor skidding into the swiss2 grass at 18 m/s, 15 degrees down",
   "steps": 1500,
-  "pre": "eda17d9535e6cf83c972bc06",
-  "plane": "2a9ca116e292f7cf5b2d803b",
-  "post": "48c3c70bece9cabd9056bbda",
+  "pre": "8c9c2a9e3ff0cfb2370bfc3a",
+  "plane": "de01b483cad069073a012e3e",
+  "post": "3923aa5542a1c4a2c818c660",
   "throw": {
    "x": 25,
    "y": 1.5,
@@ -294,10 +295,10 @@
  },
  "quad-wall-nodamage": {
   "what": "the interceptor into the face of an Alps wall at 25 m/s, crash damage off",
-  "steps": 1500,
-  "pre": "608c994566f6f679becd98a7",
-  "plane": "db23f190a8dc60a66af389f4",
-  "post": "b6f0f259e603d38937e92fa3",
+  "steps": 1000,
+  "pre": "51ec19049cac5f385b711735",
+  "plane": "99c6a3ffd14e5ffb875a7125",
+  "post": "575b9784cc1afd3aeaccdf4d",
   "throw": {
    "x": 44,
    "y": 1.6,
@@ -361,9 +362,9 @@
  "quad-pole-nodamage": {
   "what": "the interceptor into a swiss2 power pole at 15 m/s, crash damage off",
   "steps": 1500,
-  "pre": "3431ae09587542620dbfa36e",
-  "plane": "c9660d9934b6be810775a986",
-  "post": "6a7e73a93cbad313a2815d45",
+  "pre": "6843ea0f94d0efa2988f09af",
+  "plane": "8c8b499e2574cb6383a70a09",
+  "post": "bf42b9bb05bf590f1d3906ec",
   "throw": {
    "x": 41,
    "y": 2.2,

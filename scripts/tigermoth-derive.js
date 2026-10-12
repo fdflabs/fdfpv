@@ -30,6 +30,7 @@
  */
 
 import { biplaneCell } from './lib/biplane.js';
+import { wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -277,7 +278,11 @@ const idle = 2000 / rpmLoaded;
 const rpmNL = rpmLoaded / 0.85;
 const Vp = rpmNL / 60 * pitchIn * IN * 0.85;
 const dutyOf = (stick) => idle + (1 - idle) * stick;
-const T = (V, stick) => { const d = dutyOf(stick); return Math.max(0, Ts * d * d * (1 - V / (Vp * d))); };
+/* The thrust on APC's curve the plant flies (scripts/lib/propcurve.js),
+ * whose pitch speed is this one: the prop's geometric pitch at full rpm. */
+const prop = wingProp('FW_TIGERMOTH1803');
+if (Math.abs(prop.pitchSpeed - Vp) > 0.01) throw new Error(`tigermoth-derive: the plant's pitch speed ${prop.pitchSpeed} is not V_p ${Vp}`);
+const T = (V, stick) => Math.max(0, prop.thrust(Ts, V, dutyOf(stick)));
 
 /*
  * MASS AND INERTIA, ESTIMATED from the parts, x forward of the CG and z
@@ -484,6 +489,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq, 3)} ${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['fin: AR_v a_v V_V l_v; CYβ Cnβ (fus) Cnr', `${f(arV, 3)} ${f(av, 4)} ${f(VV, 5)} ${f(lv, 4)}; ${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['Clβ: dihedral, heights, fin, total', `${f(ClbDih, 4)} ${f(ClbHeight, 4)} ${f(ClbFin, 4)} ${f(Clb, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Clp, Clδa', `${f(Clp, 4)} ${f(Clda, 4)}`],
   ['Cnδa per CL: the partner\'s wash per CL, value', `${f(partnerWash, 4)} ${f(CndaPerCL, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

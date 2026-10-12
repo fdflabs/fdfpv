@@ -23,6 +23,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingProp } from './lib/propcurve.js';
+
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -184,7 +186,11 @@ const Qs = apcAt(nStatic, 1), Ts = apcAt(nStatic, 2), Is = Qs / kt + i0;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 6 * 0.0254;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const torqueArm = Qs / Ts;
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - Math.max(0, V) / (Vp * d)));
+/* The prop's speed at a duty, the electric motor's law (plant_wing.c
+ * prop_spool): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
+const nOf = (d) => (-(0.85 / 0.15) + Math.sqrt((0.85 / 0.15) ** 2 + 4 * (0.85 / 0.15 + 1) * d)) / 2;
+const prop = wingProp('FW_EXTRA3D1308');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, nOf(d)));
 /* The prop's inertia, ESTIMATED: a 13 in wood blade of about 35 g, a
  * tapered blade's 0.7 of a rod's m D^2 / 12, and the outrunner's can. */
 const propJ = 0.7 * 0.035 * (2 * propR) ** 2 / 12 + 0.06 * 0.021 * 0.021;
@@ -199,6 +205,12 @@ const level = (d) => {
   return lo;
 };
 const Vs = Math.sqrt(2 * W / (rho * S * CLmax));
+/* The throttle that holds a level speed: E11's entry, level at 12 m/s. */
+const levelDuty = (V) => {
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(V, mid) < D(V)) lo = mid; else hi = mid; }
+  return hi;
+};
 const ld = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return CL / (CD0 + k * CL * CL); };
 /* The roll rate, steady, pb/2V = Clda da / -Clp, at full aileron. */
 const pb2v = Clda * throwA / -Clp;
@@ -208,11 +220,17 @@ const rollAt = (V) => pb2v * 2 * V / b;
  * THE 3D REGIME.
  *
  * Hover: nose up, still, the thrust the weight. The plant's thrust goes
- * as the duty squared at zero airspeed, so the stick is sqrt(W / Ts).
+ * as its speed squared at zero airspeed, so the prop turns at sqrt(W / Ts)
+ * of full, at the duty below.
  * The vertical climb: full throttle, straight up, where the thrust meets
  * the weight and the drag at zero lift.
  */
-const hoverDuty = Math.sqrt(W / Ts);
+/* The prop's speed there, sqrt(W / Ts) of full, and the duty the electric
+ * motor settles at it on (plant_wing.c prop_spool, Drela's law with the
+ * plant's 0.85 rule): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
+const hoverN = Math.sqrt(W / Ts);
+const KM = 0.85 / 0.15;
+const hoverDuty = (hoverN * hoverN + KM * hoverN) / (KM + 1);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 
@@ -346,8 +364,11 @@ const vhT = -slipCma / (at * (1 - deda)), vvF = slipCnb / av;
 const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
 const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 /* The prop's precession: a yaw rate r pitches the airframe at r h / Iy. */
-const hHover = propJ * 0.85 * hoverDuty * rpmNL * 2 * Math.PI / 60;
+const hHover = propJ * 0.85 * hoverN * rpmNL * 2 * Math.PI / 60;
 
+/* The wing's normal force broadside, Viterna and Janetzke's finite wing
+ * 1.11 + 0.018 AR (NASA TM-82944 eq. 12), as plant_wing.c plate_cn. */
+const PCN = 1.11 + 0.018 * Math.min(AR, 50);
 /*
  * The plant's post stall lift (plant_wing.c, stalled_lift) on the whole
  * wing, for the harrier: the peak the blend reaches held for stall_top,
@@ -359,25 +380,25 @@ function smooth(a0, a1, x) { if (x <= a0) return 0; if (x >= a1) return 1; const
 function clPlant(alpha) {
   const aS = CLmax / CLa;
   const sig = smooth(aS - blend, aS + blend, Math.abs(alpha));
-  const lin = CLa * alpha, plateL = 2 * Math.sin(alpha) * Math.cos(alpha);
+  const lin = CLa * alpha, plateL = PCN * Math.sin(alpha) * Math.cos(alpha);
   const old = (1 - sig) * lin + sig * plateL;
   if (sig <= 0) return { CL: lin, CD: CD0 + k * lin * lin, sig, clLin: lin, clSt: lin, fall: 0 };
   let clS = 0;
   for (let i = 0; i <= 16; i += 1) {
     const ai = aS - blend + blend * 0.125 * i;
     const si = smooth(aS - blend, aS + blend, ai);
-    const cc = (1 - si) * CLa * ai + si * 2 * Math.sin(ai) * Math.cos(ai);
+    const cc = (1 - si) * CLa * ai + si * PCN * Math.sin(ai) * Math.cos(ai);
     clS = Math.max(clS, cc);
   }
   const a0 = aS + stallTop, a1 = a0 + 2 * blend;
   const t = smooth(a0, a1, Math.abs(alpha));
   const st = Math.min(a1, 0.5);
-  const a2 = (stallK * clS - 2 * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
+  const a2 = (stallK * clS - PCN * Math.sin(st) * Math.cos(st)) * Math.sin(st) / (Math.cos(st) ** 2);
   const vit = Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05 ? a2 * Math.cos(alpha) ** 2 / Math.sin(alpha) : 0;
   const clSt = (1 - t) * clS + t * (plateL + vit);
   const past = smooth(aS, aS + blend, Math.abs(alpha));
   const CL = old + past * (clSt - old);
-  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + 2 * Math.sin(alpha) ** 2);
+  const CD = (1 - sig) * (CD0 + k * lin * lin) + sig * (CD0 + PCN * Math.sin(alpha) ** 2);
   return { CL, CD, sig, clLin: lin, clSt, fall: t, past };
 }
 /*
@@ -407,7 +428,7 @@ function harrier(alphaDeg) {
   const w = wash(thrust, u);
   const sa = Math.sin(a);
   const clLinM = CLa * sa;
-  const cnSt = 2 * sa + (clSt - 2 * sa * Math.cos(a)) * Math.cos(a);
+  const cnSt = PCN * sa + (clSt - PCN * sa * Math.cos(a)) * Math.cos(a);
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * clLinM);
   const alphaT = sa - deda * CL / CLa - slipA0 * (1 - deda);
   const xa = V * Math.sin(a - slipA0);
@@ -521,6 +542,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['Clβ (fin, low wing), Clp, Clδa', `${f(Clb, 4)} (${f(ClbFin, 4)} ${f(ClbLow, 4)}) ${f(Clp, 4)} ${f(Clda, 4)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],
   ['throws deg a e r; K\' a e r; tau a e r', `${f(throwA * DEG, 2)} ${f(throwE * DEG, 2)} ${f(throwR * DEG, 2)}; ${f(kPrime(throwA))} ${f(kPrime(throwE))} ${f(kPrime(throwR))}; ${f(tauA)} ${f(tauE)} ${f(tauR)}`],
   ['mass: sum kg, pack x m', `${f(mSum, 3)} ${f(packX, 4)}`],
@@ -536,7 +558,7 @@ const rows = [
   ['E3 L/D at 12, 14 m/s', `${f(ld(12), 2)} ${f(ld(14), 2)}`],
   ['E4 top speed', f(level(1), 2)],
   ['E5 roll pb/2V, deg/s at 15 m/s, at 20 m/s', `${f(pb2v, 4)} ${f(rollAt(15) * DEG, 0)} ${f(rollAt(20) * DEG, 0)}`],
-  ['E6 hover duty; wash dp, v_i, rw, fh fv fa', `${f(hoverDuty, 4)}; ${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
+  ['E6 hover duty (prop speed); wash dp, v_i, rw, fh fv fa', `${f(hoverDuty, 4)} (${f(hoverN, 4)}); ${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
   ['E7 vertical climb speed, full throttle', f(vClimb, 2)],
   ['SWIRL_KEEP: the swirl\'s roll 0.40 of the torque at the hover (Selig 2010)', `${f(SWIRL_KEEP_DERIVED, 4)}, taken ${SWIRL_KEEP}`],
   ['root swirl: fuselage side, wing under thrust line, chord m; eta FITTED', `${f(rootYf, 3)} ${f(zWing, 3)} ${f(rootC, 4)}; ${f(ROOT_ETA_DERIVED, 4)}, taken ${ROOT_ETA}`],
@@ -549,6 +571,7 @@ const rows = [
   ['E9 full aileron in the wash N m, net roll deg/s', `${f(aileronHover, 4)} ${f(aileronRollNet * DEG, 0)}`],
   ['E10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],
   ['   prop angular momentum at hover N m s', f(hHover, 4)],
+  ['E11 entry: the throttle level at 12 m/s', f(levelDuty(12), 3)],
   ['E11 harrier at 35, 40, 45 deg', ''],
   ['   35', J(harrier(35))],
   ['   40', J(harrier(40))],

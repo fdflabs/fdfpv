@@ -74,7 +74,9 @@ every composer pass and the shadow map (GPU segments), and
 - **GPU**: WebGL timer queries as swiss2-perf.js takes them, one segment
   per composer pass, `shadow`, one per renderer.render outside the
   composer named `draw <src file>` after its caller
-  (`draw maps/swiss2/water/lake` is the lake's mirror,
+  (`draw render/library/water/mirror` is the lake's mirror, named
+  `draw maps/swiss2/water/lake` in the measurements below, before it
+  moved into the asset library,
   `draw render/sensorview` the avionics sensor view's scene draws and
   full screen passes, `draw maps/itaipu/look/sky` Itaipu's sky cube,
   redrawn a band at a time). Itaipu's mirror is drawn from the scene's

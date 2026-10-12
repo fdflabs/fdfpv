@@ -165,14 +165,10 @@ void beeperConfirmationBeeps(uint8_t beepCount) { (void)beepCount; }
 void beeperSilence(void) {}
 void schedulerResetTaskStatistics(taskId_e taskId) { (void)taskId; }
 
-/* Core state. disarm() and crashflip are owned by bf_glue.c: failsafe.c
- * disarms on a stage 2 drop, and mixer.c already compiled the turtle mix,
- * so neither can be a stub that does nothing.
- *
- * isAirmodeActivated is core.c's throttle latch, not the airmode feature.
- * The feature itself is airmodeIsEnabled() in rc_modes.c, which this file
- * once claimed to cover and did not: bf_glue.c raises it now. */
-bool isAirmodeActivated(void) { return true; }
+/* Core state. disarm(), crashflip and isAirmodeActivated (core.c's
+ * throttle latch) are owned by bf_glue.c: failsafe.c disarms on a stage 2
+ * drop, mixer.c already compiled the turtle mix, and the latch is set from
+ * the receiver path, so none can be a stub that does nothing. */
 
 #ifdef USE_LAUNCH_CONTROL
 const char * const osdLaunchControlModeNames[LAUNCH_CONTROL_MODE_COUNT] = {

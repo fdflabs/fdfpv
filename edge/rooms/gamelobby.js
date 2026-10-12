@@ -92,8 +92,9 @@ function warFits(core, id) {
 
 /* The war's mission: the room's own, else the first on its map it may
  * start. A room stored set to a mission since held back (src/game/
- * campaign.js released) is the first again, not one stuck refusing. */
-function warMission(core) {
+ * campaign.js released) is the first again, not one stuck refusing. The
+ * room's game clock reads it too (core.js daytime). */
+export function warMission(core) {
   const id = core.meta.mission;
   if (warFits(core, id)) {
     return id;

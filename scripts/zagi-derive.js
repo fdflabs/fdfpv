@@ -36,6 +36,7 @@
  */
 
 import { derivatives, lattice } from './lib/lattice.js';
+import { wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -216,7 +217,8 @@ const torqueArm = Kt * (ampsStatic - i0) / Ts;  /* shaft torque per newton */
 const jProp = 2 * 0.004 * propR * propR / 3 + 0.025 * 0.006 * 0.006 / 2;
 
 /* Performance, the plant's own motor and drag model. */
-const T = (V, d) => Math.max(0, Ts * d * d * (1 - V / (Vp * d)));
+const prop = wingProp('FW_ZAGI1219');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
 const Dr = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let ok = false;
@@ -232,6 +234,22 @@ let best = { vz: -1, V: 0 };
 for (let V = 8; V < 30; V += 0.02) { const vz = (T(V, 1) - Dr(V)) * V / W; if (vz > best.vz) best = { vz, V }; }
 let minSink = { sink: 99, V: 0 };
 for (let V = Vs * 1.05; V < 25; V += 0.01) { const s2 = V / ld(V); if (s2 < minSink.sink) minSink = { sink: s2, V }; }
+/*
+ * Z9's mush, bracketed without the plant's stall model: at its gentlest
+ * the wing still holds its CL max with the flow attached, sinking Vs times
+ * (CD0 + k CLmax^2) / CLmax; at its worst it is a fully separated plate at
+ * 30 deg, whose broadside coefficient at this aspect ratio is measured,
+ * 1.32 at AR 6 (Ostowari and Naik, Post-Stall Wind Tunnel Data for NACA
+ * 44XX Series Airfoil Sections, SERI/STR-217-2559, 1985, sec. 4.6), CL =
+ * CN sin cos and CD = CN sin^2 + CD0, gliding where the resultant carries
+ * the weight. The partial stall the CRRC tips call a mush lies between.
+ */
+const mushLo = Vs * (CD0 + k * CLmax * CLmax) / CLmax;
+const mushPlate = (() => {
+  const a = 30 / DEG, cn = 1.32, cl = cn * Math.sin(a) * Math.cos(a), cd = cn * Math.sin(a) ** 2 + CD0;
+  const V = Math.sqrt(2 * W / (rho * S * Math.hypot(cl, cd)));
+  return V * Math.sin(Math.atan(cd / cl));
+})();
 
 /*
  * The trim, and Cm0: the manual's glide test, trims centred, "flies
@@ -436,6 +454,7 @@ const rows = [
   ['level at 100, 75, 65, 50 percent', `${f(level(1), 2)} ${f(level(0.75), 2)} ${f(level(0.65), 2)} ${f(level(0.5), 2)}`],
   ['glide: L/D max at V; L/D at 12', `${f(LDmax, 2)} ${f(Vmd, 2)}; ${f(ld(12), 2)}`],
   ['min sink m/s at V', `${f(minSink.sink, 3)} ${f(minSink.V, 2)}`],
+  ['Z9 mush sink bracket m/s: attached at CLmax, separated plate at 30 deg', `${f(mushLo, 2)} ${f(mushPlate, 2)}`],
   ['best climb m/s at V', `${f(best.vz, 2)} ${f(best.V, 2)}`],
   ['roll pb/2V; deg/s at 12, 15, 20 m/s', `${f(pb2v)} ${f(rollAt(12), 0)} ${f(rollAt(15), 0)} ${f(rollAt(20), 0)}`],
   ['pitch: dCL per rad elevon; g per rad at 12, 15; stall elevon deg', `${f(dclPerRad, 3)} ${f(gPerRad(12), 2)} ${f(gPerRad(15), 2)} ${f(deStall * DEG, 2)}`],

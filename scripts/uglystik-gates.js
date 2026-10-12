@@ -54,6 +54,8 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude,
+  loopHold,
+  turnYawLimitDeg, spinWatch, personWingsHold, rollMode,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -241,8 +243,11 @@ check: {
       `${Math.abs(invRoll.rateDegS).toFixed(0)} against ${Math.abs(u6.rateDegS).toFixed(0)} deg/s`, `within ${u8.rollPct} percent`);
   }
 
-  /* U9: a loop. Level at full throttle, then half up stick held with the
-   * ailerons and rudder centred until the flight path has gone once round
+  /* U9: a loop. Level at full throttle, then half up stick held, the
+   * wings and the nose kept in the loop's plane on the ailerons and the
+   * rudder as a pilot keeps them (wingpilot.js loopHold; the prop's
+   * torque and swirl at the loop's speed turn it out of the plane with
+   * them centred, docs/FLIGHTMODEL.md), until the flight path has gone once round
    * in the vertical plane it started in, the derivation's point mass's
    * own end: the path's angle, unwrapped, from the velocity. */
   {
@@ -255,7 +260,8 @@ check: {
     let t = 0;
     let path = Math.atan2(s0[6], s0[4]);
     for (; t < 20000 && turned < 2 * Math.PI; t += RC_STEP_MS) {
-      o = step(sim, [0, t9.stick, 0, 1]);
+      const [rollStick, yawStick] = loopHold(o.s);
+      o = step(sim, [rollStick, t9.stick, yawStick, 1]);
       const now = Math.atan2(o.s[6], o.s[4]);
       turned += wrap(now - path);
       path = now;
@@ -317,26 +323,30 @@ check: {
    * drop would show, and the ailerons it takes. */
   for (const [id, t11, duty] of [['U11a', th.u11_stall_power_off, 0], ['U11b', th.u11_stall_power_on, th.u11_stall_power_on.duty]]) {
     clockMs = fly(sim, { duty: 0, vTarget: t11.entry, seconds: 25, guard: false, speed0: t11.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    const mode = rollMode((sticks) => step(sim, sticks).s, 0);
+    clockMs = fly(sim, { duty: 0, vTarget: t11.entry, seconds: 25, guard: false, speed0: t11.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const psi0 = edgeHeading(sim.readState().state);
     let worstBank = 0;
     let minPitch = 90;
     let maxPitch = -90;
     let worstHead = 0;
     let worstR = 0;
+    const spin = spinWatch(th.u2_stall.alphaStall, t11.maxBankDeg);
     let alphaMax = 0;
     let worstP = 0;
     let ailSum = 0;
     let o = { s: sim.readState().state };
-    /* With power the hold has an integral, as S8's bank hold on the Kadet:
-     * the torque and the swirl are a steady moment on a stalled wing at a
-     * low dynamic pressure, which a proportional hold leaves as a steady
-     * bank; what U11b measures is a wing drop (the roll rate and the
-     * aileron it takes), not the hold's offset. */
-    let iBank = 0;
+    /* With power the wings are held by a person (wingpilot.js
+     * personWingsHold): late and paced as a person is, with the stick's
+     * whole travel and an integral against the steady torque and swirl on
+     * a stalled wing at a low dynamic pressure; what U11b measures is a
+     * wing drop (the roll rate and the aileron it takes), not the hold. */
+    const hold = personWingsHold(mode);
+    let stickSq = 0, stickPeak = 0;
     for (let ms = 0; ms < t11.seconds * 1000; ms += RC_STEP_MS) {
-      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000));
-      const roll = duty ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
+      const roll = duty ? hold(o.s) : 0;
       ailSum += Math.abs(roll);
+      stickSq += roll * roll; stickPeak = Math.max(stickPeak, Math.abs(roll));
       o = step(sim, [roll, 1, 0, duty]);
       worstP = Math.max(worstP, Math.abs(o.s[11]) * DEG);
       const { pitch } = attitude(o.s);
@@ -345,14 +355,15 @@ check: {
       maxPitch = Math.max(maxPitch, pitch * DEG);
       worstHead = Math.max(worstHead, Math.abs(wrap(edgeHeading(o.s) - psi0)) * DEG);
       worstR = Math.max(worstR, Math.abs(o.s[13]) * DEG);
+      spin.add(o.s, wingDebug(sim)[0], ms / 1000);
       alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
     }
     const ailMean = ailSum / (t11.seconds * 1000 / RC_STEP_MS);
     const held = duty ? worstP <= t11.maxRollRateDegS && ailMean <= t11.maxAileron : true;
     gate(id, `full up held, ${duty ? 'half throttle, wings held' : 'power off'}: nose drops, no wing drop`,
-      worstBank <= t11.maxBankDeg && minPitch >= t11.minPitchDeg && worstR <= t11.maxYawRateDegS && alphaMax > th.u2_stall.alphaStall && held,
-      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s, roll ${worstP.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, alpha up to ${(alphaMax * DEG).toFixed(1)}${duty ? `, ailerons ${ailMean.toFixed(2)} of the stick` : ''}, ${speed(o.s).toFixed(2)} m/s at the end`,
-      `stalled, bank ${t11.maxBankDeg}, pitch over ${t11.minPitchDeg}, yaw ${t11.maxYawRateDegS} deg/s${duty ? `, roll under ${t11.maxRollRateDegS} deg/s, ailerons under ${t11.maxAileron}` : ''}`);
+      worstBank <= t11.maxBankDeg && minPitch >= t11.minPitchDeg && spin.ok() && alphaMax > th.u2_stall.alphaStall && held,
+      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, alpha up to ${(alphaMax * DEG).toFixed(1)}${duty ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t11.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(hold.gain).toFixed(2)} per rad)` : ''}, ${speed(o.s).toFixed(2)} m/s at the end`,
+      `stalled, bank ${t11.maxBankDeg}, pitch over ${t11.minPitchDeg}, yaw under the turn its bank allows at its speed while stalled${duty ? `, roll under ${t11.maxRollRateDegS} deg/s, ailerons under ${t11.maxAileron}` : ''}`);
   }
 
   const u12 = propTorque(sim);

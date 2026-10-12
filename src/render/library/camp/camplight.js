@@ -57,7 +57,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { thermalShader } from '../thermal.js';
+import { thermalShader } from '../../thermal.js';
 
 /* The most lamps the chunk loops over; the list is padded with dark ones. */
 export const LAMPS_MAX = 8;

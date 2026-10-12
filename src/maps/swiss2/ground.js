@@ -39,7 +39,8 @@ import * as THREE from 'three';
 import {
   FIELD, HALF, LAKE_Y, LAKE_N, SIDE_Z, TREE_LINE, STRIP_W, STRIP_L, groundZone, groundPaths,
 } from '../alps/terrain.js';
-import { LAYERS, SUN_U } from './assets.js';
+import { SUN_U } from './assets.js';
+import { LAYERS } from '../../render/library/surfaces.js';
 import { CLIFF_LOW, CLIFF_HIGH, LOW_HALF, LOW_GATE } from './rock/carve.js';
 import { apronAt, wallRise } from './terrain.js';
 import { noise2, smoothstep } from '../../render/library/noise.js';

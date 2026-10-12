@@ -35,7 +35,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { roofShell } from '../../../render/library/kit.js';
-import { worldUv } from '../look.js';
+import { worldUv } from '../../../render/library/photolook.js';
 import { frame, box, boxUp, cached, prism, near, detail, plate } from './parts.js';
 
 /* The painted mark: metres up the slope, and assets/swiss2/marks/

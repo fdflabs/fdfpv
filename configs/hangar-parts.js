@@ -80,6 +80,7 @@ const APC_OZ = {
   '13x8E': 1.09, '12x6': 1.62, '12x7': 1.52, '12x8': 1.69, '11x6': 1.41, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
   '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
   '10x6E': 0.71, '12x8E': 0.92, '13x65E': 1.06, '13x4E': 1.06,
+  '18x8E': 2.57, '18x10E': 2.57, '17x8E': 2.26,
 };
 
 /*
@@ -98,6 +99,7 @@ const PROXY = {
   '13/8/2/electric': '13x8E',
   '13/6/2/electric': '13x65E',
   '13/4/2/electric': '13x4E',
+  '18/8/2/electric': '18x8E',
   '11/8/2/electric': '11x8E',
   '10/4.7/2/electric': '10x47SF',
   '10/6/2/electric': '10x6E',
@@ -150,6 +152,12 @@ export const PROPS = {
   extra3d1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   nighttimber1200: [STOCK, apcProp('13x65e', '13x65E', 13, 6.5, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   hercules3077: [STOCK, apcProp('11x7e', '11x7E', 11, 7, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
+  /* The CAP's alternatives are APC's 18 x 10E, the pitch T-Motor also benches
+   * on the AM670, and the 17 x 8E, smaller: docs/CAP580-STAGE1.md. */
+  cap1702: [STOCK, apcProp('18x10e', '18x10E', 18, 10, 2), apcProp('17x8e', '17x8E', 17, 8, 2)],
+  /* APC measures no 27 or 28 in two blade; Falcon's chart has its 27 x 11
+   * and 28 x 9.5 on the DA-120, a prop kind of its own still to build. */
+  slick2680: [STOCK],
   radian2000: [STOCK],
   bramor2300: [STOCK],
   /* A fan is its duct's: Freewing sells the one rotor for it. */
@@ -197,7 +205,9 @@ export const ANCHORS = {
   tigermoth1803: { prop: [0.3808, 0, 0.0074], belly: [0, 0, -0.122], tail: [-1.035, 0, -0.073], tank: [-0.01, 0, -0.04], led: [[0.17, 0.15, 0.215], [0.12, 0.80, 0.245]] },
   nighttimber1200: { prop: [0.308, 0, 0], belly: [0, 0, -0.10], tail: [-0.62, 0, -0.11], tank: [-0.01, 0, -0.06], led: [[0.07, 0.20, 0.05], [0.07, 0.50, 0.06]] },
   extra3d1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
+  slick2680: { prop: [0.6093, 0, 0.039], belly: [0, 0, -0.138], tail: [-1.50, 0, 0.0], tank: [-0.01, 0, -0.04], led: [[0.12, 0.30, -0.03], [0.05, 1.20, -0.01]] },
   hercules3077: { prop: [0.315, 0.3846, 0.0998], belly: [0, 0, -0.195], tail: [-1.25, 0, 0.05], tank: [-0.05, 0, -0.13], led: [[0.10, 1.40, 0.175], [0.10, 0.90, 0.17]] },
+  cap1702: { prop: [0.56, 0, 0], belly: [0, 0, -0.13], tail: [-1.03, 0, -0.05], tank: [0.0, 0, -0.10], led: [[0.11, 0.25, -0.115], [0.08, 0.75, -0.10]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
   zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },
 };

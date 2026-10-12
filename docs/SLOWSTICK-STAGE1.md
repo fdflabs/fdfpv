@@ -217,7 +217,7 @@ in proportion about the derived figure unless it says otherwise.
 | S3 glide ratio at 5.5 m/s | 8.15 (best 8.16 at 5.62) | 7.25 to 9.15 |
 | S4 top speed | 8.37 m/s | 7.6 to 9.4, level |
 | S5 best climb | 1.17 m/s at 5.0 | 0.8 to 1.4 |
-| S6 30 deg bank, hands off, bank at 6 s | 12.9 deg | 6 to 20, same side, never past 32 |
+| S6 30 deg bank, hands off, bank at 6 s | 7.9 deg with the prop's torque and swirl (12.9 without), docs/FLIGHTMODEL.md | 3.7 to 12.2, same side, never past 32 |
 | S7 full roll stick, bank after 1 s | 32.9 deg | 20 to 50, right wing down |
 | S8 level 45 deg bank at 90 percent, radius | 4.66 m at 6.76 m/s, 6.9 deg of up elevator | within 15 percent of the formula, 3.96 to 5.36 m, level |
 | S9a full up, power off | alpha 17.9, 5.73 m/s, sink 2.09 | bank 15, yaw 20 deg/s, pitch over −35, sink 1.57 to 2.61 (25 percent) |
