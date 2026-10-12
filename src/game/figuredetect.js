@@ -413,6 +413,19 @@ function stopDeduction(turns) {
   return radDeduction(((a - Math.floor(a + 0.5)) / 4) * TURN);
 }
 
+/* A pitch rotation with no more than a quarter turn of roll or yaw in it. */
+const pitchOnly = (p) => abs(p.roll) <= 0.25 && abs(p.yaw) <= 0.25;
+
+/* "Little altitude gain or forward motion" (Wikipedia, "3D Aerobatics"):
+ * a point per 2 m the rotation moved, out of where it began, the hover's
+ * drift scale (hoverDeduction). */
+function travelDeduction(p) {
+  const dx = p.x1 - p.x0;
+  const dy = p.y1 - p.y0;
+  const dz = p.z1 - p.z0;
+  return Math.floor(Math.sqrt(dx * dx + dy * dy + dz * dz) / 2);
+}
+
 const halfRollOn = (cls) => rollOf(0.5, 0.15, (p) => lineClass(p) === cls);
 const snapish = (p) => abs(p.roll) >= 0.7;
 
@@ -504,10 +517,29 @@ const TABLE = [
   ['knife_edge_pass', [kind('knife', (p) => p.ms >= 2000)],
     ([k]) => lineDeduction(k, 'level') + bandDeduction(k.frac(k.knifeSum)) + bandDeduction(headingCos(k.d0, k.d1))],
   ['elevator', [kind('elevator', (p) => p.ms >= 2000)], ([e]) => holdDeduction(e)],
+  /* The pitch rotations, told apart by axis, not by rate. A waterfall is
+   * a pivot about the pitch axis alone: "The waterfall is a move where
+   * the plane is made to pivot 360 degrees in the pitch axes. Ideally
+   * this is performed with little altitude gain or forward motion"
+   * (Wikipedia, "3D Aerobatics"), a "micro loop" flown with the wings
+   * level, or the aircraft "will barrel roll out of this stunt" (David
+   * Scott, "Master the 3D Waterfall", Model Airplane News). A pitch
+   * rotation coupled into roll or yaw is the lomcevak family's tumble:
+   * "the aircraft, with almost no forward speed, rotates on chosen axes
+   * ... due to the gyroscopic precession and torque of the rotating
+   * propeller" (Wikipedia, "Lomcovak"). Coupled is past a quarter turn of
+   * roll or yaw, the waterfall's roll bound before (no source for the
+   * quarter beyond it); half a turn of roll is the lomcevak. A waterfall's
+   * span, the axis it pivots on, is nearer the horizontal than the
+   * vertical on average, the spin token's 45 deg turned over: banked
+   * further, the wings are not level and the pivot is no pitch figure as
+   * the ground sees it; the tilt under that is graded on its plane. The rate
+   * split this replaces (a tumble at 6 rad/s or more) had no source,
+   * and the Extra's waterfalls peak at 8 to 10.8 rad/s. */
   ['lomcevak', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && abs(p.roll) >= 0.5)], ([t]) => stopDeduction(t.pitch)],
-  ['tumble', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && p.maxQ >= 6)], ([t]) => stopDeduction(t.pitch)],
-  ['waterfall', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && abs(p.roll) <= 0.25)],
-    ([t]) => stopDeduction(t.pitch) + bandDeduction(Math.sqrt(1 - t.plane()[2] * t.plane()[2]))],
+  ['tumble', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && !pitchOnly(p))], ([t]) => stopDeduction(t.pitch)],
+  ['waterfall', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && pitchOnly(p) && p.frac(p.lzSum) <= COS45)],
+    ([t]) => stopDeduction(t.pitch) + bandDeduction(Math.sqrt(1 - t.plane()[2] * t.plane()[2])) + travelDeduction(t)],
 ];
 
 /* Matches a row at the head of the buffer: [primitives used, parts] or null. */
@@ -639,7 +671,13 @@ export class FigureDetector {
   token(s) {
     const { speed, n, u, l, d, p, q, r, cosA } = s;
     const ap = abs(p), aq = abs(q), ar = abs(r);
-    if (s.stalled && d[2] < -0.6 && abs(s.wzWorld) >= 1.5 && speed < 25) return 'spin';
+    /* A spin turns about the vertical: "a shallow, rotating, downward path
+     * approximately centred on a vertical axis" (Wikipedia, "Spin
+     * (aerodynamics)"). The rotation's axis within 45 deg of it, so a
+     * waterfall falling through its back side, the wings near level and
+     * its pivot about the span, is no spin however it sinks. */
+    const w2 = p * p + q * q + r * r;
+    if (s.stalled && d[2] < -0.6 && abs(s.wzWorld) >= 1.5 && s.wzWorld * s.wzWorld >= COS45 * COS45 * w2 && speed < 25) return 'spin';
     if (speed < 10 && aq >= 2.5 && aq >= 1.5 * ap && aq >= ar) return 'pitchover';
     /* A snap is the wing stalled at speed while it rolls: the angle of
      * attack itself (the flow under the wing, -d.u), not the nose to path

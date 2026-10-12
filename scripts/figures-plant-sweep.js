@@ -37,7 +37,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PROGRAMS, fly } from '../tests/lib/figureprograms.js';
+import { PROGRAMS, PROGRAM_TIERS, fly } from '../tests/lib/figureprograms.js';
 import { FIGURES } from '../src/game/figures.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -49,7 +49,7 @@ const only = onlyArg ? onlyArg.slice(7).split(',') : null;
 
 const rows = [];
 for (const f of FIGURES.filter((x) => x.physics === 'unproven' && PROGRAMS[x.id] && (!only || only.includes(x.id)))) {
-  const r = await fly(PROGRAMS[f.id], { wasmBytes, configText, trace });
+  const r = await fly(PROGRAMS[f.id], { wasmBytes, configText, trace, tiers: PROGRAM_TIERS[f.id] ?? null });
   /* Named at grade 0 is a figure a judge gives nothing: no pin protects it. */
   const hit = r.got.find((g) => g.figure === f.id && g.grade > 0);
   const zero = !hit && r.got.some((g) => g.figure === f.id);
