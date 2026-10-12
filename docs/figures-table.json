@@ -341,6 +341,29 @@
           }
         }
       },
+      "pointStop": {
+        "extra": {
+          "airframe": 29,
+          "wc": 2.8,
+          "gain": 9.341,
+          "pmDeg": 46.7,
+          "gmDb": 7
+        },
+        "cap": {
+          "airframe": 32,
+          "wc": 2.8,
+          "gain": 5.048,
+          "pmDeg": 47.9,
+          "gmDb": 6.6
+        },
+        "slick": {
+          "airframe": 33,
+          "wc": 2.6,
+          "gain": 5.191,
+          "pmDeg": 46.1,
+          "gmDb": 7.5
+        }
+      },
       "knife": {
         "bank": {
           "crossoverFor": 2,
@@ -1145,7 +1168,7 @@
         "crashed": false,
         "lowestM": 144.5,
         "others": {
-          "cap": 7,
+          "cap": 6.5,
           "slick": 7
         },
         "seated": {
@@ -1186,15 +1209,17 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 3.5,
+        "flew": [
+          "eight_point_roll 3.5"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 114.5,
+        "lowestM": 116.8,
         "others": {
-          "cap": 0,
-          "slick": 0.5
+          "cap": 0.5,
+          "slick": 2
         },
         "seated": {
           "extra": null,

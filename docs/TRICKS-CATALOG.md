@@ -299,9 +299,9 @@ below). The loop, aileron roll and 4-point roll are
 | Aileron Roll | flown | 7 / 7.5 / 7.5 (`figures:plant`) | |
 | Double Roll | flown | 6 / 7.5 / 8.5 | |
 | Slow Roll | flown | 7.5 / 8.5 / 8.5 | |
-| 2-Point Roll | flown | 5.5 / 7 / 7 | its point at 164 deg; lost and regained in round 1 (below) |
-| 4-Point Roll | flown | 6.5 / 4.5 / 5 (`figures:plant`) | the knife edge points still roll on under the top rudder (below) |
-| 8-Point Roll | unproven | - / 0 / 0.5 | on a hair: the Extra names it at 0.21, 0.22, 0.24, 0.26 and 0.27 of stick, not at 0.23 or 0.25 (round 6); points 3 to 21 deg short of their marks |
+| 2-Point Roll | flown | 5.5 / 6.5 / 7 | its point at 164 deg; lost and regained in round 1 (below) |
+| 4-Point Roll | flown | 6.5 / 6 / 6 (`figures:plant`) | each point stopped on the ailerons (round 6); before, the knife edge points rolled on under the top rudder |
+| 8-Point Roll | unproven | 3.5 / 0.5 / 2 | named on all three with each point stopped on the ailerons (round 6): all 7 pauses seen; the path off its line (3 to 4.5) and the roll's total (2 to 3) take the rest |
 | Barrel Roll | flown | 9 / 10 / 9.5 | |
 | Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
@@ -342,6 +342,33 @@ regenerated or re-swept.
   tailslide at a 28 m/s entry; by speed, the low lines keep their gain.
   On it the Extra's yaw over the lines falls to 0.5 rad/s rms and the
   Cuban 8 is named on the Extra again (3 / 3.5 / 2).
+- **The point's stop** (`pointStop`, `POINT_STOP`, `POINT_HOLD_MS`).
+  Flown to its judging rule (FAI/CIVA Sporting Code Section 6 Part 1,
+  B.9.26.2 and B.9.26.3: the rotation stops at regular intervals, the
+  rate constant between, the pauses of identical duration and each
+  clearly recognizable; B.9.25.3: the wings stop precisely), the 8-point
+  roll was named on none of the three: the hold had no aileron, the roll
+  ran on through each stop and the judge saw 4 or 5 of the 7 pauses (the
+  4-point roll's knife edge points the same, round 2). Now, once the
+  person sees the roll stopped (the judge's 0.35 rad/s), they hold the
+  point's bank on the ailerons, a proportional loop at their pace on the
+  roll they count (the judge's own measure: on the bank seen, the stops
+  after the half came out 10 to 40 deg short on the judge's count),
+  designed as the knife edge's bank loop was: each aircraft's response at
+  its level pass at all eight 45 deg banks, the highest crossover keeping
+  45 deg and 6 dB at every one (Extra 2.8 rad/s on 9.341, 46.7 deg and
+  7 dB; CAP 2.8 on 5.048, 47.9 and 6.6; Slick 2.6 on 5.191, 46.1 and
+  7.5). No trim's integral: a point is held under half a second, and its
+  corner at a quarter of the crossover costs 14 deg, which took the
+  Extra's 45 deg banks to 42 at best. No speed schedule: the points are
+  flown at the level pass. The pause, 400 ms, is FITTED from the judge's
+  recognition (a pause seen from 100 ms stopped, the roll one roll while
+  a pause lasts under 800 ms): over 200 to 700 ms, 400, 450 and 500 name
+  the 2- and 8-point rolls on all three; at 450 the Extra's clean 4-point
+  roll grades no better than its sagging one and `figures:plant` fails,
+  so 400, the points' hold before. Point rolls now: 2-point 5.5 / 6.5 /
+  7, 4-point 6.5 / 6 / 6 (was 6.5 / 4.5 / 5), 8-point 3.5 / 0.5 / 2
+  (named again on the Extra; `figures:sweep`'s pin holds).
 - **A set entry speed** (owner's decision: fix the vertical figures'
   entries, no demotion). A person brings the speed to ENTRY_V on the level
   pass, full throttle under it, closed over it, before the tailslide, the
@@ -381,19 +408,6 @@ regenerated or re-swept.
     fuselage; the plant's static elevator authority at x/D 3 is FITTED
     and ESTIMATED. A big failure against the RealFlight bar, where a 3D
     plane waterfalls; reported as one.
-  - *8-Point Roll* (unproven, pinned): the Extra names it at 0.21, 0.22,
-    0.24, 0.26 and 0.27 of stick (1 to 3.5) and not at 0.23 or the
-    program's 0.25: a figure on a hair, its stick not moved to land between
-    two misses. Flown instead to its judging rule (FAI/CIVA Sporting Code
-    Section 6 Part 1, B.9.26.2 and B.9.26.3: stops at regular intervals,
-    the rate constant between them, pauses of identical duration and each
-    clearly recognizable), the slow roll's 1.7 rad/s held between 45 deg
-    stops of 400 ms: named on none of the three; the detector sees 4 or 5
-    pauses, not 7, because the hold has no aileron and the roll runs on
-    through a stop. At 0.25 the CAP and the Slick (0, 0.5) lose 4 to 4.5
-    points to the path off its line and 2.5 to 3.5 to the roll's total.
-    The point's stop is what is missing, not the stick. `figures:sweep`
-    fails on its pin, as built to; the lead takes it from here.
   - *Rolling Circle* (unproven): kpsi and kz's 36 name four rolls in none
     (6 of 12 when it was fitted), one roll in 10 on the Extra or the CAP, on all
     three in none.
