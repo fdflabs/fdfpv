@@ -30,6 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { fuselageRatio } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -552,9 +553,20 @@ const rotK = [
   plate(() => 0.28, fusX[1], fusX[0]) + 0.5 * rho * CN * Sv * lv ** 3 + plate(() => b, -c / 2, c / 2) * 0.2,
 ];
 /* The side crossflow drag area: the fuselage's side, 2.25 m by a mean
- * 0.26 m, at Allen and Perkins' 1.2 times their eta of 0.7, as the
- * Extra's. */
-const sideCda = (fusL * 0.26) * 1.2 * 0.7;
+ * 0.26 m, at Allen and Perkins' 1.2 times their eta of 0.7, the 1.2 taken
+ * over to the drawn rounded box's sections as the Extra's (scripts/lib/
+ * crossflow.js, NACA TN 3038). The sections: station aft of the
+ * spinner's tip, half width, top, bottom, squareness, m, the drawn
+ * model's FUSE (src/render/slickcraft.js). */
+const FUSE = [
+  [0.159, 0.064, 0.102, -0.023, 2.0], [0.196, 0.091, 0.113, -0.092, 2.4], [0.288, 0.150, 0.132, -0.121, 3.0],
+  [0.419, 0.163, 0.152, -0.151, 3.4], [0.550, 0.163, 0.158, -0.149, 3.4], [0.682, 0.154, 0.150, -0.143, 3.4],
+  [0.813, 0.147, 0.150, -0.137, 3.2], [0.944, 0.140, 0.200, -0.130, 3.0], [1.075, 0.133, 0.290, -0.124, 3.0],
+  [1.338, 0.108, 0.279, -0.111, 2.8], [1.600, 0.085, 0.237, -0.099, 2.6], [1.863, 0.060, 0.195, -0.086, 2.6],
+  [2.047, 0.044, 0.166, -0.078, 2.4], [2.250, 0.020, 0.118, -0.067, 2.2],
+];
+const sectionK = fuselageRatio(FUSE);
+const sideCda = (fusL * 0.26) * 1.2 * sectionK * 0.7;
 /* Hanging, the thrust's share along the axis holds the weight. */
 const hoverThrust = W / cosYaw;
 const hov = wash(hoverThrust, 0);
@@ -895,7 +907,7 @@ const rows = [
   ['   prop J kg m2, spool tau at full s', `${f(propJ, 5)} ${f(spoolTau, 3)}`],
   ['slipstream: tail CLα, Cmα, a0; fin Cnβ, Cnr, CYβ, Clβ', `${f(slipCla, 4)} ${f(slipCma, 4)} ${f(slipA0, 4)}; ${f(slipCnb, 4)} ${f(slipCnr, 4)} ${f(slipCyb, 4)} ${f(slipClb, 4)}`],
   ['rot_k roll pitch yaw N m s2', `${f(rotK[0], 4)} ${f(rotK[1], 4)} ${f(rotK[2], 4)}`],
-  ['side crossflow drag area m2', f(sideCda, 4)],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['strip_c, strip_tau', `${stripC.map((v) => f(v)).join(' ')}; ${stripTau.map((v) => f(v)).join(' ')}`],
   ['stall: arm_ac, arm_cp, dw', `${f(hCG - 0.25, 4)} ${f(armCp, 4)} ${f(stallDw, 4)}`],
   ['S1 level at 75 percent of the stick (rpm share there)', `${f(DERIVED.e1, 2)} (${f(nAt(0.75, DERIVED.e1), 4)})`],
@@ -945,7 +957,7 @@ function bandsJson() {
     s9_aileron_hover: { derived: r(D.e9, 1), min: Math.round(D.e9 * 0.6), max: Math.round(D.e9 * 1.4), unit: 'deg/s', source: `the same with full right aileron: the ailerons' inboard share in the slipstream beats the net torque, derived ${D.e9.toFixed(0)} deg/s right; 40 percent either way, the difference of two estimates` },
     s10_zero_speed: { pitchDerived: r(D.e10p, 2), yawDerived: r(D.e10y, 2), idleDerived: r(D.idleShare, 4), pitchMin: r(D.e10p * 0.75, 2), pitchMax: r(D.e10p * 1.25, 2), yawMin: r(D.e10y * 0.75, 2), yawMax: r(D.e10y * 1.25, 2), idleMax: r(D.idleShare * 1.5, 3), unit: 'rad/s^2', source: `hanging still, full up elevator and full right rudder from rest: the slipstream's dp on the surfaces' immersed shares, each saturating on a flat plate (hi_alpha), derived ${D.e10p.toFixed(2)} in pitch and ${D.e10y.toFixed(2)} in yaw, the yaw over the same kick with the rudder centred (the right thrust and the swirl yaw it without one); 25 percent either way. A petrol engine idles rather than stopping: at its idle the wash's dp, and the authority, is (idle / hover rpm)^2 = ${D.idleShare.toFixed(4)} of the hover's, under 1.5 times that` },
     s11_harrier: { alphaDeg: 40, vDerived: r(D.e11.V, 2), dutyDerived: r(D.e11.duty, 3), vMin: r(D.e11.V * 0.8, 2), vMax: r(D.e11.V * 1.2, 2), dutyMin: r(D.e11.duty * 0.85, 3), dutyMax: r(D.e11.duty * 1.15, 3), maxBankDeg: 10, maxHeightDrift: 2.0, source: `level at a body angle of attack of 40 deg, the throttle holding height: the stalled wing's plate lift and the thrust's vertical share against the weight, derived ${D.e11.V.toFixed(2)} m/s at a stick of ${D.e11.duty.toFixed(3)} with the elevator at ${(D.e11.deOfThrow * 100).toFixed(0)} percent of its throw; the speed 20 percent and the throttle 15 percent either way, the elevator short of full` },
-    s12_knife_edge: { speed: 30.0, betaDerived: r(D.e12.betaDeg, 2), dutyDerived: r(D.e12.duty, 3), betaMin: r(D.e12.betaDeg * 0.75, 2), betaMax: r(D.e12.betaDeg * 1.25, 2), dutyMin: r(D.e12.duty * 0.85, 3), dutyMax: r(Math.min(1, D.e12.duty * 1.15), 3), maxHeightDrift: 3.0, source: `rolled right to 90 deg at 30 m/s, height held on the rudder, the right thrust 3 deg down from the axis and its yaw on the rudder too: derived ${D.e12.betaDeg.toFixed(1)} deg of sideslip at a stick of ${D.e12.duty.toFixed(3)} with the rudder at ${(D.e12.drOfThrow * 100).toFixed(0)} percent of its throw; the sideslip 25 percent and the throttle 15 percent either way, the rudder short of full` },
+    s12_knife_edge: { speed: 30.0, betaDerived: r(D.e12.betaDeg, 2), dutyDerived: r(D.e12.duty, 3), betaMin: r(D.e12.betaDeg * 0.75, 2), betaMax: r(D.e12.betaDeg * 1.25, 2), dutyMin: r(D.e12.duty * 0.85, 3), dutyMax: r(Math.min(1, D.e12.duty * 1.15), 3), maxHeightDrift: 3.0, source: `rolled right to 90 deg at 30 m/s, height held on the rudder, the right thrust 3 deg down from the axis and its yaw on the rudder too: derived ${D.e12.betaDeg.toFixed(1)} deg of sideslip at a stick of ${D.e12.duty.toFixed(3)} with the rudder at ${(D.e12.drOfThrow * 100).toFixed(0)} percent of its throw; the sideslip 25 percent and the throttle 15 percent either way, the rudder short of full. Re-derived 2026-10-12 with the fuselage's crossflow on its drawn rounded box section, not a round body's: NACA TN 3038 Table I, the 1:2 ellipse 1.6 and the 1:1 rounded square at r/b 0.333 1.0 over the same tunnel's circle 1.0 (scripts/lib/crossflow.js), was 25.53 deg at 0.440; the same widths about it.` },
     s13_rest: { pitchDerived: r(D.restPitch, 2), zDerived: r(D.cgHeight, 4), tailDerived: r(D.tailShare, 4), pitchMin: r(D.restPitch - 0.5, 2), pitchMax: r(D.restPitch + 0.5, 2), zMin: r(D.cgHeight - 0.005, 4), zMax: r(D.cgHeight + 0.005, 4), tailMin: r(D.tailShare - 0.035, 3), tailMax: r(D.tailShare + 0.035, 3), source: `the sheet's side view on its wheels, ${D.restPitch.toFixed(2)} deg nose up, the CG ${D.cgHeight.toFixed(4)} m up, ${(D.tailShare * 100).toFixed(1)} percent of the weight on the tailwheel; half a degree, 5 mm and 3.5 points either way` },
     s14_takeoff: { derived: r(D.e14.x, 2), distMin: r(D.e14.x * 0.6, 2), distMax: r(D.e14.x * 1.6, 2), source: `full throttle from standing, the engine spooling up from its idle on its map against the prop's torque curve, the tail up at 8 m/s and the nose to 8 deg at 15 m/s: liftoff at ${D.e14.V.toFixed(1)} m/s after ${D.e14.x.toFixed(2)} m (slick:derive); 40 percent short and 60 long, the Extra's, since the plant's roll has the gear's springs, the engine's spool and the pilot's hands in it and the derivation has none` },
     s16_cross_host: { source: "the Slick's recorded take off, hover, torque roll and flight, state trace hash, Node against headless Chrome" },

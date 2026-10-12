@@ -34,6 +34,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { fuselageRatio } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -424,8 +425,18 @@ const rotK = [
   plate(() => fusD, fusX[0], fusX[1]) + 0.5 * rho * CN * Sv * lv ** 3 + plate(() => b, -c / 2, c / 2) * 0.2,
 ];
 /* The side crossflow drag area, Allen and Perkins' 1.2 times their eta of
- * 0.7 on the fuselage's side, as the Extra's. */
-const sideCda = fusL * fusD * 0.8 * 1.2 * 0.7;
+ * 0.7 on the fuselage's side, the 1.2 taken over to the drawn rounded
+ * box's sections as the Extra's (scripts/lib/crossflow.js, NACA TN 3038).
+ * The sections: station aft of the spinner's tip, half width, top,
+ * bottom, squareness, m, the drawn model's FUSE (src/render/capcraft.js). */
+const FUSE = [
+  [0.045, 0.040, 0.040, -0.042, 2.0], [0.065, 0.060, 0.058, -0.068, 2.1], [0.110, 0.076, 0.070, -0.098, 2.4],
+  [0.180, 0.081, 0.074, -0.118, 2.8], [0.300, 0.080, 0.077, -0.124, 3.2], [0.450, 0.077, 0.077, -0.121, 3.6],
+  [0.600, 0.075, 0.072, -0.113, 3.8], [0.800, 0.065, 0.070, -0.096, 3.6], [1.000, 0.051, 0.064, -0.078, 3.2],
+  [1.200, 0.035, 0.056, -0.060, 2.8], [1.400, 0.018, 0.046, -0.043, 2.4], [1.530, 0.008, 0.040, -0.034, 2.2],
+];
+const sectionK = fuselageRatio(FUSE);
+const sideCda = fusL * fusD * 0.8 * 1.2 * sectionK * 0.7;
 
 /* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.74
  * (Selig, AIAA 2010-7938; docs/FLIGHTMODEL.md). */
@@ -648,7 +659,7 @@ const rows = [
   ['r_cell from the bench sag, prop J', `${f(rCell, 5)} ${f(propJ, 6)}`],
   ['bench rpm fraction at throttle 0.4 .. 1 (the plant\'s is the throttle)', benchRpmFrac.map(([t, n]) => `${t}:${f(n, 3)}`).join(' ')],
   ['slipstream', J(slip, 4)],
-  ['rot_k roll pitch yaw N m s2; side_cda m2', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}; ${f(sideCda, 4)}`],
+  ['rot_k roll pitch yaw N m s2; side_cda m2, its section over a round body\'s (TN 3038)', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}; ${f(sideCda, 4)}, ${f(sectionK, 4)}`],
   ['C1 level at 75 percent', f(level(0.75), 2)],
   ['C2 stall, CLmax / a_w', `${f(Vs, 2)} ${f(CLmax / aw, 5)}`],
   ['C3 L/D at 15 m/s', f(ld(15), 2)],

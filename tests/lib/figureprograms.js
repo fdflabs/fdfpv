@@ -214,10 +214,10 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 12.01 },
-  elevation: { wc: 0.8, gain: 1.093 },
-  heading: { wc: 2, gain: 5.367 },
-  trim: { rudder: 0.48, elevation: 0.246, speed: 28.5 },
+  bank: { wc: 2, gain: 11.989 },
+  elevation: { wc: 0.8, gain: 1.142 },
+  heading: { wc: 2, gain: 5.344 },
+  trim: { rudder: 0.46, elevation: 0.232, speed: 28.5 },
 };
 const G = 9.80665;
 const knife = (ms) => ({

@@ -275,7 +275,7 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 |---|---|---|---|
 | Knife-Edge Pass | flown | 9.5 / 9.5 / 10 | |
 | Rolling Circle | unproven | - / - / - | physics: the catalogue's is Aresti 2.4.2.1, one roll in the 360; at the judge's slowest roll, 1.2 rad/s, the turn asks 2.7 g toward the centre at 22 m/s, on the rudder where the wings are level, near three times the weight the Extra's knife edge holds there. The program's law flies four rolls round a circle (6.5 / 8 / 9.5), but that is 2.4.7.1, K 38, not in the catalogue |
-| Hammerhead | flown | 7 / 5.5 / 7 | the CAP's rudder has little air under 9 m/s: 0 to 6 across kick speeds |
+| Hammerhead | flown | 7 / 5.5 / 6 | the CAP's rudder has little air under 9 m/s: 0 to 6 across kick speeds |
 | Tailslide | flown | 9.5 / 9.5 / - | the Slick's pull out is named a parachute too (its lane's) |
 | Loop | flown | 7 / 7 / 6 (`figures:plant`) | |
 | Outside Loop | flown | 7 / 8 / 8 | radius spread (a constant push) |
@@ -283,21 +283,21 @@ Grades: Extra / CAP / Slick, `-` not named. The loop, aileron roll and
 | Split-S | flown | 3.5 / 5 / 2 | the pull tightens as it dives |
 | Cuban Eight | unproven | 1 / 4.5 / 0 | the 3/4 loop's radius spreads 61 % as the speed falls 26 to 11 m/s, faster than the round loop's integral follows |
 | Reverse Cuban Eight | unproven | 0 / 4 / 2 | the same, both loops |
-| Knife-Edge Loop | unproven | - / - / 2 | physics: with full top rudder from a knife edge the Extra's path rose 6 m in 2 s as the speed fell from 26 to 12 m/s, its side force about the weight and no more; a knife-edge loop needs V^2/R + g. The 3D lane's |
+| Knife-Edge Loop | unproven | - / - / - | physics and program, open: the side force is not short, the speed is. Held in a knife edge at 26 m/s and full throttle the Extra's full rudder trims at 45 deg of sideslip, where the side force is 65 N, 4.4 times the weight (36 N at 35 deg, 51 at 40); the crossflow on the fuselage is its drawn section's (NACA TN 3038, w36-3d-sideforce). The program holds full rudder and nothing else for 7 s: the top rudder's roll, 3.6 N m at the trim, rolls it 50 deg off the knife edge within a second (about 10 percent of aileron holds it), and at 45 deg of sideslip the side force's drag along the path, 32 N against 24 of thrust, takes the speed from 25 to 12 m/s in 1.2 s, after which it departs into a spin. Flown closed loop with no pilot delay (the bank held on the ailerons, the nose in the loop's plane on the elevator, 26 m/s, full throttle): at 0.85 of the rudder it goes over the top 26 m up at 15 m/s, 154 deg round, and then the bank is lost and the speed with it; at full rudder it is 6 m/s by 128 deg. A closed knife-edge loop was not flown (w36-3d-sideforce) |
 | Half Cuban | flown | 7.5 / 7 / 7.5 | |
-| Reverse Half Cuban | flown | 4 / 7 / 7 | on the Extra the line after the roll still curves into the loop (radius spread 51 %) |
+| Reverse Half Cuban | flown | 5 / 7 / 7 | on the Extra the line after the roll still curves into the loop (radius spread 51 %) |
 | Humpty Bump | flown | 8 / 7 / 7.5 | |
 | Half Roll | flown | 9 / 8 / 8 | |
 | Aileron Roll | flown | 7 / 7.5 / 7.5 (`figures:plant`) | |
 | Double Roll | flown | 5.5 / 8 / 8.5 | |
-| Slow Roll | flown | 8 / 8 / 8.5 | |
+| Slow Roll | flown | 8 / 8.5 / 8.5 | |
 | 2-Point Roll | flown | 5.5 / 7 / 7.5 | its point at 164 deg; lost and regained in round 1 (below) |
 | 4-Point Roll | flown | 7 / 4.5 / 5 (`figures:plant`) | the knife edge points still roll on under the top rudder (below) |
-| 8-Point Roll | unproven | 2 / 0 / 1 | points 3 to 21 deg short of their marks |
+| 8-Point Roll | unproven | 3 / 0 / 1 | points 3 to 21 deg short of their marks |
 | Barrel Roll | flown | 9 / 10 / 9.5 | |
 | Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
-| Waterfall | unproven | - | physics and the 3D lane's: from a vertical at 3 to 8 m/s at full throttle and full elevator the Extra pitches 6.3 rad/s at first, but as the nose passes down it gathers speed through 10 m/s and the rate falls to 2.5 rad/s in half a turn: the pitchover pieces measured 0.43 and 0.46 of a turn, and no entry speed (2 to 8 m/s), elevator sense or throttle cut swept named it |
+| Waterfall | unproven | - | program: at full throttle and full down elevator with no airspeed the Extra's pitching moment balances at 8.0 rad/s (8.2 with 3 to 10 m/s along the axis), 99 rad/s^2 from rest; the wind across the wing is what slows it, to 5.7 to 3.4 rad/s at 5 to 8 m/s from below and stopping it at 8 m/s from above, the stabiliser broadside and the elevator's wash share lost past 40 deg as TN 3307 and Ma 2022 measure it (w36-3d-sideforce). The program holds full throttle through the nose down half, which drives it to 10 m/s. No independent hover elevator measurement was compared (the 2025 tailsitter data stop at 20 deg) |
 
 ### Round 2 (2026-10-12, w36-tricks-r2)
 
