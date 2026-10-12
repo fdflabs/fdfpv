@@ -334,6 +334,7 @@ function main(argv) {
   const owned = folders.reduce((n, f) => n + f.folder.tables.length, 0);
   if (argv.includes('--from-c')) {
     const tables = roundTrip(cText);
+    owners(folders, tables);
     for (const f of folders) {
       writeFileSync(f.file, serialize({ id: f.id, tables: f.folder.tables.map((t) => tables.get(t.symbol).table) }));
     }
