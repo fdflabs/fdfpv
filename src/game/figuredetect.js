@@ -458,10 +458,16 @@ const TABLE = [
   ['loop', [arc(0.85, 1.2, (p) => p.liftU > 0 && abs(p.liftL) <= abs(p.liftU))], ([a]) => loopDeduction(a, true)],
   ['outside_loop', [arc(0.85, 1.2, (p) => p.liftU < 0 && abs(p.liftL) <= abs(p.liftU))], ([a]) => loopDeduction(a, true)],
   ['ke_loop', [arc(0.85, 1.2, (p) => abs(p.liftL) > abs(p.liftU))], ([a]) => loopDeduction(a, true)],
+  /* Out wings level: "Stop on heading and without any remaining bank
+   * angle or yaw" (BAeA judging, "Rolling Circles",
+   * https://www.aerobatics.org.uk/judging/topics/rolling-turns-1), the
+   * rolls a whole number, a point per 15 deg left over or short. */
   ['rolling_circle', [kind('roll', (p) => abs(p.roll) >= 0.85 && abs(p.heading) >= 0.85)],
     ([r]) => {
       const climb = r.frac(r.dzAbsSum);
-      return Math.floor(r.rateCv() / 0.15) + radDeduction((abs(r.heading) - 1) * TURN) + bandDeduction(Math.sqrt(1 - climb * climb));
+      const whole = Math.floor(abs(r.roll) + 0.5);
+      return Math.floor(r.rateCv() / 0.15) + radDeduction((abs(r.heading) - 1) * TURN) + bandDeduction(Math.sqrt(1 - climb * climb))
+        + radDeduction((abs(r.roll) - whole) * TURN);
     }],
   /* A barrel roll's path is a helix: its direction sweeps a cone, so it
    * turns a third of a turn or more where an aileron roll's barely moves. */

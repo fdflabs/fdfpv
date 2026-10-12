@@ -235,6 +235,15 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a humpty with its lines 20 deg off vertical is graded lower', got && clean && got.grade <= clean.grade - 1,
     `${clean ? clean.grade : '-'} vs ${got ? got.grade : 'not named'}`);
 }
+/* A rolling circle out with bank left on (BAeA judging, "Rolling
+ * Circles": "Stop on heading and without any remaining bank angle"):
+ * one roll and a quarter over the circle loses points on one roll. */
+{
+  const over = detect([lead, { p: 2, worldRate: [0, 0, 1.6], ms: 3927, speed: V }, tail]).find((g) => g.figure === 'rolling_circle');
+  const clean = run('rolling_circle').find((g) => g.figure === 'rolling_circle');
+  check('a rolling circle that rolls a quarter past its last roll is graded under one that stops wings level', over && clean && over.grade <= clean.grade - 1,
+    `${clean ? clean.grade : '-'} vs ${over ? over.grade : 'not named'}`);
+}
 /* A stall turn's lines as a judge watches them (BAeA judging, "Stall
  * Turns"): a rudder correction on the up line, the nose yawed 18 deg and
  * back below 8 m/s, is yaw on the line, marked off the line, not a turn
