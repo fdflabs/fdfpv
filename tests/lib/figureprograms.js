@@ -589,6 +589,31 @@ const waterfall = (turns) => ({
   },
 });
 
+/*
+ * The speed a vertical figure is entered at, set on the level pass as a
+ * person sets it: full throttle under it, closed over it, the wings and
+ * the nose held level, until the speed they see crosses it; or ENTRY_MS,
+ * where an aircraft that cannot reach it gives up and flies the figure
+ * from where it is. The programs' level pass holds 22 m/s (SEATED), and
+ * on the gates' 4.1 V seat and the measured wash speed (w36-physics) the
+ * Extra's tailslide and the Slick's hammerhead are lost from it. ENTRY_V
+ * is FITTED, swept 2026-10-12 over 22 to 34 m/s on the Extra, the CAP
+ * and the Slick (tailslide, hammerhead): the tailslide is named on the
+ * Extra and the CAP at every entry 24 to 33 (Extra 10, CAP 9.5 to 10),
+ * the hammerhead on all three from 27 to 33 but the Slick's at 0 at 25,
+ * 26 and 34 and 3.5 at 29; 30, the middle of 28 to 32, names both on
+ * every aircraft (tailslide 10 / 10 / -, hammerhead 7 / 6 / 6). The
+ * Extra does not reach 34 (its top is 34.7 m/s).
+ */
+export const ENTRY_V = 30;
+const ENTRY_MS = 15000;
+const entry = (V = ENTRY_V) => ({
+  name: `entry ${V}`,
+  step: (d, m) => {
+    m.below = m.below ?? d.v < V;
+    return [levelSticks(d, m.below ? 1 : 0), (m.below ? d.v >= V : d.v <= V) || m.t >= ENTRY_MS];
+  },
+});
 const L = (ms = 3000) => level(ms);
 const D45 = [Math.SQRT1_2, 0, -Math.SQRT1_2];
 const U45 = [Math.SQRT1_2, 0, Math.SQRT1_2];
@@ -642,8 +667,11 @@ export const PROGRAMS = {
    * has too little air to turn it round. FITTED, swept again on the gates'
    * 4.1 V seat (2026-10-12): 9, 10 and 11 name it on all three (Extra,
    * CAP, Slick 6 / 4.5 / 6 at 9); the CAP takes 0 at 7 and 8, is not
-   * named at 6 and crashes at 5. */
-  hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < 9), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+   * named at 6 and crashes at 5. Swept again from ENTRY_V on the combined
+   * plant (w36-physics, 2026-10-12): 8, 9 and 10 name it on all three
+   * (7 / 6 / 6 at 9); 7 gives the CAP 0, 11 the Extra 0, and under 7 the
+   * CAP is not named. */
+  hammerhead: [L(), entry(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < 9), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   /* On the gates' 4.1 V seat (w36-seat-voltage, 2026-10-12), from the
    * level pass at the throttle that holds 22 m/s (SEATED), the Extra slides
    * back, its nose pivots on the yaw instead of falling through, and it
@@ -651,8 +679,15 @@ export const PROGRAMS = {
    * 0.543 to 0.583; from 0.65 and over (25 m/s and more) it names it 9.5.
    * The CAP names it 8.5 at its 0.507 and in 4 of 7 entries 0.056 under
    * the Extra's, and figures-plant-check.js's tailslide, its slide held to
-   * the stop on the climb's trims, names it 9 on the Extra at 0.563. */
-  tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+   * the stop on the climb's trims, names it 9 on the Extra at 0.563.
+   * On the combined plant (w36-physics) from that pass the slide's let go
+   * was swept, 2026-10-12: the line held, the line held with the rudder
+   * centred, or the sticks let go at the throttle cut, each let go at a
+   * seen speed along the nose of -1, 0, 1, 2 and 3 m/s; none of the 15
+   * names it on the Extra (a parachute, 9 to 10: the nose yaws round,
+   * 1.5 to 3 rad/s, as it slides back, with the rudder centred too). From
+   * ENTRY_V it is named with the let go unchanged (Extra 10, CAP 10). */
+  tailslide: [L(), entry(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), knife(3000), roll(-0.5, 0.5 * PI), L()],
   ke_loop: [L(), roll(0.5, 0.5 * PI, 1), knife(1000), knifeLoop(), roll(-0.5, 0.5 * PI), L()],
   /* One roll, the catalogue's 2.4.2.1: a turn as fast as the judge's
@@ -672,7 +707,7 @@ export const PROGRAMS = {
    * sinking at a third of the throttle), the Extra flew micro loops at 8
    * to 13 m/s and 2 to 4 rad/s, no pivot; from the vertical upline it
    * pivoted 0.63 of a turn and spun. Two turns: the Extreme elevator's. */
-  waterfall: [L(), pull(0.55, 75 * PI / 180), line(U75, 8000, 0.4, (d) => d.v < 4), waterfall(2), L()],
+  waterfall: [L(), entry(), pull(0.55, 75 * PI / 180), line(U75, 8000, 0.4, (d) => d.v < 4), waterfall(2), L()],
   wall: [slow(13), pull(1, 0.5 * PI, 1), hang(2500), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
 };
 
