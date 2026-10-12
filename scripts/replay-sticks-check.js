@@ -23,7 +23,10 @@
  *     crashcam:selftest holds that), imported and played: it plays, its
  *     gimbals are gone, the note says why, and the Sticks CSV button is
  *     off. A picture of it.
- *  6. No page errors.
+ *  6. The export opened in the hover viewer (/dev/hover.html): its stick
+ *     numbers read, its timing rows dashes (a clip has no frame clock).
+ *     A picture of it.
+ *  7. No page errors.
  *
  * Pictures and the CSV go to OUT_DIR (default: a folder in the system's
  * temp directory).
@@ -204,6 +207,25 @@ async function main() {
       }
       await shot(page, `replay-sticks-${i + 1}`);
     }
+    /* A small window: the dock wraps taller and the head comes close
+     * (style.js); the gimbals must overlap nothing else on screen. */
+    const overlaps = () => page.evaluate(`(() => {
+      const s = document.querySelector('.cc-sticks').getBoundingClientRect();
+      const hit = (q) => [...document.querySelectorAll(q)].some((e) => {
+        const b = e.getBoundingClientRect();
+        return b.width > 0 && s.left < b.right && b.left < s.right && s.top < b.bottom && b.top < s.bottom;
+      });
+      return { box: [s.left, s.top, s.right, s.bottom].map(Math.round), hits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-osd', '.cc-dock'].filter(hit) };
+    })()`);
+    for (const [w, h] of [[1280, 720], [800, 600]]) {
+      await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false }, page.sessionId);
+      await page.evaluate("window.dispatchEvent(new Event('resize')); true");
+      await frames(page, 3);
+      const o = await overlaps();
+      check(`at ${w} by ${h} the gimbals are on screen and overlap nothing`, o.hits.length === 0 && o.box[1] >= 0 && o.box[2] <= w, `box ${o.box.join(',')}${o.hits.length ? `, over ${o.hits.join(' ')}` : ''}`);
+      await shot(page, `replay-sticks-${w}`);
+    }
+    await page.cdp.send('Emulation.clearDeviceMetricsOverride', {}, page.sessionId);
 
     console.log('3. the Sticks CSV button');
     const clicked = await page.click('.cc-btn:not([disabled])[title*="control recording"]');
@@ -261,7 +283,22 @@ async function main() {
     await shot(page, 'replay-old-clip');
     await page.tap('Escape');
 
-    console.log('6. errors');
+    console.log('6. the export in the hover viewer');
+    await page.evaluate(`location.href = ${JSON.stringify(`${page.origin}/dev/hover.html`)}; true`);
+    await page.until('typeof window.__hoverShow === \'function\'', 60000);
+    await page.evaluate(`window.__hoverShow(${JSON.stringify(exp.csv)}); true`);
+    const hs = await page.evaluate(`(() => {
+      const s = window.__hoverStats;
+      const timing = [...document.querySelectorAll('#timing td')].map((td) => td.textContent);
+      return { seconds: s.seconds, roll: s.sticks.roll.peak, yaw: s.sticks.yaw.peak, timing };
+    })()`);
+    check('the hover viewer reads it: its seconds, the roll and yaw peaks, dashes for the frame timing',
+      Math.abs(hs.seconds - clip.time[clip.n - 1]) < 0.01 && Math.abs(hs.roll - 0.9) < 1e-4 && Math.abs(hs.yaw - 0.9) < 1e-4
+      && hs.timing.filter((x) => x === '-').length === 8,
+    `${hs.seconds.toFixed(2)} s, roll peak ${hs.roll.toFixed(4)}, yaw peak ${hs.yaw.toFixed(4)}, timing ${hs.timing.join(' ')}`);
+    await shot(page, 'hover-viewer');
+
+    console.log('7. errors');
     const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e));
     check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   } finally {

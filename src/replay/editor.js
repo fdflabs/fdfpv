@@ -277,8 +277,7 @@ export function createEditor(api) {
   const stickMode = el('div', 'cc-stick-mode');
   const stickNone = el('div', 'cc-stick-none', str('replay.sticks_none'));
   sticks.append(gimbals, stickMode, stickNone);
-  osd.append(sticks);
-  root.append(osd);
+  root.append(osd, sticks);
 
   /* With the controls hidden, one quiet line says how to have them back. */
   const bareHint = el('div', 'cc-bare', str('replay.show_controls'));
@@ -523,6 +522,7 @@ export function createEditor(api) {
   function placeOsd() {
     if (!root.hidden) {
       osd.style.bottom = `${dock.offsetHeight + 34}px`;
+      sticks.style.bottom = `${dock.offsetHeight + 34}px`;
     }
   }
   window.addEventListener('resize', () => {
@@ -842,13 +842,14 @@ export function createEditor(api) {
       bTake.title = v.canTakeOver ? '' : str('replay.too_far_back');
     });
     set('bare', v.bare, (bare) => {
-      for (const part of [top, dock, osd]) {
+      for (const part of [top, dock, osd, sticks]) {
         part.classList.toggle('cc-gone', bare);
       }
       bareHint.hidden = !bare;
     });
     set('osd', v.osd, (on) => {
       osd.hidden = !on;
+      sticks.hidden = !on;
       placeOsd();
       bOsd.classList.toggle('on', on);
     });

@@ -249,14 +249,20 @@ export const CRASHCAM_CSS = `
 .cc-osd .v { font-size: 20px; font-weight: 600; }
 .cc-thr { width: 96px; height: 5px; border-radius: 3px; background: rgba(243, 234, 212, 0.2); overflow: hidden; align-self: center; }
 .cc-thr i { display: block; height: 100%; background: var(--amber); }
-/* The pilot's sticks under the readout: the flight overlay's gimbals
- * (index.html .osd-gimbal), a little smaller, across both columns. */
-.cc-sticks { grid-column: 1 / -1; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+/* The pilot's sticks, bottom right over the dock as the readout is bottom
+ * left: the flight overlay's gimbals (index.html .osd-gimbal), a little
+ * smaller, and smaller again on a short window, where the dock is tall and
+ * the head is close. */
+.cc-sticks {
+  position: absolute; right: 26px; bottom: 210px; pointer-events: none;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+.cc-sticks[hidden], .cc-gimbals[hidden], .cc-stick-mode[hidden], .cc-stick-none[hidden] { display: none; }
 .cc-gimbals { display: flex; gap: 12px; }
-.cc-gimbals[hidden], .cc-stick-mode[hidden], .cc-stick-none[hidden] { display: none; }
 .cc-sticks .osd-gimbal-plate { width: 72px; height: 72px; background: rgba(12, 18, 14, 0.45); }
 .cc-stick-mode { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cream); }
-.cc-stick-none { max-width: 220px; font-size: 12px; line-height: 1.35; color: var(--slate); }
+.cc-stick-none { max-width: 220px; text-align: right; font-size: 12px; line-height: 1.35; color: var(--slate); }
 .cc-toast {
   position: absolute; left: 50%; top: 92px; transform: translate(-50%, 0);
   font: 700 14px/1 var(--ui-font); letter-spacing: 0.04em; padding: 11px 18px; border-radius: 999px;
@@ -370,5 +376,9 @@ export const CRASHCAM_CSS = `
 @keyframes cc-pulse { 50% { opacity: 0.35; } }
 @media (max-width: 900px) {
   .cc-osd { bottom: 290px; }
+}
+@media (max-height: 640px) {
+  .cc-sticks .osd-gimbal-plate { width: 52px; height: 52px; }
+  .cc-sticks .osd-gimbal-cap { display: none; }
 }
 `;

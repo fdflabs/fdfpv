@@ -42,8 +42,8 @@ what his sticks showed looked strange, and a clip then kept the throttle and not
 - A saved replay with them is file version 16 (src/replay/file.js). A clip without them is written as
   before, byte for byte, and versions 1 to 15 still load: their replay has no gimbals and says the clip
   was saved before replays kept the sticks.
-- The replay's OSD (H) draws the same two gimbals as the flight overlay, in the viewer's stick mode, the
-  nubs moving with the replay, and names the mode and the flaps under them. A movie export does not carry
+- With the replay's OSD on (H), the same two gimbals as the flight overlay sit bottom right over the dock,
+  in the viewer's stick mode, the nubs moving with the replay, the mode and the flaps named under them. A movie export does not carry
   them; it never carried the OSD.
 - **Sticks CSV** in the replay's Keep row downloads the movie's range (In to Out, what Save keeps) in this
   file's control recording format, one row a clip row: t_s is the clip's clock (the plant's time where it
@@ -131,4 +131,5 @@ Upload anything. Record when the switch is off. Replace the flight log.
   read back by parseCsv and loaded by Compare sticks.
 - `npm run replay:sticks [OUT_DIR]` (browser): a Timber flown through four stick settings with a flap
   notch, the replay's nubs where each setting puts them, the Sticks CSV button pressed with a pointer,
-  saved and replayed as version 16, and an old clip played with its note. Leaves pictures in OUT_DIR.
+  saved and replayed as version 16, an old clip played with its note, the gimbals clear of the rest of the
+  screen at 1280 by 720 and 800 by 600, and the export read by /dev/hover.html. Leaves pictures in OUT_DIR.
