@@ -44,24 +44,24 @@ export const SURFACE_STATS = {
     ],
     "e": [
       {
-        "full": 282,
+        "full": 281,
         "fifth": 54.1,
-        "kept": 0.897
+        "kept": 0.909
       },
       {
-        "full": 304,
+        "full": 303,
         "fifth": 60.5,
-        "kept": 0.808
+        "kept": 0.833
       },
       {
-        "full": 321,
+        "full": 320,
         "fifth": 66.8,
-        "kept": 0.722
+        "kept": 0.773
       },
       {
-        "full": 335,
+        "full": 334,
         "fifth": 73.2,
-        "kept": 0.632
+        "kept": 0.717
       }
     ],
     "r": [
@@ -114,22 +114,22 @@ export const SURFACE_STATS = {
       {
         "full": 140,
         "fifth": 26.3,
-        "kept": 1.036
+        "kept": 1.037
       },
       {
         "full": 172,
         "fifth": 33.5,
-        "kept": 0.995
+        "kept": 0.997
       },
       {
         "full": 211,
         "fifth": 45.2,
-        "kept": 0.88
+        "kept": 0.887
       },
       {
         "full": 253,
         "fifth": 57.2,
-        "kept": 0.697
+        "kept": 0.708
       }
     ],
     "r": [

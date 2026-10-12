@@ -24,6 +24,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { washKw } from './lib/washcontrol.js';
 import { electricN, wingProp } from './lib/propcurve.js';
 import { shares, wash as washOf } from './lib/wash.js';
 
@@ -455,11 +456,13 @@ function harrier(alphaDeg) {
   const alphaT = sa - deda * CL / CLa - slip.slip_a0 * (1 - deda);
   const xa = V * Math.sin(a - slip.slip_a0);
   const vw = u + 2 * w.vi;
+  /* scripts/lib/washcontrol.js, as the plant: the side the elevator is on against the crossflow. */
   const cm = (de) => {
+    const kw = washKw(a + alphaZL, w.dp, V, rho, Cmde * de * xa > 0 ? 'against' : 'with'); /* on the body's angle, as the plant */
     const xt = at * alphaT - Cmde * de / vhTH;
     const free = Cm0 + (Cma - slip.slip_cm_a) * sa + slip.slip_cm_a * slip.slip_a0 - vhTH * xt * plateRatioH(xt) + past * cmPost;
-    const rh = plateRatioH(at * xa / vw - Cmde * de / vhTH);
-    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.fh * rh * Cmde * de) / qb;
+    const rh = plateRatioH(at * xa / vw - kw * Cmde * de / vhTH);
+    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.fh * rh * kw * Cmde * de) / qb;
   };
   let dLo = -throwE, dHi = throwE;
   for (let i = 0; i < 60; i += 1) { const mid = (dLo + dHi) / 2; if (cm(mid) < 0) dLo = mid; else dHi = mid; }
