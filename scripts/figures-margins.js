@@ -24,8 +24,8 @@
  * (responseAt), level and trimmed at a third, two thirds and full
  * throttle: the step reads the gain about a quarter low at the loop's 180
  * deg frequency, so LINE_GM is the largest that keeps 6 dB on all three.
- * The fixed kr 0.2 the lines flew before kept 3.3 and 1.3 dB at a third
- * and two thirds and was unstable at full throttle.
+ * The fixed kr 0.2 the lines flew before keeps 3.2 and 0 dB at a third
+ * and two thirds and is unstable at full throttle.
  *
  * The knife edge (figureprograms.js KNIFE): three loops of personLoop
  * (wingpilot.js) at PERSON's own pace, a look every 100 ms, the bank on
@@ -217,7 +217,7 @@ async function trimSpeed(thr) {
  * 22 m/s and full throttle, held there by an attitude hold with no delay
  * while a stick is swept (responseAt, crossoverFor): the bank on the
  * ailerons, the nose's elevation on the rudder, the heading on the
- * elevator, the climb rate setting the elevation. It settles at 29 m/s;
+ * elevator, the climb rate setting the elevation. It settles at 32.9 m/s;
  * the trims are the rudder and the elevation there after 20 s.
  */
 const KNIFE_V = 22;

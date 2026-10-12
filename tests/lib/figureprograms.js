@@ -135,19 +135,22 @@ const LINE_KI = 1;
 /* The elevator's share of the line hold kept at a measured gain margin
  * (scripts/figures-margins.js): the pitch rate a unit of elevator buys
  * grows with the slipstream and the airspeed, K = a + b throttle + c V^2
- * rad/s per stick on the Extra (fitted to its measured steps,
- * 2026-10-12), and the rate gain is LINE_GM / K. LINE_GM is the largest
- * that keeps the 6 dB of the bandwidth criterion on the elevator's
- * measured frequency response, level at a third, two thirds and full
- * throttle (6.1, 7.3 and 8.1 dB): the step reads the gain a quarter low
+ * rad/s per stick on the Extra (fitted to its 84 measured steps, the
+ * plant at most 25 % over the fit; re-fitted 2026-10-12 on the gates'
+ * 4.1 V seat, w36-seat-voltage, from 1.637 + 1.563 thr + 0.00281 V^2),
+ * and the rate gain is LINE_GM / K. LINE_GM is the largest, to a
+ * hundredth, that keeps the 6 dB of the bandwidth criterion on the
+ * elevator's measured frequency response, level at a third, two thirds
+ * and full throttle (6.1, 6.5 and 7.6 dB; 0.41 keeps 5.8 at a third; it
+ * was 0.36 on the unseated pack): the step reads the gain a quarter low
  * at the loop's 180 deg frequency, 11 to 12.5 rad/s. LINE_GAINS' fixed
- * 0.2 kept 3.3 and 1.3 dB at a third and two thirds, and at full
- * throttle none (-1.8 dB): the humpty's up line went stop to stop on the
+ * 0.2 keeps 3.2 and 0 dB at a third and two thirds, and at full throttle
+ * none (-2.7 dB): the humpty's up line went stop to stop on the
  * elevator and snapped the wing. The rudder keeps LINE_GAINS: its
  * step response turns over with the airspeed (the fin weathervanes the
  * yaw back within the 0.25 s), so it has no gain to schedule on. */
-export const LINE_PITCH_K = { a: 1.603, b: 1.471, c: 0.00292 };
-export const LINE_GM = 0.36;
+export const LINE_PITCH_K = { a: 1.738, b: 1.89, c: 0.0026 };
+export const LINE_GM = 0.40;
 export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
 const holdLine = (d, m, target, thr) => {
   const [r, , y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
@@ -216,10 +219,10 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 11.997 },
-  elevation: { wc: 0.8, gain: 1.132 },
-  heading: { wc: 2, gain: 5.335 },
-  trim: { rudder: 0.46, elevation: 0.232, speed: 28.5 },
+  bank: { wc: 2, gain: 13.725 },
+  elevation: { wc: 0.8, gain: 1.085 },
+  heading: { wc: 2, gain: 6.049 },
+  trim: { rudder: 0.39, elevation: 0.187, speed: 32.9 },
 };
 const G = 9.80665;
 const knife = (ms) => ({
@@ -268,7 +271,7 @@ const knife = (ms) => ({
  * the rudder fed in as a person does, not stepped. Its loop is
  * personLoop's on the rudder's measured response in the level knife
  * edge, read as the path's angle (scripts/figures-margins.js: crossoverFor
- * puts it at 1.6 rad/s on a plant gain of 1.013), flown at half that
+ * puts it at 1.6 rad/s on a plant gain of 0.978), flown at half that
  * crossover: the CAP's side force per rudder near the stop is about
  * twice its slope at the knife edge's trim (0.4, 1.2 and 2.8 g at half,
  * three quarters and full rudder, launched at 25 m/s at full throttle,
@@ -293,12 +296,12 @@ const knife = (ms) => ({
  * not scheduled on the speed (20 to 38 m/s round the loop): scaled by
  * the entry speed over V it lost the CAP and the Slick, by its square
  * it spun the CAP off at 4 m/s; the knife edge's loops keep 9 dB, past
- * the 2.5 dB a third more speed than their 28.5 m/s adds. With the
+ * the 1.3 dB that 38 m/s over their 32.9 adds. With the
  * throttle cut over the top (to 0.2 or 0.5, from 0.9 or 1.1 of a half
  * turn) the Extra did not finish the loop and reached the ground in all
  * four. It lets go 0.3 s of the path's rate early.
  */
-export const KNIFE_LOOP = { path: { wc: 0.8, gain: 1.005 }, rate: 0.5, rateMin: 0.4, rampS: 2, ff: 0.55 };
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.978 }, rate: 0.5, rateMin: 0.4, rampS: 2, ff: 0.55 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const knifeLoop = () => ({
   name: 'knife loop',
@@ -639,9 +642,9 @@ function seatTiers(sim, airframe, tiers) {
  * the sport elevator with the Extreme, 0.7 to 0.8 of a turn and a spin
  * or snap; the Extreme elevator with the stock aileron,
  * 0.77 and a half roll, the torque winning; the Extreme elevator with the
- * sport, 3D or Extreme aileron names it (6, 5 and 6). The CAP has no
- * tiers in the hangar (configs/surfaces-tiers.js), so it flies it stock;
- * the Slick has them (w36-surface-tiers, 4cf3179d1). */
+ * sport, 3D or Extreme aileron names it (6, 5 and 6). The CAP and the
+ * Slick have no tiers in the hangar (configs/surfaces-tiers.js), so they
+ * fly it stock. */
 export const PROGRAM_TIERS = { waterfall: { a: 'extreme', e: 'extreme' } };
 
 /* airframe: the plant's id, the Extra's by default; the CAP and the Slick
