@@ -85,12 +85,13 @@ const round = (entry, rad, thr) => ({
     return [[0, quant(stick), 0, thr], m.turned > rad - Math.abs(d.q) * 0.25];
   },
 });
-/* Ailerons held until the wings have turned `rad`. */
-const roll = (stick, rad, thr = 0.75, pitch = 0, push = true) => ({
+/* Ailerons held until the wings have turned `rad`, let go `lead` s of
+ * the roll rate early. */
+const roll = (stick, rad, thr = 0.75, pitch = 0, push = true, lead = 0.35) => ({
   name: `roll ${stick} ${(rad / PI).toFixed(2)}pi`,
   step: (d, m) => {
     m.turned = (m.turned ?? 0) + Math.abs(d.p) * H;
-    return [[stick, pitch + (push && d.uz < -0.3 ? -0.12 : 0), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * 0.35];
+    return [[stick, pitch + (push && d.uz < -0.3 ? -0.12 : 0), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * lead];
   },
 });
 /* A slow roll: "The rate of roll must be constant" (British Aerobatic
@@ -285,6 +286,7 @@ const L = (ms = 3000) => level(ms);
 const D45 = [Math.SQRT1_2, 0, -Math.SQRT1_2];
 const U45 = [Math.SQRT1_2, 0, Math.SQRT1_2];
 const B45 = [-Math.SQRT1_2, 0, -Math.SQRT1_2];
+const B_U45 = [-Math.SQRT1_2, 0, Math.SQRT1_2];
 
 /* The programs. The aircraft starts level at 22 m/s heading +x, 150 m up,
  * over no ground: the plant raises none unless the host does, so fly()
@@ -305,12 +307,23 @@ export const PROGRAMS = {
   outside_loop: [L(), pull(-0.55, 2 * PI), L()],
   immelmann: [L(), pull(0.55, PI), roll(0.5, PI), L()],
   split_s: [L(), roll(0.5, PI), pull(0.55, PI, 0.5), L()],
-  half_cuban: [L(), pull(0.55, 1.25 * PI), line(B45, 800, 0.6), roll(0.5, PI, 0.6), line(B45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
-  cuban_8: [L(), pull(0.55, 1.25 * PI), line(B45, 800, 0.6), roll(0.5, PI, 0.6), line(B45, 800, 0.6),
-    pull(0.55, 1.5 * PI), line(D45, 800, 0.6), roll(0.5, PI, 0.6), line(D45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
-  reverse_half_cuban: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI), line([-Math.SQRT1_2, 0, Math.SQRT1_2], 600), pull(0.55, 1.25 * PI, 0.6), L()],
-  reverse_cuban_8: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI), line([-Math.SQRT1_2, 0, Math.SQRT1_2], 600), pull(0.55, 1.5 * PI, 0.6),
-    line([-Math.SQRT1_2, 0, Math.SQRT1_2], 800), roll(0.5, PI), line(U45, 600), pull(0.55, 1.25 * PI, 0.6), L()],
+  /* The Cubans' 5/8 and 3/4 loops on the round loop's law from the
+   * Extra's 0.3 (a fixed 0.55 at full throttle flew the 5/8 past its 45,
+   * 0.85 of a turn swept, and its radius spread 69 %), and their half
+   * rolls on the 45s let go at 0.25 s of the rate, the 0.23 s the roll
+   * measured carrying (POINT_LEAD) on the beat: at 0.6 throttle down the
+   * 45 the Extra rolls 5.6 rad/s and roll()'s 0.35 stopped it 25 deg
+   * short. FITTED to the Cubans: swept 0.2 to 0.35, 0.25 named the half
+   * Cuban highest on all three; the level rolls keep 0.35, which 0.25
+   * moves (the Extra's half roll 9 to 7). The reverse Cubans' lines
+   * after each roll hold the 45 they rolled on; they held the other 45,
+   * 90 deg round, and the rudder fought the nose there. */
+  half_cuban: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
+  cuban_8: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6),
+    round(0.3, 1.5 * PI, 0.6), line(D45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(D45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
+  reverse_half_cuban: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI, 0.75, 0, true, 0.25), line(U45, 600), round(0.3, 1.25 * PI, 0.6), L()],
+  reverse_cuban_8: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI, 0.75, 0, true, 0.25), line(U45, 600), round(0.3, 1.5 * PI, 0.6),
+    line(B_U45, 800), roll(0.5, PI, 0.75, 0, true, 0.25), line(B_U45, 600), round(0.3, 1.25 * PI, 0.6), L()],
   /* The top on the round loop's law from the Extra's 0.3, the stick
    * figures-plant-check.js's loop holds short of the stall: a full stick
    * stalled the wing and flicked it (snap pieces on the plant). */

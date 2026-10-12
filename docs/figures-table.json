@@ -305,11 +305,11 @@
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "pull 0.55 1.25pi",
+          "round 0.3 1.25pi",
           "line -0.71,0.00,-0.71",
           "roll 0.5 1.00pi",
           "line -0.71,0.00,-0.71",
-          "pull 0.55 1.50pi",
+          "round 0.3 1.50pi",
           "line 0.71,0.00,-0.71",
           "roll 0.5 1.00pi",
           "line 0.71,0.00,-0.71",
@@ -318,17 +318,16 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 1,
         "flew": [
-          "half_cuban 3",
-          "half_roll 7"
+          "cuban_8 1"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 91.9,
+        "lowestM": 105.6,
         "others": {
-          "cap": null,
+          "cap": 4.5,
           "slick": 0
         }
       },
@@ -349,12 +348,12 @@
           "pull 0.55 0.25pi",
           "line 0.71,0.00,0.71",
           "roll 0.5 1.00pi",
-          "line -0.71,0.00,0.71",
-          "pull 0.55 1.50pi",
+          "line 0.71,0.00,0.71",
+          "round 0.3 1.50pi",
           "line -0.71,0.00,0.71",
           "roll 0.5 1.00pi",
-          "line 0.71,0.00,0.71",
-          "pull 0.55 1.25pi",
+          "line -0.71,0.00,0.71",
+          "round 0.3 1.25pi",
           "level 3000"
         ]
       },
@@ -368,8 +367,8 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 0,
-          "slick": 0
+          "cap": 4,
+          "slick": 2
         }
       },
       "margin": [
@@ -422,12 +421,12 @@
       "family": "combinations",
       "k": 14,
       "source": "Aresti 8.5.6.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "pull 0.55 1.25pi",
+          "round 0.3 1.25pi",
           "line -0.71,0.00,-0.71",
           "roll 0.5 1.00pi",
           "line -0.71,0.00,-0.71",
@@ -437,16 +436,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 3,
+        "grade": 7.5,
         "flew": [
-          "half_cuban 3"
+          "half_cuban 7.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 121.6,
+        "lowestM": 129.5,
         "others": {
-          "cap": 4.5,
-          "slick": 5
+          "cap": 7,
+          "slick": 7.5
         }
       },
       "margin": [
@@ -458,7 +457,7 @@
       "family": "combinations",
       "k": 14,
       "source": "Aresti 8.5.2.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -466,23 +465,23 @@
           "pull 0.55 0.25pi",
           "line 0.71,0.00,0.71",
           "roll 0.5 1.00pi",
-          "line -0.71,0.00,0.71",
-          "pull 0.55 1.25pi",
+          "line 0.71,0.00,0.71",
+          "round 0.3 1.25pi",
           "level 3000"
         ]
       },
       "measured": {
         "named": true,
-        "grade": 2.5,
+        "grade": 4,
         "flew": [
-          "reverse_half_cuban 2.5"
+          "reverse_half_cuban 4"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 3,
-          "slick": 2
+          "cap": 7,
+          "slick": 7
         }
       },
       "margin": [
