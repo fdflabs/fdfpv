@@ -74,9 +74,10 @@ const json = (o) => JSON.stringify(o);
     cub1400: { a: '3d', e: 'warp', r: 'stock' },
     extra3d1308: { r: 'extreme' },
     timber1500: { a: 'sport' },
+    kadet1981: { a: 'sport' },
     nonsense: { a: 'sport' },
   });
-  check(json(got) === json({ cub1400: { a: '3d', e: 'stock', r: 'stock' } }), 'S1 settings.surfaces normalised', json(got));
+  check(json(got) === json({ cub1400: { a: '3d', e: 'stock', r: 'stock' }, timber1500: { a: 'sport', e: 'stock', r: 'stock' } }), 'S1 settings.surfaces normalised', json(got));
   check(json(normaliseSurfaces(['x'])) === '{}' && json(normaliseSurfaces(null)) === '{}', 'S1 not a map is empty');
 }
 
@@ -112,7 +113,7 @@ const json = (o) => JSON.stringify(o);
 {
   const fit = normaliseFit('cub1400', { surfaces: { a: 'sport', e: 'nope' } });
   check(json(fit.surfaces) === json({ a: 'sport', e: 'stock', r: 'stock' }), 'S4 a build normalises its tiers', json(fit.surfaces));
-  check(normaliseFit('cub1400', {}).surfaces === null && normaliseFit('timber1500', { surfaces: { a: 'sport' } }).surfaces === null,
+  check(normaliseFit('cub1400', {}).surfaces === null && normaliseFit('kadet1981', { surfaces: { a: 'sport' } }).surfaces === null,
     'S4 stock and an aircraft without tiers carry none');
   const s = { livery: {}, power: {}, parts: {}, tuning: {}, combat: {}, surfaces: {} };
   putFit(s, 'cub1400', fit);

@@ -5,7 +5,7 @@ aileron, elevator and rudder, a tier from Stock through Sport and 3D to
 Extreme. Each tier draws the surface bigger, lets it travel further, and
 flies as a real aircraft with those surfaces does. This file is every
 number behind them, with its formula and source. Slice 1 is the plant and
-the data for the Extra 300 3D and the Cub (the Slick 580 since); the
+the data for the Extra 300 3D and the Cub (the Slick 580, the Night Timber X and the Turbo Timber since); the
 hangar's tab, the account sync and the room lineup follow (`~/Desktop/fdfpv-loop/CONTROL-SURFACES-PLAN.md`).
 
 ## What a tier is
@@ -182,6 +182,156 @@ a fifth of a stick deg/s / speed kept): roll 672 / 60 / 0.964 stock to
 211 / 22 / 0.828 to 235 / 25 / 0.702. The pitch rate barely moves at
 cruise; a fifth of a stick and the speed kept do.
 
+### Night Timber X (sim 30)
+
+| surface | tier | cf | throw deg | k | power | cd | servos | added |
+|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.383 | 28.92 | 1.000 | 1.000 | 0 | 2 A332, flaperons 2 A332 | 0 |
+| | sport | 0.399 | 32.61 | 0.963 | 1.085 | 0.0064 | 2 HS-55, flaperons 2 HS-55 | 0 |
+| | 3d | 0.414 | 36.31 | 0.942 | 1.182 | 0.0127 | 2 HS-65MG, flaperons 2 HS-55 | 7 g |
+| | extreme | 0.430 | 40.00 | 0.931 | 1.287 | 0.0191 | 2 HS-65MG, flaperons 2 HS-55 | 7 g |
+| elevator | stock | 0.525 | 35.81 | 1.000 | 1.000 | 0 | A332 | 0 |
+| | sport | 0.573 | 40.54 | 1.004 | 1.137 | 0.0134 | HS-55 | 0 |
+| | 3d | 0.622 | 45.27 | 1.014 | 1.282 | 0.0268 | HS-65MG | 3.5 g |
+| | extreme | 0.670 | 50.00 | 1.031 | 1.440 | 0.0402 | HS-65MG | 3.5 g |
+| rudder | stock | 0.600 | 33.75 | 1.000 | 1.000 | 0 | A332 | 0 |
+| | sport | 0.667 | 39.17 | 0.997 | 1.156 | 0.0079 | HS-55 | 0 |
+| | 3d | 0.733 | 44.58 | 1.003 | 1.325 | 0.0158 | HS-65MG | 3.5 g |
+| | extreme | 0.800 | 50.00 | 1.017 | 1.506 | 0.0237 | D89MW | 16 g |
+
+Its stock cf (aileron and flap 0.383, elevator 0.525, rudder 0.60) and
+throws (28.92, 35.81, 33.75, E-flite's high rates of 45, 55 and 55 mm) are
+`scripts/nighttimber-derive.js`'s off E-flite's photographs and manual
+(docs/NIGHTTIMBER-STAGE1.md). The rates are the stock tier. E-flite's
+"for maximum 3D performance" is about two other things: the steel
+stabiliser joiner's rearward CG (manual p. 8, which this aircraft does
+not fly, docs/NIGHTTIMBER-STAGE1.md) and the elevator pushrod "in the
+inner hole of the elevator control horn" (p. 5), which gives more
+elevator throw than the chart's 55 mm. E-flite gives no figure for that
+throw, so the elevator's ladder up to EF's 50 deg is what stands in for
+it. Extreme adds 29, 44 and 51 percent of control power. Its aileron k
+falls below one, as the Cub's does. The tier's extra 11 deg of throw
+lands where Roskam's K' falls fastest (0.63 at 28.9 deg, 0.57 at 40), and
+only the outboard 70 percent of the roll moment gets the bigger chord.
+
+**The flaperons.** The manual's advanced setup (pp. 18 and 19, P-Mix 2
+and 3) runs the flaps with the ailerons for full span ailerons. It sets
+"the flap travel to aileron travel at full aileron right and left", so
+the flap panels make the inboard 0.093 to 0.319 m of the aileron, and
+the table's Cl delta_a and stall strips cover 0.093 to 0.563 m. The
+flaps are also the flaps: their notches, the manual's flap to elevator
+mix (14 and 20 percent) and the owner's elevator to flap mix (up
+elevator lowers them, `configs/tuning.js` ELEV_FLAPS, plant_wing.c) all
+work on the flap panels through the table's flap terms (cl_df, clmax_df,
+cd_df2, cm_dcl_f, de_df). `sim_wing_set_tiers` does not scale those
+terms. **Decision: the aileron tier moves the hinge on the outboard
+ailerons only. The flap panels keep their chord and take the tier's
+throw**, because the manual's mix makes their aileron travel match the
+ailerons'. Why the flaps keep their chord:
+
+- Every flap figure stays sourced. E-flite's 14 and 20 percent
+  compensation is set for the stock flap, and nothing publishes the mix
+  for a bigger one. The full flap stall that N2b holds (the video
+  pilot's own 6.7 to 8.0 m/s) and the take off (N14) are the stock
+  flap's too.
+- The owner's elevator to flap mix flies the same panel on every tier.
+  A bigger aileron makes the ailerons bigger. It does not change what
+  up elevator does to the flaps.
+- A bigger flap chord would need the flap terms scaled with it, and the
+  plant does not do that. It would be a plant change (src/native, the
+  plant lane's), not a table row.
+
+So k weighs the two panels by their share of the rolling moment, which
+on the constant chord goes as y^2 across each. The flaperons carry
+(0.319^2 - 0.093^2) / (0.563^2 - 0.093^2) = 0.302 of it at the stock
+tau, and the ailerons carry the rest at tau(cf):
+k = ((1 - 0.302) tau(cf) + 0.302 tau(cf0)) K'(throw) / (tau(cf0) K'(throw0))
+(`configs/surfaces.js` flaperons). The drag cd is taken on the
+ailerons' wing alone, 2 (0.563 - 0.319) / 1.2 = 0.406 of the area. The
+ailerons' servos are sized for (cf / cf0)^2 times the throw, and the
+flaperons' for the throw alone.
+
+**The servos.** E-flite fits six Spektrum A332 9 g metal gear servos
+(manual p. 3, "5 x SPMSA332, 1 x SPMSA332R"): two ailerons, two flaps, the
+elevator and the rudder. The A332's only published torque is 0.9 kg-cm at
+4.8 V (lindinger.at, flashrc.com), which is taken against the catalogue's
+6.0 V figures. That rates it low and sizes up early, the safe side.
+Every tier over stock needs more than 0.9 kg-cm. Where an HS-55 covers
+it (1.30 kg-cm at 8.0 g, a gram lighter than the A332) the row adds
+nothing: a derived servo mass never goes below zero, since an add-on
+only adds and a builder does not swap a servo to save a gram. The
+absolute check (C_h about -0.55 per rad, one aileron's 0.0223 m^2 and
+0.0915 m chord at 28.9 deg) needs 0.73 kg-cm at the gates' 14.4 m/s
+level cruise, which the A332 covers. At the plant's 23.6 m/s top speed it
+needs 1.97 kg-cm, and the A332 covers it only up to about 16 m/s. So on
+this aircraft "stock just covers" holds at cruise, not flat out. At top
+speed the real servo would blow back short of full throw, which the
+plant does not model on any aircraft.
+
+Measured on this branch (full stick deg/s / a fifth of a stick deg/s /
+speed kept): roll 521 / 92 / 0.791 stock to 717 / 123 / 0.384 Extreme;
+pitch 243 / 72 / 0.809 to 297 / 99 / 0.612; yaw 127 / 26 / 0.921 to
+186 / 39 / 0.743. The roll's speed kept drops furthest. Its 2 s full roll
+from cruise is a falling barrel roll, 17 m down in 2 s, so
+sqrt(v^2 + 2 g dz) is the difference of two near numbers. The Extreme
+roll's bigger yaw and pitch excursion costs 2 m/s at the bottom, and
+that difference shows up nearly whole in the bar. Zeroing the tier's
+deflection drag moves it by under 0.2 m/s.
+
+### Turbo Timber Evolution (sim 7)
+
+| surface | tier | cf | throw deg | k | power | cd | servo | added |
+|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.270 | 30.00 | 1.000 | 1.000 | 0 | 2 A370 | 0 |
+| | sport | 0.323 | 33.33 | 1.040 | 1.155 | 0.0255 | 2 HS-65MG | 7 g |
+| | 3d | 0.377 | 36.67 | 1.079 | 1.319 | 0.0511 | 2 HS-65MG | 7 g |
+| | extreme | 0.430 | 40.00 | 1.118 | 1.490 | 0.0766 | 2 D89MW | 32 g |
+| elevator | stock | 0.440 | 20.00 | 1.000 | 1.000 | 0 | A370 | 0 |
+| | sport | 0.517 | 30.00 | 0.834 | 1.250 | 0.0151 | HS-65MG | 3.5 g |
+| | 3d | 0.593 | 40.00 | 0.803 | 1.606 | 0.0302 | D89MW | 16 g |
+| | extreme | 0.670 | 50.00 | 0.812 | 2.030 | 0.0452 | D89MW | 16 g |
+| rudder | stock | 0.460 | 27.00 | 1.000 | 1.000 | 0 | A370 | 0 |
+| | sport | 0.573 | 34.67 | 0.980 | 1.258 | 0.0099 | HS-65MG | 3.5 g |
+| | 3d | 0.687 | 42.33 | 0.995 | 1.561 | 0.0197 | D89MW | 16 g |
+| | extreme | 0.800 | 50.00 | 1.021 | 1.891 | 0.0296 | D89MW | 16 g |
+
+The aileron's cf (the aft 27 percent) and the throws (E-flite's high
+rates, 33, 20 and 30 mm, over the drawn chords at the horns, 30, 20 and
+27 deg, ESTIMATED to a couple of degrees) are docs/TIMBER-STAGE1.md's.
+Its table carries only Nelson's tau for the elevator and rudder (0.65,
+0.60), so their cf are measured off the drawn model,
+`src/render/timbercraft.js`, which is drawn from Horizon Hobby's
+photographs and whose areas are the table's. The elevator is 0.0311 of
+the 0.0707 m^2 stabiliser (the hinge 90 mm behind the root's leading
+edge, 60 of the root's 150 mm, 56 of the tip's 110, the rudder's notch
+out), cf 0.44. The rudder is 0.0146 of the 0.0315 m^2 fin and rudder
+(the hinge 65 mm ahead of the trailing edge, from the fuselage's bottom
+to the fin's top), cf 0.46. Over the fin alone, above its root, it would
+be 0.38. The table's Sv counts the run below the root, so cf is taken on
+the same area. The plan's inverse of Glauert's tau (0.29 and 0.24) is
+not used: Nelson's chart is empirical, and Glauert's tau at those cf is
+not what the drawn surfaces are. Only the ratio tau(cf) / tau(cf0)
+enters k, as for the Cub.
+
+The flaps (0.052 to 0.334 m) are plain flaps on their own switch, not
+mixed into the ailerons, so the aileron tier is the outboard ailerons
+alone. The servos: E-flite's manual lists six 9 g metal gear digital
+servos, SPMSA370 (two ailerons, elevator, rudder, two flaps). No torque
+is published for the A370 (Spektrum's page and servo charts list none),
+so it is taken as the A332's 0.9 kg-cm, the same maker's 9 g metal gear
+class, ESTIMATED. The absolute check (one aileron 0.36 m by 0.0648 m at
+30 deg) needs 0.79 kg-cm at the gates' 17.0 m/s level cruise and 2.0 at
+its 27.2 m/s top speed, so it holds to about 18 m/s, as the Night
+Timber's does. The floats variant (timber1500f) is a different airframe
+id and has no row.
+
+Measured on this branch (full stick deg/s / a fifth of a stick deg/s /
+speed kept): roll 368 / 42 / 0.853 stock to 533 / 62 / 0.684 Extreme;
+pitch 228 / 47 / 1.020 to 403 / 80 / 0.664; yaw 118 / 18 / 1.003 to
+224 / 33 / 0.745. The elevator's k falls to 0.81, as the Cub's does:
+its stock 20 deg is near where K' is one, and 50 deg buys less per
+degree, which the throw more than makes up for.
+
 The Cub's k falls below one: its stock throws are under 18 deg, where K'
 is near one, and K' at 40 to 50 deg is 0.55 to 0.57. Per degree a big
 throw buys less, but the throw more than makes up for it.
@@ -267,3 +417,17 @@ wire format change, left for a versioned protocol bump.
   as the D89MW or faster.
 - The drag acts at the CG. The aileron pair's drag difference (proverse
   yaw) and the tail's drag height are left out.
+- One K_A scales all four stall strips' tau. On the Night Timber the
+  flaperon strips should take K' alone: at Extreme the flap strips get
+  3.4 percent too much and the aileron strips 1.4 percent too little.
+  That is second order, and fixing it needs a per-strip scale in the
+  plant (the plant lane's call).
+- The plant adds a flaperon's aileron throw and its flap angle without
+  a servo's limit. Full flap (36 deg) plus an Extreme aileron (40 deg)
+  would ask for 76 deg on one panel, and a real radio stops at the
+  servo's travel. The stock aircraft already asks for 65.
+- The craft builders draw the tiers only on the Extra and the Cub.
+  `src/render/nighttimbercraft.js` and `timbercraft.js`, like
+  slickcraft.js, ignore `opts.surfaces`, so their tiers fly but draw
+  stock (the render lane). Its aileron growth must go on the outboard ailerons
+  only, never the flaps.
