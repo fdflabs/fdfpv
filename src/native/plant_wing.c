@@ -2266,6 +2266,42 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (ge_on) {
     CD -= (1.0 - sigma) * ge.clw * ge.da;
   }
+  /* THE FLAPS PAST THE STALL. The linear flap terms above carry on through
+   * the stall as if attached. Measured, a down flap's normal force past
+   * the stall is a fraction k of its attached lift that falls to nothing
+   * by 90 deg, and it acts about 0.4 of the chord behind the quarter
+   * chord, so its moment is nose down: NACA TN 3307 (Kuhn and Draper 1954,
+   * a 30 percent plain flap on a NACA 0015 wing to 90 deg) and Ma, Smeur
+   * and de Croon 2022 (a flapped wing at all angles, Re 0.5 to 2.3e5)
+   * agree (~/Desktop/fdfpv-loop/research/FLAP-DEEP-STALL.md). As the wing
+   * passes its stall (fre past) the flaps' terms go over to that: the
+   * wing taken without its flaps, plus k dcl_f as a normal force, with
+   * its moment at that arm in place of cm_dcl_f's. k is FITTED to both: 1
+   * at the stall, 0.5 at 30 deg, 0 at 90. */
+  const int flaps_past = dcl_f != 0.0 && fre > 0.0 && wl.past > 0.0 && fw->bip_w[0] <= 0.0;
+  double w_fp = 0.0, cm_fp_lin = 0.0, cm_fp_meas = 0.0, b20c = 0.0;
+  WingLift w0 = wl;
+  if (flaps_past) {
+    const double clmax_nf = add_term(fw->cl_max, g_slats ? fw->slat_dclmax : 0.0);
+    wing_lift(fw, alpha, delta_e, 0.0, clmax_nf, k_stall, fre, sin_a, cos_a, &w0);
+    const double a_deg = sim_atan2(sin_a, cos_a) * 180.0 / WING_PI;
+    const double as_deg = clmax_nf / wing_cla(fw) * 180.0 / WING_PI;
+    const double k_f = a_deg <= as_deg ? 1.0
+                       : a_deg < 30.0 ? 1.0 - 0.5 * (a_deg - as_deg) / (30.0 - as_deg)
+                       : a_deg < 90.0 ? 0.5 * (90.0 - a_deg) / 60.0 : 0.0;
+    const double dcn = k_f * dcl_f;
+    w_fp = fre * wl.past;
+    const double s0 = sim_sin(clmax_nf / wing_cla(fw)), c0 = sim_cos(clmax_nf / wing_cla(fw));
+    const double b20 = (fw->k_induced * clmax_nf * clmax_nf - plate_cn(fw) * s0 * s0) / c0;
+    const double cd_flat0 = cd0 + plate_cn(fw) * sin_a * sin_a + (cos_a > 0.0 ? b20 * cos_a : 0.0);
+    const double cd0_nf = (1.0 - w0.sigma) * (cd0 + fw->k_induced * w0.cl_lin * w0.cl_lin) + w0.sigma * cd_flat0;
+    CL = add_term((1.0 - w_fp) * CL, w_fp * add_term(w0.cl, dcn * cos_a));
+    CD = add_term((1.0 - w_fp) * CD, w_fp * add_term(cd0_nf, dcn * sin_a));
+    /* The moment's parts, assembled with the stall's below. */
+    cm_fp_lin = fw->cm_dcl_f * dcl_f;
+    cm_fp_meas = -(0.4 - fw->stall_arm_ac) * dcn;
+    b20c = cos_a > 0.0 ? b20 * cos_a : 0.0;
+  }
   /* A biplane (FixedWingParams.bip_w) takes its lift, its drag and its
    * stall's pitching moment wing by wing, biplane_lift above, and the
    * strips below judge their stall on the wing that stalls first. */
@@ -2600,19 +2636,48 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     }
     const double xs = keep * q_prop * (up - dn) / (mdot * rw * rw);
     const double xb = add_term(-v, -xs);
+    /* A control surface in the wash loses it past about 30 deg of the
+     * airframe's angle, though the wash still runs along it: NACA TN 3307
+     * (Kuhn and Draper 1954, a 30 percent flap in the slipstream of two
+     * large props, figs. 13c and 16c) at Tc'' 0.71 keeps of its pitching
+     * moment 1 to 20 deg, 0.47 at 40, 0.30 at 50, 0.13 at 60, 0.10 at 70,
+     * 0.07 at 80 and 0.05 at 90 (Tc'' 0.5 and 0.91 bracket it within 0.1);
+     * the freestream's crossflow turns the wash off the surface. Taken on
+     * the wash's elevator and aileron terms, FITTED to that curve as kw:
+     * the elevator's angle in the wash and its share both, so the tail's
+     * saturating normal force stays monotonic in the stick. */
+    static const double KW_DEG[7] = { 20.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0 };
+    static const double KW[7] = { 1.0, 0.47, 0.30, 0.13, 0.10, 0.07, 0.05 };
+    const double a_w = sim_fabs(sim_atan2(-w, u_pos > 0.0 ? u_pos : 0.0)) * 180.0 / WING_PI;
+    double kw = 1.0;
+    if (a_w > KW_DEG[0]) {
+      kw = KW[6];
+      for (int i = 0; i < 6; i += 1) {
+        if (a_w <= KW_DEG[i + 1]) {
+          kw = KW[i] + (KW[i + 1] - KW[i]) * (a_w - KW_DEG[i]) / (KW_DEG[i + 1] - KW_DEG[i]);
+          break;
+        }
+      }
+    }
+    /* With no freestream (Tc'' 1, the hover) nothing turns the wash off
+     * the surface and the angle means nothing: the loss fades out between
+     * TN 3307's highest Tc'', 0.91, where it is whole, and 1. */
+    const double tcl = dp / (dp + 0.5 * PLANT.rho * V * V);
+    const double fade = tcl <= 0.91 ? 1.0 : tcl >= 1.0 ? 0.0 : (1.0 - tcl) / 0.09;
+    kw = 1.0 - fade * (1.0 - kw);
     /* With hi_alpha each surface's share in the wash saturates as its
      * free stream share does, at its angle in the wash's own stream, the
      * crossflow over the far wake's speed, and its control's. */
     double rh = 1.0, rv = 1.0;
     if (fw->hi_alpha) {
       const double vw = u_pos + 2.0 * vi;
-      const double xh = fw->tail_at * xa / vw + ae;
+      const double xh = fw->tail_at * xa / vw + kw * ae;
       const double xv = fw->tail_av * xb / vw + ar;
       rh = plate_ratio(xh, fw->tail_cn);
       rv = plate_ratio(xv, fw->tail_cn);
     }
     const double kh = PLANT.rho * vi * fh * rh, kv = PLANT.rho * vi * fv * rv;
-    const double ph = dp * fh * rh, pv = dp * fv * rv;
+    const double ph = dp * fh * rh * kw, pv = dp * fv * rv;
     F[2] += fw->area * (kh * fw->slip_cl_a * xa + ph * fw->cl_de * delta_e);
     F[1] -= fw->area * (kv * fw->slip_cy_b * xb + pv * fw->cy_dr * delta_r);
     const double q_a = -s->omega[1], r_a = -s->omega[2];
@@ -2621,7 +2686,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     n_slip = fw->area * fw->span *
              (kv * (fw->slip_cn_b * xb + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
     l_slip = fw->area * fw->span *
-             (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * fw->cl_da * delta_a);
+             (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * kw * fw->cl_da * delta_a);
     l_slip = add_term(l_slip, root);
     g_slip[0] = l_slip;
     g_slip[1] = -m_slip;
@@ -2762,12 +2827,27 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double cm_post = sigma * (((1.0 - past) * fw->stall_arm_ac - past * fw->stall_arm_cp) * cn_st
                                   - fw->stall_arm_ac * cl_lin_m - stall_dw * (cl_lin_m - cl_st));
   const double cm_stall = biplane ? cm_bip : add_term(cm_low, fre * past * (cm_post - cm_low));
+  /* The flapless wing's stall moment, on the same downwash and linear lift
+   * less the flaps', for the flaps past the stall (above). */
+  double cm_fp_nf = 0.0;
+  if (flaps_past) {
+    const double cm_low0 = -w0.sigma * (fw->lowre_arm_ac * w0.cl_lin + fw->lowre_arm_cp * cl_flat);
+    const double cn_st0 = add_term(add_term(plate_cn(fw) * sin_a, (w0.cl_st - cl_flat) * cos_a), b20c * sin_a);
+    const double cl_lin_m0 = add_term(cl_lin_m, -dcl_f);
+    const double cm_post0 = w0.sigma * (((1.0 - w0.past) * fw->stall_arm_ac - w0.past * fw->stall_arm_cp) * cn_st0
+                                        - fw->stall_arm_ac * cl_lin_m0 - stall_dw * (cl_lin_m0 - w0.cl_st));
+    cm_fp_nf = add_term(cm_low0, fre * w0.past * (cm_post0 - cm_low0));
+  }
   /* The flaps' own moment rides on the lift they add: the section's nose
    * down moment and the downwash they add at the tail, nose up net. */
+  /* Past the stall the flapped wing's stall moment and cm_dcl_f go over to
+   * the flapless wing's and the measured flap moment (above). */
+  const double cm_st_f = flaps_past ? add_term((1.0 - w_fp) * cm_stall, w_fp * cm_fp_nf) : cm_stall;
+  const double cm_f = flaps_past ? add_term((1.0 - w_fp) * cm_fp_lin, w_fp * cm_fp_meas) : fw->cm_dcl_f * dcl_f;
   const double m_aero = qbar * fw->area * fw->chord *
                         add_term(add_term(fw->cm_0 + cm_stiff + fw->cm_q * q_aero * c2v + cm_de_lin * de_m,
-                                          cm_stall),
-                                 add_term(fw->cm_dcl_f * dcl_f, -(fw->cg_shift / fw->chord) * CL));
+                                          cm_st_f),
+                                 add_term(cm_f, -(fw->cg_shift / fw->chord) * CL));
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
   double M[3];
   M[0] = l_aero - q_react; /* the prop turns one way; the airframe answers the other */
@@ -5666,7 +5746,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_i_max = 0.30,
   .as3x_k = { 0.0497, 0.1147, 0.3603 }, /* npm run as3x:derive */
   .as3x_kh = { 0.4436, 1.0237, 3.2157 }, /* npm run as3x:derive */
-  .as3x_rate = { 7.553, -6.115, -2.661 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.553, -6.115, -2.644 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6120,7 +6200,7 @@ const FixedWingParams FW_SLICK2680 = {
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0878, 0.434, 0.8287 }, /* npm run as3x:derive */
   .as3x_kh = { 1.5672, 7.7469, 14.7923 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.646, -3.424, -2.03 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.646, -3.693, -2.129 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to

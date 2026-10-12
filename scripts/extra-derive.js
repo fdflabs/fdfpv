@@ -23,6 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { washKw } from './lib/washcontrol.js';
 import { wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
@@ -433,11 +434,12 @@ function harrier(alphaDeg) {
   const alphaT = sa - deda * CL / CLa - slipA0 * (1 - deda);
   const xa = V * Math.sin(a - slipA0);
   const vw = u + 2 * w.vi;
+  const kw = washKw(a, w.dp, V, rho); /* scripts/lib/washcontrol.js, as the plant */
   const cm = (de) => {
     const xt = at * alphaT - Cmde * de / vhT;
     const free = Cm0 + (Cma - slipCma) * sa + slipCma * slipA0 - vhT * xt * plateRatio(xt) + past * cmPost;
-    const rh = plateRatio(at * xa / vw - Cmde * de / vhT);
-    const wsh = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.fh * rh * Cmde * de) / qb;
+    const rh = plateRatio(at * xa / vw - kw * Cmde * de / vhT);
+    const wsh = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.fh * rh * kw * Cmde * de) / qb;
     return free + wsh;
   };
   let dLo = -throwE, dHi = throwE;

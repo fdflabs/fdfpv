@@ -30,6 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { washKw } from './lib/washcontrol.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -699,6 +700,7 @@ function harrier(alphaDeg) {
     const w = wash(thrust / cosYaw, u);
     const xa = V * Math.sin(a - slipA0);
     const vw = u + 2 * w.vi;
+    const kw = washKw(a, w.dp, V, rho); /* scripts/lib/washcontrol.js, as the plant */
     const cm = (d) => {
       const wl = wingLift(a, d, V);
       const ae = -Cmde * d / vhT2;
@@ -706,8 +708,8 @@ function harrier(alphaDeg) {
       const cnSt = PCN * sa + (wl.clSt - PCN * sa * ca) * ca + wl.b2c * sa;
       const clLinM = CLa * sa + CLde * d;
       const post = wl.sigma * (((1 - wl.past) * (hCG - 0.25) - wl.past * armCp) * cnSt - (hCG - 0.25) * clLinM);
-      const rh = plateRatio(at * xa / vw + ae);
-      const slip = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.fh * rh * Cmde * d) / q;
+      const rh = plateRatio(at * xa / vw + kw * ae);
+      const slip = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.fh * rh * kw * Cmde * d) / q;
       return Cm0 + stiff + wl.past * post + slip - thrustZ * thrust / cosYaw / (q * S * c) + propX * bal.fj / (q * S * c);
     };
     let dLo = -throwE, dHi = throwE;
