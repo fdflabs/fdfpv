@@ -321,3 +321,12 @@ one's source text.
 | B1 cruise: the throttle that holds 16 m/s | 0.596 to 0.5495 | duty 0.596, now 0.55; the band is the published cruise's |
 | B4 top speed | 28.48 to 28.29 m/s | 25.06 to 30.0, now 24.90 to 30.0 |
 | B7 best climb at the gates' seat | 5.0 (published, a full pack's) to 4.69 | 4.0 to 6.0, now 3.75 to 5.63 |
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 12 s, derived 2.4 m, held within 0.02 (was an underived bound).
+- Acro's hold, the same throw: derived 0.14 m within 0.02.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

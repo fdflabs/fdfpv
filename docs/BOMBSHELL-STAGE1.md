@@ -522,3 +522,13 @@ reads zero, zero, elevator, rudder.
   DATCOM, the downwash gradient; Hoerner, Fluid Dynamic Lift, ch. 3;
   Gibson and Ashby, Cellular Solids; USDA Forest Products Laboratory,
   Wood Handbook.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- S6: the prop's yaw rolls it through level, flown 13.3, 0.3 and -11.9 deg after 2, 4 and 6 s, each held within the old 4.3 deg.
+- bombshell:stab, the Manual let go from 75.1 deg: derived -8.86 deg 8 s later, within 8.0 (was under 15 deg, no roll through).
+- The Stabilised throw's cross track after 10 s, derived 15.79 m, held within 0.01 (was an underived bound).
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

@@ -424,3 +424,12 @@ and it slides to a stop on its belly.
 - D. Raymer, Aircraft Design: A Conceptual Approach, eqs. 12.15, 12.30, 12.49
 - Charles River Radio Controllers, Zagi THL Tips (CG, the stall, the mush): https://charlesriverrc.org/articles/design-and-construction/zagi-thl-tips/
 - Forum evidence, labelled as such: RCFAQ, Zagi 400 and FMA Razor 400 (axial rolls, belly landings): http://www.rcfaq.com/REVIEWS/electrics/ZAGI400.HTM; RCU, "Zagi Style Wing Dimensions Anyone?" (tip stall without washout): https://www.rcuniverse.com/forum/scratch-building-aircraft-design-3d-cad-174/513363-zagi-style-wing-dimensions-anyone.html; FPVLab, "Flying wings, how to control wag": https://fpvlab.com/forums/archive/index.php/t-47709.html
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 12 s, derived -1.45 m, held within 0.13 (was an underived bound).
+- Acro's hold, the same throw: derived -0.35 m within 0.02.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

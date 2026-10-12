@@ -568,3 +568,12 @@ one's source text.
 | C19 taxi turn | 2.312 m at 30 percent to 2.289 at 27 | 2.19 to 2.43 at 0.30, now 2.14 to 2.43 at 0.27 |
 
 C19: at 30 percent the seated pack turns the prop 11 percent faster and there is no steady turn, the tail breaking away into an eight second cycle, as at 35 percent before; 27 percent turns the prop as 30 did and the plant settles within 2.5 percent of the derivation.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 10 s, derived 15.78 m, held within 0.09 (was an underived bound).
+- Acro's hold, the same throw: derived 15.36 m within 0.09.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

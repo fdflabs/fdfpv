@@ -439,3 +439,13 @@ Rolled on its side at a brisk pace it holds height on most of the rudder.
   crossflow term); Raymer, Aircraft Design; Sheldahl and Klimas,
   SAND80-2114 (symmetric sections past the stall), as the other stage
   files cite them.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 10 s, derived 2.97 m, held within 0.03 (was an underived bound).
+- extra:stab "full up stick pitches at Manual's rate, within 2 percent" is red: 148.4 against 159.3 deg/s. Manual's full up pull at full throttle from 16 m/s departs into a snap (pitch rate 427 then 92 deg/s, roll to -380 deg/s, yaw to -133 by 0.5 s), and AS3X's roll axis, its stick centred, holds the roll to -40; the pitch rate in the last quarter second differs through the roll and yaw rates' inertial coupling. Zeroing the roll gains alone gives 159.3 against 159.3; zeroing the yaw gains does not. It is the gyro doing what it is built to, not a gain derived without the term (as3x:derive flies the module with it); the check compares a departure, and its re-posing is the lead's.
+- E11's derivation needs the elevator's whole throw at 40 deg and cannot trim 45 (w36-wash-speed, inherited): the plant holds 40 deg at 0.98 of the stick.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

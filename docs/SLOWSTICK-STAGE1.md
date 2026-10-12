@@ -409,3 +409,13 @@ flown model gives 18.3, 15.8 and 10.5 deg after 2, 4 and 6 s, 5.96 m/s at
 | S19 thermal pass | 22.5 to 22.8 m | 16.9 to 28.1, now 17.1 to 28.5 |
 
 slowstick:stab: its cruising speed at 75 percent is held to S1's band (it had an underived 4.5 to 7 m/s); the taxi stick is 0.44, which turns the prop as half did (half now pivots it at 2.7 m/s and lifts the outside wheel); the Manual let go is held under 20.4 deg after 8 s, the flown model's 15.76 times the same 1.29 its 15 held over the model's 11.60.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- slowstick:stab, the Manual let go from 56.2 deg: derived 8.91 deg 8 s later, within 5.28 (was under 20.4).
+- The Stabilised throw's cross track after 10 s, derived 14.47 m, held within 0.03 (was an underived bound).
+- The Stabilised throw's airspeed at 10 s, derived 7.47 m/s within 0.03: it climbs at 2 deg of pitch and is not S1's level flight, whose band the check borrowed.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

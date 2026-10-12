@@ -586,3 +586,13 @@ gear and it slides in on its belly and bends its prop.
 - FMS, 4258-KV650 motor (fmshobby.com/products/4258-kv650-motor).
 - Dynam, 14.8V 2600mAh 25C LiPo (dynamrc.com), 295 g, for the pack's mass.
 - Selig et al., Summary of Low-Speed Airfoil Data (UIUC), vol. 1 (1995) fig. 4.73 the NACA 64A010 and vol. 2 (1996) fig. 5.52 the NACA 2415, their tabulated runs LIFT01.TXT and LIFT02.TXT (m-selig.ae.illinois.edu/pd/pub/lsat), and the Reynolds number trend; the UIUC propeller data site, APC 14 x 8E; Abbott and von Doenhoff, Theory of Wing Sections; Nelson, Flight Stability and Automatic Control; USAF DATCOM; Raymer, Aircraft Design: A Conceptual Approach; Schrenk, NACA TM 948.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 10 s, derived 16.69 m, held within 0.18 (was an underived bound).
+- Acro's hold, the same throw: derived 12.21 m within 0.11.
+- P9 judged on its decay (w36-seat-voltage) flies 3.17 s to fall by e on the combined plant, in its band.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

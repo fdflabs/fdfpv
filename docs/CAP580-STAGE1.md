@@ -399,3 +399,9 @@ a firm but not full pull.
   this derivation borrows; Nelson, Flight Stability and Automatic Control;
   Roskam, Airplane Design VI (K'); Hoerner, Fluid-Dynamic Drag; Selig, AIAA
   2010-7938 (SWIRL_KEEP, jet_kj).
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- stab_straight: cap580:derive throwFlight takes the swirl at the fin from scripts/lib/wash.js finSwirl, its force on the whole stream, and the controls on dp less the jet's spread: derived -9.42 m (was -17.78), the plant -9.43, held within 0.3 (the worst agreement, 0.15 m with the mount off, and the same again; was 0.4).
