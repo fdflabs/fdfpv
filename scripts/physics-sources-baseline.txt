@@ -450,7 +450,6 @@ src/native/plant_wing.c FW_SLOWSTICK1180.stab_bank_max = 45.0 * WING_PI / 180.0
 src/native/plant_wing.c FW_SLOWSTICK1180.stab_pitch_max = 25.0 * WING_PI / 180.0
 src/native/plant_wing.c FW_SLOWSTICK1180.stab_trim_pitch = 2.0 * WING_PI / 180.0
 src/native/plant_wing.c FW_SLOWSTICK1180.stab_deadband = 0.04
-src/native/plant_wing.c FW_SLOWSTICK1180.stab_roll_kd = 0.61
 src/native/plant_wing.c FW_SLOWSTICK1180.stab_pitch_kp = 5.0
 src/native/plant_wing.c FW_SLOWSTICK1180.stab_pitch_kd = 0.5
 src/native/plant_wing.c FW_SLOWSTICK1180.acro_roll_rate = 60.0 * WING_PI / 180.0

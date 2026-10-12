@@ -270,10 +270,12 @@ void plant_wing_biplane(double out[4]) {
  * Selig (AIAA 2010-7938, sec. B): on "a typical aerobatic RC/UAV
  * configuration capable of hover, the net right rolling moment" of the
  * swirl "is near 40% of the propeller torque". On the Extra 300 3D at its
- * hover the root's (1 - K) Q and the fin's roll make 0.40 Q at K = 0.743
- * (scripts/extra-derive.js); the fuselage's coil, which Selig counts, is in
- * the root's share. docs/FLIGHTMODEL.md. */
-#define SWIRL_KEEP 0.74
+ * hover the root's (1 - K) Q and the fin's roll make 0.40 Q at K = 0.649
+ * (scripts/extra-derive.js), the fin meeting the swirl the static jet
+ * brings it (slip_loss[2]; it was 0.743 on the disc's whole swirl); the
+ * fuselage's coil, which Selig counts, is in the root's share.
+ * docs/FLIGHTMODEL.md. */
+#define SWIRL_KEEP 0.65
 
 /* The slipstream as the last step took it (FixedWingParams.slip_r): its
  * roll, pitch and yaw moments in the body frame as they were added, the
@@ -2847,7 +2849,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * the swirl). SWIRL_KEEP of the swirl reaches the fin; the rest is the
      * root's. Where the table measures its root (slip_root) the root's
      * share is the wing's own lift in the swirl, root_swirl above, and the
-     * fin meets what the root leaves. */
+     * fin meets what the root leaves. Standing still the swirl spreads with
+     * the jet and slows by the fin, faster than the axial wash: the fin
+     * meets 1 - slip_loss[2] of the solid body's crossflow force (Deters,
+     * Ananda and Selig 2015, figs. 15a and 15b; scripts/lib/wash.js
+     * swirlKeep), going with the mixing ratio lam as the axial loss does
+     * below; with way on it holds to x/D 3 (fig. 22b). */
+    const double lam = vi / (u_pos + vi);
     const double q_prop = q_air;
     const double mdot = PLANT.rho * WING_PI * fw->slip_r * fw->slip_r * (u_pos + vi);
     double keep = fw->slip_pusher ? 1.0 : SWIRL_KEEP;
@@ -2861,8 +2869,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       }
       keep = 1.0 - root / q_prop;
     }
-    const double xs = keep * q_prop * (up - dn) / (mdot * rw * rw);
+    const double xs = (1.0 - fw->slip_loss[2] * lam) * keep * q_prop * (up - dn) / (mdot * rw * rw);
     const double xb = add_term(-v, -xs);
+    /* The fin's force from its crossflow takes rho v_i, the wash's excess
+     * over the free stream, whose own fin terms take the body's sideslip;
+     * but nothing outside the wash blows the swirl, so the swirl's
+     * sideways speed meets the whole stream, 1/2 rho (u + 2 v_i) per unit
+     * of it. Standing still the two are the same; at Deters, Ananda and
+     * Selig's J 0.52 (fig. 22b, 3.7 to 4.2 times rho v_i's measured, flat
+     * with distance) the whole stream's is 4.3 times. The fin's angle in
+     * the wash, which saturates it, stays the swirl's own speed. */
+    const double xbf = add_term(-v, -xs * (u_pos + 2.0 * vi) / (2.0 * vi));
     /* A control surface in the wash loses its effect past about 30 deg of
      * the airframe's angle, though the wash still runs along it, by how
      * much as it is deflected (scripts/lib/washcontrol.js, its sources,
@@ -2891,28 +2908,42 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double k_against = 1.0 - fade * (1.0 - wash_keep(KW_DEG, KW_AGAINST, a_w));
     const double kw = fw->cm_de * delta_e * xa > 0.0 ? k_against : k_with;
     const double kwa = 0.5 * (k_with + k_against);
+    /* THE WASH AT THE TAIL. Standing still, the jet mixes with the air
+     * around it and spreads 6 to 8 deg from half a diameter behind the
+     * disc, its peak falling in to the axis; its momentum stays, but less
+     * of it crosses the tail's span: the stabiliser and the fin meet
+     * 1 - slip_loss of dp (Deters, Ananda and Selig 2015, AIAA 2015-2265,
+     * figs. 15a and 17a; scripts/lib/wash.js tailKeep). Its mass flow over
+     * the span holds within 14 percent, so rho v_i stays. With way on the
+     * slipstream keeps V + 2 v_i to x/D 3 (the same paper's fig. 22a at J
+     * 0.52; Stuper, NACA TM 874, fig. 25): the loss goes with the jet's
+     * mixing ratio, (U_j - V) / (U_j + V) for U_j = V + 2 v_i, which is
+     * v_i / (V + v_i), 1 standing still, the shear layer's spreading rate
+     * going with it (Abramovich, The Theory of Turbulent Jets, 1963),
+     * straight between: FITTED, the two ends measured. */
+    const double keep_h = 1.0 - fw->slip_loss[0] * lam, keep_v = 1.0 - fw->slip_loss[1] * lam;
     /* With hi_alpha each surface's share in the wash saturates as its
      * free stream share does, at its angle in the wash's own stream, the
-     * crossflow over the far wake's speed, and its control's. */
+     * crossflow over the speed the wash reaches it at, and its control's. */
     double rh = 1.0, rv = 1.0;
     if (fw->hi_alpha) {
-      const double vw = u_pos + 2.0 * vi;
-      const double xh = fw->tail_at * xa / vw + kw * ae;
-      const double xv = fw->tail_av * xb / vw + ar;
+      const double ex = 4.0 * vi * (u_pos + vi);
+      const double xh = fw->tail_at * xa / sim_sqrt(u_pos * u_pos + keep_h * ex) + kw * ae;
+      const double xv = fw->tail_av * xb / sim_sqrt(u_pos * u_pos + keep_v * ex) + ar;
       rh = plate_ratio(xh, fw->tail_cn);
       rv = plate_ratio(xv, fw->tail_cn);
     }
     const double kh = PLANT.rho * vi * fh * rh, kv = PLANT.rho * vi * fv * rv;
-    const double ph = dp * fh * rh * kw, pv = dp * fv * rv;
+    const double ph = dp * keep_h * fh * rh * kw, pv = dp * keep_v * fv * rv;
     F[2] += fw->area * (kh * fw->slip_cl_a * xa + ph * fw->cl_de * delta_e);
-    F[1] -= fw->area * (kv * fw->slip_cy_b * xb + pv * fw->cy_dr * delta_r);
+    F[1] -= fw->area * (kv * fw->slip_cy_b * xbf + pv * fw->cy_dr * delta_r);
     const double q_a = -s->omega[1], r_a = -s->omega[2];
     m_slip = fw->area * fw->chord *
              (kh * (fw->slip_cm_a * xa + fw->cm_q * q_a * 0.5 * fw->chord) + ph * fw->cm_de * delta_e);
     n_slip = fw->area * fw->span *
-             (kv * (fw->slip_cn_b * xb + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
+             (kv * (fw->slip_cn_b * xbf + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
     l_slip = fw->area * fw->span *
-             (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * kwa * fw->cl_da * delta_a);
+             (kv * fw->slip_cl_b * xbf + pv * fw->cl_dr * delta_r + dp * fa * kwa * fw->cl_da * delta_a);
     l_slip = add_term(l_slip, root);
     g_slip[0] = l_slip;
     g_slip[1] = -m_slip;
@@ -3575,6 +3606,7 @@ const FixedWingParams FW_SKY1800 = {
   .slip_r = 0.1397, .slip_yh = 0.228, .slip_hv = { 0, 0 }, .slip_ya = { 0.45, 0.85 },
   .slip_a0 = 0.005368, .slip_cl_a = 0.3771, .slip_cm_a = -1.305, .slip_cn_b = 0.1552,
   .slip_cn_r = -0.119, .slip_cy_b = -0.4011, .slip_cl_b = -0.02228, .slip_pusher = 1,
+  .slip_loss = { 0.1276, 0, 0 }, /* scripts/wash-derive.js */
   .tail_deda = 0.364, /* d eps / d alpha, scripts/stall-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { 0.0293, 0.0, 0.0645 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -3661,9 +3693,9 @@ const FixedWingParams FW_CUB1400 = {
   .stab_trim_throttle = 0.477, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0474, 0.1142, 0.5932 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.423, 1.0192, 5.2943 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.288, -1.373, -0.531 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0449, 0.1107, 0.5773 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.4007, 0.988, 5.1524 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.287, -1.369, -0.529 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3689,6 +3721,7 @@ const FixedWingParams FW_CUB1400 = {
   .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
   .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
+  .slip_loss = { 0.2312, 0.2836, 0.4694 }, /* scripts/wash-derive.js */
   .side_cda = 0.0924, /* 0.84 of 0.11 m^2, 0.9 m by 0.14 m of fuselage side, docs/CUB-STAGE1.md */
   .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -3780,9 +3813,9 @@ const FixedWingParams FW_RADIAN2000 = {
   .stab_trim_throttle = 0.280, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 80.0 * WING_PI / 180.0,  /* a glider rolls at 77 deg/s at 12 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0329, 0.0992, 0.3193 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.2936, 0.8854, 2.8497 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.296, -0.98, -0.606 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0281, 0.088, 0.2822 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.2508, 0.7854, 2.5186 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.296, -0.978, -0.605 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -3810,6 +3843,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .slip_r = 0.1238, .slip_yh = 0.2385, .slip_hv = { 0.276, 0.01 }, .slip_ya = { 0.9, 1 },
   .slip_a0 = 0.04411, .slip_cl_a = 0.3737, .slip_cm_a = -1.382, .slip_cn_b = 0.1043,
   .slip_cn_r = -0.06673, .slip_cy_b = -0.3254, .slip_cl_b = -0.02115,
+  .slip_loss = { 0.2655, 0.2809, 0.4993 }, /* scripts/wash-derive.js */
   .side_cda = 0.0697, /* 0.84 of 0.083 m^2, the fuselage in side view, the render model's */
   .tail_deda = 0.301, /* d eps / d alpha, scripts/glider-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -4114,17 +4148,17 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stab_pitch_max = 25.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
   .stab_deadband = 0.04,
-  .stab_roll_kp = 1.53,   /* 2.0 over the rudder's 1.309 gain in the wash at the trim, scripts/stab-hold-derive.js */
-  .stab_roll_kd = 0.61,   /* 0.8 over the same gain */
+  .stab_roll_kp = 1.54,   /* 2.0 over the rudder's 1.301 gain in the wash at the trim, scripts/stab-hold-derive.js */
+  .stab_roll_kd = 0.62,   /* 0.8 over the same gain, scripts/stab-hold-derive.js */
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 8.08 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
   .stab_trim_throttle = 0.514, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 60.0 * WING_PI / 180.0,
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.1848, 0.6944 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 1.6493, 6.1975 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.595, -1.079, -0.628 }, /* npm run as3x:derive */
+  .as3x_k = { 0, 0.1761, 0.664 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 1.5717, 5.9262 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.592, -1.074, -0.624 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4154,6 +4188,7 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .slip_r = 0.1397, .slip_yh = 0.22, .slip_hv = { 0.2, 0.01 }, .slip_ya = { 0.53, 0.588 },
   .slip_a0 = 0.04292, .slip_cl_a = 0.311, .slip_cm_a = -0.5746, .slip_cn_b = 0.1232,
   .slip_cn_r = -0.1111, .slip_cy_b = -0.2735, .slip_cl_b = -0.01814,
+  .slip_loss = { 0.2565, 0.2802, 0.4939 }, /* scripts/wash-derive.js */
   .tail_deda = 0.494, /* d eps / d alpha, scripts/slowstick-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.0516, 0.0, 0.0939 }, /* the drawn model's wing quarter chord, npm run ge:derive */
@@ -4240,9 +4275,9 @@ const FixedWingParams FW_TIMBER1500 = {
   .stab_trim_throttle = 0.417, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0317, 0.0654, 0.3089 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.2829, 0.5837, 2.7569 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.522, -1.665, -0.973 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0313, 0.0649, 0.3074 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.2794, 0.5792, 2.7435 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.522, -1.66, -0.968 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4286,6 +4321,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
   .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
+  .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, 1.04 m by 0.13 m of fuselage side, docs/TIMBER-STAGE1.md */
   .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -4376,9 +4412,9 @@ const FixedWingParams FW_TIMBER1500F = {
   .stab_trim_throttle = 0.503, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0424, 0.0847, 0.3591 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.3784, 0.7559, 3.205 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.632, -1.72, -1.166 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0422, 0.0848, 0.3601 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3766, 0.7568, 3.2139 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.631, -1.708, -1.154 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4422,6 +4458,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
   .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
+  .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, the Timber's fuselage; the floats' own side is not in it, ESTIMATED */
   .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -4507,9 +4544,9 @@ const FixedWingParams FW_CUB1400F = {
   .stab_trim_throttle = 0.608, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0639, 0.1562, 0.7127 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.5703, 1.3941, 6.3608 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.422, -1.446, -0.663 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0603, 0.1514, 0.6943 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.5382, 1.3512, 6.1966 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.421, -1.434, -0.655 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4535,6 +4572,7 @@ const FixedWingParams FW_CUB1400F = {
   .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
   .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
+  .slip_loss = { 0.2312, 0.2836, 0.4694 }, /* scripts/wash-derive.js */
   .side_cda = 0.0924, /* 0.84 of 0.11 m^2, the Cub's fuselage; the floats' own side is not in it, ESTIMATED */
   .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -4618,7 +4656,7 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stab_pitch_max = 12.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
   .stab_deadband = 0.04,
-  .stab_roll_kp = 1.11,   /* 1.6 over the rudder's 1.446 gain in the wash at the trim, scripts/stab-hold-derive.js */
+  .stab_roll_kp = 1.12,   /* 1.6 over the rudder's 1.430 gain in the wash at the trim, scripts/stab-hold-derive.js */
   .stab_roll_kd = 0.42,   /* 0.6 over the same gain */
   .stab_pitch_kp = 3.0,
   .stab_pitch_kd = 0.5,
@@ -4626,9 +4664,9 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stab_trim_throttle = 0.510, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 45.0 * WING_PI / 180.0,
   .acro_pitch_rate = 30.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.1426, 0.6901 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 1.2727, 6.1591 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.954, -0.731, -0.685 }, /* npm run as3x:derive */
+  .as3x_k = { 0, 0.1282, 0.6421 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 1.1442, 5.7307 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.944, -0.726, -0.678 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4672,6 +4710,7 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .slip_r = 0.0889, .slip_yh = 0.206, .slip_hv = { 0.129, 0.01 }, .slip_ya = { 0.5, 0.5588 },
   .slip_a0 = 0.04422, .slip_cl_a = 0.5377, .slip_cm_a = -1.618, .slip_cn_b = 0.09309,
   .slip_cn_r = -0.08896, .slip_cy_b = -0.1948, .slip_cl_b = -0.009061,
+  .slip_loss = { 0.2655, 0.2847, 0.5182 }, /* scripts/wash-derive.js */
   .side_cda = 0.0428, /* 0.84 of 0.051 m^2, the fuselage in side view, scripts/bombshell-derive.js */
   .tail_deda = 0.341, /* d eps / d alpha, scripts/bombshell-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -4765,9 +4804,9 @@ const FixedWingParams FW_KADET1981 = {
   .stab_trim_throttle = 0.736, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 25.0 * WING_PI / 180.0, /* what full rudder rolls it at, 20 to 25 deg/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.0908, 0.3398 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 0.8104, 3.0327 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.37, -0.797, -0.606 }, /* npm run as3x:derive */
+  .as3x_k = { 0, 0.0904, 0.3404 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 0.8068, 3.0381 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.346, -0.772, -0.572 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -4804,6 +4843,7 @@ const FixedWingParams FW_KADET1981 = {
   .slip_r = 0.1524, .slip_yh = 0.3935, .slip_hv = { 0.259, 0.114 }, .slip_ya = { 0.89, 0.9906 },
   .slip_a0 = -0.02575, .slip_cl_a = 0.4965, .slip_cm_a = -1.273, .slip_cn_b = 0.1299,
   .slip_cn_r = -0.1269, .slip_cy_b = -0.2654, .slip_cl_b = -0.01018,
+  .slip_loss = { 0.2655, 0.3311, 0 }, /* scripts/wash-derive.js */
   .side_cda = 0.2016, /* 0.84 of 0.24 m^2, the box fuselage in side view, scripts/kadet-derive.js */
   .tail_deda = 0.38, /* d eps / d alpha, scripts/kadet-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -4903,9 +4943,9 @@ const FixedWingParams FW_P51D1450 = {
   .stab_trim_throttle = 0.776, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 120.0 * WING_PI / 180.0, /* 0.7 of full aileron's 168 deg/s at 17.5 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* at 16 m/s, 2.5 g, the most it pulls short of its stall */
-  .as3x_k = { 0.0952, 0.1277, 0.4329 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.8497, 1.1397, 3.8636 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.633, -4.35, -0.67 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0945, 0.1271, 0.4317 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.8434, 1.1344, 3.8529 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.626, -4.29, -0.657 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -4959,6 +4999,7 @@ const FixedWingParams FW_P51D1450 = {
   .slip_r = 0.1778, .slip_yh = 0.258, .slip_hv = { 0.18, 0.01 }, .slip_ya = { 0.45, 0.68 },
   .slip_a0 = 0.07222, .slip_cl_a = 0.2949, .slip_cm_a = -0.8361, .slip_cn_b = 0.1152,
   .slip_cn_r = -0.1126, .slip_cy_b = -0.236, .slip_cl_b = -0.02099,
+  .slip_loss = { 0.2506, 0.3193, 0.5109 }, /* scripts/wash-derive.js */
   .side_cda = 0.0882, /* 0.84 of 0.105 m^2, the fuselage in side view, scripts/p51-derive.js */
   .tail_deda = 0.429, /* d eps / d alpha, scripts/p51-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -5309,9 +5350,9 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .stab_trim_throttle = 0.710, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 80.0 * WING_PI / 180.0, /* 0.85 of full aileron's 95 deg/s at the trim */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, 76 deg/s */
-  .as3x_k = { 0.0453, 0.1546, 0.4192 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.4043, 1.3798, 3.7414 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.092, -1.13, -0.497 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0443, 0.1527, 0.4167 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3954, 1.3628, 3.719 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.091, -1.12, -0.489 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -5353,6 +5394,7 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .slip_r = 0.1524, .slip_yh = 0.283, .slip_hv = { 0.178, 0.087 }, .slip_ya = { 0.145, 0.784 },
   .slip_a0 = 0.05137, .slip_cl_a = 0.3967, .slip_cm_a = -0.8873, .slip_cn_b = 0.1178,
   .slip_cn_r = -0.1107, .slip_cy_b = -0.2505, .slip_cl_b = -0.01054,
+  .slip_loss = { 0.2655, 0.3281, 0.5629 }, /* scripts/wash-derive.js */
   .side_cda = 0.084, /* 0.84 of 0.1 m^2, the slab fuselage in side view, scripts/uglystik-derive.js */
   .tail_deda = 0.416, /* d eps / d alpha, scripts/uglystik-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -5458,9 +5500,9 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .stab_trim_throttle = 0.665, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 75.0 * WING_PI / 180.0, /* 0.85 of full aileron's 88 deg/s at the trim */
   .acro_pitch_rate = 45.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0986, 0.1899, 0.3882 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.88, 1.6949, 3.4647 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.969, -1.695, -0.896 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0965, 0.1892, 0.3896 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.8613, 1.6886, 3.4772 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.969, -1.665, -0.872 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -5519,6 +5561,7 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .slip_r = 0.1524, .slip_yh = 0.3025, .slip_hv = { 0.246, 0.081 }, .slip_ya = { 0.35, 0.89 },
   .slip_a0 = -0.007186, .slip_cl_a = 0.2292, .slip_cm_a = -0.7162, .slip_cn_b = 0.1077,
   .slip_cn_r = -0.1117, .slip_cy_b = -0.2081, .slip_cl_b = -0.01166,
+  .slip_loss = { 0.2655, 0.3114, 0.5856 }, /* scripts/wash-derive.js */
   .side_cda = 0.1436, /* 0.84 of 0.171 m^2, the fuselage in side view, scripts/tigermoth-derive.js */
   .tail_deda = 0.4416, /* d eps / d alpha, scripts/tigermoth-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77's biplane, Report 738; npm run ge:derive */
@@ -5867,9 +5910,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.032, 0.1372, 0.2303 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.5712, 2.449, 4.1108 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.198, -3.871, -5.177 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0322, 0.138, 0.2317 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.5748, 2.4633, 4.1358 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.198, -2.85, -3.509 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -5900,6 +5943,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .slip_cn_r = -0.3465,
   .slip_cy_b = -0.4631,
   .slip_cl_b = -0.0212,
+  .slip_loss = { 0.2655, 0.3164, 0.6084 }, /* scripts/lib/wash.js slipLoss: the stabiliser 3.09, the fin 3.34 D behind the disc; the fin swirl's too */
   .strip_tau = { 0.378, 0.378, 0.378, 0.378 }, /* the ailerons run from 0.077 m to the tip */
   /* The swirl over the wing's root, scripts/extra-derive.js: the fuselage's
    * side 0.075 m out (E-flite's top view), the wing 0.070 m under the
@@ -5908,7 +5952,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   /* FITTED: no measurement gives a wing's lift in a stream this narrow;
    * the share that gives back Selig's 40 percent of the torque at the
    * hover, with SWIRL_KEEP's fin, npm run extra:derive. */
-  .slip_root_eta = 0.414,
+  .slip_root_eta = 0.557,
   .hi_alpha = 1,
   .tail_at = 3.699,
   .tail_av = 3.715,
@@ -6019,9 +6063,9 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_roll_ki = 4.0,
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
-  .as3x_k = { 0.0484, 0.1128, 0.3558 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.432, 1.0067, 3.1755 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.157, -6.727, -4.393 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0481, 0.1124, 0.3553 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.4293, 1.0032, 3.171 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.157, -5.465, -3.112 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6060,6 +6104,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .slip_cn_r = -0.1881,
   .slip_cy_b = -0.4027,
   .slip_cl_b = 0.0112,
+  .slip_loss = { 0.2175, 0.2980, 0.6721 }, /* scripts/lib/wash.js slipLoss: the stabiliser 2.56, the fin 2.69 D behind the disc; the fin swirl's too */
   .strip_tau = { 0.1749, 0.4643, 0.4643, 0.3496 }, /* the ailerons and flaperons from 0.093 m to 0.563 */
   .hi_alpha = 1,
   .tail_at = 3.812,
@@ -6320,9 +6365,9 @@ const FixedWingParams FW_CAP1702 = {
   .jet_kj = 0.80,
   .prop_x = 0.560, /* npm run cap580:derive */
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
-  .as3x_k = { 0.0353, 0.1946, 0.5428 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.6301, 3.4736, 9.689 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.787, -2.278, -1.687 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0353, 0.1948, 0.5435 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.6301, 3.4772, 9.7015 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.787, -2.052, -1.536 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */
@@ -6347,6 +6392,7 @@ const FixedWingParams FW_CAP1702 = {
   .slip_cn_r = -0.2500,   /* npm run cap580:derive */
   .slip_cy_b = -0.4469,   /* npm run cap580:derive */
   .slip_cl_b = -0.0265,   /* npm run cap580:derive */
+  .slip_loss = { 0.2655, 0.3091, 0.6302 }, /* npm run cap580:derive */
   .strip_tau = { 0.2064, 0.4492, 0.4492, 0.4492 }, /* npm run cap580:derive: the ailerons from 0.115 m to the tip */
   .hi_alpha = 1, /* docs/EXTRA-STAGE1.md: the 3D aircraft's high angle terms */
   .tail_at = 3.740,       /* npm run cap580:derive */
@@ -6483,9 +6529,9 @@ const FixedWingParams FW_SLICK2680 = {
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0878, 0.434, 0.8287 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.5672, 7.7469, 14.7923 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.646, -3.631, -2.116 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0879, 0.4342, 0.8291 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.569, 7.7505, 14.7994 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.646, -3.343, -1.611 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
@@ -6547,6 +6593,7 @@ const FixedWingParams FW_SLICK2680 = {
   .slip_cn_r = -0.2916, /* scripts/slick-derive.js */
   .slip_cy_b = -0.4944, /* scripts/slick-derive.js */
   .slip_cl_b = -0.0417, /* scripts/slick-derive.js */
+  .slip_loss = { 0.2395, 0.2879, 0.5854 }, /* scripts/slick-derive.js */
   .strip_tau = { 0.18, 0.392, 0.392, 0.31 }, /* the ailerons from 0.181 m to the tip rib, scripts/slick-derive.js */
   .hi_alpha = 1, /* the 3D regime's terms, docs/EXTRA-STAGE1.md */
   .tail_at = 4.303, /* scripts/slick-derive.js */

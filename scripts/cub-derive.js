@@ -324,8 +324,9 @@ const taxiTurn = (() => {
       const up = Math.min(ws.rw, fw.slip_hv[0]), dn = Math.min(ws.rw, fw.slip_hv[1]);
       const xa = -w * Math.cos(fw.slip_a0) - u * Math.sin(fw.slip_a0);
       const mdot = rho * Math.PI * fw.slip_r ** 2 * (Math.max(0, u) + ws.vi);
-      const xb = -v - swirlKeep * qAir * (up - dn) / (mdot * ws.rw * ws.rw);
-      const kh = rho * ws.vi * ws.fh, kv = rho * ws.vi * ws.fv, pv = ws.dp * ws.fv;
+      /* The swirl meets the whole stream (plant_wing.c). */
+      const xb = -v - ws.keepS * swirlKeep * qAir * (up - dn) / (mdot * ws.rw * ws.rw) * (Math.max(0, u) + 2 * ws.vi) / (2 * ws.vi);
+      const kh = rho * ws.vi * ws.fh, kv = rho * ws.vi * ws.fv, pv = ws.dp * ws.keepV * ws.fv;
       F[2] += fw.area * kh * fw.slip_cl_a * xa;
       F[1] -= fw.area * (kv * fw.slip_cy_b * xb + pv * fw.cy_dr * dr);
       mSlip = fw.area * fw.chord * kh * fw.slip_cm_a * xa;

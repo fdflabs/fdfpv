@@ -414,7 +414,7 @@ widened to pass.
 | P18 full flap approach at 1.3 Vs (10.92 m/s), stabilised from 500 ft scaled (FAA-H-8083-3C ch. 9), flown by the person pilot | touch under 11.6 m/s | at most 3 go arounds, bank within 15 deg, on the wheels, at rest at P13's pitch, no hull or prop | 0 go arounds, bank within 2.9 deg, 10.51 m/s sinking 0.52, rolled 47.5 m, 13.02 deg |
 | P19 the slow pull (8 s to full up from 15.6 m/s, gear up, idle): the first second after the roll off's onset | the XP-51's 0.079 and 39 deg | pb/2V 0.040 to 0.118, bank 20 to 59 deg | 0.0755, 29.0 deg, the left wing (0.1117 and 44.7 deg with the gyroscope, P19w) |
 | S17 other aircraft unmoved | main's hashes | identical | identical, the Kadet's included |
-| S18, S18b Node and Chrome | | identical | 51cbbdb7aeeb7ebc (the take off), beb4fa574780f908 (gear up, the stall), both |
+| S18, S18b Node and Chrome | | identical | 0f9b6ba210baea8f (the take off), e2ae0fe37307a0f7 (gear up, the stall), both |
 
 `npm run p51:gates`: 26 of 26. Rows not named in "The stall from measured sections" keep their last recorded figures.
 

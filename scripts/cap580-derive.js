@@ -417,7 +417,7 @@ let vClimb = 0;
 for (let V = 0; V < 40; V += 0.001) { if (T(V, nAt(1, V)) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 
 const slipA0 = CLtrim / CLa;
-const slip = shares({ propR, bh, hv: [hvUp, hvDn], ya: [ailIn, aileronOut], at, Sh, S, eta, deda, VH, av, VV, lv, b, Sv, ClbFin, a0: slipA0 });
+const slip = shares({ propR, bh, hv: [hvUp, hvDn], ya: [ailIn, aileronOut], at, Sh, S, eta, deda, VH, av, VV, lv, b, Sv, ClbFin, a0: slipA0, xh: propX + lh, xv: propX + lv });
 const hov = washOf(slip, W, 0);
 
 /* The air a slow aircraft turns through, Hoerner's flat plate, C_N 1.17,
@@ -443,11 +443,11 @@ const FUSE = [
 const sectionK = fuselageRatio(FUSE);
 const sideCda = fusL * fusD * 0.8 * 1.2 * sectionK * 0.7;
 
-/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.74
+/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
  * (Selig, AIAA 2010-7938; docs/FLIGHTMODEL.md). */
-const SWIRL_KEEP = 0.74;
+const SWIRL_KEEP = 0.65;
 const Qprop = torqueArm * W;
-const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -(Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
+const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -hov.keepS * (Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
 /* A pilot hanging it holds the nose on the rudder (wingpilot.js
  * hangSticks, the gate's pilot): the swirl's side wind on the fin yaws the
  * nose, and the rudder that stops the yaw pushes back on the same surface,
@@ -457,7 +457,7 @@ const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -(Qprop * (Mat
  * force, and the net torque is the prop's less the root's share alone.
  * (The Extra's derivation took the fin's roll with no rudder; its plant
  * gate E8 flies with the rudder held and reads above it for this reason.) */
-const xsHover = SWIRL_KEEP * Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw);
+const xsHover = hov.keepS * SWIRL_KEEP * Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw);
 const finHeld = S * b * rho * hov.vi * hov.fv * -xsHover * (slip.slip_cl_b - Cldr * slip.slip_cn_b / Cndr);
 const Qhover = Qprop - (1 - SWIRL_KEEP) * Qprop + finHeld;
 const torqueRoll = Math.sign(Qhover) * Math.sqrt(Math.abs(Qhover) / rotK[0]);
@@ -466,8 +466,8 @@ const aileronRollNet = aileronHover > Qhover ? Math.sqrt((aileronHover - Qhover)
 const tailCn = 1.17;
 const plateRatio = (x) => 1 / Math.sqrt(Math.sqrt(1 + (x / tailCn) ** 4));
 const vhT = -slip.slip_cm_a / (at * (1 - deda)), vvF = slip.slip_cn_b / av;
-const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
-const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
+const pitchAccHover = hov.dp * hov.keepH * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
+const yawAccHover = hov.dp * hov.keepV * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 
 /* The rest on the gear: each axle lowered by its 5 mm of static
  * deflection, as every taildragger's here. */
@@ -542,14 +542,14 @@ function harrier(alphaDeg) {
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * CLa * sa);
   const alphaT = sa - deda * CL / CLa - slip.slip_a0 * (1 - deda);
   const xa = V * Math.sin(a - slip.slip_a0);
-  const vw = u + 2 * w.vi;
+  const vw = w.vwH;
   /* scripts/lib/washcontrol.js, as the plant: the side the elevator is on against the crossflow. */
   const cm = (de) => {
     const kw = washKw(a, w.dp, V, rho, Cmde * de * xa > 0 ? 'against' : 'with');
     const xt = at * alphaT - Cmde * de / vhT;
     const free = Cm0 + (Cma - slip.slip_cm_a) * sa + slip.slip_cm_a * slip.slip_a0 - vhT * xt * plateRatio(xt) + past * cmPost;
     const rh = plateRatio(at * xa / vw - kw * Cmde * de / vhT);
-    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.fh * rh * kw * Cmde * de) / qb;
+    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.keepH * w.fh * rh * kw * Cmde * de) / qb;
   };
   let dLo = -throwE, dHi = throwE;
   for (let i = 0; i < 60; i += 1) { const mid = (dLo + dHi) / 2; if (cm(mid) < 0) dLo = mid; else dHi = mid; }
@@ -566,10 +566,10 @@ function knifeEdge(V) {
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
       const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
-      const nPerDr = qb * S * b * Cndr + w.dp * w.fv * S * b * Cndr;
+      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slip.slip_cy_b) * (V * sb)
-        - (qb + w.dp * w.fv) * S * CYdr * Math.abs(dr);
+        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
     if (T(u, nAt(1, u)) < thrust) break;
@@ -777,6 +777,7 @@ export const FW = {
   slip_r: r(propR, 4), slip_yh: r(bh / 2, 4), slip_hv: arr([hvUp, hvDn], 3), slip_ya: arr([ailIn, aileronOut], 4),
   slip_a0: r(slip.slip_a0, 4), slip_cl_a: r(slip.slip_cl_a, 4), slip_cm_a: r(slip.slip_cm_a, 4),
   slip_cn_b: r(slip.slip_cn_b, 4), slip_cn_r: r(slip.slip_cn_r, 4), slip_cy_b: r(slip.slip_cy_b, 4), slip_cl_b: r(slip.slip_cl_b, 4),
+  slip_loss: arr(slip.slip_loss, 4),
   strip_tau: arr(stripTau, 4), tail_at: r(at, 3), tail_av: r(av, 3), tail_deda: r(deda, 3),
   side_cda: r(sideCda, 4), rot_k: arr(rotK, 5), j_prop: r(propJ, 6),
 };

@@ -160,10 +160,10 @@
     "bramor": "18ff2247d729b5e0",
     "bramorChute": "f55cd80c4ad90415",
     "slowstick": "3381daf82274acd4",
-    "bombshell": "97c0041faddc81fe",
+    "bombshell": "b022f864a281224b",
     "timber": "979754e51f82f7b0",
     "timberf": "74117171ec846d8c",
-    "kadet": "857c414cde8a01e2",
+    "kadet": "7bb8fe6d3123c6ed",
     "p51": "179a7828b35ec417",
     "p51Air": "e254cb9673ba5689",
     "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was. Re-pinned 2026-10-12 (w36-p51-clmax): the P-51's two recorded flights (p51 was 7219c30ebb48a05c, p51-air 4646a1ba51f005db) moved with its stall taken from measured sections, stall_re and stall_round on its own table (docs/P51-STAGE1.md); this aircraft's own recordings are unmoved."

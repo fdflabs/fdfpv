@@ -127,9 +127,9 @@ async function tables() {
       /* An electric's pack, the gates' seat (wingSeat, power_duty). */
       fw.seat = fw.current_full > 0 ? wingSeat(m[1]) : null;
       /* Its slipstream's geometry, for the wash's moment over the
-       * stabiliser: the two lists fields() leaves out, and its scalars. */
-      const pair = (k) => { const x = new RegExp(`\\.${k} = \\{ ([^}]*) \\}`).exec(m[2]); return x ? x[1].split(',').map(Number) : [0, 0]; };
-      fw.slip = fw.slip_r > 0 ? { ...fw, slip_hv: pair('slip_hv'), slip_ya: pair('slip_ya') } : null;
+       * stabiliser: the lists fields() leaves out, and its scalars. */
+      const list = (k, n) => { const x = new RegExp(`\\.${k} = \\{ ([^}]*) \\}`).exec(m[2]); return x ? x[1].split(',').map(Number) : Array(n).fill(0); };
+      fw.slip = fw.slip_r > 0 ? { ...fw, slip_hv: list('slip_hv', 2), slip_ya: list('slip_ya', 2), slip_loss: list('slip_loss', 3) } : null;
       /* An engine's dyno curve (throttle_rpm), which fields() leaves out as
        * a list: the stick to its speed over full, straight between tenths. */
       const curve = m[2].match(/\.throttle_rpm = \{ ([^}]*) \}/);
