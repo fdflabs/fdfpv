@@ -10,10 +10,12 @@
  * Per surface, one panel: span, its flap chord's root mean square, the
  * chord fraction, the aspect ratio of the surface it hinges on, the
  * table's throw, the servos on the panel and their torque at the voltage
- * it was published at. A torque published at 4.8 V is taken at 4.8 V,
- * though a receiver on a 5 or 6 V BEC gives the servo more: no kit here
- * publishes its BEC's voltage, so the published figure stands (the safe
- * side for the servo, the hard side for the pilot).
+ * it was published at, taken at the receiver's voltage where the maker
+ * publishes a figure for it: the Night Timber's Avian 60 A ESC
+ * (SPMXAE1060) gives a 6.0 V BEC (Horizon Hobby, "6V/7.2V adjustable"),
+ * and the Timber's Avian 70 A Smart Lite is taken the same (ESTIMATED:
+ * its BEC's voltage was not found). A torque published at 4.8 V alone is
+ * taken at 4.8 V, the maker's own 6.0 V figure not assumed.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -102,19 +104,19 @@ export const FLEET = {
      * against 0.244, so the aileron's hold stands for both); the
      * stabiliser 0.0794 m^2 over 0.495 m; the fin and rudder 0.034 m^2
      * over 0.227 m, its effective AR 2.35; cf configs/surfaces.js. */
-    a: { cf: 0.383, ar: 5.025, span: 0.5629 - 0.3191, chordRms: 0.383 * 0.239, servosPerPanel: 1, servo: servo('spmsa332', 4.8) },
-    e: { cf: 0.525, ar: 0.495 ** 2 / 0.0794, span: 0.495, chordRms: 0.525 * 0.0794 / 0.495, servosPerPanel: 1, servo: servo('spmsa332', 4.8) },
-    r: { cf: 0.60, ar: 2.349, span: 0.227, chordRms: 0.60 * 0.034 / 0.227, servosPerPanel: 1, servo: servo('spmsa332', 4.8) },
+    a: { cf: 0.383, ar: 5.025, span: 0.5629 - 0.3191, chordRms: 0.383 * 0.239, servosPerPanel: 1, servo: servo('spmsa332', 6.0) },
+    e: { cf: 0.525, ar: 0.495 ** 2 / 0.0794, span: 0.495, chordRms: 0.525 * 0.0794 / 0.495, servosPerPanel: 1, servo: servo('spmsa332', 6.0) },
+    r: { cf: 0.60, ar: 2.349, span: 0.227, chordRms: 0.60 * 0.034 / 0.227, servosPerPanel: 1, servo: servo('spmsa332', 6.0) },
   },
   FW_TIMBER1500: {
     /* scripts/timber-derive.js: the ailerons 0.340 to 0.700 m on the
      * 0.240 m chord, AR 6.70; the stabiliser 0.071 m^2 over 0.56 m; the
      * fin and rudder 0.0314 m^2, its AR 1.8, 0.231 m high (slip_hv); cf
-     * configs/surfaces.js. The A370's torque is the A332's, ESTIMATED
-     * there. */
-    a: { cf: 0.27, ar: 1.555 ** 2 / 0.361, span: 0.36, chordRms: 0.27 * 0.24, servosPerPanel: 1, servo: servo('spmsa370', 4.8) },
-    e: { cf: 0.44, ar: 0.56 ** 2 / 0.071, span: 0.56, chordRms: 0.44 * 0.071 / 0.56, servosPerPanel: 1, servo: servo('spmsa370', 4.8) },
-    r: { cf: 0.46, ar: 1.8, span: 0.231, chordRms: 0.46 * 0.0314 / 0.231, servosPerPanel: 1, servo: servo('spmsa370', 4.8) },
+     * configs/surfaces.js. The A370's torque is the class's, ESTIMATED
+     * there, at 6.0 V. */
+    a: { cf: 0.27, ar: 1.555 ** 2 / 0.361, span: 0.36, chordRms: 0.27 * 0.24, servosPerPanel: 1, servo: servo('spmsa370', 6.0) },
+    e: { cf: 0.44, ar: 0.56 ** 2 / 0.071, span: 0.56, chordRms: 0.44 * 0.071 / 0.56, servosPerPanel: 1, servo: servo('spmsa370', 6.0) },
+    r: { cf: 0.46, ar: 1.8, span: 0.231, chordRms: 0.46 * 0.0314 / 0.231, servosPerPanel: 1, servo: servo('spmsa370', 6.0) },
   },
   /*
    * The rest of the fleet: geometry off each derive script and stage

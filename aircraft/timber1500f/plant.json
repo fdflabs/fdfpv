@@ -131,7 +131,7 @@
         {"field":"slip_cl_b","expr":"-0.01498","packed":true},
         {"field":"slip_loss","expr":"{ 0.2652, 0.2968, 0.5968 }","comment":"scripts/wash-derive.js"},
         {"field":"side_cda","expr":"0.105","comment":"0.84 of 0.125 m^2, the Timber's fuselage; the floats' own side is not in it, ESTIMATED"},
-        {"field":"hinge_hold","expr":"{ 128.5, 157.7, 274.2 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_hold","expr":"{ 257, 315.5, 548.4 }","comment":"servo blow back, npm run servo:derive"},
         {"field":"hinge_alpha","expr":"{ 0.4677, 0.6053, 0.4596 }","comment":"npm run servo:derive"},
         {"field":"tail_deda","expr":"0.46","comment":"d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table"},
         {"field":"ground_effect","expr":"1","comment":"GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive"},

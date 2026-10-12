@@ -161,12 +161,12 @@
     "bramorChute": "f55cd80c4ad90415",
     "slowstick": "5cb4a849ded50cd4",
     "bombshell": "b022f864a281224b",
-    "timber": "1fddd8b4a1b08d9a",
+    "timber": "a37fb4874100db9a",
     "timberf": "04d5880268b8b3a4",
     "kadet": "7bb8fe6d3123c6ed",
     "p51": "14973c0704db17f0",
     "p51Air": "d084331ed02732a1",
-    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was. Re-pinned 2026-10-12 (w36-p51-clmax): the P-51's two recorded flights (p51 was 7219c30ebb48a05c, p51-air 4646a1ba51f005db) moved with its stall taken from measured sections, stall_re and stall_round on its own table (docs/P51-STAGE1.md); this aircraft's own recordings are unmoved. Re-pinned 2026-10-12 (w37-physics-servo): the Timber's recorded flight (was a37fb4874100db9a) flies the servos' blow back at its speed, plant_wing.c hinge_hold, npm run servo:derive."
+    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was. Re-pinned 2026-10-12 (w36-p51-clmax): the P-51's two recorded flights (p51 was 7219c30ebb48a05c, p51-air 4646a1ba51f005db) moved with its stall taken from measured sections, stall_re and stall_round on its own table (docs/P51-STAGE1.md); this aircraft's own recordings are unmoved."
   },
   "s18_cross_host": {
     "source": "the F-16's recorded take off and flight, state trace hash, Node against headless Chrome"

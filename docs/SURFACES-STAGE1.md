@@ -116,8 +116,9 @@ over the stock's, which `sim_wing_set_tiers` carries to the plant
 
 Where the stock servos blow back, at full throw and level flight
 (`npm run servo:derive`): the Night Timber's A332s let the elevator go
-at 12.0 m/s, the aileron at 17.9 and the rudder at 18.2; the Timber's
-A370s the aileron at 20.8 and the elevator at 25.8; the Extra's D89MWs
+at 16.9 m/s, the aileron at 25.3 and the rudder at 25.8; the Timber's
+A370s the aileron at 29.3 (past its 28.6 m/s top speed) and the elevator
+at 36.6; the Extra's D89MWs
 the rudder at 20.9 and the aileron at 29.7; the Slick's SB-2290SGs the
 rudder at 31.3 and the elevator at 37.3; the Cub's HS-55s hold all three
 past 48 m/s.
@@ -135,21 +136,21 @@ Model Airplane News' calculator gives it) reads 16 times lower with
 chord and length in inches, as that page states them, and agrees within
 1.14 to 1.66 with them in centimetres, so the inches look like the
 page's slip. The full throw's blow back speeds the three give through
-the same linkage and servo: the Night Timber's elevator 12.0 here, 11.7
-StraightEdge, 13.4 Gadd; its aileron 17.9, 18.9, 21.5; the Timber's
-aileron 20.8, 21.2, 24.1; the Extra's rudder 20.9, 18.5, 22.4. They
+the same linkage and servo: the Night Timber's elevator 16.9 here, 16.5
+StraightEdge, 19.0 Gadd; its aileron 25.3, 26.7, 30.4; the Timber's
+aileron 29.3, 30.0, 34.2; the Extra's rudder 20.9, 18.5, 22.4. They
 agree inside what the inputs allow. No measured blow back report was
 found for these kits.
 
-The input that is weakest is the servo. The Night Timber's Avian 60 A
-ESC (SPMXAE1060) gives a 6.0 V BEC (Horizon Hobby's listing, "6V/7.2V
-adjustable"), but Spektrum publishes no 6.0 V torque for the A332, and
-its only published figure, 0.9 kg-cm at 4.8 V, comes from listings
-(lindinger.at, flashrc.com) whose same spec block reads 6 g and nylon
-gears, against the A332's 9 g and metal gears. So no 6 V scaling is
-taken, by rule, and the 0.9 is the number to check first: a 9 g metal
-gear servo's usual 1.5 to 2 kg-cm would move the elevator's 12.0 m/s to
-about 15.5 to 18.
+The servo is the input that was off. Spektrum publishes no torque for
+the A332 or the A370; the 0.9 kg-cm at 4.8 V first taken (lindinger.at
+9770338, flashrc.com) sits in a spec block reading 6.0 g, 4.8 to 5.3 V
+and nylon gears, another servo than the 9 g metal gear A332. Both are
+now the median 6.0 V torque of Spektrum's own published sub-micro metal
+gear aircraft servos, 1.80 kg-cm, ESTIMATED (`configs/surfaces.js`
+SERVOS, each servo and figure listed there), at the Night Timber's 6.0 V
+BEC (its Avian 60 A ESC, SPMXAE1060). It moved the Night Timber's
+elevator from 12.0 to 16.9 m/s and its aileron from 17.9 to 25.3.
 
 **Not offered.** A surface whose Extreme adds under 10 percent of control
 power over stock is left stock: the Extra's rudder (cf 0.76 at 55 deg is
@@ -233,17 +234,17 @@ cruise; a fifth of a stick and the speed kept do.
 | surface | tier | cf | throw deg | k | power | cd | servos | added | hold |
 |---|---|---|---|---|---|---|---|---|---|
 | aileron | stock | 0.383 | 28.92 | 1.000 | 1.000 | 0 | 2 A332, flaperons 2 A332 | 0 | 1.00 |
-|  | sport | 0.399 | 32.61 | 0.962 | 1.085 | 0.0064 | 2 D89MW, flaperons 2 HS-65MG | 38.9 g | 5.76 |
-|  | 3d | 0.414 | 36.31 | 0.942 | 1.182 | 0.0127 | 2 D89MW, flaperons 2 D89MW | 64 g | 4.76 |
-|  | extreme | 0.430 | 40.00 | 0.930 | 1.287 | 0.0191 | 2 D89MW, flaperons 2 D89MW | 64 g | 3.98 |
+|  | sport | 0.399 | 32.61 | 0.962 | 1.085 | 0.0064 | 2 D89MW, flaperons 2 HS-65MG | 38.9 g | 2.88 |
+|  | 3d | 0.414 | 36.31 | 0.942 | 1.182 | 0.0127 | 2 D89MW, flaperons 2 D89MW | 64 g | 2.38 |
+|  | extreme | 0.430 | 40.00 | 0.930 | 1.287 | 0.0191 | 2 D89MW, flaperons 2 D89MW | 64 g | 1.99 |
 | elevator | stock | 0.525 | 35.81 | 1.000 | 1.000 | 0 | A332 | 0 | 1.00 |
-|  | sport | 0.573 | 40.54 | 1.004 | 1.137 | 0.0134 | D89MW | 16 g | 5.33 |
-|  | 3d | 0.622 | 45.27 | 1.014 | 1.282 | 0.0268 | D645MW | 51 g | 7.28 |
-|  | extreme | 0.670 | 50.00 | 1.031 | 1.440 | 0.0402 | D950TW | 59 g | 14.85 |
+|  | sport | 0.573 | 40.54 | 1.004 | 1.137 | 0.0134 | D89MW | 16 g | 2.67 |
+|  | 3d | 0.622 | 45.27 | 1.014 | 1.282 | 0.0268 | D645MW | 51 g | 3.64 |
+|  | extreme | 0.670 | 50.00 | 1.031 | 1.440 | 0.0402 | D950TW | 59 g | 7.43 |
 | rudder | stock | 0.600 | 33.75 | 1.000 | 1.000 | 0 | A332 | 0 | 1.00 |
-|  | sport | 0.667 | 39.17 | 0.996 | 1.156 | 0.0079 | D89MW | 16 g | 5.16 |
-|  | 3d | 0.733 | 44.58 | 1.003 | 1.325 | 0.0158 | D89MW | 16 g | 3.86 |
-|  | extreme | 0.800 | 50.00 | 1.017 | 1.506 | 0.0237 | D89MW | 16 g | 2.94 |
+|  | sport | 0.667 | 39.17 | 0.996 | 1.156 | 0.0079 | D89MW | 16 g | 2.58 |
+|  | 3d | 0.733 | 44.58 | 1.003 | 1.325 | 0.0158 | D89MW | 16 g | 1.93 |
+|  | extreme | 0.800 | 50.00 | 1.017 | 1.506 | 0.0237 | D89MW | 16 g | 1.47 |
 
 Its stock cf (aileron and flap 0.383, elevator 0.525, rudder 0.60) and
 throws (28.92, 35.81, 33.75, E-flite's high rates of 45, 55 and 55 mm) are
@@ -300,42 +301,41 @@ their own 0.226 m panels.
 
 **The servos.** E-flite fits six Spektrum A332 9 g metal gear servos
 (manual p. 3, "5 x SPMSA332, 1 x SPMSA332R"): two ailerons, two flaps, the
-elevator and the rudder. The A332's only published torque is 0.9 kg-cm at
-4.8 V (lindinger.at, "Torque kg/cm (4,8V): 0,9"), which is taken as it
-stands. Through the +-45 deg linkage the aileron (one 0.244 m panel, 0.092
-m of flap chord, Ch_delta -0.72 per rad) holds its 28.9 deg to 17.9 m/s
-and 13.3 deg at 25 m/s; the elevator (0.495 m, 0.084 m, -0.65) holds its
-35.8 deg only to 12.0 m/s, 18.5 deg at 15 and 7.3 deg at 25; the rudder
-its 33.8 deg to 18.2 m/s. The flaperons fly on the same servos at the
+elevator and the rudder. The A332's only listed torque, 0.9 kg-cm at
+4.8 V (lindinger.at, "Torque kg/cm (4,8V): 0,9"), describes another servo
+(its block reads 6 g and nylon gears), so the A332 is taken at the class
+median above, 1.80 kg-cm at the 6.0 V BEC, ESTIMATED. Through the +-45
+deg linkage the aileron (one 0.244 m panel, 0.092 m of flap chord,
+Ch_delta -0.72 per rad) holds its 28.9 deg to 25.3 m/s; the elevator
+(0.495 m, 0.084 m, -0.65) holds its 35.8 deg to 16.9 m/s, 21.3 deg at 20
+and 13.8 deg at 25; the rudder its 33.8 deg to 25.8 m/s. The flaperons fly on the same servos at the
 same angle on a 0.226 m panel, so the aileron's hold stands for them.
 
 Measured on this branch, the servos blowing back (full stick deg/s / a
 fifth of a stick deg/s / speed kept, from level at the cruise throttle):
-roll 504 / 105 / 0.833 stock to 772 / 140 / 0.550 Extreme; pitch 177 /
-89 / 0.969 to 361 / 125 / 0.692; yaw 149 / 31 / 0.927 to 219 / 46 /
-0.706. The stock pitch rate is the A332 letting the elevator go: its
-Sport D89MW holds the throw and pitches at 322. The roll's speed kept
-drops furthest. Its 2 s full roll from cruise is a falling barrel roll,
-so sqrt(v^2 + 2 g dz) is the difference of two near numbers, and the
-Extreme roll's bigger yaw and pitch excursion shows up nearly whole in
-the bar.
+roll 591 / 105 / 0.831 stock to 772 / 140 / 0.550 Extreme; pitch 299 /
+89 / 0.791 to 361 / 125 / 0.692; yaw 149 / 31 / 0.927 to 219 / 46 /
+0.706. The roll's speed kept drops furthest. Its 2 s full roll from
+cruise is a falling barrel roll, so sqrt(v^2 + 2 g dz) is the
+difference of two near numbers, and the Extreme roll's bigger yaw and
+pitch excursion shows up nearly whole in the bar.
 
 ### Turbo Timber Evolution (sim 7)
 
 | surface | tier | cf | throw deg | k | power | cd | servos | added | hold |
 |---|---|---|---|---|---|---|---|---|---|
 | aileron | stock | 0.270 | 30.00 | 1.000 | 1.000 | 0 | 2 A370 | 0 | 1.00 |
-|  | sport | 0.323 | 33.33 | 1.040 | 1.155 | 0.0255 | 2 D89MW | 32 g | 4.26 |
-|  | 3d | 0.377 | 36.67 | 1.079 | 1.319 | 0.0511 | 2 D89MW | 32 g | 2.75 |
-|  | extreme | 0.430 | 40.00 | 1.118 | 1.490 | 0.0766 | 2 D645MW | 102 g | 3.30 |
+|  | sport | 0.323 | 33.33 | 1.040 | 1.155 | 0.0255 | 2 D89MW | 32 g | 2.13 |
+|  | 3d | 0.377 | 36.67 | 1.079 | 1.319 | 0.0511 | 2 D89MW | 32 g | 1.37 |
+|  | extreme | 0.430 | 40.00 | 1.118 | 1.490 | 0.0766 | 2 D645MW | 102 g | 1.65 |
 | elevator | stock | 0.440 | 20.00 | 1.000 | 1.000 | 0 | A370 | 0 | 1.00 |
-|  | sport | 0.517 | 30.00 | 0.834 | 1.250 | 0.0151 | D89MW | 16 g | 3.34 |
-|  | 3d | 0.593 | 40.00 | 0.803 | 1.606 | 0.0302 | D89MW | 16 g | 1.88 |
-|  | extreme | 0.670 | 50.00 | 0.812 | 2.030 | 0.0452 | D950TW | 59 g | 5.36 |
+|  | sport | 0.517 | 30.00 | 0.834 | 1.250 | 0.0151 | D89MW | 16 g | 1.67 |
+|  | 3d | 0.593 | 40.00 | 0.803 | 1.606 | 0.0302 | D89MW | 16 g | 0.94 |
+|  | extreme | 0.670 | 50.00 | 0.812 | 2.030 | 0.0452 | D950TW | 59 g | 2.68 |
 | rudder | stock | 0.460 | 27.00 | 1.000 | 1.000 | 0 | A370 | 0 | 1.00 |
-|  | sport | 0.573 | 34.67 | 0.980 | 1.258 | 0.0099 | HS-65MG | 3.5 g | 1.29 |
-|  | 3d | 0.687 | 42.33 | 0.995 | 1.561 | 0.0197 | D89MW | 16 g | 2.33 |
-|  | extreme | 0.800 | 50.00 | 1.021 | 1.891 | 0.0296 | D89MW | 16 g | 1.53 |
+|  | sport | 0.573 | 34.67 | 0.980 | 1.258 | 0.0099 | A370 | 0 | 0.53 |
+|  | 3d | 0.687 | 42.33 | 0.995 | 1.561 | 0.0197 | D89MW | 16 g | 1.16 |
+|  | extreme | 0.800 | 50.00 | 1.021 | 1.891 | 0.0296 | D89MW | 16 g | 0.77 |
 
 The aileron's cf (the aft 27 percent) and the throws (E-flite's high
 rates, 33, 20 and 30 mm, over the drawn chords at the horns, 30, 20 and
@@ -360,15 +360,16 @@ mixed into the ailerons, so the aileron tier is the outboard ailerons
 alone. The servos: E-flite's manual lists six 9 g metal gear digital
 servos, SPMSA370 (two ailerons, elevator, rudder, two flaps). No torque
 is published for the A370 (Spektrum's page and servo charts list none),
-so it is taken as the A332's 0.9 kg-cm, the same maker's 9 g metal gear
-class, ESTIMATED. The aileron (0.36 m by 0.065 m, Ch_delta -0.68 per rad)
-holds its 30 deg to 20.8 m/s and 17.6 deg at 25; the elevator its 20 deg
-to 25.8 m/s; the rudder its 27 deg to 31.3 m/s. The floats variant
+so it is taken at the class median above, 1.80 kg-cm at 6.0 V,
+ESTIMATED (its Avian 70 A Smart Lite's BEC voltage was not found; the
+Avian 60 A's is 6.0 V). The aileron (0.36 m by 0.065 m, Ch_delta -0.68
+per rad) holds its 30 deg to 29.3 m/s, past the top speed; the elevator
+its 20 deg to 36.6 m/s; the rudder its 27 deg to 44.3 m/s. The floats variant
 (timber1500f) is a different airframe id and has no row; its table
 takes the Timber's holds.
 
 Measured on this branch, the servos blowing back (full stick deg/s / a
-fifth of a stick deg/s / speed kept): roll 371 / 44 / 0.872 stock to 558
+fifth of a stick deg/s / speed kept): roll 386 / 44 / 0.873 stock to 558
 / 66 / 0.729 Extreme; pitch 247 / 54 / 0.990 to 436 / 90 / 0.685; yaw 126
 / 19 / 1.017 to 238 / 35 / 0.773. The elevator's k falls to 0.81, as the
 Cub's does: its stock 20 deg is near where K' is one, and 50 deg buys

@@ -140,7 +140,7 @@
         {"field":"ge_tail","expr":"{ -0.5362, 0.0, -0.113 }","comment":"the stabiliser's, npm run ge:derive"},
         {"field":"tail_cn","expr":"1.17","comment":"a flat plate normal to the flow, Hoerner","gap":8},
         {"field":"side_cda","expr":"0.1522","comment":"the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run nighttimber:derive","gap":5},
-        {"field":"hinge_hold","expr":"{ 93.3, 48.8, 108.2 }","comment":"servo blow back, npm run servo:derive"},
+        {"field":"hinge_hold","expr":"{ 186.7, 97.6, 216.4 }","comment":"servo blow back, npm run servo:derive"},
         {"field":"hinge_alpha","expr":"{ 0.5645, 0.6062, 0.6549 }","comment":"npm run servo:derive"},
         {"field":"rot_k","expr":"{ 0.01132, 0.01439, 0.01218 }"}
       ]

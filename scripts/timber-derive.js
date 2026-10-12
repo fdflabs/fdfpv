@@ -307,9 +307,10 @@ function trimAt(V) {
 
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
 const J = (o, n = 3) => JSON.stringify(o, (kk, v) => (typeof v === 'number' ? +v.toFixed(n) : v));
-/* T6 flies full aileron from level at full throttle, its top speed, past
- * the 20.8 m/s where the servos let the aileron go (servo blow back,
- * scripts/servo-derive.js): the helix angle at the angle they hold. */
+/* T6 flies full aileron from level at full throttle, its top speed: the
+ * helix angle at the angle the servos hold there (servo blow back,
+ * scripts/servo-derive.js). They hold the full 30 deg to 29.3 m/s, past
+ * the top speed, so it is the 15 m/s figure. */
 const t6Held = heldAt(hold({ ...FLEET.FW_TIMBER1500.a, throwDeg: 30, kgcm: FLEET.FW_TIMBER1500.a.servo.kgcm }), 30, level(1));
 
 const rows = [

@@ -226,9 +226,9 @@ export const SURFACE_STATS = {
   "nighttimber1200": {
     "a": [
       {
-        "full": 504,
+        "full": 591,
         "fifth": 105.2,
-        "kept": 0.833
+        "kept": 0.831
       },
       {
         "full": 643,
@@ -248,9 +248,9 @@ export const SURFACE_STATS = {
     ],
     "e": [
       {
-        "full": 177,
+        "full": 299,
         "fifth": 89.4,
-        "kept": 0.969
+        "kept": 0.791
       },
       {
         "full": 322,
@@ -294,9 +294,9 @@ export const SURFACE_STATS = {
   "timber1500": {
     "a": [
       {
-        "full": 371,
+        "full": 386,
         "fifth": 44.4,
-        "kept": 0.872
+        "kept": 0.873
       },
       {
         "full": 446,

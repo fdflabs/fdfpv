@@ -4437,7 +4437,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
   .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, 1.04 m by 0.13 m of fuselage side, docs/TIMBER-STAGE1.md */
-  .hinge_hold = { 128.5, 157.7, 274.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_hold = { 257, 315.5, 548.4 }, /* servo blow back, npm run servo:derive */
   .hinge_alpha = { 0.4677, 0.6053, 0.4596 }, /* npm run servo:derive */
   .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -4576,7 +4576,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
   .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, the Timber's fuselage; the floats' own side is not in it, ESTIMATED */
-  .hinge_hold = { 128.5, 157.7, 274.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_hold = { 257, 315.5, 548.4 }, /* servo blow back, npm run servo:derive */
   .hinge_alpha = { 0.4677, 0.6053, 0.4596 }, /* npm run servo:derive */
   .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
@@ -6251,7 +6251,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .ge_tail = { -0.5362, 0.0, -0.113 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
   .side_cda = 0.1522,     /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run nighttimber:derive */
-  .hinge_hold = { 93.3, 48.8, 108.2 }, /* servo blow back, npm run servo:derive */
+  .hinge_hold = { 186.7, 97.6, 216.4 }, /* servo blow back, npm run servo:derive */
   .hinge_alpha = { 0.5645, 0.6062, 0.6549 }, /* npm run servo:derive */
   .rot_k = { 0.01132, 0.01439, 0.01218 },
 };

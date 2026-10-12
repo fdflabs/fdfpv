@@ -1983,9 +1983,9 @@ with a reason where a kit names none.
   with their surfaces. The surface tiers carry their own servos' hold
   (`sim_wing_set_tiers` HOLD_A, HOLD_E, HOLD_R).
 
-Measured: of the 20 other aircraft's recorded flights `npm run
-nighttimber:gates` pins, 19 are bit identical with the limit in; the
-Timber's moved, and so did the Night Timber's own. The first version took the slope at a constant angle
+Measured: all 20 other aircraft's recorded flights `npm run
+nighttimber:gates` pins are bit identical with the limit in; the Night
+Timber's own moved (its elevator lets go at 16.9 m/s). The first version took the slope at a constant angle
 of attack alone; it held the Extra's rudder to 19.7 deg at its 32.9 m/s
 knife edge and its knife-edge loop crashed. The surface's own angle,
 the same report's other term, carries the knife edge's sideslip against
