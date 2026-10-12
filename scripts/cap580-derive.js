@@ -581,6 +581,38 @@ function knifeEdge(V) {
   }
   return null;
 }
+/*
+ * The Stabilised throw cap580:stab flies: 16 m/s, 75 percent, the wings
+ * held level and the turn coordinator holding the sideslip at nought. The
+ * right thrust's side force, T sin(thrust_yaw), and the rudder the
+ * coordinator holds against its yaw moment about the CG, prop_x T
+ * sin(thrust_yaw), whose own side force is that moment times CYdr / (b
+ * Cndr), turn the path at Y / (m V) with the wings level. The swirl's
+ * side force and its rudder cancel (the fin carries both, in the same
+ * ratio). The speed comes up from the throw on T - D, level. Returns the
+ * path's sideways offset after 10 s, m, right negative as the plant's y.
+ * It holds the plant's late turn (0.53 deg/s here, 0.61 flown) but not
+ * the throw's first seconds: the motor's torque rolls the wings left at
+ * the throw (2.3 deg at 0.5 s, flown) before Stabilised's roll loop and
+ * its integrator level them, turning the path against the right thrust,
+ * and that roll transient is not in this model. So it gives -24.8 m
+ * where the plant flies -17.8, and cap580:stab's 15 m, which has no
+ * source, stays red until the transient is derived (2026-10-12).
+ */
+function throwDrift() {
+  let V = 16, psi = 0, y = 0;
+  const dt = 0.001;
+  for (let t = 0; t < 10; t += dt) {
+    const Tt = T(V, nAt(0.75, V));
+    const fy = Tt * Math.sin(THRUST_YAW);
+    const Y = fy * (1 - propX * CYdr / (b * Cndr));
+    psi += Y / (m * V) * dt;
+    V += (Tt - D(V)) / m * dt;
+    y -= V * Math.sin(psi) * dt;
+  }
+  return y;
+}
+
 /* The take off roll, full throttle, the tail held to 6 m/s, then 2 deg,
  * and 8 deg from the rotation speed, the Extra's. */
 const vRotate = 1.2 * Vs;
@@ -687,6 +719,7 @@ const rows = [
   ['   22', J(knifeEdge(22))],
   ['C13 rest: pitch deg, CG height m, tail share', `${f(restPitchDeg, 2)} ${f(cgHeight, 4)} ${f(tailShare, 4)}`],
   ['C14 take off roll, rotation speed', `${J(takeoff())} ${f(vRotate, 2)}`],
+  ['cap580:stab straight: the throw at 75 percent, its offset after 10 s, m', f(throwDrift(), 2)],
   ['gear: wheelbase, loads main tail N; k main tail; c main tail', `${f(wheelbase, 4)} ${f(mainLoad, 3)} ${f(tailLoad, 3)}; ${f(kMain, 0)} ${f(kTail, 0)}; ${f(cMain, 2)} ${f(cTail, 2)}`],
   ['stall: arm_ac, arm_cp, dw', `${f(armAc, 4)} ${f(armCp, 4)} ${f(stallDw, 4)}`],
 ];
