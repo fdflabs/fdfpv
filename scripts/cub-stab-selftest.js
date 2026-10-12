@@ -183,7 +183,10 @@ const acroLevel = fly(0, 0, 0, 0.75, 1);
 const acroHold = fly(0, 0, 0, 0.75, 9, acroLevel.endBank);
 check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHold.worst * DEG < 3, `${deg(acroHold.worst)} deg`);
 check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
-check('and straight: under 15 m off the line after 10 s', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
+/* The cross track Acro's hold flies, derived (npm run stab:straight,
+ * tests/cub-thresholds.json stab_straight_acro). */
+const straightAcro = JSON.parse(await readFile(join(root, 'tests/cub-thresholds.json'), 'utf8')).stab_straight_acro;
+check(`and on the derived line: ${straightAcro.derived} m after ${straightAcro.atS} s, within ${straightAcro.tol} m`, acroHold.y >= straightAcro.min && acroHold.y <= straightAcro.max, `${acroHold.y.toFixed(2)} m`);
 
 throwAt(120, 16);
 fly(0, 0, 0, 1.0, 1);

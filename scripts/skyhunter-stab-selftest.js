@@ -176,7 +176,10 @@ const acroLevel = fly(0, 0, 0, 0.65, 1);
 const acroHold = fly(0, 0, 0, 0.65, 9, acroLevel.endBank);
 check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHold.worst * DEG < 3, `${deg(acroHold.worst)} deg`);
 check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
-check('and straight: under 15 m off the line after 10 s', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
+/* The cross track Acro's hold flies, derived (npm run stab:straight,
+ * tests/skyhunter-thresholds.json stab_straight_acro). */
+const straightAcro = JSON.parse(await readFile(join(root, 'tests/skyhunter-thresholds.json'), 'utf8')).stab_straight_acro;
+check(`and on the derived line: ${straightAcro.derived} m after ${straightAcro.atS} s, within ${straightAcro.tol} m`, acroHold.y >= straightAcro.min && acroHold.y <= straightAcro.max, `${acroHold.y.toFixed(2)} m`);
 
 /* The throttle that holds about 20 m/s level, S5's (skyhunter-thresholds.json):
  * 0.85 on the straight line, 0.69 on the prop curves, 0.63 on the gates'

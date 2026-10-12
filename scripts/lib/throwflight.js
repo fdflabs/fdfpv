@@ -37,8 +37,10 @@
  * clear GE_HB_MAX of its span), the pack's drain over the flight, crash
  * damage, flaps, a mapped engine and a ducted fan.
  *
- * throwFlight(table, { duty, speed, z, pitchDeg, seconds, at, mount })
- * throws it along its nose, pitchDeg up (a catapult's rail), and returns the
+ * throwFlight(table, { duty, speed, z, pitchDeg, seconds, at, mount, mode })
+ * throws it along its nose, pitchDeg up (a catapult's rail), flies it in
+ * Stabilised or, with mode 'acro', in Acro (acro_sticks, the attitude held
+ * where it was thrown), and returns the
  * state at each time in at: the cross track y (the plant's, left
  * positive), bank and heading in degrees, the airspeed, the climb rate
  * and the height, and the largest stall blend met.
@@ -127,7 +129,7 @@ const qmul = (a, b) => [
 const rotate = (q, v) => { const r = qmul(qmul(q, [0, v[0], v[1], v[2]]), [q[0], -q[1], -q[2], -q[3]]); return [r[1], r[2], r[3]]; };
 const rotateInv = (q, v) => rotate([q[0], -q[1], -q[2], -q[3]], v);
 
-export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds = 10, at = [0.5, 1, 2, 3, 5, 10], mount = true } = {}) {
+export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds = 10, at = [0.5, 1, 2, 3, 5, 10], mount = true, mode = 'stabilised' } = {}) {
   const t = planeTable(table);
   const fw = t.fw;
   const mix = mixOf(table);
@@ -159,10 +161,46 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
   let vel = rotate(quat, [speed, 0, 0]);
   let om = [0, 0, 0];
   let n = null, dn = 0, rollI = 0;
+  let acroQ = null, acroIRoll = 0, acroIPitch = 0;
   const servo = [0, 0, 0];
   let sigmaMax = 0;
   const out = [];
   let next = 0;
+  /* plant_wing.c acro_sticks with both sticks centred: the target
+   * attitude taken at the first step (a launch clears it), turned with the
+   * aircraft's own heading as far as the nose is level, and the stick that
+   * flies onto it. */
+  const acroSticks = () => {
+    if (!acroQ) { acroQ = quat.slice(); acroIRoll = 0; acroIPitch = 0; }
+    const wv = rotate(quat, om);
+    const fwv = rotate(quat, [1, 0, 0]);
+    const level = fwv[0] * fwv[0] + fwv[1] * fwv[1];
+    const h = 0.5 * DT;
+    const tz = qmul([1, 0, 0, level * wv[2] * h], acroQ);
+    const tq = qmul(tz, [1, 0, 0, 0]);
+    let qe = qmul([quat[0], -quat[1], -quat[2], -quat[3]], tq);
+    if (qe[0] < 0) qe = qe.map((x) => -x);
+    const vn = Math.hypot(qe[1], qe[2], qe[3]);
+    const k = vn > 1e-12 ? 2 * Math.atan2(vn, qe[0]) / vn : 2;
+    let ex = qe[1] * k, ey = qe[2] * k;
+    const en = Math.hypot(ex, ey);
+    if (en > fw.acro_err_max) { ex *= fw.acro_err_max / en; ey *= fw.acro_err_max / en; }
+    const ea = Math.hypot(ex, ey);
+    if (ea > 1e-12) {
+      const sh = Math.sin(0.5 * ea) / ea;
+      acroQ = qmul(quat, [Math.cos(0.5 * ea), ex * sh, ey * sh, 0]);
+    } else {
+      acroQ = quat.slice();
+    }
+    const nq = Math.hypot(...acroQ);
+    acroQ = acroQ.map((x) => x / nq);
+    acroIRoll = clip(acroIRoll + fw.acro_roll_ki * ex * DT, fw.acro_i_max);
+    acroIPitch = clip(acroIPitch + fw.acro_pitch_ki * -ey * DT, fw.acro_i_max);
+    return [
+      clamp1(fw.acro_roll_kp * ex + acroIRoll + fw.acro_roll_kd * -om[0]),
+      clamp1(fw.acro_pitch_kp * -ey + acroIPitch + fw.acro_pitch_kd * om[1]),
+    ];
+  };
   const steps = Math.round(seconds / DT);
   for (let step = 1; step <= steps; step += 1) {
     const vb = rotateInv(quat, vel);
@@ -171,21 +209,27 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const Vxz = Math.hypot(u, w);
     const uPos = Math.max(0, u);
 
-    /* THE STABILISER, mode 1. */
+    /* THE STABILISER, mode 1, or Acro, mode 2, the sticks centred. */
     const [qw, qx, qy, qz] = quat;
-    const bxz = 2 * (qx * qz - qw * qy), byz = 2 * (qy * qz + qw * qx), bzz = 1 - 2 * (qx * qx + qy * qy);
-    const pitchAtt = Math.atan2(bxz, Math.hypot(byz, bzz)), bank = Math.atan2(byz, bzz);
-    let pitchT = fw.stab_trim_pitch;
-    if (duty < fw.stab_trim_throttle) pitchT -= fw.stab_pitch_down * (fw.stab_trim_throttle - duty) / fw.stab_trim_throttle;
-    const rollThrow = mix === 'FW_MIX_RUDDER' ? fw.throw_r : fw.throw_a;
-    if (rollThrow > 0) {
-      rollI += STAB_ROLL_I * (-bank / STAB_ROLL_TCONST - om[0]) / rollThrow * DT;
-      rollI = clip(rollI, STAB_ROLL_IMAX);
+    let roll, pitch, yaw;
+    if (mode === 'acro') {
+      [roll, pitch] = acroSticks();
+      yaw = 0;
+    } else {
+      const bxz = 2 * (qx * qz - qw * qy), byz = 2 * (qy * qz + qw * qx), bzz = 1 - 2 * (qx * qx + qy * qy);
+      const pitchAtt = Math.atan2(bxz, Math.hypot(byz, bzz)), bank = Math.atan2(byz, bzz);
+      let pitchT = fw.stab_trim_pitch;
+      if (duty < fw.stab_trim_throttle) pitchT -= fw.stab_pitch_down * (fw.stab_trim_throttle - duty) / fw.stab_trim_throttle;
+      const rollThrow = mix === 'FW_MIX_RUDDER' ? fw.throw_r : fw.throw_a;
+      if (rollThrow > 0) {
+        rollI += STAB_ROLL_I * (-bank / STAB_ROLL_TCONST - om[0]) / rollThrow * DT;
+        rollI = clip(rollI, STAB_ROLL_IMAX);
+      }
+      roll = clamp1(-fw.stab_roll_kp * bank - fw.stab_roll_kd * om[0] + rollI);
+      pitch = clamp1(fw.stab_pitch_kp * (pitchT - pitchAtt) - fw.stab_pitch_kd * -om[1]);
+      const rCoord = -g * byz / Math.max(V, 5);
+      yaw = clamp1(fw.yaw_coord_k * (om[2] - rCoord));
     }
-    const roll = clamp1(-fw.stab_roll_kp * bank - fw.stab_roll_kd * om[0] + rollI);
-    const pitch = clamp1(fw.stab_pitch_kp * (pitchT - pitchAtt) - fw.stab_pitch_kd * -om[1]);
-    const rCoord = -g * byz / Math.max(V, 5);
-    const yaw = clamp1(fw.yaw_coord_k * (om[2] - rCoord));
 
     /* The surfaces. */
     let de = surfaceFromStick(pitch, fw.throw_e, expo(1)) + fw.trim_e;
