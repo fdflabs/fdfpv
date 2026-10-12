@@ -5869,7 +5869,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0259, 0.1092, 0.1824 }, /* npm run as3x:derive */
   .as3x_kh = { 0.4623, 1.9492, 3.2558 }, /* npm run as3x:derive */
-  .as3x_rate = { 7.493, -3.61, -0.6 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.198, -3.871, -5.177 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -6021,7 +6021,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_i_max = 0.30,
   .as3x_k = { 0.0395, 0.0911, 0.2855 }, /* npm run as3x:derive */
   .as3x_kh = { 0.3525, 0.8131, 2.5481 }, /* npm run as3x:derive */
-  .as3x_rate = { 7.869, -6.393, -1.735 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.157, -6.727, -4.393 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6322,7 +6322,7 @@ const FixedWingParams FW_CAP1702 = {
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
   .as3x_k = { 0.032, 0.1744, 0.4839 }, /* npm run as3x:derive */
   .as3x_kh = { 0.5712, 3.113, 8.6376 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.787, -2.054, -0.738 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.787, -2.278, -1.687 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */

@@ -48,6 +48,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, attitude } from '../tests/lib/wingpilot.js';
 import { TABLE } from '../configs/power.js';
+import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -60,15 +61,17 @@ const frameOf = (body) => { const m = body.match(/\.as3x_frame = ([0-9.]+)/); re
 /* Where the level rate is read: the table's own cruise (configs/power.js)
  * at the stick that flies it level (stab_trim_throttle), unless the entry
  * below names its own. */
-const levelOf = (a, body) => a.level ?? [Object.values(TABLE).find((t) => t.simId === a.sim).cruiseMs,
+const levelOf = (a, body) => [Object.values(TABLE).find((t) => t.simId === a.sim).cruiseMs,
   Number(body.match(/\.stab_trim_throttle = ([0-9.]+)/)[1])];
 const MS = 4;
 /* The aircraft with an AS3X row: their table and sim id. The Extra and
  * the Timber ship with it; the rest may be fitted with it. */
 const AS3X = {
-  /* The Extra's level point, 16 m/s at 0.624, docs/FLIGHTMODEL.md; the
-   * Night Timber was derived at the same. */
-  FW_EXTRA3D1308: { sim: 29, level: [16, 0.624] },
+  /* The Extra's and the Night Timber's level points were 16 m/s at the
+   * Extra's old stab_trim_throttle, 0.624, until 2026-10-12; on the
+   * seated pack 0.624 climbs at 16 m/s, so they take their tables' own
+   * cruise at the stick that flies it level, as every other row. */
+  FW_EXTRA3D1308: { sim: 29 },
   FW_TIMBER1500: { sim: 7 },
   FW_TIMBER1500F: { sim: 9 },
   FW_CUB1400: { sim: 4 },
@@ -82,7 +85,7 @@ const AS3X = {
   FW_ZAGI1219: { sim: 17 },
   FW_UGLYSTIK1567: { sim: 19 },
   FW_TIGERMOTH1803: { sim: 23 },
-  FW_NIGHTTIMBER1200: { sim: 30, level: [16, 0.624] },
+  FW_NIGHTTIMBER1200: { sim: 30 },
   FW_HERCULES3077: { sim: 31 },
   FW_CAP1702: { sim: 32 },
   FW_SLICK2680: { sim: 33 },
@@ -162,11 +165,11 @@ function power(sim, V) {
  * hover-probe.js's bounds: most of the fleet has under its weight in
  * thrust) has no hover rate; its tumble's would be noise, so it takes
  * the level one alone. */
-function hoverHeld(sim) {
+function hoverHeld(sim, start) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 50, Math.SQRT1_2, 0, -Math.SQRT1_2, 0), 'sim_set_pose');
-  let thr = 0.6, iR = 0, iP = 0, iY = 0, t = 0, st = [0, 0, 0, 0.6];
+  let thr = start, iR = 0, iP = 0, iY = 0, t = 0, st = [0, 0, 0, start];
   const clamp = (x) => Math.max(-1, Math.min(1, x));
   /* The prop spun up first (prop_spool), the aircraft held where it is. */
   for (let ms = 0; ms < 1000; ms += MS) {
@@ -194,7 +197,7 @@ function hoverHeld(sim) {
   }
   return { st, t, held };
 }
-function slopes(sim, [lv, lthr]) {
+function slopes(sim, [lv, lthr], hoverStart) {
   const out = [];
   for (let ax = 0; ax < 3; ax += 1) {
     /* The same flight twice from the same start, the stick moved and
@@ -222,7 +225,7 @@ function slopes(sim, [lv, lthr]) {
       return { st: [0, 0, 0, lthr], t: 0 };
     });
     let held = false;
-    const hover = at(() => { const r = hoverHeld(sim); held = r.held; return r; });
+    const hover = at(() => { const r = hoverHeld(sim, hoverStart); held = r.held; return r; });
     if (process.env.AS3X_DEBUG) console.log("axis", ax, "cruise", cruise, "hover", hover, "held", held);
     out.push(held && Math.abs(hover) > Math.abs(cruise) ? hover : cruise);
   }
@@ -291,7 +294,14 @@ for (const [name, a] of Object.entries(AS3X)) {
    * pi / (4 tau), the usual PI rule: kh = k pi / (16 tau). */
   const kh = k.map((x) => r4(x * Math.PI / (16 * TAU)));
   const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
-  const rate = slopes(sim, levelOf(a, body)).map(r3);
+  /* The hover's held from the stick that hangs the weight on the prop on
+   * the 4.1 V pack this seats (wingSeat hoverStick); an engine, which no
+   * row hovers, from 0.6 as before. Until 2026-10-12 every row started
+   * at 0.6, which on the seated pack hangs 1.6 of the Extra's weight on
+   * its prop: it climbed out of the hold, and its hover slope was lost. */
+  const electric = /\.current_full = [1-9]/.test(body);
+  const hoverStart = electric ? wingSeat(name).hoverStick(SEAT_GATES) ?? 1 : 0.6;
+  const rate = slopes(sim, levelOf(a, body), hoverStart).map(r3);
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
   const left = kickLeft(sim, diveOf(V), k);
   const settles = left.every((x) => x < KICK_MAX);

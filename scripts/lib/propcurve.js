@@ -108,6 +108,8 @@ export function wingSeat(table, derived = {}) {
   if (!entry) throw new Error(`propcurve: no airframe flies ${table} in plant.c`);
   const rCell = Number(/\.r_cell = ([\d.]+)/.exec(entry[1])[1]);
   const cells = Number(/\.cells = ([\d.]+)/.exec(entry[1])[1]);
+  const massKg = Number(/\.mass_kg = ([\d.]+)/.exec(entry[1])[1]);
+  const thrustStatic = num('thrust_static');
   const rpm = list(m[1], 'throttle_rpm');
   const stickDuty = (stick) => {
     const t = Math.max(0, Math.min(1, stick));
@@ -138,7 +140,10 @@ export function wingSeat(table, derived = {}) {
     for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (at(vCell, mid, V).n < n) lo = mid; else hi = mid; }
     return (lo + hi) / 2;
   };
-  return { vMeas, rCell, cells, currentFull, fan, at, stickFor };
+  /* The stick that hangs the airframe's weight on the prop standing (its
+   * table mass, no load or option), or null where full throttle cannot. */
+  const hoverStick = (vCell) => stickFor(vCell, Math.sqrt(massKg * 9.81 / thrustStatic), 0);
+  return { vMeas, rCell, cells, currentFull, fan, at, stickFor, hoverStick };
 }
 
 /*
