@@ -40,7 +40,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { shares, wash as washOf } from './lib/wash.js';
+import { finSwirl as swirlAtFin, shares, wash as washOf } from './lib/wash.js';
 import { SEAT_GATES, wingProp, wingSeat } from './lib/propcurve.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -681,14 +681,13 @@ function throwFlight(mount = true) {
     const cn = Cnb * beta + Cnr * rs * b2v + CN_P_PER_CL * CL * ps * b2v + CN_DA_PER_CL * CL * da + Cndr * dr;
     const lAero = q * S * b * (cl * ca - cn * sa), nAero = q * S * b * (cn * ca + cl * sa);
     const yAero = q * S * (CYb * beta + CYdr * dr);
-    /* The wash: the swirl's sideways speed at the fin, xs; the
-     * stabiliser's crossflow from its zero lift, xa. */
+    /* The wash: the swirl at the fin, its force on the whole stream
+     * (wash.js finSwirl); the stabiliser's crossflow from its zero lift, xa; the
+     * controls meeting dp less the static jet's spread, keepH and keepV. */
     const wa = washOf(slip, thrust, u);
-    const mdot = rho * Math.PI * propR * propR * (u + wa.vi);
-    const xs = SWIRL_KEEP * qAir * (Math.min(wa.rw, hvUp) - Math.min(wa.rw, hvDn)) / (mdot * wa.rw * wa.rw);
-    const xb = -v - xs, kv = rho * wa.vi * wa.fv, pv = wa.dp * wa.fv;
+    const xb = -v - swirlAtFin(slip, wa, qAir, SWIRL_KEEP, u).xsF, kv = rho * wa.vi * wa.fv, pv = wa.dp * wa.keepV * wa.fv;
     const xa = -w * Math.cos(slip.slip_a0) - u * Math.sin(slip.slip_a0);
-    const kh = rho * wa.vi * wa.fh, ph = wa.dp * wa.fh;
+    const kh = rho * wa.vi * wa.fh, ph = wa.dp * wa.keepH * wa.fh;
     const ySlip = S * (kv * slip.slip_cy_b * xb + pv * CYdr * dr);
     const nSlip = S * b * (kv * (slip.slip_cn_b * xb + slip.slip_cn_r * ra * 0.5 * b) + pv * Cndr * dr);
     const lSlip = S * b * (kv * slip.slip_cl_b * xb + pv * Cldr * dr + wa.dp * wa.fa * Clda * da) + (1 - SWIRL_KEEP) * qAir;

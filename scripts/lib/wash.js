@@ -257,13 +257,34 @@ function curveAt(c, mu) {
 }
 
 /*
+ * THE SWIRL AT THE FIN, as plant_wing.c takes it, for a derivation that
+ * flies the fin in the wash. w is wash()'s at the thrust and forward speed
+ * u; q the prop's torque on the air, N m; keep the share of the swirl the
+ * wing's root leaves the fin (SWIRL_KEEP, 1 on a pusher, or the root's
+ * own where a table measures it). The swirl turns as a solid body, Q = mdot
+ * Omega rw^2 / 2, and over the fin's span in the wash its mean is a
+ * sideways speed, xs, less the static jet's spread, keepS (slip_loss[2],
+ * Deters, Ananda and Selig 2015, figs. 15a and 15b). The fin's angle in
+ * the wash, which saturates it, is the swirl's own speed, xs; its force
+ * meets the whole stream, 1/2 rho (u + 2 v_i) per unit of it, against the
+ * rho v_i the fin's slip terms carry (the same paper's fig. 22b: 3.7 to 4.2
+ * times rho v_i's at J 0.52), so the force's crossflow is xsF. A fin
+ * sideslip v adds to both as -v.
+ */
+export function finSwirl(slip, w, q, keep, u) {
+  const up = Math.max(0, u);
+  const mdot = RHO * Math.PI * slip.slip_r * slip.slip_r * (up + w.vi);
+  const xs = w.keepS * keep * q * (Math.min(w.rw, slip.slip_hv[0]) - Math.min(w.rw, slip.slip_hv[1])) / (mdot * w.rw * w.rw);
+  return { xs, xsF: xs * (up + 2 * w.vi) / (2 * w.vi) };
+}
+
+/*
  * The prop's steady moments on the airframe at a driven speed n (of full)
  * and forward speed u, wings level, no sideslip and no rates, as
  * plant_wing.c takes them: the prop's torque Q = Q_f n^2 torque_curve against
  * the airframe; the wing root's (1 - SWIRL_KEEP) of it back; the swirl at
- * the fin, a sideways speed SWIRL_KEEP Q (up - dn) / (mdot rw^2), through
- * the fin's slip terms. Aero convention: L roll right, N nose right, Y to
- * the right, N m and N.
+ * the fin, finSwirl(), through the fin's slip terms. Aero convention: L
+ * roll right, N nose right, Y to the right, N m and N.
  */
 export function propMoments(t, n, u) {
   const fw = t.fw;
@@ -272,14 +293,9 @@ export function propMoments(t, n, u) {
   const Q = fw.torque_arm * fw.thrust_static * n * n * curveAt(fw.torque_curve, mu);
   if (!(fw.slip_r > 0) || !(T > 0)) return { L: -Q, N: 0, Y: 0, Q, T };
   const w = wash(fw, T, u);
-  const up = Math.max(0, u);
-  const mdot = RHO * Math.PI * fw.slip_r * fw.slip_r * (up + w.vi);
   const keep = fw.slip_pusher ? 1 : t.keep;
-  const xs = w.keepS * keep * Q * (Math.min(w.rw, fw.slip_hv[0]) - Math.min(w.rw, fw.slip_hv[1])) / (mdot * w.rw * w.rw);
   const kv = RHO * w.vi * w.fv;
-  /* The swirl meets the whole stream, 1/2 rho (u + 2 v_i) per unit of it,
-   * as plant_wing.c takes it. */
-  const xb = -xs * (up + 2 * w.vi) / (2 * w.vi);
+  const xb = -finSwirl(fw, w, Q, keep, u).xsF;
   return {
     L: -Q + fw.area * fw.span * kv * fw.slip_cl_b * xb + (1 - keep) * Q,
     N: fw.area * fw.span * kv * fw.slip_cn_b * xb,
