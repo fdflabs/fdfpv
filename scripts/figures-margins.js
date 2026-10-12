@@ -46,7 +46,8 @@
  *   node scripts/figures-margins.js
  *
  * Exits 1 if a constant pinned in figureprograms.js (the line's fit, the
- * knife edge's crossovers and trims) is not what the plant measures, or a
+ * knife edge's crossovers and trims, each seated aircraft's level
+ * throttle) is not what the plant measures, or a
  * measured margin is short of the criterion.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
