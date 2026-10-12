@@ -24,11 +24,38 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import a10inch from '../aircraft/10inch/aircraft.js';
+import a7inch from '../aircraft/7inch/aircraft.js';
+import bombshell1118 from '../aircraft/bombshell1118/aircraft.js';
+import bramor2300 from '../aircraft/bramor2300/aircraft.js';
 import cap1702 from '../aircraft/cap1702/aircraft.js';
+import cub1400 from '../aircraft/cub1400/aircraft.js';
+import cub1400f from '../aircraft/cub1400f/aircraft.js';
+import extra3d1308 from '../aircraft/extra3d1308/aircraft.js';
+import f16878 from '../aircraft/f16878/aircraft.js';
+import hercules3077 from '../aircraft/hercules3077/aircraft.js';
+import interceptor from '../aircraft/interceptor/aircraft.js';
+import kadet1981 from '../aircraft/kadet1981/aircraft.js';
+import nighttimber1200 from '../aircraft/nighttimber1200/aircraft.js';
+import nrj1490 from '../aircraft/nrj1490/aircraft.js';
 import p51d1450 from '../aircraft/p51d1450/aircraft.js';
+import radian2000 from '../aircraft/radian2000/aircraft.js';
+import sky1800 from '../aircraft/sky1800/aircraft.js';
 import slick2680 from '../aircraft/slick2680/aircraft.js';
+import slowstick1180 from '../aircraft/slowstick1180/aircraft.js';
+import striker2500 from '../aircraft/striker2500/aircraft.js';
+import tigermoth1803 from '../aircraft/tigermoth1803/aircraft.js';
+import timber1500 from '../aircraft/timber1500/aircraft.js';
+import timber1500f from '../aircraft/timber1500f/aircraft.js';
+import uglystik1567 from '../aircraft/uglystik1567/aircraft.js';
+import zagi1219 from '../aircraft/zagi1219/aircraft.js';
 
-export const FOLDERS = [cap1702, p51d1450, slick2680];
+export const FOLDERS = [
+  a10inch, a7inch, bombshell1118, bramor2300, cap1702, cub1400, cub1400f, extra3d1308, f16878,
+  hercules3077, interceptor, kadet1981, nighttimber1200, nrj1490, p51d1450, radian2000, sky1800,
+  slick2680, slowstick1180, striker2500, tigermoth1803, timber1500, timber1500f, uglystik1567,
+  zagi1219,
+];
 
 export const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];
 
@@ -58,6 +85,13 @@ function airframeRow(airframe) {
   return Object.fromEntries(Object.entries(airframe).map(([k, v]) => [k, POSES.has(k) ? pose(v) : v]));
 }
 
+/* A folder states null for a row its aircraft has none of (a quad has no
+ * tuning, a float plane no kit of its own), and the table then has no key
+ * for it, as the hand module has none. */
+function put(table, id, row) {
+  if (row !== null) table[id] = row;
+}
+
 /* The tables in the shapes their hand modules export them: AIRFRAMES and
  * TUNES are lists of rows, the rest are keyed by airframe id, DRAWN is the
  * ids whose builders draw their kit. */
@@ -69,17 +103,17 @@ export function assemble(folders) {
   for (const f of folders.map(checkFolder)) {
     const id = f.id;
     t.AIRFRAMES.push(airframeRow(f.airframe));
-    t.KITS[id] = f.kit.slots;
+    put(t.KITS, id, f.kit.slots);
     if (f.kit.drawn) t.DRAWN.push(id);
-    t.TUNING[id] = f.tuning;
-    t.TABLE[id] = f.power.table;
-    t.POWER[id] = f.power.options;
-    t.ESTIMATES[id] = f.power.estimates;
-    t.PROPS[id] = f.hangar.props;
-    t.ANCHORS[id] = f.hangar.anchors;
-    t.LIVERIES[id] = f.livery;
+    put(t.TUNING, id, f.tuning);
+    put(t.TABLE, id, f.power.table);
+    put(t.POWER, id, f.power.options);
+    put(t.ESTIMATES, id, f.power.estimates);
+    put(t.PROPS, id, f.hangar.props);
+    put(t.ANCHORS, id, f.hangar.anchors);
+    put(t.LIVERIES, id, f.livery);
     t.TUNES.push(...f.tunes);
-    t.PLANE_LEVELS[id] = f.progress.level;
+    put(t.PLANE_LEVELS, id, f.progress.level);
     Object.assign(t.STRINGS.en, f.strings.en);
     Object.assign(t.STRINGS.es, f.strings.es);
   }

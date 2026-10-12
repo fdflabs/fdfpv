@@ -361,12 +361,14 @@ export default {
       "carousel.note.p51d1450": "The Second World War fighter on retracts. Right rudder on the take off, and keep its speed up.",
       "power.p51.stock": "FMS 4250 540 kV, 14 x 8 four blade, 4S (stock)",
       "power.p51.kv650": "FMS 4258 650 kV from the P-40, 14 x 8 four blade, 4S",
+      "airframe.blurb.p51d1450": "A 1450 mm FMS P-51D Mustang on 4S, the Second World War fighter in natural metal with a red nose and tail. It swings left as the tail comes up, so feed in right rudder; it keeps its speed, and it drops a wing if you let it get slow. G raises and lowers the retracts, F sets the flaps.",
       "livery.scheme.p51d1450.stock": "Natural metal, red nose and tail"
     },
     "es": {
       "carousel.note.p51d1450": "El caza de la Segunda Guerra Mundial con tren retráctil. Pie derecho al despegar, y mantén la velocidad.",
       "power.p51.stock": "FMS 4250 540 kV, 14 x 8 de cuatro palas, 4S (de serie)",
       "power.p51.kv650": "FMS 4258 650 kV del P-40, 14 x 8 de cuatro palas, 4S",
+      "airframe.blurb.p51d1450": "Un FMS P-51D Mustang de 1450 mm en 4S, el caza de la Segunda Guerra Mundial en metal natural con nariz y cola rojas. Se va a la izquierda cuando levanta la cola, así que mete timón a la derecha; conserva su velocidad y deja caer un ala si lo dejas ir lento. G sube y baja el tren retráctil, F ajusta los flaps.",
       "livery.scheme.p51d1450.stock": "Metal natural, morro y cola rojos"
     }
   }

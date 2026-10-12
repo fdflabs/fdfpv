@@ -41,11 +41,17 @@ import { join } from 'node:path';
 
 const AIRCRAFT_DIR = fileURLToPath(new URL('../aircraft/', import.meta.url));
 
-/* The fields every hand row computes the same way (configs/airframes.js
- * packStates(), stockRates()). A folder states them as data, so they must
- * equal a hand row's, or the stock packs and rates could change for the
- * hand rows and not the folders. */
-const STOCK = ['packVoltages', 'packLabels', 'rates'];
+/* What every aircraft starts on (configs/airframes.js): the per cell pack
+ * states the pack row offers, and Betaflight 4.5.1's stock ACTUAL rates
+ * (70 / 670 deg/s, no expo) with no throttle limit. Each folder states them
+ * as data, so they must equal these in every folder, or one aircraft's
+ * stock could drift from the rest. */
+const axis = { rcRate: 7, srate: 67, expo: 0 };
+const STOCK = {
+  packVoltages: [4.2, 3.8, 3.5],
+  packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+  rates: { type: 'ACTUAL', roll: axis, pitch: axis, yaw: axis, throttleCap: 100 },
+};
 
 function diff(a, b, path, out) {
   if (typeof a !== typeof b) return out.push(`${path}: ${typeof a} vs ${typeof b}`);
@@ -136,9 +142,8 @@ function dataOnly(folder) {
 
 function stockFields(t) {
   const out = [];
-  const hand = A.AIRFRAMES.find((a) => !FOLDERS.some((f) => f.id === a.id));
   for (const row of t.AIRFRAMES) {
-    for (const k of STOCK) diff(row[k], hand[k], `${row.id}.${k} vs ${hand.id}`, out);
+    for (const [k, v] of Object.entries(STOCK)) diff(row[k], v, `${row.id}.${k} vs stock`, out);
   }
   return out;
 }
@@ -158,7 +163,9 @@ report('each folder is plain JSON after export default', folders.flatMap(dataOnl
 report('folder rows carry the stock packs and rates', stockFields(built));
 report(`assembled rows equal the hand modules (${folders.map((f) => f.id).join(', ')})`, [...compare(built), ...stringsPaired(built)]);
 
-/* Negative controls: each change, made to a copy, must be caught. */
+/* Negative controls: each change, made to a copy, must be caught. The
+ * folder changed is the first that states every row the changes touch. A
+ * row stated null that the hand module has must be caught too. */
 const MUTATIONS = [
   ['airframe stall', (f) => { f.airframe.stall += 1e-9; }],
   ['gear rest pitch', (f) => { f.airframe.gear.restPitchDeg += 1e-9; }],
@@ -171,10 +178,12 @@ const MUTATIONS = [
   ['es string', (f) => { const k = Object.keys(f.strings.es)[0]; f.strings.es[k] += '.'; }],
   ['kit drawn', (f) => { f.kit.drawn = !f.kit.drawn; }],
   ['extra airframe field', (f) => { f.airframe.extra = 1; }],
+  ['tuning stated null', (f) => { f.tuning = null; }],
 ];
+const full = folders.findIndex((f) => f.airframe.gear && f.tuning && f.power.options && f.hangar.anchors && f.livery && f.tunes.length && f.progress.level !== null);
 for (const [name, mutate] of MUTATIONS) {
   const copy = structuredClone(folders);
-  mutate(copy[0]);
+  mutate(copy[full]);
   const caught = compare(assemble(copy)).length > 0;
   report(`negative control: ${name} is caught`, caught ? [] : ['changed folder still compared equal']);
 }

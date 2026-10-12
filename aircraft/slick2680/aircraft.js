@@ -340,16 +340,16 @@ export default {
   "strings": {
     "en": {
       "carousel.note.slick2680": "A 35 percent IMAC aerobat on a 120 cc petrol twin. It hangs on the prop like the Extra, with twelve and a half kilograms of momentum behind every move.",
-      "airframe.blurb.slick2680": "A 2.68 m Extreme Flight Slick 580 on a 120 cc DA-120 petrol twin, 12.5 kg of balsa and carbon in its 10th Anniversary red and white. It hangs on its 28 in prop and torque rolls like the Extra, but with thirty times the Extra's inertia: everything it does it does with momentum. Pull it into the stall at idle and the prop's gyroscope drops the right wing.",
       "power.slick.stock": "Desert Aircraft DA-120 petrol twin, 28 x 10 carbon (stock)",
+      "airframe.blurb.slick2680": "A 2.68 m Extreme Flight Slick 580 on a 120 cc DA-120 petrol twin, 12.5 kg of balsa and carbon in its 10th Anniversary red and white. It hangs on its 28 in prop and torque rolls like the Extra, but with thirty times the Extra's inertia: everything it does it does with momentum. Pull it into the stall at idle and the prop's gyroscope drops the right wing.",
       "livery.scheme.slick2680.stock": "10th Anniversary red and white",
       "livery.scheme.slick2680.blueorange": "White, blue and orange",
       "livery.scheme.slick2680.cubyellow": "Cub yellow, red and grey"
     },
     "es": {
       "carousel.note.slick2680": "Un acrobático IMAC al 35 por ciento con un bicilíndrico de nafta de 120 cc. Se cuelga de la hélice como el Extra, con doce kilos y medio de impulso detrás de cada maniobra.",
-      "airframe.blurb.slick2680": "Un Extreme Flight Slick 580 de 2,68 m con un DA-120 bicilíndrico de nafta de 120 cc, 12,5 kg de balsa y carbono en el rojo y blanco de su décimo aniversario. Se cuelga de su hélice de 28 pulgadas y hace torque roll como el Extra, pero con treinta veces la inercia del Extra: todo lo hace con impulso. Entra en pérdida al ralentí y el giróscopo de la hélice deja caer el ala derecha.",
       "power.slick.stock": "Desert Aircraft DA-120 bicilíndrico de nafta, 28 x 10 de carbono (de serie)",
+      "airframe.blurb.slick2680": "Un Extreme Flight Slick 580 de 2,68 m con un DA-120 bicilíndrico de nafta de 120 cc, 12,5 kg de balsa y carbono en el rojo y blanco de su décimo aniversario. Se cuelga de su hélice de 28 pulgadas y hace torque roll como el Extra, pero con treinta veces la inercia del Extra: todo lo hace con impulso. Entra en pérdida al ralentí y el giróscopo de la hélice deja caer el ala derecha.",
       "livery.scheme.slick2680.stock": "Rojo y blanco del décimo aniversario",
       "livery.scheme.slick2680.blueorange": "Blanco, azul y naranja",
       "livery.scheme.slick2680.cubyellow": "Amarillo Cub, rojo y gris"

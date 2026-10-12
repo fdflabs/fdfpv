@@ -72,9 +72,6 @@ export const SIM_TUNE_DOUBLES = 12;
 
 /* The plant writes its throws as degrees * pi / 180, and so does this, so
  * the high rate is the very double the table holds. */
-const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
-const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
-const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -102,20 +99,6 @@ export const MARGIN_WARN = 0.05;
  * clicks, a radio's trim steps. */
 export const TRIM_MAX_DEG = 4;
 
-const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
-const CUB_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf';
-const RADIAN_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL4750-Manual-EN.pdf';
-const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/PKZ5480-Manual_EN.pdf';
-const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
-const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
-const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
-const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
-const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
-const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
-const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
-const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
-const STIK_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
-const TIGER_MANUAL = 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
 /*
@@ -152,103 +135,32 @@ export const TUNING = {
     throws: { high: [25, 12, 0], low: [17.5, 8.4, 0], source: `high: the plant's, docs/WING-STAGE1.md; ${LOW_70}` },
     flaps: null,
   },
-  sky1800: {
-    chord: 0.20, area: 0.36, margin: 0.170,
-    cg: { mm: 66.7, datum: 'tuning.datum.le', range: null, source: `Sonicmodell, "CG: 1/3 of wing from leading edge", no range; ${SKY_PAGE}` },
-    packKg: 0.50, nose: 0.36, tail: -0.75,
-    throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `high: ESTIMATED, no throws published (docs/SKYHUNTER-STAGE1.md); ${LOW_70}` },
-    flaps: null,
-  },
-  cub1400: {
-    chord: 0.20, area: 0.28, margin: 0.119,
-    cg: { mm: 60, datum: 'tuning.datum.le', range: [55, 65], source: `FMS manual, "(55-65mm) from the leading edge of the main wing", p. 11; ${CUB_MANUAL}` },
-    packKg: 0.19, nose: 0.20, tail: -0.54,
-    throws: { high: [18, 15, 15], low: [13.4, 11.2, 11.6], source: `FMS manual p. 10: high 16, 16, 18 mm, low 12, 12, 14 mm, on 50, 60 and 70 mm horn chords; ${CUB_MANUAL}` },
-    flaps: null,
-  },
-  radian2000: {
-    /* -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234 was read off the plant
-     * past the linear lift, where its curve now rounds onto CL max. */
-    chord: 0.1866, area: 0.355, margin: 0.228,
-    cg: { mm: 63, datum: 'tuning.datum.root_le', range: null, source: `E-flite Radian manual, "2 1/2 inches (63mm) back from leading edge at the root", no range; ${RADIAN_MANUAL}` },
-    packKg: 0.11, nose: 0.26, tail: -0.70,
-    throws: { high: [15, 24.4, 30], low: [10.5, 18.0, 18.2], source: `E-flite Radian manual p. 3: elevator 12 and 9 mm, rudder 40 and 25 mm, dual rates 100/70 percent; the ailerons ESTIMATED (the Radian has none; the Radian Pro's are 15/12 mm high, 11/8 low, ${RADIAN_PRO_MANUAL}), their low at 70 percent; ${RADIAN_MANUAL}` },
-    flaps: null,
-  },
-  bramor2300: {
-    chord: 0.257, area: 0.591, margin: 0.088,
-    cg: { mm: null, datum: 'tuning.datum.stock', range: null, source: 'C-Astral publishes no CG and no throws; the plant\'s 7 percent static margin is ESTIMATED (docs/BRAMOR-STAGE1.md)' },
-    packKg: 1.30, nose: 0.39, tail: -0.35, elevons: true,
-    throws: { high: [10, 6, 0], low: [7, 4.2, 0], source: `high: the plant's, docs/BRAMOR-STAGE1.md; ${LOW_70}` },
-    flaps: null,
-  },
-  slowstick1180: {
-    chord: 0.2776, area: 0.3264, margin: 0.073,
-    cg: { mm: 100, datum: 'tuning.datum.le', range: [95, 105], source: `GWS manual, "95-105mm (3.74"-4.13") from the leading edge of wing at central wing chord"; ${SLOWSTICK_MANUAL}` },
-    packKg: 0.10, nose: 0.286, tail: -0.50,
-    throws: { high: [0, 15, 30], low: [0, 10.5, 21], source: `GWS manual: elevator 15 to 20 deg, rudder 25 to 35 deg, "Maximum control throws", one set; ${LOW_70}; ${SLOWSTICK_MANUAL}` },
-    flaps: null,
-  },
-  timber1500: {
-    chord: 0.2322, area: 0.361, margin: 0.191,
-    cg: { mm: 60, datum: 'tuning.datum.root_le', range: [55, 65], source: `E-flite manual, "60mm +/-5mm back from the leading edge of the wing, measured at the wing root", pp. 3 and 13; ${TIMBER_MANUAL}` },
-    packKg: 0.33, nose: 0.255, tail: -0.56,
-    throws: { high: [30, 20, 27], low: [22.2, 14.9, 17.6], source: `E-flite manual pp. 3 and 14: high 33, 20, 30 mm, low 25, 15, 20 mm, on 64.8, 60 and 65 mm horn chords; ${TIMBER_MANUAL}` },
-    flaps: { mix: -0.183531, angles: [0, 0.31376497222433070, 0.57058379792549596], source: `E-flite manual p. 3: half 20 mm, full 35 mm; "Flap/Down-Elevator Compensation 16% 30%"; ${TIMBER_MANUAL}` },
-  },
-  bombshell1118: {
-    /* The margin U2 reads with the wing's own stall slope and the tail's
-     * share on sin cos, 0.2881 (scripts/bombshell-derive.js); linear, 0.287. */
-    chord: 0.1905, area: 0.212903, margin: 0.288,
-    cg: { mm: 62.9, datum: 'tuning.datum.le', range: [55.2, 81.9], source: `the plan's "BALANCE POINT RANGE" bracket, which carries no number, measured at 29 to 43 percent of the chord (docs/BOMBSHELL-STAGE1.md); ${BOMBSHELL_PLAN}` },
-    packKg: 0.07, nose: 0.107, tail: -0.58,
-    throws: { high: [0, 15, 20], low: [0, 10.5, 14], source: `high: ESTIMATED, no throws published (docs/BOMBSHELL-STAGE1.md); ${LOW_70}` },
-    flaps: null,
-  },
-  kadet1981: {
-    chord: 0.374487, area: 0.741934, margin: 0.268,
-    cg: { mm: 98.4, datum: 'tuning.datum.spar', range: null, source: `SIG, "Center of Gravity 3 7/8 inch At Main Spar", no range (the kit manual: "shown on the plan"); ${KADET_KIT}` },
-    packKg: 0.10, nose: 0.335, tail: -0.95,
-    throws: { high: [0, 14.4775, 14.4775], low: [0, 10.1, 10.1], source: `SIG kit manual p. 24: elevator 3/4 in up and down, rudder 7/8 in each way, one set; ${LOW_70}; ${KADET_MANUAL}` },
-    flaps: null,
-  },
-  uglystik1567: {
-    chord: 0.3256, area: 0.51055, margin: 0.101,
-    cg: { mm: 119.1, datum: 'tuning.datum.root_le', range: null, source: `RCM plan 939, its C.G. mark 4.69 in behind the leading edge, and Kraft's "It should balance approximately on the main spar", no range; ${STIK_PLAN}` },
-    packKg: 0.10, nose: 0.2985, tail: -0.785,
-    throws: { high: [12.5969, 12.9765, 14.6270], low: [8.8, 9.1, 10.2], source: `RCM plan 939's "Control Surface Travel Limits (measured at trailing edge)": ailerons 5/16 in up and 1/4 down on the 1.29 in strip aileron, their mean, elevator 3/8 in on its 1.67 in, rudder 1 in on its 3.96 in (docs/UGLYSTIK-STAGE1.md), one set; ${LOW_70}; ${STIK_PLAN}` },
-    flaps: null,
-  },
-  tigermoth1803: {
-    chord: 0.2683, area: 0.87742, margin: 0.038,
-    cg: { mm: 70, datum: 'tuning.datum.bottom_le', range: [64, 76], source: `Great Planes manual p. 21, "measure back 2-3/4\" [70mm]" on the top of the bottom wing next to the fuselage, and "up to 2-1/2\" [64mm] back from the leading edge or 3\" [76mm]"; ${TIGER_MANUAL}` },
-    packKg: 0.10, nose: 0.205, tail: -1.035,
-    throws: { high: [16.5003, 12.1141, 14.5859], low: [10.91, 9.06, 14.59], source: `Great Planes manual p. 21, at the widest part of each surface: high rate ailerons 3/4 in, elevator 1 in and rudder 2 in each way, low rate 1/2, 3/4 and 2 in, on the 67 mm aileron, the 121 mm elevator and the 202 mm rudder (docs/TIGERMOTH-STAGE1.md); ${TIGER_MANUAL}` },
-    flaps: null,
-  },  extra3d1308: {
-    chord: 0.2927, area: 0.369, margin: 0.154,
-    cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
-    packKg: 0.27, nose: 0.26, tail: -0.83,
-    throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
-    flaps: null,
-  },
-  nighttimber1200: {
-    /* The margin U2 reads off the hi_alpha plant at the zero lift line's 5 deg, 0.0666
-     * (scripts/nighttimber-derive.js); the linear h_n's is 0.068. */
-    chord: 0.2388, area: 0.2866, margin: 0.067,
-    expo: 0, /* the manual sets none, "after first flights, you may adjust expo", as FW_NIGHTTIMBER1200 flies */
-    cg: { mm: 89, datum: 'tuning.datum.root_le', range: [86, 105], source: `E-flite manual p. 8, "89mm +/- 3mm back from the leading edge with the carbon joiner" or "102mm +/- 3mm ... with the steel joiner for maximum 3D performance", without the slats (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
-    packKg: 0.27, nose: 0.339, tail: -0.716,
-    throws: { high: [28.92, 35.81, 33.75], low: [22.13, 28.60, 23.82], source: `E-flite manual p. 3: high 45, 55 and 55 mm, low 35, 45 and 40 mm, at the surfaces' widest chords, 93, 94 and 99 mm (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
-    flaps: { mix: -0.212333, angles: [0, 0.328206, 0.632256], source: `E-flite manual pp. 3 and 4: half 30 mm, full 55 mm; the flap mix 14 percent of the elevator at half and 20 at full; ${NIGHTTIMBER_MANUAL}` },
-  },
-  hercules3077: {
-    chord: 0.3564, area: 1.0486, margin: 0.16,
-    cg: { mm: 145, datum: 'tuning.datum.root_le', range: [145, 173.5], source: `AeroTetris, "CG (16%): 923.8 mm" and "CG (8%): 952.3 mm" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
-    packKg: 1.64, nose: 0.92, tail: -1.20, /* the lead inside the tail cone, ahead of its post */
-    throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
-    flaps: null,
-  },
+  sky1800: AIRCRAFT.TUNING.sky1800,
+  cub1400: AIRCRAFT.TUNING.cub1400,
+  /* The Radian's `margin` is -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234
+   * was read off the plant past the linear lift, where its curve now
+   * rounds onto CL max. */
+  radian2000: AIRCRAFT.TUNING.radian2000,
+  bramor2300: AIRCRAFT.TUNING.bramor2300,
+  slowstick1180: AIRCRAFT.TUNING.slowstick1180,
+  timber1500: AIRCRAFT.TUNING.timber1500,
+  /* The Bombshell's `margin` is the one U2 reads with the wing's own
+   * stall slope and the tail's share on sin cos, 0.2881
+   * (scripts/bombshell-derive.js); linear, 0.287. */
+  bombshell1118: AIRCRAFT.TUNING.bombshell1118,
+  kadet1981: AIRCRAFT.TUNING.kadet1981,
+  uglystik1567: AIRCRAFT.TUNING.uglystik1567,
+  tigermoth1803: AIRCRAFT.TUNING.tigermoth1803,
+  extra3d1308: AIRCRAFT.TUNING.extra3d1308,
+  /* The Night Timber's `margin` is the one U2 reads off the hi_alpha
+   * plant at the zero lift line's 5 deg, 0.0666
+   * (scripts/nighttimber-derive.js); the linear h_n's is 0.068. Its
+   * `expo`: the manual sets none, "after first flights, you may adjust
+   * expo", as FW_NIGHTTIMBER1200 flies. */
+  nighttimber1200: AIRCRAFT.TUNING.nighttimber1200,
+  /* The Hercules' `tail` is the lead inside the tail cone, ahead of its
+   * post. */
+  hercules3077: AIRCRAFT.TUNING.hercules3077,
   /* The CAP's expo is the data sheet's high rate expo, one figure for all
    * three, as FW_CAP1702 flies (docs/CAP580-STAGE1.md). The Slick's is the
    * sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies; its
@@ -259,27 +171,9 @@ export const TUNING = {
   slick2680: AIRCRAFT.TUNING.slick2680,
 
   p51d1450: AIRCRAFT.TUNING.p51d1450,
-  nrj1490: {
-    chord: 0.1378, area: 0.190, margin: 0.170,
-    cg: { mm: 66, datum: 'tuning.datum.root_le', range: [64.5, 66.5], source: `OA Composites' manual, "CG between 64.5 and 66.5mm", 66 for the empty glider; ${NRJ_MANUAL}` },
-    packKg: 0.015, nose: 0.23, tail: -0.66,
-    throws: { high: [19.0, 17.5, 15.5], low: [13.3, 12.25, 10.85], source: `OA Composites' manual: ailerons 13 mm each way, elevator 8 to 10 mm, rudder 12 mm, on the 40, 30 and 45 mm surfaces at the horn (docs/DLG-STAGE1.md); no low rate is published, so it is 70 percent; ${NRJ_MANUAL}` },
-    flaps: null,
-  },
-  f16878: {
-    chord: 0.2856, area: 0.21484, margin: 0.115,
-    cg: { mm: 90, datum: 'tuning.datum.root_le', range: null, source: `Freewing V3 manual p. 9, "90mm (3-1/2")" from the wing's leading edge at the root, no range; ${F16_MANUAL}` },
-    packKg: 0.566, nose: 0.60, tail: -0.55,
-    throws: { high: [21.5, 25, 30], low: [13.975, 20, 25.5], source: `high: the full size F-16's surface limits (NASA TP-1538), Freewing's high rate, 100 percent; low: the manual's own dual rates p. 11, "D/R Rate: 65%", "80%", "85%" of it; ${F16_MANUAL}` },
-    flaps: null,
-  },
-  zagi1219: {
-    chord: 0.21335338, area: 0.26012851, margin: 0.099,
-    cg: { mm: 203.2, datum: 'tuning.datum.root_le', range: null, source: `Zagi HP manual, "designed to balance at 8" measured back from the nose", the "suggested starting point", moved back in 1/8 in steps "until it is almost unflyable (too elevator sensitive)", no range; ${ZAGI_HP_MANUAL}` },
-    packKg: 0.185, nose: 0.19, tail: -0.10, elevons: true,
-    throws: { high: [14.4775, 14.4775, 0], low: [10.1, 10.1, 0], source: `Zagi manuals: the elevon throw "3/8" in each direction measured 1" from the tip" on either stick, one set, on the 1.5 in elevon (docs/ZAGI-STAGE1.md); ${LOW_70}; ${ZAGI_HP_MANUAL}` },
-    flaps: null,
-  },
+  nrj1490: AIRCRAFT.TUNING.nrj1490,
+  f16878: AIRCRAFT.TUNING.f16878,
+  zagi1219: AIRCRAFT.TUNING.zagi1219,
 };
 /* The float planes are their land planes', balanced back to the manual's
  * CG with nose weight as docs/FLOATS-STAGE1.md has it. */
