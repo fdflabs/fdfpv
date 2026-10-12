@@ -4533,6 +4533,7 @@ export default {
   "ui.show_sticks_note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
   "ui.compare_sticks": "Compare sticks",
   "ui.compare_sticks_none": "None",
+  "ui.compare_sticks_click": "Press Enter or click to choose a file",
   "ui.compare_sticks_refused": "Not a control recording",
   "ui.compare_sticks_value": "{name}, {secs} s",
   "ui.compare_sticks_note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",

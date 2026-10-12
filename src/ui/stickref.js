@@ -40,8 +40,9 @@ export class StickRef {
 
   clear() {
     this.name = '';
-    /* The last file offered was not a control recording. */
-    this.refused = false;
+    /* Why nothing is loaded, for the row: '', 'refused' (the last file
+     * was not a control recording) or 'click' (see pickStickRef). */
+    this.status = '';
     this.t = null;
     this.ch = null;
     this.restart();
@@ -77,7 +78,7 @@ export class StickRef {
       ch[i * 4 + 3] = r[C.throttle];
     }
     this.name = name;
-    this.refused = false;
+    this.status = '';
     this.t = t;
     this.ch = ch;
     this.restart();
@@ -135,13 +136,22 @@ export class StickRef {
 }
 
 /* The Compare sticks row: a loaded recording is put away; otherwise a
- * file is asked for and loaded, or marked refused. done() repaints. */
+ * file is asked for and loaded, or marked refused. done() repaints.
+ * The browser opens a file chooser only inside a key press or a click,
+ * and a radio's button is neither, so from a radio the row says to use
+ * one instead of doing nothing. */
 export function pickStickRef(ref, done) {
   if (ref.loaded) {
     ref.clear();
     done();
     return;
   }
+  if (navigator.userActivation && !navigator.userActivation.isActive) {
+    ref.status = 'click';
+    done();
+    return;
+  }
+  ref.status = '';
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.csv,text/csv';
@@ -155,7 +165,7 @@ export function pickStickRef(ref, done) {
     } catch (e) {
       console.warn(`stickref: ${file.name} refused: ${e.message}`);
       ref.clear();
-      ref.refused = true;
+      ref.status = 'refused';
     }
     done();
   });

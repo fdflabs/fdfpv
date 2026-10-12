@@ -806,7 +806,7 @@ function compareSticksValue(ref) {
   if (ref && ref.loaded) {
     return str('ui.compare_sticks_value', { name: ref.name, secs: ref.seconds.toFixed(1) });
   }
-  return str(ref && ref.refused ? 'ui.compare_sticks_refused' : 'ui.compare_sticks_none');
+  return str(ref && ref.status ? `ui.compare_sticks_${ref.status}` : 'ui.compare_sticks_none');
 }
 
 function screenRows(ui, s) {

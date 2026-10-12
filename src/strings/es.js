@@ -4538,6 +4538,7 @@ export default {
   "ui.show_sticks_note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
   "ui.compare_sticks": "Comparar sticks",
   "ui.compare_sticks_none": "Ninguna",
+  "ui.compare_sticks_click": "Pulsa Enter o haz clic para elegir un archivo",
   "ui.compare_sticks_refused": "No es una grabación de mandos",
   "ui.compare_sticks_value": "{name}, {secs} s",
   "ui.compare_sticks_note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
