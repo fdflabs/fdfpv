@@ -29,7 +29,9 @@ still an error.
 
 The aircraft's keys are one rule, whatever the plane's names look like: every key with the id as a dot
 segment (`carousel.note.<id>`, `airframe.blurb.<id>`, `livery.scheme.<id>.*`, a quad's `motors.<id>.*`)
-and every key its power options name (`power.cap.stock`), in `en.js` order.
+and every key its power options name (`power.cap.stock`), in `en.js` order. A float plane's power options
+are its land plane's, so its folder carries copies of the land plane's power keys too; the assembler
+takes either, and the selftest holds both to `src/strings`.
 
 `configs/aircraft.js` imports every folder statically (`FOLDERS`), validates each folder's sections and
 id, and assembles the tables in the hand modules' shapes (`AIRCRAFT`). It loads the same in the browser,
