@@ -212,7 +212,7 @@ alpha, -20 to 90 deg (NASA TP-1538 table III, transcribed and checked in
 prints every row): Cn beta, Cl beta, Cl p, Cn r, the ailerons' and the
 rudder's moments as ratios to their own value at 0 deg, where f16:derive's
 linear derivatives are; Cl r and Cn p the measured ones per rad, in place of
-the 0.25 CL and -0.125 CL rules (which they match within 0.07 below the
+the 0.25 CL and -0.125 CL rules (which they match within 0.08 below the
 stall). All are turned into the stability axes the plant's lateral terms are
 in; the leading edge flap retracted to 45 deg, the Freewing's fixed leading
 edge, and the base table past. The ailerons' ratio scales their yaw with
@@ -230,8 +230,9 @@ with Cl p 2.1 times and Cn r 0.29 times. The dihedral that strong against
 the ailerons' adverse yaw made the aileron only roll reverse (LCDP below
 zero) at 26 deg, where TP-1538 keeps it positive to about 30 (fig. 14). It
 also scaled the ailerons' roll and not their yaw. Anchored at 0 deg, the
-same tables hold S9: hands off the wings stay within 6 deg (the old plant
-spiralled to 63), and the pilot holds them within 8.8.
+same tables hold S9: hands off the wings tilt at most 9.9 deg, 5.8 after the
+entry's first 5 s (the old plant spiralled to 63), and the pilot holds them
+within 8.8.
 
 What is left failing, S9's spin check: in the first 0.26 s full up from
 25.7 m/s overshoots to 44 deg of alpha at 230 deg/s of pitch, and the fan's
@@ -259,9 +260,9 @@ above about 30 (LCDP, fig. 14). So holding the wings on the ailerons at the
 `npm run stall:probe -- --only f16`: full back and rudder no longer spins
 flat (it was 18.9 turns in 8 s at 1445 deg/s and alpha 88 on the batch):
 0.73 turns, yaw 65 deg/s and oscillating, alpha 34.5, and it recovers in
-0.64 s. TP-1538's Cn r strengthening to -1.0 at 40 deg is what stops it, the
-research note's reading (an oscillatory, yaw damped motion, not a steady
-spin).
+0.64 s. That is the research note's reading of the tables (an oscillatory,
+yaw damped motion, Cn r strengthening to -1.0 at 40 deg, not a steady spin);
+which term stops it was not isolated.
 
 Open: the inertias. The build up from the parts gives Iz/Ix 8.9 against the
 scaled jet's 5.7; Cn beta dyn and inertia coupling go with it. Flown in a
