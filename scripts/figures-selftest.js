@@ -92,7 +92,10 @@ const PATHS = {
   knife_edge_pass: [lead, { p: 6, ms: Math.round((Math.PI / 2 / 6) * 1000), speed: V }, straight(2500, 15), { p: -6, ms: Math.round((Math.PI / 2 / 6) * 1000), speed: V }, tail],
   elevator: [{ ms: 2500, world: [3, 0, -5] }],
   waterfall: [{ ms: Math.round(2 * Math.PI / 3.5 * 1000), q: 3.5, speed: 4 }],
-  tumble: [{ ms: Math.round(2 * Math.PI / 8 * 1000), q: 8, speed: 4 }],
+  /* A tumble is a pitch rotation coupled into yaw, as the prop's
+   * gyroscopic precession couples it (Wikipedia, "Lomcovak"): 3 rad/s of
+   * yaw with 8 of pitch, 0.375 of a turn of yaw in the turn of pitch. */
+  tumble: [{ ms: Math.round(2 * Math.PI / 8 * 1000), q: 8, r: 3, speed: 4 }],
   lomcevak: [{ ms: Math.round(2 * Math.PI / 5 * 1000), q: 5, p: 3, speed: 4 }],
   wall: [lead, { q: -2 * Math.PI / 4 / 0.5, ms: 500, speed: 3 }, { ms: 2000, speed: 0, world: [0, 0, 0] }],
   pop_top: [{ ms: 1500, speed: V }, ...snap(1, 9)],
@@ -309,6 +312,38 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   const on = at(180);
   check('a 2-point roll paused at 105 deg is graded 5 under one paused on its back', off && on && on.grade - off.grade === 5,
     `${on ? on.grade : 'not named'} vs ${off ? off.grade : 'not named'}`);
+}
+/* The pitch rotations by axis, not rate (figuredetect.js, the waterfall
+ * rows): a pure pitch pivot as fast as the Extra's peak is a waterfall,
+ * and the same pivot coupled into roll or yaw past a quarter turn is
+ * still a tumble, whatever its rate. */
+{
+  const one = (seg, start = { speed: 4 }) => detect([{ ms: Math.round(2 * Math.PI / Math.abs(seg.q) * 1000), speed: 4, ...seg }], start);
+  const fast = one({ q: 10 });
+  check('a pure pitch pivot at 10 rad/s is a waterfall, graded 8 or better', fast.length === 1 && fast[0].figure === 'waterfall' && fast[0].grade >= 8,
+    fast.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  const slowYaw = one({ q: 3.5, r: 1.4 });
+  check('negative control: a 3.5 rad/s pitch rotation with 0.4 of a turn of yaw in it is a tumble, not a waterfall',
+    slowYaw.length === 1 && slowYaw[0].figure === 'tumble', slowYaw.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  const rolled = one({ q: 8, p: 2.5 });
+  check('negative control: a pitch rotation with 0.31 of a turn of roll in it is a tumble, not a waterfall',
+    rolled.length === 1 && rolled[0].figure === 'tumble', rolled.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  /* Falling through its back side with the wings 15 deg off level, the
+   * pivot puts 2 rad/s about the vertical: still a pitch pivot, no spin. */
+  const falling = one({ q: 8, world: [0, 0, -5] }, { q: attitudeQuat(0, 15 * DEG) });
+  check('a waterfall sinking 5 m/s with the wings 15 deg off level is a waterfall, not a spin',
+    falling.length === 1 && falling[0].figure === 'waterfall', falling.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  /* Banked 60 deg the span it pivots on is nearer the vertical than the
+   * horizontal: the wings are not level and it is no waterfall. */
+  const banked = one({ q: 8 }, { q: attitudeQuat(0, 60 * DEG), speed: 4 });
+  check('negative control: a pitch pivot with the wings banked 60 deg is no waterfall', !banked.some((g) => g.figure === 'waterfall'),
+    banked.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  /* "Little altitude gain or forward motion" (Wikipedia, "3D Aerobatics"):
+   * the same pivot drifting 4 m/s forward, 3 m over the turn, loses a point. */
+  const clean = run('waterfall').find((g) => g.figure === 'waterfall');
+  const drift = one({ q: 3.5, world: [4, 0, 0] }).find((g) => g.figure === 'waterfall');
+  check('a waterfall that drifts 4 m/s forward through its turn is graded under one that pivots in place',
+    clean && drift && drift.grade < clean.grade, `${clean ? clean.grade : '-'} vs ${drift ? drift.grade : 'not named'}`);
 }
 /* A crash in the middle forgets the figure. */
 {
