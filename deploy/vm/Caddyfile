@@ -106,6 +106,18 @@
 	handle {
 		reverse_proxy 127.0.0.1:8797 {
 			header_up CF-Connecting-IP {remote_host}
+			# Only a rooms process may say it is the other one (edge/rooms/
+			# node.js PEER_HEADER): a pilot's would make a second copy of a
+			# room the other process still flies.
+			header_up -X-Fdfpv-Peer
+			# A reload closes every WebSocket the old config proxied, at
+			# once, with 1001 (measured on Caddy 2.11.4, the VM's, 2026-10-12),
+			# so without this every Caddyfile change and every board deploy
+			# dropped every room. The sockets now stay up this long after a
+			# reload, then close and their pilots reconnect into their seats.
+			# 30 minutes is past a draining rooms process's 20 minute cap
+			# (edge/rooms/node.js DRAIN_CAP_MS, docs/ROOMS-DRAIN.md).
+			stream_close_delay 30m
 		}
 	}
 }

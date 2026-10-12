@@ -15,7 +15,7 @@ every one of those features failed on the live site.
 | --- | --- |
 | Address | https://129.151.39.48, all three servers |
 | Tracks | `/api/*`, tracks-api/node.js on 127.0.0.1:8787 |
-| Rooms | `/v2/*` and `/`, edge/rooms/node.js on 127.0.0.1:8797, WebSockets included |
+| Rooms | `/v2/*` and `/`, edge/rooms/node.js on 127.0.0.1:8797 or 8798, the live one in `/etc/fdfpv/rooms-live`, WebSockets included |
 | Board | `/board/*` with the prefix taken off, fdfpv-leaderboard src/server.js on 127.0.0.1:3180, WebSockets included; Postgres 16 on the Unix socket |
 | VM | Oracle Cloud Sao Paulo, Oracle Linux 9, aarch64, 1 core, 5.6 GB, 30 GB disk |
 | Access | `ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48`, key only; the key lives on the owner's desktop and nowhere else |
@@ -38,9 +38,12 @@ Worker and the simulator's two origins are the same string.
 - `caddy` (COPR `@caddy/caddy`), the TLS front, `Caddyfile` here. No access
   log. It hands each server the client address in `cf-connecting-ip`, the
   header they read on Cloudflare, overwriting any a client sent.
-- `fdfpv-rooms`, `fdfpv-tracks` and `fdfpv-board`, systemd units here,
+- `fdfpv-rooms@8797` and `@8798` (one template, `fdfpv-rooms@.service`,
+  live and draining, see "Rooms deploys" below), `fdfpv-tracks` and
+  `fdfpv-board`, systemd units here,
   Node 24 from the Oracle Linux appstream module, each as its own system
-  user with no shell, loopback only, `Restart=always`, a hardened sandbox,
+  user with no shell, loopback only, `Restart=always` (the rooms
+  `on-failure`, so a drained instance stays down), a hardened sandbox,
   and a `MemoryMax` set from a measured peak (the measurement is in the
   unit). The board's code is in `/opt/fdfpv-board`, with the commit it
   runs in `/opt/fdfpv-board/REVISION`.
@@ -84,9 +87,31 @@ refuses to go on if sshd allows passwords, rsyncs `package*.json`,
 `src/`, `configs/`, `edge/`, `tracks-api/` and `deploy/vm/` into
 `/opt/fdfpv`, runs `npm ci` there (the one dependency is `ws`), makes the
 admin secret the first time, installs the units, the journald cap and the
-Caddyfile (`install.sh`), restarts both servers, and fetches both through
-Caddy. A restart closes every room socket with 1012 and the simulator
-reconnects into its seat.
+Caddyfile (`install.sh`), restarts the tracks server, puts the new rooms
+version live beside the old one (`rooms-deploy.sh`, below), and fetches
+both through Caddy.
+
+### Rooms deploys
+
+A deploy drops no room (docs/ROOMS-DRAIN.md). `rooms-deploy.sh` starts the
+new version as the instance not live, `fdfpv-rooms@8797` or `@8798`, on
+its own copy of the code (`/opt/fdfpv-rooms/<port>`, mounted at
+`/opt/fdfpv` for that unit only), checks its `/v2/version`, points Caddy
+at it, writes the port to `/etc/fdfpv/rooms-live`, and sends the old one
+SIGUSR2. Both open the same `rooms.db`. The old one keeps every room it
+holds until nobody is connected, or 20 minutes, then exits (at the cap
+with 1012, and its pilots reconnect into their seats on the new one).
+Caddy keeps the sockets it proxied open across the reload
+(`stream_close_delay 30m`). The new one forwards a pilot of an old room to
+the old one (`ROOMS_PEER`, `rooms-<port>.env`), lists the old one's flying
+public rooms, and takes in everything the old one stored once it exits.
+A deploy while the previous one still drains stops that one first, so at
+most two versions are ever alive. It never waits for a room. Proven
+locally by `npm run rooms:drain`, `CADDY=... npm run rooms:deploy-caddy`
+and `CADDY=... npm run rooms:deploy-dryrun`.
+
+The live instance: `fdfpv-rooms@$(cat /etc/fdfpv/rooms-live)`. Its logs:
+`sudo journalctl -u 'fdfpv-rooms@*'`.
 
 Which commit is live: deploy.sh writes the commit it copied to
 `/opt/fdfpv/REVISION` (with ` dirty` after it from a checkout with
@@ -122,9 +147,9 @@ user included), rsyncs the board and the simulator modules its lap check
 imports into `/opt/fdfpv-board`, rsyncs this directory into
 `/opt/fdfpv/deploy/vm`, makes the admin file and `/etc/fdfpv/board.env`
 the first time, and runs `board-install.sh`: the database and its role,
-the unit, the Caddyfile (validated first, then a graceful reload). It
-restarts the board and nothing else, so pilots in a room stay connected,
-which `deploy.sh` cannot promise: `install.sh` restarts rooms and tracks.
+the unit, the Caddyfile (validated first, then a reload that keeps room
+sockets open, `stream_close_delay`). It restarts the board and nothing
+else, so pilots in a room stay connected.
 
 The admin file is the board's sign in, mode 600: the address on its
 first line, the password on its second, a dated note on its third. The
@@ -237,7 +262,7 @@ route answers 503 and the rest of the tracks server is as it was. The
 server fetches Google's keys from
 www.googleapis.com, so the VM needs outbound HTTPS (it has it; dnf uses
 it). The rooms unit asks the tracks server about a signed in pilot's
-session over loopback (`ACCOUNTS_ORIGIN` in `fdfpv-rooms.service`) and
+session over loopback (`ACCOUNTS_ORIGIN` in `fdfpv-rooms@.service`) and
 seats nobody without one: no session, or a build from before the sign in,
 is refused, and while the tracks server does not answer every join is
 refused with its own reason (edge/rooms/node.js helloAccount). The board takes a callsign
@@ -287,10 +312,10 @@ storage):
 
 ```sh
 ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 \
-  'echo DEV_ACCOUNTS=<id> | sudo install -m 600 -o root /dev/stdin /etc/fdfpv/dev-accounts.env && sudo systemctl restart fdfpv-rooms'
+  'echo DEV_ACCOUNTS=<id> | sudo install -m 600 -o root /dev/stdin /etc/fdfpv/dev-accounts.env && sudo systemctl restart "fdfpv-rooms@$(cat /etc/fdfpv/rooms-live)"'
 ```
 
-To take it away, delete the file and restart `fdfpv-rooms`. The owner
+To take it away, delete the file and restart the live rooms instance. The owner
 opens the page with `?missions=dev` so the campaign screens offer what is
 in development (the client's switch only; the room is the gate, and
 anybody else using it is refused `unreleased`). The same list lifts Act
@@ -383,7 +408,7 @@ deploy/vm/deploy.sh /home/brains/Desktop/fdfpv-loop/online-tracks/ADMIN-SECRET.t
 deploy/vm/deploy-board.sh /home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt
 
 # 2. Stop what writes.
-$VM 'sudo systemctl stop fdfpv-rooms fdfpv-tracks fdfpv-board fdfpv-metrics.timer'
+$VM 'sudo systemctl stop fdfpv-rooms@8797 fdfpv-rooms@8798 fdfpv-tracks fdfpv-board fdfpv-metrics.timer'
 
 # 3. The secrets, then the SQLite files (owner and mode as the units expect).
 $VM 'sudo tar -xzf - -C /etc' < $B/etc-fdfpv.tar.gz
@@ -399,7 +424,7 @@ $VM 'sudo -u postgres dropdb --if-exists fdfpvboard && sudo -u postgres createdb
 $VM 'sudo -u postgres pg_restore --no-owner --role=fdfpv-board -d fdfpvboard' < $B/board.dump
 
 # 5. Start, and check as in "Check it" below.
-$VM 'sudo systemctl start fdfpv-tracks fdfpv-rooms fdfpv-board fdfpv-metrics.timer'
+$VM 'sudo systemctl start fdfpv-tracks "fdfpv-rooms@$(cat /etc/fdfpv/rooms-live)" fdfpv-board fdfpv-metrics.timer'
 curl -s https://api.paraguayandronecombatsimulator.com/api/version https://api.paraguayandronecombatsimulator.com/v2/version
 ```
 
@@ -416,11 +441,11 @@ npm run rooms:server -- https://129.151.39.48
 node scripts/rooms-soak.js https://129.151.39.48 600 2
 SIM_GPU=1 node scripts/rooms-two-page.js https://129.151.39.48
 SIM_GPU=1 node scripts/rooms-restart-check.js https://129.151.39.48 \
-  "ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 sudo systemctl restart fdfpv-rooms"
+  "ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 'sudo systemctl restart fdfpv-rooms@\$(cat /etc/fdfpv/rooms-live)'"
 ```
 
 and `rooms:safety`, `rooms:wrecks`, `rooms:racetwopage` the same way.
-Logs: `sudo journalctl -u fdfpv-rooms -u fdfpv-tracks -u fdfpv-board -u caddy`.
+Logs: `sudo journalctl -u 'fdfpv-rooms@*' -u fdfpv-tracks -u fdfpv-board -u caddy`.
 
 The board, every feature from the page (scripts/board-live-check.js says
 what it files and what it takes back):
@@ -561,7 +586,7 @@ node scripts/rooms-load.js https://129.151.39.48 --rooms=4 --pilots=16 --phases=
 
 and beside it on the VM, the whole core with Caddy's share:
 `ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 'top -b -d 5 -n 60 | grep -E "^%Cpu|node|caddy"'`,
-and `systemctl show -p MemoryPeak fdfpv-rooms` after. What to write down:
+and `systemctl show -p MemoryPeak fdfpv-rooms@$(cat /etc/fdfpv/rooms-live)` after. What to write down:
 each step's CPU, loop p99, the near peers' rate, the VM's idle, and
 whether `busy` turned true (it should, before near peers drop under
 29 Hz). The desktop's estimate to check it against is three combat rooms
