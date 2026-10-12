@@ -250,10 +250,12 @@ export const PROGRAMS = {
   wall: [slow(13), pull(1, 0.5 * PI, 1), hang(2500), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
 };
 
-export async function fly(program, { wasmBytes, configText, trace = false }) {
+/* airframe: the plant's id, the Extra's by default; the CAP and the Slick
+ * fly the same programs at the same launch to check a promotion. */
+export async function fly(program, { wasmBytes, configText, trace = false, airframe = EXTRA_AIRFRAME }) {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(EXTRA_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 150, 1, 0, 0, 0), 'sim_set_pose');
