@@ -48,6 +48,7 @@
  */
 
 import { makeValleyWorld } from '../../src/share/valley/world.js';
+import { SWISS_WORLD } from '../../src/maps/swiss2/field.js';
 import { makeItaipuWorld } from '../../src/share/itaipu/world.js';
 import { readItaipuBytes } from '../../src/share/itaipu/node.js';
 import { makeWorld } from '../../src/share/interior/world.js';
@@ -55,7 +56,7 @@ import { readWorldBytes } from '../../src/share/interior/node.js';
 
 /* Each map's ground, or null where the room cannot have one. */
 const MAKERS = Object.freeze({
-  swiss2: () => makeValleyWorld('swiss2').groundAt,
+  swiss2: () => makeValleyWorld('swiss2', SWISS_WORLD).groundAt,
   alps: () => makeValleyWorld('alps').groundAt,
   itaipu: () => {
     const bytes = readItaipuBytes();
