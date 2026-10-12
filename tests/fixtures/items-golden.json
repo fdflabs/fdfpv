@@ -7765,6 +7765,40 @@
      }
     },
     {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
@@ -8797,6 +8831,40 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
     },
     {
      "id": "pilot:a-rates",
@@ -9833,6 +9901,40 @@
      }
     },
     {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
@@ -10867,6 +10969,40 @@
      }
     },
     {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
@@ -11891,6 +12027,40 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
     },
     {
      "id": "pilot:a-rates",
@@ -13095,6 +13265,40 @@
      }
     },
     {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
@@ -14125,6 +14329,40 @@
      }
     },
     {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
@@ -15133,6 +15371,40 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:show-sticks",
+     "label": "Show sticks",
+     "value": "Off",
+     "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Compare sticks",
+     "value": "None",
+     "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+     "action": "comparesticks",
+     "drives": {}
     },
     {
      "id": "pilot:a-rates",
@@ -32388,6 +32660,40 @@
      }
     },
     {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
@@ -33420,6 +33726,40 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
     },
     {
      "id": "pilot:a-rates",
@@ -34456,6 +34796,40 @@
      }
     },
     {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
@@ -35490,6 +35864,40 @@
      }
     },
     {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
@@ -36514,6 +36922,40 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
     },
     {
      "id": "pilot:a-rates",
@@ -37718,6 +38160,40 @@
      }
     },
     {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
@@ -38748,6 +39224,40 @@
      }
     },
     {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
@@ -39756,6 +40266,40 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:mostrar-sticks",
+     "label": "Mostrar sticks",
+     "value": "Off",
+     "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "showSticks": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "showSticks": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:a-comparesticks",
+     "label": "Comparar sticks",
+     "value": "Ninguna",
+     "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+     "action": "comparesticks",
+     "drives": {}
     },
     {
      "id": "pilot:a-rates",

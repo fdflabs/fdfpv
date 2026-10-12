@@ -48,6 +48,7 @@ import { deleteTrack, loadMapTrack, saveTrack } from '../trackbuilder/storage.js
 import { customisable } from './builds.js';
 import { downloadCli } from './fc.js';
 import { fitsAsSegments } from './rows.js';
+import { pickStickRef } from './stickref.js';
 import { saveSettings, seatAirframe } from './settings.js';
 import { HUBS, OPEN_ACTIONS, WAYS, boardCraft, craftSvg, hubOfAction, hubWays, reticleSvg } from './ways.js';
 /* A cycle: ui.js installs this module. Read inside methods only. */
@@ -256,6 +257,7 @@ const ACTIONS = {
   'update-reload'() { window.location.reload(); },
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
   hotswap(ui) { ui.openSwap('paused'); },
+  comparesticks(ui) { pickStickRef(ui.stickRef, () => ui.renderMenu()); },
   /* The pause menu's Flight panel. Escape into the pause menu leaves
    * returnTo where the run found it, so the panel names its way back. */
   quick(ui) {

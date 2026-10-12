@@ -792,11 +792,21 @@ function stickRows(ui, s) {
       (n) => str('ui.mode', { n }),
       (n) => { s.stickMode = normaliseStickMode(n); },
     ),
+    toggle(str('ui.show_sticks'), str('ui.show_sticks_note'), s.showSticks, (v) => { s.showSticks = Boolean(v); }),
+    { label: str('ui.compare_sticks'), value: compareSticksValue(ui.stickRef), action: 'comparesticks', note: str('ui.compare_sticks_note') },
     /* No mid run warning: rates no longer put the quad on the start line. */
     ratesRow(s, str('ui.how_far_the_sticks_go_and')),
     linkRow(s, str('ui.no_radio_every_frame_arrives_exactly'), 'ui.hz_ms_delay_ms_jitter_records'),
     choice(str('ui.stick_latency'), str('ui.stick_latency_note'), LATENCY_MODES, s.latencyMode, (id) => str(`ui.latency_${id}`), (id) => { s.latencyMode = id; }),
   ];
+}
+
+/* What the Compare sticks row holds (src/ui/stickref.js). */
+function compareSticksValue(ref) {
+  if (ref && ref.loaded) {
+    return str('ui.compare_sticks_value', { name: ref.name, secs: ref.seconds.toFixed(1) });
+  }
+  return str(ref && ref.status ? `ui.compare_sticks_${ref.status}` : 'ui.compare_sticks_none');
 }
 
 function screenRows(ui, s) {

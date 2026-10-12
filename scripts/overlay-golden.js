@@ -155,6 +155,8 @@ const { DEFAULTS, SETTINGS_KEY, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOC
 const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/session.js');
 const { MAPS } = await import('../src/maps/registry.js');
 const { useLocale } = await import('../src/strings/index.js');
+const { StickRef } = await import('../src/ui/stickref.js');
+const { COLUMNS } = await import('../src/share/controlrec.js');
 
 const FREESTYLE_MAP = MAPS.find((m) => m.mode === 'freestyle').id;
 const RACE_MAP = MAPS.find((m) => m.mode !== 'freestyle').id;
@@ -451,6 +453,41 @@ async function snapshot() {
     call(ui, 'setStickOverlay', { show: true, roll: 0.5, pitch: -0.25, yaw: 1, throttle: 0.75 }); step('mode 1', n());
     ui.osdSticks = null;
     call(ui, 'setStickOverlay', { show: false }); step('no block', n());
+  });
+
+  /* The Show sticks setting and a compared recording (src/ui/stickref.js):
+   * a flight frame carries the plant's clock (t) and whether it flies. */
+  out.stickRef = await scenario((ui, step) => {
+    const ring = () => ({ nub: el('div', 'osd-nub osd-nub-ref is-off') });
+    ui.osdRefLeft = ring();
+    ui.osdRefRight = ring();
+    ui.stickRef = new StickRef();
+    const n = () => ({ left: ui.osdStickLeft.box, right: ui.osdStickRight.box, refL: ui.osdRefLeft.nub, refR: ui.osdRefRight.nub });
+    const radio = (t, air) => ({ show: false, roll: 0.5, pitch: -0.25, yaw: 1, throttle: 0.75, t, air });
+    call(ui, 'setStickOverlay', radio(1, true)); step('radio, setting off', n());
+    ui.settings.showSticks = true;
+    call(ui, 'setStickOverlay', radio(1, true)); step('radio, setting on', n());
+    call(ui, 'setStickOverlay', { show: false, roll: 0, pitch: 0, yaw: 0, throttle: 0 }); step('setting on, off flight', n());
+    ui.settings.showSticks = false;
+    /* Two seconds of a recording whose sticks step at 1 s, from t_s 7. */
+    const row = (t, roll, pitch, yaw, throttle) => COLUMNS.map((c) => ({ t_s: t, roll, pitch, yaw, throttle }[c] ?? NaN));
+    ui.stickRef.load([row(7, -1, 0, 0, 0), row(8, 0.5, 0.5, -0.5, 1), row(9, 0, -1, 1, 0.25)], 'probe');
+    call(ui, 'setStickOverlay', radio(3, false)); step('loaded, on the stand', n());
+    call(ui, 'setStickOverlay', radio(4, true)); step('loaded, takes off', n());
+    call(ui, 'setStickOverlay', radio(5.5, true)); step('loaded, 1.5 s in', n());
+    call(ui, 'setStickOverlay', radio(6, true)); step('loaded, its last row', n());
+    call(ui, 'setStickOverlay', radio(6.01, true)); step('loaded, past its end', n());
+    call(ui, 'setStickOverlay', radio(0.5, true)); step('loaded, clock back (R)', n());
+    out.stickRefRefused = (() => {
+      try {
+        ui.stickRef.load([row(7, 0, 0, 0, 0), row(7, 0, 0, 0, 0)], 'still');
+        return 'loaded';
+      } catch (e) {
+        return e.message;
+      }
+    })();
+    ui.stickRef.clear();
+    call(ui, 'setStickOverlay', radio(1, true)); step('cleared', n());
   });
 
   out.air = await scenario((ui, step) => {
