@@ -1063,6 +1063,49 @@ pure attitude hold above is 58 percent. What separates them is the
 pilot model: it sees 0.2 s late and does not anticipate (analysis pass 2
 counts 96, 52 and 8 of its 336 at 0.12, 0.2 and 0.3 s), so a person
 practised on the aircraft does better than the grid.
+
+### The receiver as it ships, and its gains to the margin (2026-10-12)
+
+The owner flew the live build (#970) and said AS3X was "violently
+correcting". Measured (scripts/as3x-margins.js, scripts/lib/as3xloop.js):
+the receiver is a sampled loop, a frame up and a frame down at worst, and
+at the full throttle dive every AS3X table was under MIL-F-9490D's 6 dB;
+the Bombshell, both Cubs, the Hercules, the Night Timber, the P-51 and
+the Slow Stick were past the onset (0 dB or under), ringing at half the
+frame rate, the surfaces buzzing; the Extra was at 0.4 dB in roll at
+42.4 m/s and 3.9 to 4.2 dB at its level top speed. The heading's integral
+also rocked the Extra's hover in roll, 7 to 9 deg of phase margin at
+2 to 3 rad/s, a 2.4 s rock, and wound up under a held stick and landed
+on release (37 deg/s back from a 35 percent roll, 157 from full).
+
+Now, from the receiver's own documentation:
+- The Extra's BNF receiver is the AR631 (its manual p. 10, "AR631 gain
+  values may need to be adjusted"). Its Heading "screens ... are
+  defaulted to zero. You can increase this value to make the aircraft
+  hold its attitude when control input is neutral. Heading gain on the
+  yaw axis is generally not recommended because it will require the
+  pilot to steer the aircraft through any heading changes." So mode 3
+  ships as a rate damper; the heading term stays, at a pilot's share of
+  as3x_kh (sim_wing_set_heading, zero by default; lead decision
+  2026-10-12).
+- The gains: "Increase the gain values until you find oscillation, and
+  then reduce the gain to the highest setting that will not cause
+  oscillation at any speed" (the AR631 manual). as3x:derive measures the
+  airframe over slow flight, cruise, top speed, the full throttle dive,
+  the harrier and the hover, and takes each damper as the highest that
+  keeps 6 dB and 45 deg everywhere; the full Heading is the damper's
+  integral at the corner the derivation always used, kh = k pi / (16 T).
+  as3x:margins (in CI) fails any loop under the rule with the Heading at
+  zero, and prints what the full Heading leaves.
+- Priority fades the heading's sum with its output, so a held stick no
+  longer winds it up.
+
+What this costs: with the Heading at zero nothing holds the Extra's
+attitude with the sticks centred, as with the real receiver; the hover
+is flown on the sticks, as in Manual but damped. A pilot who wants the
+old hold turns the Heading up and spends margin, as on the real
+receiver. The section above describes the receiver before this.
+
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is

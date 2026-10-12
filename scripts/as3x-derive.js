@@ -1,37 +1,42 @@
 /*
- * as3x-derive.js: the gains of mode 3's rate damper (FixedWingParams.as3x_k),
- * E-flite's AS3X with SAFE Select off, for each aircraft that ships with it
- * and each one a pilot may fit a Spektrum AS3X receiver to (docs/CONTROLLERS.md).
- * AS3X adds to each servo's command a term against the body's rate on that
- * axis; Horizon publishes no gains, only that too much shows as
- * "oscillation at high speed" (the Extra 300 3D manual, p. 4 and its AS3X
- * troubleshooting guide, p. 13). So the gain is the most a rate loop with
- * the receiver's delay can carry at the aircraft's top speed, halved: the
- * 6 dB gain margin MIL-F-9490D asks of a flight control loop.
+ * as3x-derive.js: the gains of mode 3, Spektrum's AS3X (plant_wing.c), for
+ * each aircraft that ships with it and each one a pilot may fit a
+ * Spektrum AS3X receiver to (docs/CONTROLLERS.md): the damper on each
+ * axis' body rate (FixedWingParams.as3x_k), the most Heading a pilot may
+ * set on it (as3x_kh, at the tune's full Heading; the receiver's own
+ * default is zero, the AR631's) and the rate the stick asks under the
+ * Heading (as3x_rate).
  *
- * A rate loop k on a surface of control power M (rad/s^2 of body rate per
- * rad of surface) with a pure delay tau crosses over near w = k M, where
- * the delay's phase is k M tau; it oscillates at k M tau = pi / 2. Half
- * that, k = pi / (4 M tau). M is the plant's own at the top speed, level
- * at full throttle, the servos given time to get there. tau is the
- * servo frame the gyro writes at, 11 ms, the one Spektrum allows with
- * digital servos ("Only use 11ms and 5.5 ms with digital servos", the
- * AS3000 manual), the rates' sample held a frame before the servo sees
- * it. The gain is at centre stick; plant_wing.c takes it out as the
- * stick moves, Spektrum's priority. The servos' own slew is not in the
- * formula, so the plant's loop is also kicked at 35 m/s below and must
- * settle.
+ * Horizon publishes no gains. Spektrum publishes how they are set:
+ * "Increase the gain values until you find oscillation, and then reduce
+ * the gain to the highest setting that will not cause oscillation at any
+ * speed", "Oscillation occurs because the system is overshooting the
+ * correction, and will usually occur at higher speeds" (the AR631
+ * manual, AS3X Tuning Basics; the Extra's own receiver, its manual p. 10).
+ * So each axis' damper is the highest that keeps the margin rule
+ * (scripts/lib/as3xloop.js: 6 dB of gain under the onset, MIL-F-9490D,
+ * and 45 deg of phase) at every condition the aircraft flies, slow
+ * flight to the full throttle dive, the harrier and the hover where it
+ * flies them, measured on the plant with the receiver's own frame and
+ * the servos' slew (as3xloop.js measurePlane). Then the full Heading on
+ * that damper, the highest that still keeps it. Each is cut to four
+ * places downward, so the table never sits above its derivation.
  *
- * The top speed the gains are set at is the one on the pack the table's
- * thrust and current were measured on (held at its v_meas: ratedPlane
- * below), not the 4.1 V the gates seat: E-flite sets the receiver's
- * gains once, at the factory, on its rated setup, and a test harness's
- * seat voltage must never move a receiver constant (lead decision
- * 2026-10-12). An engine, which has no pack, flies its 4.1 V seat as
- * before; nothing about it reads the pack.
+ * Until 2026-10-12 the damper was pi / (4 M tau) at the rated setup's
+ * level top speed, a margin by formula that took the frame's whole
+ * period as its delay and the airframe as a bare integrator, and never
+ * measured: at the full throttle dive every AS3X loop was under 6 dB and
+ * eight aircraft's rang at the frame's Nyquist rate (w37-fc-feel). Its
+ * check kicked each axis and compared against the same flight unkicked,
+ * which a loop ringing by itself passes, since both flights ring alike.
+ *
+ * The heading's rate per stick is unchanged: what the airframe turns at
+ * a tenth of stick, level at its cruise and hanging on the prop, on the
+ * gates' seat (slopes below).
  *
  * With --check it fails when a table differs from what it derives. Run
- * with npm run as3x:derive (dist/sim.wasm built first).
+ * with npm run as3x:derive (dist/sim.wasm built first). --plane NAME
+ * measures one table and prints it as JSON.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -53,135 +58,28 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { loadSim } from '../tests/lib/simmod.js';
-import { must, attitude } from '../tests/lib/wingpilot.js';
-import { POWER, TABLE, powerBlock } from '../configs/power.js';
+import { must } from '../tests/lib/wingpilot.js';
+import { TABLE } from '../configs/power.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
+import {
+  AS3X, rowOf, receiverOf, gainForMargins, measurePlane, revive, fanOut,
+  planeSim, diveCondition, closedFlight, rings,
+} from './lib/as3xloop.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
-const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
+const self = fileURLToPath(import.meta.url);
+const root = dirname(dirname(self));
 const src = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
-const check = process.argv.includes('--check');
+const argv = process.argv.slice(2);
+const check = argv.includes('--check');
+const opt = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
 
-/* Each table's frame (as3x_frame, zero is 22 ms) is read off its source. */
-const frameOf = (body) => { const m = body.match(/\.as3x_frame = ([0-9.]+)/); return m ? Number(m[1]) : 0.022; };
 /* Where the level rate is read: the table's own cruise (configs/power.js)
  * at the stick that flies it level (stab_trim_throttle), unless the entry
  * below names its own. */
 const levelOf = (a, body) => [Object.values(TABLE).find((t) => t.simId === a.sim).cruiseMs,
   Number(body.match(/\.stab_trim_throttle = ([0-9.]+)/)[1])];
 const MS = 4;
-/* The aircraft with an AS3X row: their table and sim id. The Extra and
- * the Timber ship with it; the rest may be fitted with it. */
-const AS3X = {
-  /* The Extra's and the Night Timber's level points were 16 m/s at the
-   * Extra's old stab_trim_throttle, 0.624, until 2026-10-12; on the
-   * seated pack 0.624 climbs at 16 m/s, so they take their tables' own
-   * cruise at the stick that flies it level, as every other row. */
-  FW_EXTRA3D1308: { sim: 29 },
-  FW_TIMBER1500: { sim: 7 },
-  FW_TIMBER1500F: { sim: 9 },
-  FW_CUB1400: { sim: 4 },
-  FW_CUB1400F: { sim: 10 },
-  FW_SLOWSTICK1180: { sim: 5 },
-  FW_RADIAN2000: { sim: 6 },
-  FW_BOMBSHELL1118: { sim: 11 },
-  FW_KADET1981: { sim: 12 },
-  FW_P51D1450: { sim: 15 },
-  FW_F16878: { sim: 16 },
-  FW_ZAGI1219: { sim: 17 },
-  FW_UGLYSTIK1567: { sim: 19 },
-  FW_TIGERMOTH1803: { sim: 23 },
-  FW_NIGHTTIMBER1200: { sim: 30 },
-  FW_HERCULES3077: { sim: 31 },
-  FW_CAP1702: { sim: 32 },
-  FW_SLICK2680: { sim: 33 },
-};
-
-/* The rated setup: the stock power on a supply that holds v_meas at any
- * current, as the bench rows were measured (a pack of no resistance seated
- * at v_meas, big enough that the 30 s top speed flight does not drain it),
- * so the motor runs at the table's own figures, ratio 1, everywhere; and
- * no ESC cutoff (the balances' loaded voltage sits under some ESCs'
- * thresholds, the P-51's 3.4 V among them, and the rated point is the
- * motor's, not the cutoff's). */
-async function ratedPlane(simId, rated) {
-  const id = Object.keys(TABLE).find((k) => TABLE[k].simId === simId);
-  const o = POWER[id][0];
-  const block = powerBlock(id, o.id, o.pack);
-  block[4] = 0;
-  block[5] = 1.0e6;
-  block[16] = 0;
-  const sim = await planeSim(simId);
-  must(sim.setPower(block), 'sim_set_power');
-  must(sim.setCellVoltage(rated.vMeas), 'sim_set_cell_voltage');
-  return sim;
-}
-
-async function planeSim(id, volts = SEAT_GATES) {
-  const sim = await loadSim(wasmBytes);
-  must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(id), 'sim_set_airframe');
-  must(sim.setCellVoltage(volts), 'sim_set_cell_voltage');
-  sim.surfPtr = sim.e.malloc(4 * 8);
-  return sim;
-}
-
-/* Level at full throttle, the pitch held on the elevator, until the speed
- * stops growing: the top speed. */
-function topSpeed(sim) {
-  must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
-  must(sim.e.sim_wing_launch(15), 'sim_wing_launch');
-  let t = 0, s;
-  for (let ms = 0; ms < 30000; ms += MS) {
-    s = sim.readState().state;
-    const { pitch } = attitude(s);
-    const stick = Math.max(-1, Math.min(1, 2 * (0 - pitch) + 0.2 * s[12] - 0.05 * s[6]));
-    must(sim.input(t / 1000, 0, stick, 0, 1), 'sim_input');
-    must(sim.step(MS), 'sim_step');
-    t += MS;
-  }
-  return Math.hypot(s[4], s[5], s[6]);
-}
-
-/* Control power per axis at V, level, full throttle: rad/s^2 per rad.
- * The stick is held 1.2 s with the aircraft written back to level at V
- * each 1 ms step, so the prop has spun up (prop_spool) and the servos
- * (servo_rate) have reached it, then one
- * step's rate over the surface's angle, against the same with the stick
- * centred. */
-function power(sim, V) {
-  const one = (sticks) => {
-    must(sim.reset(), 'sim_reset');
-    must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-    for (let ms = 0; ms <= 1200; ms += 1) {
-      must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
-      must(sim.e.sim_set_velocity(V, 0, 0, 0, 0, 0), 'sim_set_velocity');
-      must(sim.input(ms / 1000, ...sticks, 1), 'sim_input');
-      must(sim.step(1), 'sim_step');
-    }
-    const s = sim.readState().state;
-    must(sim.e.sim_plane_surfaces(sim.surfPtr), 'sim_plane_surfaces');
-    return { om: [s[11], s[12], s[13]], sf: Array.from(new Float64Array(sim.e.memory.buffer, sim.surfPtr, 4)) };
-  };
-  const base = one([0, 0, 0]);
-  /* The receiver's roll and pitch commands, back out of the mix: an
-   * elevon is pitch plus roll, a tail's ailerons are opposed and its
-   * elevator a slot of its own, so both read the same way. */
-  const cmd = (sf) => [(sf[1] - sf[0]) / 2, sf[2] + (sf[0] + sf[1]) / 2, sf[3]];
-  const axis = (sticks, k) => {
-    const r = one(sticks);
-    const d = cmd(r.sf)[k] - cmd(base.sf)[k];
-    /* An axis with no surface of its own (no ailerons on a rudder mix,
-     * no rudder on the Zagi) has nothing for the gyro to move. */
-    if (d === 0) return 0;
-    return Math.abs((r.om[k] - base.om[k]) / 0.001 / d);
-  };
-  return [axis([0.1, 0, 0], 0), axis([0, 0.1, 0], 1), axis([0, 0, 0.1], 2)];
-}
+const r3 = (x) => Number(x.toFixed(3));
 
 /* The heading's rate per stick: what the airframe itself turns at a
  * tenth of stick, level at 16 m/s and hanging on the prop at the hover's
@@ -260,88 +158,80 @@ function slopes(sim, [lv, lthr], hoverStart) {
   return out;
 }
 
-/* The loop as the plant runs it, frame, hold and servo slew included:
- * level at DIVE times the top speed, past it as a dive takes it (the
- * Extra's 35 m/s, analysis pass 2's case), each axis kicked 1 rad/s with
- * the sticks centred in mode 3; the most the kicked flight's rate is
- * still off the same flight unkicked by 1 to 1.5 s on, rad/s. The
- * unkicked flight carries what the airframe does on its own launched
- * that fast (it pitches up hard), so only the kick's own decay is
- * judged. An axis the gyro has no surface on (k zero: no ailerons on a
- * rudder mix, no rudder on the Zagi) is not the gyro's to settle. */
-function kickLeft(sim, V, k) {
-  const fly = (ax, kick) => {
-    must(sim.reset(), 'sim_reset');
-    must(sim.e.sim_wing_set_stab(3), 'sim_wing_set_stab');
-    must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
-    must(sim.e.sim_wing_launch(V), 'sim_wing_launch');
-    let t = 0;
-    for (let ms = 0; ms < 400; ms += MS) {
-      must(sim.input(t / 1000, 0, 0, 0, 1), 'sim_input');
-      must(sim.step(MS), 'sim_step');
-      t += MS;
-    }
-    const s = sim.readState().state;
-    const w = [s[11], s[12], s[13]];
-    w[ax] += kick;
-    must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'sim_set_velocity');
-    const late = [];
-    for (let ms = 0; ms < 1500; ms += MS) {
-      must(sim.input(t / 1000, 0, 0, 0, 1), 'sim_input');
-      must(sim.step(MS), 'sim_step');
-      t += MS;
-      if (ms >= 1000) late.push(sim.readState().state[11 + ax]);
-    }
-    return late;
-  };
-  const out = [];
-  for (let ax = 0; ax < 3; ax += 1) {
-    if (k[ax] === 0) { out.push(0); continue; }
-    const kicked = fly(ax, 1), still = fly(ax, 0);
-    out.push(Math.max(...kicked.map((x, i) => Math.abs(x - still[i]))));
-  }
-  must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-  return out;
-}
-const KICK_MAX = 0.05;
-const DIVE = 35 / 24.08;
-/* sim_wing_launch takes 60 m/s at most (src/native/sim.c): the Slick's
- * dive, 1.45 times its 42 m/s, is flown at that. */
-const diveOf = (V) => Math.min(60, DIVE * V);
 
-const r3 = (x) => Number(x.toFixed(3));
-const r4 = (x) => Number(x.toFixed(4));
-let bad = 0;
-for (const [name, a] of Object.entries(AS3X)) {
-  const sim = await planeSim(a.sim);
-  const rowBody = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
-  const rated = /\.current_full = [1-9]/.test(rowBody) ? wingSeat(name) : null;
-  const ratedSim = rated ? await ratedPlane(a.sim, rated) : sim;
-  const V = topSpeed(ratedSim);
-  const M = power(ratedSim, V);
-  const TAU = frameOf(src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0]);
-  const k = M.map((m) => (m > 0 ? r4(Math.PI / (4 * m * TAU)) : 0));
-  /* The heading's integral corner a quarter of the rate loop's crossover,
-   * pi / (4 tau), the usual PI rule: kh = k pi / (16 tau). */
-  const kh = k.map((x) => r4(x * Math.PI / (16 * TAU)));
-  const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
+/* One table, in its own process: the airframe measured over its
+ * envelope, and the heading's rates on the gates' seat. */
+if (opt('--plane')) {
+  const name = opt('--plane');
+  const a = AS3X[name];
+  const body = rowOf(src, name);
+  const sim = await planeSim(a.sim, SEAT_GATES);
   /* The hover's held from the stick that hangs the weight on the prop on
    * the 4.1 V pack this seats (wingSeat hoverStick); an engine, which no
-   * row hovers, from 0.6 as before. Until 2026-10-12 every row started
-   * at 0.6, which on the seated pack hangs 1.6 of the Extra's weight on
-   * its prop: it climbed out of the hold, and its hover slope was lost. */
+   * row hovers, from 0.6. */
   const electric = /\.current_full = [1-9]/.test(body);
   const hoverStart = electric ? wingSeat(name).hoverStick(SEAT_GATES) ?? 1 : 0.6;
   const rate = slopes(sim, levelOf(a, body), hoverStart).map(r3);
+  process.stdout.write(JSON.stringify({ measure: await measurePlane(name, src), rate }));
+  process.exit(0);
+}
+
+/* Four places, downward: the table never above its derivation. */
+const f4 = (x) => Math.floor(x * 1e4) / 1e4;
+/* The damper on one axis: the highest that keeps the margin rule
+ * everywhere, the Heading at the receiver's default, zero. */
+const dampFor = (resps, axis, T) => f4(gainForMargins(resps, axis, 1, 0, T));
+
+/* The full Heading on that damper: its integral cornered at a quarter of
+ * the fastest crossover the frame allows, pi / (4 T), so kh = k pi /
+ * (16 T), the rule this derivation has always used. The damper no
+ * longer crosses unity there (it is set by the margin now, not at
+ * pi / (4 T)), so the corner is that fraction of the frame's limit and
+ * nothing more: a ratio, not a measurement. The AR631's Heading is the
+ * pilot's to turn up ("You can increase this value to make the aircraft
+ * hold its attitude when control input is neutral"); a pilot who does
+ * spends margin, as on the real receiver, and as3x:margins prints what
+ * the full Heading leaves. */
+const headingFor = (k, T) => f4(k * Math.PI / (16 * T));
+
+const fleet = await fanOut(self, Object.keys(AS3X));
+let bad = 0;
+for (const name of Object.keys(AS3X)) {
+  const { measure, rate } = fleet[name];
+  const m = revive(measure);
+  const body = rowOf(src, name);
+  const T = m.T;
+  const resps = [0, 1, 2].map((ax) => m.conds.map((c) => c.resp[ax]).filter((r) => r));
+  const k = resps.map((r, ax) => (r.length ? dampFor(r, ax, T) : 0));
+  const kh = k.map((x) => headingFor(x, T));
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
-  const left = kickLeft(sim, diveOf(V), k);
-  const settles = left.every((x) => x < KICK_MAX);
-  console.log(`${name.padEnd(18)} at ${diveOf(V).toFixed(1)} m/s a 1 rad/s kick leaves ${left.map((x) => x.toFixed(3)).join(', ')} rad/s 1 s on${settles ? '' : '  OSCILLATES'}`);
-  if (!settles) bad += 1;
-  console.log(`${name.padEnd(18)} top speed ${V.toFixed(2)} m/s, control power ${M.map((m) => m.toFixed(1)).join(' ')} rad/s^2 per rad: as3x_k ${k.join(', ')}, as3x_kh ${kh.join(', ')}, as3x_rate ${rate.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);
+  /* The loop closed on the plant at the dive, all three axes on the
+   * derived gains at the default Heading, each axis kicked 1 rad/s: none
+   * may ring (as3xloop.js rings, against the same flight unkicked), and
+   * the unkicked flight may swing no more than Manual's does by itself
+   * (the Zagi loops at its dive's full throttle, gyro or none). */
+  const dive = m.conds.find((c) => c.id === 'dive');
+  const sim = await planeSim(AS3X[name].sim);
+  const cond = diveCondition(dive.V);
+  const rx = { ...receiverOf(body), k, kh: [0, 0, 0] };
+  const swingOf = (tr) => {
+    const late = tr.slice(-500);
+    const mean = late.reduce((p, q) => p + q, 0) / late.length;
+    return Math.max(...late.map((x) => Math.abs(x - mean)));
+  };
+  const rang = [];
+  for (let ax = 0; ax < 3; ax += 1) {
+    if (!(k[ax] > 0)) continue;
+    const still = closedFlight(sim, cond, rx, [1, 1, 1], ax, 0);
+    const swing = swingOf(still) - swingOf(closedFlight(sim, cond, rx, [0, 0, 0], ax, 0));
+    if (rings(closedFlight(sim, cond, rx, [1, 1, 1], ax, 1), still, 1) || swing > 0.05) rang.push(['roll', 'pitch', 'yaw'][ax]);
+  }
+  if (rang.length) bad += 1;
+  console.log(`${name.padEnd(18)} the dive at ${dive.V.toFixed(1)} m/s, kicked: ${rang.length ? `RINGS ${rang.join(', ')}` : 'settles on every axis'}`);
+  console.log(`${name.padEnd(18)} as3x_k ${k.join(', ')}, as3x_kh ${kh.join(', ')}, as3x_rate ${rate.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);
   if (!ok) bad += 1;
 }
 if (check && bad) {
-  console.log(`${bad} table(s) differ from their derivation`);
+  console.log(`${bad} table(s) differ from their derivation or ring`);
   process.exit(1);
 }
