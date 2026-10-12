@@ -951,6 +951,12 @@ typedef struct FixedWingParams {
   double cl_beta_wing;
   double cl_beta_fin;
   double cn_beta_fin;
+  /* Measured lateral derivatives against the body's angle of attack, at
+   * -20 to 90 deg (plant_wing.c, HI_LAT_DEG): cn_beta, cl_beta, cl_p,
+   * cn_r, the ailerons' and the rudder's moments, as ratios to their value
+   * at 0 deg; then Cl_r and Cn_p, per rad, in place of the CL rules. Zero:
+   * none, the linear derivatives at every angle. */
+  double hi_lat[8][20];
   /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
    * deg past the wing's own stall angle: the ailerons' and the fin's and
    * rudder's. Zero: the measured defaults, an unswept wing's ailerons (NACA
@@ -964,6 +970,15 @@ typedef struct FixedWingParams {
   double stall_re[2];
   double stall_clmax[2];
   double stall_peak[2];
+  /* The width of the lift's rounding to its peak, rad: the wing's curve
+   * leaves its line this far short of the stall angle and tops out this
+   * far past it (wing_lift). Zero: stall_blend, which also sets the stalled
+   * lift's fall, the drag's and moments' blend and the strips'. A table
+   * that sets it keeps those on stall_blend, and stall_re moves this in
+   * place of stall_blend, held to it as a floor: a section at a low
+   * Reynolds number rounds over 5 deg to its peak and then falls within
+   * one (docs/P51-STAGE1.md). */
+  double stall_round;
   /*
    * THE DISCUS LAUNCH, docs/DLG-STAGE1.md, for a glider thrown by its
    * wingtip. Zero discus_v is an aircraft that is not, which

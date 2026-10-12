@@ -422,6 +422,21 @@ static double wash_keep(const double deg[9], const double k[9], double a) {
   }
   return k[8];
 }
+/* A table's measured lateral derivatives against the body's angle of
+ * attack (FixedWingParams.hi_lat), at NASA TP-1538's angles, deg:
+ * straight between them, held past either end. */
+static const double HI_LAT_DEG[20] = { -20.0, -15.0, -10.0, -5.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 70.0, 80.0, 90.0 };
+static double hi_lat_at(const double row[20], double deg) {
+  if (!(deg > HI_LAT_DEG[0])) {
+    return row[0];
+  }
+  for (int i = 0; i < 19; i += 1) {
+    if (deg <= HI_LAT_DEG[i + 1]) {
+      return row[i] + (row[i + 1] - row[i]) * (deg - HI_LAT_DEG[i]) / (HI_LAT_DEG[i + 1] - HI_LAT_DEG[i]);
+    }
+  }
+  return row[19];
+}
 /* NACA TR 419 table II, an unswept Clark Y wing's ailerons (below). */
 static const double AIL_KEEP_TR419[7] = { 1.0, 0.40, 0.22, 0.108, 0.148, 0.18, 0.18 };
 /* NASA TP-2011 fig. 55a, a rudder over a low stabiliser (below). */
@@ -1857,6 +1872,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   const double cla = wing_cla(fw);
   const double alpha_stall = clmax / cla;
   const double aa = sim_fabs(add_term(alpha, dcl_f / cla));
+  const double round = fw->stall_round > 0.0 ? fw->stall_round : fw->stall_blend;
   /* With the tail's own angle (hi_alpha) and the wing's own slope, the
    * tail's lift, the elevator's with it, is the tail's, taken in
    * plant_wing_step on the tail's angle; this is the wing's alone. */
@@ -1880,13 +1896,13 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
    * were: the drag rises before the peak, as a real section's does, and
    * the gates measure the stall at the linear crossing. */
   const double aw = add_term(alpha, dcl_f / cla);
-  const double a0 = alpha_stall - fw->stall_blend;
-  const double a1 = alpha_stall + fw->stall_blend;
+  const double a0 = alpha_stall - round;
+  const double a1 = alpha_stall + round;
   double wing = clmax;
   if (aa < a0) {
     wing = cla * aa;
   } else if (aa < a1) {
-    wing = clmax - cla * (a1 - aa) * (a1 - aa) / (4.0 * fw->stall_blend);
+    wing = clmax - cla * (a1 - aa) * (a1 - aa) / (4.0 * round);
   }
   const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * de_w;
   const double s_hi = smoothstep(a1, a1 + 2.0 * fw->stall_blend, aa);
@@ -1901,6 +1917,10 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
     const int neg = add_term(alpha, shift) < 0.0;
     const double cl_s = neg ? clmax - fw->cl_de * de_w : clmax + fw->cl_de * de_w;
     cl_st = stalled_lift(fw, k_stall, fw->stall_top, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
+    /* The curve goes over to the stalled lift as it rounds to its peak. */
+    if (fw->stall_round > 0.0) {
+      past = smoothstep(alpha_stall, alpha_stall + round, aa);
+    }
   }
   o->cl_lin = cl_lin;
   o->sigma = sigma;
@@ -2077,7 +2097,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     fw_re.cl_max = fw->stall_clmax[0] + x * (fw->stall_clmax[1] - fw->stall_clmax[0]);
     const double peak = fw->stall_peak[0] + x * (fw->stall_peak[1] - fw->stall_peak[0]);
     const double b = peak - fw_re.cl_max / wing_cla(fw);
-    fw_re.stall_blend = b > fw->stall_blend ? b : fw->stall_blend;
+    if (fw->stall_round > 0.0) {
+      fw_re.stall_round = b > fw->stall_round ? b : fw->stall_round;
+    } else {
+      fw_re.stall_blend = b > fw->stall_blend ? b : fw->stall_blend;
+    }
     fw = &fw_re;
   }
   /* The discus launch's zoom lasts as long as the climb does. */
@@ -2566,6 +2590,34 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       cl_sep = -(beta_s < 0.0 ? -1.0 : 1.0) * (aw_s < 0.0 ? -1.0 : 1.0) * sep_w * kk * bd;
     }
   }
+  /*
+   * MEASURED LATERAL DERIVATIVES AGAINST ALPHA, on a table that gives them
+   * (hi_lat, the F-16's from NASA TP-1538 table III, scripts/
+   * f16-derive-hilat.js): the weathercock, the dihedral, the roll and yaw
+   * damping, the ailerons and the rudder, each as the measured aircraft's
+   * ratio to its own value at no angle of attack, where the table's linear
+   * derivatives are derived; the cross derivatives Cl_r and Cn_p the
+   * measured ones themselves, in place of the CL rules. All in the
+   * stability axes the linear terms are in. The roll damping is then the
+   * measured whole aircraft's through its stall, which never goes
+   * propelling, so the strips' stall moments below, which take back the
+   * linear damping as each strip stalls, are not added: with them as well
+   * the F-16 took the damping away twice and spun hands off at 505 deg/s
+   * from the S9 mush.
+   */
+  const int hi_lat = fw->hi_lat[0][0] != 0.0;
+  const double a_body = sim_atan2(sin_b, cos_b) * 180.0 / WING_PI;
+  const double r_clp = hi_lat ? hi_lat_at(fw->hi_lat[2], a_body) : 1.0;
+  const double r_cnr = hi_lat ? hi_lat_at(fw->hi_lat[3], a_body) : 1.0;
+  const double r_ail = hi_lat ? hi_lat_at(fw->hi_lat[4], a_body) : 1.0;
+  if (hi_lat) {
+    cnb *= hi_lat_at(fw->hi_lat[0], a_body);
+    clb *= hi_lat_at(fw->hi_lat[1], a_body);
+    const double r_rud = hi_lat_at(fw->hi_lat[5], a_body);
+    cydr *= r_rud;
+    cldr *= r_rud;
+    cndr *= r_rud;
+  }
 
 
   /* Forces in the body frame. */
@@ -2904,7 +2956,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * surface in separated flow moves the section's lift by as little as it
    * moves the wing's (the strips below). */
   const double ail_k = 1.0 - fre * (1.0 - ail_sep);
-  const double da_m = delta_a * ail_k;
+  const double da_m = delta_a * ail_k * r_ail;
   const double de_m = fw->mix == FW_MIX_ELEVON ? delta_e * sep_g : delta_e;
 
   /* Moments, in the aero convention, then into the body frame. */
@@ -2927,13 +2979,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * angle is sin_b and cos_b above, 0 and 1 below 0.5 m/s. */
   const double ps = p * cos_b + r_aero * sin_b;
   const double rs = r_aero * cos_b - p * sin_b;
-  double cl_sum = clb * beta_s + fw->cl_p * ps * b2v + fw->cl_da * da_m;
+  double cl_sum = clb * beta_s + fw->cl_p * r_clp * ps * b2v + fw->cl_da * da_m;
   cl_sum = add_term(cl_sum, cl_sep);
 
-  cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
+  cl_sum = add_term(cl_sum, (hi_lat ? hi_lat_at(fw->hi_lat[6], a_body) : fw->cl_r_per_cl * CL) * rs * b2v);
   cl_sum = add_term(cl_sum, cldr * delta_r);
-  double cn_sum = cnb * beta_s + fw->cn_r * rs * b2v;
-  cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
+  double cn_sum = cnb * beta_s + fw->cn_r * r_cnr * rs * b2v;
+  cn_sum = add_term(cn_sum, (hi_lat ? hi_lat_at(fw->hi_lat[7], a_body) : fw->cn_p_per_cl * CL) * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, cndr * delta_r);
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
@@ -3147,7 +3199,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       ml += arm * (g_sep[i][0][0] - g_sep[i][1][0]);
       mn += arm * (g_sep[i][0][1] - g_sep[i][1][1]);
     }
-    const double k = qbar * kr * fre;
+    const double k = hi_lat ? 0.0 : qbar * kr * fre;
     /* A strip's lift and drag act across and along the air, the
      * stability axes, so they turn into the body's through the angle of
      * attack as the linear moments above do (Etkin and Reid's stability to
@@ -4721,7 +4773,18 @@ const FixedWingParams FW_P51D1450 = {
   .chord = 0.24413793103448276, /* S/b */
   .cl_alpha = 4.960,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
   .cl_alpha_wing = 4.665, /* the wing alone, a_w, scripts/p51-derive.js */
-  .cl_max = 1.05,         /* the laminar section at 2e5, ESTIMATED */
+  .cl_max = 1.0711,       /* npm run p51:derive: the wing's CL max at the clean stall's Reynolds number */
+  /* The stall across the Reynolds numbers, docs/P51-STAGE1.md: the UIUC
+   * NACA 2415 and 64A010 standing for the laminar section either side of
+   * its thickness, the wing's CL max on the strips' own terms and its peak
+   * the critical strip's section's plus CL / (pi A e), npm run p51:derive. */
+  .stall_re = { 1.0e5, 2.0e5 },
+  .stall_clmax = { 1.0330, 1.0903 },  /* npm run p51:derive, docs/P51-STAGE1.md */
+  .stall_peak = { 0.3136, 0.3229 },    /* 17.97 and 18.50 deg, npm run p51:derive */
+  /* The rounding to the peak apart from the fall: the 2415 at 2e5 rounds
+   * 5.4 deg to its peak and falls 1.222 to 0.749 within 0.8 deg, so the
+   * fall, the strips and the stall's drag and moments keep stall_blend. */
+  .stall_round = 3.0 * WING_PI / 180.0,  /* the floor, docs/P51-STAGE1.md "stall_round" */
   /* The zero lift line 1.28 degrees under the thrust line: a 6 series
    * section's 1.3 deg under its chord at the wing's mean incidence of 0.13
    * deg, less the tail's share. sin and cos of minus 1.28 degrees. */
@@ -4883,15 +4946,29 @@ const FixedWingParams FW_F16878 = {
   .cy_beta = -0.470,
   .cy_dr = 0.2134,
   .cl_beta = -0.1061,     /* the sweep's effective dihedral and the fin */
-  /* OPEN GAP, known too strong past the stall: the ailerons kept whole,
-   * the plant's old arithmetic, and no sideslip split. The full size
-   * F-16's measured ailerons and differential tail keep 0.78, 0.64, 0.54
-   * and 0.36 of their moment 4, 10, 15 and 20 deg past its stall (NASA
-   * TP-1538 fig. 13), but with them alone the Freewing cannot hold its
-   * wings at 30 deg (S9 bank 21.6): its LEX and vortex lift and its
-   * directional terms past the stall (TP-1538's Cn_beta and Cl_beta to 90
-   * deg) are not in the plant. docs/FLIGHTMODEL.md. */
-  .ail_keep = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 },
+  .ail_keep = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 }, /* whole: hi_lat carries their measured loss, npm run f16:derive-hilat */
+  /* The full size F-16's measured lateral derivatives, -20 to 90 deg of
+   * alpha (NASA TP-1538, Nguyen et al. 1979, table III: the static ones
+   * sloped between beta +-4 as the paper takes them, p. 12; the rates read
+   * from the scan, pp. 51 to 91; the leading edge flap retracted, the
+   * Freewing's fixed leading edge, to 45 deg and the base table past; the
+   * roll increment is delta_a 20 with 5 deg of differential tail, which
+   * the Freewing lacks, appendix A p. 35), turned into the stability axes
+   * and taken as ratios to their own value at 0 deg, where f16:derive's
+   * linear derivatives are; Cl_r and Cn_p the measured ones, per rad. The
+   * tunnel models' Reynolds number is not given; ESTIMATED within 2 to 3
+   * times the Freewing's. npm run f16:derive-hilat prints every row from
+   * the transcribed tables (~/Desktop/fdfpv-loop/research/F16-HIGH-ALPHA.md). */
+  .hi_lat = {
+    { 0.542, 0.810, 0.996, 1.004, 1.000, 1.099, 1.213, 1.134, 0.657, 0.351, 0.170, -0.740, -0.259, -0.760, -0.155, 0.457, 1.043, 1.090, 0.419, 0.401 },
+    { 0.863, 1.118, 0.532, 0.692, 1.000, 1.480, 1.353, 0.868, 0.659, 1.715, 1.622, 2.544, 3.133, 4.209, 3.262, 0.630, -1.736, -2.176, 0.340, 0.429 },
+    { 0.767, 0.775, 0.785, 0.812, 1.000, 0.907, 0.702, 0.526, 0.380, 0.407, 0.255, 0.637, 0.371, 1.278, 0.882, 0.703, 0.882, 0.019, 0.304, 0.337 },
+    { 1.057, 1.048, 1.036, 0.957, 1.000, 1.038, 1.071, 1.347, 2.084, 2.252, 2.927, 1.694, 1.628, 0.505, 0.660, 0.417, 0.258, 0.429, 0.437, 0.531 },
+    { 0.378, 0.604, 0.639, 0.810, 1.000, 1.077, 1.054, 1.022, 0.816, 0.661, 0.487, 0.318, 0.206, 0.037, -0.105, -0.171, -0.232, -0.248, -0.268, -0.260 },
+    { 0.850, 0.936, 0.969, 0.962, 1.000, 1.022, 1.016, 1.033, 1.094, 1.108, 1.088, 0.961, 0.641, 0.265, 0.160, 0.085, 0.042, 0.028, -0.027, 0.040 },
+    { -0.112, -0.117, -0.121, -0.026, 0.064, 0.126, 0.203, 0.231, 0.344, 0.210, 0.155, -0.991, -0.917, -0.911, -0.245, 0.065, 0.154, -0.117, 0.003, 0.000 },
+    { 0.075, 0.070, 0.066, 0.052, 0.053, -0.007, 0.002, -0.036, -0.155, -0.081, -0.268, -0.185, 0.055, 0.159, -0.177, -0.253, -0.226, -0.020, -0.084, 0.018 },
+  },
   .cl_p = -0.3495,
   .cl_da = 0.1226,
   .cl_r_per_cl = 0.25,
@@ -4944,7 +5021,7 @@ const FixedWingParams FW_F16878 = {
   .acro_pitch_rate = 120.0 * WING_PI / 180.0,
   .as3x_k = { 0.039, 0.1061, 0.2497 }, /* npm run as3x:derive */
   .as3x_kh = { 0.3481, 0.9469, 2.2286 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.544, -3.133, -1.219 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.922, -3.133, -1.222 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 8.0,

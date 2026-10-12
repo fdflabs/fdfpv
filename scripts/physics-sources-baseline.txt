@@ -855,7 +855,6 @@ src/native/plant_wing.c FW_P51D1450.span = 1.450
 src/native/plant_wing.c FW_P51D1450.area = 0.354
 src/native/plant_wing.c FW_P51D1450.chord = 0.24413793103448276
 src/native/plant_wing.c FW_P51D1450.cl_alpha = 4.960
-src/native/plant_wing.c FW_P51D1450.cl_max = 1.05
 src/native/plant_wing.c FW_P51D1450.alpha_zl = -1.28 * WING_PI / 180.0
 src/native/plant_wing.c FW_P51D1450.sin_zl = -0.022338356193573706
 src/native/plant_wing.c FW_P51D1450.cos_zl = 0.99975046778812215

@@ -70,7 +70,9 @@ const PLANES = [
  * height is its wing's (ge_wing), so a table that takes the term later is
  * re-pinned from the build before it at its new height: the Hercules and
  * the Tiger Moth from batch/2026-10-12 f93dd7f87 (were ebba6d702410187f
- * and 4ab14916f3d11e9d with no wing point). */
+ * and 4ab14916f3d11e9d with no wing point). The F-16 re-pinned for its
+ * measured lateral derivatives (w36-f16-hilat; was e31ccb8e492d3f50),
+ * the ground's term unchanged. */
 const PINS = {
   wing: 'd113bc284e487a8e',
   sky: '8a6fa77e69a7567a',
@@ -84,7 +86,7 @@ const PINS = {
   bombshell: 'ff71b23a2e794b1f',
   kadet: 'b714f21b5921bf43',
   p51: '0f69bafe8dd0fe26',
-  f16: 'e31ccb8e492d3f50',
+  f16: '1e768094e5d55ce0',
   zagi: '87d02284937a6fe9',
   uglystik: 'cdcfaeaef321c312',
   nrj: '31151485dea980a5',
