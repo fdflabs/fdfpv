@@ -173,20 +173,22 @@ const LINE_KI = 1;
  * grows with the slipstream and the airspeed, K = a + b throttle + c V^2
  * rad/s per stick on the Extra (fitted to its 84 measured steps, the
  * plant at most 25 % over the fit; re-fitted 2026-10-12 on the gates'
- * 4.1 V seat, w36-seat-voltage, from 1.637 + 1.563 thr + 0.00281 V^2),
- * and the rate gain is LINE_GM / K. LINE_GM is the largest, to a
- * hundredth, that keeps the 6 dB of the bandwidth criterion on the
+ * 4.1 V seat and the measured wash speed, w36-physics, from 1.738 + 1.89
+ * thr + 0.0026 V^2 on the seat alone and 1.637 + 1.563 thr + 0.00281 V^2
+ * before it), and the rate gain is LINE_GM / K. LINE_GM is the largest,
+ * to a hundredth, that keeps the 6 dB of the bandwidth criterion on the
  * elevator's measured frequency response, level at a third, two thirds
- * and full throttle (6.1, 6.5 and 7.6 dB; 0.41 keeps 5.8 at a third; it
- * was 0.36 on the unseated pack): the step reads the gain a quarter low
- * at the loop's 180 deg frequency, 11 to 12.5 rad/s. LINE_GAINS' fixed
- * 0.2 keeps 3.2 and 0 dB at a third and two thirds, and at full throttle
- * none (-2.7 dB): the humpty's up line went stop to stop on the
+ * and full throttle (6.1, 6.7 and 7.9 dB; 0.40 keeps 5.9 at a third; it
+ * was 0.40 on the seat alone and 0.36 on the unseated pack): the step
+ * reads the gain a quarter low at the loop's 180 deg frequency, 11 to
+ * 12.5 rad/s. LINE_GAINS' fixed 0.2 keeps 3.2 and 0 dB at a third and
+ * two thirds, and at full throttle none (-2.6 dB): the humpty's up line
+ * went stop to stop on the
  * elevator and snapped the wing. The rudder keeps LINE_GAINS: its
  * step response turns over with the airspeed (the fin weathervanes the
  * yaw back within the 0.25 s), so it has no gain to schedule on. */
-export const LINE_PITCH_K = { a: 1.738, b: 1.89, c: 0.0026 };
-export const LINE_GM = 0.40;
+export const LINE_PITCH_K = { a: 1.695, b: 1.782, c: 0.00274 };
+export const LINE_GM = 0.39;
 export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
 const holdLine = (d, m, target, thr) => {
   const [r, , y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
@@ -255,10 +257,10 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 13.725 },
-  elevation: { wc: 0.8, gain: 1.085 },
-  heading: { wc: 2, gain: 6.049 },
-  trim: { rudder: 0.39, elevation: 0.187, speed: 32.9 },
+  bank: { wc: 2, gain: 13.731 },
+  elevation: { wc: 0.8, gain: 1.078 },
+  heading: { wc: 2, gain: 6.041 },
+  trim: { rudder: 0.38, elevation: 0.187, speed: 32.9 },
 };
 const G = 9.80665;
 const knife = (ms) => ({
@@ -307,7 +309,7 @@ const knife = (ms) => ({
  * the rudder fed in as a person does, not stepped. Its loop is
  * personLoop's on the rudder's measured response in the level knife
  * edge, read as the path's angle (scripts/figures-margins.js: crossoverFor
- * puts it at 1.6 rad/s on a plant gain of 0.978), flown at half that
+ * puts it at 1.6 rad/s on a plant gain of 0.971), flown at half that
  * crossover: the CAP's side force per rudder near the stop is about
  * twice its slope at the knife edge's trim (0.4, 1.2 and 2.8 g at half,
  * three quarters and full rudder, launched at 25 m/s at full throttle,
@@ -344,7 +346,7 @@ const knife = (ms) => ({
  * turn) the Extra did not finish the loop and reached the ground in all
  * four. It lets go 0.3 s of the path's rate early.
  */
-export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.978 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.971 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const knifeLoop = () => ({
   name: 'knife loop',
