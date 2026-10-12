@@ -66,7 +66,7 @@ export const CALM_S = 30;
 export const CALM_CPU = 0.35;
 export const CALM_LAG_MS = 10;
 /* Past this resident size the valve closes too: the unit's MemoryMax is
- * 256 MB (deploy/vm/fdfpv-rooms.service). */
+ * 256 MB (deploy/vm/fdfpv-rooms@.service). */
 export const BUSY_RSS = 200 * 1024 * 1024;
 
 export class Valve {

@@ -51,6 +51,11 @@
  * 1012. That is the old half of a deploy whose new process already serves
  * the new joins; SIGTERM keeps its meaning.
  *
+ * ROOMS_PEER=127.0.0.1:8798 is the new half (startRooms `peer`, below): the
+ * other rooms process of a deploy, on the same ROOMS_DB. The Lobby's
+ * header above holds for it too, with one change: rooms the peer still
+ * flies stay the peer's, and a socket to one is forwarded there.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -68,6 +73,7 @@
  */
 
 import http from 'node:http';
+import net from 'node:net';
 import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { deserialize, serialize } from 'node:v8';
@@ -91,6 +97,13 @@ function pickName(pick) {
   return Array.isArray(pick) ? `${en[`rooms.adj.${pick[0]}`]} ${en[`rooms.animal.${pick[1]}`]} ${pick[2]}` : null;
 }
 
+/* The room object a /v2/room/<CODE> path names, or null (front.js). */
+function roomNameOf(pathname) {
+  const m = pathname.match(/^\/v2\/room\/([^/]+)$/);
+  const code = m && normaliseCode(m[1]);
+  return code ? `prv:${code}` : null;
+}
+
 /* The largest message the simulator sends is a host's race track, logos
  * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
  * TRACK_MAX_BYTES). A MiB is that many times over, and even an unstripped
@@ -105,6 +118,61 @@ const CLOSE_RESTART = 1012;
  * whether anybody is still connected. */
 export const DRAIN_CAP_MS = 20 * 60 * 1000;
 const DRAIN_POLL_MS = 250;
+
+/*
+ * TWO PROCESSES, ONE ROOMS_DB, during a deploy (docs/ROOMS-DRAIN.md): the
+ * new one serves every new room while the old one drains, and a room is
+ * held by exactly one of them, the one with its core in memory. The new
+ * one, started with `peer` naming the old one's address:
+ *
+ *   at start     restores nothing while the peer answers: every stored room
+ *                is the peer's, and two cores of one room would each write
+ *                it (the survey's split brain)
+ *   a socket     to a stored room it does not hold is forwarded to the
+ *                peer, marked PEER_HEADER; a peer that holds it takes it,
+ *                one that does not (draining, 503) leaves it here, where it
+ *                is restored and served, so a pilot of a room whose process
+ *                restarted gets back in as before
+ *   the list     /v2/rooms adds the peer's rooms with pilots in them, so a
+ *                friend still finds a room flying on the old version
+ *   peer gone    polled every PEER_POLL_MS; once its port refuses, and
+ *                ADOPT_GRACE_MS later, every stored room it does not hold
+ *                is restored here, alarms and listing, as a restart does
+ *
+ * A process that received a socket marked PEER_HEADER never forwards it
+ * back: the sender found the room held by nobody alive. Caddy strips the
+ * header from what pilots send (deploy/vm/Caddyfile). At most two
+ * processes share ROOMS_DB, which deploy/vm/install.sh keeps true.
+ */
+export const PEER_HEADER = 'x-fdfpv-peer';
+const PEER_POLL_MS = 1000;
+/* A draining process closes its listener first and its SQLite file 500 ms
+ * later (stop below), and the writes of its last closes land in between;
+ * a room is read back only after them. */
+const ADOPT_GRACE_MS = 1000;
+/* The room browser waits this long for the peer's list, then shows its own. */
+const PEER_LIST_MS = 500;
+
+/* { host, port } from 'host:port'. */
+function peerAddress(text) {
+  const m = /^([^:\s]+):(\d+)$/.exec(text);
+  if (!m || !(Number(m[2]) > 0 && Number(m[2]) < 65536)) {
+    throw new Error(`peer ${JSON.stringify(text)}: host:port`);
+  }
+  return { host: m[1], port: Number(m[2]) };
+}
+
+/* Whether anything accepts a connection at the address. */
+function answers({ host, port }) {
+  return new Promise((resolve) => {
+    const socket = net.connect(port, host);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('error', () => resolve(false));
+  });
+}
 
 /*
  * THE ROUND TRIP A PAGE CANNOT MEASURE. A page learns the room's clock
@@ -213,6 +281,11 @@ class Store {
   constructor(path) {
     this.db = new DatabaseSync(path);
     this.db.exec('PRAGMA journal_mode = WAL');
+    /* Two processes write this file during a deploy (PEER_HEADER above).
+     * SQLite's default is to throw SQLITE_BUSY at once when the other one
+     * holds the write lock, and a put is not awaited (host.js run), so
+     * that throw would end the process. Writes here take microseconds. */
+    this.db.exec('PRAGMA busy_timeout = 5000');
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS kv (name TEXT NOT NULL, key TEXT NOT NULL, value BLOB NOT NULL, PRIMARY KEY (name, key));
       CREATE TABLE IF NOT EXISTS alarms (name TEXT PRIMARY KEY, at INTEGER NOT NULL);
@@ -224,6 +297,16 @@ class Store {
     this.alarmQ = this.db.prepare('INSERT INTO alarms (name, at) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET at = excluded.at');
     this.unalarmQ = this.db.prepare('DELETE FROM alarms WHERE name = ?');
     this.getAlarmQ = this.db.prepare('SELECT at FROM alarms WHERE name = ?');
+  }
+
+  /* Whether the room `name` is stored: made, and not purged. */
+  has(name) {
+    return Boolean(this.getQ.get(name, 'meta'));
+  }
+
+  alarmOf(name) {
+    const row = this.getAlarmQ.get(name);
+    return row ? Number(row.at) : null;
   }
 
   /* The names with anything stored, and each one's alarm or null. */
@@ -527,10 +610,11 @@ function lobbyObject(env) {
  * missions in development too, the owner's on the live server
  * (deploy/vm/README.md; core.js devHost). revision: what GET /v2/version
  * answers, the deployed REVISION file's (node-http.js readRevision) unless
- * a check passes its own. */
-export function startRooms({
+ * a check passes its own. peer: the other process of a deploy, 'host:port'
+ * (PEER_HEADER above), or '' for a process alone, as every check's. */
+export async function startRooms({
   db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '', turnSecret = '', turnUrls = '',
-  devMissions = false, devAccounts = '', revision = readRevision(new URL('../../REVISION', import.meta.url)),
+  devMissions = false, devAccounts = '', revision = readRevision(new URL('../../REVISION', import.meta.url)), peer = '',
 }) {
   if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
     throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
@@ -565,23 +649,58 @@ export function startRooms({
     return { counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null };
   }));
 
-  /* Rooms stored before a restart: each gets its alarm back, or a purge
-   * host.js PURGE_MS from now if it had none (it had pilots when the process
-   * stopped, and they have that long to come back), stored, so the room
-   * is listed as empty since now and closing when it will. */
-  for (const { name, at } of store.names()) {
-    const room = env.ROOMS.get(name);
-    if (at == null) {
-      room.enqueue(() => room.host.closeLater());
-    } else {
-      room.schedule(at);
+  /* A room this process holds has its core in memory (host.js load, run by
+   * init and by adopt below). */
+  const holds = (name) => Boolean(env.ROOMS.objects.get(name)?.host.core);
+
+  /* A stored room taken in, after a restart or from a peer gone: its alarm
+   * back, or a purge host.js PURGE_MS from now if it had none (it had
+   * pilots when its process stopped, and they have that long to come
+   * back), stored, so the room is listed as empty since now and closing
+   * when it will. Resolves once the room is loaded; a failure is logged by
+   * the room's queue, and the room is then simply not held. */
+  const adopting = new Map();
+  function adopt(name, at) {
+    if (holds(name)) {
+      return Promise.resolve();
     }
-    room.enqueue(() => room.host.announce());
+    if (!adopting.has(name)) {
+      const room = env.ROOMS.get(name);
+      if (at == null) {
+        room.enqueue(() => room.host.closeLater());
+      } else {
+        room.schedule(at);
+      }
+      const loaded = room.enqueue(() => room.host.announce()).catch(() => {});
+      adopting.set(name, loaded.then(() => adopting.delete(name)));
+    }
+    return adopting.get(name);
+  }
+  const adoptAll = () => Promise.all(store.names().map(({ name, at }) => adopt(name, at)));
+
+  /* The peer: its address, and once it has gone, the adoption of its rooms
+   * (ADOPT_GRACE_MS above), after which nothing is forwarded again. */
+  const peerAt = peer ? peerAddress(peer) : null;
+  let peerGone = null;
+  function peerLeft() {
+    if (!peerGone) {
+      peerGone = new Promise((resolve) => {
+        setTimeout(resolve, ADOPT_GRACE_MS);
+      }).then(() => {
+        const before = env.ROOMS.objects.size;
+        return adoptAll().then(() => console.log(`peer ${peer} gone: ${env.ROOMS.objects.size - before} stored rooms taken in`));
+      });
+    }
+    return peerGone;
+  }
+  if (!peerAt) {
+    adoptAll();
+  } else if (!(await answers(peerAt))) {
+    peerLeft();
   }
 
-  /* While draining, whatever would make a room is refused; a room this
-   * process holds has its core in memory (host.js load, run by init and
-   * by the restore above), so a socket to one is a pilot of a live room. */
+  /* While draining, whatever would make a room is refused, and a socket to
+   * a room this process holds is a pilot of a live room. */
   let draining = null;
   function opensRoom(request) {
     const url = new URL(request.url);
@@ -591,21 +710,125 @@ export function startRooms({
     if (url.pathname.startsWith('/v2/public/')) {
       return true;
     }
-    const m = url.pathname.match(/^\/v2\/room\/([^/]+)$/);
-    return Boolean(m) && !env.ROOMS.objects.get(`prv:${normaliseCode(m[1])}`)?.host.core;
+    const name = roomNameOf(url.pathname);
+    return Boolean(name) && !holds(name);
   }
+
+  /* The room browser's list with the peer's flying rooms added. The peer's
+   * list is a courtesy: a peer slow, gone or refusing leaves this
+   * process's own list, which is what a lone process answers. */
+  async function withPeerRooms(request, fetchEnv) {
+    const own = await front.fetch(request, fetchEnv);
+    if (own.status !== 200) {
+      return own;
+    }
+    let theirs = null;
+    try {
+      const res = await fetch(`http://${peerAt.host}:${peerAt.port}/v2/rooms`, {
+        headers: {
+          [PEER_HEADER]: '1',
+          'cf-connecting-ip': request.headers.get('cf-connecting-ip') || '',
+          ...(request.headers.get('origin') ? { origin: request.headers.get('origin') } : {}),
+        },
+        signal: AbortSignal.timeout(PEER_LIST_MS),
+      });
+      theirs = res.ok ? await res.json() : null;
+    } catch (e) {
+      theirs = null;
+    }
+    const flying = Array.isArray(theirs?.rooms) ? theirs.rooms.filter((r) => r && r.n > 0) : [];
+    if (!flying.length) {
+      return own;
+    }
+    const body = await own.json();
+    body.rooms = body.rooms.concat(flying);
+    return new Response(JSON.stringify(body), { headers: own.headers });
+  }
+
   const served = {
     fetch(request, fetchEnv) {
       if (draining && opensRoom(request)) {
         return Response.json({ error: 'busy' }, { status: 503, headers: cors(request.headers.get('origin')) });
       }
+      const url = new URL(request.url);
+      if (peerAt && !peerGone && !draining && url.pathname === '/v2/rooms' && request.method === 'GET' && !request.headers.get(PEER_HEADER)) {
+        return withPeerRooms(request, fetchEnv);
+      }
       return front.fetch(request, fetchEnv);
     },
   };
 
+  /* The socket handed to the peer, marked PEER_HEADER: 'forwarded' once the
+   * peer took it and the two are joined, or once the peer refused it for a
+   * reason of its own (a bad origin), which the pilot is answered; 'notheld'
+   * for a draining peer's 503, the one answer that says the room is not
+   * the peer's; 'gone' when nothing accepts at its address. */
+  function forward(req, socket, head) {
+    return new Promise((resolve) => {
+      const out = http.request({
+        host: peerAt.host, port: peerAt.port, method: req.method, path: req.url, headers: { ...req.headers, [PEER_HEADER]: '1' },
+      });
+      out.on('upgrade', (res, up, upHead) => {
+        const lines = ['HTTP/1.1 101 Switching Protocols'];
+        for (let i = 0; i < res.rawHeaders.length; i += 2) {
+          lines.push(`${res.rawHeaders[i]}: ${res.rawHeaders[i + 1]}`);
+        }
+        up.on('error', () => socket.destroy());
+        up.on('close', () => socket.destroy());
+        socket.on('close', () => up.destroy());
+        if (socket.destroyed) {
+          up.destroy();
+        } else {
+          socket.write(`${lines.join('\r\n')}\r\n\r\n`);
+          socket.write(upHead);
+          up.write(head);
+          up.pipe(socket);
+          socket.pipe(up);
+        }
+        resolve('forwarded');
+      });
+      out.on('response', (res) => {
+        res.resume();
+        if (res.statusCode === 503) {
+          resolve('notheld');
+          return;
+        }
+        socket.end(`HTTP/1.1 ${res.statusCode} ${res.statusMessage || ''}\r\nconnection: close\r\ncontent-length: 0\r\n\r\n`);
+        resolve('forwarded');
+      });
+      out.on('error', () => resolve('gone'));
+      out.end();
+    });
+  }
+
+  /* Before a socket reaches the front: a stored room this process does not
+   * hold is the peer's while the peer lives, else taken in here. True when
+   * the socket went to the peer. */
+  async function placeSocket(req, socket, head) {
+    const name = roomNameOf(new URL(req.url, 'http://room').pathname);
+    if (!name || draining || holds(name) || !store.has(name)) {
+      return false;
+    }
+    if (peerAt && !peerGone && !req.headers[PEER_HEADER]) {
+      const how = await forward(req, socket, head);
+      if (how === 'forwarded') {
+        return true;
+      }
+      if (how === 'gone') {
+        peerLeft();
+      }
+    }
+    await peerGone;
+    await adopt(name, store.alarmOf(name));
+    return false;
+  }
+
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
   const server = http.createServer(listener(served, env));
   server.on('upgrade', upgradeListener(async (req, socket, head) => {
+    if (await placeSocket(req, socket, head)) {
+      return;
+    }
     const result = await answer(served, req, env);
     if (!(result instanceof Upgrade)) {
       await refuseUpgrade(socket, result);
@@ -622,6 +845,7 @@ export function startRooms({
     return stopping;
   }
   function closeAll() {
+    clearInterval(peerPoll);
     env.HEALTH.stop();
     for (const ws of wss.clients) {
       ws.close(CLOSE_RESTART, 'restart');
@@ -660,6 +884,15 @@ export function startRooms({
     return draining;
   }
 
+  /* Stopped by a drain, a stop, or the peer seen gone. */
+  const peerPoll = peerAt ? setInterval(async () => {
+    if (draining || peerGone) {
+      clearInterval(peerPoll);
+    } else if (!(await answers(peerAt))) {
+      peerLeft();
+    }
+  }, PEER_POLL_MS) : null;
+
   return new Promise((resolve) => {
     server.listen(port, host, () => resolve({ server, env, stop, drain, port: server.address().port }));
   });
@@ -681,11 +914,12 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     turnUrls: process.env.TURN_URLS || '',
     devMissions: process.env.DEV_MISSIONS === 'on',
     devAccounts: process.env.DEV_ACCOUNTS || '',
+    peer: process.env.ROOMS_PEER || '',
     /* REVISION_FILE: scripts/rooms-drain-check.js runs two versions from
      * one tree; the VM reads the REVISION beside the code. */
     ...(process.env.REVISION_FILE ? { revision: readRevision(pathToFileURL(process.env.REVISION_FILE)) } : {}),
   });
-  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}${running.env.TURN ? '' : ', no TURN relay: voice is peer to peer through STUN alone'}${running.env.DEV_MISSIONS ? ', DEV_MISSIONS: missions in development start too' : ''}`);
+  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ROOMS_PEER ? `, peer ${process.env.ROOMS_PEER}` : ''}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}${running.env.TURN ? '' : ', no TURN relay: voice is peer to peer through STUN alone'}${running.env.DEV_MISSIONS ? ', DEV_MISSIONS: missions in development start too' : ''}`);
   process.on('SIGTERM', async () => {
     await running.stop();
     process.exit(0);

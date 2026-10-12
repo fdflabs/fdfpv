@@ -19,8 +19,8 @@
 #      it changed (turn-cert.sh),
 #   5. firewalld: 3478 UDP and TCP, 5349 TCP, 49160 to 49200 UDP,
 #   6. coturn enabled and running, with the drop-in beside this file,
-#   7. the rooms server restarted when turn.env is newer than it, so it
-#      reads it (fdfpv-rooms.service's EnvironmentFile; its pilots
+#   7. the live rooms instance restarted when turn.env is newer than it,
+#      so it reads it (fdfpv-rooms@.service's EnvironmentFile; its pilots
 #      reconnect into their seats).
 #
 # Oracle's security list must allow the same ports (deploy/vm/README.md).
@@ -76,7 +76,11 @@ fi
 
 # Voice needs the rooms server that knows it (deploy.sh), and that
 # server's unit reads turn.env.
-if ! grep -q '^EnvironmentFile=-/etc/fdfpv/turn.env' /etc/systemd/system/fdfpv-rooms.service; then
+rooms_file=/etc/systemd/system/fdfpv-rooms@.service
+if [[ $(rooms_unit) == fdfpv-rooms ]]; then
+  rooms_file="$LEGACY_ROOMS_UNIT"
+fi
+if ! grep -q '^EnvironmentFile=-/etc/fdfpv/turn.env' "$rooms_file"; then
   echo 'turn-install.sh: the rooms unit does not read turn.env yet; run deploy.sh first, then this' >&2
   exit 1
 fi
@@ -153,11 +157,15 @@ if stale coturn /etc/coturn/turnserver.conf /etc/systemd/system/coturn.service.d
   systemctl restart coturn
 fi
 
-if stale fdfpv-rooms "$env"; then
-  say 'restarting the rooms server to read turn.env'
-  systemctl restart fdfpv-rooms
+# The live instance only, restarted (1012, its pilots reconnect into their
+# seats): a credential change is rare enough not to need a drain, and a
+# draining instance ends by itself on the old one.
+rooms="$(rooms_unit)"
+if stale "$rooms" "$env"; then
+  say "restarting $rooms to read turn.env"
+  systemctl restart "$rooms"
 fi
 
-for unit in coturn fdfpv-turn-cert.timer fdfpv-rooms; do
+for unit in coturn fdfpv-turn-cert.timer "$rooms"; do
   say "$unit $(systemctl is-active "$unit")"
 done

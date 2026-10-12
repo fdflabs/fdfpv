@@ -20,6 +20,24 @@
  *   same "keeps flying" probe the first case passes, so the probe can see
  *   a drain that drops the room.
  *
+ * And a deploy (slice 2): v1 and a v2 started with ROOMS_PEER=v1 on ONE
+ * SQLite file, as the VM runs them, with v2 standing for the new live
+ * port (every pilot after the flip connects to v2 only):
+ *
+ *   v2 starting takes none of v1's rooms; v1 drains; a pilot joining v1's
+ *   room through v2, and a dropped pilot coming back into its seat with
+ *   its token through v2, both land in v1's room and fly with its pilots
+ *   (the socket forwarded); v2's room browser lists v1's flying public
+ *   room; a new room is made on v2. The rooms empty: v1 exits, v2 takes
+ *   in what v1 had stored, and a pilot comes back into its seat in v1's
+ *   room on v2.
+ *   The cap: v1 still flying at its cap closes with 1012, and both
+ *   pilots come back into their seats through v2, from the shared file,
+ *   and fly together there.
+ *   The control: a v2 started without ROOMS_PEER on v1's file seats a
+ *   pilot in a second copy of v1's room, who never sees v1's pilots, so
+ *   the probe can see a deploy that splits a room.
+ *
  * The pilot helpers are rooms-server-check.js's, copied rather than shared
  * so that check stays as it is.
  *
@@ -75,11 +93,11 @@ const WINDOW_MS = 3000;
 
 /* A rooms server as the VM runs it, its own process. */
 const children = [];
-async function startServer(name, revision, env = {}) {
+async function startServer(name, revision, env = {}, db = name) {
   const revisionFile = join(scratch, `${name}.REVISION`);
   writeFileSync(revisionFile, `${revision}\n`);
   const child = spawn(process.execPath, [nodeJs], {
-    env: { ...process.env, PORT: '0', ROOMS_DB: join(scratch, `${name}.db`), REVISION_FILE: revisionFile, ...env },
+    env: { ...process.env, PORT: '0', ROOMS_DB: join(scratch, `${db}.db`), REVISION_FILE: revisionFile, ...env },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
   children.push(child);
@@ -163,15 +181,17 @@ async function seat(origin, path, extra = {}) {
 
 /* A pilot flying: a fresh pose every room tick, seq and time rising, as a
  * page sends them, so the room relays them rather than repeating a held
- * one at REPEAT_MS. Returns the stop. */
-function fly(p) {
-  let seq = 0;
+ * one at REPEAT_MS, from seq `from` on (a pilot back in its seat goes on
+ * from its last, as a page does). Returns the stop. */
+function fly(p, from = 0) {
+  let seq = from;
   p.sent = 0;
   const timer = setInterval(() => {
     if (p.ws.readyState !== 1) {
       return;
     }
     seq = (seq + 1) & 0xffff;
+    p.seq = seq;
     p.sent += 1;
     p.ws.send(encodePose({
       flags: 0, seq, t: p.welcome.roomMs + (Date.now() - p.clockAt), px: 10 + seq * 0.01, py: 300, pz: 5, qx: 0, qy: 0, qz: 0, qw: 1,
@@ -201,11 +221,11 @@ async function keepsFlying(a, b) {
   return { ok, detail: `closed ${JSON.stringify([a.closed, b.closed])}, ${got.map((g) => `${g.fresh}/${g.n}`).join(' and ')} poses, need ${MIN_SHARE.toFixed(2)}` };
 }
 
-const make = (origin) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'swiss2' }) });
+const make = (origin, extra = {}) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'swiss2', ...extra }) });
 
 /* A room on server s with two pilots flying in it. */
-async function flyingRoom(s) {
-  const { code } = await (await make(s.origin)).json();
+async function flyingRoom(s, extra = {}) {
+  const { code } = await (await make(s.origin, extra)).json();
   const a = await seat(s.origin, `room/${code}`);
   const b = await seat(s.origin, `room/${code}`, { name: [3, 4, 77] });
   const stops = [fly(a), fly(b)];
@@ -294,6 +314,98 @@ try {
   check('the same probe fails it', !dropped.ok, dropped.detail);
   z.stop();
   await exitWithin(v1now, 5000);
+
+  console.log('a deploy: v2 with ROOMS_PEER=v1 on one rooms.db, pilots on v2 only after the flip');
+  const h1 = await startServer('h1', V1, {}, 'shared');
+  const h = await flyingRoom(h1);
+  const pub = await flyingRoom(h1, { public: true });
+  const peerOf = (s) => ({ ROOMS_PEER: s.origin.replace('http://', '') });
+  const h2 = await startServer('h2', V2, peerOf(h1), 'shared');
+  check('v2 starts naming its peer', /peer 127\.0\.0\.1:\d+/.test(h2.out), h2.out);
+  await sleep(1500);
+  check('and takes none of the peer\'s rooms while it answers', !/taken in/.test(h2.out), h2.out);
+  h1.child.kill('SIGUSR2');
+  await sleep(500);
+  const joined = await seat(h2.origin, `room/${h.code}`, { name: [5, 6, 30] });
+  check('a pilot joining v1\'s room through v2 is seated in it', joined.welcome?.code === h.code && Boolean(joined.welcome.seat), JSON.stringify(joined.welcome || joined.closed));
+  const stopJoined = fly(joined);
+  const withJoined = await keepsFlying(h.a, joined);
+  check('and flies with v1\'s pilots: the socket went to v1', withJoined.ok, withJoined.detail);
+  const seatB = h.b.welcome;
+  h.b.ws.terminate();
+  await h.b.until((p) => p.closed);
+  const b2 = await seat(h2.origin, `room/${h.code}`, { name: [3, 4, 77], token: seatB.token, seat: seatB.seat });
+  check('a dropped pilot comes back into its seat through v2 with its token', b2.welcome?.seat === seatB.seat && b2.welcome.token === seatB.token, JSON.stringify(b2.welcome || b2.closed));
+  const stopB2 = fly(b2, h.b.seq);
+  const reseated = await keepsFlying(h.a, b2);
+  check('and flies on with the pilot who never left', reseated.ok, reseated.detail);
+  check('v1 is still running, draining', h1.exit === null && /draining/.test(h1.out), JSON.stringify(h1.exit));
+  const list = await (await fetch(`${h2.origin}/v2/rooms`, { headers: { origin: 'https://fdflabs.github.io' } })).json();
+  check('v2\'s room browser lists v1\'s flying public room', Array.isArray(list.rooms) && list.rooms.some((r) => r.code === pub.code && r.n === 2), JSON.stringify(list));
+  const newMade = await make(h2.origin);
+  const newCode = newMade.status === 200 ? (await newMade.json()).code : null;
+  const fresh2 = newCode ? await seat(h2.origin, `room/${newCode}`) : null;
+  check('a new room is made on v2 and its pilot seated', Boolean(fresh2?.welcome?.seat) && fresh2.welcome.code === newCode, `${newMade.status} ${JSON.stringify(fresh2?.welcome)}`);
+  check('both answer their own version', (await version(h1)) === V1 && (await version(h2)) === V2);
+
+  h.stop();
+  pub.stop();
+  stopJoined();
+  stopB2();
+  const seatA = h.a.welcome;
+  for (const p of [h.a, joined, b2, pub.a, pub.b]) {
+    p.ws.close(1000, 'leave');
+  }
+  const h1exit = await exitWithin(h1, 5000);
+  check('the rooms empty and v1 exits 0 by itself', h1exit?.code === 0 && /drained \(empty\)/.test(h1.out), `${JSON.stringify(h1exit)} ${h1.out}`);
+  const end = Date.now() + 5000;
+  while (!/taken in/.test(h2.out) && Date.now() < end) {
+    await sleep(50);
+  }
+  check('v2 takes in the rooms v1 had stored', /peer \S+ gone: [1-9]\d* stored rooms taken in/.test(h2.out), h2.out);
+  const back = await seat(h2.origin, `room/${h.code}`, { token: seatA.token, seat: seatA.seat });
+  check('and a pilot of v1\'s room comes back into its seat on v2', back.welcome?.seat === seatA.seat && back.welcome.code === h.code, JSON.stringify(back.welcome || back.closed));
+  back.ws.close(1000, 'leave');
+  fresh2.ws.close(1000, 'leave');
+  h2.child.kill('SIGTERM');
+  await exitWithin(h2, 5000);
+
+  console.log('a deploy whose v1 reaches its cap');
+  const k1 = await startServer('k1', V1, { DRAIN_CAP_MS: String(CAP_MS) }, 'sharedcap');
+  const k = await flyingRoom(k1);
+  const k2 = await startServer('k2', V2, peerOf(k1), 'sharedcap');
+  k1.child.kill('SIGUSR2');
+  await k.a.until((p) => p.closed, CAP_MS + 3000);
+  await k.b.until((p) => p.closed, 1000);
+  check('at the cap v1 closes both pilots with 1012', k.a.closed?.code === 1012 && k.b.closed?.code === 1012, JSON.stringify([k.a.closed, k.b.closed]));
+  k.stop();
+  /* The client's first retry is a second after the close (src/share/rooms.js RETRY_MS). */
+  await sleep(1000);
+  const [ka, kb] = await Promise.all([
+    seat(k2.origin, `room/${k.code}`, { token: k.a.welcome.token, seat: k.a.welcome.seat }),
+    seat(k2.origin, `room/${k.code}`, { name: [3, 4, 77], token: k.b.welcome.token, seat: k.b.welcome.seat }),
+  ]);
+  check('both come back into their seats through v2', ka.welcome?.seat === k.a.welcome.seat && kb.welcome?.seat === k.b.welcome.seat, JSON.stringify([ka.welcome || ka.closed, kb.welcome || kb.closed]));
+  const kStops = [fly(ka), fly(kb)];
+  const kFly = await keepsFlying(ka, kb);
+  check('and fly together on v2', kFly.ok, kFly.detail);
+  kStops.forEach((f) => f());
+  check('v1 exited 0 at its cap', (await exitWithin(k1, 3000))?.code === 0 && /drained \(cap\)/.test(k1.out), k1.out);
+  ka.ws.close(1000, 'leave');
+  kb.ws.close(1000, 'leave');
+  k2.child.kill('SIGTERM');
+  await exitWithin(k2, 5000);
+
+  console.log('the control: a v2 without ROOMS_PEER on v1\'s file');
+  const n1 = await startServer('n1', V1, {}, 'sharednone');
+  const n = await flyingRoom(n1);
+  const n2 = await startServer('n2', V2, {}, 'sharednone');
+  const split = await seat(n2.origin, `room/${n.code}`, { name: [5, 6, 30] });
+  const stopSplit = fly(split);
+  const splitFly = split.welcome ? await keepsFlying(n.a, split) : { ok: false, detail: 'not seated' };
+  check('its pilot is seated in a copy of the room that never sees v1\'s pilots', Boolean(split.welcome?.seat) && !splitFly.ok, splitFly.detail);
+  stopSplit();
+  n.stop();
 } catch (e) {
   check('the check ran to its end', false, e && e.stack ? e.stack : String(e));
 } finally {
