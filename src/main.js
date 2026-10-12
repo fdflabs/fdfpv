@@ -234,7 +234,7 @@ import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, S
 import { ESTIMATES } from '../configs/power-estimates.js';
 import { MOTORS, choiceKey, hasMotors, motorChoice, motorStats, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
-import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
+import { fullEntry, hasHeading, headingShare, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { flownTiers, pointsInertia, surfaceGrowth, tierBlock, tierPoints, tierThrowsDeg } from '../configs/surfaces.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
@@ -11032,6 +11032,7 @@ export async function boot({
   let runTuneKey = 'null';
   function applyTuning(s, midRun = false) {
     const af = airframeById(runAirframe);
+    applyHeading(af, s);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
       runTierKey = 'null';
@@ -11058,6 +11059,20 @@ export async function boot({
     runTuneKey = JSON.stringify(entry);
     if (!midRun && entry && entry.flapStart) {
       setFlapNotch(fullEntry(af.id, entry).flapStart);
+    }
+  }
+
+  /* The AS3X Heading the pilot set for the seated plane (configs/tuning.js
+   * headingShare), zero on every other: the plant keeps it across resets,
+   * so every seat sets it. */
+  function applyHeading(af, s) {
+    if (typeof sim.e.sim_wing_set_heading !== 'function') {
+      return;
+    }
+    const entry = af.fixedWing && hasHeading(af.id) ? normalizeEntry(af.id, s.tuning && s.tuning[af.id], { packMm: 0, ballastG: 0 }) : null;
+    const code = sim.setHeading(headingShare(entry));
+    if (code !== SIM_OK) {
+      throw new Error(`sim_wing_set_heading refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
     }
   }
 

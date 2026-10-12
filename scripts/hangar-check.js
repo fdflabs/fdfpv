@@ -465,7 +465,7 @@ async function tuningCheck(page) {
   const surf = await page.evaluate(`${TUNING_TAB}.surfaces`);
   say(Array.isArray(surf) && surf.length === 4, `the Rates page sweeps the model's surfaces: ${JSON.stringify(surf && surf.map((x) => +x.toFixed(3)))}`);
   const st = await page.evaluate(TUNE_STATE);
-  say(same(st.entry, { packMm: 10, ballastG: 20, rate: 'low', expo: { a: 30, e: 35, r: 30 }, trimDeg: 1, flapStart: 1, flapMix: false, elevFlap: 0 }),
+  say(same(st.entry, { packMm: 10, ballastG: 20, rate: 'low', expo: { a: 30, e: 35, r: 30 }, heading: { a: 0, e: 0, r: 0 }, trimDeg: 1, flapStart: 1, flapMix: false, elevFlap: 0 }),
     `the tab holds the setup: ${JSON.stringify(st.entry)}`);
 
   await page.evaluate(click('tuning-stand'));
