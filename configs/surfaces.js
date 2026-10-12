@@ -66,9 +66,10 @@ export const SERVOS = {
   d89mw: { kg: 0.025, kgcm: 6.4, source: 'Hitec D89MW: 25.0 g, 74 / 89 / 118 oz-in in Hitec\'s 4.8 / 6.0 / 7.4 V order, 89 oz-in = 6.4 kg-cm at 6.0 V (hitecrcd.com/products/servos/digital)' },
   d645mw: { kg: 0.060, kgcm: 11.3, source: 'Hitec D645MW: 60.0 g, 11.3 kg-cm at 6.0 V (hitecrcd.com/d645mw-32-bit-high-torque-metal-gear-servo)' },
   d950tw: { kg: 0.068, kgcm: 29.0, source: 'Hitec D950TW: 68 g, 21.0 / 29.0 / 35.0 kg-cm at 4.8 / 6.0 / 7.4 V (motionrc.com HRC36950; shop.multiplex-rc.de 68 g)' },
+  spmsa332: { kg: 0.009, kgcm: 0.9, source: 'Spektrum A332 (SPMSA332), 9 g metal gear: 9 g, 0.9 kg-cm at 4.8 V, the only torque published (lindinger.at 9770338; flashrc.com, which gives 6.0 g); the 9 g of its name and E-flite\'s parts list taken. Its 6.0 V figure is not published, so it is rated low against the 6.0 V figures here, which sizes up early' },
   sb2290sg: { kg: 0.081, kgcm: 45.0, source: 'Savox SB-2290SG: 81 g, 45.0 / 55.0 / 70.0 kg-cm at 6.0 / 7.4 / 8.4 V (Extreme Flight\'s own listing, extremeflightrc.com/products/savox-sv1280sgp-servo-copy)' },
 };
-export const SERVO_ORDER = ['hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw', 'sb2290sg'];
+export const SERVO_ORDER = ['spmsa332', 'hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw', 'sb2290sg'];
 
 /*
  * The aircraft. cf: the stock surfaces' chord fractions; throwDeg: the
@@ -77,7 +78,10 @@ export const SERVO_ORDER = ['hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw', 'sb22
  * together), which the deflected surface's drag is taken on; servo: the
  * stock servo's class, and for each surface how many and where (body
  * frame about the table's CG, m), where the bigger servo's mass goes,
- * mirrored half each side where `at` is off the centreline.
+ * mirrored half each side where `at` is off the centreline; flaperons,
+ * where the flaps fly as ailerons too: the flap panels' share of the
+ * aileron's control power and their servos, which a tier does not grow
+ * (docs/SURFACES-STAGE1.md, the Night Timber).
  */
 export const SURFACES = {
   extra3d1308: {
@@ -127,6 +131,32 @@ export const SURFACES = {
       r: { n: 1, at: [-1.553, 0.0, 0.15] },
     },
     source: 'cf, flapped area and the tail servos\' stations: scripts/slick-derive.js (EF\'s 105.5 in data sheet drawing; its parts list puts the elevator servos in the stabiliser and the rudder servo at the rudder); the servos: EF\'s data sheet, "Qty. 7 high torque metal gear servos, MKS HBL 380, MKS HBL 599, MKS HV777A+, Savox SB2290SG", two per aileron (its four 1.5 in aileron arms), one per elevator half, one rudder; the SB2290SG taken for the class; the aileron servos mid aileron and the elevator servos 0.20 m out, ESTIMATED; https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf',
+  },
+  nighttimber1200: {
+    sim: 30,
+    cf: { a: 0.383, e: 0.525, r: 0.60 },
+    throwDeg: { a: 28.92, e: 35.81, r: 33.75 },
+    /* The ailerons 0.319 to 0.563 m out on the constant 0.239 m chord, both
+     * sides, over 0.287 m^2: the flaps inboard of them keep their hinge
+     * (flaperons, below); the stabiliser 0.0794 m^2; the fin and rudder
+     * 0.034 m^2, the rudder its full height (scripts/nighttimber-derive.js). */
+    flapped: { a: 2 * (0.5629 - 0.3191) / 1.2, e: 0.0794 / 0.2866, r: 0.034 / 0.2866 },
+    servo: {
+      model: 'spmsa332',
+      a: { n: 2, at: [0.0, 0.441, 0.0] },
+      e: { n: 1, at: [-0.05, 0.0, 0.0] },
+      r: { n: 1, at: [-0.05, 0.0, 0.0] },
+    },
+    /* The manual's full span ailerons (pp. 18 and 19) fly the flaps at the
+     * ailerons' travel. On the constant chord a panel's share of the
+     * rolling moment goes as y^2 across it: the flaps, 0.093 to 0.319 m,
+     * (0.3191^2 - 0.0935^2) / (0.5629^2 - 0.0935^2) of it. */
+    flaperons: {
+      share: (0.3191 ** 2 - 0.0935 ** 2) / (0.5629 ** 2 - 0.0935 ** 2),
+      n: 2,
+      at: [0.0, 0.206, 0.0],
+    },
+    source: 'cf, throws, flapped area and the panels\' spans: scripts/nighttimber-derive.js off E-flite\'s top and side views (docs/NIGHTTIMBER-STAGE1.md) and its manual\'s high rates (p. 3); the servos: E-flite\'s manual, "5 x SPMSA332, 1 x SPMSA332R", two ailerons, two flaps, elevator and rudder (pp. 3, 18); the wing servos mid panel and the tail servos where the derivation puts them, ESTIMATED; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf',
   },
 };
 
@@ -192,7 +222,7 @@ export function tierThrowsDeg(id, tiers) {
 
 /* The bigger servos' mass over the stock ones', as add-on points
  * (configs/hangar-parts.js addonParams `extra`): a pair of aileron servos
- * goes on as one each side. */
+ * goes on as one each side, and flaperons' servos at their own place. */
 export function tierPoints(id, tiers) {
   const t = normaliseTiers(tiers, id);
   const s = SURFACES[id];
@@ -200,17 +230,22 @@ export function tierPoints(id, tiers) {
     return [];
   }
   const pts = [];
+  const put = (at, kg) => {
+    if (kg === 0) {
+      return;
+    }
+    if (at[1] !== 0) {
+      pts.push({ at: [at[0], at[1], at[2]], kg: kg / 2, cda: 0 }, { at: [at[0], -at[1], at[2]], kg: kg / 2, cda: 0 });
+    } else {
+      pts.push({ at: at.slice(), kg, cda: 0 });
+    }
+  };
   for (const k of SURFACE_KEYS) {
     const row = rowOf(id, k, t[k]);
-    if (row.dKg === 0) {
-      continue;
-    }
-    const { at } = s.servo[k];
-    if (at[1] !== 0) {
-      const each = row.dKg / 2;
-      pts.push({ at: [at[0], at[1], at[2]], kg: each, cda: 0 }, { at: [at[0], -at[1], at[2]], kg: each, cda: 0 });
-    } else {
-      pts.push({ at: at.slice(), kg: row.dKg, cda: 0 });
+    const fl = row.flaperon ? row.flaperon.dKg : 0;
+    put(s.servo[k].at, row.dKg - fl);
+    if (row.flaperon) {
+      put(s.flaperons.at, fl);
     }
   }
   return pts;
