@@ -25,6 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { electricN, wingProp } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
@@ -370,7 +371,21 @@ function takeoff() {
  * (if before it) the nose reached the lift-off attitude.
  */
 const liftoffPitch = CLmax / 1.21 / CLa + alphaZl;
-function rotation() {
+/* Near the ground (plant_wing.c GROUND EFFECT, scripts/lib/groundeffect.js)
+ * at a pitch on the mains: the lift and pitching moment the ground adds,
+ * the wing's quarter chord over the grass as the airframe pivots on the
+ * mains' contact. The term splits the slope on a_w, the wing's own, and
+ * holds the wing's lift at what it carries at the whole curve's stall. */
+const geo = { b, S, aw, dd: deda, clmax: CLmax * aw / CLa, ...wingGround('FW_HERCULES3077') };
+function onGround(th) {
+  const hC = cgHeight - wheelR;
+  const hCg = wheelR + hC * Math.cos(th) - mainX * Math.sin(th);
+  const h = hCg + geo.wing[0] * Math.sin(th) + geo.wing[1] * Math.cos(th);
+  const gt = groundTerms(geo, h, th, th - alphaZl);
+  const tailCl = (CLa - aw) / (1 - deda);
+  return { h, sigma: gt.sigma, dCL: CLa * gt.dAlpha + tailCl * gt.dTail, dCm: Cma * gt.dAlpha + tailCl * geo.tail[0] / c * gt.dTail };
+}
+function rotation(ge = false) {
   const dt = 0.0005, VR = 1.1 * Vs;
   const hC = cgHeight - wheelR;
   const Im = Iyy + m * (mainX * mainX + hC * hC);
@@ -385,11 +400,12 @@ function rotation() {
     }
     const q = 0.5 * rho * V * V;
     const de = stick * throwE;
-    const CL = clAt(th) + CLde * de;
+    const gr = ge ? onGround(th) : { dCL: 0, dCm: 0 };
+    const CL = clAt(th) + CLde * de + gr.dCL;
     const L = q * S * CL, D = q * S * (CD0 + kInd * CL * CL), Tn = T(V, 1);
     if (L >= W) return { V, x, t, fromVR: t - tVR, tAtt: tAtt === null ? null : tAtt - tVR, attitudeDeg: th * DEG };
     const aZ = th - alphaZl;
-    const mCG = q * S * c * (Cm0 + Cma * aZ + Cmde * de + (V > 1 ? Cmq * qr * c / (2 * V) : 0));
+    const mCG = q * S * c * (Cm0 + Cma * aZ + Cmde * de + gr.dCm + (V > 1 ? Cmq * qr * c / (2 * V) : 0));
     const acc = (Tn - D - 0.08 * Math.max(0, W - L)) / m;
     /* About the wheels, which accelerate with it, the CG's own inertia
      * (m a at its height over them, the load shifting aft) lifts the nose. */
@@ -494,7 +510,7 @@ const out = {
   CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, CnbFin: av * VV, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
-  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, liftoffPitchDeg: (CLmax / 1.21 / CLa + alphaZl) * DEG, rotation: rotation(), cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
+  roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, liftoffPitchDeg: (CLmax / 1.21 / CLa + alphaZl) * DEG, rotation: rotation(), rotationGround: rotation(true), cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
   kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
   fusW, fusH, propR, yInboard, yOutboard, aileronIn, aileronOut, throwA, throwE, throwR, xCG, xMACle, kitLength, k, washout,
 };
