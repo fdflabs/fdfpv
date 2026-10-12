@@ -73,9 +73,6 @@ const BOMBSHELL = [slot('spinner', 'bullet'), slot('wheels', 'covered'), slot('c
 /* The F-16's canopy is already gold tinted and a paint region of its own,
  * so a tint slot would only repeat the Paint page. */
 const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
-/* The Radian's canopy is a paint region, so no tint slot; the NRJ is a
- * throw glider with no canopy and no tips a winglet belongs on. */
-const RADIAN = [slot('nose', 'pointed'), slot('wingtips', 'winglet')];
 const NRJ = [slot('nose', 'pointed')];
 /* The Zagi's winglets already set its height and its aftmost point, so a
  * taller one would grow the box the referee meets: raked and split keep
@@ -114,7 +111,12 @@ export const KITS = {
   slick2680: AIRCRAFT.KITS.slick2680,
   p51d1450: AIRCRAFT.KITS.p51d1450, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
-  radian2000: RADIAN, nrj1490: NRJ,
+  /*
+   * The Radian's canopy is a paint region, so no tint slot; the NRJ is a
+   * throw glider with no canopy and no tips a winglet belongs on.
+   */
+  radian2000: AIRCRAFT.KITS.radian2000,
+  nrj1490: NRJ,
   zagi1219: ZAGI, bramor2300: BRAMOR,
   '7inch': QUAD, '10inch': QUAD, interceptor: ARMOURED_QUAD,
   striker2500: STRIKER,

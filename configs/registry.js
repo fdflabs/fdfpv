@@ -79,28 +79,13 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/cub1400/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'cub1400'),
-  {
-    /* The Radian Pro (PKZ5475) is a PNP with no gyro, so Manual is the
-     * default. The throttle folds the prop in every mode. */
-    id: 'radian-manual',
-    airframe: 'radian2000',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder; closing the throttle folds the prop.',
-  },
-  {
-    id: 'radian-as3x',
-    airframe: 'radian2000',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. Close the throttle and it glides.',
-    wingStab: 3,
-  },
-  {
-    id: 'radian-stab',
-    airframe: 'radian2000',
-    name: 'Stabilised',
-    note: 'A gyro holds the glider. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Close the throttle and it glides.',
-    wingStab: 1,
-  },
+  /*
+   * The Radian Pro (PKZ5475) is a PNP with no gyro, so Manual is the
+   * default. The throttle folds the prop in every mode.
+   *
+   * Its tunes are its folder's, aircraft/radian2000/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'radian2000'),
   {
     /* The NRJ, an F3K glider: a receiver and four servos, no gyro, so
      * Manual. There is no throttle to close; the stick up throws it. */

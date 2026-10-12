@@ -198,50 +198,23 @@ export const AIRFRAMES = [
    * point and the fin's top.
    */
   airframeOf('cub1400'),
-  {
-    /*
-     * The E-flite Radian Pro, docs/GLIDER-STAGE1.md: a 2 m powered glider
-     * with ailerons, an elevator and a rudder, simId 6 on the fixed wing
-     * plant (5 is the Slow Stick). Thrown by hand and landed on
-     * its belly; its prop folds back when the throttle is closed, and it
-     * climbs in the thermals over the airfield, which it and the Slow
-     * Stick fly in.
-     */
-    id: 'radian2000',
-    simId: 6,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/glider-thresholds.json g3_stall. */
-    stall: 6.49,
-    /* Level speed at full throttle, m/s: npm run glider:derive, G5 at 100 percent. */
-    topSpeed: 26.51,
-    name: 'Radian',
-    short: 'Radian',
-    blurb: 'A 2 m E-flite Radian motor glider on 3S, with ailerons, elevator and rudder. Climb on the motor, fold the prop, and find the thermals over the field to stay up.',
-    facts: ['3S', '2000 mm', 'Glider'],
-    sizeMm: 2000,
-    grams: 980,
-    trackClass: 'wing',
-    cells: 3,
-    ...packStates(),
-    defaultTune: 'radian-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/glidercraft.js GLIDER_DIMS: the tip's
-     * trailing corner (1.000 m out, 0.137 m aft), the belly 0.052 m under
-     * the CG, where the plant's hull rests it, and the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1238,
-      hullR: 1.0093,
-      vHalfDown: 0.052,
-      vHalfUp: 0.268,
-      bodyLength: 1.14,
-      bodyWidth: 2.0,
-      bodyHeight: 0.320,
-    },
-  },
+  /*
+   * The E-flite Radian Pro, docs/GLIDER-STAGE1.md: a 2 m powered glider
+   * with ailerons, an elevator and a rudder, simId 6 on the fixed wing
+   * plant (5 is the Slow Stick). Thrown by hand and landed on
+   * its belly; its prop folds back when the throttle is closed, and it
+   * climbs in the thermals over the airfield, which it and the Slow
+   * Stick fly in.
+   *
+   * The row is its folder's, aircraft/radian2000/aircraft.js. `stall`:
+   * Clean stall, m/s, sqrt(2W / rho S CLmax): tests/glider-thresholds.json
+   * g3_stall. `topSpeed`: Level speed at full throttle, m/s: npm run
+   * glider:derive, G5 at 100 percent. `dims`: The drawn machine,
+   * src/render/glidercraft.js GLIDER_DIMS: the tip's trailing corner
+   * (1.000 m out, 0.137 m aft), the belly 0.052 m under the CG, where the
+   * plant's hull rests it, and the fin's top.
+   */
+  airframeOf('radian2000'),
   {
     /*
      * The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md: a 2.3 m blended

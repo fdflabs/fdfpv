@@ -196,7 +196,7 @@ export const ANCHORS = {
   cub1400: AIRCRAFT.ANCHORS.cub1400,
   cub1400f: { prop: [0.23, 0, 0.028], belly: [0, 0, -0.030], tail: [-0.58, 0, 0.016], tank: [-0.01, 0, 0.006], led: [[0.038, 0.21, 0.126], [0.038, 0.63, 0.133]] },
   sky1800: AIRCRAFT.ANCHORS.sky1800,
-  radian2000: { prop: [0.293, 0, -0.008], belly: [0, 0, -0.040], tail: [-0.70, 0, 0.012], tank: [-0.01, 0, -0.01], led: [[0.040, 0.30, 0.039], [-0.028, 0.90, 0.111]] },
+  radian2000: AIRCRAFT.ANCHORS.radian2000,
   /* The F-16's `prop` is its fan, inside the fuselage behind the wing. */
   f16878: { prop: [-0.24, 0, 0], belly: [0, 0, -0.061], tail: [-0.59, 0, -0.038], tank: [-0.01, 0, -0.02], led: [[0.080, 0.13, -0.006], [-0.139, 0.40, -0.006]] },
   bramor2300: { prop: [-0.35, 0, 0.087], belly: [0, 0, -0.044], tail: [-0.19, 0, 0.0], tank: [-0.01, 0, 0.0], led: [[0.008, 0.35, -0.004], [-0.276, 1.03, 0.004]] },

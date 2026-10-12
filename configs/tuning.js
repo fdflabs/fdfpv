@@ -103,8 +103,6 @@ export const MARGIN_WARN = 0.05;
 export const TRIM_MAX_DEG = 4;
 
 const TIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf';
-const RADIAN_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL4750-Manual-EN.pdf';
-const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/PKZ5480-Manual_EN.pdf';
 const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
@@ -152,15 +150,10 @@ export const TUNING = {
   },
   sky1800: AIRCRAFT.TUNING.sky1800,
   cub1400: AIRCRAFT.TUNING.cub1400,
-  radian2000: {
-    /* -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234 was read off the plant
-     * past the linear lift, where its curve now rounds onto CL max. */
-    chord: 0.1866, area: 0.355, margin: 0.228,
-    cg: { mm: 63, datum: 'tuning.datum.root_le', range: null, source: `E-flite Radian manual, "2 1/2 inches (63mm) back from leading edge at the root", no range; ${RADIAN_MANUAL}` },
-    packKg: 0.11, nose: 0.26, tail: -0.70,
-    throws: { high: [15, 24.4, 30], low: [10.5, 18.0, 18.2], source: `E-flite Radian manual p. 3: elevator 12 and 9 mm, rudder 40 and 25 mm, dual rates 100/70 percent; the ailerons ESTIMATED (the Radian has none; the Radian Pro's are 15/12 mm high, 11/8 low, ${RADIAN_PRO_MANUAL}), their low at 70 percent; ${RADIAN_MANUAL}` },
-    flaps: null,
-  },
+  /* The Radian's `margin` is -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234
+   * was read off the plant past the linear lift, where its curve now
+   * rounds onto CL max. */
+  radian2000: AIRCRAFT.TUNING.radian2000,
   bramor2300: {
     chord: 0.257, area: 0.591, margin: 0.088,
     cg: { mm: null, datum: 'tuning.datum.stock', range: null, source: 'C-Astral publishes no CG and no throws; the plant\'s 7 percent static margin is ESTIMATED (docs/BRAMOR-STAGE1.md)' },
