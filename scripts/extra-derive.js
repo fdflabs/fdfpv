@@ -23,6 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { fuselageRatio } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
@@ -280,8 +281,18 @@ const rotK = [
 ];
 /* The side crossflow drag area: the fuselage's side, 1.26 m by a mean
  * 0.125 m and the canopy, at Allen and Perkins' crossflow coefficient of
- * 1.2 times their eta of 0.7 for a body of fineness 9. */
-const sideCda = (1.26 * 0.125) * 1.2 * 0.7;
+ * 1.2 times their eta of 0.7 for a body of fineness 9, the 1.2 a round
+ * body's taken over to the drawn rounded box's sections (scripts/lib/
+ * crossflow.js, NACA TN 3038). The sections: station aft of the
+ * spinner's tip, half width, top, bottom, squareness, m, the drawn
+ * model's FUSE (src/render/extracraft.js). */
+const FUSE = [
+  [0.030, 0.032, 0.030, -0.032, 2.0], [0.050, 0.052, 0.050, -0.056, 2.2], [0.110, 0.062, 0.060, -0.074, 2.6],
+  [0.220, 0.064, 0.062, -0.100, 3.0], [0.340, 0.063, 0.060, -0.104, 3.2], [0.480, 0.058, 0.055, -0.098, 3.2],
+  [0.700, 0.042, 0.046, -0.070, 3.0], [0.950, 0.024, 0.036, -0.042, 2.8], [1.137, 0.009, 0.030, -0.030, 2.4],
+];
+const sectionK = fuselageRatio(FUSE);
+const sideCda = (1.26 * 0.125) * 1.2 * sectionK * 0.7;
 
 /* Hanging on the prop: the thrust the weight, no airspeed. */
 const hov = wash(W, 0);
@@ -558,7 +569,7 @@ const rows = [
   ['prop J kg m2, shaft power W', `${f(propJ, 6)} ${f(Qs * nStatic * 2 * Math.PI / 60, 0)}`],
   ['slipstream: tail CLα, Cmα, a0; fin Cnβ, Cnr, CYβ, Clβ', `${f(slipCla, 4)} ${f(slipCma, 4)} ${f(slipA0, 4)}; ${f(slipCnb, 4)} ${f(slipCnr, 4)} ${f(slipCyb, 4)} ${f(slipClb, 4)}`],
   ['rot_k roll pitch yaw N m s2', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}`],
-  ['side crossflow drag area m2', f(sideCda, 4)],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['E1 level at 75 percent', f(level(0.75), 2)],
   ['E2 stall, CLmax / CLα', `${f(Vs, 2)} ${f(CLmax / CLa, 5)}`],
   ['E3 L/D at 12, 14 m/s', `${f(ld(12), 2)} ${f(ld(14), 2)}`],

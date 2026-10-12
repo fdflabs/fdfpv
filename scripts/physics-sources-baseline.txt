@@ -1448,7 +1448,6 @@ src/native/plant_wing.c FW_EXTRA3D1308.tail_at = 3.699
 src/native/plant_wing.c FW_EXTRA3D1308.tail_av = 3.715
 src/native/plant_wing.c FW_EXTRA3D1308.tail_deda = 0.603
 src/native/plant_wing.c FW_EXTRA3D1308.tail_cn = 1.17
-src/native/plant_wing.c FW_EXTRA3D1308.side_cda = 0.1323
 src/native/plant_wing.c FW_EXTRA3D1308.rot_k = { 0.01580, 0.04108, 0.03462 }
 src/native/plant_wing.c FW_EXTRA3D1308.j_prop = 0.000249
 src/native/plant_wing.c FW_NIGHTTIMBER1200.span = 1.200

@@ -235,6 +235,37 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a humpty with its lines 20 deg off vertical is graded lower', got && clean && got.grade <= clean.grade - 1,
     `${clean ? clean.grade : '-'} vs ${got ? got.grade : 'not named'}`);
 }
+/* A rolling circle out with bank left on (BAeA judging, "Rolling
+ * Circles": "Stop on heading and without any remaining bank angle"):
+ * one roll and a quarter over the circle loses points on one roll. */
+{
+  const over = detect([lead, { p: 2, worldRate: [0, 0, 1.6], ms: 3927, speed: V }, tail]).find((g) => g.figure === 'rolling_circle');
+  const clean = run('rolling_circle').find((g) => g.figure === 'rolling_circle');
+  check('a rolling circle that rolls a quarter past its last roll is graded under one that stops wings level', over && clean && over.grade <= clean.grade - 1,
+    `${clean ? clean.grade : '-'} vs ${over ? over.grade : 'not named'}`);
+}
+/* Four rolls round the circle is Aresti 2.4.7.1, not the catalogue's
+ * one-roll 2.4.2.1: "If the number of rolls is wrong ... Hard Zero" (BAeA
+ * judging, "Rolling Circles"). */
+{
+  const four = detect([lead, { p: 6.4, worldRate: [0, 0, 1.6], ms: 3927, speed: V }, tail]);
+  check('a circle rolled four times is no rolling circle', !four.some((g) => g.figure === 'rolling_circle'),
+    four.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+}
+/* A stall turn's lines as a judge watches them (BAeA judging, "Stall
+ * Turns"): a rudder correction on the up line, the nose yawed 18 deg and
+ * back below 8 m/s, is yaw on the line, marked off the line, not a turn
+ * round; the hammerhead is still named, and graded under the clean one. */
+{
+  const corrected = [lead, pull(V, 20, 0.25), { ms: 1400, speed: V, dSpeed: -9 }, { r: 3, ms: 105, keepVel: true },
+    { r: -3, ms: 105, keepVel: true }, { ms: 390, dSpeed: -9 }, { r: 3, ms: Math.round(Math.PI / 3 * 1000), speed: 2 },
+    { ms: 1500, speed: 4, dSpeed: 9 }, pull(V, 20, 0.25), tail];
+  const got = detect(corrected);
+  const h = got.find((g) => g.figure === 'hammerhead');
+  const clean = run('hammerhead').find((g) => g.figure === 'hammerhead');
+  check('a hammerhead with an 18 deg yaw correction on its up line is named and graded under the clean one',
+    h && clean && h.grade < clean.grade && got.length === 1, `${clean ? clean.grade : '-'} vs ${got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing'}`);
+}
 /* A knife edge is the wing in the vertical plane along the line (FAI
  * F3P-AA 23: "During the knife edge the wing must be in the vertical
  * plane"), however much sideslip holds it up: the CAP 580 holds 30 deg at
