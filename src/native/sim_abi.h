@@ -655,6 +655,7 @@ int sim_wing_stab(void);
  * which is zero by default: a centred stick then holds the attitude at
  * that share. Out of range or NaN is SIM_ERR_BAD_ARG. Kept across resets.
  * Additive, version unchanged. */
+#define SIM_HEADING_DOUBLES 3
 int sim_wing_set_heading(const double *in);
 int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
