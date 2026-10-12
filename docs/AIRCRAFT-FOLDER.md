@@ -31,16 +31,16 @@ types, doubles by `Object.is`), the stated stock packs and rates equal a hand ro
 
 ## Read from the folder
 
-The P-51's rows in `configs/airframes.js` (its AIRFRAMES row, in its place in the list),
-`configs/kits.js` (KITS), `configs/tuning.js` (TUNING), `configs/hangar-parts.js` (ANCHORS) and
-`configs/registry.js` (its three TUNES) are `AIRCRAFT`'s, from `aircraft/p51d1450/aircraft.js`
-(2026-10-12). The switch was proven by every export of those modules and of `power.js`,
+The P-51's, the CAP 580's and the Slick 580's rows in `configs/airframes.js` (their AIRFRAMES rows,
+each in its place in the list), `configs/kits.js` (KITS), `configs/tuning.js` (TUNING),
+`configs/hangar-parts.js` (ANCHORS) and `configs/registry.js` (their TUNES) are `AIRCRAFT`'s, from
+their folders (2026-10-12). The switch was proven by every export of those modules and of `power.js`,
 `power-estimates.js`, `liveries.js`, `progress.js` and the string tables, through
 `scripts/lib/transcript.js`'s `canon` (key order, `-0`, frozenness, shared objects), being identical
 before and after, by the pinned `airframes:selftest` and `registry:selftest` transcripts, and by the
-P-51's recordings rewriting to the same bytes.
+the three planes' recordings rewriting to the same bytes as they do at the commit before.
 
-Still hand side for the P-51, compared to its folder by `aircraft:folder`:
+Still hand side for the three, compared to their folders by `aircraft:folder`:
 
 - `PROPS` (`[STOCK]`, the shared stock prop object) and `DRAWN` membership (a Set whose order is the
   list's), both small, both shared shapes.

@@ -1035,105 +1035,44 @@ export const AIRFRAMES = [
       bodyHeight: 0.8798,
     },
   },
-  {
-    /*
-     * Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md: a balsa
-     * and carbon IMAC and 3D monoplane, 3.63 kg on 6S, simId 32 on the
-     * fixed wing plant. T-Motor's bench table gives it 2.6 times its
-     * weight in thrust, so it hangs on the prop as the Extra does, at
-     * twice the Extra's weight and its wing loading half again. A
-     * taildragger on carbon legs and pants; `gear` is the plant's settled
-     * pose, which the drawn wheels in src/render/capcraft.js match: the CG
-     * 0.313 m over the ground and 10.87 degrees nose up (cap580:gates C13).
-     */
-    id: 'cap1702',
-    simId: 32,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/cap580-thresholds.json c2_stall. */
-    stall: 10.62,
-    /* Level speed at full throttle, m/s: tests/cap580-thresholds.json c4_top, derived. */
-    topSpeed: 33.09,
-    gear: { restHeight: 0.3130, restPitch: 10.87 * Math.PI / 180 },
-    name: 'CAP 580',
-    short: 'CAP',
-    blurb: 'A 1702 mm Extreme Flight CAP 580 on 6S, balsa and carbon, with 2.6 times its weight in thrust on a measured T-Motor bench table. It hovers, torque rolls, harriers and knife edges like the Extra, but at twice the weight it carries its speed through every figure: precise on the lines, heavy in the snap.',
-    facts: ['6S', '1702 mm', '3D', 'IMAC'],
-    sizeMm: 1702,
-    grams: 3628.7,
-    trackClass: 'wing',
-    cells: 6,
-    ...packStates(),
-    defaultTune: 'cap-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/capcraft.js CAP_DIMS. */
-    dims: {
-      arm: 0,
-      propR: 0.2286,
-      hullR: 1.076,
-      vHalfDown: 0.3418,
-      vHalfUp: 0.277,
-      bodyLength: 1.676,
-      bodyWidth: 1.702,
-      bodyHeight: 0.6188,
-    },
-  },
-  {
-    /*
-     * Extreme Flight's 105.5 in Slick 580 EXP (the V3 on the V2's data
-     * sheet), docs/SLICK-STAGE1.md: a 35 percent balsa and composite IMAC
-     * and 3D aerobat, 12.47 kg with its 34 oz tank full, simId 33 on the
-     * fixed wing plant. A Desert Aircraft DA-120 petrol twin turns a 28 x 10
-     * carbon prop at Falcon's measured 6,550 rpm and 31.0 kg standing, two
-     * and a half times its weight, so it hangs on its prop as the Extra
-     * does with thirty times the Extra's pitch inertia; the stick runs the
-     * engine from its 1,300 rpm idle to full and it never stops, and
-     * `voice` is the two stroke's note in the mix (src/render/audio.js). The
-     * pack is the receiver's, which the engine draws nothing from. A
-     * taildragger on pants; `gear` is the plant's settled pose idling,
-     * which the drawn wheels in src/render/slickcraft.js match: the CG
-     * 0.4088 m over the ground and 9.36 degrees nose up (slick:gates S13).
-     */
-    id: 'slick2680',
-    simId: 33,
-    fixedWing: true,
-    voice: 'glow2',
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/slick-thresholds.json s2_stall. */
-    stall: 13.88,
-    /* Level speed at full throttle, m/s: tests/slick-thresholds.json s4_top, derived. */
-    topSpeed: 42.54,
-    gear: { restHeight: 0.4088, restPitch: 9.36 * Math.PI / 180 },
-    name: 'Slick 580',
-    short: 'Slick',
-    blurb: 'A 2.68 m Extreme Flight Slick 580 on a 120 cc DA-120 petrol twin, 12.5 kg of balsa and carbon in its 10th Anniversary red and white. It hangs on its 28 in prop and torque rolls like the Extra, but with thirty times the Extra\'s inertia: everything it does it does with momentum. Pull it into the stall at idle and the prop\'s gyroscope drops the right wing.',
-    facts: ['DA-120 petrol', '2680 mm', 'IMAC and 3D'],
-    sizeMm: 2680,
-    grams: 12474,
-    trackClass: 'wing',
-    cells: 2,
-    ...packStates(),
-    defaultTune: 'slick-as3x',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/slickcraft.js SLICK_DIMS: the furthest
-     * reach in plan is the rudder's foot's trailing edge, 1.728 m aft,
-     * further than the tips; the lowest drawn point the wheels' and the
-     * highest the rudder's top. */
-    dims: {
-      arm: 0,
-      propR: 0.3556,
-      hullR: 1.7277,
-      vHalfDown: 0.44,
-      vHalfUp: 0.505,
-      bodyLength: 2.497,
-      bodyWidth: 2.68,
-      bodyHeight: 0.945,
-    },
-  },
+  /*
+   * Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md: a balsa
+   * and carbon IMAC and 3D monoplane, 3.63 kg on 6S, simId 32 on the
+   * fixed wing plant. T-Motor's bench table gives it 2.6 times its
+   * weight in thrust, so it hangs on the prop as the Extra does, at
+   * twice the Extra's weight and its wing loading half again. A
+   * taildragger on carbon legs and pants; `gear` is the plant's settled
+   * pose, which the drawn wheels in src/render/capcraft.js match: the CG
+   * 0.313 m over the ground and 10.87 degrees nose up (cap580:gates C13).
+   * The row is its folder's, aircraft/cap1702/aircraft.js. `stall` is the
+   * clean stall, m/s, sqrt(2W / rho S CLmax), tests/cap580-thresholds.json
+   * c2_stall; `topSpeed` the level speed at full throttle, m/s, c4_top,
+   * derived; `dims` the drawn machine, src/render/capcraft.js CAP_DIMS.
+   */
+  airframeOf('cap1702'),
+  /*
+   * Extreme Flight's 105.5 in Slick 580 EXP (the V3 on the V2's data
+   * sheet), docs/SLICK-STAGE1.md: a 35 percent balsa and composite IMAC
+   * and 3D aerobat, 12.47 kg with its 34 oz tank full, simId 33 on the
+   * fixed wing plant. A Desert Aircraft DA-120 petrol twin turns a 28 x 10
+   * carbon prop at Falcon's measured 6,550 rpm and 31.0 kg standing, two
+   * and a half times its weight, so it hangs on its prop as the Extra
+   * does with thirty times the Extra's pitch inertia; the stick runs the
+   * engine from its 1,300 rpm idle to full and it never stops, and
+   * `voice` is the two stroke's note in the mix (src/render/audio.js). The
+   * pack is the receiver's, which the engine draws nothing from. A
+   * taildragger on pants; `gear` is the plant's settled pose idling,
+   * which the drawn wheels in src/render/slickcraft.js match: the CG
+   * 0.4088 m over the ground and 9.36 degrees nose up (slick:gates S13).
+   * The row is its folder's, aircraft/slick2680/aircraft.js. `stall` is
+   * the clean stall, m/s, sqrt(2W / rho S CLmax), tests/slick-thresholds.json
+   * s2_stall; `topSpeed` the level speed at full throttle, m/s, s4_top,
+   * derived. `dims` is the drawn machine, src/render/slickcraft.js
+   * SLICK_DIMS: the furthest reach in plan is the rudder's foot's trailing
+   * edge, 1.728 m aft, further than the tips; the lowest drawn point the
+   * wheels' and the highest the rudder's top.
+   */
+  airframeOf('slick2680'),
   /*
    * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
    * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing

@@ -392,59 +392,22 @@ export const TUNES = [
     note: 'The same receiver with SAFE Select on: roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, centred sticks fly level.',
     wingStab: 1,
   },
-  {
-    /* The CAP 580 is an ARF and ships with no electronics, as the
-     * Hercules: Manual is its default, as an IMAC or 3D pilot flies it. A
-     * builder fits whatever receiver they like; the two gyro modes are a
-     * Spektrum AR637T's (owner rule 2026-10-08: any real gyro), its AS3X
-     * rate damper and its SAFE Select self levelling. On its wheels every
-     * mode flies as Manual. docs/CAP580-STAGE1.md. */
-    id: 'cap-manual',
-    airframe: 'cap1702',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at Extreme Flight\'s 3D rates. Heavier and faster than the Extra: it carries its speed through a figure and wants a firmer hand. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons.',
-  },
-  {
-    id: 'cap-as3x',
-    airframe: 'cap1702',
-    name: 'AS3X',
-    note: 'A Spektrum AR637T receiver fitted by the builder, its AS3X on: the sticks are the surfaces at the 3D rates; centred, the gyro holds the attitude you left it in, against the gusts and the torque\'s kicks; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'cap-stab',
-    airframe: 'cap1702',
-    name: 'SAFE Select',
-    note: 'The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level. It cannot hover or tumble: switch to Manual or AS3X for 3D.',
-    wingStab: 1,
-  },
-  {
-    /* The Slick is an ARF that ships with no electronics: its builder fits
-     * a receiver, and a 35 percent aerobat flown 3D usually carries a
-     * heading gyro (owner rule 2026-10-08: any real gyro). Its default is
-     * the Extra's: a Spektrum AR637T's AS3X rate damper, which levels
-     * nothing and caps nothing; Manual is the receiver without it; SAFE
-     * Select its self levelling bind. On its wheels every mode flies as
-     * Manual. */
-    id: 'slick-as3x',
-    airframe: 'slick2680',
-    name: 'AS3X',
-    note: 'A Spektrum AR637T fitted by the builder, its AS3X rate damper on: the sticks are the surfaces at the sheet\'s 3D throws, and the gyro damps the bumps and the torque\'s kicks against the rate it turns at, fading out as the stick leaves centre. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'slick-manual',
-    airframe: 'slick2680',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at Extreme Flight\'s 3D throws. It is twelve and a half kilograms: it starts and stops turning slowly, so lead every input, and hold the torque on the ailerons when it hangs.',
-  },
-  {
-    id: 'slick-stab',
-    airframe: 'slick2680',
-    name: 'SAFE Select',
-    note: 'The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.',
-    wingStab: 1,
-  },
+  /* The CAP 580 is an ARF and ships with no electronics, as the
+   * Hercules: Manual is its default, as an IMAC or 3D pilot flies it. A
+   * builder fits whatever receiver they like; the two gyro modes are a
+   * Spektrum AR637T's (owner rule 2026-10-08: any real gyro), its AS3X
+   * rate damper and its SAFE Select self levelling. On its wheels every
+   * mode flies as Manual. docs/CAP580-STAGE1.md. Its tunes are its
+   * folder's, aircraft/cap1702/aircraft.js. */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'cap1702'),
+  /* The Slick is an ARF that ships with no electronics: its builder fits
+   * a receiver, and a 35 percent aerobat flown 3D usually carries a
+   * heading gyro (owner rule 2026-10-08: any real gyro). Its default is
+   * the Extra's: a Spektrum AR637T's AS3X rate damper, which levels
+   * nothing and caps nothing; Manual is the receiver without it; SAFE
+   * Select its self levelling bind. On its wheels every mode flies as
+   * Manual. Its tunes are its folder's, aircraft/slick2680/aircraft.js. */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'slick2680'),
   /* The P-51, FMS's V8 PNP: no gyro (FMS sells a Reflex version
    * apart), Manual. G works the retracts, F the flaps, in every mode;
    * on its wheels every mode flies as Manual. Its tunes are its folder's,

@@ -65,12 +65,6 @@ const EXTRA = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'go
 /* The Hercules' four spinners and its flight deck's glazing; its gear is
  * in sponsons, so no wheels slot. */
 const HERCULES = [slot('spinner', 'twotone'), slot('canopy', 'smoke')];
-/* The CAP 580's side force generators are stock on its tips, so no
- * wingtips slot; its spats are stock, so no wheels slot (the Extra's). */
-const CAP = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold')];
-/* The Slick's: its pants are stock, so no wheels slot, and EF sells side
- * force generators for its tips. */
-const SLICK = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold'), slot('wingtips', 'sfg')];
 /* The Tiger Moth's cockpits are open, so no canopy slot. */
 const TIGERMOTH = [
   slot('spinner', 'twotone', 'striped'),
@@ -111,8 +105,12 @@ export const KITS = {
   extra3d1308: EXTRA,
   nighttimber1200: TIMBER,
   hercules3077: HERCULES,
-  cap1702: CAP,
-  slick2680: SLICK,
+  /* The CAP 580's side force generators are stock on its tips, so no
+   * wingtips slot; its spats are stock, so no wheels slot (the Extra's).
+   * The Slick's pants are stock, so no wheels slot, and EF sells side
+   * force generators for its tips. */
+  cap1702: AIRCRAFT.KITS.cap1702,
+  slick2680: AIRCRAFT.KITS.slick2680,
   p51d1450: AIRCRAFT.KITS.p51d1450, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
