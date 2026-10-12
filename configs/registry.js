@@ -127,29 +127,14 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/timber1500/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'timber1500'),
-  {
-    /* The Bombshell, a balsa kit on a Cox .049: no gyro, Manual. No
-     * ailerons, so AS3X damps pitch and yaw only and Stabilised's roll
-     * loop works the rudder. On its wheels every mode flies as Manual. */
-    id: 'bombshell-manual',
-    airframe: 'bombshell1118',
-    name: 'Manual',
-    note: 'No flight controller. The roll and yaw sticks both work the rudder and the pitch stick the elevator; the tail skid does not steer. Let go and the polyhedral levels the wings. Throttle closed, the engine idles.',
-  },
-  {
-    id: 'bombshell-as3x',
-    airframe: 'bombshell1118',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevator and the rudder; in pitch and yaw, centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. Throttle closed, the engine idles.',
-    wingStab: 3,
-  },
-  {
-    id: 'bombshell-stab',
-    airframe: 'bombshell1118',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 45 degrees, flown on the rudder, pitch stick for a pitch up to 12, and centred sticks fly level.',
-    wingStab: 1,
-  },
+  /*
+   * The Bombshell, a balsa kit on a Cox .049: no gyro, Manual. No
+   * ailerons, so AS3X damps pitch and yaw only and Stabilised's roll loop
+   * works the rudder. On its wheels every mode flies as Manual.
+   *
+   * Its tunes are its folder's, aircraft/bombshell1118/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'bombshell1118'),
   {
     /* The Kadet Senior, a SIG kit: no gyro, Manual. No ailerons, so AS3X
      * damps pitch and yaw only. On its wheels every mode flies as

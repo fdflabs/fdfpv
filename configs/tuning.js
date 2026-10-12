@@ -107,7 +107,6 @@ const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58k
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
-const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
 const STIK_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
 const TIGER_MANUAL = 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
@@ -155,15 +154,10 @@ export const TUNING = {
   bramor2300: AIRCRAFT.TUNING.bramor2300,
   slowstick1180: AIRCRAFT.TUNING.slowstick1180,
   timber1500: AIRCRAFT.TUNING.timber1500,
-  bombshell1118: {
-    /* The margin U2 reads with the wing's own stall slope and the tail's
-     * share on sin cos, 0.2881 (scripts/bombshell-derive.js); linear, 0.287. */
-    chord: 0.1905, area: 0.212903, margin: 0.288,
-    cg: { mm: 62.9, datum: 'tuning.datum.le', range: [55.2, 81.9], source: `the plan's "BALANCE POINT RANGE" bracket, which carries no number, measured at 29 to 43 percent of the chord (docs/BOMBSHELL-STAGE1.md); ${BOMBSHELL_PLAN}` },
-    packKg: 0.07, nose: 0.107, tail: -0.58,
-    throws: { high: [0, 15, 20], low: [0, 10.5, 14], source: `high: ESTIMATED, no throws published (docs/BOMBSHELL-STAGE1.md); ${LOW_70}` },
-    flaps: null,
-  },
+  /* The Bombshell's `margin` is the one U2 reads with the wing's own
+   * stall slope and the tail's share on sin cos, 0.2881
+   * (scripts/bombshell-derive.js); linear, 0.287. */
+  bombshell1118: AIRCRAFT.TUNING.bombshell1118,
   kadet1981: {
     chord: 0.374487, area: 0.741934, margin: 0.268,
     cg: { mm: 98.4, datum: 'tuning.datum.spar', range: null, source: `SIG, "Center of Gravity 3 7/8 inch At Main Spar", no range (the kit manual: "shown on the plan"); ${KADET_KIT}` },

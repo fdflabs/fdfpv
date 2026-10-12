@@ -66,9 +66,6 @@ const TIGERMOTH = [
   slot('exhausts', 'stacks'),
   slot('wheels', 'covered'),
 ];
-/* The Bombshell's Cox spinner nut is too small to band, and its glow
- * engine has no exhaust stacks to change. */
-const BOMBSHELL = [slot('spinner', 'bullet'), slot('wheels', 'covered'), slot('canopy', 'smoke')];
 /* The F-16's canopy is already gold tinted and a paint region of its own,
  * so a tint slot would only repeat the Paint page. */
 const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
@@ -106,7 +103,12 @@ export const KITS = {
    * force generators for its tips. */
   cap1702: AIRCRAFT.KITS.cap1702,
   slick2680: AIRCRAFT.KITS.slick2680,
-  p51d1450: AIRCRAFT.KITS.p51d1450, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
+  p51d1450: AIRCRAFT.KITS.p51d1450, tigermoth1803: TIGERMOTH,
+  /*
+   * The Bombshell's Cox spinner nut is too small to band, and its glow
+   * engine has no exhaust stacks to change.
+   */
+  bombshell1118: AIRCRAFT.KITS.bombshell1118,
   f16878: JET,
   /*
    * The Radian's canopy is a paint region, so no tint slot; the NRJ is a
