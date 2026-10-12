@@ -10,6 +10,40 @@
     },
     "source": "McRuer and Jex, IEEE Trans. HFE 8(3), 1967: a trained operator's effective delay in compensatory tracking",
     "margins": {
+      "knife": {
+        "bank": {
+          "crossoverFor": 2,
+          "wc": 2,
+          "gain": 12.01,
+          "pmDeg": 45.3,
+          "wcFound": 2.2,
+          "gmDb": 9.2,
+          "w180": 5.8
+        },
+        "elevation": {
+          "crossoverFor": 0.8,
+          "wc": 0.8,
+          "gain": 1.093,
+          "pmDeg": 92.9,
+          "wcFound": 1,
+          "gmDb": 6.6,
+          "w180": 10.2
+        },
+        "heading": {
+          "crossoverFor": 2.2,
+          "wc": 2,
+          "gain": 5.367,
+          "pmDeg": 46.4,
+          "wcFound": 2.2,
+          "gmDb": 9.2,
+          "w180": 6
+        },
+        "trim": {
+          "rudder": 0.48,
+          "elevation": 0.246,
+          "speed": 28.5
+        }
+      },
       "criterion": "bandwidth criterion: 45 deg phase margin, 6 dB gain margin (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, NASA NCC2-338, 1986)",
       "delayS": 0.225,
       "lineElevator": {
@@ -65,30 +99,34 @@
       "family": "lines",
       "k": 6,
       "source": "Aresti 1.1.1.1 + 9.1.3.1 + 9.1.3.1 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
           "roll 0.5 0.50pi",
-          "hold 0,0,-0.6,1",
+          "knife 3000",
           "roll -0.5 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 9.5,
+        "flew": [
+          "knife_edge_pass 9.5"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 112.1,
+        "lowestM": 150,
         "others": {
-          "cap": null,
-          "slick": null
+          "cap": 9.5,
+          "slick": 10
         }
       },
-      "margin": null
+      "margin": [
+        "knife"
+      ]
     },
     {
       "id": "rolling_circle",

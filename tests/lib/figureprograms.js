@@ -23,8 +23,8 @@
  */
 
 import { loadSim } from './simmod.js';
-import { must, EXTRA_AIRFRAME, hangSticks } from './wingpilot.js';
-import { clamp, quant, eyes } from './personpilot.js';
+import { must, EXTRA_AIRFRAME, hangSticks, personLoop } from './wingpilot.js';
+import { clamp, quant, eyes, PERSON } from './personpilot.js';
 import { FigureDetector } from '../../src/game/figuredetect.js';
 
 const MS = 2;
@@ -194,6 +194,60 @@ const points = (n, stick = 0.5) => ({
     return [[stick, 0.05, 0, 0.75], m.q >= n];
   },
 });
+/*
+ * A knife edge as a person flies one, three loops through the eyes and
+ * the hand at PERSON's pace (a look every 100 ms, whose 0.25 s of delay
+ * and hold crossoverFor designs to): the bank held at 90 deg on the
+ * ailerons, the nose's elevation on the rudder (top rudder, the sideslip
+ * that holds the height), the heading on the elevator, full throttle.
+ * The elevation the rudder holds is itself set by the climb rate the
+ * person sees, an outer loop a quarter as fast (PERSON.outer), whose
+ * plant is g over the elevation that holds a level knife edge: a radian
+ * more of it climbs at that rate per second. Each loop is personLoop's,
+ * at the crossover and plant gain scripts/figures-margins.js measures on
+ * the Extra in a level knife edge at full throttle (crossoverFor, the
+ * bandwidth criterion's 45 deg and 6 dB), pinned here and checked there,
+ * with the margins each keeps. The rudder and elevation start trimmed
+ * where that knife edge settles, as a person puts the top rudder in as
+ * they roll to it. The fixed top rudder it flew before (-0.6, no aileron)
+ * rolled the Extra on through the knife edge at up to 0.87 rad/s, onto
+ * its back in 2 s.
+ */
+export const KNIFE = {
+  bank: { wc: 2, gain: 12.01 },
+  elevation: { wc: 0.8, gain: 1.093 },
+  heading: { wc: 2, gain: 5.367 },
+  trim: { rudder: 0.48, elevation: 0.246 },
+};
+const G = 9.80665;
+const knife = (ms) => ({
+  name: `knife ${ms}`,
+  step: (d, m) => {
+    const [w, x, y, z] = [d.s[7], d.s[8], d.s[9], d.s[10]];
+    const psi = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+    if (!m.bank) {
+      m.side = Math.sign(d.lz) || 1;
+      m.psi0 = psi;
+      m.bank = personLoop(KNIFE.bank.wc, KNIFE.bank.gain);
+      m.elevation = personLoop(KNIFE.elevation.wc, KNIFE.elevation.gain, { u0: KNIFE.trim.rudder });
+      m.heading = personLoop(KNIFE.heading.wc, KNIFE.heading.gain);
+      m.climb = personLoop(KNIFE.elevation.wc * PERSON.outer, G / KNIFE.trim.elevation, { min: -0.5, max: 0.8, u0: KNIFE.trim.elevation });
+    }
+    const done = m.t >= ms;
+    if (m.sticks && m.t % PERSON.everyMs !== 0) return [m.sticks, done];
+    let dpsi = m.psi0 - psi;
+    if (dpsi > PI) dpsi -= 2 * PI;
+    if (dpsi < -PI) dpsi += 2 * PI;
+    const want = m.climb.step(-d.vz);
+    m.sticks = [
+      quant(m.bank.step(m.side * PI / 2 - Math.atan2(d.lz, d.uz))),
+      quant(-m.side * m.heading.step(dpsi)),
+      quant(-m.side * m.elevation.step(want - Math.asin(clamp(d.nz)))),
+      1,
+    ];
+    return [m.sticks, done];
+  },
+});
 /* Hang on the prop: the nose up, the height on the throttle. */
 const hang = (ms, { rollStick = 0 } = {}) => ({
   name: `hang ${ms}`,
@@ -334,7 +388,7 @@ export const PROGRAMS = {
    * has too little air to turn it round. */
   hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < 9), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
-  knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -0.6, 1], 3000), roll(-0.5, 0.5 * PI), L()],
+  knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), knife(3000), roll(-0.5, 0.5 * PI), L()],
   ke_loop: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -1, 1], 7000), L()],
   rolling_circle: [L(), { name: 'rolling circle', step: (d, m) => [[0.3, quant(0.35 * d.uz), quant(-0.5 * d.lz), 1], m.t > 9000] }, L()],
   hover: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
