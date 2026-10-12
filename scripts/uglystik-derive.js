@@ -29,7 +29,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wash } from './lib/wash.js';
+import { planeTable, propMoments, wash } from './lib/wash.js';
 import { wingProp } from './lib/propcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
 
@@ -434,12 +434,13 @@ function lateral(V) {
     dutch: dr ? { wn: Math.hypot(dr.re, dr.im), zeta: -dr.re / Math.hypot(dr.re, dr.im) } : null,
   };
 }
-/* The hands off bank after a time, from a bank with the sticks centred. */
-function bankAfter(lat, phi0, tEnd) {
+/* The hands off bank after a time, from a bank with the sticks centred,
+ * and a constant input (side force over m V, roll over Ixx, yaw over Izz). */
+function bankAfter(lat, phi0, tEnd, force = [0, 0, 0, 0]) {
   let x = [0, 0, 0, phi0];
   const dt = 0.001;
   for (let t = 0; t < tEnd; t += dt) {
-    const dx = lat.A.map((row) => row.reduce((s, v, j) => s + v * x[j], 0));
+    const dx = lat.A.map((row, i) => row.reduce((s, v, j) => s + v * x[j], 0) + force[i]);
     x = x.map((v, i) => v + dx[i] * dt);
   }
   return x[3];
@@ -603,6 +604,14 @@ function takeoff(mu, vRot) {
 
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const lat = lateral(Vtrim);
+/* Hands off at the trim the prop does not let go: its torque against the
+ * airframe, the root's share of the swirl back and the swirl over the fin,
+ * its force on the whole stream (plant_wing.c; scripts/lib/wash.js
+ * propMoments and finSwirl), from the table as the plant has it, a
+ * constant input to the lateral model, as the Bombshell's. Kraft: "No
+ * thrust offsets are used", so nothing turns it back. */
+const propAt = propMoments(planeTable('FW_UGLYSTIK1567'), dutyOf(0.75), Vtrim);
+const propForce = [propAt.Y / (m * Vtrim), propAt.L / Ixx, propAt.N / Izz, 0];
 const lon = longitudinalModes(Vtrim);
 const inv = invertedAt(Vtrim);
 const roll = quarterRoll(lat);
@@ -644,6 +653,7 @@ const rows = [
   ['U9 loops at full throttle, point mass, stick 0.3, 0.4, 0.5, 0.6, 1.0', [0.3, 0.4, 0.5, 0.6, 1.0].map((s) => JSON.stringify(loop(s), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))).join(' ')],
   ['U9 the loop at half stick on the whole longitudinal equations', JSON.stringify(loopWhole(0.5), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['U10 spiral root, t_half s; 30 deg let go, bank at 2, 6 s', `${f(lat.spiral.root, 4)} ${f(lat.spiral.tHalf, 1)}; ${f(bankAfter(lat, 30 / DEG, 2) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6) * DEG, 1)}`],
+  ['   the same with the prop\'s torque and swirl (Q, L, N at the trim)', `${f(bankAfter(lat, 30 / DEG, 2, propForce) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6, propForce) * DEG, 1)} (${f(propAt.Q, 4)} ${f(propAt.L, 4)} ${f(propAt.N, 4)})`],
   ['   roll tau s, Dutch roll wn, zeta', `${f(lat.rollTau, 4)} ${lat.dutch ? `${f(lat.dutch.wn, 2)} ${f(lat.dutch.zeta)}` : 'none'}`],
   ['   phugoid s zeta, short period s zeta', `${f(lon.phugoid && lon.phugoid.period, 2)} ${f(lon.phugoid && lon.phugoid.zeta)}; ${f(lon.short && lon.short.period, 3)} ${f(lon.short && lon.short.zeta)}`],
   ['alpha at full up, linear moment; stall (deg)', `${f((Cm0 + Cmde * throwE) / -Cma * DEG, 1)} ${f(CLmax / CLa * DEG, 2)}`],
