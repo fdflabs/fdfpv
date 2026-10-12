@@ -170,30 +170,15 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/extra3d1308/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'extra3d1308'),
-  {
-    /* The Night Timber's three are its AR637TA's, as the Extra's are its
-     * receiver's: AS3X out of the box, Manual without the gyro, SAFE
-     * Select the optional beginner bind (the manual, p. 4). The flaps on F
-     * in every mode; on its wheels every mode flies as Manual. */
-    id: 'nighttimber-as3x',
-    airframe: 'nighttimber1200',
-    name: 'AS3X',
-    note: 'E-flite\'s gyro, as the Night Timber ships. The sticks are the surfaces at the manual\'s high rates, the flaps mixed into the ailerons; centred, the gyro holds the attitude you left it in, against the torque and the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate: hover and torque roll are yours to fly.',
-    wingStab: 3,
-  },
-  {
-    id: 'nighttimber-manual',
-    airframe: 'nighttimber1200',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the flaps mixed in with them, the elevator and the rudder at E-flite\'s high rates. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons.',
-  },
-  {
-    id: 'nighttimber-stab',
-    airframe: 'nighttimber1200',
-    name: 'SAFE Select',
-    note: 'E-flite\'s beginner bind. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.',
-    wingStab: 1,
-  },
+  /*
+   * The Night Timber's three are its AR637TA's, as the Extra's are its
+   * receiver's: AS3X out of the box, Manual without the gyro, SAFE Select
+   * the optional beginner bind (the manual, p. 4). The flaps on F in every
+   * mode; on its wheels every mode flies as Manual.
+   *
+   * Its tunes are its folder's, aircraft/nighttimber1200/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'nighttimber1200'),
   {
     /* The Hercules is a kit and ships with no electronics: Manual is its
      * default. A builder fits whatever receiver they like; the two gyro

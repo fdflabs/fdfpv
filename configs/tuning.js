@@ -72,7 +72,6 @@ export const SIM_TUNE_DOUBLES = 12;
 
 /* The plant writes its throws as degrees * pi / 180, and so does this, so
  * the high rate is the very double the table holds. */
-const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
 const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
@@ -157,16 +156,12 @@ export const TUNING = {
   uglystik1567: AIRCRAFT.TUNING.uglystik1567,
   tigermoth1803: AIRCRAFT.TUNING.tigermoth1803,
   extra3d1308: AIRCRAFT.TUNING.extra3d1308,
-  nighttimber1200: {
-    /* The margin U2 reads off the hi_alpha plant at the zero lift line's 5 deg, 0.0666
-     * (scripts/nighttimber-derive.js); the linear h_n's is 0.068. */
-    chord: 0.2388, area: 0.2866, margin: 0.067,
-    expo: 0, /* the manual sets none, "after first flights, you may adjust expo", as FW_NIGHTTIMBER1200 flies */
-    cg: { mm: 89, datum: 'tuning.datum.root_le', range: [86, 105], source: `E-flite manual p. 8, "89mm +/- 3mm back from the leading edge with the carbon joiner" or "102mm +/- 3mm ... with the steel joiner for maximum 3D performance", without the slats (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
-    packKg: 0.27, nose: 0.339, tail: -0.716,
-    throws: { high: [28.92, 35.81, 33.75], low: [22.13, 28.60, 23.82], source: `E-flite manual p. 3: high 45, 55 and 55 mm, low 35, 45 and 40 mm, at the surfaces' widest chords, 93, 94 and 99 mm (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
-    flaps: { mix: -0.212333, angles: [0, 0.328206, 0.632256], source: `E-flite manual pp. 3 and 4: half 30 mm, full 55 mm; the flap mix 14 percent of the elevator at half and 20 at full; ${NIGHTTIMBER_MANUAL}` },
-  },
+  /* The Night Timber's `margin` is the one U2 reads off the hi_alpha
+   * plant at the zero lift line's 5 deg, 0.0666
+   * (scripts/nighttimber-derive.js); the linear h_n's is 0.068. Its
+   * `expo`: the manual sets none, "after first flights, you may adjust
+   * expo", as FW_NIGHTTIMBER1200 flies. */
+  nighttimber1200: AIRCRAFT.TUNING.nighttimber1200,
   hercules3077: {
     chord: 0.3564, area: 1.0486, margin: 0.16,
     cg: { mm: 145, datum: 'tuning.datum.root_le', range: [145, 173.5], source: `AeroTetris, "CG (16%): 923.8 mm" and "CG (8%): 952.3 mm" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
