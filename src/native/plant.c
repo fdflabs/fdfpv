@@ -2029,7 +2029,18 @@ int plant_set_power(const double *in) {
   if (glow != (in[SIM_POWER_IDLE] > 0.0) || (!glow && in[SIM_POWER_TANK] > 0.0)) {
     return SIM_ERR_BAD_ARG;
   }
+  /* The block names no voltage its figures were measured at, so an option
+   * takes its airframe's table's (the same motor's, on another pack or
+   * prop), and an electric option on a glow airframe, whose table has none,
+   * the fleet convention for a figure no source gives a voltage for: 3.7 V
+   * a cell open circuit less the option's static current through its cell
+   * resistance, ESTIMATED. docs/POWER-STAGE1.md "The seat". */
+  const double v_meas = base->fw->v_meas > 0.0 ? base->fw->v_meas : 3.7 - in[SIM_POWER_CURRENT] * in[SIM_POWER_R_CELL];
+  if (!glow && !(v_meas >= 2.5)) {
+    return SIM_ERR_BAD_ARG;
+  }
   g_fw_live = *base->fw;
+  g_fw_live.v_meas = v_meas;
   g_fw_live.thrust_static = in[SIM_POWER_THRUST];
   g_fw_live.pitch_speed = in[SIM_POWER_PITCH_SPEED];
   g_fw_live.rpm_no_load = in[SIM_POWER_RPM];

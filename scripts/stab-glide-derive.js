@@ -47,7 +47,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingEngine, wingProp } from './lib/propcurve.js';
+import { SEAT_GATES, wingEngine, wingProp, wingSeat } from './lib/propcurve.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -123,6 +123,8 @@ async function tables() {
       const fw = fields(m[2]);
       if (fw.thrust_static > 0) fw.prop = wingProp(m[1]);
       fw.engine = fw.thrust_static > 0 ? wingEngine(m[1]) : null;
+      /* An electric's pack, the gates' seat (wingSeat, power_duty). */
+      fw.seat = fw.current_full > 0 ? wingSeat(m[1]) : null;
       /* An engine's dyno curve (throttle_rpm), which fields() leaves out as
        * a list: the stick to its speed over full, straight between tenths. */
       const curve = m[2].match(/\.throttle_rpm = \{ ([^}]*) \}/);
@@ -246,10 +248,12 @@ function thrust(fw, stick, u, curve = null) {
     const n = windmill(fw, u);
     return n > 0 ? fw.prop.thrust(fw.thrust_static, u, n) : 0;
   }
-  /* The prop's speed at the duty: an electric motor's own law (plant_wing.c
-   * prop_spool), n^2 + K_M n = (K_M + 1) d; an engine's, and a fan's (fan_spool), is the duty. */
-  const KM = 0.85 / 0.15;
-  const n = fw.current_full > 0 && !(fw.fan_tau > 0) ? (-KM + Math.sqrt(KM * KM + 4 * (KM + 1) * duty)) / 2 : duty;
+  /* The prop's speed at the stick: an electric's at its duty times the
+   * gates' pack over v_meas, through its motor's own law (plant_wing.c
+   * power_duty and prop_spool, n^2 + K_M n = (K_M + 1) d) or a fan's
+   * (fan_spool, the duty), scripts/lib/propcurve.js wingSeat; an engine's
+   * is the duty. */
+  const n = fw.seat ? fw.seat.at(SEAT_GATES, stick, u).n : duty;
   const t = fw.prop.thrust(fw.thrust_static, u, n);
   return fw.fold_duty === 0 && t < 0 ? 0 : t;
 }

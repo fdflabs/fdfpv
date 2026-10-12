@@ -24,7 +24,7 @@
  */
 
 import { washKw } from './lib/washcontrol.js';
-import { wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -191,7 +191,10 @@ const torqueArm = Qs / Ts;
  * prop_spool): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
 const nOf = (d) => (-(0.85 / 0.15) + Math.sqrt((0.85 / 0.15) ** 2 + 4 * (0.85 / 0.15 + 1) * d)) / 2;
 const prop = wingProp('FW_EXTRA3D1308');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, nOf(d)));
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_EXTRA3D1308');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 /* The prop's inertia, ESTIMATED: a 13 in wood blade of about 35 g, a
  * tapered blade's 0.7 of a rod's m D^2 / 12, and the outrunner's can. */
 const propJ = 0.7 * 0.035 * (2 * propR) ** 2 / 12 + 0.06 * 0.021 * 0.021;
@@ -226,12 +229,12 @@ const rollAt = (V) => pb2v * 2 * V / b;
  * The vertical climb: full throttle, straight up, where the thrust meets
  * the weight and the drag at zero lift.
  */
-/* The prop's speed there, sqrt(W / Ts) of full, and the duty the electric
- * motor settles at it on (plant_wing.c prop_spool, Drela's law with the
- * plant's 0.85 rule): n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15. */
+/* The prop's speed there, sqrt(W / Ts) of full, and the stick the electric
+ * motor settles at it on at the gates' seat (plant_wing.c prop_spool,
+ * Drela's law with the plant's 0.85 rule, n^2 + K_M n = (K_M + 1) d, K_M =
+ * 0.85 / 0.15, and power_duty's pack over v_meas: wingSeat). */
 const hoverN = Math.sqrt(W / Ts);
-const KM = 0.85 / 0.15;
-const hoverDuty = (hoverN * hoverN + KM * hoverN) / (KM + 1);
+const hoverDuty = seat.stickFor(SEAT_GATES, hoverN, 0);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 

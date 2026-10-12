@@ -752,8 +752,7 @@ static int pack_drains(const FixedWingParams *fw) {
 void plant_power_reset(SimState *s) {
   s->charge_c = 0.0;
   s->soc0 = lipo_soc(s->cell_voltage_oc);
-  s->v_cell0 = plant_lipo_ocv(s->soc0);
-  s->v_cell = s->v_cell0;
+  s->v_cell = plant_lipo_ocv(s->soc0);
   s->fuel_m3 = (PLANT.kind == PLANT_KIND_WING && PLANT.fw != 0) ? PLANT.fw->tank_m3 : 0.0;
   s->power_out = 0;
   s->lvc_cap = 1.0e9;
@@ -765,13 +764,16 @@ void plant_power_reset(SimState *s) {
  *
  * ELECTRIC. A motor's speed is its kV times the voltage it is given, so at
  * a duty its speed goes with the pack's LOADED voltage. The table's thrust,
- * pitch speed and current are the pack's as it was seated; now they are
- * the pack's at a speed scaled by the loaded voltage now over the loaded
- * voltage seated, at last step's current, and a duty scaled by that ratio
- * carries it through the thrust (speed squared) and the pitch speed
- * (speed). At the seat the ratio is exactly 1 and every product below is
- * the table's. *r_v is the ratio, for power_current. Once the ESC's low
- * voltage cutoff has acted (power_drain) the duty is held under its cap.
+ * pitch speed and current were measured with v_meas a cell across the
+ * pack's terminals under that current; at any other pack they are the
+ * motor's at the loaded voltage now over v_meas, at last step's current.
+ * The duty scaled by that ratio is the voltage the ESC gives the motor
+ * over the measured one, which Drela's law (prop_spool) turns into the
+ * prop's speed, and that into the thrust (speed squared) and the pitch
+ * speed (speed). A pack seated above the measured voltage pushes harder
+ * from the first step, one under it less, as a real pack does. *r_v is
+ * the ratio, for power_current. Once the ESC's low voltage cutoff has
+ * acted (power_drain) the duty is held under its cap.
  *
  * GLOW. Over the last lean_frac of the tank the mixture leans and the rpm
  * rises by up to lean_gain, then power_drain stops the engine.
@@ -790,11 +792,12 @@ static double power_duty(const SimState *s, const FixedWingParams *fw, double du
     }
     return duty;
   }
-  if (!pack_drains(fw)) {
+  /* The DLG's pack drives no motor (current_full 0): nothing to scale. */
+  if (!pack_drains(fw) || !(fw->current_full > 0.0)) {
     return duty;
   }
   const double sag = s->pack_current * PLANT.r_cell;
-  *r_v = (s->v_cell - sag) / (s->v_cell0 - sag);
+  *r_v = (s->v_cell - sag) / fw->v_meas;
   const double de = duty * *r_v;
   return de < s->lvc_cap ? de : s->lvc_cap;
 }
@@ -832,13 +835,18 @@ static double power_current(const FixedWingParams *fw, double de, double ct, dou
  * current; flat when the charge is gone. The ESC's soft low voltage
  * cutoff: when the loaded cell voltage falls under its threshold it caps
  * the duty at the one whose current leaves it there, taking the current as
- * the duty squared at the airspeed it has, and the cap holds until the
- * pack is changed, as a hobby ESC's does until it is re-armed. The tank:
+ * the rotor's speed squared at the airspeed it has and the duty as the one
+ * that holds that speed (spool_duty), and the cap holds until the pack is
+ * changed, as a hobby ESC's does until it is re-armed. The cap is taken
+ * from the rotor's speed n, not the duty: the current follows the rotor,
+ * which lags the duty, and a cap scaled from the duty fell again every
+ * step the rotor had not yet slowed, down to nothing. The tank:
  * the fuel the engine burns at its rpm this step, linear from the idle's
  * flow to the full's; dry, the engine quits. A flat pack and a dry tank
  * leave power_out set until a reset, a new pack or a new power system.
  */
-static void power_drain(SimState *s, const FixedWingParams *fw, double duty, double de) {
+static double spool_duty(const FixedWingParams *fw, double n);
+static void power_drain(SimState *s, const FixedWingParams *fw, double duty, double n) {
   if (fw->throttle_idle > 0.0) {
     s->vbat_load = PLANT.cells * (s->cell_voltage_oc - s->pack_current * PLANT.r_cell);
     if (fw->tank_m3 > 0.0 && !s->power_out) {
@@ -864,7 +872,7 @@ static void power_drain(SimState *s, const FixedWingParams *fw, double duty, dou
   s->vbat_load = PLANT.cells * (s->v_cell - s->pack_current * PLANT.r_cell);
   if (PLANT.lvc > 0.0 && s->pack_current > 0.0 && s->vbat_load < PLANT.cells * PLANT.lvc) {
     const double i_max = (s->v_cell - PLANT.lvc) / PLANT.r_cell;
-    const double cap = i_max > 0.0 ? de * sim_sqrt(i_max / s->pack_current) : 0.0;
+    const double cap = i_max > 0.0 ? spool_duty(fw, n * sim_sqrt(i_max / s->pack_current)) : 0.0;
     if (cap < s->lvc_cap) {
       s->lvc_cap = cap;
     }
@@ -1272,6 +1280,13 @@ static double fan_spool(const FixedWingParams *fw, double throttle, double de, i
 #define PROP_FRICTION 0.0387
 static int prop_spools(const FixedWingParams *fw) {
   return fw->j_prop > 0.0 && !(fw->fan_tau > 0.0) && fw->thrust_static > 0.0;
+}
+
+/* The duty an electric drive settles at the speed share n on: Drela's
+ * motor's on a prop (n^2 + K_M n = (K_M + 1) d, prop_spool), the speed's
+ * own on a fan (fan_spool). */
+static double spool_duty(const FixedWingParams *fw, double n) {
+  return prop_spools(fw) ? (n * n + PROP_K_M * n) / (PROP_K_M + 1.0) : n;
 }
 
 /* An engine's steady speed at the stick, its throttle_rpm, straight
@@ -2923,7 +2938,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
   s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, n, ct, mu, r_v);
-  power_drain(s, fw, duty, duty_e);
+  power_drain(s, fw, duty, n);
   if (CRASH.active && CRASH.no_power) {
     s->vbat_load = 0.0;
   }
@@ -3392,6 +3407,7 @@ const FixedWingParams FW_WING1000 = {
   .torque_arm = 0.009,
   .j_prop = 0.000012, /* the 6 x 4 (5.7 g) and the 2216's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .current_full = 28.0,   /* A at static full thrust */
+  .v_meas = 3.364, /* V a cell loaded, ESTIMATED: the maker names no voltage, so the fleet convention, 3.7 open circuit less 28 A through r_cell */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3404,7 +3420,7 @@ const FixedWingParams FW_WING1000 = {
   .stab_pitch_kp = 5.0,   /* stick per rad of pitch error, through the 12 degree throw */
   .stab_pitch_kd = 0.5,   /* stick per rad/s of pitch rate */
   .stab_pitch_down = 8.69 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.422, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.348, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 200.0 * WING_PI / 180.0,  /* rad/s at full stick */
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* rad/s at full stick, nose up */
   .acro_expo = 0.30,
@@ -3491,6 +3507,7 @@ const FixedWingParams FW_SKY1800 = {
   .torque_arm = 0.0107,   /* 362 W of disc power at 11,950 rpm is 0.29 N m at 27 N */
   .j_prop = 0.000124, /* APC's 24.9 g 11 x 5.5E and the 2820's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .current_full = 43.0,
+  .v_meas = 3.872, /* V a cell loaded: the review's 669 W at 43.2 A on 4S */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3500,7 +3517,7 @@ const FixedWingParams FW_SKY1800 = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 10.04 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.490, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.466, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   /* INAV's defaults, roll_rate and pitch_rate 20 deca-degrees a second
    * (docs/Settings.md), above what full Manual stick reaches (161 and
    * 148 deg/s at 20 m/s), so Acro never caps a full stick. */
@@ -3605,6 +3622,7 @@ const FixedWingParams FW_CUB1400 = {
   .thrust_z = 0.002,      /* the drawn model's thrust line, 2 mm over the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
   .current_full = 27.0,
+  .v_meas = 3.642, /* V a cell loaded: HobbyKing's 295 W at 27 A on 3S */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -3614,12 +3632,12 @@ const FixedWingParams FW_CUB1400 = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 10.65 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.532, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.477, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0491, 0.1166, 0.6043 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.4382, 1.0407, 5.3934 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.288, -1.373, -0.531 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0445, 0.1062, 0.5506 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3972, 0.9478, 4.9141 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.288, -1.374, -0.532 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3721,6 +3739,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .thrust_z = -0.008,     /* the drawn thrust line, 8 mm under the CG: power lifts the nose */
   .pfactor = 1.6,         /* the Cub's blade element figure, a tractor turning the same way */
   .current_full = 21.8,   /* A, measured on the same power system */
+  .v_meas = 3.838, /* V a cell loaded: Model Aviation's 251 W at 21.8 A on 3S */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   /* Centred sticks glide at the trim: the best glide flies 0.6 degrees
@@ -3732,12 +3751,12 @@ const FixedWingParams FW_RADIAN2000 = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 0.56 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.299, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.280, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 80.0 * WING_PI / 180.0,  /* a glider rolls at 77 deg/s at 12 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0351, 0.1043, 0.336 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.3133, 0.9309, 2.9988 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.296, -0.98, -0.607 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0355, 0.1057, 0.3404 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3168, 0.9434, 3.0381 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.296, -0.98, -0.606 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -3921,7 +3940,7 @@ const FixedWingParams FW_BRAMOR2300 = {
   .throw_r = 0.0,
   .surface_max = 16.0 * WING_PI / 180.0,
   .expo = 0.30,
-  .thrust_static = 22.6,  /* N: the thrust that gives the published 5 m/s climb on the 12 x 8E curve; npm run bramor:derive */
+  .thrust_static = 22.9,  /* N: the thrust that gives the published 5 m/s climb on the 12 x 8E curve, on a full pack; npm run bramor:derive */
   .pitch_speed = 30.036, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
   /* 12 x 8 folding: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
   .axial_curve = {
@@ -3935,10 +3954,11 @@ const FixedWingParams FW_BRAMOR2300 = {
     -0.1858, -0.3927, -0.5995, -0.8064, -1.0132, -1.2201, -1.4269,
   },
   .rpm_no_load = 10434.0,
-  .torque_arm = 0.0121,   /* 254 W of disc power at 8,870 rpm is 0.273 N m at 22.6 N; npm run bramor:derive */
+  .torque_arm = 0.0122,   /* 259 W of disc power at 8,870 rpm is 0.279 N m at 22.9 N; npm run bramor:derive */
   .j_prop = 0.00021, /* a 12 x 8 folding carbon prop (30 g) and a 200 g outrunner's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .thrust_z = 0.087,      /* the drawn hub over the CG */
-  .current_full = 20.3,   /* A: APC 12 x 8E static at 22.6 N, 369 W shaft through a 0.82 motor on 22.2 V; npm run bramor:derive */
+  .current_full = 19.08,  /* A: APC 12 x 8E static at 22.9 N, 376 W shaft through a 0.82 motor on the full pack's 24.05 V; npm run bramor:derive */
+  .v_meas = 4.009, /* V a cell loaded, DERIVED: a full pack's (4.2 V) at the static current, the pack the published climb is flown on; npm run bramor:derive */
   /* Its two blade CFRP pusher folds (docs/BRAMOR-STAGE1.md: it "folds
    * back along the tail cone when the plant stops the motor"), so its ESC
    * brakes the motor rather than letting it windmill. FITTED: C-Astral
@@ -3956,7 +3976,7 @@ const FixedWingParams FW_BRAMOR2300 = {
   /* Its power off glide is nose higher than its trim pitch, so the
    * closed throttle already asks for less: no pitch down (stab:glide). */
   .stab_pitch_down = 0.0,
-  .stab_trim_throttle = 0.556, /* npm run stab:glide */
+  .stab_trim_throttle = 0.546, /* npm run stab:glide */
   .acro_roll_rate = 90.0 * WING_PI / 180.0,
   .acro_pitch_rate = 40.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -4063,6 +4083,7 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .thrust_z = -0.0025,    /* the drawn model's shaft, 2.5 mm under the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 6.1,
+  .v_meas = 3.600, /* V a cell loaded: GWS's table, 7.2 V at 6.1 A (43.9 W), on 2S */
   .stab_bank_max = 45.0 * WING_PI / 180.0,
   .stab_pitch_max = 25.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4072,12 +4093,12 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 8.08 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.580, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.513, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 60.0 * WING_PI / 180.0,
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.1866, 0.7008 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 1.6654, 6.2546 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.594, -1.078, -0.627 }, /* npm run as3x:derive */
+  .as3x_k = { 0, 0.159, 0.5977 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 1.4191, 5.3345 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.595, -1.078, -0.627 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4180,6 +4201,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .thrust_z = 0.0,        /* the thrust line through the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 44.0,   /* A, the review's bench figure on 4S */
+  .v_meas = 3.750, /* V a cell loaded: the review's bench, 660 W at 44 A on 4S */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4189,12 +4211,12 @@ const FixedWingParams FW_TIMBER1500 = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 12.35 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.453, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.417, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0328, 0.0669, 0.3147 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.2927, 0.5971, 2.8087 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.521, -1.664, -0.972 }, /* npm run as3x:derive */
+  .as3x_k = { 0.031, 0.0634, 0.2983 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.2767, 0.5658, 2.6623 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.522, -1.665, -0.973 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4315,6 +4337,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .thrust_z = 0.0266,     /* the floats lower the CG under the thrust line */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 44.0,   /* A, the review's bench figure on 4S */
+  .v_meas = 3.750, /* V a cell loaded: the review's bench, 660 W at 44 A on 4S */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4324,12 +4347,12 @@ const FixedWingParams FW_TIMBER1500F = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 13.98 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.546, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.505, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0438, 0.0867, 0.3658 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.3909, 0.7738, 3.2648 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.634, -1.723, -1.169 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0419, 0.0829, 0.3501 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.374, 0.7399, 3.1246 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.636, -1.723, -1.17 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4445,6 +4468,7 @@ const FixedWingParams FW_CUB1400F = {
   .thrust_z = 0.0284,     /* 2 mm over the old CG, which the floats lower 26.4 mm */
   .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
   .current_full = 27.0,
+  .v_meas = 3.642, /* V a cell loaded: HobbyKing's 295 W at 27 A on 3S */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4454,12 +4478,12 @@ const FixedWingParams FW_CUB1400F = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 12.30 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.681, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.618, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0662, 0.1595, 0.7257 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.5908, 1.4235, 6.4769 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.429, -1.457, -0.671 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0609, 0.147, 0.6691 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.5435, 1.312, 5.9717 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.431, -1.457, -0.673 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4804,7 +4828,7 @@ const FixedWingParams FW_P51D1450 = {
   .cl_da = 0.2270,
   .cl_r_per_cl = 0.25,
   .cl_dr = 0.0177,
-  .cm_0 = 0.0111,         /* level at 3/4 throttle with the elevator neutral, gear up; npm run p51:derive */
+  .cm_0 = 0.0077,         /* level at 3/4 throttle with the elevator neutral, gear up, on the gates' pack; npm run p51:derive */
   .cm_alpha = -0.1684,    /* static margin 0.034 at FMS's 110 mm */
   .cm_q = -8.305,
   .cm_de = 1.168,
@@ -4840,6 +4864,7 @@ const FixedWingParams FW_P51D1450 = {
   .thrust_z = 0.0129,     /* the thrust line 12.9 mm over the CG */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
   .current_full = 55.2,   /* A, the static balance of the motor on the pack */
+  .v_meas = 3.258, /* V a cell loaded: the balance's 3.7 open circuit less 55.2 A through 0.008 ohm (scripts/p51-derive.js) */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -4848,13 +4873,13 @@ const FixedWingParams FW_P51D1450 = {
   .stab_roll_kd = 0.20,
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 9.78 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.759, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
+  .stab_pitch_down = 13.72 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.809, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 120.0 * WING_PI / 180.0, /* 0.7 of full aileron's 168 deg/s at 17.5 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* at 16 m/s, 2.5 g, the most it pulls short of its stall */
-  .as3x_k = { 0.0986, 0.1306, 0.4409 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.88, 1.1656, 3.935 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.544, -4.047, -0.63 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0826, 0.1059, 0.3532 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.7372, 0.9452, 3.1523 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.671, -4.484, -0.67 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -4937,10 +4962,11 @@ const FixedWingParams FW_F16878 = {
   .alpha_zl = -1.03 * WING_PI / 180.0,
   .sin_zl = -0.017975923049993122,
   .cos_zl = 0.99983842004120882,
-  /* Gear down: the clean airframe's 0.0336 that flies Freewing's 165 km/h
-   * on this fan, gear up, and the gear's cd_gear, which the retracts take
-   * away. */
-  .cd0 = 0.0336 + 0.013,
+  /* Gear down: the clean airframe's 0.0357 that flies Freewing's 165 km/h
+   * on this fan, gear up, on the full pack the manual flies it on
+   * (FITTED, npm run f16:derive), and the gear's cd_gear, which the
+   * retracts take away. */
+  .cd0 = 0.0357 + 0.013,
   .k_induced = 0.1374,    /* 1/(pi 0.75 3.09) */
   .cl_de = -0.476,        /* all moving: the whole stabilator */
   .cy_beta = -0.470,
@@ -4973,7 +4999,7 @@ const FixedWingParams FW_F16878 = {
   .cl_da = 0.1226,
   .cl_r_per_cl = 0.25,
   .cl_dr = 0.0292,
-  .cm_0 = 0.0470,         /* level at half throttle with the elevator neutral */
+  .cm_0 = 0.0361,         /* level at half throttle with the elevator neutral, on the gates' pack; npm run f16:derive */
   .cm_alpha = -0.3814,    /* static margin 0.115: the full size F-16's neutral point */
   .cm_q = -2.263,
   .cm_de = 0.700,
@@ -5007,6 +5033,7 @@ const FixedWingParams FW_F16878 = {
   .torque_arm = 0.0,      /* the fan's stators take out its torque */
   .j_prop = 0.000010, /* the 69 mm twelve blade rotor (12 g) and the 2957 inrunner's rotor, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
   .current_full = 70.0,   /* A, the fan unit's static figure */
+  .v_meas = 3.700, /* V a cell: rc-castle's "At 22.2v (70A)" on 6S, taken as the loaded voltage */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 3.0 * WING_PI / 180.0,
@@ -5015,13 +5042,13 @@ const FixedWingParams FW_F16878 = {
   .stab_roll_kd = 0.10,
   .stab_pitch_kp = 3.0,
   .stab_pitch_kd = 0.30,
-  .stab_pitch_down = 6.64 * WING_PI / 180.0, /* to its power off glide, gear down, npm run stab:glide */
-  .stab_trim_throttle = 0.531, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
+  .stab_pitch_down = 9.84 * WING_PI / 180.0, /* to its power off glide, gear down, npm run stab:glide */
+  .stab_trim_throttle = 0.538, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 300.0 * WING_PI / 180.0,
   .acro_pitch_rate = 120.0 * WING_PI / 180.0,
-  .as3x_k = { 0.039, 0.1061, 0.2497 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.3481, 0.9469, 2.2286 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.922, -3.133, -1.222 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0392, 0.1066, 0.2508 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3499, 0.9514, 2.2384 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.095, -3.134, -1.244 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 8.0,
@@ -5121,6 +5148,7 @@ const FixedWingParams FW_ZAGI1219 = {
   .torque_arm = 0.01203,  /* the shaft's 0.0878 N m at 30 A over the static thrust; clockwise from behind */
   .thrust_z = 0.052,      /* the motor on the tray, its shaft 52 mm over the CG: power pitches the nose down */
   .current_full = 30.0,   /* A, Zagi's static figure */
+  .v_meas = 3.460, /* V a cell loaded, ESTIMATED: Zagi names no voltage, so the fleet convention, 3.7 open circuit less 30 A through r_cell */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -5130,11 +5158,11 @@ const FixedWingParams FW_ZAGI1219 = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 0.0,   /* its glide is nose higher than the trim: npm run stab:glide */
-  .stab_trim_throttle = 0.291, /* npm run stab:glide; the stick that flies it level, elevons neutral */
+  .stab_trim_throttle = 0.246, /* npm run stab:glide; the stick that flies it level, elevons neutral */
   .acro_roll_rate = 220.0 * WING_PI / 180.0, /* 0.7 of full elevon's 315 deg/s at 15 m/s */
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0144, 0.0077, 0 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.1285, 0.0687, 0 }, /* npm run as3x:derive */
+  .as3x_k = { 0.012, 0.0064, 0 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.1071, 0.0571, 0 }, /* npm run as3x:derive */
   .as3x_rate = { 1.992, -1.324, 0 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
@@ -5778,6 +5806,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .thrust_z = 0.0,        /* the thrust line through the CG */
   .pfactor = 1.89,        /* the Cub's blade element figure on a 13 in prop */
   .current_full = 64.4,
+  .v_meas = 3.185, /* V a cell loaded: the balance's 3.7 open circuit less 64.4 A through 0.008 ohm (scripts/extra-derive.js) */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -5788,7 +5817,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .stab_pitch_kp = 2.0,
   .stab_pitch_kd = 0.2,
   .stab_pitch_down = 13.60 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.467, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.365, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 360.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* what full elevator holds at 16 m/s, near CLmax */
   .acro_expo = 0.30,
@@ -5812,9 +5841,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0335, 0.1416, 0.2367 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.598, 2.5276, 4.2251 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.98, -3.198, -3.327 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0259, 0.1092, 0.1824 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.4623, 1.9492, 3.2558 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.514, -3.61, -0.6 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -5939,6 +5968,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .thrust_z = 0.0,        /* the thrust line through the CG */
   .pfactor = 1.89,        /* the Cub's blade element figure on a 13 in prop, as the Extra's */
   .current_full = 37.4,
+  .v_meas = 3.401, /* V a cell loaded: the balance's 3.7 open circuit less 37.4 A through 0.008 ohm (scripts/nighttimber-derive.js) */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
   .stab_pitch_max = 30.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
@@ -5949,7 +5979,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 12.56 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.547, /* npm run stab:glide; the stick that flies it level, elevator neutral */
+  .stab_trim_throttle = 0.457, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 360.0 * WING_PI / 180.0,
   .acro_pitch_rate = 200.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
@@ -5963,9 +5993,9 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_roll_ki = 4.0,
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
-  .as3x_k = { 0.0497, 0.1147, 0.3603 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.4436, 1.0237, 3.2157 }, /* npm run as3x:derive */
-  .as3x_rate = { 7.553, -6.115, -2.645 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0395, 0.0911, 0.2855 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3525, 0.8131, 2.5481 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.875, -6.395, -1.735 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6089,6 +6119,7 @@ const FixedWingParams FW_HERCULES3077 = {
   .thrust_z = 0.0998,     /* the nacelles' thrust lines 0.10 m over the CG; npm run hercules:derive */
   .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's; four the same way sum; docs/FLIGHTMODEL.md */
   .current_full = 147.1,  /* A, four times 36.8 at the static point; npm run hercules:derive */
+  .v_meas = 3.479, /* V a cell loaded: the balance's 3.7 open circuit less 36.8 A a pack through 0.006 ohm (scripts/hercules-derive.js) */
   .stab_bank_max = 45.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
   .stab_pitch_max = 20.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
   .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* FITTED: SAFE's level trim, as the fleet's */
@@ -6098,7 +6129,7 @@ const FixedWingParams FW_HERCULES3077 = {
   .stab_pitch_kp = 3.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .stab_pitch_kd = 0.5, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .stab_pitch_down = 8.67 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.566, /* the stick that flies it level, elevator neutral; npm run stab:glide */
+  .stab_trim_throttle = 0.483, /* the stick that flies it level, elevator neutral; npm run stab:glide */
   .acro_roll_rate = 60.0 * WING_PI / 180.0, /* FITTED: a rate setting, a scale transport's */
   .acro_pitch_rate = 30.0 * WING_PI / 180.0, /* FITTED: a rate setting, a scale transport's */
   .acro_expo = 0.30, /* FITTED: a transmitter setting, the fleet's 30 percent */
@@ -6112,8 +6143,8 @@ const FixedWingParams FW_HERCULES3077 = {
   .acro_roll_ki = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .acro_pitch_ki = 6.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .acro_i_max = 0.30, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .as3x_k = { 0.0866, 0.1442, 0.4935 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.7729, 1.287, 4.4045 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0694, 0.1156, 0.3957 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.6194, 1.0317, 3.5316 }, /* npm run as3x:derive */
   .as3x_rate = { 0.609, -1.21, -0.986 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.5, /* FITTED: turn coordination gain, no published figure */
   /* Past the stall, scripts/stall-derive.js's tailed form on this
@@ -6231,6 +6262,7 @@ const FixedWingParams FW_CAP1702 = {
   .throttle_rpm = { 0.0000, 0.1246, 0.2491, 0.3737, 0.4983, 0.6000, 0.6997, 0.7943, 0.8839, 0.9627, 1.0000 },
   .pfactor = 1.89,        /* FITTED: the Cub's blade element figure, as the Extra's; none measured for an 18 in prop */
   .current_full = 111.11, /* A, T-Motor's bench table at 100 percent; npm run cap580:derive */
+  .v_meas = 3.592, /* V a cell loaded: T-Motor's bench, 21.55 V at 111.1 A on 6S */
   /* Stabilised: the Extra's limits and loops (docs/EXTRA-STAGE1.md), its
    * throws near these. */
   .stab_bank_max = 60.0 * WING_PI / 180.0,
@@ -6242,7 +6274,7 @@ const FixedWingParams FW_CAP1702 = {
   .stab_pitch_kp = 2.0,   /* FITTED: the Extra's */
   .stab_pitch_kd = 0.2,   /* FITTED: the Extra's */
   .stab_pitch_down = 13.36 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.417, /* the stick that flies it level, elevator neutral, npm run stab:glide */
+  .stab_trim_throttle = 0.395, /* the stick that flies it level, elevator neutral, npm run stab:glide */
   /* Acro: the Extra's loops (docs/EXTRA-STAGE1.md), FITTED. */
   .acro_roll_rate = 360.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
@@ -6262,9 +6294,9 @@ const FixedWingParams FW_CAP1702 = {
   .jet_kj = 0.80,
   .prop_x = 0.560, /* npm run cap580:derive */
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
-  .as3x_k = { 0.0365, 0.1994, 0.5537 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.6515, 3.5593, 9.8835 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.736, -2.002, -0.738 }, /* npm run as3x:derive */
+  .as3x_k = { 0.032, 0.1744, 0.4839 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.5712, 3.113, 8.6376 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.788, -2.054, -0.737 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */

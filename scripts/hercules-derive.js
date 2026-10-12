@@ -26,7 +26,7 @@
  */
 
 import { groundTerms, wingGround } from './lib/groundeffect.js';
-import { electricN, wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -282,8 +282,11 @@ const Ts = 4 * Ts1;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 8 * 0.0254;
 const torqueArm = Qs1 / Ts1;
 const prop = wingProp('FW_HERCULES3077');
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_HERCULES3077');
 /* d is the stick; the prop turns at the motor's steady share of it. */
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 /* Each prop's inertia: a 26 g blade at 0.7 of a rod's m D^2 / 12, the
  * spinner and the can; four of them. */
 const propJ = 4 * (0.7 * 0.026 * (0.3048) ** 2 / 12 + 0.07 * 0.021 * 0.021);

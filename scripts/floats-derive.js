@@ -27,7 +27,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { SEAT_GATES, wingProp, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const g = 9.81;
@@ -245,7 +245,9 @@ for (const [key, P] of Object.entries(PLANES)) {
   const df = P.flapHalf;
   const dclF = P.clDf * df + P.clDf2 * df * df;
   const prop = wingProp(P.table);
-  const T = (V) => prop.thrust(P.Ts, V, 1);
+  /* Full throttle on the pack the gates seat (wingSeat, power_duty). */
+  const seat = wingSeat(P.table);
+  const T = (V) => prop.thrust(P.Ts, V, seat.at(SEAT_GATES, 1, V).n);
   const de = Math.max(-P.throwE, Math.min(P.throwE, P.throwE + P.deDf * df));
   const alphaStall = (P.CLmax + P.slatDclmax + P.clmaxDf * df) / P.CLa - dclF / P.CLa;
   const air = (V, theta, dE) => {

@@ -22,7 +22,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { SEAT_FULL, SEAT_GATES, wingProp, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -150,31 +150,58 @@ const thrustZ = 0.087; /* the drawn hub over the CG, on the raised tail cone */
 /* Thrust on APC's 12 x 8 folding curve as the plant flies it (plant_wing.c
  * prop_curve, scripts/lib/propcurve.js). */
 const prop = wingProp('FW_BRAMOR2300');
-function climbAt(V, Ts, d = 1) {
-  const T = Math.max(0, prop.thrust(Ts, V, d));
+/* The full throttle current: the shaft power the 12 x 8 takes where it
+ * makes the static thrust, off APC's 12 x 8E static rows (PER3_12x8E.dat,
+ * V = 0: 20.527 N and 319.0 W at 8,000 rpm, 26.083 N and 453.4 W at
+ * 9,000), straight between them, through the 0.82 motor of the endurance
+ * check below, off the 6S pack at its loaded voltage. */
+const apcStatic = [[8000, 20.527, 319.025], [9000, 26.083, 453.426]];
+const apcAt = (rpm) => apcStatic[0].map((x, i) => x + (rpm - 8000) / 1000 * (apcStatic[1][i] - x));
+/*
+ * THE PACK THE CLIMB IS FLOWN ON. C-Astral publishes the 5 m/s climb, not
+ * the pack it was flown on; a maker's figure is a full pack's (SEAT_FULL,
+ * scripts/lib/propcurve.js), so the static thrust is the one that climbs
+ * at 5 m/s on a full pack, and the table's v_meas is that pack's loaded
+ * voltage at the static current, DERIVED: there the plant's thrust is the
+ * table's. The current, the thrust and the voltage are solved together,
+ * starting from 3.7 V a cell. Every other figure is the gates' seat's.
+ */
+const rCell = wingSeat('FW_BRAMOR2300').rCell;
+let vMeas = 3.7, currentFull = 0, thrustStatic = 0, rpmAtTs = 0, shaftAtTs = 0;
+let seat = null;
+function climbAt(V, Ts, d = 1, vCell = SEAT_FULL) {
+  const T = Math.max(0, prop.thrust(Ts, V, seat.at(vCell, d, V).n));
   return (T - dragAt(V)) * V / W;
 }
-function bestClimb(Ts) {
+function bestClimb(Ts, vCell = SEAT_FULL) {
   let best = { vz: -Infinity, v: 0 };
   /* From 1.1 V_s: a climb flown closer to the stall than that is not one
    * a pilot or an autopilot flies. */
   for (let V = 1.1 * vStall; V <= 22; V += 0.05) {
-    const vz = climbAt(V, Ts);
+    const vz = climbAt(V, Ts, 1, vCell);
     if (vz > best.vz) best = { vz, v: V };
   }
   return best;
 }
-let lo = 5, hi = 100;
-for (let i = 0; i < 80; i += 1) {
-  const mid = (lo + hi) / 2;
-  if (bestClimb(mid).vz < climbMax) lo = mid; else hi = mid;
+for (let pass = 0; pass < 20; pass += 1) {
+  seat = wingSeat('FW_BRAMOR2300', { vMeas, currentFull: currentFull || 20 });
+  let lo = 5, hi = 100;
+  for (let i = 0; i < 80; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (bestClimb(mid).vz < climbMax) lo = mid; else hi = mid;
+  }
+  thrustStatic = Math.round(lo * 10) / 10;
+  rpmAtTs = 8000 + 1000 * (thrustStatic - apcStatic[0][1]) / (apcStatic[1][1] - apcStatic[0][1]);
+  shaftAtTs = apcAt(rpmAtTs)[2];
+  currentFull = shaftAtTs / (cells * vMeas * 0.82);
+  vMeas = SEAT_FULL - currentFull * rCell;
 }
-const thrustStatic = Math.round(lo * 10) / 10;
-const levelSpeed = (d) => {
+seat = wingSeat('FW_BRAMOR2300', { vMeas, currentFull });
+const levelSpeed = (d, vCell = SEAT_GATES) => {
   let a = 8, z = 40;
   for (let i = 0; i < 80; i += 1) {
     const V = (a + z) / 2;
-    const T = Math.max(0, prop.thrust(thrustStatic, V, d));
+    const T = Math.max(0, prop.thrust(thrustStatic, V, seat.at(vCell, d, V).n));
     if (T > dragAt(V)) a = V; else z = V;
   }
   return (a + z) / 2;
@@ -190,16 +217,6 @@ const idealPower = thrustStatic ** 1.5 / Math.sqrt(2 * rho * discA);
 const staticRpm = 0.85 * rpmNoLoad;
 const torque = idealPower / (staticRpm * 2 * Math.PI / 60);
 const torqueArm = torque / thrustStatic;
-/* The full throttle current: the shaft power the 12 x 8 takes where it
- * makes the static thrust, off APC's 12 x 8E static rows (PER3_12x8E.dat,
- * V = 0: 20.527 N and 319.0 W at 8,000 rpm, 26.083 N and 453.4 W at
- * 9,000), straight between them, through the 0.82 motor of the endurance
- * check below, off the 6S pack at 3.7 V a cell. */
-const apcStatic = [[8000, 20.527, 319.025], [9000, 26.083, 453.426]];
-const apcAt = (rpm) => apcStatic[0].map((x, i) => x + (rpm - 8000) / 1000 * (apcStatic[1][i] - x));
-const rpmAtTs = 8000 + 1000 * (thrustStatic - apcStatic[0][1]) / (apcStatic[1][1] - apcStatic[0][1]);
-const shaftAtTs = apcAt(rpmAtTs)[2];
-const currentFull = shaftAtTs / (vPack * 0.82);
 
 /* Trim at cruise with the elevons neutral: the pitching moment at the
  * cruise angle of attack and the thrust line's moment at cruise thrust. */
@@ -295,6 +312,7 @@ console.log(`  static thrust for a best climb of ${climbMax} m/s: ${thrustStatic
 console.log(`  cruise duty for 16 m/s ${f(dutyCruise, 4)}; level at 65 percent ${f(levelSpeed(0.65), 2)}; top ${f(levelSpeed(1), 2)} m/s`);
 console.log(`  ideal static disc power ${f(idealPower, 0)} W, torque ${f(torque, 3)} N m, arm ${f(torqueArm, 4)} m`);
 console.log(`  APC 12 x 8E static: ${f(thrustStatic, 1)} N at ${f(rpmAtTs, 0)} rpm, shaft ${f(shaftAtTs, 0)} W (at ${f(staticRpm, 0)} rpm ${f(apcAt(staticRpm)[1], 2)} N, ${f(apcAt(staticRpm)[2], 0)} W); full throttle current at 0.82 ${f(currentFull, 1)} A`);
+console.log(`  current_full ${f(currentFull, 2)} A; v_meas, the full pack's loaded voltage a cell at that current: ${f(vMeas, 3)} V; best climb on the gates' ${SEAT_GATES} V seat ${f(bestClimb(thrustStatic, SEAT_GATES).vz, 2)} m/s`);
 console.log(`  drag at 16 m/s ${f(dragAt(16), 3)} N, aero power ${f(dragAt(16) * 16, 1)} W, electrical at 0.65 x 0.82 ${f(dragAt(16) * 16 / (0.65 * 0.82), 0)} W, 3.5 h is ${f(3.5 * dragAt(16) * 16 / (0.65 * 0.82), 0)} Wh`);
 console.log(`inertia: Ixx ${f(ixx, 3)}, Iyy ${f(iyy, 3)}, Izz ${f(izz, 3)} kg m2`);
 console.log(`chute: total CdA ${f(cdaTotal, 3)} m2 at ${vChute} m/s, airframe ${f(cdaAirframe, 3)}, canopy ${f(chuteCda, 3)} (a ${f(canopyD, 2)} m round canopy at C_D ${canopyCd0})`);

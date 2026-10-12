@@ -40,7 +40,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { shares, wash as washOf } from './lib/wash.js';
-import { wingProp } from './lib/propcurve.js';
+import { SEAT_GATES, wingProp, wingSeat } from './lib/propcurve.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -284,8 +284,14 @@ const benchRpmFrac = BENCH.map((r) => [r[0] / 100, r[4] / nStatic]);
  */
 const benchAt = (pct) => BENCH.find((r) => r[0] === pct)[4] / nStatic;
 const THROTTLE_RPM = [0, benchAt(40) / 4, 2 * benchAt(40) / 4, 3 * benchAt(40) / 4, benchAt(40), benchAt(50), benchAt(60), benchAt(70), benchAt(80), benchAt(90), 1];
-const curve = (t) => { const x = Math.max(0, Math.min(1, t)) * 10, i = Math.min(9, Math.floor(x)); return THROTTLE_RPM[i] + (x - i) * (THROTTLE_RPM[i + 1] - THROTTLE_RPM[i]); };
-const stickFor = (n) => { let lo = 0, hi = 1; for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (curve(mid) < n) lo = mid; else hi = mid; } return lo; };
+/* The prop's speed share at a stick, and the stick for a speed share, on
+ * the pack the gates seat: the curve's speed at the bench's voltage, the
+ * duty that holds it times the loaded pack over v_meas, through the
+ * motor's law (scripts/lib/propcurve.js wingSeat, plant_wing.c
+ * power_duty). The table's own throttle_rpm is the curve above. */
+const seat = wingSeat('FW_CAP1702');
+const nAt = (stick, V) => seat.at(SEAT_GATES, stick, V).n;
+const stickFor = (n, V = 0) => seat.stickFor(SEAT_GATES, n, V);
 /* Right thrust, 2.5 deg (the 67 in line's build guide and air-rc), the
  * plant's thrust_yaw. */
 const THRUST_YAW = 2.5 / DEG;
@@ -390,9 +396,8 @@ Ixx += 0.180 * (O.track / 2) ** 2;
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 /* Level at a stick: the prop at the curve's speed for it. */
 const level = (stick) => {
-  const d = curve(stick);
   let lo = 9, hi = 50;
-  for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, d) > D(mid)) lo = mid; else hi = mid; }
+  for (let i = 0; i < 80; i += 1) { const mid = (lo + hi) / 2; if (T(mid, nAt(stick, mid)) > D(mid)) lo = mid; else hi = mid; }
   return lo;
 };
 const Vs = Math.sqrt(2 * W / (rho * S * CLmax));
@@ -408,7 +413,7 @@ const rollAt = (V) => pb2v * 2 * V / b;
 const hoverDuty = stickFor(Math.sqrt(W / Ts));
 const hoverBench = benchThrottleFor(W / G0 * 1000);
 let vClimb = 0;
-for (let V = 0; V < 40; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
+for (let V = 0; V < 40; V += 0.001) { if (T(V, nAt(1, V)) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 
 const slipA0 = CLtrim / CLa;
 const slip = shares({ propR, bh, hv: [hvUp, hvDn], ya: [ailIn, aileronOut], at, Sh, S, eta, deda, VH, av, VV, lv, b, Sv, ClbFin, a0: slipA0 });
@@ -516,7 +521,7 @@ function harrier(alphaDeg) {
   const V = Math.sqrt(W / (qS * (CL + CD * Math.tan(a))));
   const thrust = qS * V * V * CD / Math.cos(a);
   const u = V * Math.cos(a);
-  let lo = 0, hi = 1;
+  let lo = 0, hi = nAt(1, u);
   for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(u, mid) < thrust) lo = mid; else hi = mid; }
   const duty = lo;
   const qb = 0.5 * rho * V * V;
@@ -537,7 +542,7 @@ function harrier(alphaDeg) {
   };
   let dLo = -throwE, dHi = throwE;
   for (let i = 0; i < 60; i += 1) { const mid = (dLo + dHi) / 2; if (cm(mid) < 0) dLo = mid; else dHi = mid; }
-  return { alphaDeg, V, thrust, duty: stickFor(duty), deOfThrow: dLo / throwE, cmAtFull: cm(throwE) };
+  return { alphaDeg, V, thrust, duty: stickFor(duty, u), deOfThrow: dLo / throwE, cmAtFull: cm(throwE) };
 }
 /* The knife edge, the Extra's derivation's. */
 function knifeEdge(V) {
@@ -556,11 +561,11 @@ function knifeEdge(V) {
         - (qb + w.dp * w.fv) * S * CYdr * Math.abs(dr);
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
-    if (T(u, 1) < thrust) break;
+    if (T(u, nAt(1, u)) < thrust) break;
     if (side * cb + thrust * sb >= W) {
-      let lo = 0, hi = 1;
+      let lo = 0, hi = nAt(1, u);
       for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(u, mid) < thrust) lo = mid; else hi = mid; }
-      return { V, betaDeg: bDeg, duty: stickFor(lo), thrust, drOfThrow: Math.abs(dr) / throwR };
+      return { V, betaDeg: bDeg, duty: stickFor(lo, u), thrust, drOfThrow: Math.abs(dr) / throwR };
     }
   }
   return null;
@@ -576,7 +581,7 @@ function takeoff() {
     const { CL, CD } = clPlant(pDeg / DEG);
     const q = 0.5 * rho * V * V;
     if (q * S * CL >= W) break;
-    const acc = (T(V, 1) - q * S * CD - 0.08 * Math.max(0, W - q * S * CL)) / m;
+    const acc = (T(V, nAt(1, V)) - q * S * CD - 0.08 * Math.max(0, W - q * S * CL)) / m;
     V += acc * dt; x += V * dt; t += dt;
   }
   return { x, t, V };

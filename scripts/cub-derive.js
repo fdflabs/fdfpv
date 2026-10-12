@@ -24,7 +24,7 @@
 
 import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { plateCnOf, wingDrag, wingLift } from './lib/liftcurve.js';
-import { electricN, wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { planeTable, wash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -68,8 +68,11 @@ const Cndr = -VV * av * tauR, CYdr = av * (Sv / S) * tauR, Cldr = CYdr * zv / b;
 const rpmNL = kv * volts, Vp = rpmNL / 60 * pitchIn * 0.0254 * 0.85;
 const omegaLoaded = 0.85 * rpmNL * 2 * Math.PI / 60;
 const prop = wingProp('FW_CUB1400');
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_CUB1400');
 /* d is the stick; the prop turns at the motor's steady share of it. */
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 6, hi = 40;
@@ -311,7 +314,7 @@ const taxiTurn = (() => {
     }
     const L = qbar * fw.area * CL, D = qbar * fw.area * CD;
     const F = [L * (-w / Vxz) - D * u / V, -D * v / V - qbar * fw.area * (fw.cy_beta * beta + cydr * dr), L * (u / Vxz) - D * w / V];
-    const n = electricN(d);
+    const n = seat.at(SEAT_GATES, d, Math.max(0, u)).n;
     const thrust = prop.thrust(fw.thrust_static, Math.max(0, u), n);
     F[0] += thrust;
     const qAir = fw.torque_arm * fw.thrust_static * n * n * prop.cp(Math.max(0, u) / (fw.pitch_speed * n));

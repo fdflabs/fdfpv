@@ -65,7 +65,81 @@ export function wingProp(table) {
  * n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15 (plant_wing.c prop_spool),
  * so a part stick turns the prop faster than its share: 0.437 at 0.4. */
 const K_M = 0.85 / 0.15;
-export const electricN = (d) => (d > 0 ? (-K_M + Math.sqrt(K_M * K_M + 4 * (K_M + 1) * Math.min(1, d))) / 2 : 0);
+/* No cap at 1: a pack over the table's measured voltage gives the motor a
+ * duty past it (wingSeat below), as the plant's does. */
+export const electricN = (d) => (d > 0 ? (-K_M + Math.sqrt(K_M * K_M + 4 * (K_M + 1) * d)) / 2 : 0);
+
+const PLANT_C = join(dirname(WING_C), 'plant.c');
+
+/* The seats a derivation flies at, open circuit volts a cell. The gate
+ * scripts seat 4.1 (sim_set_cell_voltage), so every band is derived there.
+ * A maker's published speed or climb is flown on a full pack: Freewing's
+ * F-16 manual, "before flying, we need a fully charged battery"
+ * (https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf),
+ * which is 4.2 on the plant's LiPo curve; a fit to a published figure is
+ * made there. */
+export const SEAT_GATES = 4.1;
+export const SEAT_FULL = 4.2;
+
+/*
+ * THE SEAT, plant_wing.c power_duty (docs/POWER-STAGE1.md): an electric's
+ * duty runs at the pack's loaded voltage over the table's v_meas, the
+ * loaded voltage a cell its thrust and current were measured at. at(vCell,
+ * stick, V) is the steady state at an open circuit vCell a cell, a stick
+ * and an airspeed: the ratio r = (vCell - I r_cell) / v_meas, the duty the
+ * motor turns at, d (the stick's, through the table's throttle_rpm where it
+ * has one, times r), its speed share n (Drela's law, electricN, for a prop;
+ * the duty itself for a fan, plant_wing.c fan_spool) and the pack's current
+ * I = current_full n^3 Cp(mu) / r (power_current), solved together. The
+ * drain over a flight is left out: a derivation's figure is the seat's.
+ * stickFor(vCell, n, V) inverts it. Throws where the table has no v_meas,
+ * so no derivation flies a pack the plant does not. A derivation that
+ * derives the table's v_meas and current_full themselves passes them in
+ * `derived`.
+ */
+export function wingSeat(table, derived = {}) {
+  const src = readFileSync(WING_C, 'utf8');
+  const m = new RegExp(`const FixedWingParams ${table} = \\{([\\s\\S]*?)\\n\\};`).exec(src);
+  if (!m) throw new Error(`propcurve: no table ${table} in plant_wing.c`);
+  const num = (name) => { const x = new RegExp(`\\.${name} = ([\\d.]+)`).exec(m[1]); return x ? Number(x[1]) : 0; };
+  const vMeas = derived.vMeas ?? num('v_meas'), currentFull = derived.currentFull ?? num('current_full'), fan = num('fan_tau') > 0;
+  if (!(vMeas > 0) || !(currentFull > 0)) throw new Error(`propcurve: ${table} has no v_meas or current_full`);
+  const entry = new RegExp(`\\[SIM_AIRFRAME_\\w+\\] = \\{((?:(?!\\n\\},)[\\s\\S])*?\\.fw = &${table},[\\s\\S]*?)\\n\\},`).exec(readFileSync(PLANT_C, 'utf8'));
+  if (!entry) throw new Error(`propcurve: no airframe flies ${table} in plant.c`);
+  const rCell = Number(/\.r_cell = ([\d.]+)/.exec(entry[1])[1]);
+  const cells = Number(/\.cells = ([\d.]+)/.exec(entry[1])[1]);
+  const rpm = list(m[1], 'throttle_rpm');
+  const stickDuty = (stick) => {
+    const t = Math.max(0, Math.min(1, stick));
+    if (!rpm) return t;
+    const x = t * 10, i = x >= 10 ? 9 : Math.floor(x);
+    const c = rpm[i] + (x - i) * (rpm[i + 1] - rpm[i]);
+    return (c * c + K_M * c) / (K_M + 1);
+  };
+  const prop = wingProp(table);
+  const at = (vCell, stick, V) => {
+    let r = vCell / vMeas, I = 0, d = 0, n = 0;
+    for (let k = 0; k < 200; k += 1) {
+      d = stickDuty(stick) * r;
+      n = fan ? d : electricN(d);
+      const cp = n > 0 ? prop.cp(Math.max(0, V) / (prop.pitchSpeed * n)) : 0;
+      I = n > 0 && prop.ct(Math.max(0, V) / (prop.pitchSpeed * n)) > 0 ? currentFull * n * n * n * cp / r : 0;
+      const next = (vCell - I * rCell) / vMeas;
+      if (Math.abs(next - r) < 1e-12) { r = next; break; }
+      r = next;
+    }
+    return { r, d, n, I };
+  };
+  /* The stick that turns the rotor at the speed share n, or null past
+   * full throttle's. */
+  const stickFor = (vCell, n, V) => {
+    if (at(vCell, 1, V).n < n) return null;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (at(vCell, mid, V).n < n) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  };
+  return { vMeas, rCell, cells, currentFull, fan, at, stickFor };
+}
 
 /*
  * A mapped engine (FixedWingParams.engine_q, plant_wing.c engine_torque and
