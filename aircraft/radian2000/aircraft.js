@@ -200,19 +200,19 @@ export default {
       "stock": {
         "3s1300": {
           "topSpeed": 26.39,
-          "minutes": 100.9
+          "minutes": 100.4
         },
         "3s1500": {
           "topSpeed": 26.65,
-          "minutes": 114.3
+          "minutes": 113.8
         },
         "3s1800": {
           "topSpeed": 26.94,
-          "minutes": 128.6
+          "minutes": 128.1
         },
         "3s2200": {
           "topSpeed": 27.21,
-          "minutes": 154.5
+          "minutes": 153.9
         }
       }
     }

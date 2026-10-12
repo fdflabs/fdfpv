@@ -201,7 +201,7 @@ export default {
           "minutes": 26.3
         },
         "6s4500": {
-          "topSpeed": 35.4,
+          "topSpeed": 35.41,
           "minutes": 28.6
         }
       }

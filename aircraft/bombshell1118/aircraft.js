@@ -273,11 +273,11 @@ export default {
       "stock": {
         "8.4cc": {
           "topSpeed": 11.84,
-          "minutes": 6.4
+          "minutes": 6.5
         },
         "5.1cc": {
           "topSpeed": 11.84,
-          "minutes": 3.9
+          "minutes": 4
         }
       },
       "cox-rc": {
@@ -286,14 +286,14 @@ export default {
           "minutes": 7.4
         },
         "5.1cc": {
-          "topSpeed": 16.68,
-          "minutes": 4.4
+          "topSpeed": 16.67,
+          "minutes": 4.6
         }
       },
       "electric": {
         "3s850": {
           "topSpeed": 23.45,
-          "minutes": 54.1
+          "minutes": 53.8
         }
       }
     }

@@ -267,7 +267,7 @@ export default {
       },
       "3s": {
         "3s2200": {
-          "topSpeed": 19.95,
+          "topSpeed": 19.94,
           "minutes": 22.8
         },
         "3s3200": {

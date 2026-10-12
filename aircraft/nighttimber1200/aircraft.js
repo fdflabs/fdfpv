@@ -254,7 +254,7 @@ export default {
         },
         "4s3200": {
           "topSpeed": 27.18,
-          "minutes": 45.8
+          "minutes": 45.7
         }
       },
       "3s": {

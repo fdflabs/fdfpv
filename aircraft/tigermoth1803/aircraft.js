@@ -236,7 +236,7 @@ export default {
       },
       "fs91": {
         "355cc": {
-          "topSpeed": 21.7,
+          "topSpeed": 21.69,
           "minutes": 17.2
         }
       }

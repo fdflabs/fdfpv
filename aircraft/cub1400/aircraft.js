@@ -199,11 +199,11 @@ export default {
       "stock": {
         "3s2200": {
           "topSpeed": 23.54,
-          "minutes": 35.4
+          "minutes": 35.3
         },
         "3s3200": {
-          "topSpeed": 24.04,
-          "minutes": 47.8
+          "topSpeed": 24.03,
+          "minutes": 47.7
         }
       }
     }
