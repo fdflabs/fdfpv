@@ -52,7 +52,6 @@ const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
  */
 /* The Timber stands on tundra tyres already. */
 const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
-const KADET = [slot('spinner', 'bullet', 'flat'), slot('wheels', 'pants'), slot('canopy', 'smoke', 'gold')];
 const UGLYSTIK = [slot('spinner', 'bullet'), slot('wheels', 'pants')];
 /* The Extra's spats are stock, so no wheels slot; side force generators
  * are the aerobatic tip it is known for. */
@@ -92,7 +91,8 @@ export const KITS = {
    * fins a pair on the booms.
    */
   sky1800: AIRCRAFT.KITS.sky1800,
-  cub1400: AIRCRAFT.KITS.cub1400, kadet1981: KADET, slowstick1180: AIRCRAFT.KITS.slowstick1180,
+  cub1400: AIRCRAFT.KITS.cub1400, kadet1981: AIRCRAFT.KITS.kadet1981,
+  slowstick1180: AIRCRAFT.KITS.slowstick1180,
   uglystik1567: UGLYSTIK, timber1500: TIMBER,
   extra3d1308: EXTRA,
   nighttimber1200: TIMBER,

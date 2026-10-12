@@ -102,8 +102,6 @@ export const MARGIN_WARN = 0.05;
  * clicks, a radio's trim steps. */
 export const TRIM_MAX_DEG = 4;
 
-const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
-const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
@@ -158,13 +156,7 @@ export const TUNING = {
    * stall slope and the tail's share on sin cos, 0.2881
    * (scripts/bombshell-derive.js); linear, 0.287. */
   bombshell1118: AIRCRAFT.TUNING.bombshell1118,
-  kadet1981: {
-    chord: 0.374487, area: 0.741934, margin: 0.268,
-    cg: { mm: 98.4, datum: 'tuning.datum.spar', range: null, source: `SIG, "Center of Gravity 3 7/8 inch At Main Spar", no range (the kit manual: "shown on the plan"); ${KADET_KIT}` },
-    packKg: 0.10, nose: 0.335, tail: -0.95,
-    throws: { high: [0, 14.4775, 14.4775], low: [0, 10.1, 10.1], source: `SIG kit manual p. 24: elevator 3/4 in up and down, rudder 7/8 in each way, one set; ${LOW_70}; ${KADET_MANUAL}` },
-    flaps: null,
-  },
+  kadet1981: AIRCRAFT.TUNING.kadet1981,
   uglystik1567: {
     chord: 0.3256, area: 0.51055, margin: 0.101,
     cg: { mm: 119.1, datum: 'tuning.datum.root_le', range: null, source: `RCM plan 939, its C.G. mark 4.69 in behind the leading edge, and Kraft's "It should balance approximately on the main spar", no range; ${STIK_PLAN}` },

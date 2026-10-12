@@ -135,29 +135,13 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/bombshell1118/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'bombshell1118'),
-  {
-    /* The Kadet Senior, a SIG kit: no gyro, Manual. No ailerons, so AS3X
-     * damps pitch and yaw only. On its wheels every mode flies as
-     * Manual. */
-    id: 'kadet-manual',
-    airframe: 'kadet1981',
-    name: 'Manual',
-    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
-  },
-  {
-    id: 'kadet-as3x',
-    airframe: 'kadet1981',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevator and the rudder; in pitch and yaw, centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
-    wingStab: 3,
-  },
-  {
-    id: 'kadet-stab',
-    airframe: 'kadet1981',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 45 degrees, flown on the rudder, pitch stick for a pitch up to 20, and centred sticks fly level. Throttle closed, it lowers the nose onto its glide.',
-    wingStab: 1,
-  },
+  /*
+   * The Kadet Senior, a SIG kit: no gyro, Manual. No ailerons, so AS3X
+   * damps pitch and yaw only. On its wheels every mode flies as Manual.
+   *
+   * Its tunes are its folder's, aircraft/kadet1981/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'kadet1981'),
   {
     /* The Ugly Stik, RCM's kit: no gyro, Manual. On its wheels every
      * mode flies as Manual, the rudder steering the nose wheel. */

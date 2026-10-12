@@ -339,61 +339,32 @@ export const AIRFRAMES = [
    * tips' tops, which stand over the fin.
    */
   airframeOf('bombshell1118'),
-  {
-    /*
-     * SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md: Claude
-     * McCullough's 78 in balsa trainer, 2.72 kg, simId 12 on the fixed wing
-     * plant. The Bombshell's three channels: SIG built it without ailerons,
-     * so the roll stick drives the rudder as well as the yaw stick does,
-     * and it banks through its dihedral, which also levels it when the
-     * sticks are let go. An O.S. FS-52 Surpass four stroke on a 12 x 6: the
-     * stick runs it from its 2,300 rpm idle to full and it never stops, and
-     * `voice` is the four stroke's thump in the mix (src/render/audio.js).
-     * The pack is a 2S receiver pack, which the engine draws nothing from.
-     * It stands level on a tricycle gear whose nose wheel steers with the
-     * rudder, so throttle rolls it off the strip and up elevator lifts it
-     * off; `gear` is the plant's settled pose, which the drawn wheels in
-     * src/render/kadetcraft.js match: the CG 0.3072 m over the ground,
-     * level. Covered in transparent yellow and red film, whose frame shows
-     * against the sun.
-     */
-    id: 'kadet1981',
-    simId: 12,
-    fixedWing: true,
-    voice: 'glow4',
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/kadet-thresholds.json s2_stall. */
-    stall: 7.15,
-    /* Level speed at full throttle, m/s: tests/kadet-thresholds.json s4_top, derived. */
-    topSpeed: 23.12,
-    gear: { restHeight: 0.3072, restPitch: 0 },
-    name: 'Kadet Senior',
-    short: 'Kadet',
-    blurb: 'A 78 in SIG Kadet Senior, the classic balsa trainer in transparent yellow and red film, on an O.S. FS-52 four stroke: rudder, elevator and throttle, no ailerons, and a nose wheel that steers. The roll stick works the rudder and it levels itself when you let go. Fly it against the sun to see its ribs.',
-    facts: ['Four stroke .52', '1981 mm', 'Three channels'],
-    sizeMm: 1981,
-    grams: 2721.6,
-    trackClass: 'wing',
-    cells: 2,
-    ...packStates(),
-    defaultTune: 'kadet-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/kadetcraft.js KADET_DIMS: the furthest
-     * reach in plan is the elevator's rounded outer trailing corner, the
-     * lowest drawn point the wheels' and the highest the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1524,
-      hullR: 1.1677,
-      vHalfDown: 0.3072,
-      vHalfUp: 0.2464,
-      bodyLength: 1.5834,
-      bodyWidth: 1.9812,
-      bodyHeight: 0.5536,
-    },
-  },
+  /*
+   * SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md: Claude
+   * McCullough's 78 in balsa trainer, 2.72 kg, simId 12 on the fixed wing
+   * plant. The Bombshell's three channels: SIG built it without ailerons,
+   * so the roll stick drives the rudder as well as the yaw stick does,
+   * and it banks through its dihedral, which also levels it when the
+   * sticks are let go. An O.S. FS-52 Surpass four stroke on a 12 x 6: the
+   * stick runs it from its 2,300 rpm idle to full and it never stops, and
+   * `voice` is the four stroke's thump in the mix (src/render/audio.js).
+   * The pack is a 2S receiver pack, which the engine draws nothing from.
+   * It stands level on a tricycle gear whose nose wheel steers with the
+   * rudder, so throttle rolls it off the strip and up elevator lifts it
+   * off; `gear` is the plant's settled pose, which the drawn wheels in
+   * src/render/kadetcraft.js match: the CG 0.3072 m over the ground,
+   * level. Covered in transparent yellow and red film, whose frame shows
+   * against the sun.
+   *
+   * The row is its folder's, aircraft/kadet1981/aircraft.js. `stall`:
+   * Clean stall, m/s, sqrt(2W / rho S CLmax): tests/kadet-thresholds.json
+   * s2_stall. `topSpeed`: Level speed at full throttle, m/s:
+   * tests/kadet-thresholds.json s4_top, derived. `dims`: The drawn
+   * machine, src/render/kadetcraft.js KADET_DIMS: the furthest reach in
+   * plan is the elevator's rounded outer trailing corner, the lowest drawn
+   * point the wheels' and the highest the fin's top.
+   */
+  airframeOf('kadet1981'),
   {
     /*
      * Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
