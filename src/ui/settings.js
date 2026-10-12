@@ -216,6 +216,9 @@ export const DEFAULTS = {
   touchRatesOffered: false,
   flightMode: 'acro',
   stickMode: DEFAULT_STICK_MODE,
+  /* The stick gimbals over the flight for every input; keyboard and mouse
+   * show them whatever this says. */
+  showSticks: false,
   mouseFlight: false,
   mouseSens: 100,
   mouseExpo: 0,

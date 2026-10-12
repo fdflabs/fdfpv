@@ -43,6 +43,7 @@ import {
   btn, el, hintWithKeys, makeGimbal, makeWeightSlider, wordmark,
 } from './widgets.js';
 import { ScoreHud } from './scorehud.js';
+import { StickRef } from './stickref.js';
 import { TrickFilmPlayer } from './trickfilm.js';
 import { fillCredits } from './credits.js';
 import { mountRatesPanel } from './ratespanel.js';
@@ -150,6 +151,16 @@ export function buildFlightOverlay(shell) {
    * so a radio pilot, whose gimbals are hidden, still has it, centred. */
   shell.osdStickLeft = makeGimbal(str('ui.yaw_throttle'));
   shell.osdStickRight = makeGimbal(str('ui.roll_pitch'));
+  /* A recording's sticks as a ring on each gimbal, under the pilot's own
+   * nub (src/ui/stickref.js); only the flight overlay's gimbals have one. */
+  const ring = (gimbal) => {
+    const nub = el('div', 'osd-nub osd-nub-ref is-off');
+    gimbal.nub.before(nub);
+    return { nub };
+  };
+  shell.osdRefLeft = ring(shell.osdStickLeft);
+  shell.osdRefRight = ring(shell.osdStickRight);
+  shell.stickRef = new StickRef();
   shell.osdAir = makeWeightSlider({
     min: WEIGHT_MIN,
     max: WEIGHT_MAX,
