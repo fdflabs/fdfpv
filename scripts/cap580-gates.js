@@ -282,7 +282,7 @@ check: {
       clockMs = r.endMs;
       if (mode === 0) watch();
       const target = t11.alphaDeg / DEG;
-      const thr = heightHold(t11.duty0);
+      const thr = heightHold(t11.dutyDerived);
       let iP = 0;
       let iB = 0;
       let s = sim.readState().state;
