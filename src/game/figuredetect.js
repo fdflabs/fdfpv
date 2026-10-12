@@ -66,7 +66,7 @@ const ROLL_BRIDGE_MS = 800;
 const PAUSE_MIN_MS = 100;
 /* A point is the roll stopped, not slowed: a barrel roll's rate sags as
  * the pilot pulls through the bottom without stopping (figures-plant-sweep.js). */
-const ROLL_STOP = 0.35;
+export const ROLL_STOP = 0.35;
 /* Straight flight this long ends a figure. */
 const SETTLE_MS = 700;
 const BUFFER_MAX = 10;
