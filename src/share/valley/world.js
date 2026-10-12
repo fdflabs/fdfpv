@@ -39,7 +39,6 @@ import {
   HALF, LAKE_N, LAKE_Y, LIP_DX, POOL, SIDE_Z, SNOW_LINE, SNOW_MAX_SLOPE, STRIP_L, STRIP_W, STRIP_Y, TREE_LINE,
   buildHeightfield, forestDensity, lakeBasin, valleyAxis,
 } from '../../maps/alps/heights.js';
-import { buildSwissField } from '../../maps/swiss2/field.js';
 
 /*
  * The ranges beyond the valley, ground a craft can fly over and hit
@@ -437,15 +436,15 @@ function topDown(pos, isTurf, cell, rise) {
   return { height, surface };
 }
 
-/* Per map: its field, and whether its nature stands the headwall (the cel
- * alps do; swiss2 draws walls of its own into its field, swiss2/field.js). */
+/* A map's spec: its field, and whether its nature stands the headwall (the
+ * cel alps do). Only the alps' is here: the alps boot with this module, and
+ * a second valley's field is fetched only by a pilot who chooses it (lint:memory),
+ * so a style carries its own spec (SWISS_WORLD, swiss2/field.js). */
 const MAPS = Object.freeze({
   alps: { field: buildHeightfield, headwall: true },
-  swiss2: { field: buildSwissField, headwall: false },
 });
 
-export function makeValleyWorld(map) {
-  const spec = MAPS[map];
+export function makeValleyWorld(map, spec = MAPS[map]) {
   if (!spec) {
     throw new Error(`valley world: no map ${map}`);
   }

@@ -592,6 +592,15 @@ jobs:
       # A hangar that's yours: two pilots' own rooms from their own data,
       # and a level up growing one (docs/HANGAR-ROOM.md).
       - run: npm run foot:mine
+      # Every menu screen of the real shell: reachable rows, the baseline's
+      # overflow ratchet, stable row ids, the pad's menu switch
+      # (scripts/shell-check.js). Outside CI it sat red for five days of
+      # merged features. About 50 s.
+      - run: npm run lint:shell
+      # A world costs nothing until it is chosen and is freed when left
+      # (scripts/memory-check.js). Outside CI the alps' boot started fetching
+      # the Swiss valley's field unseen. About 40 s.
+      - run: npm run lint:memory
 
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.

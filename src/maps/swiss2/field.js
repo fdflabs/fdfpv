@@ -473,3 +473,7 @@ export function buildSwissField() {
     data, n, height, fine, fh, fineCells,
   };
 }
+
+/* The Swiss valley's spec for makeValleyWorld (src/share/valley/world.js).
+ * No headwall: its nature draws walls of its own into the field. */
+export const SWISS_WORLD = Object.freeze({ field: buildSwissField, headwall: false });

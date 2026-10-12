@@ -189,7 +189,7 @@ export async function buildValley(shell, progress, q, style) {
    * swiss2/terrain.js), the range beyond, the cel alps' headwall, and the
    * ground and material a craft meets, the very ones the room's AI pilots
    * fly over (edge/rooms/grounds.js). */
-  const world = makeValleyWorld(style.id);
+  const world = makeValleyWorld(style.id, style.world);
   const { field } = world;
   scene.add(await style.ground(field, stage));
   const far = farRange(world.far, style.look);
