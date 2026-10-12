@@ -657,6 +657,10 @@ const rows = [
 const lm = longitudinalModes(level(0.75));
 rows.push(['trim at 75 percent: theta, de, duty', `${f(lm.thetaDeg, 2)} ${f(lm.deDeg, 2)} ${f(lm.duty)}`]);
 rows.push(['   phugoid s, zeta; short period s, zeta', `${f(lm.phugoid && lm.phugoid.period, 2)} ${f(lm.phugoid && lm.phugoid.zeta)}; ${f(lm.short && lm.short.period, 2)} ${f(lm.short && lm.short.zeta)}`]);
+/* The phugoid's decay: its envelope's e-folding time, 1 / (zeta omega_n),
+ * omega_n the damped frequency over sqrt(1 - zeta^2) (P9). */
+const efold = (ph) => 1 / (ph.zeta * (2 * Math.PI / ph.period) / Math.sqrt(1 - ph.zeta * ph.zeta));
+rows.push(['   phugoid e-folding s', f(lm.phugoid && efold(lm.phugoid), 3)]);
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(52)} ${v}`);
 }
