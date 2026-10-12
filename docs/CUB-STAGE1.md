@@ -577,3 +577,5 @@ The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at th
 - Acro's hold, the same throw: derived 15.36 m within 0.09.
 
 The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.
+
+The straight lines are ESTIMATED: they are the swirl's yaw with no right thrust against it. FMS's manual for the 1400 mm J-3 V4 (Horizon Hobby, FMM106P, Manual EN) gives no thrust offset, side or down, and the mount is moulded into the foam, so the "built in right thrust" above has no angle to put in the table; it is the term left out until it is measured off an airframe.
