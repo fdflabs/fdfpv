@@ -683,7 +683,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 142.6
+        "lowestM": 140.2
       },
       "margin": null
     },
@@ -710,7 +710,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 145.7
+        "lowestM": 138.4
       },
       "margin": null
     },
@@ -723,7 +723,7 @@
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
-          "slow to 10",
+          "slow to 12",
           "harrier 5000",
           "level 3000"
         ]
@@ -732,9 +732,9 @@
         "named": false,
         "grade": null,
         "flew": [],
-        "finished": false,
-        "crashed": true,
-        "lowestM": 0
+        "finished": true,
+        "crashed": false,
+        "lowestM": 137.9
       },
       "margin": null
     },
@@ -749,7 +749,7 @@
         "phases": [
           "level 3000",
           "roll 0.5 1.00pi",
-          "slow to 10",
+          "slow to 12",
           "harrier 5000",
           "roll 0.5 1.00pi",
           "level 3000"
@@ -761,9 +761,9 @@
         "flew": [
           "half_roll 9"
         ],
-        "finished": false,
-        "crashed": true,
-        "lowestM": 0
+        "finished": true,
+        "crashed": false,
+        "lowestM": 119.2
       },
       "margin": null
     },
@@ -776,7 +776,7 @@
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
-          "slow to 10",
+          "slow to 12",
           "harrier 1500",
           "harrier 4000",
           "level 3000"
@@ -786,9 +786,9 @@
         "named": false,
         "grade": null,
         "flew": [],
-        "finished": false,
-        "crashed": true,
-        "lowestM": 0
+        "finished": true,
+        "crashed": false,
+        "lowestM": 120.5
       },
       "margin": null
     },
@@ -881,7 +881,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 115.3
+        "lowestM": 116.8
       },
       "margin": null
     },

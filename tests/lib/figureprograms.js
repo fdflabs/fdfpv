@@ -136,18 +136,56 @@ const hang = (ms, { rollStick = 0 } = {}) => ({
     return [[quant(r), quant(pi), quant(y), Math.max(0, quant(m.thr))], m.t >= ms];
   },
 });
-/* A harrier: slow, the nose high, held on the elevator, wings level. */
+/* A harrier, flown as extra-gates.js's E11 flies it, by what a person
+ * sees: the nose raised over 5 s to 40 deg above the horizon (on a level
+ * path, the wing's 40 deg of alpha, E11's) and held there on the
+ * elevator, the throttle holding the height, the wings on the ailerons
+ * and the heading on the rudder, each with an integral as a hand settles
+ * on a trim; E11's gains. A fixed 0.75 of elevator at 12 m/s, the
+ * program's before, looped the Extra in the prop's slipstream. Inverted,
+ * the same with the elevator and the heading's sense turned over. The
+ * throttle starts at E11's derived harrier throttle, 0.516
+ * (tests/extra-thresholds.json). Not yet named (2026-10-12): through the
+ * person's 0.2 s the height loop closes the throttle in the climb the
+ * nose's rise makes, the wash goes, the wing stalls and mushes; E11
+ * holds the same law at 4 ms with no delay. The 3D lane's to fly. */
+const HARRIER_RAD = 40 * PI / 180;
+const HARRIER_RAMP_MS = 5000;
 const harrier = (ms, { inverted = false, rollStick = null } = {}) => ({
   name: `harrier ${ms}`,
   step: (d, m) => {
     const sign = inverted ? -1 : 1;
-    m.thr = clamp((m.thr ?? 0.55) - H * 0.3 * d.vz, 1);
-    const ail = rollStick ?? quant(clamp(-0.5 * d.lz * Math.sign(d.uz || 1) - 0.04 * d.p, 0.5));
-    return [[ail, quant(sign * 0.75), 0, Math.max(0, quant(m.thr))], m.t >= ms];
+    const [w, x, y, z] = [d.s[7], d.s[8], d.s[9], d.s[10]];
+    const psi = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+    m.psi0 = m.psi0 ?? psi;
+    let dpsi = psi - m.psi0;
+    if (dpsi > PI) dpsi -= 2 * PI;
+    if (dpsi < -PI) dpsi += 2 * PI;
+    const pitchErr = Math.min(HARRIER_RAD, HARRIER_RAD * m.t / HARRIER_RAMP_MS) - Math.asin(clamp(d.nz));
+    m.iP = clamp((m.iP ?? 0) + 1.5 * pitchErr * H);
+    const bank = Math.atan2(sign * d.lz, sign * d.uz);
+    m.iB = clamp((m.iB ?? 0) - bank * H, 0.5);
+    m.iT = clamp((m.iT ?? 0.516) - 0.2 * d.vz * H, 1);
+    const ail = rollStick ?? quant(clamp(-0.6 * bank - 0.06 * d.p + m.iB));
+    const ele = quant(clamp(sign * (1.5 * pitchErr + m.iP) + 0.15 * d.q));
+    const rud = quant(clamp(sign * dpsi + 0.2 * d.r));
+    return [[ail, ele, rud, Math.max(0, quant(m.iT - 0.08 * d.vz))], m.t >= HARRIER_RAMP_MS + ms];
   },
 });
-/* Slowing down level to a speed. */
-const slow = (to) => ({ name: `slow to ${to}`, step: (d) => [[...levelSticks(d, 0).slice(0, 3), 0], d.v < to] });
+/* Slowing down level to a speed, throttle closed, the height held on the
+ * elevator as the speed bleeds (harrier-probe.js's entry, E11's): the
+ * nose on the horizon alone glides the Extra at 10.7 m/s upright and
+ * 13.1 inverted at idle, so a harrier's slow to 10 never ended and the
+ * flight sank 180 m into the ground. The height's sink rate to the stick
+ * on top of the level hold, and the hand settling on it. */
+const slow = (to) => ({
+  name: `slow to ${to}`,
+  step: (d, m) => {
+    const [r, pi, y] = levelSticks(d, 0);
+    m.iV = clamp((m.iV ?? 0) - 0.05 * d.vz * H, 0.4);
+    return [[r, quant(clamp(pi + Math.sign(d.uz || 1) * (m.iV - 0.04 * d.vz))), y, 0], d.v < to];
+  },
+});
 /* Full rudder until the nose points down (a stall turn's pivot). */
 const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.5], d.nz < -0.6] });
 /* Throttle off, the nose held up the vertical on the elevator and rudder
@@ -199,9 +237,9 @@ export const PROGRAMS = {
   rolling_circle: [L(), { name: 'rolling circle', step: (d, m) => [[0.3, quant(0.35 * d.uz), quant(-0.5 * d.lz), 1], m.t > 9000] }, L()],
   hover: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   torque_roll: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000, { rollStick: 0.15 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
-  harrier: [slow(10), harrier(5000), L()],
-  inverted_harrier: [L(), roll(0.5, PI), slow(10), harrier(5000, { inverted: true }), roll(0.5, PI), L()],
-  rolling_harrier: [slow(10), harrier(1500), harrier(4000, { rollStick: 0.35 }), L()],
+  harrier: [slow(12), harrier(5000), L()],
+  inverted_harrier: [L(), roll(0.5, PI), slow(12), harrier(5000, { inverted: true }), roll(0.5, PI), L()],
+  rolling_harrier: [slow(12), harrier(1500), harrier(4000, { rollStick: 0.35 }), L()],
   waterfall: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.6, (d) => d.v < 8), hold([0, -1, 0, 1], 1500), L()],
   wall: [slow(13), pull(1, 0.5 * PI, 1), hang(2500), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
 };
