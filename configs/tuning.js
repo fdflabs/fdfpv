@@ -112,7 +112,6 @@ const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58k
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
-const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
 const STIK_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
 const TIGER_MANUAL = 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf';
@@ -152,13 +151,7 @@ export const TUNING = {
     throws: { high: [25, 12, 0], low: [17.5, 8.4, 0], source: `high: the plant's, docs/WING-STAGE1.md; ${LOW_70}` },
     flaps: null,
   },
-  sky1800: {
-    chord: 0.20, area: 0.36, margin: 0.170,
-    cg: { mm: 66.7, datum: 'tuning.datum.le', range: null, source: `Sonicmodell, "CG: 1/3 of wing from leading edge", no range; ${SKY_PAGE}` },
-    packKg: 0.50, nose: 0.36, tail: -0.75,
-    throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `high: ESTIMATED, no throws published (docs/SKYHUNTER-STAGE1.md); ${LOW_70}` },
-    flaps: null,
-  },
+  sky1800: AIRCRAFT.TUNING.sky1800,
   cub1400: {
     chord: 0.20, area: 0.28, margin: 0.119,
     cg: { mm: 60, datum: 'tuning.datum.le', range: [55, 65], source: `FMS manual, "(55-65mm) from the leading edge of the main wing", p. 11; ${CUB_MANUAL}` },

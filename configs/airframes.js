@@ -165,49 +165,22 @@ export const AIRFRAMES = [
    * (2026-10-03).
    */
   airframeOf('interceptor'),
-  {
-    /*
-     * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md: a twin boom pusher
-     * with ailerons, an elevator and a rudder, simId 3, on the wing's
-     * plant with its own table. It flies the wing's track class, the
-     * airfield, because it is the same kind of flying. The stock kit has
-     * no rudder servo; this one has one, so the yaw stick does something.
-     */
-    id: 'sky1800',
-    simId: 3,
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/skyhunter-thresholds.json s2_stall. */
-    stall: 9.2,
-    /* Level speed at full throttle, m/s: tests/skyhunter-thresholds.json s4_top, derived. */
-    topSpeed: 29.26,
-    name: 'Skyhunter',
-    short: 'Skyhunter',
-    blurb: 'An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it, fly it long, land it on its skid.',
-    facts: ['4S', '1800 mm', 'Twin boom'],
-    sizeMm: 1800,
-    grams: 2100,
-    trackClass: 'wing',
-    cells: 4,
-    ...packStates(),
-    defaultTune: 'sky-acro',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine, src/render/skycraft.js SKY_DIMS: half span, the
-     * skid 0.12 m under the CG (the contact box's floor, src/native/plant.c)
-     * and the fins' tops 0.219 m over it. */
-    dims: {
-      arm: 0,
-      propR: 0.1397,
-      hullR: 0.90,
-      vHalfDown: 0.12,
-      vHalfUp: 0.219,
-      bodyLength: 1.225,
-      bodyWidth: 1.8,
-      bodyHeight: 0.339,
-    },
-  },
+  /*
+   * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md: a twin boom pusher
+   * with ailerons, an elevator and a rudder, simId 3, on the wing's
+   * plant with its own table. It flies the wing's track class, the
+   * airfield, because it is the same kind of flying. The stock kit has
+   * no rudder servo; this one has one, so the yaw stick does something.
+   *
+   * The row is its folder's, aircraft/sky1800/aircraft.js. `stall`: Clean
+   * stall, m/s, sqrt(2W / rho S CLmax): tests/skyhunter-thresholds.json
+   * s2_stall. `topSpeed`: Level speed at full throttle, m/s:
+   * tests/skyhunter-thresholds.json s4_top, derived. `dims`: The drawn
+   * machine, src/render/skycraft.js SKY_DIMS: half span, the skid 0.12 m
+   * under the CG (the contact box's floor, src/native/plant.c) and the
+   * fins' tops 0.219 m over it.
+   */
+  airframeOf('sky1800'),
   {
     /*
      * The Piper J-3 Cub, docs/CUB-STAGE1.md: the FMS 1400 mm, a high wing

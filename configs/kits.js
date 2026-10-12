@@ -56,9 +56,6 @@ const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold
 const KADET = [slot('spinner', 'bullet', 'flat'), slot('wheels', 'pants'), slot('canopy', 'smoke', 'gold')];
 const SLOWSTICK = [slot('spinner', 'bullet'), slot('wheels', 'tundra')];
 const UGLYSTIK = [slot('spinner', 'bullet'), slot('wheels', 'pants')];
-/* The Skyhunter is a pusher on booms: no wheels, no cabin glass, its
- * fins a pair on the booms. */
-const SKY = [slot('spinner', 'bullet'), slot('wingtips', 'winglet')];
 /* The Extra's spats are stock, so no wheels slot; side force generators
  * are the aerobatic tip it is known for. */
 const EXTRA = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold'), slot('wingtips', 'sfg')];
@@ -100,7 +97,12 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 /* By livery key (configs/liveries.js liveryKey), so a float variant wears
  * its plane's kit. */
 export const KITS = {
-  sky1800: SKY, cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
+  /*
+   * The Skyhunter is a pusher on booms: no wheels, no cabin glass, its
+   * fins a pair on the booms.
+   */
+  sky1800: AIRCRAFT.KITS.sky1800,
+  cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
   uglystik1567: UGLYSTIK, timber1500: TIMBER,
   extra3d1308: EXTRA,
   nighttimber1200: TIMBER,

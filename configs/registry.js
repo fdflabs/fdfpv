@@ -61,31 +61,16 @@ export const TUNES = [
     name: 'Manual',
     note: 'No flight controller. The sticks are the elevons: 6 degrees of pitch and 10 of roll at full stick, with a little expo.',
   },
-  {
-    /* The Skyhunter is a kit, and the flight controller its builders fit
-     * is INAV, whose ACRO this Acro is: rates at INAV's defaults,
-     * roll_rate and pitch_rate 20 (200 deg/s), above anything its
-     * surfaces reach, so a full stick is never capped
-     * (docs/CONTROLLERS.md). Stabilised is INAV's ANGLE. */
-    id: 'sky-acro',
-    airframe: 'sky1800',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'sky-stab',
-    airframe: 'sky1800',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
-  {
-    id: 'sky-manual',
-    airframe: 'sky1800',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder.',
-  },
+  /*
+   * The Skyhunter is a kit, and the flight controller its builders fit is
+   * INAV, whose ACRO this Acro is: rates at INAV's defaults, roll_rate and
+   * pitch_rate 20 (200 deg/s), above anything its surfaces reach, so a
+   * full stick is never capped (docs/CONTROLLERS.md). Stabilised is INAV's
+   * ANGLE.
+   *
+   * Its tunes are its folder's, aircraft/sky1800/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'sky1800'),
   {
     /* The Cub's: the FMS 1400 mm PNP has no gyro (FMS sells a Reflex
      * combo apart), so Manual is the default; AS3X and Stabilised are
