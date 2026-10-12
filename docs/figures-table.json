@@ -123,7 +123,7 @@
       "family": "stall_turns",
       "k": 17,
       "source": "Aresti 5.2.1.1 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -138,16 +138,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 2.5,
+        "grade": 7,
         "flew": [
-          "hammerhead 2.5"
+          "hammerhead 7"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150,
+        "lowestM": 148,
         "others": {
-          "cap": null,
-          "slick": null
+          "cap": 5.5,
+          "slick": 7
         }
       },
       "margin": [

@@ -252,8 +252,13 @@ const slow = (to) => ({
     return [[r, quant(clamp(pi + Math.sign(d.uz || 1) * (m.iV - 0.04 * d.vz))), y, 0], d.v < to];
   },
 });
-/* Full rudder until the nose points down (a stall turn's pivot). */
-const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.5], d.nz < -0.6] });
+/* Full rudder until the nose points down (a stall turn's pivot), the
+ * throttle eased to 0.2: at 0.5 the slipstream's torque rolled the Extra
+ * through the turn round, which a judge marks ("Is the aeroplane
+ * pitching or rolling during the turn?", BAeA judging, "Stall Turns"),
+ * and the pivot graded 0 to 2. Let go with the nose 49 deg below the
+ * horizon, the down line's hold taking it from there. */
+const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.2], d.nz < -0.75] });
 /* How long the person leaves the sticks once it slides back before they
  * fly the nose down themselves: the Extra can settle falling flat at 10
  * m/s with the sticks left alone, its nose on the horizon (with the
@@ -310,7 +315,11 @@ export const PROGRAMS = {
    * figures-plant-check.js's loop holds short of the stall: a full stick
    * stalled the wing and flicked it (snap pieces on the plant). */
   humpty_bump: [L(), pull(0.55, 0.5 * PI), line(UP, 1500), round(0.3, PI, 0.4), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
-  hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.6, (d) => d.v < 7), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+  /* The up line at the tailslide's 0.4, which slows each aircraft (the
+   * Slick climbs at 28 m/s on 0.6), kicked at 9 m/s: swept over 5 to 11
+   * m/s on all three, 9 names it on each; at 7 and under the CAP's rudder
+   * has too little air to turn it round. */
+  hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < 9), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -0.6, 1], 3000), roll(-0.5, 0.5 * PI), L()],
   ke_loop: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -1, 1], 7000), L()],
