@@ -151,8 +151,13 @@ check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 3) < 4, `${deg(level.pitch)} deg`);
 /* The Cub's 15 m over its 120 m of flight, in proportion to the F-16's
  * 200 m. */
-check('and straight: under 25 m off the line after 10 s', Math.abs(level.y) < 25, `${level.y.toFixed(1)} m`);
-check('at the pattern speed, S1\'s band', level.v > 16.72 && level.v < 22.62, `${level.v.toFixed(1)} m/s`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/f16-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/f16-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${(level.y).toFixed(2)} m`);
+/* S1's band (tests/f16-thresholds.json s1_level_50), re-derived 2026-10-12
+ * on the gates' 4.1 V seat. */
+check('at the pattern speed, S1\'s band', level.v > 19.07 && level.v < 25.79, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.6, 5);
 check('full right stick banks right, to the 60 degree cap: 50 to 65 degrees', banked.bank * DEG > 50 && banked.bank * DEG < 65, `${deg(banked.bank)} deg`);
@@ -181,7 +186,10 @@ const acroLevel = fly(0, 0, 0, 0.5, 1);
 const acroHold = fly(0, 0, 0, 0.5, 9, acroLevel.endBank);
 check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHold.worst * DEG < 3, `${deg(acroHold.worst)} deg`);
 check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
-check('and straight: under 25 m off the line after 10 s', Math.abs(acroHold.y) < 25, `${acroHold.y.toFixed(1)} m`);
+/* The cross track Acro's hold flies, derived (npm run stab:straight,
+ * tests/f16-thresholds.json stab_straight_acro). */
+const straightAcro = JSON.parse(await readFile(join(root, 'tests/f16-thresholds.json'), 'utf8')).stab_straight_acro;
+check(`and on the derived line: ${straightAcro.derived} m after ${straightAcro.atS} s, within ${straightAcro.tol} m`, acroHold.y >= straightAcro.min && acroHold.y <= straightAcro.max, `${(acroHold.y).toFixed(2)} m`);
 
 /* Acro asks 300 deg/s of roll and 120 of pitch; each band is the Cub's
  * about its own ask, 0.87 to 1.13 of it in roll and 0.72 to 1.13 in

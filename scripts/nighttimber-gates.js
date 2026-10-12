@@ -38,6 +38,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -241,7 +242,12 @@ check: {
       for (let ms = 0; ms < 20; ms += RC_STEP_MS) s = step(sim, [...sticks, throttle]);
       return { q: -s[12] / 0.020, r: -s[13] / 0.020 };
     };
-    const hoverDuty = Math.sqrt(1.698 * 9.81 / 25.93);
+    /* The hover's stick: the one that turns the prop at sqrt(W / T_static)
+     * of full on the 4.1 V pack this seats (scripts/lib/propcurve.js
+     * wingSeat, the E6/N6 derivation's). Until 2026-10-12 the gate flew
+     * that speed share itself as its stick, which on the seated pack
+     * hangs more than the weight on the prop. */
+    const hoverDuty = wingSeat('FW_NIGHTTIMBER1200').stickFor(SEAT_GATES, Math.sqrt(1.698 * 9.81 / 25.93), 0);
     const up = kick([0, 1, 0], hoverDuty);
     const upDead = kick([0, 1, 0], 0);
     const right = kick([0, 0, 1], hoverDuty);

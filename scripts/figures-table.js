@@ -62,9 +62,9 @@ const FILE = join(root, 'docs/figures-table.json');
 
 const PLANT_CHECK = new Set(['loop', 'aileron_roll', 'four_point_roll']);
 /* The measured loops, by the phase names that fly them. */
-const MEASURED_LOOPS = [['line ', 'lineElevator'], ['knife ', 'knife'], ['knife loop', 'knifeLoop']];
+const MEASURED_LOOPS = [['line ', ['lineElevator', 'lineRudder']], ['knife ', ['knife']], ['knife loop', ['knifeLoop']]];
 const marginOf = (phases) => {
-  const loops = MEASURED_LOOPS.filter(([prefix]) => phases.some((p) => p.startsWith(prefix))).map(([, loop]) => loop);
+  const loops = MEASURED_LOOPS.filter(([prefix]) => phases.some((p) => p.startsWith(prefix))).flatMap(([, loop]) => loop);
   return loops.length ? loops : null;
 };
 

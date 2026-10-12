@@ -220,3 +220,24 @@ level speed at duty d: bisect T(V,d)=D(V); climb=(T-D)V/W; roll p=(Clda δ)/(-Cl
 `node scripts/wing-derive.js` runs it. W1, W4 and W7 were re-derived on
 2026-10-11 when the plant's thrust moved to the prop's measured curve;
 each band keeps its proportion about the derived figure.
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+This wing's maker names no voltage, so v_meas is the fleet convention, 3.7 V open circuit less 28 A through its 12 mOhm, 3.364 V (ESTIMATED): the 4.1 V pack turns its prop 1.088 of the table's speed. The derivation also flies the stick through the motor's law now, where it had taken the stick as the prop's speed share. The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/wing-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| W1 level at 65 percent | 18.53 to 22.88 m/s | 16.46 to 21.33, now 20.32 to 26.34 |
+| W4 top speed | 28.74 to 32.17 m/s | 26.57 to 32.60, now 29.74 to 36.49 |
+| W5 roll rate at the 65 percent speed | 250 at 20 m/s to 286 at 22.88 | 180 to 300, now 206 to 343 |
+| W7 best climb | 17.92 at 16.2 to 22.87 at 17.9 m/s | 12.47 to 20.26, now 15.91 to 25.86 |
+
+wing:stab's cruising speed at 65 percent is held to W1's band, where it had an underived 12 to 22 m/s.

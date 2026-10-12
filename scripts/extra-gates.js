@@ -35,6 +35,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -241,7 +242,12 @@ check: {
       for (let ms = 0; ms < 20; ms += RC_STEP_MS) s = step(sim, [...sticks, throttle]);
       return { q: -(s[12] - s0[12]) / 0.020, r: -(s[13] - s0[13]) / 0.020 };
     };
-    const hoverDuty = Math.sqrt(1.51 * 9.81 / 37.86);
+    /* The hover's stick: the one that turns the prop at sqrt(W / T_static)
+     * of full on the 4.1 V pack this seats (scripts/lib/propcurve.js
+     * wingSeat, the E6/N6 derivation's). Until 2026-10-12 the gate flew
+     * that speed share itself as its stick, which on the seated pack
+     * hangs more than the weight on the prop. */
+    const hoverDuty = wingSeat('FW_EXTRA3D1308').stickFor(SEAT_GATES, Math.sqrt(1.51 * 9.81 / 37.86), 0);
     const up = kick([0, 1, 0], hoverDuty);
     const upDead = kick([0, 1, 0], 0);
     const right = kick([0, 0, 1], hoverDuty);
@@ -258,7 +264,8 @@ check: {
    * heading on the rudder, each with an integral as a pilot's hands hold
    * a trim, for 20 s. The wing rocks as it goes into the stall, which is
    * what a harrier does. The entry's throttle is the one that holds 12 m/s
-   * level, 0.384 on the prop's curve (npm run extra:derive, E11 entry); it
+   * level, 0.300 on the gates' seated pack (npm run extra:derive, E11
+   * entry; 0.384 on the prop's curve before the seat, 2026-10-12); it
    * was 0.5 when the straight line put that at 12.5 m/s, and on the curve
    * 0.5 entered at 16 m/s. Speed, throttle and elevator are the last 5 s's
    * means; the rock is judged over the last 10 s: its worst bank, and its
@@ -274,10 +281,13 @@ check: {
     const t11 = th.e11_harrier;
     const harrier = (mode, kick = 0) => {
       must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
-      const r = fly(sim, { duty: 0.384, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
+      const r = fly(sim, { duty: 0.300, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
       clockMs = r.endMs;
       const target = t11.alphaDeg / DEG;
-      const thr = heightHold(0.55);
+      /* The height hold starts at the derivation's harrier throttle, 0.408
+       * (extra:derive), as a pilot sets the throttle the harrier needs; it
+       * started at 0.55 with no source until 2026-10-12. */
+      const thr = heightHold(0.408);
       let iP = 0;
       let iB = 0;
       let s = sim.readState().state;

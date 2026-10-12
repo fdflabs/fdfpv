@@ -23,7 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const rho = 1.225;
 const g = 9.81;
@@ -34,8 +34,11 @@ const Ts = 11.5;
 const W = m * g, AR = b * b / S, k = 1 / (Math.PI * e * AR);
 
 const prop = wingProp('FW_WING1000');
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_WING1000');
 /* The duty is the speed share, as the doc's T_s d^2 has it. */
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 const D = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (CD0 + k * CL * CL); };
 const level = (d) => {
   let lo = 5, hi = 60;

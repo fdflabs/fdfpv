@@ -27,7 +27,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wingProp } from './lib/propcurve.js';
+import { planeTable, wash } from './lib/wash.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -260,7 +261,10 @@ const pfactor = 1.6;
 /* Thrust on the prop's APC curve as the plant flies it (plant_wing.c
  * prop_curve, scripts/lib/propcurve.js). */
 const prop = wingProp('FW_P51D1450');
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_P51D1450');
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 const D = (V, cd0 = CD0) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); return q * S * (cd0 + k * CL * CL); };
 const level = (d, cd0 = CD0) => {
   let lo = 5, hi = 40;
@@ -417,8 +421,21 @@ const Izz = Ixx + Iyy - 0.01;
  * Half the stick is half the prop's pitch speed, 11.5 m/s, under the
  * stall, so no speed is level there: the trim is taken at three quarters,
  * the cruise, as the Kadet's is. */
+/* The slipstream's own pitching moment over the stabiliser at that trim,
+ * as plant_wing.c takes it (m_slip with the elevator neutral and no pitch
+ * rate): the wash's crossflow over the stabiliser from its zero lift, V
+ * sin(body alpha - slip_a0), through slip_cm_a, on rho v_i fh, over q S c,
+ * 2 v_i fh slip_cm_a sin(alpha - a0) / V. Left out until 2026-10-12, when
+ * the seated pack's thrust grew it to 0.0024 nose up at the trim and the
+ * plant's hands off trim sat 3 m/s under the derivation's (P9). */
+const slipFw = planeTable('FW_P51D1450').fw;
+const cmSlip = (V, T, alphaBody) => {
+  const w = wash(slipFw, T, V);
+  return 2 * w.vi * w.fh * slipFw.slip_cm_a * Math.sin(alphaBody - slipFw.slip_a0) / V;
+};
 const Vtrim = level(0.75), CLtrim = 2 * W / (rho * Vtrim * Vtrim * S);
-const Cm0 = -Cma * CLtrim / CLa + thrustZ * D(Vtrim) / (0.5 * rho * Vtrim * Vtrim * S * c);
+const cmSlipTrim = cmSlip(Vtrim, D(Vtrim), CLtrim / CLa + alphaZL);
+const Cm0 = -Cma * CLtrim / CLa + thrustZ * D(Vtrim) / (0.5 * rho * Vtrim * Vtrim * S * c) - cmSlipTrim;
 
 /*
  * The gear as drawn (the side view, scaled): the mains 0.0633 m ahead of
@@ -603,6 +620,7 @@ const rows = [
   ['prop J kg m2, H at full N m s', `${jProp.toPrecision(4)} ${f(jProp * Oml, 4)}`],
   ['level at 100, 75, 50 percent, gear up', `${f(level(1), 2)} ${f(level(0.75), 2)} ${f(level(0.5), 2)}`],
   ['level at 100 percent, gear down', f(level(1, CD0 + cdGear), 2)],
+  ['level at 75 and 70 percent, gear down, flaps up (the stab selftest)', `${f(level(0.75, CD0 + cdGear), 2)} ${f(level(0.7, CD0 + cdGear), 2)}`],
   ['stall clean, full flap (formula)', `${f(Vs, 2)} ${f(VsFull, 2)}`],
   ['stall_re; stall_clmax; stall_peak deg', `${STALL_RE.join(', ')}; ${STALL_CLMAX.map((x) => f(x, 4)).join(', ')}; ${STALL_PEAK.map((x) => f(x * DEG, 2)).join(', ')}`],
   ['   stall_peak rad; cl_max at the clean stall\'s Re', `${STALL_PEAK.map((x) => f(x, 4)).join(', ')}; ${f(CLmax, 4)} at ${f(reOf(Vs), 0)}`],
@@ -640,6 +658,10 @@ const rows = [
 const lm = longitudinalModes(level(0.75));
 rows.push(['trim at 75 percent: theta, de, duty', `${f(lm.thetaDeg, 2)} ${f(lm.deDeg, 2)} ${f(lm.duty)}`]);
 rows.push(['   phugoid s, zeta; short period s, zeta', `${f(lm.phugoid && lm.phugoid.period, 2)} ${f(lm.phugoid && lm.phugoid.zeta)}; ${f(lm.short && lm.short.period, 2)} ${f(lm.short && lm.short.zeta)}`]);
+/* The phugoid's decay: its envelope's e-folding time, 1 / (zeta omega_n),
+ * omega_n the damped frequency over sqrt(1 - zeta^2) (P9). */
+const efold = (ph) => 1 / (ph.zeta * (2 * Math.PI / ph.period) / Math.sqrt(1 - ph.zeta * ph.zeta));
+rows.push(['   phugoid e-folding s', f(lm.phugoid && efold(lm.phugoid), 3)]);
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(52)} ${v}`);
 }

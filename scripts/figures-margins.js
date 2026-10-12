@@ -24,8 +24,29 @@
  * (responseAt), level and trimmed at a third, two thirds and full
  * throttle: the step reads the gain about a quarter low at the loop's 180
  * deg frequency, so LINE_GM is the largest that keeps 6 dB on all three.
- * The fixed kr 0.2 the lines flew before kept 3.3 and 1.3 dB at a third
- * and two thirds and was unstable at full throttle.
+ * The fixed kr 0.2 the lines flew before keeps 3.2 and 0 dB at a third
+ * and two thirds and is unstable at full throttle.
+ *
+ * The line hold's rudder (figureprograms.js LINE_YAW_KR): the same loop
+ * on the yaw, stick = kr (kp e - r), on each aircraft. Its response
+ * (responseAt, the yaw rate per rudder) is not a gain: it rises to the
+ * loop's 180 deg frequency, so each kr is the largest, to a thousandth,
+ * that keeps 6 dB there. It is measured where the lines are flown, held
+ * steady by an attitude hold with no delay and the throttle on the
+ * speed: up the vertical, up and down the 45 and level, at 8 to 30 m/s.
+ * A line that does not settle within a metre a second of its speed (too
+ * slow for the throttle to hold it level, too fast to hold it diving) is
+ * not taken; the kr at a speed is the least of the lines'. Like the
+ * elevator's, the trim's integral (LINE_KI) is not in the loop measured.
+ *
+ * The point's stop (figureprograms.js POINT_STOP): the bank held on the
+ * ailerons at a point, a proportional loop at PERSON's pace (a look
+ * every 100 ms, its 0.25 s of delay and hold), on each aircraft at its
+ * level pass (SEATED's level throttle, launched at 22 m/s) and at every
+ * point's bank, 0 to 315 deg in 45s, each held there by an attitude hold
+ * with no delay. The design is the highest crossover on crossoverFor's
+ * grid (0.8 to 4 rad/s, by 0.2) whose loop, on the highest plant gain
+ * of the eight there, keeps 45 deg and 6 dB at all eight.
  *
  * The knife edge (figureprograms.js KNIFE): three loops of personLoop
  * (wingpilot.js) at PERSON's own pace, a look every 100 ms, the bank on
@@ -46,7 +67,8 @@
  *   node scripts/figures-margins.js
  *
  * Exits 1 if a constant pinned in figureprograms.js (the line's fit, the
- * knife edge's crossovers and trims) is not what the plant measures, or a
+ * rudder's gains, the knife edge's crossovers and trims, each seated
+ * aircraft's level throttle) is not what the plant measures, or a
  * measured margin is short of the criterion.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -70,9 +92,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, attitude, responseAt, crossoverFor, EXTRA_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { must, attitude, responseAt, crossoverFor, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
-import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, KNIFE, KNIFE_LOOP } from '../tests/lib/figureprograms.js';
+import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -212,12 +234,184 @@ async function trimSpeed(thr) {
   return Math.hypot(s[4], s[5], s[6]);
 }
 
+/* The throttle that holds the programs' launch speed level
+ * (figureprograms.js LEVEL_THROTTLE): launched at 22 m/s, the wings and
+ * the height held on the ailerons and elevator with no delay, the speed
+ * it settles at over the last 5 of 30 s, bisected to a thousandth. */
+const LAUNCH_V = 22;
+async function levelSpeed(airframe, thr) {
+  const sim = await fresh();
+  setUp(sim, airframe);
+  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(LAUNCH_V), 'sim_wing_launch');
+  let iz = 0, ip = 0, sv = 0, n = 0;
+  for (let ms = 0; ms < 30000; ms += 4) {
+    const s = sim.readState().state;
+    const a = attitude(s);
+    const dz = s[3] - 300;
+    iz = Math.max(-0.3, Math.min(0.3, iz - 0.002 * dz * 0.004));
+    const want = Math.max(-0.3, Math.min(0.3, -0.02 * dz - 0.05 * s[6] + iz));
+    ip = Math.max(-0.5, Math.min(0.5, ip + 0.5 * (want - a.pitch) * 0.004));
+    must(sim.input(ms / 1000, Math.max(-0.9, Math.min(0.9, -1.2 * a.bank - 0.12 * s[11])),
+      Math.max(-0.9, Math.min(0.9, 2 * (want - a.pitch) + 0.15 * s[12] + ip)), 0, thr), 'sim_input');
+    must(sim.step(4), 'sim_step');
+    if (ms >= 25000) { sv += Math.hypot(s[4], s[5], s[6]); n += 1; }
+  }
+  return sv / n;
+}
+export async function levelThrottle(airframe) {
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 10; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (await levelSpeed(airframe, mid) < LAUNCH_V) lo = mid; else hi = mid;
+  }
+  const thr = Number(((lo + hi) / 2).toFixed(3));
+  return { throttle: thr, speed: Number((await levelSpeed(airframe, thr)).toFixed(1)) };
+}
+
+/* The rudder's loop on a line held at `pitchDeg` and V (see the head):
+ * its gain margin's magnitude and frequency, or null where the line does
+ * not settle at V or the phase does not reach -180 deg by 20 rad/s. */
+export const YAW_SPEEDS = [8, 14, 18, 22, 26, 30];
+export const YAW_LINES = [90, 45, 0, -45];
+function yawPoint(sim, airframe, pitchDeg, V) {
+  const h = pitchDeg * Math.PI / 360;
+  const target = [Math.cos(2 * h), 0, Math.sin(2 * h)];
+  const trim = { thr: 0.5, p: 0, y: 0 };
+  let it;
+  const start = (s) => {
+    setUp(s, airframe);
+    must(s.e.sim_set_pose(0, 0, 300, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+    must(s.e.sim_wing_launch(V), 'sim_wing_launch');
+    it = { ...trim };
+    return [0, 0, 0, it.thr];
+  };
+  /* The wings held square to the line's plane (the span on the world's
+   * y, its error about the nose), the nose on the line, each with a
+   * trim's integral, and the speed on the throttle. */
+  const hold = (s) => {
+    const [, p, y] = hangSticks(s, { target, rollStick: 0, kp: 4, kr: 0.3 });
+    const [qw, qx, qy, qz] = [s[7], s[8], s[9], s[10]];
+    const n = [1 - 2 * (qy * qy + qz * qz), 2 * (qx * qy + qw * qz), 2 * (qx * qz - qw * qy)];
+    const l = [2 * (qx * qy - qw * qz), 1 - 2 * (qx * qx + qz * qz), 2 * (qy * qz + qw * qx)];
+    const v = Math.hypot(s[4], s[5], s[6]);
+    it.thr = Math.max(0, Math.min(1, it.thr + 0.0006 * (V - v)));
+    it.p = Math.max(-1, Math.min(1, it.p + 0.004 * p));
+    it.y = Math.max(-1, Math.min(1, it.y + 0.004 * y));
+    return [clip(l[2] * n[0] - l[0] * n[2] - 0.12 * s[11]), Math.max(-1, Math.min(1, p + it.p)), Math.max(-1, Math.min(1, y + it.y)),
+      Math.max(0, Math.min(1, it.thr + 0.1 * (V - v)))];
+  };
+  start(sim);
+  let lo = Infinity, hi = -Infinity;
+  for (let ms = 0; ms < 40000; ms += 4) {
+    must(sim.input(ms / 1000, ...hold(sim.readState().state)), 'sim_input');
+    must(sim.step(4), 'sim_step');
+    if (ms >= 35000) {
+      const s = sim.readState().state;
+      const v = Math.hypot(s[4], s[5], s[6]);
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    }
+  }
+  if (hi - lo > 1 || Math.abs((hi + lo) / 2 - V) > 1) return null;
+  Object.assign(trim, it);
+  const kp = LINE_GAINS.kp;
+  let prev = null;
+  for (let i = 4; i <= 80; i += 2) {
+    const w = i / 4;
+    const g = responseAt(sim, start, hold, w, 2, (st) => -st[13]);
+    let phase = g.phase - w * TAU + Math.atan2(-kp / w, 1);
+    if (prev) phase = prev.phase + Math.atan2(Math.sin(phase - prev.phase), Math.cos(phase - prev.phase));
+    const now = { w, mag: g.mag * Math.hypot(1, kp / w), phase };
+    /* A response that jumps between neighbouring frequencies (half or
+     * twice the magnitude, 60 deg of phase in half a rad/s) is a flight
+     * that does not hold still under the sweep, not the rudder's: not
+     * taken (the Slick level at 22 m/s, 0.6 to 20 per stick). */
+    if (prev && (now.mag > 2 * prev.mag || now.mag < prev.mag / 2 || Math.abs(phase - prev.phase) > Math.PI / 3)) return null;
+    if (prev && phase <= -Math.PI) {
+      const f = (-Math.PI - prev.phase) / (phase - prev.phase);
+      return { w180: Number((prev.w + f * (w - prev.w)).toFixed(1)), mag: prev.mag + f * (now.mag - prev.mag) };
+    }
+    prev = now;
+  }
+  return null;
+}
+
+/* Each aircraft's point stop (see the head): its design and the worst
+ * margins over the eight banks. */
+const POINT_BANKS = [0, 45, 90, 135, 180, 225, 270, 315];
+export async function pointStopDesign(airframe) {
+  const sim = await fresh();
+  const thr = SEATED[airframe].level;
+  const bankOfS = (s) => Math.atan2(2 * (s[9] * s[10] + s[7] * s[8]), 1 - 2 * (s[8] * s[8] + s[9] * s[9]));
+  const wrap = (x) => Math.atan2(Math.sin(x), Math.cos(x));
+  const grids = [];
+  for (const deg of POINT_BANKS) {
+    const phi = deg * Math.PI / 180;
+    let e = 0;
+    const start = (s) => {
+      setUp(s, airframe);
+      must(s.e.sim_set_pose(0, 0, 300, Math.cos(phi / 2), Math.sin(phi / 2), 0, 0), 'sim_set_pose');
+      must(s.e.sim_wing_launch(22), 'sim_wing_launch');
+      e = 0.05;
+      return [0, 0, 0, thr];
+    };
+    const hold = (s) => {
+      e = Math.max(-0.5, Math.min(0.6, e - 0.0005 * s[6]));
+      const el = e - 0.05 * s[6];
+      const [, p, y] = hangSticks(s, { target: [Math.cos(el), 0, Math.sin(el)], rollStick: 0, kp: 4, kr: 0.3 });
+      return [clip(-0.8 * wrap(bankOfS(s) - phi) - 0.05 * s[11]), p, y, thr];
+    };
+    const g = [];
+    for (let i = 2; i <= 60; i += 1) g.push({ w: i / 5, ...responseAt(sim, start, hold, i / 5, 0, (s) => wrap(bankOfS(s) - phi)) });
+    for (let i = 1; i < g.length; i += 1) g[i].phase = g[i - 1].phase + Math.atan2(Math.sin(g[i].phase - g[i - 1].phase), Math.cos(g[i].phase - g[i - 1].phase));
+    grids.push(g);
+  }
+  const tau = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
+  const margins = (g, k) => {
+    const L = g.map((x) => ({ mag: k * x.mag, phase: x.phase - x.w * tau }));
+    const cross = L.find((l, i) => l.mag < 1 && i > 0 && L[i - 1].mag >= 1) ?? L.find((l) => l.mag < 1);
+    const turn = L.find((l) => l.phase <= -Math.PI);
+    return { pmDeg: cross ? (Math.PI + cross.phase) * 180 / Math.PI : null, gmDb: turn ? -DB(turn.mag) : null };
+  };
+  let best = null;
+  for (let i = 4; i <= 20; i += 1) {
+    const wc = i / 5;
+    const gain = Math.max(...grids.map((g) => g.find((x) => Math.abs(x.w - wc) < 1e-9).mag * wc));
+    const ms = grids.map((g) => margins(g, wc / gain));
+    const pm = Math.min(...ms.map((m) => m.pmDeg ?? Infinity));
+    const gm = Math.min(...ms.map((m) => m.gmDb ?? Infinity));
+    if (pm >= 45 && gm >= 6) best = { wc, gain: Number(gain.toFixed(3)), pmDeg: Number(pm.toFixed(1)), gmDb: Number(gm.toFixed(1)) };
+  }
+  return { airframe, ...best };
+}
+
+/* Each aircraft's rudder gain by speed: [V, kr] for every speed some line
+ * settles at, kr the least the lines allow at 6 dB, and what each line
+ * measured. */
+export async function lineRudder(airframe) {
+  const sim = await fresh();
+  const krs = [];
+  const lines = {};
+  for (const V of YAW_SPEEDS) {
+    let least = null;
+    for (const pitchDeg of YAW_LINES) {
+      const pt = yawPoint(sim, airframe, pitchDeg, V);
+      const kr = pt ? Math.floor(1000 * 0.5 / pt.mag) / 1000 : null;
+      lines[`${pitchDeg} deg ${V} m/s`] = pt ? { w180: pt.w180, mag: Number(pt.mag.toFixed(2)), kr } : null;
+      if (kr !== null && (least === null || kr < least)) least = kr;
+    }
+    if (least !== null) krs.push([V, least]);
+  }
+  return { airframe, kr: krs, lines };
+}
+
 /*
  * The knife edge (figureprograms.js knife): the Extra rolled to 90 deg at
  * 22 m/s and full throttle, held there by an attitude hold with no delay
  * while a stick is swept (responseAt, crossoverFor): the bank on the
  * ailerons, the nose's elevation on the rudder, the heading on the
- * elevator, the climb rate setting the elevation. It settles at 29 m/s;
+ * elevator, the climb rate setting the elevation. It settles at 32.9 m/s;
  * the trims are the rudder and the elevation there after 20 s.
  */
 const KNIFE_V = 22;
@@ -346,7 +540,23 @@ export async function measureMargins() {
       fixedKr02GmDb: was.gmDb === null ? null : Number(was.gmDb.toFixed(1)),
     });
   }
+  const levelThrottles = {};
+  /* The aircraft with a pack to seat; the Slick's engine has none. */
+  for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME]]) {
+    levelThrottles[name] = { airframe, ...await levelThrottle(airframe) };
+  }
+  const pointStops = {};
+  for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
+    pointStops[name] = await pointStopDesign(airframe);
+  }
+  const lineRudders = {};
+  for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
+    lineRudders[name] = await lineRudder(airframe);
+  }
   return {
+    levelThrottle: levelThrottles,
+    lineRudder: lineRudders,
+    pointStop: pointStops,
     knife: await knifeLoops(),
     knifeLoop: { path: await knifeLoopPath() },
     criterion: 'bandwidth criterion: 45 deg phase margin, 6 dB gain margin (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, NASA NCC2-338, 1986)',
@@ -383,6 +593,16 @@ export function marginFailures(m) {
     || Math.abs(m.knife.trim.speed - KNIFE.trim.speed) > 0.05) {
     out.push(`figureprograms.js KNIFE.trim ${JSON.stringify(KNIFE.trim)} is not where the knife edge settles ${JSON.stringify(m.knife.trim)}`);
   }
+  for (const [name, d] of Object.entries(m.pointStop)) {
+    const pin = POINT_STOP[d.airframe];
+    if (!(pin && pin.wc === d.wc && same(pin.gain, d.gain))) out.push(`figureprograms.js POINT_STOP for the ${name} ${JSON.stringify(pin)} is not the plant's crossover ${d.wc} rad/s, gain ${d.gain}`);
+  }
+  for (const [name, r] of Object.entries(m.lineRudder)) {
+    if (JSON.stringify(LINE_YAW_KR[r.airframe]) !== JSON.stringify(r.kr)) out.push(`figureprograms.js LINE_YAW_KR for the ${name} ${JSON.stringify(LINE_YAW_KR[r.airframe])} is not the plant's ${JSON.stringify(r.kr)}`);
+  }
+  for (const [name, l] of Object.entries(m.levelThrottle)) {
+    if (Math.abs(LEVEL_THROTTLE[l.airframe] - l.throttle) > 0.0005) out.push(`figureprograms.js LEVEL_THROTTLE for the ${name} ${LEVEL_THROTTLE[l.airframe]} is not the throttle that holds 22 m/s level, ${l.throttle}`);
+  }
   return out;
 }
 
@@ -394,6 +614,9 @@ if (main) {
   for (const l of m.lineElevator.level) {
     console.log(`  level at throttle ${l.throttle} (${l.speed} m/s): kr ${l.kr} GM ${l.gmDb} dB at ${l.w180} rad/s, PM ${l.pmDeg} deg at ${l.wc} rad/s, plant phase within ${l.plantPhaseDeg} deg to 16 rad/s; the fixed kr 0.2 ${l.fixedKr02GmDb === null ? 'over unity to 16 rad/s, unstable' : `${l.fixedKr02GmDb} dB`}`);
   }
+  for (const [name, d] of Object.entries(m.pointStop)) console.log(`point stop, the ${name}: ${d.wc} rad/s on a plant gain of ${d.gain}, PM ${d.pmDeg} deg, GM ${d.gmDb} dB at the worst of eight banks`);
+  for (const [name, r] of Object.entries(m.lineRudder)) console.log(`line rudder, the ${name}: kr ${r.kr.map(([v, k]) => `${k} at ${v}`).join(', ')} m/s`);
+  for (const [name, l] of Object.entries(m.levelThrottle)) console.log(`level at 22 m/s, the ${name}: throttle ${l.throttle} (settles at ${l.speed} m/s)`);
   for (const name of ['bank', 'elevation', 'heading']) {
     const k = m.knife[name];
     console.log(`knife edge ${name}: crossoverFor ${k.crossoverFor} rad/s, flown at ${k.wc} rad/s on a plant gain of ${k.gain}, PM ${k.pmDeg} deg at ${k.wcFound} rad/s, GM ${k.gmDb === null ? 'none to 12 rad/s' : `${k.gmDb} dB at ${k.w180} rad/s`}`);

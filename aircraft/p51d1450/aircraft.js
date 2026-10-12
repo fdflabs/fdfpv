@@ -243,14 +243,14 @@ export default {
     "estimates": {
       "stock": {
         "4s2600": {
-          "topSpeed": 25.45,
-          "minutes": 20.2
+          "topSpeed": 29.76,
+          "minutes": 25.8
         }
       },
       "kv650": {
         "4s2600": {
-          "topSpeed": 29.54,
-          "minutes": 20.2
+          "topSpeed": 33.49,
+          "minutes": 25.8
         }
       }
     }

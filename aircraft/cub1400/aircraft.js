@@ -198,12 +198,12 @@ export default {
     "estimates": {
       "stock": {
         "3s2200": {
-          "topSpeed": 21.94,
-          "minutes": 31
+          "topSpeed": 23.54,
+          "minutes": 35.3
         },
         "3s3200": {
-          "topSpeed": 22.03,
-          "minutes": 41.7
+          "topSpeed": 24.03,
+          "minutes": 47.7
         }
       }
     }

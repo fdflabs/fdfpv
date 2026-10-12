@@ -26,7 +26,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { wash } from './lib/wash.js';
+import { planeTable, propMoments, wash } from './lib/wash.js';
 import { wingProp } from './lib/propcurve.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
@@ -208,8 +208,12 @@ function charPoly(A) {
   return coef;
 }
 
-/* The longitudinal model, the plant's equations, trimmed and linearised. */
-function deriv(x, de, d) {
+/* The longitudinal model, the plant's equations, trimmed and linearised.
+ * phi and r, the bank and the body yaw rate of a turn flown with it (the
+ * Slow Stick's, scripts/slowstick-derive.js): the pitch damping meets the
+ * turn's share of the pitch rate, the attitude goes as q cos(phi) - r
+ * sin(phi), the weight across the body as g cos(theta) cos(phi). */
+function deriv(x, de, d, phi = 0, rTurn = 0) {
   const [u, w, q, thp] = x;
   const V = Math.hypot(u, w);
   const a = Math.atan2(-w, u) - alphaZL;
@@ -220,12 +224,12 @@ function deriv(x, de, d) {
   /* The prop's wash over the tail, the plant's slip_* (scripts/wash-derive.js). */
   const ws = wash(SLIP, Tt, u);
   const xa = -w * Math.cos(SLIP.slip_a0) - u * Math.sin(SLIP.slip_a0);
-  const kh = rho * ws.vi * ws.fh, ph = ws.dp * ws.fh;
+  const kh = rho * ws.vi * ws.fh, ph = ws.dp * ws.keepH * ws.fh;
   const Fx = L * (-w / V) - Dr * u / V + Tt;
   const Fz = L * (u / V) - Dr * w / V + S * (kh * SLIP.slip_cl_a * xa + ph * CLde * de);
   const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt +
     S * c * (kh * (SLIP.slip_cm_a * xa + Cmq * q * c / 2) + ph * Cmde * de);
-  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) - q * u, My / Iyy, q];
+  return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) * Math.cos(phi) - q * u, My / Iyy, q * Math.cos(phi) - rTurn * Math.sin(phi)];
 }
 function solve3(A, bb) {
   const M = A.map((r, i) => [...r, bb[i]]);
@@ -262,14 +266,14 @@ function longitudinalModes(V) {
  * The lateral model at a speed, Nelson ch. 5, states beta, p, r, phi in
  * the aero convention: the spiral, the roll subsidence and the Dutch roll.
  */
-function lateral(V) {
-  const q = 0.5 * rho * V * V, CL = W / (q * S);
+function lateral(V, CLflown = null, theta = 0) {
+  const q = 0.5 * rho * V * V, CL = CLflown ?? W / (q * S);
   const bv = b / (2 * V);
   const Yb = q * S * CYb / m, Ydr = q * S * CYdr / m;
   const Lb = q * S * b * Clb / Ixx, Lp = q * S * b * Clp * bv / Ixx, Lr = q * S * b * ClrPerCL * CL * bv / Ixx, Ldr = q * S * b * Cldr / Ixx;
   const Nb = q * S * b * Cnb / Izz, Np = q * S * b * CnpPerCL * CL * bv / Izz, Nr = q * S * b * Cnr * bv / Izz, Ndr = q * S * b * Cndr / Izz;
   const A = [
-    [Yb / V, 0, -1, g / V],
+    [Yb / V, 0, -1, g * Math.cos(theta) / V],
     [Lb, Lp, Lr, 0],
     [Nb, Np, Nr, 0],
     [0, 1, 0, 0],
@@ -299,6 +303,48 @@ function bankAfter(lat, phi0, tEnd) {
     x = x.map((v, i) => v + dx[i] * dt);
   }
   return x[3];
+}
+
+/*
+ * The hands off levelling flown, the Slow Stick's model (scripts/
+ * slowstick-derive.js bankAfterFlown): level at the throttle's cruise,
+ * rolled to phi0 and every stick let go, the longitudinal model alongside
+ * with the bank taking cos(phi) off the lift, the lateral model at each
+ * step's speed, lift and pitch, the fin in the prop's wash meeting the
+ * sideslip and yaw rate at the wash's speed (rho v_i fv), and the prop's
+ * torque and swirl at that speed (scripts/lib/wash.js propMoments, the
+ * swirl's force on the whole stream). SIG: 0 right thrust, so nothing in
+ * the airframe holds against it.
+ */
+function bankAfterFlown(duty, phi0, tEnd) {
+  const tb = planeTable('FW_KADET1981');
+  const V0 = level(duty);
+  const th0 = longitudinalModes(V0).thetaDeg / DEG;
+  let xl = [V0 * Math.cos(th0), -V0 * Math.sin(th0), 0, th0];
+  let xa = [0, 0, 0, phi0];
+  const dt = 0.001;
+  for (let t = 0; t < tEnd; t += dt) {
+    const [u, w, , th] = xl;
+    const V = Math.hypot(u, w);
+    const a = Math.atan2(-w, u) - alphaZL;
+    const lat = lateral(V, CLa * a, th);
+    const ws = wash(tb.fw, T(u, duty), V);
+    const kv = rho * ws.vi * ws.fv;
+    lat.A = lat.A.map((row) => row.slice());
+    lat.A[0][0] += S * kv * tb.fw.slip_cy_b / m;
+    lat.A[1][0] += S * b * kv * tb.fw.slip_cl_b * V / Ixx;
+    lat.A[2][0] += S * b * kv * tb.fw.slip_cn_b * V / Izz;
+    lat.A[2][2] += S * b * kv * tb.fw.slip_cn_r * 0.5 * b / Izz;
+    const pm = propMoments(tb, dutyOf(duty), V);
+    const f = [pm.Y / (m * V), pm.L / Ixx, pm.N / Izz, 0];
+    const dl = deriv(xl, 0, duty, xa[3], xa[2]);
+    const dx = lat.A.map((row, i) => row.reduce((sum, v, j) => sum + v * xa[j], 0) + f[i]);
+    /* phi' = p + tan(theta) (q sin(phi) + r cos(phi)), Etkin and Reid ch. 4. */
+    dx[3] += Math.tan(th) * (xl[2] * Math.sin(xa[3]) + xa[2] * Math.cos(xa[3]));
+    xl = xl.map((v, i) => v + dl[i] * dt);
+    xa = xa.map((v, i) => v + dx[i] * dt);
+  }
+  return { phi: xa[3], V: Math.hypot(xl[0], xl[1]), thetaDeg: xl[3] * DEG };
 }
 
 /* The linear lateral model from level with the rudder held at dr (aero
@@ -523,6 +569,8 @@ const rows = [
   ['best climb m/s at m/s', `${f(best.vz, 2)} ${f(best.V, 2)}`],
   ['lateral at 75 percent: V, CL', `${f(lat.V, 2)} ${f(lat.CL)}`],
   ['   spiral root, margin ClbCnr-CnbClr', `${f(lat.spiral.root, 4)} ${f(lat.spiralMargin, 5)} t_half ${f(lat.spiral.tHalf, 1)} t2 ${f(lat.spiral.t2, 1)}`],
+  ['   30 deg bank, hands off, flown with the prop and the wash: bank after 2, 4, 6 s, speed at 6 s', (() => { const r = [2, 4, 6].map((tt) => bankAfterFlown(0.75, 30 / DEG, tt)); return `${r.map((x) => f(x.phi * DEG, 1)).join(' ')}; ${f(r[2].V, 2)} m/s`; })()],
+  ['   flown from the stab selftest\'s 38.2 deg let go, the prop and the wash: bank after 2, 4, 8 s; 8 s over the start', (() => { const r = [2, 4, 8].map((tt) => bankAfterFlown(0.75, 38.2 / DEG, tt).phi * DEG); return `${r.map((x) => f(x, 2)).join(' ')}; ${f(r[2] / 38.2, 3)}`; })()],
   ['   roll tau s, Dutch roll wn zeta period', `${f(lat.roll.tau)} ${lat.dutch ? `${f(lat.dutch.wn, 2)} ${f(lat.dutch.zeta)} ${f(lat.dutch.period, 2)}` : 'none'}`],
   ['   30 deg bank, hands off: bank after 2, 4, 6 s', `${f(bankAfter(lat, 30 / DEG, 2) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 4) * DEG, 1)} ${f(bankAfter(lat, 30 / DEG, 6) * DEG, 1)}`],
   ['lateral at 1.2 Vs: spiral root, t_half', `${f(latS.spiral.root, 4)} ${f(latS.spiral.tHalf, 1)}`],

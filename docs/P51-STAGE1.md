@@ -95,7 +95,9 @@ a cell) balance the 14.8 V: 6,351 rpm, 55.2 A, 632 W on the shaft and
 | Prop inertia j_prop | 0.00117 kg m^2 | four 25 g blades as rods from the hub (m L^2 / 3), the spinner, 60 g at 30 mm, and the motor's bell, 100 g at 25 mm, ESTIMATED |
 
 **The stock P-51 is not fast**, and that is the kit, not the plant: level
-at full throttle it does 20.6 m/s derived, 19.8 flown, gear up. FMS's
+at full throttle it does 30.8 m/s derived, 29.4 flown, gear up, on the gates'
+4.1 V seat (26.6 at the balance's own 3.7 V a cell; 20.6 on the straight
+line thrust before 2026-10-11). FMS's
 owners say the same ("In stock form (540kv motor), it was barely adequate
 in speed and power", HobbySquawk's FMS P-51 V8 thread; "It is rather
 slow", its "Need for Speed" thread). What it has is the heaviest wing
@@ -116,7 +118,7 @@ radian. `npm run p51:derive` prints every one.
 | Static margin | 0.034 | V_H 0.342; the long nose's own moment (Raymer eq. 16.25, K_fus 0.007 per deg) takes 0.015 of it; FMS's 110 mm is 37.5 percent of the mean chord |
 | Zero lift line | 1.28 deg under the thrust line | a 6 series section's 1.3 deg under its chord at the wing's mean incidence, 0.13 deg, and the tail's share |
 | Cm alpha, Cm q | -0.1684, -8.305 | -CLa SM; -2 eta a_t V_H l_h / c |
-| Cm0 | +0.0183 | level at three quarter throttle, gear up, elevator neutral, the thrust line's moment included (the manual's trim flight, taken at the cruise since half stick is half the pitch speed, 11.5 m/s, under the stall) |
+| Cm0 | +0.0058 | level at three quarter throttle, gear up, elevator neutral, the thrust line's moment and the slipstream's over the stabiliser included (the manual's trim flight, taken at the cruise since half stick is half the pitch speed, 11.5 m/s, under the stall), on the gates' 4.1 V pack. The slipstream's term, 2 v_i fh slip_cm_a sin(alpha - slip_a0) / V, plant_wing.c m_slip, was left out until 2026-10-12, when the seated pack's thrust made it 0.0024 of nose up and moved the hands off trim 3 m/s |
 | Cm de, CL de | 1.168, -0.412 | tau_e 0.80 for the elevator's 47 percent (thin aerofoil) |
 | CY beta, Cn beta, Cn r | -0.336, +0.0992, -0.1202 | the fin, less the long fuselage's -0.0160 (Nelson eq. 2.64) |
 | Cl beta | -0.0925 | the dihedral's, the fin's, and the low wing's +0.0189 (DATCOM) |
@@ -390,29 +392,29 @@ widened to pass.
 
 | Check | Derived | Band | Measured |
 | --- | --- | --- | --- |
-| P1 level at 75 percent, gear up | 15.06 m/s | 13.25 to 16.87 | 15.16 |
+| P1 level at 75 percent, gear up | 24.56 m/s at the gates' 4.1 V seat | 21.61 to 27.51 | 24.24 |
 | P2a stall, power off, clean | 9.68 m/s at its own Reynolds number | 9.10 to 11.03 | 10.11 |
 | P2b stall, power off, full flap | 8.25 m/s at its own Reynolds number | 7.75 to 9.40 | 7.88 |
 | P3 glide at 13 m/s, gear up | L/D 11.13 | 9.91 to 12.47 | 11.17 at 13.04 m/s |
-| P4 top speed, gear up | 20.64 m/s | 18.78 to 23.12 | 19.80 |
-| P4b what the gear down costs | 0.45 m/s | 0.2 to 0.8 | 0.49 (19.31 down) |
-| P5 best climb | 6.57 m/s at 12 | 4.93 to 8.21 | 5.96 at 13.4 m/s |
+| P4 top speed, gear up | 30.79 m/s at 4.1 V | 28.01 to 34.49 | 29.37 |
+| P4b what the gear down costs | 0.972 m/s | 0.42 to 1.72 | 1.018 (28.35 down) |
+| P5 best climb | 14.68 m/s at 16.7 | 11.01 to 18.35 | 13.96 at 18.0 m/s |
 | P6 full aileron roll, pb/2V | 0.1216 (144 deg/s at 15 m/s) | 0.091 to 0.152 | 0.1368 |
-| P7 throttle closed from top speed, height held, after 3 s | 17.10 m/s (the Kadet: 12.72) | 16.2 to 18.0 | 16.81 from 20.05 |
+| P7 throttle closed from top speed, height held, after 3 s | 24.28 m/s (the Kadet: 12.72) | 23.00 to 25.56 | 23.89 from 29.72 |
 | P8 full up, power off, from 1.2 Vs: a wing drops | an outer strip stalls first | at least 20 deg within 3 s of the break | 68.9 deg, right wing (the windmill's gyroscope, above) |
-| P9 phugoid | 11.43 s, damping 0.41 | 9.40 to 13.30 | 11.67, one cycle before it is gone |
+| P9 phugoid decay | 20.21 s at damping 0.69: no observable period (5 percent overshoot); the envelope falls by e in 1 / (zeta omega_n) = 3.36 s | 2.76 to 3.91 s | 3.28 s, settling at 24.36 m/s (the slipstream's term in the trim) |
 | P10 prop torque, static | 0.485 N m disc, 0.95 shaft | 0.41 to 1.08, rolling left | 0.485, rolling left |
 | P11 P factor at 8 m/s, 10 deg nose up, full throttle | 1.6 T (-w)/Omega | 2 percent, nose left | 0.06307 against 0.06307 |
 | P12 gyroscopic yaw at q 0.5 rad/s, full throttle | J Omega q | 2 percent, nose left | 0.41616 against 0.41616 |
 | P13 standing on three points | 13.09 deg, CG 0.228 m, tail 18.3 percent | 12.09 to 14.09 deg, 0.223 to 0.233 m, 13 to 23 percent, no hull | 13.13 deg, 0.2291 m, 17.2 percent |
-| P14 take off, heading held on the rudder | 6.51 m, 11.51 m/s | 4.88 to 9.77 m, 10.35 to 13.8 m/s, within 5 deg, right rudder | 8.26 m, 12.24 m/s, within 3.5 deg, mean stick +0.188 (right) |
+| P14 take off, heading held on the rudder | 5.42 m, 11.51 m/s | 4.06 to 8.13 m, 10.35 to 13.8 m/s, within 5 deg, right rudder | 7.09 m, 12.34 m/s, within 3.3 deg, mean stick +0.200 (right) |
 | P15 take off, rudder left alone | swings left | at least 3 deg left at liftoff | 7.9 deg left |
 | P16 retracts | 6 s each way | 0.05 s, refused without retracts | 6.001 s up and down |
 | P17 landing with the gear up | on the belly | hull contact, no wheel load, stopped | hull 2, prop tip 55 N, wheels 0 |
 | P18 full flap approach at 1.3 Vs (10.92 m/s), stabilised from 500 ft scaled (FAA-H-8083-3C ch. 9), flown by the person pilot | touch under 11.6 m/s | at most 3 go arounds, bank within 15 deg, on the wheels, at rest at P13's pitch, no hull or prop | 0 go arounds, bank within 2.9 deg, 10.51 m/s sinking 0.52, rolled 47.5 m, 13.02 deg |
 | P19 the slow pull (8 s to full up from 15.6 m/s, gear up, idle): the first second after the roll off's onset | the XP-51's 0.079 and 39 deg | pb/2V 0.040 to 0.118, bank 20 to 59 deg | 0.0755, 29.0 deg, the left wing (0.1117 and 44.7 deg with the gyroscope, P19w) |
 | S17 other aircraft unmoved | main's hashes | identical | identical, the Kadet's included |
-| S18, S18b Node and Chrome | | identical | 51cbbdb7aeeb7ebc (the take off), beb4fa574780f908 (gear up, the stall), both |
+| S18, S18b Node and Chrome | | identical | 0f9b6ba210baea8f (the take off), e2ae0fe37307a0f7 (gear up, the stall), both |
 
 `npm run p51:gates`: 26 of 26. Rows not named in "The stall from measured sections" keep their last recorded figures.
 
@@ -584,3 +586,13 @@ gear and it slides in on its belly and bends its prop.
 - FMS, 4258-KV650 motor (fmshobby.com/products/4258-kv650-motor).
 - Dynam, 14.8V 2600mAh 25C LiPo (dynamrc.com), 295 g, for the pack's mass.
 - Selig et al., Summary of Low-Speed Airfoil Data (UIUC), vol. 1 (1995) fig. 4.73 the NACA 64A010 and vol. 2 (1996) fig. 5.52 the NACA 2415, their tabulated runs LIFT01.TXT and LIFT02.TXT (m-selig.ae.illinois.edu/pd/pub/lsat), and the Reynolds number trend; the UIUC propeller data site, APC 14 x 8E; Abbott and von Doenhoff, Theory of Wing Sections; Nelson, Flight Stability and Automatic Control; USAF DATCOM; Raymer, Aircraft Design: A Conceptual Approach; Schrenk, NACA TM 948.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 10 s, derived 16.69 m, held within 0.18 (was an underived bound).
+- Acro's hold, the same throw: derived 12.21 m within 0.11.
+- P9 judged on its decay (w36-seat-voltage) flies 3.17 s to fall by e on the combined plant, in its band.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

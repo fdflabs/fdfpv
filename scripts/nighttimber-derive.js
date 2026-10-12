@@ -25,7 +25,7 @@
  */
 
 import { washKw } from './lib/washcontrol.js';
-import { electricN, wingProp } from './lib/propcurve.js';
+import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { shares, wash as washOf } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
@@ -289,8 +289,11 @@ const Qs = apcAt(nStatic, 1), Ts = apcAt(nStatic, 2), Is = Qs / kt + i0;
 const rpmNL = kv * vNom, Vp = 0.85 * rpmNL / 60 * 4 * 0.0254;
 const torqueArm = Qs / Ts;
 const prop = wingProp('FW_NIGHTTIMBER1200');
+/* The pack the gates seat, at the motor's law and the table's v_meas
+ * (scripts/lib/propcurve.js wingSeat, plant_wing.c power_duty). */
+const seat = wingSeat('FW_NIGHTTIMBER1200');
 /* d is the stick; the prop turns at the motor's steady share of it. */
-const T = (V, d) => Math.max(0, prop.thrust(Ts, V, electricN(d)));
+const T = (V, d) => Math.max(0, prop.thrust(Ts, V, seat.at(SEAT_GATES, d, V).n));
 /* The prop's inertia, ESTIMATED: a 13 in prop of about 25 g, a tapered
  * blade's 0.7 of a rod's m D^2 / 12, and the BL10's can. */
 const propJ = 0.7 * 0.025 * (2 * propR) ** 2 / 12 + 0.04 * 0.017 * 0.017;
@@ -310,11 +313,12 @@ const pb2v = Clda * throwA / -Clp;
 const rollAt = (V) => pb2v * 2 * V / b;
 
 /* THE 3D REGIME, as the Extra's derivation takes it. */
-/* The prop's speed at the hover, sqrt(W / Ts) of full, and the duty the
- * electric motor settles at it on (plant_wing.c prop_spool): n^2 + K_M n
- * = (K_M + 1) d, K_M = 0.85 / 0.15. */
+/* The prop's speed at the hover, sqrt(W / Ts) of full, and the stick the
+ * electric motor settles at it on at the gates' seat (plant_wing.c
+ * prop_spool, n^2 + K_M n = (K_M + 1) d, K_M = 0.85 / 0.15, and
+ * power_duty's pack over v_meas: wingSeat). */
 const hoverN = Math.sqrt(W / Ts);
-const hoverDuty = (hoverN * hoverN + (0.85 / 0.15) * hoverN) / (0.85 / 0.15 + 1);
+const hoverDuty = seat.stickFor(SEAT_GATES, hoverN, 0);
 let vClimb = 0;
 for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 
@@ -322,7 +326,7 @@ for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * 
  * stabiliser's half span, the fin over and under the thrust line, the
  * ailerons' span. Its zero lift at the trim cm_0 is set for. */
 const slipA0 = alphaZL + CLtrim / CLa;
-const slip = shares({ propR, bh, hv: [hvUp, hvDn], ya: [ailIn, ailOut], at, Sh, S, eta, deda, VH, av, VV, lv, b, Sv, ClbFin, a0: slipA0 });
+const slip = shares({ propR, bh, hv: [hvUp, hvDn], ya: [ailIn, ailOut], at, Sh, S, eta, deda, VH, av, VV, lv, b, Sv, ClbFin, a0: slipA0, xh: propX + lh, xv: propX + lv });
 const hov = washOf(slip, W, 0);
 
 /* The air a slow aircraft turns through, Hoerner's flat plate, C_N 1.17,
@@ -340,11 +344,11 @@ const rotK = [
  * 1.2 times their eta of 0.7, as the Extra's and the Timber's. */
 const sideCda = fusL * 0.13 * 1.2 * 0.7;
 
-/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.74
+/* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
  * (Selig, AIAA 2010-7938; docs/FLIGHTMODEL.md). */
-const SWIRL_KEEP = 0.74;
+const SWIRL_KEEP = 0.65;
 const Qprop = torqueArm * W;
-const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -(Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
+const finSwirl = S * b * rho * hov.vi * hov.fv * slip.slip_cl_b * -hov.keepS * (Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
 const Qhover = Qprop - (1 - SWIRL_KEEP) * Qprop - SWIRL_KEEP * finSwirl;
 const torqueRoll = Math.sign(Qhover) * Math.sqrt(Math.abs(Qhover) / rotK[0]);
 const aileronHover = hov.dp * hov.fa * S * b * Clda * throwA;
@@ -352,8 +356,8 @@ const aileronRollNet = aileronHover > Qhover ? Math.sqrt((aileronHover - Qhover)
 const tailCn = 1.17;
 const plateRatio = (x) => 1 / Math.sqrt(Math.sqrt(1 + (x / tailCn) ** 4));
 const vhT = -slip.slip_cm_a / (at * (1 - deda)), vvF = slip.slip_cn_b / av;
-const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
-const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
+const pitchAccHover = hov.dp * hov.keepH * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
+const yawAccHover = hov.dp * hov.keepV * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 
 /* The rest on the gear: each axle lowered by its 5 mm of static
  * deflection, as every taildragger's here. */
@@ -455,14 +459,14 @@ function harrier(alphaDeg) {
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * CLa * sa);
   const alphaT = sa - deda * CL / CLa - slip.slip_a0 * (1 - deda);
   const xa = V * Math.sin(a - slip.slip_a0);
-  const vw = u + 2 * w.vi;
+  const vw = w.vwH;
   /* scripts/lib/washcontrol.js, as the plant: the side the elevator is on against the crossflow. */
   const cm = (de) => {
     const kw = washKw(a + alphaZL, w.dp, V, rho, Cmde * de * xa > 0 ? 'against' : 'with'); /* on the body's angle, as the plant */
     const xt = at * alphaT - Cmde * de / vhTH;
     const free = Cm0 + (Cma - slip.slip_cm_a) * sa + slip.slip_cm_a * slip.slip_a0 - vhTH * xt * plateRatioH(xt) + past * cmPost;
     const rh = plateRatioH(at * xa / vw - kw * Cmde * de / vhTH);
-    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.fh * rh * kw * Cmde * de) / qb;
+    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.keepH * w.fh * rh * kw * Cmde * de) / qb;
   };
   let dLo = -throwE, dHi = throwE;
   for (let i = 0; i < 60; i += 1) { const mid = (dLo + dHi) / 2; if (cm(mid) < 0) dLo = mid; else dHi = mid; }
@@ -480,10 +484,10 @@ function knifeEdge(V) {
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
       const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
-      const nPerDr = qb * S * b * Cndr + w.dp * w.fv * S * b * Cndr;
+      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slip.slip_cy_b) * (V * sb)
-        - (qb + w.dp * w.fv) * S * CYdr * Math.abs(dr);
+        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
     if (T(u, 1) < thrust) break;

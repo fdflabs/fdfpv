@@ -178,12 +178,12 @@ back does.
 
 | | Derived | How |
 | --- | --- | --- |
-| Level at 75 percent | 27.53 m/s | thrust against drag, on APC's 5 x 5E curve (22.14 on the straight line until 2026-10-11) |
-| Top speed, level | 36.80 m/s (82 mph) | the same at full throttle (29.69 on the straight line) |
+| Level at 75 percent | 32.10 m/s | thrust against drag, on APC's 5 x 5E curve, the stick through the motor's law, on the gates' 4.1 V seat (27.53 at the table's own voltage until 2026-10-12, 22.14 on the straight line until 2026-10-11) |
+| Top speed, level | 39.95 m/s (89 mph) at 4.1 V; 40.76 (91 mph) on a full pack | the same at full throttle (36.80 at the table's own voltage, 29.69 on the straight line) |
 | Trimmed stall | 7.36 m/s | the stall angle's CL max less the lift of the 3.54 deg of up elevon that holds it there: 0.821 |
 | Best glide | 13.49 at 9.41 m/s | CL sqrt(CD0/k), 0.503, where the elevons neutral trim it |
 | Minimum sink | 0.612 m/s at 7.27 m/s | |
-| Best climb | 15.10 m/s at 22.2 m/s | (8.88 at 16.2 on the straight line) |
+| Best climb | 18.71 m/s at 23.6 m/s | (15.10 at 22.2 at the table's own voltage, 8.88 at 16.2 on the straight line) |
 | Full elevon roll | pb/2V 0.2236: 315 deg/s at 15 m/s, once round in 1.19 s | -Clda da / Clp, and the roll's lag Ixx over the damping, 0.045 s |
 | Pitch | 0.098 s to the pitch rate's first peak after a step from the glide; 1.67 deg of alpha per deg of elevon | the linear short period, speed held; -cm_de / cm_alpha |
 | Short period | 0.34 s, damping 0.51, at 12 m/s | |
@@ -194,7 +194,12 @@ plant flew until 2026-10-11, falling to zero at the pitch speed, the
 published motor and prop levelled out at 29.7 m/s, short of it. On APC's
 measured curve for the 5 x 5E, whose thrust holds up past the geometric
 pitch, they level out at 36.8 m/s, 3 percent under the claim and inside
-Z4's band. 85 mph is still a claim no measurement is given for.
+Z4's band. Since 2026-10-12 the plant runs the motor at the seated pack's
+loaded voltage over the one its figures were measured at (Zagi names
+none, so the fleet convention's 3.46 V a cell, ESTIMATED): on a full pack,
+the one a maker's figure is flown on, it levels at 40.8 m/s, 7 percent
+over 38 m/s, which the manual words as "over 85 mph"; at the gates' 4.1 V
+seat, 40.0. 85 mph is still a claim no measurement is given for.
 
 ## What is new in the plant
 
@@ -244,17 +249,17 @@ and never widened.
 
 | Gate | What | Derived | Band | Measured |
 | --- | --- | --- | --- | --- |
-| Z1 | level speed at 75 percent | 27.53 (22.14 on the straight line) | 24.22 to 30.84 | 27.83 m/s |
+| Z1 | level speed at 75 percent | 32.10 (27.53 at the table's voltage, 22.14 on the straight line) | 28.24 to 35.96 | 31.34 m/s |
 | Z2 | the trimmed stall, power off | 7.36 | 6.92 to 8.39 | 7.65 m/s |
 | Z3 | best glide | 13.49 | 12.01 to 15.11 | 13.61 at 9.54 m/s |
-| Z4 | top speed | 36.80 (29.69) | 33.48 to 41.22 | 35.50 m/s |
-| Z5 | best climb, swept at 18 to 26 m/s | 15.10 (8.88) | 11.32 to 18.87 | 14.89 m/s |
+| Z4 | top speed | 39.95 (36.80, 29.69) | 36.35 to 44.75 | 38.55 m/s |
+| Z5 | best climb, swept at 18 to 26 m/s | 18.71 (15.10, 8.88) | 14.03 to 23.38 | 18.46 m/s |
 | Z6 | full elevon roll, as its helix angle from a full roll's time | 0.2236 | 0.168 to 0.280 | 0.2197, once round in 1.26 s |
 | Z7 | pitch: the pitch rate's first peak after a tenth of up stick, and the glide's alpha per degree of elevon | 0.098 s; 1.672 | 0.063 to 0.146 s; 1.42 to 1.92 | 0.096 s; 1.678 |
 | Z8 | no rudder: full yaw stick changes nothing | | bit identical | identical |
 | Z9 | the straight stall, full up held: wings level, balloons and breaks, mushes | | bank under 5 deg, break within 3 s, past the stall sinking 0.61 to 4.25 m/s (zagi-derive.js, 2026-10-11; docs/FLIGHTMODEL.md) | 0.3 deg, 2.36 s, alpha 14.9 deg sinking 1.86 |
 | Z10 | a stall in a turn: full roll held into a 30 deg bank spins it; the bank held on the stick does not | | once round within 4 s; within 20 deg | 449 deg; 14 deg |
-| Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 0.21 m, 22.8 m: the shell's throw from shoulder height dips close to the grass before the motor comes on |
+| Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 0.77 m, 49 m up after 5 s. On the seated pack (2026-10-12) full throttle's nose down moment (the line 52 mm over the CG, 8.2 N against 7.3) dropped the throw onto the grass before the thrower's hand trim caught it; the thrower now holds, as the motor comes on, the up elevon that moment takes at its speed (thrust_z T over q S c cm_de, through the expo), as a person who knows the Zagi does |
 | Z12 | the belly landing | | at rest upright, the CG 12 mm up | slid 1.4 m, at rest at 10.9 mm, level |
 | Z13 | circling a thermal's core, power off | | at least 0.3 m/s up, sinking in still air | 0.58 m/s up; 0.84 m/s down |
 | Z17 | every other aircraft's recorded hash | | 16 unmoved | all 16 |
@@ -419,3 +424,12 @@ and it slides to a stop on its belly.
 - D. Raymer, Aircraft Design: A Conceptual Approach, eqs. 12.15, 12.30, 12.49
 - Charles River Radio Controllers, Zagi THL Tips (CG, the stall, the mush): https://charlesriverrc.org/articles/design-and-construction/zagi-thl-tips/
 - Forum evidence, labelled as such: RCFAQ, Zagi 400 and FMA Razor 400 (axial rolls, belly landings): http://www.rcfaq.com/REVIEWS/electrics/ZAGI400.HTM; RCU, "Zagi Style Wing Dimensions Anyone?" (tip stall without washout): https://www.rcuniverse.com/forum/scratch-building-aircraft-design-3d-cad-174/513363-zagi-style-wing-dimensions-anyone.html; FPVLab, "Flying wings, how to control wag": https://fpvlab.com/forums/archive/index.php/t-47709.html
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 12 s, derived -1.45 m, held within 0.13 (was an underived bound).
+- Acro's hold, the same throw: derived -0.35 m within 0.02.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.

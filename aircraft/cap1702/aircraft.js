@@ -197,12 +197,12 @@ export default {
     "estimates": {
       "stock": {
         "6s4000": {
-          "topSpeed": 32.28,
-          "minutes": 22.7
+          "topSpeed": 35.11,
+          "minutes": 26.3
         },
         "6s4500": {
-          "topSpeed": 32.37,
-          "minutes": 24.6
+          "topSpeed": 35.41,
+          "minutes": 28.6
         }
       }
     }

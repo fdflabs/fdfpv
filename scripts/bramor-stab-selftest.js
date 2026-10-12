@@ -140,7 +140,10 @@ const level = fly(0, 0, 0.7, 12);
 check('off the catapult, centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
-check('and straight: under 15 m off the line after 12 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/bramor-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/bramor-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${level.y.toFixed(2)} m`);
 check('at a cruising speed, 14 to 20 m/s', level.v > 14 && level.v < 20, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0.9, 4);
@@ -162,7 +165,10 @@ const acroLevel = fly(0, 0, 0.7, 1);
 const acroHold = fly(0, 0, 0.7, 9, acroLevel.endBank);
 check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHold.worst * DEG < 3, `${deg(acroHold.worst)} deg`);
 check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
-check('and straight: under 15 m off the line', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
+/* The cross track Acro's hold flies, derived (npm run stab:straight,
+ * tests/bramor-thresholds.json stab_straight_acro). */
+const straightAcro = JSON.parse(await readFile(join(root, 'tests/bramor-thresholds.json'), 'utf8')).stab_straight_acro;
+check(`and on the derived line: ${straightAcro.derived} m after ${straightAcro.atS} s, within ${straightAcro.tol} m`, acroHold.y >= straightAcro.min && acroHold.y <= straightAcro.max, `${acroHold.y.toFixed(2)} m`);
 
 launchHigh(20);
 fly(0, 0, 0.9, 1);

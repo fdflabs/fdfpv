@@ -71,6 +71,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
+import { SEAT_FULL, wingSeat } from './lib/propcurve.js';
 import { POWER, TABLE, powerBlock, powerOption } from '../configs/power.js';
 import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, stockEntry, tuneBlock } from '../configs/tuning.js';
 import { TestStand } from '../src/game/teststand.js';
@@ -392,9 +393,16 @@ for (const id of ids) {
    * speed. A motor's law holds it at or under full exactly. */
   const own = new RegExp(`const FixedWingParams FW_${id.toUpperCase()} = \\{([\\s\\S]*?)\\n\\};`).exec(WING_C);
   const nMax = own && own[1].includes('.engine_q = ') ? 1 + 1e-4 : 1 + 1e-9;
+  /* An electric's speed is its motor's on the stand's full pack, whose
+   * loaded voltage over the table's v_meas is its duty (plant_wing.c
+   * power_duty, scripts/lib/propcurve.js wingSeat), and its current that
+   * speed's cubed over the ratio (power_current), a little drained after
+   * three seconds; an engine holds at or under its full speed. */
+  const onPack = electric || opt.fan ? wingSeat(`FW_${id.toUpperCase()}`).at(SEAT_FULL, 1, 0) : null;
+  const speedOk = onPack ? Math.abs(n / onPack.n - 1) < 0.01 : n > 0.95 && n <= nMax;
   check(`U7 ${id} the stand reads the plant's static thrust, rpm and current at full throttle once it has spun up`,
-    n > 0.95 && n <= nMax && Math.abs(r.thrustN / (opt.thrustN * n * n) - 1) < 1e-9
-      && (electric || opt.fan ? Math.abs(r.currentA / (opt.currentA * n * n * n) - 1) < 0.05 : r.currentA === 0),
+    speedOk && Math.abs(r.thrustN / (opt.thrustN * n * n) - 1) < 1e-9
+      && (onPack ? Math.abs(r.currentA / (opt.currentA * n * n * n / onPack.r) - 1) < 0.05 : r.currentA === 0),
     `${f2(r.thrustN)} N, ${r.rpm.toFixed(0)} rpm (${n.toFixed(4)} of full), ${f2(r.currentA)} A`);
   stand.seat(TABLE[id].simId, null, block({ ballastG: lead }));
   stand.setThrottle(1);

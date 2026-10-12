@@ -10,12 +10,366 @@
     },
     "source": "McRuer and Jex, IEEE Trans. HFE 8(3), 1967: a trained operator's effective delay in compensatory tracking",
     "margins": {
+      "levelThrottle": {
+        "extra": {
+          "airframe": 29,
+          "throttle": 0.563,
+          "speed": 22
+        },
+        "cap": {
+          "airframe": 32,
+          "throttle": 0.507,
+          "speed": 22
+        }
+      },
+      "lineRudder": {
+        "extra": {
+          "airframe": 29,
+          "kr": [
+            [
+              8,
+              0.097
+            ],
+            [
+              14,
+              0.07
+            ],
+            [
+              18,
+              0.062
+            ],
+            [
+              22,
+              0.057
+            ],
+            [
+              26,
+              0.058
+            ],
+            [
+              30,
+              0.059
+            ]
+          ],
+          "lines": {
+            "90 deg 8 m/s": {
+              "w180": 10.7,
+              "mag": 5.11,
+              "kr": 0.097
+            },
+            "45 deg 8 m/s": null,
+            "0 deg 8 m/s": null,
+            "-45 deg 8 m/s": null,
+            "90 deg 14 m/s": {
+              "w180": 12.6,
+              "mag": 7.08,
+              "kr": 0.07
+            },
+            "45 deg 14 m/s": {
+              "w180": 12.2,
+              "mag": 6.72,
+              "kr": 0.074
+            },
+            "0 deg 14 m/s": {
+              "w180": 11.7,
+              "mag": 5.5,
+              "kr": 0.09
+            },
+            "-45 deg 14 m/s": null,
+            "90 deg 18 m/s": {
+              "w180": 13.7,
+              "mag": 8.05,
+              "kr": 0.062
+            },
+            "45 deg 18 m/s": {
+              "w180": 13.5,
+              "mag": 7.74,
+              "kr": 0.064
+            },
+            "0 deg 18 m/s": {
+              "w180": 12.9,
+              "mag": 6.5,
+              "kr": 0.076
+            },
+            "-45 deg 18 m/s": null,
+            "90 deg 22 m/s": {
+              "w180": 14.7,
+              "mag": 8.65,
+              "kr": 0.057
+            },
+            "45 deg 22 m/s": {
+              "w180": 14.5,
+              "mag": 8.32,
+              "kr": 0.06
+            },
+            "0 deg 22 m/s": {
+              "w180": 14.2,
+              "mag": 7.55,
+              "kr": 0.066
+            },
+            "-45 deg 22 m/s": null,
+            "90 deg 26 m/s": null,
+            "45 deg 26 m/s": {
+              "w180": 15.3,
+              "mag": 8.6,
+              "kr": 0.058
+            },
+            "0 deg 26 m/s": {
+              "w180": 15.3,
+              "mag": 8.15,
+              "kr": 0.061
+            },
+            "-45 deg 26 m/s": null,
+            "90 deg 30 m/s": null,
+            "45 deg 30 m/s": null,
+            "0 deg 30 m/s": {
+              "w180": 16,
+              "mag": 8.4,
+              "kr": 0.059
+            },
+            "-45 deg 30 m/s": {
+              "w180": 15.9,
+              "mag": 7.09,
+              "kr": 0.07
+            }
+          }
+        },
+        "cap": {
+          "airframe": 32,
+          "kr": [
+            [
+              8,
+              0.264
+            ],
+            [
+              14,
+              0.161
+            ],
+            [
+              18,
+              0.138
+            ],
+            [
+              22,
+              0.117
+            ],
+            [
+              26,
+              0.105
+            ],
+            [
+              30,
+              0.098
+            ]
+          ],
+          "lines": {
+            "90 deg 8 m/s": {
+              "w180": 8.4,
+              "mag": 1.89,
+              "kr": 0.264
+            },
+            "45 deg 8 m/s": null,
+            "0 deg 8 m/s": null,
+            "-45 deg 8 m/s": null,
+            "90 deg 14 m/s": {
+              "w180": 9.8,
+              "mag": 2.87,
+              "kr": 0.174
+            },
+            "45 deg 14 m/s": {
+              "w180": 9.4,
+              "mag": 3.09,
+              "kr": 0.161
+            },
+            "0 deg 14 m/s": null,
+            "-45 deg 14 m/s": null,
+            "90 deg 18 m/s": {
+              "w180": 10.8,
+              "mag": 3.58,
+              "kr": 0.139
+            },
+            "45 deg 18 m/s": {
+              "w180": 10.5,
+              "mag": 3.61,
+              "kr": 0.138
+            },
+            "0 deg 18 m/s": {
+              "w180": 10,
+              "mag": 3.48,
+              "kr": 0.143
+            },
+            "-45 deg 18 m/s": null,
+            "90 deg 22 m/s": {
+              "w180": 11.7,
+              "mag": 4.26,
+              "kr": 0.117
+            },
+            "45 deg 22 m/s": {
+              "w180": 11.5,
+              "mag": 4.2,
+              "kr": 0.119
+            },
+            "0 deg 22 m/s": {
+              "w180": 10.9,
+              "mag": 3.94,
+              "kr": 0.126
+            },
+            "-45 deg 22 m/s": null,
+            "90 deg 26 m/s": null,
+            "45 deg 26 m/s": {
+              "w180": 12.5,
+              "mag": 4.75,
+              "kr": 0.105
+            },
+            "0 deg 26 m/s": {
+              "w180": 12,
+              "mag": 4.56,
+              "kr": 0.109
+            },
+            "-45 deg 26 m/s": null,
+            "90 deg 30 m/s": null,
+            "45 deg 30 m/s": null,
+            "0 deg 30 m/s": {
+              "w180": 13,
+              "mag": 5.05,
+              "kr": 0.098
+            },
+            "-45 deg 30 m/s": null
+          }
+        },
+        "slick": {
+          "airframe": 33,
+          "kr": [
+            [
+              8,
+              0.473
+            ],
+            [
+              14,
+              0.327
+            ],
+            [
+              18,
+              0.244
+            ],
+            [
+              22,
+              0.214
+            ],
+            [
+              26,
+              0.179
+            ],
+            [
+              30,
+              0.156
+            ]
+          ],
+          "lines": {
+            "90 deg 8 m/s": {
+              "w180": 7.5,
+              "mag": 1.06,
+              "kr": 0.473
+            },
+            "45 deg 8 m/s": null,
+            "0 deg 8 m/s": null,
+            "-45 deg 8 m/s": null,
+            "90 deg 14 m/s": {
+              "w180": 8.4,
+              "mag": 1.53,
+              "kr": 0.327
+            },
+            "45 deg 14 m/s": null,
+            "0 deg 14 m/s": null,
+            "-45 deg 14 m/s": null,
+            "90 deg 18 m/s": {
+              "w180": 9.1,
+              "mag": 1.91,
+              "kr": 0.261
+            },
+            "45 deg 18 m/s": {
+              "w180": 8.6,
+              "mag": 2.05,
+              "kr": 0.244
+            },
+            "0 deg 18 m/s": null,
+            "-45 deg 18 m/s": null,
+            "90 deg 22 m/s": {
+              "w180": 9.7,
+              "mag": 2.33,
+              "kr": 0.214
+            },
+            "45 deg 22 m/s": {
+              "w180": 9.4,
+              "mag": 2.33,
+              "kr": 0.214
+            },
+            "0 deg 22 m/s": null,
+            "-45 deg 22 m/s": null,
+            "90 deg 26 m/s": {
+              "w180": 10.4,
+              "mag": 2.78,
+              "kr": 0.179
+            },
+            "45 deg 26 m/s": {
+              "w180": 10.1,
+              "mag": 2.71,
+              "kr": 0.184
+            },
+            "0 deg 26 m/s": {
+              "w180": 9.8,
+              "mag": 2.71,
+              "kr": 0.184
+            },
+            "-45 deg 26 m/s": null,
+            "90 deg 30 m/s": {
+              "w180": 11,
+              "mag": 3.19,
+              "kr": 0.156
+            },
+            "45 deg 30 m/s": {
+              "w180": 10.8,
+              "mag": 3.13,
+              "kr": 0.159
+            },
+            "0 deg 30 m/s": {
+              "w180": 10.4,
+              "mag": 3.17,
+              "kr": 0.157
+            },
+            "-45 deg 30 m/s": null
+          }
+        }
+      },
+      "pointStop": {
+        "extra": {
+          "airframe": 29,
+          "wc": 2.8,
+          "gain": 9.341,
+          "pmDeg": 46.7,
+          "gmDb": 7
+        },
+        "cap": {
+          "airframe": 32,
+          "wc": 2.8,
+          "gain": 5.048,
+          "pmDeg": 47.9,
+          "gmDb": 6.6
+        },
+        "slick": {
+          "airframe": 33,
+          "wc": 2.6,
+          "gain": 5.191,
+          "pmDeg": 46.1,
+          "gmDb": 7.5
+        }
+      },
       "knife": {
         "bank": {
           "crossoverFor": 2,
           "wc": 2,
-          "gain": 11.989,
-          "pmDeg": 45.1,
+          "gain": 13.731,
+          "pmDeg": 45.2,
           "wcFound": 2.2,
           "gmDb": 9.2,
           "w180": 5.8
@@ -23,35 +377,35 @@
         "elevation": {
           "crossoverFor": 0.8,
           "wc": 0.8,
-          "gain": 1.142,
-          "pmDeg": 91,
+          "gain": 1.078,
+          "pmDeg": 90.8,
           "wcFound": 1,
-          "gmDb": 7.3,
-          "w180": 10
+          "gmDb": 7.7,
+          "w180": 10.4
         },
         "heading": {
           "crossoverFor": 2.2,
           "wc": 2,
-          "gain": 5.344,
-          "pmDeg": 46.4,
+          "gain": 6.041,
+          "pmDeg": 46.3,
           "wcFound": 2.2,
           "gmDb": 9.2,
           "w180": 6
         },
         "trim": {
-          "rudder": 0.46,
-          "elevation": 0.232,
-          "speed": 28.5
+          "rudder": 0.38,
+          "elevation": 0.187,
+          "speed": 32.9
         }
       },
       "knifeLoop": {
         "path": {
           "crossoverFor": 1.6,
-          "gain": 1.013,
+          "gain": 0.971,
           "wc": 0.8,
-          "pmDeg": 62.2,
+          "pmDeg": 63.1,
           "wcFound": 1,
-          "gmDb": 15.2,
+          "gmDb": 15.3,
           "w180": 5
         }
       },
@@ -59,46 +413,46 @@
       "delayS": 0.225,
       "lineElevator": {
         "fit": {
-          "a": 1.637,
-          "b": 1.563,
-          "c": 0.00281,
+          "a": 1.695,
+          "b": 1.782,
+          "c": 0.00274,
           "steps": 84,
-          "plantOverFitMax": 0.31
+          "plantOverFitMax": 0.25
         },
-        "lineGm": 0.36,
+        "lineGm": 0.39,
         "level": [
           {
             "throttle": 0.3,
-            "speed": 11.8,
-            "kr": 0.144,
+            "speed": 13.4,
+            "kr": 0.143,
             "gmDb": 6.1,
             "w180": 11.25,
-            "pmDeg": 93,
+            "pmDeg": 92,
             "wc": 1.75,
             "plantPhaseDeg": 27,
-            "fixedKr02GmDb": 3.3
+            "fixedKr02GmDb": 3.2
           },
           {
             "throttle": 0.6,
-            "speed": 18.8,
-            "kr": 0.101,
-            "gmDb": 7.3,
-            "w180": 11.75,
+            "speed": 22.9,
+            "kr": 0.093,
+            "gmDb": 6.7,
+            "w180": 12.25,
             "pmDeg": 92,
             "wc": 1.75,
-            "plantPhaseDeg": 20,
-            "fixedKr02GmDb": 1.3
+            "plantPhaseDeg": 14,
+            "fixedKr02GmDb": 0
           },
           {
             "throttle": 1,
-            "speed": 29.2,
-            "kr": 0.064,
-            "gmDb": 8.1,
+            "speed": 33.4,
+            "kr": 0.06,
+            "gmDb": 7.9,
             "w180": 12.5,
-            "pmDeg": 93,
-            "wc": 1.5,
-            "plantPhaseDeg": 7,
-            "fixedKr02GmDb": -1.8
+            "pmDeg": 92,
+            "wc": 1.75,
+            "plantPhaseDeg": 5,
+            "fixedKr02GmDb": -2.6
           }
         ]
       }
@@ -132,7 +486,7 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 9.5,
+          "cap": 9,
           "slick": 10
         },
         "seated": {
@@ -190,6 +544,7 @@
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
+          "entry 32",
           "pull 0.55 0.50pi",
           "line 0.00,0.00,1.00",
           "kick",
@@ -206,10 +561,10 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 148.1,
+        "lowestM": 150,
         "others": {
-          "cap": 5.5,
-          "slick": 6
+          "cap": 6.5,
+          "slick": 7
         },
         "seated": {
           "extra": null,
@@ -218,7 +573,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -232,6 +588,7 @@
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
+          "entry 32",
           "pull 0.55 0.50pi",
           "line 0.00,0.00,1.00",
           "slide",
@@ -242,16 +599,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 9.5,
+        "grade": 10,
         "flew": [
-          "tailslide 9.5"
+          "tailslide 10"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 145.9,
+        "lowestM": 150,
         "others": {
-          "cap": 9.5,
-          "slick": null
+          "cap": 10,
+          "slick": 9.5
         },
         "seated": {
           "extra": null,
@@ -260,7 +617,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -294,13 +652,13 @@
       },
       "measured": {
         "named": true,
-        "grade": 7,
+        "grade": 4,
         "flew": [
-          "outside_loop 7"
+          "outside_loop 4"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 130.5,
+        "lowestM": 130.7,
         "others": {
           "cap": 8,
           "slick": 8
@@ -331,9 +689,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 4,
+        "grade": 3.5,
         "flew": [
-          "immelmann 4"
+          "immelmann 3.5"
         ],
         "finished": true,
         "crashed": false,
@@ -368,15 +726,15 @@
       },
       "measured": {
         "named": true,
-        "grade": 3.5,
+        "grade": 2.5,
         "flew": [
-          "split_s 3.5"
+          "split_s 2.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 133.9,
+        "lowestM": 134,
         "others": {
-          "cap": 5,
+          "cap": 4,
           "slick": 2
         },
         "seated": {
@@ -412,16 +770,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 1,
+        "grade": 3,
         "flew": [
-          "cuban_8 1"
+          "cuban_8 3"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 105.7,
+        "lowestM": 100.2,
         "others": {
-          "cap": 4.5,
-          "slick": 0
+          "cap": 3.5,
+          "slick": 2
         },
         "seated": {
           "extra": null,
@@ -430,7 +788,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -466,7 +825,7 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 4,
+          "cap": 2,
           "slick": 2
         },
         "seated": {
@@ -476,7 +835,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -510,16 +870,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 9,
+        "grade": 10,
         "flew": [
-          "ke_loop 9"
+          "ke_loop 10"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 148.2,
+        "lowestM": 150,
         "others": {
-          "cap": 9,
-          "slick": 5
+          "cap": 8,
+          "slick": 6
         },
         "seated": {
           "extra": null,
@@ -553,16 +913,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 7.5,
+        "grade": 7,
         "flew": [
-          "half_cuban 7.5"
+          "half_cuban 7"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 129.5,
+        "lowestM": 126.6,
         "others": {
-          "cap": 7,
-          "slick": 7.5
+          "cap": 6.5,
+          "slick": 6.5
         },
         "seated": {
           "extra": null,
@@ -571,7 +931,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -595,15 +956,15 @@
       },
       "measured": {
         "named": true,
-        "grade": 5,
+        "grade": 3,
         "flew": [
-          "reverse_half_cuban 5"
+          "reverse_half_cuban 3"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 7,
+          "cap": 7.5,
           "slick": 7
         },
         "seated": {
@@ -613,7 +974,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -637,15 +999,15 @@
       },
       "measured": {
         "named": true,
-        "grade": 8,
+        "grade": 7.5,
         "flew": [
-          "humpty_bump 8"
+          "humpty_bump 7.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 144,
+        "lowestM": 144.9,
         "others": {
-          "cap": 7,
+          "cap": 6,
           "slick": 7.5
         },
         "seated": {
@@ -655,7 +1017,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -675,15 +1038,15 @@
       },
       "measured": {
         "named": true,
-        "grade": 9,
+        "grade": 7.5,
         "flew": [
-          "half_roll 9"
+          "half_roll 7.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 148.6,
+        "lowestM": 147.3,
         "others": {
-          "cap": 8,
+          "cap": 9,
           "slick": 8
         },
         "seated": {
@@ -725,15 +1088,15 @@
       },
       "measured": {
         "named": true,
-        "grade": 5.5,
+        "grade": 6,
         "flew": [
-          "double_roll 5.5"
+          "double_roll 6"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 8,
+          "cap": 7.5,
           "slick": 8.5
         },
         "seated": {
@@ -761,9 +1124,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 8,
+        "grade": 7.5,
         "flew": [
-          "slow_roll 8"
+          "slow_roll 7.5"
         ],
         "finished": true,
         "crashed": false,
@@ -803,10 +1166,10 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 146.7,
+        "lowestM": 144.5,
         "others": {
-          "cap": 7,
-          "slick": 7.5
+          "cap": 6.5,
+          "slick": 7
         },
         "seated": {
           "extra": null,
@@ -847,16 +1210,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 3,
+        "grade": 3.5,
         "flew": [
-          "eight_point_roll 3"
+          "eight_point_roll 3.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 121.4,
+        "lowestM": 116.8,
         "others": {
-          "cap": 0,
-          "slick": 1
+          "cap": 0.5,
+          "slick": 2
         },
         "seated": {
           "extra": null,
@@ -1003,7 +1366,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 138.5,
+        "lowestM": 149.6,
         "others": {
           "cap": null,
           "slick": null
@@ -1015,7 +1378,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -1042,7 +1406,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 136.4,
+        "lowestM": 138.8,
         "others": {
           "cap": null,
           "slick": null
@@ -1054,7 +1418,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -1078,7 +1443,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 139.9,
+        "lowestM": 145.9,
         "others": {
           "cap": null,
           "slick": null
@@ -1113,11 +1478,12 @@
         "named": false,
         "grade": null,
         "flew": [
-          "half_roll 9"
+          "half_roll 7",
+          "half_roll 0"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 141.8,
+        "lowestM": 141,
         "others": {
           "cap": null,
           "slick": null
@@ -1149,10 +1515,12 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
+        "flew": [
+          "half_roll 0"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 129.5,
+        "lowestM": 102.2,
         "others": {
           "cap": null,
           "slick": null
@@ -1170,7 +1538,7 @@
       "family": "3d",
       "k": 12,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "flown",
+      "physics": "unproven",
       "tiers": {
         "a": "extreme",
         "e": "extreme"
@@ -1179,6 +1547,7 @@
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
+          "entry 32",
           "pull 0.55 0.42pi",
           "line 0.26,0.00,0.97",
           "waterfall 2",
@@ -1186,10 +1555,10 @@
         ]
       },
       "measured": {
-        "named": true,
-        "grade": 6,
+        "named": false,
+        "grade": null,
         "flew": [
-          "waterfall 6"
+          "spin 8"
         ],
         "finished": true,
         "crashed": false,
@@ -1211,7 +1580,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {
@@ -1282,7 +1652,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 133.5,
+        "lowestM": 123.1,
         "others": {
           "cap": null,
           "slick": null
@@ -1294,7 +1664,8 @@
         }
       },
       "margin": [
-        "lineElevator"
+        "lineElevator",
+        "lineRudder"
       ]
     },
     {

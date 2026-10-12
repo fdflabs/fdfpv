@@ -299,38 +299,38 @@ export default {
     "estimates": {
       "stock": {
         "2s1300": {
-          "topSpeed": 9.9,
-          "minutes": 52.2
+          "topSpeed": 11.05,
+          "minutes": 59.8
         }
       },
       "2212-1047": {
         "2s1300": {
-          "topSpeed": 9.85,
-          "minutes": 49.9
+          "topSpeed": 10.88,
+          "minutes": 57.1
         },
         "2s2200": {
-          "topSpeed": 9.81,
-          "minutes": 65.7
+          "topSpeed": 11.05,
+          "minutes": 75.3
         }
       },
       "2212-1060": {
         "2s1300": {
-          "topSpeed": 12.62,
-          "minutes": 79.3
+          "topSpeed": 13.88,
+          "minutes": 91.5
         },
         "2s2200": {
-          "topSpeed": 12.6,
-          "minutes": 104.5
+          "topSpeed": 14.13,
+          "minutes": 120.6
         }
       },
       "2215-1060-3s": {
         "3s1300": {
-          "topSpeed": 15.7,
-          "minutes": 101.2
+          "topSpeed": 17.05,
+          "minutes": 117.2
         },
         "3s2200": {
-          "topSpeed": 15.69,
-          "minutes": 123
+          "topSpeed": 17.43,
+          "minutes": 142.5
         }
       }
     }

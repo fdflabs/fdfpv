@@ -542,3 +542,40 @@ to 1.1 Vs
 gear: loads by moments about the contacts; k from a static deflection,
 c = 2 zeta sqrt(k m_eff) at zeta 0.6
 ```
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+Its v_meas is HobbyKing's 295 W at 27 A on 3S, 3.642 V; at 4.1 V the prop turns 1.028 of the table's speed standing, and more at part throttle, where the pack barely sags. The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/cub-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| C1 level at 75 percent | 17.22 to 18.70 m/s | 14.78 to 19.92, now 16.05 to 21.63 |
+| C4 top speed | 22.40 to 23.55 m/s | 20.46 to 25.2, now 21.51 to 26.49 |
+| C7 best climb | 7.94 at 12.9 to 8.54 at 13.4 m/s | 5.49 to 9.35, now 5.9 to 10.06 |
+| C10 phugoid | 7.79 to 7.92 s | 6.36 to 9.11, now 6.47 to 9.26 |
+| C12 rudder yaw rate at the 65 percent speed | the speed 14.99 to 16.48 m/s | 26 to 58, now 28.6 to 63.8 |
+| C14 prop torque, static | 0.152 to 0.161 N m | 0.13 to 0.3, now 0.137 to 0.317 |
+| C15 P factor | 0.0183 to 0.0192 N m | 0.0115 to 0.0343, now 0.0121 to 0.036 |
+| C17 take off roll | 4.95 to 4.69 m | 3.57 to 7.13, now 3.38 to 6.76 m |
+| C19 taxi turn | 2.312 m at 30 percent to 2.289 at 27 | 2.19 to 2.43 at 0.30, now 2.14 to 2.43 at 0.27 |
+
+C19: at 30 percent the seated pack turns the prop 11 percent faster and there is no steady turn, the tail breaking away into an eight second cycle, as at 35 percent before; 27 percent turns the prop as 30 did and the plant settles within 2.5 percent of the derivation.
+
+## The seated pack and the tail's wash together (w36-physics, 2026-10-12)
+
+The plant with both w36-seat-voltage and w36-wash-speed (the swirl's force at the fin on the whole stream, 1/2 rho (u + 2 v_i), Deters, Ananda and Selig 2015, AIAA 2015-2265, fig. 22b; scripts/lib/wash.js finSwirl). Re-derived on it, each with its source in the thresholds file:
+
+- The Stabilised throw's cross track after 10 s, derived 15.78 m, held within 0.09 (was an underived bound).
+- Acro's hold, the same throw: derived 15.36 m within 0.09.
+
+The straight line is derived by `npm run stab:straight` (scripts/lib/throwflight.js, the CAP's throw for any table); its band is the plant's worst agreement along the curve, mount on and off, the same again, and 0.01 m of rounding.
+
+The straight lines are ESTIMATED: they are the swirl's yaw with no right thrust against it. FMS's manual for the 1400 mm J-3 V4 (Horizon Hobby, FMM106P, Manual EN) gives no thrust offset, side or down, and the mount is moulded into the foam, so the "built in right thrust" above has no angle to put in the table; it is the term left out until it is measured off an airframe.
