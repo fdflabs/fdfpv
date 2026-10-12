@@ -283,7 +283,7 @@ const knife = (ms) => ({
  * ff 0.4 to 0.7, rampS 1 and 2. With rateMin 0.4 and rampS 2, ff 0.4 and
  * 0.55 named it on all three at every rate; ff 0.7 lost the CAP (its
  * rudder overshot and the path's rate fell under the detector's arc),
- * rampS 1 lost the CAP at every rate and ff, rateMin 0.45 took the Slick
+ * rampS 1 lost the CAP in 8 of the 9, rateMin 0.45 took the Slick
  * to 0 to 3. The floor is over the top, where the speed is lowest: at
  * V / R alone the path turned 0.3 rad/s there, a breath over the
  * detector's arc (ARC_OFF 0.25), and one dip took the loop apart. No
