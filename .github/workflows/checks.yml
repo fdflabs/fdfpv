@@ -182,6 +182,9 @@ jobs:
       - run: npm run nighttimber:gates
       - run: npm run figures:plant
       - run: npm run figures:sweep
+      # The manoeuvre table flies every figure program: a physics change that
+      # moves a grade regenerates it (npm run figures:table) in the same PR.
+      - run: npm run figures:table:check
       - run: npm run figures:knife
       - run: npm run combat:gates
       - run: npm run input:selftest
