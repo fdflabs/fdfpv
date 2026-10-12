@@ -27,6 +27,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { AIRCRAFT } from './aircraft.js';
+
 export const KIT_VERSION = 1;
 /* 2 since the Night Timber X: `factory`, a family's own lights' switch.
  * A v1 entry has no `factory` and reads as `auto`, so it migrates by
@@ -45,7 +47,8 @@ const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
  * where the airframe has the part, an option only where it draws
  * differently from stock inside the stock model's box. A canopy that is a
  * paint region already (the Radian's, the F-16's) has no tint slot, since
- * the Paint page colours it.
+ * the Paint page colours it. A plane with an aircraft folder keeps its list
+ * there (configs/aircraft.js).
  */
 const CUB = [slot('spinner', 'bullet', 'flat'), slot('wheels', 'tundra')];
 /* The Timber stands on tundra tyres already. */
@@ -68,12 +71,6 @@ const CAP = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold
 /* The Slick's: its pants are stock, so no wheels slot, and EF sells side
  * force generators for its tips. */
 const SLICK = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold'), slot('wingtips', 'sfg')];
-const P51 = [
-  slot('spinner', 'twotone', 'striped'),
-  slot('exhausts', 'dampers'),
-  slot('wheels', 'covered'),
-  slot('canopy', 'smoke'),
-];
 /* The Tiger Moth's cockpits are open, so no canopy slot. */
 const TIGERMOTH = [
   slot('spinner', 'twotone', 'striped'),
@@ -116,7 +113,7 @@ export const KITS = {
   hercules3077: HERCULES,
   cap1702: CAP,
   slick2680: SLICK,
-  p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
+  p51d1450: AIRCRAFT.KITS.p51d1450, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
   zagi1219: ZAGI, bramor2300: BRAMOR,

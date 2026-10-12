@@ -38,6 +38,7 @@
  */
 
 import { AIRFRAMES } from './airframes.js';
+import { AIRCRAFT } from './aircraft.js';
 
 export const TUNES = [
   {
@@ -444,29 +445,11 @@ export const TUNES = [
     note: 'The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.',
     wingStab: 1,
   },
-  {
-    /* The P-51, FMS's V8 PNP: no gyro (FMS sells a Reflex version
-     * apart), Manual. G works the retracts, F the flaps, in every mode;
-     * on its wheels every mode flies as Manual. */
-    id: 'p51-manual',
-    airframe: 'p51d1450',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps.',
-  },
-  {
-    id: 'p51-as3x',
-    airframe: 'p51d1450',
-    name: 'AS3X',
-    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. G works the retracts, F the flaps.',
-    wingStab: 3,
-  },
-  {
-    id: 'p51-stab',
-    airframe: 'p51d1450',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. On the take off roll it is yours: feed in right rudder as the tail comes up. G works the retracts, F the flaps.',
-    wingStab: 1,
-  },
+  /* The P-51, FMS's V8 PNP: no gyro (FMS sells a Reflex version
+   * apart), Manual. G works the retracts, F the flaps, in every mode;
+   * on its wheels every mode flies as Manual. Its tunes are its folder's,
+   * aircraft/p51d1450/aircraft.js. */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'p51d1450'),
   {
     /* The F-16, Freewing's PNP: no gyro, Manual. The fan is the pilot's
      * in every mode. */

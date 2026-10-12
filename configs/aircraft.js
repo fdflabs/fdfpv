@@ -87,9 +87,3 @@ export function assemble(folders) {
 }
 
 export const AIRCRAFT = assemble(FOLDERS);
-
-/* One aircraft's airframe row, for a hand module that keeps its place in
- * a list. */
-export function airframeOf(id) {
-  return AIRCRAFT.AIRFRAMES.find((a) => a.id === id);
-}
