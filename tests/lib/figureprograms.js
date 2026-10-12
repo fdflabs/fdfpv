@@ -105,8 +105,26 @@ export const LINE_GAINS = { kp: 4, kr: 0.2 };
  * as it slowed on the prop curves. ki per second on the stick the hold
  * asks for, figures-plant-check.js's; each line starts its own. */
 const LINE_KI = 1;
+/* The elevator's share of the line hold kept at a measured gain margin
+ * (scripts/figures-margins.js): the pitch rate a unit of elevator buys
+ * grows with the slipstream and the airspeed, K = a + b throttle + c V^2
+ * rad/s per stick on the Extra (fitted to its measured steps,
+ * 2026-10-12), and the rate gain is LINE_GM / K. LINE_GM is the largest
+ * that keeps the 6 dB of the bandwidth criterion on the elevator's
+ * measured frequency response, level at a third, two thirds and full
+ * throttle (6.1, 7.3 and 8.1 dB): the step reads the gain a quarter low
+ * at the loop's 180 deg frequency, 11 to 12.5 rad/s. LINE_GAINS' fixed
+ * 0.2 kept 3.3 and 1.3 dB at a third and two thirds, and at full
+ * throttle none (-1.8 dB): the humpty's up line went stop to stop on the
+ * elevator and snapped the wing. The rudder keeps LINE_GAINS: its
+ * step response turns over with the airspeed (the fin weathervanes the
+ * yaw back within the 0.25 s), so it has no gain to schedule on. */
+export const LINE_PITCH_K = { a: 1.637, b: 1.563, c: 0.00281 };
+export const LINE_GM = 0.36;
+export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
 const holdLine = (d, m, target, thr) => {
-  const [r, p, y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  const [r, , y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  const p = hangSticks(d.s, { target, rollStick: 0, kp: LINE_GAINS.kp, kr: lineKr(thr, d.v) })[1];
   m.trimP = clamp((m.trimP ?? 0) + LINE_KI * p * H, 0.5);
   m.trimY = clamp((m.trimY ?? 0) + LINE_KI * y * H, 0.5);
   return [quant(r), quant(clamp(p + m.trimP)), quant(clamp(y + m.trimY)), thr];
@@ -212,6 +230,12 @@ const slow = (to) => ({
 });
 /* Full rudder until the nose points down (a stall turn's pivot). */
 const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.5], d.nz < -0.6] });
+/* How long the person leaves the sticks once it slides back before they
+ * fly the nose down themselves: the Extra can settle falling flat at 10
+ * m/s with the sticks left alone, its nose on the horizon (with the
+ * elevator's line gain at a 6 dB margin, scripts/figures-margins.js, it
+ * fell 180 m that way into the ground), and a person would not wait. */
+const SLIDE_LET_GO_MS = 1500;
 /* Throttle off, the nose held up the vertical on the elevator and rudder
  * until the aircraft slides back, then the sticks let go until it falls
  * through (a tailslide). A pilot who lets go at the stop leaves the yaw
@@ -220,8 +244,9 @@ const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.5], d.nz < -0.6] 
 const slide = () => ({
   name: 'slide',
   step: (d, m) => {
-    m.back = m.back || d.along < -1;
-    return [m.back ? [0, 0, 0, 0] : holdLine(d, m, UP, 0), m.t > 600 && d.nz < -0.3];
+    if (m.backAt === undefined && d.along < -1) m.backAt = m.t;
+    const back = m.backAt !== undefined;
+    return [back ? [0, 0, 0, 0] : holdLine(d, m, UP, 0), m.t > 600 && (d.nz < -0.3 || (back && m.t - m.backAt > SLIDE_LET_GO_MS))];
   },
 });
 /* Sticks held as given for a time. */
