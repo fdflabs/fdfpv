@@ -67,9 +67,10 @@ export const SERVOS = {
   d645mw: { kg: 0.060, kgcm: 11.3, source: 'Hitec D645MW: 60.0 g, 11.3 kg-cm at 6.0 V (hitecrcd.com/d645mw-32-bit-high-torque-metal-gear-servo)' },
   d950tw: { kg: 0.068, kgcm: 29.0, source: 'Hitec D950TW: 68 g, 21.0 / 29.0 / 35.0 kg-cm at 4.8 / 6.0 / 7.4 V (motionrc.com HRC36950; shop.multiplex-rc.de 68 g)' },
   spmsa332: { kg: 0.009, kgcm: 0.9, source: 'Spektrum A332 (SPMSA332), 9 g metal gear: 9 g, 0.9 kg-cm at 4.8 V, the only torque published (lindinger.at 9770338; flashrc.com, which gives 6.0 g); the 9 g of its name and E-flite\'s parts list taken. Its 6.0 V figure is not published, so it is rated low against the 6.0 V figures here, which sizes up early' },
+  spmsa370: { kg: 0.009, kgcm: 0.9, source: 'Spektrum A370 (SPMSA370), 9 g digital metal gear: no torque is published (Spektrum\'s page and its servo charts list none); taken as the A332\'s 0.9 kg-cm, the same maker\'s 9 g metal gear class, ESTIMATED' },
   sb2290sg: { kg: 0.081, kgcm: 45.0, source: 'Savox SB-2290SG: 81 g, 45.0 / 55.0 / 70.0 kg-cm at 6.0 / 7.4 / 8.4 V (Extreme Flight\'s own listing, extremeflightrc.com/products/savox-sv1280sgp-servo-copy)' },
 };
-export const SERVO_ORDER = ['spmsa332', 'hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw', 'sb2290sg'];
+export const SERVO_ORDER = ['spmsa332', 'spmsa370', 'hs55', 'hs65mg', 'd89mw', 'd645mw', 'd950tw', 'sb2290sg'];
 
 /*
  * The aircraft. cf: the stock surfaces' chord fractions; throwDeg: the
@@ -157,6 +158,22 @@ export const SURFACES = {
       at: [0.0, 0.206, 0.0],
     },
     source: 'cf, throws, flapped area and the panels\' spans: scripts/nighttimber-derive.js off E-flite\'s top and side views (docs/NIGHTTIMBER-STAGE1.md) and its manual\'s high rates (p. 3); the servos: E-flite\'s manual, "5 x SPMSA332, 1 x SPMSA332R", two ailerons, two flaps, elevator and rudder (pp. 3, 18); the wing servos mid panel and the tail servos where the derivation puts them, ESTIMATED; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf',
+  },
+  timber1500: {
+    sim: 7,
+    cf: { a: 0.27, e: 0.44, r: 0.46 },
+    throwDeg: { a: 30, e: 20, r: 27 },
+    /* The ailerons 0.340 to 0.700 m out on the 0.240 m chord, both sides,
+     * over 0.361 m^2; the stabiliser 0.071 m^2; the fin and rudder 0.0314
+     * m^2 (scripts/timber-derive.js). */
+    flapped: { a: 2 * 0.240 * (0.700 - 0.340) / 0.361, e: 0.071 / 0.361, r: 0.0314 / 0.361 },
+    servo: {
+      model: 'spmsa370',
+      a: { n: 2, at: [0.0, 0.52, 0.0] },
+      e: { n: 1, at: [-0.10, 0.0, 0.0] },
+      r: { n: 1, at: [-0.10, 0.0, 0.0] },
+    },
+    source: 'aileron cf, throws (E-flite\'s high rates over the drawn chords) and flapped area: scripts/timber-derive.js and docs/TIMBER-STAGE1.md; elevator and rudder cf measured off the drawn model, src/render/timbercraft.js (drawn from Horizon Hobby\'s photographs): the elevator 0.0311 of the 0.0707 m^2 stabiliser, 0.44, the rudder 0.0146 of the 0.0315 m^2 fin and rudder, 0.46, its run below the fin\'s root to the fuselage\'s bottom included; the servos: E-flite\'s manual, two ailerons, elevator, rudder and two flaps, 9 g metal gear digital, SPMSA370 (https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/Manuals/EFL105250-Manual-EN.pdf); the aileron servos mid aileron and the tail servos 0.10 m behind the CG, ESTIMATED',
   },
 };
 

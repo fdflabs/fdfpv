@@ -5,7 +5,7 @@ aileron, elevator and rudder, a tier from Stock through Sport and 3D to
 Extreme. Each tier draws the surface bigger, lets it travel further, and
 flies as a real aircraft with those surfaces does. This file is every
 number behind them, with its formula and source. Slice 1 is the plant and
-the data for the Extra 300 3D and the Cub (the Slick 580 and the Night Timber X since); the
+the data for the Extra 300 3D and the Cub (the Slick 580, the Night Timber X and the Turbo Timber since); the
 hangar's tab, the account sync and the room lineup follow (`~/Desktop/fdfpv-loop/CONTROL-SURFACES-PLAN.md`).
 
 ## What a tier is
@@ -278,6 +278,60 @@ roll's bigger yaw and pitch excursion costs 2 m/s at the bottom, and
 that difference shows up nearly whole in the bar. Zeroing the tier's
 deflection drag moves it by under 0.2 m/s.
 
+### Turbo Timber Evolution (sim 7)
+
+| surface | tier | cf | throw deg | k | power | cd | servo | added |
+|---|---|---|---|---|---|---|---|---|
+| aileron | stock | 0.270 | 30.00 | 1.000 | 1.000 | 0 | 2 A370 | 0 |
+| | sport | 0.323 | 33.33 | 1.040 | 1.155 | 0.0255 | 2 HS-65MG | 7 g |
+| | 3d | 0.377 | 36.67 | 1.079 | 1.319 | 0.0511 | 2 HS-65MG | 7 g |
+| | extreme | 0.430 | 40.00 | 1.118 | 1.490 | 0.0766 | 2 D89MW | 32 g |
+| elevator | stock | 0.440 | 20.00 | 1.000 | 1.000 | 0 | A370 | 0 |
+| | sport | 0.517 | 30.00 | 0.834 | 1.250 | 0.0151 | HS-65MG | 3.5 g |
+| | 3d | 0.593 | 40.00 | 0.803 | 1.606 | 0.0302 | D89MW | 16 g |
+| | extreme | 0.670 | 50.00 | 0.812 | 2.030 | 0.0452 | D89MW | 16 g |
+| rudder | stock | 0.460 | 27.00 | 1.000 | 1.000 | 0 | A370 | 0 |
+| | sport | 0.573 | 34.67 | 0.980 | 1.258 | 0.0099 | HS-65MG | 3.5 g |
+| | 3d | 0.687 | 42.33 | 0.995 | 1.561 | 0.0197 | D89MW | 16 g |
+| | extreme | 0.800 | 50.00 | 1.021 | 1.891 | 0.0296 | D89MW | 16 g |
+
+The aileron's cf (the aft 27 percent) and the throws (E-flite's high
+rates, 33, 20 and 30 mm, over the drawn chords at the horns, 30, 20 and
+27 deg, ESTIMATED to a couple of degrees) are docs/TIMBER-STAGE1.md's.
+Its table carries only Nelson's tau for the elevator and rudder (0.65,
+0.60), so their cf are measured off the drawn model,
+`src/render/timbercraft.js`, which is drawn from Horizon Hobby's
+photographs and whose areas are the table's. The elevator is 0.0311 of
+the 0.0707 m^2 stabiliser (the hinge 90 mm behind the root's leading
+edge, 60 of the root's 150 mm, 56 of the tip's 110, the rudder's notch
+out), cf 0.44. The rudder is 0.0146 of the 0.0315 m^2 fin and rudder
+(the hinge 65 mm ahead of the trailing edge, from the fuselage's bottom
+to the fin's top), cf 0.46. Over the fin alone, above its root, it would
+be 0.38. The table's Sv counts the run below the root, so cf is taken on
+the same area. The plan's inverse of Glauert's tau (0.29 and 0.24) is
+not used: Nelson's chart is empirical, and Glauert's tau at those cf is
+not what the drawn surfaces are. Only the ratio tau(cf) / tau(cf0)
+enters k, as for the Cub.
+
+The flaps (0.052 to 0.334 m) are plain flaps on their own switch, not
+mixed into the ailerons, so the aileron tier is the outboard ailerons
+alone. The servos: E-flite's manual lists six 9 g metal gear digital
+servos, SPMSA370 (two ailerons, elevator, rudder, two flaps). No torque
+is published for the A370 (Spektrum's page and servo charts list none),
+so it is taken as the A332's 0.9 kg-cm, the same maker's 9 g metal gear
+class, ESTIMATED. The absolute check (one aileron 0.36 m by 0.0648 m at
+30 deg) needs 0.79 kg-cm at the gates' 17.0 m/s level cruise and 2.0 at
+its 27.2 m/s top speed, so it holds to about 18 m/s, as the Night
+Timber's does. The floats variant (timber1500f) is a different airframe
+id and has no row.
+
+Measured on this branch (full stick deg/s / a fifth of a stick deg/s /
+speed kept): roll 368 / 42 / 0.853 stock to 533 / 62 / 0.684 Extreme;
+pitch 228 / 47 / 1.020 to 403 / 80 / 0.664; yaw 118 / 18 / 1.003 to
+224 / 33 / 0.745. The elevator's k falls to 0.81, as the Cub's does:
+its stock 20 deg is near where K' is one, and 50 deg buys less per
+degree, which the throw more than makes up for.
+
 The Cub's k falls below one: its stock throws are under 18 deg, where K'
 is near one, and K' at 40 to 50 deg is 0.55 to 0.57. Per degree a big
 throw buys less, but the throw more than makes up for it.
@@ -373,7 +427,7 @@ wire format change, left for a versioned protocol bump.
   would ask for 76 deg on one panel, and a real radio stops at the
   servo's travel. The stock aircraft already asks for 65.
 - The craft builders draw the tiers only on the Extra and the Cub.
-  `src/render/nighttimbercraft.js`, like slickcraft.js, ignores
-  `opts.surfaces`, so the Night Timber's tiers fly but draw stock (the
-  render lane). Its aileron growth must go on the outboard ailerons
+  `src/render/nighttimbercraft.js` and `timbercraft.js`, like
+  slickcraft.js, ignore `opts.surfaces`, so their tiers fly but draw
+  stock (the render lane). Its aileron growth must go on the outboard ailerons
   only, never the flaps.

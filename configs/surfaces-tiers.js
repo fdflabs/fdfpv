@@ -665,5 +665,162 @@ export const SURFACE_TIERS = {
         "power": 1.5062
       }
     ]
+  },
+  "timber1500": {
+    "offered": {
+      "a": true,
+      "e": true,
+      "r": true
+    },
+    "a": [
+      {
+        "tier": "stock",
+        "cf": 0.27,
+        "throwDeg": 30,
+        "k": 1,
+        "cd": 0,
+        "hinge": 1,
+        "servo": "spmsa370",
+        "n": 2,
+        "dKg": 0,
+        "power": 1
+      },
+      {
+        "tier": "sport",
+        "cf": 0.3233,
+        "throwDeg": 33.3333,
+        "k": 1.039686,
+        "cd": 0.025529,
+        "hinge": 1.5934,
+        "servo": "hs65mg",
+        "n": 2,
+        "dKg": 0.00694,
+        "power": 1.1552
+      },
+      {
+        "tier": "3d",
+        "cf": 0.3767,
+        "throwDeg": 36.6667,
+        "k": 1.079268,
+        "cd": 0.051058,
+        "hinge": 2.3787,
+        "servo": "hs65mg",
+        "n": 2,
+        "dKg": 0.00694,
+        "power": 1.3191
+      },
+      {
+        "tier": "extreme",
+        "cf": 0.43,
+        "throwDeg": 40,
+        "k": 1.117846,
+        "cd": 0.076587,
+        "hinge": 3.3818,
+        "servo": "d89mw",
+        "n": 2,
+        "dKg": 0.032,
+        "power": 1.4905
+      }
+    ],
+    "e": [
+      {
+        "tier": "stock",
+        "cf": 0.44,
+        "throwDeg": 20,
+        "k": 1,
+        "cd": 0,
+        "hinge": 1,
+        "servo": "spmsa370",
+        "n": 1,
+        "dKg": 0,
+        "power": 1
+      },
+      {
+        "tier": "sport",
+        "cf": 0.5167,
+        "throwDeg": 30,
+        "k": 0.833634,
+        "cd": 0.015078,
+        "hinge": 2.0683,
+        "servo": "hs65mg",
+        "n": 1,
+        "dKg": 0.00347,
+        "power": 1.2505
+      },
+      {
+        "tier": "3d",
+        "cf": 0.5933,
+        "throwDeg": 40,
+        "k": 0.802812,
+        "cd": 0.030157,
+        "hinge": 3.6368,
+        "servo": "d89mw",
+        "n": 1,
+        "dKg": 0.016,
+        "power": 1.6056
+      },
+      {
+        "tier": "extreme",
+        "cf": 0.67,
+        "throwDeg": 50,
+        "k": 0.8121,
+        "cd": 0.045235,
+        "hinge": 5.7967,
+        "servo": "d89mw",
+        "n": 1,
+        "dKg": 0.016,
+        "power": 2.0303
+      }
+    ],
+    "r": [
+      {
+        "tier": "stock",
+        "cf": 0.46,
+        "throwDeg": 27,
+        "k": 1,
+        "cd": 0,
+        "hinge": 1,
+        "servo": "spmsa370",
+        "n": 1,
+        "dKg": 0,
+        "power": 1
+      },
+      {
+        "tier": "sport",
+        "cf": 0.5733,
+        "throwDeg": 34.6667,
+        "k": 0.979784,
+        "cd": 0.009858,
+        "hinge": 1.9946,
+        "servo": "hs65mg",
+        "n": 1,
+        "dKg": 0.00347,
+        "power": 1.258
+      },
+      {
+        "tier": "3d",
+        "cf": 0.6867,
+        "throwDeg": 42.3333,
+        "k": 0.995399,
+        "cd": 0.019716,
+        "hinge": 3.4938,
+        "servo": "d89mw",
+        "n": 1,
+        "dKg": 0.016,
+        "power": 1.5607
+      },
+      {
+        "tier": "extreme",
+        "cf": 0.8,
+        "throwDeg": 50,
+        "k": 1.021186,
+        "cd": 0.029573,
+        "hinge": 5.6011,
+        "servo": "d89mw",
+        "n": 1,
+        "dKg": 0.016,
+        "power": 1.8911
+      }
+    ]
   }
 };

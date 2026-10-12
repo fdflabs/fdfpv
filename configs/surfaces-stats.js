@@ -290,5 +290,73 @@ export const SURFACE_STATS = {
         "kept": 0.743
       }
     ]
+  },
+  "timber1500": {
+    "a": [
+      {
+        "full": 368,
+        "fifth": 41.6,
+        "kept": 0.853
+      },
+      {
+        "full": 428,
+        "fifth": 48.1,
+        "kept": 0.811
+      },
+      {
+        "full": 480,
+        "fifth": 55.1,
+        "kept": 0.762
+      },
+      {
+        "full": 533,
+        "fifth": 62.1,
+        "kept": 0.684
+      }
+    ],
+    "e": [
+      {
+        "full": 228,
+        "fifth": 47.3,
+        "kept": 1.02
+      },
+      {
+        "full": 280,
+        "fifth": 55.2,
+        "kept": 0.998
+      },
+      {
+        "full": 341,
+        "fifth": 66.6,
+        "kept": 0.901
+      },
+      {
+        "full": 403,
+        "fifth": 79.7,
+        "kept": 0.664
+      }
+    ],
+    "r": [
+      {
+        "full": 118,
+        "fifth": 18.1,
+        "kept": 1.003
+      },
+      {
+        "full": 149,
+        "fifth": 22.4,
+        "kept": 0.948
+      },
+      {
+        "full": 185,
+        "fifth": 27.4,
+        "kept": 0.862
+      },
+      {
+        "full": 224,
+        "fifth": 32.9,
+        "kept": 0.745
+      }
+    ]
   }
 };
