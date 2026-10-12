@@ -31,8 +31,9 @@ put() {
 }
 
 # Validates the Caddyfile beside this file and installs it when it differs
-# from the live one, then starts Caddy or reloads it. A reload is graceful:
-# connections already open, WebSockets included, stay up. A Caddyfile that
+# from the live one, then starts Caddy or reloads it. A reload closes the
+# WebSockets the old config proxied unless their reverse_proxy has
+# stream_close_delay, which the rooms' has (Caddyfile). A Caddyfile that
 # does not validate leaves the live one in place and fails the script.
 apply_caddy() {
   local here
