@@ -192,7 +192,7 @@ Bands are never widened to pass.
 | C10 | full elevator at zero airspeed | 27.47 rad/s² | 20.6 to 34.3 | 26.7; prop stopped 0.00 |
 | C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.00 |
 | C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.497 stick (the finite wing's broadside force, below) | 7.84 to 11.75, 0.423 to 0.571 | 9.45, 0.438, elevator 0.85 |
-| C12 | knife edge at 20 m/s | 32.3 deg, 0.661 stick, rudder 84 percent | 24.2 to 40.3, 0.562 to 0.760 | 31.3, 0.667, rudder 0.90 |
+| C12 | knife edge at 20 m/s | 29.9 deg, 0.622 stick, rudder 78 percent | 22.5 to 37.3, 0.529 to 0.715 | 29.3, 0.628, rudder 0.87 |
 | C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.5 |
 | C14 | take off roll | 4.2 m | 2.54 to 6.75 | 6.09 |
 | C15 | the Extra, Night Timber, Hercules unmoved | batch's hashes | identical | identical |
