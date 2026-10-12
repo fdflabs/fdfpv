@@ -96,7 +96,7 @@ the waterfall's are the Extreme elevator and aileron).
 | Harrier | Harrier | 3D | 8 | game scale | unproven |
 | Inverted Harrier | Harrier invertido | 3D | 11 | game scale | unproven |
 | Rolling Harrier | Harrier con tonel | 3D | 16 | game scale | unproven |
-| Waterfall | Cascada | 3D | 12 | game scale | flown (Extreme tier) |
+| Waterfall | Cascada | 3D | 12 | game scale | unproven (not flyable on the measured slipstream, round 6; was flown on the Extreme tier) |
 | Blender | Licuadora | 3D | 18 | game scale | waits |
 | Tumble | Voltereta | 3D | 15 | game scale | waits |
 | Lomcevak | Lomcovák | 3D | 16 | game scale | waits |
@@ -305,7 +305,7 @@ below). The loop, aileron roll and 4-point roll are
 | Barrel Roll | flown | 9 / 10 / 9.5 | |
 | Hover, Torque Roll, Wall | unproven | - | the 3D lane's: the hover a person holds |
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
-| Waterfall | flown | - / - / - | LOST on the combined plant (round 6): none of about 1000 flights is named, from any entry; inverted after the first half turn the yaw runs away to 7 rad/s with full right rudder, named a spin (the wash lane's). On the seat alone, from 28 m/s, 87 of round 4's 175. On the Extra's Extreme elevator with an aileron tier over stock, flown on the Extreme aileron (round 4, below); the CAP has no surface tiers in the hangar and flies it stock, unnamed; the Slick has them (w36-surface-tiers, 4cf3179d1). Scott's throttle cut on the back side is not flown: on this plant it stops the rotation. The pivot's plane tilts 38 deg (2.5 points) |
+| Waterfall | **unproven** (was flown) | - / - / - | **BIG FAILURE against the RealFlight bar**: not flyable on the measured slipstream (Deters, Ananda and Selig 2015). Data gap: no tail-plane survey behind a prop with a fuselage; the plant's static elevator authority at x/D 3 is FITTED and ESTIMATED. On the combined plant none of about 1000 flights is named; the elevator's static-wash authority leaves the pivot too slow, and inverted after the first half turn the yaw runs away to 7 rad/s with full right rudder (named a spin). On the seat alone, from 28 m/s, 87 of round 4's 175. Flown (round 4) on the Extra's Extreme elevator and aileron |
 
 ### Round 6 (2026-10-12, w36-tricks-r6): the combined plant
 
@@ -374,13 +374,26 @@ regenerated or re-swept.
     first half turn, 5 to 9 m/s in the static wash, the yaw runs away to
     the left to 7 rad/s with full right rudder: a spin. The wash lane's
     (its 09:00 note already had the program turning into a spin).
-    `figures:table:check` fails on this row, as built to; the status stays
-    flown (owner).
+    The physics lane confirmed it (the plant follows its best source;
+    no technique flies it), and the owner moved it from flown to
+    unproven: not flyable on the measured slipstream (Deters, Ananda and
+    Selig 2015); data gap: no tail-plane survey behind a prop with a
+    fuselage; the plant's static elevator authority at x/D 3 is FITTED
+    and ESTIMATED. A big failure against the RealFlight bar, where a 3D
+    plane waterfalls; reported as one.
   - *8-Point Roll* (unproven, pinned): the Extra names it at 0.21, 0.22,
     0.24, 0.26 and 0.27 of stick (1 to 3.5) and not at 0.23 or the
     program's 0.25: a figure on a hair, its stick not moved to land between
-    two misses. `figures:sweep` fails on its pin, as built to (the lines'
-    rudder does not touch the points).
+    two misses. Flown instead to its judging rule (FAI/CIVA Sporting Code
+    Section 6 Part 1, B.9.26.2 and B.9.26.3: stops at regular intervals,
+    the rate constant between them, pauses of identical duration and each
+    clearly recognizable), the slow roll's 1.7 rad/s held between 45 deg
+    stops of 400 ms: named on none of the three; the detector sees 4 or 5
+    pauses, not 7, because the hold has no aileron and the roll runs on
+    through a stop. At 0.25 the CAP and the Slick (0, 0.5) lose 4 to 4.5
+    points to the path off its line and 2.5 to 3.5 to the roll's total.
+    The point's stop is what is missing, not the stick. `figures:sweep`
+    fails on its pin, as built to; the lead takes it from here.
   - *Rolling Circle* (unproven): kpsi and kz's 36 name four rolls in none
     (6 of 12 when it was fitted), one roll in 10 on the Extra or the CAP, on all
     three in none.

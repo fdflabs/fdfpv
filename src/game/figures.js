@@ -104,9 +104,15 @@ export const FIGURES = [
   fig('harrier', '3d', 8, null, 'unproven'),
   fig('inverted_harrier', '3d', 11, null, 'unproven'),
   fig('rolling_harrier', '3d', 16, null, 'unproven'),
-  /* Flown on the Extra's Extreme elevator and aileron, not on stock throws
-   * (tests/lib/figureprograms.js PROGRAM_TIERS). */
-  fig('waterfall', '3d', 12, null, 'flown'),
+  /* Not flyable on the measured slipstream (Deters, Ananda and Selig
+   * 2015). Data gap: no tail-plane survey behind a prop with a fuselage;
+   * the plant's static elevator authority at x/D 3 is FITTED and
+   * ESTIMATED. Flown on the Extra's Extreme elevator and aileron
+   * (tests/lib/figureprograms.js PROGRAM_TIERS) until the measured wash
+   * speed (w36-physics, 2026-10-12): none of about 1000 flights since is
+   * named. A big failure against the RealFlight bar, where a 3D plane
+   * waterfalls (docs/TRICKS-CATALOG.md, round 6). */
+  fig('waterfall', '3d', 12, null, 'unproven'),
   fig('blender', '3d', 18, null, 'waits'),
   fig('tumble', '3d', 15, null, 'waits'),
   fig('lomcevak', '3d', 16, null, 'waits'),

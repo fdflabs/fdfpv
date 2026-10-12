@@ -1513,7 +1513,7 @@
       "family": "3d",
       "k": 12,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "flown",
+      "physics": "unproven",
       "tiers": {
         "a": "extreme",
         "e": "extreme"
