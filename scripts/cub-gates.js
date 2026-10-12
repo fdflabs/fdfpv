@@ -212,19 +212,21 @@ check: {
     c17 == null ? 'never left the ground' : `heading within ${(c17.worstHeading * DEG).toFixed(1)} deg, ${c17.worstY.toFixed(2)} m off the line`,
     `under ${t18.maxHeadingDeg} deg, under ${t18.maxOffLine} m`);
 
-  /* Taxi: full right rudder at walking pace; the radius from the speed and
-   * the heading rate over the last two of five seconds. */
+  /* Taxi: full right rudder at c19_taxi.duty; the radius from the speed
+   * and the heading rate over the last two of twenty seconds, the turn
+   * settled (cub:derive's steady taxi turn; the plant takes about fifteen
+   * seconds to settle at 30 percent). */
   onStrip(sim);
   for (let ms = 0; ms < 2000; ms += RC_STEP_MS) step(sim, [0, 0, 0, th.c19_taxi.duty]);
   let h0 = null;
   let vSum = 0;
   let n19 = 0;
   let allLoaded = true;
-  for (let ms = 0; ms < 5000; ms += RC_STEP_MS) {
+  for (let ms = 0; ms < 20000; ms += RC_STEP_MS) {
     o = step(sim, [0, 0, 1, th.c19_taxi.duty]);
     allLoaded = allLoaded && o.loads.slice(0, 3).every((f) => f > 0);
-    if (ms === 3000) h0 = heading(o.s);
-    if (ms > 3000) { vSum += speed(o.s); n19 += 1; }
+    if (ms === 18000) h0 = heading(o.s);
+    if (ms > 18000) { vSum += speed(o.s); n19 += 1; }
   }
   let dh = heading(o.s) - h0;
   dh = Math.atan2(Math.sin(dh), Math.cos(dh));
