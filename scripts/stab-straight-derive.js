@@ -64,7 +64,20 @@ const THROWS = {
   'zagi:acro': { table: 'FW_ZAGI1219', file: 'tests/zagi-thresholds.json', prelude: 'zagiPrelude', z: 150, speed: 15, duty: 0.6, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
   bramor: { table: 'FW_BRAMOR2300', file: 'tests/bramor-thresholds.json', prelude: 'bramorPrelude', z: null, duty: 0.7, seconds: 12, was: 'under 15 m off the line, a figure with no source' },
   'bramor:acro': { table: 'FW_BRAMOR2300', file: 'tests/bramor-thresholds.json', prelude: 'bramorPrelude', z: 150, speed: 17, duty: 0.7, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  dlg: { table: 'FW_NRJ1490', file: 'tests/dlg-thresholds.json', prelude: 'dlgThrow', z: 100, speed: 6, duty: 0, seconds: 12, was: 'under 15 m off the line, a figure with no source' },
+  wing: { table: 'FW_WING1000', file: 'tests/wing-thresholds.json', prelude: 'wingPrelude', z: 3, speed: 10, duty: 0.65, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  'wing:acro': { table: 'FW_WING1000', file: 'tests/wing-thresholds.json', prelude: 'wingPrelude', z: 3, speed: 10, duty: 0.65, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  glider: { table: 'FW_RADIAN2000', file: 'tests/glider-thresholds.json', prelude: 'airframe:GLIDER_AIRFRAME', z: 100, speed: 10, duty: 0.5, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  'glider:acro': { table: 'FW_RADIAN2000', file: 'tests/glider-thresholds.json', prelude: 'airframe:GLIDER_AIRFRAME', z: 100, speed: 12, duty: 0.5, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  timber: { table: 'FW_TIMBER1500', file: 'tests/timber-thresholds.json', prelude: 'timberPrelude', z: 3, speed: 12, duty: 'trim', seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  'timber:acro': { table: 'FW_TIMBER1500', file: 'tests/timber-thresholds.json', prelude: 'timberPrelude', z: 3, speed: 12, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  tigermoth: { table: 'FW_TIGERMOTH1803', file: 'tests/tigermoth-thresholds.json', prelude: 'airframe:TIGERMOTH_AIRFRAME', z: 30, speed: 14.4, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  'tigermoth:acro': { table: 'FW_TIGERMOTH1803', file: 'tests/tigermoth-thresholds.json', prelude: 'airframe:TIGERMOTH_AIRFRAME', z: 30, speed: 14.4, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
+  uglystik: { table: 'FW_UGLYSTIK1567', file: 'tests/uglystik-thresholds.json', prelude: 'uglystikPrelude', z: 30, speed: 17.3, duty: 'trim', seconds: 10, note: 'Kraft: no thrust offsets (docs/UGLYSTIK-STAGE1.md).', was: 'under 15 m off the line, a figure with no source' },
+  'uglystik:acro': { table: 'FW_UGLYSTIK1567', file: 'tests/uglystik-thresholds.json', prelude: 'uglystikPrelude', z: 30, speed: 17.3, duty: 0.75, seconds: 10, note: 'Kraft: no thrust offsets (docs/UGLYSTIK-STAGE1.md).', was: 'under 15 m off the line, a figure with no source' },
+  f16: { table: 'FW_F16878', file: 'tests/f16-thresholds.json', prelude: 'f16Prelude', z: 30, speed: 20, duty: 0.5, seconds: 10, was: 'under 25 m off the line, a figure with no source' },
+  'f16:acro': { table: 'FW_F16878', file: 'tests/f16-thresholds.json', prelude: 'f16Prelude', z: 30, speed: 20, duty: 0.5, seconds: 10, was: 'under 25 m off the line, a figure with no source' },
+  kadet: { table: 'FW_KADET1981', file: 'tests/kadet-thresholds.json', prelude: 'kadetPrelude', z: 30, speed: 14.5, duty: 'trim', seconds: 10, note: 'SIG: 0 right thrust (docs/KADET-STAGE1.md).', was: 'under 18 m off the line, a figure with no source' },
+  dlg: { table: 'FW_NRJ1490', file: 'tests/dlg-thresholds.json', prelude: 'airframe:DLG_AIRFRAME', z: 100, speed: 6, duty: 0, seconds: 12, was: 'under 15 m off the line, a figure with no source' },
 };
 
 /* The prelude's own launch, as the plant's state has it after it. */
@@ -96,9 +109,9 @@ async function plantThrow(c, mount) {
   wp.must(sim.e.sim_wing_set_stab(c.mode === 'acro' ? 2 : 1), 'stab');
   wp.must(sim.e.sim_wing_set_mount(1), 'mount');
   wp.must(sim.reset(), 'reset');
-  /* The DLG's selftest seats it by hand: the airframe and the pack. */
-  if (c.prelude === 'dlgThrow') {
-    wp.must(sim.e.sim_set_airframe(wp.DLG_AIRFRAME), 'airframe');
+  /* A selftest that seats it by hand: the airframe and the pack. */
+  if (c.prelude.startsWith('airframe:')) {
+    wp.must(sim.e.sim_set_airframe(wp[c.prelude.slice(9)]), 'airframe');
     wp.must(sim.setCellVoltage(4.1), 'cells');
   } else {
     wp[c.prelude](sim);

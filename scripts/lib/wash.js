@@ -237,9 +237,15 @@ export function gain(dp, share, V) {
 const PLANT_WING = new URL('../../src/native/plant_wing.c', import.meta.url);
 export function planeTable(name) {
   const src = readFileSync(PLANT_WING, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  const body = new RegExp(`const FixedWingParams ${name} = \\{([\\s\\S]*?)\\n\\};`).exec(src)[1];
+  let body = new RegExp(`const FixedWingParams ${name} = \\{([\\s\\S]*?)\\n\\};`).exec(src)[1];
   const num = (e) => Function('WING_PI', `return (${e});`)(Math.PI);
   const out = {};
+  /* A table of rows (hi_lat, engine_q): each row a list, taken out of the
+   * body first so the single lists below do not read its rows. */
+  body = body.replace(/\.(\w+)\s*=\s*\{\s*(\{[\s\S]*?\})\s*,?\s*\},/g, (all, k, rows) => {
+    out[k] = [...rows.matchAll(/\{([^}]*)\}/g)].map((r) => r[1].split(',').map((x) => x.trim()).filter(Boolean).map(num));
+    return '';
+  });
   for (const m of body.matchAll(/\.(\w+)\s*=\s*(\{[^}]*\}|[^,{}\n]+),/g)) {
     const e = m[2].trim();
     if (e.startsWith('{')) out[m[1]] = e.slice(1, -1).split(',').map((x) => x.trim()).filter(Boolean).map(num);
