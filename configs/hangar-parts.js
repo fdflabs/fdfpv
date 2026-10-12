@@ -194,7 +194,7 @@ export const ANCHORS = {
   timber1500: AIRCRAFT.ANCHORS.timber1500,
   timber1500f: AIRCRAFT.ANCHORS.timber1500f,
   cub1400: AIRCRAFT.ANCHORS.cub1400,
-  cub1400f: { prop: [0.23, 0, 0.028], belly: [0, 0, -0.030], tail: [-0.58, 0, 0.016], tank: [-0.01, 0, 0.006], led: [[0.038, 0.21, 0.126], [0.038, 0.63, 0.133]] },
+  cub1400f: AIRCRAFT.ANCHORS.cub1400f,
   sky1800: AIRCRAFT.ANCHORS.sky1800,
   radian2000: AIRCRAFT.ANCHORS.radian2000,
   /* The F-16's `prop` is its fan, inside the fuselage behind the wing. */

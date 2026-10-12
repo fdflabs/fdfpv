@@ -300,48 +300,18 @@ export const AIRFRAMES = [
    * its lowest point, the fin's top the CG's 26.6 mm drop higher.
    */
   airframeOf('timber1500f'),
-  {
-    /*
-     * The FMS Cub on its floats, docs/FLOATS-STAGE1.md: simId 10, on the
-     * Timber on floats' terms. Its thrust to weight on floats is 0.9, so it
-     * needs most of its throttle to get over the hump.
-     */
-    id: 'cub1400f',
-    simId: 10,
-    tunesOf: 'cub1400',
-    fixedWing: true,
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): docs/FLOATS-STAGE1.md, the Cub having no flaps. */
-    stall: 8.73,
-    /* Level speed at full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant. */
-    topSpeed: 20.2,
-    gear: { restHeight: 0.2171, restPitch: 0.43 * Math.PI / 180 },
-    floats: { restHeight: 0.1765, restPitch: 0.64 * Math.PI / 180 },
-    name: 'Piper Cub, floats',
-    short: 'Cub floats',
-    blurb: 'The 1400 mm Piper J-3 Cub on floats, on 3S. Full throttle and the stick back to get it on the step, rotate at flying speed, and land it back on the lake nose up. The water rudders steer it on the water.',
-    facts: ['3S', '1400 mm', 'Floats'],
-    sizeMm: 1400,
-    grams: 1532,
-    trackClass: 'wing',
-    cells: 3,
-    ...packStates(),
-    defaultTune: 'cub-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine on floats, CUB_FLOAT_DIMS. */
-    dims: {
-      arm: 0,
-      propR: 0.1397,
-      hullR: 0.70,
-      vHalfDown: 0.2186,
-      vHalfUp: 0.1864,
-      bodyLength: 0.9,
-      bodyWidth: 1.4,
-      bodyHeight: 0.405,
-    },
-  },
+  /*
+   * The FMS Cub on its floats, docs/FLOATS-STAGE1.md: simId 10, on the
+   * Timber on floats' terms. Its thrust to weight on floats is 0.9, so it
+   * needs most of its throttle to get over the hump.
+   *
+   * The row is its folder's, aircraft/cub1400f/aircraft.js. `stall`: Clean
+   * stall, m/s, sqrt(2W / rho S CLmax): docs/FLOATS-STAGE1.md, the Cub
+   * having no flaps. `topSpeed`: Level speed at full throttle, m/s:
+   * docs/FLOATS-STAGE1.md, measured in the plant. `dims`: The drawn
+   * machine on floats, CUB_FLOAT_DIMS.
+   */
+  airframeOf('cub1400f'),
   {
     /*
      * BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md: Joe
