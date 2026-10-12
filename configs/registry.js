@@ -216,23 +216,14 @@ export const TUNES = [
    * Its tunes are its folder's, aircraft/zagi1219/aircraft.js.
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'zagi1219'),
-  {
-    /* The Striker flies what a one way attack drone flies, an
-     * autopilot's stabilised mode, its default; Manual is the sticks on
-     * the surfaces. The tunes go by the row's plant and fly both
-     * propulsions alike. */
-    id: 'striker-stab',
-    airframe: 'striker2500',
-    name: 'Stabilised',
-    note: 'A gyro holds the delta. Roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, and centred sticks fly level. The yaw stick is the fins\' small rudders.',
-    wingStab: 1,
-  },
-  {
-    id: 'striker-manual',
-    airframe: 'striker2500',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the elevons and the fins\' rudders. A warhead in the nose makes it nose heavy and wants up elevon; without one it is light in pitch.',
-  },
+  /*
+   * The Striker flies what a one way attack drone flies, an autopilot's
+   * stabilised mode, its default; Manual is the sticks on the surfaces.
+   * The tunes go by the row's plant and fly both propulsions alike.
+   *
+   * Its tunes are its folder's, aircraft/striker2500/aircraft.js.
+   */
+  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'striker2500'),
 ];
 
 /*

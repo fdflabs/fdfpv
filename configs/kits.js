@@ -60,7 +60,6 @@ const QUAD = [
 ];
 /* The interceptor's camera sits in its armoured nose, so no mount slot. */
 const ARMOURED_QUAD = QUAD.filter((s) => s.id !== 'mount');
-const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 
 /* By livery key (configs/liveries.js liveryKey), so a float variant wears
  * its plane's kit. */
@@ -122,7 +121,7 @@ export const KITS = {
    */
   bramor2300: AIRCRAFT.KITS.bramor2300,
   '7inch': QUAD, '10inch': QUAD, interceptor: ARMOURED_QUAD,
-  striker2500: STRIKER,
+  striker2500: AIRCRAFT.KITS.striker2500,
 };
 
 /* The families whose builders draw their kit so far (docs/KITS.md section

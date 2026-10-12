@@ -53,8 +53,10 @@ export const BRAMOR_CATAPULT = airframeOf('bramor2300').catapult;
  * turbojet, the faster stalling of the two (scripts/combat-derive.js). The full size attacker leaves a rail on a
  * booster; this one on a pneumatic catapult's stroke. The turbojet is run
  * up to full on the rail before the shot (plant_wing.c plant_wing_launch).
+ * It is the row's own `catapult`, stated in the Striker's folder,
+ * aircraft/striker2500/aircraft.js.
  */
-export const STRIKER_RAIL = { speed: 19, pitchDeg: 15, railLength: 3.0, height: 1.2 };
+export const STRIKER_RAIL = airframeOf('striker2500').catapult;
 
 /* Where the Striker's FPV camera sits, forward and up from the CG: the
  * plant's camera point (src/native/plant.c), in the drawn nose. */
@@ -74,26 +76,13 @@ export function airStartSpeed(af) {
   return af.fixedWing ? AIR_START_STALL_MARGIN * af.stall : 0;
 }
 
-/*
- * What every aircraft starts on: the per cell pack states the pack row
- * offers, and Betaflight 4.5.1's stock ACTUAL rates (70 / 670 deg/s, no
- * expo) with no throttle limit, which seating an aircraft gives a pilot
- * who has not set their own. Each row gets fresh copies, so nothing that
- * edits one aircraft's can edit another's.
- */
-function packStates() {
-  return {
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-  };
-}
-
-function stockRates() {
-  const axis = () => ({ rcRate: 7, srate: 67, expo: 0 });
-  return { type: 'ACTUAL', roll: axis(), pitch: axis(), yaw: axis(), throttleCap: 100 };
-}
-
-/* A row an aircraft folder holds, in its place in the list. */
+/* A row an aircraft folder holds, in its place in the list. Every folder
+ * states what every aircraft starts on: the per cell pack states the pack
+ * row offers, and Betaflight 4.5.1's stock ACTUAL rates (70 / 670 deg/s,
+ * no expo) with no throttle limit, which seating an aircraft gives a pilot
+ * who has not set their own (aircraft:folder holds them equal). Each row's
+ * are its own objects, so nothing that edits one aircraft's can edit
+ * another's. */
 function airframeOf(id) {
   return AIRCRAFT.AIRFRAMES.find((a) => a.id === id);
 }
@@ -601,83 +590,35 @@ export const AIRFRAMES = [
    * top 0.180 m over it.
    */
   airframeOf('nrj1490'),
-  {
-    /*
-     * THE STRIKER, plants 27 and 28, docs/COMBAT-DRONES.md section 7: the
-     * war's pusher delta as a playable aircraft, at the size the war draws
-     * it (src/render/strikercraft.js), 2.5 m over its wingtip fins. A giant
-     * scale glass and carbon build: elevons, a small rudder on each fin, a
-     * warhead in the nose. Every number is scripts/combat-derive.js's from
-     * a parts list and the drawn planform. It is pushed two ways, its
-     * `combat.propulsion`: 'prop', a 110 cc boxer twin on a 30 in wooden
-     * pusher, and 'jet', a 140 N class turbojet whose thrust lags the stick
-     * by seconds. The pilot picks one on the Loadout tab, and each is its
-     * own plant (configs/combat.js combatSimId); the figures on this row
-     * are the first's, the jet's are its propulsion entry's. Shot off a
-     * rail (STRIKER_RAIL) and landed on its belly skid; a turning prop
-     * reaches under the skid, so the piston one breaks its prop doing it.
-     */
-    id: 'striker2500',
-    simId: 27,
-    fixedWing: true,
-    /* Its stall, m/s, trimmed with the standard warhead in the nose:
-     * combat-derive's, which npm run combat:gates holds the module to. */
-    stall: 13.53,
-    /* Level at full throttle, m/s, combat-derive's, held the same way. */
-    topSpeed: 34.2,
-    catapult: STRIKER_RAIL,
-    voice: 'glow2',
-    name: 'Striker',
-    short: 'Striker',
-    blurb: 'The raid\'s own pusher delta, 2.5 m across, on a 110 cc boxer twin or a small turbojet, with a warhead in its nose. Shoot it off the rail, fly it fast and level, put it into the target. It is stable and heavy, not aerobatic, and the jet takes seconds to spool.',
-    facts: ['Pusher delta', '2500 mm', 'Warhead'],
-    sizeMm: 2500,
-    grams: 13824.9,
-    thrustToWeight: 2.09,
-    trackClass: 'wing',
-    /* The ignition's and the receiver's pack: the engine burns fuel. */
-    cells: 2,
-    ...packStates(),
-    defaultTune: 'striker-stab',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 5,
-    /* The drawn machine about its CG (combat-derive's hull): the furthest
-     * reach in plan is a fin's top trailing corner, the lowest point the
-     * belly skid's foot, which it lands on, and the highest the prop's
-     * upper blade; nose to hub 2.67 m. The contact box in plant.c is the
-     * skid and the fins' tops. */
-    dims: {
-      arm: 0,
-      propR: 0.381,
-      hullR: 1.5733,
-      vHalfDown: 0.2514,
-      vHalfUp: 0.4006,
-      bodyLength: 2.67,
-      bodyWidth: 2.502,
-      bodyHeight: 0.652,
-    },
-    combat: {
-      frame: 'striker',
-      propulsion: [
-        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 13.53, topSpeed: 34.2, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
-        { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 14.07, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
-      ],
-      payloads: [
-        { id: 'standard', warhead: 'standard', massKg: 1.5, dragArea_m2: 0, cgOffset_m: [1.196, 0, 0.0196], dims: { d: 0.26, len: 0.3 } },
-        { id: 'wide', warhead: 'wide', massKg: 2.2, dragArea_m2: 0, cgOffset_m: [1.186, 0, 0.0196], dims: { d: 0.28, len: 0.28 } },
-        { id: 'penetrator', warhead: 'penetrator', massKg: 1.8, dragArea_m2: 0, cgOffset_m: [1.246, 0, 0.0196], dims: { d: 0.16, len: 0.4 } },
-        { id: 'emp', warhead: 'emp', massKg: 1.1, dragArea_m2: 0, cgOffset_m: [1.156, 0, 0.0196], dims: { d: 0.26, len: 0.22 } },
-      ],
-      accessories: [
-        { id: 'whip', massKg: 0.06, cgOffset_m: [0.446, 0, 0.2196] },
-      ],
-      /* The bay's trim lead: whatever is carried, it brings the CG to the
-       * wide warhead's (configs/combat.js trimBallastKg). */
-      ballast: { at_m: [1.426, 0, 0.0196] },
-    },
-  },
+  /*
+   * THE STRIKER, plants 27 and 28, docs/COMBAT-DRONES.md section 7: the
+   * war's pusher delta as a playable aircraft, at the size the war draws
+   * it (src/render/strikercraft.js), 2.5 m over its wingtip fins. A giant
+   * scale glass and carbon build: elevons, a small rudder on each fin, a
+   * warhead in the nose. Every number is scripts/combat-derive.js's from
+   * a parts list and the drawn planform. It is pushed two ways, its
+   * `combat.propulsion`: 'prop', a 110 cc boxer twin on a 30 in wooden
+   * pusher, and 'jet', a 140 N class turbojet whose thrust lags the stick
+   * by seconds. The pilot picks one on the Loadout tab, and each is its
+   * own plant (configs/combat.js combatSimId); the figures on this row
+   * are the first's, the jet's are its propulsion entry's. Shot off a
+   * rail (STRIKER_RAIL) and landed on its belly skid; a turning prop
+   * reaches under the skid, so the piston one breaks its prop doing it.
+   *
+   * The row is its folder's, aircraft/striker2500/aircraft.js. `stall`:
+   * Its stall, m/s, trimmed with the standard warhead in the nose:
+   * combat-derive's, which npm run combat:gates holds the module to.
+   * `topSpeed`: Level at full throttle, m/s, combat-derive's, held the
+   * same way. `cells`: The ignition's and the receiver's pack: the engine
+   * burns fuel. `dims`: The drawn machine about its CG (combat-derive's
+   * hull): the furthest reach in plan is a fin's top trailing corner, the
+   * lowest point the belly skid's foot, which it lands on, and the highest
+   * the prop's upper blade; nose to hub 2.67 m. The contact box in plant.c
+   * is the skid and the fins' tops. `combat.ballast`: The bay's trim
+   * lead: whatever is carried, it brings the CG to the wide warhead's
+   * (configs/combat.js trimBallastKg).
+   */
+  airframeOf('striker2500'),
 ];
 
 export const AIRFRAME_IDS = AIRFRAMES.map((a) => a.id);
