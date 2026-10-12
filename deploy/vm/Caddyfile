@@ -106,6 +106,10 @@
 	handle {
 		reverse_proxy 127.0.0.1:8797 {
 			header_up CF-Connecting-IP {remote_host}
+			# Only a rooms process may say it is the other one (edge/rooms/
+			# node.js PEER_HEADER): a pilot's would make a second copy of a
+			# room the other process still flies.
+			header_up -X-Fdfpv-Peer
 			# A reload closes every WebSocket the old config proxied, at
 			# once, with 1001 (measured on Caddy 2.11.4, the VM's, 2026-10-12),
 			# so without this every Caddyfile change and every board deploy
