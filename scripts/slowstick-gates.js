@@ -58,12 +58,13 @@ const th = JSON.parse(await readFile(join(root, 'tests/slowstick-thresholds.json
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 const DEG = 180 / Math.PI;
+const SEAT_V = 4.1;
 
 async function stickSim() {
   const sim = await loadSim(wasmBytes);
   if (sim.init(configText) !== SIM_OK) throw new Error('sim_init failed');
   if (sim.e.sim_set_airframe(SLOWSTICK_AIRFRAME) !== SIM_OK) throw new Error('sim_set_airframe failed');
-  if (sim.setCellVoltage(4.1) !== SIM_OK) throw new Error('sim_set_cell_voltage failed');
+  if (sim.setCellVoltage(SEAT_V) !== SIM_OK) throw new Error('sim_set_cell_voltage failed');
   return sim;
 }
 
@@ -89,6 +90,15 @@ const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
  * 600 m to the side of the field, clear of every one of them. */
 const STILL_AIR = [0, 600, 0, 1, 0, 0, 0];
 const slow = { guard: false, speed0: 6, start: STILL_AIR };
+/* S1 and S4 compare a settled level speed with the derivation, which flies
+ * GWS's power table, the pack as it was seated. fly()'s climb hold takes
+ * minutes to trim (at 30 s S1 was still climbing 0.24 m/s), and over them
+ * the 1300 mAh pack sags 0.13 V a cell, which slows the cruise 0.27 m/s, so
+ * these flights re-seat the pack at every step: charge and all, the motor
+ * turns at the table's speed throughout. */
+function seated(sim) {
+  return () => must(sim.setCellVoltage(SEAT_V), 'sim_set_cell_voltage');
+}
 
 /* A clock that keeps rising across the steps of one flight. */
 let clockMs = 0;
@@ -117,8 +127,8 @@ check: {
     break check;
   }
 
-  const s1 = fly(sim, { duty: th.s1_level_75.duty, vzTarget: 0, seconds: 30, ...slow });
-  gate('S1', 'cruise: level speed at 75 percent', within(s1.v, th.s1_level_75), `${s1.v.toFixed(2)} m/s, sink ${(-s1.vz).toFixed(2)}`, band(th.s1_level_75));
+  const s1 = fly(sim, { duty: th.s1_level_75.duty, vzTarget: 0, seconds: th.s1_level_75.seconds, ...slow, onStep: seated(sim) });
+  gate('S1', 'cruise: level speed at 75 percent', within(s1.v, th.s1_level_75) && Math.abs(s1.vz) < th.s1_level_75.vz_max, `${s1.v.toFixed(2)} m/s, climb ${s1.vz.toFixed(3)}`, `${band(th.s1_level_75)}, climb under ${th.s1_level_75.vz_max}`);
 
   let stallV = null;
   fly(sim, {
@@ -132,8 +142,8 @@ check: {
   const ratio = Math.sqrt(Math.max(0, g3.v * g3.v - g3.vz * g3.vz)) / -g3.vz;
   gate('S3', 'glide ratio, power off', within(ratio, th.s3_glide), `${ratio.toFixed(2)} at ${g3.v.toFixed(2)} m/s, sink ${(-g3.vz).toFixed(2)}`, band(th.s3_glide));
 
-  const s4 = fly(sim, { duty: th.s4_top.duty, vzTarget: 0, seconds: 90, ...slow, speed0: 8 });
-  gate('S4', 'top speed, level', within(s4.v, th.s4_top) && Math.abs(s4.vz) < 0.2, `${s4.v.toFixed(2)} m/s, climb ${s4.vz.toFixed(2)}`, band(th.s4_top));
+  const s4 = fly(sim, { duty: th.s4_top.duty, vzTarget: 0, seconds: th.s4_top.seconds, ...slow, speed0: 8, onStep: seated(sim) });
+  gate('S4', 'top speed, level', within(s4.v, th.s4_top) && Math.abs(s4.vz) < th.s4_top.vz_max, `${s4.v.toFixed(2)} m/s, climb ${s4.vz.toFixed(3)}`, `${band(th.s4_top)}, climb under ${th.s4_top.vz_max}`);
 
   let best = null;
   for (const vT of th.s5_climb.speeds) {
