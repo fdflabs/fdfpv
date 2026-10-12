@@ -25,8 +25,9 @@
  * Until 2026-10-12 the damper was pi / (4 M tau) at the rated setup's
  * level top speed, a margin by formula that took the frame's whole
  * period as its delay and the airframe as a bare integrator, and never
- * measured: at the full throttle dive every AS3X loop was under 6 dB and
- * eight aircraft's rang at the frame's Nyquist rate (w37-fc-feel). Its
+ * measured: at the full throttle dive every AS3X loop but the Radian's
+ * roll was under 6 dB, and six aircraft's were at or past the onset,
+ * ringing at the frame's Nyquist rate (w37-fc-feel). Its
  * check kicked each axis and compared against the same flight unkicked,
  * which a loop ringing by itself passes, since both flights ring alike.
  *

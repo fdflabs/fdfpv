@@ -1069,10 +1069,13 @@ practised on the aircraft does better than the grid.
 The owner flew the live build (#970) and said AS3X was "violently
 correcting". Measured (scripts/as3x-margins.js, scripts/lib/as3xloop.js):
 the receiver is a sampled loop, a frame up and a frame down at worst, and
-at the full throttle dive every AS3X table was under MIL-F-9490D's 6 dB;
-the Bombshell, both Cubs, the Hercules, the Night Timber, the P-51 and
-the Slow Stick were past the onset (0 dB or under), ringing at half the
-frame rate, the surfaces buzzing; the Extra was at 0.4 dB in roll at
+at the full throttle dive every AS3X loop but the Radian's roll was
+under MIL-F-9490D's 6 dB; the Bombshell, the Cub, the Hercules, the
+Night Timber, the P-51 and the Slow Stick were at or past the onset
+(0 dB or under), ringing at half the frame rate, the surfaces buzzing;
+the Cub on floats and the F-16 were within about 1 dB of it, and the
+F-16's and the Slick's dives are flown at sim_wing_launch's 60 m/s, under
+their terminal speed, so theirs are lower bounds; the Extra was at 0.4 dB in roll at
 42.4 m/s and 3.9 to 4.2 dB at its level top speed. The heading's integral
 also rocked the Extra's hover in roll, 7 to 9 deg of phase margin at
 2 to 3 rad/s, a 2.4 s rock, and wound up under a held stick and landed
