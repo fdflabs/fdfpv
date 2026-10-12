@@ -363,7 +363,7 @@ const BRAMOR = [
   {
     id: 'stock', name: 'power.bramor.stock', kind: 'electric', voice: 'wing',
     kv: 470, propIn: 12, pitchIn: 8, blades: 2,
-    thrustN: 22.6, currentA: 20.3, rpmNoLoad: 10434, pitchSpeedMs: 30.036, lvcV: 0,
+    thrustN: 22.9, currentA: 19.08, rpmNoLoad: 10434, pitchSpeedMs: 30.036, lvcV: 0,
     massKg: 4.5, cgShiftM: 0,
     packs: BRAMOR_6S,
     pack: '6s11000',
@@ -372,7 +372,7 @@ const BRAMOR = [
   {
     id: '500kv', name: 'power.bramor.500kv', kind: 'electric', voice: 'wing',
     kv: 500, propIn: 12, pitchIn: 8, blades: 2,
-    thrustN: 22.6 * BRAMOR_KV_UP * BRAMOR_KV_UP, currentA: 20.3 * BRAMOR_KV_UP * BRAMOR_KV_UP * BRAMOR_KV_UP,
+    thrustN: 22.9 * BRAMOR_KV_UP * BRAMOR_KV_UP, currentA: 19.08 * BRAMOR_KV_UP * BRAMOR_KV_UP * BRAMOR_KV_UP,
     rpmNoLoad: 10434 * BRAMOR_KV_UP, pitchSpeedMs: 30.036 * BRAMOR_KV_UP, lvcV: 0,
     massKg: 4.54, cgShiftM: -(0.040 * 0.35) / 4.54,
     packs: BRAMOR_6S,

@@ -378,13 +378,6 @@ const vhT = -slipCma / (at * (1 - deda)), vvF = slipCnb / av;
  * do with the prop stopped, which is nothing. */
 const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
 const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
-/* The same at the stick extra:gates E10 flies, sqrt(W / T_static), the
- * prop's speed share at the hover taken as a stick: on the gates' 4.1 V
- * pack it turns the prop faster than the hover's and blows harder. */
-const gateStickThrust = T(0, hoverN);
-const hovGate = wash(gateStickThrust, 0);
-const pitchAccGate = hovGate.dp * hovGate.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
-const yawAccGate = hovGate.dp * hovGate.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 /* The prop's precession: a yaw rate r pitches the airframe at r h / Iy. */
 const hHover = propJ * 0.85 * hoverN * rpmNL * 2 * Math.PI / 60;
 
@@ -594,7 +587,6 @@ const rows = [
   ['E8 torque at hover N m, less the swirl\'s root and fin, torque roll deg/s', `${f(Qprop, 4)} ${f(Qhover, 4)} ${f(torqueRoll * DEG, 0)}`],
   ['E9 full aileron in the wash N m, net roll deg/s', `${f(aileronHover, 4)} ${f(aileronRollNet * DEG, 0)}`],
   ['E10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],
-  ['   at the gate\'s stick sqrt(W/Ts) on the 4.1 V pack: thrust N, rad/s2', `${f(gateStickThrust, 2)}; ${f(pitchAccGate, 2)} ${f(yawAccGate, 2)}`],
   ['   prop angular momentum at hover N m s', f(hHover, 4)],
   ['E11 entry: the throttle level at 12 m/s', f(levelDuty(12), 3)],
   ['E11 harrier at 35, 40, 45 deg', ''],
