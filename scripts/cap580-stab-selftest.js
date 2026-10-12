@@ -32,6 +32,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { planeTable, propMoments, wash } from './lib/wash.js';
+import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { attitude, must, capPrelude, capGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold } from '../tests/lib/wingpilot.js';
@@ -334,6 +336,27 @@ for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   check('and no wind up: released, every surface is back at zero on the next step', sf.every((x) => x === 0), sf.map(deg).join(' '));
 }
 
+/* The aileron a pilot holds against the prop's known torque on the take
+ * off roll, at full throttle and ground speed V on the seated pack: the
+ * roll moment the prop puts on the airframe (scripts/lib/wash.js
+ * propMoments: its torque, the swirl on the fin, the wing root's share)
+ * over the ailerons' authority per stick, in the wash (dp fa) and the free
+ * stream (q), through the expo. Until 2026-10-12 the hand held the wings
+ * on the bank alone; the seated pack's spin up from rest (its ratio 1.14
+ * at n = 0) rolled it 6.5 deg before that caught it. */
+const CAP_T = planeTable('FW_CAP1702');
+const CAP_SEAT = wingSeat('FW_CAP1702');
+function torqueLead(V) {
+  const fw = CAP_T.fw;
+  const pm = propMoments(CAP_T, CAP_SEAT.at(SEAT_GATES, 1, V).n, V);
+  const w = wash(fw, pm.T, V);
+  const share = -pm.L / ((w.dp * w.fa + 0.5 * 1.225 * V * V) * fw.area * fw.span * fw.cl_da * fw.throw_a);
+  const want = Math.min(1, Math.abs(share));
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (fw.expo * mid ** 3 + (1 - fw.expo) * mid < want) lo = mid; else hi = mid; }
+  return Math.sign(share) * lo;
+}
+
 /* The take off roll at full throttle. On its wheels every mode flies as
  * Manual, so with the rudder left alone the prop's swirl on the fin swings
  * it left in each (docs/FLIGHTMODEL.md); with the pilot's right rudder
@@ -347,7 +370,7 @@ for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
      * the Extra's, and on the roll it lifts the left wheel unless the
      * ailerons answer it, as a pilot's do. Hands off, the swing is the
      * check. */
-    const wings = (s) => (feet ? Math.max(-1, Math.min(1, -1.0 * fullBank(s) - 0.1 * s[11])) : 0);
+    const wings = (s) => (feet ? Math.max(-1, Math.min(1, torqueLead(Math.hypot(s[4], s[5], s[6])) - 1.0 * fullBank(s) - 0.1 * s[11])) : 0);
     const run = roll(() => { const s = sim.readState().state; return [wings(s), 0, feet ? rudderHold(s) : 0, 1]; }, 8, { untilAirborneMs: 2000 });
     const lof = run.liftoff;
     check(`${name}, full throttle, ${feet ? 'the heading held on the rudder' : 'the sticks centred'}: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');

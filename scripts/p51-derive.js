@@ -620,6 +620,7 @@ const rows = [
   ['prop J kg m2, H at full N m s', `${jProp.toPrecision(4)} ${f(jProp * Oml, 4)}`],
   ['level at 100, 75, 50 percent, gear up', `${f(level(1), 2)} ${f(level(0.75), 2)} ${f(level(0.5), 2)}`],
   ['level at 100 percent, gear down', f(level(1, CD0 + cdGear), 2)],
+  ['level at 75 and 70 percent, gear down, flaps up (the stab selftest)', `${f(level(0.75, CD0 + cdGear), 2)} ${f(level(0.7, CD0 + cdGear), 2)}`],
   ['stall clean, full flap (formula)', `${f(Vs, 2)} ${f(VsFull, 2)}`],
   ['stall_re; stall_clmax; stall_peak deg', `${STALL_RE.join(', ')}; ${STALL_CLMAX.map((x) => f(x, 4)).join(', ')}; ${STALL_PEAK.map((x) => f(x * DEG, 2)).join(', ')}`],
   ['   stall_peak rad; cl_max at the clean stall\'s Re', `${STALL_PEAK.map((x) => f(x, 4)).join(', ')}; ${f(CLmax, 4)} at ${f(reOf(Vs), 0)}`],

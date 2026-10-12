@@ -155,7 +155,12 @@ check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * D
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
 check('and straight: under 15 m off the line after 10 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
-check('at a cruising speed', level.v > 12 && level.v < 22, `${level.v.toFixed(1)} m/s`);
+/* The 75 percent stick's level speed with the gear down, as this flight
+ * flies, 23.85 m/s (p51:derive, the stab selftest row), in P1's 0.880 to
+ * 1.120 of it: 20.99 to 26.71. The 12 to 22 m/s held here until
+ * 2026-10-12 had no derivation, and the seated pack's thrust (w36-seat-voltage)
+ * flies it past 22. */
+check('at the 75 percent stick\'s level speed, gear down, 20.99 to 26.71 m/s', level.v > 20.99 && level.v < 26.71, `${level.v.toFixed(1)} m/s`);
 check('with the climb rate under 2 m/s', Math.abs(level.vz) < 2, `${level.vz.toFixed(2)} m/s`);
 const banked = fly(1, 0, 0, 0.95, 4);
 check('full right stick banks right, 50 to 65 degrees', banked.bank * DEG > 50 && banked.bank * DEG < 65, `${deg(banked.bank)} deg`);
@@ -296,7 +301,11 @@ console.log('flaps');
   throwAt(40, 12);
   const slow = fly(0, 0, 0, 0.7, 10);
   check('Stabilised on full flaps: centred sticks fly level, bank within 3 degrees', Math.abs(slow.bank * DEG) < 3 && slow.worstBank * DEG < 8, `${deg(slow.bank)} deg, worst ${deg(slow.worstBank)}`);
-  check('at the trim pitch within 4 degrees, slowly', Math.abs(slow.pitch * DEG - 2) < 4 && slow.v < 15, `${deg(slow.pitch)} deg at ${slow.v.toFixed(1)} m/s`);
+  /* Slowly: slower than the same 70 percent stick flies level with the
+   * gear down and the flaps up, 22.51 m/s (p51:derive, the stab selftest
+   * row). Until 2026-10-12 it was under 15 m/s, with no derivation, which
+   * the seated pack's thrust flies past (17.3). */
+  check('at the trim pitch within 4 degrees, slower than flaps up, 22.51 m/s', Math.abs(slow.pitch * DEG - 2) < 4 && slow.v < 22.51, `${deg(slow.pitch)} deg at ${slow.v.toFixed(1)} m/s`);
   const slowBank = fly(1, 0, 0, 0.9, 4);
   check('and full right stick still banks 50 to 65 degrees', slowBank.bank * DEG > 50 && slowBank.bank * DEG < 65, `${deg(slowBank.bank)} deg`);
 

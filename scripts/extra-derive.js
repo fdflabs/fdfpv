@@ -589,6 +589,7 @@ const rows = [
   ['E10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],
   ['   prop angular momentum at hover N m s', f(hHover, 4)],
   ['E11 entry: the throttle level at 12 m/s', f(levelDuty(12), 3)],
+  ['extra:stab kick: the throttle level at 16 m/s', f(levelDuty(16), 3)],
   ['E11 harrier at 35, 40, 45 deg', ''],
   ['   35', J(harrier(35))],
   ['   40', J(harrier(40))],
