@@ -61,7 +61,8 @@ systemctl daemon-reload
 say "postgresql MemoryMax $(systemctl show -p MemoryMax --value postgresql), in force $(cat /sys/fs/cgroup/system.slice/postgresql.service/memory.max)"
 systemctl enable -q fdfpv-board
 systemctl restart fdfpv-board
-apply_caddy
+# The rooms route stays on the live rooms port (rooms-deploy.sh).
+apply_caddy "$(rooms_live)"
 
 for unit in postgresql fdfpv-board caddy; do
   say "$unit $(systemctl is-active "$unit")"

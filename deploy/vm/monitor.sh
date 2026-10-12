@@ -65,6 +65,10 @@ MEM_PCT=10
 BACKUP_HOURS=26
 HEARTBEAT_HOUR=9
 UNITS='caddy postgresql fdfpv-rooms fdfpv-tracks fdfpv-board'
+# fdfpv-rooms is asked as the live instance, fdfpv-rooms@<port> from
+# /etc/fdfpv/rooms-live, once deploy/vm/rooms-deploy.sh has made them; a
+# draining one is not watched, it ends by itself.
+ROOMS_UNIT_SH='r=fdfpv-rooms; if [ -f /etc/fdfpv/rooms-live ]; then r="fdfpv-rooms@$(cat /etc/fdfpv/rooms-live)"; fi'
 
 DRY=0
 [[ ${1:-} == --dry-run ]] && DRY=1
@@ -138,7 +142,7 @@ check_tls() {
 check_vm() {
   local out disk avail total down
   if ! out="$(ssh -i "$KEY" -o BatchMode=yes -o ConnectTimeout=15 -o LogLevel=ERROR "$VM" \
-    "df -P / | awk 'NR==2 {print \$5}'; free -m | awk '/^Mem:/ {print \$2, \$7}'; systemctl is-active $UNITS | paste -sd' '" 2>/dev/null)"; then
+    "df -P / | awk 'NR==2 {print \$5}'; free -m | awk '/^Mem:/ {print \$2, \$7}'; $ROOMS_UNIT_SH; systemctl is-active ${UNITS/fdfpv-rooms/\$r} | paste -sd' '" 2>/dev/null)"; then
     bad vm 'ssh did not answer'; return
   fi
   disk="$(sed -n 1p <<< "$out" | tr -d '%')"

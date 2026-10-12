@@ -279,6 +279,7 @@
     "rooms:server": "node scripts/rooms-server-check.js",
     "rooms:drain": "node scripts/rooms-drain-check.js",
     "rooms:deploy-caddy": "node scripts/rooms-deploy-caddy-check.js",
+    "rooms:deploy-dryrun": "node scripts/rooms-deploy-dryrun.js",
     "rooms:accounts": "node scripts/rooms-account-check.js",
     "signin:gate": "node scripts/signin-gate-check.js",
     "signin:bypass": "node scripts/signin-bypass-check.js",

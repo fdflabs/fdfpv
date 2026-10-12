@@ -41,8 +41,7 @@ the old process.
   process. A drain never holds a deploy for RESEAT_MS.
 - SIGTERM keeps its meaning, also during a drain.
 
-Nothing sends SIGUSR2 yet, so on the VM this slice changes nothing until
-slice 3.
+deploy/vm/rooms-deploy.sh sends it (slice 3).
 
 Proof: `npm run rooms:drain` (scripts/rooms-drain-check.js, in CI), two
 processes from one tree on their own ports, SQLite files and REVISIONs
@@ -51,31 +50,73 @@ no close while v1 drains, new rooms land on v2, v1 exits when the room
 empties, a short cap closes with 1012 at the cap, and a drain that closes
 at once fails the same probe.
 
-## Slice 2: two processes side by side on the VM
+## Slice 2: two processes side by side, one rooms.db (built, local proof)
 
-- Release directories, `/opt/fdfpv/releases/<commit>` with a `current`
-  symlink, instead of the in-place rsync: the draining process keeps its
-  own code tree under it.
-- A unit template `fdfpv-rooms@.service` (port 8797 or 8798, the release
-  path, its own `rooms.db`), the live one named in `/etc/fdfpv/rooms-live`.
-- Caddy `reverse_proxy` with `stream_close_delay` (Caddy 2.6 and later, the
-  VM has 2.11.4), so a reload that points `/v2/*` at the new port does not
-  close the WebSockets already open to the old one. Proven by a local run
-  with Caddy in front (caddy-headers-check style): a reload with an open
-  room socket does not close it.
-- Ownership: a reconnect to `/v2/room/<CODE>` after the switch lands on the
-  new process, which must forward it to the draining one while that one
-  holds the code (a list handed over at start, or a shared
-  `room_owner(code, port, until)` table). Each room has exactly one owning
-  process; two processes never open the same `rooms.db`.
-- Lobby: the new process lists its own rooms and the drainer's (its
-  `/v2/rooms`) while the drainer lives.
+The survey planned a rooms.db per colour. That loses a room at the cap: the
+pilots closed with 1012 reconnect to a process that never saw the old
+file and are told `nosuch`. So both processes open the same `ROOMS_DB`,
+and a room is held by exactly one of them, the one with its core in
+memory. `edge/rooms/node.js`, with **ROOMS_PEER** naming the other
+process (`PEER_HEADER` there has the rules):
 
-## Slice 3: deploy.sh
+- At start, while the peer answers, nothing stored is restored: it is the
+  peer's. Without a peer (every check, a lone process) a start restores
+  everything, as before.
+- A socket to a stored room this process does not hold is forwarded to
+  the peer, marked `x-fdfpv-peer`. A peer holding it takes it; a draining
+  peer that does not answers 503 and the room is restored here (a room
+  whose own process restarted); a process sent a marked socket never
+  forwards it back. Caddy strips the header from pilots.
+- `/v2/rooms` adds the peer's public rooms that have pilots in them.
+- The peer is polled every second. Once its port refuses, and a second
+  later (a draining process writes its last closes in the 500 ms after
+  its listener closes), every stored room it did not hold is taken in,
+  alarms and listing, as a restart does.
+- SQLite `busy_timeout` 5 s: two writers on one file, and an unawaited
+  SQLITE_BUSY would end the process.
 
-Start the new colour, check its health and that `/v2/version` names the
-commit, flip Caddy, send the old colour SIGUSR2, return without waiting. A
-deploy while an older colour still drains sends that one SIGTERM first, so
-at most two versions are ever alive. Memory: two 256M ceilings against 5.6
-GB. The tracks server keeps a plain restart: it is short HTTP requests on
+Caddy: `stream_close_delay 30m` on the rooms' `reverse_proxy`. Measured on
+Caddy 2.11.4 (the VM's): without it a reload closes every proxied
+WebSocket at once with 1001, so every Caddyfile change and every board
+deploy has been dropping every room.
+
+Proof, local:
+
+- `npm run rooms:drain` (CI): on one file, a join and a token reseat to v2
+  fly with v1's pilots, v2 lists v1's flying room and makes new ones, v1
+  exits when empty and v2 takes its rooms in; at the cap both pilots
+  reseat through v2 and fly. Controls: forwarding off fails two checks; a
+  v2 without ROOMS_PEER seats a pilot in a second copy of the room.
+- `CADDY=... npm run rooms:deploy-caddy` (needs caddy, not CI): the VM's
+  Caddyfile in front, the whole flip: the room flies on through the
+  reload and the drain, `/v2/version` through Caddy is v2's, a join to the
+  old room flies with its pilots, also with a forged peer header, v1
+  exits and v2 takes in. Control: without `stream_close_delay` the reload
+  closes both pilots (1001).
+
+## Slice 3: the VM (written, dry run only)
+
+- `fdfpv-rooms@.service`, one instance per port, 8797 and 8798, each on
+  its own copy of the code (`/opt/fdfpv-rooms/<port>`, bind mounted at
+  `/opt/fdfpv` for that unit), so the next deploy's rsync never changes the
+  files under a draining process. `Restart=on-failure`: a drain ends with
+  exit 0 and must stay down. `rooms-<port>.env` holds ROOMS_PEER.
+- `rooms-deploy.sh` (from `install.sh`): stop whatever still runs on the
+  port not live (the previous drain, at most two versions alive), copy
+  the code, start it, require its `/v2/version` to name the commit, point
+  Caddy at it (`lib.sh apply_caddy`, which renders the rooms upstream from
+  `/etc/fdfpv/rooms-live` for board deploys too), write rooms-live, send
+  the old instance SIGUSR2. It never waits for a room. The first run
+  drains today's one unit `fdfpv-rooms` (kept from restarting by a
+  `Restart=no` drop-in), and the run after removes it.
+- `monitor.sh` and `turn-install.sh` ask the live instance.
+- Proof: `CADDY=... npm run rooms:deploy-dryrun` runs `rooms-deploy.sh`
+  against a fake VM (stub systemctl and curl, the real `caddy validate`):
+  the migration from `fdfpv-rooms`, two more deploys while the previous one
+  drains, and a deploy whose new instance answers the wrong commit, which
+  fails with everything left as it was. Plus `bash -n`, shellcheck and
+  `systemd-analyze verify` on the template. The VM itself is the lead's
+  next deploy.
+
+The tracks server keeps a plain restart: it is short HTTP requests on
 SQLite and needs no drain.
