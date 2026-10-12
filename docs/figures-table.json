@@ -6,7 +6,7 @@
     "steps": 50,
     "lineGains": {
       "kp": 4,
-      "kr": 0.3
+      "kr": 0.2
     },
     "source": "McRuer and Jex, IEEE Trans. HFE 8(3), 1967: a trained operator's effective delay in compensatory tracking",
     "margin": "none measured: fixed gains, the calmest that did not ring through the delay (LINE_GAINS)"
@@ -83,12 +83,10 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [
-          "flat_spin 8"
-        ],
-        "finished": false,
-        "crashed": true,
-        "lowestM": 0
+        "flew": [],
+        "finished": true,
+        "crashed": false,
+        "lowestM": 150
       },
       "margin": null
     },
@@ -112,13 +110,13 @@
       },
       "measured": {
         "named": true,
-        "grade": 9.5,
+        "grade": 9,
         "flew": [
-          "tailslide 9.5"
+          "tailslide 9"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 142.6
+        "lowestM": 135.6
       },
       "margin": null
     },
@@ -240,10 +238,14 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
+        "flew": [
+          "half_roll 7",
+          "loop 0",
+          "half_roll 6.5"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 107
+        "lowestM": 106.9
       },
       "margin": null
     },
@@ -273,6 +275,8 @@
         "named": false,
         "grade": null,
         "flew": [
+          "half_roll 7",
+          "loop 0",
           "half_roll 7"
         ],
         "finished": true,
@@ -339,10 +343,12 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
+        "flew": [
+          "half_roll 7"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 132.8
+        "lowestM": 130.1
       },
       "margin": null
     },
@@ -400,7 +406,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 131
+        "lowestM": 150
       },
       "margin": null
     },
@@ -677,7 +683,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 142.3
+        "lowestM": 142.6
       },
       "margin": null
     },
@@ -704,7 +710,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 145.5
+        "lowestM": 145.7
       },
       "margin": null
     },
@@ -875,7 +881,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 102.7
+        "lowestM": 115.3
       },
       "margin": null
     },

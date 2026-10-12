@@ -70,19 +70,29 @@ const roll = (stick, rad, thr = 0.75, pitch = 0, push = true) => ({
   },
 });
 /* The gains a line is held with: the nose's error to a rate (kp, 1/s) and
- * the rate's error to the stick (kr, s). With this pilot's 0.2 s lag a
- * rate gain of 0.5 rings: the Extra's vertical weaved 0.24 rms in its up
- * component (29 deg peaks) and its rudder banged stop to stop; 0.3 holds
- * it to 0.10 rms. Measured over kp 1.5 to 4 and kr 0.2 to 0.5 on the
- * tailslide's up line, 2026-10-11: kr 0.4 and over ring at every kp. */
-export const LINE_GAINS = { kp: 4, kr: 0.3 };
+ * the rate's error to the stick (kr, s), figures-plant-check.js's. With
+ * this pilot's 0.2 s lag a rate gain of 0.5 rang on every plant (the
+ * Extra's vertical weaved 0.24 rms in its up component, 2026-10-11), and
+ * on the prop curves (562dc785e, the elevator in a stronger slipstream)
+ * 0.3 rings too: the hammerhead's up line went stop to stop on the
+ * elevator, the wings flipping through 170 deg. kr 0.2 was the calmest
+ * at every kp from 1 to 4 there (0.11 rms at kp 4), measured 2026-10-12. */
+export const LINE_GAINS = { kp: 4, kr: 0.2 };
+/* A person holding a line also settles their hand on what holds it: the
+ * proportional hold alone left the Extra's nose 8 deg past the vertical
+ * as it slowed on the prop curves. ki per second on the stick the hold
+ * asks for, figures-plant-check.js's; each line starts its own. */
+const LINE_KI = 1;
+const holdLine = (d, m, target, thr) => {
+  const [r, p, y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  m.trimP = clamp((m.trimP ?? 0) + LINE_KI * p * H, 0.5);
+  m.trimY = clamp((m.trimY ?? 0) + LINE_KI * y * H, 0.5);
+  return [quant(r), quant(clamp(p + m.trimP)), quant(clamp(y + m.trimY)), thr];
+};
 /* The nose held on a world direction (a vertical or a 45 line). */
 const line = (target, ms, thr = 1, until = null) => ({
   name: `line ${target.map((x) => x.toFixed(2))}`,
-  step: (d, m) => {
-    const [r, pi, y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
-    return [[quant(r), quant(pi), quant(y), thr], m.t >= ms || (until && until(d))];
-  },
+  step: (d, m) => [holdLine(d, m, target, thr), m.t >= ms || (until && until(d))],
 });
 const UP = [0, 0, 1];
 const DOWN = [0, 0, -1];
@@ -149,8 +159,7 @@ const slide = () => ({
   name: 'slide',
   step: (d, m) => {
     m.back = m.back || d.along < -1;
-    const [r, pi, y] = m.back ? [0, 0, 0] : hangSticks(d.s, { target: UP, rollStick: 0, ...LINE_GAINS });
-    return [[quant(r), quant(pi), quant(y), 0], m.t > 600 && d.nz < -0.3];
+    return [m.back ? [0, 0, 0, 0] : holdLine(d, m, UP, 0), m.t > 600 && d.nz < -0.3];
   },
 });
 /* Sticks held as given for a time. */
