@@ -215,7 +215,7 @@ export function wash(slip, T, u) {
   const rw = slip.slip_r * Math.sqrt((up + vi) / (up + 2 * vi));
   const fh = Math.min(1, rw / slip.slip_yh);
   const [h0, h1] = slip.slip_hv;
-  const fv = (Math.min(rw, h0) + Math.min(rw, h1)) / (h0 + h1);
+  const fv = h0 + h1 > 0 ? (Math.min(rw, h0) + Math.min(rw, h1)) / (h0 + h1) : 0;
   const [y0, y1] = slip.slip_ya;
   const ye = Math.min(rw, y1);
   const fa = rw > y0 ? (ye * ye - y0 * y0) / (y1 * y1 - y0 * y0) : 0;

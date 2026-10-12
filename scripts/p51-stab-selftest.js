@@ -154,7 +154,10 @@ const level = fly(0, 0, 0, 0.75, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
-check('and straight: under 15 m off the line after 10 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/p51-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/p51-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${level.y.toFixed(2)} m`);
 /* The 75 percent stick's level speed with the gear down, as this flight
  * flies, 23.85 m/s (p51:derive, the stab selftest row), in P1's 0.880 to
  * 1.120 of it: 20.99 to 26.71. The 12 to 22 m/s held here until

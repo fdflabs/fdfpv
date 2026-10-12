@@ -136,7 +136,10 @@ launch();
 const level = fly(0, 0, 0.6, 12);
 check('off the hand, centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
-check('and straight: under 15 m off the line after 12 s', Math.abs(level.y) < 15, `${level.y.toFixed(1)} m`);
+/* The cross track the throw flies, derived (npm run stab:straight,
+ * tests/zagi-thresholds.json stab_straight). */
+const straight = JSON.parse(await readFile(join(root, 'tests/zagi-thresholds.json'), 'utf8')).stab_straight;
+check(`and on the derived line: ${straight.derived} m after ${straight.atS} s, within ${straight.tol} m`, level.y >= straight.min && level.y <= straight.max, `${level.y.toFixed(2)} m`);
 check('and it flew away from the throw: above 3 m after 12 s', level.z > 3, `${level.z.toFixed(1)} m`);
 const trimmed = fly(0, 0, TRIM_STICK, 8);
 check(`and at the trim stick, ${TRIM_STICK}, hold the trim pitch within 4 degrees`, Math.abs(trimmed.pitch * DEG - 2) < 4, `${deg(trimmed.pitch)} deg`);
