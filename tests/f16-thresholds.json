@@ -178,14 +178,14 @@
   },
   "s21_hands_off_glide": {
     "duty": 0.75,
-    "seconds": 20,
-    "fromS": 8,
+    "seconds": 60,
+    "fromS": 40,
     "min": 2.94,
     "max": 3.98,
     "vMin": 19.07,
     "vMax": 25.79,
     "unit": "m/s",
-    "source": "level at 75 percent, then the throttle closed and every stick let go, in Manual: the fan spools down to nothing and the neutral elevator's pitching moment trims the glide at 7.1 deg of alpha, 19.57 m/s sinking 2.68 m/s (f16:derive, hands off glide). The mean from 8 s, after the phugoid's first cycle; the sink within 15 percent, the speed S1's band, and it never reaches the stall's alpha Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the neutral elevator trims the glide at 5.4 deg of alpha (cm_0 0.0361, re-derived at the pattern speed), 22.29 m/s; the speed band is S1's, now 19.07 to 25.79; the sink derived 3.458, was 2.684; the same 0.849 to 1.151 of it (was 2.28 to 3.09)."
+    "source": "level at 75 percent, then the throttle closed and every stick let go, in Manual: the fan spools down to nothing and the neutral elevator's pitching moment trims the glide at 7.1 deg of alpha, 19.57 m/s sinking 2.68 m/s (f16:derive, hands off glide). The mean from 8 s, after the phugoid's first cycle; the sink within 15 percent, the speed S1's band, and it never reaches the stall's alpha Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the neutral elevator trims the glide at 5.4 deg of alpha (cm_0 0.0361, re-derived at the pattern speed), 22.29 m/s; the speed band is S1's, now 19.07 to 25.79; the sink derived 3.458, was 2.684; the same 0.849 to 1.151 of it (was 2.28 to 3.09). The window re-derived the same day: the glide is the trimmed one only once the chop's phugoid has died, and the derivation's phugoid at the pattern speed, 11.27 s at a damping of 0.164, decays by e in 1 / (zeta omega) = 10.9 s, so three of those, 33 s, before the mean is taken: 40 to 60 s (was 8 to 20 s, under one period, which read the transient: 4.06 m/s there against 3.49 settled at 22.32 m/s, the derivation's 3.458 at 22.29)."
   },
   "s22_chop": {
     "duty": 0.5,
