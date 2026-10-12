@@ -119,14 +119,17 @@ check, the tick's batch recipients). Those 17 go through one helper,
   about -2 and 8 m. A host moving a private room between the two sees the
   AI pilots leave and fill again on the new one; to any other world they
   leave.
-  - Itaipu: not yet. Its ground is streamed tiles (height.bin) that the
-    town and the water then conform (itaipu/terrain/conform.js) as the
-    page builds; the room would need the tiles and the conform on Node,
-    and a flight region over the lake and town.
-  - The Interior: next. The room already reads its ground and its tree
-    canopy (src/share/ops/missions.js worldFor: groundAt, canopyBlocks,
-    in the ops frame, z up), so ground and tree collision are there; what
-    is missing is where to fly (no valley axis) and the frame mapping.
+  - Itaipu: not yet. The room has its ground (grounds.js, from
+    src/share/itaipu/world.js: the page's finest terrain, cut to the dam,
+    read from the data folder FDFPV_ITAIPU_DATA, which the VM has to
+    hold); what is missing is a flight region over the lake and town, and
+    the water: over the lakes a person's craft meets the surface, and the
+    room's ground there is the bed.
+  - The Interior: next. The room has its ground in the scene frame
+    (grounds.js, from src/share/interior/world.js) and its tree canopy
+    (src/share/ops/missions.js worldFor: canopyBlocks, in the ops frame,
+    z up), so ground and tree collision are there; what is missing is
+    where to fly (no valley axis).
 - Other games: none built. Streamer Combat: a pilot can cut paper with
   none of its own (combat.js), so an AI pilot without a streamer would cut
   and never be cut; its paper is simulated on the owner's client at the
