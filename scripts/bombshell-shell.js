@@ -38,6 +38,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { airframeById } from '../configs/airframes.js';
+import { powerOption } from '../configs/power.js';
 
 const root = dirname(fileURLToPath(new URL('.', import.meta.url)));
 const AF = process.argv[2] ?? 'bombshell1118';
@@ -148,11 +149,13 @@ try {
     say(craft.setting === AF && craft.run === AF && craft.module === af.simId && drawn === `${AF.replace(new RegExp(`${af.sizeMm}$`), '')}-fuselage`,
       `the setting, the run, the module and the drawn model: ${craft.setting}, ${craft.run}, module ${craft.module}, ${drawn}`);
     say(st.tune === af.defaultTune && st.wingStab === 0, `on ${st.tune} with the stabiliser in mode ${st.wingStab}`);
-    /* Its sound: the voice the airframe names, or the fixed wings' blade
-     * pass, read off the mix's own voice (src/render/audio.js VOICES). */
-    const voice = await page.evaluate("(() => { const v = window.__audio.voice; return { perRev: v.perRev, wave: v.wave, rpmFull: v.rpmFull }; })()");
-    const want = { glow4: 'fourStroke', edf: 'fan' }[af.voice] ?? 'blade';
-    say(voice.wave === want, `its sound: the ${voice.wave} voice, ${voice.perRev} wave periods a revolution, full at ${voice.rpmFull} rpm`);
+    /* Its sound: the voice of its stock power system, else the airframe's,
+     * else the fixed wings' own (src/main.js setFlownVoice), read back by
+     * name from the mix. The voices carry only their rpmFull since the
+     * engine became the sound (src/render/audio.js VOICES). */
+    const heard = await page.evaluate("(() => ({ name: window.__hangarRev().voice, rpmFull: window.__audio.voice.rpmFull }))()");
+    const want = powerOption(af.id, null)?.voice ?? af.voice ?? 'wing';
+    say(heard.name === want, `its sound: the ${heard.name} voice, full at ${heard.rpmFull} rpm`);
     if (g) {
       say(g.landed && Math.abs(g.above - af.gear.restHeight) < 0.02,
         `parked on its gear: CG ${g.above.toFixed(4)} m over the ground against the plant's ${af.gear.restHeight}`);
