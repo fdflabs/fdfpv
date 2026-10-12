@@ -20,7 +20,7 @@
   "p15_swing": { "minLeftDeg": 3 },
   "p16_gear": { "timeS": 6.0, "tolS": 0.05 },
   "p17_belly": { "z0": 3, "speed0": 13 },
-  "p18_landing": { "approach": 10.94, "z0": 10, "maxTouchSpeed": 11.6, "pitchTolDeg": 1.5 },
+  "p18_landing": { "approach": 10.94, "glidePathDeg": 3, "maxTouchSpeed": 11.6, "pitchTolDeg": 1.5, "source": "glidePathDeg: the stabilized approach's glide path, \"typically a constant 3 degrees to the touchdown zone\" (FAA-H-8083-3C ch. 9), was a 4 deg sink rate held on unsourced throttle gains. z0 10 removed: the approach now starts where the handbook's stabilized approach criteria apply, 500 ft above the runway at the model's 1:7.8 (19.5 m, derived in the gate). maxTouchSpeed and pitchTolDeg unchanged." },
   "s17_unmoved": {
     "quad": "9fdc42323baad668",
     "wing": "d8ff276d8f5aca94",

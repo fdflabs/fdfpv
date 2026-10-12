@@ -59,6 +59,266 @@ export function attitude(s) {
   };
 }
 
+/*
+ * THE PERSON PILOT, docs/FLIGHTMODEL.md "A hover a person can fly"
+ * (scripts/hover-probe.js): it sees the aircraft 0.2 s late (the
+ * effective delay of a trained operator in compensatory tracking, McRuer
+ * and Jex, "A Review of Quasi-Linear Pilot Models", IEEE Trans. HFE 8(3),
+ * 1967) and moves the sticks ten times a second in fiftieths of their
+ * travel. Its gains are McRuer's crossover model's: the pilot adapts so
+ * the open loop near crossover is omega_c e^(-tau s) / s, so on a loop
+ * whose plant is K/s near crossover the pilot is a gain, omega_c / K, and
+ * omega_c = (pi/2 - PM) / tau. PM is 45 deg, the phase margin that
+ * defines a pilot loop's bandwidth in the bandwidth criterion
+ * (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, "A Survey of Handling
+ * Qualities Criteria and Their Applications to High Performance
+ * Aircraft", NASA grant NCC2-338, 1986, ntrs.nasa.gov 19860021266: "the
+ * frequency at which the phase margin is 45 degrees or the gain margin
+ * is 6 dB"), so omega_c 3.93 rad/s, by the same survey's Neal-Smith
+ * figures a little past the 3.0 to 3.5 rad/s pilots fly attitude at. An
+ * outer loop (speed, glide path) crosses a quarter as high, the corner
+ * as3x:derive puts under its rate loop (docs/FLIGHTMODEL.md), and every
+ * loop trims out its steady error on an integral cornered a quarter
+ * below its own crossover, the same rule: a pilot re-trims slowly
+ * ("re-trimmed to relieve any control pressure", FAA-H-8083-3C ch. 9).
+ */
+export const PERSON = { delayMs: 200, everyMs: 100, steps: 50, pmRad: Math.PI / 4, outer: 0.25 };
+/* The loop's whole delay is the person's 0.2 s and half the 0.1 s the
+ * stick is held between looks (a sample and hold lags by half its
+ * period); its trim's integral, a quarter below crossover, costs
+ * atan(1/4) of the margin there. */
+const TAU_PERSON = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
+const DT_PERSON = PERSON.everyMs / 1000;
+
+/* One loop of the person: error in, command out, gain wc / plantGain,
+ * the trim's integral cornered at wc / 4 and held while the command is
+ * against its limit in the error's direction (a pilot does not keep
+ * pushing a stick that is on its stop). Stepped once per look. */
+export function personLoop(wc, plantGain, { min = -1, max = 1, u0 = 0 } = {}) {
+  if (!(plantGain > 0)) throw new Error(`personLoop: plant gain ${plantGain} is not positive`);
+  const k = wc / plantGain;
+  /* u0, the command the loop starts trimmed at: a stabilised approach is
+   * entered "re-trimmed to relieve any control pressure" (FAA-H-8083-3C
+   * ch. 9), not fought on the integral. */
+  let trim = u0 / k;
+  return {
+    k,
+    step(e) {
+      const free = k * (e + trim);
+      if (!((free >= max && e > 0) || (free <= min && e < 0))) trim += e * DT_PERSON * wc / 4;
+      return Math.max(min, Math.min(max, k * (e + trim)));
+    },
+  };
+}
+
+/* A person on some of the sticks: law(seen) is asked for them every
+ * everyMs with the state delayMs old (the oldest there is, at the
+ * start), and its answer is held, rounded to fiftieths, between looks.
+ * Call it every step with the clock and the state now. */
+export function person(law) {
+  const seen = [];
+  let held = null;
+  let lookMs = -Infinity;
+  return (ms, s) => {
+    seen.push({ ms, s: s.slice() });
+    while (seen.length > 1 && seen[1].ms <= ms - PERSON.delayMs) seen.shift();
+    if (ms - lookMs >= PERSON.everyMs) {
+      lookMs = ms;
+      held = law(seen[0].s).map((x) => Math.round(x * PERSON.steps) / PERSON.steps);
+    }
+    return held;
+  };
+}
+
+/* The pitch stick that holds the attitude where a loop is flown:
+ * start(sim) puts the aircraft there and returns the sticks it flies
+ * with, whose others (the throttle, whose slipstream on the tail moves
+ * the trim by a twentieth of the stick) are kept. Found by bisection, the
+ * attitude unmoved from 0.3 to 1.0 s, once the launch's own transient is
+ * past: extrapolated from the rate a tenth of stick buys over 0.2 to
+ * 0.4 s, the trim missed by a tenth of the stick, which dove the approach
+ * at 10 deg/s from its first second. */
+export function pitchTrim(sim, start) {
+  const drift = (d) => {
+    const sticks = start(sim).slice();
+    sticks[1] = d;
+    let p0 = 0;
+    for (let ms = 0; ms < 1000; ms += RC_STEP_MS) {
+      must(sim.input(ms / 1000, ...sticks), 'sim_input');
+      must(sim.step(RC_STEP_MS), 'sim_step');
+      if (ms + RC_STEP_MS === 300) p0 = attitude(sim.readState().state).pitch;
+    }
+    return attitude(sim.readState().state).pitch - p0;
+  };
+  let lo = -1, hi = 1;
+  for (let i = 0; i < 20; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (drift(mid) < 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/* One stick's response at a frequency w, where a loop is flown:
+ * start(sim) puts the aircraft there, and hold(s) gives the sticks that
+ * keep it there (a plain attitude hold), so the response is the
+ * aircraft's about that flight and not about a spiral or a dive it drifts
+ * into with the sticks left still. The flight is flown twice, as it is
+ * and with stick `axis` swept a twentieth either side at w on top of
+ * hold's; the sim is deterministic, so the differences between the two
+ * flights, in read(state) and in the stick sent, are the sweep's alone,
+ * and their ratio over four periods after two settle is the aircraft's
+ * response whatever hold did with it (the closed loop identification of
+ * an open loop plant). Its magnitude per unit stick and its phase,
+ * radians. */
+export function responseAt(sim, start, hold, w, axis, read) {
+  const amp = 0.05;
+  const T = 2 * Math.PI / w;
+  const fly = (a) => {
+    start(sim);
+    const ys = [];
+    const us = [];
+    for (let ms = 0; ms < 6 * T * 1000; ms += RC_STEP_MS) {
+      const st = hold(sim.readState().state).slice();
+      st[axis] += a * Math.sin(w * ms / 1000);
+      must(sim.input(ms / 1000, ...st), 'sim_input');
+      must(sim.step(RC_STEP_MS), 'sim_step');
+      us.push(st[axis]);
+      ys.push(read(sim.readState().state));
+    }
+    return { ys, us };
+  };
+  const still = fly(0);
+  const swept = fly(amp);
+  let ys = 0, yc = 0, us = 0, uc = 0;
+  for (let i = 0; i < still.ys.length; i += 1) {
+    const t = i * RC_STEP_MS / 1000;
+    if (t < 2 * T) continue;
+    const dy = swept.ys[i] - still.ys[i];
+    const du = swept.us[i] - still.us[i];
+    ys += dy * Math.sin(w * t);
+    yc += dy * Math.cos(w * t);
+    us += du * Math.sin(w * t);
+    uc += du * Math.cos(w * t);
+  }
+  const phase = Math.atan2(yc, ys) - Math.atan2(uc, us);
+  return { mag: Math.hypot(ys, yc) / Math.hypot(us, uc), phase: Math.atan2(Math.sin(phase), Math.cos(phase)) };
+}
+
+/* Where the person crosses on an inner loop, the airframe's own response
+ * taken in (McRuer and Jex 1967: the pilot's crossover regresses to keep
+ * its margin where the controlled element lags more than K / s), by the
+ * bandwidth criterion PERSON cites: the lower of the frequency where the
+ * phase margin is 45 deg and the one where the gain margin is 6 dB. The
+ * loop is the person's gain, 1 / |response| at the crossover, its delay
+ * and its trim's integral, on the airframe's measured response from 0.4
+ * to 12 rad/s, the phase unwrapped up the grid. A crossover holds when
+ * the margin there is PERSON's and above it the loop never comes back to
+ * unity, nor past half where its phase is beyond -180 deg: a lightly
+ * damped mode over the crossover (the Dutch roll in the bank) otherwise
+ * rings the loop it was never checked against. The highest that holds,
+ * on a grid from 0.8 to 4 rad/s, and its plant gain as personLoop takes
+ * it, the magnitude times w. start and hold are responseAt's; read must
+ * give the response its own sense (rising with the stick at low
+ * frequency), the other sense throws. */
+export function crossoverFor(sim, start, hold, axis, read) {
+  const grid = [];
+  for (let i = 2; i <= 60; i += 1) grid.push({ w: i / 5, ...responseAt(sim, start, hold, i / 5, axis, read) });
+  for (let i = 1; i < grid.length; i += 1) {
+    grid[i].phase = grid[i - 1].phase + Math.atan2(Math.sin(grid[i].phase - grid[i - 1].phase), Math.cos(grid[i].phase - grid[i - 1].phase));
+  }
+  if (grid[0].phase > Math.PI / 4 || grid[0].phase < -3 * Math.PI / 4) throw new Error(`crossoverFor: the response's phase at ${grid[0].w} rad/s is ${(grid[0].phase * 180 / Math.PI).toFixed(0)} deg, read has the wrong sense`);
+  let best = null;
+  for (const c of grid.filter((g) => g.w >= 0.8 - 1e-9 && g.w <= 4 + 1e-9)) {
+    const loop = (g) => {
+      const i = c.w / (4 * g.w);
+      return { mag: Math.hypot(1, i) * g.mag / c.mag, phase: g.phase - g.w * TAU_PERSON - Math.atan(i) };
+    };
+    const pm = Math.PI + loop(c).phase;
+    const above = grid.filter((g) => g.w > c.w + 1e-9).map(loop);
+    const holds = pm >= PERSON.pmRad && above.every((l) => l.mag < 1 && (l.phase > -Math.PI || l.mag <= 0.5));
+    if (holds) best = { wc: c.w, gain: c.mag * c.w, pm };
+  }
+  if (best === null) throw new Error('crossoverFor: no frequency on the grid keeps the margin');
+  return best;
+}
+
+/*
+ * THE PERSON ON THE AILERONS, for a long approach: successive loop closure
+ * (McRuer, Ashkenas and Graham, Aircraft Dynamics and Automatic Control,
+ * 1973): the bank as the inner loop at its own crossover (crossoverFor on
+ * the roll stick), the heading as an outer loop and the runway centreline
+ * offset as the outermost, each crossing PERSON.outer of the loop inside
+ * it (the separation that keeps the inner loop's dynamics out of the
+ * outer's crossover). Their plants near crossover: a bank turns the
+ * heading at g / V per radian, a heading moves the aircraft across the
+ * line at V per radian. Conventions: bank right positive, the roll stick
+ * right positive; the heading and the offset left positive, so a right
+ * bank turns the heading right (negative). Its step(s, offset, heading)
+ * gives the roll stick; the trims start at zero (wings level).
+ */
+export function lateralPerson(sim, start, hold, V) {
+  const bankOf = (s) => attitude(s).bank;
+  const inner = crossoverFor(sim, start, hold, 0, bankOf);
+  const bank = personLoop(inner.wc, inner.gain);
+  const wHead = inner.wc * PERSON.outer;
+  const head = personLoop(wHead, 9.80665 / V, { min: -Math.PI / 4, max: Math.PI / 4 });
+  const line = personLoop(wHead * PERSON.outer, V, { min: -Math.PI / 6, max: Math.PI / 6 });
+  return {
+    inner,
+    step(s, offset, heading) {
+      const headWant = line.step(-offset);
+      const bankWant = -head.step(headWant - heading);
+      return bank.step(bankWant - bankOf(s));
+    },
+  };
+}
+
+/* The climb rate a unit of throttle buys at a speed, the throttle's whole
+ * travel: the thrust's change, idle to full, as the aircraft's
+ * acceleration held level at V for 1.2 s (the prop spun up, prop_spool),
+ * times V / g, the excess power's climb. start(sim) puts it on the
+ * airframe in its configuration. */
+export function climbPerThrottle(sim, start, V, gamma = 0, pitchStick = 0) {
+  /* Held at V along the path, at the attitude where the wing carries the
+   * weight there (its lift's share, found on the vertical acceleration),
+   * so the drag is the approach's own and not the zero lift's. */
+  const fly = (thr, theta) => {
+    start(sim);
+    const h = theta / 2;
+    for (let ms = 0; ms <= 1200; ms += RC_STEP_MS) {
+      must(sim.e.sim_set_pose(0, 0, 300, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+      must(sim.e.sim_set_velocity(V * Math.cos(gamma), 0, V * Math.sin(gamma), 0, 0, 0), 'sim_set_velocity');
+      must(sim.input(ms / 1000, 0, pitchStick, 0, thr), 'sim_input');
+      must(sim.step(RC_STEP_MS), 'sim_step');
+    }
+    const s = sim.readState().state;
+    const ax = (s[4] - V * Math.cos(gamma)) / (RC_STEP_MS / 1000);
+    const az = (s[6] - V * Math.sin(gamma)) / (RC_STEP_MS / 1000);
+    /* Along the path and across it. */
+    return { along: ax * Math.cos(gamma) + az * Math.sin(gamma), across: -ax * Math.sin(gamma) + az * Math.cos(gamma) };
+  };
+  let lo = -0.3, hi = 0.5;
+  for (let i = 0; i < 30; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (fly(0, mid).across < 0) lo = mid; else hi = mid;
+  }
+  const theta = (lo + hi) / 2;
+  /* The throttle that holds the speed down the path, where the thrust's
+   * share along it balances what slows it: found, not interpolated, since
+   * thrust goes with the prop's speed squared on its curve and a prop
+   * turned slowly at speed is past its zero thrust. The climb a throttle
+   * buys is the slope there, a twentieth of the travel either side. */
+  let tl = 0, th = 1;
+  for (let i = 0; i < 20; i += 1) {
+    const mid = (tl + th) / 2;
+    if (fly(mid, theta).along < 0) tl = mid; else th = mid;
+  }
+  const trim = (tl + th) / 2;
+  const up = Math.min(1, trim + 0.05), dn = Math.max(0, trim - 0.05);
+  const slope = (fly(up, theta).along - fly(dn, theta).along) / (up - dn);
+  return { climbPer: slope * V / 9.80665, trim, theta };
+}
+
 export function wingDebug(sim) {
   if (!sim.wingDebugPtr) {
     sim.wingDebugPtr = sim.e.malloc(20 * 8);
