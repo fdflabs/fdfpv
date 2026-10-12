@@ -208,7 +208,7 @@ export const ANCHORS = {
   nighttimber1200: AIRCRAFT.ANCHORS.nighttimber1200,
   extra3d1308: AIRCRAFT.ANCHORS.extra3d1308,
   slick2680: AIRCRAFT.ANCHORS.slick2680,
-  hercules3077: { prop: [0.315, 0.3846, 0.0998], belly: [0, 0, -0.195], tail: [-1.25, 0, 0.05], tank: [-0.05, 0, -0.13], led: [[0.10, 1.40, 0.175], [0.10, 0.90, 0.17]] },
+  hercules3077: AIRCRAFT.ANCHORS.hercules3077,
   cap1702: AIRCRAFT.ANCHORS.cap1702,
   p51d1450: AIRCRAFT.ANCHORS.p51d1450,
   zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },

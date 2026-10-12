@@ -462,58 +462,28 @@ export const AIRFRAMES = [
    * edge, 0.716 m aft, further than the tips; the highest the prop's tip.
    */
   airframeOf('nighttimber1200'),
-  {
-    /*
-     * AeroTetris's C-130 Hercules 3077, docs/HERCULES-STAGE1.md: a laser
-     * cut balsa and ply C-130H at 1:13.13, 6.73 kg on four Power 25s each
-     * on its own 3S pack, simId 31 on the fixed wing plant, which takes the
-     * four props as one thrust line (docs/HERCULES-CONTRACT.md). A high
-     * wing, the upswept tail with its rear ramp and cargo door, which O
-     * opens in flight, and a fixed tricycle gear in the sponsons whose nose
-     * wheel steers; `gear` is the plant's settled pose, which the drawn
-     * wheels in src/render/herculescraft.js match: level, the CG 0.2604 m
-     * over the ground.
-     */
-    id: 'hercules3077',
-    simId: 31,
-    fixedWing: true,
-    /* A rear ramp and cargo door the plant opens in flight (O), and the
-     * paradrop out of it (P): docs/HERCULES-CONTRACT.md. */
-    ramp: true,
-    voice: 'wing',
-    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/hercules-thresholds.json h1_stall. */
-    stall: 9.67,
-    /* Level speed at full throttle, m/s: tests/hercules-thresholds.json h4_top, derived. */
-    topSpeed: 28.64,
-    gear: { restHeight: 0.2604, restPitch: 0 },
-    name: 'C-130 Hercules',
-    short: 'Hercules',
-    blurb: 'A 3 m AeroTetris balsa C-130H on four electric motors, in USAF grey. Heavy and slow to answer: fly it on a long approach. Press O to open the ramp and P to drop a load under its parachute.',
-    facts: ['Four motors', '3077 mm', '6.7 kg'],
-    sizeMm: 3077,
-    grams: 6728,
-    trackClass: 'wing',
-    cells: 3,
-    ...packStates(),
-    defaultTune: 'hercules-manual',
-    gravityBase: 1.0,
-    rates: stockRates(),
-    cameraFov: 100,
-    cameraAngle: 0,
-    /* The drawn machine, src/render/herculescraft.js HERCULES_DIMS: the
-     * furthest reach in plan is a tip's trailing corner, the lowest drawn point the
-     * wheels' and the highest the fin's top. */
-    dims: {
-      arm: 0,
-      propR: 0.1524,
-      hullR: 1.557,
-      vHalfDown: 0.2604,
-      vHalfUp: 0.6194,
-      bodyLength: 2.25,
-      bodyWidth: 3.077,
-      bodyHeight: 0.8798,
-    },
-  },
+  /*
+   * AeroTetris's C-130 Hercules 3077, docs/HERCULES-STAGE1.md: a laser
+   * cut balsa and ply C-130H at 1:13.13, 6.73 kg on four Power 25s each
+   * on its own 3S pack, simId 31 on the fixed wing plant, which takes the
+   * four props as one thrust line (docs/HERCULES-CONTRACT.md). A high
+   * wing, the upswept tail with its rear ramp and cargo door, which O
+   * opens in flight, and a fixed tricycle gear in the sponsons whose nose
+   * wheel steers; `gear` is the plant's settled pose, which the drawn
+   * wheels in src/render/herculescraft.js match: level, the CG 0.2604 m
+   * over the ground.
+   *
+   * The row is its folder's, aircraft/hercules3077/aircraft.js. `ramp`: A
+   * rear ramp and cargo door the plant opens in flight (O), and the
+   * paradrop out of it (P): docs/HERCULES-CONTRACT.md. `stall`: Clean
+   * stall, m/s, sqrt(2W / rho S CLmax): tests/hercules-thresholds.json
+   * h1_stall. `topSpeed`: Level speed at full throttle, m/s:
+   * tests/hercules-thresholds.json h4_top, derived. `dims`: The drawn
+   * machine, src/render/herculescraft.js HERCULES_DIMS: the furthest reach
+   * in plan is a tip's trailing corner, the lowest drawn point the wheels'
+   * and the highest the fin's top.
+   */
+  airframeOf('hercules3077'),
   /*
    * Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md: a balsa
    * and carbon IMAC and 3D monoplane, 3.63 kg on 6S, simId 32 on the

@@ -72,7 +72,6 @@ export const SIM_TUNE_DOUBLES = 12;
 
 /* The plant writes its throws as degrees * pi / 180, and so does this, so
  * the high rate is the very double the table holds. */
-const HERCULES_KIT = 'https://aerotetris.com/models/c130-3077.php';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -162,13 +161,9 @@ export const TUNING = {
    * `expo`: the manual sets none, "after first flights, you may adjust
    * expo", as FW_NIGHTTIMBER1200 flies. */
   nighttimber1200: AIRCRAFT.TUNING.nighttimber1200,
-  hercules3077: {
-    chord: 0.3564, area: 1.0486, margin: 0.16,
-    cg: { mm: 145, datum: 'tuning.datum.root_le', range: [145, 173.5], source: `AeroTetris, "CG (16%): 923.8 mm" and "CG (8%): 952.3 mm" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
-    packKg: 1.64, nose: 0.92, tail: -1.20, /* the lead inside the tail cone, ahead of its post */
-    throws: { high: [15, 15, 25], low: [10.5, 10.5, 17.5], source: `ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); ${HERCULES_KIT}` },
-    flaps: null,
-  },
+  /* The Hercules' `tail` is the lead inside the tail cone, ahead of its
+   * post. */
+  hercules3077: AIRCRAFT.TUNING.hercules3077,
   /* The CAP's expo is the data sheet's high rate expo, one figure for all
    * three, as FW_CAP1702 flies (docs/CAP580-STAGE1.md). The Slick's is the
    * sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies; its

@@ -32,6 +32,7 @@ import cap1702 from '../aircraft/cap1702/aircraft.js';
 import cub1400 from '../aircraft/cub1400/aircraft.js';
 import cub1400f from '../aircraft/cub1400f/aircraft.js';
 import extra3d1308 from '../aircraft/extra3d1308/aircraft.js';
+import hercules3077 from '../aircraft/hercules3077/aircraft.js';
 import interceptor from '../aircraft/interceptor/aircraft.js';
 import kadet1981 from '../aircraft/kadet1981/aircraft.js';
 import nighttimber1200 from '../aircraft/nighttimber1200/aircraft.js';
@@ -46,8 +47,8 @@ import timber1500f from '../aircraft/timber1500f/aircraft.js';
 import uglystik1567 from '../aircraft/uglystik1567/aircraft.js';
 
 export const FOLDERS = [
-  a10inch, a7inch, bombshell1118, bramor2300, cap1702, cub1400, cub1400f, extra3d1308, interceptor,
-  kadet1981, nighttimber1200, p51d1450, radian2000, sky1800, slick2680, slowstick1180,
+  a10inch, a7inch, bombshell1118, bramor2300, cap1702, cub1400, cub1400f, extra3d1308, hercules3077,
+  interceptor, kadet1981, nighttimber1200, p51d1450, radian2000, sky1800, slick2680, slowstick1180,
   tigermoth1803, timber1500, timber1500f, uglystik1567,
 ];
 

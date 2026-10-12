@@ -52,9 +52,6 @@ const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
  */
 /* The Timber stands on tundra tyres already. */
 const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
-/* The Hercules' four spinners and its flight deck's glazing; its gear is
- * in sponsons, so no wheels slot. */
-const HERCULES = [slot('spinner', 'twotone'), slot('canopy', 'smoke')];
 /* The F-16's canopy is already gold tinted and a paint region of its own,
  * so a tint slot would only repeat the Paint page. */
 const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
@@ -90,7 +87,11 @@ export const KITS = {
    */
   extra3d1308: AIRCRAFT.KITS.extra3d1308,
   nighttimber1200: TIMBER,
-  hercules3077: HERCULES,
+  /*
+   * The Hercules' four spinners and its flight deck's glazing; its gear is
+   * in sponsons, so no wheels slot.
+   */
+  hercules3077: AIRCRAFT.KITS.hercules3077,
   /* The CAP 580's side force generators are stock on its tips, so no
    * wingtips slot; its spats are stock, so no wheels slot (the Extra's).
    * The Slick's pants are stock, so no wheels slot, and EF sells side
