@@ -34,7 +34,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 112.1
+        "lowestM": 112.1,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -58,7 +62,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -86,7 +94,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -116,7 +128,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 135.6
+        "lowestM": 135.6,
+        "others": {
+          "cap": 10,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -155,7 +171,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 130.5
+        "lowestM": 130.5,
+        "others": {
+          "cap": 8,
+          "slick": 8
+        }
       },
       "margin": null
     },
@@ -182,7 +202,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 5,
+          "slick": 6.5
+        }
       },
       "margin": null
     },
@@ -209,7 +233,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 133.9
+        "lowestM": 133.9,
+        "others": {
+          "cap": 5,
+          "slick": 2
+        }
       },
       "margin": null
     },
@@ -245,7 +273,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 106.9
+        "lowestM": 106.9,
+        "others": {
+          "cap": 0,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -281,7 +313,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 0,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -318,7 +354,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 82.2
+        "lowestM": 82.2,
+        "others": {
+          "cap": null,
+          "slick": 2
+        }
       },
       "margin": null
     },
@@ -348,7 +388,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 130.1
+        "lowestM": 130.1,
+        "others": {
+          "cap": 3.5,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -378,7 +422,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 0,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -406,7 +454,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": null,
+          "slick": 6.5
+        }
       },
       "margin": null
     },
@@ -432,7 +484,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 148.7
+        "lowestM": 148.7,
+        "others": {
+          "cap": 8,
+          "slick": 8
+        }
       },
       "margin": null
     },
@@ -471,7 +527,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 8,
+          "slick": 8.5
+        }
       },
       "margin": null
     },
@@ -495,7 +555,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -521,7 +585,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 146.7
+        "lowestM": 146.7,
+        "others": {
+          "cap": 7,
+          "slick": 7.5
+        }
       },
       "margin": null
     },
@@ -560,7 +628,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 119.2
+        "lowestM": 119.2,
+        "others": {
+          "cap": 0,
+          "slick": 1
+        }
       },
       "margin": null
     },
@@ -586,7 +658,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 10,
+          "slick": 9.5
+        }
       },
       "margin": null
     },
@@ -683,7 +759,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 140.2
+        "lowestM": 140.2,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -710,7 +790,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 138.4
+        "lowestM": 138.4,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -734,7 +818,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 137.9
+        "lowestM": 137.9,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -763,7 +851,11 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 119.2
+        "lowestM": 119.2,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -788,7 +880,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 120.5
+        "lowestM": 120.5,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -814,7 +910,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -881,7 +981,11 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 116.8
+        "lowestM": 116.8,
+        "others": {
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },

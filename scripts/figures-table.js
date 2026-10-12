@@ -7,7 +7,8 @@
  * the Extra 330 in Manual, level at 22 m/s, 150 m up: whether the judge
  * named it, its grade, what else it named, whether the program finished,
  * whether it reached the ground (150 m below its start) and the lowest
- * height. The loop, the aileron roll and the 4-point roll
+ * height, and the grade the CAP and the Slick name it at flying the same
+ * program (others, null where not named). The loop, the aileron roll and the 4-point roll
  * are flown by figures-plant-check.js's own program, a gate with its own
  * pass band, and the row says so. The 'waits' figures have no law yet.
  *
@@ -46,6 +47,7 @@ import { fileURLToPath } from 'node:url';
 import { FIGURES } from '../src/game/figures.js';
 import { PERSON } from '../tests/lib/personpilot.js';
 import { PROGRAMS, EVERY, LINE_GAINS, fly } from '../tests/lib/figureprograms.js';
+import { CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -59,6 +61,19 @@ function lawOf(f) {
   if (PROGRAMS[f.id]) return { by: 'tests/lib/figureprograms.js', phases: PROGRAMS[f.id].map((p) => p.name) };
   if (PLANT_CHECK.has(f.id)) return { by: 'scripts/figures-plant-check.js (npm run figures:plant, graded 4 to 10)', phases: null };
   return null;
+}
+
+/* The same program on the CAP and the Slick, at the same launch: the grade
+ * each names the figure at, or null. A figure is promoted on the Extra;
+ * these say whether the others fly it too. */
+async function others(id) {
+  const out = {};
+  for (const [name, airframe] of [['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
+    const r = await fly(PROGRAMS[id], { wasmBytes, configText, airframe });
+    const hit = r.got.find((g) => g.figure === id);
+    out[name] = hit ? hit.grade : null;
+  }
+  return out;
 }
 
 async function build() {
@@ -76,6 +91,7 @@ async function build() {
         finished: r.finished,
         crashed: r.crashed,
         lowestM: Number(r.minZ.toFixed(1)),
+        others: await others(f.id),
       };
     }
     rows.push({
