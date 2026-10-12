@@ -75,32 +75,36 @@ const PLANES = [
  * the ground's term unchanged. The Extra, CAP and Slick re-pinned for
  * their fuselages' measured crossflow drag (w36-3d-sideforce 84c873e57;
  * were b293b09e73f99993, 2e4df1c22374a4e2 and 1eec01c5f11adf28), the
- * ground's term unchanged. */
+ * ground's term unchanged. Sixteen tables flying their tails in the
+ * wash (cub to slick below; the wing, Skyhunter, Bramor, F-16, Zagi, NRJ
+ * and Strikers unmoved) re-pinned for the seated pack's thrust and the
+ * tail's measured wash on one plant (w36-physics: w36-seat-voltage and
+ * w36-wash-speed), the ground's term unchanged. */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
   sky: '67c0dfd1d6dce1d1',
-  cub: 'eca3d969ad3f4ce6',
-  slowstick: '43095fa2e51c171c',
-  radian: 'd5e167ca716b8c23',
-  timber: '23e48652f96f239a',
+  cub: 'b8541ee8b370c6f4',
+  slowstick: '731483e6eb017e98',
+  radian: '08b9109d261f83b5',
+  timber: '42cf55e4be2ce1de',
   bramor: '639bbf37df657ca7',
-  timberf: 'c85de04cc87fd8b4',
-  cubf: '5ac20d20bbd4806c',
-  bombshell: 'ff71b23a2e794b1f',
-  kadet: 'b714f21b5921bf43',
-  p51: 'abac6a7e41b406b5',
+  timberf: '1714bd0bf5b41596',
+  cubf: '6df7666ef3a9b593',
+  bombshell: 'cb55e508b565c328',
+  kadet: '2af0141678d16393',
+  p51: '3f5b18c3d6fd6773',
   f16: '68bf198f7585f9e2',
   zagi: 'abccd77d1b7b9034',
-  uglystik: 'cdcfaeaef321c312',
+  uglystik: '7eed8ee1f43b5c98',
   nrj: '31151485dea980a5',
-  tigermoth: 'b137c22cbd00dca4',
+  tigermoth: '1617c025e09104fb',
   strikerprop: 'ac1ebe1d9baba2ed',
   strikerjet: '2c30dccda291887d',
-  extra: '600d4952ce0224b7',
-  nighttimber: '199b12e1bb145922',
-  hercules: '1563b7113809f296',
-  cap580: 'cb61e013c0930fcc',
-  slick: '1c36540a86ef8c85',
+  extra: '3507628f2a5cfd82',
+  nighttimber: 'f34bb151437c1dde',
+  hercules: '4405e5e3b684abe5',
+  cap580: '8abf9aeac1ba645b',
+  slick: 'd7e7790e169321bc',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */

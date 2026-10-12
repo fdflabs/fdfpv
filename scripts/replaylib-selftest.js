@@ -75,7 +75,8 @@ const PINNED = {
   /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
   /* Re-pinned: no built in stall side on any aircraft (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': 'a31c8ceb3964bfb90e7bb594284f1b64f881af075389f6806d465077108428d9',
+  /* Re-pinned: the seated pack and the tail wash on one plant, w36-physics (docs/FLIGHTMODEL.md). */
+  'trace.sky.60.10': 'e35937de49e117ba6d07cda827d36b7f48316fce92df4b708ea734e622ef4b42',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */

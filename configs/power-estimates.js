@@ -124,23 +124,23 @@ export const ESTIMATES = {
     stock: {
       '3s2200': {
         topSpeed: 23.54,
-        minutes: 35.4
+        minutes: 35.3
       },
       '3s3200': {
-        topSpeed: 24.04,
-        minutes: 47.8
+        topSpeed: 24.03,
+        minutes: 47.7
       }
     }
   },
   cub1400f: {
     stock: {
       '3s2200': {
-        topSpeed: 21.61,
-        minutes: 24.7
+        topSpeed: 21.59,
+        minutes: 24.5
       },
       '3s3200': {
-        topSpeed: 22.12,
-        minutes: 33.8
+        topSpeed: 22.1,
+        minutes: 33.4
       }
     }
   },
@@ -148,19 +148,19 @@ export const ESTIMATES = {
     stock: {
       '3s1300': {
         topSpeed: 26.39,
-        minutes: 100.9
+        minutes: 100.4
       },
       '3s1500': {
         topSpeed: 26.65,
-        minutes: 114.3
+        minutes: 113.8
       },
       '3s1800': {
         topSpeed: 26.94,
-        minutes: 128.6
+        minutes: 128.1
       },
       '3s2200': {
         topSpeed: 27.21,
-        minutes: 154.5
+        minutes: 153.9
       }
     }
   },
@@ -182,37 +182,37 @@ export const ESTIMATES = {
     stock: {
       '2s1300': {
         topSpeed: 11.05,
-        minutes: 60.1
+        minutes: 59.8
       }
     },
     '2212-1047': {
       '2s1300': {
         topSpeed: 10.88,
-        minutes: 57.7
+        minutes: 57.1
       },
       '2s2200': {
         topSpeed: 11.05,
-        minutes: 75.7
+        minutes: 75.3
       }
     },
     '2212-1060': {
       '2s1300': {
         topSpeed: 13.88,
-        minutes: 92
+        minutes: 91.5
       },
       '2s2200': {
         topSpeed: 14.13,
-        minutes: 121.1
+        minutes: 120.6
       }
     },
     '2215-1060-3s': {
       '3s1300': {
         topSpeed: 17.05,
-        minutes: 117.6
+        minutes: 117.2
       },
       '3s2200': {
         topSpeed: 17.43,
-        minutes: 143
+        minutes: 142.5
       }
     }
   },
@@ -267,7 +267,7 @@ export const ESTIMATES = {
     },
     '3s': {
       '3s2200': {
-        topSpeed: 19.95,
+        topSpeed: 19.94,
         minutes: 22.8
       },
       '3s3200': {
@@ -280,11 +280,11 @@ export const ESTIMATES = {
     stock: {
       '8.4cc': {
         topSpeed: 11.84,
-        minutes: 6.4
+        minutes: 6.5
       },
       '5.1cc': {
         topSpeed: 11.84,
-        minutes: 3.9
+        minutes: 4
       }
     },
     'cox-rc': {
@@ -293,14 +293,14 @@ export const ESTIMATES = {
         minutes: 7.4
       },
       '5.1cc': {
-        topSpeed: 16.68,
-        minutes: 4.4
+        topSpeed: 16.67,
+        minutes: 4.6
       }
     },
     electric: {
       '3s850': {
         topSpeed: 23.45,
-        minutes: 54.1
+        minutes: 53.8
       }
     }
   },
@@ -365,7 +365,7 @@ export const ESTIMATES = {
     },
     fs91: {
       '355cc': {
-        topSpeed: 21.7,
+        topSpeed: 21.69,
         minutes: 17.2
       }
     }
@@ -400,7 +400,7 @@ export const ESTIMATES = {
       },
       '4s3200': {
         topSpeed: 27.18,
-        minutes: 45.8
+        minutes: 45.7
       }
     },
     '3s': {
@@ -429,7 +429,7 @@ export const ESTIMATES = {
         minutes: 26.3
       },
       '6s4500': {
-        topSpeed: 35.4,
+        topSpeed: 35.41,
         minutes: 28.6
       }
     }
@@ -438,7 +438,7 @@ export const ESTIMATES = {
     stock: {
       '1006cc': {
         topSpeed: 41.66,
-        minutes: 33.2
+        minutes: 33.1
       }
     }
   },
@@ -469,7 +469,7 @@ export const ESTIMATES = {
     },
     kv650: {
       '4s2600': {
-        topSpeed: 33.5,
+        topSpeed: 33.49,
         minutes: 25.8
       }
     }
