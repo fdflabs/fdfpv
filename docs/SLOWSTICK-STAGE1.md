@@ -377,3 +377,30 @@ zero, zero, elevator, rudder.
   parts and of built aircraft.
 - Nelson, Flight Stability and Automatic Control, ch. 2, 3 and 5; USAF
   DATCOM, the downwash gradient; Hoerner, Fluid Dynamic Lift, ch. 3.
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+Its v_meas is GWS's table, 7.2 V at 6.1 A on 2S, 3.600 V: at 4.1 V the 2S pack turns the prop 1.070 of the table's speed standing, 14 percent more thrust. The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/slowstick-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| S1 level at 75 percent | 7.73 to 8.67 m/s (plant 8.67) | 6.65 to 9.0, now 7.46 to 10.09 |
+| S4 top speed | 10.28 to 11.17 m/s (plant 11.18) | 9.33 to 11.55, now 10.14 to 12.55 |
+| S5 best climb | 2.18 to 2.71 m/s | 1.49 to 2.61, now 1.85 to 3.24 |
+| S6 hands off from 30 deg, at 2, 4, 6 s | 18.4, 15.9, 13.1 to 21.2, 20.8, 17.2 deg | within 1.6 of the derived |
+| S7 rudder bank after 1 s | 48.8 to 56.7 deg | 29.6 to 73.9, now 34.4 to 85.9 |
+| S8 level turn at 45 deg, 90 percent | 8.36 to 10.26 m | 7.1 to 9.62, now 8.72 to 11.81 |
+| S10 phugoid | 6.08 to 6.16 s | 5.0 to 7.1, now 5.07 to 7.19 |
+| S11 prop torque, static | times 1.145 | 0.028 to 0.065, now 0.0321 to 0.0744 |
+| S15 take off roll | 2.22 to 1.88 m | 1.6 to 3.39, now 1.36 to 2.87 m |
+| S19 thermal pass | 22.5 to 22.8 m | 16.9 to 28.1, now 17.1 to 28.5 |
+
+slowstick:stab: its cruising speed at 75 percent is held to S1's band (it had an underived 4.5 to 7 m/s); the taxi stick is 0.44, which turns the prop as half did (half now pivots it at 2.7 m/s and lifts the outside wheel); the Manual let go is held under 20.4 deg after 8 s, the flown model's 15.76 times the same 1.29 its 15 held over the model's 11.60.

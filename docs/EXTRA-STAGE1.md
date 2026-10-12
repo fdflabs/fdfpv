@@ -253,21 +253,21 @@ figures from `npm run extra:derive`. Bands are never widened to pass.
 
 | Gate | What | Derived | Band | Measured |
 | --- | --- | --- | --- | --- |
-| E1 | level at 75 percent | 18.11 m/s | 15.94 to 20.28 | 17.99 |
+| E1 | level at 75 percent | 28.17 m/s (on the gates' 4.1 V pack) | 24.80 to 31.54 | 27.67 |
 | E2 | stall, power off | 8.31 m/s | 7.81 to 9.47 | 8.92 |
 | E3 | glide ratio at 12 m/s | 7.12 | 6.27 to 7.97 | 7.09 |
-| E4 | top speed | 24.34 m/s | 21.9 to 26.8 | 23.56 |
+| E4 | top speed | 34.73 m/s (4.1 V pack) | 31.26 to 38.20 | 33.44 |
 | E5 | roll, full aileron, pb/2V | 0.378 (497 deg/s at 15 m/s) | 0.284 to 0.473 | 0.376 (553 deg/s at 16.8) |
-| E6 | hover throttle, height held | sqrt(W / T_s) = 0.6255 | 0.594 to 0.657 | 0.6269, within 0.01 m |
-| E7 | vertical climb, full throttle | 15.76 m/s | 14.2 to 17.3 | 15.29 |
+| E6 | hover throttle, height held | the prop at sqrt(W / T_s) = 0.6255 of full, a stick of 0.4701 on the 4.1 V pack | 0.447 to 0.493 | 0.4708, within 0.02 m |
+| E7 | vertical climb, full throttle | 26.39 m/s (4.1 V pack) | 23.75 to 29.03 | 25.87 |
 | E8 | torque roll, ailerons let go | 230 deg/s left | 172 to 288 left | 230 left |
 | E9 | full right aileron, hanging | 149 deg/s right | 89 to 209 right | 149 right |
-| E10 | full elevator at zero airspeed | 38.86 rad/s² | 29.1 to 48.6 | 36.9; prop stopped 0.04 |
-| E10b | full rudder at zero airspeed | 32.47 rad/s² | 24.4 to 40.6 | 31.5; prop stopped 0.04 |
-| E11 | harrier at 40 deg of alpha | 6.25 m/s, 0.603 throttle, elevator 66 percent | 5.0 to 7.5, 0.51 to 0.69, short of full | 7.08, 0.633, stick 0.83 |
-| E12 | knife edge at 15 m/s | 31.8 deg sideslip, 0.618 throttle, rudder 73 percent | 23.9 to 39.7, 0.526 to 0.71, short of full | 30.2, 0.620, stick -0.77 |
+| E10 | full elevator at zero airspeed | 38.86 rad/s² at the hover; 61.89 at the gate's stick, 0.6255, which on the 4.1 V pack makes 1.59 times the weight | 46.4 to 77.4 | 57.8; prop stopped 0.00 |
+| E10b | full rudder at zero airspeed | 32.47 rad/s² at the hover; 51.71 at the gate's stick | 38.9 to 64.6 | 49.0; prop stopped 0.00 |
+| E11 | harrier at 40 deg of alpha | 7.76 m/s, 0.408 throttle (4.1 V pack), elevator 86 percent | 6.21 to 9.31, 0.348 to 0.468, short of full | 7.47, 0.373, stick 0.94 |
+| E12 | knife edge at 15 m/s | 31.8 deg sideslip, 0.493 throttle (4.1 V pack), rudder 73 percent | 23.9 to 39.7, 0.42 to 0.566, short of full | 30.2, 0.495, stick -0.77 |
 | E13 | standing on its wheels | 6.7 deg, 0.2221 m, 18.3 percent on the tail | half a degree, 5 mm, 15 to 22 percent | 6.69, 0.2222, 18.0 |
-| E14 | take off roll | 2.78 m | 1.7 to 4.5 | 4.07 |
+| E14 | take off roll | 1.96 m (4.1 V pack) | 1.18 to 3.13 | 2.83 |
 | E15 | every other aircraft unmoved | main's hashes | identical | identical |
 | E16 | Node and Chrome agree | | identical | identical |
 

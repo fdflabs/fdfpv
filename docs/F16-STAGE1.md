@@ -62,9 +62,9 @@ coefficient below.
 | CLα | 3.310 | a_w and the tail's share through Nelson's downwash 0.647 (DATCOM's gradient gives 0.896 at this aspect ratio, the low end of its fit) |
 | Neutral point, static margin | 0.31 c, 0.115 | the full size F-16's: NASA TP-1538, "static margin at low angles of attack is approximately -4 percent" at its 0.35 c reference; the model's CG at 0.195 c. The build up (the tail and Raymer's fuselage term) gives 0.233 and is printed, not taken |
 | Cmα, Cmq, Cmδe, CLδe | -0.3814, -2.263, 0.700, -0.476 | -CLα SM; Nelson's 2.2 η V_H a_t l_h/c; η V_H a_t for an all moving tail |
-| Cm0 | 0.0470 | level at half stick with the stabilator neutral, the pattern speed |
+| Cm0 | 0.0361 | level at half stick with the stabilator neutral, the pattern speed, on the gates' 4.1 V seat |
 | Zero lift line | -1.03 deg | the 64A204's -1.2 at no incidence, less the tail's share |
-| CD0, k | 0.0336 clean, 0.0466 gear down; 0.1374 | CD0 flies Freewing's 165 km/h on the fan below with the gear up; the gear adds 0.013 (three legs, wheels and doors, 4.6e-3 m² at a C_D of 0.6, ESTIMATED), which the table's cd0 carries and the retracts take away; k 1/(pi 0.75 3.09) |
+| CD0, k | 0.0357 clean, 0.0487 gear down; 0.1374 | CD0 flies Freewing's 165 km/h on the fan below with the gear up, FITTED on a full pack (4.2 V a cell: the manual's "before flying, we need a fully charged battery"), the fan at that pack's loaded voltage over the 3.7 V a cell its 2,400 g was measured at (0.0336 before 2026-10-12, when the fan ignored the pack); the gear adds 0.013 (three legs, wheels and doors, 4.6e-3 m² at a C_D of 0.6, ESTIMATED), which the table's cd0 carries and the retracts take away; k 1/(pi 0.75 3.09) |
 | CL max, blend | 1.10, 3 deg | under the full size F-16's 1.5 to 1.6 for the model's Reynolds number and fixed leading edge; ESTIMATED |
 | Post stall | held 10 deg, falls to 0.8 | the strakes' vortex to Freewing's 30 deg of alpha; ESTIMATED (docs/STALL-STAGE1.md; stall:derive) |
 | Stall arms, stall_dw, stall_asym | -0.0552, 0.2052, 0.1442, 0.0035 | stall:derive: the CG 16 mm ahead of the wing's aerodynamic centre, the plate at 0.40 c, 1 mm of build tolerance |
@@ -144,29 +144,29 @@ CG, which no rotation short of the nozzle's 11.4 deg reaches.
 
 | Check | Derived | Band | Measured |
 | --- | --- | --- | --- |
-| S1 level at half stick, the pattern speed | 19.67 m/s | 16.72 to 22.62 | 20.58 |
+| S1 level at half stick, the pattern speed | 22.43 m/s | 19.07 to 25.79 | 23.18 |
 | S2 stall, power off | 11.98 m/s | 11.26 to 13.61 | 12.33 |
-| S3 glide at 1.3 Vs, gear down | L/D 6.21 (7.09 clean) | 5.53 to 6.95 | 6.28 at 15.76 |
-| S4 top speed, gear up | 45.83 m/s (Freewing) | 41.25 to 50.41 | 43.24, 156 km/h (the pack sags) |
-| S5 best climb | 14.94 m/s at 25.5 | 10.16 to 17.93 | 14.50 at 24.1 |
-| S6 30 deg bank let go, 6 s | 17.2 deg | 8 to 26 | 15.0 (18.6 before the measured lateral set) |
+| S3 glide at 1.3 Vs, gear down | L/D 6.09 (6.93 clean) | 5.42 to 6.82 | 6.16 at 15.81 |
+| S4 top speed, gear up | 45.83 m/s (Freewing) on a full pack, 44.82 at the gates' 4.1 V | 40.34 to 49.30 | 47.06, 169 km/h: over the derivation while the fan runs on an unsagged pack after a launch (open, the plant lane's) |
+| S5 best climb | 14.51 m/s at 25.0 | 9.87 to 17.41 | FAILS: 19.73 at 25.1, the same unsagged fan |
+| S6 30 deg bank let go, 6 s | 15.8 deg | 7.35 to 23.88 | 14.1 (18.6 before the measured lateral set) |
 | S7 full aileron at 30 m/s | 515 deg/s (p b/2V 0.132) | 386 to 644 | 498, p b/2V 0.123 (the full size F-16: 0.107; 460 before the measured lateral set) |
 | S8 45 deg bank held | V²/(g tan) | within 15 percent, level | 163 m, 2 percent |
 | S9 full up held, 60 percent, wings held, from the approach speed | 31.5 deg of alpha | 22 to 40, wing tilt 15, no spin | 26.4 (peak 41.4), tilt 3.9, yaw 5.3 deg/s under the spin line; hands off 0 deg of bank in 12 s |
-| S10 phugoid | 9.84 s | 8.15 to 11.52 | 9.86 |
-| S11a spool from stopped to 90 percent thrust | 0.562 s | 0.506 to 0.618 | 0.562 |
-| S11b from 30 percent turning | 0.343 s | 0.309 to 0.377 | 0.343 |
-| S11c full to under 10 percent | 0.189 s | 0.170 to 0.208 | 0.189 |
+| S10 phugoid | 11.27 s | 9.33 to 13.19 | 11.16 |
+| S11a spool from stopped to 90 percent thrust | 0.505 s (the stopped fan meets an unloaded pack) | 0.455 to 0.555 | 0.505 |
+| S11b from 30 percent turning | 0.267 s | 0.241 to 0.293 | 0.267 |
+| S11c full to under 10 percent | 0.188 s | 0.169 to 0.207 | 0.188 |
 | S12 thrust against airspeed, full throttle | n²(1 - u/(76.87 n)) | within 0.03 of static | 0.659 at 23.6 m/s, 0.443 at 40.5 (0.694, 0.474 at full speed) |
-| S13 chop at 75 percent, height held, to 1.3 Vs | 11.0 s, 261 m | 8.8 to 13.2 s, 208 to 313 m | 11.2 s, 262 m |
+| S13 chop at 75 percent, height held, to 1.3 Vs | 11.0 s, 266 m | 8.8 to 13.2 s, 212 to 319 m | 11.7 s, 288 m |
 | S14 at rest | level, CG 0.140, nose 14.9 percent | | -0.05 deg, 0.1399, 15.0 |
-| S15 take off, full throttle, full up past 1.2 Vs | rotates at 16.9 m/s after 17.3 m | 15.6 to 25.7 m, 1.3 to 1.6 Vs | 17.0 m at 16.7 m/s |
-| S15b take off at 55 percent (Model Aviation's 50 to 60) | 72.2 m to 1.2 Vs, 308 m to 1.6 | between | 169 m at 18.1 m/s |
+| S15 take off, full throttle, full up past 1.2 Vs | rotates at 17.0 m/s after 17.9 m | 16.1 to 26.0 m, 1.3 to 1.6 Vs | 17.2 m at 16.7 m/s |
+| S15b take off at 55 percent (Model Aviation's 50 to 60) | 52.4 m to 1.2 Vs, 146 m to 1.6 | between | 89.2 m at 17.2 m/s |
 | S16 landing from 1.3 Vs, idle over the threshold | touches 14.82 (tail limit) to 16.50 (at 9 deg) | under 17.33 | 15.91 m/s, rolled 115 m |
 | S17 other aircraft unmoved, the P-51's two included | main's hashes | identical | identical |
 | S18 Node and Chrome | | identical | identical |
 | S20 stick closed on the strip | fan stopped | 0 rpm, stands | 0 rpm, stands |
-| S21 chop at 75 percent, hands off | 19.57 m/s sinking 2.68 | 2.28 to 3.09 | 2.87 at 20.80 |
+| S21 chop at 75 percent, hands off | 22.29 m/s sinking 3.46 | 2.94 to 3.98 | FAILS: 4.21 at 23.24, entered from the unsagged fan's faster cruise |
 | S22 chop at the trim speed | | pitch within 30 deg | 6.8 |
 
 Three things the first run taught, each a finding and not a band moved:

@@ -742,11 +742,15 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       if (g.source && was !== g[key]) g.source = g.source.replace(String(was), String(g[key]));
     }
     th.c2_stall.alphaStall = fix(D.CLmax / D.aw, 5);
-    /* The hover is gated on the measurement: the bench's throttle, 5
-     * percent either way (the Extra's E6 width). */
+    /* The hover, 5 percent either way (the Extra's E6 width), about the
+     * stick that turns the prop at sqrt(W / T_static) on the gates' 4.1 V
+     * pack: the bench's throttle is printed beside it, but the bench ran
+     * on its own supply, 23.58 V at 13.4 A sagging to 21.55 V at 111.1 A,
+     * and the same thrust on the gates' pack takes less stick (power_duty,
+     * scripts/lib/propcurve.js wingSeat). */
     th.c6_hover.bench = fix(D.hoverBench, 4);
-    th.c6_hover.min = up(D.hoverBench * 0.95, 3);
-    th.c6_hover.max = dn(D.hoverBench * 1.05, 3);
+    th.c6_hover.min = up(D.hoverDuty * 0.95, 3);
+    th.c6_hover.max = dn(D.hoverDuty * 1.05, 3);
     /* The rest pose: half a degree, 5 mm and 3.5 points either way. */
     const r13 = th.c13_rest;
     r13.pitchDerived = fix(D.restPitchDeg, 2); r13.pitchMin = up(D.restPitchDeg - 0.5, 2); r13.pitchMax = dn(D.restPitchDeg + 0.5, 2);

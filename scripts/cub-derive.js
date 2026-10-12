@@ -414,6 +414,10 @@ const rows = [
   ['C7 best climb m/s at m/s', `${f(best.vz, 2)} ${f(best.V, 2)}`],
   ['C11 sideslip deg', f(betaSS * DEG, 1)],
   ['C12 Dutch roll wn, zeta, peak r deg/s', `${f(wnDR, 2)} ${f(zetaDR, 3)} ${f(rPeak * DEG, 1)}`],
+  /* The gate steps the rudder at the 65 percent stick (wingpilot.js
+   * rudderStep): wn goes with V and zeta and beta_ss do not, so the peak
+   * rate goes with the speed. */
+  ['    the same at the 65 percent stick\'s level speed, deg/s at m/s', `${f(rPeak * DEG * level(0.65) / V12, 1)} at ${f(level(0.65), 2)}`],
   ['C13 steady roll from rudder deg/s', f(rudderRoll * DEG, 1)],
   ['C15 P factor, level at 1.1 Vs', JSON.stringify(pfactorAt(1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(4) : v))],
   ['C16 tail share, wheelbase m', `${f(tailShare, 4)} ${f(wheelbase, 3)}`],
@@ -422,12 +426,12 @@ const rows = [
   ['    asphalt', JSON.stringify(takeoff(muAsphalt, 7, 1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['    three point, hands off: CL, liftoff', `${f(CL3)} ${f(V3, 2)} ${JSON.stringify(takeoff(muGrass, 99, V3), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))}`],
   ['C19 taxi radius m, the wheels alone', f(wheelbase / Math.tan(throwR), 2)],
-  ...[0.28, 0.30, 0.32, 0.34, 0.35].map((d) => {
+  ...[0.26, 0.27, 0.28, 0.30, 0.32, 0.34, 0.35].map((d) => {
     const fr = taxiTurn(d, -throwR, false), gr = taxiTurn(d, -throwR, true);
     const s = (t) => (t ? `${f(t.radius, 3)} m at ${f(t.V, 2)} m/s, tail ${f(t.Nt, 3)} N` : 'none');
     return [`   steady taxi turn at ${d}: free air; the ground`, `${s(fr)}; ${s(gr)}`];
   }),
-  ['   at 0.30 with the ground, a tenth more and less grip:', ['muTail', 'muMain'].map((k) => [0.9, 1.1].map((x) => f(taxiTurn(0.30, -throwR, true, { [k]: { muTail: 0.60, muMain: 0.70 }[k] * x }).radius, 3)).join(' ')).join('; ')],
+  ['   at 0.27 with the ground, a tenth more and less grip:', ['muTail', 'muMain'].map((k) => [0.9, 1.1].map((x) => f(taxiTurn(0.27, -throwR, true, { [k]: { muTail: 0.60, muMain: 0.70 }[k] * x }).radius, 3)).join(' ')).join('; ')],
 ];
 const lc = centredModes(0.65);
 rows.push(['C10 sticks centred at 65 percent: V, climb m/s, theta', `${f(lc.V, 2)} ${f(lc.climb, 2)} ${f(lc.thetaDeg, 2)}`]);

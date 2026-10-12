@@ -390,3 +390,29 @@ of the zoom. A pilot written in the page then flew it to thermal A under a
 little power, closed the throttle, and circled 22 to 33 m from the core at
 30 deg of bank: 31 m to 79 m in 75 s with the prop folded. The same crude
 circle over still air sank 0.49 m/s all the way to the grass.
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+Its v_meas is Model Aviation's 251 W at 21.8 A on 3S, 3.838 V; at 4.1 V the prop turns 0.987 of the table's speed standing. The derivation also flies the stick through the motor's law now. The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/glider-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| G4 best climb | 9.59 to 8.93 m/s | 6.6 to 11.39, now 6.15 to 10.61 |
+| G5 level at 65 percent | 17.14 to 18.78 m/s | 14.88 to 19.76, now 16.3 to 21.65 |
+| G9 rudder yaw rate at the 65 percent speed | 114.7 to 125.7 deg/s | 77 to 171, now 84.4 to 187.4 |
+| G10 roll from the rudder | 70.4 to 77.2 deg/s | 37 to 146, now 40.6 to 160.1 |
+| G11 open prop drag at 8 m/s | 0.128 to 0.149 N | 0.072 to 0.193, now 0.084 to 0.225 |
+| G12 glide, prop open | 14.96 to 14.49 | 12.55 to 17.18, now 12.16 to 16.64 |
+| G13 prop torque, static | 0.092 to 0.090 N m | 0.08 to 0.24, now 0.078 to 0.234 |
+| G17 throw: the stick that holds the 70 percent climb | -0.294 to -0.306 | up -0.294, now -0.306 |
+| G19 phugoid | 5.73 to 5.89 s | 4.67 to 6.71, now 4.8 to 6.9 |
+
+glider:stab's "centring brings it back to trim" reads 4.1 deg of pitch against its 4 (4.0 before this change), 4 s after a full throttle nose up at the 0.5 stick: left red, a finding, not a band moved.

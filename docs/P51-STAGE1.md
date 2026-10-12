@@ -95,7 +95,9 @@ a cell) balance the 14.8 V: 6,351 rpm, 55.2 A, 632 W on the shaft and
 | Prop inertia j_prop | 0.00117 kg m^2 | four 25 g blades as rods from the hub (m L^2 / 3), the spinner, 60 g at 30 mm, and the motor's bell, 100 g at 25 mm, ESTIMATED |
 
 **The stock P-51 is not fast**, and that is the kit, not the plant: level
-at full throttle it does 20.6 m/s derived, 19.8 flown, gear up. FMS's
+at full throttle it does 30.8 m/s derived, 29.4 flown, gear up, on the gates'
+4.1 V seat (26.6 at the balance's own 3.7 V a cell; 20.6 on the straight
+line thrust before 2026-10-11). FMS's
 owners say the same ("In stock form (540kv motor), it was barely adequate
 in speed and power", HobbySquawk's FMS P-51 V8 thread; "It is rather
 slow", its "Need for Speed" thread). What it has is the heaviest wing
@@ -390,22 +392,22 @@ widened to pass.
 
 | Check | Derived | Band | Measured |
 | --- | --- | --- | --- |
-| P1 level at 75 percent, gear up | 15.06 m/s | 13.25 to 16.87 | 15.16 |
+| P1 level at 75 percent, gear up | 24.56 m/s at the gates' 4.1 V seat | 21.61 to 27.51 | 24.24 |
 | P2a stall, power off, clean | 9.68 m/s at its own Reynolds number | 9.10 to 11.03 | 10.11 |
 | P2b stall, power off, full flap | 8.25 m/s at its own Reynolds number | 7.75 to 9.40 | 7.88 |
 | P3 glide at 13 m/s, gear up | L/D 11.13 | 9.91 to 12.47 | 11.17 at 13.04 m/s |
-| P4 top speed, gear up | 20.64 m/s | 18.78 to 23.12 | 19.80 |
-| P4b what the gear down costs | 0.45 m/s | 0.2 to 0.8 | 0.49 (19.31 down) |
-| P5 best climb | 6.57 m/s at 12 | 4.93 to 8.21 | 5.96 at 13.4 m/s |
+| P4 top speed, gear up | 30.79 m/s at 4.1 V | 28.01 to 34.49 | 29.37 |
+| P4b what the gear down costs | 0.972 m/s | 0.42 to 1.72 | 1.018 (28.35 down) |
+| P5 best climb | 14.68 m/s at 16.7 | 11.01 to 18.35 | 13.96 at 18.0 m/s |
 | P6 full aileron roll, pb/2V | 0.1216 (144 deg/s at 15 m/s) | 0.091 to 0.152 | 0.1368 |
-| P7 throttle closed from top speed, height held, after 3 s | 17.10 m/s (the Kadet: 12.72) | 16.2 to 18.0 | 16.81 from 20.05 |
+| P7 throttle closed from top speed, height held, after 3 s | 24.28 m/s (the Kadet: 12.72) | 23.00 to 25.56 | 23.89 from 29.72 |
 | P8 full up, power off, from 1.2 Vs: a wing drops | an outer strip stalls first | at least 20 deg within 3 s of the break | 68.9 deg, right wing (the windmill's gyroscope, above) |
-| P9 phugoid | 11.43 s, damping 0.41 | 9.40 to 13.30 | 11.67, one cycle before it is gone |
+| P9 phugoid | 20.21 s, damping 0.69 | 16.60 to 23.50 | FAILS: 31.55 over one crossing; hands off the plant settles climbing at 21.6 m/s where the derivation trims level at 24.56 (an open finding) |
 | P10 prop torque, static | 0.485 N m disc, 0.95 shaft | 0.41 to 1.08, rolling left | 0.485, rolling left |
 | P11 P factor at 8 m/s, 10 deg nose up, full throttle | 1.6 T (-w)/Omega | 2 percent, nose left | 0.06307 against 0.06307 |
 | P12 gyroscopic yaw at q 0.5 rad/s, full throttle | J Omega q | 2 percent, nose left | 0.41616 against 0.41616 |
 | P13 standing on three points | 13.09 deg, CG 0.228 m, tail 18.3 percent | 12.09 to 14.09 deg, 0.223 to 0.233 m, 13 to 23 percent, no hull | 13.13 deg, 0.2291 m, 17.2 percent |
-| P14 take off, heading held on the rudder | 6.51 m, 11.51 m/s | 4.88 to 9.77 m, 10.35 to 13.8 m/s, within 5 deg, right rudder | 8.26 m, 12.24 m/s, within 3.5 deg, mean stick +0.188 (right) |
+| P14 take off, heading held on the rudder | 5.42 m, 11.51 m/s | 4.06 to 8.13 m, 10.35 to 13.8 m/s, within 5 deg, right rudder | 7.09 m, 12.34 m/s, within 3.3 deg, mean stick +0.200 (right) |
 | P15 take off, rudder left alone | swings left | at least 3 deg left at liftoff | 7.9 deg left |
 | P16 retracts | 6 s each way | 0.05 s, refused without retracts | 6.001 s up and down |
 | P17 landing with the gear up | on the belly | hull contact, no wheel load, stopped | hull 2, prop tip 55 N, wheels 0 |

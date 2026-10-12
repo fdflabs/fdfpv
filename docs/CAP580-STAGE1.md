@@ -180,21 +180,21 @@ Bands are never widened to pass.
 
 | Gate | What | Derived | Band | Plant |
 | --- | --- | --- | --- | --- |
-| C1 | level at 75 percent stick | 27.69 m/s (the prop at the curve's 0.839) | 24.37 to 31.01 | 27.31 |
+| C1 | level at 75 percent stick | 30.32 m/s on the gates' 4.1 V pack | 26.68 to 33.95 | 29.88 |
 | C2 | stall, power off | 10.62 m/s (CL max 0.928 at 2.5e5) | 9.99 to 12.10 | 11.10 |
 | C3 | glide ratio at 15 m/s | 7.43 | 6.54 to 8.32 | 7.41 |
-| C4 | top speed | 33.09 m/s | 29.78 to 36.39 | 32.18 |
+| C4 | top speed | 35.51 m/s (4.1 V pack) | 31.97 to 39.06 | 34.57 |
 | C5 | roll, full aileron, pb/2V | 0.440 (533 deg/s at 18 m/s) | 0.330 to 0.550 | 0.439 (598 at 20.2) |
-| C6 | hover, height held | the bench's 0.535; the curve turns sqrt(W / T_s) at 0.514 | 0.509 to 0.562 | 0.5157, height within 0.01 m |
-| C7 | vertical climb, full throttle | 21.97 m/s | 19.78 to 24.17 | 21.41 |
+| C6 | hover, height held | 0.455 on the 4.1 V pack; the bench's 0.535 was on its own supply, 21.55 to 23.58 V | 0.433 to 0.477 | 0.4559, height within 0.01 m |
+| C7 | vertical climb, full throttle | 25.89 m/s (4.1 V pack) | 23.30 to 28.47 | 25.39 |
 | C8 | torque roll, ailerons let go | 194 deg/s left | 146 to 242 | 200 left |
 | C9 | full right aileron, hanging | 169 deg/s right | 102 to 237 | 208 right |
 | C10 | full elevator at zero airspeed | 27.47 rad/s² | 20.6 to 34.3 | 26.7; prop stopped 0.00 |
 | C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.00 |
-| C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.497 stick (the finite wing's broadside force, below) | 7.84 to 11.75, 0.423 to 0.571 | 9.45, 0.438, elevator 0.85 |
-| C12 | knife edge at 20 m/s | 29.9 deg, 0.622 stick, rudder 78 percent | 22.5 to 37.3, 0.529 to 0.715 | 29.3, 0.628, rudder 0.87 |
+| C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.410 stick on the 4.1 V pack (the finite wing's broadside force, below) | 7.84 to 11.75, 0.349 to 0.471 | 9.41, 0.368, elevator 0.87 |
+| C12 | knife edge at 20 m/s | 29.9 deg, 0.555 stick (4.1 V pack), rudder 78 percent | 22.5 to 37.3, 0.472 to 0.638 | 29.3, 0.560, rudder 0.87 |
 | C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.5 |
-| C14 | take off roll | 4.2 m | 2.54 to 6.75 | 6.09 |
+| C14 | take off roll | 3.64 m (4.1 V pack) | 2.19 to 5.82 | 5.47 |
 | C15 | the Extra, Night Timber, Hercules unmoved | batch's hashes | identical | identical |
 | C16 | Node and Chrome agree | | identical | identical |
 | C17 | the figure judge names its 3D figures | hover, torque roll, harrier, knife edge pass | all four | all four |

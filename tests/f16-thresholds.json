@@ -2,10 +2,10 @@
   "note": "The bands the Freewing F-16 V3 70 mm EDF plant has to land in, from docs/F16-STAGE1.md, which derives each from Freewing's published figures (the V3 manual FJ211-V02 and the FJ21115P page), Model Aviation's review, the fan's maker's figures, NASA's ducted fan measurements (Weinstein et al., SciTech 2024) and NASA TP-1538's full size F-16 (scripts/f16-derive.js prints the derived figures). Each band is the Kadet's in proportion about its derived figure unless its source says otherwise. Never widened to pass; argue in the derivation instead. Everything in the air is flown with the retracts up, as a jet pilot has them once clear of the field; the take off, the approach glide and the landing with them down, whose drag the table's cd0 carries (the P-51's retracts).",
   "s1_level_50": {
     "duty": 0.5,
-    "min": 16.72,
-    "max": 22.62,
+    "min": 19.07,
+    "max": 25.79,
     "unit": "m/s",
-    "source": "level speed at half stick, the pattern speed the elevator is trimmed neutral at ('the model can also fly the pattern at surprisingly slow speeds', Model Aviation), derived 19.67, within 15 percent"
+    "source": "level speed at half stick, the pattern speed the elevator is trimmed neutral at ('the model can also fly the pattern at surprisingly slow speeds', Model Aviation), derived 19.67, within 15 percent Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): derived 22.43, was 19.67; the same 0.850 to 1.150 of it (was 16.72 to 22.62)."
   },
   "s2_stall": {
     "alphaStall": 0.3501,
@@ -16,16 +16,16 @@
   },
   "s3_glide": {
     "speed": 15.57,
-    "min": 5.53,
-    "max": 6.95,
-    "source": "L/D at the approach speed, 1.3 Vs, 15.57 m/s, with the gear down as an approach is flown, derived 6.21 (7.09 clean), the Kadet's -11 and +12 percent"
+    "min": 5.42,
+    "max": 6.82,
+    "source": "L/D at the approach speed, 1.3 Vs, 15.57 m/s, with the gear down as an approach is flown, derived 6.21 (7.09 clean), the Kadet's -11 and +12 percent Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the gear down glide on the table's cd0, 0.0466 to 0.0487 now the clean 0.0357 is fitted on a full pack, derived 6.09, was 6.21; the same 0.890 to 1.119 of it (was 5.53 to 6.95)."
   },
   "s4_top": {
     "duty": 1.0,
-    "min": 41.25,
-    "max": 50.41,
+    "min": 40.34,
+    "max": 49.30,
     "unit": "m/s",
-    "source": "level speed at full throttle: Freewing's 'maximum flying speed of 165kph', 45.83 m/s, which CD0 is fitted to, within 10 percent; Motion RC's 103 mph, 46.0 m/s, agrees"
+    "source": "level speed at full throttle: Freewing's 'maximum flying speed of 165kph', 45.83 m/s, which CD0 is fitted to, within 10 percent; Motion RC's 103 mph, 46.0 m/s, agrees Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the cd0 FITTED to Freewing's 165 km/h, 45.83 m/s, on a full pack (4.2 V: the manual's 'before flying, we need a fully charged battery'), so 45.83 is the 4.2 V figure and the gates' 4.1 V seat flies derived 44.82, was 45.83; the same 0.900 to 1.100 of it (was 41.25 to 50.41)."
   },
   "s5_climb": {
     "speeds": [
@@ -35,20 +35,20 @@
       29.0,
       33.0
     ],
-    "min": 10.16,
-    "max": 17.93,
+    "min": 9.87,
+    "max": 17.41,
     "unit": "m/s",
-    "source": "full throttle, best over a sweep of airspeeds, derived 14.94 at 25.5 m/s (a thrust to weight of 1.13, Freewing's 'strong vertical climbing performance'), the Kadet's -32 and +20 percent"
+    "source": "full throttle, best over a sweep of airspeeds, derived 14.94 at 25.5 m/s (a thrust to weight of 1.13, Freewing's 'strong vertical climbing performance'), the Kadet's -32 and +20 percent Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): at 24.99 m/s, derived 14.51, was 14.94; the same 0.680 to 1.200 of it (was 10.16 to 17.93)."
   },
   "s6_self_level": {
     "duty": 0.5,
     "bankDeg": 30,
     "atS": 6,
-    "min": 8.0,
-    "max": 26.0,
+    "min": 7.35,
+    "max": 23.88,
     "maxBankDeg": 32,
     "unit": "deg",
-    "source": "from a 30 deg bank at the pattern speed, every stick centred: the four state lateral model gives 22.9, 19.9 and 17.2 deg after 2, 4 and 6 s, a spiral that halves the bank in 9.4 s through the wing's sweep; the bank at 6 s, the same side, and never steeper than it started"
+    "source": "from a 30 deg bank at the pattern speed, every stick centred: the four state lateral model gives 22.9, 19.9 and 17.2 deg after 2, 4 and 6 s, a spiral that halves the bank in 9.4 s through the wing's sweep; the bank at 6 s, the same side, and never steeper than it started Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the bank at 6 s from the 22.43 m/s pattern speed, derived 15.8, was 17.2; the same 0.465 to 1.512 of it (was 8.0 to 26.0)."
   },
   "s7_roll": {
     "duty": 0.9,
@@ -76,27 +76,27 @@
   },
   "s10_phugoid": {
     "duty": 0.5,
-    "min": 8.15,
-    "max": 11.52,
+    "min": 9.33,
+    "max": 13.19,
     "unit": "s",
-    "source": "the phugoid root of the four state longitudinal model trimmed at the 19.67 m/s pattern speed, derived 9.84, the Kadet's -18 and +17 percent"
+    "source": "the phugoid root of the four state longitudinal model trimmed at the 19.67 m/s pattern speed, derived 9.84, the Kadet's -18 and +17 percent Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): trimmed at the 22.43 m/s pattern speed, derived 11.27, was 9.84; the same 0.828 to 1.171 of it (was 8.15 to 11.52)."
   },
   "s11_spool": {
     "fromStop": {
-      "min": 0.506,
-      "max": 0.618,
-      "source": "full stick from a stopped fan: the ESC's 300 ms Normal startup ramp and the fan's critically damped speed at tau 0.08 s reach the speed of 90 percent of the static thrust at 0.562 s (f16:derive), within 10 percent; a prop reaches its in the step the stick moves"
+      "min": 0.455,
+      "max": 0.555,
+      "source": "full stick from a stopped fan: the ESC's 300 ms Normal startup ramp and the fan's critically damped speed at tau 0.08 s reach the speed of 90 percent of the static thrust at 0.562 s (f16:derive), within 10 percent; a prop reaches its in the step the stick moves Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the stopped fan meeting an unloaded pack, its command over v_meas at last step's current (f16-derive.js spool), derived 0.505, was 0.562; the same 0.900 to 1.100 of it (was 0.506 to 0.618)."
     },
     "fromSpin": {
       "from": 0.3,
-      "min": 0.309,
-      "max": 0.377,
-      "source": "from a fan already turning at 30 percent to full: 0.343 s to 90 percent of the static thrust, within 10 percent"
+      "min": 0.241,
+      "max": 0.293,
+      "source": "from a fan already turning at 30 percent to full: 0.343 s to 90 percent of the static thrust, within 10 percent Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the fan at 30 percent on its own pack, run to full on a pack its current has not yet sagged, derived 0.267, was 0.343; the same 0.901 to 1.099 of it (was 0.309 to 0.377)."
     },
     "down": {
-      "min": 0.17,
-      "max": 0.208,
-      "source": "full to a closed stick: the thrust is under 10 percent 0.189 s later, within 10 percent"
+      "min": 0.169,
+      "max": 0.207,
+      "source": "full to a closed stick: the thrust is under 10 percent 0.189 s later, within 10 percent Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): from the seat's full speed, derived 0.188, was 0.189; the same 0.899 to 1.101 of it (was 0.17 to 0.208)."
     },
     "unit": "s"
   },
@@ -113,10 +113,10 @@
     "duty": 0.75,
     "tMin": 8.8,
     "tMax": 13.2,
-    "dMin": 208,
-    "dMax": 313,
+    "dMin": 212,
+    "dMax": 319,
     "unit": "s, m",
-    "source": "level at 75 percent, then the throttle closed and the height held: from the 33.86 m/s cruise to the 15.57 m/s approach speed takes 11.0 s and 261 m (f16:derive, energy), within 20 percent: a clean jet does not slow down, so an approach is planned from far out"
+    "source": "level at 75 percent, then the throttle closed and the height held: from the 33.86 m/s cruise to the 15.57 m/s approach speed takes 11.0 s and 261 m (f16:derive, energy), within 20 percent: a clean jet does not slow down, so an approach is planned from far out Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): from the 35.23 m/s cruise at 75 percent (was 33.86), 11.0 s, the distance derived 265.5, was 260.6; the same 0.798 to 1.201 of it (was 208 to 313)."
   },
   "s14_rest": {
     "pitchMin": -0.5,
@@ -129,19 +129,19 @@
   },
   "s15_takeoff": {
     "duty": 1.0,
-    "distMin": 15.6,
-    "distMax": 25.7,
+    "distMin": 16.1,
+    "distMax": 26.0,
     "vMin": 15.57,
     "vMax": 19.16,
-    "source": "full throttle on grass from a stopped fan, the elevator eased up to full past 1.2 Vs: the fan's thrust through the CG, 0.140 m over the mains' contact, holds the nose on its wheel until full up stabilator lifts it at 16.9 m/s after 17.3 m (f16:derive, rotation), so it lifts off between 1.3 and 1.6 Vs, from 0.9 of the roll to rotation to 1.1 of the roll to 1.6 Vs, 23.3 m: Freewing's 'short takeoff distance' at full power"
+    "source": "full throttle on grass from a stopped fan, the elevator eased up to full past 1.2 Vs: the fan's thrust through the CG, 0.140 m over the mains' contact, holds the nose on its wheel until full up stabilator lifts it at 16.9 m/s after 17.3 m (f16:derive, rotation), so it lifts off between 1.3 and 1.6 Vs, from 0.9 of the roll to rotation to 1.1 of the roll to 1.6 Vs, 23.3 m: Freewing's 'short takeoff distance' at full power Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas, the fan at its duty, scripts/lib/propcurve.js wingSeat, and the clean cd0 0.0357 fitted on a full pack): full up lifts it at 17.03 m/s after 17.94 m, the roll to 1.6 Vs 23.68 m (f16:derive), so 0.9 of the one to 1.1 of the other, 16.1 to 26.0 (was 15.6 to 25.7 from 17.3 and 23.32)."
   },
   "s15b_scale_takeoff": {
     "duty": 0.55,
-    "distMin": 72.2,
-    "distMax": 308.4,
+    "distMin": 52.4,
+    "distMax": 145.6,
     "vMin": 14.37,
     "vMax": 19.16,
-    "source": "the same at 55 percent, Model Aviation's 'takeoff throttle settings of 50% to 60% and gradual application of up-elevator will result in scalelike, shallow angle-of-attack departures': the fan's thrust with its speed squared and falling with the airspeed makes the roll to 1.2 Vs 72.2 m and to 1.6 Vs 308 m, the gear's drag in both (f16:derive), a long jet's roll; it lifts off between the two Flown since 2026-10-11 with the pilot's hand holding the 8 deg it rotates to (wingpilot.js f16TakeoffSticks, FAA-H-8083-3C ch. 6), as f16:derive's lift off takes it: the proportional hold alone drooped to 5.6 deg once the ground effect's nose down moment (plant_wing.c GROUND EFFECT) wanted 3.9 deg more up stabilator, and lifted off at 19.20 m/s. Derived, at the held 8 deg: 17.54 m/s in free air, 16.72 with the ground effect (sigma 0.354 at the wing's 0.140 m); the band, 1.2 to 1.6 Vs, holds it unchanged."
+    "source": "the same at 55 percent, Model Aviation's 'takeoff throttle settings of 50% to 60% and gradual application of up-elevator will result in scalelike, shallow angle-of-attack departures': the fan's thrust with its speed squared and falling with the airspeed makes the roll to 1.2 Vs 72.2 m and to 1.6 Vs 308 m, the gear's drag in both (f16:derive), a long jet's roll; it lifts off between the two Flown since 2026-10-11 with the pilot's hand holding the 8 deg it rotates to (wingpilot.js f16TakeoffSticks, FAA-H-8083-3C ch. 6), as f16:derive's lift off takes it: the proportional hold alone drooped to 5.6 deg once the ground effect's nose down moment (plant_wing.c GROUND EFFECT) wanted 3.9 deg more up stabilator, and lifted off at 19.20 m/s. Derived, at the held 8 deg: 17.54 m/s in free air, 16.72 with the ground effect (sigma 0.354 at the wing's 0.140 m); the band, 1.2 to 1.6 Vs, holds it unchanged. Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas, the fan at its duty, scripts/lib/propcurve.js wingSeat): at 55 percent the roll to 1.2 Vs is 52.4 m and to 1.6 Vs 145.6 m (f16:derive), was 72.2 and 308.4."
   },
   "s16_landing": {
     "z0": 12.0,
@@ -180,12 +180,12 @@
     "duty": 0.75,
     "seconds": 20,
     "fromS": 8,
-    "min": 2.28,
-    "max": 3.09,
-    "vMin": 16.64,
-    "vMax": 22.51,
+    "min": 2.94,
+    "max": 3.98,
+    "vMin": 19.07,
+    "vMax": 25.79,
     "unit": "m/s",
-    "source": "level at 75 percent, then the throttle closed and every stick let go, in Manual: the fan spools down to nothing and the neutral elevator's pitching moment trims the glide at 7.1 deg of alpha, 19.57 m/s sinking 2.68 m/s (f16:derive, hands off glide). The mean from 8 s, after the phugoid's first cycle; the sink within 15 percent, the speed S1's band, and it never reaches the stall's alpha"
+    "source": "level at 75 percent, then the throttle closed and every stick let go, in Manual: the fan spools down to nothing and the neutral elevator's pitching moment trims the glide at 7.1 deg of alpha, 19.57 m/s sinking 2.68 m/s (f16:derive, hands off glide). The mean from 8 s, after the phugoid's first cycle; the sink within 15 percent, the speed S1's band, and it never reaches the stall's alpha Re-derived 2026-10-12 on the gates' 4.1 V seat (w36-seat-voltage: the pack's loaded voltage over the table's v_meas through the motor's law, scripts/lib/propcurve.js wingSeat): the neutral elevator trims the glide at 5.4 deg of alpha (cm_0 0.0361, re-derived at the pattern speed), 22.29 m/s; the speed band is S1's, now 19.07 to 25.79; the sink derived 3.458, was 2.684; the same 0.849 to 1.151 of it (was 2.28 to 3.09)."
   },
   "s22_chop": {
     "duty": 0.5,

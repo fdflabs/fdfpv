@@ -479,9 +479,11 @@ for (const [key, P] of Object.entries(PLANES)) {
   const tr = turn();
   pr(`water rudder taxi turn at ${U} m/s, full rudder: radius ${(U / tr.r).toFixed(2)} m, sideslip ${(tr.beta * DEG).toFixed(1)} deg`);
 
-  /* On land: a keel on grass at mu 0.35 needs this much throttle to move. */
-  const breakaway = Math.sqrt(0.35 * W / P.Ts);
-  pr(`on grass at mu 0.35 it breaks away at ${(breakaway * 100).toFixed(0)} percent throttle`);
+  /* On land: a keel on grass at mu 0.35 needs this much throttle to move:
+   * the stick that turns the prop at the speed whose static thrust is mu W,
+   * on the gates' seated pack through the motor's law (wingSeat). */
+  const breakaway = seat.stickFor(SEAT_GATES, Math.sqrt(0.35 * W / P.Ts), 0);
+  pr(`on grass at mu 0.35 it breaks away at ${(breakaway * 100).toFixed(1)} percent throttle`);
 
   out[key] = { m, W, dz, th, stepDraft, cgOver, vLof, vStall, vStep, runLo, runHi, radius: U / tr.r, breakaway, landLo, landHi };
 }

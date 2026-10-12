@@ -358,6 +358,13 @@ const plateRatio = (x) => 1 / Math.sqrt(Math.sqrt(1 + (x / tailCn) ** 4));
 const vhT = -slip.slip_cm_a / (at * (1 - deda)), vvF = slip.slip_cn_b / av;
 const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
 const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
+/* The same at the stick nighttimber:gates N10 flies, sqrt(W / T_static),
+ * the prop's speed share at the hover taken as a stick: on the gates'
+ * 4.1 V pack it turns the prop faster than the hover's and blows harder. */
+const gateStickThrust = T(0, hoverN);
+const hovGate = washOf(slip, gateStickThrust, 0);
+const pitchAccGate = hovGate.dp * hovGate.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
+const yawAccGate = hovGate.dp * hovGate.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 
 /* The rest on the gear: each axle lowered by its 5 mm of static
  * deflection, as every taildragger's here. */
@@ -558,6 +565,7 @@ const rows = [
   ['N8 torque at hover N m, net, torque roll deg/s', `${f(Qprop, 4)} ${f(Qhover, 4)} ${f(torqueRoll * DEG, 0)}`],
   ['N9 full aileron in the wash N m, net roll deg/s', `${f(aileronHover, 4)} ${f(aileronRollNet * DEG, 0)}`],
   ['N10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],
+  ['   at the gate\'s stick sqrt(W/Ts) on the 4.1 V pack: thrust N, rad/s2', `${f(gateStickThrust, 2)}; ${f(pitchAccGate, 2)} ${f(yawAccGate, 2)}`],
   ['rest: pitch deg, CG height m, tail share; contacts main tail m', `${f(restPitchDeg, 2)} ${f(cgHeight, 4)} ${f(tailShare, 4)}; ${f(mainHw, 4)} ${f(tailHw, 4)}`],
   ['gear body: main x z, tail x z (axle, lowered 5 mm)', `${f(mainX, 4)} ${f(mainZ - 0.005, 4)} ${f(tailX, 4)} ${f(tailZ - 0.005, 4)}`],
   ['   wheelbase m, loads main tail N', `${f(wheelbase, 4)} ${f(mainLoad, 3)} ${f(tailLoad, 3)}`],

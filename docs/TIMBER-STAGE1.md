@@ -371,3 +371,23 @@ take off: three points until the nose down moment lifts the tail, then
 9 deg, liftoff when lift is weight
 landing: three points from touchdown, drag and rolling resistance only
 ```
+
+## The seated pack (2026-10-12)
+
+The lead's decision of 2026-10-12, physics follows reality: a pack's
+seated voltage changes the thrust from the first second. The table's
+static thrust and current were measured at `v_meas`, the loaded volts a
+cell of its source; the plant runs the motor at the pack's loaded voltage
+over it, through the motor's law (docs/POWER-STAGE1.md "The seat").
+Its v_meas is the review's bench, 660 W at 44 A on 4S, 3.750 V; at 4.1 V and the full current the pack sags to almost exactly that, so full throttle barely moves, while part throttle, where the pack barely sags, turns the prop faster. The derivation flies the gates' 4.1 V seat
+(`scripts/lib/propcurve.js` wingSeat), and every band below moved in the
+same proportion about its new derived figure; tests/timber-thresholds.json carries each
+one's source text.
+
+| Check | Derived, was to now | Band, was to now |
+| --- | --- | --- |
+| T1 level at 75 percent | 21.46 to 22.69 m/s | 18.52 to 24.83, now 19.58 to 26.25 |
+| T5 slowest level | 6.21 to 6.22 m/s | 5.63 to 7.1, now 5.64 to 7.11 |
+| T10 take off, full flaps | 2.00 to 2.01 m | 1.45 to 2.88, now 1.46 to 2.89 |
+| T11 take off, flaps up | 2.52 to 2.53 m | 1.84 to 3.67, now 1.85 to 3.68 |
+| T13 taxi turn at walking pace | 0.24 to 0.22 of the stick | duty 0.24, now 0.22; the band does not move |
