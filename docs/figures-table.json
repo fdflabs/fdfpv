@@ -202,6 +202,7 @@
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
+          "entry 30",
           "pull 0.55 0.50pi",
           "line 0.00,0.00,1.00",
           "kick",
@@ -212,16 +213,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 6,
+        "grade": 7,
         "flew": [
-          "hammerhead 6"
+          "hammerhead 7"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 2.5,
-          "slick": 0
+          "cap": 6,
+          "slick": 6
         },
         "seated": {
           "extra": null,
@@ -244,6 +245,7 @@
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
+          "entry 30",
           "pull 0.55 0.50pi",
           "line 0.00,0.00,1.00",
           "slide",
@@ -253,16 +255,16 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 10,
         "flew": [
-          "parachute 9.5"
+          "tailslide 10"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": null,
+          "cap": 10,
           "slick": null
         },
         "seated": {
@@ -1193,6 +1195,7 @@
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
+          "entry 30",
           "pull 0.55 0.42pi",
           "line 0.26,0.00,0.97",
           "waterfall 2",
@@ -1203,11 +1206,11 @@
         "named": false,
         "grade": null,
         "flew": [
-          "half_roll 5"
+          "spin 8"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 139.8,
+        "lowestM": 150,
         "others": {
           "cap": null,
           "slick": null
