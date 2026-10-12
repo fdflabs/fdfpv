@@ -28,7 +28,6 @@ if put "$HERE/journald.conf" /etc/systemd/journald.conf.d/fdfpv.conf; then
   systemctl restart systemd-journald
 fi
 
-put "$HERE/fdfpv-rooms.service" /etc/systemd/system/fdfpv-rooms.service || true
 put "$HERE/fdfpv-tracks.service" /etc/systemd/system/fdfpv-tracks.service || true
 put "$HERE/fdfpv-metrics.service" /etc/systemd/system/fdfpv-metrics.service || true
 put "$HERE/fdfpv-metrics.timer" /etc/systemd/system/fdfpv-metrics.timer || true
@@ -38,13 +37,15 @@ systemctl daemon-reload
 # with both servers still as they were.
 caddy validate --config "$HERE/Caddyfile" --adapter caddyfile >/dev/null
 
-systemctl enable -q fdfpv-rooms fdfpv-tracks
-systemctl restart fdfpv-rooms fdfpv-tracks
-apply_caddy
+systemctl enable -q fdfpv-tracks
+systemctl restart fdfpv-tracks
+# The rooms server is not restarted: the new version starts beside the
+# old, which drains (rooms-deploy.sh). It applies the Caddyfile too.
+bash "$HERE/rooms-deploy.sh"
 # The admin page's history (tracks-api/collect.js); a oneshot a minute,
 # so nothing to restart: the next run is the new code.
 systemctl enable --now -q fdfpv-metrics.timer
 
-for unit in fdfpv-rooms fdfpv-tracks fdfpv-metrics.timer caddy; do
+for unit in "$(rooms_unit)" fdfpv-tracks fdfpv-metrics.timer caddy; do
   say "$unit $(systemctl is-active "$unit")"
 done

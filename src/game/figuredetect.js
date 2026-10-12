@@ -163,6 +163,8 @@ class Prim {
     this.stoppedMs = 0;
     this.pausedMs = 0;
     this.sMin = Infinity;
+    /* The farthest the nose yawed from where the piece began (rad). */
+    this.yawFar = 0;
   }
 
   get ms() {
@@ -198,6 +200,7 @@ class Prim {
     this.alphaSum += s.alphaPos ? 1 : -1;
     if (s.stalled) this.stalled += 1;
     if (s.speed < this.sMin) this.sMin = s.speed;
+    if (abs(s.tot[2] - this.tot0[2]) > this.yawFar) this.yawFar = abs(s.tot[2] - this.tot0[2]);
     const ap = abs(s.p);
     if (ap > this.maxP) this.maxP = ap;
     if (abs(s.q) > this.maxQ) this.maxQ = abs(s.q);
@@ -287,6 +290,45 @@ const arc = (lo, hi, more = () => true) => step((p) => p.kind === 'arc' && p.swe
   && abs(p.plane()[2]) < 0.6 && more(p));
 const rollOf = (turns, tol, more = () => true) => step((p) => p.kind === 'roll' && near(p.roll, turns, tol) && more(p));
 const kind = (k, more = () => true, skip = ['line']) => step((p) => p.kind === k && more(p), skip);
+/* A run: the step takes every primitive in a row that `is` holds for, at
+ * least one, and `whole` must hold for the run. The deduction gets the
+ * run as an array. */
+const run = (is, whole) => ({ is, skip: [], many: true, whole });
+
+/*
+ * A stall turn's vertical line, as a judge watches it: the whole line,
+ * not its longest piece. "The up and down-lines must be ZLA vertical",
+ * "Check that the wing trailing edges are parallel to the horizon during
+ * the vertical line - ie. no yaw or wing-low", "During the verticals the
+ * usual 1 point per 5 deg applies in pitch for both the up and down
+ * lines" (British Aerobatic Association, judging, "Stall Turns" 1 and 2,
+ * https://www.aerobatics.org.uk/judging/topics/stall-turns-1). Below 8
+ * m/s a rudder correction on the line yaws the nose fast enough to be a
+ * yawover sample, and the line's path, slow, curves past the arc's
+ * threshold as it weaves, so the line arrives in pieces: lines, short
+ * arcs and yawovers that put the nose back where it was. Each is part of
+ * the line a judge sees and marks: a piece within 45 deg of the line's
+ * vertical (past that it is no line, it is the pivot or a pull), an arc
+ * sweeping under the line step's 0.15 of a turn, a yawover that does not
+ * turn the nose round (stallTurnPivot does). The run's mean direction
+ * must be the line's (lineClass), and it is graded by its worst piece
+ * and the yaw put on it (verticalLineDeduction).
+ */
+const reversesNose = (p) => dot3(p.n0, p.n1) < 0;
+const verticalLine = (cls) => run(
+  (p) => {
+    const dz = cls === 'up' ? p.dir[2] : -p.dir[2];
+    if (dz < COS45) return false;
+    if (p.kind === 'line') return true;
+    if (p.kind === 'arc') return p.swept < 0.15;
+    return p.kind === 'yawover' && !reversesNose(p);
+  },
+  (parts) => lineClass({ dir: norm3(parts.reduce((a, q) => [a[0] + q.dSum[0], a[1] + q.dSum[1], a[2] + q.dSum[2]], [0, 0, 0])) }) === cls,
+);
+/* The turn round: "In the turn-round you should see yaw without any pitch
+ * or roll" (BAeA "Stall Turns" 2), the nose yawed from the up line round
+ * to the down line. */
+const stallTurnPivot = kind('yawover', reversesNose, ['hover']);
 
 /* Deductions shared by the figures, in points. */
 function lineDeduction(p, cls) {
@@ -299,6 +341,21 @@ function lineDeduction(p, cls) {
   else if (cls === 'up45') c = COS45 * (h + d[2]);
   else if (cls === 'down45') c = COS45 * (h - d[2]);
   return bandDeduction(c);
+}
+
+/* A vertical line run, a point per 15 deg (this judge's F3A scale) of its
+ * worst piece off the vertical, and of the farthest the nose was yawed off
+ * it along the run: a correction is yaw the judge sees whether or not the
+ * path followed it, once however many pieces it came in. */
+function verticalLineDeduction(parts, cls) {
+  const worst = Math.min(...parts.map((q) => (cls === 'up' ? q.dir[2] : -q.dir[2])));
+  let yaw = 0;
+  let far = 0;
+  for (const q of parts) {
+    if (abs(yaw) * TURN + q.yawFar > far) far = abs(yaw) * TURN + q.yawFar;
+    yaw += q.yaw;
+  }
+  return bandDeduction(worst) + radDeduction(far);
 }
 
 /* A loop: one radius (1 point per 10 % spread of it), in one plane, and
@@ -356,6 +413,19 @@ function stopDeduction(turns) {
   return radDeduction(((a - Math.floor(a + 0.5)) / 4) * TURN);
 }
 
+/* A pitch rotation with no more than a quarter turn of roll or yaw in it. */
+const pitchOnly = (p) => abs(p.roll) <= 0.25 && abs(p.yaw) <= 0.25;
+
+/* "Little altitude gain or forward motion" (Wikipedia, "3D Aerobatics"):
+ * a point per 2 m the rotation moved, out of where it began, the hover's
+ * drift scale (hoverDeduction). */
+function travelDeduction(p) {
+  const dx = p.x1 - p.x0;
+  const dy = p.y1 - p.y0;
+  const dz = p.z1 - p.z0;
+  return Math.floor(Math.sqrt(dx * dx + dy * dy + dz * dz) / 2);
+}
+
 const halfRollOn = (cls) => rollOf(0.5, 0.15, (p) => lineClass(p) === cls);
 const snapish = (p) => abs(p.roll) >= 0.7;
 
@@ -374,8 +444,9 @@ const TABLE = [
   ['avalanche', [arc(0.3, 0.7), kind('snap', snapish), arc(0.3, 0.7)],
     ([a1, s, a2]) => loopDeduction(a1) + loopDeduction(a2) + stopDeduction(s.roll) + bandDeduction(headingCos(a1.d0, a2.d1))
       + (near(a1.swept + a2.swept, 1, 0.15) ? 0 : 2)],
-  ['hammerhead', [line('up'), kind('yawover', () => true, ['line', 'hover']), line('down')],
-    ([up, , down]) => lineDeduction(up, 'up') + lineDeduction(down, 'down') + bandDeduction(-dot3(up.n1, down.n0))],
+  ['hammerhead', [verticalLine('up'), stallTurnPivot, verticalLine('down')],
+    ([up, , down]) => verticalLineDeduction(up, 'up') + verticalLineDeduction(down, 'down')
+      + bandDeduction(-dot3(up[up.length - 1].n1, down[0].n0))],
   ['humpty_bump', [line('up'), arc(0.35, 0.65), line('down')],
     ([up, a, down]) => lineDeduction(up, 'up') + lineDeduction(down, 'down') + loopDeduction(a)],
   ['blender', [rollOf(2.5, 1, (p) => lineClass(p) === 'down'), kind('spin', (p) => abs(p.frac(p.nzSum)) < 0.5, [])],
@@ -400,10 +471,21 @@ const TABLE = [
   ['loop', [arc(0.85, 1.2, (p) => p.liftU > 0 && abs(p.liftL) <= abs(p.liftU))], ([a]) => loopDeduction(a, true)],
   ['outside_loop', [arc(0.85, 1.2, (p) => p.liftU < 0 && abs(p.liftL) <= abs(p.liftU))], ([a]) => loopDeduction(a, true)],
   ['ke_loop', [arc(0.85, 1.2, (p) => abs(p.liftL) > abs(p.liftU))], ([a]) => loopDeduction(a, true)],
-  ['rolling_circle', [kind('roll', (p) => abs(p.roll) >= 0.85 && abs(p.heading) >= 0.85)],
+  /* The catalogue's rolling circle is Aresti 2.4.2.1, a 360 deg turn
+   * with one roll (OpenAero figures19.js: "2.4.2.1-4 (1 roll)"; four
+   * rolls is 2.4.7.1, K 38): "If the number of rolls is wrong - too many
+   * or too few - then give the figure a Hard Zero" (BAeA judging,
+   * "Rolling Circles",
+   * https://www.aerobatics.org.uk/judging/topics/rolling-turns-1), so
+   * one roll, to the nearest whole. And out wings level: "Stop on heading
+   * and without any remaining bank angle or yaw", a point per 15 deg
+   * left over or short. */
+  ['rolling_circle', [kind('roll', (p) => abs(p.roll) >= 0.85 && abs(p.roll) < 1.5 && abs(p.heading) >= 0.85)],
     ([r]) => {
       const climb = r.frac(r.dzAbsSum);
-      return Math.floor(r.rateCv() / 0.15) + radDeduction((abs(r.heading) - 1) * TURN) + bandDeduction(Math.sqrt(1 - climb * climb));
+      const whole = Math.floor(abs(r.roll) + 0.5);
+      return Math.floor(r.rateCv() / 0.15) + radDeduction((abs(r.heading) - 1) * TURN) + bandDeduction(Math.sqrt(1 - climb * climb))
+        + radDeduction((abs(r.roll) - whole) * TURN);
     }],
   /* A barrel roll's path is a helix: its direction sweeps a cone, so it
    * turns a third of a turn or more where an aileron roll's barely moves. */
@@ -435,10 +517,29 @@ const TABLE = [
   ['knife_edge_pass', [kind('knife', (p) => p.ms >= 2000)],
     ([k]) => lineDeduction(k, 'level') + bandDeduction(k.frac(k.knifeSum)) + bandDeduction(headingCos(k.d0, k.d1))],
   ['elevator', [kind('elevator', (p) => p.ms >= 2000)], ([e]) => holdDeduction(e)],
+  /* The pitch rotations, told apart by axis, not by rate. A waterfall is
+   * a pivot about the pitch axis alone: "The waterfall is a move where
+   * the plane is made to pivot 360 degrees in the pitch axes. Ideally
+   * this is performed with little altitude gain or forward motion"
+   * (Wikipedia, "3D Aerobatics"), a "micro loop" flown with the wings
+   * level, or the aircraft "will barrel roll out of this stunt" (David
+   * Scott, "Master the 3D Waterfall", Model Airplane News). A pitch
+   * rotation coupled into roll or yaw is the lomcevak family's tumble:
+   * "the aircraft, with almost no forward speed, rotates on chosen axes
+   * ... due to the gyroscopic precession and torque of the rotating
+   * propeller" (Wikipedia, "Lomcovak"). Coupled is past a quarter turn of
+   * roll or yaw, the waterfall's roll bound before (no source for the
+   * quarter beyond it); half a turn of roll is the lomcevak. A waterfall's
+   * span, the axis it pivots on, is nearer the horizontal than the
+   * vertical on average, the spin token's 45 deg turned over: banked
+   * further, the wings are not level and the pivot is no pitch figure as
+   * the ground sees it; the tilt under that is graded on its plane. The rate
+   * split this replaces (a tumble at 6 rad/s or more) had no source,
+   * and the Extra's waterfalls peak at 8 to 10.8 rad/s. */
   ['lomcevak', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && abs(p.roll) >= 0.5)], ([t]) => stopDeduction(t.pitch)],
-  ['tumble', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && p.maxQ >= 6)], ([t]) => stopDeduction(t.pitch)],
-  ['waterfall', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && abs(p.roll) <= 0.25)],
-    ([t]) => stopDeduction(t.pitch) + bandDeduction(Math.sqrt(1 - t.plane()[2] * t.plane()[2]))],
+  ['tumble', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && !pitchOnly(p))], ([t]) => stopDeduction(t.pitch)],
+  ['waterfall', [kind('pitchover', (p) => abs(p.pitch) >= 0.9 && pitchOnly(p) && p.frac(p.lzSum) <= COS45)],
+    ([t]) => stopDeduction(t.pitch) + bandDeduction(Math.sqrt(1 - t.plane()[2] * t.plane()[2])) + travelDeduction(t)],
 ];
 
 /* Matches a row at the head of the buffer: [primitives used, parts] or null. */
@@ -448,8 +549,15 @@ function matchRow(steps, b) {
   for (const st of steps) {
     while (i < b.length && st.skip.includes(b[i].kind) && !st.is(b[i])) i += 1;
     if (i >= b.length || !st.is(b[i])) return null;
-    parts.push(b[i]);
-    i += 1;
+    if (!st.many) {
+      parts.push(b[i]);
+      i += 1;
+      continue;
+    }
+    const got = [];
+    while (i < b.length && st.is(b[i])) got.push(b[i++]);
+    if (!st.whole(got)) return null;
+    parts.push(got);
   }
   return [i, parts];
 }
@@ -563,7 +671,13 @@ export class FigureDetector {
   token(s) {
     const { speed, n, u, l, d, p, q, r, cosA } = s;
     const ap = abs(p), aq = abs(q), ar = abs(r);
-    if (s.stalled && d[2] < -0.6 && abs(s.wzWorld) >= 1.5 && speed < 25) return 'spin';
+    /* A spin turns about the vertical: "a shallow, rotating, downward path
+     * approximately centred on a vertical axis" (Wikipedia, "Spin
+     * (aerodynamics)"). The rotation's axis within 45 deg of it, so a
+     * waterfall falling through its back side, the wings near level and
+     * its pivot about the span, is no spin however it sinks. */
+    const w2 = p * p + q * q + r * r;
+    if (s.stalled && d[2] < -0.6 && abs(s.wzWorld) >= 1.5 && s.wzWorld * s.wzWorld >= COS45 * COS45 * w2 && speed < 25) return 'spin';
     if (speed < 10 && aq >= 2.5 && aq >= 1.5 * ap && aq >= ar) return 'pitchover';
     /* A snap is the wing stalled at speed while it rolls: the angle of
      * attack itself (the flow under the wing, -d.u), not the nose to path

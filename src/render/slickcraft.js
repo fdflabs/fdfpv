@@ -100,7 +100,7 @@ const STAB_TIP_LE_S = STAB_ROOT_LE_S + 0.0935;
 const STAB_TIP_C = 0.206;
 /* The hinge line straight across, 0.165 m behind the root's leading edge;
  * outboard of HORN_X the elevator is the whole chord, its balance. */
-const STAB_HINGE_S = STAB_ROOT_LE_S + 0.165;
+const STAB_HINGE_C = 0.165;
 const HORN_X = 0.42;
 const STAB_Y = THRUST_Y + 0.014;
 const STAB_T = 0.10;
@@ -110,6 +110,19 @@ const RUDDER_BOTTOM = THRUST_Y - 0.096;
 const RUDDER_S = 2.250;
 const RUDDER_TE_TOP_S = 2.351;
 const RUDDER_TE_S = 2.497;
+/*
+ * The bigger control surfaces (configs/surfaces.js surfaceGrowth): each
+ * surface's chord times grow.a, .e or .r, its hinge line moving forward on
+ * the same wing, stabiliser or fin, as the plant flies it. Set by the
+ * builder from opts.surfaces before anything is lofted and read by the
+ * hinge functions below; every build sets it, so one model's never
+ * reaches the next. Each surface's trailing edge stays where it was, and
+ * the fuselage keeps reading RUDDER_S, the stock rudder post it is built to.
+ */
+let grow = { a: 1, e: 1, r: 1 };
+const ailHinge = () => 1 - (1 - AIL_HINGE) * grow.a;
+const elevHingeS = () => STAB_ROOT_LE_S + STAB_ROOT_C - (STAB_ROOT_C - STAB_HINGE_C) * grow.e;
+const rudderHingeS = () => RUDDER_TE_S - (RUDDER_TE_S - RUDDER_S) * grow.r;
 /* The rudder's balance horn, over the fin's top from this height. */
 const HORN_Y = THRUST_Y + 0.378;
 const FIN_ROOT_Y = THRUST_Y + 0.134;
@@ -177,7 +190,7 @@ function stabPlan(ax) {
   const u = Math.min(1, ax / STAB_HALF);
   const le = STAB_ROOT_LE_S + (STAB_TIP_LE_S - STAB_ROOT_LE_S) * u;
   const c = STAB_ROOT_C + (STAB_TIP_C - STAB_ROOT_C) * u;
-  return { le: st(le), hinge: st(Math.max(le, STAB_HINGE_S)), te: st(le + c) };
+  return { le: st(le), hinge: st(Math.max(le, elevHingeS())), te: st(le + c) };
 }
 function stabAt(x, le, c) {
   return (t, side) => new THREE.Vector3(x, STAB_Y + side * c * naca(t, STAB_T), le + t * c);
@@ -249,7 +262,7 @@ function wingGeometry(lite) {
   const eps = 0.0005;
   const outs = lite ? [0.60, RIB - eps] : [0.40, 0.70, 1.00, RIB - eps];
   const tips = lite ? [RIB + eps, HALF] : [RIB + eps, 1.300, 1.322, HALF];
-  const half = [[0, 1], [AIL_IN - eps, 1], ...[AIL_IN + eps, ...outs].map((x) => [x, AIL_HINGE]), ...tips.map((x) => [x, 1])];
+  const half = [[0, 1], [AIL_IN - eps, 1], ...[AIL_IN + eps, ...outs].map((x) => [x, ailHinge()]), ...tips.map((x) => [x, 1])];
   const stations = [
     ...half.slice(1).reverse().map(([x, f]) => [-x, f]),
     ...half,
@@ -278,8 +291,8 @@ function aileron(sign, material, shade, lite) {
   if (sign < 0) {
     xs.reverse();
   }
-  const geo = loft(xs.map((x) => section(wingAt(x), AIL_HINGE, 1, n)));
-  const hingePoint = (x) => wingAt(x)(AIL_HINGE, 1).add(wingAt(x)(AIL_HINGE, -1)).multiplyScalar(0.5);
+  const geo = loft(xs.map((x) => section(wingAt(x), ailHinge(), 1, n)));
+  const hingePoint = (x) => wingAt(x)(ailHinge(), 1).add(wingAt(x)(ailHinge(), -1)).multiplyScalar(0.5);
   return hinged(geo, hingePoint(xs[0]), hingePoint(xs[xs.length - 1]), material, shade);
 }
 
@@ -329,14 +342,14 @@ function finGeometry(n) {
   const ys = [FIN_ROOT_Y - 0.02, 0.24, 0.32, HORN_Y];
   return loft(ys.map((y) => {
     const le = finLE(y);
-    return section(finAt(y, st(le), RUDDER_S - le), 0, 1, n);
+    return section(finAt(y, st(le), rudderHingeS() - le), 0, 1, n);
   }));
 }
 function rudderGeometry(n) {
   const eps = 0.0005;
   const ys = [[RUDDER_BOTTOM, false], [0.0, false], [0.15, false], [0.30, false], [HORN_Y - eps, false], [HORN_Y + eps, true], [TAIL_TOP, true]];
   return loft(ys.map(([y, horn]) => {
-    const le = horn ? finLE(y) + 0.002 : RUDDER_S;
+    const le = horn ? finLE(y) + 0.002 : rudderHingeS();
     return section(finAt(y, st(le), rudderTE(y) - le), 0, 1, n);
   }));
 }
@@ -609,6 +622,7 @@ export const SLICK_MOUNT_UP = 0.30;
 export const SLICK_PROP_SPIN = [1, 0, 0, 0];
 
 export function buildSlickCraft(opts = {}) {
+  grow = { a: 1, e: 1, r: 1, ...(opts.surfaces ?? {}) };
   const fog = opts.fog !== false;
   const lite = Boolean(opts.lite);
   const inkOn = !lite;
@@ -836,11 +850,11 @@ export function buildSlickCraft(opts = {}) {
   const n = lite ? 4 : 5;
   const leftAil = aileron(-1, wingFlap, shade, lite);
   const rightAil = aileron(1, wingFlap, shade, lite);
-  const eh = (x) => new THREE.Vector3(x, STAB_Y, st(STAB_HINGE_S));
+  const eh = (x) => new THREE.Vector3(x, STAB_Y, st(elevHingeS()));
   const elevator = hinged(elevatorGeometry(n), eh(-STAB_HALF), eh(STAB_HALF), tailFlap, shade);
   const rudder = hinged(rudderGeometry(n),
-    new THREE.Vector3(0, RUDDER_BOTTOM, st(RUDDER_S)),
-    new THREE.Vector3(0, TAIL_TOP, st(RUDDER_S)),
+    new THREE.Vector3(0, RUDDER_BOTTOM, st(rudderHingeS())),
+    new THREE.Vector3(0, TAIL_TOP, st(rudderHingeS())),
     tailFlap, shade);
 
   /* The tailwheel on its own vertical pivot under the rudder, turning with

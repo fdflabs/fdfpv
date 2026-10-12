@@ -9,7 +9,100 @@
       "kr": 0.2
     },
     "source": "McRuer and Jex, IEEE Trans. HFE 8(3), 1967: a trained operator's effective delay in compensatory tracking",
-    "margin": "none measured: fixed gains, the calmest that did not ring through the delay (LINE_GAINS)"
+    "margins": {
+      "knife": {
+        "bank": {
+          "crossoverFor": 2,
+          "wc": 2,
+          "gain": 11.989,
+          "pmDeg": 45.1,
+          "wcFound": 2.2,
+          "gmDb": 9.2,
+          "w180": 5.8
+        },
+        "elevation": {
+          "crossoverFor": 0.8,
+          "wc": 0.8,
+          "gain": 1.142,
+          "pmDeg": 91,
+          "wcFound": 1,
+          "gmDb": 7.3,
+          "w180": 10
+        },
+        "heading": {
+          "crossoverFor": 2.2,
+          "wc": 2,
+          "gain": 5.344,
+          "pmDeg": 46.4,
+          "wcFound": 2.2,
+          "gmDb": 9.2,
+          "w180": 6
+        },
+        "trim": {
+          "rudder": 0.46,
+          "elevation": 0.232,
+          "speed": 28.5
+        }
+      },
+      "knifeLoop": {
+        "path": {
+          "crossoverFor": 1.6,
+          "gain": 1.013,
+          "wc": 0.8,
+          "pmDeg": 62.2,
+          "wcFound": 1,
+          "gmDb": 15.2,
+          "w180": 5
+        }
+      },
+      "criterion": "bandwidth criterion: 45 deg phase margin, 6 dB gain margin (MIL-STD-1797A; Peahl, Kolkailah and Sandlin, NASA NCC2-338, 1986)",
+      "delayS": 0.225,
+      "lineElevator": {
+        "fit": {
+          "a": 1.637,
+          "b": 1.563,
+          "c": 0.00281,
+          "steps": 84,
+          "plantOverFitMax": 0.31
+        },
+        "lineGm": 0.36,
+        "level": [
+          {
+            "throttle": 0.3,
+            "speed": 11.8,
+            "kr": 0.144,
+            "gmDb": 6.1,
+            "w180": 11.25,
+            "pmDeg": 93,
+            "wc": 1.75,
+            "plantPhaseDeg": 27,
+            "fixedKr02GmDb": 3.3
+          },
+          {
+            "throttle": 0.6,
+            "speed": 18.8,
+            "kr": 0.101,
+            "gmDb": 7.3,
+            "w180": 11.75,
+            "pmDeg": 92,
+            "wc": 1.75,
+            "plantPhaseDeg": 20,
+            "fixedKr02GmDb": 1.3
+          },
+          {
+            "throttle": 1,
+            "speed": 29.2,
+            "kr": 0.064,
+            "gmDb": 8.1,
+            "w180": 12.5,
+            "pmDeg": 93,
+            "wc": 1.5,
+            "plantPhaseDeg": 7,
+            "fixedKr02GmDb": -1.8
+          }
+        ]
+      }
+    }
   },
   "rows": [
     {
@@ -17,26 +110,40 @@
       "family": "lines",
       "k": 6,
       "source": "Aresti 1.1.1.1 + 9.1.3.1 + 9.1.3.1 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
           "roll 0.5 0.50pi",
-          "hold 0,0,-0.6,1",
+          "knife 3000",
           "roll -0.5 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 9.5,
+        "flew": [
+          "knife_edge_pass 9.5"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 112.1
+        "lowestM": 150,
+        "others": {
+          "cap": 9.5,
+          "slick": 10
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "knife"
+      ]
     },
     {
       "id": "rolling_circle",
@@ -44,11 +151,12 @@
       "k": 46,
       "source": "Aresti 2.4.2.1 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "rolling circle",
+          "rolling circle 1",
           "level 3000"
         ]
       },
@@ -58,7 +166,16 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -67,7 +184,8 @@
       "family": "stall_turns",
       "k": 17,
       "source": "Aresti 5.2.1.1 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -81,14 +199,27 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 7,
+        "flew": [
+          "hammerhead 7"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 148.1,
+        "others": {
+          "cap": 5.5,
+          "slick": 6
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "tailslide",
@@ -96,6 +227,7 @@
       "k": 15,
       "source": "Aresti 6.2.1.1 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -110,15 +242,26 @@
       },
       "measured": {
         "named": true,
-        "grade": 9,
+        "grade": 9.5,
         "flew": [
-          "tailslide 9"
+          "tailslide 9.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 135.6
+        "lowestM": 145.9,
+        "others": {
+          "cap": 9.5,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "loop",
@@ -126,6 +269,7 @@
       "k": 10,
       "source": "Aresti 7.4.1.1 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "scripts/figures-plant-check.js (npm run figures:plant, graded 4 to 10)",
         "phases": null
@@ -139,6 +283,7 @@
       "k": 15,
       "source": "Aresti 7.4.1.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -155,7 +300,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 130.5
+        "lowestM": 130.5,
+        "others": {
+          "cap": 8,
+          "slick": 8
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -165,6 +319,7 @@
       "k": 10,
       "source": "Aresti 7.2.1.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -182,7 +337,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 5,
+          "slick": 6.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -192,6 +356,7 @@
       "k": 10,
       "source": "Aresti 7.2.2.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -209,7 +374,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 133.9
+        "lowestM": 133.9,
+        "others": {
+          "cap": 5,
+          "slick": 2
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -219,15 +393,16 @@
       "k": 28,
       "source": "Aresti 7.8.1.1 + 9.1.3.2 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "pull 0.55 1.25pi",
+          "round 0.3 1.25pi",
           "line -0.71,0.00,-0.71",
           "roll 0.5 1.00pi",
           "line -0.71,0.00,-0.71",
-          "pull 0.55 1.50pi",
+          "round 0.3 1.50pi",
           "line 0.71,0.00,-0.71",
           "roll 0.5 1.00pi",
           "line 0.71,0.00,-0.71",
@@ -236,18 +411,27 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 1,
         "flew": [
-          "half_roll 7",
-          "loop 0",
-          "half_roll 6.5"
+          "cuban_8 1"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 106.9
+        "lowestM": 105.7,
+        "others": {
+          "cap": 4.5,
+          "slick": 0
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "reverse_cuban_8",
@@ -255,6 +439,7 @@
       "k": 28,
       "source": "Aresti 7.8.5.1 + 9.1.3.2 + 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -262,28 +447,37 @@
           "pull 0.55 0.25pi",
           "line 0.71,0.00,0.71",
           "roll 0.5 1.00pi",
-          "line -0.71,0.00,0.71",
-          "pull 0.55 1.50pi",
+          "line 0.71,0.00,0.71",
+          "round 0.3 1.50pi",
           "line -0.71,0.00,0.71",
           "roll 0.5 1.00pi",
-          "line 0.71,0.00,0.71",
-          "pull 0.55 1.25pi",
+          "line -0.71,0.00,0.71",
+          "round 0.3 1.25pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 0,
         "flew": [
-          "half_roll 7",
-          "loop 0",
-          "half_roll 7"
+          "reverse_cuban_8 0"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 4,
+          "slick": 2
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "avalanche",
@@ -291,6 +485,7 @@
       "k": 21,
       "source": "Aresti 7.4.1.1 + 9.9.3.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -300,39 +495,55 @@
       "family": "loops",
       "k": 15,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
           "roll 0.5 0.50pi",
-          "hold 0,0,-1,1",
+          "knife 1000",
+          "knife loop",
+          "roll -0.5 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 9,
         "flew": [
-          "inverted_spin 9.5"
+          "ke_loop 9"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 82.2
+        "lowestM": 148.2,
+        "others": {
+          "cap": 9,
+          "slick": 5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "knife",
+        "knifeLoop"
+      ]
     },
     {
       "id": "half_cuban",
       "family": "combinations",
       "k": 14,
       "source": "Aresti 8.5.6.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "pull 0.55 1.25pi",
+          "round 0.3 1.25pi",
           "line -0.71,0.00,-0.71",
           "roll 0.5 1.00pi",
           "line -0.71,0.00,-0.71",
@@ -341,23 +552,35 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 7.5,
         "flew": [
-          "half_roll 7"
+          "half_cuban 7.5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 130.1
+        "lowestM": 129.5,
+        "others": {
+          "cap": 7,
+          "slick": 7.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "reverse_half_cuban",
       "family": "combinations",
       "k": 14,
       "source": "Aresti 8.5.2.1 + 9.1.3.2 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -365,50 +588,75 @@
           "pull 0.55 0.25pi",
           "line 0.71,0.00,0.71",
           "roll 0.5 1.00pi",
-          "line -0.71,0.00,0.71",
-          "pull 0.55 1.25pi",
+          "line 0.71,0.00,0.71",
+          "round 0.3 1.25pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 5,
         "flew": [
-          "half_roll 7"
+          "reverse_half_cuban 5"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 7,
+          "slick": 7
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "humpty_bump",
       "family": "combinations",
       "k": 13,
       "source": "Aresti 8.4.1.1 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
           "pull 0.55 0.50pi",
           "line 0.00,0.00,1.00",
-          "pull 1 1.00pi",
+          "round 0.3 1.00pi",
           "line 0.00,0.00,-1.00",
           "pull 0.55 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 8,
+        "flew": [
+          "humpty_bump 8"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 144,
+        "others": {
+          "cap": 7,
+          "slick": 7.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "half_roll",
@@ -416,6 +664,7 @@
       "k": 4,
       "source": "Aresti 9.1.3.2 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -432,7 +681,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 148.7
+        "lowestM": 148.6,
+        "others": {
+          "cap": 8,
+          "slick": 8
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -442,6 +700,7 @@
       "k": 8,
       "source": "Aresti 9.1.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "scripts/figures-plant-check.js (npm run figures:plant, graded 4 to 10)",
         "phases": null
@@ -455,6 +714,7 @@
       "k": 16,
       "source": "Aresti 9.1.3.4 + 9.1.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -471,7 +731,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 8,
+          "slick": 8.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -480,22 +749,34 @@
       "family": "rolls",
       "k": 10,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "roll 0.15 2.00pi",
+          "rate roll 1.7 2.00pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 8,
+        "flew": [
+          "slow_roll 8"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 8.5,
+          "slick": 8.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -505,6 +786,7 @@
       "k": 9,
       "source": "Aresti 9.2.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -521,7 +803,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 146.7
+        "lowestM": 146.7,
+        "others": {
+          "cap": 7,
+          "slick": 7.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -531,6 +822,7 @@
       "k": 11,
       "source": "Aresti 9.4.3.4 (OpenAero figures19.js, powered K)",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "scripts/figures-plant-check.js (npm run figures:plant, graded 4 to 10)",
         "phases": null
@@ -544,6 +836,7 @@
       "k": 15,
       "source": "Aresti 9.8.3.4 (OpenAero figures19.js, powered K)",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -554,13 +847,22 @@
       },
       "measured": {
         "named": true,
-        "grade": 2,
+        "grade": 3,
         "flew": [
-          "eight_point_roll 2"
+          "eight_point_roll 3"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 119.2
+        "lowestM": 121.4,
+        "others": {
+          "cap": 0,
+          "slick": 1
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -570,6 +872,7 @@
       "k": 6,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "flown",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -586,7 +889,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": 10,
+          "slick": 9.5
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -596,6 +908,7 @@
       "k": 11,
       "source": "Aresti 9.9.3.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -606,6 +919,7 @@
       "k": 13,
       "source": "Aresti 9.10.3.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -616,6 +930,7 @@
       "k": 5,
       "source": "Aresti 9.11.1.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -626,6 +941,7 @@
       "k": 7,
       "source": "Aresti 9.12.1.4 (OpenAero figures19.js, powered K)",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -636,6 +952,7 @@
       "k": 12,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -646,6 +963,7 @@
       "k": 14,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -656,6 +974,7 @@
       "k": 14,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -666,6 +985,7 @@
       "k": 6,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -683,9 +1003,20 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 140.2
+        "lowestM": 138.5,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "torque_roll",
@@ -693,6 +1024,7 @@
       "k": 10,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -710,9 +1042,20 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 138.4
+        "lowestM": 136.4,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "harrier",
@@ -720,6 +1063,7 @@
       "k": 8,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -734,7 +1078,16 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 137.9
+        "lowestM": 139.9,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -744,6 +1097,7 @@
       "k": 11,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -763,7 +1117,16 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 119.2
+        "lowestM": 141.8,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -773,6 +1136,7 @@
       "k": 16,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -788,7 +1152,16 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 120.5
+        "lowestM": 129.5,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
       "margin": null
     },
@@ -797,26 +1170,49 @@
       "family": "3d",
       "k": 12,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
-      "physics": "unproven",
+      "physics": "flown",
+      "tiers": {
+        "a": "extreme",
+        "e": "extreme"
+      },
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
-          "pull 0.55 0.50pi",
-          "line 0.00,0.00,1.00",
-          "hold 0,-1,0,1",
+          "pull 0.55 0.42pi",
+          "line 0.26,0.00,0.97",
+          "waterfall 2",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 6,
+        "flew": [
+          "waterfall 6"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150
+        "lowestM": 150,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": {
+            "a": "extreme",
+            "e": "extreme"
+          },
+          "cap": null,
+          "slick": {
+            "a": "extreme",
+            "e": "extreme"
+          }
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "blender",
@@ -824,6 +1220,7 @@
       "k": 18,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -834,6 +1231,7 @@
       "k": 15,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -844,6 +1242,7 @@
       "k": 16,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -854,6 +1253,7 @@
       "k": 9,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -864,6 +1264,7 @@
       "k": 8,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "unproven",
+      "tiers": null,
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
@@ -881,9 +1282,20 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 116.8
+        "lowestM": 133.5,
+        "others": {
+          "cap": null,
+          "slick": null
+        },
+        "seated": {
+          "extra": null,
+          "cap": null,
+          "slick": null
+        }
       },
-      "margin": null
+      "margin": [
+        "lineElevator"
+      ]
     },
     {
       "id": "pop_top",
@@ -891,6 +1303,7 @@
       "k": 14,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null
@@ -901,6 +1314,7 @@
       "k": 10,
       "source": "game scale (docs/TRICKS-CATALOG.md, \"The game scale\")",
       "physics": "waits",
+      "tiers": null,
       "law": null,
       "measured": null,
       "margin": null

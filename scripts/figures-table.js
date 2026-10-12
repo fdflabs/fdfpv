@@ -7,16 +7,22 @@
  * the Extra 330 in Manual, level at 22 m/s, 150 m up: whether the judge
  * named it, its grade, what else it named, whether the program finished,
  * whether it reached the ground (150 m below its start) and the lowest
- * height. The loop, the aileron roll and the 4-point roll
- * are flown by figures-plant-check.js's own program, a gate with its own
- * pass band, and the row says so. The 'waits' figures have no law yet.
+ * height, and the grade the CAP and the Slick name it at flying the same
+ * program (others, null where not named). tiers: the hangar's control
+ * surface tiers the program needs (PROGRAM_TIERS), null where stock throws
+ * fly it; each flight seats them and seated says what it got (an aircraft
+ * with no tiers in the hangar flies stock, null). The loop, the aileron
+ * roll and the 4-point roll are flown by figures-plant-check.js's own
+ * program, a gate with its own pass band, and the row says so. The
+ * 'waits' figures have no law yet.
  *
- * margin: no figure program's pilot law has a measured phase or gain
- * margin. Their gains are fixed and were chosen as the calmest that did
- * not ring through the person's delay (figureprograms.js LINE_GAINS);
- * crossoverFor (wingpilot.js) measures margins for the P-51's approach
- * loops only. The column is null until a figure's loop is designed that
- * way, and says so.
+ * margin: the loops a program closes through the person whose phase and
+ * gain margins are measured (scripts/figures-margins.js, on the Extra),
+ * named per row, their numbers under pilot.margins; --check fails when a
+ * margin is short of the bandwidth criterion or the line hold's fit is
+ * not the plant's. The other phases (pulls, rolls, points, the 3D holds)
+ * fly fixed sticks or fixed gains with no measured margin, and a row
+ * whose program has none of the measured loops says so with null.
  *
  *   node scripts/figures-table.js           write the table
  *   node scripts/figures-table.js --check   fail when the table on disk is
@@ -45,7 +51,9 @@ import { fileURLToPath } from 'node:url';
 
 import { FIGURES } from '../src/game/figures.js';
 import { PERSON } from '../tests/lib/personpilot.js';
-import { PROGRAMS, EVERY, LINE_GAINS, fly } from '../tests/lib/figureprograms.js';
+import { PROGRAMS, PROGRAM_TIERS, EVERY, LINE_GAINS, fly } from '../tests/lib/figureprograms.js';
+import { CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { measureMargins, marginFailures } from './figures-margins.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -53,7 +61,12 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const FILE = join(root, 'docs/figures-table.json');
 
 const PLANT_CHECK = new Set(['loop', 'aileron_roll', 'four_point_roll']);
-const NO_MARGIN = 'none measured: fixed gains, the calmest that did not ring through the delay (LINE_GAINS)';
+/* The measured loops, by the phase names that fly them. */
+const MEASURED_LOOPS = [['line ', 'lineElevator'], ['knife ', 'knife'], ['knife loop', 'knifeLoop']];
+const marginOf = (phases) => {
+  const loops = MEASURED_LOOPS.filter(([prefix]) => phases.some((p) => p.startsWith(prefix))).map(([, loop]) => loop);
+  return loops.length ? loops : null;
+};
 
 function lawOf(f) {
   if (PROGRAMS[f.id]) return { by: 'tests/lib/figureprograms.js', phases: PROGRAMS[f.id].map((p) => p.name) };
@@ -61,14 +74,31 @@ function lawOf(f) {
   return null;
 }
 
+/* The same program on the CAP and the Slick, at the same launch: the grade
+ * each names the figure at, or null. A figure is promoted on the Extra;
+ * these say whether the others fly it too. */
+async function others(id, seated) {
+  const out = {};
+  for (const [name, airframe] of [['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
+    const r = await fly(PROGRAMS[id], { wasmBytes, configText, airframe, tiers: tiersOf(id) });
+    const hit = r.got.find((g) => g.figure === id);
+    out[name] = hit ? hit.grade : null;
+    seated[name] = r.seated;
+  }
+  return out;
+}
+
+const tiersOf = (id) => PROGRAM_TIERS[id] ?? null;
+
 async function build() {
   const rows = [];
   for (const f of FIGURES) {
     const law = lawOf(f);
     let measured = null;
     if (law && law.phases) {
-      const r = await fly(PROGRAMS[f.id], { wasmBytes, configText });
+      const r = await fly(PROGRAMS[f.id], { wasmBytes, configText, tiers: tiersOf(f.id) });
       const hit = r.got.find((g) => g.figure === f.id);
+      const seated = { extra: r.seated };
       measured = {
         named: Boolean(hit),
         grade: hit ? hit.grade : null,
@@ -76,6 +106,8 @@ async function build() {
         finished: r.finished,
         crashed: r.crashed,
         lowestM: Number(r.minZ.toFixed(1)),
+        others: await others(f.id, seated),
+        seated,
       };
     }
     rows.push({
@@ -84,9 +116,10 @@ async function build() {
       k: f.k,
       source: f.aresti ? `Aresti ${f.aresti.join(' + ')} (OpenAero figures19.js, powered K)` : 'game scale (docs/TRICKS-CATALOG.md, "The game scale")',
       physics: f.physics,
+      tiers: law && law.phases ? tiersOf(f.id) : null,
       law,
       measured,
-      margin: null,
+      margin: law && law.phases ? marginOf(law.phases) : null,
     });
   }
   return {
@@ -97,7 +130,7 @@ async function build() {
       steps: PERSON.steps,
       lineGains: LINE_GAINS,
       source: 'McRuer and Jex, IEEE Trans. HFE 8(3), 1967: a trained operator\'s effective delay in compensatory tracking',
-      margin: NO_MARGIN,
+      margins: await measureMargins(),
     },
     rows,
   };
@@ -155,6 +188,18 @@ const stale = staleFlown(table.rows);
 check('every flown figure with a program is named by it above zero, finished and clear of the ground', stale.length === 0, stale.join(', '));
 check('negative control: a flown row its program no longer names is caught',
   staleFlown(table.rows.map((r) => (r.id === 'tailslide' ? { ...r, measured: { ...r.measured, named: false } } : r))).includes('tailslide'));
+/* A row that needs tiers says so only if its Extra flight seated them:
+ * a program flown stock under a tier's name would be a stock result
+ * reported as a tier's, or a tier's reported as stock. */
+const unseated = (rows) => rows.filter((r) => r.tiers && JSON.stringify(r.measured.seated.extra) !== JSON.stringify(r.tiers)).map((r) => r.id);
+const notSeated = unseated(table.rows);
+check('every row that needs control surface tiers was flown on them on the Extra', notSeated.length === 0, notSeated.join(', '));
+check('negative control: a row flown stock under a tier\'s name is caught',
+  unseated(table.rows.map((r) => (r.tiers ? { ...r, measured: { ...r.measured, seated: { ...r.measured.seated, extra: null } } } : r))).length > 0);
+const short = marginFailures(table.pilot.margins);
+check('every measured loop keeps the bandwidth criterion\'s margins and the line hold\'s fit is the plant\'s', short.length === 0, short.join('; '));
+check('negative control: a loop at 5 dB is caught', marginFailures({ ...table.pilot.margins,
+  lineElevator: { ...table.pilot.margins.lineElevator, level: [{ ...table.pilot.margins.lineElevator.level[0], gmDb: 5 }] } }).length === 1);
 const named = table.rows.filter((r) => r.measured && r.measured.named).length;
 const flown = table.rows.filter((r) => r.measured).length;
 console.log(`\nfigures table: ${named} of ${flown} programs named as flown; ${fail ? `${fail} failed` : 'all hold'}`);

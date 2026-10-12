@@ -53,7 +53,7 @@ import {
 } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
-import { CHALLENGES, LAP_XP, FIRST_LAP_XP, PLANE_LEVELS } from '../src/game/progress.js';
+import { CHALLENGES, LAP_XP, FIRST_LAP_XP, FIRST_XP, PLANE_LEVELS } from '../src/game/progress.js';
 import { revRpm } from '../src/ui/hangar-polish.js';
 import { VOICES } from '../src/render/audio.js';
 
@@ -112,6 +112,13 @@ async function shellUp(page) {
 
 const actions = (page) => page.evaluate('window.__ui.items().filter((it) => !it.section).map((it) => it.action)');
 async function choose(page, action) {
+  /* Track Day is a Flight Club card (src/ui/ways.js HUBS): from home, Flight
+   * Club first, the way Enter on its card does. */
+  const home = await page.evaluate("window.__ui.items().some((it) => it.action === 'hub-club')");
+  if (action.startsWith('way-') && home) {
+    await choose(page, 'hub-club');
+    await page.until("window.__ui.hub === 'club'", 5000);
+  }
   const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})`);
   if (at < 0) {
     throw new Error(`no row ${action}: ${JSON.stringify(await actions(page))}`);
@@ -373,7 +380,8 @@ async function earn(page) {
   const p = await progress(page);
   const want = LAP_XP.built + FIRST_LAP_XP;
   const challengeXp = 40 + 120;
-  say(p.xp === before.xp + want + challengeXp, `XP: ${before.xp} to ${p.xp}, a first lap on a built track (${want}) and two challenges (${challengeXp})`);
+  /* The Timber's first flight pays once too (src/game/progress.js FIRST_XP, progress v2). */
+  say(p.xp === before.xp + want + challengeXp + FIRST_XP.flight, `XP: ${before.xp} to ${p.xp}, a first lap on a built track (${want}), two challenges (${challengeXp}) and the Timber's first flight (${FIRST_XP.flight})`);
   say(p.challenges.first_course && p.challenges.timber_clean, `the clean Timber lap completes its challenge, and the first lap: ${JSON.stringify(p.challenges)}`);
   const log = await page.evaluate('window.__ui.progress.log');
   const kinds = log.map((t) => t.cls);

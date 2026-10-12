@@ -24,8 +24,9 @@
 #      sign-in, on the VM into /etc/fdfpv/accounts.env (root, mode 600),
 #      never copied off it and never rotated (see the step),
 #   5. install.sh as root on the VM: the units, the journald cap and the
-#      Caddyfile, then restarts both servers (rooms clients get 1012 and
-#      reconnect into their seats) and reloads Caddy,
+#      Caddyfile, restarts the tracks server, and puts the new rooms
+#      version live beside the old one, which drains (rooms-deploy.sh:
+#      no room is dropped, nothing waits for one),
 #   6. checks both servers answer through Caddy, over HTTPS, and that
 #      GET /api/version and GET /v2/version name the commit from step 3.
 #
@@ -77,7 +78,7 @@ rsync -a --delete --relative -e "ssh -i $KEY -o BatchMode=yes" \
   package.json package-lock.json src configs aircraft edge tracks-api deploy/vm \
   "$VM:/opt/fdfpv/"
 remote 'cd /opt/fdfpv && npm ci --omit=dev --no-audit --no-fund --loglevel=error'
-# Written before step 5 restarts the servers, so each reads the commit of
+# Written before step 5 starts the servers, so each reads the commit of
 # the code it loads. A deploy from a checkout with changes no commit holds
 # still goes out, as it always has, and says so instead of naming a
 # commit that is not what runs.

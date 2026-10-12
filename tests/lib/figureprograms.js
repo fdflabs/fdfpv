@@ -23,9 +23,11 @@
  */
 
 import { loadSim } from './simmod.js';
-import { must, EXTRA_AIRFRAME, hangSticks } from './wingpilot.js';
-import { clamp, quant, eyes } from './personpilot.js';
+import { must, EXTRA_AIRFRAME, hangSticks, personLoop } from './wingpilot.js';
+import { clamp, quant, eyes, PERSON } from './personpilot.js';
 import { FigureDetector } from '../../src/game/figuredetect.js';
+import { SURFACES, tierBlock, tierThrowsDeg, tierPoints, pointsInertia } from '../../configs/surfaces.js';
+import { addonParams } from '../../configs/hangar-parts.js';
 
 const MS = 2;
 /* The hand moves every 50 ms, twice PERSON's ten a second: the figures'
@@ -61,12 +63,59 @@ const pull = (stick, rad, thr = 1) => ({
     return [[0, stick, 0, thr], m.turned > rad - Math.abs(d.q) * 0.25];
   },
 });
-/* Ailerons held until the wings have turned `rad`. */
-const roll = (stick, rad, thr = 0.75, pitch = 0, push = true) => ({
+/* A part loop flown round: "the pull or push half-loop must also be of
+ * (not necessarily similar) constant radius" (British Aerobatic
+ * Association, judging, "Humpty Bumps",
+ * https://www.aerobatics.org.uk/judging/topics/humpty-bumps), as
+ * figures-plant-check.js flies its loop: the entry stick sets the size,
+ * and once the nose has come 30 deg round the person flies the pitch rate
+ * V / R that keeps that radius as the speed changes, on its LOOP_GAINS
+ * (kp 0.1, ki 0.2). Let go early as pull() does. */
+const round = (entry, rad, thr) => ({
+  name: `round ${entry} ${(rad / PI).toFixed(2)}pi`,
+  step: (d, m) => {
+    const sense = Math.sign(entry);
+    const w = -sense * d.q;
+    m.turned = (m.turned ?? 0) + Math.abs(d.q) * H;
+    if (m.R === undefined && m.turned > 0.5) m.R = d.v / Math.max(0.5, w);
+    let stick = entry;
+    if (m.R !== undefined) {
+      const err = d.v / m.R - w;
+      m.i = clamp((m.i ?? 0) + 0.2 * err * H, 0.5);
+      stick = clamp(entry + sense * (0.1 * err + m.i));
+    }
+    return [[0, quant(stick), 0, thr], m.turned > rad - Math.abs(d.q) * 0.25];
+  },
+});
+/* Ailerons held until the wings have turned `rad`, let go `lead` s of
+ * the roll rate early. */
+const roll = (stick, rad, thr = 0.75, pitch = 0, push = true, lead = 0.35) => ({
   name: `roll ${stick} ${(rad / PI).toFixed(2)}pi`,
   step: (d, m) => {
     m.turned = (m.turned ?? 0) + Math.abs(d.p) * H;
-    return [[stick, pitch + (push && d.uz < -0.3 ? -0.12 : 0), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * 0.35];
+    return [[stick, pitch + (push && d.uz < -0.3 ? -0.12 : 0), Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * lead];
+  },
+});
+/* A slow roll: "The rate of roll must be constant" (British Aerobatic
+ * Association, judging, "Slow Rolls",
+ * https://www.aerobatics.org.uk/judging/topics/slow-rolls). A fixed 0.15
+ * of stick rolled the Extra at 2 rad/s wings level and under the judge's
+ * 1.2 through the knife edges, where the top rudder's yaw rolls against
+ * it, so the roll came apart in two. The person holds the rate they see
+ * on the aileron instead: kp of stick per rad/s of the rate's error and
+ * the hand settling on what holds it (ki per second). The rate is the
+ * person's, 1.7 rad/s, a turn in 3.7 s, over the judge's 3 s and its 1.2
+ * with room. Gains measured 2026-10-12 over kp 0 to 0.06 and ki 0.05 to
+ * 0.4 on the Extra, CAP and Slick: kp 0.03, ki 0.2 named the slow roll
+ * on all three (8, 8, 8.5); ki 0.05 lost it on the Slick. */
+const rateRoll = (rate, rad, thr = 0.9) => ({
+  name: `rate roll ${rate} ${(rad / PI).toFixed(2)}pi`,
+  step: (d, m) => {
+    m.turned = (m.turned ?? 0) + d.p * H;
+    const err = rate - d.p;
+    m.i = clamp((m.i ?? 0.15) + 0.2 * err * H);
+    const ail = quant(clamp(m.i + 0.03 * err));
+    return [[ail, d.uz < -0.3 ? -0.12 : 0, Math.abs(d.lz) > 0.5 ? quant(-0.6 * d.lz) : 0, thr], m.turned > rad - Math.abs(d.p) * 0.35];
   },
 });
 /* The gains a line is held with: the nose's error to a rate (kp, 1/s) and
@@ -83,8 +132,26 @@ export const LINE_GAINS = { kp: 4, kr: 0.2 };
  * as it slowed on the prop curves. ki per second on the stick the hold
  * asks for, figures-plant-check.js's; each line starts its own. */
 const LINE_KI = 1;
+/* The elevator's share of the line hold kept at a measured gain margin
+ * (scripts/figures-margins.js): the pitch rate a unit of elevator buys
+ * grows with the slipstream and the airspeed, K = a + b throttle + c V^2
+ * rad/s per stick on the Extra (fitted to its measured steps,
+ * 2026-10-12), and the rate gain is LINE_GM / K. LINE_GM is the largest
+ * that keeps the 6 dB of the bandwidth criterion on the elevator's
+ * measured frequency response, level at a third, two thirds and full
+ * throttle (6.1, 7.3 and 8.1 dB): the step reads the gain a quarter low
+ * at the loop's 180 deg frequency, 11 to 12.5 rad/s. LINE_GAINS' fixed
+ * 0.2 kept 3.3 and 1.3 dB at a third and two thirds, and at full
+ * throttle none (-1.8 dB): the humpty's up line went stop to stop on the
+ * elevator and snapped the wing. The rudder keeps LINE_GAINS: its
+ * step response turns over with the airspeed (the fin weathervanes the
+ * yaw back within the 0.25 s), so it has no gain to schedule on. */
+export const LINE_PITCH_K = { a: 1.637, b: 1.563, c: 0.00281 };
+export const LINE_GM = 0.36;
+export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
 const holdLine = (d, m, target, thr) => {
-  const [r, p, y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  const [r, , y] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  const p = hangSticks(d.s, { target, rollStick: 0, kp: LINE_GAINS.kp, kr: lineKr(thr, d.v) })[1];
   m.trimP = clamp((m.trimP ?? 0) + LINE_KI * p * H, 0.5);
   m.trimY = clamp((m.trimY ?? 0) + LINE_KI * y * H, 0.5);
   return [quant(r), quant(clamp(p + m.trimP)), quant(clamp(y + m.trimY)), thr];
@@ -127,6 +194,213 @@ const points = (n, stick = 0.5) => ({
       m.hold = 400;
     }
     return [[stick, 0.05, 0, 0.75], m.q >= n];
+  },
+});
+/*
+ * A knife edge as a person flies one, three loops through the eyes and
+ * the hand at PERSON's pace (a look every 100 ms, whose 0.25 s of delay
+ * and hold crossoverFor designs to): the bank held at 90 deg on the
+ * ailerons, the nose's elevation on the rudder (top rudder, the sideslip
+ * that holds the height), the heading on the elevator, full throttle.
+ * The elevation the rudder holds is itself set by the climb rate the
+ * person sees, an outer loop a quarter as fast (PERSON.outer), whose
+ * plant is g over the elevation that holds a level knife edge: a radian
+ * more of it climbs at that rate per second. Each loop is personLoop's,
+ * at the crossover and plant gain scripts/figures-margins.js measures on
+ * the Extra in a level knife edge at full throttle (crossoverFor, the
+ * bandwidth criterion's 45 deg and 6 dB), pinned here and checked there,
+ * with the margins each keeps. The rudder and elevation start trimmed
+ * where that knife edge settles, as a person puts the top rudder in as
+ * they roll to it. The fixed top rudder it flew before (-0.6, no aileron)
+ * rolled the Extra on through the knife edge at up to 0.87 rad/s, onto
+ * its back in 2 s.
+ */
+export const KNIFE = {
+  bank: { wc: 2, gain: 11.989 },
+  elevation: { wc: 0.8, gain: 1.142 },
+  heading: { wc: 2, gain: 5.344 },
+  trim: { rudder: 0.46, elevation: 0.232, speed: 28.5 },
+};
+const G = 9.80665;
+const knife = (ms) => ({
+  name: `knife ${ms}`,
+  step: (d, m) => {
+    const [w, x, y, z] = [d.s[7], d.s[8], d.s[9], d.s[10]];
+    const psi = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+    if (!m.bank) {
+      m.side = Math.sign(d.lz) || 1;
+      m.psi0 = psi;
+      m.bank = personLoop(KNIFE.bank.wc, KNIFE.bank.gain);
+      m.elevation = personLoop(KNIFE.elevation.wc, KNIFE.elevation.gain, { u0: KNIFE.trim.rudder });
+      m.heading = personLoop(KNIFE.heading.wc, KNIFE.heading.gain);
+      m.climb = personLoop(KNIFE.elevation.wc * PERSON.outer, G / KNIFE.trim.elevation, { min: -0.5, max: 0.8, u0: KNIFE.trim.elevation });
+    }
+    const done = m.t >= ms;
+    if (m.sticks && m.t % PERSON.everyMs !== 0) return [m.sticks, done];
+    let dpsi = m.psi0 - psi;
+    if (dpsi > PI) dpsi -= 2 * PI;
+    if (dpsi < -PI) dpsi += 2 * PI;
+    const want = m.climb.step(-d.vz);
+    m.sticks = [
+      quant(m.bank.step(m.side * PI / 2 - Math.atan2(d.lz, d.uz))),
+      quant(-m.side * m.heading.step(dpsi)),
+      quant(-m.side * m.elevation.step(want - Math.asin(clamp(d.nz)))),
+      1,
+    ];
+    m.flight.knife = m.sticks;
+    return [m.sticks, done];
+  },
+});
+/*
+ * A knife-edge loop: a loop flown on its knife edge, the rudder pulling
+ * the nose round and the wings square to the loop's plane. The person
+ * enters from the knife edge above, whose sticks are where they start:
+ * the ailerons hold the bank (the wing square to the plane) and the
+ * elevator the plane (the nose in it), on the knife edge's own two loops
+ * (KNIFE.bank, KNIFE.heading), the rudder the path round the loop, full
+ * throttle throughout.
+ *
+ * The rudder flies the path's angle round the loop onto a mark the
+ * person moves on at V / R, R set at the entry speed by the loop's pace
+ * (rate, rad/s): a constant radius as the speed changes ("the radius
+ * kept constant", BAeA judging, "Loops and Part Loops"), as round()
+ * does for an inside loop. The mark is brought up to pace over rampS,
+ * the rudder fed in as a person does, not stepped. Its loop is
+ * personLoop's on the rudder's measured response in the level knife
+ * edge, read as the path's angle (scripts/figures-margins.js: crossoverFor
+ * puts it at 1.6 rad/s on a plant gain of 1.013), flown at half that
+ * crossover: the CAP's side force per rudder near the stop is about
+ * twice its slope at the knife edge's trim (0.4, 1.2 and 2.8 g at half,
+ * three quarters and full rudder, launched at 25 m/s at full throttle,
+ * against the Extra's 1.1, 2.0 and 2.7; 2026-10-12, the side force 0.4
+ * to 0.7 s after the step), and the loop flown at the trim's crossover
+ * rang on it at 3 rad/s, the rudder from the stop to 0.46 and back. On
+ * top the person asks the rudder the turn needs as a share of the knife
+ * edge's: the side force toward the loop's centre (V^2 / R and the
+ * weight's share) in g, times the rudder that held the 1 g knife edge
+ * (ff of it), the rest the loop's.
+ *
+ * rate, rateMin, rampS and ff are FITTED, swept 2026-10-12 on all three
+ * from the level entry: rate 0.45 to 0.55, rateMin none, 0.4 and 0.45,
+ * ff 0.4 to 0.7, rampS 1 and 2. With rateMin 0.4 and rampS 2, ff 0.4 and
+ * 0.55 named it on all three at every rate; ff 0.7 lost the CAP (its
+ * rudder overshot and the path's rate fell under the detector's arc),
+ * rampS 1 lost the CAP in 8 of the 9, rateMin 0.45 took the Slick
+ * to 0 to 3. The floor is over the top, where the speed is lowest: at
+ * V / R alone the path turned 0.3 rad/s there, a breath over the
+ * detector's arc (ARC_OFF 0.25), and one dip took the loop apart. No
+ * margin is measured for the pace, the share or the floor. The gains are
+ * not scheduled on the speed (20 to 38 m/s round the loop): scaled by
+ * the entry speed over V it lost the CAP and the Slick, by its square
+ * it spun the CAP off at 4 m/s; the knife edge's loops keep 9 dB, past
+ * the 2.5 dB a third more speed than their 28.5 m/s adds. With the
+ * throttle cut over the top (to 0.2 or 0.5, from 0.9 or 1.1 of a half
+ * turn) the Extra did not finish the loop and reached the ground in all
+ * four. It lets go 0.3 s of the path's rate early.
+ */
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 1.013 }, rate: 0.5, rateMin: 0.4, rampS: 2, ff: 0.55 };
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const knifeLoop = () => ({
+  name: 'knife loop',
+  step: (d, m) => {
+    const [w, x, y, z] = [d.s[7], d.s[8], d.s[9], d.s[10]];
+    const n = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+    const l = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
+    const u = [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
+    const v = [d.s[4] / d.v, d.s[5] / d.v, d.s[6] / d.v];
+    if (!m.normal) {
+      /* The loop's plane is the vertical one along the path, its normal
+       * the wings' up as the knife edge holds it, and its centre on the
+       * top wing's side. */
+      const [ail, ele, rud] = m.flight.knife;
+      m.side = Math.sign(l[2]) || 1;
+      const hu = Math.hypot(u[0], u[1]);
+      const hv = Math.hypot(v[0], v[1]);
+      m.normal = [u[0] / hu, u[1] / hu, 0];
+      m.along = [v[0] / hv, v[1] / hv, 0];
+      m.R = d.v / KNIFE_LOOP.rate;
+      m.rudder = -m.side * rud;
+      m.bank = personLoop(KNIFE.bank.wc, KNIFE.bank.gain, { u0: ail });
+      m.plane = personLoop(KNIFE.heading.wc, KNIFE.heading.gain, { u0: -ele });
+      m.path = personLoop(KNIFE_LOOP.path.wc, KNIFE_LOOP.path.gain, { u0: m.rudder * (1 - KNIFE_LOOP.ff) });
+      m.was = Math.atan2(v[2], dot3(v, m.along));
+      m.turned = 0;
+      m.mark = 0;
+    }
+    const at = Math.atan2(v[2], dot3(v, m.along));
+    let step = at - m.was;
+    if (step > PI) step -= 2 * PI;
+    if (step < -PI) step += 2 * PI;
+    m.was = at;
+    m.turned += step;
+    const done = m.turned > 2 * PI - 0.3 * d.v / m.R;
+    if (m.sticks && m.t % PERSON.everyMs !== 0) return [m.sticks, done];
+    const pace = Math.max(KNIFE_LOOP.rateMin, d.v / m.R) * Math.min(1, m.t / 1000 / KNIFE_LOOP.rampS);
+    m.mark = Math.min(2 * PI, m.mark + pace * PERSON.everyMs / 1000);
+    const g = (d.v * pace + G * m.side * l[2]) / G;
+    const rud = clamp(KNIFE_LOOP.ff * m.rudder * g + m.path.step(m.mark - m.turned));
+    m.sticks = [
+      quant(m.bank.step(-Math.atan2(dot3(l, m.normal), dot3(u, m.normal)))),
+      quant(-m.plane.step(dot3(n, m.normal))),
+      quant(-m.side * rud),
+      1,
+    ];
+    return [m.sticks, done];
+  },
+});
+/*
+ * A rolling circle: a 360 deg turn rolled continuously. "The rate of roll
+ * must be constant", "The rate of change of direction throughout the turn
+ * should be constant", "CGT should be horizontal, with constant
+ * altitude" (British Aerobatic Association, judging, "Rolling Circles",
+ * https://www.aerobatics.org.uk/judging/topics/rolling-turns-1). The
+ * ailerons hold the slow roll's rate (rateRoll's law, 1.6 rad/s), the
+ * turn's rate is that over the rolls asked, and the person puts the
+ * force the circle needs, toward its centre and up against the weight,
+ * on whichever surface faces it as the wings come round: the elevator
+ * for the share along the wings' up, the rudder (the sideslip, as in a
+ * knife edge) for the share along the span. A g on the elevator is
+ * 1/ELEVATOR_G of stick, measured on the Extra level at full throttle
+ * (12.2, 13.3 and 14.4 g per unit stick at 20, 24 and 28 m/s, the
+ * normal acceleration 0.3 to 0.6 s after a twentieth or a tenth of
+ * elevator, 2026-10-12), a g on the rudder the knife edge's trim rudder
+ * (KNIFE.trim) scaled by its dynamic pressure. The person paces the turn
+ * on the roll they count, a turn of heading for every `rolls` of roll,
+ * and lets the roll go on the last as roll() does, so the two finish
+ * together, wings level on the heading; the heading's
+ * lag behind that and the climb rate the person sees add to the force:
+ * kpsi 1/s and kz 2/s, FITTED on a four-roll circle: swept over kpsi 0.5
+ * and 1, kz 1 and 2, and the surfaces' per g taken a half under and over,
+ * 6 of the 12 name it on all three and this is the only one over 6 on
+ * each (Extra 6.5, CAP 8, Slick 9.5). No margin is measured for these
+ * loops.
+ */
+const ELEVATOR_G = (v) => 12.16 + 0.286 * (v - 20);
+const rollingCircle = (rolls, rate = 1.6) => ({
+  name: `rolling circle ${rolls}`,
+  step: (d, m) => {
+    const [w, x, y, z] = [d.s[7], d.s[8], d.s[9], d.s[10]];
+    const hv = Math.hypot(d.s[4], d.s[5]);
+    const track = Math.atan2(d.s[5], d.s[4]);
+    m.prev = m.prev ?? track;
+    let step = track - m.prev;
+    if (step > PI) step -= 2 * PI;
+    if (step < -PI) step += 2 * PI;
+    m.turned = (m.turned ?? 0) + step;
+    m.prev = track;
+    m.rolled = (m.rolled ?? 0) + d.p * H;
+    const omega = rate / rolls;
+    const toCentre = d.v * (omega + (m.rolled / rolls - m.turned));
+    const a = [toCentre * -d.s[5] / hv, toCentre * d.s[4] / hv, G - 2 * d.vz];
+    const up = [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
+    const span = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
+    const gUp = (a[0] * up[0] + a[1] * up[1] + a[2] * up[2]) / G;
+    const gSpan = (a[0] * span[0] + a[1] * span[1] + a[2] * span[2]) / G;
+    const err = rate - d.p;
+    m.i = clamp((m.i ?? 0.15) + 0.2 * err * H);
+    const q = (KNIFE.trim.speed / Math.max(10, d.v)) ** 2;
+    return [[quant(clamp(m.i + 0.03 * err)), quant(clamp(gUp / ELEVATOR_G(d.v))), quant(clamp(-gSpan * KNIFE.trim.rudder * q)), 1],
+      m.rolled > rolls * 2 * PI - Math.abs(d.p) * 0.35];
   },
 });
 /* Hang on the prop: the nose up, the height on the throttle. */
@@ -188,8 +462,19 @@ const slow = (to) => ({
     return [[r, quant(clamp(pi + Math.sign(d.uz || 1) * (m.iV - 0.04 * d.vz))), y, 0], d.v < to];
   },
 });
-/* Full rudder until the nose points down (a stall turn's pivot). */
-const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.5], d.nz < -0.6] });
+/* Full rudder until the nose points down (a stall turn's pivot), the
+ * throttle eased to 0.2: at 0.5 the slipstream's torque rolled the Extra
+ * through the turn round, which a judge marks ("Is the aeroplane
+ * pitching or rolling during the turn?", BAeA judging, "Stall Turns"),
+ * and the pivot graded 0 to 2. Let go with the nose 49 deg below the
+ * horizon, the down line's hold taking it from there. */
+const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.2], d.nz < -0.75] });
+/* How long the person leaves the sticks once it slides back before they
+ * fly the nose down themselves: the Extra can settle falling flat at 10
+ * m/s with the sticks left alone, its nose on the horizon (with the
+ * elevator's line gain at a 6 dB margin, scripts/figures-margins.js, it
+ * fell 180 m that way into the ground), and a person would not wait. */
+const SLIDE_LET_GO_MS = 1500;
 /* Throttle off, the nose held up the vertical on the elevator and rudder
  * until the aircraft slides back, then the sticks let go until it falls
  * through (a tailslide). A pilot who lets go at the stop leaves the yaw
@@ -198,17 +483,60 @@ const kick = () => ({ name: 'kick', step: (d) => [[0, 0, -1, 0.5], d.nz < -0.6] 
 const slide = () => ({
   name: 'slide',
   step: (d, m) => {
-    m.back = m.back || d.along < -1;
-    return [m.back ? [0, 0, 0, 0] : holdLine(d, m, UP, 0), m.t > 600 && d.nz < -0.3];
+    if (m.backAt === undefined && d.along < -1) m.backAt = m.t;
+    const back = m.backAt !== undefined;
+    return [back ? [0, 0, 0, 0] : holdLine(d, m, UP, 0), m.t > 600 && (d.nz < -0.3 || (back && m.t - m.backAt > SLIDE_LET_GO_MS))];
   },
 });
-/* Sticks held as given for a time. */
-const hold = (st, ms) => ({ name: `hold ${st}`, step: (d, m) => [st, m.t >= ms] });
+/*
+ * A waterfall as David Scott teaches it ("Master the 3D Waterfall", Model
+ * Airplane News): "maintaining full up-elevator, and applying full power
+ * and a little right rudder", the wings level or it "will barrel roll
+ * out of this stunt", `turns` times round, then out level (Scott: "increase
+ * the throttle and exit"). The right rudder (positive stick, the nose right) holds off the
+ * yaw the prop's gyroscope puts on the pitch rotation: with none the
+ * Extra yawed left at 1.5 rad/s through it. At full power and next to no
+ * airspeed the prop's torque rolls the Extra left at 2 rad/s, so the
+ * person feeds in right aileron with the power, as a torque roll is held,
+ * and then keeps the wings on the ailerons (the bank they see, through
+ * the attitude: dl_z/dt = p u_z).
+ *
+ * Scott's throttle cut "on the back side of the loop" and the "few clicks
+ * of power" at the bottom are not flown: at the values below, the power
+ * cut at 0.6 or 0.75 of a turn (to idle or to half, the rudder centred,
+ * back at 0.9) broke the pivot at the cut, 0.8 to 0.9 of a turn, and none
+ * of the four was named; nor was any of 81 cut flights over the first
+ * sweep's values. Round 3 found the same from rest (the rate under 2
+ * rad/s within 0.3 s; at these speeds the elevator's authority is the
+ * prop's wash). A plant finding (docs/TRICKS-CATALOG.md), not a choice.
+ *
+ * rudder, aileron and wings are FITTED, swept 2026-10-12 on the Extra at
+ * the Extreme aileron and elevator (PROGRAM_TIERS) from the 75 deg upline
+ * at 4 m/s over rudder 0.1 to 0.2, aileron 0.6 to 1 and wings 0 to 2 per
+ * unit of l_z, 53 flights: the waterfall was named in 26, at 3.5 to 7.
+ * With the aileron at 0.8 or more and the wings at 0.75 or less, 25 of
+ * 29 (one a tumble); at 0.6 of aileron none (the torque rolled it, two
+ * tumbles); the wings at 1 or more, through the person's 0.2 s, rang and
+ * named it once in 18. Round the values taken (rudder 0.12 to 0.18,
+ * aileron 0.9 and 1, wings 0.25 to 0.75) 16 of 18, at 4 to 7, no tumble.
+ * No margin is measured for these loops.
+ */
+export const WATERFALL = { rudder: 0.15, aileron: 1, wings: 0.5 };
+const waterfall = (turns) => ({
+  name: `waterfall ${turns}`,
+  step: (d, m) => {
+    m.turned = (m.turned ?? 0) + Math.abs(d.q) * H;
+    const ail = quant(clamp(WATERFALL.aileron - WATERFALL.wings * d.lz * Math.sign(d.uz || 1)));
+    return [[ail, 1, WATERFALL.rudder, 1], m.turned > turns * 2 * PI - Math.abs(d.q) * 0.25];
+  },
+});
 
 const L = (ms = 3000) => level(ms);
 const D45 = [Math.SQRT1_2, 0, -Math.SQRT1_2];
 const U45 = [Math.SQRT1_2, 0, Math.SQRT1_2];
+const U75 = [Math.cos(75 * PI / 180), 0, Math.sin(75 * PI / 180)];
 const B45 = [-Math.SQRT1_2, 0, -Math.SQRT1_2];
+const B_U45 = [-Math.SQRT1_2, 0, Math.SQRT1_2];
 
 /* The programs. The aircraft starts level at 22 m/s heading +x, 150 m up,
  * over no ground: the plant raises none unless the host does, so fly()
@@ -218,7 +546,7 @@ const B45 = [-Math.SQRT1_2, 0, -Math.SQRT1_2];
 export const PROGRAMS = {
   half_roll: [L(), roll(0.5, PI), level(3000)],
   double_roll: [L(), roll(0.6, 4 * PI), L()],
-  slow_roll: [L(), roll(0.15, 2 * PI, 0.9), L()],
+  slow_roll: [L(), rateRoll(1.7, 2 * PI), L()],
   two_point_roll: [L(), points(2), L()],
   /* An eighth at 0.6 of stick (6.4 rad/s) passed in 0.12 s, inside the
    * 0.2 s the person has not seen: its points fell anywhere (117 to 408
@@ -229,32 +557,103 @@ export const PROGRAMS = {
   outside_loop: [L(), pull(-0.55, 2 * PI), L()],
   immelmann: [L(), pull(0.55, PI), roll(0.5, PI), L()],
   split_s: [L(), roll(0.5, PI), pull(0.55, PI, 0.5), L()],
-  half_cuban: [L(), pull(0.55, 1.25 * PI), line(B45, 800, 0.6), roll(0.5, PI, 0.6), line(B45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
-  cuban_8: [L(), pull(0.55, 1.25 * PI), line(B45, 800, 0.6), roll(0.5, PI, 0.6), line(B45, 800, 0.6),
-    pull(0.55, 1.5 * PI), line(D45, 800, 0.6), roll(0.5, PI, 0.6), line(D45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
-  reverse_half_cuban: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI), line([-Math.SQRT1_2, 0, Math.SQRT1_2], 600), pull(0.55, 1.25 * PI, 0.6), L()],
-  reverse_cuban_8: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI), line([-Math.SQRT1_2, 0, Math.SQRT1_2], 600), pull(0.55, 1.5 * PI, 0.6),
-    line([-Math.SQRT1_2, 0, Math.SQRT1_2], 800), roll(0.5, PI), line(U45, 600), pull(0.55, 1.25 * PI, 0.6), L()],
-  humpty_bump: [L(), pull(0.55, 0.5 * PI), line(UP, 1500), pull(1, PI, 0.4), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
-  hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.6, (d) => d.v < 7), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+  /* The Cubans' 5/8 and 3/4 loops on the round loop's law from the
+   * Extra's 0.3 (a fixed 0.55 at full throttle flew the 5/8 past its 45,
+   * 0.85 of a turn swept, and its radius spread 69 %), and their half
+   * rolls on the 45s let go at 0.25 s of the rate, the 0.23 s the roll
+   * measured carrying (POINT_LEAD) on the beat: at 0.6 throttle down the
+   * 45 the Extra rolls 5.6 rad/s and roll()'s 0.35 stopped it 25 deg
+   * short. FITTED to the Cubans: swept 0.2 to 0.35, 0.25 named the half
+   * Cuban highest on all three; the level rolls keep 0.35, which 0.25
+   * moves (the Extra's half roll 9 to 7). The reverse Cubans' lines
+   * after each roll hold the 45 they rolled on; they held the other 45,
+   * 90 deg round, and the rudder fought the nose there. */
+  half_cuban: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
+  cuban_8: [L(), round(0.3, 1.25 * PI, 0.6), line(B45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(B45, 800, 0.6),
+    round(0.3, 1.5 * PI, 0.6), line(D45, 800, 0.6), roll(0.5, PI, 0.6, 0, true, 0.25), line(D45, 800, 0.6), pull(0.55, 0.25 * PI), L()],
+  reverse_half_cuban: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI, 0.75, 0, true, 0.25), line(U45, 600), round(0.3, 1.25 * PI, 0.6), L()],
+  reverse_cuban_8: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI, 0.75, 0, true, 0.25), line(U45, 600), round(0.3, 1.5 * PI, 0.6),
+    line(B_U45, 800), roll(0.5, PI, 0.75, 0, true, 0.25), line(B_U45, 600), round(0.3, 1.25 * PI, 0.6), L()],
+  /* The top on the round loop's law from the Extra's 0.3, the stick
+   * figures-plant-check.js's loop holds short of the stall: a full stick
+   * stalled the wing and flicked it (snap pieces on the plant). */
+  humpty_bump: [L(), pull(0.55, 0.5 * PI), line(UP, 1500), round(0.3, PI, 0.4), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+  /* The up line at the tailslide's 0.4, which slows each aircraft (the
+   * Slick climbs at 28 m/s on 0.6), kicked at 9 m/s: swept over 5 to 11
+   * m/s on all three, 9 names it on each; at 7 and under the CAP's rudder
+   * has too little air to turn it round. */
+  hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < 9), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
-  knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -0.6, 1], 3000), roll(-0.5, 0.5 * PI), L()],
-  ke_loop: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -1, 1], 7000), L()],
-  rolling_circle: [L(), { name: 'rolling circle', step: (d, m) => [[0.3, quant(0.35 * d.uz), quant(-0.5 * d.lz), 1], m.t > 9000] }, L()],
+  knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), knife(3000), roll(-0.5, 0.5 * PI), L()],
+  ke_loop: [L(), roll(0.5, 0.5 * PI, 1), knife(1000), knifeLoop(), roll(-0.5, 0.5 * PI), L()],
+  /* One roll, the catalogue's 2.4.2.1: a turn as fast as the judge's
+   * slowest roll (1.2 rad/s) asks 2.7 g toward the centre at 22 m/s, all
+   * of it on the rudder where the wings are level, near three times the
+   * weight the Extra's knife edge holds on it; not named on any of the
+   * three at 1.25 to 1.6 rad/s. Four rolls named it 6.5 / 8 / 9.5 on the
+   * Extra, CAP and Slick, but four rolls is Aresti 2.4.7.1. */
+  rolling_circle: [L(), rollingCircle(1), L()],
   hover: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   torque_roll: [slow(14), pull(0.6, 0.5 * PI, 0.8), hang(5000, { rollStick: 0.15 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   harrier: [slow(12), harrier(5000), L()],
   inverted_harrier: [L(), roll(0.5, PI), slow(12), harrier(5000, { inverted: true }), roll(0.5, PI), L()],
   rolling_harrier: [slow(12), harrier(1500), harrier(4000, { rollStick: 0.35 }), L()],
-  waterfall: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.6, (d) => d.v < 8), hold([0, -1, 0, 1], 1500), L()],
+  /* Entered from an upline bled to 4 m/s at the tailslide's 0.4, the
+   * nose 75 deg up. From a stable elevator, Scott's entry (9 m/s and
+   * sinking at a third of the throttle), the Extra flew micro loops at 8
+   * to 13 m/s and 2 to 4 rad/s, no pivot; from the vertical upline it
+   * pivoted 0.63 of a turn and spun. Two turns: the Extreme elevator's. */
+  waterfall: [L(), pull(0.55, 75 * PI / 180), line(U75, 8000, 0.4, (d) => d.v < 4), waterfall(2), L()],
   wall: [slow(13), pull(1, 0.5 * PI, 1), hang(2500), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
 };
 
-export async function fly(program, { wasmBytes, configText, trace = false }) {
+/* What the hangar seats for `tiers` ({ a, e, r }, configs/surfaces.js) on
+ * the plant `airframe`, as scripts/surfaces-gates.js seatTiers does: the
+ * tier block, the tier's throws over the table's tune, the bigger servos
+ * as add-ons. Returns the tiers seated: an aircraft the hangar offers no
+ * surface tiers on flies stock whatever is asked. */
+function seatTiers(sim, airframe, tiers) {
+  const id = Object.keys(SURFACES).find((k) => SURFACES[k].sim === airframe);
+  const block = id ? tierBlock(id, tiers) : null;
+  if (!block) return null;
+  must(sim.setTiers(block), 'sim_wing_set_tiers');
+  must(sim.clearTune(), 'sim_wing_tune_clear');
+  const tune = sim.tune();
+  const th = tierThrowsDeg(id, tiers);
+  tune[3] = th[0] * PI / 180;
+  tune[4] = th[1] * PI / 180;
+  tune[5] = th[2] * PI / 180;
+  must(sim.setTune(tune), 'sim_wing_set_tune');
+  const pts = tierPoints(id, tiers);
+  if (pts.length) {
+    must(sim.setAddons(addonParams(id, { prop: 'stock', addons: [] }, null, 0, pts)), 'sim_set_addons');
+    must(sim.setAddonInertia(Float64Array.from(pointsInertia(pts))), 'sim_set_addon_inertia');
+  }
+  return tiers;
+}
+
+/* The hangar's control surface tiers (configs/surfaces.js) a program
+ * needs, where stock throws do not fly it. The waterfall program on the
+ * Extra, 2026-10-12: stock, its first pivot 0.56 of a turn, named two
+ * snap rolls; the 3D elevator with the stock, 3D or Extreme aileron and
+ * the sport elevator with the Extreme, 0.7 to 0.8 of a turn and a spin
+ * or snap; the Extreme elevator with the stock aileron,
+ * 0.77 and a half roll, the torque winning; the Extreme elevator with the
+ * sport, 3D or Extreme aileron names it (6, 5 and 6). The CAP has no
+ * tiers in the hangar (configs/surfaces-tiers.js), so it flies it stock;
+ * the Slick has them (w36-surface-tiers, 4cf3179d1). */
+export const PROGRAM_TIERS = { waterfall: { a: 'extreme', e: 'extreme' } };
+
+/* airframe: the plant's id, the Extra's by default; the CAP and the Slick
+ * fly the same programs at the same launch to check a promotion. tiers:
+ * the hangar's control surface tiers to seat (PROGRAM_TIERS), stock when
+ * null; the flight says what it seated (null for stock). */
+export async function fly(program, { wasmBytes, configText, trace = false, airframe = EXTRA_AIRFRAME, tiers = null }) {
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(EXTRA_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  const seated = tiers ? seatTiers(sim, airframe, tiers) : null;
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_pose(0, 0, 150, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_wing_launch(22), 'sim_wing_launch');
@@ -262,7 +661,10 @@ export async function fly(program, { wasmBytes, configText, trace = false }) {
   const det = new FigureDetector((f) => got.push(f));
   const eye = eyes({ stepMs: MS, everyMs: EVERY });
   let i = 0;
-  let mem = { t: 0 };
+  /* What one phase leaves the next in this flight (the knife edge's
+   * sticks for the loop flown from it). */
+  const flight = {};
+  let mem = { t: 0, flight };
   let st = [0, 0, 0, 0.75];
   let ms = 0;
   let minZ = Infinity;
@@ -284,12 +686,12 @@ export async function fly(program, { wasmBytes, configText, trace = false }) {
       if (trace) console.log(`  ${ms} ${program[i].name} along ${o.along.toFixed(1)} q ${o.q.toFixed(2)} r ${o.r.toFixed(2)} v ${o.v.toFixed(1)} z ${o.z.toFixed(0)} nz ${o.nz.toFixed(2)} uz ${o.uz.toFixed(2)} [${st.join(',')}]`);
       if (done) {
         i += 1;
-        mem = { t: 0 };
+        mem = { t: 0, flight };
       }
     }
     must(sim.input(ms / 1000, ...st), 'sim_input');
     must(sim.step(MS), 'sim_step');
   }
   det.flush();
-  return { got, finished: i >= program.length, crashed, ms, minZ };
+  return { got, finished: i >= program.length, crashed, ms, minZ, seated };
 }

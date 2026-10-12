@@ -111,10 +111,13 @@ try {
 
   /* 1. Made at the host's time, as the room browser makes a room. */
   const code = await a.evaluate("window.__roomCreate({ daytime: window.__ui.settings.timeOfDay === 'own' ? null : window.__ui.settings.timeOfDay })");
-  await a.until("window.__rooms().phase === 'open'", 30000);
+  /* Opening the room can wait on a world rebuild at the room's clock: 55.5 s
+   * on four cores in SwiftShader for the #968 build, against 0.1 s when the
+   * page is idle, and #969's CI ran past 30 s twice. A boot's budget. */
+  await a.until("window.__rooms().phase === 'open'", BOOT_MS);
   await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
   for (const p of [a, b]) {
-    await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", 30000);
+    await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", BOOT_MS);
   }
   const [na, nb] = [await settled(a, 'night'), await settled(b, 'night')];
   check('in the room both pages hold the room\'s clock, night', same(na.clock, clockOfTime('night')) && same(nb.clock, na.clock),

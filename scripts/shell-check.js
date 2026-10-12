@@ -568,7 +568,19 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     return jumps;
   });
 
+  /* The default seat is a plane now, whose Rates row opens planerates
+   * (items.js ratesRow, covered by plane-rates-check); these two probes walk
+   * the quad's Rates room, so they seat a quad first. */
+  const seatQuad = () => {
+    const was = ui.settings.airframe;
+    ui.settings.airframe = '7inch';
+    return () => {
+      ui.settings.airframe = was;
+    };
+  };
+
   out.roomReturn = caught(() => {
+    const unseat = seatQuad();
     const go = (id) => {
       const i = indexOf((r) => r.id === id);
       if (i < 0) {
@@ -613,6 +625,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     ui.returnTo = null;
     ui.roomFrom = null;
     ui.show('title');
+    unseat();
     return result;
   });
 
@@ -646,6 +659,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
   });
 
   out.oneHome = caught(() => {
+    const unseat = seatQuad();
     const thing = new Map([['Tune', 'tune'], ['PIDs', 'pids'], ['Rates', 'rates']]);
     const homes = { tune: [], pids: [], rates: [] };
     const doors = { tune: [], pids: [], rates: [] };
@@ -670,6 +684,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
         }
       }
     }
+    unseat();
     return {
       tune: homes.tune,
       pids: homes.pids,
@@ -759,39 +774,39 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     const firstGamepad = input.firstGamepad;
     input.firstGamepad = () => fake;
     const savedMap = input.map;
-    const savedRest = input.navRest;
+    const savedRest = input.menus.rest;
     let padSelect;
     try {
       input.map = { ...savedMap, select: null };
-      input.navRest = [0, 0, 0, 0];
-      input.holdMs = 0;
-      input.holdFired = false;
-      input.holdAt = 0;
+      input.menus.rest = [0, 0, 0, 0];
+      input.menus.heldMs = 0;
+      input.menus.pressedOnce = false;
+      input.menus.lastAt = 0;
       const press = () => input.padMenuButtons().select;
 
       const atRest = press();
 
       fake.axes = [0, 0, 0, 0.9];
-      input.holdMs = 0;
-      input.holdFired = false;
-      input.holdAt = performance.now() - 100;
+      input.menus.heldMs = 0;
+      input.menus.pressedOnce = false;
+      input.menus.lastAt = performance.now() - 100;
       const early = press();
 
       /* 650 ms banked plus a tick of at most 100 clears the 700 ms hold. */
-      input.holdMs = 650;
-      input.holdFired = false;
-      input.holdAt = performance.now() - 100;
+      input.menus.heldMs = 650;
+      input.menus.pressedOnce = false;
+      input.menus.lastAt = performance.now() - 100;
       const fired = press();
 
-      input.holdAt = performance.now() - 100;
+      input.menus.lastAt = performance.now() - 100;
       const again = press();
 
       fake.axes = [0, 0, 0, 0];
-      input.holdAt = performance.now();
+      input.menus.lastAt = performance.now();
       press();
       fake.axes = [0, 0, 0, 0.9];
-      input.holdMs = 650;
-      input.holdAt = performance.now() - 100;
+      input.menus.heldMs = 650;
+      input.menus.lastAt = performance.now() - 100;
       const rearmed = press();
 
       input.map = {
@@ -817,7 +832,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     } finally {
       input.firstGamepad = firstGamepad;
       input.map = savedMap;
-      input.navRest = savedRest;
+      input.menus.rest = savedRest;
     }
     return { padBanner, padSelect };
   });
@@ -946,13 +961,13 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
       whoop,
       home,
       homeCards,
-      asksHubs: home.join(',') === 'Flight Club,Hangar' && homeItems.every((it) => it.card)
-        && homeCards.length === 2 && pictured(homeCards),
-      asksWays: gateLabels.length === 2 && gateLabels.join(',') === 'Track Day,Free Flight'
+      asksHubs: home.join(',') === 'Flight Club,Operations,Hangar' && homeItems.every((it) => it.card)
+        && homeCards.length === 3 && pictured(homeCards),
+      asksWays: gateLabels.length === 3 && gateLabels.join(',') === 'Track Day,Free Flight,Learn to fly'
         && !gateItems.some((it) => !it.card),
-      asCards: clubCards.length === 2 && pictured(clubCards),
+      asCards: clubCards.length === 3 && pictured(clubCards),
       modeSetGate,
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 3
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
       onePress: whoop.craft === '7inch' && whoop.mode === 'race' && whoop.screen === 'courses'
         && !whoop.gate && whoop.cards === 0 && !whoop.menu.includes('Freestyle'),
@@ -1164,8 +1179,8 @@ const BEHAVIOUR = [
     const m = r.modeSetGate;
     const w = r.whoop;
     const checks = [
-      [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on Flight Club and the Hangar, each with a picture and a plan`],
-      [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the two ways in`],
+      [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on Flight Club, Operations and the Hangar, each with a picture and a plan`],
+      [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the three ways in`],
       [r.asCards, `the gate: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or has lost its picture or its plan`],
       [r.gateWithMode, `the gate: with the mode already answered it drew ${m.cards.length} card(s), ${m.cards.filter((c) => c.wide).length} of them visible, is-gate ${m.isGate}, ${m.keepNote} menu note(s) still showing`],
       [r.onePress, `the gate: Track mode with the whoop seated left ${w.craft} in ${w.mode} on ${w.screen}, gate ${w.gate}, and landed on ${or(w.menu, 'nothing')}`],

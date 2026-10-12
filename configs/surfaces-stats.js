@@ -39,7 +39,7 @@ export const SURFACE_STATS = {
       {
         "full": 841,
         "fifth": 123,
-        "kept": 0.668
+        "kept": 0.669
       }
     ],
     "e": [
@@ -68,22 +68,22 @@ export const SURFACE_STATS = {
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       },
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       },
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       },
       {
         "full": 268,
         "fifth": 43,
-        "kept": 0.496
+        "kept": 0.432
       }
     ]
   },
@@ -152,6 +152,210 @@ export const SURFACE_STATS = {
         "full": 113,
         "fifth": 17.1,
         "kept": 0.891
+      }
+    ]
+  },
+  "slick2680": {
+    "a": [
+      {
+        "full": 672,
+        "fifth": 60,
+        "kept": 0.964
+      },
+      {
+        "full": 704,
+        "fifth": 64,
+        "kept": 0.941
+      },
+      {
+        "full": 731,
+        "fifth": 67.8,
+        "kept": 0.918
+      },
+      {
+        "full": 767,
+        "fifth": 71.6,
+        "kept": 0.894
+      }
+    ],
+    "e": [
+      {
+        "full": 298,
+        "fifth": 55.6,
+        "kept": 0.752
+      },
+      {
+        "full": 301,
+        "fifth": 61.1,
+        "kept": 0.723
+      },
+      {
+        "full": 305,
+        "fifth": 62.6,
+        "kept": 0.703
+      },
+      {
+        "full": 308,
+        "fifth": 64.1,
+        "kept": 0.683
+      }
+    ],
+    "r": [
+      {
+        "full": 211,
+        "fifth": 22.1,
+        "kept": 0.828
+      },
+      {
+        "full": 217,
+        "fifth": 22.8,
+        "kept": 0.785
+      },
+      {
+        "full": 226,
+        "fifth": 23.9,
+        "kept": 0.745
+      },
+      {
+        "full": 235,
+        "fifth": 24.9,
+        "kept": 0.702
+      }
+    ]
+  },
+  "nighttimber1200": {
+    "a": [
+      {
+        "full": 521,
+        "fifth": 92.1,
+        "kept": 0.791
+      },
+      {
+        "full": 578,
+        "fifth": 101.3,
+        "kept": 0.746
+      },
+      {
+        "full": 646,
+        "fifth": 111.7,
+        "kept": 0.638
+      },
+      {
+        "full": 717,
+        "fifth": 123,
+        "kept": 0.384
+      }
+    ],
+    "e": [
+      {
+        "full": 243,
+        "fifth": 71.6,
+        "kept": 0.809
+      },
+      {
+        "full": 262,
+        "fifth": 80.6,
+        "kept": 0.748
+      },
+      {
+        "full": 280,
+        "fifth": 89.9,
+        "kept": 0.681
+      },
+      {
+        "full": 297,
+        "fifth": 99.5,
+        "kept": 0.612
+      }
+    ],
+    "r": [
+      {
+        "full": 127,
+        "fifth": 26,
+        "kept": 0.921
+      },
+      {
+        "full": 146,
+        "fifth": 29.9,
+        "kept": 0.879
+      },
+      {
+        "full": 166,
+        "fifth": 34.2,
+        "kept": 0.821
+      },
+      {
+        "full": 186,
+        "fifth": 38.9,
+        "kept": 0.743
+      }
+    ]
+  },
+  "timber1500": {
+    "a": [
+      {
+        "full": 368,
+        "fifth": 41.6,
+        "kept": 0.853
+      },
+      {
+        "full": 428,
+        "fifth": 48.1,
+        "kept": 0.811
+      },
+      {
+        "full": 480,
+        "fifth": 55.1,
+        "kept": 0.762
+      },
+      {
+        "full": 533,
+        "fifth": 62.1,
+        "kept": 0.684
+      }
+    ],
+    "e": [
+      {
+        "full": 228,
+        "fifth": 47.3,
+        "kept": 1.02
+      },
+      {
+        "full": 280,
+        "fifth": 55.2,
+        "kept": 0.998
+      },
+      {
+        "full": 341,
+        "fifth": 66.6,
+        "kept": 0.901
+      },
+      {
+        "full": 403,
+        "fifth": 79.7,
+        "kept": 0.664
+      }
+    ],
+    "r": [
+      {
+        "full": 118,
+        "fifth": 18.1,
+        "kept": 1.003
+      },
+      {
+        "full": 149,
+        "fifth": 22.4,
+        "kept": 0.948
+      },
+      {
+        "full": 185,
+        "fifth": 27.4,
+        "kept": 0.862
+      },
+      {
+        "full": 224,
+        "fifth": 32.9,
+        "kept": 0.745
       }
     ]
   }

@@ -63,11 +63,11 @@ export const ARESTI_K = {
 
 export const FIGURES = [
   /* Family 1, lines, with rolls on them. */
-  fig('knife_edge_pass', 'lines', 6, ['1.1.1.1', '9.1.3.1', '9.1.3.1'], 'unproven'),
+  fig('knife_edge_pass', 'lines', 6, ['1.1.1.1', '9.1.3.1', '9.1.3.1'], 'flown'),
   /* Family 2, turns. */
   fig('rolling_circle', 'turns', 46, ['2.4.2.1'], 'unproven'),
   /* Families 5 and 6, stall turns and tail slides. */
-  fig('hammerhead', 'stall_turns', 17, ['5.2.1.1'], 'unproven'),
+  fig('hammerhead', 'stall_turns', 17, ['5.2.1.1'], 'flown'),
   fig('tailslide', 'tail_slides', 15, ['6.2.1.1'], 'flown'),
   /* Family 7, loops and eights. */
   fig('loop', 'loops', 10, ['7.4.1.1'], 'flown'),
@@ -77,16 +77,16 @@ export const FIGURES = [
   fig('cuban_8', 'loops', 28, ['7.8.1.1', '9.1.3.2', '9.1.3.2'], 'unproven'),
   fig('reverse_cuban_8', 'loops', 28, ['7.8.5.1', '9.1.3.2', '9.1.3.2'], 'unproven'),
   fig('avalanche', 'loops', 21, ['7.4.1.1', '9.9.3.4'], 'waits'),
-  fig('ke_loop', 'loops', 15, null, 'unproven'),
+  fig('ke_loop', 'loops', 15, null, 'flown'),
   /* Family 8, combinations. */
-  fig('half_cuban', 'combinations', 14, ['8.5.6.1', '9.1.3.2'], 'unproven'),
-  fig('reverse_half_cuban', 'combinations', 14, ['8.5.2.1', '9.1.3.2'], 'unproven'),
-  fig('humpty_bump', 'combinations', 13, ['8.4.1.1'], 'unproven'),
+  fig('half_cuban', 'combinations', 14, ['8.5.6.1', '9.1.3.2'], 'flown'),
+  fig('reverse_half_cuban', 'combinations', 14, ['8.5.2.1', '9.1.3.2'], 'flown'),
+  fig('humpty_bump', 'combinations', 13, ['8.4.1.1'], 'flown'),
   /* Family 9, rolls, snaps and spins. */
   fig('half_roll', 'rolls', 4, ['9.1.3.2'], 'flown'),
   fig('aileron_roll', 'rolls', 8, ['9.1.3.4'], 'flown'),
   fig('double_roll', 'rolls', 16, ['9.1.3.4', '9.1.3.4'], 'flown'),
-  fig('slow_roll', 'rolls', 10, null, 'unproven'),
+  fig('slow_roll', 'rolls', 10, null, 'flown'),
   fig('two_point_roll', 'rolls', 9, ['9.2.3.4'], 'flown'),
   fig('four_point_roll', 'rolls', 11, ['9.4.3.4'], 'flown'),
   fig('eight_point_roll', 'rolls', 15, ['9.8.3.4'], 'unproven'),
@@ -104,7 +104,9 @@ export const FIGURES = [
   fig('harrier', '3d', 8, null, 'unproven'),
   fig('inverted_harrier', '3d', 11, null, 'unproven'),
   fig('rolling_harrier', '3d', 16, null, 'unproven'),
-  fig('waterfall', '3d', 12, null, 'unproven'),
+  /* Flown on the Extra's Extreme elevator and aileron, not on stock throws
+   * (tests/lib/figureprograms.js PROGRAM_TIERS). */
+  fig('waterfall', '3d', 12, null, 'flown'),
   fig('blender', '3d', 18, null, 'waits'),
   fig('tumble', '3d', 15, null, 'waits'),
   fig('lomcevak', '3d', 16, null, 'waits'),

@@ -205,10 +205,14 @@ linear x = a (angle) at small angles, **saturates on a flat plate's**
 1.17 (Hoerner): x / (1 + (x / 1.17)^4)^(1/4). A surface in a crossflow, or
 a control past what its surface can carry, pushes no harder than a plate.
 The share in the wash saturates the same way at its angle in the wash's
-own stream. `side_cda`, 0.132 m² (the fuselage's 1.26 by 0.125 m side at
-Allen and Perkins' crossflow coefficient of 1.2 times their eta of 0.7), is
-the crossflow drag against the body's sideways speed squared that a knife
-edge is flown on.
+own stream. `side_cda`, 0.172 m² (the fuselage's 1.26 by 0.125 m side at
+Allen and Perkins' crossflow coefficient of 1.2 times their eta of 0.7,
+the 1.2 a round body's taken over to the drawn rounded box's sections,
+1.30 times the circle's: NACA TN 3038 Table I, the 1:2 ellipse 1.6, the
+1:1 rounded square at r/b 0.333 1.0 and the 1:2 rectangle at r/b 0.25
+1.6 over the same tunnel's circle 1.0, scripts/lib/crossflow.js; 0.132
+until 2026-10-12), is the crossflow drag against the body's sideways
+speed squared that a knife edge is flown on.
 
 ### 3. The air a slow aircraft turns through (`rot_k`)
 
@@ -261,7 +265,7 @@ figures from `npm run extra:derive`. Bands are never widened to pass.
 | E10 | full elevator at zero airspeed | 38.86 rad/s² | 29.1 to 48.6 | 36.9; prop stopped 0.04 |
 | E10b | full rudder at zero airspeed | 32.47 rad/s² | 24.4 to 40.6 | 31.5; prop stopped 0.04 |
 | E11 | harrier at 40 deg of alpha | 6.25 m/s, 0.603 throttle, elevator 66 percent | 5.0 to 7.5, 0.51 to 0.69, short of full | 7.08, 0.633, stick 0.83 |
-| E12 | knife edge at 15 m/s | 34.3 deg sideslip, 0.775 throttle, rudder 78 percent | 25.7 to 42.9, 0.66 to 0.89, short of full | 34.3, 0.784, stick -0.85 |
+| E12 | knife edge at 15 m/s | 31.8 deg sideslip, 0.618 throttle, rudder 73 percent | 23.9 to 39.7, 0.526 to 0.71, short of full | 30.2, 0.620, stick -0.77 |
 | E13 | standing on its wheels | 6.7 deg, 0.2221 m, 18.3 percent on the tail | half a degree, 5 mm, 15 to 22 percent | 6.69, 0.2222, 18.0 |
 | E14 | take off roll | 2.78 m | 1.7 to 4.5 | 4.07 |
 | E15 | every other aircraft unmoved | main's hashes | identical | identical |

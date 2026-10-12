@@ -26,7 +26,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import http from 'node:http';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,7 +38,7 @@ import { openD1 } from './d1sqlite.js';
 import { startTracks } from './node.js';
 import { NO_REVISION, readRevision } from '../edge/node-http.js';
 import { DOCUMENT_MAX_CHARS, WRITE_LIMIT } from './limits.js';
-import { Latency, cpuShares, getState, history, mask, openStore, readCpu, sizing, writeMinute } from './metrics.js';
+import { Latency, cpuShares, getState, history, liveRooms, mask, openStore, readCpu, readServices, serverReport, sizing, writeMinute } from './metrics.js';
 import { writeFixture } from './metrics-fixture.js';
 import { collect } from './collect.js';
 import { createIdentity, memoryStorage, trackDeleteMessage, trackMessage } from '../src/share/identity.js';
@@ -355,6 +356,55 @@ check('the collector writes a minute: CPU, memory, disk, the tracks latency, the
 check('and keeps its counters and cursor for the next', getState(collected, 'raw').cpu.total > 0 && getState(collected, 'journalCursor') === 'c1');
 collected.close();
 await server.stop();
+
+/* The rooms server's live instance (/etc/fdfpv/rooms-live): the stubs
+ * answer as the rooms server does, each with its own port as pilots. */
+console.log('\nrooms live instance');
+const stubs = [];
+for (const port of [8797, 8798]) {
+  const stub = http.createServer((req, res) => {
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify(req.url === '/v2/admin/health' ? { pilots: port, rooms: 1 } : { commit: 'stub' }));
+  });
+  await new Promise((resolve, reject) => stub.once('error', reject).listen(port, '127.0.0.1', resolve));
+  stubs.push(stub);
+}
+const liveFile = join(scratch, 'rooms-live');
+const noRooms = { counts: {}, lines: [], cursor: null, read: false };
+const probe = async (file) => collect({ store: openStore(':memory:'), roomsLiveFile: file, tracks: 'http://127.0.0.1:9', board: 'http://127.0.0.1:9', paths: {}, readJournal: () => noRooms });
+writeFileSync(liveFile, '8798\n');
+check('the live file names the instance and its unit', JSON.stringify(liveRooms(liveFile)) === JSON.stringify({ port: 8798, unit: 'fdfpv-rooms@8798' }), JSON.stringify(liveRooms(liveFile)));
+check('the collector probes the instance the file names', (await probe(liveFile)).pilots === 8798);
+const reported = await serverReport({ latency: new Latency(), roomsLiveFile: liveFile, liveMs: 10 }).report('1h');
+check('and so does the server report', reported.roomsLive.unit === 'fdfpv-rooms@8798' && reported.rooms.pilots === 8798 && reported.versions.rooms.commit === 'stub', JSON.stringify(reported.roomsLive));
+const absent = join(scratch, 'no-such-file');
+check('with no file, it is the one unit fdfpv-rooms on 8797', JSON.stringify(liveRooms(absent)) === JSON.stringify({ port: 8797, unit: 'fdfpv-rooms' }));
+check('and the collector probes 8797', (await probe(absent)).pilots === 8797);
+const absentReport = await serverReport({ latency: new Latency(), roomsLiveFile: absent, liveMs: 10 }).report('1h');
+check('and so does the report', absentReport.roomsLive.unit === 'fdfpv-rooms' && absentReport.rooms.pilots === 8797);
+/* A directory in the file's place is a read that fails with something other than "not there". */
+const unreadable = join(scratch, 'rooms-live-dir');
+mkdirSync(unreadable);
+writeFileSync(liveFile, '8799\n');
+check('a file that cannot be read is an error, not a guess', /could not be read: EISDIR/.test(liveRooms(unreadable).error || '') && !liveRooms(unreadable).port, JSON.stringify(liveRooms(unreadable)));
+check('and one naming another port is an error too', /not 8797 or 8798/.test(liveRooms(liveFile).error || ''), JSON.stringify(liveRooms(liveFile)));
+const broken = await probe(unreadable);
+check('the collector then probes no rooms server and still writes its minute', broken.pilots === undefined && broken['probe.rooms'] === null && broken['cpu.busy'] >= 0, JSON.stringify(broken).slice(0, 200));
+const brokenReport = await serverReport({ latency: new Latency(), roomsLiveFile: unreadable, liveMs: 10 }).report('1h');
+check('and the report carries the error with no rooms numbers', /EISDIR/.test(brokenReport.roomsLive.error) && brokenReport.rooms === null && brokenReport.host.mem.total > 0, JSON.stringify(brokenReport.roomsLive));
+for (const stub of stubs) {
+  await new Promise((resolve) => stub.close(resolve));
+}
+const cg = join(scratch, 'cgroup');
+const instance = join(cg, 'system-fdfpv\\x2drooms.slice', 'fdfpv-rooms@8798.service');
+mkdirSync(instance, { recursive: true });
+mkdirSync(join(cg, 'caddy.service'));
+for (const [dir, mem] of [[instance, '1048576'], [join(cg, 'caddy.service'), '2048']]) {
+  writeFileSync(join(dir, 'memory.current'), `${mem}\n`);
+  writeFileSync(join(dir, 'memory.max'), 'max\n');
+  writeFileSync(join(dir, 'cpu.stat'), 'usage_usec 5\n');
+}
+check('a template instance in its slice is a service of its own', readServices(cg).map((x) => x.unit).sort().join() === 'caddy,fdfpv-rooms@8798', JSON.stringify(readServices(cg).map((x) => x.unit)));
 rmSync(scratch, { recursive: true, force: true });
 
 console.log(`\n${passed} passed, ${failed} failed`);

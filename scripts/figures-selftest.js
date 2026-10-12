@@ -92,7 +92,10 @@ const PATHS = {
   knife_edge_pass: [lead, { p: 6, ms: Math.round((Math.PI / 2 / 6) * 1000), speed: V }, straight(2500, 15), { p: -6, ms: Math.round((Math.PI / 2 / 6) * 1000), speed: V }, tail],
   elevator: [{ ms: 2500, world: [3, 0, -5] }],
   waterfall: [{ ms: Math.round(2 * Math.PI / 3.5 * 1000), q: 3.5, speed: 4 }],
-  tumble: [{ ms: Math.round(2 * Math.PI / 8 * 1000), q: 8, speed: 4 }],
+  /* A tumble is a pitch rotation coupled into yaw, as the prop's
+   * gyroscopic precession couples it (Wikipedia, "Lomcovak"): 3 rad/s of
+   * yaw with 8 of pitch, 0.375 of a turn of yaw in the turn of pitch. */
+  tumble: [{ ms: Math.round(2 * Math.PI / 8 * 1000), q: 8, r: 3, speed: 4 }],
   lomcevak: [{ ms: Math.round(2 * Math.PI / 5 * 1000), q: 5, p: 3, speed: 4 }],
   wall: [lead, { q: -2 * Math.PI / 4 / 0.5, ms: 500, speed: 3 }, { ms: 2000, speed: 0, world: [0, 0, 0] }],
   pop_top: [{ ms: 1500, speed: V }, ...snap(1, 9)],
@@ -235,6 +238,37 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a humpty with its lines 20 deg off vertical is graded lower', got && clean && got.grade <= clean.grade - 1,
     `${clean ? clean.grade : '-'} vs ${got ? got.grade : 'not named'}`);
 }
+/* A rolling circle out with bank left on (BAeA judging, "Rolling
+ * Circles": "Stop on heading and without any remaining bank angle"):
+ * one roll and a quarter over the circle loses points on one roll. */
+{
+  const over = detect([lead, { p: 2, worldRate: [0, 0, 1.6], ms: 3927, speed: V }, tail]).find((g) => g.figure === 'rolling_circle');
+  const clean = run('rolling_circle').find((g) => g.figure === 'rolling_circle');
+  check('a rolling circle that rolls a quarter past its last roll is graded under one that stops wings level', over && clean && over.grade <= clean.grade - 1,
+    `${clean ? clean.grade : '-'} vs ${over ? over.grade : 'not named'}`);
+}
+/* Four rolls round the circle is Aresti 2.4.7.1, not the catalogue's
+ * one-roll 2.4.2.1: "If the number of rolls is wrong ... Hard Zero" (BAeA
+ * judging, "Rolling Circles"). */
+{
+  const four = detect([lead, { p: 6.4, worldRate: [0, 0, 1.6], ms: 3927, speed: V }, tail]);
+  check('a circle rolled four times is no rolling circle', !four.some((g) => g.figure === 'rolling_circle'),
+    four.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+}
+/* A stall turn's lines as a judge watches them (BAeA judging, "Stall
+ * Turns"): a rudder correction on the up line, the nose yawed 18 deg and
+ * back below 8 m/s, is yaw on the line, marked off the line, not a turn
+ * round; the hammerhead is still named, and graded under the clean one. */
+{
+  const corrected = [lead, pull(V, 20, 0.25), { ms: 1400, speed: V, dSpeed: -9 }, { r: 3, ms: 105, keepVel: true },
+    { r: -3, ms: 105, keepVel: true }, { ms: 390, dSpeed: -9 }, { r: 3, ms: Math.round(Math.PI / 3 * 1000), speed: 2 },
+    { ms: 1500, speed: 4, dSpeed: 9 }, pull(V, 20, 0.25), tail];
+  const got = detect(corrected);
+  const h = got.find((g) => g.figure === 'hammerhead');
+  const clean = run('hammerhead').find((g) => g.figure === 'hammerhead');
+  check('a hammerhead with an 18 deg yaw correction on its up line is named and graded under the clean one',
+    h && clean && h.grade < clean.grade && got.length === 1, `${clean ? clean.grade : '-'} vs ${got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing'}`);
+}
 /* A knife edge is the wing in the vertical plane along the line (FAI
  * F3P-AA 23: "During the knife edge the wing must be in the vertical
  * plane"), however much sideslip holds it up: the CAP 580 holds 30 deg at
@@ -278,6 +312,38 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   const on = at(180);
   check('a 2-point roll paused at 105 deg is graded 5 under one paused on its back', off && on && on.grade - off.grade === 5,
     `${on ? on.grade : 'not named'} vs ${off ? off.grade : 'not named'}`);
+}
+/* The pitch rotations by axis, not rate (figuredetect.js, the waterfall
+ * rows): a pure pitch pivot as fast as the Extra's peak is a waterfall,
+ * and the same pivot coupled into roll or yaw past a quarter turn is
+ * still a tumble, whatever its rate. */
+{
+  const one = (seg, start = { speed: 4 }) => detect([{ ms: Math.round(2 * Math.PI / Math.abs(seg.q) * 1000), speed: 4, ...seg }], start);
+  const fast = one({ q: 10 });
+  check('a pure pitch pivot at 10 rad/s is a waterfall, graded 8 or better', fast.length === 1 && fast[0].figure === 'waterfall' && fast[0].grade >= 8,
+    fast.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  const slowYaw = one({ q: 3.5, r: 1.4 });
+  check('negative control: a 3.5 rad/s pitch rotation with 0.4 of a turn of yaw in it is a tumble, not a waterfall',
+    slowYaw.length === 1 && slowYaw[0].figure === 'tumble', slowYaw.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  const rolled = one({ q: 8, p: 2.5 });
+  check('negative control: a pitch rotation with 0.31 of a turn of roll in it is a tumble, not a waterfall',
+    rolled.length === 1 && rolled[0].figure === 'tumble', rolled.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  /* Falling through its back side with the wings 15 deg off level, the
+   * pivot puts 2 rad/s about the vertical: still a pitch pivot, no spin. */
+  const falling = one({ q: 8, world: [0, 0, -5] }, { q: attitudeQuat(0, 15 * DEG) });
+  check('a waterfall sinking 5 m/s with the wings 15 deg off level is a waterfall, not a spin',
+    falling.length === 1 && falling[0].figure === 'waterfall', falling.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  /* Banked 60 deg the span it pivots on is nearer the vertical than the
+   * horizontal: the wings are not level and it is no waterfall. */
+  const banked = one({ q: 8 }, { q: attitudeQuat(0, 60 * DEG), speed: 4 });
+  check('negative control: a pitch pivot with the wings banked 60 deg is no waterfall', !banked.some((g) => g.figure === 'waterfall'),
+    banked.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
+  /* "Little altitude gain or forward motion" (Wikipedia, "3D Aerobatics"):
+   * the same pivot drifting 4 m/s forward, 3 m over the turn, loses a point. */
+  const clean = run('waterfall').find((g) => g.figure === 'waterfall');
+  const drift = one({ q: 3.5, world: [4, 0, 0] }).find((g) => g.figure === 'waterfall');
+  check('a waterfall that drifts 4 m/s forward through its turn is graded under one that pivots in place',
+    clean && drift && drift.grade < clean.grade, `${clean ? clean.grade : '-'} vs ${drift ? drift.grade : 'not named'}`);
 }
 /* A crash in the middle forgets the figure. */
 {
