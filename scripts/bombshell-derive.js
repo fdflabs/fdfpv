@@ -24,6 +24,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { wingProp } from './lib/propcurve.js';
 import { planeTable, propMoments, wash } from './lib/wash.js';
@@ -382,7 +383,30 @@ const washPitch = (V, th) => {
  * and the CG's inertia as it slows at the CG's: both lift the tail. */
 const hMainC = -rest.main[1];
 const groundPitch = (V, acc) => -T(V, 0) * (hMainC + thrustZ) + m * acc * hMainC;
-function rollOut(V0) {
+/* Near the ground (plant_wing.c GROUND EFFECT, scripts/lib/groundeffect.js)
+ * on its wheels at pitch th, the wing's quarter chord over the grass as
+ * the airframe stands on its mains (0.144 m under the CG, 0.0731 ahead):
+ * the changes in lift, drag and pitching moment, the whole aircraft's
+ * curve at the shifted angle and the tail at its own, as the plant takes
+ * them. */
+const geo = { b, S, aw, dd: deda, clmax: CLmax, ...wingGround('FW_BOMBSHELL1118') };
+const tailCl = (CLa - aw) / (1 - deda);
+function ground(alpha, th) {
+  const hCg = 0.144 * Math.cos(th) - 0.0731 * Math.sin(th);
+  const h = hCg + geo.wing[0] * Math.sin(th) + geo.wing[1] * Math.cos(th);
+  const gt = groundTerms(geo, h, th, alpha);
+  const a1 = alpha + gt.dAlpha;
+  const c0 = coeffs(alpha), c1 = coeffs(a1);
+  const blend = wingLift(curve(), a1).sigma;
+  return {
+    h, sigma: gt.sigma,
+    dCL: c1.CL - c0.CL + tailCl * gt.dTail,
+    dCD: c1.CD - c0.CD - (1 - blend) * gt.clw * gt.dAlpha,
+    dCm: cmAt(a1, 0) - cmAt(alpha, 0) + tailCl * geo.tail[0] / c * gt.dTail,
+  };
+}
+
+function rollOut(V0, ge = false) {
   const arm = tailAft - mainAft;
   const aftAt = (pt, th) => pt[1] * Math.sin(th) + pt[2] * Math.cos(th);
   const hMain = -rest.main[1];
@@ -391,7 +415,9 @@ function rollOut(V0) {
   const dt = 0.001;
   while (V > 0.05 && t < 60) {
     const a = th - alphaZL;
-    const { CL, CD } = coeffs(a);
+    const gr = ge ? ground(a, th) : { dCL: 0, dCD: 0, dCm: 0 };
+    const c0 = coeffs(a);
+    const CL = c0.CL + gr.dCL, CD = c0.CD + gr.dCD;
     const q = 0.5 * rho * V * V;
     const L = q * S * CL;
     let nTail = 0;
@@ -400,12 +426,12 @@ function rollOut(V0) {
        * the lift at the CG behind them and the aero moment with its pitch
        * damping, until the skid meets the grass at the rest attitude. */
       const dCG = -aftAt(rest.main, th);
-      const mNose = (W - L) * dCG + q * S * c * (cmAt(a, 0) + Cmq * qth * c / (2 * Math.max(V, 0.5))) + washPitch(V, th) + groundPitch(V, accPrev);
+      const mNose = (W - L) * dCG + q * S * c * (cmAt(a, 0) + gr.dCm + Cmq * qth * c / (2 * Math.max(V, 0.5))) + washPitch(V, th) + groundPitch(V, accPrev);
       qth += mNose / Im * dt;
       th = Math.max(0, th + qth * dt);
       if (th >= rp) { th = rp; qth = 0; tDown = t; }
     } else {
-      nTail = Math.max(0, Math.min(W - L, ((W - L) * -mainAft + q * S * c * cmAt(a, 0) + washPitch(V, th) + groundPitch(V, accPrev)) / arm));
+      nTail = Math.max(0, Math.min(W - L, ((W - L) * -mainAft + q * S * c * (cmAt(a, 0) + gr.dCm) + washPitch(V, th) + groundPitch(V, accPrev)) / arm));
     }
     const nMain = Math.max(0, W - L - nTail);
     const acc = (T(V, 0) - q * S * CD - muGrass * nMain - muSkid * nTail) / m;
@@ -625,6 +651,8 @@ rows.push(['level turn at 45 deg, 100 percent', JSON.stringify(levelTurn(45 / DE
  * plant_wing.c's 2.5 m/s over 45 m: the aircraft rises with the air, so
  * its gain is the air's rise integrated over the time it spends in it. */
 rows.push(['roll out from an 8 m/s arrival, idle: s, m', JSON.stringify(rollOut(8), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
+rows.push(['   with the ground effect; from S16 touchdown, 7.6 m/s, free and with it', JSON.stringify([rollOut(8, true), rollOut(7.6), rollOut(7.6, true)], (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))]);
+rows.push(['   at rest attitude: wing height m, sigma, dCL dCD dCm', JSON.stringify(ground(rp - alphaZL, rp), (kk, v) => (typeof v === 'number' ? +v.toFixed(4) : v))]);
 rows.push(['thermal pass at cruise: gain m', f(2.5 * (16 / 15) * 45 / Vcruise, 1)]);
 rows.push(['level turn at 30 deg, 75 percent', JSON.stringify(levelTurn(30 / DEG, 0.75), (kk, v) => (typeof v === 'number' ? +v.toFixed(3) : v))]);
 for (const [name, v] of rows) {

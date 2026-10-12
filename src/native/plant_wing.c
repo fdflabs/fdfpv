@@ -420,6 +420,132 @@ static double add_term(double sum, double term) {
 }
 
 /*
+ * GROUND EFFECT, on a table with ground_effect (scripts/lib/groundeffect.js
+ * mirrors it for the derivations, npm run ge:derive checks it against its
+ * sources). The ground under a wing is its image wing, its vortices turning
+ * the other way, and three things follow.
+ *
+ * The induced drag falls: Wieselsberger, NACA TM 77 (1922), eq. 5, by
+ * sigma CL^2 / (pi A), with Prandtl's fit to his image wing (eq. 4) in the
+ * wing's height over the span (TM 77's h is the wing to its image, twice
+ * the height, so its 0.66 and 3.7 are 1.32 and 7.4 here):
+ *
+ *   sigma = (1 - 1.32 h/b) / (1.05 + 7.4 h/b),
+ *
+ * fitted between h/b 1/30 and 1/4 and zero from h/b = 1 / 1.32, 0.758:
+ * above that the plant is exactly what it was. Katzoff and Sweberg's own
+ * sigma (NACA Report 738, 1943, p. 10), exp(-2.48 (2h/b)^0.768), gives
+ * 0.487 and 0.233 at 0.1 and 0.25 against this one's 0.485 and 0.231, and
+ * 0.040 at 0.7 against 0.012: the fit's zero is a truncation of a residual
+ * of a few percent of the induced terms, FITTED where the fit leaves its
+ * range.
+ *
+ * The lift a wing needs comes at a smaller angle: Report 738 finds the
+ * induced angle's reduction alone accounts for the measured lift, the angle
+ * falling by sigma CL / (pi A) for a given CL. So the wing is taken at its
+ * angle plus that upwash, its own lift CL_w = a_w alpha_w / (1 - sigma a_w
+ * / (pi A)) held to its CL max: it stalls at the CL max it always had, at
+ * a smaller angle, as Report 738 phrases the effect, and TM 77's measured
+ * polar (fig. 5) gives no more lift near the ground past CL 1. The drag is
+ * the lift tilted forward by the same angle, TM 77's sigma CL^2 / (pi A).
+ *
+ * The downwash at the tail falls: Report 738's method, the wing's downwash
+ * there less its image's, read at the image's distance (2 z + m, z the
+ * wake's origin over the ground, m the tail over the wake normal to the
+ * wind, in semispans), on the flat elliptic vortex sheet of Silverstein
+ * and Katzoff (NACA Report 648, 1939, the first approximation, horseshoes
+ * from the lifting line on to infinity). Its worked example, flaps up,
+ * the image taking 3.3 of 5.8 deg (0.57), this sheet gives 0.61. The
+ * wake's displacement and the reflected bound vortex (Report 738's (a)
+ * and (b), which it takes to cancel) are left out; the wake's origin is
+ * taken at the wing's quarter chord, ESTIMATED. The tail's share falls to
+ * nothing between h/b 0.5 and the wing's zero, where the sheet still gives
+ * 0.09 to 0.04 of the downwash: FITTED, so the term ends with the wing's
+ * and does not step.
+ *
+ * The heights are the surfaces' quarter chords (FixedWingParams.ge_wing,
+ * ge_tail) carried by the attitude onto the ground's normal, as the quad's
+ * rotor heights are (plant.c). A banked wing is taken at its centre's
+ * height; the roll a low tip would add is not modelled. The wing's lift
+ * the terms are taken on is its attached line's, held to its CL max: past
+ * the stall it overstates them by up to the stall's loss (stall_k),
+ * ESTIMATED. Two tables do not take the term yet: the Tiger Moth, whose
+ * two wings are TM 77's four terms, and the Hercules, which has no
+ * cl_alpha_wing to split its tail's share from its wing's.
+ */
+#define GE_HB_MAX (1.0 / 1.32)
+static double smoothstep(double a, double b, double x);
+#define GE_NODES 32 /* FITTED: the image's share within 0.3 percent of 20,000 nodes' over five tail geometries (Report 738's example's among them), scripts/lib/groundeffect.js */
+/* sin((i + 0.5) / 32 * pi / 2), the sheet's elementary horseshoes'
+ * semispans at theta's midpoints, where the elliptic sheet's strength per
+ * ds, s / sqrt(1 - s^2), is regular (scripts/lib/groundeffect.js). */
+static const double GE_S[GE_NODES] = {
+  0.024541228522912288, 0.07356456359966743, 0.1224106751992162, 0.17096188876030122,
+  0.2191012401568698, 0.26671275747489837, 0.3136817403988915, 0.3598950365349881,
+  0.40524131400498986, 0.44961132965460654, 0.49289819222978404, 0.5349976198870972,
+  0.5758081914178453, 0.6152315905806268, 0.6531728429537768, 0.6895405447370668,
+  0.7242470829514669, 0.7572088465064845, 0.7883464276266062, 0.8175848131515837,
+  0.844853565249707, 0.8700869911087113, 0.8932243011955153, 0.9142097557035307,
+  0.9329927988347388, 0.9495281805930367, 0.9637760657954398, 0.9757021300385286,
+  0.9852776423889412, 0.99247953459871, 0.9972904566786902, 0.9996988186962042
+};
+
+/* The sheet's downwash in its plane of symmetry, x behind the lifting line
+ * and z off the sheet, in semispans, to a scale the ratio cancels: the
+ * trailing pair's and the bound vortex's Biot-Savart terms of each
+ * horseshoe, summed over the elliptic loading. */
+static double ge_sheet(double x, double z) {
+  const double z2 = z * z, d2 = x * x + z2;
+  double sum = 0.0;
+  for (int i = 0; i < GE_NODES; i += 1) {
+    const double sv = GE_S[i], s2 = sv * sv;
+    sum += sv * (sv / (s2 + z2) * (1.0 + x / sim_sqrt(x * x + s2 + z2)) + sv * x / (d2 * sim_sqrt(s2 + d2)));
+  }
+  return sum;
+}
+
+typedef struct {
+  double da;  /* the wing's upwash, added to its angle, rad */
+  double clw; /* the wing's lift it was taken on */
+  double dt;  /* the tail's angle over what the shifted curve gives it, rad */
+} GroundTerms;
+
+/* Zero terms when the host has raised no ground or the wing is past
+ * GE_HB_MAX of its span over it; the caller takes no branch then. alpha_w
+ * is the wing's angle of its zero lift line with the flaps' share, sin_b
+ * and cos_b the body's angle to the wind. */
+static int ground_terms(const SimState *s, const FixedWingParams *fw, double alpha_w, double sin_b, double cos_b,
+                        double clmax, GroundTerms *g) {
+  if (!fw->ground_effect || !(s->ground_h >= 0.0)) return 0;
+  double ww[3];
+  wquat_rotate(s->quat, fw->ge_wing, ww);
+  const double h = s->ground_h + s->ground_n[0] * ww[0] + s->ground_n[1] * ww[1] + s->ground_n[2] * ww[2];
+  const double hb = (h > 0.0 ? h : 0.0) / fw->span;
+  if (hb >= GE_HB_MAX) return 0;
+  const double sigma = (1.0 - 1.32 * hb) / (1.05 + 7.4 * hb);
+  const double pia = WING_PI * fw->span * fw->span / fw->area;
+  const double aw = wing_cla(fw);
+  double clw = aw * alpha_w / (1.0 - sigma * aw / pia);
+  if (clw > clmax) clw = clmax;
+  if (clw < -clmax) clw = -clmax;
+  g->clw = clw;
+  g->da = sigma * clw / pia;
+  g->dt = -g->da;
+  if (fw->ge_tail[0] < 0.0) {
+    const double semi = 0.5 * fw->span;
+    const double dx = fw->ge_tail[0] - fw->ge_wing[0], dz = fw->ge_tail[2] - fw->ge_wing[2];
+    const double x = (-dx * cos_b + dz * sin_b) / semi, m = (dx * sin_b + dz * cos_b) / semi;
+    /* A tail that the wind meets before the wing (an aircraft hanging on
+     * its prop) is not behind the sheet the method reads. */
+    if (x > 0.0) {
+      const double r = ge_sheet(x, 2.0 * h / semi + m) / ge_sheet(x, m) * (1.0 - smoothstep(0.5, GE_HB_MAX, hb));
+      g->dt += fw->tail_deda * r * clw / aw;
+    }
+  }
+  return 1;
+}
+
+/*
  * A plain flap's profile drag on its section, per unit of its chord
  * fraction: SURF_DRAG_A |delta| + SURF_DRAG_B delta^2, delta in rad.
  * FITTED by least squares to Roskam, Airplane Design VI, fig. 4.44 (plain
@@ -2055,7 +2181,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
 
   const double Vxz = sim_sqrt(u * u + w * w);
   /* Angle of attack of the zero lift line, which is the body's on the wing. */
-  const double alpha = (Vxz > 1e-6 ? sim_atan2(-w, u) : 0.0) - fw->alpha_zl;
+  double alpha = (Vxz > 1e-6 ? sim_atan2(-w, u) : 0.0) - fw->alpha_zl;
   const double beta = V > 1e-6 ? sim_atan2(-v, Vxz) : 0.0; /* wind from the right positive */
   /* The sideslip the sideslip terms take: the angle, or with hi_alpha its
    * sine, the body's sideways speed over the airspeed, which is the angle
@@ -2078,8 +2204,19 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     cos_b = u / Vxz;
   }
   /* The flat plate after the stall, at the zero lift line's angle. */
-  const double sin_a = add_term(sin_b * fw->cos_zl, -(cos_b * fw->sin_zl));
-  const double cos_a = add_term(cos_b * fw->cos_zl, sin_b * fw->sin_zl);
+  double sin_a = add_term(sin_b * fw->cos_zl, -(cos_b * fw->sin_zl));
+  double cos_a = add_term(cos_b * fw->cos_zl, sin_b * fw->sin_zl);
+  /* Near the ground (GROUND EFFECT above) the wing flies at its angle plus
+   * the image's upwash, everything of the wing's below with it. */
+  GroundTerms ge;
+  const int ge_on = ground_terms(s, fw, add_term(alpha, dcl_f / wing_cla(fw)), sin_b, cos_b, clmax, &ge);
+  if (ge_on) {
+    const double sd = sim_sin(ge.da), cd = sim_cos(ge.da);
+    const double sa = sin_a * cd + cos_a * sd;
+    cos_a = cos_a * cd - sin_a * sd;
+    sin_a = sa;
+    alpha += ge.da;
+  }
   const double cl_flat = plate_cn(fw) * sin_a * cos_a;
   double cd0 = add_term(add_term(fw->cd0, g_slats ? fw->slat_cd0 : 0.0), fw->cd_df2 * df * df);
   /* Retracts: the gear's drag goes as it folds away. */
@@ -2125,6 +2262,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double cd_lin = cd0 + fw->k_induced * cl_lin * cl_lin;
   double CL = wl.cl;
   double CD = (1.0 - sigma) * cd_lin + sigma * cd_flat;
+  /* The attached wing's lift, tilted forward by the image's upwash. */
+  if (ge_on) {
+    CD -= (1.0 - sigma) * ge.clw * ge.da;
+  }
   /* A biplane (FixedWingParams.bip_w) takes its lift, its drag and its
    * stall's pitching moment wing by wing, biplane_lift above, and the
    * strips below judge their stall on the wing that stalls first. */
@@ -2169,7 +2310,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     /* The downwash goes with the wing's lift: with the wing's own slope
      * (cl_alpha_wing) CL here is the wing's alone. */
     const int tail_own = fw->cl_alpha_wing > 0.0;
-    const double at = sin_a - dd * CL / (tail_own ? fw->cl_alpha_wing : fw->cl_alpha) - fw->slip_a0 * (1.0 - dd);
+    double at = sin_a - dd * CL / (tail_own ? fw->cl_alpha_wing : fw->cl_alpha) - fw->slip_a0 * (1.0 - dd);
+    /* Near the ground the tail is at the geometric angle less the
+     * downwash its image leaves, not at the wing's shifted one. */
+    if (ge_on) {
+      at += ge.dt;
+    }
     const double xt = fw->tail_at * at + ae;
     const double rt = plate_ratio(xt, fw->tail_cn);
     cm_stiff = (fw->cm_alpha - fw->slip_cm_a) * sin_a + fw->slip_cm_a * fw->slip_a0 - vh * xt * rt;
@@ -2193,6 +2339,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     cndr = fw->cn_dr * rv;
     cl_lin_m = add_term(fw->cl_alpha * sin_a + fw->cl_de * delta_e, dcl_f);
     stall_dw = 0.0;
+  } else if (ge_on && fw->cl_alpha_wing > 0.0) {
+    /* The linear tail: the whole aircraft's curve took it at the wing's
+     * shifted angle, and the ground puts it at ge.dt over that. Its lift
+     * per rad of its own angle is the curve's tail share over (1 - d eps
+     * / d alpha) (Nelson eq. 2.52), its moment that lift at its arm. */
+    const double keep = CRASH.active ? CRASH.hstab_keep : 1.0;
+    const double dcl_t = keep * (fw->cl_alpha - fw->cl_alpha_wing) / (1.0 - fw->tail_deda) * ge.dt;
+    CL += dcl_t;
+    cm_stiff += dcl_t * fw->ge_tail[0] / fw->chord;
   }
 
   /*
@@ -3010,6 +3165,8 @@ const FixedWingParams FW_WING1000 = {
   .stall_k = 0.76,
   .stall_top = 2.6 * WING_PI / 180.0,
   .strip_c = { 1.250, 1.083, 0.917, 0.750 },
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.0163, 0.0, 0.0 }, /* the drawn model's wing quarter chord, npm run ge:derive */
 };
 
 /* The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md, where each number has its
@@ -3110,6 +3267,10 @@ const FixedWingParams FW_SKY1800 = {
   .slip_r = 0.1397, .slip_yh = 0.228, .slip_hv = { 0, 0 }, .slip_ya = { 0.45, 0.85 },
   .slip_a0 = 0.005368, .slip_cl_a = 0.3771, .slip_cm_a = -1.305, .slip_cn_b = 0.1552,
   .slip_cn_r = -0.119, .slip_cy_b = -0.4011, .slip_cl_b = -0.02228, .slip_pusher = 1,
+  .tail_deda = 0.364, /* d eps / d alpha, scripts/stall-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0293, 0.0, 0.0645 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.7375, 0.0, 0.051 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
@@ -3220,6 +3381,10 @@ const FixedWingParams FW_CUB1400 = {
   .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
   .side_cda = 0.0924, /* 0.84 of 0.11 m^2, 0.9 m by 0.14 m of fuselage side, docs/CUB-STAGE1.md */
+  .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0079, 0.0, 0.105 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5125, 0.0, 0.043 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
@@ -3336,6 +3501,10 @@ const FixedWingParams FW_RADIAN2000 = {
   .slip_a0 = 0.04411, .slip_cl_a = 0.3737, .slip_cm_a = -1.382, .slip_cn_b = 0.1043,
   .slip_cn_r = -0.06673, .slip_cy_b = -0.3254, .slip_cl_b = -0.02115,
   .side_cda = 0.0697, /* 0.84 of 0.083 m^2, the fuselage in side view, the render model's */
+  .tail_deda = 0.301, /* d eps / d alpha, scripts/glider-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.0092, 0.0, 0.0613 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.6807, 0.0, 0.075 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* OA Composites' NRJ, docs/DLG-STAGE1.md, where each number has its
@@ -3437,6 +3606,10 @@ const FixedWingParams FW_NRJ1490 = {
   .discus_pitch = 70.0 * WING_PI / 180.0,
   .discus_h = 1.5,
   .discus_de = -0.12563,
+  .tail_deda = 0.292, /* d eps / d alpha, scripts/dlg-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.008, 0.0, 0.0363 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5677, 0.0, -0.028 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
@@ -3550,6 +3723,8 @@ const FixedWingParams FW_BRAMOR2300 = {
   .stall_top = 0.6 * WING_PI / 180.0,
   .strip_c = { 2.041, 0.875, 0.701, 0.527 },
   .side_cda = 0.047, /* 0.84 of 0.056 m^2, the pod in side view, ESTIMATED */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.1738, 0.0, 0.01 }, /* the drawn model's wing quarter chord, npm run ge:derive */
 };
 
 /* The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md, where each number has its
@@ -3667,6 +3842,10 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .slip_r = 0.1397, .slip_yh = 0.22, .slip_hv = { 0.2, 0.01 }, .slip_ya = { 0.53, 0.588 },
   .slip_a0 = 0.04292, .slip_cl_a = 0.311, .slip_cm_a = -0.5746, .slip_cn_b = 0.1232,
   .slip_cn_r = -0.1111, .slip_cy_b = -0.2735, .slip_cl_b = -0.01814,
+  .tail_deda = 0.494, /* d eps / d alpha, scripts/slowstick-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.0516, 0.0, 0.0939 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5148, 0.0, 0.005 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
@@ -3795,6 +3974,10 @@ const FixedWingParams FW_TIMBER1500 = {
   .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, 1.04 m by 0.13 m of fuselage side, docs/TIMBER-STAGE1.md */
+  .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0061, 0.0, 0.07 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5525, 0.0, 0.006 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
@@ -3926,6 +4109,10 @@ const FixedWingParams FW_TIMBER1500F = {
   .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
   .side_cda = 0.105, /* 0.84 of 0.125 m^2, the Timber's fuselage; the floats' own side is not in it, ESTIMATED */
+  .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0061, 0.0, 0.0966 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5525, 0.0, 0.0326 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
@@ -4034,6 +4221,10 @@ const FixedWingParams FW_CUB1400F = {
   .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
   .side_cda = 0.0924, /* 0.84 of 0.11 m^2, the Cub's fuselage; the floats' own side is not in it, ESTIMATED */
+  .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0079, 0.0, 0.1314 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5125, 0.0, 0.0694 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md, where
@@ -4167,6 +4358,10 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .slip_a0 = 0.04422, .slip_cl_a = 0.5377, .slip_cm_a = -1.618, .slip_cn_b = 0.09309,
   .slip_cn_r = -0.08896, .slip_cy_b = -0.1948, .slip_cl_b = -0.009061,
   .side_cda = 0.0428, /* 0.84 of 0.051 m^2, the fuselage in side view, scripts/bombshell-derive.js */
+  .tail_deda = 0.341, /* d eps / d alpha, scripts/bombshell-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0082, 0.0, 0.0918 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5664, 0.0, 0.002 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md, where each number
@@ -4295,6 +4490,10 @@ const FixedWingParams FW_KADET1981 = {
   .slip_a0 = -0.02575, .slip_cl_a = 0.4965, .slip_cm_a = -1.273, .slip_cn_b = 0.1299,
   .slip_cn_r = -0.1269, .slip_cy_b = -0.2654, .slip_cl_b = -0.01018,
   .side_cda = 0.2016, /* 0.84 of 0.24 m^2, the box fuselage in side view, scripts/kadet-derive.js */
+  .tail_deda = 0.38, /* d eps / d alpha, scripts/kadet-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.0097, 0.0, 0.1158 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.9558, 0.0, -0.033 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md, where each number
@@ -4434,6 +4633,10 @@ const FixedWingParams FW_P51D1450 = {
   .slip_a0 = 0.07222, .slip_cl_a = 0.2949, .slip_cm_a = -0.8361, .slip_cn_b = 0.1152,
   .slip_cn_r = -0.1126, .slip_cy_b = -0.236, .slip_cl_b = -0.02099,
   .side_cda = 0.0882, /* 0.84 of 0.105 m^2, the fuselage in side view, scripts/p51-derive.js */
+  .tail_deda = 0.429, /* d eps / d alpha, scripts/p51-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0316, 0.0, -0.0226 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.6647, 0.0, 0.05 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High Performance
@@ -4563,6 +4766,10 @@ const FixedWingParams FW_F16878 = {
   .gear_time = 4.0,
   .cd_gear = 0.013,
   .side_cda = 0.126, /* 0.84 of 0.15 m^2, the fuselage in side view, scripts/f16-derive.js */
+  .tail_deda = 0.647, /* d eps / d alpha, scripts/f16-derive.js, Nelson, the one its slope takes; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.0413, 0.0, 0.0 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.4347, 0.0, -0.01 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md, where each number has its
@@ -4663,6 +4870,8 @@ const FixedWingParams FW_ZAGI1219 = {
   .strip_tau = { 0.2679, 0.4981, 0.5487, 0.6184 }, /* the 1.5 in elevons, from the bay's edge to the tip */
   .surf_sep = 0.3325,     /* the elevon's chord fraction at the MAC over its tau */
   .strip_r = { 0.8308, 1.0065, 1.1188, 1.1386 }, /* the lattice's span loading: the tips most */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.014, 0.0, 0.001 }, /* the drawn model's wing quarter chord, npm run ge:derive */
 };
 
 /* Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
@@ -4801,6 +5010,10 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .slip_a0 = 0.05137, .slip_cl_a = 0.3967, .slip_cm_a = -0.8873, .slip_cn_b = 0.1178,
   .slip_cn_r = -0.1107, .slip_cy_b = -0.2505, .slip_cl_b = -0.01054,
   .side_cda = 0.084, /* 0.84 of 0.1 m^2, the slab fuselage in side view, scripts/uglystik-derive.js */
+  .tail_deda = 0.416, /* d eps / d alpha, scripts/uglystik-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.056, 0.0, 0.0646 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.7337, 0.0, -0.0525 }, /* the stabiliser's, npm run ge:derive */
 };
 
 /* Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md, where
@@ -5078,6 +5291,8 @@ const FixedWingParams FW_STRIKER_PROP = {
   .strip_tau = { 0.0, 0.4515, 0.5572, 0.4553 }, /* the elevons, 0.32 to 1.12 m out */
   .surf_sep = 0.2939,     /* the elevon's chord fraction at the MAC over its tau */
   .strip_r = { 0.7183, 0.9870, 1.2169, 1.6347 }, /* the lattice's span loading: the tips most; npm run combat:derive */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.0478, 0.0, -0.0504 }, /* the drawn model's wing quarter chord, npm run ge:derive */
 };
 
 const FixedWingParams FW_STRIKER_JET = {
@@ -5176,6 +5391,8 @@ const FixedWingParams FW_STRIKER_JET = {
    * acceleration, ESTIMATED. No ESC start ramp: it is lit before the run. */
   .fan_tau = 0.9,
   .esc_start = 0.0,
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { -0.0478, 0.0, -0.0601 }, /* the drawn model's wing quarter chord, npm run ge:derive */
 };
 
 /* E-flite's Extra 300 3D 1.3m, EFL115500, docs/EXTRA-STAGE1.md and
@@ -5342,6 +5559,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .tail_at = 3.699,
   .tail_av = 3.715,
   .tail_deda = 0.603,
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0085, 0.0, -0.05 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.701, 0.0, 0.0 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
   .side_cda = 0.1323,
   .rot_k = { 0.01580, 0.04108, 0.03462 },
@@ -5490,6 +5710,9 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .tail_at = 3.812,
   .tail_av = 3.394,
   .tail_deda = 0.569,
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0293, 0.0, 0.065 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.5362, 0.0, -0.113 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
   .side_cda = 0.1152,
   .rot_k = { 0.01132, 0.01439, 0.01218 },
@@ -5764,6 +5987,9 @@ const FixedWingParams FW_CAP1702 = {
   .tail_at = 3.740,       /* npm run cap580:derive */
   .tail_av = 3.701,       /* npm run cap580:derive */
   .tail_deda = 0.554,     /* npm run cap580:derive */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0215, 0.0, -0.085 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -0.8425, 0.0, 0.027 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
   .side_cda = 0.1985,     /* npm run cap580:derive */
   .rot_k = { 0.05099, 0.12406, 0.08237 }, /* npm run cap580:derive */
@@ -5961,6 +6187,9 @@ const FixedWingParams FW_SLICK2680 = {
   .tail_at = 4.303, /* scripts/slick-derive.js */
   .tail_av = 3.958, /* scripts/slick-derive.js */
   .tail_deda = 0.485, /* scripts/slick-derive.js */
+  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
+  .ge_wing = { 0.0372, 0.0, 0.005 }, /* the drawn model's wing quarter chord, npm run ge:derive */
+  .ge_tail = { -1.325, 0.0, 0.053 }, /* the stabiliser's, npm run ge:derive */
   .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
   .side_cda = 0.4914, /* scripts/slick-derive.js */
   .rot_k = { 0.3889, 0.9415, 0.782 }, /* scripts/slick-derive.js */

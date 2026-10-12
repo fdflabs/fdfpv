@@ -431,8 +431,9 @@ check: {
     let lof = null;
     let worstBank = 0;
     let skid = 0;
+    const hand = { i: 0 };
     for (let ms = 0; ms < 20000 && !lof; ms += RC_STEP_MS) {
-      const o = step(sim, f16TakeoffSticks(sim.readState().state, { duty: t15.duty }));
+      const o = step(sim, f16TakeoffSticks(sim.readState().state, { duty: t15.duty, hand }));
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));
       skid = Math.max(skid, o.loads[3]);
       if (o.loaded) {

@@ -488,7 +488,11 @@ check: {
 
   /* S16: a glide from 3 m at cruise, the nose held level on the elevator
    * and the wings on the rudder, a flare to 5 deg at half a metre, and on
-   * the wheels full up to hold the tail down through the roll out. */
+   * the wheels full up to hold the tail down through the roll out. The
+   * round out holds the landing attitude (FAA-H-8083-3C, Approaches and
+   * Landings): the hand keeps pulling until the nose is there, an integral
+   * over a second, as the Cub's C20 pilot; proportional alone it drooped
+   * in the ground effect's nose down moment (plant_wing.c GROUND EFFECT). */
   {
     const t16 = th.s16_landing;
     must(sim.reset(), 'sim_reset');
@@ -501,13 +505,17 @@ check: {
     let bounces = 0;
     let was = false;
     let o = { s: sim.readState().state, loaded: false, loads: [0, 0, 0, 0] };
-    for (let ms = 0; ms < 16000; ms += RC_STEP_MS) {
+    let hand = 0;
+    let touchMs = null;
+    for (let ms = 0; ms < 30000 && (touchMs === null || ms - touchMs < t16.rollMs); ms += RC_STEP_MS) {
       const { pitch, bank } = attitude(o.s);
       const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * o.s[11]));
-      const target = touched !== null ? null : (o.s[3] > 0.5 ? -2 / DEG : 5 / DEG);
-      const pitchStick = target === null ? 1 : Math.max(-1, Math.min(1, 2.5 * (target - pitch) + 0.25 * o.s[12]));
+      const flare = touched === null && o.s[3] <= 0.5;
+      const target = touched !== null ? null : (flare ? 5 / DEG : -2 / DEG);
+      if (flare) hand = Math.max(-1, Math.min(1, hand + 4 * (target - pitch) * RC_STEP_MS / 1000));
+      const pitchStick = target === null ? 1 : Math.max(-1, Math.min(1, 2.5 * (target - pitch) + 0.25 * o.s[12] + hand));
       o = step(sim, [roll, pitchStick, 0, 0]);
-      if (o.loaded && touched === null) touched = { v: speed(o.s), vg: Math.hypot(o.s[4], o.s[5]), vz: o.s[6], x: o.s[1] };
+      if (o.loaded && touched === null) { touched = { v: speed(o.s), vg: Math.hypot(o.s[4], o.s[5]), vz: o.s[6], x: o.s[1] }; touchMs = ms; }
       if (o.loaded && !was && touched !== null && ms > 0) bounces += 1;
       was = o.loaded;
       if (touched !== null) hull = Math.max(hull, o.hull + (o.loads[3] > 0 ? 1 : 0));

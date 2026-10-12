@@ -376,6 +376,8 @@
     "slick:figures": "node scripts/figures-plant-check.js --plane slick",
     "stab:hold": "node scripts/stab-hold-derive.js --check",
     "as3x:derive": "node scripts/as3x-derive.js --check",
+    "ge:derive": "node scripts/ge-derive.js --check",
+    "wing:ge": "node scripts/wing-ge-selftest.js",
     "hover:probe": "node scripts/hover-probe.js",
     "spool:derive": "node scripts/spool-derive.js",
     "cp:tail": "node scripts/cp-tail-derive.js",

@@ -22,7 +22,10 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { groundTerms, wingGround } from './lib/groundeffect.js';
+import { plateCnOf, wingDrag, wingLift } from './lib/liftcurve.js';
 import { electricN, wingProp } from './lib/propcurve.js';
+import { planeTable, wash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -225,6 +228,169 @@ function modesAbout(x0, de, d) {
 }
 
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
+/*
+ * C19, THE TAXI TURN: full right rudder on the tailwheel at a throttle, the
+ * steady turn the plant settles into, on the plant's own coefficients
+ * (plant_wing.c through scripts/lib/wash.js planeTable, so the derivation
+ * reads what the plant flies) and its ground: the gear as drawn above,
+ * rigid at the three point attitude; the tyres' side grip on Pacejka's
+ * brush (sim.c wheel_side_cap, F / (mu N) = 1 - (1 - s)^3, s = tan(slip) /
+ * 0.17633, plant.c TYRE_SLIDE), mu 0.70 on the mains and 0.60 on the
+ * tailwheel, rolling resistance 0.08 of each wheel's load along its
+ * heading (plant.c, the Cub's wheel table, docs/CUB-STAGE1.md); the
+ * tailwheel steering one to one with the rudder, its heading laid on the
+ * grass. The air at the state: the lift curve with the Reynolds number's
+ * share of the stall (liftcurve.js), the ground effect (groundeffect.js),
+ * the pitching moment and the stall's, the sideslip and rate derivatives
+ * in the stability axes, the fin in the stalled wing's wake (TP-2011),
+ * the prop's thrust, wash, swirl and P factor, the rudder in the wash
+ * (wash.js wash), the fuselage's side drag and the prop's gyroscope.
+ * Left out: the stalled strips' yaw, 0.001 N m at the taxi state against
+ * the tyres' 0.4. Unknowns the speed, the sideslip and the turn rate;
+ * the wheel loads from the vertical, pitch and roll balances at each.
+ * Returns the radius the gate measures, the speed over the turn rate.
+ */
+const taxiTurn = (() => {
+  const { fw, keep: swirlKeep } = planeTable('FW_CUB1400');
+  const curve = { cla: fw.cl_alpha, claWing: fw.cl_alpha_wing, clmax: fw.cl_max, blend: fw.stall_blend, top: fw.stall_top, k: fw.stall_k, plateCn: plateCnOf(fw.span, fw.area) };
+  const aStall = fw.cl_max / fw.cl_alpha_wing;
+  const geo = { b: fw.span, S: fw.area, aw: fw.cl_alpha_wing, dd: fw.tail_deda, clmax: fw.cl_max, ...wingGround('FW_CUB1400') };
+  const tailCl = (fw.cl_alpha - fw.cl_alpha_wing) / (1 - fw.tail_deda);
+  const KEEP_DEG = [0, 4, 10, 15, 20, 25, 35], FIN_KEEP = [1.0, 0.704, 0.46, 0.38, 0.23, 0.08, 0.08];
+  const keepAt = (past) => {
+    if (!(past > 0)) return 1;
+    for (let i = 0; i < 6; i += 1) if (past <= KEEP_DEG[i + 1]) return FIN_KEEP[i] + (FIN_KEEP[i + 1] - FIN_KEEP[i]) * (past - KEEP_DEG[i]) / (KEEP_DEG[i + 1] - KEEP_DEG[i]);
+    return FIN_KEEP[6];
+  };
+  const smooth = (a0, a1, x) => (x <= a0 ? 0 : x >= a1 ? 1 : ((t) => t * t * (3 - 2 * t))((x - a0) / (a1 - a0)));
+  const tyre = { muMain: 0.70, muTail: 0.60, muRoll: 0.08, slide: 0.17633, track: 0.119 };
+  const brush = (t) => { const s = Math.min(1, Math.abs(t) / tyre.slide); return Math.sign(t) * (1 - Math.pow(1 - s, 3)); };
+  const ct = Math.cos(th), st = Math.sin(th);
+  const xw = (x, z) => x * ct - z * st, zw = (x, z) => x * st + z * ct;
+  const xm = xw(mainX, mainZ), zm = zw(mainX, mainZ), xt = xw(tailX, tailZ), zt = zw(tailX, tailZ);
+  const hWing = -zm + zw(geo.wing[0], geo.wing[1]);
+  /* The air's force and moment, body frame, at the heading frame's speed
+   * (uh, vh) and turn rate R, the throttle d and the rudder dr (the
+   * plant's sign, trailing edge left positive). */
+  function air(uh, vh, R, d, dr, ge) {
+    const u = uh * ct, w = -uh * st, v = vh, p = R * st, r = R * ct;
+    const V = Math.hypot(u, v, w), Vxz = Math.hypot(u, w), Vrate = Math.max(1, V);
+    const qbar = 0.5 * rho * V * V;
+    let alpha = Math.atan2(-w, u) - fw.alpha_zl;
+    const sinB = -w / Vxz, cosB = u / Vxz;
+    const fre = smooth(3e4, 5e4, V * fw.chord * rho / 1.789e-5);
+    let gt = { dAlpha: 0, dTail: 0, clw: 0 };
+    if (ge) {
+      gt = groundTerms(geo, hWing, Math.atan2(-w, u), alpha);
+      alpha += gt.dAlpha;
+    }
+    const lc = wingLift(curve, alpha, { fre });
+    const clLin = fw.cl_alpha * alpha;
+    const CL = lc.CL + tailCl * gt.dTail;
+    const CD = wingDrag(curve, alpha, { cd0: fw.cd0, k: fw.k_induced, clLin }).CD - (1 - lc.sigma) * gt.clw * gt.dAlpha;
+    const sinA = Math.sin(alpha), cosA = Math.cos(alpha);
+    const b2 = (fw.k_induced * fw.cl_max ** 2 - curve.plateCn * Math.sin(aStall) ** 2) / Math.cos(aStall);
+    const b2c = cosA > 0 ? b2 * cosA : 0;
+    const cnSt = curve.plateCn * sinA + (lc.clSt - curve.plateCn * sinA * cosA) * cosA + b2c * sinA;
+    const cmPost = lc.sigma * (((1 - lc.past) * fw.stall_arm_ac - lc.past * fw.stall_arm_cp) * cnSt - fw.stall_arm_ac * clLin - fw.stall_dw * (clLin - lc.clSt));
+    const mAero = qbar * fw.area * fw.chord * (fw.cm_0 + fw.cm_alpha * alpha + tailCl * gt.dTail * geo.tail[0] / fw.chord + fre * lc.past * cmPost);
+    const beta = Math.atan2(-v, Vxz);
+    let clb = fw.cl_beta, cnb = fw.cn_beta, cydr = fw.cy_dr, cldr = fw.cl_dr, cndr = fw.cn_dr, clSep = 0;
+    if (fw.cl_beta_wing !== 0 && fre > 0) {
+      const rel = (Math.abs(alpha) - aStall) * DEG;
+      const sepW = fre * (rel <= 0 ? 0 : rel >= 5 ? 1 : rel / 5);
+      const fin = 1 - fre * (1 - keepAt(rel));
+      clb += -fw.cl_beta_wing * sepW - fw.cl_beta_fin * (1 - fin);
+      cnb += -fw.cn_beta_fin * (1 - fin);
+      cydr *= fin; cldr *= fin; cndr *= fin;
+      const KP = [0, 4, 10, 25, 40, 90], KK = [0.0010, 0.0035, 0.0030, 0.0025, 0.0015, 0.0015];
+      let kk = 0;
+      for (let i = 0; i < 5; i += 1) if (rel > KP[i] && rel <= KP[i + 1]) kk = KK[i] + (KK[i + 1] - KK[i]) * (rel - KP[i]) / (KP[i + 1] - KP[i]);
+      const bd = Math.abs(beta) * DEG - 4;
+      if (bd > 0) clSep = -Math.sign(beta) * Math.sign(alpha) * sepW * kk * bd;
+    }
+    const L = qbar * fw.area * CL, D = qbar * fw.area * CD;
+    const F = [L * (-w / Vxz) - D * u / V, -D * v / V - qbar * fw.area * (fw.cy_beta * beta + cydr * dr), L * (u / Vxz) - D * w / V];
+    const n = electricN(d);
+    const thrust = prop.thrust(fw.thrust_static, Math.max(0, u), n);
+    F[0] += thrust;
+    const qAir = fw.torque_arm * fw.thrust_static * n * n * prop.cp(Math.max(0, u) / (fw.pitch_speed * n));
+    let mSlip = 0, nSlip = 0, lSlip = 0;
+    if (thrust > 0) {
+      const ws = wash(fw, thrust, Math.max(0, u));
+      const up = Math.min(ws.rw, fw.slip_hv[0]), dn = Math.min(ws.rw, fw.slip_hv[1]);
+      const xa = -w * Math.cos(fw.slip_a0) - u * Math.sin(fw.slip_a0);
+      const mdot = rho * Math.PI * fw.slip_r ** 2 * (Math.max(0, u) + ws.vi);
+      const xb = -v - swirlKeep * qAir * (up - dn) / (mdot * ws.rw * ws.rw);
+      const kh = rho * ws.vi * ws.fh, kv = rho * ws.vi * ws.fv, pv = ws.dp * ws.fv;
+      F[2] += fw.area * kh * fw.slip_cl_a * xa;
+      F[1] -= fw.area * (kv * fw.slip_cy_b * xb + pv * fw.cy_dr * dr);
+      mSlip = fw.area * fw.chord * kh * fw.slip_cm_a * xa;
+      nSlip = fw.area * fw.span * (kv * (fw.slip_cn_b * xb - fw.slip_cn_r * r * 0.5 * fw.span) + pv * fw.cn_dr * dr);
+      lSlip = fw.area * fw.span * (kv * fw.slip_cl_b * xb + pv * fw.cl_dr * dr) + (1 - swirlKeep) * qAir;
+    }
+    F[1] -= 0.5 * rho * fw.side_cda * v * Math.abs(v);
+    const b2v = fw.span / (2 * Vrate);
+    const ps = p * cosB - r * sinB, rs = -r * cosB - p * sinB;
+    const clSum = clb * beta + fw.cl_p * ps * b2v + clSep + fw.cl_r_per_cl * CL * rs * b2v + cldr * dr;
+    const cnSum = cnb * beta + fw.cn_r * rs * b2v + fw.cn_p_per_cl * CL * ps * b2v + cndr * dr;
+    const omegaM = 0.85 * n * fw.rpm_no_load * 2 * Math.PI / 60;
+    const M = [
+      qbar * fw.area * fw.span * (clSum * cosB - cnSum * sinB) - qAir + lSlip,
+      -mAero + fw.thrust_z * thrust - mSlip - r * fw.j_prop * omegaM,
+      -qbar * fw.area * fw.span * (cnSum * cosB + clSum * sinB) - nSlip + (omegaM > 0 ? fw.pfactor * thrust * -w / omegaM : 0),
+    ];
+    return { F, M };
+  }
+  const toH = (v) => [v[0] * ct - v[2] * st, v[1], v[0] * st + v[2] * ct];
+  /* Steady: the heading frame's forces against the turn's acceleration,
+   * the moment about the vertical nil. */
+  function residual(uh, vh, R, d, dr, ge, out) {
+    const a = air(uh, vh, R, d, dr, ge);
+    const Fh = toH(a.F), Mh = toH(a.M);
+    const hx0 = Math.cos(dr) * ct, hy0 = -Math.sin(dr), hl = Math.hypot(hx0, hy0);
+    const hx = hx0 / hl, hy = hy0 / hl;
+    let Fx = 0, res = null;
+    for (let it = 0; it < 3; it += 1) {
+      const Fz = W - Fh[2];
+      const pitch = Mh[1] + zm * Fx - R * st * R * ct * (Ixx - Izz);
+      const Nt = (pitch - xm * Fz) / (xt - xm), Nm = Fz - Nt;
+      const Fm = -tyre.muMain * Nm * brush((vh + R * xm) / uh);
+      const vtx = uh, vty = vh + R * xt;
+      const Ft = -tyre.muTail * Nt * brush((-vtx * hy + vty * hx) / (vtx * hx + vty * hy));
+      const split = -(Mh[0] - zm * Fm - zt * Ft * hx) / tyre.track;
+      const rollM = -tyre.muRoll * Nm, rollT = -tyre.muRoll * Nt;
+      Fx = rollM + rollT * hx - Ft * hy;
+      res = [Fh[0] + Fx + m * R * vh, Fh[1] + Fm + Ft * hx + rollT * hy - m * R * uh,
+        Mh[2] + xm * Fm + xt * (Ft * hx + rollT * hy) + tyre.track * tyre.muRoll * split];
+      Object.assign(out, { Nm, Nt });
+    }
+    return res;
+  }
+  return (d, dr, ge, over = {}) => {
+    const kept = { ...tyre };
+    Object.assign(tyre, over);
+    let x = [2.6, 0.3, -1.1];
+    const out = {};
+    const det3 = (A) => A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+    for (let k = 0; k < 60; k += 1) {
+      const f0 = residual(...x, d, dr, ge, out);
+      const A = [[], [], []];
+      for (let j = 0; j < 3; j += 1) {
+        const y = x.slice(); y[j] += 1e-6;
+        residual(...y, d, dr, ge, {}).forEach((v, i) => { A[i][j] = (v - f0[i]) / 1e-6; });
+      }
+      const D = det3(A);
+      x = x.map((v, j) => v - det3(A.map((row, i) => row.map((a, jj) => (jj === j ? f0[i] : a)))) / D);
+    }
+    const f = residual(...x, d, dr, ge, out);
+    Object.assign(tyre, kept);
+    if (!f.every((e) => Math.abs(e) < 1e-6)) return null;
+    const V = Math.hypot(x[0], x[1]);
+    return { V, R: x[2], radius: V / Math.abs(x[2]), ...out };
+  };
+})();
+
 const rows = [
   ['a_w, a_t, a_v /rad', `${f(aw)} ${f(at)} ${f(av)}`],
   ['dε/dα, V_H, V_V', `${f(deda)} ${f(VH)} ${f(VV, 4)}`],
@@ -252,7 +418,13 @@ const rows = [
   ['    the tail up at 8 instead', JSON.stringify(takeoff(muGrass, 8, 1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['    asphalt', JSON.stringify(takeoff(muAsphalt, 7, 1.1 * Vs), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))],
   ['    three point, hands off: CL, liftoff', `${f(CL3)} ${f(V3, 2)} ${JSON.stringify(takeoff(muGrass, 99, V3), (kk, v) => (typeof v === 'number' ? +v.toFixed(2) : v))}`],
-  ['C19 taxi radius m', f(wheelbase / Math.tan(throwR), 2)],
+  ['C19 taxi radius m, the wheels alone', f(wheelbase / Math.tan(throwR), 2)],
+  ...[0.28, 0.30, 0.32, 0.34, 0.35].map((d) => {
+    const fr = taxiTurn(d, -throwR, false), gr = taxiTurn(d, -throwR, true);
+    const s = (t) => (t ? `${f(t.radius, 3)} m at ${f(t.V, 2)} m/s, tail ${f(t.Nt, 3)} N` : 'none');
+    return [`   steady taxi turn at ${d}: free air; the ground`, `${s(fr)}; ${s(gr)}`];
+  }),
+  ['   at 0.30 with the ground, a tenth more and less grip:', ['muTail', 'muMain'].map((k) => [0.9, 1.1].map((x) => f(taxiTurn(0.30, -throwR, true, { [k]: { muTail: 0.60, muMain: 0.70 }[k] * x }).radius, 3)).join(' ')).join('; ')],
 ];
 const lc = centredModes(0.65);
 rows.push(['C10 sticks centred at 65 percent: V, climb m/s, theta', `${f(lc.V, 2)} ${f(lc.climb, 2)} ${f(lc.thetaDeg, 2)}`]);
