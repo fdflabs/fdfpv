@@ -11,7 +11,7 @@
  *   node scripts/figures-plant-sweep.js [--only id,id] [--trace]
  *
  * The pilot is figures-plant-check.js's: it sees the aircraft 0.2 s late
- * (McRuer and Jex 1967), moves the sticks ten times a second in
+ * (McRuer and Jex 1967), moves the sticks twenty times a second in
  * fiftieths, and lets a rotation go early by what it has not seen yet. A
  * figure is a program of phases a pilot would call out to themselves
  * ("pull to the vertical, hold the line, kick the rudder...").
@@ -38,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, EXTRA_AIRFRAME, hangSticks } from '../tests/lib/wingpilot.js';
+import { clamp, quant, eyes } from '../tests/lib/personpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 import { FIGURES } from '../src/game/figures.js';
 
@@ -46,12 +47,11 @@ const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 
 const MS = 2;
-const LAG = 100;
+/* The hand moves every 50 ms, twice PERSON's ten a second: the figures'
+ * gains and let go leads below were measured at this pace. */
 const EVERY = 50;
 const H = EVERY / 1000;
 const PI = Math.PI;
-const clamp = (x, m = 1) => Math.max(-m, Math.min(m, x));
-const quant = (x) => clamp(Math.round(x * 50) / 50);
 const trace = process.argv.includes('--trace');
 const onlyArg = process.argv.find((a) => a.startsWith('--only='));
 const only = onlyArg ? onlyArg.slice(7).split(',') : null;
@@ -212,7 +212,7 @@ async function fly(program) {
   must(sim.e.sim_wing_launch(22), 'sim_wing_launch');
   const got = [];
   const det = new FigureDetector((f) => got.push(f));
-  const seen = [];
+  const eye = eyes({ stepMs: MS, everyMs: EVERY });
   let i = 0;
   let mem = { t: 0 };
   let st = [0, 0, 0, 0.75];
@@ -220,12 +220,12 @@ async function fly(program) {
   let minZ = Infinity;
   for (; ms < 90000 && i < program.length; ms += MS) {
     const o = see(sim.readState().state);
-    seen.push(o);
+    eye.push(o);
     if (o.z < minZ) minZ = o.z;
     det.step(MS / 1000, o.s);
     mem.t += MS;
-    if (seen.length > LAG && ms % EVERY === 0) {
-      const d = seen[seen.length - 1 - LAG];
+    if (eye.looks(ms)) {
+      const d = eye.ago();
       const [sticks, done] = program[i].step(d, mem);
       st = sticks;
       if (trace) console.log(`  ${ms} ${program[i].name} along ${o.along.toFixed(1)} q ${o.q.toFixed(2)} r ${o.r.toFixed(2)} v ${o.v.toFixed(1)} z ${o.z.toFixed(0)} nz ${o.nz.toFixed(2)} uz ${o.uz.toFixed(2)} [${st.join(',')}]`);

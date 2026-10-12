@@ -517,6 +517,7 @@ jobs:
           npm run world:layer -- --three="$RUNNER_TEMP/package"
       - run: npm run jam:selftest
       - run: npm run figures:selftest
+      - run: npm run personpilot:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest

@@ -157,6 +157,7 @@
     "figures:plant": "node scripts/figures-plant-check.js",
     "figures:knife": "node scripts/figures-knife-check.js extra && node scripts/figures-knife-check.js cap",
     "figures:sweep": "node scripts/figures-plant-sweep.js",
+    "personpilot:selftest": "node scripts/personpilot-selftest.js",
     "callouts:check": "node scripts/callouts-check.js",
     "trickfilm:golden": "node scripts/trickfilm-golden.js",
     "loading:golden": "node scripts/loading-golden.js",

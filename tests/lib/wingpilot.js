@@ -30,7 +30,11 @@
  */
 
 import { SIM_OK } from './simmod.js';
+import { PERSON, quant, eyes } from './personpilot.js';
 import { BRAMOR_CATAPULT } from '../../configs/airframes.js';
+
+/* p51-gates.js reads PERSON from here, as it did before it moved. */
+export { PERSON };
 
 export const WING_AIRFRAME = 2;
 export const SKY_AIRFRAME = 3;
@@ -60,8 +64,8 @@ export function attitude(s) {
 }
 
 /*
- * THE PERSON PILOT, docs/FLIGHTMODEL.md "A hover a person can fly"
- * (scripts/hover-probe.js): it sees the aircraft 0.2 s late (the
+ * THE PERSON PILOT (personpilot.js, docs/FLIGHTMODEL.md "A hover a
+ * person can fly"): it sees the aircraft 0.2 s late (the
  * effective delay of a trained operator in compensatory tracking, McRuer
  * and Jex, "A Review of Quasi-Linear Pilot Models", IEEE Trans. HFE 8(3),
  * 1967) and moves the sticks ten times a second in fiftieths of their
@@ -82,7 +86,6 @@ export function attitude(s) {
  * below its own crossover, the same rule: a pilot re-trims slowly
  * ("re-trimmed to relieve any control pressure", FAA-H-8083-3C ch. 9).
  */
-export const PERSON = { delayMs: 200, everyMs: 100, steps: 50, pmRad: Math.PI / 4, outer: 0.25 };
 /* The loop's whole delay is the person's 0.2 s and half the 0.1 s the
  * stick is held between looks (a sample and hold lags by half its
  * period); its trim's integral, a quarter below crossover, costs
@@ -1887,16 +1890,15 @@ export function personWingsHold({ a, L, v0 }) {
     return wc * Math.sqrt(wc * wc + a * a * r * r) / (L * r * r);
   };
   const k = gainAt(v0);
-  const seen = [];
-  const lag = Math.round(200 / RC_STEP_MS);
+  const eye = eyes({ stepMs: RC_STEP_MS });
   let stick = 0, iBank = 0, ms = 0;
   const hold = (s) => {
-    seen.push({ bank: fullBank(s), v: Math.hypot(s[4], s[5], s[6]) });
-    if (ms % 100 === 0 && seen.length > lag) {
-      const d = seen[seen.length - 1 - lag];
+    eye.push({ bank: fullBank(s), v: Math.hypot(s[4], s[5], s[6]) });
+    if (eye.looks(ms)) {
+      const d = eye.ago();
       iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * d.bank * 0.1));
       const raw = Math.max(-1, Math.min(1, -gainAt(d.v) * d.bank + iBank));
-      stick = Math.round(raw * 50) / 50;
+      stick = quant(raw);
     }
     ms += RC_STEP_MS;
     return stick;
