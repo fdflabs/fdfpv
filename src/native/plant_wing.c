@@ -1309,10 +1309,12 @@ static double engine_throttle(const FixedWingParams *fw, double throttle) {
  * open circuit ratio, 1.26 on the P-51 at 4.1 V, and its current set off
  * the ESC's cutoff before the prop had moved. */
 static double launch_ratio(const SimState *s, const FixedWingParams *fw, double duty, double u) {
-  double r = s->v_cell / fw->v_meas;
+  /* Only a prop is started at speed (a fan spools from rest, and nothing
+   * clears the launch's mark on it), so a fan's pack is the sagged one. */
   if (!prop_spools(fw)) {
-    return r;
+    return (s->v_cell - s->pack_current * PLANT.r_cell) / fw->v_meas;
   }
+  double r = s->v_cell / fw->v_meas;
   for (int i = 0; i < 30; i += 1) {
     const double de = duty * r;
     const double mu = de > 0.0 ? u / (fw->pitch_speed * SIM_BOOST * de) : 0.0;
