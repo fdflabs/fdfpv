@@ -220,7 +220,7 @@ function deriv(x, de, d) {
   /* The prop's wash over the tail, the plant's slip_* (scripts/wash-derive.js). */
   const ws = wash(SLIP, Tt, u);
   const xa = -w * Math.cos(SLIP.slip_a0) - u * Math.sin(SLIP.slip_a0);
-  const kh = rho * ws.vi * ws.fh, ph = ws.dp * ws.fh;
+  const kh = rho * ws.vi * ws.fh, ph = ws.dp * ws.keepH * ws.fh;
   const Fx = L * (-w / V) - Dr * u / V + Tt;
   const Fz = L * (u / V) - Dr * w / V + S * (kh * SLIP.slip_cl_a * xa + ph * CLde * de);
   const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt +

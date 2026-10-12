@@ -37,6 +37,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { wingEngine, wingProp } from './lib/propcurve.js';
+import { slipLoss, tailWash } from './lib/wash.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -528,6 +529,10 @@ const idleShare = (idle / hoverShare) ** 2;
 let vClimb = 0;
 for (let V = 0; V < 40; V += 0.001) { if (Tx(V, 1) - W - 0.5 * rho * V * V * S * CD0 <= 0) { vClimb = V; break; } }
 const bhH = bh / 2;
+/* What of dp the static jet brings the tail, the stabiliser's and the
+ * fin's quarter chords lh and lv behind the CG, the disc propX ahead of it
+ * (scripts/lib/wash.js tailWash). */
+const slipLoss_ = slipLoss({ propR, bh, hv: [hvUpT, hvDnT], xh: propX + lh, xv: propX + lv });
 function wash(thrust, u) {
   const dp = thrust / (Math.PI * propR * propR);
   const vi = 0.5 * (Math.sqrt(u * u + 2 * dp / rho) - u);
@@ -537,7 +542,7 @@ function wash(thrust, u) {
   const fv = (Math.min(rw, hvUp) + Math.min(rw, hvDn)) / (hvUp + hvDn);
   const ye = Math.min(rw, aileronOut);
   const fa = rw > aileronIn ? (ye * ye - aileronIn * aileronIn) / (aileronOut * aileronOut - aileronIn * aileronIn) : 0;
-  return { dp, vi, rw, fh, fv, fa };
+  return { dp, vi, rw, fh, fv, fa, ...tailWash(slipLoss_, vi, u) };
 }
 const slipCla = at * (Sh / S) * eta * (1 - deda);
 const slipCma = -eta * VH * at * (1 - deda);
@@ -592,8 +597,8 @@ const aileronRollNet = aileronHover > Qhover ? Math.sqrt((aileronHover - Qhover)
 const tailCn = 1.17;
 const plateRatio = (x) => 1 / Math.sqrt(Math.sqrt(1 + (x / tailCn) ** 4));
 const vhT = -slipCma / (at * (1 - deda)), vvF = slipCnb / av;
-const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
-const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
+const pitchAccHover = hov.dp * hov.keepH * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
+const yawAccHover = hov.dp * hov.keepV * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 
 /*
  * THE WING PAST THE STALL, the plant's own curve (plant_wing.c wing_lift
@@ -711,7 +716,7 @@ function harrier(alphaDeg) {
     const q = 0.5 * rho * V * V;
     const w = wash(thrust / cosYaw, u);
     const xa = V * Math.sin(a - slipA0);
-    const vw = u + 2 * w.vi;
+    const vw = w.vwH;
     /* scripts/lib/washcontrol.js, as the plant: the side the elevator is on against the crossflow. */
     const cm = (d) => {
       const kw = washKw(a, w.dp, V, rho, Cmde * d * xa > 0 ? 'against' : 'with');
@@ -722,7 +727,7 @@ function harrier(alphaDeg) {
       const clLinM = CLa * sa + CLde * d;
       const post = wl.sigma * (((1 - wl.past) * (hCG - 0.25) - wl.past * armCp) * cnSt - (hCG - 0.25) * clLinM);
       const rh = plateRatio(at * xa / vw + kw * ae);
-      const slip = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.fh * rh * kw * Cmde * d) / q;
+      const slip = (rho * w.vi * w.fh * rh * slipCma * xa + w.dp * w.keepH * w.fh * rh * kw * Cmde * d) / q;
       return Cm0 + stiff + wl.past * post + slip - thrustZ * thrust / cosYaw / (q * S * c) + propX * bal.fj / (q * S * c);
     };
     let dLo = -throwE, dHi = throwE;
@@ -746,10 +751,10 @@ function knifeEdge(V) {
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
       const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slipCnb * (V * sb) + propX * thrust * sinYaw;
-      const nPerDr = qb * S * b * Cndr + w.dp * w.fv * S * b * Cndr;
+      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
-        - (qb + w.dp * w.fv) * S * CYdr * Math.abs(dr);
+        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
       thrust = (qb * S * CD0 + side * sb) / ct;
     }
     if (T(u, 1) < thrust) break;
@@ -852,6 +857,7 @@ export const TABLE_PAIRS = {
   throttle_rpm: curveR,
   stall_re: secRe, stall_clmax: clmaxW.map((v) => r(v, 4)), stall_peak: peakW.map((v) => r(v, 4)),
   slip_hv: [r(hvUpT, 3), r(hvDnT, 3)], slip_ya: [r(aileronIn, 3), r(aileronOut, 3)],
+  slip_loss: slipLoss_.map((v) => r(v, 4)),
   strip_c: stripC.map((v) => r(v, 3)), strip_tau: stripTau.map((v) => r(v, 3)),
   rot_k: rotK.map((v) => r(v, 4)),
 };

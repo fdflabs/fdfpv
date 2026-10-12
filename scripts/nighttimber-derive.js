@@ -322,7 +322,7 @@ for (let V = 0; V < 30; V += 0.001) { if (T(V, 1) - W - 0.5 * rho * V * V * S * 
  * stabiliser's half span, the fin over and under the thrust line, the
  * ailerons' span. Its zero lift at the trim cm_0 is set for. */
 const slipA0 = alphaZL + CLtrim / CLa;
-const slip = shares({ propR, bh, hv: [hvUp, hvDn], ya: [ailIn, ailOut], at, Sh, S, eta, deda, VH, av, VV, lv, b, Sv, ClbFin, a0: slipA0 });
+const slip = shares({ propR, bh, hv: [hvUp, hvDn], ya: [ailIn, ailOut], at, Sh, S, eta, deda, VH, av, VV, lv, b, Sv, ClbFin, a0: slipA0, xh: propX + lh, xv: propX + lv });
 const hov = washOf(slip, W, 0);
 
 /* The air a slow aircraft turns through, Hoerner's flat plate, C_N 1.17,
@@ -352,8 +352,8 @@ const aileronRollNet = aileronHover > Qhover ? Math.sqrt((aileronHover - Qhover)
 const tailCn = 1.17;
 const plateRatio = (x) => 1 / Math.sqrt(Math.sqrt(1 + (x / tailCn) ** 4));
 const vhT = -slip.slip_cm_a / (at * (1 - deda)), vvF = slip.slip_cn_b / av;
-const pitchAccHover = hov.dp * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
-const yawAccHover = hov.dp * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
+const pitchAccHover = hov.dp * hov.keepH * hov.fh * S * c * Cmde * throwE * plateRatio(Cmde * throwE / vhT) / Iyy;
+const yawAccHover = hov.dp * hov.keepV * hov.fv * S * b * Math.abs(Cndr) * throwR * plateRatio(Cndr * throwR / vvF) / Izz;
 
 /* The rest on the gear: each axle lowered by its 5 mm of static
  * deflection, as every taildragger's here. */
@@ -455,14 +455,14 @@ function harrier(alphaDeg) {
   const cmPost = sig * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * CLa * sa);
   const alphaT = sa - deda * CL / CLa - slip.slip_a0 * (1 - deda);
   const xa = V * Math.sin(a - slip.slip_a0);
-  const vw = u + 2 * w.vi;
+  const vw = w.vwH;
   /* scripts/lib/washcontrol.js, as the plant: the side the elevator is on against the crossflow. */
   const cm = (de) => {
     const kw = washKw(a + alphaZL, w.dp, V, rho, Cmde * de * xa > 0 ? 'against' : 'with'); /* on the body's angle, as the plant */
     const xt = at * alphaT - Cmde * de / vhTH;
     const free = Cm0 + (Cma - slip.slip_cm_a) * sa + slip.slip_cm_a * slip.slip_a0 - vhTH * xt * plateRatioH(xt) + past * cmPost;
     const rh = plateRatioH(at * xa / vw - kw * Cmde * de / vhTH);
-    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.fh * rh * kw * Cmde * de) / qb;
+    return free + (rho * w.vi * w.fh * rh * slip.slip_cm_a * xa + w.dp * w.keepH * w.fh * rh * kw * Cmde * de) / qb;
   };
   let dLo = -throwE, dHi = throwE;
   for (let i = 0; i < 60; i += 1) { const mid = (dLo + dHi) / 2; if (cm(mid) < 0) dLo = mid; else dHi = mid; }
@@ -480,10 +480,10 @@ function knifeEdge(V) {
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
       const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
-      const nPerDr = qb * S * b * Cndr + w.dp * w.fv * S * b * Cndr;
+      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slip.slip_cy_b) * (V * sb)
-        - (qb + w.dp * w.fv) * S * CYdr * Math.abs(dr);
+        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
     if (T(u, 1) < thrust) break;
