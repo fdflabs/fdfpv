@@ -81,7 +81,7 @@ export const FIGURES = [
   /* Family 8, combinations. */
   fig('half_cuban', 'combinations', 14, ['8.5.6.1', '9.1.3.2'], 'unproven'),
   fig('reverse_half_cuban', 'combinations', 14, ['8.5.2.1', '9.1.3.2'], 'unproven'),
-  fig('humpty_bump', 'combinations', 13, ['8.4.1.1'], 'unproven'),
+  fig('humpty_bump', 'combinations', 13, ['8.4.1.1'], 'flown'),
   /* Family 9, rolls, snaps and spins. */
   fig('half_roll', 'rolls', 4, ['9.1.3.2'], 'flown'),
   fig('aileron_roll', 'rolls', 8, ['9.1.3.4'], 'flown'),

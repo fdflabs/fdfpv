@@ -61,6 +61,30 @@ const pull = (stick, rad, thr = 1) => ({
     return [[0, stick, 0, thr], m.turned > rad - Math.abs(d.q) * 0.25];
   },
 });
+/* A part loop flown round: "the pull or push half-loop must also be of
+ * (not necessarily similar) constant radius" (British Aerobatic
+ * Association, judging, "Humpty Bumps",
+ * https://www.aerobatics.org.uk/judging/topics/humpty-bumps), as
+ * figures-plant-check.js flies its loop: the entry stick sets the size,
+ * and once the nose has come 30 deg round the person flies the pitch rate
+ * V / R that keeps that radius as the speed changes, on its LOOP_GAINS
+ * (kp 0.1, ki 0.2). Let go early as pull() does. */
+const round = (entry, rad, thr) => ({
+  name: `round ${entry} ${(rad / PI).toFixed(2)}pi`,
+  step: (d, m) => {
+    const sense = Math.sign(entry);
+    const w = -sense * d.q;
+    m.turned = (m.turned ?? 0) + Math.abs(d.q) * H;
+    if (m.R === undefined && m.turned > 0.5) m.R = d.v / Math.max(0.5, w);
+    let stick = entry;
+    if (m.R !== undefined) {
+      const err = d.v / m.R - w;
+      m.i = clamp((m.i ?? 0) + 0.2 * err * H, 0.5);
+      stick = clamp(entry + sense * (0.1 * err + m.i));
+    }
+    return [[0, quant(stick), 0, thr], m.turned > rad - Math.abs(d.q) * 0.25];
+  },
+});
 /* Ailerons held until the wings have turned `rad`. */
 const roll = (stick, rad, thr = 0.75, pitch = 0, push = true) => ({
   name: `roll ${stick} ${(rad / PI).toFixed(2)}pi`,
@@ -282,7 +306,10 @@ export const PROGRAMS = {
   reverse_half_cuban: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI), line([-Math.SQRT1_2, 0, Math.SQRT1_2], 600), pull(0.55, 1.25 * PI, 0.6), L()],
   reverse_cuban_8: [L(), pull(0.55, 0.25 * PI), line(U45, 800), roll(0.5, PI), line([-Math.SQRT1_2, 0, Math.SQRT1_2], 600), pull(0.55, 1.5 * PI, 0.6),
     line([-Math.SQRT1_2, 0, Math.SQRT1_2], 800), roll(0.5, PI), line(U45, 600), pull(0.55, 1.25 * PI, 0.6), L()],
-  humpty_bump: [L(), pull(0.55, 0.5 * PI), line(UP, 1500), pull(1, PI, 0.4), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
+  /* The top on the round loop's law from the Extra's 0.3, the stick
+   * figures-plant-check.js's loop holds short of the stall: a full stick
+   * stalled the wing and flicked it (snap pieces on the plant). */
+  humpty_bump: [L(), pull(0.55, 0.5 * PI), line(UP, 1500), round(0.3, PI, 0.4), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   hammerhead: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.6, (d) => d.v < 7), kick(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   tailslide: [L(), pull(0.55, 0.5 * PI), line(UP, 4000, 0.4, (d) => d.v < 4), slide(), line(DOWN, 1500, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   knife_edge_pass: [L(), roll(0.5, 0.5 * PI, 1), hold([0, 0, -0.6, 1], 3000), roll(-0.5, 0.5 * PI), L()],

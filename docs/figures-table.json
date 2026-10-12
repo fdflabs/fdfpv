@@ -492,30 +492,30 @@
       "family": "combinations",
       "k": 13,
       "source": "Aresti 8.4.1.1 (OpenAero figures19.js, powered K)",
-      "physics": "unproven",
+      "physics": "flown",
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
           "level 3000",
           "pull 0.55 0.50pi",
           "line 0.00,0.00,1.00",
-          "pull 1 1.00pi",
+          "round 0.3 1.00pi",
           "line 0.00,0.00,-1.00",
           "pull 0.55 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 8,
         "flew": [
-          "split_s 0"
+          "humpty_bump 8"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 150,
+        "lowestM": 143.9,
         "others": {
-          "cap": 6.5,
+          "cap": 7,
           "slick": 7.5
         }
       },
