@@ -6,7 +6,7 @@
     "steps": 50,
     "lineGains": {
       "kp": 4,
-      "kr": 0.3
+      "kr": 0.2
     },
     "source": "McRuer and Jex, IEEE Trans. HFE 8(3), 1967: a trained operator's effective delay in compensatory tracking",
     "margin": "none measured: fixed gains, the calmest that did not ring through the delay (LINE_GAINS)"
@@ -33,6 +33,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 112.1
       },
       "margin": null
@@ -56,6 +57,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -81,11 +83,10 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [
-          "flat_spin 7.5"
-        ],
-        "finished": false,
-        "lowestM": -336.4
+        "flew": [],
+        "finished": true,
+        "crashed": false,
+        "lowestM": 150
       },
       "margin": null
     },
@@ -109,12 +110,13 @@
       },
       "measured": {
         "named": true,
-        "grade": 9.5,
+        "grade": 9,
         "flew": [
-          "tailslide 9.5"
+          "tailslide 9"
         ],
         "finished": true,
-        "lowestM": 142.6
+        "crashed": false,
+        "lowestM": 135.6
       },
       "margin": null
     },
@@ -152,6 +154,7 @@
           "outside_loop 7"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 130.5
       },
       "margin": null
@@ -178,6 +181,7 @@
           "immelmann 4"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -204,6 +208,7 @@
           "split_s 3.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 133.9
       },
       "margin": null
@@ -233,9 +238,14 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
+        "flew": [
+          "half_roll 7",
+          "loop 0",
+          "half_roll 6.5"
+        ],
         "finished": true,
-        "lowestM": 107
+        "crashed": false,
+        "lowestM": 106.9
       },
       "margin": null
     },
@@ -265,9 +275,12 @@
         "named": false,
         "grade": null,
         "flew": [
+          "half_roll 7",
+          "loop 0",
           "half_roll 7"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -304,6 +317,7 @@
           "inverted_spin 9.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 82.2
       },
       "margin": null
@@ -329,9 +343,12 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
+        "flew": [
+          "half_roll 7"
+        ],
         "finished": true,
-        "lowestM": 132.8
+        "crashed": false,
+        "lowestM": 130.1
       },
       "margin": null
     },
@@ -360,6 +377,7 @@
           "half_roll 7"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -387,7 +405,8 @@
         "grade": null,
         "flew": [],
         "finished": true,
-        "lowestM": 131
+        "crashed": false,
+        "lowestM": 150
       },
       "margin": null
     },
@@ -412,6 +431,7 @@
           "half_roll 9"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 148.7
       },
       "margin": null
@@ -450,6 +470,7 @@
           "double_roll 5.5"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -473,6 +494,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -492,13 +514,14 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
+        "named": true,
+        "grade": 5.5,
         "flew": [
-          "aileron_roll 6.5"
+          "two_point_roll 5.5"
         ],
         "finished": true,
-        "lowestM": 147.7
+        "crashed": false,
+        "lowestM": 146.7
       },
       "margin": null
     },
@@ -530,11 +553,14 @@
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 2,
+        "flew": [
+          "eight_point_roll 2"
+        ],
         "finished": true,
-        "lowestM": 96.7
+        "crashed": false,
+        "lowestM": 119.2
       },
       "margin": null
     },
@@ -559,6 +585,7 @@
           "barrel_roll 9"
         ],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -655,7 +682,8 @@
         "grade": null,
         "flew": [],
         "finished": true,
-        "lowestM": 142.3
+        "crashed": false,
+        "lowestM": 140.2
       },
       "margin": null
     },
@@ -681,7 +709,8 @@
         "grade": null,
         "flew": [],
         "finished": true,
-        "lowestM": 145.5
+        "crashed": false,
+        "lowestM": 138.4
       },
       "margin": null
     },
@@ -694,7 +723,7 @@
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
-          "slow to 10",
+          "slow to 12",
           "harrier 5000",
           "level 3000"
         ]
@@ -703,8 +732,9 @@
         "named": false,
         "grade": null,
         "flew": [],
-        "finished": false,
-        "lowestM": -32
+        "finished": true,
+        "crashed": false,
+        "lowestM": 137.9
       },
       "margin": null
     },
@@ -719,7 +749,7 @@
         "phases": [
           "level 3000",
           "roll 0.5 1.00pi",
-          "slow to 10",
+          "slow to 12",
           "harrier 5000",
           "roll 0.5 1.00pi",
           "level 3000"
@@ -731,8 +761,9 @@
         "flew": [
           "half_roll 9"
         ],
-        "finished": false,
-        "lowestM": -94.5
+        "finished": true,
+        "crashed": false,
+        "lowestM": 119.2
       },
       "margin": null
     },
@@ -745,7 +776,7 @@
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
-          "slow to 10",
+          "slow to 12",
           "harrier 1500",
           "harrier 4000",
           "level 3000"
@@ -755,8 +786,9 @@
         "named": false,
         "grade": null,
         "flew": [],
-        "finished": false,
-        "lowestM": -32
+        "finished": true,
+        "crashed": false,
+        "lowestM": 120.5
       },
       "margin": null
     },
@@ -781,6 +813,7 @@
         "grade": null,
         "flew": [],
         "finished": true,
+        "crashed": false,
         "lowestM": 150
       },
       "margin": null
@@ -847,7 +880,8 @@
         "grade": null,
         "flew": [],
         "finished": true,
-        "lowestM": 102.7
+        "crashed": false,
+        "lowestM": 116.8
       },
       "margin": null
     },

@@ -267,6 +267,18 @@ for (const [id, path] of Object.entries(SLOPPY)) {
   check('a 4-point roll whose wings rock back on its points is named a 4-point roll', got.some((g) => g.figure === 'four_point_roll'),
     got.map((g) => `${g.figure} ${g.grade}`).join(', ') || 'nothing');
 }
+/* Each point at its mark (BAeA judging, "Slow Rolls"): a 2-point roll
+ * paused at 105 deg, 75 deg short of its back, loses 5 points on the
+ * same roll paused at 180, as the plant's 2-point roll did before its
+ * program let go on the prop curves' roll rate. */
+{
+  const at = (deg) => detect([lead, roll(4, deg / 360, V), straight(300, V), roll(4, 1 - deg / 360, V), tail])
+    .find((g) => g.figure === 'two_point_roll');
+  const off = at(105);
+  const on = at(180);
+  check('a 2-point roll paused at 105 deg is graded 5 under one paused on its back', off && on && on.grade - off.grade === 5,
+    `${on ? on.grade : 'not named'} vs ${off ? off.grade : 'not named'}`);
+}
 /* A crash in the middle forgets the figure. */
 {
   const got = [];
