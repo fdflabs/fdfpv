@@ -600,7 +600,16 @@ jobs:
       # A world costs nothing until it is chosen and is freed when left
       # (scripts/memory-check.js). Outside CI the alps' boot started fetching
       # the Swiss valley's field unseen. About 40 s.
+      # lint:memory boots every world, Itaipu among them, whose data is its
+      # own public repository (see the daytime steps in shard-4).
+      - uses: actions/checkout@v4
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       - run: npm run lint:memory
+        env:
+          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
 
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.
