@@ -163,7 +163,7 @@ is the airframe doing it and not a stabiliser.
 | --- | --- | --- |
 | Flies slowly on a small engine | S1 cruise at 75 percent stick, S2 stall, S4 top speed, S5 climb | 8.08, 6.49, 10.11 m/s; 0.91 m/s of climb |
 | Glides like a free flight model | S3 | L/D 8.6 at 8 m/s |
-| Levels itself with the sticks centred | S6: from a 30 deg bank at cruise, every stick let go | 7.8 deg after 6 s; the spiral halves a bank in 3.5 s |
+| Let go, the prop rolls it through level | S6: from a 30 deg bank at cruise, every stick let go | 13.3, 0.3 and -11.9 deg after 2, 4 and 6 s, flown with the prop's torque and swirl; the spiral alone halves a bank in 3.5 s |
 | Turns on rudder | S7: full right roll stick, which is full right rudder | 47 deg after 1 s, right wing down |
 | A gentle stall, not a wing drop | S9a and S9b: full up held 8 s from cruise, power off and on | a mush at 15.3 deg of alpha, 7.7 m/s, sinking 1.98 m/s, no wing drop or spin (re-derived for crash round 4's post stall model; 15.6, 8.7 and 3.0 on the flat plate before it) |
 | Takes off by itself | S15: full throttle from standing, every stick centred | its three point attitude is past the stall; the stabiliser lifts the tail as the speed comes up and it flies off at the speed it trims at: 17.2 m to 8.0 m/s tail up |
@@ -202,7 +202,7 @@ Stick's in proportion about the derived figure unless it says otherwise.
 | S3 glide ratio at 8.0 m/s | 8.62 (best 8.76 at 7.31) | 7.67 to 9.65 |
 | S4 top speed | 10.11 m/s | 9.2 to 11.35, level |
 | S5 best climb | 0.91 m/s at 7.5 | 0.62 to 1.09 |
-| S6 30 deg bank, hands off, bank at 6 s | 1.0 deg with the prop's torque and swirl (7.8 without), docs/FLIGHTMODEL.md | 0 to 5.3, the old width in degrees, same side, never past 32 |
+| S6 30 deg bank, hands off, bank at 2, 4, 6 s | 13.3, 0.3, -11.9 deg flown with the prop's torque and swirl, its force on the whole stream (w36-physics; 6.4 at 6 s without the prop), docs/FLIGHTMODEL.md | within 4.3 of each, the old width in degrees, never past 32 |
 | S7 full roll stick, bank after 1 s | 47.5 deg | 28.9 to 72.1, right wing down |
 | S8 level 45 deg bank at full throttle, radius | 9.08 m at 9.44 m/s | within 15 percent of the formula, 7.72 to 10.44 m, level |
 | S9a full up, power off | alpha 15.6, 8.7 m/s, sink 3.00 | bank 15, yaw 20 deg/s, pitch over −35, sink 2.25 to 3.75 |
