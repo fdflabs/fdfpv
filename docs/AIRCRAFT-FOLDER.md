@@ -22,12 +22,22 @@ so it stays data a generator in any language can read. Sections:
 | `progress.level` | `src/game/progress.js` PLANE_LEVELS[id] |
 | `strings.en`, `strings.es` | the aircraft's keys in `src/strings/en.js` and `es.js` |
 
+A row the aircraft has none of is stated `null` (`kit.slots`, `tuning`, `power.table`, `power.options`,
+`power.estimates`, `hangar.props`, `hangar.anchors`, `livery`, `progress.level`), and the assembler gives
+that table no key for it, as the hand module has none. The section is always there, so a missing one is
+still an error.
+
+The aircraft's keys are one rule, whatever the plane's names look like: every key with the id as a dot
+segment (`carousel.note.<id>`, `airframe.blurb.<id>`, `livery.scheme.<id>.*`, a quad's `motors.<id>.*`)
+and every key its power options name (`power.cap.stock`), in `en.js` order.
+
 `configs/aircraft.js` imports every folder statically (`FOLDERS`), validates each folder's sections and
 id, and assembles the tables in the hand modules' shapes (`AIRCRAFT`). It loads the same in the browser,
 the servers and the scripts. `npm run aircraft:folder` (in CI) proves `FOLDERS` names exactly the folders
 on disk, each file is data only, every assembled row equals the hand module's row exactly (key order,
-types, doubles by `Object.is`), the stated stock packs and rates equal a hand row's (`packStates()`,
-`stockRates()`), and that eleven single-field changes made in memory each fail.
+types, doubles by `Object.is`), every folder states the stock packs and rates (Betaflight 4.5.1's,
+which `configs/airframes.js` gives every row), and that twelve single-field changes made in memory each
+fail.
 
 ## Read from the folder
 

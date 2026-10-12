@@ -58,6 +58,13 @@ function airframeRow(airframe) {
   return Object.fromEntries(Object.entries(airframe).map(([k, v]) => [k, POSES.has(k) ? pose(v) : v]));
 }
 
+/* A folder states null for a row its aircraft has none of (a quad has no
+ * tuning, a float plane no kit of its own), and the table then has no key
+ * for it, as the hand module has none. */
+function put(table, id, row) {
+  if (row !== null) table[id] = row;
+}
+
 /* The tables in the shapes their hand modules export them: AIRFRAMES and
  * TUNES are lists of rows, the rest are keyed by airframe id, DRAWN is the
  * ids whose builders draw their kit. */
@@ -69,17 +76,17 @@ export function assemble(folders) {
   for (const f of folders.map(checkFolder)) {
     const id = f.id;
     t.AIRFRAMES.push(airframeRow(f.airframe));
-    t.KITS[id] = f.kit.slots;
+    put(t.KITS, id, f.kit.slots);
     if (f.kit.drawn) t.DRAWN.push(id);
-    t.TUNING[id] = f.tuning;
-    t.TABLE[id] = f.power.table;
-    t.POWER[id] = f.power.options;
-    t.ESTIMATES[id] = f.power.estimates;
-    t.PROPS[id] = f.hangar.props;
-    t.ANCHORS[id] = f.hangar.anchors;
-    t.LIVERIES[id] = f.livery;
+    put(t.TUNING, id, f.tuning);
+    put(t.TABLE, id, f.power.table);
+    put(t.POWER, id, f.power.options);
+    put(t.ESTIMATES, id, f.power.estimates);
+    put(t.PROPS, id, f.hangar.props);
+    put(t.ANCHORS, id, f.hangar.anchors);
+    put(t.LIVERIES, id, f.livery);
     t.TUNES.push(...f.tunes);
-    t.PLANE_LEVELS[id] = f.progress.level;
+    put(t.PLANE_LEVELS, id, f.progress.level);
     Object.assign(t.STRINGS.en, f.strings.en);
     Object.assign(t.STRINGS.es, f.strings.es);
   }
