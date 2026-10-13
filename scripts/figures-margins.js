@@ -118,7 +118,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
 import {
-  must, attitude, responseAt, crossoverFor, hangSticks, leadDesign, PERSON_LEADS, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME,
+  must, attitude, responseAt, crossoverFor, hangSticks, leadDesign, PERSON_LEADS, TAU_PERSON, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME,
 } from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
 import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP, HOVER, LINE_AIL, lineBank } from '../tests/lib/figureprograms.js';
@@ -391,7 +391,7 @@ const AIL_HOLD = [0.5, 0.03];
 function personMargins(g, wc, gain) {
   const L = g.map((x) => {
     const i = wc / (4 * x.w);
-    return { w: x.w, mag: (wc / gain) * x.mag * Math.hypot(1, i), phase: x.phase - x.w * PERSON_TAU - Math.atan(i) };
+    return { w: x.w, mag: (wc / gain) * x.mag * Math.hypot(1, i), phase: x.phase - x.w * TAU_PERSON - Math.atan(i) };
   });
   const cross = L.find((l) => l.w >= wc - 1e-9 && l.mag < 1) ?? L[L.length - 1];
   const turn = L.find((l) => l.w > cross.w && l.phase <= -Math.PI);

@@ -90,7 +90,7 @@ export function attitude(s) {
  * stick is held between looks (a sample and hold lags by half its
  * period); its trim's integral, a quarter below crossover, costs
  * atan(1/4) of the margin there. */
-const TAU_PERSON = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
+export const TAU_PERSON = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
 const DT_PERSON = PERSON.everyMs / 1000;
 
 /* One loop of the person: error in, command out, gain wc / plantGain,
