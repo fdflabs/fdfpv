@@ -479,7 +479,7 @@ export default {
       "power.bombshell.cox_rc": "Cox RC .049 con su propio acelerador, 5 x 3",
       "power.bombshell.electric": "El eléctrico de BMJR: Himax 2816 1220 kV, 3S 850",
       "power.bombshell.stock": "Cox Texaco .049 de dos tiempos, 7 x 3,5 (de serie)",
-      "airframe.blurb.bombshell1118": "Un BMJR Buzzard Bombshell de 44 pulgadas, el clásico de vuelo libre de 1940 en balsa y papel rojo, con un motor glow Cox .049: timón de dirección, profundidad y acelerador, sin alerones. El stick de alabeo mueve el timón, se nivela solo cuando lo sueltas y sube en las térmicas.",
+      "airframe.blurb.bombshell1118": "Un BMJR Buzzard Bombshell de 44 pulgadas, el clásico de vuelo libre de 1940 en balsa y papel rojo, con un motor glow Cox .049: timón de dirección, profundidad y acelerador, sin alerones. El stick de roll mueve el timón, se nivela solo cuando lo sueltas y sube en las térmicas.",
       "livery.scheme.bombshell1118.stock": "BMJR rojo y negro",
       "livery.scheme.bombshell1118.baby": "Baby Bombshell, 1992",
       "livery.scheme.bombshell1118.kittur": "Blanco y azul",

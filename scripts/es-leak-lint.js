@@ -62,6 +62,8 @@ const ENGLISH = /\b(the|and|you|your|with|is|it|of|to|this|that|from|when|here)\
 const SHARED = new Set([
   'Acro', 'Manual', 'AS3X', 'SAFE Select', 'KISS', 'Actual', 'Raceflight', 'Quick', 'Expo', 'PID', 'PIDs', 'FPV', 'HUD',
   'GPU', 'Radio', 'Sticks', 'Feedforward', 'D max', 'Hangar', 'Arcade', 'Taranis', 'ELRS 250 Hz', 'ironbow', '60 fps',
+  /* The stick axes, which docs/SPANISH-GLOSSARY.md keeps in English. */
+  'Throttle', 'Roll', 'Pitch', 'Yaw',
   ...AIRFRAMES.flatMap((a) => [a.short, a.name]),
   /* Freestyle trick names are the sport's English jargon in Spanish too. */
   ...TRICKS.map((t) => t.name),

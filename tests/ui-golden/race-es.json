@@ -80,7 +80,7 @@
     "id": "controller:a-rates",
     "label": "Tasas",
     "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "value": "Actual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "id": "controller:s-teclado-y-rat-n",
@@ -97,7 +97,7 @@
     "current": false,
     "id": "controller:vuelo-con-rat-n",
     "label": "Vuelo con ratón",
-    "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+    "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
     "on": false,
     "sw": true,
     "value": "No"
@@ -131,7 +131,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "text": "TasasActual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "cls": "row row-nav",
@@ -5288,9 +5288,9 @@
     }
    },
    {
-    "id": "pids:seguimiento-de-cabeceo",
-    "label": "Seguimiento de cabeceo",
-    "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+    "id": "pids:seguimiento-de-pitch",
+    "label": "Seguimiento de pitch",
+    "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
     "num": {
      "cli": 100,
      "spec": {
@@ -5312,9 +5312,9 @@
     }
    },
    {
-    "id": "pids:amortiguaci-n-de-cabeceo",
-    "label": "Amortiguación de cabeceo",
-    "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+    "id": "pids:amortiguaci-n-de-pitch",
+    "label": "Amortiguación de pitch",
+    "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
     "num": {
      "cli": 100,
      "spec": {
@@ -5389,11 +5389,11 @@
    },
    {
     "cls": "row",
-    "text": "Seguimiento de cabeceo%"
+    "text": "Seguimiento de pitch%"
    },
    {
     "cls": "row",
-    "text": "Amortiguación de cabeceo%"
+    "text": "Amortiguación de pitch%"
    },
    {
     "cls": "row row-nav",
@@ -5507,7 +5507,7 @@
    },
    {
     "i": 9,
-    "id": "pids:seguimiento-de-cabeceo",
+    "id": "pids:seguimiento-de-pitch",
     "to": "pids",
     "calls": [
      [
@@ -5518,7 +5518,7 @@
    },
    {
     "i": 10,
-    "id": "pids:amortiguaci-n-de-cabeceo",
+    "id": "pids:amortiguaci-n-de-pitch",
     "to": "pids",
     "calls": [
      [
@@ -7316,7 +7316,7 @@
     "id": "quad:a-rates",
     "label": "Tasas",
     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
-    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "value": "Actual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "action": "back",
@@ -7363,7 +7363,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "text": "TasasActual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "cls": "row",
@@ -7599,7 +7599,7 @@
     "id": "quick:a-rates",
     "label": "Tasas",
     "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
-    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "value": "Actual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "action": "feel",
@@ -7679,7 +7679,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "text": "TasasActual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "cls": "row",
@@ -7985,8 +7985,8 @@
     }
    },
    {
-    "id": "rates:s-gui-ada",
-    "label": "Guiñada",
+    "id": "rates:s-yaw",
+    "label": "Yaw",
     "section": true
    },
    {
@@ -8047,8 +8047,8 @@
     }
    },
    {
-    "id": "rates:s-acelerador",
-    "label": "Acelerador",
+    "id": "rates:s-throttle",
+    "label": "Throttle",
     "section": true
    },
    {

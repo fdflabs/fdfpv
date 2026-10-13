@@ -31677,7 +31677,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -32118,7 +32118,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -32547,7 +32547,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -32992,7 +32992,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -33433,7 +33433,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -33922,7 +33922,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 400 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 400 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -34411,7 +34411,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Clásico, 42 alabeo y cabeceo, 42 guiñada °/s",
+     "value": "Clásico, 42 roll y pitch, 42 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -34844,7 +34844,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -35285,7 +35285,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -35726,7 +35726,7 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -44728,7 +44728,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -44750,7 +44750,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -44874,7 +44874,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -44896,7 +44896,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "Sí",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": true,
      "current": true,
@@ -45019,8 +45019,8 @@
      }
     },
     {
-     "id": "controller:invertir-cabeceo-del-rat-n",
-     "label": "Invertir cabeceo del ratón",
+     "id": "controller:invertir-el-pitch-del-rat-n",
+     "label": "Invertir el pitch del ratón",
      "value": "Sí",
      "note": "Desactivado: empuja el ratón hacia adelante y el morro baja, como un stick. Activado: adelante levanta el morro, como una cámara de juego.",
      "sw": true,
@@ -45048,7 +45048,7 @@
      "id": "controller:stick-del-rat-n",
      "label": "Stick del ratón",
      "value": "Se queda",
-     "note": "Vuelve al centro va bien con un quad en Acro: mover el ratón lo gira y parar mantiene la actitud. Se queda va bien con Angle y con todos los aviones, donde un alabeo o un giro es un stick sostenido; el botón central o Z lo centra. Auto elige vuelve al centro para un quad en Acro y se queda para todo lo demás.",
+     "note": "Vuelve al centro va bien con un quad en Acro: mover el ratón lo gira y parar mantiene la actitud. Se queda va bien con Angle y con todos los aviones, donde un roll o un giro es un stick sostenido; el botón central o Z lo centra. Auto elige vuelve al centro para un quad en Acro y se queda para todo lo demás.",
      "current": "hold",
      "options": [
       {
@@ -45249,7 +45249,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -45271,7 +45271,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45490,7 +45490,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -45512,7 +45512,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45697,7 +45697,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -45719,7 +45719,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45865,7 +45865,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45989,7 +45989,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada ala volante: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -46011,7 +46011,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -47734,7 +47734,7 @@
     {
      "id": "quick:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
      "action": "rates",
      "drives": {}
@@ -47881,7 +47881,7 @@
     {
      "id": "quick:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
      "action": "rates",
      "drives": {}
@@ -49465,8 +49465,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -49572,8 +49572,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -49866,8 +49866,8 @@
      }
     },
     {
-     "id": "rates:s-alabeo",
-     "label": "Alabeo",
+     "id": "rates:s-roll",
+     "label": "Roll",
      "section": true,
      "drives": {}
     },
@@ -49977,8 +49977,8 @@
      }
     },
     {
-     "id": "rates:s-cabeceo",
-     "label": "Cabeceo",
+     "id": "rates:s-pitch",
+     "label": "Pitch",
      "section": true,
      "drives": {}
     },
@@ -50084,8 +50084,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -50191,8 +50191,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -50609,8 +50609,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -50716,8 +50716,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -51140,8 +51140,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -51247,8 +51247,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -51645,8 +51645,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -51752,8 +51752,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -52142,8 +52142,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -52249,8 +52249,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -52971,9 +52971,9 @@
      }
     },
     {
-     "id": "pids:seguimiento-de-cabeceo",
-     "label": "Seguimiento de cabeceo",
-     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+     "id": "pids:seguimiento-de-pitch",
+     "label": "Seguimiento de pitch",
+     "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -53025,9 +53025,9 @@
      }
     },
     {
-     "id": "pids:amortiguaci-n-de-cabeceo",
-     "label": "Amortiguación de cabeceo",
-     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+     "id": "pids:amortiguaci-n-de-pitch",
+     "label": "Amortiguación de pitch",
+     "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
      "range": {
       "min": 30,
       "max": 200
@@ -53440,9 +53440,9 @@
      }
     },
     {
-     "id": "pids:seguimiento-de-cabeceo",
-     "label": "Seguimiento de cabeceo",
-     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+     "id": "pids:seguimiento-de-pitch",
+     "label": "Seguimiento de pitch",
+     "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -53479,9 +53479,9 @@
      }
     },
     {
-     "id": "pids:amortiguaci-n-de-cabeceo",
-     "label": "Amortiguación de cabeceo",
-     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+     "id": "pids:amortiguaci-n-de-pitch",
+     "label": "Amortiguación de pitch",
+     "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
      "range": {
       "min": 30,
       "max": 200
@@ -53593,8 +53593,8 @@
      }
     },
     {
-     "id": "pids:s-alabeo",
-     "label": "Alabeo",
+     "id": "pids:s-roll",
+     "label": "Roll",
      "section": true,
      "drives": {}
     },
@@ -53774,8 +53774,8 @@
      }
     },
     {
-     "id": "pids:s-cabeceo",
-     "label": "Cabeceo",
+     "id": "pids:s-pitch",
+     "label": "Pitch",
      "section": true,
      "drives": {}
     },
@@ -53955,8 +53955,8 @@
      }
     },
     {
-     "id": "pids:s-gui-ada",
-     "label": "Guiñada",
+     "id": "pids:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -54609,9 +54609,9 @@
      }
     },
     {
-     "id": "pids:seguimiento-de-cabeceo",
-     "label": "Seguimiento de cabeceo",
-     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+     "id": "pids:seguimiento-de-pitch",
+     "label": "Seguimiento de pitch",
+     "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -54663,9 +54663,9 @@
      }
     },
     {
-     "id": "pids:amortiguaci-n-de-cabeceo",
-     "label": "Amortiguación de cabeceo",
-     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+     "id": "pids:amortiguaci-n-de-pitch",
+     "label": "Amortiguación de pitch",
+     "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
      "range": {
       "min": 30,
       "max": 200

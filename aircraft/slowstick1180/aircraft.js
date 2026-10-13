@@ -469,7 +469,7 @@ export default {
       "power.slowstick.2212_1060": "GWS 2212 brushless, 10 x 6, 2S",
       "power.slowstick.2215_1060_3s": "GWS 2215 brushless, 10 x 6, 3S",
       "power.slowstick.stock": "GWS EPS-300C con reductora, 11 x 8, 2S (de serie)",
-      "airframe.blurb.slowstick1180": "Un GWS Slow Stick de 1176 mm en 2S: timón de dirección, profundidad y acelerador, sin alerones. El stick de alabeo mueve el timón, flota al paso de un trote y se nivela solo cuando lo sueltas.",
+      "airframe.blurb.slowstick1180": "Un GWS Slow Stick de 1176 mm en 2S: timón de dirección, profundidad y acelerador, sin alerones. El stick de roll mueve el timón, flota al paso de un trote y se nivela solo cuando lo sueltas.",
       "livery.scheme.slowstick1180.stock": "Espuma roja"
     }
   }
