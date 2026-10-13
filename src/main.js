@@ -198,7 +198,9 @@ import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
-import { checkSession, needSignIn } from './share/account.js';
+import {
+  checkSession, fetchBlocks, heldBlocks, needSignIn, setBlocked,
+} from './share/account.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
  * use and kept in this browser. See src/share/identity.js. */
@@ -4200,7 +4202,16 @@ export async function boot({
   const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
-  }, () => ui.refreshFriends());
+  }, () => ui.refreshFriends(), {
+    /* A signed in peer's name is its callsign (src/share/rooms.js shownName). */
+    callsignOf: (seat) => {
+      const peer = roomPeers.get(seat);
+      return peer && typeof peer.name === 'string' ? peer.name : null;
+    },
+    held: heldBlocks,
+    fetch: fetchBlocks,
+    setBlocked,
+  });
   /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
    * turns it on in the room screen, never to a pilot muted or reported. */
   const voice = createVoice({ send: (m) => roomLinkState.send(m), isMuted: (seat) => roomSafety.isMuted(seat) });

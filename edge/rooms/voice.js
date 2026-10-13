@@ -27,8 +27,8 @@
  *
  * ONLY INSIDE THE ROOM, AND NEVER PAST A MUTE. The seat named must be a
  * pilot in this room. Nothing passes between two pilots when either has
- * muted the other (edge/rooms/safety.js keeps each seat's mute set, and a
- * report mutes too), except an off, which only ever ends a link. So a muted
+ * muted or blocked the other (edge/rooms/safety.js keeps each seat's mute
+ * set and blocks, and a report mutes too), except an off, which only ever ends a link. So a muted
  * pilot cannot even start a link, whatever their client does.
  *
  * THE RATE. Signalling has an allowance of its own, VOICE_PER_S, apart from
@@ -65,12 +65,13 @@
 import {
   RELAY_NONE, RELAY_TCP, RELAY_UDP, VOICE_CAND_MAX, VOICE_LINK_MAX, VOICE_OPS, VOICE_PER_S, VOICE_SDP_MAX,
 } from '../../src/share/roomwire.js';
+import { shut } from './safety.js';
 
 export { VOICE_PER_S };
 
-/* Neither of the two has muted the other. */
+/* Neither of the two has muted or blocked the other. */
 function hearing(a, b) {
-  return !(a.muted && a.muted.includes(b.token)) && !(b.muted && b.muted.includes(a.token));
+  return !shut(a, b) && !shut(b, a);
 }
 
 /* A candidate as the browser gave it, checked field by field, or null. */

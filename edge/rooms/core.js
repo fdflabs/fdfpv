@@ -705,6 +705,7 @@ export class RoomCore {
     return {
       seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address,
       muted: s.muted || [], wreck: s.wreck ?? null, level: s.level || 0, callsign: s.callsign ?? null, account: s.account ?? null,
+      blocks: s.blocks || [],
     };
   }
 
@@ -830,9 +831,12 @@ export class RoomCore {
    * no hello can name itself one. It goes to every peer beside the picker
    * name, which a build from before it shows instead. account is that
    * pilot's account id from the same lookup (null the same way): never
-   * sent to anybody, only read against the room's DEV_ACCOUNTS (devHost).
+   * sent to anybody, only read against the room's DEV_ACCOUNTS (devHost)
+   * and other pilots' blocks. blocks is the ids of the accounts this
+   * pilot blocked, from the same lookup ([] the same way): whoever holds
+   * one of them is not heard by this pilot (safety.js shut).
    */
-  hello(conn, msg, now, address, newToken, callsign = null, account = null) {
+  hello(conn, msg, now, address, newToken, callsign = null, account = null, blocks = []) {
     if (msg.proto !== PROTO) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
@@ -908,6 +912,7 @@ export class RoomCore {
       name: msg.name.slice(),
       callsign,
       account,
+      blocks,
       profile,
       joined,
       /* Memory only, for the admin's who is on (who()): this socket's
@@ -991,12 +996,12 @@ export class RoomCore {
   /* Any text can move the room's game clock (a host's time, a war or an
    * ops mission started, the lobby's mission picked): its news follows
    * the message's own. A pose never can. */
-  message(conn, data, now, address = '', newToken = null, callsign = null, account = null) {
-    const out = this.said(conn, data, now, address, newToken, callsign, account);
+  message(conn, data, now, address = '', newToken = null, callsign = null, account = null, blocks = []) {
+    const out = this.said(conn, data, now, address, newToken, callsign, account, blocks);
     return typeof data === 'string' ? [...out, ...this.daytimeNews()] : out;
   }
 
-  said(conn, data, now, address, newToken, callsign, account) {
+  said(conn, data, now, address, newToken, callsign, account, blocks) {
     const w = this.watchers.get(conn);
     if (w) {
       return this.watcherSaid(conn, w, data, now);
@@ -1038,7 +1043,7 @@ export class RoomCore {
       return [];
     }
     if (!s) {
-      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign, account) : [];
+      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign, account, blocks) : [];
     }
     /* Counted on an allowance of its own (edge/rooms/voice.js). */
     if (msg.type === 'voice') {

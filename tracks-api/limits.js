@@ -66,6 +66,11 @@ export const ACCOUNT_WRITE_LIMIT = 60;
 export const SESSION_DAYS = 30;
 export const SESSIONS_PER_ACCOUNT = 20;
 
+/* Pilots one account may block (accounts.js blocks). The whole list rides
+ * on every room join (GET /api/account), so it is kept short: three full
+ * public rooms of strangers blocked one by one, with room over. */
+export const BLOCKS_PER_ACCOUNT = 50;
+
 /*
  * THE PROGRESS BLOB CAP, 512 kB, the same as a track document. The bulk
  * of a blob is saved liveries, up to MAX_SAVED (24) per plane
