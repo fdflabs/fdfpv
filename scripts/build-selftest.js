@@ -90,7 +90,7 @@ import {
   MAP_SCHEMA_VERSION, deserialize, isMapTrack, normalize, serialize, toPlain,
 } from '../src/trackbuilder/model.js';
 import { inspectCourse, layoutFingerprint } from '../src/share/listing.js';
-import { courseSeatKey } from '../src/share/session.js';
+import { courseSeatKey } from '../src/share/trackseat.js';
 import {
   NEAR_POINTS, PASS_POINTS, PLANE_REACH, Race,
 } from '../src/game/race.js';

@@ -152,7 +152,7 @@ function take(node) {
 const { Ui } = await import('../src/ui/ui.js');
 const { el, makeGimbal, makeWeightSlider } = await import('../src/ui/widgets.js');
 const { DEFAULTS, SETTINGS_KEY, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK } = await import('../src/ui/settings.js');
-const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/session.js');
+const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/trackseat.js');
 const { MAPS } = await import('../src/maps/registry.js');
 const { useLocale } = await import('../src/strings/index.js');
 const { StickRef } = await import('../src/ui/stickref.js');

@@ -261,7 +261,7 @@ builder's progress; loading.js 29 to 42), a stall notice after 6 s
 rooms server (`roombrowser.unreachable`, `friends.failed_noserver`,
 `friends.failed_lost`, `loading.held_restart`), the board
 (`ui.the_board_is_not_answering_so`; a lap that could not be sent is kept,
-src/share/session.js 273), tracks (`cloud.offline`), assets
+src/share/trackseat.js 273), tracks (`cloud.offline`), assets
 (`main.could_not_be_loaded`, `loading.could_not_start`), the GPU
 (`gpuinfo.the_webgl_context_was_lost_reload`), account sync
 (`account.sync_failed`, `account.unreachable`). A controller disconnect is
@@ -941,7 +941,7 @@ account (account.js; `accounts`, tracks-api/migrations/0002), the pilot
 (name and key, pilot.js, identity.js), the room (rooms.js, edge/rooms),
 the mission, the aircraft, the world, the build. Blurred: the party is
 the room (no separate party, item 77); "session" means three things
-(src/share/session.js is the track seat, the account has session tokens,
+(src/share/trackseat.js is the track seat, the account has session tokens,
 and the redesign's session is the room). **Done:** item 83's glossary
 fixes the words; session.js renamed to what it holds in a pure rename PR.
 Size S. Phase 24.

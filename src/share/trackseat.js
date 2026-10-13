@@ -1,5 +1,5 @@
 /*
- * session.js: what this browser keeps about the course it flies and the
+ * trackseat.js: what this browser keeps about the course it flies and the
  * board it came from.
  *
  * The board passes a course to the simulator in the address,

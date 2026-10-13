@@ -138,7 +138,7 @@ if (DUMP) {
 const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS } = await import('../src/ui/settings.js');
 const { useLocale } = await import('../src/strings/index.js');
-const { writeShareImport, writeBind, writePendingTime, writePostedBest } = await import('../src/share/session.js');
+const { writeShareImport, writeBind, writePendingTime, writePostedBest } = await import('../src/share/trackseat.js');
 const { layoutFingerprint } = await import('../src/share/listing.js');
 const { normaliseRates, RATE_DEFAULTS } = await import('../configs/rates.js');
 const { setPidSlider, setPidsExpert, SLIDER_KEYS, PID_AXES, PID_FIELDS } = await import('../configs/pids.js');

@@ -1,9 +1,9 @@
 /*
- * session-selftest.js: the share seat, edit keys, binds and lap
- * bookkeeping kept in this browser (src/share/session.js), pinned as a
+ * trackseat-selftest.js: the share seat, edit keys, binds and lap
+ * bookkeeping kept in this browser (src/share/trackseat.js), pinned as a
  * transcript.
  *
- *     node scripts/session-selftest.js [--dump=<file>]   (npm run session:selftest)
+ *     node scripts/trackseat-selftest.js [--dump=<file>]   (npm run trackseat:selftest)
  *
  * Every export runs against a stand in localStorage that can hold junk or
  * refuse writes. Recorded: each answer and the exact storage left behind,
@@ -75,7 +75,7 @@ globalThis.Date = class extends RealDate {
   }
 };
 
-const s = await import('../src/share/session.js');
+const s = await import('../src/share/trackseat.js');
 const t = transcript();
 const reset = () => {
   store.map.clear();
@@ -261,4 +261,4 @@ t.rec('readPostedBest junk', () => [s.readPostedBest('a'), s.readPostedBest('b')
 t.rec('writePostedBest over junk', () => s.writePostedBest('a', 9));
 look('posted over junk');
 
-t.finish('session.js', PINNED);
+t.finish('trackseat.js', PINNED);

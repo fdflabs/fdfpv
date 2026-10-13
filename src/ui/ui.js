@@ -137,7 +137,7 @@ import {
   readEditKey,
   readShareImport,
   writeShareImport,
-} from '../share/session.js';
+} from '../share/trackseat.js';
 import {
   clipKeyForMap,
   getClip,
