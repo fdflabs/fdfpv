@@ -475,6 +475,17 @@ jobs:
       # counted, and the RC grid follows the module's clock
       # (scripts/config-swap-check.js).
       - run: npm run configswap:check
+      # F8 after a wreck carries the crash, and an error after it
+      # (scripts/bug-crash-check.js). 83 s locally on the software
+      # rasteriser, 2026-10-13.
+      - run: npm run bug:crash
+      # The frame loop frame by frame on a virtual clock against its record
+      # (scripts/loop-golden.js). 95 s locally on the software rasteriser.
+      - run: npm run loop:golden
+      # Two pages in a public room: chat, emotes, mute, report and undo
+      # (scripts/rooms-safety-two-page.js), on a rooms server of its own.
+      # 126 s locally on the software rasteriser.
+      - run: npm run rooms:safety
       # Every screen on five phones and tablets, in English and Spanish:
       # every row reachable, no word cut (scripts/device-check.js). 73 to
       # 126 s locally. On the lightest shard by measured time (shard-3,
