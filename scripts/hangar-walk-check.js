@@ -150,6 +150,25 @@ try {
   await page.until("window.__ui.hub === 'hangar'", 10000);
   const walkCard = '.gate-card.gate-card-hangar-walk';
   check('the Hangar shows a Walk in card', (await page.evaluate(`document.querySelector('${walkCard} .gate-card-name')?.textContent`)) === en['walk.card'], en['walk.card']);
+  await shot('00-hub');
+  /* Upgrades: the war's shop, opened on its own page, and Escape closes it
+   * back onto the Hangar rather than onto the war's missions. */
+  check('Upgrades clicked', await page.click('.gate-card.gate-card-hangar-upgrades'), 'clicked');
+  await page.sleep(300);
+  const shop = await page.evaluate("(() => { const b = document.querySelector('.campaign-box'); return b && !b.closest('[hidden]') ? b.dataset.page : null; })()");
+  check('Upgrades opens the war\'s shop', shop === 'shop', String(shop));
+  await page.tap('Escape');
+  await page.sleep(300);
+  const shut = await page.evaluate("({ open: Boolean(document.querySelector('.campaign-box')) && !document.querySelector('.campaign-box').closest('[hidden]'), hub: window.__ui.hub, screen: window.__ui.screen })");
+  check('Escape closes it onto the Hangar', !shut.open && shut.hub === 'hangar' && shut.screen === 'title', JSON.stringify(shut));
+  /* Choose joystick: the Settings row's own action, handed to the shell. */
+  await page.evaluate('(() => { const ui = window.__ui; const was = ui.onAction; window.__hubActs = []; ui.onAction = (a, ...rest) => { window.__hubActs.push(a); return was(a, ...rest); }; window.__hubActsWas = was; return true; })()');
+  check('Choose joystick clicked', await page.click('.gate-card.gate-card-hangar-joystick'), 'clicked');
+  await page.sleep(300);
+  const acts = await page.evaluate('(() => { window.__ui.onAction = window.__hubActsWas; return window.__hubActs; })()');
+  check('Choose joystick asks the shell to pick a pad, as the Settings row does', acts.includes('choosepad'), JSON.stringify(acts));
+  await page.evaluate('window.__ui.hub = "hangar"; window.__ui.show("title"); window.__ui.renderMenu(); true');
+  await page.sleep(300);
   check('Walk in clicked', await page.click(walkCard), 'clicked');
   await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
   await page.sleep(800);
