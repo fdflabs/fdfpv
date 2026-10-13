@@ -339,6 +339,7 @@ import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
 import { crashRecord } from './share/crashrecord.js';
+import { reportPageErrors } from './share/clientreport.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
@@ -2208,6 +2209,9 @@ export async function boot({
    * world.
    */
   const flightStats = createFlightStats({ describe: describeFlight });
+  /* Uncaught errors since boot, reduced and sent the same anonymous way
+   * (src/share/clientreport.js); frame times go from perfOverlay. */
+  reportPageErrors(crashRecord, window);
   /*
    * The three words every stats event carries, asked when the event is
    * sent, so a flush a minute in names what is flown then and stats.js
@@ -2343,7 +2347,7 @@ export async function boot({
   const dynres = createDynRes();
   dynres.bind(shell.renderer.getContext(), gpuInfo.software);
   dynres.setMode(ui.settings.perfMode, Number(ui.settings.fpsCap) || 0, gpuInfo.software);
-  const perfOverlay = new PerfOverlay(uiRoot);
+  const perfOverlay = new PerfOverlay(uiRoot, gpuInfo);
   perfOverlay.setOn(ui.settings.perfOverlay);
   dynres.setWatch(ui.settings.perfOverlay);
   /* F3 is the readout's key, as it was before the readout went
@@ -12646,6 +12650,7 @@ export async function boot({
     breakTrails(Boolean(at));
     statePrev = readState();
     stateCurr = statePrev;
+    ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
   }
 
   function seatSpawnAt(at) {

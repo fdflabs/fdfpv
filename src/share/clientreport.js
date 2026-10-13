@@ -7,8 +7,16 @@
  * /api/stats/events, so they inherit its rules instead of growing a second
  * set: Global Privacy Control and the shared opt out stop them before
  * anything is built into a request, the board stamps the day, and no event
- * names a browser. The board refuses both kinds until its own half lands
- * (FND-10-SURVEY.md slice 2), and nothing here is wired yet (slice 3).
+ * names a browser. The board's half (its src/validate.js) re-checks both
+ * kinds and refuses an error still holding what scrubMessage removes.
+ *
+ * Wired (slice 3): main.js hands reportPageErrors the page's crash record,
+ * whose listener has every uncaught error since boot, and PerfOverlay feeds
+ * a frames reporter every drawn frame, overlay shown or not. How often:
+ * an error kind once when first seen, then its repeats at most once a
+ * minute and as the page goes, at most ERROR_SIGS_PER_PAGE kinds a page;
+ * frames once per minute of drawn frames, and the part minute as the page
+ * goes. privacy.html says the same to pilots, with the switch.
  *
  *   error   a reduced message, up to three repo frames, a count, and a
  *           signature the board can count per day.
@@ -43,7 +51,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { sendEvent } from './stats.js';
+import { FLUSH_MS, sendReport } from './stats.js';
 
 /* The longest a reduced message may be; the board takes 2000 bytes per
  * event and an error event must stay far under it. */
@@ -178,7 +186,114 @@ export function framesEvent({ counts, gpu, fpsCap = 0, scale = 1 } = {}) {
 }
 
 /* Through stats.js's sender, which sends nothing while the pilot has
- * opted out or the browser asks for Global Privacy Control. */
-export function sendClientReport(event, send = sendEvent) {
+ * opted out or the browser asks for Global Privacy Control, and adds only
+ * the format version. */
+export function sendClientReport(event, send = sendReport) {
   return event ? send(event) : false;
+}
+
+/* Kinds of error one page reports. A loop that throws a new message every
+ * frame is a handful of events, not sixty a second. */
+export const ERROR_SIGS_PER_PAGE = 8;
+
+/*
+ * Page errors to error events. The first of a kind goes at once, because
+ * an error at boot may be the last thing the page does; its repeats are
+ * counted and sent at most once a minute, and as the page goes. Kinds are
+ * told apart after the scrub, so two messages that differ only in a value
+ * are one kind.
+ */
+export function createErrorReporter({ send = sendReport, now = () => performance.now() } = {}) {
+  const kinds = new Map();
+
+  const sendHeld = (event, kind, t) => {
+    sendClientReport({ ...event, count: kind.held }, send);
+    kind.held = 0;
+    kind.sentAt = t;
+  };
+
+  return {
+    note({ message, stack } = {}) {
+      const event = errorEvent({ message, stack });
+      if (!event) {
+        return;
+      }
+      const t = now();
+      const kind = kinds.get(event.sig);
+      if (!kind) {
+        if (kinds.size >= ERROR_SIGS_PER_PAGE) {
+          return;
+        }
+        const fresh = { event, held: 1, sentAt: t };
+        kinds.set(event.sig, fresh);
+        sendHeld(event, fresh, t);
+        return;
+      }
+      kind.held = Math.min(MAX_COUNT, kind.held + 1);
+      if (t - kind.sentAt >= FLUSH_MS) {
+        sendHeld(kind.event, kind, t);
+      }
+    },
+
+    leaving() {
+      const t = now();
+      for (const kind of kinds.values()) {
+        if (kind.held > 0) {
+          sendHeld(kind.event, kind, t);
+        }
+      }
+    },
+  };
+}
+
+/* What a page leaving looks like: pagehide where unload never fires, and a
+ * hidden page, which is how a phone ends a session. */
+export function onPageLeaving(win, fn) {
+  win.addEventListener('pagehide', fn);
+  win.document.addEventListener('visibilitychange', () => {
+    if (win.document.hidden) {
+      fn();
+    }
+  });
+}
+
+/* The page's wiring: every uncaught error since boot, from crashrecord.js. */
+export function reportPageErrors(record, win, reporter = createErrorReporter()) {
+  record.listen((e) => reporter.note(e));
+  onPageLeaving(win, () => reporter.leaving());
+  return reporter;
+}
+
+/*
+ * Frame block times to frames events, one per FLUSH_MS of drawn frames.
+ * frame() runs every drawn frame and allocates nothing; the scale and cap
+ * sent are the latest seen. flush() sends the part window, as the page
+ * goes.
+ */
+export function createFramesReporter({ gpu = 'hidden', send = sendReport, windowMs = FLUSH_MS } = {}) {
+  const histogram = createFrameHistogram();
+  let start = -1;
+  let scale = 1;
+  let cap = 0;
+
+  const flush = () => {
+    start = -1;
+    return sendClientReport(framesEvent({
+      counts: histogram.take(), gpu, fpsCap: cap, scale,
+    }), send);
+  };
+
+  return {
+    frame(nowMs, blockMs, renderScale, capHz) {
+      histogram.add(blockMs);
+      scale = renderScale;
+      cap = capHz;
+      if (start < 0) {
+        start = nowMs;
+      } else if (nowMs - start >= windowMs) {
+        flush();
+      }
+    },
+    flush,
+  };
 }

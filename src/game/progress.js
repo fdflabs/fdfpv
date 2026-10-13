@@ -687,6 +687,8 @@ export class RunWatch {
     this.airSince = null;
     this.flew = false;
     this.downSince = null;
+    /* Landings judged this run, for the event log (src/game/events.js). */
+    this.landings = 0;
   }
 
   can(id) {
@@ -775,6 +777,7 @@ export class RunWatch {
     /* Down, whole, for LANDED_MS after a real flight: a landing. */
     this.flew = false;
     this.downSince = null;
+    this.landings += 1;
     if (!this.brokeSince && this.lowBattery && this.can('deadstick')) {
       out.push('deadstick');
     }

@@ -204,6 +204,9 @@ export const DEFAULTS = {
   liverySaves: {},
   /* The pilot's own colours (configs/liveries.js normaliseSwatches). */
   swatches: { list: [] },
+  /* The aircraft the pilot starred, land plane ids, newest first
+   * (normaliseFavourites); the picker's Favourites tab. */
+  favourites: { list: [] },
   rates: RATE_DEFAULTS,
   ratesSplitPitch: false,
   pids: {},
@@ -367,6 +370,25 @@ export function normaliseFloats(stored, airframe) {
   }
   if (isFloatVersion(airframe)) floats[landPlaneOf(airframe)] = true;
   return floats;
+}
+
+/* The starred aircraft as a profile or a sync may hold them: each a card's
+ * id (a retired aircraft's successor, a float version's land plane), known
+ * to this build, once each, in the order stored. */
+export function normaliseFavourites(raw) {
+  const list = raw && Array.isArray(raw.list) ? raw.list : [];
+  const out = [];
+  for (const v of list) {
+    const id = typeof v === 'string' ? landPlaneOf(currentAirframeId(v)) : null;
+    if (AIRFRAME_IDS.includes(id) && !out.includes(id)) out.push(id);
+  }
+  return { list: out };
+}
+
+/* The favourites with `id` starred first, or unstarred when it is there. */
+export function toggleFavourite(favs, id) {
+  const list = favs.list.includes(id) ? favs.list.filter((x) => x !== id) : [id, ...favs.list];
+  return normaliseFavourites({ list });
 }
 
 /* The id actually flown for a picked aircraft: its float version when the
@@ -582,6 +604,7 @@ export function loadSettings() {
   s.progress = normaliseProgress(raw.progress, { existing: Object.keys(raw).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
   s.swatches = normaliseSwatches(s.swatches);
+  s.favourites = normaliseFavourites(s.favourites);
   s.campaign = cleanCampaign(s.campaign);
   s.flightTime = cleanFlightTime(s.flightTime);
   s.pilotCounts = cleanPilotCounts(s.pilotCounts);
