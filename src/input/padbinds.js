@@ -12,8 +12,9 @@
  * The buttons the flight shell reads for anything else are RESERVED: Start
  * pauses, Back enters the builder, the shoulders step the aircraft swap,
  * and the d-pad, the right trigger and the stick clicks fly the camera
- * ball (main.js ballPad). The left trigger is push to talk's default and
- * the ball's zoom out too, so it stays choosable.
+ * ball (main.js ballPad). The ball zooms out on A, which stays choosable:
+ * a flight action the pilot binds to A takes it, and the ball then zooms
+ * out on the keys and the touch buttons only.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *

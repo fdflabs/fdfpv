@@ -281,47 +281,38 @@ roster through connect after launch, disconnect, reconnect on another
 index and a switch, asserting the chosen device and the queued picker.
 Size S. Phase 20.
 
-**16. Controller identification. PARTIAL.** The device is stored as the
-browser's `id` string plus `index` (`webfpv.pad.v1`, input.js 370); the
-vendor and product are stripped for display only (input.js 335); the
-axis count is checked live, not stored; and the stick mapping is one
-global blob (`webfpv_stick_map_v1`, input.js 61), not per device. So a
-pilot with a radio and a gamepad recalibrates on every swap. **Done:**
-mappings keyed by device (`{ id, vendor, product, axisCount, buttonCount,
-mapping, calibratedAt }`, vendor and product parsed from the id where the
-browser puts them), the global map migrated to the device it was made on
-(phase 19's migration list). This is the data PLAN.md phase 7's "presets
-per device" needs. Check: `input:selftest` (CI) with two devices and a
-swap. Size M. Phase 20.
+**16. Controller identification. BUILT (FOUNDATIONS #9).** The device
+is parsed from the browser's id in both browser forms (`parsePadId`,
+src/input/padprofiles.js) and a calibration is stored per device under
+`deviceKey` = vendor:product:name (`fdfpv.stick_maps.v2`,
+src/input/stickstore.js); the old single map was migrated to the device it
+was made on. Pad buttons are one binding for every standard pad (the W3C
+layout is the same on each), `settings.padbinds` (phase 20). Checks:
+`input:selftest` (CI) with two radios and the migration, `padprofiles:selftest`
+(CI), `lint:input` (local) two radio page.
 
-**17. Axis sanity checks. PARTIAL.** The wizard (input.js 2380 to 2470)
-rejects a noisy centre (`REST_NOISE 0.08` over 900 ms), demands range on
-the sweep (`SWEEP_TRAVEL 0.55`, `THROTTLE_MIN_RANGE 0.3`), refuses an axis
-already claimed (`pickUnusedAxis`, so duplicates cannot happen), learns
-direction and offers reverse per channel, tracks endpoints (the selftest
-has a stick wound in to half travel), and says when the radio unplugs
-mid wizard. Missing: a named stuck or dead channel message (today the
-sweep just never completes) and a dead zone setting (hard coded 0.012,
-PLAN.md 2.6). **Done:** the sweep names the channel that never moved; the
-dead zone is a setting (phase 7's controller screen). Check:
-`input:selftest` (CI) with a frozen axis. Size S. Phase 20 (the message),
-phase 7 (the setting).
+**17. Axis sanity checks. BUILT (the message, phase 20); the dead zone
+setting is phase 7.** The wizard rejects a noisy centre, demands range on
+the sweep, refuses an axis already claimed, learns direction and offers
+reverse, tracks endpoints, and says when the radio unplugs mid wizard. A
+sweep eight seconds short of full travel now names every axis that never
+moved, as a channel when the device's map is vouched for ("yaw (axis 1)")
+and as an axis otherwise (`stuckAxes`, src/input/calibrate.js). The dead
+zone is still hard coded 0.012. Check: `input:selftest` (CI) with a frozen
+axis on a radio and on a standard pad.
 
-**18. Controller loss failsafe. MISSING.** Undefined, and untested. Read
-from the code: when the only pad goes, `poll()` falls to the keyboard;
-roll, pitch and yaw go to zero, and the throttle holds the pad's last
-value because the keyboard collective mirrored it and does not spring
-unless W or S were used (input.js 2630, 2977). Nothing pauses: the picker
-is queued as `missing` only when another pad remains (input.js 1533).
-Betaflight's own failsafe is compiled in (`sim_rx_signal`, sim_abi.h 306;
-`failsafe:trace`, local) but standing rule 1 (no signal loss in the flight
-model) keeps it out of play. **Done, decided by the author (cheap,
-reversible):** solo pauses the moment the flying device goes, and opens
-the picker; in a room (where pause cannot freeze the world, item 23) the
-sticks centre, the throttle holds, and the picker opens over the flight
-with the room still running, exactly today's sticks made deliberate and
-shown. Check: `input:selftest` (CI) removes the pad mid flight in both
-cases. Size S. Phase 20.
+**18. Controller loss failsafe. BUILT (phase 20).** The roster reports
+the flying device's loss once (`takeDeviceLoss`, src/input/input.js); the
+keys' sticks centre and their collective is marked unused, so the throttle
+holds where the device left it. Solo, the run pauses and a notice says
+why; in a room (which cannot pause its world, item 23) the craft flies on
+centred sticks and a held throttle and a notice says so. With another
+device present the picker is queued as before and opens over the pause.
+Betaflight's own failsafe stays out of play (standing rule 1). Checks:
+`input:selftest` (CI) removes the device mid flight, alone and with
+another present; `lint:input` (local) unplugs the pad in a solo flight and
+sees the pause. The room branch has no browser check (it needs a room
+server).
 
 **19. Keyboard, mouse and gamepad fallback. EXISTS.** Keyboard flight
 (WASD and arrows as a Mode 2 radio, hold time as the analogue, input.js
@@ -330,24 +321,22 @@ cases. Size S. Phase 20.
 gamepad with no calibration (`standardPadMap`, input.js 96). Checks:
 `input:selftest` (CI); `lint:input`, `mouse:shell` (local).
 
-**20. Input abstraction. PARTIAL.** Flight is abstracted: every source
-becomes the same four channels (`roll`, `pitch`, `yaw`, `throttle`, the
-sim_abi.h convention), queued as timestamped samples (input.js 30 to 37;
-`input.drain()`, main.js 14426). Actions are not: they arrive as key
-codes (`input.onKey`, main.js 12938: `KeyR` reset, `KeyX` unstick) and
-several modules read devices directly: src/replay/crashcam.js 623 calls
-`navigator.getGamepads()`; src/builder/buildmode.js 1241 reads `gp.axes`
-for its camera; src/ui/voiceui.js 270 reads a pad button for push to
-talk; main.js 7726 to 7803 and 7892 read arrow keys and `KeyT` from
-`input.keys` for turtle and flip. No camera axes, no `action1`. **Done:**
-src/input owns an action table (`reset`, `unstick`, `flip`, `replay`,
-`talk`, `ready`, `cameraPitch`, `cameraYaw`, menu navigation), each with
-default bindings per source as data; callers ask `input.action(name)` or
-`input.axis(name)`; the four readers above move onto it. Bindings become
-remappable in phase 7's controller screen (item 40). Check: `lint:input`
-grows a grep that fails on `getGamepads`, `.axes[` or `.buttons[` outside
-src/input; `input:selftest` (CI) asserts each action from each source.
-Size M. Phase 20.
+**20. Input abstraction. BUILT (phase 20).** Flight is abstracted as
+before (four channels, timestamped samples). Actions are one table,
+src/input/actions.js: each action's default key and default standard pad
+button. Keys move through keybinds.js and buttons through padbinds.js, on
+the same rules (src/input/bindings.js); in flight a bound button arrives
+as its action's key, so main.js's key readers serve the pad, and the pad
+only actions (replay, talk, swap) and stepping out read their button by
+name (`input.padAction`). No module outside src/input reads a device: the
+crash cam, the builder's camera and buttons, push to talk, the camera
+ball and the turtle and flip ask src/input. Remappable in Settings >
+Controls (docs/KEYBINDS.md). Not built: named camera axes (`cameraPitch`,
+`cameraYaw`) and menu navigation as actions; the builder and menu buttons
+are read through src/input by name but are fixed. Checks: `lint:input`
+(local) fails on `getGamepads`, `.axes[` or `.buttons[` outside src/input;
+`input:selftest` (CI) asserts the actions from keys and pad;
+`keybinds:check` (local) binds a pad button on the real page.
 
 ## 5. Physics and frame (items 21 to 22)
 

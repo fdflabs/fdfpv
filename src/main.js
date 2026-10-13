@@ -769,7 +769,8 @@ export async function boot({
    * Page Up and Page Down) the lens's zoom, K the sensor's digital zoom,
    * J the sensor's mode, U locks the ball on the ground under the cross
    * or frees it (B is the track builder's), Space captures. A standard pad: the D-pad slews, the
-   * triggers zoom, L3 captures, R3 locks. A mouse: the right button drags
+   * right trigger zooms in and A out (the left trigger is push to talk),
+   * L3 captures, R3 locks. A mouse: the right button drags
    * the picture, the wheel zooms (with Shift while the mouse flies).
    *
    * In an ops match every screen reports its camera to the room two a
@@ -1123,7 +1124,9 @@ export async function boot({
     return {
       pan: Number(at('right')) - Number(at('left')),
       tilt: Number(at('up')) - Number(at('down')),
-      zoom: input.padValue('rt') - input.padValue('lt'),
+      /* Out on A, not the left trigger, which is push to talk's; A gives
+       * way to a flight action the pilot bound to it (docs/KEYBINDS.md). */
+      zoom: input.padValue('rt') - (input.padActionOn('a') ? 0 : input.padValue('a')),
       capture: at('ls'),
       lock: at('rs'),
     };
