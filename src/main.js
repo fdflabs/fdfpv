@@ -121,6 +121,7 @@ import { createVoice } from './share/voice.js';
 import { createVoiceUi } from './ui/voiceui.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
+import { createLobbyReady } from './share/roomlobby.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import { createJamRun, createRoomJam } from './share/roomjam.js';
 import { jamHudView, jamResultsView, jamTurnShout } from './ui/jamhud.js';
@@ -4013,6 +4014,7 @@ export async function boot({
       roomJam.onWelcome(w);
       roomWar.onWelcome(w);
       roomOps.onWelcome(w);
+      lobbyReady.clear();
       roomPeersClear();
       for (const p of w.peers) {
         roomPeerJoin(p.seat, p.name, p.profile);
@@ -4974,10 +4976,12 @@ export async function boot({
     const w = roomLinkState.state().welcome;
     return Boolean(lobby && w && lobby.ready[w.seat]);
   }
+  /* Said again until the room lists it (src/share/roomlobby.js). */
+  const lobbyReady = createLobbyReady((obj) => roomLinkState.send(obj));
   function gameLobbyToggle() {
     const lobby = gameLobby();
     if (lobby && !roomLinkState.state().welcome.watch) {
-      roomLinkState.send({ type: 'lobby', op: 'ready', ready: !gameLobbyReady(lobby) });
+      lobbyReady.set(!gameLobbyReady(lobby), lobby, roomLinkState.state().welcome.seat, performance.now());
     }
   }
   function gameLobbyRows(host) {
@@ -6148,6 +6152,8 @@ export async function boot({
   let lobbyBackAt = null;
   let lobbySeen = null;
   function gameLobbyFrame(wallMs) {
+    const st = roomLinkState.state();
+    lobbyReady.frame(gameLobby(), st.phase === 'open' && st.welcome ? st.welcome.seat : null, wallMs);
     const game = lobbyGame();
     const seen = !game ? null : LOBBY_GAMES[game].on() ? 'on' : LOBBY_GAMES[game].ended() ? 'over' : 'lobby';
     if (seen !== lobbySeen) {
