@@ -101,6 +101,24 @@ export function createRoute() {
   };
 }
 
+/*
+ * THE AIRCRAFT'S CONDITION in three words (PILLARS 14): the word the HUD
+ * showed when the flight ended, src/game/damage.js conditionOf over the
+ * plant's damage flags, handed in by the shell and never re-derived here.
+ * null where the screen has no flight of this pilot's to speak for.
+ */
+export const CONDITIONS = ['operational', 'impaired', 'destroyed'];
+
+function conditionWord(c) {
+  if (c == null) {
+    return null;
+  }
+  if (!CONDITIONS.includes(c)) {
+    throw new Error(`debrief: unknown condition ${c}`);
+  }
+  return c;
+}
+
 /* The rows under the cursor, best first. Fly again leads everywhere: it is
  * the one a pilot most often wants after a flight. */
 const NEXT = {
@@ -140,11 +158,19 @@ function timeRecord(totalS, flightMs) {
 }
 
 /*
+ * EVENT LOG (PLAN.md phase 22, src/game/events.js, being built beside
+ * this): every builder below reads the end of run state the shell holds
+ * today. When the log lands, each builder takes the flight's log and folds
+ * it into these same arguments; the record and every screen that reads it
+ * stay as they are.
+ */
+
+/*
  * A solo race. log: race.js's laps in order ({ n, ms } or { n, ms: null,
  * reason }); recordAtStart the record this run chased; gates the course's
  * gate count and passed the gates passed this flight (null when unknown).
  */
-export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flightMs, totalS, route = null, replay, landed = null, gates = null, passed = null }) {
+export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flightMs, totalS, route = null, replay, landed = null, gates = null, passed = null, condition = null }) {
   const laps = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
   const fastest = laps.length ? Math.min(...laps) : null;
   const prior = Number.isFinite(recordAtStart) ? recordAtStart : null;
@@ -168,6 +194,7 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
     aircraft,
     fixedWing,
     result: { kind, landed: fixedWing ? landed : null },
+    condition: conditionWord(condition),
     route,
     time: { flightMs, runMs: fastest },
     accuracy,

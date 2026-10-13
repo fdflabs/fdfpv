@@ -25,7 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createRoute, fromFree, fromOps, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
+import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
 
 let failed = 0;
 function check(name, ok, detail = '') {
@@ -92,6 +92,20 @@ const ok = { ok: true, why: null };
   check('race: aircraft time line', d.records[1].now === 3600 && near(d.records[1].before, 3475) && d.records[1].improved === null);
   check('race: a quad has no landing', d.result.landed === null);
   check('race: next', JSON.stringify(d.next) === '["again","replay","aircraft","title"]');
+  check('race: no condition handed in, none on the record', d.condition === null);
+}
+/* The aircraft's condition, the HUD's three words (PILLARS 14). */
+{
+  const base = { aircraft: 'whoop65', log: [{ n: 1, ms: 40000 }], recordAtStart: null, flightMs: 1, totalS: 1, replay: ok };
+  check('condition: the three words', JSON.stringify(CONDITIONS) === '["operational","impaired","destroyed"]');
+  check('condition: race carries each word', CONDITIONS.every((c) => fromRace({ ...base, condition: c }).condition === c));
+  let threw = false;
+  try {
+    fromRace({ ...base, condition: 'worn' });
+  } catch {
+    threw = true;
+  }
+  check('condition: a fourth word fails loudly', threw);
 }
 {
   const d = fromRace({ aircraft: 'cub1400', fixedWing: true, log: [{ n: 1, ms: 50000 }], recordAtStart: 49000, flightMs: 60000, totalS: NaN, replay: ok, landed: true });

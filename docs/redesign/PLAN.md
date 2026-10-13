@@ -484,6 +484,7 @@ not there, or a class the sheet no longer styles, fails it.
 | `hub-card` | Hub card | card | none | proposed, phase 5 |
 | `session-visibility` | Session visibility, three values | control | none | proposed, phase 6 |
 | `briefing-panel` | Mission briefing facts | card | none | proposed, phase 9 |
+| `debrief-facts` | Debrief facts: record beaten, record stands, destroyed | card, status | results.js `fillFacts`, factlines.js | exists; phase 10 adds the aircraft's condition |
 <!-- /components -->
 
 ### 4.6 Clutter to take off player screens

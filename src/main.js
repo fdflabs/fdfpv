@@ -18321,6 +18321,7 @@ export async function boot({
         totalS: aircraftSecondsNow(),
         route: runRoute.snapshot(),
         replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+        condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
       }));
       return;
     }
