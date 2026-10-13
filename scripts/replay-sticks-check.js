@@ -99,16 +99,41 @@ const PROGRAM = [
 ];
 const q = (v) => Math.round(v * STICK_SCALE);
 
-const WAIT = 90000;
+/* Every wait here is a count of drawn frames, so its budget is the count
+ * times what a frame can cost, not a wall time picked by eye. The page
+ * draws in software GL (SIM_GPU=0, the CI runner's way) and a frame carries
+ * at most 100 ms of sim time however long it took (crashSummary in
+ * src/main.js), so seven frames are the least that make 0.7 s of flight.
+ * Measured 2026-10-12 on taskset -c 0-3, SIM_GPU=0, 1280 by 720: 4 to
+ * 6.3 s a frame at load average 55 to 67; with four or five runs at once on
+ * those cores, over 13 s (a 90 s wait for 7 frames timed out in 3 runs of
+ * 4) and, in the worst run, over 20 s (2 frames in 40 s). The budget is
+ * 1.5 times the worst. */
+const FRAME_MS = 30000;
+const SIM_STEP_MAX_MS = 100;
+/* A boot: 45 s locally, 194 s on the GitHub runner, 67 s here at load 55
+ * (the same budget as scripts/daytime-room-check.js's BOOT_MS). */
+const BOOT_MS = 600000;
 const H = 'window.__crashCam.h()';
 const simT = (page) => page.evaluate('window.__crash().simT');
 async function afterSteps(page, ms) {
   const t0 = await simT(page);
-  await page.until(`window.__crash().simT >= ${t0 + ms / 1000}`, WAIT);
+  await page.until(`window.__crash().simT >= ${t0 + ms / 1000}`, Math.ceil(ms / SIM_STEP_MAX_MS) * FRAME_MS);
 }
 async function frames(page, n) {
   const f0 = await page.evaluate('window.__boot().frames');
-  await page.until(`window.__boot().frames >= ${f0 + n}`, WAIT);
+  await page.until(`window.__boot().frames >= ${f0 + n}`, n * FRAME_MS);
+}
+/* Software GL's frame cost follows the pixels: at load average 20 a frame
+ * took 2 to 4 s at 1280 by 720 and about 1 s at 480 by 270 (2026-10-12, 40 s
+ * of frames each, taskset -c 0-3, SIM_GPU=0). The flight is flown small and
+ * the replay, which the pictures show, is looked at full size. */
+const FLIGHT_VIEW = [480, 270];
+const SHOT_VIEW = [1280, 720];
+async function viewport(page, [w, h]) {
+  await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false }, page.sessionId);
+  await page.evaluate("window.dispatchEvent(new Event('resize')); true");
+  await frames(page, 3);
 }
 async function shot(page, name) {
   const r = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
@@ -137,12 +162,22 @@ function want(set, mode) {
   });
 }
 
+/* The viewer's seconds span the rows it judges, one at least every
+ * JUDGE_MS (20 ms, thumbStats in src/share/controlrec.js). The clip's last
+ * row is the V press, a part of a frame after the one before it, and when
+ * that is under JUDGE_MS (2.766 s after 2.75 s, a run on 2026-10-12) the
+ * viewer leaves it out; so the span is the clip's end, or up to JUDGE_MS
+ * short of it, never past it; both from the clip's first row, as the
+ * export is. */
+const JUDGE_S = 0.02;
+const lastRowSpan = (seconds, end) => seconds <= end + 1e-3 && seconds > end - JUDGE_S - 1e-3;
+
 async function main() {
   console.log('the pilot\'s sticks in a replay, on the real page');
   const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=swiss2', seed: seed() });
   try {
-    await page.until('window.__shellReady && window.__map && window.__map().ready && window.__crashCam && window.__boot', 180000);
-    await frames(page, 3);
+    await page.until('window.__shellReady && window.__map && window.__map().ready && window.__crashCam && window.__boot', BOOT_MS);
+    await viewport(page, FLIGHT_VIEW);
     await page.tap('ShiftLeft');
 
     console.log('1. flown through four settings, the flaps down a notch');
@@ -158,7 +193,7 @@ async function main() {
       await afterSteps(page, 700);
     }
     await page.tap('KeyV');
-    await page.until('window.__crashCam.live()', 10000);
+    await page.until('window.__crashCam.live()', 2 * FRAME_MS);
     await frames(page, 3);
     const clip = await page.evaluate(`(() => {
       const c = ${H}.clip();
@@ -187,6 +222,7 @@ async function main() {
     const modes = new Set(found.flat().map((k) => clip.ch[k * 6 + 4]));
     check('the flight mode is kept, one all through', modes.size === 1, [...modes].join(','));
 
+    await viewport(page, SHOT_VIEW);
     console.log('2. the replay\'s gimbals');
     const v0 = await page.evaluate(`JSON.stringify(${H}.view())`).then(JSON.parse);
     for (let i = 0; i < PROGRAM.length; i += 1) {
@@ -194,7 +230,7 @@ async function main() {
       const k = r[Math.floor(r.length / 2)];
       const t = (clip.time[k] + clip.time[k + 1]) / 2;
       await page.evaluate(`${H}.api.jumpTo(${t})`);
-      await page.until(`${H}.view().drawn === ${t}`, 30000);
+      await page.until(`${H}.view().drawn === ${t}`, 3 * FRAME_MS);
       await frames(page, 2);
       const got = await nubs(page);
       const exp = want(PROGRAM[i], v0.stickMode);
@@ -218,9 +254,7 @@ async function main() {
       return { box: [s.left, s.top, s.right, s.bottom].map(Math.round), hits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-osd', '.cc-dock'].filter(hit) };
     })()`);
     for (const [w, h] of [[1280, 720], [800, 600]]) {
-      await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false }, page.sessionId);
-      await page.evaluate("window.dispatchEvent(new Event('resize')); true");
-      await frames(page, 3);
+      await viewport(page, [w, h]);
       const o = await overlaps();
       check(`at ${w} by ${h} the gimbals are on screen and overlap nothing`, o.hits.length === 0 && o.box[1] >= 0 && o.box[2] <= w, `box ${o.box.join(',')}${o.hits.length ? `, over ${o.hits.join(' ')}` : ''}`);
       await shot(page, `replay-sticks-${w}`);
@@ -230,7 +264,7 @@ async function main() {
     console.log('3. the Sticks CSV button');
     const clicked = await page.click('.cc-btn:not([disabled])[title*="control recording"]');
     check('pressed with a pointer', clicked);
-    await page.until('window.__crashCamLast && window.__crashCamLast.sticks', 10000);
+    await page.until('window.__crashCamLast && window.__crashCamLast.sticks', 2 * FRAME_MS);
     const exp = await page.evaluate('window.__crashCamLast.sticks');
     writeFileSync(join(outDir, exp.name), exp.csv);
     const rows = parseCsv(exp.csv);
@@ -250,7 +284,7 @@ async function main() {
       return { size: row.bytes.byteLength, version: new DataView(row.bytes).getUint32(4, true) };
     })()`);
     await page.evaluate(`${H}.api.playSaved(${JSON.stringify(id)})`);
-    await page.until(`window.__crashCam.live() && ${H}.view() && !${H}.view().live`, 20000);
+    await page.until(`window.__crashCam.live() && ${H}.view() && !${H}.view().live`, 3 * FRAME_MS);
     const vs = await page.evaluate(`JSON.stringify(${H}.view())`).then(JSON.parse);
     check('saved as version 16 and played back with its sticks', bytes.version === 16 && Boolean(vs.sticks), `${bytes.size} bytes, version ${bytes.version}`);
 
@@ -265,10 +299,10 @@ async function main() {
     })()`);
     const oldId = await page.evaluate(`${H}.api.listClips().then((l) => l.find((r) => r.name === 'old').id)`);
     await page.evaluate(`${H}.api.playSaved(${JSON.stringify(oldId)})`);
-    await page.until(`window.__crashCam.live() && ${H}.view() && ${H}.view().name === 'old'`, 20000);
+    await page.until(`window.__crashCam.live() && ${H}.view() && ${H}.view().name === 'old'`, 3 * FRAME_MS);
     await page.evaluate(`${H}.api.jumpTo(0)`);
     await page.tap('Space');
-    await page.until(`${H}.view().t > 0.05`, 30000);
+    await page.until(`${H}.view().t > 0.05`, 3 * FRAME_MS);
     await frames(page, 2);
     const dom = await page.evaluate(`(() => {
       const v = ${H}.view();
@@ -285,7 +319,7 @@ async function main() {
 
     console.log('6. the export in the hover viewer');
     await page.evaluate(`location.href = ${JSON.stringify(`${page.origin}/dev/hover.html`)}; true`);
-    await page.until('typeof window.__hoverShow === \'function\'', 60000);
+    await page.until('typeof window.__hoverShow === \'function\'', BOOT_MS);
     await page.evaluate(`window.__hoverShow(${JSON.stringify(exp.csv)}); true`);
     const hs = await page.evaluate(`(() => {
       const s = window.__hoverStats;
@@ -293,7 +327,7 @@ async function main() {
       return { seconds: s.seconds, roll: s.sticks.roll.peak, yaw: s.sticks.yaw.peak, timing };
     })()`);
     check('the hover viewer reads it: its seconds, the roll and yaw peaks, dashes for the frame timing',
-      Math.abs(hs.seconds - clip.time[clip.n - 1]) < 0.01 && Math.abs(hs.roll - 0.9) < 1e-4 && Math.abs(hs.yaw - 0.9) < 1e-4
+      lastRowSpan(hs.seconds, clip.time[clip.n - 1] - clip.time[0]) && Math.abs(hs.roll - 0.9) < 1e-4 && Math.abs(hs.yaw - 0.9) < 1e-4
       && hs.timing.filter((x) => x === '-').length === 8,
     `${hs.seconds.toFixed(2)} s, roll peak ${hs.roll.toFixed(4)}, yaw peak ${hs.yaw.toFixed(4)}, timing ${hs.timing.join(' ')}`);
     await shot(page, 'hover-viewer');

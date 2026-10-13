@@ -334,7 +334,14 @@ for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
   const half = powerOffPull(mode, 0.5, 0);
   halfBank[mode] = half.bank;
   if (mode === 3) {
-    check(`${name}: a half stick pull through the stall at idle, no rudder: the gyro holds the wings until the air goes, the drop right and under Acro's`, half.bank > 0 && half.bank < halfBank[2], `${deg(half.bank)} deg against Acro's ${deg(halfBank[2])}`);
+    /* The Slick's measured full Heading is about nothing: its dampers sit
+     * on their margin, so as3x:derive leaves no Heading under the rule
+     * (0.0089, 0.0059, 0.0129). The wings are not held; the drop is
+     * judged to the right, as the idling prop's gyroscope and torque have
+     * it, and recorded against Acro's (lead decision 2026-10-12; until
+     * then "held until the air goes, under Acro's", on a Heading that was
+     * a ratio of the damper). */
+    check(`${name}: a half stick pull through the stall at idle, no rudder, its full Heading about none: the drop right, recorded against Acro's`, half.bank > 0, `${deg(half.bank)} deg against Acro's ${deg(halfBank[2])}`);
   } else {
     check(`${name}: a half stick pull through the stall at idle, no rudder: the idling prop's gyroscope and torque drop the right wing`, half.bank * DEG > 3, `${deg(half.bank)} deg`);
   }

@@ -69,6 +69,7 @@ jobs:
       # servos' published torque (scripts/servo-derive.js, servo blow back).
       - run: npm run servo:derive
       - run: npm run as3x:margins
+      - run: npm run as3x:feel
       # The wings' ground effect against its sources and its surfaces
       # against the drawn model (scripts/ge-derive.js).
       - run: npm run ge:derive
@@ -323,6 +324,9 @@ jobs:
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses
       - run: npm run stall-side:check
+      # Dropped flat or on its side at no airspeed, every aircraft turns its
+      # nose into the fall in its own time, never falling flat.
+      - run: npm run flat-fall:check
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
@@ -605,6 +609,10 @@ jobs:
       # A hangar that's yours: two pilots' own rooms from their own data,
       # and a level up growing one (docs/HANGAR-ROOM.md).
       - run: npm run foot:mine
+      # The hangar's Surfaces tab on the Cub: the tiers pressed, saved,
+      # seated in the plant and shown in the rates (scripts/surfaces-hangar-check.js).
+      # Outside CI its H6 went red when the tier block grew to nine doubles.
+      - run: npm run surfaces:hangar
       # Every menu screen of the real shell: reachable rows, the baseline's
       # overflow ratchet, stable row ids, the pad's menu switch
       # (scripts/shell-check.js). Outside CI it sat red for five days of

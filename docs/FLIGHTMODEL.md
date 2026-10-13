@@ -1848,6 +1848,27 @@ What a 3D harrier is flown with, from measured data, on every aircraft:
   rudder to 40 deg (CR-3248) and would need its own curve. A linear
   sideslip term from TR 419's 20 deg yaw was tried and dropped: no data
   at small yaw supported it, and it killed the P-51's measured wing drop.
+- **Falling flat on its side** (2026-10-12, the owner: "it cant just fall
+  all the way flat"). Dropped at no airspeed banked 90 deg, the Extra and
+  the CAP fell to the ground on their sides with the nose level, 93 deg
+  between the nose and the path, in Manual and in AS3X, on #970 and on
+  the batch after it. Three things, all in plant_wing.c:
+  the fin's wake loss above took the fin's linear share off a fin already
+  saturated on its plate (hi_alpha), 0.2832 x 0.92 off a fin carrying
+  0.2832 x 0.31 at 90 deg of sideslip, so the fin pushed the wrong way;
+  it now takes its share of the fin as it stands. The wake loss was
+  judged on an "alpha" of 180 deg from a chordwise speed of 0.5 m/s with
+  the flow along the span, where no wake reaches the fin; it now goes
+  with the wing station the stream carries to the fin, l tan(beta) to
+  windward (fin_in_wake, ESTIMATED geometry, whole inside the measured
+  range). And the stability axis turn reversed the sideslip's own
+  moments whenever the flow came from behind, so a fall a little tail
+  first turned the nose up away from it and held the aircraft at the
+  Vxz 0.5 m/s guard; those moments now turn at |cos_b|.
+  `npm run flat-fall:check` drops the Extra, CAP, Slick, Cub, Timber,
+  Night Timber and P-51 level and on their sides, Manual and AS3X, and
+  holds each to its own one degree of freedom swing
+  (tests/flatfall-thresholds.json).
 
 - **Per table, by data presence.** Each table may give its own measured
   keep curves (ail_keep, fin_keep, at 0, 4, 10, 15, 20, 25 and 35 deg past

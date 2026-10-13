@@ -221,14 +221,31 @@ export function margins(resp, axis, k, kh, T) {
 }
 
 /* The largest factor on (k, kh) together, their ratio kept, that holds
- * both margins on every response given, bisected on the measured loops. */
+ * both margins on every response given, and on every factor below it: a
+ * receiver whose gain is turned up from zero passes through each of them.
+ * The margins are not monotonic in the gain (a loop can lose its margin
+ * at one gain and get it back at a higher one, where another crossing
+ * takes over), so a bisection that only doubles while the gain holds can
+ * land on either side of such a window: on the Slick's hover alone it
+ * returned 1.579 for the roll damper, whose margin fails from 0.0429 and
+ * holds again at 1 (batch 735a677bf's plant; w37-flat-fall).
+ * Taken over every condition together it happened to land on 0.0429,
+ * which is why the tables were right. The factor is found as the
+ * first failure on a sampled sweep, 2 percent apart from 1e-4 to 64,
+ * then bisected between that sample and the last that held, 40 halvings.
+ * Below the sweep's first sample a loop holds (a gain of nothing changes
+ * nothing). */
 export function gainForMargins(resps, axis, k, kh, T) {
   const ok = (g) => resps.every((resp) => {
     const m = margins(resp, axis, g * k, g * kh, T);
     return m.gmDb >= GM_MIN_DB && (m.pmDeg === null || m.pmDeg >= PM_MIN_DEG);
   });
-  let lo = 0, hi = 1;
-  while (ok(hi) && hi < 64) { lo = hi; hi *= 2; }
+  let lo = 0, hi = null;
+  for (let g = 1e-4; g <= 64; g *= 1.02) {
+    if (!ok(g)) { hi = g; break; }
+    lo = g;
+  }
+  if (hi === null) return lo;
   for (let i = 0; i < 40; i += 1) {
     const mid = (lo + hi) / 2;
     if (ok(mid)) lo = mid; else hi = mid;
@@ -360,10 +377,20 @@ export function hoverCondition(startThrottle) {
  * THE AIRCRAFT. Every table with an AS3X row (as3x-derive's list), and the
  * aircraft set up as the derivations fly them.
  */
+/* `srm`: the factory AS3X rate gains, roll, pitch and yaw, of the BNF's
+ * own receiver preset, Spektrum's .SRM model file for it (JSON;
+ * as3xSettings.rateGains of the flight mode a normal bind flies,
+ * cpSettings.defaultFlightMode 1, SAFE off; priority 160 on every axis
+ * and isHeadingEnabled 0 in every mode), from Spektrum's preset share
+ * linked by https://spektrumrc.com/ProdInfo/Files/SPM-Model-Setups-AS3X-SAFE-RX.pdf.
+ * In the receiver's own units, which nothing published maps to a
+ * surface's angle: only their ratios are taken (as3x-derive.js). The
+ * Timber on floats flies the land plane's receiver and preset. A table
+ * without one is not a Spektrum BNF with AS3X, or has no preset. */
 export const AS3X = {
-  FW_EXTRA3D1308: { sim: 29, th: ['extra', 'e11_harrier'] },
-  FW_TIMBER1500: { sim: 7 },
-  FW_TIMBER1500F: { sim: 9 },
+  FW_EXTRA3D1308: { sim: 29, th: ['extra', 'e11_harrier'], srm: [6, 30, 24], srmName: 'EFL115500 Extra 300 3D 1.3m BNF Basic with AS3X and SAFE Select' },
+  FW_TIMBER1500: { sim: 7, srm: [36, 73, 96], srmName: 'EFL105250 Turbo Timber Evolution 1.5m BNF Basic' },
+  FW_TIMBER1500F: { sim: 9, srm: [36, 73, 96], srmName: 'EFL105250 Turbo Timber Evolution 1.5m BNF Basic' },
   FW_CUB1400: { sim: 4 },
   FW_CUB1400F: { sim: 10 },
   FW_SLOWSTICK1180: { sim: 5 },
@@ -375,7 +402,7 @@ export const AS3X = {
   FW_ZAGI1219: { sim: 17 },
   FW_UGLYSTIK1567: { sim: 19 },
   FW_TIGERMOTH1803: { sim: 23 },
-  FW_NIGHTTIMBER1200: { sim: 30 },
+  FW_NIGHTTIMBER1200: { sim: 30, srm: [34, 25, 20], srmName: 'EFL13850 Night Timber X SAFE select' },
   FW_HERCULES3077: { sim: 31 },
   FW_CAP1702: { sim: 32, th: ['cap580', 'c11_harrier'] },
   FW_SLICK2680: { sim: 33, th: ['slick', 's11_harrier'] },
@@ -694,4 +721,59 @@ export function fanOut(script, names, args = []) {
     }).then(run);
   };
   return Promise.all(Array.from({ length: n }, run)).then(() => out);
+}
+
+/*
+ * THE RECEIVER WITH A PILOT, at any gain: plant_wing.c's mode 3 with the
+ * sticks in, run here a step at a time on the plant in Manual. Each axis'
+ * gain fades with its own stick, Spektrum's priority 160 (gone at 40
+ * percent stick, AS3X_ZERO); the roll stick moves the rudder on a rudder
+ * mix, as the plant's rudder_stick. The pilot's surface is the radio's
+ * (the expo's cubic on the throw, the trim on the elevator), the gyro's
+ * offset added and the sum clipped at the throw, then flown through the
+ * stick that gives it, so the plant's own servo slew carries it. The
+ * Heading is off (the presets', and the receiver's default). receiverMatches
+ * checks it against the plant's mode 3.
+ */
+const AS3X_ZERO = 0.4;
+const priority = (x) => Math.max(0, 1 - Math.abs(x) / AS3X_ZERO);
+const shape = (x, expo) => x * x * x * expo + x * (1 - expo);
+
+/* Level at V on throttle thr from launch; sticks(ms) the pilot's [roll,
+ * pitch, yaw], mode 3 at gains g (one factor per axis) emulated, or the
+ * plant's own mode 3 when g is null. The body rates every step. */
+export function pilotFlight(sim, V, thr, rx, g, sticks, ms) {
+  const clip = (x, m) => Math.max(-m, Math.min(m, x));
+  const clamp1 = (x) => Math.max(-1, Math.min(1, x));
+  must(sim.reset(), 'sim_reset');
+  must(sim.e.sim_wing_set_stab(g ? 0 : 3), 'sim_wing_set_stab');
+  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(V), 'sim_wing_launch');
+  const out = [0, 0, 0];
+  let tf = 0;
+  const trace = [];
+  for (let i = 0; i < ms; i += 1) {
+    const [roll, pitch, yaw] = sticks(i);
+    let input = [roll, pitch, yaw, thr];
+    if (g) {
+      const s = sim.readState().state;
+      const st = [roll, pitch, rx.rudderMix ? clamp1(yaw + roll) : yaw];
+      tf -= 0.001;
+      if (tf <= 1e-12) {
+        tf += rx.T;
+        for (let a = 0; a < 3; a += 1) out[a] = priority(st[a]) * g[a] * rx.k[a] * s[11 + a];
+      }
+      const da = clip(shape(clamp1(st[0]), rx.expo) * rx.th[0] - out[0], rx.th[0]);
+      const de = clip(shape(clamp1(st[1]), rx.expo) * rx.th[1] + rx.trim + out[1], rx.th[1]) - rx.trim;
+      const dr = clip(-shape(clamp1(st[2]), rx.expo) * rx.th[2] - out[2], rx.th[2]);
+      const inv = (d, th) => (th > 0 ? stickFor(d / th, rx.expo) : 0);
+      input = rx.rudderMix
+        ? [0, inv(de, rx.th[1]), inv(-dr, rx.th[2]), thr]
+        : [inv(da, rx.th[0]), inv(de, rx.th[1]), inv(-dr, rx.th[2]), thr];
+    }
+    must(sim.input(i / 1000, ...input), 'sim_input');
+    must(sim.step(1), 'sim_step');
+    trace.push(Array.from(sim.readState().state.slice(11, 14)));
+  }
+  return trace;
 }

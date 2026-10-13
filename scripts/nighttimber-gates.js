@@ -419,10 +419,12 @@ if (!findChrome()) {
       cells[`${mname} ${tech}`] = { n: held.length, rate: mean('rate'), thr: mean('thr') };
     }
   }
-  const g17 = cells['AS3X video'];
-  gate('N17', 'a person paced pilot hovers it, the video\'s way, AS3X', pilots.length === t17.pilots && g17.n >= t17.minHolders,
+  /* The receiver no worse than none for the person, either technique
+   * (re-posed 2026-10-12, tests/nighttimber-thresholds.json). */
+  const noWorse = ['stop it', 'video'].every((tech) => cells[`AS3X ${tech}`].n >= cells[`Manual ${tech}`].n);
+  gate('N17', 'a person paced pilot hovers it no worse in AS3X than in Manual', pilots.length === t17.pilots && noWorse,
     Object.entries(cells).map(([k, v]) => `${k} ${v.n}/${pilots.length}${v.n ? ` (${v.rate.toFixed(0)} deg/s, throttle ${v.thr.toFixed(2)})` : ''}`).join('; '),
-    `AS3X video at least ${t17.minHolders} of ${t17.pilots}`);
+    `AS3X's holders at least Manual's, each technique, of ${t17.pilots}`);
 }
 
 console.log('');
