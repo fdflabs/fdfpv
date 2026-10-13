@@ -441,6 +441,34 @@ export async function fetchHangar(callsign) {
   }
 }
 
+/*
+ * BLOCKS (tracks-api/accounts.js, COMPLETENESS 60): the callsigns of the
+ * pilots this account blocked, as the server last said, kept on the
+ * account record so a room can draw them before the server answers and
+ * gone with it on sign out. isBlocked reads that; fetchBlocks asks again,
+ * which is how another computer's block arrives; setBlocked blocks or
+ * unblocks one and keeps the server's answer.
+ */
+export function isBlocked(callsign) {
+  const list = readAccount()?.blocks;
+  return Array.isArray(list) && typeof callsign === 'string' && list.some((c) => c.toLowerCase() === callsign.toLowerCase());
+}
+
+export async function fetchBlocks() {
+  if (!signedIn()) {
+    return null;
+  }
+  const got = await api('GET', '/api/account/blocks');
+  writeAccount({ blocks: got.blocks });
+  return got.blocks;
+}
+
+export async function setBlocked(callsign, on) {
+  const got = await api('PUT', '/api/account/blocks', { callsign, on });
+  writeAccount({ blocks: got.blocks });
+  return got.blocks;
+}
+
 export async function buyItem(item) {
   const got = await api('POST', '/api/account/wallet/buy', { item });
   writeJson(WALLET_KEY, got.wallet);
