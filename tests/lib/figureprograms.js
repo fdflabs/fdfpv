@@ -643,10 +643,10 @@ export const HOVER = {
     pitch: { wc: 3, gain: 5.179, lead: 0.35 }, yaw: { wc: 2.8, gain: 5.336, lead: 0.3 }, roll: { wc: 2.4, gain: 7.632 }, climb: { wc: 1.8, gain: 34.935 }, torque: -3.31,
   },
   [CAP_AIRFRAME]: {
-    pitch: { wc: 3, gain: 4.063, lead: 0.5 }, yaw: { wc: 1, gain: 3.181, lead: 0.5 }, roll: { wc: 3, gain: 6.989 }, climb: { wc: 1.8, gain: 33.447 }, torque: -3.29,
+    pitch: { wc: 3, gain: 4.063, lead: 0.5 }, yaw: { wc: 1, gain: 3.181, lead: 0.5 }, roll: { wc: 3, gain: 6.985 }, climb: { wc: 1.8, gain: 33.447 }, torque: -3.29,
   },
   [SLICK_AIRFRAME]: {
-    pitch: { wc: 2.6, gain: 2.366, lead: 0.5 }, yaw: { wc: 1.8, gain: 1.593, lead: 0.5 }, roll: { wc: 2.8, gain: 2.472 }, climb: { wc: 0.8, gain: 22.584 }, torque: -2.31,
+    pitch: { wc: 2.6, gain: 2.361, lead: 0.5 }, yaw: { wc: 1.8, gain: 1.597, lead: 0.5 }, roll: { wc: 2.8, gain: 2.479 }, climb: { wc: 0.8, gain: 22.633 }, torque: -2.31,
   },
 };
 /* The drift's tilt and the height's climb rate a person asks for at most:

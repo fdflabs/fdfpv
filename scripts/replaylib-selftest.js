@@ -81,7 +81,9 @@ const PINNED = {
    * old hash returns with those two values alone put back. */
   /* Re-pinned: the pod's crossflow at its own centre of pressure,
    * w38-crossflow-moment; with side_x out it is f5159db55bb62b9d again. */
-  'trace.sky.60.10': 'f838061b1b131c26c72d4607363ca7bd1ecd9d9e05babb9f22be79a4331d8e82',
+  /* Re-pinned: the stalled wing's plate force in the plane of symmetry,
+   * w38-physics-2 (was f838061b1b131c26). */
+  'trace.sky.60.10': 'd68adda079f0230215646ac4aebdd53ca39dc00cb1ed85ae8693df226cb970d6',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */

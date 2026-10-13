@@ -16,10 +16,14 @@
  *     bit for bit, so both plants get the same sim_set_wind there and then;
  *   - the plant holds it: sim_wind is the mean handed over plus gusts no
  *     larger than the gust sum's peak.
- * The gusts on top are the plant's own, a sum of cosines on its own step
- * clock (src/native/plant_wing.c plant_wind), which each pilot's run starts
- * at zero: two plants at the same room ms meet the same mean and RMS but
- * not the same gust. That is printed, not checked.
+ *   - the gusts on top (a sum of cosines, src/native/plant_wing.c
+ *     plant_wind) run on the room's clock: each run sets the plant's gust
+ *     clock to the room's at its start (sim_set_wind_clock), so its gust
+ *     clock (that plus the plant's own) is the room's within a frame on
+ *     both pages, and the gust the plant holds is the cosine sum at that
+ *     room millisecond, recomputed here: a function of the room's
+ *     millisecond and the room's RMS alone, so two plants at the same room
+ *     ms meet the same gust.
  * Exit 0 on a pass, 1 otherwise.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -57,7 +61,25 @@ const rooms = `http://127.0.0.1:${server.port}`;
 const QUAD = 'interceptor';
 const WING = 'cub1400';
 /* The gust sum's peak over its RMS: plant_wing.c GUST_A summed. */
-const GUST_PEAK = 0.7228 + 0.7088 + 0.6243 + 0.5072 + 0.4059 + 0.3169 + 0.2512;
+const GUST_A = [0.7228, 0.7088, 0.6243, 0.5072, 0.4059, 0.3169, 0.2512];
+const GUST_PEAK = GUST_A.reduce((x, y) => x + y, 0);
+/* plant_wing.c GUST_W, GUST_PX, GUST_PY and GUST_WRAP_STEPS. */
+const GUST_W = [0.20944, 0.349066, 0.571199, 0.966644, 1.570796, 2.617994, 4.18879];
+const GUST_PX = [0.8608, 4.744, 2.3441, 6.2273, 3.8273, 1.4274, 5.3106];
+const GUST_PY = [2.9106, 0.5106, 4.3939, 1.9939, 5.8771, 3.4772, 1.0772];
+const GUST_WRAP = 2 ** 27;
+/* The gust at gust clock ms (whole), per unit RMS, JS maths: within a
+ * hair of the plant's fixed libm, not bit for bit. */
+function gustAt(ms) {
+  const t = (ms % GUST_WRAP) / 1000;
+  let x = 0;
+  let y = 0;
+  for (let k = 0; k < GUST_W.length; k += 1) {
+    x += GUST_A[k] * Math.cos(GUST_W[k] * t + GUST_PX[k]);
+    y += GUST_A[k] * Math.cos(GUST_W[k] * t + GUST_PY[k]);
+  }
+  return [x, y];
+}
 /* The air is read before each step and the room's clock when asked, a
  * frame or two later; two frames at 30 fps plus the clock's own sync. */
 const CLOCK_MS = 100;
@@ -127,6 +149,8 @@ try {
   const room = fa ? makeWeather(fa.map, fa.preset, fa.seed) : null;
 
   const lag = { a: [], b: [] };
+  const gustLag = { a: [], b: [] };
+  let gustOn = 0;
   let exact = 0;
   let shared = 0;
   let held = 0;
@@ -141,6 +165,8 @@ try {
     n += 1;
     lag.a.push(sa.roomMs - sa.t * 1000);
     lag.b.push(sb.roomMs - sb.t * 1000);
+    gustLag.a.push(sa.roomMs - (sa.gustClockMs + Math.round(sa.step * 1000)));
+    gustLag.b.push(sb.roomMs - (sb.gustClockMs + Math.round(sb.step * 1000)));
     for (const [s, other] of [[sa, b], [sb, a]]) {
       const want = { x: 0, z: 0, gust: 0, up: 0 };
       room.at(s.pos[0], s.pos[1], s.pos[2], s.t, want);
@@ -151,9 +177,11 @@ try {
       const gx = s.wind[0] - s.set[0];
       const gy = s.wind[1] - s.set[1];
       held += Math.abs(gx) <= bound && Math.abs(gy) <= bound && (gx !== 0 || gy !== 0) ? 1 : 0;
+      const [ux, uy] = gustAt(s.gustClockMs + Math.round(s.step * 1000));
+      gustOn += Math.abs(gx - s.air.gust * ux) <= 1e-9 && Math.abs(gy - s.air.gust * uy) <= 1e-9 ? 1 : 0;
       if (k === 0) {
         console.log(`  air at ${s.pos.map((v) => v.toFixed(1)).join(' ')}, t ${s.t.toFixed(3)} s: ${show(s.air)}; `
-          + `plant step clock ${s.step.toFixed(3)} s, its gust ${gx.toFixed(4)} ${gy.toFixed(4)}`);
+          + `plant step clock ${s.step.toFixed(3)} s, gust clock ${s.gustClockMs} ms, its gust ${gx.toFixed(4)} ${gy.toFixed(4)}`);
       }
     }
   }
@@ -167,6 +195,12 @@ try {
   check('the other page\'s air at the same place and room time is the same, bit for bit', n > 0 && shared === 2 * n,
     `${shared} of ${2 * n}`);
   check('each plant holds it: sim_wind is the mean plus gusts within their peak', n > 0 && held === 2 * n, `${held} of ${2 * n}`);
+  check(`the quad's gusts are on the room's clock, within ${CLOCK_MS} ms`, n > 0 && worst(gustLag.a) <= CLOCK_MS,
+    gustLag.a.map((v) => v.toFixed(0)).join(' '));
+  check(`the wing's gusts are on the room's clock, within ${CLOCK_MS} ms`, n > 0 && worst(gustLag.b) <= CLOCK_MS,
+    gustLag.b.map((v) => v.toFixed(0)).join(' '));
+  check('each plant\'s gust is the room\'s at its room millisecond, so both pages meet the same gust there',
+    n > 0 && gustOn === 2 * n, `${gustOn} of ${2 * n}`);
 
   await a.evaluate("window.__ui.settings.weather = 'calm'; true");
   await fly(a, 0);
