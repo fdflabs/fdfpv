@@ -38,10 +38,14 @@ function clock(ms) {
 
 /* What the scoreboard draws now, or null outside a match. */
 export function jamHudView(rj, now, nameOf, own) {
+  const v = rj.view();
+  /* The watch seat's stays up over the results, its only results. */
+  if (v.state === 'results' && rj.watcher()) {
+    return { title: str('jam.hud_watch_final'), rows: jamRows(rj, nameOf) };
+  }
   if (!rj.on() || now == null) {
     return null;
   }
-  const v = rj.view();
   const mine = rj.mine();
   const live = mine && own ? own : v.live;
   const name = nameOf(v.runner);
@@ -60,14 +64,18 @@ export function jamHudView(rj, now, nameOf, own) {
       ...(v.state === 'run' ? [{
         place: '', name: str('jam.hud_live', { name }), value: formatScore(live ? live.total : 0), me: mine,
       }] : []),
-      ...rj.standings().map((row, i) => ({
-        place: i + 1,
-        name: nameOf(row.seat),
-        value: str('jam.hud_wins', { wins: row.wins, total: formatScore(row.total) }),
-        me: row.seat === rj.seat(),
-      })),
+      ...jamRows(rj, nameOf),
     ],
   };
+}
+
+function jamRows(rj, nameOf) {
+  return rj.standings().map((row, i) => ({
+    place: i + 1,
+    name: nameOf(row.seat),
+    value: str('jam.hud_wins', { wins: row.wins, total: formatScore(row.total) }),
+    me: row.seat === rj.seat(),
+  }));
 }
 
 /* The shout as a turn counts down: whose run it is. */

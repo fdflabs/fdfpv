@@ -696,9 +696,15 @@ export class RoomCore {
   }
 
   /* others(), and every watcher: the news a watcher needs to draw the
-   * pilots (join, leave, profile, host, world), never a game's. */
+   * pilots (join, leave, profile, host, world), and a race's passes. */
   roster(except, data) {
     return [...this.others(except, data), ...[...this.watchers.keys()].map((conn) => ({ send: conn, data }))];
+  }
+
+  /* Every seat and every watcher: a game's state (its standings, round
+   * and clock), which a watcher reads and cannot act on (watcherSaid). */
+  everyone(data) {
+    return this.roster(null, data);
   }
 
   attachmentOf(s) {
@@ -774,9 +780,10 @@ export class RoomCore {
   /*
    * THE WATCH SEAT (docs/FLIGHTCLUB-PROGRESSION.md section 3): a hello
    * with watch: true. The watcher gets the room's welcome with seat 0 and
-   * its pilots, then their poses and the roster's news (roster()), and
-   * nothing else: no seat, no token a pilot's tab could take over, no game
-   * join, no say in the clock, the host or ready. Pilots are never told a
+   * its pilots, then their poses, the roster's news (roster()) and the
+   * race's, tag's, jam's and combat's state as it changes (everyone()),
+   * and nothing else: no seat, no token a pilot's tab could take over, no
+   * game join, no say in the clock, the host or ready. Pilots are never told a
    * watcher came, since there is nothing of it to draw and no public list
    * of watchers, only their number (watchers) in a welcome and the room
    * browser's line (lobby.js listingOf). Up to WATCH_CAP, refused 'full'
@@ -818,8 +825,14 @@ export class RoomCore {
           daytime: this.daytimeWelcome(),
           watchers: this.watchers.size,
           peers: this.peerList(null),
+          /* The games a watcher sees as they stand (everyone()); not the
+           * war's, the ops' or the lobby's, whose pages act for a seat. */
+          ...this.race.welcome(),
+          ...this.tag.welcome(this),
+          ...this.jam.welcome(this),
         }),
       },
+      ...this.combat.join(this, conn),
       ...(this.ticking || !this.seats.size ? [] : [{ tick: true }]),
     ];
   }

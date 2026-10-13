@@ -70,7 +70,7 @@ import { stockSurfacesSection } from './rooms-selftest-surfaces.js';
 import { visibilitySection } from './rooms-selftest-visibility.js';
 import { dropsSection } from './rooms-selftest-drops.js';
 import { footSection } from './rooms-selftest-foot.js';
-import { watchSection } from './rooms-selftest-watch.js';
+import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
 import { emptyRoomSection, gameLobbySection, warLobbySection } from './rooms-selftest-gamelobby.js';
@@ -797,6 +797,23 @@ A.rr.ready(true);
 B.rr.ready(true);
 pump();
 check('each says its world has the track, and everybody sees who is ready', B.rr.race().ready.join() === '1,2');
+{
+  /* A ready the room dropped (over its text rate, in the burst a host's
+   * Play and track make) is sent again until the room's race says it,
+   * and not after. */
+  const said = [];
+  const rr = createRoomRace((m) => said.push(m));
+  rr.onWelcome({ seat: 1, track: { id: 'trk-race0001' }, race: { state: 'lobby', ready: [] } });
+  rr.ready(true, 1000);
+  rr.ready(true, 2000);
+  const once = said.length;
+  rr.ready(true, 2600);
+  const again = said.length;
+  rr.onMessage({ type: 'race', race: { state: 'lobby', ready: [1] } });
+  rr.ready(true, 9000);
+  check('a ready the room never heard is sent again every 1.5 s of room clock, and no more once the room says it', once === 1 && again === 2 && said.length === 2
+    && said.every((m) => m.op === 'ready' && m.ready === true), JSON.stringify(said));
+}
 B.rr.start(2);
 pump();
 check('only the host starts', A.rr.race().state === 'lobby');
@@ -1987,6 +2004,7 @@ visibilitySection(check);
 dropsSection(check);
 footSection(check);
 watchSection(check);
+watchStateSection(check);
 await browserSection(check);
 await scaleSection(check);
 
