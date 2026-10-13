@@ -257,25 +257,27 @@ function hashFlight(sim) {
 /* T1: refusals and read back. */
 {
   const sim = await freshSim(SURFACES.extra3d1308.sim);
-  const ok = Float64Array.from([1.2, 1.1, 1.05, 0.01, 0.02, 0.003]);
+  const ok = Float64Array.from([1.2, 1.1, 1.05, 0.01, 0.02, 0.003, 1.5, 2.0, 0.9]);
   const seated = sim.setTiers(ok) === SIM_OK;
   const back = sim.tiers();
   const same = back && ok.every((v, i) => back[i] === v);
   const bad = [
-    [0.2, 1, 1, 0, 0, 0], [1, 4.5, 1, 0, 0, 0], [1, 1, 1, -0.01, 0, 0], [1, 1, 1, 0, 0, 0.6],
+    [0.2, 1, 1, 0, 0, 0, 1, 1, 1], [1, 4.5, 1, 0, 0, 0, 1, 1, 1], [1, 1, 1, -0.01, 0, 0, 1, 1, 1], [1, 1, 1, 0, 0, 0.6, 1, 1, 1],
+    [1, 1, 1, 0, 0, 0, 0.05, 1, 1], [1, 1, 1, 0, 0, 0, 1, 1, 101],
   ].map((b) => sim.setTiers(Float64Array.from(b)));
   const refusedAll = bad.every((c) => c === SIM_ERR_BAD_ARG);
   must(sim.clearTiers(), 'sim_wing_tiers_clear');
   const cleared = sim.tiers();
-  const clearedOk = cleared && [1, 1, 1, 0, 0, 0].every((v, i) => cleared[i] === v);
+  const clearedOk = cleared && [1, 1, 1, 0, 0, 0, 1, 1, 1].every((v, i) => cleared[i] === v);
   const wing = await freshSim(WING1000);
-  const elevon = wing.setTiers(Float64Array.from([1, 1, 1, 0, 0, 0])) === SIM_ERR_BAD_ARG;
+  const elevon = wing.setTiers(Float64Array.from([1, 1, 1, 0, 0, 0, 1, 1, 1])) === SIM_ERR_BAD_ARG;
   const stick = await freshSim(SLOWSTICK);
-  const noAil = stick.setTiers(Float64Array.from([1.2, 1, 1, 0, 0, 0])) === SIM_ERR_BAD_ARG
-    && stick.setTiers(Float64Array.from([1, 1.2, 1.1, 0, 0.01, 0.01])) === SIM_OK;
+  const noAil = stick.setTiers(Float64Array.from([1.2, 1, 1, 0, 0, 0, 1, 1, 1])) === SIM_ERR_BAD_ARG
+    && stick.setTiers(Float64Array.from([1, 1, 1, 0, 0, 0, 1.5, 1, 1])) === SIM_ERR_BAD_ARG
+    && stick.setTiers(Float64Array.from([1, 1.2, 1.1, 0, 0.01, 0.01, 1, 1.3, 1.2])) === SIM_OK;
   gate('T1', 'seats, reads back, clears, refuses', seated && same && refusedAll && clearedOk && elevon && noAil,
-    `seat ${seated}, back ${same}, 4 out of range refused ${refusedAll}, clear ${clearedOk}, flying wing refused ${elevon}, rudder mix ailerons refused ${noAil}`);
-  if (TUNE_DOUBLES !== 12 || SIM_TIER_DOUBLES !== 6) throw new Error('block sizes moved');
+    `seat ${seated}, back ${same}, 6 out of range refused ${refusedAll}, clear ${clearedOk}, flying wing refused ${elevon}, rudder mix ailerons refused ${noAil}`);
+  if (TUNE_DOUBLES !== 12 || SIM_TIER_DOUBLES !== 9) throw new Error('block sizes moved');
 }
 
 /* T2: ones and zeros are the table. */
@@ -283,7 +285,7 @@ for (const id of Object.keys(SURFACES)) {
   const a = await freshSim(SURFACES[id].sim);
   const plain = hashFlight(a);
   const b = await freshSim(SURFACES[id].sim);
-  must(b.setTiers(Float64Array.from([1, 1, 1, 0, 0, 0])), 'sim_wing_set_tiers');
+  must(b.setTiers(Float64Array.from([1, 1, 1, 0, 0, 0, 1, 1, 1])), 'sim_wing_set_tiers');
   const seated = hashFlight(b);
   gate('T2', `${id}: ones and zeros fly the table`, plain === seated, `${plain} vs ${seated}`);
 }

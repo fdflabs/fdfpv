@@ -36,7 +36,7 @@ import { planeTable } from './lib/wash.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll } from '../tests/lib/wingpilot.js';
+import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold, takeoffRoll, wingCommand } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -200,9 +200,15 @@ const rollRates = bothModes((mode) => {
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
   mode();
-  return fly(1, 0, 0, 1.0, 0.5).p;
+  const p = fly(1, 0, 0, 1.0, 0.5).p;
+  return { p, aileron: wingCommand(sim)[0] };
 });
-check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x / rollRates.manual - 1) < 0.02, `${deg(rollRates.as3x)} against ${deg(rollRates.manual)} deg/s`);
+/* No cap is the receiver's: its aileron command at full stick is
+ * Manual's. The roll rate it flies is the surface the servos hold
+ * against the air (servo blow back, plant_wing.c hinge_hold), which the
+ * gyro holding pitch and yaw moves through the wing's angle, so the rate
+ * is printed and the command is held to it. */
+check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x.aileron / rollRates.manual.aileron - 1) < 0.02, `aileron command ${deg(rollRates.as3x.aileron)} against ${deg(rollRates.manual.aileron)} deg; rolling ${deg(rollRates.as3x.p)} against ${deg(rollRates.manual.p)} deg/s`);
 /* Full up at full throttle from 16 m/s departs into a snap in Manual
  * (roll to -380 deg/s, yaw to -133 by 0.5 s), which AS3X's roll axis, its
  * stick centred, holds to -40: a mean over the last quarter second (the
@@ -242,10 +248,20 @@ check(`full up stick pitches at Manual's rate until either rolls past ${PULL_ROL
  * prop speed share taken as a stick, and 0.75, neither derived: on the
  * seated pack the one climbs off the prop and the other is not level. */
 const HOVER_DUTY = wingSeat('FW_EXTRA3D1308').hoverStick(SEAT_GATES);
+/* The kicks, twice. Turning less than Manual is a heading hold's
+ * property, which the AR631 has only where a pilot turns its Heading up
+ * ("You can increase this value to make the aircraft hold its attitude
+ * when control input is neutral"; it is "defaulted to zero"), so that
+ * is judged at the full Heading. At the receiver's default, a damper
+ * alone, what it owes is the kick's rate gone sooner: the rate's
+ * departure from before the kick, integrated over the 0.5 s, under
+ * Manual's (the angle, which Manual's own weathercock swings back to
+ * near nothing, is no measure of a damper). */
 for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.393]]) {
   for (const [axis, k] of [['roll', 11], ['pitch', 12], ['yaw', 13]]) {
-    const turned = bothModes((mode) => {
+    const kicked = (heading) => bothModes((mode) => {
       mode();
+      must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
       must(sim.reset(), 'reset');
       clockMs = 0;
       extraPrelude(sim);
@@ -256,14 +272,20 @@ for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2,
       const w = [s[11], s[12], s[13]];
       w[k - 11] += 1;
       must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'kick');
-      let angle = 0;
+      let angle = 0, rate = 0;
       for (let i = 0; i < 125; i += 1) {
         fly(0, 0, 0, duty, 0.004);
-        angle += (sim.readState().state[k] - s[k]) * 0.004;
+        const d = sim.readState().state[k] - s[k];
+        angle += d * 0.004;
+        rate += Math.abs(d) * 0.004;
       }
-      return Math.abs(angle);
+      must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
+      return { angle: Math.abs(angle), rate };
     });
-    check(`${where}, sticks centred, a 1 rad/s ${axis} kick: it turns less in 0.5 s under AS3X than Manual`, turned.as3x < turned.manual, `${deg(turned.as3x)} against ${deg(turned.manual)} deg`);
+    const held = kicked(1);
+    check(`${where}, sticks centred, the Heading full, a 1 rad/s ${axis} kick: it turns less in 0.5 s under AS3X than Manual`, held.as3x.angle < held.manual.angle, `${deg(held.as3x.angle)} against ${deg(held.manual.angle)} deg`);
+    const damped = kicked(0);
+    check(`${where}, sticks centred, the Heading at its default zero, a 1 rad/s ${axis} kick: the rate's departure over 0.5 s is less under AS3X than Manual`, damped.as3x.rate < damped.manual.rate, `${deg(damped.as3x.rate)} against ${deg(damped.manual.rate)} deg`);
   }
 }
 must(sim.e.sim_wing_set_stab(3), 'set as3x');

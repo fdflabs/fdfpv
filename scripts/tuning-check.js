@@ -7,6 +7,8 @@
  *      block seated through sim_wing_set_tune hashes the same as one with
  *      nothing seated, on the stock power and on an alternative, and the
  *      block's throws, expo and flap mix are the table's own doubles.
+ *      Where the manual says to take the first flights on low rate
+ *      (`firstFlight`), the stock setup is that rate at its expo, a block.
  *   U2 the CG moves the static margin, measured off the plant's pitching
  *      moment at two angles of attack: at the maker's CG it is the one
  *      configs/tuning.js `margin` shows the pilot, and moved forward
@@ -73,7 +75,7 @@ import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
 import { SEAT_FULL, wingSeat } from './lib/propcurve.js';
 import { POWER, TABLE, powerBlock, powerOption } from '../configs/power.js';
-import { SIM_TUNE, TUNING, balance, normalizeEntry, setupFor, stockEntry, tuneBlock } from '../configs/tuning.js';
+import { SIM_TUNE, STOCK_EXPO, TUNING, balance, normalizeEntry, setupFor, stockEntry, throwsFor, tuneBlock } from '../configs/tuning.js';
 import { TestStand } from '../src/game/teststand.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -258,14 +260,24 @@ for (const id of ids) {
 
   /* U1 */
   const stockBlock = block({ ...stockEntry(id) });
-  const expoOnly = block({ expo: { a: 35 } });
+  const expoOnly = block({ rate: 'high', expo: { a: 35 } });
   seat(id);
   const table = sim.tune();
   const sameDoubles = [SIM_TUNE.THROW_A, SIM_TUNE.THROW_E, SIM_TUNE.THROW_R, SIM_TUNE.FLAP_MIX]
     .every((k) => Object.is(expoOnly[k], table[k]));
   check(`U1 ${id} the high rate and the flap mix are the table's own doubles`, sameDoubles,
     `throws ${[3, 4, 5].map((k) => f2(deg(table[k]))).join(', ')} deg, mix ${table[SIM_TUNE.FLAP_MIX]}`);
-  check(`U1 ${id} the stock setup, every field given, is no block at all`, stockBlock === null);
+  if (t.firstFlight) {
+    /* The manual's first flight rate (configs/tuning.js THE STOCK RATE):
+     * the stock is that rate's throws at its expo, a block. */
+    const low = throwsFor(id, t.firstFlight.rate).map((d) => d * Math.PI / 180);
+    const x = (t.firstFlight.expo ?? t.expo ?? STOCK_EXPO) / 100;
+    check(`U1 ${id} the stock setup is the manual's first flight rate, ${t.firstFlight.rate}, at its expo`,
+      stockBlock !== null && [0, 1, 2].every((i) => Math.abs(stockBlock[SIM_TUNE.THROW_A + i] - low[i]) < 1e-12 && stockBlock[SIM_TUNE.EXPO_A + i] === x),
+      `throws ${[0, 1, 2].map((i) => f2(deg(stockBlock[SIM_TUNE.THROW_A + i]))).join(', ')} deg, expo ${stockBlock[SIM_TUNE.EXPO_A]}`);
+  } else {
+    check(`U1 ${id} the stock setup, every field given, is no block at all`, stockBlock === null);
+  }
   const stockSeated = Float64Array.from(table);
   const bare = traceHash(id, null, null);
   const seated = traceHash(id, stockSeated, null);

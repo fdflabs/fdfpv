@@ -322,6 +322,17 @@ export function climbPerThrottle(sim, start, V, gamma = 0, pitchStick = 0) {
   return { climbPer: slope * V / 9.80665, trim, theta };
 }
 
+/* What the receiver last wrote to the aileron, elevator and rudder
+ * servos, rad (sim_wing_command), before the servos hold it against the
+ * air. */
+export function wingCommand(sim) {
+  if (!sim.wingCommandPtr) {
+    sim.wingCommandPtr = sim.e.malloc(3 * 8);
+  }
+  must(sim.e.sim_wing_command(sim.wingCommandPtr), 'sim_wing_command');
+  return Array.from(new Float64Array(sim.e.memory.buffer, sim.wingCommandPtr, 3));
+}
+
 export function wingDebug(sim) {
   if (!sim.wingDebugPtr) {
     sim.wingDebugPtr = sim.e.malloc(20 * 8);

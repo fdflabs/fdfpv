@@ -22,6 +22,110 @@
           "speed": 22
         }
       },
+      "hover": {
+        "extra": {
+          "airframe": 29,
+          "pitch": {
+            "wc": 2,
+            "gain": 2.086,
+            "lead": 0.15,
+            "pmDeg": 46.3,
+            "gmDb": 6.2,
+            "short": false
+          },
+          "yaw": {
+            "wc": 2.8,
+            "gain": 2.127,
+            "lead": 0.15,
+            "pmDeg": 35,
+            "gmDb": 2.3,
+            "short": true
+          },
+          "roll": {
+            "wc": 2.4,
+            "gain": 7.637,
+            "pmDeg": 47.4,
+            "gmDb": 8.1,
+            "short": false
+          },
+          "climb": {
+            "wc": 1.8,
+            "gain": 34.936,
+            "pmDeg": 45,
+            "gmDb": 9.2,
+            "short": false
+          },
+          "torque": -3.31
+        },
+        "cap": {
+          "airframe": 32,
+          "pitch": {
+            "wc": 2.2,
+            "gain": 1.702,
+            "lead": 0.25,
+            "pmDeg": 51.1,
+            "gmDb": 6.4,
+            "short": false
+          },
+          "yaw": {
+            "wc": 1.4,
+            "gain": 0.666,
+            "lead": 0.2,
+            "pmDeg": 47,
+            "gmDb": 5.3,
+            "short": true
+          },
+          "roll": {
+            "wc": 2.8,
+            "gain": 8.281,
+            "pmDeg": 48.9,
+            "gmDb": 7.8,
+            "short": false
+          },
+          "climb": {
+            "wc": 1.8,
+            "gain": 33.317,
+            "pmDeg": 46.4,
+            "gmDb": 9.4,
+            "short": false
+          },
+          "torque": -3.29
+        },
+        "slick": {
+          "airframe": 33,
+          "pitch": {
+            "wc": 2.4,
+            "gain": 1.635,
+            "lead": 0.3,
+            "pmDeg": 48.3,
+            "gmDb": 6.1,
+            "short": false
+          },
+          "yaw": {
+            "wc": 2.2,
+            "gain": 0.902,
+            "lead": 0.35,
+            "pmDeg": 53.7,
+            "gmDb": 6.3,
+            "short": false
+          },
+          "roll": {
+            "wc": 2.8,
+            "gain": 2.378,
+            "pmDeg": 50.9,
+            "gmDb": 6.3,
+            "short": false
+          },
+          "climb": {
+            "wc": 0.8,
+            "gain": 22.656,
+            "pmDeg": 72.7,
+            "gmDb": 11.4,
+            "short": false
+          },
+          "torque": -2.26
+        }
+      },
       "lineRudder": {
         "extra": {
           "airframe": 29,
@@ -563,7 +667,7 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 6.5,
+          "cap": 6,
           "slick": 7
         },
         "seated": {
@@ -1352,24 +1456,27 @@
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
-          "slow to 14",
-          "pull 0.6 0.50pi",
-          "hang 5000",
+          "level 3000",
+          "pull 0.55 0.50pi",
+          "line 0.00,0.00,1.00",
+          "hover 5000",
           "line 0.00,0.00,-1.00",
           "pull 0.55 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 7.5,
+        "flew": [
+          "hover 7.5"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 149.6,
+        "lowestM": 150,
         "others": {
-          "cap": null,
-          "slick": null
+          "cap": 8,
+          "slick": 8.5
         },
         "seated": {
           "extra": null,
@@ -1379,7 +1486,8 @@
       },
       "margin": [
         "lineElevator",
-        "lineRudder"
+        "lineRudder",
+        "hover"
       ]
     },
     {
@@ -1392,24 +1500,27 @@
       "law": {
         "by": "tests/lib/figureprograms.js",
         "phases": [
-          "slow to 14",
-          "pull 0.6 0.50pi",
-          "hang 5000",
+          "level 3000",
+          "pull 0.55 0.50pi",
+          "line 0.00,0.00,1.00",
+          "hover 7000",
           "line 0.00,0.00,-1.00",
           "pull 0.55 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 7.5,
+        "flew": [
+          "torque_roll 7.5"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 138.8,
+        "lowestM": 150,
         "others": {
-          "cap": null,
-          "slick": null
+          "cap": 8,
+          "slick": 7.5
         },
         "seated": {
           "extra": null,
@@ -1419,7 +1530,8 @@
       },
       "margin": [
         "lineElevator",
-        "lineRudder"
+        "lineRudder",
+        "hover"
       ]
     },
     {
@@ -1640,19 +1752,21 @@
         "phases": [
           "slow to 13",
           "pull 1 0.50pi",
-          "hang 2500",
+          "hover 3000",
           "line 0.00,0.00,-1.00",
           "pull 0.55 0.50pi",
           "level 3000"
         ]
       },
       "measured": {
-        "named": false,
-        "grade": null,
-        "flew": [],
+        "named": true,
+        "grade": 5.5,
+        "flew": [
+          "wall 5.5"
+        ],
         "finished": true,
         "crashed": false,
-        "lowestM": 123.1,
+        "lowestM": 145.2,
         "others": {
           "cap": null,
           "slick": null
@@ -1665,7 +1779,8 @@
       },
       "margin": [
         "lineElevator",
-        "lineRudder"
+        "lineRudder",
+        "hover"
       ]
     },
     {

@@ -38,8 +38,8 @@ export const SIM_ERR_CONFIG_PARSE = -4;
 export const SIM_ABI_VERSION = 1;
 export const POWER_STATE_DOUBLES = 10;
 export const TUNE_DOUBLES = 12;
-/* sim_wing_set_tiers: K_A, K_E, K_R, CD_A, CD_E, CD_R (sim_abi.h). */
-export const TIER_DOUBLES = 6;
+/* sim_wing_set_tiers: K_A, K_E, K_R, CD_A, CD_E, CD_R, HOLD_A, HOLD_E, HOLD_R (sim_abi.h). */
+export const TIER_DOUBLES = 9;
 const ADDONS_STATE_DOUBLES = 8;
 
 export function simErrorName(code) {
@@ -88,6 +88,7 @@ const BLOCKS_IN = [
   ['setAddonInertia', 'sim_set_addon_inertia', 'the add-on inertia block'],
   ['setTune', 'sim_wing_set_tune', 'the tune block'],
   ['setTiers', 'sim_wing_set_tiers', 'the surface tier block'],
+  ['setHeading', 'sim_wing_set_heading', 'the AS3X heading block'],
 ];
 
 /* A block the module writes into, kept for the instance's life and keyed

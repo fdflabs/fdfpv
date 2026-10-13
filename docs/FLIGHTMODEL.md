@@ -455,6 +455,16 @@ R-474) on each fuselage's side area from its derivation or render model.
   side force is war:legacy's and is not this lane's to move.
 - The floats' own side area is not in the float versions' figure: the
   land fuselage's is, ESTIMATED.
+- The 1.2 is a round body's. The Extra, CAP, Slick (63d1a6073) and the
+  Night Timber (w37-physics-servo) take theirs on their drawn rounded box
+  sections, NACA TN 3038 through `scripts/lib/crossflow.js`. Still on the
+  round body's, with what their drawn FUSE tables give (2026-10-12, not
+  applied: each moves its own gates): the Timber 1.19, Cub 1.40, Tiger
+  Moth 1.48, Radian 1.34, Bombshell 1.52, Hercules 1.02 times it (the
+  Hercules is at 0.78 of its side view, another source). The Kadet's box
+  sections (squareness 5) are past the lib's 4 and need TN 3038's sharper
+  rounded squares; the P-51, F-16 and Ugly Stik draw their fuselages in
+  other forms.
 
 ### The probe, PR 3 to PR 4
 
@@ -1063,6 +1073,52 @@ pure attitude hold above is 58 percent. What separates them is the
 pilot model: it sees 0.2 s late and does not anticipate (analysis pass 2
 counts 96, 52 and 8 of its 336 at 0.12, 0.2 and 0.3 s), so a person
 practised on the aircraft does better than the grid.
+
+### The receiver as it ships, and its gains to the margin (2026-10-12)
+
+The owner flew the live build (#970) and said AS3X was "violently
+correcting". Measured (scripts/as3x-margins.js, scripts/lib/as3xloop.js):
+the receiver is a sampled loop, a frame up and a frame down at worst, and
+at the full throttle dive every AS3X loop but the Radian's roll was
+under MIL-F-9490D's 6 dB; the Bombshell, the Cub, the Hercules, the
+Night Timber, the P-51 and the Slow Stick were at or past the onset
+(0 dB or under), ringing at half the frame rate, the surfaces buzzing;
+the Cub on floats and the F-16 were within about 1 dB of it, and the
+F-16's and the Slick's dives are flown at sim_wing_launch's 60 m/s, under
+their terminal speed, so theirs are lower bounds; the Extra was at 0.4 dB in roll at
+42.4 m/s and 3.9 to 4.2 dB at its level top speed. The heading's integral
+also rocked the Extra's hover in roll, 7 to 9 deg of phase margin at
+2 to 3 rad/s, a 2.4 s rock, and wound up under a held stick and landed
+on release (37 deg/s back from a 35 percent roll, 157 from full).
+
+Now, from the receiver's own documentation:
+- The Extra's BNF receiver is the AR631 (its manual p. 10, "AR631 gain
+  values may need to be adjusted"). Its Heading "screens ... are
+  defaulted to zero. You can increase this value to make the aircraft
+  hold its attitude when control input is neutral. Heading gain on the
+  yaw axis is generally not recommended because it will require the
+  pilot to steer the aircraft through any heading changes." So mode 3
+  ships as a rate damper; the heading term stays, at a pilot's share of
+  as3x_kh (sim_wing_set_heading, zero by default; lead decision
+  2026-10-12).
+- The gains: "Increase the gain values until you find oscillation, and
+  then reduce the gain to the highest setting that will not cause
+  oscillation at any speed" (the AR631 manual). as3x:derive measures the
+  airframe over slow flight, cruise, top speed, the full throttle dive,
+  the harrier and the hover, and takes each damper as the highest that
+  keeps 6 dB and 45 deg everywhere; the full Heading is the damper's
+  integral at the corner the derivation always used, kh = k pi / (16 T).
+  as3x:margins (in CI) fails any loop under the rule with the Heading at
+  zero, and prints what the full Heading leaves.
+- Priority fades the heading's sum with its output, so a held stick no
+  longer winds it up.
+
+What this costs: with the Heading at zero nothing holds the Extra's
+attitude with the sticks centred, as with the real receiver; the hover
+is flown on the sticks, as in Manual but damped. A pilot who wants the
+old hold turns the Heading up and spends margin, as on the real
+receiver. The section above describes the receiver before this.
+
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
@@ -1945,3 +2001,40 @@ thrust, the thrust that gives C-Astral's 5 m/s climb, 22.6 N on its 12 x
 8E curve (APC's static row at its rpm gives about 25 N; 35 was more than
 the prop makes).
 
+
+## Servo blow back (2026-10-12)
+
+A control surface's hinge moment grows with the dynamic pressure, and a
+real servo stops where its stall torque, through its linkage, no longer
+holds it: the air pushes the surface back short of what the stick asked.
+The plant had no such limit on any aircraft. Now each table carries
+`hinge_hold` (aileron or elevon, elevator, rudder) and `hinge_alpha`,
+derived by `scripts/servo-derive.js` (`npm run servo:derive`) from each
+aircraft's surface geometry and its servos' published torque, ESTIMATED
+with a reason where a kit names none.
+
+- The hinge moment: q b_f c_f^2 (Ch_delta shape(delta) + Ch_alpha alpha_s),
+  NACA Report 721 (Ames and Sears 1941) eq. (3) and (11) for the slopes,
+  NACA TN 759 fig. 13(d) for the shape past the small angles
+  (`scripts/lib/hinge.js`, where each read is recorded with its plus or
+  minus). alpha_s is the surface's own angle of attack: the wing's for
+  the ailerons and elevons, the stabiliser's (off its zero lift angle,
+  less the downwash's share) for the elevator, the sideslip for the
+  rudder, each as its sine.
+- The servo's torque at the hinge: its stall torque times 45 deg over the
+  throw (the linkage, ESTIMATED).
+- `plant_wing.c` hinge_blow: past the hold the surface stands where the
+  moment equals it, at most at its travel; inside it the angle is the
+  commanded one, untouched. The Extra's slewing servos are pushed back
+  with their surfaces. The surface tiers carry their own servos' hold
+  (`sim_wing_set_tiers` HOLD_A, HOLD_E, HOLD_R).
+
+Measured: all 20 other aircraft's recorded flights `npm run
+nighttimber:gates` pins are bit identical with the limit in; the Night
+Timber's own moved (its elevator lets go at 16.9 m/s). The first version took the slope at a constant angle
+of attack alone; it held the Extra's rudder to 19.7 deg at its 32.9 m/s
+knife edge and its knife-edge loop crashed. The surface's own angle,
+the same report's other term, carries the knife edge's sideslip against
+the rudder's deflection, and the loop flies again. Not in it: the
+slipstream's dynamic pressure over the tail, and the body's rates' share
+of each surface's angle (docs/SURFACES-STAGE1.md, known limits).

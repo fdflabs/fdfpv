@@ -187,12 +187,15 @@ makes (a person hovers it); the counts are printed every run.
 
 ### Findings for the flight lanes (not fixed here)
 
-- **Knife edge.** The derivation finds no level knife edge: at 12 m/s the
-  rudder would need 148 percent of its throw, and above 13 m/s the thrust
-  runs out. The video shows knife edges and a crankshaft (08:40). The
-  estimated motor, the fuselage's side force and the rudder's share in the
-  wash are the suspects; no gate is set against reality, and none is set
-  that reality contradicts.
+- **Knife edge.** The derivation finds no level knife edge: the rudder
+  would need 149, 136 and 124 percent of its throw at 12, 14 and 16 m/s
+  (`npm run nighttimber:derive`, N12). The fuselage's side force is now
+  its drawn rounded box section's, NACA TN 3038 through
+  `scripts/lib/crossflow.js`, 1.32 times the round body's (side_cda 0.1152
+  to 0.1522), which took about 11 points off each. The video shows knife
+  edges and a crankshaft (08:40). The estimated motor and the rudder's
+  share in the wash are the remaining suspects; no gate is set against
+  reality, and none is set that reality contradicts.
 - **Hover throttle.** The plant's 0.80 against the video's 55 to 65 percent
   by eye. The plant takes the static thrust as the stick squared; a real ESC
   on a lightly loaded prop turns faster per stick than that, and the radio's

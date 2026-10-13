@@ -2902,6 +2902,14 @@ SIM_EXPORT int sim_wing_slip(double *out) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wing_command(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_command(out);
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_wing_strips(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;
@@ -2921,6 +2929,25 @@ SIM_EXPORT int sim_wing_set_stab(int mode) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_set_stab(mode);
+  return SIM_OK;
+}
+
+/* The AS3X Heading gain per axis, roll, pitch and yaw, each 0 to 1 of
+ * the table's as3x_kh. Kept across resets; the shell sets it from the
+ * tune. Additive, version unchanged. */
+SIM_EXPORT int sim_wing_set_heading(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  if (in == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < 3; i += 1) {
+    if (!(in[i] >= 0.0 && in[i] <= 1.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  plant_wing_set_heading(in);
   return SIM_OK;
 }
 

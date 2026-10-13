@@ -29,9 +29,10 @@
  *   S5  a replay file keeps the tiers it was flown with and cleans what
  *       it does not know.
  *   S6  the tuning's throws: the tier's high throws, low and mid in the
- *       manual's proportion; a stock entry on a tier still seats.
- *   S7  the shell's seat (src/main.js applyTuning and applyParts: the
- *       block, the tune with the tier's throws, the servos through
+ *       manual's proportion; a stock entry seats the manual's first
+ *       flight rate, on a tier the tier's.
+ *   S7  the shell's seat on the high rate (src/main.js applyTuning and
+ *       applyParts: the block, the tune with the tier's throws, the servos through
  *       addonParams and their spread) flies bit identical to
  *       surfaces-gates.js's.
  */
@@ -152,10 +153,16 @@ const json = (o) => JSON.stringify(o);
   check(Math.abs(lo[0] - t.low[0] * high[0] / t.high[0]) < 1e-12 && lo[1] === t.low[1] && json(throwsFor('cub1400', 'high', high)) === json(high),
     'S6 tier throws: high the tier\'s, low in proportion', `${json(high)} low ${json(lo.map((x) => +x.toFixed(2)))}`);
   check(json(throwsFor('cub1400', 'low')) === json(t.low), 'S6 no tier, the manual\'s throws');
+  /* The Cub's stock is the manual's first flight rate, low ("On the
+   * first flight, fly the model in low rate", configs/tuning.js THE STOCK
+   * RATE): a stock entry seats the low throws, on a tier the tier's in
+   * the manual's proportion. */
   const set = setupFor('cub1400', powerChoice('cub1400', {}));
   const entry = normalizeEntry('cub1400', undefined, set.limits);
-  check(tuneBlock('cub1400', entry, set.massKg, set.packKg) === null && tuneBlock('cub1400', entry, set.massKg, set.packKg, high) !== null,
-    'S6 a stock entry clears the tune, on a tier it seats the tier\'s throws');
+  const seatedDeg = (b) => [3, 4, 5].map((k) => b[k] * 180 / Math.PI);
+  const near = (a, b) => a.every((x, i) => Math.abs(x - b[i]) < 1e-9);
+  check(near(seatedDeg(tuneBlock('cub1400', entry, set.massKg, set.packKg)), t.low) && near(seatedDeg(tuneBlock('cub1400', entry, set.massKg, set.packKg, high)), lo),
+    'S6 a stock entry seats the manual\'s low rate, on a tier the tier\'s low throws');
 }
 
 /* S7: the shell's seat against the gates'. */
@@ -184,7 +191,8 @@ const json = (o) => JSON.stringify(o);
     const block = tierBlock('cub1400', tiers);
     must(sim.setTiers(block), 'sim_wing_set_tiers');
     const set = setupFor('cub1400', powerChoice('cub1400', {}));
-    const entry = normalizeEntry('cub1400', undefined, set.limits);
+    /* On the high rate, the throws surfaces-gates.js flies the tiers on. */
+    const entry = normalizeEntry('cub1400', { rate: 'high' }, set.limits);
     must(sim.setTune(tuneBlock('cub1400', entry, set.massKg, set.packKg, tierThrowsDeg('cub1400', tiers))), 'sim_wing_set_tune');
     const pts = tierPoints('cub1400', tiers);
     must(sim.setAddons(addonParams('cub1400', { prop: 'stock', addons: [] }, null, set.massKg, pts)), 'sim_set_addons');

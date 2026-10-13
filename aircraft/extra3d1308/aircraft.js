@@ -132,6 +132,7 @@ export default {
     "packKg": 0.27,
     "nose": 0.26,
     "tail": -0.83,
+    "firstFlight": { "rate": "low", "expo": 15, "source": "E-flite manual p. 4: \"Take first flights in Low Rate. For landings, use high rate elevator.\"; its expo chart, \"Exponential (Low) Rates\" 15% on all three; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf" },
     "throws": {
       "high": [
         36.53,

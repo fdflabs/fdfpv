@@ -65,6 +65,10 @@ jobs:
       # Each stab selftest's straight throw, derived (scripts/lib/throwflight.js).
       - run: npm run stab:straight
       - run: npm run as3x:derive
+      # Each table's servo hold against its surfaces' hinge moment and its
+      # servos' published torque (scripts/servo-derive.js, servo blow back).
+      - run: npm run servo:derive
+      - run: npm run as3x:margins
       # The wings' ground effect against its sources and its surfaces
       # against the drawn model (scripts/ge-derive.js).
       - run: npm run ge:derive
@@ -250,6 +254,9 @@ jobs:
       - run: npm run collide:turned
       - run: npm run crash:handoff
       - run: npm run crashcam:selftest
+      # A replay keeps the pilot's sticks, mode and flaps, plays them back on the
+      # gimbals and exports them as a control recording (scripts/replay-sticks-check.js).
+      - run: npm run replay:sticks
       - run: npm run crashrecord:selftest
       - run: npm run replaylib:selftest
       - run: npm run edit:selftest
@@ -554,6 +561,10 @@ jobs:
       - run: npm run hulls:check
       - run: npm run airframes:selftest
       - run: npm run aircraft:folder
+      # The plant's FW_* tables in src/native/plant_wing.c are generated
+      # from aircraft/<id>/plant.json: folder and C agree both ways, and a
+      # changed folder and a changed C each fail (scripts/aircraft-ctable.js).
+      - run: npm run aircraft:ctable -- --check
       - run: npm run midair:plant
       # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
       # half a minute on 20 cores, by hand; four and six here keep every row.

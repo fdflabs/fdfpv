@@ -234,7 +234,7 @@ import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, S
 import { ESTIMATES } from '../configs/power-estimates.js';
 import { MOTORS, choiceKey, hasMotors, motorChoice, motorStats, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
-import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
+import { fullEntry, hasHeading, headingShare, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { flownTiers, pointsInertia, surfaceGrowth, tierBlock, tierPoints, tierThrowsDeg } from '../configs/surfaces.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
@@ -11032,6 +11032,7 @@ export async function boot({
   let runTuneKey = 'null';
   function applyTuning(s, midRun = false) {
     const af = airframeById(runAirframe);
+    applyHeading(af, s);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
       runTierKey = 'null';
@@ -11058,6 +11059,20 @@ export async function boot({
     runTuneKey = JSON.stringify(entry);
     if (!midRun && entry && entry.flapStart) {
       setFlapNotch(fullEntry(af.id, entry).flapStart);
+    }
+  }
+
+  /* The AS3X Heading the pilot set for the seated plane (configs/tuning.js
+   * headingShare), zero on every other: the plant keeps it across resets,
+   * so every seat sets it. */
+  function applyHeading(af, s) {
+    if (typeof sim.e.sim_wing_set_heading !== 'function') {
+      return;
+    }
+    const entry = af.fixedWing && hasHeading(af.id) ? normalizeEntry(af.id, s.tuning && s.tuning[af.id], { packMm: 0, ballastG: 0 }) : null;
+    const code = sim.setHeading(headingShare(entry));
+    if (code !== SIM_OK) {
+      throw new Error(`sim_wing_set_heading refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
     }
   }
 
@@ -19224,6 +19239,7 @@ export async function boot({
     progressTick(powerNow);
     const ch = input.channels;
     const vis = turtleAxes(ch.roll, ch.pitch);
+    const inAir = !landed && !launchStaging && !crashed && !poseLock;
     ui.setStickOverlay({
       /* window.__showSticks: a capture's own switch, so a recorded flight
        * shows the sticks whatever flies it (scripts/hover-video.js). */
@@ -19232,11 +19248,14 @@ export async function boot({
       pitch: vis[1],
       yaw: ch.yaw,
       throttle: ch.throttle,
+      /* The clock a compared recording plays on (src/ui/stickref.js). */
+      t: stateCurr[0],
+      air: inAir,
     });
     /* The air slider belongs to every pilot, radio, keyboard and thumbs
      * alike, so it is up whenever there is a quad in the air to try it on;
      * its first run hint is raised in there too. */
-    ui.setAirSlider(true, !landed && !launchStaging && !crashed && !poseLock);
+    ui.setAirSlider(true, inAir);
     updateTargetLock();
     hudChrome();
   }
@@ -19268,6 +19287,18 @@ export async function boot({
     }
   }
 
+  /* The flight mode the OSD names, and the crash cam keeps with each row
+   * (src/replay/sticks.js MODES). */
+  function flightModeNow() {
+    if (airframeById(runAirframe).fixedWing) {
+      return ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
+    }
+    if (turtleWait || turtleFlip.active) {
+      return 'turtle';
+    }
+    return angleModeOn ? 'angle' : 'acro';
+  }
+
   /*
    * The readout. Altitude is measured against the surface UNDER the craft
    * through the same biased query every contact test uses, so a pilot over
@@ -19281,14 +19312,7 @@ export async function boot({
     const p = shell.quad.position;
     const nextGt = view.gates && view.gates[race.nextSceneIndex()];
     const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
-    let flightMode;
-    if (af.fixedWing) {
-      flightMode = ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
-    } else if (turtleWait || turtleFlip.active) {
-      flightMode = 'turtle';
-    } else {
-      flightMode = angleModeOn ? 'angle' : 'acro';
-    }
+    const flightMode = flightModeNow();
     /* Native launch state 3 latches until the L switch drops; the GO flash
      * is 900 ms, after which the overlay hides. */
     const launchState = (crashflipOn || turtleRecover || crashed)
@@ -21267,6 +21291,12 @@ export async function boot({
     },
     speed: () => speedNow,
     throttle: () => input.channels.throttle,
+    /* The rest of what the sticks and switches said, for the replay's
+     * gimbals (src/replay/sticks.js): the mode, the flap switch's notch
+     * (-1 without flaps), and the stick mode a replay draws them in. */
+    flightMode: flightModeNow,
+    flapNotch: () => (airframeById(runAirframe).flaps ? flapNotch : -1),
+    stickMode: () => ui.settings.stickMode,
     agl: () => lastClearance,
     surfaces: () => (shell.setSurfaces && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null),
     flaps: () => (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0),
