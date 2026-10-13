@@ -4222,7 +4222,10 @@
       }
       @media (max-width: 560px) {
         .carousel-arrow { width: 38px; height: 38px; font-size: 24px; }
-        .carousel-tab { padding: 7px 11px; }
+        /* Five tabs since Favourites: at the wide spacing they pushed the
+           panel past an upright phone's width, clipping the note and the
+           right arrow. */
+        .carousel-tab { padding: 7px 7px; letter-spacing: 0.06em; }
         /* Back, Customise and Choose in 358 px: at the wide padding Choose
            ran off the right edge of an upright phone. */
         .carousel-choose, .carousel-back { padding: 11px 18px; }

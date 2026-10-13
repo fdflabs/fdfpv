@@ -156,6 +156,8 @@ const CASES = {
   'asked-cub': { airframeAsked: true, airframe: 'cub1400' },
   'unasked-cub': { airframeAsked: false, airframe: 'cub1400' },
   'asked-float': { airframeAsked: true, airframe: 'cub1400f' },
+  /* A plane on its stock lens, which the Field of view row does not list. */
+  'plane-stock-lens': { airframeAsked: true, airframe: 'cub1400', cameraFov: 100, cameraAngle: 5 },
   'retired-whoop': { airframeAsked: true, airframe: 'whoop65' },
   'retired-wing': { airframeAsked: true, airframe: 'wing1000', tune: 'wing-manual' },
   'unknown-airframe': { airframeAsked: true, airframe: 'nope' },

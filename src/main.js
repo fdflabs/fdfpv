@@ -340,6 +340,7 @@ import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
 import { crashRecord } from './share/crashrecord.js';
+import { reportPageErrors } from './share/clientreport.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
@@ -827,15 +828,17 @@ export async function boot({
       return;
     }
     rolesBoard.close();
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
     debrief.show({
       key: match, view: v, mission, seat: roomOps.seat(), host: opsHost() === roomOps.seat(), stills: stills.of(match), next: interiorScreen.next(v.mission),
       flight: {
         aircraft: runAirframe,
-        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+        fixedWing,
         flightMs: runAirMs,
         totalS: aircraftSecondsNow(),
         route: runRoute.snapshot(),
         replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+        condition: conditionOf(crashFlags, fixedWing),
       },
     });
     interiorScreen.record(match, v);
@@ -2209,6 +2212,9 @@ export async function boot({
    * world.
    */
   const flightStats = createFlightStats({ describe: describeFlight });
+  /* Uncaught errors since boot, reduced and sent the same anonymous way
+   * (src/share/clientreport.js); frame times go from perfOverlay. */
+  reportPageErrors(crashRecord, window);
   /*
    * The three words every stats event carries, asked when the event is
    * sent, so a flush a minute in names what is flown then and stats.js
@@ -2344,7 +2350,7 @@ export async function boot({
   const dynres = createDynRes();
   dynres.bind(shell.renderer.getContext(), gpuInfo.software);
   dynres.setMode(ui.settings.perfMode, Number(ui.settings.fpsCap) || 0, gpuInfo.software);
-  const perfOverlay = new PerfOverlay(uiRoot);
+  const perfOverlay = new PerfOverlay(uiRoot, gpuInfo);
   perfOverlay.setOn(ui.settings.perfOverlay);
   dynres.setWatch(ui.settings.perfOverlay);
   /* F3 is the readout's key, as it was before the readout went
@@ -8306,16 +8312,19 @@ export async function boot({
   }
   /*
    * A room match's debrief (src/game/debrief.js fromRoom) from the room's
-   * order: rows of { seat, place, points? }. The replay is offered only
-   * when this pilot's own flight is what ended here (mode 'results'); a
-   * pilot who was on a room screen has no flight of theirs to replay.
+   * order: rows of { seat, place, points? }. The replay and the
+   * aircraft's condition are offered only when this pilot's own flight is
+   * what ended here (mode 'results'); a pilot who was on a room screen has
+   * no flight of theirs to replay or to judge.
    */
   function roomDebrief(activity, rows, seat, final) {
     const me = rows.find((row) => row.seat === seat) || null;
+    const flew = mode === 'results';
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
     return fromRoom({
       activity,
       aircraft: runAirframe,
-      fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+      fixedWing,
       place: me ? me.place : null,
       of: rows.length,
       final,
@@ -8323,18 +8332,24 @@ export async function boot({
       flightMs: runAirMs,
       totalS: aircraftSecondsNow(),
       route: runRoute.snapshot(),
-      replay: mode === 'results' ? replayState(crashCam ? crashCam.span() : null, false) : null,
+      replay: flew ? replayState(crashCam ? crashCam.span() : null, false) : null,
+      condition: flew ? conditionOf(crashFlags, fixedWing) : null,
     });
   }
   /*
    * The debrief on a card shown in flight (the war's round, a combat
    * round's results): the pilot flies on, so no screen of facts, one line
-   * and the key that opens the replay (docs/DEBRIEF.md).
+   * and the key that opens the replay (docs/DEBRIEF.md). The condition is
+   * the HUD's word as the card is drawn, so a war airframe spent on its
+   * target reads Destroyed until the pilot is back in the air.
    */
   function debriefCardLine() {
     const route = runRoute.snapshot();
     return str('debrief.card_line', {
-      air: formatRunClock(runAirMs), dist: lengthText(route ? route.distanceM : 0), key: crashCam ? crashCam.replayKey() : 'V',
+      air: formatRunClock(runAirMs),
+      dist: lengthText(route ? route.distanceM : 0),
+      cond: str(`debrief.cond_${conditionOf(crashFlags, airframeById(runAirframe).fixedWing)}`),
+      key: crashCam ? crashCam.replayKey() : 'V',
     });
   }
   /* The results screen, from the room's order; again as it changes. */
@@ -12733,6 +12748,7 @@ export async function boot({
     breakTrails(Boolean(at));
     statePrev = readState();
     stateCurr = statePrev;
+    ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
   }
 
   function seatSpawnAt(at) {
@@ -14762,6 +14778,7 @@ export async function boot({
       /* Down and whole when the run ends: a plane put on the ground, not
        * one still in the air or in pieces when the horn went. */
       landed: fixedWing ? landed && !crashed && !wrecked : null,
+      condition: conditionOf(crashFlags, fixedWing),
     }));
   }
 
@@ -18408,6 +18425,7 @@ export async function boot({
         totalS: aircraftSecondsNow(),
         route: runRoute.snapshot(),
         replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+        condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
       }));
       return;
     }

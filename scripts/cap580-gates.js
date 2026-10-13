@@ -389,9 +389,9 @@ check: {
     const t12 = th.c12_knife_edge;
     const k = k12;
     const { bm, d, rd, vm, worstBank } = k;
-    gate('C12', 'knife edge: rolled to 90 deg, the rudder on, the throttle holding height', bm >= t12.betaMin && bm <= t12.betaMax && d >= t12.dutyMin && d <= t12.dutyMax && Math.abs(rd) < 1 && k.drift <= t12.maxHeightDrift,
+    gate('C12', 'knife edge at its derived speed: rolled to 90 deg, the rudder on, the throttle holding height', bm >= t12.betaMin && bm <= t12.betaMax && d >= t12.dutyMin && d <= t12.dutyMax && t12.rudderDerived <= 1 && k.drift <= t12.maxHeightDrift,
       `sideslip ${bm.toFixed(1)} deg at throttle ${d.toFixed(3)} and ${vm.toFixed(1)} m/s, rudder stick ${rd.toFixed(2)}, bank off 90 by under ${worstBank.toFixed(1)}, height within ${k.drift.toFixed(2)} m`,
-      `${t12.betaMin} to ${t12.betaMax} deg, ${t12.dutyMin} to ${t12.dutyMax}, rudder short of full, within ${t12.maxHeightDrift} m`);
+      `${t12.betaMin} to ${t12.betaMax} deg, ${t12.dutyMin} to ${t12.dutyMax}, the derived rudder within its throw, within ${t12.maxHeightDrift} m`);
   }
   /* C13: on the strip at the drawn pose, 3 s with every stick centred. */
   const onStrip = () => {

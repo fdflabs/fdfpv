@@ -48,10 +48,15 @@ export const PICK_FILTERS = ['quad', 'plane', 'all'];
 /* And beside them My Hangar, the pilot's saved builds (src/ui/builds.js):
  * one more tab, its cards keyed BUILD_PREFIX and the build's id. */
 export const MINE = 'mine';
-const TABS = [...PICK_FILTERS, MINE];
+/* And the aircraft the pilot starred (src/ui/settings.js favourites), a
+ * tab when the opener hands over `favourites`. */
+export const FAV = 'fav';
+const TABS = [...PICK_FILTERS, FAV, MINE];
 
+/* The tab an aircraft sits under: its folder's class (configs/airframes.js
+ * CLASSES), every class but the multirotor a plane's. */
 export function kindOf(id) {
-  return airframeById(id).fixedWing ? 'plane' : 'quad';
+  return airframeById(id).class === 'multirotor' ? 'quad' : 'plane';
 }
 
 /* The aircraft a tab shows, in configs/airframes.js order, which is the
@@ -192,7 +197,7 @@ export class Carousel {
     this.tabs = el('div', 'carousel-tabs');
     this.tabs.setAttribute('role', 'tablist');
     this.tabEls = {};
-    const labels = { quad: 'carousel.quads', plane: 'carousel.planes', all: 'carousel.all', [MINE]: 'mine.tab' };
+    const labels = { quad: 'carousel.quads', plane: 'carousel.planes', all: 'carousel.all', [FAV]: 'carousel.favourites', [MINE]: 'mine.tab' };
     for (const f of TABS) {
       const t = button(`carousel-tab${f === MINE ? ' carousel-tab-mine' : ''}`, str(labels[f]));
       t.setAttribute('role', 'tab');
@@ -243,7 +248,12 @@ export class Carousel {
     /* A build's card names the plane it is built on first; a stock card's
      * row stays the span, the weight and the switch (paint). */
     this.baseEl = el('span', 'carousel-fact carousel-base');
-    this.factsEl.append(this.sizeEl, this.weightEl, this.floatsBtn);
+    /* The star: a stock card's, when the opener hands over `favourites`. */
+    this.favBtn = button('hangar-floats carousel-fav', str('carousel.favourite'));
+    this.favBtn.dataset.key = 'favourite';
+    this.favBtn.setAttribute('role', 'switch');
+    this.favBtn.addEventListener('click', () => this.toggleFavourite());
+    this.factsEl.append(this.sizeEl, this.weightEl, this.floatsBtn, this.favBtn);
     /* A build's own two, Rename and Delete, on its card only, and the
      * line that takes the name's place while one is open (startRename,
      * startDelete). */
@@ -394,14 +404,15 @@ export class Carousel {
    * combatChoice), which is also what its model is drawn in; without it
    * no card shows one. `builds` is My Hangar, { list(), drawn(card,
    * build), rename(id, name), remove(id) } (src/ui/ui.js pickerBuilds);
-   * without it there is no tab.
+   * without it there is no tab. `favourites` is the star, { has(id),
+   * toggle(id) } by land plane id; without it no star and no tab.
    */
   /* `only`: the airframes the picker may offer (a war room's, configs/
    * airframes.js WAR_AIRFRAMES), every one without it; a build is offered
    * when its airframe is. */
-  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, engine = null, builds = null, only = null, onChoose, onCancel, onCustomise } = {}) {
-    this.opts = { onChoose, onCancel, onCustomise, floats, engine, builds, only };
-    this.openArgs = { filter, compact, title, warn, floats, engine, builds, only, onChoose, onCancel, onCustomise };
+  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, engine = null, builds = null, favourites = null, only = null, onChoose, onCancel, onCustomise } = {}) {
+    this.opts = { onChoose, onCancel, onCustomise, floats, engine, builds, favourites, only };
+    this.openArgs = { filter, compact, title, warn, floats, engine, builds, favourites, only, onChoose, onCancel, onCustomise };
     this.isOpen = true;
     this.hintKind = hint;
     this.root.classList.toggle('compact', Boolean(compact));
@@ -409,6 +420,7 @@ export class Carousel {
     this.warnEl.textContent = warn || '';
     this.warnEl.hidden = !warn;
     this.tabEls[MINE].hidden = !builds;
+    this.tabEls[FAV].hidden = !favourites;
     this.filter = this.offered().includes(filter) ? filter : 'all';
     this.closeForm();
     this.relist();
@@ -436,9 +448,11 @@ export class Carousel {
     this.host.classList.remove('carousel-open');
   }
 
-  /* The tabs this opener offers: My Hangar only with its builds. */
+  /* The tabs this opener offers: Favourites only with the star, My Hangar
+   * only with its builds. */
   offered() {
-    return this.opts && this.opts.builds ? TABS : PICK_FILTERS;
+    const o = this.opts || {};
+    return TABS.filter((f) => (f !== FAV || o.favourites) && (f !== MINE || o.builds));
   }
 
   /*
@@ -453,9 +467,13 @@ export class Carousel {
     const builds = this.opts && this.opts.builds;
     const engine = this.opts && this.opts.engine;
     const only = this.opts && this.opts.only;
-    this.ids = this.filter === MINE
-      ? builds.list().filter((b) => !only || only.includes(b.airframe)).map((b) => `${BUILD_PREFIX}${b.id}`)
-      : pickList(this.filter).filter((id) => !only || only.includes(id));
+    const favs = this.opts && this.opts.favourites;
+    if (this.filter === MINE) {
+      this.ids = builds.list().filter((b) => !only || only.includes(b.airframe)).map((b) => `${BUILD_PREFIX}${b.id}`);
+    } else {
+      const list = this.filter === FAV ? pickList('all').filter((id) => favs.has(id)) : pickList(this.filter);
+      this.ids = list.filter((id) => !only || only.includes(id));
+    }
     this.drawn = new Map();
     for (const key of this.ids) {
       const build = this.buildOf(key);
@@ -584,6 +602,29 @@ export class Carousel {
     this.paint();
   }
 
+  /* A stock card's star: true or false, or null for a build or an opener
+   * that offers none. */
+  favOf(key) {
+    const favs = this.opts && this.opts.favourites;
+    return favs && key && !this.buildOf(key) ? Boolean(favs.has(key)) : null;
+  }
+
+  /* Star or unstar the centred card. On the Favourites tab an unstarred
+   * card leaves the list and its neighbour comes to the middle. */
+  toggleFavourite() {
+    const key = this.current();
+    if (this.favOf(key) === null) {
+      return;
+    }
+    this.opts.favourites.toggle(key);
+    if (this.filter === FAV) {
+      this.relist();
+      this.index = Math.max(0, Math.min(this.index, this.ids.length - 1));
+      this.pos = this.index;
+    }
+    this.paint();
+  }
+
   goTo(i) {
     const n = Math.max(0, Math.min(this.ids.length - 1, i));
     if (n !== this.index) {
@@ -644,10 +685,11 @@ export class Carousel {
     this.toolsEl.hidden = !build || Boolean(this.form);
     this.factsEl.hidden = !key;
     this.paintHint();
-    /* An empty My Hangar says how a build gets into it. */
+    /* An empty My Hangar or Favourites says how a card gets into it. */
     if (!key) {
-      this.nameEl.textContent = str('mine.empty_title');
-      this.noteEl.textContent = str('mine.empty');
+      const fav = this.filter === FAV;
+      this.nameEl.textContent = str(fav ? 'carousel.fav_empty_title' : 'mine.empty_title');
+      this.noteEl.textContent = str(fav ? 'carousel.fav_empty' : 'mine.empty');
       return;
     }
     const id = build ? build.airframe : key;
@@ -666,6 +708,10 @@ export class Carousel {
     this.floatsBtn.hidden = floats === null;
     this.floatsBtn.classList.toggle('on', Boolean(floats));
     this.floatsBtn.setAttribute('aria-checked', String(Boolean(floats)));
+    const fav = this.favOf(key);
+    this.favBtn.hidden = fav === null;
+    this.favBtn.classList.toggle('on', Boolean(fav));
+    this.favBtn.setAttribute('aria-checked', String(Boolean(fav)));
     const engine = this.engineOf(key);
     if (engine === null) {
       this.engineBtn.remove();
@@ -850,12 +896,16 @@ export class Carousel {
       this.toggleFloats();
     } else if (code === 'Space' && document.activeElement === this.engineBtn) {
       this.toggleEngine();
+    } else if (code === 'Space' && document.activeElement === this.favBtn) {
+      this.toggleFavourite();
     } else if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
       this.choose();
     } else if (code === 'KeyF') {
       this.toggleFloats();
     } else if (code === 'KeyE') {
       this.toggleEngine();
+    } else if (code === 'KeyV') {
+      this.toggleFavourite();
     } else if (code === 'KeyC') {
       this.customise();
     } else if (code === 'KeyR') {

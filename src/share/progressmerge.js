@@ -107,6 +107,9 @@ export const SYNCED_SECTIONS = {
   progress: 'progress',
   liverySaves: 'union',
   swatches: 'whole',
+  /* The starred aircraft (src/ui/settings.js normaliseFavourites), a list
+   * as swatches is, replaced whole by the newer side. */
+  favourites: 'whole',
   livery: 'keyed',
   parts: 'keyed',
   power: 'keyed',
@@ -114,6 +117,8 @@ export const SYNCED_SECTIONS = {
   /* The control surface tiers (configs/surfaces.js), by airframe. */
   surfaces: 'keyed',
   tuneFor: 'keyed',
+  /* The pilot's own camera per aircraft (src/ui/settings.js cameraFor). */
+  cameraFor: 'keyed',
   pids: 'keyed',
   floats: 'keyed',
   tune: 'whole',
@@ -147,6 +152,9 @@ function stampOf(stamps, part) {
 }
 
 const ID_RE = /^[a-z0-9_-]{1,40}$/;
+/* More stars than the game has aircraft, with room for ones still to come;
+ * a list longer than this is not one a game wrote. */
+const FAVOURITES_MAX = 64;
 const BUILD_ID_RE = /^[a-z0-9]{1,40}$/;
 const shortString = (v) => typeof v === 'string' && v.length <= 40;
 const when = (v) => v === undefined || (Number.isFinite(v) && v >= 0);
@@ -163,6 +171,8 @@ const ENTRY_SHAPES = {
   /* configs/wear.js holds the fields; the server holds the shape. */
   packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
   surfaces: (key, e) => ID_RE.test(key) && tiersShape(e),
+  cameraFor: (key, e) => ID_RE.test(key) && isRecord(e) && Number.isFinite(e.angle) && Number.isFinite(e.fov),
+  favourites: (key, e) => key === 'list' && Array.isArray(e) && e.length <= FAVOURITES_MAX && e.every((id) => typeof id === 'string' && ID_RE.test(id)),
 };
 
 /*
@@ -171,7 +181,7 @@ const ENTRY_SHAPES = {
  * 2026-10-03) is dropped from a clean blob: its motors, props, packs,
  * parts and tune were that aircraft's, and its successor has its own.
  */
-const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'floats', 'combat'];
+const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'cameraFor', 'floats', 'combat'];
 
 /*
  * A build as this build of the game holds it: one made on a retired

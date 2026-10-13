@@ -203,10 +203,17 @@ export const DEFAULTS = {
   pilotCounts: {},
   /* The tune last flown on each aircraft, restored when it is seated. */
   tuneFor: {},
+  /* The camera the pilot set on each aircraft, { angle, fov } where it is
+   * not the aircraft's stock (keepCamera): restored when it is seated, so
+   * cameraAngle and cameraFov stay the seated aircraft's. */
+  cameraFor: {},
   livery: {},
   liverySaves: {},
   /* The pilot's own colours (configs/liveries.js normaliseSwatches). */
   swatches: { list: [] },
+  /* The aircraft the pilot starred, land plane ids, newest first
+   * (normaliseFavourites); the picker's Favourites tab. */
+  favourites: { list: [] },
   rates: RATE_DEFAULTS,
   ratesSplitPitch: false,
   pids: {},
@@ -372,6 +379,57 @@ export function normaliseFloats(stored, airframe) {
   return floats;
 }
 
+/* The starred aircraft as a profile or a sync may hold them: each a card's
+ * id (a retired aircraft's successor, a float version's land plane), known
+ * to this build, once each, in the order stored. */
+export function normaliseFavourites(raw) {
+  const list = raw && Array.isArray(raw.list) ? raw.list : [];
+  const out = [];
+  for (const v of list) {
+    const id = typeof v === 'string' ? landPlaneOf(currentAirframeId(v)) : null;
+    if (AIRFRAME_IDS.includes(id) && !out.includes(id)) out.push(id);
+  }
+  return { list: out };
+}
+
+/* The favourites with `id` starred first, or unstarred when it is there. */
+export function toggleFavourite(favs, id) {
+  const list = favs.list.includes(id) ? favs.list.filter((x) => x !== id) : [id, ...favs.list];
+  return normaliseFavourites({ list });
+}
+
+/* The camera overrides a profile or a sync may hold: for aircraft this
+ * build has, a tilt clamped to the camera's range and a lens a profile may
+ * hold (LENSES). */
+export function normaliseCameraFor(raw) {
+  const valid = raw && typeof raw === 'object' && !Array.isArray(raw);
+  const out = {};
+  for (const [id, cam] of valid ? Object.entries(raw) : []) {
+    if (!AIRFRAME_IDS.includes(id) || !cam || typeof cam !== 'object') continue;
+    if (Number.isFinite(cam.angle) && LENSES.includes(cam.fov)) {
+      out[id] = { angle: clampCameraAngle(cam.angle), fov: cam.fov };
+    }
+  }
+  return out;
+}
+
+/*
+ * The camera rows' change, kept for the seated aircraft: an entry where it
+ * is not the aircraft's stock, none where it is. Kept when the pilot sets
+ * it and not inferred at a seat change, because a profile's camera may be
+ * one nobody chose (DEFAULTS' 30 and 85 are no aircraft's stock).
+ */
+export function keepCamera(s) {
+  const af = airframeById(s.airframe);
+  const cams = { ...normaliseCameraFor(s.cameraFor) };
+  if (s.cameraFov === af.cameraFov && s.cameraAngle === clampCameraAngle(af.cameraAngle)) {
+    delete cams[af.id];
+  } else {
+    cams[af.id] = { angle: s.cameraAngle, fov: s.cameraFov };
+  }
+  s.cameraFor = normaliseCameraFor(cams);
+}
+
 /* The id actually flown for a picked aircraft: its float version when the
  * profile has floats on for it. */
 export function withFloats(s, id) {
@@ -461,8 +519,11 @@ export function seatAirframe(s, id) {
   if (s.rates && s.rates.throttleCap === from.rates.throttleCap) {
     s.rates = { ...s.rates, throttleCap: to.rates.throttleCap };
   }
-  s.cameraFov = to.cameraFov;
-  s.cameraAngle = clampCameraAngle(to.cameraAngle);
+  /* `to` gets the camera the pilot set on it (keepCamera), or its stock. */
+  s.cameraFor = normaliseCameraFor(s.cameraFor);
+  const own = s.cameraFor[to.id];
+  s.cameraFov = own ? own.fov : to.cameraFov;
+  s.cameraAngle = clampCameraAngle(own ? own.angle : to.cameraAngle);
   seedStockPids(s, to.id);
   return s;
 }
@@ -489,11 +550,17 @@ function adoptSeatedStock(s) {
   return s;
 }
 
+/* The lenses a profile may hold: the Field of view row's choices and every
+ * aircraft's stock one, which the row does not list (the planes' 100, the
+ * combat quads' 90). Holding the row's alone put every plane on 85 at the
+ * next load. */
+const LENSES = [...new Set([...CAMERA_FOVS, ...AIRFRAMES.map((a) => a.cameraFov)])];
+
 /* Fields that must be one of a list, and the list. A value not on it
  * takes the default, except the tune, which takes the aircraft's own. */
 const ONE_OF = {
   link: () => Object.keys(LINK_PRESETS),
-  cameraFov: () => CAMERA_FOVS,
+  cameraFov: () => LENSES,
   renderScale: () => RENDER_SCALES,
   fpsCap: () => FPS_CAPS,
   perfMode: () => PERF_MODES,
@@ -580,11 +647,13 @@ export function loadSettings() {
   s.surfaces = normaliseSurfaces(s.surfaces);
   s.buildFits = normaliseBuildFits(s.buildFits);
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
+  s.cameraFor = normaliseCameraFor(s.cameraFor);
   s.weight = clampWeight(s.weight);
   s.livery = normaliseLiveries(s.livery);
   s.progress = normaliseProgress(raw.progress, { existing: Object.keys(raw).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
   s.swatches = normaliseSwatches(s.swatches);
+  s.favourites = normaliseFavourites(s.favourites);
   s.campaign = cleanCampaign(s.campaign);
   s.flightTime = cleanFlightTime(s.flightTime);
   s.pilotCounts = cleanPilotCounts(s.pilotCounts);

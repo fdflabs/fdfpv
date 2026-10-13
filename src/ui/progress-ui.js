@@ -34,6 +34,7 @@ import {
   CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
+import { EventLog, feedRunWatch } from '../game/events.js';
 import { itemById } from '../game/economy.js';
 import { LessonWatch, passesOf } from '../game/training.js';
 import { readWallet } from '../share/account.js';
@@ -203,6 +204,11 @@ export class Progress {
     this.ui = ui;
     this.host = host;
     this.watch = new RunWatch();
+    /* This flight's events (src/game/events.js), and the sim clock as the
+     * last tick gave it, for the calls that do not carry one. */
+    this.flight = new EventLog();
+    this.simMs = 0;
+    this.wasCrashed = false;
     this.toasts = [];
     /* Every toast shown, newest last, for a check to read. */
     this.log = [];
@@ -252,6 +258,20 @@ export class Progress {
   /* The run the shell just seated: which plane on which power. */
   startRun(ctx) {
     this.watch.start(ctx);
+  }
+
+  /* A new flight from the spawn at sim time `simMs`; `roomNow` the room
+   * clock while in a room. The last flight's log ends here. */
+  startFlight(simMs, roomNow = null) {
+    this.simMs = simMs;
+    this.flight.end(simMs);
+    this.flight = new EventLog({ roomNow });
+    this.flight.append('spawned', simMs);
+  }
+
+  /* One event into this flight's log at the last tick's sim time. */
+  event(type, data = {}) {
+    return this.flight.append(type, this.simMs, data);
   }
 
   /*
@@ -308,7 +328,7 @@ export class Progress {
   }
 
   gatePass() {
-    this.award(this.watch.gatePass());
+    this.award(feedRunWatch(this.watch, this.event('gate')));
     if (this.lesson) {
       this.lesson.gatePass();
       this.lessonNews();
@@ -316,7 +336,11 @@ export class Progress {
   }
 
   touch(kind) {
+    /* Direct, not through the logged event: the log keeps one touch per
+     * run of contact, and a startRun inside that run would leave RunWatch
+     * never told of it. */
     this.watch.touch(kind);
+    this.event('touch', { kind });
     if (this.lesson && RIM_KINDS.includes(kind)) {
       this.lesson.rim();
     }
@@ -328,7 +352,7 @@ export class Progress {
   lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const done = this.watch.lap();
+    const done = feedRunWatch(this.watch, this.event('lap', { ms }));
     this.save();
     this.show(events);
     this.show(won);
@@ -340,7 +364,13 @@ export class Progress {
   }
 
   tick(state) {
+    this.simMs = state.simMs;
+    /* Its own edge: startRun clears RunWatch's flag mid crash. */
+    if (state.crashed && !this.wasCrashed) this.event('crash');
+    this.wasCrashed = Boolean(state.crashed);
+    const landings = this.watch.landings;
     this.award(this.watch.tick(state));
+    if (this.watch.landings > landings) this.event('landing');
     if (this.lesson) {
       this.lesson.tick(state);
       this.lessonNews();

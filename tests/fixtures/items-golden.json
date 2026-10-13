@@ -4037,11 +4037,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -4082,16 +4090,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -4374,11 +4394,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -4419,16 +4447,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -4699,11 +4739,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -4744,16 +4792,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -5036,6 +5096,10 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        },
        "calls": [
@@ -5045,6 +5109,10 @@
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -5085,16 +5153,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -5377,11 +5457,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -5422,16 +5510,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -5714,11 +5814,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -5759,16 +5867,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -6051,11 +6171,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -6096,16 +6224,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -6433,16 +6573,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 55,
+         "fov": 85
+        },
         "cameraFov": 85
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 55,
+         "fov": 115
+        },
         "cameraFov": 115
        }
       },
       "pick(\"75\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 55,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       }
@@ -6725,11 +6877,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -6770,16 +6930,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -7062,11 +7234,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -7107,16 +7287,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -7399,11 +7591,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -7444,16 +7644,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -28932,11 +29144,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -28977,16 +29197,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -29269,11 +29501,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -29314,16 +29554,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -29594,11 +29846,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -29639,16 +29899,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -29931,6 +30203,10 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        },
        "calls": [
@@ -29940,6 +30216,10 @@
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -29980,16 +30260,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -30272,11 +30564,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -30317,16 +30617,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -30609,11 +30921,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -30654,16 +30974,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -30946,11 +31278,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 40,
+         "fov": 85
+        },
         "cameraAngle": 40
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 38,
+         "fov": 85
+        },
         "cameraAngle": 38
        }
       }
@@ -30991,16 +31331,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 39,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -31328,16 +31680,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 55,
+         "fov": 85
+        },
         "cameraFov": 85
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 55,
+         "fov": 115
+        },
         "cameraFov": 115
        }
       },
       "pick(\"75\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 55,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       }
@@ -31620,11 +31984,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -31665,16 +32037,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -31957,11 +32341,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -32002,16 +32394,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.interceptor": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }
@@ -32294,11 +32698,19 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 31,
+         "fov": 85
+        },
         "cameraAngle": 31
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 29,
+         "fov": 85
+        },
         "cameraAngle": 29
        }
       }
@@ -32339,16 +32751,28 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       },
       "adjust(-1)": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 30,
+         "fov": 75
+        },
         "cameraFov": 75
        }
       },
       "pick(\"95\")": {
        "settings": {
+        "cameraFor.cub1400": {
+         "angle": 30,
+         "fov": 95
+        },
         "cameraFov": 95
        }
       }

@@ -48,6 +48,8 @@ export default {
     "sizeMm": 1400,
     "grams": 1532,
     "trackClass": "wing",
+    "class": "plane",
+    "roles": [],
     "cells": 3,
     "packVoltages": [
       4.2,

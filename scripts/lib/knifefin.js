@@ -43,10 +43,21 @@ const plate = (x, cn) => x / Math.sqrt(Math.sqrt(1 + (x / cn) ** 4));
  * sideways speed as a force at prop_x, which yaws the nose with the
  * sideslip and lifts with the body's side force; and the wash the fin
  * meets keeps 1 - k_j w0 v_i / (u + v_i)^2 of the crossflow, the share
- * the disc has turned onto its axis (w38-hover-yaw). The swirl at the fin
- * is left out (0.17 N m of the Extra's 13 at E12, scratch budget).
+ * the disc has turned onto its axis (w38-hover-yaw).
+ *
+ * With the prop's swirl at the fin (xs, m/s: wash.js finSwirl's xs, the
+ * swirl's mean sideways speed over the fin's span in the wash), as
+ * plant_wing.c takes it: the fin's angle in the wash, which saturates it,
+ * is the crossflow less the swirl's own speed, and its force meets the
+ * swirl on the whole stream, xs (u + 2 v_i) / (2 v_i) (Deters, Ananda and
+ * Selig 2015, AIAA 2015-2265, fig. 22b). Left out until 2026-10-13, it
+ * was the one term of the plant's knife edge yaw budget the derivation
+ * lacked (scripts/knife-budget.js): 0.17 N m of the Extra's 13 at E12,
+ * 1.1 of the CAP's 31 at C12 and 4.8 of the Slick's 205 at S12, two
+ * percent of the rudder's throw on each of the last two. Zero keeps the
+ * arithmetic as it was.
  */
-export function knifeFin(f, { rho, V, u, sb, w, S, b, jet = null }, dr) {
+export function knifeFin(f, { rho, V, u, sb, w, S, b, jet = null, xs = 0 }, dr) {
   const qb = 0.5 * rho * V * V;
   const vv = f.cnb / f.av;
   const ar = f.cndr * dr / vv;
@@ -59,14 +70,15 @@ export function knifeFin(f, { rho, V, u, sb, w, S, b, jet = null }, dr) {
     k = jet.kj * rho * A * w0 * w.vi / (u + w.vi);
     turned = jet.kj * w0 * w.vi / ((u + w.vi) * (u + w.vi));
   }
-  const vw = V * sb * (1 - turned);
+  const vw = V * sb * (1 - turned) - xs;
+  const vwF = V * sb * (1 - turned) - xs * (u + 2 * w.vi) / (2 * w.vi);
   const xw = f.av * vw / Math.sqrt(u * u + w.keepV * 4 * w.vi * (u + w.vi)) + ar;
   const rw = xw === 0 ? 1 : plate(xw, f.cn) / xw;
   const n = qb * S * b * (f.cnb * sb + f.cndr * dr) * rv
-    + S * b * (rho * w.vi * w.fv * f.cnb * vw + w.dp * w.keepV * w.fv * f.cndr * dr) * rw
+    + S * b * (rho * w.vi * w.fv * f.cnb * vwF + w.dp * w.keepV * w.fv * f.cndr * dr) * rw
     - (jet ? jet.x : 0) * k * V * sb;
   const y = qb * S * (f.cyb * sb + f.cydr * dr) * rv
-    + S * (rho * w.vi * w.fv * f.cyb * vw + w.dp * w.keepV * w.fv * f.cydr * dr) * rw
+    + S * (rho * w.vi * w.fv * f.cyb * vwF + w.dp * w.keepV * w.fv * f.cydr * dr) * rw
     - k * V * sb;
   return { n, y, rv, rw };
 }

@@ -627,6 +627,14 @@ double sim_boost(void);
  * swirl's sideways speed over the fin (m/s), for the gates that take one
  * term of the moment alone. Zeros on an aircraft without a wash.
  * Additive, version unchanged.
+ * sim_wing_yaw_budget(out[26]): the body's yaw moment term by term as
+ * the last step added it, N m (plant_wing.c g_yaw lists the slots: the
+ * fin and rudder in the free stream and in the wash, Munk, the roll
+ * coefficients through sin beta, the jet, the crossflow at side_x, the
+ * rates' terms, their sum and M[2], the prop's torque on the air and
+ * the swirl's share at the fin), for a check that holds the plant's
+ * budget against a derivation's at one flown point (scripts/
+ * knife-budget.js). Zeros on a quad. Additive, version unchanged.
  * sim_wing_command(out[3]): what the receiver last wrote to the aileron,
  * elevator and rudder servos, rad, after the gyro and before the servos
  * slew or the air blows them back (plant_wing.c hinge_hold), so a gate
@@ -662,6 +670,7 @@ int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
 int sim_wing_slip(double *out);
+int sim_wing_yaw_budget(double *out);
 int sim_wing_command(double *out);
 /* sim_wing_strips(out[8]): each stall strip's lift lost to separation as
  * the last step left it, left half root to tip then right half, in units

@@ -65,6 +65,7 @@ jobs:
       # Each stab selftest's straight throw, derived (scripts/lib/throwflight.js).
       - run: npm run stab:straight
       - run: npm run knife:throttle
+      - run: npm run knife:budget
       - run: npm run as3x:derive
       # Each table's servo hold against its surfaces' hinge moment and its
       # servos' published torque (scripts/servo-derive.js, servo blow back).
@@ -81,6 +82,9 @@ jobs:
       # The lessons: data that exists, words in en and es, each judge.
       - run: npm run training:selftest
       - run: npm run progress:selftest
+      # The gameplay event log, and RunWatch judging the same challenges from
+      # it as from direct calls (src/game/events.js).
+      - run: npm run events:selftest
       # Medals on built courses (src/game/medals.js): times, award, merge.
       - run: npm run medals:selftest
       # Best laps synced to the account, lower wins (src/share/records.js).
@@ -99,12 +103,19 @@ jobs:
       # leaves the browser: a fuzz for planted personal data, the opt out
       # (src/share/clientreport.js).
       - run: npm run clientreport:selftest
+      # The same reports from the real shell, and nothing once opted out
+      # (scripts/clientreport-check.js).
+      - run: npm run clientreport:check
       # The language and statistics keys shared with the board, through
       # their move to fdfpv.* names (src/share/sharedkeys.js).
       - run: npm run sharedkeys:selftest
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
+      # The save envelope over every historic store: each reader answers the
+      # same after it opens, a broken blob goes to .corrupt and its .prev
+      # comes back (src/share/save.js).
+      - run: npm run save:selftest
       # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
       - run: npm run hangar:room
       - run: npm run parts:check
@@ -568,6 +579,8 @@ jobs:
       - run: npm run hulls:check
       - run: npm run airframes:selftest
       - run: npm run aircraft:folder
+      # Each folder's class and roles, held to its flags (scripts/airframes-check.js).
+      - run: npm run airframes:check
       # The plant's FW_* tables in src/native/plant_wing.c are generated
       # from aircraft/<id>/plant.json: folder and C agree both ways, and a
       # changed folder and a changed C each fail (scripts/aircraft-ctable.js).

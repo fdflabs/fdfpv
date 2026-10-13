@@ -467,11 +467,32 @@ R-474) on each fuselage's side area from its derivation or render model.
   Hercules 1.02 (Allen and Perkins' 1.2 too, at their eta of 0.65 on 0.85
   of the side view). Each derive script prints its figure. The floats'
   tables carry their land fuselage's.
-- Still on the round body's 1.2, ESTIMATED: the F-16, whose drawn body
-  is two half superellipses on a chine with the strakes' edges at its
-  widest line and the intake's duct under it, shapes TN 3038 did not
-  test; and the Bramor, whose pod blends into its delta with no drawn
-  sections of its own.
+- Still on the round body's 1.2, ESTIMATED: the Bramor, whose pod blends
+  into its delta with no drawn sections of its own.
+- The F-16 flies its measured side force instead (w38-physics-2):
+  `cy_tab`, NASA TP-1538 table III's CY against alpha and beta (the
+  leading edge flap retracted to 45 deg, the base table past, the odd
+  part in beta so the tunnel's asymmetry is out; `npm run
+  f16:derive-hilat` prints it), in the body axes on the wing's area. It
+  replaces three terms on that table: cy_beta's line, the drag's
+  sideways share and the crossflow (its side_cda and side_x are gone);
+  the rudder's stays. Before, the plant gave 0.51 of the data at 4 deg of
+  sideslip and 0.65 at 30 (alpha 0: the build up's cy_beta, -0.470, is
+  the fin and a 0.06 allowance for the body against the measured
+  -1.078), and 1.6 to 4 times it from 40 deg of alpha, where the drag
+  along the wind, CD sin beta, put the broadside wing's force sideways:
+  a tunnel balance measures that force on the plate's normal. Now the
+  table's own values at its points; against the base table with the
+  flap down, under 0.035 apart at alpha 0 to 10 and 40 to 90 deg and up
+  to 0.09 at 20 to 30, the flap's own change. Past 30 deg of sideslip, where the table stops,
+  the 30 deg row is carried on the sideslip's sine, ESTIMATED. Still
+  linear: TP-1538's Cn against beta, which turns restoring past 20 to 25
+  deg at alpha 35 to 55 (hi_lat's ratio is a slope); an open gap.
+- Every other table still takes the drag along the wind with its
+  sideways share, CD sin beta: past the stall, in a slip, that is the
+  broadside wing's normal force pointed sideways, the term the F-16's
+  measured CY showed 1.6 to 4 times too strong. Fleet wide, not moved
+  here: an open item for the lead.
 - The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
   1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
   is gone flying sideways and turns over with the flow from behind. Each
@@ -497,8 +518,8 @@ R-474) on each fuselage's side area from its derivation or render model.
   pod is ahead of its pusher's CG: Extra -0.200 m, CAP -0.129, Slick
   -0.527, Night Timber -0.153, Timber -0.159, Cub -0.136, Radian -0.160,
   Bombshell -0.152, Kadet -0.260, P-51 -0.162, Ugly Stik -0.142, Tiger
-  Moth -0.233, Hercules -0.067, F-16 -0.004 (its body's depth alone, at
-  the round body's 1.2), Skyhunter +0.084; the float versions their land
+  Moth -0.233, Hercules -0.067, Skyhunter +0.084 (the F-16's
+  measured side force has its own, above); the float versions their land
   fuselage's. The Bramor's crossflow stays at its CG. The sideways speed
   is the CG's; the rates' own crossflow along the body is `rot_k`'s.
 - What it costs the knife edge, derived on the plant's own fin and
@@ -529,6 +550,98 @@ R-474) on each fuselage's side area from its derivation or render model.
   the derivation asks 105 percent of the throw: the derivation's yaw
   budget is about 5 percent of the rudder heavier than the plant's; S12
   stays red on the stop until one of them is shown right.
+- The budget, in the tree (2026-10-13): sim_wing_yaw_budget exports the
+  body's yaw moment term by term as the step adds it, and `npm run
+  knife:budget` (scripts/knife-budget.js, in CI) flies the three gates'
+  knife edges and holds each term against the derivation's formula
+  (knifefin.js, wash.js) on the plant's own table at the state the plant
+  settled at. Every term agreed to a thousandth of a newton metre but
+  one: the fin in the wash, where the derivation left out the prop's
+  swirl at the fin (0.17 N m of the Extra's 13 at E12, 1.07 of the CAP's
+  31 at C12, 4.77 of the Slick's 205 at S12: 1.1, 2.5 and 2.1 percent of
+  the rudder's throw, the swirl helping the rudder on each). With the
+  swirl in knifeFin (its `xs`, the plant's own formula) the three budgets
+  close to 0.0 percent, and the derivation at the plant's state needs the
+  rudder the plant holds: 84, 77 and 100 percent. So the Slick's knife
+  edge at 30 m/s needs all of its rudder, in the plant and in the
+  derivation alike. The three derive scripts pass the swirl now: the
+  torque on the air from the table's torque_curve at the thrust and
+  speed flown (qAirAt; torque_arm times thrust alone is 1.5 to 2.1
+  times short with way on) and the root's share (the Extra's measured
+  root, rootShare, keeps 0.32; the CAP and Slick SWIRL_KEEP's 0.65), and
+  their rudder bands moved 84 to 83, 83 to 80 and 105 to 103 percent of
+  the throw; the sideslip and throttle bands did not move. On them E12
+  holds 32.9 deg at 0.501 and 15.0 m/s (derived 32.9, 0.496, 15), C12
+  25.9 at 0.629 and 23.3 m/s, and S12 stays red on the stop: 103 percent
+  derived at 30 m/s, the plant on 100 at 30.7.
+- The gates' knife edge speeds were chosen (15, 20, 30 m/s, no source
+  in f6e9c7eb7, 02f1011f3, 2a9a395cc). Derived now (knifeGate in each
+  derive script): the rudder the balance needs is not monotonic in the
+  speed, it rises from the slow side as the fuselage's saturating side
+  force gives way to the fin's weathercock, peaks, and falls with the
+  sideslip (Extra 0.70 of the throw at 8 m/s, 0.905 at 11.75, 0.83 at
+  15, 0.37 at 30; CAP 0.40 at 8, 0.90 at 15, 0.80 at 20; Slick 1.42 at
+  15 to 20, 1.03 at 30, 0.70 at 40), so there is no floor at full rudder
+  for the Extra or the CAP: they hold a level knife edge at every speed
+  from 8 to 32 m/s. The gate's point is the hardest knife edge the
+  derivation says the aircraft holds, the greatest rudder share among
+  the speeds within the throw: Extra 11.75 m/s (41.5 deg, 0.465, 91
+  percent), CAP 15 (39.4, 0.483, 90), Slick 30.76 (25.4, 0.454, 100: the
+  peak is past the throw, so this is the floor, the slowest speed with a
+  level knife edge; between 12 and 31 m/s the derivation says the Slick
+  cannot hold one, which a real Slick 580 does, so its fin against its
+  rudder is still the open question). The gates judge the plant there
+  (the rudder's clause is the derivation's share within the throw), and
+  all three hold: E12 39.5 deg at 0.473 and 12.5 m/s, C12 32.2 at 0.548
+  and 19.2, S12 25.4 at 0.454 and 30.8 on the stop, the budgets whole.
+  With the rudder pinned the plant slides along the family to a speed a
+  little past the derived one (the peak is flat), still inside the bands.
+- The Slick between 12 and 31 m/s, checked against the data in reach
+  (2026-10-13, w38-crossflow-moment): the rudder it would need there is
+  1.13 (20 m/s, 41 deg of sideslip), 1.39 (15, 50 deg) and 1.61 (12, 57
+  deg) times its LINEAR full-throw authority, cn_dr times the throw with
+  no saturation at all, so no rudder effectiveness curve can close it.
+  Ma 2022's free stream runs (0 throttle, 100 and 50 percent flap,
+  tmp/ma-sides.py on the dataset in research/wash-control) give the
+  flap's kept share of its zero-incidence increment, deflected against
+  the incidence as a knife edge's rudder is: full flap 0.68 at 20 deg,
+  0.56 at 30, 0.54 at 40, 0.52 at 50, 0.34 at 60; half flap 0.90, 0.82,
+  0.69, 0.61, 0.44; with the incidence 0.56, 0.42, 0.36, 0.09, -0.08.
+  The plant's single plate form on the Slick's fin gives the full
+  rudder 0.78 at 26 deg, 0.61 at 33, 0.45 at 41, 0.51 at 50: within 0.1
+  to 0.2 of the data, generous at 26 to 33 deg and a little short at
+  41, so there is no sourced gain in it for the knife edge (the fin's
+  own force is the plate's, 1.11 to 1.16 of cn 1.17 at 25 to 40 deg, as
+  Winter TM 798 has it). The shortfall is in the sideslip the Slick
+  needs to lift its weight at those speeds, 41 to 57 deg, which puts
+  the fin's weathercock (cn_beta of the fin times sin beta, the plate's
+  whole force) past what any rudder cancels: the body's side force per
+  sideslip (CY_beta of the fuselage, the crossflow drag's lift) or the
+  fin's weathercock at high sideslip is what a real Slick must have more
+  or less of. No source in hand for a slab-sided fuselage's side force
+  at 40 to 60 deg of crossflow beyond Allen and Perkins' crossflow,
+  already in; the floor stays at 30.76 m/s.
+- The elevator in the harrier against the same data (w38-physics-2,
+  2026-10-13): a harrier's up elevator is on the against side (the
+  leeward, research/wash-control/WASH-CONTROL.md), not the with side,
+  so the free stream with-side figure above (0.36 at 40 deg) does not
+  touch it. At the Night Timber's harrier flown full back
+  (harrier-probe.js --full-back, Manual, mix 0: body 29.2 deg, zero lift
+  33.7, 10.4 m/s, 9.05 N) the elevator's moment is 0.41 free stream and
+  0.59 wash. The plant's free stream plate keeps 0.63 of full up there on
+  Ma's measure (the deflection's own increment at no incidence), against
+  Ma 2022's full flap 0.56 at 30 deg; the wash keeps 0.89 (KW_AGAINST
+  0.93, Ma at 70 percent throttle). Taking Ma's 0.56 for the free stream
+  would lower the elevator's whole moment by about 4.5 percent, away from
+  the video: the Night Timber's 27 to 34 deg against its 40 to 45 is not
+  a shortfall of its elevator at full up.
+  Where the plate is off the data is a partial deflection and the with
+  side: half up keeps 0.29 (Ma 0.82), and with the incidence 0.06 full
+  and 0.07 half (Ma 0.42 and 0.63 at 30 deg), the plant far short of the
+  data, not over it. Both need the deflection's increment taken outside
+  the plate's saturation, a form change on every hi_alpha table's
+  elevator and rudder, free stream and wash, which reopens the knife
+  edge derivations (scripts/lib/knifefin.js, knife:budget); not taken.
 
 ### The probe, PR 3 to PR 4
 

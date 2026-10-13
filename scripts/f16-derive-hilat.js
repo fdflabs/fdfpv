@@ -76,6 +76,74 @@ const DCN_R = [-0.0481, -0.0484, -0.0476, -0.0449, -0.0451, -0.0450, -0.0441, -0
   -0.0081, -0.0040, -0.0012, -0.0015, -0.0061, -0.0024];
 
 /*
+ * The side force, CY, body axes on the wing's area, at beta +2, 4, 8, 10,
+ * 15, 20, 25 and 30 deg (first list) and their negatives (second), one
+ * pair per alpha: the leading edge flap retracted to 45 deg (TP-1538's
+ * "lef" table, -20 to 45), the base table (delta_h 0) past, as the static
+ * derivatives above take them. Table III as the digitized copy has it
+ * (Russell 2003 after Stevens and Lewis, the "hifi F-16" aerodata files
+ * CY0820_ALPHA2_BETA1_402.dat and CY0320_ALPHA1_BETA1_401.dat; research
+ * note, sources 1 and 2): that copy carries the wind tunnel's asymmetry
+ * past 30 deg as an offset at beta 0 (research note, "Provenance and
+ * verification"), so the plant takes the odd part, the mean of the two
+ * sides, which is the symmetric aircraft's (the asymmetry's sign is not
+ * the model's, research note). The base table's +beta less beta 0 rows
+ * are the research note's section 2 table. Checked against the scan (PDF
+ * pp. 74 and 75, alpha 0 and 40, beta -30 to +30): each printed row is
+ * the digitized one less its beta 0 value, so the odd part is the scan's
+ * (docs/F16-STAGE1.md, "The side force").
+ */
+const CY_LEF0 = [
+  [[-0.0142, -0.0476, -0.1093, -0.1388, -0.1990, -0.2720, -0.3280, -0.3990],
+   [0.0376, 0.0688, 0.0990, 0.1194, 0.1808, 0.2533, 0.3107, 0.3808]],
+  [[-0.0225, -0.0590, -0.1388, -0.1790, -0.2600, -0.3220, -0.3770, -0.4340],
+   [0.0448, 0.0813, 0.1568, 0.1938, 0.2748, 0.3361, 0.3909, 0.4480]],
+  [[-0.0251, -0.0620, -0.1425, -0.1861, -0.2890, -0.3670, -0.4440, -0.4990],
+   [0.0465, 0.0845, 0.1563, 0.1959, 0.2984, 0.3759, 0.4529, 0.5088]],
+  [[-0.0356, -0.0758, -0.1637, -0.2125, -0.3141, -0.4111, -0.5123, -0.5882],
+   [0.0376, 0.0730, 0.1497, 0.1933, 0.2950, 0.3920, 0.4920, 0.5690]],
+  [[-0.0377, -0.0779, -0.1715, -0.2161, -0.3199, -0.4311, -0.5446, -0.6429],
+   [0.0371, 0.0726, 0.1579, 0.2021, 0.3050, 0.4170, 0.5310, 0.6290]],
+  [[-0.0399, -0.0832, -0.1736, -0.2197, -0.3265, -0.4411, -0.5495, -0.6543],
+   [0.0347, 0.0728, 0.1583, 0.1995, 0.3050, 0.4220, 0.5320, 0.6350]],
+  [[-0.0450, -0.0846, -0.1736, -0.2225, -0.3268, -0.4425, -0.5309, -0.6249],
+   [0.0298, 0.0712, 0.1559, 0.2008, 0.3070, 0.4230, 0.5120, 0.6060]],
+  [[-0.0444, -0.0860, -0.1712, -0.2172, -0.3219, -0.4299, -0.5023, -0.5575],
+   [0.0301, 0.0642, 0.1500, 0.1947, 0.2990, 0.4050, 0.4800, 0.5340]],
+  [[-0.0343, -0.0700, -0.1404, -0.1740, -0.2482, -0.3119, -0.3899, -0.4910],
+   [0.0252, 0.0560, 0.1224, 0.1546, 0.2270, 0.2920, 0.3720, 0.4720]],
+  [[-0.0409, -0.0674, -0.1234, -0.1429, -0.1822, -0.2755, -0.3958, -0.5133],
+   [0.0178, 0.0477, 0.1066, 0.1068, 0.1470, 0.2400, 0.3600, 0.4770]],
+  [[-0.0435, -0.0673, -0.1085, -0.1282, -0.1840, -0.2735, -0.3657, -0.3888],
+   [0.0141, 0.0403, 0.0655, 0.0679, 0.1250, 0.2140, 0.3080, 0.3290]],
+  [[-0.0541, -0.0864, -0.1336, -0.1553, -0.2093, -0.2535, -0.3041, -0.3228],
+   [-0.0146, 0.0080, 0.0275, 0.0449, 0.0980, 0.1430, 0.1940, 0.2110]],
+  [[-0.0992, -0.1222, -0.1644, -0.1838, -0.2209, -0.2497, -0.2702, -0.2901],
+   [-0.0518, -0.0201, 0.0031, 0.0200, 0.0580, 0.0860, 0.1070, 0.1270]],
+  [[-0.0685, -0.1070, -0.1722, -0.1907, -0.2118, -0.2000, -0.2041, -0.2526],
+   [0.0042, 0.0198, 0.0713, 0.0969, 0.1180, 0.1060, 0.1110, 0.1600]],
+];
+const CY_BASE = [
+  [[-0.0364, -0.0977, -0.1363, -0.1694, -0.2387, -0.1751, -0.1865, -0.2194],
+   [0.0116, 0.0213, 0.0599, 0.0680, 0.1370, 0.0730, 0.0850, 0.1180]],
+  [[-0.0392, -0.1023, -0.1530, -0.1773, -0.2395, -0.2458, -0.2014, -0.2412],
+   [0.0119, 0.0155, 0.0621, 0.0799, 0.1420, 0.1490, 0.1050, 0.1430]],
+  [[-0.0471, -0.0994, -0.1470, -0.1665, -0.2308, -0.2500, -0.2142, -0.2522],
+   [0.0051, 0.0123, 0.0628, 0.0807, 0.1460, 0.1660, 0.1290, 0.1810]],
+  [[-0.0402, -0.0589, -0.1004, -0.1148, -0.1555, -0.1823, -0.2367, -0.2710],
+   [0.0082, 0.0275, 0.0652, 0.0785, 0.1180, 0.1450, 0.1990, 0.2320]],
+  [[-0.0168, -0.0326, -0.0769, -0.0992, -0.1519, -0.2040, -0.2460, -0.2919],
+   [0.0247, 0.0533, 0.0906, 0.1131, 0.1670, 0.2200, 0.2630, 0.3090]],
+  [[-0.0251, -0.0406, -0.0824, -0.1056, -0.1535, -0.1974, -0.2462, -0.3035],
+   [0.0215, 0.0458, 0.0855, 0.1101, 0.1580, 0.2010, 0.2510, 0.3090]],
+];
+const CY_DEG = [2, 4, 8, 10, 15, 20, 25, 30];
+const cyOdd = A.map((a, i) => {
+  const [plus, minus] = a <= 45 ? CY_LEF0[i] : CY_BASE[i - 14];
+  return plus.map((p, j) => (p - minus[j]) / 2);
+});
+
+/*
  * The plant's lateral derivatives are stability axis ones (plant_wing.c,
  * "The table's lateral derivatives are stability axis ones"), so TP-1538's
  * body axis ones turn through alpha (Etkin and Reid, the stability to body
@@ -99,7 +167,7 @@ const stab = A.map((a, i) => {
   };
 });
 
-export { A, stab };
+export { A, stab, CY_DEG, cyOdd };
 
 const at0 = stab[A.indexOf(0)];
 const ratio = (k) => stab.map((r) => r[k] / at0[k]);
@@ -114,4 +182,7 @@ if (isMain) {
   console.log('\nFW_F16878.hi_lat: cn_beta, cl_beta, cl_p, cn_r, the ailerons, the rudder as ratios to alpha 0; Cl_r, Cn_p per rad');
   const rows = ['cnb', 'clb', 'clp', 'cnr', 'cla', 'cnd'].map(ratio).concat([stab.map((r) => r.clr), stab.map((r) => r.cnp)]);
   for (const row of rows) console.log(`    { ${row.map((x) => f(x)).join(', ')} },`);
+  console.log('\nFW_F16878.cy_tab: CY, body axes, a row per sideslip, beta', CY_DEG.join(', '), 'deg, across the alphas above');
+  for (let j = 0; j < CY_DEG.length; j += 1) console.log(`    { ${cyOdd.map((r) => f(r[j], 4)).join(', ')} },`);
+  console.log(`  CY_beta at 0 deg, between beta +-4: ${f(cyOdd[A.indexOf(0)][1] / 4 * DEG)} per rad (cy_beta's line ${f(-0.470)})`);
 }

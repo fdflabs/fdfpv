@@ -372,8 +372,9 @@ try {
   check('and it falls: each screen draws the pieces coming down', ended.every((c) => c.paper && c.paper.chains.some((x) => x.id !== 0)));
   check('the results stand big in the middle of both screens', ended.every((c) => c.hud.card && /Results|Resultados/.test(c.hud.board)), ended.map((c) => c.hud.head).join(' | '));
   /* The debrief's line under them (docs/DEBRIEF.md): this pilot's own
-   * time in the air and distance, and the key that opens the replay. */
-  check('each results card ends on the pilot\'s own debrief line', ended.every((c) => /You: \d+:\d\d in the air, \d+(\.\d)? k?m\. [VX] replays the last 30 s$/.test(c.hud.board)),
+   * time in the air and distance, the aircraft's condition, and the key
+   * that opens the replay. */
+  check('each results card ends on the pilot\'s own debrief line', ended.every((c) => /You: \d+:\d\d in the air, \d+(\.\d)? k?m\. Aircraft: (Operational|Impaired|Destroyed)\. [VX] replays the last 30 s$/.test(c.hud.board)),
     ended.map((c) => c.hud.board.slice(-70)).join(' | '));
   await a.evaluate(`window.__setCam(${high.x + 25}, ${high.y - 30}, ${high.z + 35}, ${high.x}, ${high.y - 50}, ${high.z}, 70); true`);
   await a.sleep(400);
