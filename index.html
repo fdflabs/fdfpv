@@ -1750,12 +1750,18 @@
       .war-lobby-craft { font-size: 11.5px; letter-spacing: 0.06em; }
       .war-lobby-flag { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.14em; }
       .war-lobby-pilot.ready .war-lobby-flag { color: var(--mint); }
+      /* The empty seats after the pilots (src/ui/session.js drawLobby). */
+      .war-lobby-open {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 10px 0; border-bottom: 1px dashed var(--pdcs-line-soft);
+      }
+      .war-lobby-open-seats { font-size: 13px; letter-spacing: 0.08em; color: var(--slate); }
       @media (prefers-reduced-motion: reduce) {
         .war-lobby-status.go { animation: none; }
       }
       @media (max-width: 860px) {
         .war-lobby { gap: 6px; margin-bottom: 8px; }
-        .war-lobby-pilot { padding: 5px 9px; }
+        .war-lobby-pilot, .war-lobby-open { padding: 5px 9px; }
         .war-lobby-name { font-size: 15px; }
       }
       /* Three columns need about 1150 px before they are comfortable, so

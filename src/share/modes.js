@@ -205,6 +205,23 @@ export const MODES = [
   },
 ];
 
+/*
+ * WHO JOINS A SESSION (docs/redesign/SESSIONS.md section 2), the same
+ * three for every activity, so none carries a field for it: public is a
+ * listed room anybody drops into, friends a private room whose invite
+ * code the lobby shows, solo a private room whose code it hides, so
+ * nobody can join. Public by default (the owner, 2026-10-02); each
+ * pilot's last choice per activity is settings.sessionVisibility, keyed
+ * by the registry id, and read through visibilityFor so a value a build
+ * never wrote falls back rather than reaching a room.
+ */
+export const VISIBILITIES = ['public', 'friends', 'solo'];
+export const DEFAULT_VISIBILITY = 'public';
+export function visibilityFor(settings, id) {
+  const v = settings && settings.sessionVisibility ? settings.sessionVisibility[id] : null;
+  return VISIBILITIES.includes(v) ? v : DEFAULT_VISIBILITY;
+}
+
 const BY_ID = new Map(MODES.map((m) => [m.id, m]));
 
 /* The entry for a registry id, or null. */

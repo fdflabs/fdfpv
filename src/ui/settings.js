@@ -195,6 +195,9 @@ export const DEFAULTS = {
   /* One time screens read and accepted. */
   warConsent: false,
   interiorConsent: false,
+  /* Who joins each activity's session, by registry id (src/share/modes.js
+   * visibilityFor): the pilot's last choice, synced. */
+  sessionVisibility: {},
   warAirframe: '',
   voiceReplayAck: false,
   flightTime: {},
