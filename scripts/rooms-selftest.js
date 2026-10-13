@@ -70,6 +70,7 @@ import { stockSurfacesSection } from './rooms-selftest-surfaces.js';
 import { visibilitySection } from './rooms-selftest-visibility.js';
 import { dropsSection } from './rooms-selftest-drops.js';
 import { footSection } from './rooms-selftest-foot.js';
+import { watchSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
 import { emptyRoomSection, gameLobbySection, warLobbySection } from './rooms-selftest-gamelobby.js';
@@ -1985,6 +1986,7 @@ stockSurfacesSection(check);
 visibilitySection(check);
 dropsSection(check);
 footSection(check);
+watchSection(check);
 await browserSection(check);
 await scaleSection(check);
 

@@ -778,7 +778,9 @@ export class RoomCore {
    * nothing else: no seat, no token a pilot's tab could take over, no game
    * join, no say in the clock, the host or ready. Pilots are never told a
    * watcher came, since there is nothing of it to draw and no public list
-   * of watchers. Up to WATCH_CAP, refused 'full' past it.
+   * of watchers, only their number (watchers) in a welcome and the room
+   * browser's line (lobby.js listingOf). Up to WATCH_CAP, refused 'full'
+   * past it.
    */
   watch(conn, msg, now, address, newToken, callsign) {
     if (!this.joinAllowed(address, now)) {
@@ -814,6 +816,7 @@ export class RoomCore {
           mission: this.meta.mission ?? null,
           map: this.meta.map,
           daytime: this.daytimeWelcome(),
+          watchers: this.watchers.size,
           peers: this.peerList(null),
         }),
       },
@@ -968,6 +971,9 @@ export class RoomCore {
         /* The host may change public in place (setPublic). */
         publicInPlace: true,
         daytime: this.daytimeWelcome(),
+        /* How many watch, as at this join: no news follows a watcher's
+         * coming or going (watch). */
+        watchers: this.watchers.size,
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
