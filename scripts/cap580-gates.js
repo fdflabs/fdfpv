@@ -318,18 +318,23 @@ check: {
       return { v: sv / n, d: sd / n, e: se / n, a: sa / n * DEG, worstBank, spread, drift: zMax - zMin };
     };
     const m = harrier(0);
-    /* Damping the rock with the sticks held on it is the Heading's: the
+    /* Damping the rock with the sticks held on it is the Heading's (the
      * AR631's "make the aircraft hold its attitude when control input is
-     * neutral", "defaulted to zero", so C11b flies it at the full Heading. */
+     * neutral", "defaulted to zero"), and the CAP's measured full Heading
+     * is about nothing: its dampers sit on their margin, so as3x:derive
+     * leaves no Heading under the rule (0.0083, 0.0169, 0.0046). C11b
+     * flies it at that full Heading and records the rock against
+     * Manual's; it judges only the height, not a hold the airframe cannot
+     * have (lead decision 2026-10-12). */
     must(sim.setHeading([1, 1, 1]), 'sim_wing_set_heading');
     const g = harrier(3);
     must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
     gate('C11', 'harrier: level at 40 deg of alpha', m.v >= t11.vMin && m.v <= t11.vMax && m.d >= t11.dutyMin && m.d <= t11.dutyMax && m.e < 1 && m.worstBank <= t11.maxBankDeg && m.drift <= t11.maxHeightDrift,
       `${m.v.toFixed(2)} m/s at throttle ${m.d.toFixed(3)}, alpha ${m.a.toFixed(1)} deg, elevator stick ${m.e.toFixed(2)}, bank under ${m.worstBank.toFixed(1)} (sd ${m.spread.toFixed(1)}), height within ${m.drift.toFixed(2)} m`,
       `${t11.vMin} to ${t11.vMax} m/s, ${t11.dutyMin} to ${t11.dutyMax}, elevator short of full, bank under ${t11.maxBankDeg}, within ${t11.maxHeightDrift} m`);
-    gate('C11b', 'harrier in AS3X: the gyro damps the rock', g.spread < m.spread && g.drift <= t11.maxHeightDrift,
+    gate('C11b', 'harrier in AS3X at its full Heading, about none: flown, the rock recorded', g.drift <= t11.maxHeightDrift,
       `bank sd ${g.spread.toFixed(1)} against Manual's ${m.spread.toFixed(1)}, worst ${g.worstBank.toFixed(1)}, height within ${g.drift.toFixed(2)} m`,
-      `under Manual's, within ${t11.maxHeightDrift} m`);
+      `within ${t11.maxHeightDrift} m; the rock recorded, not judged`);
   }
 
   /* C12: the knife edge. From level at the gate's speed, rolled right to
