@@ -228,7 +228,7 @@ export class RoomBots {
       return this.names.size;
     }
     const status = this.racers.status(core, this.level);
-    return status === 'ready' ? room : status === 'pending' ? this.names.size : 0;
+    return status === 'ready' ? room : status === 'pending' ? Math.min(this.names.size, room) : 0;
   }
 
   /* Add or take away AI seats to what wanted() says. Returns actions. */

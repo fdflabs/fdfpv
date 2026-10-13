@@ -170,19 +170,27 @@ export function aiRaceUnavailable() {
   return kit.ready ? null : kit.why;
 }
 
-function hashOf(text) {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i += 1) {
-    h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+/* A track's content hash, once per track object: the room asks for its
+ * ghost several times a tick, and a document is up to 64 kB. */
+const HASHES = new WeakMap();
+function hashOf(track) {
+  if (!HASHES.has(track)) {
+    const text = JSON.stringify(track.doc);
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i += 1) {
+      h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+    }
+    HASHES.set(track, (h >>> 0).toString(36));
   }
-  return (h >>> 0).toString(36);
+  return HASHES.get(track);
 }
 
 /*
  * The ghosts, per map, track and pace, for the process: key -> { state:
  * 'pending' | 'ready' | 'none', ghost, course, colliders, cpuMs }. The
- * newest PREPARED_MAX are kept (a ghost with its frames is tens of kB);
- * a room whose track was dropped flies it again when it next asks.
+ * PREPARED_MAX most recently asked for are kept (a ghost with its frames
+ * is tens of kB); a room flying one asks every tick, so only a track no
+ * room is on is dropped, and flown again when a room next asks.
  */
 const PREPARED = new Map();
 const PREPARED_MAX = 64;
@@ -355,9 +363,12 @@ function boardOrigin() {
 /* The ghost for `track` on `map` at `pace`, started on first ask. */
 export function preparedFor(track, map, pace) {
   const origin = boardOrigin();
-  const key = `${map}:${track.id}:${hashOf(JSON.stringify(track.doc))}:${pace}:${origin}`;
+  const key = `${map}:${track.id}:${hashOf(track)}:${pace}:${origin}`;
   let entry = PREPARED.get(key);
-  if (!entry) {
+  if (entry) {
+    PREPARED.delete(key);
+    PREPARED.set(key, entry);
+  } else {
     entry = { state: 'pending', key };
     PREPARED.set(key, entry);
     entry.done = prepare(entry, track, pace, groundOf(map), origin).catch((e) => {
