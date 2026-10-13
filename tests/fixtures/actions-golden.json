@@ -138991,7 +138991,7 @@
    [
     "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
-    "continue:way-combat",
+    "combat:way-combat",
     "ace:way-ace",
     "jam:way-jam",
     "training:way-training"
@@ -139031,7 +139031,7 @@
   ],
   "continue race rooms:true": [
    [
-    "continue:way-race-5inch",
+    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -139055,7 +139055,7 @@
   "continue free rooms:false": [
    [
     "race-5inch:way-race-5inch",
-    "continue:way-freestyle-wing1000",
+    "freestyle-wing1000:way-freestyle-wing1000",
     "training:way-training"
    ],
    [
