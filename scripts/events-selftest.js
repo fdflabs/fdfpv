@@ -92,6 +92,11 @@ console.log('typed and append only');
   check('the flight ends once, at its sim time', log.ended && log.endSimMs === 2000);
   check('nothing is appended after it ends', throws(() => log.append('crash', 2100)));
 }
+{
+  const log = new EventLog();
+  check('a lap carries its medal, or null on a course without', log.append('lap', 1, { ms: 1, airframe: 'x', medal: 'bronze' }).medal === 'bronze'
+    && log.append('lap', 2, { ms: 1, airframe: 'x', medal: null }).medal === null);
+}
 
 console.log('the room clock');
 {
@@ -146,7 +151,7 @@ class ViaLog {
 
   start(ctx) { this.watch.start(ctx); return []; }
 
-  lap(ms) { return feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe })); }
+  lap(ms) { return feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe, medal: null })); }
 
   tick(state) {
     this.simMs = state.simMs;
@@ -303,7 +308,8 @@ console.log('the shell\'s producers');
   check('Progress feeds RunWatch gate and lap from the log, and tells it every touch',
     ui.includes("feedRunWatch(this.watch, this.event('gate'))")
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
-    && ui.includes("feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe }))"));
+    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal });\n    const done = feedRunWatch(this.watch, lapped);"));
+  check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
   check('and logs a crash and a landing from its tick',
     ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe })"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));

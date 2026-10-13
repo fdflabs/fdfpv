@@ -323,9 +323,10 @@ export class LessonWatch {
     this.streak = 0;
   }
 
-  /* A lap closed: `ms` its time, `ghostMs` the ghost's lap or null,
-   * `medal` the medal it reached or null. */
-  lap({ ms = null, ghostMs = null, medal = null } = {}) {
+  /* A lap closed: `lap` its event in the flight's log (src/game/events.js:
+   * its `ms` and the `medal` it reached or null), `ghostMs` the ghost's
+   * lap or null, which the log does not carry. */
+  lap({ ms = null, medal = null } = {}, ghostMs = null) {
     const s = this.current;
     if (!s) {
       return this.passed;

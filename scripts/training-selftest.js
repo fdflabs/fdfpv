@@ -84,7 +84,7 @@ function fly(id, segments, { laps = [], gates = '' } = {}) {
     if (lap.rim) {
       w.rim();
     }
-    w.lap(lap);
+    w.lap(lap, lap.ghostMs ?? null);
   }
   return w.passed;
 }
