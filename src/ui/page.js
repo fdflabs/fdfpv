@@ -434,9 +434,18 @@ const PAGES = {
     scroll: true,
     hint: ESC_STORED,
   },
+  /* The Controller screen under the Hangar (src/ui/controller.js). */
+  controller: {
+    classes: 'screen-page screen-pilot screen-controller',
+    title: 'controller.title',
+    lede: ['rates-lede', 'controller.lede'],
+    menu: 'controller',
+    scroll: true,
+    hint: ESC_STORED,
+  },
   /* The new pilot's controller question (src/ui/flywith.js). */
   flywith: {
-    classes: 'screen-page screen-pilot',
+    classes: 'screen-page screen-pilot screen-flywith',
     title: 'flywith.title',
     lede: ['rates-lede', 'flywith.lede'],
     menu: 'flywith',
@@ -802,7 +811,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'flywith'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

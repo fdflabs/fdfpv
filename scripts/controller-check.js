@@ -14,6 +14,16 @@
  *     choosing it opens the calibration wizard, and Escape out of the
  *     wizard is the title.
  *  4. Escape on the question skips it, and the skip is kept.
+ *  5. The Controller screen: Settings' Controller row opens it and Back
+ *     returns to Settings; the Hangar's Controller card opens it and Back
+ *     returns to the Hangar; Settings no longer lists what moved.
+ *  6. A standard gamepad: recognised as one, with Expo; a dead zone of 2
+ *     percent from the arrow key flies at once (a stick at 1.5 percent
+ *     reads zero, 51 percent reads 50), is stored with the device, and
+ *     leaves the built-in layout uncalibrated.
+ *  7. An EdgeTX radio: recognised, no Expo, the built-in layout greyed
+ *     until calibrated; the wizard opened here comes back here, and Keys
+ *     and buttons backs out to here.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -161,6 +171,80 @@ try {
   await page.until("window.__ui.screen !== 'flywith'", 5000);
   check('Escape skips to the title', await page.evaluate("window.__ui.screen === 'title'"), await page.evaluate('window.__ui.screen'));
   check('the skip is kept', (await answer()) === 'skip');
+
+  console.log('5. the Controller screen, from Settings and from the Hangar');
+  await page.evaluate("window.__ui.show('pilot'); true");
+  await page.until("window.__ui.screen === 'pilot'", 5000);
+  const settingsActions = await page.evaluate("JSON.stringify(window.__ui.items().map((it) => it.action).filter(Boolean))");
+  check('Settings lists none of what moved', !['choosepad', 'calibrate', 'calibrate-check', 'controls'].some((a) => settingsActions.includes(`"${a}"`)), settingsActions);
+  check('Settings has a Controller row, clicked', await clickRow("it.action === 'controller'"));
+  await page.until("window.__ui.screen === 'controller'", 5000);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen !== 'controller'", 5000);
+  check('Back is Settings', await page.evaluate("window.__ui.screen === 'pilot'"), await page.evaluate('window.__ui.screen'));
+  await page.evaluate("window.__ui.show('title'); window.__ui.craftGate = true; window.__ui.mode = null; window.__ui.openHub('hangar'); true");
+  const cards = await page.evaluate("JSON.stringify(window.__ui.hangarCards().map((c) => c.action))");
+  check('the Hangar has one Controller card and no joystick or sticks cards',
+    cards.includes('"controller"') && !cards.includes('"choosepad"') && !cards.includes('"calibrate"'), cards);
+  await page.evaluate("window.__ui.act('controller'); true");
+  await page.until("window.__ui.screen === 'controller'", 5000);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen !== 'controller'", 5000);
+  check('Back is the Hangar', await page.evaluate("window.__ui.screen === 'title' && window.__ui.hub === 'hangar'"), await page.evaluate('`${window.__ui.screen} ${window.__ui.hub}`'));
+
+  console.log('6. a gamepad: recognised, its dead zone and expo');
+  await page.evaluate(`window.__pads.length = 0; window.__pads.push(${JSON.stringify(PADS.gamepad)}); true`);
+  await page.until("window.__ui.padInfo.device === 'gamepad'", 10000);
+  await settle();
+  await page.evaluate("window.__ui.act('controller'); true");
+  await page.until("window.__ui.screen === 'controller'", 5000);
+  const row = (action) => page.evaluate(`JSON.stringify(window.__ui.items().find((it) => ${action}) || null)`);
+  const recognised = JSON.parse(await row("it.label === 'Recognised as'"));
+  check('recognised as a standard gamepad', recognised && recognised.value === 'Standard gamepad', JSON.stringify(recognised));
+  check('it has an Expo row', JSON.parse(await row("it.label === 'Expo'")) !== null);
+  const dz = await page.evaluate("window.__ui.items().findIndex((it) => it.label === 'Dead zone')");
+  await page.evaluate(`window.__ui.setCursor(${dz}); true`);
+  await page.tap('ArrowRight');
+  await page.until('window.__input.feel.deadZone === 2', 5000);
+  check('the arrow key sets a 2 percent dead zone', true);
+  check('the row says so', JSON.parse(await row("it.label === 'Dead zone'")).value === '2%');
+  const stick = async (v) => {
+    await page.evaluate(`(() => { const p = window.__pads[0]; p.axes[2] = ${v}; p.timestamp += 1; return true; })()`);
+    await page.sleep(150);
+    return page.evaluate('window.__input.channels.roll');
+  };
+  const small = await stick(0.015);
+  const half = await stick(0.51);
+  await stick(0);
+  check('a stick at 1.5 percent reads zero', small === 0, String(small));
+  check('a stick at 51 percent reads 50', Math.abs(half - 0.5) < 1e-9, String(half));
+  const stored = await page.evaluate("localStorage.getItem('fdfpv.stick_maps.v2')");
+  check('stored with the device, beside its calibrations', /"feel":\{"045e:0b13:Xbox Wireless Controller":\{"deadZone":2,"expo":0\}\}/.test(stored || ''), stored);
+  check('and its built-in layout is still uncalibrated', await page.evaluate('window.__input.map.stored === false'));
+
+  console.log('7. a radio: no expo, the wizard and keys come back here');
+  await page.evaluate(`window.__pads.length = 0; window.__pads.push(${JSON.stringify(PADS.radio)}); true`);
+  await page.until("window.__ui.padInfo.device === 'radio'", 10000);
+  await settle();
+  if (await page.evaluate("window.__ui.screen !== 'controller'")) {
+    await page.evaluate("window.__ui.act('controller'); true");
+    await page.until("window.__ui.screen === 'controller'", 5000);
+  }
+  const radioRow = JSON.parse(await row("it.label === 'Recognised as'"));
+  check('recognised as an EdgeTX or OpenTX radio', radioRow && radioRow.value === 'EdgeTX or OpenTX radio', JSON.stringify(radioRow));
+  check('no Expo row on a radio', JSON.parse(await row("it.label === 'Expo'")) === null);
+  const builtin = JSON.parse(await row("it.action === 'controller-builtin'"));
+  check('the built-in layout is greyed until calibrated', builtin && builtin.disabled === true && builtin.value === 'In use', JSON.stringify(builtin));
+  check('Calibrate sticks, clicked', await clickRow("it.action === 'calibrate'"));
+  await page.until("window.__ui.screen === 'calibrate'", 5000);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen !== 'calibrate'", 5000);
+  check('Escape out of the wizard is the Controller', await page.evaluate("window.__ui.screen === 'controller'"), await page.evaluate('window.__ui.screen'));
+  check('Keys and buttons, clicked', await clickRow("it.action === 'controls'"));
+  await page.until("window.__ui.screen === 'controls'", 5000);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen !== 'controls'", 5000);
+  check('Back from Keys and buttons is the Controller', await page.evaluate("window.__ui.screen === 'controller'"), await page.evaluate('window.__ui.screen'));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));

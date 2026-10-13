@@ -15459,6 +15459,19 @@ export async function boot({
 
   const sayNoRadio = () => flashNotice(str('main.no_radio_or_gamepad_found_plug_2'), 3200);
 
+  /* The Controller screen's feel rows and its Built-in layout row
+   * (src/ui/controller.js): the input keeps them per device. */
+  ui.onController = (change) => {
+    if (change.builtIn) {
+      if (input.useBuiltInMap()) {
+        flashNotice(str('controller.builtin_done'), 2800);
+      }
+    } else if (!input.setFeel(change)) {
+      flashNotice(str('controller.feel_unsaved'), 5200);
+    }
+    ui.setPadInfo(input.padSummary());
+    ui.renderMenu();
+  };
   const openCalibrate = () => {
     if (ui.screen !== 'calibrate') {
       calibrateReturn = ui.screen;
@@ -17718,7 +17731,7 @@ export async function boot({
     if (rcPending.length > 1024) {
       rcPending.splice(0, rcPending.length - 256);
     }
-    /* Settings > Controls waiting for a pad button takes the pad first. */
+    /* Keys and buttons waiting for a pad button takes the pad first. */
     if (ui.isModal() && !bindPad(ui, input.padHeld())) {
       ui.pollPad(padNav());
     }

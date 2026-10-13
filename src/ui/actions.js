@@ -396,9 +396,10 @@ const ACTIONS = {
     if (ui.onAction) ui.onAction('fly', ui.settings);
   },
   rates(ui) {
-    /* Reached from Settings or Quad, Back returns there; from the bench,
-     * returnTo is left to the pause chain it may be carrying. */
-    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
+    /* Reached from the Controller, Settings or Quad, Back returns there;
+     * from the bench, returnTo is left to the pause chain it may be
+     * carrying. */
+    if (['pilot', 'quad', 'quick', 'controller'].includes(ui.screen)) {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
@@ -408,13 +409,23 @@ const ACTIONS = {
   },
   /* A plane's rates, from the same rows: Back as the quad's Rates. */
   planerates(ui) {
-    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
+    if (['pilot', 'quad', 'quick', 'controller'].includes(ui.screen)) {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
       ui.returnTo = pauseOrTitle(ui);
     }
     ui.show('planerates');
+  },
+  /* The Controller screen, from Settings (Back returns there) or the
+   * Hangar's card. */
+  controller(ui) {
+    ui.controllerFrom = ui.screen === 'pilot' ? 'pilot' : null;
+    if (!ui.controllerFrom) ui.returnTo = pauseOrTitle(ui);
+    ui.show('controller');
+  },
+  'controller-builtin'(ui) {
+    if (ui.onController) ui.onController({ builtIn: true });
   },
   pids(ui) {
     if (ui.screen === 'quad' || ui.screen === 'quick') {
@@ -665,6 +676,12 @@ const BACK_FROM = {
   rates(ui) { return backToOrigin(ui, 'ratesFrom'); },
   planerates(ui) { return backToOrigin(ui, 'ratesFrom'); },
   pids(ui) { return backToOrigin(ui, 'pidsFrom'); },
+  controller(ui) { return backToOrigin(ui, 'controllerFrom'); },
+  /* Keys and buttons is the Controller screen's. */
+  controls(ui) {
+    ui.show('controller');
+    return true;
+  },
 };
 
 function backToOrigin(ui, field) {
@@ -840,7 +857,7 @@ export const actionMethods = {
   },
 
   /* The Hangar's cards: the aircraft, its customising when it has any,
-   * the war's upgrades, the radio (which one, then its sticks), and how
+   * the war's upgrades, the controller (src/ui/controller.js), and how
    * the sticks fly. */
   hangarCards() {
     const plan = craftSvg(airframeById(this.settings.airframe));
@@ -850,8 +867,7 @@ export const actionMethods = {
       card('aircraft', str('ui.aircraft'), plan, str('hub.aircraft_blurb'), 'hangar-aircraft'),
       ...(customisable(this.settings.airframe) ? [card('customise', str('hangar.customise'), plan, str(airframeById(this.settings.airframe).fixedWing ? 'hangar.row_note' : 'hangar.row_note_quad'), 'customise')] : []),
       card('upgrades', str('hub.upgrades'), null, str('hub.upgrades_blurb'), 'campaign-shop'),
-      card('joystick', str('ui.choose_joystick'), null, str('hub.joystick_blurb'), 'choosepad'),
-      card('sticks', str('ui.calibrate_sticks'), null, str('hub.sticks_blurb'), 'calibrate'),
+      card('controller', str('controller.title'), null, str('controller.card_blurb'), 'controller'),
       card('howto', str('ui.how_to_fly'), null, str('ui.the_sticks_live_and_what_the'), 'howto'),
     ];
   },

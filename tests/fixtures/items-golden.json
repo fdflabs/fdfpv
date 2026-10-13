@@ -88,14 +88,9 @@
        "key": "hangar-upgrades"
       },
       {
-       "label": "Choose joystick",
-       "action": "choosepad",
-       "key": "hangar-joystick"
-      },
-      {
-       "label": "Calibrate sticks",
-       "action": "calibrate",
-       "key": "hangar-sticks"
+       "label": "Controller",
+       "action": "controller",
+       "key": "hangar-controller"
       },
       {
        "label": "How to fly",
@@ -215,14 +210,9 @@
        "key": "hangar-upgrades"
       },
       {
-       "label": "Choose joystick",
-       "action": "choosepad",
-       "key": "hangar-joystick"
-      },
-      {
-       "label": "Calibrate sticks",
-       "action": "calibrate",
-       "key": "hangar-sticks"
+       "label": "Controller",
+       "action": "controller",
+       "key": "hangar-controller"
       },
       {
        "label": "How to fly",
@@ -475,21 +465,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-choosepad",
-     "label": "Choose joystick",
-     "action": "choosepad",
-     "card": "hangar-joystick",
-     "blurb": "Which radio or gamepad flies: move the one you want to use.",
-     "facts": [],
-     "svg": null,
-     "drives": {}
-    },
-    {
-     "id": "title:a-calibrate",
-     "label": "Calibrate sticks",
-     "action": "calibrate",
-     "card": "hangar-sticks",
-     "blurb": "A radio in joystick mode or a gamepad: map and centre its sticks.",
+     "id": "title:a-controller",
+     "label": "Controller",
+     "action": "controller",
+     "card": "hangar-controller",
+     "blurb": "Choose joystick, Calibrate sticks, how the sticks feel and fly, and the keys: everything between your hands and the aircraft.",
      "facts": [],
      "svg": null,
      "drives": {}
@@ -505,7 +485,7 @@
      "drives": {}
     },
     {
-     "id": "title:a-calibrate~2",
+     "id": "title:a-calibrate",
      "label": "This browser cannot see your yaw stick",
      "note": "The axis it guessed was yaw has not moved once, while a stick it does not know about has been swept end to end. That is a radio reporting its channels in some order other than the one being guessed, and the part of it you have lost is yaw. Calibrating takes about a minute and tells this page which axis is which.",
      "action": "calibrate",
@@ -602,14 +582,9 @@
        "key": "hangar-upgrades"
       },
       {
-       "label": "Choose joystick",
-       "action": "choosepad",
-       "key": "hangar-joystick"
-      },
-      {
-       "label": "Calibrate sticks",
-       "action": "calibrate",
-       "key": "hangar-sticks"
+       "label": "Controller",
+       "action": "controller",
+       "key": "hangar-controller"
       },
       {
        "label": "How to fly",
@@ -4325,7 +4300,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -4766,7 +4741,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -5195,7 +5170,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -5640,7 +5615,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -6081,7 +6056,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -6522,7 +6497,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 400 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -6963,7 +6938,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Classic, 42 roll and pitch, 42 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -7396,7 +7371,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -7837,7 +7812,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -8278,7 +8253,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -8850,105 +8825,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Keyboard",
-     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "Off",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 2",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -8982,14 +8864,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -10014,105 +9888,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Taranis",
-     "note": "One device is plugged in, Taranis. Open this to confirm it, or to switch to the keyboard.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "Off",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 2",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -10146,14 +9927,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -11178,105 +10951,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Keyboard",
-     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "Off",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 2",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -11310,14 +10990,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -12342,105 +12014,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Keyboard",
-     "note": "3 devices are plugged in. Move the one you want. Windows lists them in Game Controllers order; this screen is how you pick.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "Off",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 2",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -12474,14 +12053,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -13491,105 +13062,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Radio",
-     "note": "One device is plugged in, Radio. Open this to confirm it, or to switch to the keyboard.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "Off",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 2",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -13623,14 +13101,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -14648,273 +14118,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Keyboard",
-     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "On",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "mouseFlight": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "mouseFlight": false
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:mouse-sensitivity",
-     "label": "Mouse sensitivity",
-     "value": "150%",
-     "note": "How far the mouse travels for a full stick. At 100 percent that is 300 counts, a few centimetres on most mice; higher needs less travel.",
-     "current": 150,
-     "options": [
-      {
-       "value": 50,
-       "label": "50%"
-      },
-      {
-       "value": 75,
-       "label": "75%"
-      },
-      {
-       "value": 100,
-       "label": "100%"
-      },
-      {
-       "value": 150,
-       "label": "150%"
-      },
-      {
-       "value": 200,
-       "label": "200%"
-      },
-      {
-       "value": 300,
-       "label": "300%"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseSens": 200
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "mouseSens": 100
-       }
-      },
-      "pick(\"200\")": {
-       "settings": {
-        "mouseSens": 200
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:mouse-expo",
-     "label": "Mouse expo",
-     "value": "30%",
-     "note": "Softens the middle of the mouse stick and keeps its ends, for fine corrections without losing full stick. The rates and expo on the Rates screen still apply on top.",
-     "current": 30,
-     "options": [
-      {
-       "value": 0,
-       "label": "0%"
-      },
-      {
-       "value": 25,
-       "label": "25%"
-      },
-      {
-       "value": 50,
-       "label": "50%"
-      },
-      {
-       "value": 75,
-       "label": "75%"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseExpo": 25
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "mouseExpo": 75
-       }
-      },
-      "pick(\"0\")": {
-       "settings": {
-        "mouseExpo": 0
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:invert-mouse-pitch",
-     "label": "Invert mouse pitch",
-     "value": "On",
-     "note": "Off: push the mouse forward and the nose goes down, like a stick. On: forward lifts the nose, like a game camera.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "mouseInvert": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "mouseInvert": false
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:mouse-stick",
-     "label": "Mouse stick",
-     "value": "Stays put",
-     "note": "Springs back suits a quad in Acro: moving the mouse turns it and stopping holds the attitude. Stays put suits Angle and every plane, where a bank or a turn is a stick held over; the middle button or Z centres it. Auto picks springs back for a quad in Acro and stays put for everything else.",
-     "current": "hold",
-     "options": [
-      {
-       "value": "auto",
-       "label": "Auto"
-      },
-      {
-       "value": "spring",
-       "label": "Springs back"
-      },
-      {
-       "value": "hold",
-       "label": "Stays put"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseCentre": "auto"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "mouseCentre": "spring"
-       }
-      },
-      "pick(\"auto\")": {
-       "settings": {
-        "mouseCentre": "auto"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 1",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 1,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 2
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 4
-       }
-      },
-      "pick(\"2\")": {
-       "settings": {
-        "stickMode": 2
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -14948,14 +14157,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -15976,105 +15177,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Keyboard",
-     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "Off",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 2",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -16108,14 +15216,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -17116,105 +16216,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Choose joystick",
+     "id": "pilot:a-controller",
+     "label": "Controller",
      "value": "Keyboard",
-     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
-     "action": "choosepad",
+     "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:mouse-flight",
-     "label": "Mouse flight",
-     "value": "Off",
-     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controls",
-     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrate sticks",
-     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Check sticks",
-     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:stick-mode",
-     "label": "Stick mode",
-     "value": "Mode 2",
-     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Mode 1"
-      },
-      {
-       "value": 2,
-       "label": "Mode 2"
-      },
-      {
-       "value": 3,
-       "label": "Mode 3"
-      },
-      {
-       "value": 4,
-       "label": "Mode 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:show-sticks",
@@ -17248,14 +16255,6 @@
      "value": "None",
      "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -18157,6 +17156,1162 @@
      "id": "pilot:a-back",
      "label": "Back",
      "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-none": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-device",
+     "label": "Device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Choose joystick",
+     "value": "Keyboard",
+     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:recognised-as",
+     "label": "Recognised as",
+     "value": "Nothing plugged in",
+     "note": "Plug in a radio in joystick mode or a gamepad and move a stick. Until then the keyboard flies.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrate sticks",
+     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Check sticks",
+     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:stick-mode",
+     "label": "Stick mode",
+     "value": "Mode 2",
+     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Mode 1"
+      },
+      {
+       "value": 2,
+       "label": "Mode 2"
+      },
+      {
+       "value": 3,
+       "label": "Mode 3"
+      },
+      {
+       "value": 4,
+       "label": "Mode 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-how-the-sticks-fly",
+     "label": "How the sticks fly",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-keyboard-and-mouse",
+     "label": "Keyboard and mouse",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Keys and buttons",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:mouse-flight",
+     "label": "Mouse flight",
+     "value": "Off",
+     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-mouse": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-device",
+     "label": "Device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Choose joystick",
+     "value": "Keyboard",
+     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:recognised-as",
+     "label": "Recognised as",
+     "value": "Nothing plugged in",
+     "note": "Plug in a radio in joystick mode or a gamepad and move a stick. Until then the keyboard flies.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrate sticks",
+     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Check sticks",
+     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:stick-mode",
+     "label": "Stick mode",
+     "value": "Mode 1",
+     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+     "current": 1,
+     "options": [
+      {
+       "value": 1,
+       "label": "Mode 1"
+      },
+      {
+       "value": 2,
+       "label": "Mode 2"
+      },
+      {
+       "value": 3,
+       "label": "Mode 3"
+      },
+      {
+       "value": 4,
+       "label": "Mode 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 2
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 4
+       }
+      },
+      "pick(\"2\")": {
+       "settings": {
+        "stickMode": 2
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-how-the-sticks-fly",
+     "label": "How the sticks fly",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-keyboard-and-mouse",
+     "label": "Keyboard and mouse",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Keys and buttons",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:mouse-flight",
+     "label": "Mouse flight",
+     "value": "On",
+     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "mouseFlight": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "mouseFlight": false
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:mouse-sensitivity",
+     "label": "Mouse sensitivity",
+     "value": "150%",
+     "note": "How far the mouse travels for a full stick. At 100 percent that is 300 counts, a few centimetres on most mice; higher needs less travel.",
+     "current": 150,
+     "options": [
+      {
+       "value": 50,
+       "label": "50%"
+      },
+      {
+       "value": 75,
+       "label": "75%"
+      },
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 150,
+       "label": "150%"
+      },
+      {
+       "value": 200,
+       "label": "200%"
+      },
+      {
+       "value": 300,
+       "label": "300%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseSens": 200
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "mouseSens": 100
+       }
+      },
+      "pick(\"200\")": {
+       "settings": {
+        "mouseSens": 200
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:mouse-expo",
+     "label": "Mouse expo",
+     "value": "30%",
+     "note": "Softens the middle of the mouse stick and keeps its ends, for fine corrections without losing full stick. The rates and expo on the Rates screen still apply on top.",
+     "current": 30,
+     "options": [
+      {
+       "value": 0,
+       "label": "0%"
+      },
+      {
+       "value": 25,
+       "label": "25%"
+      },
+      {
+       "value": 50,
+       "label": "50%"
+      },
+      {
+       "value": 75,
+       "label": "75%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseExpo": 25
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "mouseExpo": 75
+       }
+      },
+      "pick(\"0\")": {
+       "settings": {
+        "mouseExpo": 0
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:invert-mouse-pitch",
+     "label": "Invert mouse pitch",
+     "value": "On",
+     "note": "Off: push the mouse forward and the nose goes down, like a stick. On: forward lifts the nose, like a game camera.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "mouseInvert": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "mouseInvert": false
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:mouse-stick",
+     "label": "Mouse stick",
+     "value": "Stays put",
+     "note": "Springs back suits a quad in Acro: moving the mouse turns it and stopping holds the attitude. Stays put suits Angle and every plane, where a bank or a turn is a stick held over; the middle button or Z centres it. Auto picks springs back for a quad in Acro and stays put for everything else.",
+     "current": "hold",
+     "options": [
+      {
+       "value": "auto",
+       "label": "Auto"
+      },
+      {
+       "value": "spring",
+       "label": "Springs back"
+      },
+      {
+       "value": "hold",
+       "label": "Stays put"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseCentre": "auto"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "mouseCentre": "spring"
+       }
+      },
+      "pick(\"auto\")": {
+       "settings": {
+        "mouseCentre": "auto"
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-radio": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-device",
+     "label": "Device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Choose joystick",
+     "value": "Taranis",
+     "note": "One device is plugged in, Taranis. Open this to confirm it, or to switch to the keyboard.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:recognised-as",
+     "label": "Recognised as",
+     "value": "EdgeTX or OpenTX radio",
+     "note": "Its axes follow the radio's own channel order, so it flies the usual order (AETR) until you calibrate it once.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controller-builtin",
+     "label": "Built-in layout",
+     "value": "Use it",
+     "note": "The layout above, in place of your calibration of this device. Its dead zone and expo stay.",
+     "action": "controller-builtin",
+     "disabled": false,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrate sticks",
+     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Check sticks",
+     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:stick-mode",
+     "label": "Stick mode",
+     "value": "Mode 2",
+     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Mode 1"
+      },
+      {
+       "value": 2,
+       "label": "Mode 2"
+      },
+      {
+       "value": 3,
+       "label": "Mode 3"
+      },
+      {
+       "value": 4,
+       "label": "Mode 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-feel-this-device",
+     "label": "Feel, this device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:dead-zone",
+     "label": "Dead zone",
+     "value": "4%",
+     "note": "How far a stick moves from centre before it counts, for a worn stick that does not rest at zero. The travel past it still reaches full. Kept for this device with its calibration.",
+     "current": 4,
+     "options": [
+      {
+       "value": 0,
+       "label": "Off"
+      },
+      {
+       "value": 2,
+       "label": "2%"
+      },
+      {
+       "value": 4,
+       "label": "4%"
+      },
+      {
+       "value": 6,
+       "label": "6%"
+      },
+      {
+       "value": 8,
+       "label": "8%"
+      },
+      {
+       "value": 10,
+       "label": "10%"
+      },
+      {
+       "value": 15,
+       "label": "15%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"6\")": {}
+     }
+    },
+    {
+     "id": "controller:s-how-the-sticks-fly",
+     "label": "How the sticks fly",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-keyboard-and-mouse",
+     "label": "Keyboard and mouse",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Keys and buttons",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:mouse-flight",
+     "label": "Mouse flight",
+     "value": "Off",
+     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-gamepad": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-device",
+     "label": "Device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Choose joystick",
+     "value": "Joystick 1, Xbox",
+     "note": "One device is plugged in, Joystick 1, Xbox. Open this to confirm it, or to switch to the keyboard.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:recognised-as",
+     "label": "Recognised as",
+     "value": "Standard gamepad",
+     "note": "The browser maps it to the standard layout, so every stick is known and it follows your stick mode with no calibration.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controller-builtin",
+     "label": "Built-in layout",
+     "value": "In use",
+     "note": "The layout above, in place of your calibration of this device. Its dead zone and expo stay.",
+     "action": "controller-builtin",
+     "disabled": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrate sticks",
+     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Check sticks",
+     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:stick-mode",
+     "label": "Stick mode",
+     "value": "Mode 2",
+     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Mode 1"
+      },
+      {
+       "value": 2,
+       "label": "Mode 2"
+      },
+      {
+       "value": 3,
+       "label": "Mode 3"
+      },
+      {
+       "value": 4,
+       "label": "Mode 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-feel-this-device",
+     "label": "Feel, this device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:dead-zone",
+     "label": "Dead zone",
+     "value": "8%",
+     "note": "How far a stick moves from centre before it counts, for a worn stick that does not rest at zero. The travel past it still reaches full. Kept for this device with its calibration.",
+     "current": 8,
+     "options": [
+      {
+       "value": 0,
+       "label": "Off"
+      },
+      {
+       "value": 2,
+       "label": "2%"
+      },
+      {
+       "value": 4,
+       "label": "4%"
+      },
+      {
+       "value": 6,
+       "label": "6%"
+      },
+      {
+       "value": 8,
+       "label": "8%"
+      },
+      {
+       "value": 10,
+       "label": "10%"
+      },
+      {
+       "value": 15,
+       "label": "15%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"10\")": {}
+     }
+    },
+    {
+     "id": "controller:expo",
+     "label": "Expo",
+     "value": "25%",
+     "note": "Softens a thumb stick around the centre and keeps full travel at the ends. A radio sets its own expo, so this is for gamepads.",
+     "current": 25,
+     "options": [
+      {
+       "value": 0,
+       "label": "Off"
+      },
+      {
+       "value": 25,
+       "label": "25%"
+      },
+      {
+       "value": 50,
+       "label": "50%"
+      },
+      {
+       "value": 75,
+       "label": "75%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"50\")": {}
+     }
+    },
+    {
+     "id": "controller:s-how-the-sticks-fly",
+     "label": "How the sticks fly",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-keyboard-and-mouse",
+     "label": "Keyboard and mouse",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Keys and buttons",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:mouse-flight",
+     "label": "Mouse flight",
+     "value": "Off",
+     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-unknown": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-device",
+     "label": "Device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Choose joystick",
+     "value": "Radio",
+     "note": "One device is plugged in, Radio. Open this to confirm it, or to switch to the keyboard.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:recognised-as",
+     "label": "Recognised as",
+     "value": "Unknown device",
+     "note": "Not one the game knows, so it flies the usual radio order (AETR) as a guess until you calibrate it.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controller-builtin",
+     "label": "Built-in layout",
+     "value": "In use",
+     "note": "The layout above, in place of your calibration of this device. Its dead zone and expo stay.",
+     "action": "controller-builtin",
+     "disabled": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrate sticks",
+     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Check sticks",
+     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:stick-mode",
+     "label": "Stick mode",
+     "value": "Mode 2",
+     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Mode 1"
+      },
+      {
+       "value": 2,
+       "label": "Mode 2"
+      },
+      {
+       "value": 3,
+       "label": "Mode 3"
+      },
+      {
+       "value": 4,
+       "label": "Mode 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-feel-this-device",
+     "label": "Feel, this device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:dead-zone",
+     "label": "Dead zone",
+     "value": "Off",
+     "note": "How far a stick moves from centre before it counts, for a worn stick that does not rest at zero. The travel past it still reaches full. Kept for this device with its calibration.",
+     "current": 0,
+     "options": [
+      {
+       "value": 0,
+       "label": "Off"
+      },
+      {
+       "value": 2,
+       "label": "2%"
+      },
+      {
+       "value": 4,
+       "label": "4%"
+      },
+      {
+       "value": 6,
+       "label": "6%"
+      },
+      {
+       "value": 8,
+       "label": "8%"
+      },
+      {
+       "value": 10,
+       "label": "10%"
+      },
+      {
+       "value": 15,
+       "label": "15%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"2\")": {}
+     }
+    },
+    {
+     "id": "controller:s-how-the-sticks-fly",
+     "label": "How the sticks fly",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-keyboard-and-mouse",
+     "label": "Keyboard and mouse",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Keys and buttons",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:mouse-flight",
+     "label": "Mouse flight",
+     "value": "Off",
+     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "flywith-gamepad": {
+   "screen": "flywith",
+   "items": [
+    {
+     "id": "flywith:a-flywith:radio",
+     "label": "A radio",
+     "value": "",
+     "note": "Your own transmitter in joystick mode over USB or Bluetooth: a RadioMaster, or any EdgeTX or OpenTX radio. Next, the wizard maps and centres its sticks.",
+     "action": "flywith:radio",
+     "primary": false,
+     "drives": {}
+    },
+    {
+     "id": "flywith:a-flywith:gamepad",
+     "label": "A gamepad",
+     "value": "Plugged in",
+     "note": "A console controller. Its layout is known, so it flies with no setup. Next, how its sticks fly.",
+     "action": "flywith:gamepad",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "flywith:a-flywith:keys",
+     "label": "Keyboard and mouse",
+     "value": "",
+     "note": "Nothing to plug in. Next, which keys fly.",
+     "action": "flywith:keys",
+     "primary": false,
+     "drives": {}
+    },
+    {
+     "id": "flywith:a-flywith:skip",
+     "label": "Skip",
+     "value": "",
+     "note": "Straight to the game. The Hangar sets up a controller whenever you want.",
+     "action": "flywith:skip",
+     "primary": false,
      "drives": {}
     }
    ]
@@ -26923,14 +27078,9 @@
        "key": "hangar-upgrades"
       },
       {
-       "label": "Elegir joystick",
-       "action": "choosepad",
-       "key": "hangar-joystick"
-      },
-      {
-       "label": "Calibrar sticks",
-       "action": "calibrate",
-       "key": "hangar-sticks"
+       "label": "Controlador",
+       "action": "controller",
+       "key": "hangar-controller"
       },
       {
        "label": "Cómo volar",
@@ -27050,14 +27200,9 @@
        "key": "hangar-upgrades"
       },
       {
-       "label": "Elegir joystick",
-       "action": "choosepad",
-       "key": "hangar-joystick"
-      },
-      {
-       "label": "Calibrar sticks",
-       "action": "calibrate",
-       "key": "hangar-sticks"
+       "label": "Controlador",
+       "action": "controller",
+       "key": "hangar-controller"
       },
       {
        "label": "Cómo volar",
@@ -27310,21 +27455,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-choosepad",
-     "label": "Elegir joystick",
-     "action": "choosepad",
-     "card": "hangar-joystick",
-     "blurb": "Qué radio o mando vuela: mueve el que quieras usar.",
-     "facts": [],
-     "svg": null,
-     "drives": {}
-    },
-    {
-     "id": "title:a-calibrate",
-     "label": "Calibrar sticks",
-     "action": "calibrate",
-     "card": "hangar-sticks",
-     "blurb": "Una radio en modo joystick o un mando: asigna y centra sus palancas.",
+     "id": "title:a-controller",
+     "label": "Controlador",
+     "action": "controller",
+     "card": "hangar-controller",
+     "blurb": "Elegir joystick, Calibrar sticks, cómo se sienten y vuelan las palancas, y las teclas: todo lo que hay entre tus manos y la aeronave.",
      "facts": [],
      "svg": null,
      "drives": {}
@@ -27340,7 +27475,7 @@
      "drives": {}
     },
     {
-     "id": "title:a-calibrate~2",
+     "id": "title:a-calibrate",
      "label": "Este navegador no puede ver tu stick de yaw",
      "note": "El eje que supuso que era yaw no se ha movido ni una vez, mientras que un stick que no conoce se ha recorrido de extremo a extremo. Eso es una radio reportando sus canales en algún orden distinto del que se está adivinando, y la parte que ya tienes perdido es yaw. Calibrar toma alrededor de un minuto y le dice a esta página qué eje es cuál.",
      "action": "calibrate",
@@ -27437,14 +27572,9 @@
        "key": "hangar-upgrades"
       },
       {
-       "label": "Elegir joystick",
-       "action": "choosepad",
-       "key": "hangar-joystick"
-      },
-      {
-       "label": "Calibrar sticks",
-       "action": "calibrate",
-       "key": "hangar-sticks"
+       "label": "Controlador",
+       "action": "controller",
+       "key": "hangar-controller"
       },
       {
        "label": "Cómo volar",
@@ -31160,7 +31290,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -31601,7 +31731,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -32030,7 +32160,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -32475,7 +32605,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -32916,7 +33046,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33357,7 +33487,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 400 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33798,7 +33928,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Clásico, 42 alabeo y cabeceo, 42 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -34231,7 +34361,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -34672,7 +34802,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -35113,7 +35243,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -35685,105 +35815,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Teclado",
-     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "Off",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 2",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -35817,14 +35854,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -36849,105 +36878,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Taranis",
-     "note": "Hay un dispositivo conectado, Taranis. Abre esto para confirmarlo, o para cambiar al teclado.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "Off",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 2",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -36981,14 +36917,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -38013,105 +37941,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Teclado",
-     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "Off",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 2",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -38145,14 +37980,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -39177,105 +39004,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Teclado",
-     "note": "Hay 3 dispositivos conectados. Mueve el que quieras usar. Windows los lista en el orden de Dispositivos de juego; en esta pantalla es donde eliges.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "Off",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 2",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -39309,14 +39043,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -40326,105 +40052,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Radio",
-     "note": "Hay un dispositivo conectado, Radio. Abre esto para confirmarlo, o para cambiar al teclado.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "Off",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 2",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -40458,14 +40091,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -41483,273 +41108,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Teclado",
-     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "On",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "mouseFlight": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "mouseFlight": false
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:sensibilidad-del-rat-n",
-     "label": "Sensibilidad del ratón",
-     "value": "150%",
-     "note": "Cuánto recorre el ratón para un stick completo. Al 100 por ciento son 300 cuentas, unos pocos centímetros en la mayoría de los ratones; más alto necesita menos recorrido.",
-     "current": 150,
-     "options": [
-      {
-       "value": 50,
-       "label": "50%"
-      },
-      {
-       "value": 75,
-       "label": "75%"
-      },
-      {
-       "value": 100,
-       "label": "100%"
-      },
-      {
-       "value": 150,
-       "label": "150%"
-      },
-      {
-       "value": 200,
-       "label": "200%"
-      },
-      {
-       "value": 300,
-       "label": "300%"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseSens": 200
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "mouseSens": 100
-       }
-      },
-      "pick(\"200\")": {
-       "settings": {
-        "mouseSens": 200
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:expo-del-rat-n",
-     "label": "Expo del ratón",
-     "value": "30%",
-     "note": "Suaviza el centro del stick del ratón y conserva sus extremos, para correcciones finas sin perder el stick completo. Los rates y el expo de la pantalla Rates siguen aplicándose encima.",
-     "current": 30,
-     "options": [
-      {
-       "value": 0,
-       "label": "0%"
-      },
-      {
-       "value": 25,
-       "label": "25%"
-      },
-      {
-       "value": 50,
-       "label": "50%"
-      },
-      {
-       "value": 75,
-       "label": "75%"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseExpo": 25
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "mouseExpo": 75
-       }
-      },
-      "pick(\"0\")": {
-       "settings": {
-        "mouseExpo": 0
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:invertir-cabeceo-del-rat-n",
-     "label": "Invertir cabeceo del ratón",
-     "value": "On",
-     "note": "Desactivado: empuja el ratón hacia adelante y el morro baja, como un stick. Activado: adelante levanta el morro, como una cámara de juego.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "mouseInvert": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "mouseInvert": false
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:stick-del-rat-n",
-     "label": "Stick del ratón",
-     "value": "Se queda",
-     "note": "Vuelve al centro va bien con un quad en Acro: mover el ratón lo gira y parar mantiene la actitud. Se queda va bien con Angle y con todos los aviones, donde un alabeo o un giro es un stick sostenido; el botón central o Z lo centra. Auto elige vuelve al centro para un quad en Acro y se queda para todo lo demás.",
-     "current": "hold",
-     "options": [
-      {
-       "value": "auto",
-       "label": "Auto"
-      },
-      {
-       "value": "spring",
-       "label": "Vuelve al centro"
-      },
-      {
-       "value": "hold",
-       "label": "Se queda"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseCentre": "auto"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "mouseCentre": "spring"
-       }
-      },
-      "pick(\"auto\")": {
-       "settings": {
-        "mouseCentre": "auto"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 1",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 1,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 2
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 4
-       }
-      },
-      "pick(\"2\")": {
-       "settings": {
-        "stickMode": 2
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -41783,14 +41147,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -42811,105 +42167,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Teclado",
-     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "Off",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 2",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -42943,14 +42206,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -43951,105 +43206,12 @@
      "drives": {}
     },
     {
-     "id": "pilot:a-choosepad",
-     "label": "Elegir joystick",
+     "id": "pilot:a-controller",
+     "label": "Controlador",
      "value": "Teclado",
-     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
-     "action": "choosepad",
+     "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
+     "action": "controller",
      "drives": {}
-    },
-    {
-     "id": "pilot:vuelo-con-rat-n",
-     "label": "Vuelo con ratón",
-     "value": "Off",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "mouseFlight": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "mouseFlight": true
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:a-controls",
-     "label": "Controles",
-     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
-     "action": "controls",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate",
-     "label": "Calibrar sticks",
-     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
-     "action": "calibrate",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-calibrate-check",
-     "label": "Comprobar sticks",
-     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
-     "action": "calibrate-check",
-     "drives": {}
-    },
-    {
-     "id": "pilot:modo-de-sticks",
-     "label": "Modo de sticks",
-     "value": "Modo 2",
-     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-     "current": 2,
-     "options": [
-      {
-       "value": 1,
-       "label": "Modo 1"
-      },
-      {
-       "value": 2,
-       "label": "Modo 2"
-      },
-      {
-       "value": 3,
-       "label": "Modo 3"
-      },
-      {
-       "value": 4,
-       "label": "Modo 4"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "stickMode": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "stickMode": 1
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "stickMode": 3
-       }
-      }
-     }
     },
     {
      "id": "pilot:mostrar-sticks",
@@ -44083,14 +43245,6 @@
      "value": "Ninguna",
      "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
      "action": "comparesticks",
-     "drives": {}
-    },
-    {
-     "id": "pilot:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
      "drives": {}
     },
     {
@@ -44992,6 +44146,1162 @@
      "id": "pilot:a-back",
      "label": "Volver",
      "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-none": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-dispositivo",
+     "label": "Dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Elegir joystick",
+     "value": "Teclado",
+     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:reconocido-como",
+     "label": "Reconocido como",
+     "value": "Nada conectado",
+     "note": "Conecta una radio en modo joystick o un mando y mueve una palanca. Mientras tanto vuela el teclado.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrar sticks",
+     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Comprobar sticks",
+     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:modo-de-sticks",
+     "label": "Modo de sticks",
+     "value": "Modo 2",
+     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Modo 1"
+      },
+      {
+       "value": 2,
+       "label": "Modo 2"
+      },
+      {
+       "value": 3,
+       "label": "Modo 3"
+      },
+      {
+       "value": 4,
+       "label": "Modo 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-c-mo-vuelan-las-palancas",
+     "label": "Cómo vuelan las palancas",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-teclado-y-rat-n",
+     "label": "Teclado y ratón",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Teclas y botones",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:vuelo-con-rat-n",
+     "label": "Vuelo con ratón",
+     "value": "Off",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-mouse": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-dispositivo",
+     "label": "Dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Elegir joystick",
+     "value": "Teclado",
+     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:reconocido-como",
+     "label": "Reconocido como",
+     "value": "Nada conectado",
+     "note": "Conecta una radio en modo joystick o un mando y mueve una palanca. Mientras tanto vuela el teclado.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrar sticks",
+     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Comprobar sticks",
+     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:modo-de-sticks",
+     "label": "Modo de sticks",
+     "value": "Modo 1",
+     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+     "current": 1,
+     "options": [
+      {
+       "value": 1,
+       "label": "Modo 1"
+      },
+      {
+       "value": 2,
+       "label": "Modo 2"
+      },
+      {
+       "value": 3,
+       "label": "Modo 3"
+      },
+      {
+       "value": 4,
+       "label": "Modo 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 2
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 4
+       }
+      },
+      "pick(\"2\")": {
+       "settings": {
+        "stickMode": 2
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-c-mo-vuelan-las-palancas",
+     "label": "Cómo vuelan las palancas",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-teclado-y-rat-n",
+     "label": "Teclado y ratón",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Teclas y botones",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:vuelo-con-rat-n",
+     "label": "Vuelo con ratón",
+     "value": "On",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "mouseFlight": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "mouseFlight": false
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:sensibilidad-del-rat-n",
+     "label": "Sensibilidad del ratón",
+     "value": "150%",
+     "note": "Cuánto recorre el ratón para un stick completo. Al 100 por ciento son 300 cuentas, unos pocos centímetros en la mayoría de los ratones; más alto necesita menos recorrido.",
+     "current": 150,
+     "options": [
+      {
+       "value": 50,
+       "label": "50%"
+      },
+      {
+       "value": 75,
+       "label": "75%"
+      },
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 150,
+       "label": "150%"
+      },
+      {
+       "value": 200,
+       "label": "200%"
+      },
+      {
+       "value": 300,
+       "label": "300%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseSens": 200
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "mouseSens": 100
+       }
+      },
+      "pick(\"200\")": {
+       "settings": {
+        "mouseSens": 200
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:expo-del-rat-n",
+     "label": "Expo del ratón",
+     "value": "30%",
+     "note": "Suaviza el centro del stick del ratón y conserva sus extremos, para correcciones finas sin perder el stick completo. Los rates y el expo de la pantalla Rates siguen aplicándose encima.",
+     "current": 30,
+     "options": [
+      {
+       "value": 0,
+       "label": "0%"
+      },
+      {
+       "value": 25,
+       "label": "25%"
+      },
+      {
+       "value": 50,
+       "label": "50%"
+      },
+      {
+       "value": 75,
+       "label": "75%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseExpo": 25
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "mouseExpo": 75
+       }
+      },
+      "pick(\"0\")": {
+       "settings": {
+        "mouseExpo": 0
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:invertir-cabeceo-del-rat-n",
+     "label": "Invertir cabeceo del ratón",
+     "value": "On",
+     "note": "Desactivado: empuja el ratón hacia adelante y el morro baja, como un stick. Activado: adelante levanta el morro, como una cámara de juego.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "mouseInvert": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "mouseInvert": false
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:stick-del-rat-n",
+     "label": "Stick del ratón",
+     "value": "Se queda",
+     "note": "Vuelve al centro va bien con un quad en Acro: mover el ratón lo gira y parar mantiene la actitud. Se queda va bien con Angle y con todos los aviones, donde un alabeo o un giro es un stick sostenido; el botón central o Z lo centra. Auto elige vuelve al centro para un quad en Acro y se queda para todo lo demás.",
+     "current": "hold",
+     "options": [
+      {
+       "value": "auto",
+       "label": "Auto"
+      },
+      {
+       "value": "spring",
+       "label": "Vuelve al centro"
+      },
+      {
+       "value": "hold",
+       "label": "Se queda"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseCentre": "auto"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "mouseCentre": "spring"
+       }
+      },
+      "pick(\"auto\")": {
+       "settings": {
+        "mouseCentre": "auto"
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-radio": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-dispositivo",
+     "label": "Dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Elegir joystick",
+     "value": "Taranis",
+     "note": "Hay un dispositivo conectado, Taranis. Abre esto para confirmarlo, o para cambiar al teclado.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:reconocido-como",
+     "label": "Reconocido como",
+     "value": "Radio EdgeTX u OpenTX",
+     "note": "Sus ejes siguen el orden de canales de la propia radio, así que vuela el orden habitual (AETR) hasta que la calibres una vez.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controller-builtin",
+     "label": "Disposición de fábrica",
+     "value": "Usarla",
+     "note": "La disposición de arriba, en lugar de tu calibración de este dispositivo. Su zona muerta y su expo se mantienen.",
+     "action": "controller-builtin",
+     "disabled": false,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrar sticks",
+     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Comprobar sticks",
+     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:modo-de-sticks",
+     "label": "Modo de sticks",
+     "value": "Modo 2",
+     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Modo 1"
+      },
+      {
+       "value": 2,
+       "label": "Modo 2"
+      },
+      {
+       "value": 3,
+       "label": "Modo 3"
+      },
+      {
+       "value": 4,
+       "label": "Modo 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-sensaci-n-este-dispositivo",
+     "label": "Sensación, este dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:zona-muerta",
+     "label": "Zona muerta",
+     "value": "4%",
+     "note": "Cuánto se mueve una palanca desde el centro antes de contar, para una palanca gastada que no reposa en cero. El recorrido pasado ese punto sigue llegando al máximo. Se guarda para este dispositivo con su calibración.",
+     "current": 4,
+     "options": [
+      {
+       "value": 0,
+       "label": "Apagada"
+      },
+      {
+       "value": 2,
+       "label": "2%"
+      },
+      {
+       "value": 4,
+       "label": "4%"
+      },
+      {
+       "value": 6,
+       "label": "6%"
+      },
+      {
+       "value": 8,
+       "label": "8%"
+      },
+      {
+       "value": 10,
+       "label": "10%"
+      },
+      {
+       "value": 15,
+       "label": "15%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"6\")": {}
+     }
+    },
+    {
+     "id": "controller:s-c-mo-vuelan-las-palancas",
+     "label": "Cómo vuelan las palancas",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-teclado-y-rat-n",
+     "label": "Teclado y ratón",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Teclas y botones",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:vuelo-con-rat-n",
+     "label": "Vuelo con ratón",
+     "value": "Off",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-gamepad": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-dispositivo",
+     "label": "Dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Elegir joystick",
+     "value": "Joystick 1, Xbox",
+     "note": "Hay un dispositivo conectado, Joystick 1, Xbox. Abre esto para confirmarlo, o para cambiar al teclado.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:reconocido-como",
+     "label": "Reconocido como",
+     "value": "Mando estándar",
+     "note": "El navegador lo asigna a la disposición estándar, así que cada palanca es conocida y sigue tu modo de palancas sin calibrar.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controller-builtin",
+     "label": "Disposición de fábrica",
+     "value": "En uso",
+     "note": "La disposición de arriba, en lugar de tu calibración de este dispositivo. Su zona muerta y su expo se mantienen.",
+     "action": "controller-builtin",
+     "disabled": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrar sticks",
+     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Comprobar sticks",
+     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:modo-de-sticks",
+     "label": "Modo de sticks",
+     "value": "Modo 2",
+     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Modo 1"
+      },
+      {
+       "value": 2,
+       "label": "Modo 2"
+      },
+      {
+       "value": 3,
+       "label": "Modo 3"
+      },
+      {
+       "value": 4,
+       "label": "Modo 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-sensaci-n-este-dispositivo",
+     "label": "Sensación, este dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:zona-muerta",
+     "label": "Zona muerta",
+     "value": "8%",
+     "note": "Cuánto se mueve una palanca desde el centro antes de contar, para una palanca gastada que no reposa en cero. El recorrido pasado ese punto sigue llegando al máximo. Se guarda para este dispositivo con su calibración.",
+     "current": 8,
+     "options": [
+      {
+       "value": 0,
+       "label": "Apagada"
+      },
+      {
+       "value": 2,
+       "label": "2%"
+      },
+      {
+       "value": 4,
+       "label": "4%"
+      },
+      {
+       "value": 6,
+       "label": "6%"
+      },
+      {
+       "value": 8,
+       "label": "8%"
+      },
+      {
+       "value": 10,
+       "label": "10%"
+      },
+      {
+       "value": 15,
+       "label": "15%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"10\")": {}
+     }
+    },
+    {
+     "id": "controller:expo",
+     "label": "Expo",
+     "value": "25%",
+     "note": "Suaviza una palanca de pulgar cerca del centro y mantiene todo el recorrido en los extremos. Una radio pone su propia expo, así que esto es para mandos.",
+     "current": 25,
+     "options": [
+      {
+       "value": 0,
+       "label": "Apagada"
+      },
+      {
+       "value": 25,
+       "label": "25%"
+      },
+      {
+       "value": 50,
+       "label": "50%"
+      },
+      {
+       "value": 75,
+       "label": "75%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"50\")": {}
+     }
+    },
+    {
+     "id": "controller:s-c-mo-vuelan-las-palancas",
+     "label": "Cómo vuelan las palancas",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-teclado-y-rat-n",
+     "label": "Teclado y ratón",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Teclas y botones",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:vuelo-con-rat-n",
+     "label": "Vuelo con ratón",
+     "value": "Off",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-unknown": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-dispositivo",
+     "label": "Dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Elegir joystick",
+     "value": "Radio",
+     "note": "Hay un dispositivo conectado, Radio. Abre esto para confirmarlo, o para cambiar al teclado.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:reconocido-como",
+     "label": "Reconocido como",
+     "value": "Dispositivo desconocido",
+     "note": "No es uno que el juego conozca, así que vuela el orden habitual de radio (AETR) como suposición hasta que lo calibres.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controller-builtin",
+     "label": "Disposición de fábrica",
+     "value": "En uso",
+     "note": "La disposición de arriba, en lugar de tu calibración de este dispositivo. Su zona muerta y su expo se mantienen.",
+     "action": "controller-builtin",
+     "disabled": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrar sticks",
+     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Comprobar sticks",
+     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:modo-de-sticks",
+     "label": "Modo de sticks",
+     "value": "Modo 2",
+     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Modo 1"
+      },
+      {
+       "value": 2,
+       "label": "Modo 2"
+      },
+      {
+       "value": 3,
+       "label": "Modo 3"
+      },
+      {
+       "value": 4,
+       "label": "Modo 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-sensaci-n-este-dispositivo",
+     "label": "Sensación, este dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:zona-muerta",
+     "label": "Zona muerta",
+     "value": "Apagada",
+     "note": "Cuánto se mueve una palanca desde el centro antes de contar, para una palanca gastada que no reposa en cero. El recorrido pasado ese punto sigue llegando al máximo. Se guarda para este dispositivo con su calibración.",
+     "current": 0,
+     "options": [
+      {
+       "value": 0,
+       "label": "Apagada"
+      },
+      {
+       "value": 2,
+       "label": "2%"
+      },
+      {
+       "value": 4,
+       "label": "4%"
+      },
+      {
+       "value": 6,
+       "label": "6%"
+      },
+      {
+       "value": 8,
+       "label": "8%"
+      },
+      {
+       "value": 10,
+       "label": "10%"
+      },
+      {
+       "value": 15,
+       "label": "15%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {},
+      "pick(\"2\")": {}
+     }
+    },
+    {
+     "id": "controller:s-c-mo-vuelan-las-palancas",
+     "label": "Cómo vuelan las palancas",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-teclado-y-rat-n",
+     "label": "Teclado y ratón",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Teclas y botones",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:vuelo-con-rat-n",
+     "label": "Vuelo con ratón",
+     "value": "Off",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "flywith-gamepad": {
+   "screen": "flywith",
+   "items": [
+    {
+     "id": "flywith:a-flywith:radio",
+     "label": "Una radio",
+     "value": "",
+     "note": "Tu propio transmisor en modo joystick por USB o Bluetooth: una RadioMaster, o cualquier radio EdgeTX u OpenTX. Después, el asistente asigna y centra sus palancas.",
+     "action": "flywith:radio",
+     "primary": false,
+     "drives": {}
+    },
+    {
+     "id": "flywith:a-flywith:gamepad",
+     "label": "Un mando",
+     "value": "Conectado",
+     "note": "Un mando de consola. Su disposición es conocida, así que vuela sin configurar nada. Después, cómo vuelan sus palancas.",
+     "action": "flywith:gamepad",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "flywith:a-flywith:keys",
+     "label": "Teclado y ratón",
+     "value": "",
+     "note": "Nada que conectar. Después, qué teclas vuelan.",
+     "action": "flywith:keys",
+     "primary": false,
+     "drives": {}
+    },
+    {
+     "id": "flywith:a-flywith:skip",
+     "label": "Saltar",
+     "value": "",
+     "note": "Directo al juego. El Hangar configura un mando cuando quieras.",
+     "action": "flywith:skip",
+     "primary": false,
      "drives": {}
     }
    ]

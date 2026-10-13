@@ -23,7 +23,7 @@
  * src/input by name (src/input/actions.js).
  *
  * Not part of npm run verify; it says nothing about the flight model. Run
- * it on a change to src/input, the calibrate screen, the Settings room or
+ * it on a change to src/input, the calibrate screen, the Controller room or
  * the title's trouble rows.
  *
  *   npm run lint:input
@@ -222,7 +222,9 @@ const WIZARD = (lay) => `(async () => {
 
 /* Every sign that names the calibrate room names the room that holds it,
  * asserted as agreement between rooms rather than as strings. ("there is
- * no menu item to calibrate my radio", and the rename after it.) */
+ * no menu item to calibrate my radio", and the rename after it.) The room
+ * is the Controller, under the Hangar, since redesign phase 7 (PLAN 2.6):
+ * the Hangar's card opens it, and Settings keeps a row to it. */
 async function signposts(page, ev) {
   heading('signposts: every sign that names the calibrate room names the room that holds it');
   const s = await json(ev(`
@@ -241,8 +243,14 @@ async function signposts(page, ev) {
     const h2 = ui.screens[room].querySelector('h2');
     const out = { holders, roomName: here ? here.textContent : '', roomHeading: h2 ? h2.textContent : '' };
     ui.show('title');
+    ui.craftGate = true;
+    ui.mode = null;
+    ui.openHub('hangar');
     const row = ui.items().find((it) => it && it.action === room);
-    out.titleRow = row ? { label: row.label, note: row.note || '' } : null;
+    out.titleRow = row ? { label: row.label, note: row.note || row.blurb || '' } : null;
+    ui.hub = null;
+    ui.show('pilot');
+    out.settingsRow = ui.items().some((it) => it && it.action === room);
     ui.show('rates');
     out.ratesTrail = Array.from(ui.crumb.querySelectorAll('.crumb-up, .crumb-here')).map((n) => n.textContent);
     ui.show('howto');
@@ -254,13 +262,14 @@ async function signposts(page, ev) {
   `));
   check('exactly one room holds the Calibrate sticks row', s.holders.length === 1, show(s.holders));
   check('that room is named in its crumb', Boolean(s.roomName), show(s));
-  check('the title has a row that opens it, named the same', Boolean(s.titleRow) && s.titleRow.label === s.roomName, show(s.titleRow));
+  check('the Hangar has a card that opens it, named the same', Boolean(s.titleRow) && s.titleRow.label === s.roomName, show(s.titleRow));
   check('and that row\'s note says calibration is inside', /Calibrate sticks/.test(s.titleRow ? s.titleRow.note : ''),
     s.titleRow ? s.titleRow.note : 'no row');
-  check('the Rates room\'s trail starts in it', s.ratesTrail[0] === s.roomName, show(s.ratesTrail));
+  check('the Rates room\'s trail runs through it', s.ratesTrail.includes(s.roomName), show(s.ratesTrail));
   check('the how-to for a radio sends the pilot there by the same name',
     s.howtoRadio.includes(`Calibrate sticks in ${s.roomName}`), s.howtoRadio.slice(0, 200));
-  check('the room is called Settings, which is what the pilot asked for', s.roomName === 'Settings', s.roomName);
+  check('the room is the Controller, under the Hangar', s.roomName === 'Controller', s.roomName);
+  check('and Settings, where the pilot first asked for it, has a row to it', s.settingsRow === true);
 }
 
 /*
@@ -475,19 +484,19 @@ async function throttleZero(page, ev) {
 
 /* "some are inverted and there's no option to change it" (bug-b0d085f0)
  * and "i pushed the left stick but the right stick moved" (bug-873a84ec,
- * a Mode 1 pilot on a Mode 2 drawing), reached from the Settings row with
+ * a Mode 1 pilot on a Mode 2 drawing), reached from the Controller row with
  * the arrows and Enter, as a pilot would. */
 async function checkSticks(page, ev) {
-  heading('check sticks: reaching the repair from Settings, reversing a channel, swapping the hands');
+  heading('check sticks: reaching the repair from the Controller, reversing a channel, swapping the hands');
   const row = await json(ev(`
     ${PAST_GATE}
-    ui.show('pilot');
+    ui.show('controller');
     const items = ui.items();
     const i = items.findIndex((it) => it && it.action === 'calibrate-check');
     if (i >= 0) { ui.setCursor(i); }
     return JSON.stringify({ i, note: i >= 0 ? (items[i].note || '') : '', stop: i >= 0 ? ui.isStop(items[i]) : false, calibrated: input.map.stored });
   `));
-  check('there is a row in Settings for it', row.i >= 0 && row.stop, show(row));
+  check('there is a row in the Controller for it', row.i >= 0 && row.stop, show(row));
   check('and its note says what it is for', /reverses that channel/.test(row.note), row.note.slice(0, 120));
   check('the radio is calibrated going in, so there is a mapping to check', row.calibrated === true);
   await page.tap('Enter');
@@ -535,7 +544,7 @@ async function checkSticks(page, ev) {
   check('the drawn gimbal is re-captioned where they can see it', now.left !== was.left, `${was.left} -> ${now.left}`);
   check('and the input layer and the button agree with the setting', now.inputMode === now.mode && now.btn === `Stick mode ${now.mode}`, show(now));
   await page.tap('Enter');
-  check('Enter saves and returns to Settings', await came(page, "window.__ui.screen === 'pilot' && window.__input.calibration === null", 4000));
+  check('Enter saves and returns to the Controller', await came(page, "window.__ui.screen === 'controller' && window.__input.calibration === null", 4000));
   const kept = await json(ev('return JSON.stringify({ rev: input.map.reverse, yaw: input.map.yaw.axis, thr: input.map.throttle.low });'));
   check('the reversal is kept and no axis assignment moved', kept.rev.roll === true && kept.yaw === 4 && kept.thr === -1, show(kept));
   await setAxis(page, 0, 0);
@@ -545,14 +554,17 @@ async function checkSticks(page, ev) {
 
 /* The wizard pins the channels at zero while it is up, so the menu's edge
  * tracker took a stick still held when it closed for a fresh flick on the
- * next screen (saving the check with roll held went Back, off Settings).
+ * next screen (saving the check with roll held went Back, off the screen).
  * Both halves: a held stick does nothing, a real flick still navigates. */
 async function padEdges(page, ev) {
   heading('the pad edge tracker: a held stick is not a gesture, a fresh one still is');
   const e = await json(ev(`
     ${PAST_GATE}
     const out = {};
-    ui.show('pilot');
+    /* On an action row, where left is Back: on a choice row it would turn
+     * the choice (on Language, reloading the page). */
+    ui.show('controller');
+    ui.setCursor(ui.items().findIndex((it) => it && it.action === 'choosepad'));
     ui.pollPad({ left: true });
     out.heldOnce = ui.screen;
     ui.pollPad({ left: true });
@@ -560,7 +572,7 @@ async function padEdges(page, ev) {
     ui.pollPad({});
     ui.pollPad({ left: true });
     out.afterFlick = ui.screen;
-    ui.show('pilot');
+    ui.show('controller');
     const start = ui.cursor;
     ui.pollPad({ down: true });
     out.cursorHeld = ui.cursor - start;
@@ -573,8 +585,8 @@ async function padEdges(page, ev) {
     ui.show('title');
     return JSON.stringify(out);
   `));
-  check('a stick already held when the screen opened does nothing', e.heldOnce === 'pilot' && e.heldTwice === 'pilot', show(e));
-  check('releasing and flicking again still navigates', e.afterFlick !== 'pilot', e.afterFlick);
+  check('a stick already held when the screen opened does nothing', e.heldOnce === 'controller' && e.heldTwice === 'controller', show(e));
+  check('releasing and flicking again still navigates', e.afterFlick !== 'controller', e.afterFlick);
   check('and the cursor obeys the same rule', e.cursorHeld === 0 && e.cursorStillHeld === 0 && e.cursorFlicked > 0, show(e));
 }
 
@@ -606,7 +618,7 @@ async function frameFault(page, ev) {
     f.keys.length + 5 <= 32 && f.chars < 8000, `${f.keys.length} keys, ${f.chars} chars`);
 }
 
-/* Mouse flight, the half main.js owns: the Settings row and its memory,
+/* Mouse flight, the half main.js owns: the Controller row and its memory,
  * the how-to tab, and the pointer capture in flight with the two ways it
  * is lost. On the radio page on purpose: picked, the mouse flies over a
  * connected radio. */
@@ -618,18 +630,18 @@ async function mouseFlight(page, ev) {
   };
   const SUB_ROWS = '/^(Mouse sensitivity|Mouse expo|Invert mouse pitch|Mouse stick)$/';
 
-  heading('mouse flight: the Settings row, off by default and remembered');
+  heading('mouse flight: the Controller row, off by default and remembered');
   const row = await json(ev(`
     ${PAST_GATE}
-    ui.show('pilot');
+    ui.show('controller');
     const items = ui.items();
     const i = items.findIndex((it) => it && it.label === 'Mouse flight');
-    const joy = items.findIndex((it) => it && it.action === 'choosepad');
+    const joy = items.findIndex((it) => it && it.action === 'controls');
     ui.setCursor(i);
     return JSON.stringify({ i, joy, value: i >= 0 ? items[i].value : null, on: input.mouseEnabled,
       subRows: items.filter((it) => it && ${SUB_ROWS}.test(it.label)).length });
   `));
-  check('there is a Mouse flight row, right under Choose joystick', row.i >= 0 && row.i === row.joy + 1, show(row));
+  check('there is a Mouse flight row, right under Keys and buttons', row.i >= 0 && row.i === row.joy + 1, show(row));
   check('it is Off, and the input manager agrees', row.value === 'Off' && row.on === false, show(row));
   check('off, its four adjustments are not in the list', row.subRows === 0, String(row.subRows));
   await page.tap('ArrowRight');
@@ -656,13 +668,13 @@ async function mouseFlight(page, ev) {
     ui.setHowtoSource('mouse');
     const dt = Array.from(ui.howtoKeys.querySelectorAll('dt')).map((n) => n.textContent);
     const dd = Array.from(ui.howtoKeys.querySelectorAll('dd')).map((n) => n.textContent);
-    ui.show('pilot');
+    ui.show('controller');
     return JSON.stringify({ tab: tab ? tab.textContent : null, dt, dd });
   `));
   check('the tab is there', howto.tab === 'Mouse', String(howto.tab));
   check('it names the wheel, the buttons, the centring and Escape',
     ['Wheel', 'Left and right buttons', 'Middle button or Z', 'Esc'].every((k) => howto.dt.includes(k)), howto.dt.join(' | '));
-  check('and sends the pilot to the room that holds the row', howto.dd.some((d) => d.startsWith('Settings, Sticks, Mouse flight')),
+  check('and sends the pilot to the room that holds the row', howto.dd.some((d) => d.startsWith('Settings, Controller, Mouse flight')),
     howto.dd.join(' | '));
 
   heading('mouse flight: the pointer is captured in flight and freed by Escape');
@@ -704,7 +716,7 @@ async function mouseFlight(page, ev) {
   await page.tap('Escape');
   await page.sleep(100);
   check('and the Escape that caused it does not resume straight back', await ev('return ui.screen;') === 'paused');
-  await ev("ui.show('pilot'); return true;");
+  await ev("ui.show('controller'); return true;");
   const at = await ev("const i = ui.items().findIndex((it) => it && it.label === 'Mouse flight'); ui.setCursor(i); return i;");
   check('the row is still there to turn it off', at >= 0);
   await page.tap('ArrowLeft');
@@ -721,7 +733,7 @@ async function mouseFlight(page, ev) {
 
 /* ------------------------------------------------------ the touch page */
 
-/* Mode 1 on a phone (bug-94da186c, bug-a8cd61db): one row in Settings, and
+/* Mode 1 on a phone (bug-94da186c, bug-a8cd61db): one row in the Controller, and
  * the thumb sticks' captions, the keyboard's throttle keys, the how-to and
  * every drawn gimbal follow it. Driven through the row with an arrow. */
 async function touchModes(page, ev) {
@@ -730,7 +742,7 @@ async function touchModes(page, ev) {
   const start = await json(ev(`
     ${PAST_GATE}
     ${plate}
-    ui.show('pilot');
+    ui.show('controller');
     const items = ui.items();
     const i = items.findIndex((it) => it && it.label === 'Stick mode');
     ui.setCursor(i);
@@ -738,7 +750,7 @@ async function touchModes(page, ev) {
       thrUp: input.throttleKeys.up, mounted: Boolean(document.querySelector('.touch-fly')) });
   `));
   check('the thumb sticks are mounted on a touch device', start.mounted);
-  check('there is a Stick mode row in Settings', start.row >= 0, show(start));
+  check('there is a Stick mode row in the Controller', start.row >= 0, show(start));
   check('it starts on Mode 2, and the plates say so',
     start.mode === 2 && start.value === 'Mode 2' && start.left === 'Yaw · throttle' && start.right === 'Roll · pitch', show(start));
   check('and W is the throttle', start.thrUp === 'KeyW', start.thrUp);
@@ -750,7 +762,7 @@ async function touchModes(page, ev) {
     ui.show('howto');
     ui.setHowtoSource('touch');
     const dd = Array.from(ui.howtoKeys.querySelectorAll('dd')).map((n) => n.textContent);
-    ui.show('pilot');
+    ui.show('controller');
     return JSON.stringify({ left: cap('left'), right: cap('right'), thrUp: input.throttleKeys.up, thrDown: input.throttleKeys.down,
       inputMode: input.stickMode, howtoLeft: dd[0] || '', howtoRight: dd[1] || '',
       calLeft: ui.calStickLeft.cap.textContent, calRight: ui.calStickRight.cap.textContent,
