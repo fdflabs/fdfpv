@@ -57,6 +57,7 @@ import {
   TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
 } from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
+import { released } from '../../src/game/campaign.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
@@ -294,6 +295,10 @@ export class RoomCore {
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     /* The accounts whose rooms start missions in development (devHost). */
     this.devAccounts = options.devAccounts ?? new Set();
+    this.devMissions = options.devMissions === true;
+    /* Whether this server lists public rooms at all (env.PUBLIC_ROOMS), so
+     * a private room may become one (setPublic). */
+    this.publicRooms = options.publicRooms === true;
     this.war = new RoomWar(meta, { devMissions: options.devMissions === true }); /* Defend Itaipu, edge/rooms/war.js */
     this.ops = new RoomOps(meta, { devMissions: options.devMissions === true }); /* ops missions (The Interior), edge/rooms/ops.js */
     this.gameLobby = new RoomGameLobby(); /* a game room's lobby, edge/rooms/gamelobby.js */
@@ -955,6 +960,8 @@ export class RoomCore {
         map: this.meta.map,
         weather: this.meta.weather ?? CALM,
         stockSurfaces: Boolean(this.meta.stockSurfaces),
+        /* The host may change public in place (setPublic). */
+        publicInPlace: true,
         daytime: this.daytimeWelcome(),
         peers: this.peerList(conn),
         ...this.race.welcome(),
@@ -1072,6 +1079,9 @@ export class RoomCore {
     }
     if (msg.type === 'stockSurfaces') {
       return this.stockSurfaces(conn, s, msg);
+    }
+    if (msg.type === 'public') {
+      return this.setPublic(conn, s, msg);
     }
     if (msg.type === 'daytime') {
       return this.setDaytime(conn, s, msg);
@@ -1235,6 +1245,55 @@ export class RoomCore {
       { store: 'meta', value: this.meta },
       ...this.roster(null, JSON.stringify({ type: 'stockSurfaces', on: msg.on })),
     ];
+  }
+
+  /*
+   * The host changes who joins with others here (docs/redesign/SESSIONS.md
+   * section 2): { type: 'public', on }. The room keeps its code, its
+   * pilots and its game; only its listing and its cap change, the cap
+   * because a public room seats PUBLIC_CAP and a private one PRIVATE_CAP.
+   * Kept with the meta, and everybody is told { type: 'public', on, cap },
+   * a type a build from before it passes over; the welcome's publicInPlace
+   * says the room takes it, so a page offers it only then. To public as
+   * POST /v2/create would make it (front.js create): only where public
+   * rooms are open, never with a game on that a public room runs only
+   * when made for it (hostCheck) or an ops mission, and a war room only
+   * for a released mission. To private only with no more people here
+   * than its cap. Its AI pilots stay at the host's level.
+   */
+  setPublic(conn, s, msg) {
+    if (typeof msg.on !== 'boolean') {
+      return [];
+    }
+    const refuse = (why) => [{ send: conn, data: JSON.stringify({ type: 'refused', why }) }];
+    if (s.seat !== this.host()) {
+      return refuse('host');
+    }
+    if (msg.on && !this.meta.public) {
+      if (!this.publicRooms) {
+        return refuse('public_closed');
+      }
+      const game = this.game();
+      if (game === 'ops' || (game && modeById(game).publicOnlyWhenMadeFor && !madeFor(this.meta.mode, game))) {
+        return refuse('public_game');
+      }
+      /* The mission the room was made for, which the list shows, not the
+       * first one it may start (warMission). */
+      if (this.meta.mode === 'war' && !released(this.meta.mission ?? warMission(this), this.devMissions)) {
+        return refuse('war_unreleased');
+      }
+    }
+    if (!msg.on && this.meta.public && this.people().length > PRIVATE_CAP) {
+      return refuse('private_full');
+    }
+    const changed = msg.on !== Boolean(this.meta.public);
+    this.meta.public = msg.on;
+    this.meta.cap = msg.on ? PUBLIC_CAP : PRIVATE_CAP;
+    const told = JSON.stringify({ type: 'public', on: msg.on, cap: this.meta.cap });
+    if (!changed) {
+      return [{ send: conn, data: told }];
+    }
+    return [{ store: 'meta', value: this.meta }, ...this.roster(null, told)];
   }
 
   /*

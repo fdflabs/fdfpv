@@ -126,7 +126,10 @@ export class RoomHost {
     }
     /* env.TURN is node.js's TURN credential minter, when the VM has one;
      * env.DEV_MISSIONS is node.js's, for a check's own server. */
-    this.core = new RoomCore(meta, { turn: this.env.TURN || null, devMissions: this.env.DEV_MISSIONS === true, devAccounts: devAccountsOf(this.env.DEV_ACCOUNTS) });
+    this.core = new RoomCore(meta, {
+      turn: this.env.TURN || null, devMissions: this.env.DEV_MISSIONS === true, devAccounts: devAccountsOf(this.env.DEV_ACCOUNTS),
+      publicRooms: this.env.PUBLIC_ROOMS === 'on',
+    });
     /* Every key a { store } action wrote is the name of the core's part
      * that keeps it (core.race for 'race'), restored before the seats. A
      * key with no such part is a bug and throws here, not a race that

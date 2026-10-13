@@ -253,10 +253,21 @@ function send(env, entry) {
 }
 
 /* Called by the room after every event: a public room whose line moved
- * tells the lobby. Best effort; a lost line is corrected by the next. */
+ * tells the lobby. Best effort; a lost line is corrected by the next. A
+ * listed room its host made private (core.js setPublic) sends one last
+ * line as empty, so the book stops listing it at once, a quick join never
+ * lands in it, and prune drops it after the grace; made public again, it
+ * reports afresh. */
 export function reportRoom(env, core, now) {
-  if (!core || !core.meta.public || !core.meta.code) {
+  if (!core || !core.meta.code) {
     return null;
+  }
+  if (!core.meta.public) {
+    if (core.lastListing == null) {
+      return null;
+    }
+    core.lastListing = null;
+    return send(env, listingOf(core.meta, 0, core.activity(now), now));
   }
   const entry = listingOf(core.meta, core.people().length, core.activity(now), core.emptySince ?? null);
   const key = JSON.stringify(entry);
