@@ -14,7 +14,20 @@
  * standings with A's lap count moving, lap 1 of 2 then 2 of 2, then A's
  * time; at the end B gets no results screen, no round in its event log
  * and nothing of its own in the standings, and its standings stay up as
- * the final order. Pictures in outdir, which is not in the repository.
+ * the final order.
+ *
+ * Then a lobby: A makes a room for Catch the Ace, and B, put on the
+ * title, joins it to watch. B is never pulled to the lobby's Ready (it
+ * stays on its watch camera, its own ready goes nowhere) and its banner
+ * says who is ready; A readying alone starts the five seconds, the
+ * watcher never counted.
+ *
+ * Then a war: A makes a room on Itaipu and flies, B watches it, A starts
+ * the drill. B's war HUD shows the round and Watching, no airframes and
+ * no kills; B is put in no war aircraft; A's developer skip ends the
+ * round and B sees its card; A ends the war and B sees the end banner
+ * with no result in its view, its campaign untouched, while A's view has
+ * one. Pictures in outdir, which is not in the repository.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -45,7 +58,8 @@ import { startRooms } from '../edge/rooms/node.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || join(root, 'build', 'watch-two-page');
 const dir = await mkdtemp(join(tmpdir(), 'fdfpv-watchtwo-'));
-const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0 });
+/* devMissions: the host's developer skip, which ends the drill's round. */
+const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 const t0 = Date.now();
 
@@ -223,6 +237,79 @@ try {
   await a.until("window.__roomRace().results", 20000).catch(() => {});
   const ra = await state(a);
   check('A, the pilot, has its results screen as ever', ra.results && ra.standings.length === 1 && ra.standings[0].seat === 1);
+
+  console.log('a watcher sees a lobby');
+  const BANNER = 'window.__war().watch.banner';
+  const codeL = await a.evaluate("window.__roomCreate({ mode: 'tag' })");
+  await a.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(codeL)} && window.__rooms().lobby !== null`, 30000);
+  const joinedL = Date.now();
+  await b.evaluate("window.__ui.show('title'); true");
+  await b.evaluate(`window.__roomJoin(${JSON.stringify(codeL)}, { watch: true }); true`);
+  await b.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(codeL)} && window.__rooms().watch && window.__ui.screen === 'flight'`, 120000).catch(() => {});
+  await b.until(`/the lobby/.test(${BANNER})`, 15000).catch(() => {});
+  const l0 = await b.evaluate(`({ screen: window.__ui.screen, lobby: window.__rooms().lobby, seat: window.__rooms().seat, banner: ${BANNER} })`);
+  check('B, on the title, joins the lobby to watch: never pulled to it, on its watch camera, the banner saying nobody of the one pilot is ready',
+    l0.screen === 'flight' && l0.seat === 0 && Boolean(l0.lobby) && l0.banner === 'WATCHING the lobby: 0 of 1 ready. Esc to leave.', JSON.stringify(l0));
+  await b.evaluate("window.__ui.act('friends-lobby-ready'); true");
+  await b.sleep(800);
+  const l1 = await a.evaluate('window.__rooms().lobby');
+  check('B pressing Ready readies nobody', Object.keys(l1.ready).length === 0 && l1.countdownAt == null, JSON.stringify(l1));
+  /* A page's texts on joining fill the room's allowance for a second
+   * (edge/rooms/core.js TEXT_PER_S), and a lobby Ready said inside it is
+   * dropped, not queued: A presses it as a pilot would, after that. */
+  await a.sleep(Math.max(0, 1500 - (Date.now() - joinedL)));
+  await a.evaluate("window.__ui.act('friends-lobby-ready'); true");
+  await b.until("window.__rooms().lobby.ready['1'] === true", 10000).catch(() => {});
+  await b.until(`/starting in/.test(${BANNER})`, 5000).catch(() => {});
+  const l2 = await b.evaluate(`({ lobby: window.__rooms().lobby, banner: ${BANNER} })`);
+  check('A readies alone and the five seconds start with B there, never counted; B sees it', Object.keys(l2.lobby.ready).join() === '1' && l2.lobby.countdownAt != null
+    && /^WATCHING the lobby: starting in \d\. Esc to leave\.$/.test(l2.banner), JSON.stringify(l2));
+  await shot(b, '3-b-watching-lobby');
+  await b.until('window.__rooms().lobby.countdownAt == null', 15000).catch(() => {});
+  const l3 = await b.evaluate(`({ lobby: window.__rooms().lobby, screen: window.__ui.screen, banner: ${BANNER} })`);
+  check('the round starts and the lobby is cleared, B still watching', l3.lobby.countdownAt == null && Object.keys(l3.lobby.ready).length === 0
+    && l3.screen === 'flight' && /^WATCHING/.test(l3.banner), JSON.stringify(l3));
+
+  console.log('a watcher sees a war');
+  const codeW = await a.evaluate("window.__roomCreate({ map: 'itaipu' })");
+  await a.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(codeW)}`, 30000);
+  /* The host's room on its world; A waits in the room's lobby, which a
+   * war's start passes over. */
+  const aOnItaipu = "window.__map().id === 'itaipu' && window.__map().ready";
+  await a.until(aOnItaipu, 600000).catch(() => {});
+  const aw = await a.evaluate("({ map: window.__map().id, ready: window.__map().ready, screen: window.__ui.screen, code: window.__rooms().code, phase: window.__rooms().phase })");
+  check('A is in its room on Itaipu', await a.evaluate(aOnItaipu) && aw.code === codeW && aw.phase === 'open', JSON.stringify(aw));
+  const before = await b.evaluate('JSON.stringify({ airframe: window.__ui.settings.airframe, warAirframe: window.__ui.settings.warAirframe ?? null, campaign: window.__ui.settings.campaign ?? null })');
+  await b.evaluate(`window.__roomJoin(${JSON.stringify(codeW)}, { watch: true }); true`);
+  await b.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(codeW)} && window.__rooms().watch && window.__ui.screen === 'flight'`, 120000).catch(() => {});
+  await b.until("window.__map().id === 'itaipu' && window.__map().ready", 600000).catch(() => {});
+  const w0 = await b.evaluate('({ seat: window.__war().seat, state: window.__war().view.state, map: window.__map().id })');
+  check('B watches the room on Itaipu, seat 0, the war\'s lobby in its welcome', w0.seat === 0 && w0.state === 'lobby' && w0.map === 'itaipu', JSON.stringify(w0));
+  await a.evaluate("window.__warDo('start', 'itaipu-drill')");
+  await b.until("window.__war().view.state === 'live' && window.__war().hud.line !== ''", 30000).catch(() => {});
+  await b.sleep(1000);
+  const w1 = await b.evaluate('({ view: window.__war().view, hud: window.__war().hud, craft: window.__war().craft, banner: window.__war().watch.banner, screen: window.__ui.screen })');
+  check('B sees the drill live: its round on the HUD and Watching, no airframes and no kills of its own', w1.view.state === 'live' && Boolean(w1.view.stage)
+    && /(Round|Stage) 1\//.test(w1.hud.line) && /Watching/.test(w1.hud.line) && !/Airframes|Kills/.test(w1.hud.line), JSON.stringify({ line: w1.hud.line, stage: w1.view.stage && w1.view.stage.id }));
+  check('B is put in no war aircraft and stays on its watch camera', w1.craft.length === 0 && w1.screen === 'flight' && /^WATCHING/.test(w1.banner),
+    JSON.stringify({ craft: w1.craft, screen: w1.screen, banner: w1.banner }));
+  await shot(b, '4-b-watching-war');
+  await a.evaluate("window.__warDo('skip')");
+  await b.until('window.__war().round.on', 15000).catch(() => {});
+  const w2 = await b.evaluate('({ round: window.__war().round, view: window.__war().view })');
+  check('A\'s skip ends the round (the drill counts stages), and B sees its card, A in it, no line of its own', w2.round.on && /^(ROUND|STAGE) 1: /.test(w2.round.title)
+    && w2.round.rows.length === 1 && !w2.round.rows.some((r) => /#0/.test(r)), JSON.stringify(w2.round));
+  await shot(b, '5-b-round-card');
+  await a.evaluate("window.__warDo('end')");
+  await b.until("window.__war().view.state === 'ended' && window.__war().hud.banner !== ''", 15000).catch(() => {});
+  await a.until("window.__war().view.state === 'ended'", 15000).catch(() => {});
+  await b.sleep(1500);
+  const w3 = await b.evaluate('({ view: window.__war().view, hud: window.__war().hud, settings: JSON.stringify({ airframe: window.__ui.settings.airframe, warAirframe: window.__ui.settings.warAirframe ?? null, campaign: window.__ui.settings.campaign ?? null }) })');
+  const wa = await a.evaluate('window.__war().view');
+  check('A ends the war: B sees its end banner, its view holds no result where A\'s holds one (the negative control)', w3.view.state === 'ended' && w3.hud.banner !== ''
+    && w3.view.result == null && wa.state === 'ended' && wa.result != null, JSON.stringify({ banner: w3.hud.banner, b: w3.view.result ?? null, a: wa.result ?? null }));
+  check('and B\'s aircraft, war aircraft and campaign are as they were before it watched', w3.settings === before, `${before} -> ${w3.settings}`);
+  await shot(b, '6-b-war-end');
 
   const errs = [...a.errors, ...b.errors].filter((x) => !x.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
