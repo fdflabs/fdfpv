@@ -43,6 +43,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { logWarn } from '../share/crashrecord.js';
+
 /* Pages deploys a few times an hour on a busy day; a tiny no-store fetch
  * this often costs nothing next to the poses a room sends. */
 const CHECK_MS = 3 * 60 * 1000;
@@ -64,13 +66,13 @@ function registerWorker() {
     return;
   }
   navigator.serviceWorker.register(new URL('sw.js', document.baseURI), { updateViaCache: 'none' })
-    .catch((e) => console.warn('offline cache not registered:', e));
+    .catch((e) => logWarn('network', 'offline cache not registered:', e));
 }
 
 function askForNewWorker() {
   navigator.serviceWorker?.getRegistration()
     .then((reg) => reg?.update())
-    .catch((e) => console.warn('offline cache update failed:', e));
+    .catch((e) => logWarn('network', 'offline cache update failed:', e));
 }
 
 /* Calls onChange(true) when the deployed version stops being this page's,

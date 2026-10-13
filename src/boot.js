@@ -32,7 +32,7 @@ import { Loading, planStages } from './ui/loading.js';
 import { MAP_BUILD_MS } from './maps/build-cost.js';
 import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
-import { watchPageErrors } from './share/crashrecord.js';
+import { logWarn, watchPageErrors } from './share/crashrecord.js';
 import { moveIn } from './share/move.js';
 import { openSave } from './share/save.js';
 
@@ -125,11 +125,11 @@ async function carryStorage() {
   try {
     outcome = await moveIn();
   } catch (e) {
-    console.warn('moving the guest\'s storage from the old address threw', e);
+    logWarn('network', 'moving the guest\'s storage from the old address threw', e);
     outcome = 'failed';
   }
   if (outcome === 'failed') {
-    console.warn('moving the guest\'s storage from the old address failed; see localStorage pdcs.move.v1');
+    logWarn('network', 'moving the guest\'s storage from the old address failed; see localStorage pdcs.move.v1');
   }
 }
 
@@ -138,7 +138,7 @@ async function carryStorage() {
 function openStorage() {
   const opened = openSave();
   if (opened.quarantined.length || opened.failed.length) {
-    console.warn('save: a blob was kept as .corrupt or storage refused a step; see localStorage *.corrupt', opened);
+    logWarn('save', 'save: a blob was kept as .corrupt or storage refused a step; see localStorage *.corrupt', opened);
   }
 }
 
