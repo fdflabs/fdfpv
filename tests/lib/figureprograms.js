@@ -221,13 +221,71 @@ export function lineYawKr(airframe, v) {
   }
   return t[t.length - 1][1];
 }
+/* The wings held square to the line's plane on the ailerons. Every
+ * line here is flown in the world's x-z plane (each program enters along
+ * x and its pivots, slides and hovers keep the plane), so square is the
+ * span along the world's y, either way up: the bank error is the roll
+ * about the nose to the nearer of the two, rising with right stick.
+ * Without it the ailerons sat centred along every line, and the Slick's
+ * hammerhead rolled at 3 rad/s as the rudder caught its pivot
+ * (docs/TRICKS-CATALOG.md, round 8). */
+export const lineBank = (s) => {
+  const [w, x, y, z] = [s[7], s[8], s[9], s[10]];
+  return -Math.atan((2 * (y * z - w * x)) / (1 - 2 * (x * x + z * z)));
+};
+/* The ailerons' loop by speed on each aircraft, [V m/s, wc rad/s, plant
+ * gain], straight between and held past the ends: personLoop's at
+ * PERSON's pace (a look every 100 ms, 0.25 s of delay and hold), each
+ * speed's the highest crossover that keeps the bandwidth criterion on
+ * every line that settles there, up and down the vertical and the 45
+ * (scripts/figures-margins.js lineAileron). Pinned here and checked
+ * there. */
+export const LINE_AIL = {
+  [EXTRA_AIRFRAME]: [[8, 1.6, 3.71], [14, 1.8, 6.015], [18, 1.8, 7.597], [22, 1.8, 9.193], [26, 1.8, 10.145], [30, 1.8, 12.361]],
+  [CAP_AIRFRAME]: [[8, 1.6, 2.059], [14, 1.8, 3.146], [18, 1.8, 3.935], [22, 1.8, 4.739], [26, 1.8, 5.368]],
+  [SLICK_AIRFRAME]: [[8, 1.2, 1.416], [14, 1.4, 1.979], [18, 1.6, 2.427], [22, 1.6, 2.896], [26, 1.6, 3.373], [30, 1.8, 3.857]],
+};
+function lineAilAt(airframe, v) {
+  const t = LINE_AIL[airframe];
+  if (v <= t[0][0]) return { wc: t[0][1], gain: t[0][2] };
+  for (let i = 1; i < t.length; i += 1) {
+    if (v > t[i][0]) continue;
+    const f = (v - t[i - 1][0]) / (t[i][0] - t[i - 1][0]);
+    return { wc: t[i - 1][1] + f * (t[i][1] - t[i - 1][1]), gain: t[i - 1][2] + f * (t[i][2] - t[i - 1][2]) };
+  }
+  const last = t[t.length - 1];
+  return { wc: last[1], gain: last[2] };
+}
+/* personLoop's law with its crossover and gain read off the schedule at
+ * the speed seen, its trim's integral the line's own. A line that starts
+ * straight out of a roll phase is held only once the person sees the
+ * roll stopped (the judge's stop, ROLL_STOP, as the point's stop takes
+ * it): flown on the 0.2 s old bank as the roll ran on, the loop pushed
+ * the half Cuban's half roll 29 deg past its point. Any other line is
+ * held from its start: a roll it meets is one to stop. */
+function lineAileron(d, m) {
+  if (m.ail !== undefined && m.t % PERSON.everyMs !== 0) return m.ail;
+  m.ailOn = m.ailOn || !m.flight.prev.startsWith('roll ') || Math.abs(d.p) < ROLL_STOP;
+  if (!m.ailOn) {
+    m.ail = 0;
+    return 0;
+  }
+  const { wc, gain } = lineAilAt(m.flight.airframe, d.v);
+  const k = wc / gain;
+  const e = -lineBank(d.s);
+  m.ailTrim = m.ailTrim ?? 0;
+  const free = k * (e + m.ailTrim);
+  if (!((free >= 1 && e > 0) || (free <= -1 && e < 0))) m.ailTrim += e * (PERSON.everyMs / 1000) * wc / 4;
+  m.ail = quant(clamp(k * (e + m.ailTrim)));
+  return m.ail;
+}
 const holdLine = (d, m, target, thr) => {
-  const [r] = hangSticks(d.s, { target, rollStick: 0, ...LINE_GAINS });
+  const r = lineAileron(d, m);
   const y = hangSticks(d.s, { target, rollStick: 0, kp: LINE_GAINS.kp, kr: lineYawKr(m.flight.airframe, d.v) })[2];
   const p = hangSticks(d.s, { target, rollStick: 0, kp: LINE_GAINS.kp, kr: lineKr(thr, d.v) })[1];
   m.trimP = clamp((m.trimP ?? 0) + LINE_KI * p * H, 0.5);
   m.trimY = clamp((m.trimY ?? 0) + LINE_KI * y * H, 0.5);
-  return [quant(r), quant(clamp(p + m.trimP)), quant(clamp(y + m.trimY)), thr];
+  return [r, quant(clamp(p + m.trimP)), quant(clamp(y + m.trimY)), thr];
 };
 /* The nose held on a world direction (a vertical or a 45 line). */
 const line = (target, ms, thr = 1, until = null) => ({
@@ -1028,7 +1086,7 @@ export async function fly(program, { wasmBytes, configText, trace = false, airfr
   let i = 0;
   /* What one phase leaves the next in this flight (the knife edge's
    * sticks for the loop flown from it). */
-  const flight = { seat: SEATED[airframe], airframe };
+  const flight = { seat: SEATED[airframe], airframe, prev: '' };
   let mem = { t: 0, flight };
   let st = [0, 0, 0, flight.seat.level];
   let ms = 0;
@@ -1050,6 +1108,7 @@ export async function fly(program, { wasmBytes, configText, trace = false, airfr
       st = sticks;
       if (trace) console.log(`  ${ms} ${program[i].name} along ${o.along.toFixed(1)} q ${o.q.toFixed(2)} r ${o.r.toFixed(2)} v ${o.v.toFixed(1)} z ${o.z.toFixed(0)} nz ${o.nz.toFixed(2)} uz ${o.uz.toFixed(2)} [${st.join(',')}]`);
       if (done) {
+        flight.prev = program[i].name;
         i += 1;
         mem = { t: 0, flight };
       }
