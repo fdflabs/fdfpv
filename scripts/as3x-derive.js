@@ -179,9 +179,21 @@ if (opt('--plane')) {
 
 /* Four places, downward: the table never above its derivation. */
 const f4 = (x) => Math.floor(x * 1e4) / 1e4;
-/* The damper on one axis: the highest that keeps the margin rule
- * everywhere, the Heading at the receiver's default, zero. */
-const dampFor = (resps, axis, T) => f4(gainForMargins(resps, axis, 1, 0, T));
+/* The damper. Each axis' ceiling is the highest gain that keeps the
+ * margin rule everywhere, the Heading at the receiver's default, zero.
+ * Where the BNF's own receiver preset gives its factory gains (lib
+ * as3xloop.js AS3X srm), the damper has their ratios between the axes,
+ * at the largest single scale that keeps every axis under its ceiling:
+ * the ratios are E-flite's tune, the scale FITTED, since no published
+ * figure maps Spektrum's gain units to a surface's angle (lead decision
+ * 2026-10-12, the owner's "just do small corrections never actually
+ * change the way the plane behaves"). A table without a preset takes
+ * its ceilings. */
+function factoryDamper(srm, ceiling) {
+  if (!srm) return ceiling.map(f4);
+  const scale = Math.min(...srm.map((g, ax) => (g > 0 && ceiling[ax] > 0 ? ceiling[ax] / g : Infinity)));
+  return srm.map((g, ax) => (ceiling[ax] > 0 ? f4(scale * g) : 0));
+}
 
 /* The full Heading on that damper: its integral cornered at a quarter of
  * the fastest crossover the frame allows, pi / (4 T), so kh = k pi /
@@ -203,7 +215,8 @@ for (const name of Object.keys(AS3X)) {
   const body = rowOf(src, name);
   const T = m.T;
   const resps = [0, 1, 2].map((ax) => m.conds.map((c) => c.resp[ax]).filter((r) => r));
-  const k = resps.map((r, ax) => (r.length ? dampFor(r, ax, T) : 0));
+  const ceiling = resps.map((r, ax) => (r.length ? gainForMargins(r, ax, 1, 0, T) : 0));
+  const k = factoryDamper(AS3X[name].srm, ceiling);
   const kh = k.map((x) => headingFor(x, T));
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
   /* The loop closed on the plant at the dive, all three axes on the
