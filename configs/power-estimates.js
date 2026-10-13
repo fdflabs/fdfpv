@@ -136,11 +136,11 @@ export const ESTIMATES = {
     stock: {
       '3s2200': {
         topSpeed: 21.59,
-        minutes: 24.4
+        minutes: 24.5
       },
       '3s3200': {
         topSpeed: 22.1,
-        minutes: 33.4
+        minutes: 33.5
       }
     }
   },
@@ -469,7 +469,7 @@ export const ESTIMATES = {
     },
     kv650: {
       '4s2600': {
-        topSpeed: 33.49,
+        topSpeed: 33.5,
         minutes: 25.8
       }
     }

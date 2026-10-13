@@ -37,7 +37,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, fly, wingDebug, EXTRA_AIRFRAME, CAP_AIRFRAME, RC_STEP_MS } from '../tests/lib/wingpilot.js';
+import { must, fly, wingDebug, EXTRA_AIRFRAME, CAP_AIRFRAME, RC_STEP_MS, knifeThrottle, stickForThrow } from '../tests/lib/wingpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -47,8 +47,8 @@ const json = async (f) => JSON.parse(await readFile(join(root, f), 'utf8'));
 
 /* Each aircraft at its knife edge gate's speed. */
 const PLANES = {
-  extra: { sim: EXTRA_AIRFRAME, name: 'Extra', speed: (await json('tests/extra-thresholds.json')).e12_knife_edge.speed },
-  cap: { sim: CAP_AIRFRAME, name: 'CAP', speed: (await json('tests/cap580-thresholds.json')).c12_knife_edge.speed },
+  extra: { sim: EXTRA_AIRFRAME, name: 'Extra', knife: (await json('tests/extra-thresholds.json')).e12_knife_edge },
+  cap: { sim: CAP_AIRFRAME, name: 'CAP', knife: (await json('tests/cap580-thresholds.json')).c12_knife_edge },
 };
 const plane = PLANES[process.argv[2] || 'extra'];
 if (!plane) {
@@ -82,7 +82,9 @@ async function knifePass(V) {
   let s = sim.readState().state;
   const figures = [];
   const det = new FigureDetector((f) => figures.push(f));
-  let iA = 0, iH = 0, iB = 0, iT = 0.6;
+  let iA = 0;
+  const thr = knifeThrottle(plane.sim, plane.knife.dutyDerived);
+  const rudder = -stickForThrow(plane.knife.rudderDerived);
   const psi0 = heading(s);
   let sb = 0, n = 0;
   for (let ms = 0; ms < KNIFE_MS + BACK_MS; ms += RC_STEP_MS) {
@@ -92,25 +94,17 @@ async function knifePass(V) {
     const bankT = back ? Math.max(0, Math.PI / 2 - (ms - KNIFE_MS) / 1000 * 3) : Math.min(Math.PI / 2, ms / 1000 * 3);
     iA = Math.max(-0.5, Math.min(0.5, iA - 1.0 * (bank - bankT) * dt));
     const roll = clamp(-0.8 * (bank - bankT) - 0.05 * s[11] + iA);
-    iH = Math.max(-0.3, Math.min(0.9, iH + 0.2 * (0 - s[6]) * dt));
-    const betaT = back ? 0 : 0.3 + 0.2 * (0 - s[6]) + iH;
-    const beta = wingDebug(sim)[1];
-    /* Conditional integration: the integral stands still while the rudder
-     * is on its stop and the error would push it further on, as a hand on
-     * a stick against its stop does; without it the integral wound past
-     * full rudder for a second and the knife edge was lost unwinding it. */
-    const yawFree = -3 * (betaT - beta) - iB + 0.3 * s[13];
-    const dI = 3 * (betaT - beta) * dt;
-    const pinned = (yawFree <= -1 && dI > 0) || (yawFree >= 1 && dI < 0);
-    iB = back ? 0 : Math.max(-1, Math.min(1, pinned ? iB : iB + dI));
-    const yaw = ms < 300 ? 0 : clamp(-3 * (betaT - beta) - iB + 0.3 * s[13]);
+    /* The rudder put on over half a second, a hand's movement (0.3 s
+     * wings vertical first, 0.5 s on: ESTIMATED), and left there, off
+     * again with the roll back (the gates' hands, extra-gates.js E12). */
+    const yaw = back || ms < 300 ? 0 : rudder * Math.min(1, (ms - 300) / 500);
     let dpsi = heading(s) - psi0;
     while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
     while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
     /* Rolled level, the elevator holds the height again, not the heading. */
     const pitchStick = back && bank < 0.5 ? clamp(-0.3 * s[6] + 0.15 * s[12]) : clamp(0.8 * dpsi + 0.15 * s[12]);
-    iT = Math.max(0, Math.min(1, iT + 0.0005 * (V - speed(s))));
-    const t = clamp(iT + 0.1 * (V - speed(s)));
+    /* The height on the throttle, the speed where it falls (wingpilot.js knifeThrottle). */
+    const t = thr.step(s[6], dt);
     must(sim.input(clockMs / 1000, roll, pitchStick, yaw, t), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');
     clockMs += RC_STEP_MS;
@@ -125,9 +119,9 @@ async function knifePass(V) {
   return { figures, beta: sb / n * DEG };
 }
 
-const { figures, beta } = await knifePass(plane.speed);
+const { figures, beta } = await knifePass(plane.knife.speed);
 const names = figures.map((f) => `${f.figure} ${f.grade}`).join(', ') || 'nothing';
-console.log(`${plane.name} at ${plane.speed} m/s: sideslip ${beta.toFixed(1)} deg; named ${names}`);
+console.log(`${plane.name} at ${plane.knife.speed} m/s: sideslip ${beta.toFixed(1)} deg; named ${names}`);
 check(`the ${plane.name}'s knife edge holds more than 26 deg of sideslip`, beta > 26, `${beta.toFixed(1)} deg`);
 const k = figures.find((f) => f.figure === 'knife_edge_pass');
 check(`the ${plane.name}'s knife edge pass is named and graded 4 to 10`, k && k.grade >= 4 && k.grade <= 10, k ? `grade ${k.grade}` : 'not named');

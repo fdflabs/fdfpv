@@ -24,7 +24,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { shares, wash as washOf } from './lib/wash.js';
@@ -359,7 +359,13 @@ const FUSE = [
   [0.560, 0.050, 0.030, -0.104, 3.2], [0.720, 0.034, -0.020, -0.122, 2.8], [0.880, 0.020, -0.056, -0.136, 2.4],
   [0.956, 0.010, -0.066, -0.140, 2.2],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.089 m behind the leading edge at 0.250 (src/render/nighttimbercraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.250 + 0.089));
 const sideCda = fusL * 0.13 * 1.2 * sectionK * 0.7;
 
 /* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
@@ -505,7 +511,9 @@ function knifeEdge(V) {
       const w = washOf(slip, thrust, u);
       const rest = qb * S * b * ((Cnb - slip.slip_cn_b - CnbFus) * sb + CnbFus * sb * cb);
       const fp = { rho, V, u, sb, w, S, b };
-      dr = knifeRudder(fin, fp, rest, throwR);
+      /* The crossflow drag at its centre of pressure, side_x ahead of the CG. */
+      const restX = rest - sideX * 0.5 * rho * sideCda * (V * sb) ** 2;
+      dr = knifeRudder(fin, fp, restX, throwR);
       if (dr === null) break;
       side = qb * S * (-(CYb - slip.slip_cy_b)) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 - knifeFin(fin, fp, dr).y;
       thrust = (qb * S * CD0 + side * sb) / cb;
@@ -570,6 +578,7 @@ const rows = [
   ['slipstream', J(slip, 4)],
   ['rot_k roll pitch yaw N m s2', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}`],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['N1 level at 75 percent', f(level(0.75), 2)],
   ['N2 stall clean, CLmax / CLα; full flaps', `${f(Vs, 2)} ${f(CLmax / CLa, 5)}; ${f(VsFull, 2)}`],
   ['N3 L/D at 11, 13 m/s', `${f(ld(11), 2)} ${f(ld(13), 2)}`],

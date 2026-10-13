@@ -99,19 +99,29 @@ export function sectionRatio(f, rho = RHO_E4) {
 
 /*
  * A fuselage's section ratio averaged over its side view from s0 to s1,
- * each station weighted by its depth, as the crossflow force is. at(s)
- * gives the station's depth, fineness and corner.
+ * each station weighted by its depth, as the crossflow force is, and the
+ * station the force acts at: Allen and Perkins (NACA TR 1048) take a
+ * body's viscous crossflow force station by station, eta c_dc times the
+ * local width across the flow, so its centre of pressure is the side
+ * view's centroid with each station weighted by its own drag, depth
+ * times its section's ratio. at(s) gives the station's depth, fineness
+ * and corner.
  */
-export function profileRatio(at, s0, s1, n = 4000) {
+export function profile(at, s0, s1, n = 4000) {
   let num = 0;
   let den = 0;
+  let mom = 0;
   for (let k = 0; k < n; k += 1) {
-    const { depth, f, rho } = at(s0 + (s1 - s0) * (k + 0.5) / n);
-    num += depth * sectionRatio(f, rho);
+    const s = s0 + (s1 - s0) * (k + 0.5) / n;
+    const { depth, f, rho } = at(s);
+    const w = depth * sectionRatio(f, rho);
+    num += w;
     den += depth;
+    mom += w * s;
   }
-  return num / den;
+  return { ratio: num / den, centre: mom / num };
 }
+export const profileRatio = (at, s0, s1, n = 4000) => profile(at, s0, s1, n).ratio;
 
 export const smoothstep = (i, u) => u * u * (3 - 2 * u);
 
@@ -120,7 +130,7 @@ export const smoothstep = (i, u) => u * u * (3 - 2 * u);
  * top, bottom, e], blended between rows as its fuseAt does: blend(i, u)
  * on row i's segment, smoothstep unless the drawing says otherwise.
  */
-export function fuselageRatio(fuse, n = 4000, blend = smoothstep) {
+export function fuselage(fuse, n = 4000, blend = smoothstep) {
   const at = (s) => {
     let i = 0;
     while (s > fuse[i + 1][0]) i += 1;
@@ -131,5 +141,6 @@ export function fuselageRatio(fuse, n = 4000, blend = smoothstep) {
     const depth = lerp(2) - lerp(3);
     return { depth, f: (2 * lerp(1)) / depth, rho: cornerOf(lerp(4)) };
   };
-  return profileRatio(at, fuse[0][0], fuse[fuse.length - 1][0], n);
+  return profile(at, fuse[0][0], fuse[fuse.length - 1][0], n);
 }
+export const fuselageRatio = (fuse, n = 4000, blend = smoothstep) => fuselage(fuse, n, blend).ratio;

@@ -103,32 +103,43 @@ const PLANES = [
  * 8abf9aeac1ba645b), slick (was d7e7790e169321bc). The Extra, CAP and
  * Slick again on the combined plant with w38-hover-yaw's wash and their
  * AS3X re-derived on it, the ground's term unchanged (were
- * 2fca4407efd2d224, 8e66909096631404 and 5449163f8a43d393). */
+ * 2fca4407efd2d224, 8e66909096631404 and 5449163f8a43d393). Re-pinned for
+ * the fuselage's crossflow drag at its own centre of pressure
+ * (w38-crossflow-moment, side_x, Allen and Perkins), the ground's term
+ * unchanged: sky (was 98dbc41182defb65), cub (was a800a9bacc6ca86e),
+ * radian (was 4e0c156e7201c5a5), timber (was c56e0195572eefd8), timberf
+ * (was 59bac20e4dbc5e49), cubf (was ae4a533ae8390f4f), bombshell (was
+ * 50dcf037afd32e48), kadet (was 038828363ad67d9c), p51 (was
+ * 4fed22c5316b798f), f16 (was 0b2d44b8ed4affdd), uglystik (was
+ * 69d7b779b2222825), tigermoth (was dfbcb81229d100c0), extra (was
+ * 130ee96df4d170a5), nighttimber (was 2b1e8e70189de507), hercules (was
+ * 75408e31a83e82dd), cap580 (was ca753897fc920c72), slick (was
+ * eb98eb5f61ba0c32). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
-  sky: '98dbc41182defb65',
-  cub: 'a800a9bacc6ca86e',
+  sky: '6ec975f7afcb036b',
+  cub: '7f26c298362cc8e0',
   slowstick: '731483e6eb017e98',
-  radian: '4e0c156e7201c5a5',
-  timber: 'c56e0195572eefd8',
+  radian: '80300ab2345b8d8f',
+  timber: '4b2f4b3fb5f79720',
   bramor: '8191b109670108ee',
-  timberf: '59bac20e4dbc5e49',
-  cubf: 'ae4a533ae8390f4f',
-  bombshell: '50dcf037afd32e48',
-  kadet: '038828363ad67d9c',
-  p51: '4fed22c5316b798f',
-  f16: '0b2d44b8ed4affdd',
+  timberf: '8d8de74bcbab6724',
+  cubf: '7d63c9e2c78386ee',
+  bombshell: '65e981219dac8893',
+  kadet: '0a09240a3d188fec',
+  p51: '960d687d68dd1fc2',
+  f16: '75a6cac5f8258f81',
   zagi: 'abccd77d1b7b9034',
-  uglystik: '69d7b779b2222825',
+  uglystik: '0e6442ae5529b6b8',
   nrj: '31151485dea980a5',
-  tigermoth: 'dfbcb81229d100c0',
+  tigermoth: 'ab1925996216026f',
   strikerprop: 'cc5c73165bbbee13',
   strikerjet: '3a313d5090f2f3fb',
-  extra: '130ee96df4d170a5',
-  nighttimber: '2b1e8e70189de507',
-  hercules: '75408e31a83e82dd',
-  cap580: 'ca753897fc920c72',
-  slick: 'eb98eb5f61ba0c32',
+  extra: 'e2126e2b566fa933',
+  nighttimber: 'c6d1310b299055bc',
+  hercules: 'eb28e3fc65379972',
+  cap580: 'f77ccae2a596aa22',
+  slick: '1172512292cfbb69',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */

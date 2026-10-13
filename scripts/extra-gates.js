@@ -50,6 +50,8 @@ import {
   bombshellGroundPrelude, kadetGroundPrelude, slowstickGroundPrelude, skyPrelude, wingPrelude, cubGroundPrelude, p51RecPrelude, p51AirPrelude, f16GroundPrelude,
   zagiPrelude, uglystikGroundPrelude, dlgRecPrelude, tigermothGroundPrelude,
   gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude, timberFloatRecPrelude, RC_STEP_MS,
+  knifeThrottle,
+  stickForThrow,
 } from '../tests/lib/wingpilot.js';
 import { PROGRAMS, harrierFlight, harrierKicks } from './lib/harrierkick.js';
 
@@ -317,47 +319,48 @@ check: {
   }
 
   /* E12: the knife edge. From level at 15 m/s, rolled right to 90 deg on
-   * the ailerons. A pilot holds the height on the rudder through the
-   * sideslip: the height's rate asks for a sideslip, the rudder flies the
-   * aircraft onto it (left rudder, nose toward the sky, is more), each
-   * with an integral, and the yaw rate damped; the speed on the throttle,
-   * the heading on the elevator, for 15 s; the mean of the last 5. */
+   * the ailerons. The pilot's hands are the knife edge's as taught (the
+   * sources at wingpilot.js knifeThrottle): the rudder put on to the
+   * derivation's share of its throw (left rudder, nose toward the sky)
+   * and left there, the height on the throttle alone, the heading on the
+   * elevator, for 15 s; the mean of the last 5. The sideslip, throttle
+   * and speed it settles at are the derivation's to predict. */
   {
     const t12 = th.e12_knife_edge;
     const r = fly(sim, { duty: 0.6, vTarget: t12.speed, seconds: 10, speed0: t12.speed, ...slow });
     clockMs = r.endMs;
     let s = sim.readState().state;
-    let iA = 0, iH = 0, iB = 0, iT = 0.6;
+    let iA = 0;
+    const thr = knifeThrottle(EXTRA_AIRFRAME, t12.dutyDerived);
+    const rudder = -stickForThrow(t12.rudderDerived);
     const psi0 = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
-    let sb = 0, sd = 0, sr = 0, n = 0, zMin = Infinity, zMax = -Infinity, worstBank = 0;
+    let sb = 0, sd = 0, sr = 0, sv = 0, n = 0, zMin = Infinity, zMax = -Infinity, worstBank = 0;
     for (let ms = 0; ms < 15000; ms += RC_STEP_MS) {
       const dt = RC_STEP_MS / 1000;
       const bank = fullBank(s);
       const bankT = Math.min(Math.PI / 2, ms / 1000 * 3);
       iA = Math.max(-0.5, Math.min(0.5, iA - 1.0 * (bank - bankT) * dt));
       const roll = clamp(-0.8 * (bank - bankT) - 0.05 * s[11] + iA);
-      iH = Math.max(-0.3, Math.min(0.9, iH + 0.2 * (0 - s[6]) * dt));
-      const betaT = 0.3 + 0.2 * (0 - s[6]) + iH;
-      const beta = wingDebug(sim)[1];
-      iB = Math.max(-1, Math.min(1, iB + 3 * (betaT - beta) * dt));
-      const yaw = ms < 300 ? 0 : clamp(-3 * (betaT - beta) - iB + 0.3 * s[13]);
+      /* The rudder put on over half a second, a hand's movement (0.3 s
+       * wings vertical first, 0.5 s on: ESTIMATED), and left there. */
+      const yaw = ms < 300 ? 0 : rudder * Math.min(1, (ms - 300) / 500);
       const psi = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
       let dpsi = psi - psi0;
       while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
       while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
       const pitchStick = clamp(0.8 * dpsi + 0.15 * s[12]);
-      iT = Math.max(0, Math.min(1, iT + 0.0005 * (t12.speed - speed(s))));
-      const t = clamp(iT + 0.1 * (t12.speed - speed(s)));
+      /* The height on the throttle, the speed where it falls (wingpilot.js knifeThrottle). */
+      const t = thr.step(s[6], dt);
       s = step(sim, [roll, pitchStick, yaw, t]);
       if (ms >= 10000) {
-        sb += wingDebug(sim)[1]; sd += t; sr += yaw; n += 1;
+        sb += wingDebug(sim)[1]; sd += t; sr += yaw; sv += speed(s); n += 1;
         zMin = Math.min(zMin, s[3]); zMax = Math.max(zMax, s[3]);
         worstBank = Math.max(worstBank, Math.abs(bank * DEG - 90));
       }
     }
-    const bm = sb / n * DEG, d = sd / n, rd = sr / n;
-    gate('E12', 'knife edge: rolled to 90 deg, the rudder holding height', bm >= t12.betaMin && bm <= t12.betaMax && d >= t12.dutyMin && d <= t12.dutyMax && Math.abs(rd) < 1 && zMax - zMin <= t12.maxHeightDrift,
-      `sideslip ${bm.toFixed(1)} deg at throttle ${d.toFixed(3)}, rudder stick ${rd.toFixed(2)}, bank off 90 by under ${worstBank.toFixed(1)}, height within ${(zMax - zMin).toFixed(2)} m`,
+    const bm = sb / n * DEG, d = sd / n, rd = sr / n, vm = sv / n;
+    gate('E12', 'knife edge: rolled to 90 deg, the rudder on, the throttle holding height', bm >= t12.betaMin && bm <= t12.betaMax && d >= t12.dutyMin && d <= t12.dutyMax && Math.abs(rd) < 1 && zMax - zMin <= t12.maxHeightDrift,
+      `sideslip ${bm.toFixed(1)} deg at throttle ${d.toFixed(3)} and ${vm.toFixed(1)} m/s, rudder stick ${rd.toFixed(2)}, bank off 90 by under ${worstBank.toFixed(1)}, height within ${(zMax - zMin).toFixed(2)} m`,
       `${t12.betaMin} to ${t12.betaMax} deg, ${t12.dutyMin} to ${t12.dutyMax}, rudder short of full, within ${t12.maxHeightDrift} m`);
   }
 

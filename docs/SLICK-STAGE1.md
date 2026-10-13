@@ -196,7 +196,7 @@ prop's torque from the drive), the 3 deg of right thrust, and the propulsion lan
 | S10 | full elevator at zero airspeed | 12.06 rad/s² | 9.05 to 15.08; at idle under 0.147 of it | 10.5; at idle 1.04 |
 | S10b | full rudder at zero airspeed, over the same kick with it centred | 8.00 rad/s² | 6 to 10; the same | 9.1 (8.1 less -1.1 centred); at idle 0.90 |
 | S11 | harrier at 40 deg of alpha | 11.34 m/s at a stick of 0.315, elevator 74 percent | 9.07 to 13.60, 0.268 to 0.363, short of full | 12.67 at 0.321, stick 0.92 |
-| S12 | knife edge at 30 m/s, rolled right | 23.5 deg of sideslip at 0.433, rudder 81 percent | 17.7 to 29.4, 0.368 to 0.499, short of full | 23.1 at 0.432, stick -0.88 |
+| S12 | knife edge at 30 m/s, rolled right | 26.2 deg of sideslip at 0.442, rudder 105 percent: no level knife edge | 19.68 to 32.8, 0.376 to 0.509, short of full | RED: the stick on its stop; the plant holds it there, 25.5 deg at 0.453 and 30.7 m/s, height within 0.02 m (w38-crossflow-moment) |
 | S13 | standing on its wheels, engine idling | 9.38 deg, 0.4082 m, 10.9 percent on the tail | half a degree, 5 mm, 3.5 points | 9.36, 0.4088, 10.9 (mains 53.18 and 53.99 N, the right thrust's yaw) |
 | S14 | take off roll | 8.01 m | 4.80 to 12.81 | 11.72, 0.22 m off the line |
 | S15 | every other aircraft unmoved | the hashes extra:gates E15 pins | identical | identical |

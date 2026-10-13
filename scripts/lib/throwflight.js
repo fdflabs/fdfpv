@@ -14,7 +14,7 @@
  *   deflected surfaces' drag; the pitching moment the same way; the six
  *   lateral derivatives and the CL rules' cross terms in the stability
  *   axes, the fuselage's share of cn_beta on Munk's u v in the body; the
- *   fuselage's crossflow drag (side_cda);
+ *   fuselage's crossflow drag (side_cda) at its centre of pressure (side_x);
  * - the motor: an electric's duty on the seated pack (scripts/lib/
  *   propcurve.js wingSeat, the gates' 4.1 V), an engine's from its idle,
  *   spooled from the duty's speed at the throw on Drela's law (or a glow
@@ -409,7 +409,8 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
       F[1] += fy; F[2] += fz;
       jetM[1] = -fw.prop_x * fz; jetM[2] = fw.prop_x * fy;
     }
-    if (fw.side_cda > 0) F[1] -= 0.5 * rho * fw.side_cda * v * Math.abs(v);
+    const fSide = fw.side_cda > 0 ? -0.5 * rho * fw.side_cda * v * Math.abs(v) : 0;
+    F[1] += fSide;
 
     /* The moments, in the stability axes and back. */
     const p = om[0], qAero = -om[1], rAero = -om[2];
@@ -437,7 +438,7 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const M = [
       qbar * fw.area * fw.span * clBody - qReact + lSlip,
       -mAero + fw.thrust_z * thrust - mSlip + jetM[1],
-      -qbar * fw.area * fw.span * cnBody + mThrustYaw - nSlip + jetM[2],
+      -qbar * fw.area * fw.span * cnBody + mThrustYaw - nSlip + jetM[2] + fw.side_x * fSide,
     ];
     if (wRot > 0) M[2] += fw.pfactor * thrust * -w / wRot;
     if (fw.rot_k && (fw.rot_k[0] > 0 || fw.rot_k[1] > 0 || fw.rot_k[2] > 0)) {

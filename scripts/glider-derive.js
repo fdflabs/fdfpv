@@ -23,7 +23,7 @@
  */
 
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -341,7 +341,13 @@ const FUSE = [
   [0.690, 0.021, 0.059, -0.012, 2.4], [0.820, 0.018, 0.055, -0.001, 2.3], [0.945, 0.017, 0.050, 0.010, 2.2],
   [1.040, 0.013, 0.046, 0.020, 2.2], [1.088, 0.008, 0.043, 0.028, 2.0],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.063 m behind the leading edge at 0.2455 (src/render/glidercraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.2455 + 0.063));
 const sideCda = 0.083 * 1.2 * sectionK * 0.7;
 
 const f = (x, nd = 3) => (x === null ? 'none' : Number(x).toFixed(nd));
@@ -358,6 +364,7 @@ const rows = [
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['Clβ (wing, total), equivalent Γ deg, Clp, Clδa', `${f(ClbWing, 4)} ${f(Clb, 4)} ${f(gammaEq * DEG, 2)} ${f(Clp)} ${f(Clda)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr, Cnδa per CL', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)} ${f(CndaPerCL, 4)}`],

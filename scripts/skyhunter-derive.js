@@ -27,7 +27,7 @@
  */
 
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
-import { cornerOf, profileRatio } from './lib/crossflow.js';
+import { cornerOf, profile } from './lib/crossflow.js';
 
 const rho = 1.225;
 const g = 9.81;
@@ -121,7 +121,7 @@ const POD = [
   [0.130, 0.056, 0.066, 2.5], [0.195, 0.042, 0.046, 2.2], [0.235, 0.028, 0.028, 2.0],
 ];
 const NOSE_Z = -0.385;
-const sectionK = profileRatio((z) => {
+const side = profile((z) => {
   if (z <= POD[0][0]) {
     const [z0, w, h, e] = POD[0];
     const u = (z0 - z) / (z0 - NOSE_Z);
@@ -136,6 +136,12 @@ const sectionK = profileRatio((z) => {
   const at = (j) => a[j] + (bb[j] - a[j]) * t;
   return { depth: 2 * at(2), f: at(1) / at(2), rho: cornerOf(at(3)) };
 }, NOSE_Z, POD[POD.length - 1][0]);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's origin, the CG (src/render/skycraft.js).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0));
 const sideCda = 0.086 * 1.2 * sectionK * 0.7;
 
 const f = (x, n = 2) => Number(x).toFixed(n);
@@ -150,6 +156,7 @@ const rows = [
   ['   phugoid period s, zeta', `${f(ph.ph.T)} ${f(ph.ph.zeta)}`],
   ['   short period s, zeta', `${f(ph.sp.T)} ${f(ph.sp.zeta)}`],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
 ];
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(48)} ${v}`);
