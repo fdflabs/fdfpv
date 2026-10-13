@@ -79,7 +79,7 @@
         {"field":"acro_roll_rate","expr":"45.0 * WING_PI / 180.0"},
         {"field":"acro_pitch_rate","expr":"30.0 * WING_PI / 180.0"},
         {"field":"as3x_k","expr":"{ 0, 0.0287, 0.1518 }","comment":"npm run as3x:derive"},
-        {"field":"as3x_kh","expr":"{ 0, 0.2561, 1.3548 }","comment":"npm run as3x:derive"},
+        {"field":"as3x_kh","expr":"{ 0, 1.3223, 0.2226 }","comment":"npm run as3x:derive"},
         {"field":"as3x_rate","expr":"{ 0.944, -0.726, -0.678 }","comment":"npm run as3x:derive"},
         {"field":"acro_expo","expr":"0.30"},
         {"field":"acro_err_max","expr":"5.0 * WING_PI / 180.0"},

@@ -91,7 +91,7 @@
         {"field":"acro_pitch_ki","expr":"6.0","comment":"FITTED: a loop gain, Spektrum publishes none for the AR637T"},
         {"field":"acro_i_max","expr":"0.30","comment":"FITTED: a loop gain, Spektrum publishes none for the AR637T"},
         {"field":"as3x_k","expr":"{ 0.0231, 0.0282, 0.0944 }","comment":"npm run as3x:derive"},
-        {"field":"as3x_kh","expr":"{ 0.2061, 0.2516, 0.8425 }","comment":"npm run as3x:derive"},
+        {"field":"as3x_kh","expr":"{ 1.5445, 1.8849, 2.4184 }","comment":"npm run as3x:derive"},
         {"field":"as3x_rate","expr":"{ 0.609, -1.209, -0.986 }","comment":"npm run as3x:derive"},
         {"field":"yaw_coord_k","expr":"1.5","comment":"FITTED: turn coordination gain, no published figure"},
         {"note":["Past the stall, scripts/stall-derive.js's tailed form on this","aircraft's numbers; the 18 percent section's rounded trailing edge","stall, the Kadet's thick section's figures taken, ESTIMATED."]},

@@ -63,7 +63,7 @@ import { must } from '../tests/lib/wingpilot.js';
 import { TABLE } from '../configs/power.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import {
-  AS3X, rowOf, receiverOf, gainForMargins, measurePlane, revive, fanOut,
+  AS3X, GM_MIN_DB, PM_MIN_DEG, rowOf, receiverOf, gainForMargins, margins, measurePlane, revive, fanOut,
   planeSim, diveCondition, closedFlight, rings, pilotFlight,
 } from './lib/as3xloop.js';
 
@@ -225,17 +225,42 @@ function unseenDamper(sim, name, body, ceiling) {
   return ceiling.map((c) => f4(scale * c));
 }
 
-/* The full Heading on that damper: its integral cornered at a quarter of
- * the fastest crossover the frame allows, pi / (4 T), so kh = k pi /
- * (16 T), the rule this derivation has always used. The damper no
- * longer crosses unity there (it is set by the margin now, not at
- * pi / (4 T)), so the corner is that fraction of the frame's limit and
- * nothing more: a ratio, not a measurement. The AR631's Heading is the
- * pilot's to turn up ("You can increase this value to make the aircraft
- * hold its attitude when control input is neutral"); a pilot who does
- * spends margin, as on the real receiver, and as3x:margins prints what
- * the full Heading leaves. */
-const headingFor = (k, T) => f4(k * Math.PI / (16 * T));
+/* The full Heading on that damper, by the damper's own rule: the largest
+ * kh, the damper k held, that keeps 6 dB and 45 deg on the loop with the
+ * Heading at full at every condition the aircraft flies (slow flight,
+ * cruise, top speed, the dive, the harrier and the hover where it flies
+ * them), and at every kh below it, since a pilot turns the Heading up
+ * from zero through each of them: the first failure on a 2 percent sweep
+ * from 1e-4 to 64 rad of surface per rad, bisected in its bracket, as
+ * gainForMargins finds the damper's. The feel rule (as3x-feel.js F1) is
+ * at the receiver's default Heading, zero, and is not moved by it. An
+ * axis whose damper already sits on its margin has no Heading to give,
+ * and gets none. Until 2026-10-12 it was kh = k pi / (16 T), a corner a
+ * quarter of the frame's fastest crossover, a ratio and not a
+ * measurement: on w37-flat-fall's plant the Extra's roll Heading alone
+ * doubled its harrier rock (E11b 2.03 and 1.81 of Manual's; lead
+ * decision 2026-10-12). The AR631's Heading is the pilot's to turn up
+ * ("You can increase this value to make the aircraft hold its attitude
+ * when control input is neutral"). */
+function headingFor(resps, axis, k, T) {
+  if (!(k > 0) || !resps.length) return 0;
+  const ok = (kh) => resps.every((r) => {
+    const m = margins(r, axis, k, kh, T);
+    return m.gmDb >= GM_MIN_DB && (m.pmDeg === null || m.pmDeg >= PM_MIN_DEG);
+  });
+  if (!ok(0)) return 0;
+  let lo = 0, hi = null;
+  for (let kh = 1e-4; kh <= 64; kh *= 1.02) {
+    if (!ok(kh)) { hi = kh; break; }
+    lo = kh;
+  }
+  if (hi === null) return f4(lo);
+  for (let i = 0; i < 40; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (ok(mid)) lo = mid; else hi = mid;
+  }
+  return f4(lo);
+}
 
 /* One table, in its own process: the airframe measured over its
  * envelope, and the heading's rates on the gates' seat. */
@@ -266,7 +291,8 @@ for (const name of Object.keys(AS3X)) {
   const m = revive(measure);
   const body = rowOf(src, name);
   const T = m.T;
-  const kh = k.map((x) => headingFor(x, T));
+  const resps = [0, 1, 2].map((ax) => m.conds.map((c) => c.resp[ax]).filter((r) => r));
+  const kh = k.map((x, ax) => headingFor(resps[ax], ax, x, T));
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
   /* The loop closed on the plant at the dive, all three axes on the
    * derived gains at the default Heading, each axis kicked 1 rad/s: none

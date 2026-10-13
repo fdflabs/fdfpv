@@ -346,6 +346,7 @@
     "slowstick:derive": "node scripts/slowstick-derive.js",
     "stall:derive": "node scripts/stall-derive.js",
     "stall-side:check": "node scripts/stall-side-check.js",
+    "flat-fall:check": "node scripts/flat-fall-check.js",
     "stall:probe": "node scripts/stall-probe.js",
     "wash:derive": "node scripts/wash-derive.js",
     "stab:hold": "node scripts/stab-hold-derive.js --check",
