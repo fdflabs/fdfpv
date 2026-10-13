@@ -270,7 +270,7 @@ const HOVER_DUTY = wingSeat('FW_EXTRA3D1308').hoverStick(SEAT_GATES);
  * near nothing, is no measure of a damper). */
 for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.393]]) {
   for (const [axis, k] of [['roll', 11], ['pitch', 12], ['yaw', 13]]) {
-    const kicked = (heading) => bothModes((mode) => {
+    const kicked = (heading, kick = 1) => bothModes((mode) => {
       mode();
       must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
       must(sim.reset(), 'reset');
@@ -281,41 +281,33 @@ for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2,
       fly(0, 0, 0, duty, 0.3);
       const s = sim.readState().state;
       const w = [s[11], s[12], s[13]];
-      w[k - 11] += 1;
+      w[k - 11] += kick;
       must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'kick');
-      let angle = 0, rate = 0, decay = 0, at1 = 0;
+      let angle = 0, rate = 0, decay = 0;
+      const tr = [];
       for (let i = 0; i < 250; i += 1) {
         fly(0, 0, 0, duty, 0.004);
-        const d = sim.readState().state[k] - s[k];
-        at1 += d * 0.004;
+        tr.push(sim.readState().state[k]);
+        const d = tr[i] - s[k];
         if (i >= 125) continue;
         angle += d * 0.004;
         rate += Math.abs(d) * 0.004;
         if (Math.abs(d) >= Math.exp(-1)) decay = (i + 1) * 0.004;
       }
       must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
-      return { angle: Math.abs(angle), rate, decay, at1: Math.abs(at1) };
+      return { angle: Math.abs(angle), rate, decay, tr };
     });
     const held = kicked(1);
+    /* The turn the kick leaves after 1 s: the kicked flight's rate less
+     * the same flight's unkicked, integrated, in each mode. */
+    const still = kicked(1, 0);
+    for (const m of ['as3x', 'manual']) {
+      held[m].at1 = Math.abs(held[m].tr.reduce((sum, r, i) => sum + (r - still[m].tr[i]) * 0.004, 0));
+    }
     /* An axis whose derived full Heading is zero (as3x_kh, npm run
      * as3x:derive) has no hold to judge: its full Heading is the damper
      * alone. Recorded, not judged; the damper is judged at the default
-     * Heading below. The Extra's yaw was such an axis from c321a9bf7 to
-     * 20fde9b91, where its derived yaw Heading became 0.001 (one sweep
-     * step under a measured crossing, as3x-derive.js kickHeading), so the
-     * level yaw kick is judged again, and fails, 0.5 against 0.4 deg.
-     * Measured on 20fde9b91 (w38-physics-3), it is not the airframe: the
-     * nose is back on its flight path by 0.6 s in Manual and AS3X alike
-     * (heading against track within 0.05 deg), the yaw Heading at 0.001
-     * changes nothing here (Heading [0, 0, 1] leaves 0.51 deg, as the
-     * damper alone does), and the full Heading's 0.46 is the pitch
-     * Heading's (Heading [0, 1, 0] alone, 0.46). The line takes the rate
-     * before the kick as the flight's own through the second, and after
-     * the 0.3 s lead in that rate is still moving, by mode: unkicked,
-     * the same integral is -0.23 deg in Manual, -0.16 on the damper and
-     * -0.19 at the full Heading. Against the same flight unkicked the
-     * kick leaves 0.76, 0.76 and 0.73 deg. The line is left as posed and
-     * red; how to pose it is the lead's. */
+     * Heading below. */
     const noHold = EXTRA_T.fw.as3x_kh[k - 11] === 0;
     if (noHold) {
       console.log(`  info  ${where}, the Heading full, a 1 rad/s ${axis} kick: the table derives no ${axis} Heading (as3x_kh 0), recorded and not judged: ${deg(held.as3x.at1)} against Manual's ${deg(held.manual.at1)} deg left after 1 s`);
@@ -324,7 +316,14 @@ for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2,
        * angle the kick turned it, still off after 1 s, by when the
        * airframe's own weathercock swing has settled (in a level kick
        * flown 1 ms a step, Manual's yaw error is 0.41 deg at 0.5 s, 0.74
-       * at 1 s and 0.88 at 2 s). A hold
+       * at 1 s and 0.88 at 2 s), against the same flight unkicked in the
+       * same mode. Until w38-physics-3 the kicked rate was taken less the
+       * rate before the kick, as if the flight held it through the
+       * second; after the 0.3 s lead in it does not, and by a different
+       * amount in each mode (unkicked, -0.23 deg in Manual, -0.16 on the
+       * damper, -0.19 at the full Heading, the Extra's yaw on 20fde9b91),
+       * which put the yaw line at 0.5 against 0.4 deg where the kick
+       * itself leaves 0.73 against 0.76 (lead decision 2026-10-13). A hold
        * reverses the rate to bring the heading back, so how fast the rate
        * dies is no measure of it (lead decision 2026-10-12). Until then:
        * the angle at 0.5 s (yaw 0.1 against 0.1 deg on the ratio Heading,

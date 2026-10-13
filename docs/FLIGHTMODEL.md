@@ -1469,8 +1469,40 @@ to 0.46), and the gap is in the line's baseline: it takes the rate before
 the kick as the flight's own through the second, while after the 0.3 s
 lead in the unkicked flight's rate still moves by -0.23 deg (Manual),
 -0.16 (damper) and -0.19 (full Heading). Against the same flight
-unkicked the kick leaves 0.76, 0.76 and 0.73 deg. The line stays as
-posed and red until the lead re-poses it.
+unkicked the kick leaves 0.76, 0.76 and 0.73 deg. Re-posed (lead,
+2026-10-13): the level kick lines now take the kicked flight's rate less
+the same flight's unkicked, in each mode, which is what they claim to
+measure; the yaw line reads 0.6 against Manual's 0.7 deg and passes.
+
+The partial deflection form for hi_alpha tails, tried and DECLINED
+(w38-physics-3, kept on branch w38-physics-3-partial, 8adde8410). Each
+surface's normal force as the plate's on its own angle plus the
+deflection's increment at no incidence times a share kept at that
+angle, from Ma, Smeur and de Croon 2022's free stream runs (4TU
+doi:10.4121/16620226, 0 throttle, the 7.5 to 14 m/s runs;
+~/Desktop/fdfpv-loop/research/wash-control/WASH-CONTROL.md, the free
+stream). It took the Night Timber's full back harrier to 58 deg of body
+angle against the video's 40 to 45 (26 to 35 before), lost the level
+knife edge at the Extra's, the CAP's and the Slick's gates (the Slick
+holds none at all), and walled the Slick's pitch at alpha 19 deg short
+of its harrier. The cause is the full deflection's dip to 0.55 at 20
+deg, and the fall from 8 to 14 deg: the MH32 wing's own stall (a full
+span 25 percent flap, open jet, low Reynolds numbers), carried onto
+tails whose plate saturates near 17 to 22 deg, with 40 to 50 percent
+controls. Real Extras, CAPs and Slicks knife edge slow and harrier, so
+these data do not describe a tail with a large control. What would
+settle it: a vertical tail or isolated low aspect ratio fin, rudder 40
+to 50 percent of the chord, measured at yaw angles of 20 to 60 deg
+with the rudder deflected both ways (NACA vertical tail tests at large
+angles of yaw with rudder deflection; Hoerner, Fluid-Dynamic Lift,
+control surfaces at high incidence), and the same for a stabiliser and
+elevator past 20 deg of incidence. Until then the plant keeps the
+single saturating plate. Also found: the free stream numbers above from
+tmp/ma-sides.py took in the 5 to 6 m/s run, whose zero-incidence
+increments are under the balance's resolution (full up 0.026 N m, half
+up 0.073); on the three faster runs full against keeps 0.55, 0.78,
+0.65, 0.73, 0.70 at 20 to 60 deg and half against 0.87, 0.90, 0.67,
+0.61, 0.45.
 
 ## A prop spins up
 
