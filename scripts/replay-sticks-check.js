@@ -21,7 +21,9 @@
  *     with what flies it again (src/replay/refly.js). The saved file is
  *     left in OUT_DIR and flown again in Node by npm run replay:refly,
  *     which must give every row back bit for bit: a flight recorded in
- *     Chromium, re-flown in Node.
+ *     Chromium, re-flown in Node. Then with --transplant: set up from the
+ *     clip's setup log twice on the same build, placed in its state, the
+ *     two flights must be the same.
  *  5. An old clip, the same flight written without its sticks (what a
  *     build before this one wrote, byte for byte; npm run
  *     crashcam:selftest holds that), imported and played: it plays, its
@@ -305,6 +307,16 @@ async function main() {
     check('flown again in Node, every row bit for bit (npm run replay:refly)',
       re.status === 0 && Boolean(tally) && tally[1] === tally[2] && Number(tally[2]) > 0,
       tally ? `${tally[1]}/${tally[2]} rows, exit ${re.status}` : `exit ${re.status}: ${(re.stderr || re.stdout).trim().split('\n').pop()}`);
+    /* Transplanted (set up from the clip's setup log, placed in its state)
+     * twice onto the same build, the two flights must be the same: the
+     * setup log a real page wrote is whole enough to set a module up. */
+    const tp = spawnSync(process.execPath, [join(root, 'scripts', 'replay-refly.js'), saved, '--transplant'], { encoding: 'utf8' });
+    writeFileSync(join(outDir, 'sticks-transplant.txt'), `${tp.stdout}${tp.stderr}`);
+    const setupLine = /setup log (\d+) calls, (\d+) B, sim_init text (\d+) B/.exec(tp.stdout);
+    check('set up from its setup log on the same build twice, the two flights are the same',
+      tp.status === 0 && /SAME: the new build flies this clip exactly/.test(tp.stdout) && Boolean(setupLine),
+      setupLine ? `setup log ${setupLine[1]} calls, ${setupLine[2]} B; ${(/jolt[^\n]*\n[^\n]*worst: [^\n]*/.exec(tp.stdout) || [''])[0].replace(/\s+/g, ' ')}`
+        : `exit ${tp.status}: ${(tp.stderr || tp.stdout).trim().split('\n').pop()}`);
 
     console.log('5. an old clip, without sticks');
     const old = await page.evaluate(`(async () => {

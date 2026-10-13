@@ -148,7 +148,10 @@
  * region copy, changed pages and calls, deflated, `bytes` of them. A clip
  * without it is written as the version before, byte for byte, and
  * versions 1 to 16 are read without it: they cannot be flown again
- * (docs/CONTROL-RECORDER.md).
+ * (docs/CONTROL-RECORDER.md). The refly may hold `setup` ({ init, calls,
+ * entries, overflow }: the setup log's sizes, its contents packed with the
+ * rest), which flies the clip on another build; a version 17 file from
+ * before it was kept is read without it.
  *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
@@ -456,7 +459,14 @@ export function encodeReplay(clip) {
   const refly = clip.refly && clip.refly.packed ? clip.refly : null;
   if (refly) {
     header.refly = {
-      build: refly.build, abi: refly.abi, lo: refly.lo, hi: refly.hi, names: refly.names, segs: refly.segs, bytes: refly.packed.byteLength,
+      build: refly.build,
+      abi: refly.abi,
+      lo: refly.lo,
+      hi: refly.hi,
+      names: refly.names,
+      segs: refly.segs,
+      ...(refly.setup ? { setup: refly.setup } : {}),
+      bytes: refly.packed.byteLength,
     };
   }
   const json = new TextEncoder().encode(JSON.stringify(header));
@@ -1084,7 +1094,15 @@ export function decodeReplay(buf, known = null) {
       throw new ReplayFileError(err.message);
     }
     clip.refly = {
-      build: H.build, abi: H.abi, lo: H.lo, hi: H.hi, names: H.names, segs: H.segs, marks, packed: new Uint8Array(buf.slice(o, o + H.bytes)),
+      build: H.build,
+      abi: H.abi,
+      lo: H.lo,
+      hi: H.hi,
+      names: H.names,
+      segs: H.segs,
+      setup: H.setup || null,
+      marks,
+      packed: new Uint8Array(buf.slice(o, o + H.bytes)),
     };
   }
   return clip;

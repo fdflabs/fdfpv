@@ -21,6 +21,13 @@
  * to get the right one back from git. A clip older than version 17 cannot
  * be flown again at all, and the tool says what it holds instead.
  *
+ * Given another build (--wasm NEW, or --transplant on the same one), the
+ * clip is then set up on both builds from its setup log, placed in its
+ * state at its first row and flown on with the same calls: the clip's
+ * build against the recording is the method's own jolt, the new build
+ * against the clip's build is what the new build changes. The clip's
+ * build comes from --old, or from git by its blob id.
+ *
  * The self test records a scripted flight through a journaled module as
  * the shell does, saves it as a file, reads it back and flies it again:
  * every row must match. Then two negative controls: the plant changed
@@ -59,7 +66,7 @@ import { createRecorder, HEAD, HEAD_N, PLANT_N, trimClip } from '../src/replay/r
 import { BODY, BODY_N, createSticksRing } from '../src/replay/sticks.js';
 import { decodeReplay, encodeReplay } from '../src/replay/file.js';
 import {
-  describeRefly, packRefly, reflyOf, reflyRun, unpackRefly,
+  describeRefly, packRefly, reflyAcross, reflyOf, reflyRun, transplantable, unpackRefly,
 } from '../src/replay/refly.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 
@@ -224,19 +231,145 @@ export async function refly(clip, wasmBytes, opts = {}) {
   }
   const sim = await loadSim(wasmBytes);
   const run = reflyRun(sim.e, clip, r, opts);
-  return { build, run, cmp: compare(clip, run) };
+  return {
+    build, run, cmp: compare(clip, run), unpacked: r,
+  };
+}
+
+/*
+ * Two transplants of a clip (src/replay/refly.js reflyAcross), from the
+ * same full state at its first row that can be flown back to (`exact`,
+ * the clip flown again on its own build): one on the clip's build, one on
+ * `newBytes`. The first against `exact` is the transplant's jolt; the
+ * second against the first is what the new build changes.
+ */
+export async function transplantPair(clip, unpacked, exact, oldBytes, newBytes) {
+  const tp = transplantable(unpacked, clip.n);
+  if (tp.why) {
+    throw new Error(`this clip cannot be flown on another build: ${tp.why}`);
+  }
+  const start = { k: tp.k, st: exact.states[tp.k] };
+  const oldRun = reflyAcross((await loadSim(oldBytes)).e, clip, unpacked, start);
+  const newRun = reflyAcross((await loadSim(newBytes)).e, clip, unpacked, start);
+  return {
+    start: tp.k,
+    old: oldRun,
+    new: newRun,
+    jolt: pairCompare(clip, exact.states, oldRun.states),
+    effect: pairCompare(clip, oldRun.states, newRun.states),
+  };
+}
+
+/* Two flights' state blocks row by row: how far apart, and where they
+ * first part. Full doubles, nothing rounded. */
+export function pairCompare(clip, A, B) {
+  const rows = [];
+  for (let k = 0; k < clip.n; k += 1) {
+    const a = A[k];
+    const b = B[k];
+    if (!a || !b) {
+      continue;
+    }
+    const d = (o, n) => Math.hypot(...Array.from({ length: n }, (_, i) => a[o + i] - b[o + i]));
+    let same = true;
+    for (const i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) {
+      same = same && Object.is(a[i], b[i]);
+    }
+    rows.push({
+      k,
+      t: clip.time[k],
+      same,
+      a,
+      b,
+      dpos: d(ST_POS, 3),
+      datt: quatAngle(a[ST_QUAT], a[ST_QUAT + 1], a[ST_QUAT + 2], a[ST_QUAT + 3], b[ST_QUAT], b[ST_QUAT + 1], b[ST_QUAT + 2], b[ST_QUAT + 3]),
+      dvel: d(ST_VEL, 3),
+      drate: d(ST_RATE, 3) * DEG,
+    });
+  }
+  const first = (pred) => {
+    const r = rows.find(pred);
+    return r ? { k: r.k, t: r.t } : null;
+  };
+  const max = (key) => rows.reduce((m, r) => Math.max(m, r[key]), 0);
+  return {
+    rows,
+    summary: {
+      flown: rows.length,
+      identical: rows.filter((r) => r.same).length,
+      firstDifferent: first((r) => !r.same),
+      firstPos: first((r) => r.dpos > DIVERGE.pos),
+      firstAtt: first((r) => r.datt > DIVERGE.att),
+      firstVel: first((r) => r.dvel > DIVERGE.vel),
+      firstRate: first((r) => r.drate > DIVERGE.rate),
+      maxPos: max('dpos'),
+      maxAtt: max('datt'),
+      maxVel: max('dvel'),
+      maxRate: max('drate'),
+    },
+  };
+}
+
+function printPairSummary(label, s) {
+  const at = (x) => (x ? `t ${x.t.toFixed(3)} s` : 'never');
+  console.log(`${label}: ${s.flown} rows, identical ${s.identical}; first differs ${at(s.firstDifferent)}; past ${DIVERGE.pos} m ${at(s.firstPos)}, `
+    + `${DIVERGE.att} deg ${at(s.firstAtt)}, ${DIVERGE.vel} m/s ${at(s.firstVel)}, ${DIVERGE.rate} deg/s ${at(s.firstRate)}`);
+  console.log(`${' '.repeat(label.length)}  worst: ${s.maxPos.toFixed(4)} m, ${s.maxAtt.toFixed(3)} deg, ${s.maxVel.toFixed(3)} m/s, ${s.maxRate.toFixed(2)} deg/s`);
+}
+
+function printPairTable(pair, exact, every) {
+  console.log('      t_s    rec z   old tp z   new tp z  jolt dpos  jolt datt   fix dpos   fix datt  fix drate   new p_dps  new q_dps  new r_dps');
+  const jolt = new Map(pair.jolt.rows.map((r) => [r.k, r]));
+  const firstOff = pair.effect.summary.firstDifferent ? pair.effect.summary.firstDifferent.k : -1;
+  const rows = pair.effect.rows;
+  let next = -Infinity;
+  for (const r of rows) {
+    if (r.t < next && r !== rows[rows.length - 1] && r.k !== firstOff) {
+      continue;
+    }
+    next = r.t + every;
+    const j = jolt.get(r.k);
+    const ex = exact.states[r.k];
+    const f = (v, dd) => (v === undefined || v === null ? '-' : v.toFixed(dd)).padStart(11);
+    console.log(`${r.t.toFixed(3).padStart(9)}${f(ex ? ex[ST_POS + 2] : null, 3)}${f(r.a[ST_POS + 2], 3)}${f(r.b[ST_POS + 2], 3)}`
+      + `${f(j ? j.dpos : null, 4)}${f(j ? j.datt : null, 3)}${f(r.dpos, 4)}${f(r.datt, 3)}${f(r.drate, 2)}`
+      + `${f(r.b[ST_RATE] * DEG, 1)}${f(r.b[ST_RATE + 1] * DEG, 1)}${f(r.b[ST_RATE + 2] * DEG, 1)}`);
+  }
+}
+
+/* The clip's own build: the module given if it is that build, else
+ * --old, else git. Null with a reason when none can be had. */
+function recordedBuild(id, given, oldPath) {
+  if (given.id === id) {
+    return { bytes: given.bytes, from: given.path };
+  }
+  if (oldPath) {
+    return { bytes: new Uint8Array(readFileSync(oldPath)), from: oldPath, check: true };
+  }
+  const where = buildCommit(id);
+  if (!where) {
+    return { why: `the clip's build ${id} is not in this checkout: fetch, or pass it as --old` };
+  }
+  const bytes = execFileSync('git', ['cat-file', 'blob', id], { cwd: root, maxBuffer: 1 << 28 });
+  return { bytes: new Uint8Array(bytes), from: `git ${id} (${where})` };
 }
 
 async function main(argv) {
-  const args = { every: 1, wasm: join(root, 'dist', 'sim.wasm'), json: null, clip: null };
+  const args = {
+    every: 1, wasm: join(root, 'dist', 'sim.wasm'), old: null, json: null, clip: null, transplant: false,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--wasm') {
       args.wasm = resolve(argv[++i]);
+    } else if (a === '--old') {
+      args.old = resolve(argv[++i]);
     } else if (a === '--json') {
       args.json = resolve(argv[++i]);
     } else if (a === '--every') {
       args.every = Number(argv[++i]);
+    } else if (a === '--transplant') {
+      args.transplant = true;
     } else if (!args.clip && !a.startsWith('--')) {
       args.clip = resolve(a);
     } else {
@@ -244,7 +377,7 @@ async function main(argv) {
     }
   }
   if (!args.clip) {
-    fail('usage: replay-refly.js CLIP.fdfreplay [--wasm sim.wasm] [--every s] [--json out.json] | --selftest');
+    fail('usage: replay-refly.js CLIP.fdfreplay [--wasm new.wasm] [--old clip-build.wasm] [--transplant] [--every s] [--json out.json] | --selftest');
   }
   if (!(args.every > 0)) {
     fail('--every takes seconds above zero');
@@ -261,41 +394,84 @@ async function main(argv) {
       + 'state or the calls at the plant\'s rate. Only a clip saved by a build with file version 17 can be re-flown.');
   }
   const d = describeRefly(clip.refly, clip.n);
+  const U = clip.refly.setup;
   console.log(`refly: build ${d.build ?? 'not named'}, abi ${d.abi}, region ${d.region} B, ${d.segs} stretches`
-    + `${d.broken ? ` (${d.broken} cut short)` : ''}, ${d.flyable}/${d.rows} rows can be flown back to`);
-  const wasmBytes = new Uint8Array(readFileSync(args.wasm));
-  let result;
+    + `${d.broken ? ` (${d.broken} cut short)` : ''}, ${d.flyable}/${d.rows} rows can be flown back to; `
+    + `${U ? `setup log ${U.entries} calls, ${U.calls * 8} B, sim_init text ${U.init} B${U.overflow ? ', CUT SHORT' : ''}` : 'no setup log'}`);
+  const given = { path: args.wasm, bytes: new Uint8Array(readFileSync(args.wasm)) };
+  given.id = await wasmBuild(given.bytes);
+  if (clip.refly.build === null) {
+    console.log('WARNING: the clip does not name its build; it is flown on the module given, and a match shows the calls replay, not that this is the build');
+  }
+  const own = clip.refly.build === null ? { bytes: given.bytes, from: given.path } : recordedBuild(clip.refly.build, given, args.old);
+  if (own.why) {
+    fail(`${own.why}.\nA region only replays on the build that wrote it: written into another, it either does not fit\n`
+      + 'or puts the old constant tables back and flies the old plant.');
+  }
+  let exact;
   try {
-    result = await refly(clip, wasmBytes);
+    exact = await refly(clip, own.bytes);
   } catch (err) {
-    if (err.build) {
-      const where = buildCommit(err.build);
-      fail(`${err.message}.\nA region only replays on the build that wrote it: written into another, it either\n`
-        + 'does not fit or puts the old constant tables back and flies the old plant.\n'
-        + `${where ? `That build is in this repository (${where}):\n  git cat-file blob ${err.build} > /tmp/${err.build}.wasm\n`
-          + `  npm run replay:refly -- ${args.clip} --wasm /tmp/${err.build}.wasm`
-          : 'That build is not in this checkout: fetch, then git cat-file blob it.'}`);
-    }
     fail(err.message);
   }
-  if (clip.refly.build === null) {
-    console.log('WARNING: the clip does not name its build; a match below shows the calls replay, not that this is the build');
+  console.log(`\nTHE RECORDING, flown again on its build: ${own.from}`);
+  printTable(exact.cmp, args.every);
+  printSummary(exact.cmp.summary);
+  const s = exact.cmp.summary;
+  const ok = s.flown > 0 && s.identical === s.flown && s.copies.same === s.copies.checked;
+  console.log(ok ? 'MATCH: the clip flies again bit for bit on its build' : 'DIFFERENT: the re-fly and the recording part (above)');
+  const across = given.id !== exact.build || args.transplant;
+  let pair = null;
+  if (across) {
+    console.log(`\nTHE NEW BUILD: ${given.path} (${given.id})`);
+    if (!ok) {
+      console.log('not flown: the clip does not fly again on its own build, so a transplant from it would start from a wrong state');
+    } else {
+      try {
+        pair = await transplantPair(clip, exact.unpacked, exact.run, own.bytes, given.bytes);
+      } catch (err) {
+        fail(err.message);
+      }
+      console.log(`both builds set up from the clip's setup log, placed in its state at t ${clip.time[pair.start].toFixed(3)} s `
+        + '(row ' + pair.start + '), the same calls made: "old tp" on the clip\'s build, "new tp" on this one.');
+      if (pair.new.missing.length) {
+        console.log(`the new build lacks ${pair.new.missing.join(', ')}`);
+      }
+      printPairTable(pair, exact.run, args.every);
+      printPairSummary('jolt (old tp against the recording: the transplant, not the plant)', pair.jolt.summary);
+      printPairSummary('fix  (new tp against old tp: what the new build changes)', pair.effect.summary);
+      const cut = Math.min(pair.old.until, pair.new.until);
+      if (cut < clip.n) {
+        console.log(`the calls stop at row ${cut} (t ${clip.time[cut].toFixed(3)} s): a stretch cut short`);
+      }
+      console.log(pair.effect.summary.identical === pair.effect.summary.flown
+        ? 'SAME: the new build flies this clip exactly as the clip\'s build does'
+        : 'CHANGED: the new build flies this clip differently (above)');
+    }
   }
-  console.log(`module: ${args.wasm} (${result.build})`);
-  printTable(result.cmp, args.every);
-  printSummary(result.cmp.summary);
   if (args.json) {
     writeFileSync(args.json, JSON.stringify({
-      clip: args.clip, version, meta: clip.meta, refly: d, module: result.build, summary: result.cmp.summary,
-      rows: result.cmp.rows.map((r) => ({
+      clip: args.clip,
+      version,
+      meta: clip.meta,
+      refly: d,
+      module: exact.build,
+      summary: exact.cmp.summary,
+      rows: exact.cmp.rows.map((r) => ({
         k: r.k, t: r.t, same: r.same, rec: r.rec, fly: r.fly,
       })),
+      ...(pair ? {
+        newModule: given.id,
+        start: pair.start,
+        jolt: pair.jolt.summary,
+        effect: pair.effect.summary,
+        transplant: pair.effect.rows.map((r) => ({
+          k: r.k, t: r.t, old: Array.from(r.a.subarray(0, 14)), new: Array.from(r.b.subarray(0, 14)),
+        })),
+      } : {}),
     }));
     console.log(`wrote ${args.json}`);
   }
-  const s = result.cmp.summary;
-  const ok = s.flown > 0 && s.identical === s.flown && s.copies.same === s.copies.checked;
-  console.log(ok ? 'MATCH: the clip flies again bit for bit on its build' : 'DIFFERENT: the re-fly and the recording part (above)');
   process.exit(ok ? 0 : 1);
 }
 
@@ -375,6 +551,15 @@ async function recordFlight(wasmBytes, configText) {
       [input.roll, input.pitch, input.yaw, input.throttle] = s;
     }
     sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
+    if (ms % 500 === 0) {
+      /* The world declared again round the craft twice a second, as the
+       * shell does: a clear, then what is near (three trees, far enough
+       * off not to be hit). */
+      sim.e.sim_tree_clear();
+      for (let i = 0; i < 3; i += 1) {
+        must(sim.e.sim_tree_add(400 + 10 * i + ms / 100, -300, 0, 0.3, 3, 9, 3), 'sim_tree_add');
+      }
+    }
     sim.e.sim_step(1);
     if (ms === 12345) {
       const p = sim.e.malloc(16 * 8);
@@ -532,7 +717,49 @@ async function selftest() {
     'the clip\'s region written into it flies the OLD plant bit for bit, which is why the build id decides',
     `${forced.cmp.summary.identical}/${forced.cmp.summary.flown} rows`);
 
-  console.log('5. a file from before cannot be flown again, and says so');
+  console.log('5. another build: both set up from the setup log and placed in the clip\'s state');
+  const U = back.refly.setup;
+  check(Boolean(U) && !U.overflow && U.entries > 0, 'the clip carries its setup log',
+    U ? `${U.entries} calls, ${U.calls * 8} B, sim_init text ${U.init} B` : 'none');
+  /* 80 declarations of the world were made; the clip spans 31 stretches
+   * of about 2 each, and only the one in force at its start is kept from
+   * before it. */
+  const trees = (() => {
+    const u = same.unpacked.setup;
+    let n = 0;
+    for (let r = 0; r < u.calls.length; r += 3 + u.calls[r + 1] + u.calls[r + 2]) {
+      n += same.unpacked.names[u.calls[r]] === 'sim_tree_clear' ? 1 : 0;
+    }
+    return n;
+  })();
+  check(trees >= 60 && trees <= 66, 'the world\'s declarations made moot before the clip are dropped from it', `${trees} of 80 clears kept`);
+  const self = await transplantPair(back, same.unpacked, same.run, wasmBytes, wasmBytes);
+  const j = self.jolt.summary;
+  const f = self.effect.summary;
+  printPairSummary('jolt', j);
+  printPairSummary('self', f);
+  const startRow = self.jolt.rows.find((r) => r.k === self.start);
+  check(Boolean(startRow) && startRow.dpos === 0 && startRow.datt === 0 && startRow.dvel === 0 && startRow.drate === 0,
+    'the transplant starts exactly in the recording\'s state', `row ${self.start}`);
+  check(f.flown === clip.n - self.start && f.identical === f.flown, 'transplanted twice onto the same build, the two flights are identical',
+    `${f.identical}/${f.flown} rows`);
+  check(j.flown === f.flown && j.firstDifferent !== null, 'against the recording, the transplant\'s own jolt is measured, not hidden',
+    `parts from the recording at t ${j.firstDifferent ? j.firstDifferent.t.toFixed(3) : '-'} s, worst ${j.maxPos.toFixed(3)} m, ${j.maxAtt.toFixed(2)} deg`);
+  const fix = await transplantPair(back, same.unpacked, same.run, wasmBytes, other.bytes);
+  const x = fix.effect.summary;
+  printPairSummary('fix', x);
+  check(fix.new.missing.length === 0 && x.flown === f.flown && x.firstDifferent !== null && x.maxPos > 0.05,
+    'the build with its air density changed flies the clip differently, and the table says where',
+    `parts at t ${x.firstDifferent ? x.firstDifferent.t.toFixed(3) : '-'} s, worst ${x.maxPos.toFixed(3)} m, ${x.maxAtt.toFixed(2)} deg`);
+  let noSetup = null;
+  try {
+    await transplantPair(back, { ...same.unpacked, setup: null }, same.run, wasmBytes, other.bytes);
+  } catch (err) {
+    noSetup = err.message;
+  }
+  check(/saved before clips kept their setup log/.test(noSetup || ''), 'a clip without a setup log is refused with its reason', noSetup || 'not refused');
+
+  console.log('6. a file from before cannot be flown again, and says so');
   let old = null;
   try {
     await refly(decodeReplay(encodeReplay(without)), wasmBytes);
