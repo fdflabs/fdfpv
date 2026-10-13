@@ -15426,6 +15426,12 @@ export async function boot({
   }
 
   function openPadPick(reason) {
+    /* The new pilot's question comes first, and a plugged in radio routes
+     * from it to the wizard: no picker the roster queued opens over it
+     * (src/ui/flywith.js, the lead's call, 2026-10-13). */
+    if (reason !== 'menu' && ui.screen === 'flywith') {
+      return;
+    }
     /* A name being typed owns the keyboard; input.js holds the pick until
      * the dialog closes and the frame loop asks again. */
     if (ui.nameDialog && !ui.nameDialog.hidden) {
