@@ -51,7 +51,7 @@ import {
   zagiPrelude, uglystikGroundPrelude, dlgRecPrelude, tigermothGroundPrelude,
   gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude, timberFloatRecPrelude, RC_STEP_MS,
 } from '../tests/lib/wingpilot.js';
-import { harrierFlight, harrierKicks } from './lib/harrierkick.js';
+import { PROGRAMS, harrierFlight, harrierKicks } from './lib/harrierkick.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const th = JSON.parse(await readFile(join(root, 'tests/extra-thresholds.json'), 'utf8'));
@@ -280,7 +280,8 @@ check: {
    * must damp the rock: its bank's spread under Manual's. */
   {
     const t11 = th.e11_harrier;
-    const harrier = (mode, kick = 0, rateKick = 0, long = false) => harrierFlight(sim, t11, mode, kick, rateKick, long);
+    const prog = PROGRAMS.extra(t11);
+    const harrier = (mode, kick = 0, rateKick = 0, long = false) => harrierFlight(sim, prog, mode, kick, rateKick, long);
     const m = harrier(0);
     const g = harrier(3);
     gate('E11', 'harrier: level at 40 deg of alpha, its rock within the video\'s',
@@ -306,7 +307,7 @@ check: {
      * and not the gyro, and its bank was judged against the settled mean,
      * so the rock's own phase was in it. At the receiver's default
      * Heading, zero, the same ratio is printed and not judged. */
-    const kicksAt = (heading) => harrierKicks(sim, t11, [heading, heading, heading]);
+    const kicksAt = (heading) => harrierKicks(sim, prog, [heading, heading, heading]);
     const said = (kicks) => kicks.map((x) => `kick ${x.k} (${(x.rate * DEG).toFixed(0)} deg/s): ${x.g.toFixed(1)} against Manual's ${x.m.toFixed(1)} deg s, ${(x.g / x.m).toFixed(2)}`).join('; ');
     const kicks = kicksAt(1);
     gate('E11b', 'harrier in AS3X at the full Heading: the gyro damps the rock', kicks.every((x) => x.g / x.m < t11.as3xIaeRatioMax) && g.drift <= t11.maxHeightDrift,

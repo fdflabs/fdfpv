@@ -68,8 +68,9 @@ import { TABLE } from '../configs/power.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import {
   AS3X, GM_MIN_DB, PM_MIN_DEG, rowOf, receiverOf, gainForMargins, margins, measurePlane, revive, fanOut,
-  planeSim, diveCondition, closedFlight, rings, pilotFlight, channelOf, stockRate, tuneOf, setupsOf,
+  planeSim, diveCondition, closedFlight, rings, pilotFlight, channelOf, stockRate, tuneOf, setupsOf, emulatedSim,
 } from './lib/as3xloop.js';
+import { PROGRAMS, harrierFlight, kickIae } from './lib/harrierkick.js';
 
 const self = fileURLToPath(import.meta.url);
 const root = dirname(dirname(self));
@@ -289,6 +290,82 @@ function headingFor(resps, axis, k, T) {
 /* Each axis' responses over every condition of every setup measured. */
 const respsOf = (ms) => [0, 1, 2].map((ax) => ms.flatMap((m) => m.conds.map((c) => c.resp[ax])).filter((r) => r));
 
+/* Then, on a 3D aircraft whose gate flies the harrier (as3xloop.js AS3X
+ * `kick`), the full Heading is held to E11b's property as the damper is
+ * to F1: a kick to the settled harrier, a roll rate on the body, leaves
+ * a rock no worse in AS3X than in Manual, both kicks, the pilot's hands
+ * holding the harrier as the gate's do (lib/harrierkick.js PROGRAMS; the
+ * CAP and the Slick take E11b's kicks on their own gates' harriers).
+ * Each axis' Heading is a scale, up to 1, on the margin rule's: first
+ * each axis alone, the others off, the largest on a 5 percent sweep down
+ * from 1 that holds (none if nothing does); then all three together at
+ * those scales, which is how the tune screen's full Heading flies; where
+ * that fails, the most axes at their own scales that hold together, the
+ * others none (the lower worst ratio between two sets of as many), and
+ * where no set holds, all of them at the largest common factor on the
+ * same sweep that holds (lead decision 2026-10-13). The Slick's roll and
+ * yaw hold alone (0.75 and 1 of the rule's) and not together, at any
+ * common factor down to a twentieth; its yaw alone holds. Not "every scale below it
+ * too", as the margin rule's is: the receiver's damper alone leaves the
+ * Extra's rock at 1.00 and 1.005 of Manual's, so no Heading near zero
+ * holds, and on the Extra the yaw Heading worsens it from a twentieth to
+ * a fifth of its full (1.03 to 1.08) before it damps it from two fifths
+ * on (0.99 and 0.97 at 0.4). The flights are flown on lib/as3xloop.js's receiver
+ * (emulatedSim), so a Heading the table does not hold yet can be flown;
+ * as3x-feel.js F0 checks it against the plant's mode 3 at full Heading.
+ *
+ * On the Extra this takes the roll Heading to nothing. On
+ * w38-as3x-travel's plant, at the damper F1 sets at the stock low rate,
+ * the margin rule's Heading (0.083, 2.9395, 0.0808) left the kicked rock
+ * at 2.62 and 3.34 of Manual's; the roll Heading alone at 1.52 and
+ * 1.80, at a hundredth of it 1.10 and 1.11; the pitch alone 0.99 and
+ * 0.99, the yaw alone 0.81 and 0.85, the two together 0.81 and 0.84.
+ * The harrier's rock is a roll the pilot is holding: a roll Heading that
+ * sums the bank the pilot's own corrections leave fights those hands,
+ * where pitch and yaw Heading hold axes the rock only couples into. The
+ * receiver's damper alone leaves it at 1.00 and 1.01. */
+const KICK_STEP = 0.05;
+function kickHeading(name, sim, body, k, khRule) {
+  const prog = PROGRAMS[AS3X[name].kick]();
+  const rx = { ...receiverOf(body), k };
+  const manual = prog.t11.kickStick.map((st) => {
+    const rate = harrierFlight(sim, prog, 0, st).pKick;
+    return { rate, m: kickIae(sim, prog, 0, rate) };
+  });
+  const ratios = (sc) => {
+    const em = emulatedSim(sim, rx, [1, 1, 1], khRule.map((x, ax) => sc[ax] * x));
+    return manual.map(({ rate, m }) => kickIae(em, prog, 3, rate) / m);
+  };
+  const holds = (sc) => ratios(sc).every((r) => r < 1);
+  const sweep = (at) => {
+    for (let i = Math.round(1 / KICK_STEP); i >= 1; i -= 1) {
+      if (holds(at(i * KICK_STEP))) return i * KICK_STEP;
+    }
+    return 0;
+  };
+  const alone = [0, 1, 2].map((ax) => (khRule[ax] > 0 ? sweep((x) => [0, 1, 2].map((a) => (a === ax ? x : 0))) : 0));
+  const on = [0, 1, 2].filter((ax) => alone[ax] > 0);
+  const sets = [];
+  for (let mask = (1 << on.length) - 1; mask > 0; mask -= 1) {
+    sets.push(on.filter((_, i) => mask & (1 << i)));
+  }
+  sets.sort((x, y) => y.length - x.length);
+  let scale = null, common = 1;
+  for (let i = 0; i < sets.length && !scale; i += 1) {
+    const size = sets[i].length;
+    const held = sets.filter((set) => set.length === size)
+      .map((set) => { const sc = alone.map((v, ax) => (set.includes(ax) ? v : 0)); return { sc, worst: Math.max(...ratios(sc)) }; })
+      .filter((x) => x.worst < 1);
+    if (held.length) scale = held.sort((x, y) => x.worst - y.worst)[0].sc;
+    while (i + 1 < sets.length && sets[i + 1].length === size) i += 1;
+  }
+  if (!scale) {
+    common = sweep((x) => alone.map((v) => x * v));
+    scale = alone.map((v) => common * v);
+  }
+  return { scale, kh: khRule.map((x, ax) => f4(scale[ax] * x)), ratios: ratios(scale), alone, common };
+}
+
 /* One table, in its own process: the airframe measured over its
  * envelope on the table and at every rate the tune screen offers
  * (as3xloop.js setupsOf: the throws and the expo move the dive's and the
@@ -311,22 +388,24 @@ if (opt('--plane')) {
   const resps = respsOf(ms);
   const ceiling = resps.map((r, ax) => (r.length ? gainForMargins(r, ax, 1, 0, ms[0].T) : 0));
   const k = await feelDamper(name, body, a.srm ? factoryDamper(a.srm, ceiling) : ceiling);
+  const khRule = k.map((x, ax) => headingFor(resps[ax], ax, x, ms[0].T));
+  const kicked = a.kick ? kickHeading(name, sim, body, k, khRule) : null;
+  const kh = kicked ? kicked.kh : khRule;
   /* A pipe takes the write asynchronously: exit only once it is out,
    * or a large measure arrives cut short. */
-  await new Promise((resolve) => { process.stdout.write(JSON.stringify({ measures, rate, k }), resolve); });
+  await new Promise((resolve) => { process.stdout.write(JSON.stringify({ measures, rate, k, kh, khRule, kicked }), resolve); });
   process.exit(0);
 }
 
 const fleet = await fanOut(self, Object.keys(AS3X));
 let bad = 0;
 for (const name of Object.keys(AS3X)) {
-  const { measures, rate, k } = fleet[name];
-  const ms = measures.map(revive);
-  const m = ms[0];
+  const { measures, rate, k, kh, khRule, kicked } = fleet[name];
+  const m = revive(measures[0]);
   const body = rowOf(src, name);
-  const T = m.T;
-  const resps = respsOf(ms);
-  const kh = k.map((x, ax) => headingFor(resps[ax], ax, x, T));
+  if (kicked) {
+    console.log(`${name.padEnd(18)} the harrier kick: the margin rule's Heading ${khRule.join(', ')} at ${kicked.scale.map((x) => x.toFixed(2)).join(', ')} (alone ${kicked.alone.map((x) => x.toFixed(2)).join(', ')}, together at ${kicked.common.toFixed(2)}), its rock ${kicked.ratios.map((r) => r.toFixed(2)).join(' and ')} of Manual's`);
+  }
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
   /* The loop closed on the plant at the dive, all three axes on the
    * derived gains at the default Heading, each axis kicked 1 rad/s: none

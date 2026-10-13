@@ -388,10 +388,11 @@ export function hoverCondition(startThrottle) {
  * surface's angle: only their ratios are taken (as3x-derive.js). The
  * Timber on floats flies the land plane's receiver and preset. A table
  * without one is not a Spektrum BNF with AS3X, or has no preset.
- * `kick`: its full Heading is held to its gate's harrier kick
- * (scripts/lib/harrierkick.js, extra-gates.js E11b; as3x-derive.js). */
+ * `kick`: a 3D aircraft whose gate flies a harrier, its program in
+ * scripts/lib/harrierkick.js PROGRAMS: its full Heading is held to
+ * E11b's kick there (as3x-derive.js). */
 export const AS3X = {
-  FW_EXTRA3D1308: { sim: 29, th: ['extra', 'e11_harrier'], kick: true, srm: [6, 30, 24], srmName: 'EFL115500 Extra 300 3D 1.3m BNF Basic with AS3X and SAFE Select' },
+  FW_EXTRA3D1308: { sim: 29, th: ['extra', 'e11_harrier'], kick: 'extra', srm: [6, 30, 24], srmName: 'EFL115500 Extra 300 3D 1.3m BNF Basic with AS3X and SAFE Select' },
   FW_TIMBER1500: { sim: 7, srm: [36, 73, 96], srmName: 'EFL105250 Turbo Timber Evolution 1.5m BNF Basic' },
   FW_TIMBER1500F: { sim: 9, srm: [36, 73, 96], srmName: 'EFL105250 Turbo Timber Evolution 1.5m BNF Basic' },
   FW_CUB1400: { sim: 4 },
@@ -407,8 +408,8 @@ export const AS3X = {
   FW_TIGERMOTH1803: { sim: 23 },
   FW_NIGHTTIMBER1200: { sim: 30, srm: [34, 25, 20], srmName: 'EFL13850 Night Timber X SAFE select' },
   FW_HERCULES3077: { sim: 31 },
-  FW_CAP1702: { sim: 32, th: ['cap580', 'c11_harrier'] },
-  FW_SLICK2680: { sim: 33, th: ['slick', 's11_harrier'] },
+  FW_CAP1702: { sim: 32, th: ['cap580', 'c11_harrier'], kick: 'cap' },
+  FW_SLICK2680: { sim: 33, th: ['slick', 's11_harrier'], kick: 'slick' },
 };
 
 /* The tune block a table flies at `rate` (configs/tuning.js RATES), the
