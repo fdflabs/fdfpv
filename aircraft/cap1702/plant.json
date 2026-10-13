@@ -104,7 +104,7 @@
         {"field":"as3x_frame","expr":"0.011","comment":"the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md","gap":2},
         {"field":"as3x_k","expr":"{ 0.0037, 0.0193, 0.0608 }","comment":"npm run as3x:derive"},
         {"field":"as3x_kh","expr":"{ 0, 0.2175, 0.8007 }","comment":"npm run as3x:derive"},
-        {"field":"as3x_rate","expr":"{ 9.306, -5.054, -3.063 }","comment":"npm run as3x:derive"},
+        {"field":"as3x_rate","expr":"{ 9.306, -5.054, -3.064 }","comment":"npm run as3x:derive"},
         {"field":"yaw_coord_k","expr":"0.25","comment":"FITTED: the Extra's, docs/EXTRA-STAGE1.md","gap":4},
         {"note":["Past the stall, the Extra's forms and its symmetric section's break,","npm run cap580:derive."]},
         {"field":"stall_arm_ac","expr":"0.0632","comment":"npm run cap580:derive"},

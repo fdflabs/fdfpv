@@ -2177,7 +2177,7 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
  */
 static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e, double dcl_f, double clmax, double k_stall,
                          double fre, double sin_a, double cos_a, double cd0, double b2c, const GroundTerms *ge,
-                         double *CL, double *CD, double *cm) {
+                         double *CL, double *CD, double *CDp, double *cm) {
   WingLift alone[2], wl[2];
   /* bip_dstall: how much later than potential flow each wing stalls, in
    * the cell's angle, the lift it holds to that angle its own CL max. */
@@ -2205,11 +2205,12 @@ static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e
   /* With hi_alpha the tail's own angle carries the downwash's loss, as in
    * plant_wing_step, and stall_dw is not taken again. */
   const double dw = fw->hi_alpha ? 0.0 : fw->stall_dw;
-  double cl = 0.0, cd = cd0, m = 0.0;
+  double cl = 0.0, cd = cd0, cdp = 0.0, m = 0.0;
   for (int i = 0; i < 2; i += 1) {
     const WingLift *a = &wl[i];
     const double area = fw->bip_w[i] / fw->bip_r[i];
     cl += area * a->cl;
+    cdp += area * a->sigma * plate;
     cd += area * a->sigma * plate + (1.0 - a->sigma) * a->cl_lin * (fw->bip_ki[i] * a->cl_lin + fw->bip_kx[i] * wl[1 - i].cl_lin);
     if (ge) {
       cd -= (1.0 - a->sigma) * ge->bip_cd[i];
@@ -2228,6 +2229,7 @@ static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e
   }
   *CL = cl;
   *CD = cd;
+  *CDp = cdp;
   *cm = m;
 }
 
@@ -2708,6 +2710,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double cd_lin = cd0 + fw->k_induced * cl_lin * cl_lin;
   double CL = wl.cl;
   double CD = (1.0 - sigma) * cd_lin + sigma * cd_flat;
+  /* The separated wing's plate share of CD (cd_flat less its cd0), kept
+   * beside CD through the flaps and the biplane below: THE PLATE'S FORCE
+   * IN A SIDESLIP, at the forces. */
+  double cd_plate = sigma * (plate_cn(fw) * sin_a * sin_a + b2c);
   /* The attached wing's lift, tilted forward by the image's upwash. */
   if (ge_on) {
     CD -= (1.0 - sigma) * ge.clw * ge.da;
@@ -2743,6 +2749,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double cd0_nf = (1.0 - w0.sigma) * (cd0 + fw->k_induced * w0.cl_lin * w0.cl_lin) + w0.sigma * cd_flat0;
     CL = add_term((1.0 - w_fp) * CL, w_fp * add_term(w0.cl, dcn * cos_a));
     CD = add_term((1.0 - w_fp) * CD, w_fp * add_term(cd0_nf, dcn * sin_a));
+    cd_plate = add_term((1.0 - w_fp) * cd_plate, w_fp * add_term(w0.sigma * (cd_flat0 - cd0), dcn * sin_a));
     /* The moment's parts, assembled with the stall's below. */
     cm_fp_lin = fw->cm_dcl_f * dcl_f;
     cm_fp_meas = -(0.4 - fw->stall_arm_ac) * dcn;
@@ -2754,7 +2761,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cm_bip = 0.0, alpha_strip = alpha_stall;
   const int biplane = fw->bip_w[0] > 0.0;
   if (biplane) {
-    biplane_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, cd0, b2c, ge_on ? &ge : 0, &CL, &CD, &cm_bip);
+    biplane_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, cd0, b2c, ge_on ? &ge : 0, &CL, &CD, &cd_plate, &cm_bip);
     alpha_strip = alpha_stall / (fw->bip_r[0] > fw->bip_r[1] ? fw->bip_r[0] : fw->bip_r[1]);
   }
 
@@ -2938,11 +2945,33 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       F[0] += L * (-w / Vxz);
       F[2] += L * (u / Vxz);
     }
-    F[0] -= D * u / V;
+    /* THE PLATE'S FORCE IN A SIDESLIP. Past the stall the wing's force is
+     * the pressure on a separated plate, which acts normal to the plate
+     * whatever the wind's sideways share: NASA TP-1538's balance measured
+     * the F-16 broadside (alpha 90 deg) at 30 deg of sideslip with CY
+     * -0.305 (scan, PDF p. 74) where CD 2.14 taken along the wind would
+     * push it sideways by -1.07. So the plate's share of the drag
+     * (cd_plate) goes with the lift, in the plane of symmetry along the
+     * wind's share in it, and only the skin's, the gear's and the attached
+     * wing's induced drag go along the whole wind. Below the stall
+     * cd_plate is zero (sigma) and nothing moves. The plate's size in a
+     * sideslip stays on the angle in the plane of symmetry, ESTIMATED: the
+     * F-16's normal force falls about as cos^2 beta at 20 to 50 deg and
+     * 6 percent at 90 deg and 30 deg of sideslip (docs/FLIGHTMODEL.md). */
+    const double Dp = qbar * fw->area * cd_plate;
+    const double Dw = add_term(D, -Dp);
+    F[0] -= Dw * u / V;
     if (!cy_meas) {
-      F[1] -= D * v / V;
+      F[1] -= Dw * v / V;
     }
-    F[2] -= D * w / V;
+    F[2] -= Dw * w / V;
+    if (Vxz > 1e-6) {
+      F[0] -= Dp * u / Vxz;
+      F[2] -= Dp * w / Vxz;
+    } else {
+      F[0] -= Dp * u / V;
+      F[2] -= Dp * w / V;
+    }
     F[1] -= Y; /* aero y is right, body y is left */
   }
   /* A wing panel that has left takes its share of the lift, from where it
@@ -5553,8 +5582,8 @@ const FixedWingParams FW_F16878 = {
   .stab_trim_throttle = 0.538, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 300.0 * WING_PI / 180.0,
   .acro_pitch_rate = 120.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0021, 0.0052, 0.0107 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.1244, 0.0829, 0.1998 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0021, 0.0016, 0.0145 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.2786, 0.0488, 0.2891 }, /* npm run as3x:derive */
   .as3x_rate = { 4.411, -4.458, -1.898 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
@@ -6365,7 +6394,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0086, 0.0433, 0.0347 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 2.2719, 0 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 2.2719, 0.001 }, /* npm run as3x:derive */
   .as3x_rate = { 8.795, -4.146, -5.206 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
@@ -6522,8 +6551,8 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .as3x_k = { 0.0189, 0.0139, 0.0111 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0013, 0.1891, 0.1085 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.149, -5.647, -3.007 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.0013, 0.1607, 0.0768 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.149, -5.646, -3.006 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6833,7 +6862,7 @@ const FixedWingParams FW_CAP1702 = {
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
   .as3x_k = { 0.0037, 0.0193, 0.0608 }, /* npm run as3x:derive */
   .as3x_kh = { 0, 0.2175, 0.8007 }, /* npm run as3x:derive */
-  .as3x_rate = { 9.306, -5.054, -3.063 }, /* npm run as3x:derive */
+  .as3x_rate = { 9.306, -5.054, -3.064 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */
@@ -6999,9 +7028,9 @@ const FixedWingParams FW_SLICK2680 = {
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.009, 0.0308, 0.0562 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 0.5542, 0.845 }, /* npm run as3x:derive */
-  .as3x_rate = { 5.797, -4.374, -3.307 }, /* npm run as3x:derive */
+  .as3x_k = { 0.009, 0.0308, 0.0874 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 0.1982, 0.8429 }, /* npm run as3x:derive */
+  .as3x_rate = { 5.797, -4.372, -3.307 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
