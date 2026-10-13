@@ -48,6 +48,8 @@ import { str } from '../strings/index.js';
 import { el } from './dom.js';
 
 const POLL_MS = 250;
+/* A war's states before its end (edge/rooms/war.js). */
+const RUNNING = new Set(['briefing', 'countdown', 'live']);
 
 function button(cls, text, onClick, disabled = false) {
   const b = el('button', cls, text);
@@ -365,8 +367,9 @@ export function createCampaignScreen({
       watched.set(key, res !== null);
       /* Seen begun, the same vantage its mission_end is seen from (so a
        * pilot who did not press start counts it too); a reload mid war
-       * sees it begin again. */
-      if (!res && v.state !== 'won' && v.state !== 'lost' && ACT1.some((m) => m.id === v.mission)) {
+       * sees it begin again. Not a war first seen over (won, lost, or
+       * ended without a result, edge/rooms/war.js). */
+      if (!res && RUNNING.has(v.state) && ACT1.some((m) => m.id === v.mission)) {
         ui.progress.event('mission_start', { mission: v.mission, airframe: ui.progress.airframe });
         ui.progress.foldFlight();
       }

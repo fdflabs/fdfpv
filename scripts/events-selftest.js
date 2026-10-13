@@ -87,7 +87,9 @@ console.log('typed and append only');
     && throws(() => log.append('hit', 1, { at: Infinity })));
   check('data cannot overwrite the event\'s own fields', throws(() => log.append('gate', 1, { seq: 9 }))
     && throws(() => log.append('gate', 1, { type: 'lap' })));
-  check('a failed append leaves the log as it was', log.events.length === 3);
+  const m = log.append('mission_start', 1600, { mission: 'm1', airframe: 'cub1400' });
+  check('a mission start carries its mission and aircraft as plain values', m.mission === 'm1' && m.airframe === 'cub1400' && Object.isFrozen(m));
+  check('a failed append leaves the log as it was', log.events.length === 4);
   log.end(2000);
   check('the flight ends once, at its sim time', log.ended && log.endSimMs === 2000);
   check('nothing is appended after it ends', throws(() => log.append('crash', 2100)));
