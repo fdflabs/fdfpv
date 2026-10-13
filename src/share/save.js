@@ -280,3 +280,68 @@ export function openSave(storage = null) {
   }
   return report;
 }
+
+/*
+ * RESET, in two halves, each leaving the other alone (COMPLETENESS 3).
+ * Both write storage and leave the page to reload, as the language row
+ * does: modules hold the live settings object, so it is never swapped.
+ *
+ * Progress is the four progression fields of the settings blob and the
+ * best laps. Settings are the rest of the blob, except what the pilot made
+ * or bought, which neither reset touches.
+ *
+ * Reset progress is for a browser that is not signed in: the account
+ * merges progress, the campaign, flight time, counts and best laps grow
+ * only (src/share/progressmerge.js), so a signed in reset would come back
+ * on the next sync. Settings sections are stamped by what changed since
+ * the last sync, so a settings reset is sent as the newer value.
+ */
+const SETTINGS_KEY = SECTIONS.settings[0].key;
+export const PROGRESS_FIELDS = ['progress', 'campaign', 'flightTime', 'pilotCounts'];
+/* Kept by a settings reset: the paint, saved liveries and swatches, the
+ * parts, packs, power and loadouts fitted, which build each plane wears,
+ * the floats, the seat and the first run question already answered, and
+ * the favourite aircraft (the hangar's list, an owned choice). */
+export const OWNED_FIELDS = [
+  'livery', 'liverySaves', 'swatches', 'parts', 'packs', 'power', 'combat', 'buildFits',
+  'floats', 'airframe', 'airframeAsked', 'favourites',
+];
+const BEST_LAP_KEY = 'webfpv.bestLapMs';
+
+function storedBlob(storage) {
+  try {
+    const value = JSON.parse(storage.getItem(SETTINGS_KEY) || '{}');
+    return isObject(value) ? value : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+const pick = (blob, fields) => Object.fromEntries(fields.filter((k) => Object.hasOwn(blob, k)).map((k) => [k, blob[k]]));
+
+/* Every setting back to its default; progress and what the pilot owns
+ * kept. Throws as localStorage does. */
+export function resetSettings(storage = globalThis.localStorage) {
+  storage.setItem(SETTINGS_KEY, JSON.stringify(pick(storedBlob(storage), [...PROGRESS_FIELDS, ...OWNED_FIELDS])));
+}
+
+/*
+ * Progress back to a new pilot's, settings kept. `fresh` is the stored
+ * value each progression field restarts from where an absent one would
+ * not read as new: the progress module's own fresh progress, because a
+ * profile with settings and no progress reads as a pilot from before
+ * progression, and they had everything unlocked. Throws as localStorage
+ * does.
+ */
+export function resetProgress(fresh, storage = globalThis.localStorage) {
+  const blob = storedBlob(storage);
+  for (const k of PROGRESS_FIELDS) delete blob[k];
+  storage.setItem(SETTINGS_KEY, JSON.stringify({ ...blob, ...pick(fresh, PROGRESS_FIELDS) }));
+  const laps = [];
+  for (let i = 0; i < storage.length; i += 1) {
+    const key = storage.key(i);
+    if (key && (key.startsWith(RECORD_PREFIX) || key === BEST_LAP_KEY)) laps.push(key);
+  }
+  for (const key of laps) storage.removeItem(key);
+}
+

@@ -28,7 +28,9 @@
 
 import { transcript } from './lib/transcript.js';
 
-const PINNED = 'c76628557f9eed857a5576ade788a7b6a8745a4ba229909046586234bbe41ded';
+/* Re-pinned 2026-10-13 when reportFields was exported: the one record
+ * that moved is `exports`, diffed against the dump at the old revision. */
+const PINNED = '425bc1d254ac5b501e15cea72a981f6112b49d933875c5e29a320dc0586f363b';
 
 const sent = [];
 let reply = [200, '{}'];
@@ -72,3 +74,34 @@ for (const [label, r, origin] of [
 }
 
 t.finish('bugs.js', PINNED);
+
+/* What a report says about the build, aircraft, activity and controller. */
+let failed = 0;
+const check = (name, ok, detail = '') => {
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`);
+};
+const show = (v) => JSON.stringify(v);
+{
+  const pad = { kind: 'pad', id: 'Radiomaster Pocket Joystick (Vendor: 1209 Product: 4f54)', index: 0 };
+  const a = bugs.reportFields({ version: '9db1f45e6', airframe: 'timber1500', mode: 'race', pad });
+  check('a deployed page, a radio, a race', show(a) === show({
+    build: '9db1f45e6', airframe: 'timber1500', activity: 'race', controller: pad.id,
+  }), show(a));
+  const b = bugs.reportFields({ pad: { kind: 'none' } });
+  check('a checkout on the title with the keyboard on purpose', show(b) === show({
+    build: 'local', airframe: '', activity: '', controller: 'none',
+  }), show(b));
+  check('no choice yet reads auto', bugs.reportFields({ pad: { kind: 'auto' } }).controller === 'auto');
+  check('nothing given at all is four empty fields but the build', show(bugs.reportFields()) === show({
+    build: 'local', airframe: '', activity: '', controller: '',
+  }));
+  const long = 'x'.repeat(5000);
+  const c = bugs.reportFields({ version: long, airframe: long, mode: long, pad: { kind: 'pad', id: long } });
+  check('every field is clipped', show(c).length < 300, String(show(c).length));
+  const d = bugs.reportFields({ version: 7, airframe: {}, mode: [], pad: { kind: 'pad', id: 3 } });
+  check('a value that is not text is empty, never thrown or sent as it is', show(d) === show({
+    build: 'local', airframe: '', activity: '', controller: '',
+  }), show(d));
+}
+if (failed) process.exit(1);

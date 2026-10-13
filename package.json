@@ -222,6 +222,7 @@
     "war:latejoin": "node scripts/war-latejoin-two-page.js",
     "warintro:check": "node scripts/warintro-check.js",
     "war:solo": "node scripts/war-solo-page.js",
+    "smoke": "node scripts/smoke.js",
     "war:markers": "node scripts/war-markers.js",
     "war:radio": "node scripts/warradio-selftest.js",
     "war:hudlayout": "node scripts/war-hud-layout.js",

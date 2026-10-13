@@ -55,6 +55,19 @@ const MAX_HITS = 4;
 const MESSAGE_CHARS = 200;
 const WHERE_CHARS = 160;
 
+/* The log's closed list of categories (COMPLETENESS 65): what part of
+ * the game a warning came from. */
+export const LOG_CATEGORIES = Object.freeze(['input', 'network', 'physics', 'ai', 'mission', 'render', 'save', 'audio']);
+/* Warnings kept, newest last. */
+export const LOG_MAX = 50;
+/* How much of the log one report carries, newest first until it is full.
+ * Measured 2026-10-13 on a headless boot of the real page: a feel report's
+ * whole context is 1138 characters with no crash, fault or log, and 4925
+ * with every one of them at its worst (this log full at 2000), so the
+ * board's 8000 keeps over 3000 spare. */
+export const LOG_REPORT_CHARS = 2000;
+const LOG_CHARS = 160;
+
 const clip = (s, n) => String(s ?? '').slice(0, n);
 const round1 = (x) => (Number.isFinite(x) ? Math.round(x * 10) / 10 : null);
 
@@ -77,6 +90,7 @@ function whereOf(error, filename, line, col) {
 export function createCrashRecord(now = () => performance.now()) {
   let craft = null;
   const errors = [];
+  const ring = [];
   let listener = null;
   const unheard = [];
 
@@ -149,6 +163,39 @@ export function createCrashRecord(now = () => performance.now()) {
     return out.craft || out.errors ? out : null;
   }
 
+  /* One warning the game wrote to the console, under its category. The
+   * same line again right after is one entry with a count. An unknown
+   * category is a bug at the call site and throws. */
+  function noteLog(cat, message) {
+    if (!LOG_CATEGORIES.includes(cat)) throw new Error(`crashrecord: unknown log category ${cat}`);
+    const msg = clip(message, LOG_CHARS);
+    const t = now();
+    const last = ring[ring.length - 1];
+    if (last && last.cat === cat && last.msg === msg) {
+      last.count += 1;
+      last.atMs = t;
+      return;
+    }
+    ring.push({ atMs: t, cat, msg, count: 1 });
+    if (ring.length > LOG_MAX) ring.shift();
+  }
+
+  /* The newest warnings that fit LOG_REPORT_CHARS, oldest first, each
+   * with its age; null when there are none. */
+  function log() {
+    const t = now();
+    const out = [];
+    let chars = 2;
+    for (let i = ring.length - 1; i >= 0; i -= 1) {
+      const { atMs, ...rest } = ring[i];
+      const entry = { ageS: ageS(atMs, t), ...rest };
+      chars += JSON.stringify(entry).length + 1;
+      if (chars > LOG_REPORT_CHARS) break;
+      out.unshift(entry);
+    }
+    return out.length ? out : null;
+  }
+
   /* One listener for every uncaught error as thrown (clientreport.js),
    * handed the ones from before it subscribed first. */
   function listen(fn) {
@@ -159,7 +206,7 @@ export function createCrashRecord(now = () => performance.now()) {
   }
 
   return {
-    noteCraft, noteError, report, listen,
+    noteCraft, noteError, noteLog, log, report, listen,
   };
 }
 
@@ -184,4 +231,26 @@ export function watchPageErrors(win, record = crashRecord) {
     const message = r && r.message ? r.message : String(r);
     record.noteError(`unhandledrejection: ${message}`, whereOf(r), (r && r.stack) || '');
   });
+}
+
+/* A console line as text: an error by its message. */
+const lineOf = (args) => args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : safeJson(a))).join(' ');
+function safeJson(v) {
+  try {
+    return JSON.stringify(v);
+  } catch (e) {
+    return String(v);
+  }
+}
+
+/* console.warn and console.error as before, and the line into the log
+ * under `cat`, for the next bug report. */
+export function logWarn(cat, ...args) {
+  console.warn(...args);
+  crashRecord.noteLog(cat, lineOf(args));
+}
+
+export function logError(cat, ...args) {
+  console.error(...args);
+  crashRecord.noteLog(cat, lineOf(args));
 }

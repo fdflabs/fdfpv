@@ -79,7 +79,7 @@ const SHAPE_OK = [
   /\/api\//,                                                        /* a board route */
   /^\s*[a-z-]+=\\?"[^"]*\\?"/,                                      /* markup attributes */
 ];
-const CONTEXT_OK = /(new Error|new TypeError|new RangeError|throw |console\.[a-z]+|\.style\.[a-zA-Z]+ *=|setProperty\(|\.cssText|className *=|classList\.|setAttribute\((['"])(d|viewBox|points|fill|stroke|transform|style|class|font|font-family)\1|\.font *=|\.textBaseline|\.textAlign|\.globalCompositeOperation|\.filter *=|localStorage\.|sessionStorage\.|Symbol\(|new RegExp|assert\(|must\(|import\(|from |\.matchMedia\(|querySelector(All)?\(|getContext\(|new URL\(|fetch\(|performance\.mark|performance\.measure|dataset\.[a-zA-Z]+ *=|\b(bad|missing): *$)[^;]*$/;
+const CONTEXT_OK = /(new Error|new TypeError|new RangeError|throw |console\.[a-z]+|log(?:Warn|Error)\(|\.style\.[a-zA-Z]+ *=|setProperty\(|\.cssText|className *=|classList\.|setAttribute\((['"])(d|viewBox|points|fill|stroke|transform|style|class|font|font-family)\1|\.font *=|\.textBaseline|\.textAlign|\.globalCompositeOperation|\.filter *=|localStorage\.|sessionStorage\.|Symbol\(|new RegExp|assert\(|must\(|import\(|from |\.matchMedia\(|querySelector(All)?\(|getContext\(|new URL\(|fetch\(|performance\.mark|performance\.measure|dataset\.[a-zA-Z]+ *=|\b(bad|missing): *$)[^;]*$/;
 
 function isProse(raw) {
   /* Innermost placeholders first, so a template inside a template blanks

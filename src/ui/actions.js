@@ -37,6 +37,8 @@ import { clearPidsFor } from '../../configs/pids.js';
 import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
 import { needSignIn } from '../share/account.js';
+import { resetProgress, resetSettings } from '../share/save.js';
+import { freshProgress } from '../game/progress.js';
 import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
 import { tracksConfigured } from '../share/cloud.js';
 import { hasFlyableTrack } from '../share/listing.js';
@@ -252,6 +254,29 @@ function onSubjectCard(ui, action) {
 /* Exact action names. Each handler ends the press unless it returns
  * FALL_THROUGH, which hands the action on to the shell's onAction. */
 const FALL_THROUGH = Symbol('fall through');
+
+/* Reset settings or progress (src/share/save.js) after a confirm, then
+ * reload, as the language row does: modules hold the live settings, so
+ * the page starts again from what was stored. */
+function askReset(ui, half, reset) {
+  ui.askConfirm({
+    title: str(`ui.reset_${half}_ask`),
+    detail: str(`ui.reset_${half}_detail`),
+    yes: str(`ui.reset_${half}`),
+    no: str('ui.keep_it'),
+    danger: true,
+  }).then((ok) => {
+    if (!ok) return;
+    try {
+      reset();
+    } catch (e) {
+      ui.resetNotice = str('ui.reset_failed');
+      ui.renderMenu();
+      return;
+    }
+    window.location.reload();
+  });
+}
 
 const ACTIONS = {
   'update-reload'() { window.location.reload(); },
@@ -472,6 +497,8 @@ const ACTIONS = {
       ui.renderMenu();
     });
   },
+  resetsettings(ui) { askReset(ui, 'settings', () => resetSettings()); },
+  resetprogress(ui) { askReset(ui, 'progress', () => resetProgress({ progress: freshProgress(false) })); },
   back(ui) { ui.back(); },
   /* Escape from the title, as a row: both halves of the gate cleared. A
    * lobby's card came from a hub, and the gate reopens on that hub. */
