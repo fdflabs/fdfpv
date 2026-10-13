@@ -883,7 +883,9 @@ export async function boot({
     const v = roomOps.view();
     const mission = roomOps.mission();
     const match = roomOps.match();
-    if (!mission || !match) {
+    /* The watch seat has no debrief: no flight, no capture, nothing to
+     * record (its banner says the end, warWatchBanner). */
+    if (!mission || !match || roomOps.watcher()) {
       return;
     }
     rolesBoard.close();
@@ -1449,8 +1451,10 @@ export async function boot({
     /* The aircraft of the role this seat flies (dealt at the start, or
      * taken or swapped since): seated before it is flown, and again when
      * the role changes to another aircraft. */
-    const craft = consentDue ? null : opsRoleCraft(v);
-    const activeKey = consentDue ? null : opsActiveKey(v);
+    /* The watch seat holds no role and is put in no aircraft. */
+    const seated = !consentDue && !roomOps.watcher();
+    const craft = seated ? opsRoleCraft(v) : null;
+    const activeKey = seated ? opsActiveKey(v) : null;
     if (!roomOps.live() && opsHolds.size) {
       opsHoldsClear();
     }
@@ -1469,7 +1473,7 @@ export async function boot({
       }
     }
     /* A match begun: into the air, as a war's begins (warBegin). */
-    if (!consentDue && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
+    if (seated && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
       opsBegunFor = match;
       opsHoldsClear();
       opsFlownKey = activeKey;
@@ -1489,7 +1493,7 @@ export async function boot({
         opsHud.cardEvent([str('ops.roles.swap_asked', { name: opsSeatName(x.from) })]);
       }
     }
-    if (!roomOps.on() || !flying) {
+    if (!roomOps.on() || !flying || roomOps.watcher()) {
       return;
     }
     if (!ballOn) {
@@ -4741,12 +4745,32 @@ export async function boot({
       return peer ? str('jam.watching', { name: roomName(peer.name) }) : str('jam.watching_none');
     }
     if (roomWatching()) {
-      return peer ? str('rooms.watching', { name: roomName(peer.name) }) : str('rooms.watching_none');
+      return peer ? str('rooms.watching', { name: roomName(peer.name) }) : watchingNone();
     }
     /* A mission of stages says stage, as its card and HUD do
      * (src/ui/warround.js unit). */
     const tail = roomWar.view()?.stage ? '_stage' : '';
     return peer ? str(`war.out${tail}`, { name: roomName(peer.name) }) : str(`war.out_none${tail}`);
+  }
+
+  /* The watch seat's line with nobody flying: what the room is doing
+   * then, an ops mission's end (it has no debrief, opsDebrief) or the
+   * lobby, who is ready and when it starts. */
+  function watchingNone() {
+    const ops = roomOps.view();
+    if (roomOps.match() && ['won', 'lost', 'ended'].includes(ops.state)) {
+      return str(`rooms.watching_${ops.state}`);
+    }
+    const lobby = gameLobby();
+    if (!lobby) {
+      return str('rooms.watching_none');
+    }
+    const now = roomLinkState.roomNow();
+    if (lobby.countdownAt != null && now != null) {
+      return str('rooms.watching_lobby_go', { s: Math.max(0, Math.ceil((lobby.countdownAt - now) / 1000)) });
+    }
+    const people = [...roomPeers.values()].filter((p) => !p.name.bot).length;
+    return str('rooms.watching_lobby', { ready: Object.keys(lobby.ready).length, n: people });
   }
 
   /* Set once the campaign screen exists (further down); the start row
@@ -4952,7 +4976,7 @@ export async function boot({
   }
   function gameLobbyToggle() {
     const lobby = gameLobby();
-    if (lobby) {
+    if (lobby && !roomLinkState.state().welcome.watch) {
       roomLinkState.send({ type: 'lobby', op: 'ready', ready: !gameLobbyReady(lobby) });
     }
   }
@@ -4969,9 +4993,12 @@ export async function boot({
     const war = lobbyGame() === 'war';
     const readyLabel = ready ? (war ? 'brief.stand_down' : 'lobby.unready') : (war ? 'brief.deploy' : 'lobby.ready');
     const readyNote = ready ? 'lobby.unready_note' : (war ? 'brief.deploy_note' : 'lobby.ready_note');
-    const rows = [{
+    /* The watch seat is never asked to be ready (edge/rooms/gamelobby.js
+     * counts the people). */
+    const watching = Boolean(roomLinkState.state().welcome.watch);
+    const rows = [...(watching ? [] : [{
       label: str(readyLabel), note: str(readyNote), action: 'friends-lobby-ready', primary: true,
-    }, ...lobbyInviteRows(), ...lobbyVisibilityRows(host)];
+    }]), ...lobbyInviteRows(), ...lobbyVisibilityRows(host)];
     rows.push(...game.rows(host));
     if (host && game.start) {
       rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: game.start });
@@ -5006,7 +5033,8 @@ export async function boot({
     const w = roomLinkState.state().welcome;
     const now = roomLinkState.roomNow();
     const secs = (at) => (at == null || now == null ? null : Math.max(0, Math.ceil((at - now) / 1000)));
-    const seats = [w.seat, ...[...roomPeers.keys()].sort((a, b) => a - b)];
+    /* The watch seat is no pilot of the lobby's. */
+    const seats = [...(w.watch ? [] : [w.seat]), ...[...roomPeers.keys()].sort((a, b) => a - b)];
     const v = roomWar.view();
     const mine = v && Array.isArray(v.scores) ? v.scores.find((x) => x.seat === w.seat) : null;
     const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
@@ -5198,7 +5226,7 @@ export async function boot({
   async function roomWarJoinGate(w) {
     /* Any game room's lobby, by a link or the title's panel, is where its
      * pilot lands; a round on flies them in (roomHotJoin). */
-    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !LOBBY_GAMES[w.mode].on()) {
+    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !LOBBY_GAMES[w.mode].on() && !w.watch) {
       ui.craftGate = false;
       ui.mode = 'freestyle';
       ui.returnTo = 'title';
@@ -5674,6 +5702,10 @@ export async function boot({
   let warCraftSaid = null;
   /* Said, and the war aircraft flown kept for the next war. */
   function warCraftFrame(v) {
+    /* The watch seat flies nothing, and its saved aircraft stays its own. */
+    if (roomWar.watcher()) {
+      return;
+    }
     /* From the briefing, so the pilot is seated in it before the go. */
     if (v.state === 'briefing' || roomWar.on()) {
       warSeatCraft();
@@ -5712,6 +5744,10 @@ export async function boot({
       audio.setWarBed(v.state === 'countdown' ? 'intro' : staged);
     }
     const w = roomLinkState.state().welcome;
+    /* The watch seat is not put in the air: it watches from where it is. */
+    if (roomWar.watcher()) {
+      return;
+    }
     if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
       ui.onAction('restart');
     } else {
@@ -6218,7 +6254,7 @@ export async function boot({
     const round = roomWar.live() ? roundOf(v) : null;
     const roundKey = round ? `${roomWar.match()}/${round.n}:${round.state}` : null;
     if (round && roundKey !== warRoundSeen && warRoundSeen && warRoundSeen.startsWith(`${roomWar.match()}/`)) {
-      if (round.state === 'live' && mode === 'flight') {
+      if (round.state === 'live' && mode === 'flight' && !roomWar.watcher()) {
         ui.onAction('restart');
       } else if (round.state === 'result') {
         warSay(warCalls.round(round.result));
@@ -6349,7 +6385,7 @@ export async function boot({
     /* Under the outro the film has the screen; the end card comes after. */
     const hudOn = mode === 'flight' && ui.screen === 'flight' && !warOutroOn(v);
     warHud.update(hudOn ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
-    warRoundCard.update(hudOn ? v : null, now, debriefCardLine());
+    warRoundCard.update(hudOn ? v : null, now, roomWar.watcher() ? null : debriefCardLine());
   }
 
   /* The war's guide nudge (src/share/war/nudge.js), for a mission that
@@ -8011,9 +8047,11 @@ export async function boot({
     },
     send: (obj) => roomLinkState.send(obj),
     view: () => roomWar.view(),
+    /* The watch seat's room is not one the campaign plays: no loadout
+     * said, no result paid (roomWar strips it there too). */
     room: () => {
       const st = roomLinkState.state();
-      return { phase: st.phase, code: st.code, seat: roomWar.seat() };
+      return { phase: roomWar.watcher() ? 'watching' : st.phase, code: st.code, seat: roomWar.seat() };
     },
     /* A combat quad's chosen payload is its warhead (configs/combat.js). */
     craftWarhead: (allowed, equipped) => {
