@@ -99,8 +99,8 @@ export const FIGURES = [
   fig('inverted_flat_spin', 'spins', 14, null, 'waits'),
   fig('ke_spin', 'spins', 14, null, 'waits'),
   /* The RC 3D set, game scale (docs/TRICKS-CATALOG.md says how each is anchored). */
-  fig('hover', '3d', 6, null, 'unproven'),
-  fig('torque_roll', '3d', 10, null, 'unproven'),
+  fig('hover', '3d', 6, null, 'flown'),
+  fig('torque_roll', '3d', 10, null, 'flown'),
   fig('harrier', '3d', 8, null, 'unproven'),
   fig('inverted_harrier', '3d', 11, null, 'unproven'),
   fig('rolling_harrier', '3d', 16, null, 'unproven'),
