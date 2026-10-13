@@ -34,7 +34,7 @@
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { noise2, smoothstep } from '../../render/library/noise.js';
-import { ribbon, ribbonCentre } from './ribbon.js';
+import { ribbon, ribbonCentre, mergeRibbons } from './ribbon.js';
 import {
   FIELD, HALF, STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
   TREE_LINE, SNOW_LINE, streamX, treeLine, forestDensity,
@@ -675,14 +675,16 @@ export function buildStream(ctx, sites) {
   const bedMat = look.material('stream-bed', { color: 0x8f8a78, rim: 0.05 });
   const streamMat = look.material('stream', { color: 0x3d7a97, rim: 0.4, rimColor: 0xe6f3ff, transparent: true, opacity: 0.72 });
   const rivers = [];
+  const strips = [];
   for (const [pts, w] of [[aboveFall, 3.6], [belowFall, 3.6], [lower, 5.2]]) {
-    scene.add(ribbon(pts, w * 1.5, 0.04, groundAt, bankMat).mesh);
-    scene.add(ribbon(pts, w * 1.1, 0.08, groundAt, bedMat).mesh);
-    scene.add(ribbon(pts, w, 0.14, groundAt, streamMat).mesh);
+    strips.push(ribbon(pts, w * 1.5, 0.04, groundAt, bankMat).mesh);
+    strips.push(ribbon(pts, w * 1.1, 0.08, groundAt, bedMat).mesh);
+    strips.push(ribbon(pts, w, 0.14, groundAt, streamMat).mesh);
     if (pts.length > 1) {
       rivers.push({ line: ribbonCentre(pts, w, 0.14, groundAt), width: w });
     }
   }
+  scene.add(...mergeRibbons(strips));
   return rivers;
 }
 
