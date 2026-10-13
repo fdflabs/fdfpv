@@ -16,8 +16,9 @@
  * and nothing of its own in the standings, and its standings stay up as
  * the final order.
  *
- * Then a lobby: A makes a room for Catch the Ace, and B, put on the
- * title, joins it to watch. B is never pulled to the lobby's Ready (it
+ * Then a lobby: A makes a room for Catch the Ace and presses Ready the
+ * moment it is in (the page's joining texts would have dropped it), then
+ * stands down; B, put on the title, joins it to watch. B is never pulled to the lobby's Ready (it
  * stays on its watch camera, its own ready goes nowhere) and its banner
  * says who is ready; A readying alone starts the five seconds, the
  * watcher never counted.
@@ -158,6 +159,9 @@ try {
   }
   const code = await a.evaluate('window.__roomCreate()');
   await a.until("window.__rooms().phase === 'open'", 30000);
+  /* The join's summon done before Play: one still owed seats the room's
+   * world over the track Play seated (src/main.js roomSummonStep). */
+  await a.until('window.__rooms().summon === null', 30000);
   const sp = (await a.evaluate('window.__map()')).spawn;
   const fx = -Math.sin(sp.yaw);
   const fz = -Math.cos(sp.yaw);
@@ -242,7 +246,18 @@ try {
   const BANNER = 'window.__war().watch.banner';
   const codeL = await a.evaluate("window.__roomCreate({ mode: 'tag' })");
   await a.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(codeL)} && window.__rooms().lobby !== null`, 30000);
-  const joinedL = Date.now();
+  /* Ready the moment the lobby is in, inside the burst of texts a page
+   * sends on joining, which fills the room's allowance for a second: it
+   * is said again until the room lists it (src/share/roomlobby.js). */
+  const pressedAt = Date.now();
+  await a.evaluate("window.__ui.act('friends-lobby-ready'); true");
+  await a.until("window.__rooms().lobby.ready['1'] === true", 6000).catch(() => {});
+  const r0 = await a.evaluate('window.__rooms().lobby');
+  check('A presses Ready the moment its lobby is in, and the room lists it', r0.ready['1'] === true, `${JSON.stringify(r0.ready)} after ${Date.now() - pressedAt} ms`);
+  await a.evaluate("window.__ui.act('friends-lobby-ready'); true");
+  await a.until("Object.keys(window.__rooms().lobby.ready).length === 0", 6000).catch(() => {});
+  check('and its second press stands it down, before the five seconds are out', Object.keys((await a.evaluate('window.__rooms().lobby')).ready).length === 0
+    && (await a.evaluate('window.__rooms().lobby.countdownAt')) == null);
   await b.evaluate("window.__ui.show('title'); true");
   await b.evaluate(`window.__roomJoin(${JSON.stringify(codeL)}, { watch: true }); true`);
   await b.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(codeL)} && window.__rooms().watch && window.__ui.screen === 'flight'`, 120000).catch(() => {});
@@ -254,10 +269,6 @@ try {
   await b.sleep(800);
   const l1 = await a.evaluate('window.__rooms().lobby');
   check('B pressing Ready readies nobody', Object.keys(l1.ready).length === 0 && l1.countdownAt == null, JSON.stringify(l1));
-  /* A page's texts on joining fill the room's allowance for a second
-   * (edge/rooms/core.js TEXT_PER_S), and a lobby Ready said inside it is
-   * dropped, not queued: A presses it as a pilot would, after that. */
-  await a.sleep(Math.max(0, 1500 - (Date.now() - joinedL)));
   await a.evaluate("window.__ui.act('friends-lobby-ready'); true");
   await b.until("window.__rooms().lobby.ready['1'] === true", 10000).catch(() => {});
   await b.until(`/starting in/.test(${BANNER})`, 5000).catch(() => {});

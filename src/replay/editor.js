@@ -1198,7 +1198,7 @@ export function createEditor(api) {
     th.append(el('span', 'cc-dur', fmt(row.duration || 0)));
     const body = el('div', 'cc-clip-body');
     const nm = el('div', 'cc-clip-name', row.name);
-    const meta = el('div', 'cc-clip-meta', str('replay.clip_meta', { when: when(row.created), map: api.mapName(row.map), build: buildOf(row) }));
+    const meta = el('div', 'cc-clip-meta', str(row.opponent ? 'replay.clip_meta_opponent' : 'replay.clip_meta', { when: when(row.created), map: api.mapName(row.map), build: buildOf(row) }));
     const acts = el('div', 'cc-clip-actions');
     const bPlayIt = button('cc-btn small primary', str('replay.play'), '', async () => {
       try {

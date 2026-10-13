@@ -236,6 +236,10 @@ if (recording) {
   /* Probes that are clocks and queues by nature: whatever four runs said,
    * their values depend on how many frames the page drew. */
   const CLOCKS = /^__(stickPath|boot|dynres|renderStats|animMs|gpuMemory)\(/;
+  /* The colliders' candidate counts tally the queries the frames made, so
+   * they depend on timing, not on the tree: three runs all reading 0 was
+   * recorded as stable on 2026-10-13, where the run before saw them move. */
+  const TIMED = /colliders(\(\))?\.(lastCandidates|meanCandidatesPerQuery)$/;
   /* On the title the camera flies the attract orbit, so whatever reads the
    * camera or the drawn craft there is moving too. */
   const TITLE_CAMERA = /^__(camGround|quadScreen|craftState|ground|traffic|craft)\(/;
@@ -243,7 +247,7 @@ if (recording) {
   for (const state of Object.keys(runs[0])) {
     for (const p of new Set(runs.flatMap((r) => Object.keys(r[state] ?? {})))) {
       const vals = runs.map((r) => r[state]?.[p]);
-      if (CLOCKS.test(p) || !vals.every((v) => v === vals[0])) movers.add(p);
+      if (CLOCKS.test(p) || TIMED.test(p) || !vals.every((v) => v === vals[0])) movers.add(p);
       if (state === 'title' && TITLE_CAMERA.test(p)) titleMovers.add(p);
     }
   }

@@ -40,8 +40,18 @@
  * is never handed to the ghost recorder, the event log, RunWatch or the
  * progress. Its laps are its own, read by the results line.
  *
- * ITS STICKS. Every 4 ms row it flew is kept (sticks()), so a replay can
- * fly it again from them and never asks aipilot.js twice.
+ * ITS STICKS. Every 4 ms row it flew is kept (sticks()), so a replay
+ * shows what it was flown with and never asks aipilot.js twice. They are
+ * kept as float32, rounded from the doubles sim_input took, so they alone
+ * do not fly it again: that is its journal's.
+ *
+ * ITS JOURNAL (src/replay/journal.js, as the pilot's plant has one). The
+ * plant's exports are journaled from the moment it is loaded, before
+ * anything allocates, and stepTo copies its region once a second of its
+ * own clock, so the crash cam can keep it with a clip (src/replay/
+ * opponent.js) and replay:refly flies it again bit for bit on the build
+ * that flew it: its ground, its contacts and its sticks are the calls.
+ * The learning runs before the first copy, so none of it is written down.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -62,6 +72,7 @@
 import { SIM_OK } from '../../tests/lib/simmod.js';
 import { AI_STEP_MS, aiPilot, learnSticks, lineFromGhost } from './aipilot.js';
 import { Race } from './race.js';
+import { createJournal } from '../replay/journal.js';
 import {
   BOUNCE_SEPARATION, GROUND_E, GROUND_MU, contactMaterial, craftVerticalHalf, craftVerticalOffset,
 } from './collide.js';
@@ -85,10 +96,14 @@ const learnt = new Map();
 /*
  * The opponent's plant, seated and learnt. load() answers a fresh Sim
  * (simBytes.then(loadSim)); seat is { simId, tuneText, gravity, cellVoltage,
- * rates }. The learning is kept per simId, tune, pack and rates.
+ * rates, wasm }, wasm the module's bytes, which name the build its journal
+ * flew (null leaves it unnamed). The learning is kept per simId, tune, pack
+ * and rates.
  */
 export async function seatOpponent(load, seat) {
   const sim = await load();
+  const journal = createJournal(sim.e, { wasm: seat.wasm || null });
+  sim.e = journal.exports;
   const must = (code, what) => {
     if (code !== SIM_OK) throw new Error(`AI opponent: ${what} returned ${code}`);
   };
@@ -105,7 +120,9 @@ export async function seatOpponent(load, seat) {
     learnt.set(key, learnSticks(sim, seat.rates));
     learnMs = performance.now() - t0;
   }
-  return { sim, learnt: learnt.get(key), rates: seat.rates, learnMs };
+  return {
+    sim, journal, learnt: learnt.get(key), rates: seat.rates, learnMs,
+  };
 }
 
 /* A quaternion (x, y, z, w) turning the scene's up: its y component is
@@ -127,6 +144,7 @@ export class AiOpponent {
    */
   constructor({ seated, lap, gates, trackClass, world }) {
     this.sim = seated.sim;
+    this.journal = seated.journal;
     this.world = world;
     this.race = new Race(gates, trackClass);
     this.race.saveRecord = () => {};
@@ -230,6 +248,9 @@ export class AiOpponent {
   stepTo(untilMs) {
     const sim = this.sim;
     while (this.ms < untilMs && !this.crashed) {
+      if (this.journal.due(this.ms / 1000)) {
+        this.journal.snapshot(this.ms / 1000);
+      }
       if (this.ms % AI_STEP_MS === 0) {
         const gate = this.seen[this.race.next] ?? null;
         this.held = this.pilot.sticks(this.ms, this.state, gate);

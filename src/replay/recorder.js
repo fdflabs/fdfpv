@@ -55,6 +55,7 @@ import { trimSound } from './sound.js';
 import { trimVoice } from './voicerec.js';
 import { trimSticks } from './sticks.js';
 import { trimRefly } from './refly.js';
+import { trimOpponent } from './opponent.js';
 
 /* Seconds of flight a replay holds, and the most rows it takes to hold
  * them: 120 a second. A faster display is sampled down to that; a slower
@@ -389,6 +390,8 @@ export function trimClip(clip, t0, t1) {
     ...(clip.voice ? { voice: trimVoice(clip.voice, a, b) } : {}),
     ...(clip.sticks ? { sticks: trimSticks(clip.sticks, a, b) } : {}),
     ...(clip.refly ? { refly: trimRefly(clip.refly, a, b) } : {}),
+    /* Null when the trim leaves no row it races in: saved as before. */
+    ...(clip.opponent ? { opponent: trimOpponent(clip.opponent, a, b) } : {}),
   };
 }
 

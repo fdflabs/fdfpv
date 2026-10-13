@@ -4,9 +4,10 @@
  * One row a replay: { id, name, created, thumb (a small PNG Blob), bytes
  * (the replay file, src/replay/file.js), airframe, map, duration, build
  * (the app build that flew it, file version 18; absent on a row of an
- * older clip) }. The list reads every row but the bytes are only read to
- * play one. Errors are raised, not swallowed: a pilot who pressed Save is
- * told when it did not save.
+ * older clip), opponent (true when a solo race's AI opponent is in it,
+ * file version 19; absent otherwise) }. The list reads every row but the
+ * bytes are only read to play one. Errors are raised, not swallowed: a
+ * pilot who pressed Save is told when it did not save.
  *
  * Bounded: past MAX_CLIPS the oldest go, and a save says so.
  *

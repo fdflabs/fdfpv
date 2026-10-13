@@ -59,8 +59,10 @@ export const ROUND_MINUTES = [3, 5];
  *                 game is a host's start in passing
  *   allowSolo     Ready alone starts a round
  *   allowAI       AI pilots fill seats (edge/rooms/roombots.js, docs/
- *                 AI-PILOTS-CONTRACT.md): Catch the Ace first; combat and
- *                 races when the room can fly them there
+ *                 AI-PILOTS-CONTRACT.md): Catch the Ace's, and a race's
+ *                 on the real plant (edge/rooms/airace.js, docs/
+ *                 AI-PILOTS-RACES-CONTRACT.md); combat when the room can
+ *                 fly them there
  *   allowDropIn   a pilot arriving mid round flies in; a race went off a
  *                 grid, so its newcomer waits in the lobby
  *   openEnded     the round has no end: on until the room is empty
@@ -91,7 +93,7 @@ export const MODES = [
     minPlayers: 1,
     minElsewhere: 1,
     allowSolo: true,
-    allowAI: false,
+    allowAI: true,
     allowDropIn: false,
     openEnded: false,
     setting: null,
