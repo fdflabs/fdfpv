@@ -566,15 +566,21 @@ export function encodeReplay(clip) {
 
 /* ---- read ---- */
 
-/* What a refusal throws: its message is for the log, in English; the
- * screen says it in the pilot's language (src/replay/crashcam.js). `map`
- * is the map a clip names when that map is what was refused, so the screen
- * can say a retired world by name rather than "not a replay". */
+/* What a refusal throws: its message is for the log, in English, and
+ * `reason` is what the screen says in the pilot's language
+ * (src/replay/crashcam.js, string key `replay.refused_<reason>`), one of
+ * REFUSALS. `map` or `airframe` is the one a clip names when that is what
+ * was refused, so the screen can say a retired world or aircraft by name;
+ * either makes the reason 'map' or 'aircraft'. Any other refusal is a
+ * file that is damaged, which is all the pilot can do anything about. */
+export const REFUSALS = ['not_replay', 'too_large', 'version', 'aircraft', 'map', 'damaged'];
+
 class ReplayFileError extends Error {
-  constructor(message, map = null, airframe = null) {
+  constructor(message, map = null, airframe = null, reason = 'damaged') {
     super(message);
     this.map = map;
     this.airframe = airframe;
+    this.reason = airframe ? 'aircraft' : map ? 'map' : reason;
   }
 }
 
@@ -726,22 +732,22 @@ function checkKey(k, i) {
  */
 export function decodeReplay(buf, known = null) {
   if (!(buf instanceof ArrayBuffer)) {
-    throw new ReplayFileError('not a file');
+    throw new ReplayFileError('not a file', null, null, 'not_replay');
   }
   if (buf.byteLength > FILE_MAX_BYTES) {
-    throw new ReplayFileError(`larger than ${FILE_MAX_BYTES / 1048576} MB`);
+    throw new ReplayFileError(`larger than ${FILE_MAX_BYTES / 1048576} MB`, null, null, 'too_large');
   }
   if (buf.byteLength < 12) {
-    throw new ReplayFileError('too short to be a replay');
+    throw new ReplayFileError('too short to be a replay', null, null, 'not_replay');
   }
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
   if (MAGIC.some((b, i) => u8[i] !== b)) {
-    throw new ReplayFileError('not a replay file');
+    throw new ReplayFileError('not a replay file', null, null, 'not_replay');
   }
   const version = dv.getUint32(4, true);
   if (!READS.includes(version)) {
-    throw new ReplayFileError(`version ${version}, this build reads ${READS.join(' and ')}`);
+    throw new ReplayFileError(`version ${version}, this build reads ${READS.join(' and ')}`, null, null, 'version');
   }
   const hl = dv.getUint32(8, true);
   if (12 + hl > buf.byteLength) {
