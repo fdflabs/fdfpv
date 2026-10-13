@@ -180,3 +180,14 @@ inputs and the flight's event log, each with a near miss that fails.
   offered only to a fixed wing (src/ui/items.js `newTrackRows`), so a
   quad has no casual course to fly. Casual sky tracks for quads are a
   product gap. Multirotor's certification is its other four lessons.
+- **Sticks** (`first_sticks`): each stick held at each end of its
+  travel for 1 s, any order: roll, pitch and yaw at 95 percent either
+  way, the throttle at 95 percent and at 5 percent. 95 percent and 1 s
+  are the lead's product numbers; the calibration wizard does not
+  measure them (src/input/calibrate.js asks 55 percent of raw travel,
+  steady 0.9 s, which is how it finds an axis, not how far a pilot can
+  push one). It is judged on the channels the plant gets each frame, so
+  it is flown on the Timber in Stabilised on the Swiss valley rather
+  than on How to fly (src/ui/ui.js), which is not a flight and has no
+  judge. "I fly already" on First flight does not cover it: the
+  unaided round asks nothing of full travel.

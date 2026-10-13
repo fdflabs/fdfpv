@@ -4545,6 +4545,8 @@ export default {
   "walk.field": "Hangar de campaña",
   "walk.field_blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
   "walk.door_war": "Al frente",
+  "training.lesson.first_sticks": "Palancas",
+  "training.lesson.first_sticks_note": "Mantén cada palanca en cada extremo de su recorrido un segundo: alabeo, cabeceo y guiñada a cada lado, el acelerador a fondo y cerrado.",
   "training.lesson.first_takeoff": "Despegar y volar recto",
   "training.lesson.first_takeoff_note": "En el Timber en modo Stabilised: despega y quédate en el aire 20 segundos. Con los sticks centrados vuela nivelado.",
   "training.lesson.first_turns": "Virajes",

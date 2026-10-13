@@ -4540,6 +4540,8 @@ export default {
   "walk.field": "Field hangar",
   "walk.field_blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
   "walk.door_war": "To the front",
+  "training.lesson.first_sticks": "Sticks",
+  "training.lesson.first_sticks_note": "Hold each stick at each end of its travel for a second: roll, pitch and yaw both ways, the throttle full and closed.",
   "training.lesson.first_takeoff": "Take off and fly straight",
   "training.lesson.first_takeoff_note": "On the Timber with Stabilised: take off and stay in the air for 20 seconds. Centred sticks fly level.",
   "training.lesson.first_turns": "Turns",

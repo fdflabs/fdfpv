@@ -34,9 +34,26 @@ export const TAKEOFF_HOLD_MS = 20000;
 const LANDED_MS = 1000;
 const FLEW_MS = 2000;
 const TURN_RAD = 2 * Math.PI;
+/* The sticks lesson (docs/redesign/TRAINING.md 9, the lead 2026-10-13):
+ * each stick's end is 95 percent of its travel, held a second, on the
+ * channels as the plant gets them (src/input/input.js: roll, pitch and
+ * yaw -1 to 1, throttle 0 to 1). */
+export const STICK_END = 0.95;
+export const STICK_HOLD_MS = 1000;
+const STICK_ENDS = {
+  'roll+': (c) => c.roll >= STICK_END,
+  'roll-': (c) => c.roll <= -STICK_END,
+  'pitch+': (c) => c.pitch >= STICK_END,
+  'pitch-': (c) => c.pitch <= -STICK_END,
+  'yaw+': (c) => c.yaw >= STICK_END,
+  'yaw-': (c) => c.yaw <= -STICK_END,
+  'throttle+': (c) => c.throttle >= STICK_END,
+  'throttle-': (c) => c.throttle <= 1 - STICK_END,
+};
 
 /*
- * Steps: { airborne: ms } in the air that long without touching down;
+ * Steps: { sticks: true } every stick held at each of its ends (STICK_END)
+ * for STICK_HOLD_MS, in any order; { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
  * clean meaning no rim touched; { ghost: true } a lap faster than the
@@ -56,6 +73,7 @@ const TURN_RAD = 2 * Math.PI;
  * training.lesson.<id>_note.
  */
 export const LESSONS = [
+  { id: 'first_sticks', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ sticks: true }] },
   { id: 'first_takeoff', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ airborne: TAKEOFF_HOLD_MS }] },
   { id: 'first_turns', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ turn: 'left' }, { turn: 'right' }] },
   { id: 'first_land', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', aid: 'glide', steps: [{ land: true }] },
@@ -226,6 +244,8 @@ export class LessonWatch {
     this.holdSince = null;
     this.holdAt = null;
     this.streak = 0;
+    this.endSince = {};
+    this.endsHeld = new Set();
   }
 
   get current() {
@@ -246,9 +266,10 @@ export class LessonWatch {
    * crash flag, `grounded` on a surface, `heading` the craft's yaw in
    * radians (z up, positive left), `agl` metres above the ground under
    * it, `pos` its { x, z } in the world, `battery` the OSD's 'ok',
-   * 'warning' or 'critical'. Returns whether the lesson is passed.
+   * 'warning' or 'critical', `sticks` the channels the plant got this
+   * frame. Returns whether the lesson is passed.
    */
-  tick({ simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok' }) {
+  tick({ simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok', sticks = null }) {
     if (this.passed) {
       return true;
     }
@@ -271,7 +292,9 @@ export class LessonWatch {
       }
     }
     const s = this.current;
-    if (s.airborne != null && !grounded && simMs - this.airSince >= s.airborne) {
+    if (s.sticks && sticks) {
+      this.judgeSticks(simMs, sticks);
+    } else if (s.airborne != null && !grounded && simMs - this.airSince >= s.airborne) {
       this.advance();
     } else if (s.turn && heading != null) {
       this.judgeTurn(s.turn, heading, grounded);
@@ -286,6 +309,24 @@ export class LessonWatch {
       }
     }
     return this.passed;
+  }
+
+  /* { sticks: true }: each end held STICK_HOLD_MS; letting go of an end
+   * before then starts that end's second again. */
+  judgeSticks(simMs, sticks) {
+    for (const [end, at] of Object.entries(STICK_ENDS)) {
+      if (!at(sticks)) {
+        delete this.endSince[end];
+        continue;
+      }
+      this.endSince[end] ??= simMs;
+      if (simMs - this.endSince[end] >= STICK_HOLD_MS) {
+        this.endsHeld.add(end);
+      }
+    }
+    if (this.endsHeld.size === Object.keys(STICK_ENDS).length) {
+      this.advance();
+    }
   }
 
   /* { hold: ms, low, high, radius }: that long in the air between low and

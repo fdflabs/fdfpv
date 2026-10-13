@@ -13372,6 +13372,7 @@ export async function boot({
     }
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
+      sticks: input.channels,
     });
   }
   /* The track a lap closed on: a built track (seated, or the casual sky

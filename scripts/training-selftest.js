@@ -22,7 +22,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, certsEarned, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, STICK_END, STICK_HOLD_MS, certsEarned, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -72,6 +72,7 @@ function fly(id, segments, { laps = [], gates = '' } = {}) {
       w.tick({
         simMs: t, crashed: Boolean(s.crashed), grounded: Boolean(s.grounded), heading: Math.atan2(Math.sin(heading), Math.cos(heading)),
         agl: s.agl ?? (s.grounded ? 0 : 30), pos: { x: s.x ?? 0, z: s.z ?? 0 }, battery: s.battery ?? 'ok',
+        sticks: { roll: 0, pitch: 0, yaw: 0, throttle: 0.5, ...s.sticks },
       });
     }
   }
@@ -131,6 +132,20 @@ expect('race clean: rim only', fly('race_clean', [], { laps: [{ rim: true }] }),
 expect('ghost: faster', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: 30000 }] }), true);
 expect('ghost: slower', fly('race_ghost', [], { laps: [{ ms: 31000, ghostMs: 30000 }] }), false);
 expect('ghost: no ghost', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: null }] }), false);
+/* Sticks: each end of each stick held a second, recorded channels. */
+const stick = (ms, sticks) => ({ ms, grounded: true, sticks });
+const ENDS = [{ roll: 1 }, { roll: -0.96 }, { pitch: 1 }, { pitch: -1 }, { yaw: 0.97 }, { yaw: -1 }, { throttle: 1 }, { throttle: 0.02 }];
+const sweep = (ms, ends = ENDS) => ends.flatMap((e) => [stick(ms, e), stick(200, {})]);
+expect('sticks: every end held 1.1 s', fly('first_sticks', sweep(1100)), true);
+expect('sticks: two ends at once count both', fly('first_sticks', [...sweep(1100, [ENDS[1], ...ENDS.slice(3)]), stick(1100, { roll: 1, pitch: 1 })]), true);
+expect('sticks: every end held 0.9 s', fly('first_sticks', sweep(900)), false);
+expect('sticks: the throttle never closed', fly('first_sticks', sweep(1100, ENDS.slice(0, 7))), false);
+expect('sticks: roll only to 90 percent', fly('first_sticks', sweep(1100, [{ roll: 0.9 }, { roll: -0.9 }, ...ENDS.slice(2)])), false);
+expect('sticks: an end let go at 0.6 s twice', fly('first_sticks', [...sweep(1100, ENDS.slice(1)), stick(600, { roll: 1 }), stick(100, {}), stick(600, { roll: 1 })]), false);
+expect('sticks: a crash after half, then the other half', fly('first_sticks', [...sweep(1100, ENDS.slice(0, 4)), crash, ...sweep(1100, ENDS.slice(4))]), false);
+expect('sticks: centred for ten seconds', fly('first_sticks', [stick(10000, {})]), false);
+expect('sticks: the ends are 95 percent, held a second (the lead, 2026-10-13)', STICK_END === 0.95 && STICK_HOLD_MS === 1000, true);
+
 /* Racing a pilot: the round event a finished room race logs. */
 const raced = (rounds) => {
   const w = new LessonWatch(lessonById('race_pilot'));
