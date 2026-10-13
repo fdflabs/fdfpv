@@ -26,8 +26,8 @@
  * taken it off by then.
  *
  * What the shell reads: view() (the room's: state, wave, output, rack,
- * scores), attackersAt(roomMs), takeEvents(), and mine() for this pilot's
- * own score row. What it sends: start(mission) and end(), the host's.
+ * scores; on the watch seat never a result), attackersAt(roomMs),
+ * takeEvents(), and mine() for this pilot's own score row. What it sends: start(mission) and end(), the host's.
  *
  * Pure: no DOM, no timers, no three.js, the room clock handed in, so a
  * check in Node can drive it against edge/rooms/core.js.
@@ -52,12 +52,21 @@ import { decodeAgents, decodeHunts } from './roomwire.js';
 import { KINDS, planAgent, poseAt } from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
 import { MISSIONS } from './war/missions/index.js';
+import { WATCH_SEAT } from './roomrace.js';
 
 /* A hunter's samples older than this behind its newest are dropped: the
  * far interest band sends one a second, and the shell draws near now. */
 const KEEP_MS = 3000;
 
 const LIVE = new Set(['countdown', 'live']);
+
+/* The view a seat holds: the watch seat's never with a result, whose
+ * stars and credits the campaign pays whoever holds it
+ * (src/ui/campaign.js observe); the room sends it none (core.js
+ * watchedView), and a room from before might. */
+function held(view, seat) {
+  return seat === WATCH_SEAT && view && view.result != null ? { ...view, result: null } : view;
+}
 
 /* a + (b - a) u on quaternions, the short way, normalised. */
 function nlerp(a, b, u, out) {
@@ -212,7 +221,7 @@ export function createRoomWar(send) {
         reset();
       }
       room = w.code ?? null;
-      war = next;
+      war = held(next, seat);
     },
 
     /* A room message this module owns. Returns true when it was one. */
@@ -231,7 +240,7 @@ export function createRoomWar(send) {
         }
         const was = war.state;
         const stageWas = war.stage ? `${war.stage.id}@${war.stage.at}` : null;
-        war = m.war;
+        war = held(m.war, seat);
         if (was !== war.state) {
           events.push({ type: 'state', from: was, to: war.state, why: war.why ?? null });
         }
@@ -386,6 +395,10 @@ export function createRoomWar(send) {
     },
     seat() {
       return seat;
+    },
+    /* The watch seat's: the room's war, none of it its own. */
+    watcher() {
+      return seat === WATCH_SEAT;
     },
     error() {
       return error;

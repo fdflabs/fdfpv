@@ -34,6 +34,8 @@ import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { createRoomRace } from '../src/share/roomrace.js';
 import { createRoomTag } from '../src/share/roomtag.js';
 import { createRoomJam } from '../src/share/roomjam.js';
+import { createRoomWar } from '../src/share/roomwar.js';
+import { createRoomOps } from '../src/share/roomops.js';
 
 const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
 const trackDoc = mapTrackDocument({ id: 'trk-watch001' });
@@ -294,8 +296,9 @@ export function watchSection(check) {
  * WHAT A WATCHER SEES (redesign phase 17): each game's state as it
  * changes, the race's passes too, the same messages its pilots get and
  * none they do not; the pilots' own messages byte for byte what they get
- * with nobody watching. The war, the ops and the lobby stay the seats'
- * (their pages act for a seat): a watcher is sent none of them.
+ * with nobody watching. The war's and the ops' view comes with no result
+ * (the stars and credits a page pays its pilot, the debrief it records),
+ * and the lobby's never counts the watcher.
  */
 export function watchStateSection(check) {
   console.log('what a watcher sees: each game\'s state (phase 17)');
@@ -324,9 +327,12 @@ export function watchStateSection(check) {
     const room = new RoomCore({
       code: 'W4TCHS', cap: PRIVATE_CAP, friendly: false, map: g.map ?? 'swiss2', epoch: now - 1000, public: false,
       mode: g.mode, mission: g.mission ?? null, name: null, pick: [1, 1, 11], hidden: false,
-    });
-    /* The first Ace the same in every run. */
+    }, g.opts);
+    /* The first Ace, the war's draws and the ops' seed the same in every
+     * run. */
     room.tag.random = () => 0.25;
+    room.war.random = () => 0.25;
+    room.ops.random = () => 0.25;
     const hello = (s, i, extra = {}) => run(room.hello(s, {
       type: 'hello', proto: PROTO, build: 'fdfpv', name: [1, 2, 40 + i], profile, level: ROOM_LEVEL, war: WAR_JOIN, ...extra,
     }, now, `10.0.39.${i}`, newToken));
@@ -492,13 +498,92 @@ export function watchStateSection(check) {
     const { pilots } = play(g, 'before');
     check('race: a pilot still hears only the other\'s pass, never its own', ofType(pilots[0], 'event').filter((m) => m.kind === 'gate').map((m) => m.seat).join() === '2');
   }
+  /* The war and the ops: the view each change, a watcher's the same with
+   * no result (core.js watchedView), whose stars and credits a page would
+   * pay its pilot; their events the same as the pilots'. The lobby: who
+   * is ready, a watcher never counted. */
+  const noResult = (m) => (m && m.result != null ? { ...m, result: null } : m);
+  const VIEWS = [
+    {
+      label: 'war', mode: 'war', map: 'itaipu', mission: 'itaipu-drill', type: 'war', key: 'war',
+      start: [{ type: 'war', op: 'start', mission: 'itaipu-drill' }],
+      play: [[0, { type: 'war', op: 'end' }]],
+      on: (v) => v.state === 'countdown' || v.state === 'live',
+      over: (v) => v.state === 'ended',
+    },
+    {
+      label: 'ops', mode: null, map: 'interior', type: 'ops', key: 'ops', opts: { devMissions: true },
+      start: [{ type: 'ops', op: 'start', mission: 'interior-1' }],
+      play: [[0, { type: 'ops', op: 'end' }]],
+      on: (v) => v.state === 'countdown' || v.state === 'live',
+      over: (v) => v.state === 'ended',
+    },
+  ];
+  for (const g of VIEWS) {
+    const before = play(g, 'before');
+    const alone = play(g, null);
+    const views = (s) => ofType(s, g.type).filter((m) => m[g.key]).map((m) => m[g.key]);
+    const seen = views(before.w);
+    const told = views(before.pilots[0]);
+    check(`${g.label}: a watcher there from the start gets the view, on and then over`, seen.some(g.on) && g.over(seen.at(-1)),
+      JSON.stringify(seen.map((v) => v.state)));
+    check(`${g.label}: the pilot's last view holds the result (the negative control)`, told.length > 0 && told.at(-1).result != null && g.over(told.at(-1)),
+      JSON.stringify(told.at(-1)?.result ?? null));
+    check(`${g.label}: the watcher's views are the pilots' with no result`, seen.length === told.length
+      && JSON.stringify(seen) === JSON.stringify(told.map(noResult)) && seen.every((v) => v.result == null), `${seen.length} vs ${told.length}`);
+    const others = (s) => ofType(s, g.type).filter((m) => !m[g.key] && !m.error);
+    check(`${g.label}: and every other ${g.type} message its pilots all get (the births, the cues told to all)`,
+      JSON.stringify(others(before.w)) === JSON.stringify(others(before.pilots[0]).filter((m) => !m.cues || m.cues.every((c) => c.heard == null || c.heard === 'all'))),
+      `${others(before.w).length} vs ${others(before.pilots[0]).length}`);
+    const body = JSON.stringify(texts(before.w));
+    check(`${g.label}: nothing the watcher was sent carries a result, stars or credits`, !body.includes('"credits"') && !body.includes('"starIds"')
+      && !/"result":\{/.test(body), body.match(/"(credits|starIds)"|"result":\{/)?.[0] ?? '');
+    const heard = (p) => p.got.map((m) => (m instanceof Uint8Array ? [...m].join() : JSON.stringify(m.type === 'welcome' ? { ...m, watchers: 0 } : m)));
+    const differs = before.pilots.map((p, i) => {
+      const [x, y] = [heard(p), heard(alone.pilots[i])];
+      const k = x.findIndex((m, j) => m !== y[j]);
+      return x.length === y.length && k < 0 ? null : `p${i} at ${k}: ${String(x[k]).slice(0, 120)} vs ${String(y[k]).slice(0, 120)}`;
+    }).filter(Boolean);
+    check(`${g.label}: the pilots' messages byte for byte those with nobody watching`, differs.length === 0, differs.join(' | ').slice(0, 400));
+    check(`${g.label}: the watcher holds no seat, no score row and no role`, !before.room.people().some((p) => p.seat === 0)
+      && !JSON.stringify(seen.at(-1).scores ?? []).includes('"seat":0') && !Object.hasOwn(seen.at(-1).roles?.held ?? {}, '0'));
+    const after = play(g, 'after');
+    const ww = after.w.got.find((m) => m.type === 'welcome');
+    check(`${g.label}: a watcher who comes after the start is welcomed into it as it stands, no result`, Boolean(ww) && ww.seat === 0 && g.on(ww[g.key])
+      && ww[g.key].result == null, JSON.stringify(ww && ww[g.key] && ww[g.key].state));
+    check(`${g.label}: and sees it end, no result`, g.over(views(after.w).at(-1)) && views(after.w).at(-1).result == null);
+    /* The page's half, the client's own guard: fed the pilot's messages
+     * with result and a welcome to the watch seat, the module holds none. */
+    const mod = g.key === 'war' ? createRoomWar(() => {}) : createRoomOps(() => {});
+    const pw = before.pilots[0].got.find((m) => m.type === 'welcome');
+    mod.onWelcome({ ...pw, seat: 0, watch: true });
+    texts(before.pilots[0]).forEach((m) => m.type !== 'welcome' && mod.onMessage(m));
+    const pilot = g.key === 'war' ? createRoomWar(() => {}) : createRoomOps(() => {});
+    texts(before.pilots[0]).forEach((m) => (m.type === 'welcome' ? pilot.onWelcome(m) : pilot.onMessage(m)));
+    check(`${g.label} page: on the watch seat it holds the end and no result, even sent one; a pilot's page holds it`,
+      mod.watcher() && g.over(mod.view()) && mod.view().result == null && !pilot.watcher() && pilot.view().result != null,
+      JSON.stringify({ watcher: mod.watcher(), state: mod.view().state, result: mod.view().result ?? null }));
+  }
   {
     const g = {
-      label: 'war', mode: 'war', map: 'itaipu', mission: 'itaipu-drill', start: [{ type: 'war', op: 'start', mission: 'itaipu-drill' }], play: [],
+      label: 'lobby', mode: 'tag', start: [],
+      play: [[0, { type: 'lobby', op: 'ready', ready: true }], [1, { type: 'lobby', op: 'ready', ready: true }]],
     };
-    const { w, pilots, room } = play(g, 'before');
-    check('war: the pilots\' war is on, and a watcher is sent none of it, nor the lobby\'s, nor the ops\'',
-      room.game() === 'war' && ofType(pilots[0], 'war').length > 0 && ['war', 'ops', 'lobby'].every((t) => ofType(w, t).length === 0),
-      `${room.game()} pilot war ${ofType(pilots[0], 'war').length}, watcher ${['war', 'ops', 'lobby'].map((t) => ofType(w, t).length).join(',')}`);
+    const before = play(g, 'before');
+    const alone = play(g, null);
+    const ww = before.w.got.find((m) => m.type === 'welcome');
+    check('lobby: a watcher is welcomed with the room\'s lobby', Boolean(ww && ww.lobby) && Object.keys(ww.lobby.ready).length === 0, JSON.stringify(ww && ww.lobby));
+    const seen = ofType(before.w, 'lobby');
+    const told = ofType(before.pilots[0], 'lobby');
+    check('lobby: it sees each pilot ready, the same messages the pilots get', seen.length === 2 && JSON.stringify(seen) === JSON.stringify(told)
+      && Object.keys(seen.at(-1).lobby.ready).join() === '1,2', JSON.stringify(seen.map((m) => m.lobby.ready)));
+    check('lobby: the watcher is never counted: both pilots ready starts the five seconds with it there', seen.at(-1).lobby.countdownAt != null
+      && JSON.stringify(seen.at(-1).lobby) === JSON.stringify(ofType(alone.pilots[0], 'lobby').at(-1).lobby));
+    const heard = (p) => p.got.map((m) => JSON.stringify(m.type === 'welcome' ? { ...m, watchers: 0 } : m));
+    check('lobby: the pilots\' messages byte for byte those with nobody watching', before.pilots.every((p, i) => JSON.stringify(heard(p)) === JSON.stringify(heard(alone.pilots[i]))));
+    const after = play(g, 'after');
+    const aw = after.w.got.find((m) => m.type === 'welcome');
+    check('lobby: a watcher who comes after is welcomed with nobody ready yet, then sees both', Boolean(aw && aw.lobby)
+      && Object.keys(ofType(after.w, 'lobby').at(-1)?.lobby.ready ?? {}).join() === '1,2');
   }
 }

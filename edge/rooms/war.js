@@ -143,7 +143,8 @@
  * here has not said it stands on the mission's (worldsUp). Anything
  * else is refused 'world'.
  *
- * What the room sends, to everybody:
+ * What the room sends, to everybody, its watchers too (core.js watch;
+ * their view's result null, core.js watchedView):
  *
  *   { type: 'war', war }                      the view (view()), on every
  *                                             change and in each welcome
@@ -201,8 +202,8 @@
  *   { type: 'war', error }                    to a refused sender
  *
  * and AGENTS (0xA0) to each seat on the room tick, thinned by distance on
- * the core's INTEREST bands, each followed by HUNTS (0xA1): the same
- * hunters' target seats.
+ * the core's INTEREST bands, and to each watcher unthinned, each followed
+ * by HUNTS (0xA1): the same hunters' target seats.
  *
  * DAMAGE. Every warhead that goes off is a blast on the map's structures
  * (src/share/war/damage.js blast): an attacker's at its aim point when it
@@ -830,13 +831,15 @@ export class RoomWar {
     return { war: this.view(core) };
   }
 
+  /* Every seat and every watcher (core.js watch): a watcher draws the
+   * attackers, the booms and the damage, and none of it is its own. */
   broadcast(core, msg) {
-    const data = JSON.stringify(msg);
-    return [...core.seats.keys()].map((conn) => ({ send: conn, data }));
+    return core.everyone(JSON.stringify(msg));
   }
 
+  /* The view, a watcher's with no result (core.js viewed). */
   changed(core) {
-    return [this.store(), ...this.broadcast(core, { type: 'war', war: this.view(core) })];
+    return [this.store(), ...core.viewed('war', this.view(core))];
   }
 
   error(conn, error) {
@@ -861,6 +864,18 @@ export class RoomWar {
       out.push({ send: conn, data: JSON.stringify({ type: 'war', op: 'damage', ...e }) });
     }
     return out;
+  }
+
+  /* A watcher come while a war is on: every attacker alive as births and
+   * the damage so far, as a joiner is told them, and never enlisted. */
+  watch(conn) {
+    if (!this.on()) {
+      return [];
+    }
+    return [
+      ...(this.match.agents.length ? [{ send: conn, data: JSON.stringify({ type: 'war', op: 'born', agents: this.match.agents }) }] : []),
+      ...(this.match.damage ?? []).map((e) => ({ send: conn, data: JSON.stringify({ type: 'war', op: 'damage', ...e }) })),
+    ];
   }
 
   /*
@@ -2376,6 +2391,18 @@ export class RoomWar {
       if (list.length) {
         out.push({ send: conn, data: encodeAgents(this.lastStep, list) });
         out.push({ send: conn, data: encodeHunts(this.lastStep, list) });
+      }
+    }
+    /* A watcher flies nothing, so it is every hunter's far band: each
+     * one, every tick, as to a seat not flying. */
+    if (core.watchers.size) {
+      const list = this.lastPoses.map((h) => ({
+        id: h.id, kind: KIND_ID.get('hunter'), p: h.p, q: h.q, target: h.target,
+      }));
+      const agents = encodeAgents(this.lastStep, list);
+      const hunts = encodeHunts(this.lastStep, list);
+      for (const conn of core.watchers.keys()) {
+        out.push({ send: conn, data: agents }, { send: conn, data: hunts });
       }
     }
     return out;
