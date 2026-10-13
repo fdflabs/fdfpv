@@ -109,3 +109,7 @@ its ceiling, or on a scenario with no row at the preset. One run per tier
 and per set of scenarios; a set of all three Itaipu and Interior
 scenarios peaked at 4.3 GB at High, Itaipu's two with the flood at 3.8 GB
 (the run-check ceiling for `perf` is 3 GB, so pass `CHECK_MEM=5G`).
+run-check.sh draws a SIM_GPU check on the second card, GPU 1 (PCI
+85:00.0, x4), and leaves GPU 0 (02:00.0, x16, the desktop's) to the
+owner, since 2026-10-13. Numbers taken before then are GPU 0's: pass
+`CHECK_GPU=0` to compare with them on the same card.
