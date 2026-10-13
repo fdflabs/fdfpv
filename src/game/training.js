@@ -139,6 +139,22 @@ export function gateCue(cam, to, cone = 0.35) {
 /* The tracks in the order the page lists them. */
 export const TRACKS = ['first', 'wing', 'multirotor', 'racing'];
 
+/*
+ * CERTIFICATIONS (PROGRESSION.md 7, the lead 2026-10-13): a track's, earned
+ * when every lesson of it is passed, a pass by "I fly already" included,
+ * and kept from then on (progress.certs, synced; a merge never drops one).
+ * Because a stored one is never taken back, a track is listed only once
+ * every lesson TRAINING.md gives it exists here: Fixed wing waits on its
+ * coordinated turn, Glider on its track, Defence on the stage engine; First
+ * flight has none. The words are training.cert.<track>.
+ */
+export const CERTS = ['multirotor', 'racing'];
+
+/* The certifications `passed` (lesson id to its pass time) has earned. */
+export function certsEarned(passed) {
+  return CERTS.filter((t) => LESSONS.filter((l) => l.track === t).every((l) => Number.isFinite(passed[l.id]) && passed[l.id] > 0));
+}
+
 /* "I fly already": per track, the one lesson an experienced pilot flies
  * to pass the track's basics at once (TRAINING.md 4), the lesson that
  * covers the rest. */

@@ -36,7 +36,7 @@ import {
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
 import { itemById } from '../game/economy.js';
-import { LessonWatch, passesOf } from '../game/training.js';
+import { LessonWatch, certsEarned, passesOf } from '../game/training.js';
 import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
@@ -347,8 +347,16 @@ export class Progress {
        * made here when a profile from before it has none. */
       this.state.lessonsFlown ??= {};
       this.state.lessonsFlown[w.lesson.id] = true;
+      this.state.certs ??= {};
+      const certified = certsEarned(this.state.lessons).filter((t) => !this.state.certs[t]);
+      for (const track of certified) {
+        this.state.certs[track] = now;
+      }
       this.save();
       this.toast({ cls: 'challenge', icon: '\u2713', kicker: str('training.toast_passed'), title: str(`training.lesson.${w.lesson.id}`) });
+      for (const track of certified) {
+        this.toast({ cls: 'challenge', icon: '\u2605', kicker: str('training.toast_cert'), title: str(`training.cert.${track}`) });
+      }
       this.lesson = null;
       return;
     }

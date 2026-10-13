@@ -325,5 +325,18 @@ console.log('room games: a first per game and world');
   check('Unlock all is untouched by a room game first', (() => { const q = freshProgress(true); awardFirsts(q, { played: { 'tag:alps': true } }); return q.unlockAll === true && q.xp === FIRST_XP.game; })());
 }
 
+console.log('certifications (src/game/training.js CERTS)');
+{
+  check('a new pilot has none', same(freshProgress().certs, {}));
+  check('a profile from before them reads as none', same(normaliseProgress({ v: 2, xp: 10, lessons: { race_lap: 5 } }).certs, {}));
+  const kept = normaliseProgress({ certs: { racing: 1760000000000.5, multirotor: 'yes', glider: -1, 'BAD ID': 5, defence: 1760000000001 } });
+  check('earned ones keep their time, whole, unknown ones too; junk dropped', same(kept.certs, { racing: 1760000000000, defence: 1760000000001 }), JSON.stringify(kept.certs));
+  const blob = (certs) => ({ v: 1, data: { progress: { ...freshProgress(), certs } }, stamps: {} });
+  const m1 = mergeBlobs(blob({ racing: 200 }), blob({ racing: 100, multirotor: 300 })).data.progress.certs;
+  const m2 = mergeBlobs(blob({ racing: 100, multirotor: 300 }), blob({ racing: 200 })).data.progress.certs;
+  check('two computers merge as the union at the earlier time, either way round', same(m1, { multirotor: 300, racing: 100 }) && same(m2, m1), JSON.stringify(m1));
+  check('a merge never drops one', Object.keys(mergeBlobs(blob({}), blob({ racing: 100 })).data.progress.certs).join() === 'racing');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;

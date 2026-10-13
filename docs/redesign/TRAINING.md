@@ -168,3 +168,15 @@ inputs and the flight's event log, each with a near miss that fails.
   Day's lobby when a rooms server is there.
 - **A lap under a time** (`race_bronze`): a lap at the course's bronze
   or better, read from the `medal` the lap event carries.
+- **Certifications**: a track's, earned when every lesson of it is
+  passed, an "I fly already" pass included, and awarded with a toast on
+  the lesson that completes it. Stored as `progress.certs` (track to the
+  time it was earned), synced, merged as the union at the earlier time.
+  A stored one is never taken back, so a track is listed in `CERTS` only
+  once every lesson this document gives it exists: Multirotor and
+  Racing now. Fixed wing waits on its coordinated turn, Glider on its
+  track, Defence on the stage engine. First flight has none.
+- **Gates** (track 3) is not built: the tree's casual sky tracks are
+  offered only to a fixed wing (src/ui/items.js `newTrackRows`), so a
+  quad has no casual course to fly. Casual sky tracks for quads are a
+  product gap. Multirotor's certification is its other four lessons.

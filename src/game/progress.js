@@ -205,7 +205,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, medals: {}, landings: {}, crashes: {}, laps: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, certs: {}, medals: {}, landings: {}, crashes: {}, laps: {}, unlockAll };
 }
 
 /*
@@ -298,6 +298,9 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     played: flags(p.played, 200),
     lessons: passes(p.lessons),
     lessonsFlown: flags(p.lessonsFlown, 200),
+    /* Certifications (src/game/training.js CERTS): a track to when it
+     * was earned, kept as lessons are, unknown ones too. */
+    certs: passes(p.certs),
     medals: medalMap(p.medals),
     ...Object.fromEntries(Object.values(COUNTED).map((k) => [k, countMap(p[k])])),
     unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,

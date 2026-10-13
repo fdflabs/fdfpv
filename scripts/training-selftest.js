@@ -22,7 +22,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { GLIDE, LESSONS, LessonWatch, SKIPS, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, certsEarned, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -220,6 +220,23 @@ for (const l of LESSONS.filter((x) => x.covers)) {
 expect('a pass of the unaided round passes the first flight track', passesOf('first_unaided').join(), 'first_unaided,first_takeoff,first_turns,first_land');
 expect('a pass of a lesson that covers nothing passes itself', passesOf('first_land').join(), 'first_land');
 expect('training.skip en and es', ['training.skip', 'training.skip_note'].every((k) => typeof en[k] === 'string' && typeof es[k] === 'string'), true);
+
+/* Certifications: every lesson of the track passed, a skip's covered
+ * passes included; one short earns nothing. */
+const allOf = (track, t = 5) => Object.fromEntries(LESSONS.filter((l) => l.track === track).map((l) => [l.id, t]));
+for (const t of CERTS) {
+  expect(`${t}: a track with a certification is a listed track, its words in en and es`, TRACKS.includes(t) && typeof en[`training.cert.${t}`] === 'string' && typeof es[`training.cert.${t}`] === 'string', true);
+  expect(`${t}: every lesson passed earns it`, certsEarned(allOf(t)).join(), t);
+  const short = allOf(t);
+  delete short[Object.keys(short).at(-1)];
+  expect(`${t}: its last lesson missing earns nothing`, certsEarned(short).length, 0);
+}
+expect('First flight has no certification (PROGRESSION.md 7)', CERTS.includes('first'), false);
+expect('racing: the clean lap\'s skip passes count, as passesOf writes them', certsEarned({
+  ...Object.fromEntries(passesOf('race_clean').map((id) => [id, 5])), race_bronze: 6, race_ghost: 7, race_pilot: 8,
+}).join(), 'racing');
+expect('a time that is not a pass earns nothing', certsEarned({ ...allOf('racing'), race_pilot: 0 }).length, 0);
+expect('two tracks at once', certsEarned({ ...allOf('racing'), ...allOf('multirotor') }).join(), 'multirotor,racing');
 
 console.log(failed ? `FAIL, ${failed} case(s)` : `PASS, ${LESSONS.length} lessons judged`);
 process.exit(failed ? 1 : 0);

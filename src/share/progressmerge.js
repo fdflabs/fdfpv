@@ -28,8 +28,8 @@
  *   progress   XP is the higher of the two; courses flown, challenges
  *              done, firsts paid and the rest are flags, and a flag set on
  *              either side is set; Unlock all is on if either turned it
- *              on; lessons passed are the union at the earlier pass
- *              time; medals per course the better of the two;
+ *              on; lessons passed and certifications are the union at
+ *              the earlier time; medals per course the better of the two;
  *              landings, crashes and laps per aircraft the higher
  *              of the two; the
  *              version is the newer of the two.
@@ -344,14 +344,17 @@ function mergeProgress(a, b) {
     }
   }
   out.unlockAll = a.unlockAll === true || b.unlockAll === true;
-  /* Lessons passed: every lesson either passed, at the earlier pass. */
-  const la = isRecord(a.lessons) ? a.lessons : {};
-  const lb = isRecord(b.lessons) ? b.lessons : {};
-  out.lessons = {};
-  for (const id of [...new Set([...Object.keys(la), ...Object.keys(lb)])].sort()) {
-    const t = [la[id], lb[id]].filter((v) => Number.isFinite(v) && v > 0);
-    if (t.length) {
-      out.lessons[id] = Math.min(...t);
+  /* Lessons passed and certifications earned: every one either side
+   * has, at the earlier time. */
+  for (const map of ['lessons', 'certs']) {
+    const ga = isRecord(a[map]) ? a[map] : {};
+    const gb = isRecord(b[map]) ? b[map] : {};
+    out[map] = {};
+    for (const id of [...new Set([...Object.keys(ga), ...Object.keys(gb)])].sort()) {
+      const t = [ga[id], gb[id]].filter((v) => Number.isFinite(v) && v > 0);
+      if (t.length) {
+        out[map][id] = Math.min(...t);
+      }
     }
   }
   /* The newer shape of the two (progress.js PROGRESS_VERSION): an older
