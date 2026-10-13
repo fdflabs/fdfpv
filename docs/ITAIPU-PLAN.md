@@ -567,7 +567,7 @@ photograph pick round 1's targets.
 
 At High on the RTX 3060 Ti, per view, as swiss2's loop:
 
-- at most 300 draw calls and 2.5 M triangles, never under 60 fps;
+- at most 300 draw calls and 2.5 M triangles in the main view (Itaipu 4.0 M, measured 3.83 M on 2026-10-13: docs/BUDGETS.md), never under 60 fps;
 - GPU frame time under 12 ms (High), 8 ms (Medium), 5 ms (Low), on
   `scripts/swiss2-perf.js`'s floor measure (docs/SWISS2-PERF.md);
 - terrain: Yellowstone's 120 calls and 400 k triangles in view, and 5 ms
