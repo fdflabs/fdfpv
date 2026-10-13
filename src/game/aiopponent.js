@@ -99,8 +99,13 @@ export async function seatOpponent(load, seat) {
   must(sim.setCellVoltage(seat.cellVoltage), 'sim_set_cell_voltage');
   must(sim.setAngleMode(true), 'sim_set_angle_mode');
   const key = JSON.stringify([seat.simId, seat.tuneText, seat.cellVoltage, seat.gravity]);
-  if (!learnt.has(key)) learnt.set(key, learnSticks(sim, seat.rates));
-  return { sim, learnt: learnt.get(key), rates: seat.rates };
+  let learnMs = 0;
+  if (!learnt.has(key)) {
+    const t0 = performance.now();
+    learnt.set(key, learnSticks(sim, seat.rates));
+    learnMs = performance.now() - t0;
+  }
+  return { sim, learnt: learnt.get(key), rates: seat.rates, learnMs };
 }
 
 /* A quaternion (x, y, z, w) turning the scene's up: its y component is

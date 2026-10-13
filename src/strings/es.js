@@ -4762,4 +4762,13 @@ export default {
   "replay.refused_map": "la repetición se voló en un mapa que esta versión no tiene",
   "replay.refused_damaged": "el archivo de la repetición está dañado",
   "replay.clip_gone": "ese clip ya no está",
+  "main.ai_opponent": "Rival IA",
+  "main.ai_opponent_races": "Un piloto IA corre esa vuelta, {formatTime}, en un cuadricóptero propio y por las mismas puertas.",
+  "main.ai_opponent_needs_a_lap": "Todavía no hay una vuelta para que la corra un piloto IA. Termina una y la correrá en un cuadricóptero propio.",
+  "main.ai_opponent_quads_only": "Los rivales IA solo vuelan cuadricópteros. Elige un cuadricóptero para correr contra uno.",
+  "main.ai_opponent_result": "Rival IA: {laps}, mejor vuelta {formatTime}.",
+  "main.ai_opponent_no_lap": "El rival IA no cerró ninguna vuelta.",
+  "main.ai_opponent_crashed": "El rival IA se estrelló tras {laps}.",
+  "count.laps.one": "{n} vuelta",
+  "count.laps.other": "{n} vueltas",
 };
