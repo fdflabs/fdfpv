@@ -1119,6 +1119,57 @@ is flown on the sticks, as in Manual but damped. A pilot who wants the
 old hold turns the Heading up and spends margin, as on the real
 receiver. The section above describes the receiver before this.
 
+### The receiver reads the channels, at every rate (w38-as3x-travel)
+
+The manuals separate the travel from the rates. The receiver learns the
+travel: "Relearn Travel and Reverse: Used to re-teach the receiver and
+AS3000 the travel limits and reversing after ... changes are made to
+travel adjust, absolute travel, and servo reversing", and on the
+nose-wheel "Learn Travel ... Press apply after maximizing the rates and
+moving the channel to the extremes" (the AS3000 manual); the AR631 asks
+for "Relearn Servo Settings" after "sub-trim, travel or other setup
+changes". The older AR635 says the same from the other side: "Changing
+the servo total travel from 125% will affect the tuning and performance
+of the AS3X technology. Always mechanically adjust the aircraft
+linkages for less control surface throw", while on a radio without
+travel adjust "If you need to use low rates ... you can do so without
+affecting the performance of the AS3X system". The Extra's manual
+(EFL115500 p. 4): "To ensure AS3X technology functions properly, do not
+lower rate values below 50%. If lower rates are desired, manually
+adjust the position of the pushrods on the servo arm." The AR631's
+troubleshooting lists "Travel or Rates reduced causing reduced servo
+resolution" under oscillation, with the same remedy. None of them says
+the gyro's output is scaled by the rate.
+
+So in mode 3 the gyro's offset is surface per rad/s, the same at every
+rate, and as3x_k and as3x_kh are the gains at the full travel. What the
+rates change is what the receiver reads: the channel, after the
+transmitter's rate and expo, over the travel it learned with the rates
+at their most (plant_wing.c as3x_channel; FixedWingParams.as3x_travel,
+the throws under a tune). Priority and the Heading's asked rate read it,
+so at a low rate, or with expo, a half stick leaves the gyro some of its
+gain where the full rate's half stick left none. as3x_rate is per unit
+of that channel.
+
+as3x:derive measures every aircraft on its table and at every rate the
+tune screen offers, and holds the feel rule (as3x-feel F1) at the stock
+rate and at the high on every table, the factory presets included. The
+Extra's preset scale answered a half stick at its stock low rate 7.6,
+9.0 and 8.1 percent off Manual's (roll, pitch, yaw), over the 7 percent
+the eye can see; its damper goes from 0.0177, 0.0885, 0.0708 to 0.0134,
+0.0671, 0.0537, which answers 5.9, 7.0 and 6.3 percent at low rate and
+0.7, 0.2 and 0.9 at high. The CAP and the Slick, at 60 and 55 percent
+expo, keep about a sixth of theirs. Held only at the stock and the high,
+a pilot on another rate can still see the gyro: as3x-feel prints those
+rates' F1 unjudged, up to 24 percent (the Tiger Moth's pitch at low rate).
+Holding F1 at every rate would cut the dampers further, the P-51's and
+the CAP's to about a third again.
+
+A bigger surface tier raises the high throw above the table's, so its
+channel reads past the learned travel; it is held at the travel. The
+real receiver would relearn the travel after that change, which this
+does not model.
+
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
