@@ -262,6 +262,7 @@
  "stats": {
   "words": [
    "{\"kind\":\"flush\",\"craft\":\"interceptor\",\"map\":\"custom\"}",
+   "{\"kind\":\"frames\"}",
    "{\"kind\":\"session\",\"craft\":\"interceptor\",\"map\":\"custom\",\"input\":\"keyboard\"}",
    "{\"kind\":\"visit\"}"
   ],

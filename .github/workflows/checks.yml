@@ -100,6 +100,9 @@ jobs:
       # leaves the browser: a fuzz for planted personal data, the opt out
       # (src/share/clientreport.js).
       - run: npm run clientreport:selftest
+      # The same reports from the real shell, and nothing once opted out
+      # (scripts/clientreport-check.js).
+      - run: npm run clientreport:check
       # The language and statistics keys shared with the board, through
       # their move to fdfpv.* names (src/share/sharedkeys.js).
       - run: npm run sharedkeys:selftest

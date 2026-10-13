@@ -29,7 +29,10 @@
 
 import { seeded, transcript } from './lib/transcript.js';
 
-const PINNED = '545b0c475ba03089a1c86c9370b07c543aaefe6a7f72b0188a9db69b87033757';
+/* Re-pinned 2026-10-13 for one record only: the export list gained
+ * sendReport (Foundations #10); every send, answer and stored value is
+ * unchanged. */
+const PINNED = 'dc23737ac9c3136e4aa9eb813cd747aae85bf3d0efaaa076fff7da9d31678baf';
 
 class Storage {
   constructor() {
