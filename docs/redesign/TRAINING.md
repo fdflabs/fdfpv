@@ -147,3 +147,24 @@ headless case in `flow:check`.
 3. Tracks 2 and 3, with the landing aid and the racing line.
 4. The Glider track.
 5. Track 5, after the stage engine (#363).
+
+## 9. Lead decisions 2026-10-13
+
+The lead's decisions on what sections 3 and 7 leave unsaid. They are
+product rules, not physics: where a number is a flight figure it is the
+aircraft's own derived one, cited. Each lesson is data in
+src/game/training.js and is judged in `training:selftest` on recorded
+inputs and the flight's event log, each with a near miss that fails.
+
+- **The `training` activity** in src/share/modes.js is the sessions
+  lane's: a row there needs a lobby in src/main.js `LOBBY_GAMES` (the
+  shell throws at load without one) and changes the room wire's setups.
+  Until it lands, lessons go in by the Free Flight and Track Day cards.
+- **Racing a pilot** (`race_pilot`): a race finished in a room with at
+  least one other pilot on its grid, so two racers. A race's grid is
+  people only (no AI pilots race). The shell logs it as a `round`
+  event, game `race`, with the grid's size, once per race and only
+  for a pilot whose finish the room recorded. The lesson opens Track
+  Day's lobby when a rooms server is there.
+- **A lap under a time** (`race_bronze`): a lap at the course's bronze
+  or better, read from the `medal` the lap event carries.

@@ -4556,6 +4556,8 @@ export default {
   "training.lesson.race_bronze_note": "Fly a lap of a track with medals fast enough for its bronze.",
   "training.lesson.race_ghost": "Beat your ghost",
   "training.lesson.race_ghost_note": "Fly a lap faster than the ghost of your best lap.",
+  "training.lesson.race_pilot": "Racing a pilot",
+  "training.lesson.race_pilot_note": "Finish a race in a room with at least one other pilot racing.",
   "walk.shop": "Shop",
   "walk.trophies": "Trophies",
   "walk.tv": "Replays",

@@ -41,16 +41,19 @@ const TURN_RAD = 2 * Math.PI;
  * and whole after a real flight; { laps: n, clean } n laps on the course,
  * clean meaning no rim touched; { ghost: true } a lap faster than the
  * ghost; { medal: 'bronze' } a lap that reaches that medal or a better
- * one on a course with medals (src/game/medals.js);
+ * one on a course with medals (src/game/medals.js); { race: n } a room
+ * race finished with at least n pilots on its grid, this one among them;
  * { hold: ms, low, high, radius } held in a height band (and a circle);
  * { land: true, deadstick: true } a landing after the pack ran low;
  * { gates: n } n gates or hoops in a row without a touch. `mode` is a
  * quad's flight mode, 'angle' (self levelling) or 'acro'.
  * A crash starts the lesson's steps again. `aid` is the visual aid the
  * lesson draws: 'glide', the glide path to its place's strip, or 'gate',
- * the next gate's direction on the HUD. `covers` lists the lessons a pass
- * of this one passes too, because it asks all they ask. The words are
- * training.lesson.<id> and training.lesson.<id>_note.
+ * the next gate's direction on the HUD. `room` is the activity
+ * (src/share/modes.js) whose lobby a lesson flown with others opens.
+ * `covers` lists the lessons a pass of this one passes too, because it
+ * asks all they ask. The words are training.lesson.<id> and
+ * training.lesson.<id>_note.
  */
 export const LESSONS = [
   { id: 'first_takeoff', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ airborne: TAKEOFF_HOLD_MS }] },
@@ -78,6 +81,7 @@ export const LESSONS = [
   { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', covers: ['race_lap'], steps: [{ laps: 1, clean: true }] },
   { id: 'race_bronze', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ medal: 'bronze' }] },
   { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ ghost: true }] },
+  { id: 'race_pilot', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', room: 'race', steps: [{ race: 2 }] },
 ];
 
 /*
@@ -321,6 +325,16 @@ export class LessonWatch {
   rim() {
     this.clean = false;
     this.streak = 0;
+  }
+
+  /* A round ended (its event in the flight's log, src/game/events.js): a
+   * room race this pilot finished carries game 'race' and its grid's size. */
+  round({ game = null, pilots = null } = {}) {
+    const s = this.current;
+    if (s && s.race && game === 'race' && Number.isInteger(pilots) && pilots >= s.race) {
+      this.advance();
+    }
+    return this.passed;
   }
 
   /* A lap closed: `lap` its event in the flight's log (src/game/events.js:

@@ -27,6 +27,7 @@ import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
 import { MEDAL_STEPS, medalFor } from '../src/game/medals.js';
+import { modeById } from '../src/share/modes.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -54,6 +55,7 @@ for (const l of LESSONS) {
     expect(`${k} en and es`, typeof en[k] === 'string' && typeof es[k] === 'string', true);
   }
 }
+expect('a lesson\'s room is an activity of the registry', LESSONS.every((l) => l.room === undefined || Boolean(modeById(l.room))), true);
 expect('ids are unique', new Set(LESSONS.map((l) => l.id)).size, LESSONS.length);
 
 /* A flight as frames: each segment is { ms, grounded, yawRate, crashed,
@@ -129,6 +131,17 @@ expect('race clean: rim only', fly('race_clean', [], { laps: [{ rim: true }] }),
 expect('ghost: faster', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: 30000 }] }), true);
 expect('ghost: slower', fly('race_ghost', [], { laps: [{ ms: 31000, ghostMs: 30000 }] }), false);
 expect('ghost: no ghost', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: null }] }), false);
+/* Racing a pilot: the round event a finished room race logs. */
+const raced = (rounds) => {
+  const w = new LessonWatch(lessonById('race_pilot'));
+  rounds.forEach((r) => w.round(r));
+  return w.passed;
+};
+expect('pilot: a race finished with two on the grid', raced([{ game: 'race', world: 'swiss2', pilots: 2 }]), true);
+expect('pilot: alone on the grid, then with three', raced([{ game: 'race', pilots: 1 }, { game: 'race', pilots: 3 }]), true);
+expect('pilot: a race finished alone', raced([{ game: 'race', world: 'swiss2', pilots: 1 }]), false);
+expect('pilot: a combat round with four', raced([{ game: 'combat', world: 'swiss2' }, { game: 'tag', pilots: 4 }]), false);
+expect('pilot: a laps-only flight', fly('race_pilot', [], { laps: [{ ms: 30000 }] }), false);
 /* A lap under a time: the medal is medals.js's own, from a course's gold. */
 const GOLD = { goldMs: 30000 };
 const lapOn = (ms, medals = GOLD) => ({ ms, medal: medalFor(medals, ms) });

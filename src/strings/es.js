@@ -4561,6 +4561,8 @@ export default {
   "training.lesson.race_bronze_note": "Vuela una vuelta de una pista con medallas lo bastante rápido para su bronce.",
   "training.lesson.race_ghost": "Gana a tu fantasma",
   "training.lesson.race_ghost_note": "Vuela una vuelta más rápida que el fantasma de tu mejor vuelta.",
+  "training.lesson.race_pilot": "Correr contra un piloto",
+  "training.lesson.race_pilot_note": "Termina una carrera en una sala con al menos otro piloto corriendo.",
   "walk.shop": "Tienda",
   "walk.trophies": "Trofeos",
   "walk.tv": "Repeticiones",

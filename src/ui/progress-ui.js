@@ -285,10 +285,14 @@ export class Progress {
   /* A Streamer Combat round or a Catch the Ace! match this pilot had a
    * seat in, ended by the room, on world `world` (src/main.js): logged,
    * folded, and its first paid now rather than at the next flight time. */
-  roundFinished(game, world) {
-    this.event('round', { game, world });
+  roundFinished(game, world, more = {}) {
+    const round = this.event('round', { game, world, ...more });
     this.foldFlight();
     this.checkFirsts();
+    if (this.lesson) {
+      this.lesson.round(round);
+      this.lessonNews();
+    }
   }
 
   /* The seated aircraft, for the events counted per aircraft. */

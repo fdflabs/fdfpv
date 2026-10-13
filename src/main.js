@@ -91,7 +91,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime, seatedFreestyleMap } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager, thermalMode } from './avionics/sensors.js';
@@ -7968,6 +7968,12 @@ export async function boot({
         s.flightMode = lesson.mode;
       }
       ui.progress.startLesson(lesson);
+      /* A lesson flown with other pilots goes in by its activity's lobby,
+       * as that activity's card does with a rooms server. */
+      if (lesson.room && ui.friendsRow && ui.friendsRow()) {
+        ui.onGameCard(`way-${modeById(lesson.room).card.way}`, lesson.room, seatedFreestyleMap(s)?.id || 'swiss2');
+        return;
+      }
       ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
     },
   });
@@ -8327,6 +8333,15 @@ export async function boot({
       }
     }
     raceHoldWas = raceHoldMs;
+    /* A race this pilot finished, once per race: a round in the flight's
+     * log with how many were on the grid, which the lesson Racing a pilot
+     * judges (src/game/training.js). A race's grid is people only (no AI
+     * pilots race, src/share/modes.js allowAI). */
+    const over = roomRace.takeResults();
+    const finished = over && (over.standings || []).find((r) => r.seat === roomRace.seat() && r.ms != null);
+    if (finished) {
+      ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length });
+    }
     /* Four times a second is plenty for an order that moves a gate at a
      * time, and it keeps the names' lookups off every frame. */
     if (wallMs < roomHudAt) {

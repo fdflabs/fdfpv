@@ -37,7 +37,9 @@
  *   round {game, world}
  *                 a Streamer Combat round or a Catch the Ace! match
  *                 ended by the room with this pilot seated (src/main.js,
- *                 Progress.roundFinished)
+ *                 Progress.roundFinished); a room race this pilot
+ *                 finished, game 'race', carries {pilots} too, how many
+ *                 were on its grid
  *   mission_end {mission, won, stars}
  *                 a mission's result applied to the save
  *                 (src/ui/campaign.js, src/ui/opscampaign.js)
