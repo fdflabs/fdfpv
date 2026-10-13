@@ -25,6 +25,13 @@
  * written, until then loads fold it in, and a device's own version 2 map
  * wins over it.
  *
+ * Each device's feel (padmap.js normaliseFeel: dead zone, expo) sits beside
+ * its map under `feel`, written only once one is set, so a store nobody
+ * set a feel in is byte for byte what it was. It is apart from the map on
+ * purpose: setting a dead zone on a gamepad flying its built-in layout
+ * must not save that layout as a calibration, which would stop it
+ * following the stick mode (input.js followDefaultMap).
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -41,7 +48,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AETR_MAP, normaliseMap } from './padmap.js';
+import { AETR_MAP, NO_FEEL, normaliseFeel, normaliseMap } from './padmap.js';
 import { deviceKey } from './padprofiles.js';
 
 const STICK_MAP_KEY = 'fdfpv.stick_map.v1';
@@ -130,7 +137,17 @@ function storedMaps() {
       maps[key] = map;
     }
   }
-  return { v: 2, maps, orphan: ok && isRecord(parsed.orphan) ? parsed.orphan : null };
+  const store = { v: 2, maps, orphan: ok && isRecord(parsed.orphan) ? parsed.orphan : null };
+  const feel = {};
+  for (const [key, f] of Object.entries(ok && isRecord(parsed.feel) ? parsed.feel : {})) {
+    if (isRecord(f)) {
+      feel[key] = normaliseFeel(f);
+    }
+  }
+  if (Object.keys(feel).length) {
+    store.feel = feel;
+  }
+  return store;
 }
 
 /* Version 2 with any version 1 map still in storage folded in. */
@@ -199,6 +216,50 @@ export function saveStickMap(key, map) {
   try {
     const store = readMaps();
     store.maps[key] = map;
+    writeMaps(store);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* The device's calibration gone, so it flies its built-in layout again.
+ * True when storage no longer holds one for it. */
+export function forgetStickMap(key) {
+  if (typeof key !== 'string') {
+    return false;
+  }
+  try {
+    const store = readMaps();
+    delete store.maps[key];
+    writeMaps(store);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* The feel saved for the device `key` names, or none (both off). */
+export function loadStickFeel(key) {
+  if (typeof key !== 'string') {
+    return { ...NO_FEEL };
+  }
+  try {
+    const { feel } = storedMaps();
+    return normaliseFeel(feel && feel[key]);
+  } catch (e) {
+    return { ...NO_FEEL };
+  }
+}
+
+/* True when the feel reached storage under the device's key. */
+export function saveStickFeel(key, feel) {
+  if (typeof key !== 'string') {
+    return false;
+  }
+  try {
+    const store = readMaps();
+    store.feel = { ...store.feel, [key]: normaliseFeel(feel) };
     writeMaps(store);
     return true;
   } catch (e) {

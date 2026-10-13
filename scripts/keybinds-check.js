@@ -1,10 +1,11 @@
 /*
- * keybinds-check.js: Settings > Controls in the real shell, headless
+ * keybinds-check.js: Keys and buttons (Settings, Controller, Keys and
+ * buttons) in the real shell, headless
  * Chromium through tests/lib/page.js, every press with the pointer or a
  * key the way a keyboard sends it. Run with npm run keybinds:check
  * (local; SIM_GPU=1 for the GPU).
  *
- *  1. Settings, Controls, the Reset row: 7 binds it. In flight 7 resets
+ *  1. Settings, Controller, Keys and buttons, the Reset row: 7 binds it. In flight 7 resets
  *     the run (the lap clock goes back) and R no longer does.
  *  2. The Unstick row pressed with 7 is refused, naming Reset; N is
  *     refused as push to talk's.
@@ -81,7 +82,9 @@ async function clickRow(match, inner = '') {
 async function openControls() {
   await page.evaluate("window.__ui.show('pilot'); true");
   await page.until("window.__ui.screen === 'pilot'", 10000);
-  check('Settings has a Controls row, pressed with the pointer', await clickRow("it.action === 'controls'"));
+  check('Settings has a Controller row, pressed with the pointer', await clickRow("it.action === 'controller'"));
+  await page.until("window.__ui.screen === 'controller'", 10000);
+  check('the Controller has a Keys and buttons row, pressed with the pointer', await clickRow("it.action === 'controls'"));
   await page.until("window.__ui.screen === 'controls'", 10000);
 }
 

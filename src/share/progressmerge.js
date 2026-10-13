@@ -97,7 +97,7 @@
 import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
 import { COUNTED } from '../game/progress.js';
-import { retiredAirframe } from '../../configs/airframes.js';
+import { CLASSES, retiredAirframe } from '../../configs/airframes.js';
 import { tiersShape } from '../../configs/surfaces.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import { cleanPilotCounts, mergePilotCounts } from './pilotcounts.js';
@@ -122,6 +122,9 @@ export const SYNCED_SECTIONS = {
   tuneFor: 'keyed',
   /* The pilot's own camera per aircraft (src/ui/settings.js cameraFor). */
   cameraFor: 'keyed',
+  /* The pilot's own rates per aircraft class (src/ui/settings.js
+   * swapClassRates), beside the seated class's in `rates`. */
+  ratesFor: 'keyed',
   pids: 'keyed',
   floats: 'keyed',
   tune: 'whole',
@@ -176,6 +179,7 @@ const ENTRY_SHAPES = {
   packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
   surfaces: (key, e) => ID_RE.test(key) && tiersShape(e),
   cameraFor: (key, e) => ID_RE.test(key) && isRecord(e) && Number.isFinite(e.angle) && Number.isFinite(e.fov),
+  ratesFor: (key, e) => CLASSES.includes(key) && isRecord(e),
   favourites: (key, e) => key === 'list' && Array.isArray(e) && e.length <= FAVOURITES_MAX && e.every((id) => typeof id === 'string' && ID_RE.test(id)),
 };
 

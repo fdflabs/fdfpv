@@ -10391,6 +10391,10 @@ export async function boot({
   /* The seated world's note, held for the next flight. See showCourseNotes. */
   let heldNotes = null;
   let padPickReturn = 'title';
+  /* The wizard hands the pilot back to the screen it was opened from:
+   * Settings, the Controller screen, or the title (the Hangar's card and
+   * the new pilot's controller question both open it from there). */
+  let calibrateReturn = 'pilot';
   /* The laps this run lasts, fixed at its start: settings.laps can change
    * from pause and must not end a run early. */
   let runLaps = ui.settings.laps;
@@ -15540,6 +15544,25 @@ export async function boot({
 
   const sayNoRadio = () => flashNotice(str('main.no_radio_or_gamepad_found_plug_2'), 3200);
 
+  /* The Controller screen's feel rows and its Built-in layout row
+   * (src/ui/controller.js): the input keeps them per device. */
+  ui.onController = (change) => {
+    if (change.builtIn) {
+      if (input.useBuiltInMap()) {
+        flashNotice(str('controller.builtin_done'), 2800);
+      }
+    } else if (!input.setFeel(change)) {
+      flashNotice(str('controller.feel_unsaved'), 5200);
+    }
+    ui.setPadInfo(input.padSummary());
+    ui.renderMenu();
+  };
+  const openCalibrate = () => {
+    if (ui.screen !== 'calibrate') {
+      calibrateReturn = ui.screen;
+    }
+    ui.show('calibrate');
+  };
   /* The calibrate screen's rows. Its frame loop branch blanks the banner
    * every frame, so the wizard's own steps say nothing here: the gimbals
    * moving under the pilot's sticks are the answer. */
@@ -15550,7 +15573,7 @@ export async function boot({
         return;
       }
       input.startCalibration();
-      ui.show('calibrate');
+      openCalibrate();
     }],
     /* The check step alone, against the saved mapping, refused the same
      * way when nothing is plugged in: a mapping with no radio behind it
@@ -15560,11 +15583,11 @@ export async function boot({
         sayNoRadio();
         return;
       }
-      ui.show('calibrate');
+      openCalibrate();
     }],
     ['calibrate-cancel', () => {
       input.cancelCalibration();
-      ui.show('pilot');
+      ui.show(calibrateReturn);
     }],
     ['calibrate-reverse', () => input.reverseMovingChannel()],
     /* Settings owns the stick mode (ui.cycleStickMode writes it and
@@ -15576,7 +15599,7 @@ export async function boot({
       if (!input.acceptCalibration()) {
         return;
       }
-      ui.show('pilot');
+      ui.show(calibrateReturn);
       /* What storage did, not that the wizard ended: a private window or
        * a full quota keeps the mapping for this page only (saveMap). */
       const kept = input.calResult !== 'saved-unstored';
@@ -17793,7 +17816,7 @@ export async function boot({
     if (rcPending.length > 1024) {
       rcPending.splice(0, rcPending.length - 256);
     }
-    /* Settings > Controls waiting for a pad button takes the pad first. */
+    /* Keys and buttons waiting for a pad button takes the pad first. */
     if (ui.isModal() && !bindPad(ui, input.padHeld())) {
       ui.pollPad(padNav());
     }
@@ -19743,7 +19766,7 @@ export async function boot({
   }
 
   function leaveCalibration(nowWall) {
-    ui.show('pilot');
+    ui.show(calibrateReturn);
     if (input.calResult === 'saved') {
       notice = { text: str('main.stick_mapping_saved'), untilMs: nowWall + 2800 };
     } else if (input.calResult === 'saved-unstored') {

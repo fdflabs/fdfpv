@@ -310,6 +310,12 @@ async function signIn(callsign) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/* Answered only when unanswered, so a check that answers it itself keeps
+ * its answer across a reload. */
+const FLY_WITH_SKIPPED = `try {
+  if (localStorage.getItem('fdfpv.flywith.v1') === null) localStorage.setItem('fdfpv.flywith.v1', 'skip');
+} catch (e) { /* storage refused: the shell reads that as answered */ }`;
+
 /* Under SIM_CSP (tests/lib/server.js sends the deployed policy as a
  * header), every violation is a console error naming what was blocked,
  * and close() prints each once as a "csp-violation:" line, so any check
@@ -342,6 +348,10 @@ const CSP_SEED = `document.addEventListener('securitypolicyviolation', (e) => co
  * Chromium resolves to the loopback server and treats as a secure origin,
  * so a check sees what a pilot on a public host sees (not a local host:
  * src/share/devhooks.js closes developer mode).
+ *
+ * `askFlyWith`: leave the new pilot's controller question unanswered
+ * (src/ui/flywith.js). Off, it is answered Skip before the app runs, so
+ * a check that starts from empty storage still starts on the title.
  */
 export async function openPage({
   root,
@@ -354,6 +364,7 @@ export async function openPage({
   account = process.env.SIM_ACCOUNT === '1' ? 'Tester' : null,
   override = {},
   host = null,
+  askFlyWith = false,
 } = {}) {
   const chrome = findChrome();
   if (!chrome) {
@@ -407,7 +418,7 @@ export async function openPage({
   /* A controller plugged into this machine is a real pad to headless Chrome
    * too, and one has flown a check's aircraft off its parking spot. No page
    * sees a pad unless its own seed, run after this one, stubs one. */
-  const seeds = ['navigator.getGamepads = () => [];', ...(process.env.SIM_CSP ? [CSP_SEED] : []),
+  const seeds = ['navigator.getGamepads = () => [];', ...(askFlyWith ? [] : [FLY_WITH_SKIPPED]), ...(process.env.SIM_CSP ? [CSP_SEED] : []),
     ...(signedIn ? [signedIn.seed] : []), ...seed];
   for (const source of seeds) {
     await call('Page.addScriptToEvaluateOnNewDocument', { source });

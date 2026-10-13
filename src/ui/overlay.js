@@ -38,6 +38,7 @@ import { STICK_MODES, normaliseStickMode, stickCaption } from '../input/stickmod
 import { boardConfigured } from '../share/board.js';
 import { boardFlightSeconds } from '../share/stats.js';
 import { str } from '../strings/index.js';
+import { cursorOnLit } from './flywith.js';
 import { formatRunClock, formatTime } from './format.js';
 import { WEIGHT_STOCK, airHintSeen, clampWeight, markAirHintSeen, saveSettings } from './settings.js';
 import { el, makePadCard, placeNub, placeSticks } from './widgets.js';
@@ -718,10 +719,17 @@ export const overlayMethods = {
    */
   setPadInfo(info) {
     const before = padTroubleItem(this.padInfo);
+    const deviceWas = this.padInfo && this.padInfo.device;
     this.padInfo = info || { count: 0, using: str('ui.keyboard') };
     const after = padTroubleItem(this.padInfo);
     const changed = (before ? before.label : '') !== (after ? after.label : '');
     if (changed && this.screen === 'title') {
+      this.renderMenu();
+    }
+    /* The controller question lights the device plugged in, live, and
+     * the cursor goes to it: plugging it in is the pilot's answer. */
+    if (deviceWas !== this.padInfo.device && this.screen === 'flywith') {
+      cursorOnLit(this);
       this.renderMenu();
     }
   },
