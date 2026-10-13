@@ -303,7 +303,16 @@ const respsOf = (ms) => [0, 1, 2].map((ax) => ms.flatMap((m) => m.conds.map((c) 
  * that fails, the most axes at their own scales that hold together, the
  * others none (the lower worst ratio between two sets of as many), and
  * where no set holds, all of them at the largest common factor on the
- * same sweep that holds (lead decision 2026-10-13). On a5e1d975e's plant
+ * same sweep that holds (lead decision 2026-10-13). Every scale is held
+ * at every tenth of it too, all the axes at that tenth together, as the
+ * tune screen's steppers set it (lead decision 2026-10-13, the owner's
+ * "small corrections, never change the way the plane behaves"): on
+ * 4dc533c3b the CAP's roll Heading held the kick at the full Heading
+ * (0.50 and 0.81 of Manual's alone, 0.71 and 0.70 with the others) and
+ * at no tenth under it (1.03 to 2.90 alone; the three together 1.10 to
+ * 1.95 from 0.1 to 0.7). Mixes of different tenths per axis are not
+ * flown: each axis alone is (the sweep below) and the three together
+ * are, and a thousand mixes per aircraft are not. On a5e1d975e's plant
  * the Slick's roll and yaw held alone (0.75 and 1 of the rule's) and not
  * together, at any common factor down to a twentieth; its yaw alone
  * held. Not "every scale below it
@@ -326,6 +335,7 @@ const respsOf = (ms) => [0, 1, 2].map((ax) => ms.flatMap((m) => m.conds.map((c) 
  * where pitch and yaw Heading hold axes the rock only couples into. The
  * receiver's damper alone leaves it at 1.00 and 1.01. */
 const KICK_STEP = 0.05;
+const TENTHS = [1, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
 function kickHeading(name, sim, body, k, khRule) {
   const prog = PROGRAMS[AS3X[name].kick]();
   const rx = { ...receiverOf(body), k };
@@ -337,7 +347,11 @@ function kickHeading(name, sim, body, k, khRule) {
     const em = emulatedSim(sim, rx, [1, 1, 1], khRule.map((x, ax) => sc[ax] * x));
     return manual.map(({ rate, m }) => kickIae(em, prog, 3, rate) / m);
   };
-  const holds = (sc) => ratios(sc).every((r) => r < 1);
+  /* A pilot sets the Heading in tenths (configs/tuning.js
+   * HEADING_STEP), so a scale holds only if every tenth of it does: the
+   * full first, then up from a tenth, stopping at the first that fails. */
+  const holdsAt = (sc) => ratios(sc).every((r) => r < 1);
+  const holds = (sc) => TENTHS.every((t) => holdsAt(sc.map((x) => t * x)));
   const sweep = (at) => {
     for (let i = Math.round(1 / KICK_STEP); i >= 1; i -= 1) {
       if (holds(at(i * KICK_STEP))) return i * KICK_STEP;

@@ -1236,18 +1236,48 @@ On the batch's plant after w38-fuselage-side (abd2b5d7b):
 | | Margin rule's Heading | Held | Kicked rock, of Manual's |
 |---|---|---|---|
 | Extra | 0.0837, 0.8927, 0.412 | 0, 0.8927, 0.412 | 0.58 and 0.61 |
-| CAP | 0.3373, 0.2732, 0.7792 | 0.2867 (0.85 of it), 0.2732, 0.7792 | 0.71 and 0.70 |
+| CAP | 0.3373, 0.2732, 0.7792 | 0, 0.2732, 0.7792 (w38-as3x-partial) | 0.42 and 0.42 |
 | Slick | 0.1208, 0.0639, 0.7848 | 0, 0.0639, 0.7848 | 0.39 and 0.39 |
 
 On the plant before it, the Slick's roll (0.75 of the rule's) and yaw
 each held alone but not together, at any common factor down to a
-twentieth, and it kept the yaw alone. The rule is judged at the full
-Heading only. The tune screen sets
-Heading in tenths, and between a twentieth and a fifth of the Extra's
-yaw Heading the rock is worse than Manual's (1.03 to 1.08) before it is
-better from two fifths (0.99 and 0.97); the receiver's damper alone
-leaves it at 1.00 and 1.005. Heading defaults to zero, and the tune
-help keeps the AR631's warning against it on the yaw axis.
+twentieth, and it kept the yaw alone.
+
+Every tenth of the Heading too (w38-as3x-partial, lead decision
+2026-10-13, the owner's "small corrections, never change the way the
+plane behaves"). The tune screen sets the Heading in tenths, and on
+4dc533c3b the CAP's roll Heading (0.2867) held the kick only at the
+full: alone, 1.76 and 1.96 of Manual's at a tenth, 2.83 and 2.90 at
+four, 1.03 and 1.11 at nine, 0.50 and 0.81 at the full; the three
+together 1.53 to 1.95 from a tenth to three, 1.10 at seven, 0.94 at
+eight. as3x:derive now takes a scale only if every tenth of it holds,
+the axes together and each alone, so the CAP's roll Heading goes to
+nothing. `npm run as3x:tenths` (in CI, 18 s) flies the plant's mode 3
+at each tenth, the three together and each alone, on the Extra, the
+CAP and the Slick:
+
+| Tenth | Extra, all three | CAP, all three | Slick, all three |
+|---|---|---|---|
+| 0 | 0.99, 0.99 | 0.92, 0.91 | 0.91, 0.90 |
+| 0.1 | 0.96, 0.98 | 0.85, 0.80 | 0.87, 0.85 |
+| 0.2 | 0.88, 0.91 | 0.78, 0.76 | 0.79, 0.78 |
+| 0.3 | 0.82, 0.86 | 0.70, 0.70 | 0.70, 0.70 |
+| 0.4 | 0.76, 0.80 | 0.62, 0.63 | 0.62, 0.62 |
+| 0.5 | 0.72, 0.76 | 0.56, 0.57 | 0.55, 0.55 |
+| 0.6 | 0.68, 0.72 | 0.52, 0.52 | 0.50, 0.50 |
+| 0.7 | 0.64, 0.68 | 0.48, 0.49 | 0.46, 0.46 |
+| 0.8 | 0.62, 0.65 | 0.45, 0.46 | 0.43, 0.43 |
+| 0.9 | 0.60, 0.63 | 0.43, 0.44 | 0.40, 0.41 |
+| 1 | 0.58, 0.61 | 0.42, 0.42 | 0.39, 0.39 |
+
+With roll Heading at zero on all three, the yaw Heading does the work;
+the pitch Heading changes nothing here (the harrier's elevator is held
+past 40 percent stick, where priority fades the gyro out). Mixes of
+different tenths per axis are not flown. On the plant before
+w38-fuselage-side, between a twentieth and a fifth of the Extra's yaw
+Heading the rock was worse than Manual's (1.03 to 1.08); on
+4dc533c3b's every tenth of it is better. Heading defaults to zero, and
+the tune help keeps the AR631's warning against it on the yaw axis.
 
 ## A prop spins up
 
