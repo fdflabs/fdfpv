@@ -383,6 +383,19 @@ static double clip(double x, double lim) {
   return x;
 }
 
+/* What the receiver reads on a channel, -1 to 1 of the travel it learned:
+ * the transmitter's rate and expo are in it, the trim is not (the
+ * receiver takes the trim as its centre, "In-flight trim changes do not
+ * require any further updates", the AR631 manual). The stick's shape on
+ * the full throw, times the tuned throw over the learned travel. */
+static double as3x_channel(double stick, double throw_max, double travel, double expo) {
+  const double learned = travel > 0.0 ? travel : throw_max;
+  if (!(learned > 0.0)) {
+    return 0.0;
+  }
+  return clip(surface_from_stick(stick, 1.0, expo) * (throw_max / learned), 1.0);
+}
+
 /*
  * SERVO BLOW BACK (FixedWingParams.hinge_hold, scripts/lib/hinge.js): a
  * plain flap's hinge moment over its small angle slope, as the angle a
@@ -2412,10 +2425,30 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * up under a held stick and landed all at once when the stick came
    * back to centre. The heading is held to what the throw can answer,
    * and it starts afresh whenever priority lets the stick have it all.
+   *
+   * The receiver sees the channels, not the sticks: priority and the
+   * heading's asked rate read each stick through the transmitter's rate
+   * and expo, over the travel the receiver learned with the rates at
+   * their most (as3x_channel; "Learn Travel ... Press apply after
+   * maximizing the rates and moving the channel to the extremes", the
+   * AS3000 manual). The gyro's offset is surface, the same at every
+   * rate: Spektrum ties the gyro to the travel and not to the rates
+   * ("Relearn Travel and Reverse ... after ... changes are made to
+   * travel adjust, absolute travel, and servo reversing", the AS3000
+   * manual; "Changing the servo total travel from 125% will affect the
+   * tuning and performance of the AS3X technology", and on a radio
+   * without travel adjust, "If you need to use low rates ... you can do
+   * so without affecting the performance of the AS3X system", the AR635
+   * manual), so as3x_k and as3x_kh are the gains at the full travel, and
+   * as3x_rate is per unit channel.
    */
   if (g_stab == 3 && !g_on_wheels && !g_chute) {
-    const double st[3] = { roll, pitch, rudder_stick };
     const double th[3] = { fw->throw_a, fw->throw_e, fw->throw_r };
+    const double st[3] = {
+      as3x_channel(roll, th[0], fw->as3x_travel[0], fw->tune ? fw->tune_expo[0] : fw->expo),
+      as3x_channel(pitch, th[1], fw->as3x_travel[1], fw->tune ? fw->tune_expo[1] : fw->expo),
+      as3x_channel(rudder_stick, th[2], fw->as3x_travel[2], fw->tune ? fw->tune_expo[2] : fw->expo),
+    };
     const double frame = fw->as3x_frame > 0.0 ? fw->as3x_frame : AS3X_FRAME_DEFAULT;
     g_as3x_t -= WING_DT;
     if (g_as3x_t <= 0.0) {
@@ -3921,8 +3954,8 @@ const FixedWingParams FW_CUB1400 = {
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
   .as3x_k = { 0.0056, 0.013, 0.0693 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.8524, 1.8547, 1.8292 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.286, -1.369, -0.529 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.8524, 1.8547, 1.7999 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.829, -1.948, -0.752 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4045,7 +4078,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
   .as3x_k = { 0.0116, 0.0199, 0.0617 }, /* npm run as3x:derive */
   .as3x_kh = { 1.7801, 3.0245, 1.7932 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.295, -0.978, -0.605 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.42, -1.391, -0.861 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -4396,7 +4429,7 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
   .as3x_k = { 0, 0.054, 0.2002 }, /* npm run as3x:derive */
   .as3x_kh = { 0, 0.0088, 0.0034 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.592, -1.074, -0.624 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.592, -1.528, -0.888 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4516,9 +4549,9 @@ const FixedWingParams FW_TIMBER1500 = {
   .stab_trim_throttle = 0.417, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0221, 0.0448, 0.059 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.3176, 0.0064, 1.9576 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.522, -1.66, -0.968 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0218, 0.0443, 0.0583 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3223, 0.0041, 1.9466 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.587, -2.361, -1.378 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4656,9 +4689,9 @@ const FixedWingParams FW_TIMBER1500F = {
   .stab_trim_throttle = 0.503, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0289, 0.0587, 0.0773 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.1837, 0.0081, 2.0501 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.632, -1.708, -1.154 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0286, 0.0581, 0.0764 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.1818, 0.0012, 2.0407 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.744, -2.43, -1.641 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4791,9 +4824,9 @@ const FixedWingParams FW_CUB1400F = {
   .stab_trim_throttle = 0.608, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0054, 0.0144, 0.0683 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.657, 1.6594, 1.6614 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.42, -1.434, -0.655 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0045, 0.0123, 0.0581 }, /* npm run as3x:derive */
+  .as3x_kh = { 2.6656, 1.6237, 1.5397 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.02, -2.039, -0.931 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4914,9 +4947,9 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stab_trim_throttle = 0.510, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 45.0 * WING_PI / 180.0,
   .acro_pitch_rate = 30.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.0287, 0.1518 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 1.3223, 0.2234 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.945, -0.726, -0.677 }, /* npm run as3x:derive */
+  .as3x_k = { 0, 0.0233, 0.1232 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 1.8132, 0.2369 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.945, -1.032, -0.964 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -5057,9 +5090,9 @@ const FixedWingParams FW_KADET1981 = {
   .stab_trim_throttle = 0.736, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 25.0 * WING_PI / 180.0, /* what full rudder rolls it at, 20 to 25 deg/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.053, 0.2164 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 0.045, 0.1617 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.346, -0.772, -0.572 }, /* npm run as3x:derive */
+  .as3x_k = { 0, 0.048, 0.196 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 0.4995, 2.0162 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.346, -1.099, -0.814 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -5199,9 +5232,9 @@ const FixedWingParams FW_P51D1450 = {
   .stab_trim_throttle = 0.776, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 120.0 * WING_PI / 180.0, /* 0.7 of full aileron's 168 deg/s at 17.5 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* at 16 m/s, 2.5 g, the most it pulls short of its stall */
-  .as3x_k = { 0.0097, 0.0127, 0.0441 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.1112, 1.1502, 1.6189 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.624, -4.29, -0.657 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0095, 0.0123, 0.0429 }, /* npm run as3x:derive */
+  .as3x_kh = { 2.1294, 1.1381, 1.5509 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.31, -6.102, -0.934 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -5372,9 +5405,9 @@ const FixedWingParams FW_F16878 = {
   .stab_trim_throttle = 0.538, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 300.0 * WING_PI / 180.0,
   .acro_pitch_rate = 120.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0016, 0.0039, 0.0093 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.101, 0.6563, 0.2121 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.028, -3.134, -1.248 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0016, 0.0028, 0.0208 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.101, 0.2293, 0.1781 }, /* npm run as3x:derive */
+  .as3x_rate = { 4.307, -4.458, -1.775 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 8.0,
@@ -5489,9 +5522,9 @@ const FixedWingParams FW_ZAGI1219 = {
   .stab_trim_throttle = 0.246, /* npm run stab:glide; the stick that flies it level, elevons neutral */
   .acro_roll_rate = 220.0 * WING_PI / 180.0, /* 0.7 of full elevon's 315 deg/s at 15 m/s */
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0096, 0.0044, 0 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0057, 0.0033, 0 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.992, -1.324, 0 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0092, 0.0042, 0 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.0085, 0.0083, 0 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.833, -1.883, 0 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -5614,9 +5647,9 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .stab_trim_throttle = 0.710, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 80.0 * WING_PI / 180.0, /* 0.85 of full aileron's 95 deg/s at the trim */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, 76 deg/s */
-  .as3x_k = { 0.0108, 0.0325, 0.0963 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.0354, 2.7277, 2.4233 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.091, -1.12, -0.489 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0103, 0.0309, 0.0917 }, /* npm run as3x:derive */
+  .as3x_kh = { 2.0809, 2.6895, 2.3343 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.552, -1.593, -0.696 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -5767,9 +5800,9 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .stab_trim_throttle = 0.665, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 75.0 * WING_PI / 180.0, /* 0.85 of full aileron's 88 deg/s at the trim */
   .acro_pitch_rate = 45.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0516, 0.1142, 0.257 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.2789, 0.6079, 1.3549 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.97, -1.665, -0.872 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0405, 0.0897, 0.2018 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.288, 2.4508, 3.9114 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.379, -2.368, -1.241 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -6182,9 +6215,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0177, 0.0885, 0.0708 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.083, 0.001, 2.5845 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.183, -2.914, -3.689 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0085, 0.0429, 0.0343 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 0.8927, 0.412 }, /* npm run as3x:derive */
+  .as3x_rate = { 8.795, -4.146, -5.207 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -6339,7 +6372,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .as3x_k = { 0.0189, 0.0139, 0.0111 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0013, 0.3909, 0.249 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.0013, 0.046, 0.2055 }, /* npm run as3x:derive */
   .as3x_rate = { 6.148, -5.472, -3.082 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
@@ -6492,9 +6525,9 @@ const FixedWingParams FW_HERCULES3077 = {
   .acro_roll_ki = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .acro_pitch_ki = 6.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .acro_i_max = 0.30, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .as3x_k = { 0.0234, 0.0286, 0.0957 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.5172, 1.8486, 2.4344 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.608, -1.209, -0.986 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0241, 0.0294, 0.0982 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.4535, 1.7758, 2.4249 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.865, -1.72, -1.403 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.5, /* FITTED: turn coordination gain, no published figure */
   /* Past the stall, scripts/stall-derive.js's tailed form on this
    * aircraft's numbers; the 18 percent section's rounded trailing edge
@@ -6646,9 +6679,9 @@ const FixedWingParams FW_CAP1702 = {
   .jet_kj = 0.80,
   .prop_x = 0.560, /* npm run cap580:derive */
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
-  .as3x_k = { 0.023, 0.1276, 0.3707 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0083, 0.0169, 0.0046 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.778, -2.052, -1.263 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0039, 0.0219, 0.0637 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.2867, 0.2732, 0.7792 }, /* npm run as3x:derive */
+  .as3x_rate = { 9.305, -5.054, -3.068 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */
@@ -6813,9 +6846,9 @@ const FixedWingParams FW_SLICK2680 = {
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0549, 0.2757, 0.533 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0089, 0.0059, 0.013 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.641, -2.585, -1.544 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0037, 0.0155, 0.1082 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 0.0639, 0.7848 }, /* npm run as3x:derive */
+  .as3x_rate = { 5.797, -4.397, -3.309 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
