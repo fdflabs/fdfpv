@@ -12649,6 +12649,7 @@ export async function boot({
    * sticks already held, so they are not dropped to zero under it.
    */
   function resetCraft(at, keepSticks = false) {
+    runRoute.cut();
     leaveFoot();
     if (at) {
       seatSpawnAt(at);
@@ -20367,6 +20368,7 @@ export async function boot({
     if (!stateCurr) {
       return null;
     }
+    runRoute.cut();
     const code = teleportPlant({ x, y, z }, 1, 0, 0, 0);
     if (code !== SIM_OK) {
       return { ok: false, code };
