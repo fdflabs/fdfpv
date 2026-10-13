@@ -1885,7 +1885,7 @@
            "tag": "dd",
            "kids": [
             {
-             "t": "Settings, Sticks, Mouse flight. Sensitivity, expo, invert and whether the stick springs back are under it."
+             "t": "Settings, Controller, Mouse flight. Sensitivity, expo, invert and whether the stick springs back are under it."
             }
            ]
           }
@@ -2883,6 +2883,20 @@
           },
           {
            "t": "."
+          }
+         ]
+        },
+        {
+         "tag": "p",
+         "attrs": [
+          [
+           "class",
+           "credits-legal"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Local build"
           }
          ]
         }
@@ -4843,7 +4857,7 @@
        "tag": "h2",
        "kids": [
         {
-         "t": "Controls"
+         "t": "Keys and buttons"
         }
        ]
       },
@@ -4941,8 +4955,258 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-fc": {
+   "div.screen.screen-page.screen-pilot.screen-controller": {
     "after": "div.screen.screen-page.screen-pilot.screen-controls",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-controller"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "Controller"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Everything between your hands and the aircraft: which device flies, how its sticks are mapped and how they feel, and the keys."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu menu-scroll"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-pilot.screen-flywith": {
+    "after": "div.screen.screen-page.screen-pilot.screen-controller",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-flywith"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "What will you fly with?"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Pick what is in your hands and the game sets up for it. You can change it any time in the Hangar."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "↑↓"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Enter"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Arrow keys move, Enter chooses. Escape skips. On a radio: pitch to move, roll right to choose."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-fc": {
+    "after": "div.screen.screen-page.screen-pilot.screen-flywith",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -10563,7 +10827,7 @@
            "tag": "dd",
            "kids": [
             {
-             "t": "Settings, Sticks, Mouse flight. Sensitivity, expo, invert and whether the stick springs back are under it."
+             "t": "Settings, Controller, Mouse flight. Sensitivity, expo, invert and whether the stick springs back are under it."
             }
            ]
           }
@@ -11561,6 +11825,20 @@
           },
           {
            "t": "."
+          }
+         ]
+        },
+        {
+         "tag": "p",
+         "attrs": [
+          [
+           "class",
+           "credits-legal"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Local build"
           }
          ]
         }
@@ -13521,7 +13799,7 @@
        "tag": "h2",
        "kids": [
         {
-         "t": "Controls"
+         "t": "Keys and buttons"
         }
        ]
       },
@@ -13619,8 +13897,258 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-fc": {
+   "div.screen.screen-page.screen-pilot.screen-controller": {
     "after": "div.screen.screen-page.screen-pilot.screen-controls",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-controller"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "Controller"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Everything between your hands and the aircraft: which device flies, how its sticks are mapped and how they feel, and the keys."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu menu-scroll"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-pilot.screen-flywith": {
+    "after": "div.screen.screen-page.screen-pilot.screen-controller",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-flywith"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "What will you fly with?"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Pick what is in your hands and the game sets up for it. You can change it any time in the Hangar."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "↑↓"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Enter"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Arrow keys move, Enter chooses. Escape skips. On a radio: pitch to move, roll right to choose."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-fc": {
+    "after": "div.screen.screen-page.screen-pilot.screen-flywith",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -17452,6 +17980,12 @@
    "instance": "Carousel"
   },
   "checkVersion": "function",
+  "controllerHelp": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller.2.1"
+  },
+  "controllerMenu": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller.2.0"
+  },
   "controlsHelp": {
    "node": "#ui/div.screen.screen-page.screen-pilot.screen-controls.2.1"
   },
@@ -17526,6 +18060,12 @@
   },
   "firstNote": {
    "node": "#ui/div.screen.screen-title.0.0.0.5"
+  },
+  "flywithHelp": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith.2.1"
+  },
+  "flywithMenu": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith.2.0"
   },
   "frameBot": {
    "node": "#ui/div.frame-bot"
@@ -18197,6 +18737,18 @@
      "controls",
      {
       "node": "#ui/div.screen.screen-page.screen-pilot.screen-controls"
+     }
+    ],
+    [
+     "controller",
+     {
+      "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller"
+     }
+    ],
+    [
+     "flywith",
+     {
+      "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith"
      }
     ],
     [
