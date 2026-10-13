@@ -71,21 +71,21 @@
             "wc": 1,
             "gain": 3.181,
             "lead": 0.5,
-            "pmDeg": 48.6,
+            "pmDeg": 48.5,
             "gmDb": 17.4,
             "short": false
           },
           "roll": {
             "wc": 3,
-            "gain": 6.989,
+            "gain": 6.985,
             "pmDeg": 52.7,
             "gmDb": 6.5,
             "short": false
           },
           "climb": {
             "wc": 1.8,
-            "gain": 33.448,
-            "pmDeg": 46.3,
+            "gain": 33.436,
+            "pmDeg": 46.6,
             "gmDb": 9.4,
             "short": false
           },
@@ -95,7 +95,7 @@
           "airframe": 33,
           "pitch": {
             "wc": 2.6,
-            "gain": 2.366,
+            "gain": 2.361,
             "lead": 0.5,
             "pmDeg": 51.2,
             "gmDb": 6.3,
@@ -103,23 +103,23 @@
           },
           "yaw": {
             "wc": 1.8,
-            "gain": 1.593,
+            "gain": 1.597,
             "lead": 0.5,
             "pmDeg": 47.1,
-            "gmDb": 10.4,
+            "gmDb": 10.5,
             "short": false
           },
           "roll": {
             "wc": 2.8,
-            "gain": 2.472,
-            "pmDeg": 50.7,
+            "gain": 2.479,
+            "pmDeg": 50.6,
             "gmDb": 6.2,
             "short": false
           },
           "climb": {
             "wc": 0.8,
-            "gain": 22.583,
-            "pmDeg": 72.1,
+            "gain": 22.633,
+            "pmDeg": 72.2,
             "gmDb": 11.4,
             "short": false
           },
@@ -1759,9 +1759,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 7.5,
+        "grade": 6.5,
         "flew": [
-          "hover 7.5"
+          "hover 6.5"
         ],
         "finished": true,
         "crashed": false,
@@ -1804,9 +1804,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 7.5,
+        "grade": 6.5,
         "flew": [
-          "torque_roll 7.5"
+          "torque_roll 6.5"
         ],
         "finished": true,
         "crashed": false,
@@ -1849,7 +1849,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 146,
+        "lowestM": 139.9,
         "others": {
           "cap": null,
           "slick": null
@@ -1884,12 +1884,11 @@
         "named": false,
         "grade": null,
         "flew": [
-          "half_roll 7",
-          "half_roll 5.5"
+          "half_roll 7"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 141.5,
+        "lowestM": 145.5,
         "others": {
           "cap": null,
           "slick": null
@@ -1921,12 +1920,10 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [
-          "half_roll 0"
-        ],
+        "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 97.7,
+        "lowestM": 130.5,
         "others": {
           "cap": null,
           "slick": null
@@ -1964,7 +1961,7 @@
         "named": false,
         "grade": null,
         "flew": [
-          "spin 8"
+          "spin 10"
         ],
         "finished": true,
         "crashed": false,
@@ -2057,11 +2054,7 @@
         "named": false,
         "grade": null,
         "flew": [
-          "half_roll 5",
-          "half_roll 7",
-          "half_roll 0",
-          "half_roll 7.5",
-          "half_roll 6.5"
+          "half_roll 0"
         ],
         "finished": false,
         "crashed": true,
