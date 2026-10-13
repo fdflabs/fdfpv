@@ -284,7 +284,7 @@ loop, aileron roll and 4-point roll are
 |---|---|---|---|
 | Knife-Edge Pass | flown | 9.5 / 9 / 10 | |
 | Rolling Circle | unproven | - / - / - | physics: the catalogue's is Aresti 2.4.2.1, one roll in the 360; at the judge's slowest roll, 1.2 rad/s, the turn asks 2.7 g toward the centre at 22 m/s, on the rudder where the wings are level, near three times the weight the Extra's knife edge holds there. The program's law flies four rolls round a circle (6.5 / 8 / 9.5), but that is 2.4.7.1, K 38, not in the catalogue |
-| Hammerhead | flown | 6.5 / 6 / - | entered at 32 m/s on the measured rudder (round 6); the Slick's lost in round 8: it swings over faster and the down line rocks in pitch |
+| Hammerhead | flown | 6.5 / 6 / - | entered at 32 m/s on the measured rudder (round 6); the Slick's lost in round 8: it rolls to 3 rad/s as the rudder catches the pivot, ailerons centred (round 8) |
 | Tailslide | flown | 10 / 10 / 10 (`figures:plant` 9 on the Extra) | entered at 32 m/s (round 6); from the 22 m/s pass the nose yaws round as it slides back (a parachute); the Extra's is not named from 22 or 28 m/s |
 | Loop | flown | 6 / 6 / 7 (`figures:plant`) | |
 | Outside Loop | flown | 5 / 8 / 8 | radius spread (a constant push) |
@@ -365,22 +365,37 @@ still at its hover stick (stiffness, N m/rad, positive restoring; at 1 /
 - **Promoted: the hover (7.5 / 8 / 9.5) and the torque roll (7.5 / 8 /
   6.5)**, named and graded on all three, every loop flown on them
   meeting the criterion.
-- **Lost: the Slick's hammerhead** (6.5, now not named). At the top the
-  Slick swings over on the rudder faster (1.75 against 1.45 rad/s half a
-  second into the kick), and the down line rocks in pitch (0.84 rad/s
-  against 0.13) as it is caught; the judge names nothing. The Extra's
-  and the CAP's are named (6.5 / 6). Not tuned round.
+- **Lost: the Slick's hammerhead** (6.5, now not named). Not the line
+  gains: the old pins on the new plant lose it too, and the new pins on
+  the old plant name it. Not the hover's swing either: it is a roll. In
+  the pivot's last half second, at 3 to 8 m/s where the disc turns most
+  of the crossflow, the fin in the wash no longer weathervanes against
+  the CG's sideways slide, so the nose swings faster (r 2.0 against 1.9
+  rad/s) and the airframe slides more (3.0 against 1.7 m/s sideways when
+  the kick's rudder comes off). The roll moment, +1 to +2.4 N m through
+  the kick before, is -1.2 to -1.5 now, and as the rudder reverses to
+  catch the yaw it reaches -8 to -11 N m: the Slick rolls to 3.0 rad/s
+  (0.5 before) with its ailerons centred, since the line hold flies no
+  aileron (holdLine's rollStick 0). The judge sees a roll and a spin
+  where the down line should start. A consequence of the plant, reported;
+  holding the wings on the ailerons along the lines would be a new
+  designed loop, not a re-pin, and is not built here. The Extra's and
+  the CAP's are named (6.5 / 6).
 - **The wall** now flies into the ground on the Extra (it was not named
   before either); still unproven.
 - **Elsewhere.** The CAP's take off from standing (C14) hops off its
-  wheels at 7.4 m/s for 272 ms (168 ms before), past the gate's 200 ms,
-  so liftoff reads 1.16 m; its real liftoff is at 744 ms on both plants.
-  The CAP's AS3X check "centred after a pull, it damps" reads the mean
-  pitch rate over a 100 ms window across a zero crossing: it passed by
-  0.002 deg/s before (2.626 against 2.628) and fails by 0.04 now, while
-  the rate itself shows AS3X damping harder on both plants (its swing
-  back peaks at -24 deg/s against Manual's -32). Both are left failing
-  for the lead. The jet's force is linear in the crossflow at any
+  wheels at 7.4 m/s and comes back (168 ms before, 272 ms now): the
+  wing at 11 deg on its tail and the thrust's lift carry it, and the
+  stabiliser in the wash, now meeting less of the roll's angle of attack
+  (0.30 against 0.72 m/s of crossflow at 7 m/s), pitches it down less
+  (0.49 against 1.20 N m), so it holds half a degree more nose up. C14
+  read any 200 ms clear of the wheels as liftoff; it now takes sustained
+  flight (no wheel after it, the CG 2 m up): 5.53 m at 15.3 m/s on both
+  plants. The CAP's AS3X check "centred after a pull" took a 100 ms mean
+  across the swing back's zero crossing (2.626 against 2.628 deg/s
+  before, 2.601 against 2.564 now); it now takes the swing back's peak
+  and the rms over 0.5 s, 24.1 against 32.4 and 14.9 against 21.9 deg/s
+  on both plants. The jet's force is linear in the crossflow at any
   crossflow, which the wash now inherits: the Extra's flat turn on full
   rudder keeps 0.445 of its energy in 2 s, was 0.561.
 
