@@ -31,7 +31,7 @@ import worker from './worker.js';
 import { openD1 } from './d1sqlite.js';
 import { googleKeys, verifyGoogleIdToken } from './google.js';
 import { inspectCallsign, looksLikePickerName, parseClientIds } from './accounts.js';
-import { ACCOUNT_WRITE_LIMIT, SIGNIN_LIMIT } from './limits.js';
+import { ACCOUNT_WRITE_LIMIT, BLOCKS_PER_ACCOUNT, SIGNIN_LIMIT } from './limits.js';
 import {
   createIdentity, keyLinkMessage, memoryStorage, trackMessage,
 } from '../src/share/identity.js';
@@ -733,6 +733,70 @@ console.log('the wallet (wallet.js, docs/ECONOMY.md)');
   ip = '203.0.113.9';
 }
 
+console.log('blocks that outlast a room (COMPLETENESS 60)');
+{
+  /* Alice is Maverick, Bob is Ace, Alice has a laptop session too. */
+  const ids = async (session) => (await call('GET', '/api/account', undefined, session)).body.blocks;
+  r = await call('GET', '/api/account/blocks', undefined, alice);
+  check('an account starts blocking nobody', r.status === 200 && r.body.blocks.length === 0, JSON.stringify(r.body));
+  check('and the rooms server is told so', JSON.stringify(await ids(alice)) === '[]');
+  r = await call('PUT', '/api/account/blocks', { callsign: 'ace', on: true }, alice);
+  check('a pilot is blocked by the callsign a room shows', r.status === 200 && JSON.stringify(r.body.blocks) === '["Ace"]', JSON.stringify(r.body));
+  const bobId = (await env.DB.prepare("SELECT id FROM accounts WHERE sub = 'bob'").first()).id;
+  check('the rooms server is given the blocked account\'s id', JSON.stringify(await ids(alice)) === JSON.stringify([bobId]));
+  check('which every computer of the account is given, the laptop too', JSON.stringify(await ids(aliceLaptop)) === JSON.stringify([bobId]));
+  check('the blocked pilot is told nothing', JSON.stringify(await ids(bob)) === '[]');
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Ace', on: true }, aliceLaptop);
+  check('blocking twice keeps one block', r.status === 200 && r.body.blocks.length === 1);
+  r = await call('PUT', '/api/account/callsign', { callsign: 'Iceman' }, bob);
+  r = await call('GET', '/api/account/blocks', undefined, alice);
+  check('a rename does not escape a block, which shows the new callsign', JSON.stringify(r.body.blocks) === '["Iceman"]', JSON.stringify(r.body));
+  check('and the rooms server still has the same id', JSON.stringify(await ids(alice)) === JSON.stringify([bobId]));
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Maverick', on: true }, alice);
+  check('a pilot cannot block themselves', r.status === 422);
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Nobody Here', on: true }, alice);
+  check('a callsign nobody holds is not found', r.status === 404);
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Iceman' }, alice);
+  check('a block says on or off', r.status === 400);
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Iceman', on: true });
+  check('and needs a session', r.status === 401);
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Iceman', on: false }, aliceLaptop);
+  check('an unblock from another computer ends it for the account', r.status === 200 && r.body.blocks.length === 0
+    && JSON.stringify(await ids(alice)) === '[]', JSON.stringify(r.body));
+  r = await call('PUT', '/api/account/callsign', { callsign: 'Ace' }, bob);
+  check('(Bob is Ace again)', r.status === 200);
+  /* Past the cap: fresh accounts to block, each signing in from an
+   * address of its own so no rate limit is what refuses. */
+  const many = [];
+  const manySessions = [];
+  for (let i = 0; i < BLOCKS_PER_ACCOUNT + 1; i += 1) {
+    ip = `198.51.100.${i + 1}`;
+    const got = await call('POST', '/api/account/google', { credential: await idToken({ sub: `blockable-${i}` }) });
+    await call('PUT', '/api/account/callsign', { callsign: `Blockable ${i}` }, got.body.session);
+    many.push(`Blockable ${i}`);
+    manySessions.push(got.body.session);
+  }
+  const codes = [];
+  for (const [i, callsign] of many.entries()) {
+    ip = `198.51.100.${i + 1}`;
+    codes.push((await call('PUT', '/api/account/blocks', { callsign, on: true }, bob)).status);
+  }
+  check(`an account blocks at most ${BLOCKS_PER_ACCOUNT} pilots`, codes.slice(0, -1).every((c) => c === 200) && codes.at(-1) === 409,
+    JSON.stringify(codes.filter((c) => c !== 200)));
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Maverick', on: true }, bob);
+  check('so a further block is refused', r.status === 409 && r.body.full === true);
+  r = await call('PUT', '/api/account/blocks', { callsign: many[0], on: false }, bob);
+  r = await call('PUT', '/api/account/blocks', { callsign: 'Maverick', on: true }, bob);
+  check('until one is unblocked', r.status === 200 && r.body.blocks.includes('Maverick'));
+  for (const [i, session] of manySessions.entries()) {
+    ip = `198.51.100.${i + 1}`;
+    await call('DELETE', '/api/account', undefined, session);
+  }
+  r = await call('GET', '/api/account/blocks', undefined, bob);
+  check('a deleted account\'s blocks on it go with it', JSON.stringify(r.body.blocks) === '["Maverick"]', JSON.stringify(r.body));
+  ip = '203.0.113.9';
+}
+
 console.log('signing out and deleting');
 r = await call('DELETE', '/api/account/session', undefined, aliceLaptop);
 check('signing out ends that session', r.status === 200);
@@ -749,6 +813,8 @@ const left = await env.DB.prepare('SELECT COUNT(*) AS n FROM sessions').first();
 check('nothing of it is left in the database', gone.n === 0 && left.n === 1, `${gone.n} ${left.n}`);
 const aliceId = (await env.DB.prepare('SELECT DISTINCT account_id AS id FROM grants ORDER BY account_id').all()).results.map((x) => x.id);
 check('nor of its wallet', aliceId.length === 1, JSON.stringify(aliceId));
+const blockRows = await env.DB.prepare('SELECT COUNT(*) AS n FROM blocks').first();
+check('nor of its blocks: Bob\'s block on it is gone', blockRows.n === 0, String(blockRows.n));
 r = await call('PUT', '/api/account/callsign', { callsign: 'Maverick' }, bob);
 check('and its callsign is free', r.status === 200);
 r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'alice' }) });
