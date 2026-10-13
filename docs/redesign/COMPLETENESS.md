@@ -553,31 +553,27 @@ airframe drawn), `itaipu:spawns`. Phase 12 adds `airframes:check`.
 
 ## 10. Words (items 38 to 39)
 
-**38. Localization readiness. PARTIAL, words BUILT (phase 24).** English
-and Spanish (src/strings/en.js, es.js); `strings:selftest` (CI) holds
-parity, placeholders and plurals; `lint:copy` (CI) fails on prose outside
-the tables and, since 2026-10-13, on a label of one capitalised word that
-is not compared against (isWord, with key names, proper names, units and
-two ids excused by name, and 13 fixed samples first). The loader's stage
-names and every one word label it found are keys; loading.js is scanned
-again. Trick names are proper names by decision (copy-lint.js
-`EXCUSED`). Left: `ReplayFileError`'s 95 messages (src/replay/file.js),
-shown inside a translated line (src/replay/editor.js); the proposal is a
-key per pilot reason (not a replay, too large, a newer version, an
-aircraft or map this build lacks, damaged) with the detail kept in
-English for the log. Size S.
+**38. Localization readiness. BUILT (phase 24).** English and Spanish
+(src/strings/en.js, es.js); `strings:selftest` (CI) holds parity,
+placeholders and plurals; `lint:copy` (CI) fails on prose outside the
+tables and on a label of one capitalised word that is not compared
+against (isWord: key names, proper names, units and a few ids excused by
+name, 13 fixed samples first). A refused replay says why in the pilot's
+language, one key per reason (src/replay/file.js REFUSALS: not a replay,
+too large, a version this build cannot read, an aircraft or map it lacks,
+damaged), the English detail kept for the log; `crashcam:selftest`
+proves each. Trick names, and a pad's Pitch and Roll key caps, are
+proper names by decision.
 
-**39. Text expansion. CHECKED (phase 24), not fixed.** `lint:devices`
-walks every device in English and Spanish, and `modes:card` page H opens
-home, Flight Club and a lobby with ?lang=es at four sizes; both fail on a
-cut word (text running past the box that clips it, an ellipsis included),
-after a word cut on purpose is found. Both are red with what they find,
-most of it in English too: the menu's stepper values (camera angle "5
-deg..." on every device, the lobby's Round "3 min"), the GPU name, the
-pids percent signs, the FC bench's names, How to fly's tabs on a phone,
-the lobby's room name, Solo and Back; in Spanish alone at 360 also Arcade,
-Reducida, Normal, Modo 4, Aviónica and Todavía sin volar. The fixes are
-the menu rows' and the lobby's.
+**39. Text expansion. BUILT (phase 24).** `lint:devices` walks every
+device in English and Spanish and `modes:card` page H opens home, Flight
+Club and a lobby with ?lang=es at four sizes; both fail on a cut word
+(text past the box that clips it, an ellipsis included) after one cut on
+purpose is found, and both run in CI on shard-3. What they found was
+fixed in the layout: menu rows wrap a control under its label and a
+value onto two lines rather than cut them, the phone's command bar
+comes down a step, and on a touch phone home's hub links stay 44 px and
+the hubs scroll.
 
 ## 11. Comfort, audio, graphics (items 40 to 47)
 
