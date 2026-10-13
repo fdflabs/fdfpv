@@ -23,7 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { scanFile, scanJs, check, prune, PINS } from './physics-sources-lint.js';
+import { scanFile, scanJs, scanFolder, check, prune, PINS } from './physics-sources-lint.js';
 
 const F = 'src/native/plant_wing.c';
 const BASE = [
@@ -130,6 +130,36 @@ const jcases = [
   ['a helper building a row of data: its arguments count', jwith("const PACKS = [lipo('3s1300', 3, 1300, 113)];"), JBASELINE, 3],
   ['a declaration with no semicolon still ends at the next one', jwith('const Z = 1.5', 'const Y = 2.5;'), JBASELINE, 2],
 ];
+/* An aircraft folder: JSON, so a number is cited by a source property in
+ * its object (an array beside it included); only the physics sections
+ * count. */
+const AF = 'aircraft/x/aircraft.js';
+const folder = (edit = () => {}) => {
+  const f = {
+    id: 'x',
+    airframe: { simId: 15, grams: 2350, rates: { roll: { rcRate: 1.0 } }, gear: { restHeight: 0.2291 } },
+    kit: { slots: [1.5] },
+    tuning: { cg: { mm: 110, source: 'FMS manual p. 26' }, throws: { high: [19.8, 12.0], source: 'manual p. 9' }, nose: 0.3 },
+    power: { table: { massKg: 2.35 }, estimates: { x: 4.2 } },
+    hangar: { anchors: { x: 0.1 } },
+  };
+  edit(f);
+  return `/*\n * header\n */\n\nexport default ${JSON.stringify(f, null, 2)};\n`;
+};
+const FBASE = folder();
+const FBASELINE = [`${AF} airframe.grams = 2350`, `${AF} airframe.gear.restHeight = 0.2291`, `${AF} tuning.nose = 0.3`, `${AF} power.table.massKg = 2.35`];
+const fcases = [
+  ['today\'s folder, every uncited number baselined', FBASE, FBASELINE, 0],
+  ['a new throws row cited by the source beside it', folder((f) => { f.tuning.throws.low = [10.0, 6.0]; }), FBASELINE, 0],
+  ['a new number in an object with a source', folder((f) => { f.tuning.cg.range = 15; }), FBASELINE, 0],
+  ['a new airframe number, no source', folder((f) => { f.airframe.cameraFov = 120; }), FBASELINE, 1],
+  ['a source covers its own object, not one inside it', folder((f) => { f.airframe.source = 'FMS spec sheet'; }), FBASELINE, 1],
+  ['a changed value is one stale and one new entry', folder((f) => { f.airframe.grams = 2400; }), FBASELINE, 2],
+];
+const outside = check(scanFolder(AF, folder((f) => {
+  f.airframe.simId = 16; f.airframe.rates.roll.rcRate = 1.2; f.kit.slots = [2.5]; f.power.estimates.x = 5.0; f.hangar.anchors.x = 0.2;
+})), FBASELINE).length;
+
 let pass = 0;
 let fail = 0;
 for (const [name, text, baseline, want] of cases) {
@@ -187,6 +217,23 @@ if (notConstants === 0) pass++; else { fail++; console.error(`FAIL a layout tabl
 const jover = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, js: JBASELINE.length - 1 }).length;
 const japart = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, scalar: 0, element: 0 }).length;
 if (jover === 1 && japart === 0) pass++; else { fail++; console.error(`FAIL the js pin: over ${jover} (wanted 1), against the C pins ${japart} (wanted 0)`); }
+
+for (const [name, text, baseline, want] of fcases) {
+  const got = check(scanFolder(AF, text), baseline).length;
+  if (got === want) { pass++; continue; }
+  fail++;
+  console.error(`FAIL ${name}: ${got} problem(s), wanted ${want}`);
+}
+for (const [name, text, baseline, want] of fcases) {
+  if (want !== 0 || text === FBASE) continue;
+  if (check(scanFolder(AF, text, /(?!)/, /(?!)/), baseline).length > 0) { pass++; continue; }
+  fail++;
+  console.error(`FAIL negative control ${name}: still passes with citations disabled`);
+}
+if (outside === 0) pass++; else { fail++; console.error(`FAIL a number outside the physics sections (id, rates, kit, estimates, anchors) counted: ${outside} problem(s), wanted 0`); }
+const fover = check(scanFolder(AF, FBASE), FBASELINE, { ...PINS, aircraft: FBASELINE.length - 1 }).length;
+const fapart = check(scanFolder(AF, FBASE), FBASELINE, { ...PINS, js: 0 }).length;
+if (fover === 1 && fapart === 0) pass++; else { fail++; console.error(`FAIL the aircraft pin: over ${fover} (wanted 1), against the js pin ${fapart} (wanted 0)`); }
 
 console.log(`physics-sources-selftest: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

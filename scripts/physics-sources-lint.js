@@ -7,8 +7,10 @@
  * The constants are the #defines and struct fields (scan), and every
  * array and table element those leave (scanElements), whose list's
  * opening line, or the comment block directly above it, also cites them;
- * and the numbers in the JavaScript configs and derive scripts' module
- * level data (scanJs), which a `source` property beside them also cites.
+ * the numbers in the JavaScript configs and derive scripts' module level
+ * data (scanJs), which a `source` property beside them also cites; and
+ * the physical numbers in every aircraft/<id>/aircraft.js (scanFolder),
+ * cited by a `source` property beside them only, JSON having no comments.
  *
  * Today's uncited constants are listed in scripts/physics-sources-baseline.txt,
  * keyed by file, symbol and value text, never by line number, so a lane
@@ -18,8 +20,9 @@
  *   - a baseline entry no longer exists in the tree: delete it, so the
  *     list only shrinks;
  *   - the baseline holds more C scalar entries than PINNED_COUNT, C
- *     element entries than PINNED_ELEMENT_COUNT or JavaScript entries
- *     than PINNED_JS_COUNT. Lowering a pin is the only edit that should
+ *     element entries than PINNED_ELEMENT_COUNT, JavaScript entries than
+ *     PINNED_JS_COUNT or aircraft folder entries than
+ *     PINNED_AIRCRAFT_COUNT. Lowering a pin is the only edit that should
  *     ever touch them.
  * It reads the tree only, no git, so push, pull request and merge queue
  * runs are the same check. Run with npm run lint:physics-sources
@@ -79,9 +82,22 @@ export const JS_FILES = [
   'configs/hangar-parts.js',
   'configs/hullfit.js',
 ];
-export const PINNED_JS_COUNT = 4907;
-export const PINS = { scalar: PINNED_COUNT, element: PINNED_ELEMENT_COUNT, js: PINNED_JS_COUNT };
-const PIN_NAMES = { scalar: 'PINNED_COUNT', element: 'PINNED_ELEMENT_COUNT', js: 'PINNED_JS_COUNT' };
+export const PINNED_JS_COUNT = 4881;
+/* Every aircraft/<id>/aircraft.js, read at run time: the sections that
+ * state the aircraft's physics, its airframe row (mass, size, stall, the
+ * camera), its tuning (CG, throws) and its power and props. Not the kit,
+ * livery, tunes, level or strings, nor the radio's settings (the stock
+ * Betaflight rates, airframe.rates, and tuning.expo), nor power.estimates, which
+ * scripts/power-check.js --estimates writes, nor hangar.anchors, where the
+ * hangar draws a part. A folder is JSON and carries no comment, so a
+ * number's source is a source (or sources) property beside it, the form
+ * tuning.cg, tuning.throws, power.options and hangar.props already use.
+ * plant.json is not read: its tables and their comments are generated
+ * into plant_wing.c, which scan() reads (docs/AIRCRAFT-FOLDER.md). */
+export const FOLDER_SECTIONS = /^(?!airframe\.rates\b|tuning\.expo\b)(?:airframe|tuning|power\.table|power\.options|hangar\.props)[.[]/;
+export const PINNED_AIRCRAFT_COUNT = 905;
+export const PINS = { scalar: PINNED_COUNT, element: PINNED_ELEMENT_COUNT, js: PINNED_JS_COUNT, aircraft: PINNED_AIRCRAFT_COUNT };
+const PIN_NAMES = { scalar: 'PINNED_COUNT', element: 'PINNED_ELEMENT_COUNT', js: 'PINNED_JS_COUNT', aircraft: 'PINNED_AIRCRAFT_COUNT' };
 const BASELINE = 'scripts/physics-sources-baseline.txt';
 
 export const CITE = /FITTED:|docs\/[\w./-]+\.md|https?:\/\/|scripts\/[\w./-]+\.js|npm run [\w:-]+/;
@@ -264,8 +280,8 @@ const OPEN = { '{': '}', '[': ']', '(': ')' };
 const PURE = /^(?:[-+*/%]|\*\*|Math\.PI|\d[\d_]*\.?\d*(?:[eE][-+]?\d+)?|\.\d+(?:[eE][-+]?\d+)?|0[xXbBoO][\da-fA-F_]+)$/;
 const KEY = /^(?:[A-Za-z_$][\w$]*|'[^']*'|"[^"]*"|\d+)$/;
 /* The SIM_* tables mirror src/native/sim_abi.h's layout, offsets and
- * sizes, not quantities. */
-const ABI = /^SIM_[A-Z\d_]*$/;
+ * sizes, not quantities, and simId is the plant's airframe id. */
+const ABI = /^(?:SIM_[A-Z\d_]*|\.simId)$/;
 const SOURCE_KEY = /^\.sources?$/;
 
 /* Every constant in a JavaScript physics source: each value of a module
@@ -291,7 +307,7 @@ export function scanJs(file, text, cite = CITE, sourceKey = SOURCE_KEY) {
   const tokens = jsTokens(text);
   const out = [];
   const startsDecl = (k) => tokens[k].col === 0 && /^(const|let|var)$/.test(tokens[k].t)
-    || tokens[k].col === 0 && tokens[k].t === 'export' && /^(const|let|var)$/.test(tokens[k + 1]?.t);
+    || tokens[k].col === 0 && tokens[k].t === 'export' && /^(const|let|var|default)$/.test(tokens[k + 1]?.t);
   const lineCites = (i) => cite.test(lines[i]) || cite.test(blockAbove(lines, i));
   for (let k = 0; k < tokens.length; k++) {
     if (!startsDecl(k)) continue;
@@ -316,7 +332,7 @@ export function scanJs(file, text, cite = CITE, sourceKey = SOURCE_KEY) {
       const v = text.slice(value[0].at, value[value.length - 1].at + value[value.length - 1].t.length).replace(/\s+/g, ' ');
       let cited = frame.open >= 0 && lineCites(frame.open);
       for (let i = first; i <= last; i++) cited ||= cite.test(lines[i]);
-      frame.leaves.push({ key: `${file} ${frame.path}${name} = ${v}`, line: first, cited: cited || lineCites(first) });
+      frame.leaves.push({ key: `${file} ${(frame.path + name).replace(/^\./, '')} = ${v}`, line: first, cited: cited || lineCites(first) });
     };
     for (; k < tokens.length; k++) {
       const tok = tokens[k];
@@ -339,7 +355,10 @@ export function scanJs(file, text, cite = CITE, sourceKey = SOURCE_KEY) {
       } else if (frames.length > 1 && tok.t === frame.close) {
         finish();
         const done = frames.pop();
-        for (const leaf of done.leaves) out.push({ ...leaf, cited: leaf.cited || done.source });
+        /* An array is no object of its own: a source property beside it
+         * (tuning.throws.source over throws.high) cites its numbers. */
+        const into = done.close === ']' && frames.length > 1 ? frames[frames.length - 1].leaves : out;
+        for (const leaf of done.leaves) into.push({ ...leaf, cited: leaf.cited || done.source });
         el = done.held;
         el.push(tok);
       } else if (tok.t === ',') {
@@ -357,6 +376,7 @@ export function scanJs(file, text, cite = CITE, sourceKey = SOURCE_KEY) {
  * (its symbol carries a [, scanElements) or a C scalar's (never does). */
 export function kindOf(key) {
   const [file, symbol] = key.split(' ');
+  if (file.startsWith('aircraft/')) return 'aircraft';
   if (file.endsWith('.js')) return 'js';
   return symbol.includes('[') ? 'element' : 'scalar';
 }
@@ -417,11 +437,21 @@ export function jsFiles(root) {
   return [...JS_FILES, ...derive];
 }
 
+export function folderFiles(root) {
+  return readdirSync(join(root, 'aircraft'), { withFileTypes: true })
+    .filter((e) => e.isDirectory()).map((e) => `aircraft/${e.name}/aircraft.js`).sort();
+}
+
+export function scanFolder(file, text, cite = CITE, sourceKey = SOURCE_KEY) {
+  return scanJs(file, text, cite, sourceKey).filter((c) => FOLDER_SECTIONS.test(c.key.split(' ')[1]));
+}
+
 export function scanTree(root, cite = CITE) {
   const read = (f) => readFileSync(join(root, f), 'utf8');
   return [
     ...ELEMENT_FILES.flatMap((f) => scanFile(f, read(f), cite)),
     ...jsFiles(root).flatMap((f) => scanJs(f, read(f), cite)),
+    ...folderFiles(root).flatMap((f) => scanFolder(f, read(f), cite)),
   ];
 }
 
