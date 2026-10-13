@@ -705,3 +705,58 @@ export function fanOut(script, names, args = []) {
   };
   return Promise.all(Array.from({ length: n }, run)).then(() => out);
 }
+
+/*
+ * THE RECEIVER WITH A PILOT, at any gain: plant_wing.c's mode 3 with the
+ * sticks in, run here a step at a time on the plant in Manual. Each axis'
+ * gain fades with its own stick, Spektrum's priority 160 (gone at 40
+ * percent stick, AS3X_ZERO); the roll stick moves the rudder on a rudder
+ * mix, as the plant's rudder_stick. The pilot's surface is the radio's
+ * (the expo's cubic on the throw, the trim on the elevator), the gyro's
+ * offset added and the sum clipped at the throw, then flown through the
+ * stick that gives it, so the plant's own servo slew carries it. The
+ * Heading is off (the presets', and the receiver's default). receiverMatches
+ * checks it against the plant's mode 3.
+ */
+const AS3X_ZERO = 0.4;
+const priority = (x) => Math.max(0, 1 - Math.abs(x) / AS3X_ZERO);
+const shape = (x, expo) => x * x * x * expo + x * (1 - expo);
+
+/* Level at V on throttle thr from launch; sticks(ms) the pilot's [roll,
+ * pitch, yaw], mode 3 at gains g (one factor per axis) emulated, or the
+ * plant's own mode 3 when g is null. The body rates every step. */
+export function pilotFlight(sim, V, thr, rx, g, sticks, ms) {
+  const clip = (x, m) => Math.max(-m, Math.min(m, x));
+  const clamp1 = (x) => Math.max(-1, Math.min(1, x));
+  must(sim.reset(), 'sim_reset');
+  must(sim.e.sim_wing_set_stab(g ? 0 : 3), 'sim_wing_set_stab');
+  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(V), 'sim_wing_launch');
+  const out = [0, 0, 0];
+  let tf = 0;
+  const trace = [];
+  for (let i = 0; i < ms; i += 1) {
+    const [roll, pitch, yaw] = sticks(i);
+    let input = [roll, pitch, yaw, thr];
+    if (g) {
+      const s = sim.readState().state;
+      const st = [roll, pitch, rx.rudderMix ? clamp1(yaw + roll) : yaw];
+      tf -= 0.001;
+      if (tf <= 1e-12) {
+        tf += rx.T;
+        for (let a = 0; a < 3; a += 1) out[a] = priority(st[a]) * g[a] * rx.k[a] * s[11 + a];
+      }
+      const da = clip(shape(clamp1(st[0]), rx.expo) * rx.th[0] - out[0], rx.th[0]);
+      const de = clip(shape(clamp1(st[1]), rx.expo) * rx.th[1] + rx.trim + out[1], rx.th[1]) - rx.trim;
+      const dr = clip(-shape(clamp1(st[2]), rx.expo) * rx.th[2] - out[2], rx.th[2]);
+      const inv = (d, th) => (th > 0 ? stickFor(d / th, rx.expo) : 0);
+      input = rx.rudderMix
+        ? [0, inv(de, rx.th[1]), inv(-dr, rx.th[2]), thr]
+        : [inv(da, rx.th[0]), inv(de, rx.th[1]), inv(-dr, rx.th[2]), thr];
+    }
+    must(sim.input(i / 1000, ...input), 'sim_input');
+    must(sim.step(1), 'sim_step');
+    trace.push(Array.from(sim.readState().state.slice(11, 14)));
+  }
+  return trace;
+}
