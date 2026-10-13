@@ -23,6 +23,7 @@
 
 import { readFileSync } from 'node:fs';
 import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { EventLog } from '../src/game/events.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -236,6 +237,23 @@ expect('bronze: slower than bronze, then bronze', fly('race_bronze', [], { laps:
 expect('bronze: a lap at 1.4 times gold', fly('race_bronze', [], { laps: [lapOn(42000)] }), false);
 expect('bronze: a fast lap on a course with no medals', fly('race_bronze', [], { laps: [lapOn(10000, null)] }), false);
 expect('every medal step is a medal', LESSONS.flatMap((l) => l.steps).filter((st) => st.medal !== undefined).every((st) => MEDAL_STEPS.includes(st.medal)), true);
+/* Gates: a clean lap, and only on a casual sky track. */
+expect('gates: a clean casual lap', fly('quad_gates', [], { laps: [{ kind: 'casual' }] }), true);
+expect('gates: a rim, then a clean casual lap', fly('quad_gates', [], { laps: [{ kind: 'casual', rim: true }, { kind: 'casual' }] }), true);
+expect('gates: a casual lap with a rim', fly('quad_gates', [], { laps: [{ kind: 'casual', rim: true }] }), false);
+expect('gates: a clean lap of a built track', fly('quad_gates', [], { laps: [{ kind: 'built' }] }), false);
+expect('gates: a clean lap of the world\'s own track', fly('quad_gates', [], { laps: [{ kind: 'map' }] }), false);
+/* The same from the flight's log, as Progress hands it on: the lap event
+ * carries its course's kind (src/ui/progress-ui.js lap). */
+{
+  const logged = (kind) => {
+    const w = new LessonWatch(lessonById('quad_gates'));
+    w.lap(new EventLog().append('lap', 1000, { ms: 30000, airframe: 'interceptor', medal: null, kind }), null);
+    return w.passed;
+  };
+  expect('gates: a casual lap event from the log', logged('casual'), true);
+  expect('gates: a built lap event from the log', logged('built'), false);
+}
 
 /* The turn sign against the plant's frame (src/render/frame.js: z up, x
  * forward, y left): rotate the nose by the state's quaternion and see

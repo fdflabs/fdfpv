@@ -83,9 +83,11 @@ const STICK_ENDS = {
  * THERMAL_CLIMB_M climbed, throttle closed, in rising air; { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
- * clean meaning no rim touched; { ghost: true } a lap faster than the
- * ghost; { medal: 'bronze' } a lap that reaches that medal or a better
- * one on a course with medals (src/game/medals.js); { race: n } a room
+ * clean meaning no rim touched, casual meaning only laps of a casual sky
+ * track count (the lap event's `kind`, progress.js courseKind); { ghost:
+ * true } a lap faster than the ghost; { medal: 'bronze' } a lap that
+ * reaches that medal or a better one on a course with medals
+ * (src/game/medals.js); { race: n } a room
  * race finished with at least n pilots on its grid, this one among them;
  * { hold: ms, low, high, radius } held in a height band (and a circle);
  * { land: true, deadstick: true } a landing after the pack ran low;
@@ -127,6 +129,7 @@ export const LESSONS = [
     id: 'quad_acro', track: 'multirotor', airframe: 'interceptor', mode: 'acro', place: 'swiss2', covers: ['quad_hover'],
     steps: [{ hold: 15000, low: 1, high: 4, radius: 3 }],
   },
+  { id: 'quad_gates', track: 'multirotor', airframe: null, mode: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: true, casual: true }] },
   { id: 'quad_precision', track: 'multirotor', airframe: null, mode: null, place: null, aid: 'gate', steps: [{ gates: 10 }] },
   { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: false }] },
   { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', covers: ['race_lap'], steps: [{ laps: 1, clean: true }] },
@@ -603,9 +606,10 @@ export class LessonWatch {
   }
 
   /* A lap closed: `lap` its event in the flight's log (src/game/events.js:
-   * its `ms` and the `medal` it reached or null), `ghostMs` the ghost's
-   * lap or null, which the log does not carry. */
-  lap({ ms = null, medal = null } = {}, ghostMs = null) {
+   * its `ms`, the `medal` it reached or null and its course's `kind`,
+   * progress.js courseKind), `ghostMs` the ghost's lap or null, which the
+   * log does not carry. */
+  lap({ ms = null, medal = null, kind = null } = {}, ghostMs = null) {
     const s = this.current;
     if (!s) {
       return this.passed;
@@ -614,7 +618,7 @@ export class LessonWatch {
       this.advance();
     } else if (s.medal && MEDAL_STEPS.indexOf(medal) >= MEDAL_STEPS.indexOf(s.medal)) {
       this.advance();
-    } else if (s.laps && (this.clean || !s.clean)) {
+    } else if (s.laps && (this.clean || !s.clean) && (!s.casual || kind === 'casual')) {
       this.laps += 1;
       if (this.laps >= s.laps) {
         this.advance();

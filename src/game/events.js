@@ -22,9 +22,11 @@
  *
  *   spawned       a new flight (src/main.js resetCraft, Progress.startFlight)
  *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
- *                 a lap carries {ms, airframe, medal}, the medal it
- *                 reached on a course with medals or null (a lesson
- *                 judges it, src/game/training.js)
+ *                 a lap carries {ms, airframe, medal, kind}, the medal it
+ *                 reached on a course with medals or null and its
+ *                 course's kind, 'casual', 'built' or 'map'
+ *                 (src/game/progress.js courseKind) (a lesson judges
+ *                 both, src/game/training.js)
  *   touch {kind}  the same; a contact the shell reports every step is one
  *                 event per kind per run of contact (see append)
  *   crash {airframe}

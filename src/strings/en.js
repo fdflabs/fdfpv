@@ -4532,6 +4532,8 @@ export default {
   "training.lesson.quad_throttle_note": "In angle mode, climb to 10 metres and hold there, within a metre, for 5 seconds.",
   "training.lesson.quad_acro": "Hover in acro",
   "training.lesson.quad_acro_note": "The hover again in acro: nothing levels the quad, the sticks hold it.",
+  "training.lesson.quad_gates": "Gates",
+  "training.lesson.quad_gates_note": "One lap of a casual sky track, every gate, without touching one.",
   "training.lesson.quad_precision": "Precision",
   "training.lesson.quad_precision_note": "Ten gates or hoops in a row without touching one.",
   "training.track.racing": "Racing",

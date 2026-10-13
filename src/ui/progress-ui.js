@@ -403,7 +403,7 @@ export class Progress {
   lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const lapped = this.event('lap', { ms, airframe: this.airframe, medal });
+    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind });
     const done = feedRunWatch(this.watch, lapped);
     this.foldFlight();
     this.save();

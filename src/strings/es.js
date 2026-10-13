@@ -4537,6 +4537,8 @@ export default {
   "training.lesson.quad_throttle_note": "En modo angle, sube a 10 metros y quédate ahí, con un metro de margen, durante 5 segundos.",
   "training.lesson.quad_acro": "Hover en acro",
   "training.lesson.quad_acro_note": "El hover otra vez en acro: nada nivela el quad, lo sostienen tus sticks.",
+  "training.lesson.quad_gates": "Puertas",
+  "training.lesson.quad_gates_note": "Una vuelta de una pista casual en el cielo, cada puerta, sin tocar ninguna.",
   "training.lesson.quad_precision": "Precisión",
   "training.lesson.quad_precision_note": "Diez puertas o aros seguidos sin tocar ninguno.",
   "training.track.racing": "Carreras",
