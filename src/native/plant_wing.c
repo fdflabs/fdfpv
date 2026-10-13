@@ -5488,7 +5488,9 @@ const FixedWingParams FW_F16878 = {
    * (scripts/f16-derive.js), which left the most of it out. Coefficients on
    * the wing's area, the geometry similar (research note, "What
    * transfers"); the tunnel's Reynolds number ESTIMATED within 2 to 3
-   * times the Freewing's. npm run f16:derive-hilat prints every row. */
+   * times the Freewing's. SOURCED: the rows checked against the scan
+   * (PDF pp. 74 and 75), docs/F16-STAGE1.md. npm run f16:derive-hilat
+   * prints every row. */
   .cy_tab = {
     { -0.0259, -0.0336, -0.0358, -0.0366, -0.0374, -0.0373, -0.0374, -0.0372, -0.0297, -0.0294, -0.0288, -0.0198, -0.0237, -0.0364, -0.0240, -0.0255, -0.0261, -0.0242, -0.0207, -0.0233 },
     { -0.0582, -0.0701, -0.0733, -0.0744, -0.0752, -0.0780, -0.0779, -0.0751, -0.0630, -0.0576, -0.0538, -0.0472, -0.0510, -0.0634, -0.0595, -0.0589, -0.0559, -0.0432, -0.0430, -0.0432 },

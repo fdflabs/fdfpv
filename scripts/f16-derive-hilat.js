@@ -88,7 +88,10 @@ const DCN_R = [-0.0481, -0.0484, -0.0476, -0.0449, -0.0451, -0.0450, -0.0441, -0
  * verification"), so the plant takes the odd part, the mean of the two
  * sides, which is the symmetric aircraft's (the asymmetry's sign is not
  * the model's, research note). The base table's +beta less beta 0 rows
- * are the research note's section 2 table.
+ * are the research note's section 2 table. Checked against the scan (PDF
+ * pp. 74 and 75, alpha 0 and 40, beta -30 to +30): each printed row is
+ * the digitized one less its beta 0 value, so the odd part is the scan's
+ * (docs/F16-STAGE1.md, "The side force").
  */
 const CY_LEF0 = [
   [[-0.0142, -0.0476, -0.1093, -0.1388, -0.1990, -0.2720, -0.3280, -0.3990],
