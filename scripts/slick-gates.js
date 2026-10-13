@@ -47,6 +47,7 @@ import {
   bombshellGroundPrelude, kadetGroundPrelude, slowstickGroundPrelude, skyPrelude, wingPrelude, cubGroundPrelude, p51RecPrelude, p51AirPrelude, f16GroundPrelude,
   zagiPrelude, uglystikGroundPrelude, dlgRecPrelude, tigermothGroundPrelude,
   gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude, timberFloatRecPrelude, RC_STEP_MS,
+  KNIFE_SINK,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -336,8 +337,10 @@ check: {
       /* The throttle holds the speed and, with the sink rate, the height: once the
        * rudder is on its stop the sideslip can lift no more and only the thrust's
        * share along the yawed axis can, so a hand on the speed alone cuts the power
-       * as the aircraft sinks and gathers speed, and sinks on. */
-      const t = clamp(iT + 0.1 * (t12.speed - speed(s)) + 0.3 * (0 - s[6]));
+       * as the aircraft sinks and gathers speed, and sinks on. The gain is the
+       * person's on the airframe's climb per throttle there (scripts/
+       * knife-throttle-derive.js, wingpilot.js KNIFE_SINK). */
+      const t = clamp(iT + 0.1 * (t12.speed - speed(s)) + KNIFE_SINK[SLICK_AIRFRAME] * (0 - s[6]));
       s = step(sim, [roll, pitchStick, yaw, t]);
       if (ms >= 10000) {
         sb += wingDebug(sim)[1]; sd += t; sr += yaw; n += 1;

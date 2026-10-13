@@ -37,7 +37,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, fly, wingDebug, EXTRA_AIRFRAME, CAP_AIRFRAME, RC_STEP_MS } from '../tests/lib/wingpilot.js';
+import { must, fly, wingDebug, EXTRA_AIRFRAME, CAP_AIRFRAME, RC_STEP_MS , KNIFE_SINK } from '../tests/lib/wingpilot.js';
 import { FigureDetector } from '../src/game/figuredetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -113,8 +113,10 @@ async function knifePass(V) {
     /* The throttle holds the speed and, with the sink rate, the height: once the
      * rudder is on its stop the sideslip can lift no more and only the thrust's
      * share along the yawed axis can, so a hand on the speed alone cuts the power
-     * as the aircraft sinks and gathers speed, and sinks on. */
-    const t = clamp(iT + 0.1 * (V - speed(s)) + 0.3 * (0 - s[6]));
+     * as the aircraft sinks and gathers speed, and sinks on. The gain is the
+     * person's on the airframe's climb per throttle there (scripts/
+     * knife-throttle-derive.js, wingpilot.js KNIFE_SINK). */
+    const t = clamp(iT + 0.1 * (V - speed(s)) + KNIFE_SINK[plane.sim] * (0 - s[6]));
     must(sim.input(clockMs / 1000, roll, pitchStick, yaw, t), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');
     clockMs += RC_STEP_MS;

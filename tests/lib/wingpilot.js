@@ -2889,3 +2889,9 @@ export function recordSlickFlight(sim) {
   }
   return samples;
 }
+
+/* The knife edge pilot's throttle on the sink rate, throttle per m/s,
+ * per airframe at its knife edge gate's speed: each the person's gain on
+ * the airframe's own climb rate per throttle there, at the crossover the
+ * bandwidth criterion keeps (scripts/knife-throttle-derive.js, --check). */
+export const KNIFE_SINK = { [EXTRA_AIRFRAME]: 0.079, [CAP_AIRFRAME]: 0.081, [SLICK_AIRFRAME]: 0.134 };
