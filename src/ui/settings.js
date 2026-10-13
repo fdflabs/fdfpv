@@ -565,6 +565,22 @@ function adoptSeatedStock(s) {
  * next load. */
 const LENSES = [...new Set([...CAMERA_FOVS, ...AIRFRAMES.map((a) => a.cameraFov)])];
 
+/*
+ * A CAMERA NOBODY SET flies the seated aircraft's stock. Every profile
+ * started on 30 degrees and 85 (DEFAULTS), which is no aircraft's stock,
+ * and nothing replaced it until the first change of aircraft. A profile
+ * still on exactly that start with no camera kept for its aircraft
+ * (keepCamera) never had it set, so it takes the stock. A pilot who sets
+ * 30 and 85 on purpose has it kept, since it is not the stock either.
+ */
+const START_CAMERA = { angle: 30, fov: 85 };
+function unsetCameraToStock(s) {
+  const af = airframeById(s.airframe);
+  if (s.cameraFor[af.id] || s.cameraAngle !== START_CAMERA.angle || s.cameraFov !== START_CAMERA.fov) return;
+  s.cameraAngle = clampCameraAngle(af.cameraAngle);
+  s.cameraFov = af.cameraFov;
+}
+
 /* Fields that must be one of a list, and the list. A value not on it
  * takes the default, except the tune, which takes the aircraft's own. */
 const ONE_OF = {
@@ -706,6 +722,7 @@ export function loadSettings() {
   if (!MAPS.some((m) => m.mode === 'freestyle' && m.id === s.freestyleMap)) s.freestyleMap = '';
 
   adoptSeatedStock(s);
+  unsetCameraToStock(s);
   if (!pitchMatchesRoll(s.rates)) s.ratesSplitPitch = true;
   if (!s.scoringReset) {
     s.freestyleScoring = DEFAULTS.freestyleScoring;

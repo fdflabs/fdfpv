@@ -83,6 +83,16 @@
        "key": "hangar-customise"
       },
       {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Choose joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
+      },
+      {
        "label": "Calibrate sticks",
        "action": "calibrate",
        "key": "hangar-sticks"
@@ -198,6 +208,16 @@
        "label": "Customise",
        "action": "customise",
        "key": "hangar-customise"
+      },
+      {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Choose joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
       },
       {
        "label": "Calibrate sticks",
@@ -445,6 +465,26 @@
      "drives": {}
     },
     {
+     "id": "title:a-campaign-shop",
+     "label": "Upgrades",
+     "action": "campaign-shop",
+     "card": "hangar-upgrades",
+     "blurb": "Warheads, a second rack and speed for the war, paid in credits.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
+     "id": "title:a-choosepad",
+     "label": "Choose joystick",
+     "action": "choosepad",
+     "card": "hangar-joystick",
+     "blurb": "Which radio or gamepad flies: move the one you want to use.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
      "id": "title:a-calibrate",
      "label": "Calibrate sticks",
      "action": "calibrate",
@@ -555,6 +595,16 @@
        "label": "Customise",
        "action": "customise",
        "key": "hangar-customise"
+      },
+      {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Choose joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
       },
       {
        "label": "Calibrate sticks",
@@ -26868,6 +26918,16 @@
        "key": "hangar-customise"
       },
       {
+       "label": "Mejoras",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Elegir joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
+      },
+      {
        "label": "Calibrar sticks",
        "action": "calibrate",
        "key": "hangar-sticks"
@@ -26983,6 +27043,16 @@
        "label": "Personalizar",
        "action": "customise",
        "key": "hangar-customise"
+      },
+      {
+       "label": "Mejoras",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Elegir joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
       },
       {
        "label": "Calibrar sticks",
@@ -27230,6 +27300,26 @@
      "drives": {}
     },
     {
+     "id": "title:a-campaign-shop",
+     "label": "Mejoras",
+     "action": "campaign-shop",
+     "card": "hangar-upgrades",
+     "blurb": "Ojivas, un segundo soporte y velocidad para la guerra, con créditos.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
+     "id": "title:a-choosepad",
+     "label": "Elegir joystick",
+     "action": "choosepad",
+     "card": "hangar-joystick",
+     "blurb": "Qué radio o mando vuela: mueve el que quieras usar.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
      "id": "title:a-calibrate",
      "label": "Calibrar sticks",
      "action": "calibrate",
@@ -27340,6 +27430,16 @@
        "label": "Personalizar",
        "action": "customise",
        "key": "hangar-customise"
+      },
+      {
+       "label": "Mejoras",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Elegir joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
       },
       {
        "label": "Calibrar sticks",

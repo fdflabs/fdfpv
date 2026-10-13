@@ -7899,6 +7899,7 @@ export async function boot({
   });
   campaignRef = campaign;
   ui.onCampaignCard = () => campaign.open();
+  ui.onCampaignShop = () => campaign.open('shop');
   /*
    * THE INTERIOR'S CARD (src/ui/opscampaign.js): its missions and their
    * states, its consent at Play. The start itself waits for track WORLD's

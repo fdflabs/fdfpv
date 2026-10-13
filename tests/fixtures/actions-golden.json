@@ -125765,6 +125765,16 @@
        "key": "hangar-aircraft"
       },
       {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Choose joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
+      },
+      {
        "label": "Calibrate sticks",
        "action": "calibrate",
        "key": "hangar-sticks"
@@ -125794,6 +125804,22 @@
      "blurb": "Twenty aircraft on one physics. Pick the one you fly next.",
      "facts": [],
      "action": "hangar-aircraft"
+    },
+    {
+     "label": "Upgrades",
+     "card": "hangar-upgrades",
+     "svg": null,
+     "blurb": "Warheads, a second rack and speed for the war, paid in credits.",
+     "facts": [],
+     "action": "campaign-shop"
+    },
+    {
+     "label": "Choose joystick",
+     "card": "hangar-joystick",
+     "svg": null,
+     "blurb": "Which radio or gamepad flies: move the one you want to use.",
+     "facts": [],
+     "action": "choosepad"
     },
     {
      "label": "Calibrate sticks",
@@ -125885,6 +125911,16 @@
        "key": "hangar-aircraft"
       },
       {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Choose joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
+      },
+      {
        "label": "Calibrate sticks",
        "action": "calibrate",
        "key": "hangar-sticks"
@@ -125914,6 +125950,22 @@
      "blurb": "Twenty aircraft on one physics. Pick the one you fly next.",
      "facts": [],
      "action": "hangar-aircraft"
+    },
+    {
+     "label": "Upgrades",
+     "card": "hangar-upgrades",
+     "svg": null,
+     "blurb": "Warheads, a second rack and speed for the war, paid in credits.",
+     "facts": [],
+     "action": "campaign-shop"
+    },
+    {
+     "label": "Choose joystick",
+     "card": "hangar-joystick",
+     "svg": null,
+     "blurb": "Which radio or gamepad flies: move the one you want to use.",
+     "facts": [],
+     "action": "choosepad"
     },
     {
      "label": "Calibrate sticks",
@@ -126030,6 +126082,16 @@
        "key": "hangar-customise"
       },
       {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Choose joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
+      },
+      {
        "label": "Calibrate sticks",
        "action": "calibrate",
        "key": "hangar-sticks"
@@ -126067,6 +126129,22 @@
      "blurb": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
      "facts": [],
      "action": "customise"
+    },
+    {
+     "label": "Upgrades",
+     "card": "hangar-upgrades",
+     "svg": null,
+     "blurb": "Warheads, a second rack and speed for the war, paid in credits.",
+     "facts": [],
+     "action": "campaign-shop"
+    },
+    {
+     "label": "Choose joystick",
+     "card": "hangar-joystick",
+     "svg": null,
+     "blurb": "Which radio or gamepad flies: move the one you want to use.",
+     "facts": [],
+     "action": "choosepad"
     },
     {
      "label": "Calibrate sticks",
@@ -126158,6 +126236,16 @@
        "key": "hangar-aircraft"
       },
       {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Choose joystick",
+       "action": "choosepad",
+       "key": "hangar-joystick"
+      },
+      {
        "label": "Calibrate sticks",
        "action": "calibrate",
        "key": "hangar-sticks"
@@ -126187,6 +126275,22 @@
      "blurb": "Twenty aircraft on one physics. Pick the one you fly next.",
      "facts": [],
      "action": "hangar-aircraft"
+    },
+    {
+     "label": "Upgrades",
+     "card": "hangar-upgrades",
+     "svg": null,
+     "blurb": "Warheads, a second rack and speed for the war, paid in credits.",
+     "facts": [],
+     "action": "campaign-shop"
+    },
+    {
+     "label": "Choose joystick",
+     "card": "hangar-joystick",
+     "svg": null,
+     "blurb": "Which radio or gamepad flies: move the one you want to use.",
+     "facts": [],
+     "action": "choosepad"
     },
     {
      "label": "Calibrate sticks",

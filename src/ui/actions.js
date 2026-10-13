@@ -305,6 +305,13 @@ const ACTIONS = {
   'hangar-trophies'(ui) {
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'challenges');
   },
+  /* The war's shop (src/ui/campaign.js), its Upgrades, under the Hangar
+   * as well as in Operations. */
+  'campaign-shop'(ui) {
+    if (ui.onCampaignShop) {
+      ui.onCampaignShop();
+    }
+  },
   'hangar-shop'(ui) {
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'shop');
   },
@@ -826,7 +833,8 @@ export const actionMethods = {
   },
 
   /* The Hangar's cards: the aircraft, its customising when it has any,
-   * the radio, and how the sticks fly. */
+   * the war's upgrades, the radio (which one, then its sticks), and how
+   * the sticks fly. */
   hangarCards() {
     const plan = craftSvg(airframeById(this.settings.airframe));
     const card = (id, label, svg, blurb, action) => ({ label, card: `hangar-${id}`, svg, blurb, facts: [], action });
@@ -834,6 +842,8 @@ export const actionMethods = {
       card('walk', str('walk.card'), null, str('walk.blurb'), 'hangar-walk'),
       card('aircraft', str('ui.aircraft'), plan, str('hub.aircraft_blurb'), 'hangar-aircraft'),
       ...(customisable(this.settings.airframe) ? [card('customise', str('hangar.customise'), plan, str(airframeById(this.settings.airframe).fixedWing ? 'hangar.row_note' : 'hangar.row_note_quad'), 'customise')] : []),
+      card('upgrades', str('hub.upgrades'), null, str('hub.upgrades_blurb'), 'campaign-shop'),
+      card('joystick', str('ui.choose_joystick'), null, str('hub.joystick_blurb'), 'choosepad'),
       card('sticks', str('ui.calibrate_sticks'), null, str('hub.sticks_blurb'), 'calibrate'),
       card('howto', str('ui.how_to_fly'), null, str('ui.the_sticks_live_and_what_the'), 'howto'),
     ];
