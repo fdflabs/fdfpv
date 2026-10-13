@@ -5,11 +5,18 @@
  * person on a dist/sim.wasm of its own, chasing a ghost round the room's
  * track, judged gate by gate by its own src/game/race.js Race.
  *
- * THE GHOST. Before an AI pilot is seated the room flies the reference
- * lap itself (tests/lib/aireference.js, the harness's reference pilot on a
- * smooth line through every gate) at the level's pace (RACE_PACES), once
- * per track and level for the process. A track the reference cannot lap at
- * that pace gives no ghost, and the room seats no AI pilot on it.
+ * THE GHOST. Before an AI pilot is seated the room finds the lap it will
+ * chase, once per map, track and level for the process: the board's best
+ * quad lap with a ghost on this track (fetched from ROOMS_BOARD_ORIGIN,
+ * the board's own address, when the server has one), else a reference
+ * lap the room flies itself (tests/lib/aireference.js, the harness's
+ * reference pilot on a smooth line through every gate) at the level's
+ * pace. The levels are the ghost's pace (RACE_PACES): a ghost faster than
+ * its level's pace along its own path is slowed to it, never sped up.
+ * Each is proved before it is taken: an AI pilot from the grid's first
+ * place, on the room's ground and gate frames, must close PROOF_LAPS laps
+ * behind it. A board lap it cannot follow gives way to the reference; a
+ * track neither proves on seats no AI pilot.
  *
  * THE PLANT. The interceptor (configs/airframes.js DEFAULT_AIRFRAME, the
  * racer a blank profile gets and the harness's quad), its default tune
@@ -48,9 +55,8 @@
  * NEVER ON THE RECORD. Its Race's record write is a no-op (aiopponent.js),
  * and the room posts nothing to any board.
  *
- * NOT YET (the contract): reborn on its last gate after a crash, the
- * board's best lap as its ghost, a restore mid race flying on from the
- * kept plant state. A room restored from storage drops its AI racers
+ * NOT YET (the contract): reborn on its last gate after a crash, a
+ * restore mid race flying on from the kept plant state. A room restored from storage drops its AI racers
  * (roombots.js reseat) and fills again.
  *
  * LOADED LATE. aiopponent.js and the reference read tests/lib (the plant's
@@ -87,7 +93,8 @@ import { raceFromDocument } from '../../src/game/verify.js';
 import { GhostLap } from '../../src/game/ghost.js';
 import { Colliders, setCraftAirframe } from '../../src/game/collide.js';
 import { BUILT_FRAME_TUBE_OD } from '../../src/game/track.js';
-import { decodeGhost, encodeGhost } from '../../src/share/ghostdata.js';
+import { decodeGhost, encodeGhost, ghostFromBase64 } from '../../src/share/ghostdata.js';
+import { fetchGhost, fetchTrackTimes } from '../../src/share/board.js';
 import { simQuatToThree, threeDirToSim, threePosToSim } from '../../src/render/frame.js';
 import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, encodePose } from '../../src/share/roomwire.js';
 
@@ -113,6 +120,14 @@ export const RACE_PACES = Object.freeze({ easy: 6, normal: 8, hard: 10 });
  * (2026-10-13). */
 export const GRID_MS = 1000;
 export const GRID_LEAD_MS = 6000;
+/* Laps an AI pilot must close behind a ghost before the room takes it,
+ * and the longest lap the room will prove, ms (a ghost's own length is
+ * the board's to allow, up to ghostdata.js GHOST_MAX_MS). */
+export const PROOF_LAPS = 2;
+const PROOF_LAP_MAX_MS = 120000;
+/* The proof flies this much plant between yields, ms: about 5 ms of CPU
+ * here (2.45 ms per second flown, rooms:selftest 2026-10-13). */
+const PROOF_SLICE_MS = 2000;
 /* The pack the plant is seated with, volts per cell: a full one. */
 const CELL_VOLTS = 4.2;
 const RPM_PER_RAD_S = 60 / (2 * Math.PI);
@@ -226,41 +241,126 @@ function overGround(line, groundAt) {
   };
 }
 
-async function prepare(entry, track, pace, groundAt) {
+/* A ghost's mean speed along its own path, m/s. */
+function paceOf(data) {
+  let len = 0;
+  const p = data.pos;
+  for (let i = 3; i < 3 * data.count; i += 3) {
+    len += Math.hypot(p[i] - p[i - 3], p[i + 1] - p[i - 2], p[i + 2] - p[i - 1]);
+  }
+  return len / (data.durationMs / 1000);
+}
+
+/* The lap `data` holds, slowed by `k` (1 or more): the same path, each
+ * sample k times later. */
+function slowed(data, k) {
+  const lap = new GhostLap(data, { label: 'AI' });
+  return {
+    durationMs: lap.durationMs * k,
+    rateHz: lap.rateHz / k,
+    sample: (t, out) => lap.sample(t / k, out),
+  };
+}
+
+/* The seat every AI racer is seated as. */
+function seatPlant() {
+  return kit.seatOpponent(() => kit.loadSim(kit.wasm), {
+    simId: af.simId, tuneText: kit.tune, gravity: af.gravityBase, cellVoltage: CELL_VOLTS, rates: RATE_DEFAULTS,
+  });
+}
+
+/* The board's best quad lap with a ghost on this track, decoded, or null
+ * (no board here, none posted, the board down or saying nonsense). */
+async function boardGhost(track, origin) {
+  if (!origin) {
+    return null;
+  }
+  try {
+    const best = (await fetchTrackTimes(track.id, origin)).filter((t) => t.hasGhost && !t.craft)
+      .sort((a, b) => a.lapMs - b.lapMs)[0];
+    if (!best) {
+      return null;
+    }
+    const got = await fetchGhost(track.id, best.id, origin);
+    return decodeGhost(ghostFromBase64(got.ghost));
+  } catch (e) {
+    console.error(`airace: no board ghost for ${track.id}:`, e && e.message ? e.message : e);
+    return null;
+  }
+}
+
+async function prepare(entry, track, pace, groundAt, origin) {
   const t0 = performance.now();
   const course = raceFromDocument(track.doc);
+  const colliders = frames(course);
   const bench = kit.aiBench({ wasm: kit.wasm, af, tune: kit.tune, course, rates: RATE_DEFAULTS });
   kit.learnt ??= await bench.learn();
   const { learnt } = kit;
   /* aireference.js referenceGhost, on the line kept over the ground. */
-  const line = overGround(bench.referenceLine(pace), groundAt);
-  const { ghost: record } = await bench.fly({
-    line,
-    learnt,
-    laps: 2,
-    recordLap: 2,
-    pilot: kit.aiPilot({
-      line, rates: RATE_DEFAULTS, learnt, startMs: kit.START_MS, person: kit.REFERENCE_PERSON, quantise: false,
-    }),
-  });
-  entry.cpuMs = performance.now() - t0;
-  if (!record) {
-    entry.state = 'none';
-    return;
+  const reference = async () => {
+    const line = overGround(bench.referenceLine(pace), groundAt);
+    const { ghost } = await bench.fly({
+      line,
+      learnt,
+      laps: 2,
+      recordLap: 2,
+      pilot: kit.aiPilot({
+        line, rates: RATE_DEFAULTS, learnt, startMs: kit.START_MS, person: kit.REFERENCE_PERSON, quantise: false,
+      }),
+    });
+    return ghost && decodeGhost(encodeGhost(ghost));
+  };
+  const proving = await seatPlant();
+  for (const [source, find] of [['board', () => boardGhost(track, origin)], ['reference', reference]]) {
+    const data = await find();
+    if (!data) {
+      continue;
+    }
+    const lap = slowed(data, Math.max(1, paceOf(data) / pace));
+    if (lap.durationMs > PROOF_LAP_MAX_MS) {
+      continue;
+    }
+    const op = new kit.AiOpponent({
+      seated: proving,
+      lap: behind(lap, GRID_LEAD_MS),
+      gates: course.gates,
+      trackClass: course.trackClass,
+      world: worldOf(groundAt, colliders),
+    });
+    /* In slices, the process's other rooms ticking between them. */
+    const end = GRID_LEAD_MS - kit.START_MS + (PROOF_LAPS + 0.5) * lap.durationMs;
+    while (op.ms < end && !op.crashed && op.laps().length < PROOF_LAPS) {
+      op.stepTo(Math.min(end, op.ms + PROOF_SLICE_MS));
+      await new Promise((go) => { setTimeout(go, 0); });
+    }
+    if (op.laps().length >= PROOF_LAPS) {
+      Object.assign(entry, {
+        state: 'ready', source, course, colliders, lap, data,
+      });
+      break;
+    }
   }
-  Object.assign(entry, {
-    state: 'ready', course, colliders: frames(course), ghost: decodeGhost(encodeGhost(record)),
-  });
+  entry.cpuMs = performance.now() - t0;
+  if (entry.state !== 'ready') {
+    entry.state = 'none';
+  }
+}
+
+/* The board's address for this server, read when asked. */
+function boardOrigin() {
+  const env = globalThis.process && process.env ? process.env : {};
+  return String(env.ROOMS_BOARD_ORIGIN || '').replace(/\/+$/, '');
 }
 
 /* The ghost for `track` on `map` at `pace`, started on first ask. */
 export function preparedFor(track, map, pace) {
-  const key = `${map}:${track.id}:${hashOf(JSON.stringify(track.doc))}:${pace}`;
+  const origin = boardOrigin();
+  const key = `${map}:${track.id}:${hashOf(JSON.stringify(track.doc))}:${pace}:${origin}`;
   let entry = PREPARED.get(key);
   if (!entry) {
     entry = { state: 'pending', key };
     PREPARED.set(key, entry);
-    entry.done = prepare(entry, track, pace, groundOf(map)).catch((e) => {
+    entry.done = prepare(entry, track, pace, groundOf(map), origin).catch((e) => {
       entry.state = 'none';
       console.error(`airace: the reference lap of ${key} failed:`, e);
     });
@@ -377,10 +477,9 @@ class Racer {
 
   /* A fresh opponent on the ghost, back at its grid place. */
   build(entry, key) {
-    const lap = new GhostLap(entry.ghost, { label: 'AI' });
     this.op = new kit.AiOpponent({
       seated: this.seated,
-      lap: behind(lap, GRID_LEAD_MS + this.slot * GRID_MS),
+      lap: behind(entry.lap, GRID_LEAD_MS + this.slot * GRID_MS),
       gates: entry.course.gates,
       trackClass: entry.course.trackClass,
       world: worldOf(this.ground, entry.colliders),
@@ -441,9 +540,7 @@ export class AiRace {
     }
     const racer = new Racer(slot);
     this.racers.set(seat, racer);
-    racer.ready = kit.seatOpponent(() => kit.loadSim(kit.wasm), {
-      simId: af.simId, tuneText: kit.tune, gravity: af.gravityBase, cellVoltage: CELL_VOLTS, rates: RATE_DEFAULTS,
-    }).then((seated) => {
+    racer.ready = seatPlant().then((seated) => {
       racer.seated = seated;
     }).catch((e) => {
       console.error(`airace: seat ${seat}'s plant failed:`, e);

@@ -8,7 +8,10 @@
  * second person takes one's place before the start. The race starts: each AI pilot's passes reach the room as a racer's own, in
  * order, every gate of every lap, and its finish closes the last lap; the
  * results order them with the person's. Its poses are a quad's and stay
- * over the page's ground. Off takes them away, the last person leaving
+ * over the page's ground. Hard swaps the ghost for a faster one under the
+ * same AI pilots. The board's best lap is their ghost when the board has
+ * one they can follow, slowed to the level's pace, else the room's
+ * reference (boardSection). Off takes them away, the last person leaving
  * takes them all and empties the room. Negative controls: a pace the
  * reference cannot lap (16 m/s on this track, aipilot:harness) seats
  * none, and a room made for tag never gets one.
@@ -34,6 +37,7 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,6 +52,7 @@ import {
 import {
   FLAG_QUAD, PROTO, ROOM_LEVEL, TYPE_BATCH, decodeBatch,
 } from '../src/share/roomwire.js';
+import { encodeGhost, ghostToBase64 } from '../src/share/ghostdata.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 /* The fixture's gates stand 640 m up; a course is built on the ground, so
@@ -128,7 +133,7 @@ export async function aiRaceSection(check) {
     check(`the reference laps the track at the Normal pace (${RACE_PACES.normal} m/s) and ${FILL_TO - 1} AI pilots fill the grid, marked bot, in the ${AI_RACE_AIRFRAME}`,
       entry.state === 'ready' && e.bots().length === FILL_TO - 1 && joins.length === FILL_TO - 1
       && joins.every((m) => m.profile.airframe === AI_RACE_AIRFRAME),
-      `ghost ${entry.state} ${entry.ghost ? (entry.ghost.durationMs / 1000).toFixed(3) : '-'} s lap, flown in ${entry.cpuMs.toFixed(0)} ms of CPU; ${joins.length} joins`);
+      `ghost ${entry.state} ${entry.lap ? (entry.lap.durationMs / 1000).toFixed(3) : '-'} s lap from the ${entry.source}, found and proved in ${entry.cpuMs.toFixed(0)} ms; ${joins.length} joins`);
     const ready = e.r.race.readySeats();
     check('every AI pilot counts as ready on the grid', e.bots().every((s) => ready.includes(s.seat)), `ready ${ready.join(',')}`);
     const peopleBefore = e.r.people().length;
@@ -157,7 +162,7 @@ export async function aiRaceSection(check) {
     let poses = 0;
     let quads = 0;
     const t0 = performance.now();
-    const endAt = e.clock + COUNTDOWN_MS + (LAPS + 2) * entry.ghost.durationMs + 10000;
+    const endAt = e.clock + COUNTDOWN_MS + (LAPS + 2) * entry.lap.durationMs + 10000;
     while (e.clock < endAt && race.state === 'on') {
       e.tick();
       if (e.r.roomMs(e.clock) > race.goAt && !race.finish[me] && ai.every((seat) => race.finish[seat] || race.out[seat])) {
@@ -215,6 +220,15 @@ export async function aiRaceSection(check) {
     console.log(`  AI racers: ${ai.length} flew ${flownS.toFixed(1)} s of plant in ${cpu.toFixed(0)} ms of the room's CPU, `
       + `${(cpu / flownS).toFixed(2)} ms per second flown (the room's tick, judge and the person's messages included)`);
 
+    const normalLap = entry.lap.durationMs;
+    e.say(0, { type: 'bots', level: 'hard' });
+    const during = e.bots().length;
+    const hard = await settle(e);
+    const flying = [...e.r.bots.racers.racers.values()].map((x) => x.op.line.durationMs);
+    check(`Hard: the ghost is the ${RACE_PACES.hard} m/s lap, the same AI pilots stay seated and chase it`,
+      during === FILL_TO - 1 && e.bots().length === FILL_TO - 1 && hard.state === 'ready' && hard.lap.durationMs < normalLap
+      && flying.length === FILL_TO - 1 && flying.every((d) => d === hard.lap.durationMs),
+      `${(hard.lap.durationMs / 1000).toFixed(3)} s against Normal's ${(normalLap / 1000).toFixed(3)} s; ${during} seated while it was flown`);
     e.say(0, { type: 'bots', level: 'off' });
     check('the host switches them off: every AI pilot leaves', e.bots().length === 0 && e.r.bots.racers.racers.size === 0);
     e.say(0, { type: 'bots', level: 'normal' });
@@ -234,6 +248,7 @@ export async function aiRaceSection(check) {
     check('negative control: a pace the reference cannot lap (16 m/s) gives no ghost and no AI pilot',
       entry.state === 'none' && e.bots().length === 0, `ghost ${entry.state}, ${e.bots().length} AI seats`);
   }
+  await boardSection(check);
   {
     const e = room({ mode: 'free' });
     e.join(0);
@@ -242,5 +257,76 @@ export async function aiRaceSection(check) {
       e.tick();
     }
     check('a room not made for a race seats no AI racer for a track', e.r.bots.racers.racers.size === 0);
+  }
+}
+
+/*
+ * The board's best lap: a board (a stub of fdfpv-leaderboard's two reads,
+ * src/share/board.js fetchTrackTimes and fetchGhost) at ROOMS_BOARD_ORIGIN
+ * serving a lap the room's own reference flew at 7 m/s. Under Normal's
+ * 8 it is taken as is; a 10 m/s one is slowed to Normal's pace; one 300 m
+ * off the course, which no AI pilot can follow round the gates, gives way
+ * to the reference.
+ */
+async function boardSection(check) {
+  const lapAt = async (pace) => {
+    const e = room();
+    e.r.bots.racers.paces = { ...RACE_PACES, normal: pace };
+    e.join(0);
+    e.say(0, { type: 'track', doc: TRACK });
+    const entry = await settle(e);
+    e.leave(0);
+    return entry.data;
+  };
+  const slow = await lapAt(7);
+  const fast = await lapAt(10);
+  const away = { ...slow, pos: slow.pos.map((v, i) => (i % 3 === 0 ? v + 300 : v)) };
+  const served = { slow, fast, away };
+  const asked = [];
+  const server = createServer((req, res) => {
+    asked.push(req.url);
+    const [, which, , , id, , timeId] = req.url.split('/');
+    const lap = served[which];
+    const body = timeId
+      ? { id: timeId, name: 'a pilot', lapMs: lap.durationMs, ghost: ghostToBase64(encodeGhost(lap)) }
+      : {
+        times: [
+          { id: 'plane', name: 'a plane', lapMs: 1000, hasGhost: true, craft: 'cub1400' },
+          { id: 'best', name: 'a pilot', lapMs: lap.durationMs, hasGhost: true, craft: '' },
+          { id: 'noghost', name: 'a pilot', lapMs: 2000, hasGhost: false, craft: '' },
+        ],
+        id,
+      };
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(body));
+  });
+  await new Promise((go) => { server.listen(0, '127.0.0.1', go); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const raced = async (which) => {
+    process.env.ROOMS_BOARD_ORIGIN = `${base}/${which}`;
+    const e = room();
+    e.join(0);
+    e.say(0, { type: 'track', doc: TRACK });
+    const entry = await settle(e);
+    const seated = e.bots().length;
+    e.leave(0);
+    return { entry, seated };
+  };
+  try {
+    const a = await raced('slow');
+    check('a board lap slower than the level\'s pace is the ghost as posted, its best quad lap with a ghost',
+      a.entry.source === 'board' && a.entry.lap.durationMs === slow.durationMs && a.seated === FILL_TO - 1
+      && asked.some((u) => u.endsWith('/times/best/ghost')),
+      `${a.entry.source}, ${(a.entry.lap.durationMs / 1000).toFixed(3)} s; asked ${asked.filter((u) => u.startsWith('/slow')).join(' ')}`);
+    const b = await raced('fast');
+    const k = b.entry.lap.durationMs / fast.durationMs;
+    check(`a faster one is slowed to Normal's ${RACE_PACES.normal} m/s along its path`,
+      b.entry.source === 'board' && k > 1.2 && k < 1.3 && b.seated === FILL_TO - 1, `${k.toFixed(3)} times its ${(fast.durationMs / 1000).toFixed(3)} s`);
+    const c = await raced('away');
+    check('a board lap the AI pilot cannot follow round the gates gives way to the room\'s reference lap',
+      c.entry.source === 'reference' && c.seated === FILL_TO - 1, `${c.entry.source}`);
+  } finally {
+    delete process.env.ROOMS_BOARD_ORIGIN;
+    server.close();
   }
 }
