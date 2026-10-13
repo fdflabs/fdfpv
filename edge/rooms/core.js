@@ -1091,7 +1091,15 @@ export class RoomCore {
       return this.voice.message(this, conn, s, msg, now);
     }
     const clock = msg.type === 't';
-    if (bump(clock ? s.clockRate : s.sayRate, now, 1000) > (clock ? CLOCK_PER_S : TEXT_PER_S)) {
+    /* Quick chat and emotes are counted on the pilot's chat allowance
+     * alone (edge/rooms/safety.js takeChat, which the client runs too).
+     * Counted here as well, the page's own sync after a welcome (war and
+     * ops films seen, the time of day, a profile) took four of the five
+     * and a phrase and a wave said then lost the wave without a word,
+     * while the client's allowance said it was sent (rooms:safety, 3 of
+     * 6 runs, 2026-10-13). */
+    const said = msg.type === 'event' && (msg.kind === 'chat' || msg.kind === 'emote');
+    if (!said && bump(clock ? s.clockRate : s.sayRate, now, 1000) > (clock ? CLOCK_PER_S : TEXT_PER_S)) {
       return [];
     }
     if (clock && Number.isFinite(msg.c)) {

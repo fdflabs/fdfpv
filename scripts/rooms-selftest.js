@@ -254,6 +254,16 @@ for (let i = 0; i < 10; i += 1) {
 }
 check(`other text over ${TEXT_PER_S} a second is dropped, counted apart from the clock`, refusedB === TEXT_PER_S, `${refusedB}`);
 now += 1000;
+/* A phrase and a wave after a full second of other text: counted on the
+ * chat allowance alone (edge/rooms/safety.js), so both reach a. */
+for (let i = 0; i < TEXT_PER_S; i += 1) {
+  run(room.message(b, JSON.stringify({ type: 'kick', seat: 1 }), now));
+}
+const heardBefore = texts(a, 'event').length;
+run(room.message(b, JSON.stringify({ type: 'event', kind: 'chat', id: 0 }), now));
+run(room.message(b, JSON.stringify({ type: 'event', kind: 'emote', id: 0 }), now));
+check(`chat and emotes are not counted on the ${TEXT_PER_S} a second of other text`, texts(a, 'event').length - heardBefore === 2, `${texts(a, 'event').length - heardBefore}`);
+now += 1000;
 for (let i = 0; i <= TEXT_CLOSE_PER_S; i += 1) {
   run(room.message(a, JSON.stringify(i % 2 ? { type: 't', c: i } : { type: 'nothing' }), now));
 }
