@@ -575,6 +575,35 @@ R-474) on each fuselage's side area from its derivation or render model.
   and 19.2, S12 25.4 at 0.454 and 30.8 on the stop, the budgets whole.
   With the rudder pinned the plant slides along the family to a speed a
   little past the derived one (the peak is flat), still inside the bands.
+- The Slick between 12 and 31 m/s, checked against the data in reach
+  (2026-10-13, w38-crossflow-moment): the rudder it would need there is
+  1.13 (20 m/s, 41 deg of sideslip), 1.39 (15, 50 deg) and 1.61 (12, 57
+  deg) times its LINEAR full-throw authority, cn_dr times the throw with
+  no saturation at all, so no rudder effectiveness curve can close it.
+  Ma 2022's free stream runs (0 throttle, 100 and 50 percent flap,
+  tmp/ma-sides.py on the dataset in research/wash-control) give the
+  flap's kept share of its zero-incidence increment, deflected against
+  the incidence as a knife edge's rudder is: full flap 0.68 at 20 deg,
+  0.56 at 30, 0.54 at 40, 0.52 at 50, 0.34 at 60; half flap 0.90, 0.82,
+  0.69, 0.61, 0.44; with the incidence 0.56, 0.42, 0.36, 0.09, -0.08.
+  The plant's single plate form on the Slick's fin gives the full
+  rudder 0.78 at 26 deg, 0.61 at 33, 0.45 at 41, 0.51 at 50: within 0.1
+  to 0.2 of the data, generous at 26 to 33 deg and a little short at
+  41, so there is no sourced gain in it for the knife edge (the fin's
+  own force is the plate's, 1.11 to 1.16 of cn 1.17 at 25 to 40 deg, as
+  Winter TM 798 has it). The shortfall is in the sideslip the Slick
+  needs to lift its weight at those speeds, 41 to 57 deg, which puts
+  the fin's weathercock (cn_beta of the fin times sin beta, the plate's
+  whole force) past what any rudder cancels: the body's side force per
+  sideslip (CY_beta of the fuselage, the crossflow drag's lift) or the
+  fin's weathercock at high sideslip is what a real Slick must have more
+  or less of. No source in hand for a slab-sided fuselage's side force
+  at 40 to 60 deg of crossflow beyond Allen and Perkins' crossflow,
+  already in; the floor stays at 30.76 m/s. The free stream data's
+  with-side loss (0.36 at 40 deg against the plant's 0.45 to 0.6) is
+  a sourced correction to the elevator's harrier-side form fleet-wide,
+  not taken in this slice: it moves every harrier derivation and does
+  not touch the knife edge.
 
 ### The probe, PR 3 to PR 4
 
