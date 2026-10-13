@@ -31,6 +31,12 @@
  * Every frame it takes scalars into a preallocated ring and allocates
  * nothing; the text is rebuilt four times a second.
  *
+ * It is also where the anonymous frame-time report is fed (Foundations
+ * #10, src/share/clientreport.js), because it already gets every drawn
+ * frame's block time: a minute of them as ten bucket counts, with the GPU
+ * as a class from gpuinfo.js, never its name. That runs with the readout
+ * off too; stats.js's sender sends nothing for a pilot who opted out.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -48,6 +54,7 @@
  */
 
 import { str } from '../strings/index.js';
+import { createFramesReporter, gpuClass, onPageLeaving } from '../share/clientreport.js';
 
 /* About eleven seconds at 90 fps: the slowest 1 percent is ten frames. */
 export const RING = 1024;
@@ -68,7 +75,8 @@ const CSS = `
 const fixed = (x, d) => (Number.isFinite(x) ? x.toFixed(d) : '-');
 
 export class PerfOverlay {
-  constructor(root) {
+  /* gpuInfo is gpuinfo.js readGpuInfo's answer. */
+  constructor(root, gpuInfo) {
     const style = document.createElement('style');
     style.textContent = CSS;
     document.head.append(style);
@@ -86,6 +94,8 @@ export class PerfOverlay {
     this.nextTextMs = 0;
     /* The numbers the text was last built from, for scripts/perf-overlay-check.js. */
     this.shown = { fps: 0, low: 0, frameMs: 0, cpuMs: 0, gpuMs: -1, calls: 0, tris: 0, scale: 1, cap: 0, frames: 0 };
+    this.report = createFramesReporter({ gpu: gpuClass(gpuInfo) });
+    onPageLeaving(window, () => this.report.flush());
   }
 
   setOn(on) {
@@ -110,6 +120,7 @@ export class PerfOverlay {
    * number for none, scale the render scale, capHz the cap or 0.
    */
   frame(nowMs, cpuMs, gpuMs, calls, tris, scale, capHz) {
+    this.report.frame(nowMs, cpuMs, scale, capHz);
     if (!this.on) {
       return;
     }
