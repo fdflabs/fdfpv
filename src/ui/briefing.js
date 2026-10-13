@@ -35,10 +35,13 @@
 import { MISSIONS } from '../share/war/missions/index.js';
 import { airframeById } from '../../configs/airframes.js';
 import { ACT1 } from '../game/campaign.js';
+import { modeById } from '../share/modes.js';
 import { str } from '../strings/index.js';
 
-/* Pilots a mission is built for (docs/campaign/MISSIONS.md 1.6). */
-export const PILOTS = [1, 8];
+/* Pilots a mission is built for: as few as the registry's war keeps
+ * going (src/share/modes.js minPlayers), as many as its waves are scaled
+ * for (docs/campaign/MISSIONS.md 1.6, 1 to 8). */
+export const PILOTS = [modeById('war').minPlayers, 8];
 
 /* The objectives a pilot meets first: the first stage that has any. */
 function openingObjectives(mission) {

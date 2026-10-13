@@ -214,19 +214,21 @@ try {
 
   /* THE CARD: Operations is home's second hub, Defend the Paraná its
    * first link and The Interior (docs/campaign/interior/, N20) beside it,
-   * and inside Operations their two cards. */
+   * then the war's field hangar (2bc31815e), and inside Operations their
+   * three cards. */
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, the rooms panel above them, Operations second with Defend the Paraná and The Interior its links`,
-      laidOut(v, 3, true) && v.cards[1].name === 'Operations' && v.cards[1].links.join() === 'Defend the Paraná,The Interior',
+    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, the rooms panel above them, Operations second with Defend the Paraná, The Interior and the field hangar its links`,
+      laidOut(v, 3, true) && v.cards[1].name === 'Operations' && v.cards[1].links.join() === 'Defend the Paraná,The Interior,Field hangar',
       `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts} ${x.links}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }
   await click(page, '.gate-card-hub-ops .gate-card-name');
   await page.until("window.__ui.hub === 'ops'", 10000).catch(() => {});
   const ops = await page.evaluate(LAYOUT);
-  check('Operations holds Defend the Paraná and The Interior beside it, inside the window', laidOut(ops, 2) && ops.cards[0].name === 'Defend the Paraná' && ops.cards[1].name === 'The Interior',
+  check('Operations holds Defend the Paraná, The Interior beside it and the field hangar, inside the window', laidOut(ops, 3)
+    && ops.cards.map((x) => x.name).join() === 'Defend the Paraná,The Interior,Field hangar',
     ops.cards.map((x) => `${x.name} ${x.box}`).join(' | '));
   await shot(page, 'operations');
 

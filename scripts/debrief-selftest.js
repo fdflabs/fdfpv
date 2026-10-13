@@ -76,6 +76,14 @@ const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
   check('route: a level hop high in the world climbed nothing', short.topM === 0, String(short.topM));
   r.reset();
   check('route: reset empties again', r.snapshot() === null);
+  /* A respawn 2 km away between two 5 m legs: 10 m flown, not 2 km. */
+  r.add(0, 0, 0, 0);
+  r.add(100, 3, 0, 4);
+  r.cut();
+  r.add(200, 2000, 0, 0);
+  r.add(300, 2003, 0, 4);
+  check('route: a cut leaves the jump out of the distance', near(r.snapshot().distanceM, 10), String(r.snapshot().distanceM));
+  r.reset();
 }
 
 const ok = { ok: true, why: null };
