@@ -177,14 +177,16 @@ const CHECKLIST_CONTROLS = [
   ['no camera field of view', (fs) => { delete folder(fs, '7inch').airframe.cameraFov; }],
   ['a camera tilted past straight up', (fs) => { folder(fs, '7inch').airframe.cameraAngle = 120; }],
   ['no kit', (fs) => { folder(fs, 'cub1400').kit.slots = null; }],
-  ['a float version whose land plane has no kit', (fs) => { folder(fs, 'timber1500').kit.slots = null; }],
+  ['a float version whose land plane has no kit', (fs) => { folder(fs, 'timber1500').kit.slots = null; }, 'timber1500f:'],
   ['no Spanish description', (fs) => { delete folder(fs, 'p51d1450').strings.es['airframe.blurb.p51d1450']; }],
   ['an empty English note', (fs) => { folder(fs, 'p51d1450').strings.en['carousel.note.p51d1450'] = ' '; }],
 ];
-for (const [name, change] of CHECKLIST_CONTROLS) {
+/* `on`: the folder whose line must report it, where the change is made to
+ * another. */
+for (const [name, change, on = ''] of CHECKLIST_CONTROLS) {
   const fs = folderCopy();
   change(fs);
-  check(`negative control: ${name} is caught`, unchecked(fs).length > 0);
+  check(`negative control: ${name} is caught`, unchecked(fs).some((line) => line.startsWith(on)));
 }
 
 if (failed) {
