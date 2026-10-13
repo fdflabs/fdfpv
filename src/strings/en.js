@@ -2337,6 +2337,7 @@ export default {
   "tuning.heading": "AS3X heading",
   "tuning.heading_off": "Off",
   "tuning.heading_note": "Off as the receiver ships. Turn it up and a centred stick holds the attitude you left, instead of only damping the rates. Too much rocks it slowly or buzzes the surfaces at speed. Spektrum: \"Heading gain on the yaw axis is generally not recommended because it will require the pilot to steer the aircraft through any heading changes.\"",
+  "tuning.as3x_low_rate": "This rate takes a surface under half its travel, and the AS3X receiver reads the stick through it. E-flite, for its AS3X aircraft: \"To ensure AS3X technology functions properly, do not lower rate values below 50%. If lower rates are desired, manually adjust the position of the pushrods on the servo arm.\"",
   "tuning.expo": "Expo",
   "tuning.curve": "Stick to surface",
   "tuning.trim": "Trim",
