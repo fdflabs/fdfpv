@@ -440,12 +440,17 @@ async function main() {
 
     console.log('5. memory after more than the window, flying all the way');
     await page.evaluate('window.__stick(0, -0.05, 0, 0.75)');
-    await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 200}, z: ${pad.z}, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -16, showCraft: false })`);
+    /* Thrown high enough to be flying past the window: on these sticks the
+     * Skyhunter came down 200 m in 25 s of sim (2026-10-13), and a wreck
+     * at rest stops the plant's clock, so a 200 m throw never reached 36 s
+     * and the wait below ran out instead. */
+    await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 600}, z: ${pad.z}, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -16, showCraft: false })`);
     await page.evaluate('window.__drawOff(true)');
     await afterSteps(page, 36000);
     await page.evaluate('window.__drawOff(false)');
     const steady = await page.evaluate('window.__crashCam.stats()');
     const sim36 = await page.evaluate('({ t: window.__crash().simT, wrecked: window.__crash().wrecked })');
+    check('still flying past the window', !sim36.wrecked, `${sim36.t.toFixed(1)} s of sim`);
     check('the journal stays bounded past 30 s', steady.journalSegments <= 33,
       `${steady.journalSegments} copies, ${(steady.journalBytes / 1048576).toFixed(2)} MB, after ${sim36.t.toFixed(1)} s of sim${sim36.wrecked ? ' (wrecked)' : ''}`);
     console.log(`     steady: ring ${(steady.ringBytes / 1048576).toFixed(2)} MB fixed, journal ${(steady.journalBytes / 1048576).toFixed(2)} MB, record mean ${steady.recordMsMean.toFixed(4)} ms, worst ${steady.recordMsMax.toFixed(3)} ms over ${steady.frames} frames; copies mean ${steady.snapshotMsMean.toFixed(3)} ms, worst ${steady.snapshotMsMax.toFixed(3)} ms`);

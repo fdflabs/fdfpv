@@ -107,6 +107,42 @@ export const POINTERS = {
   sim_bf_get: { in: 0, unreplayable: true },
 };
 
+/*
+ * THE SETUP LOG. A region copy flies the clip again on its own build only
+ * (src/replay/refly.js). To fly it on another, that build has to be set up
+ * the way the shell set this one up: so beside the stretches the journal
+ * keeps the text of the last sim_init and every call made since it except
+ * the ones the shell makes every step, each with where it fell in the
+ * stretches. Those every-step calls are the flight itself, which the
+ * stretches keep; what is left (the airframe, the tune, the power, the
+ * world, the modes and switches) is small and grows only when the pilot
+ * changes something. Measured in the shell: see docs/CONTROL-RECORDER.md.
+ *
+ * Left out too: sim_wing_gear, a reader the shell asks every frame that
+ * is not in PURE. And the world, which the shell declares again round the
+ * craft about twice a second (a clear, then the trees, wires and solids
+ * near it): a clear makes every declaration of its kind before it moot, so
+ * once both lie before the oldest stretch kept (no clip can start before
+ * that), the older ones are dropped (CLEARS, compactSetup).
+ */
+export const STEP_CALLS = new Set([
+  'sim_input', 'sim_step', 'sim_set_ground', 'sim_set_ground_material', 'sim_damage_events', 'sim_wing_gear',
+]);
+const CLEARS = {
+  sim_tree_clear: ['sim_tree_add', 'sim_tree_clump_add'],
+  sim_wire_clear: ['sim_wire_add'],
+  sim_obstacle_clear: ['sim_obstacle_box', 'sim_obstacle_cylinder', 'sim_obstacle_compliance'],
+  sim_water_clear: ['sim_water_add', 'sim_water_level', 'sim_water_channel', 'sim_water_channel_point',
+    'sim_water_vertex', 'sim_water_wind', 'sim_water_swell'],
+  sim_power_clear: ['sim_set_power'],
+  sim_addons_clear: ['sim_set_addons'],
+  sim_wing_tune_clear: ['sim_wing_set_tune'],
+  sim_wing_tiers_clear: ['sim_wing_set_tiers'],
+};
+/* Past this many doubles the log stops and says so: a shell calling a
+ * setter every frame that should not be, which a re-fly then refuses. */
+const SETUP_MAX = 1 << 20;
+
 const PAGE = 4096;
 const SCRATCH_BYTES = 1 << 16;
 /* How far apart the copies are, seconds of sim time, and how many are
@@ -176,6 +212,9 @@ export function createJournal(e, opts = {}) {
       if (seg && logging) {
         note(id, arguments, null);
       }
+      if (setupLogged[id]) {
+        noteSetup(id, arguments, null);
+      }
       return f.apply(null, arguments);
     };
   }
@@ -184,6 +223,9 @@ export function createJournal(e, opts = {}) {
    * the oldest, whose copy is `base`), and the calls made since. */
   let seg = null;
   const segs = [];
+  /* The allocator's bytes in the region (allocatorSpans), found on the
+   * first restore. */
+  let spans = null;
   let nextId = 1;
   let base = null;
   let head = null;
@@ -209,8 +251,162 @@ export function createJournal(e, opts = {}) {
           note(id, arguments, new Float64Array(e.memory.buffer, p, ptr.doubles));
         }
       }
+      if (names[id] === 'sim_init') {
+        startSetup(arguments[0], arguments[1]);
+      } else if (setupLogged[id] && !ptr.unreplayable) {
+        noteSetup(id, arguments, new Float64Array(e.memory.buffer, arguments[ptr.in], ptr.doubles));
+      }
       return f.apply(null, arguments);
     };
+  }
+
+  /* The setup log: the last sim_init's text, and every call since it but
+   * the every-step ones, each written whole (id, argc, k, the arguments,
+   * the doubles read) with where it fell: the stretch it was made in (its
+   * id, 0 before the first copy) and the length of that stretch's calls
+   * once it was written down, so it lies before a row's mark [id, pos]
+   * when its stretch is earlier, or the same and its place is <= pos. */
+  const setupLogged = names.map((nm) => !STEP_CALLS.has(nm) && nm !== 'sim_init');
+  const setup = {
+    init: null, initAt: [0, 0], buf: new Float64Array(4096), n: 0, where: new Int32Array(512), entries: 0, overflow: false,
+  };
+
+  /* Each clear's kind, by function id: the clear's own id for a clear and
+   * for every declaration it clears, -1 for the rest. */
+  const kindOf = names.map(() => -1);
+  for (const [clear, decl] of Object.entries(CLEARS)) {
+    const c = names.indexOf(clear);
+    if (c < 0) {
+      continue;
+    }
+    kindOf[c] = c;
+    decl.forEach((d) => {
+      const i = names.indexOf(d);
+      if (i >= 0) {
+        kindOf[i] = c;
+      }
+    });
+  }
+
+  /* Drop from setup log `L` the declarations a later clear made moot,
+   * where both were made before the stretch numbered `oldest` (the oldest
+   * kept, before which no clip can start; or a clip's first). Everything
+   * from there on is kept as it was made. */
+  function compactSetup(L, oldest) {
+    const offs = [];
+    for (let r = 0, k = 0; k < L.entries; k += 1) {
+      offs.push(r);
+      r += 3 + L.buf[r + 1] + L.buf[r + 2];
+    }
+    const lastClear = new Map();
+    for (let k = 0; k < L.entries && L.where[k * 2] < oldest; k += 1) {
+      const id = L.buf[offs[k]];
+      if (kindOf[id] === id) {
+        lastClear.set(id, k);
+      }
+    }
+    if (!lastClear.size) {
+      return;
+    }
+    let w = 0;
+    let e2 = 0;
+    for (let k = 0; k < L.entries; k += 1) {
+      const id = L.buf[offs[k]];
+      const kind = kindOf[id];
+      const moot = kind >= 0 && L.where[k * 2] < oldest && lastClear.has(kind) && k < lastClear.get(kind);
+      if (moot) {
+        continue;
+      }
+      const len = 3 + L.buf[offs[k] + 1] + L.buf[offs[k] + 2];
+      L.buf.copyWithin(w, offs[k], offs[k] + len);
+      w += len;
+      L.where[e2 * 2] = L.where[k * 2];
+      L.where[e2 * 2 + 1] = L.where[k * 2 + 1];
+      e2 += 1;
+    }
+    L.n = w;
+    L.entries = e2;
+  }
+
+  /* The setup log as a clip from stretch `first` on keeps it: a copy,
+   * compacted to that stretch. */
+  function exportSetup(first) {
+    const L = {
+      buf: setup.buf.slice(0, setup.n), n: setup.n, where: setup.where.slice(0, setup.entries * 2), entries: setup.entries,
+    };
+    compactSetup(L, first);
+    return {
+      init: setup.init.slice(), calls: L.buf.slice(0, L.n), where: L.where.slice(0, L.entries * 2), overflow: setup.overflow,
+    };
+  }
+
+  /* A take over forgets every call after its mark, the setup log's with
+   * the rest: a flap notch or a broken part from the flight it undoes is
+   * not the flight flown on. A sim_init after the mark took the setup
+   * before it with it, so the log cannot be whole again until the next. */
+  function forgetSetupAfter(id, pos) {
+    if (setup.initAt[0] > id || (setup.initAt[0] === id && setup.initAt[1] >= pos)) {
+      setup.overflow = true;
+    }
+    let n = 0;
+    let k = 0;
+    for (; k < setup.entries; k += 1) {
+      const ws = setup.where[k * 2];
+      if (ws > id || (ws === id && setup.where[k * 2 + 1] > pos)) {
+        break;
+      }
+      n += 3 + setup.buf[n + 1] + setup.buf[n + 2];
+    }
+    setup.entries = k;
+    setup.n = n;
+  }
+
+  function startSetup(ptr, len) {
+    setup.initAt = [seg ? seg.id : 0, seg ? seg.n : 0];
+    setup.init = new Uint8Array(e.memory.buffer, ptr, len).slice();
+    setup.n = 0;
+    setup.entries = 0;
+    setup.overflow = false;
+  }
+
+  function noteSetup(id, args, extra) {
+    if (setup.overflow || !setup.init) {
+      return;
+    }
+    const argc = args.length;
+    const k = extra ? extra.length : 0;
+    const need = setup.n + 3 + argc + k;
+    if (need > SETUP_MAX) {
+      setup.overflow = true;
+      return;
+    }
+    if (need > setup.buf.length) {
+      const grown = new Float64Array(Math.max(need, setup.buf.length * 2));
+      grown.set(setup.buf.subarray(0, setup.n));
+      setup.buf = grown;
+    }
+    if (setup.entries * 2 + 2 > setup.where.length) {
+      const grown = new Int32Array(setup.where.length * 2);
+      grown.set(setup.where);
+      setup.where = grown;
+    }
+    const b = setup.buf;
+    let w = setup.n;
+    b[w] = id;
+    b[w + 1] = argc;
+    b[w + 2] = k;
+    w += 3;
+    for (let i = 0; i < argc; i += 1) {
+      b[w + i] = args[i];
+    }
+    w += argc;
+    for (let i = 0; i < k; i += 1) {
+      b[w + i] = extra[i];
+    }
+    setup.n = w + k;
+    setup.where[setup.entries * 2] = seg ? seg.id : 0;
+    setup.where[setup.entries * 2 + 1] = seg ? seg.n : 0;
+    setup.entries += 1;
   }
 
   /* Per function, the arguments of its last call in this stretch, so a
@@ -337,10 +533,15 @@ export function createJournal(e, opts = {}) {
     seg = { id: nextId, t, delta, buf: new Float64Array(room), n: 0, brokenAt: Infinity };
     nextId += 1;
     segs.push(seg);
+    let dropped = false;
     while (segs.length > retain) {
       segs.shift();
       apply(base, segs[0].delta);
       segs[0].delta = null;
+      dropped = true;
+    }
+    if (dropped) {
+      compactSetup(setup, segs[0].id);
     }
     return seg.id;
   }
@@ -375,10 +576,16 @@ export function createJournal(e, opts = {}) {
       return false;
     }
     const mem = bytes();
+    /* malloc's bookkeeping is in the region too, and it is the shell's,
+     * not the plant's: written back, it would forget a block the shell
+     * made since the copy and hand it out again. It is kept as it is. */
+    spans ??= allocatorSpans(e, region);
+    const live = spans.map(([a, z]) => mem.slice(a, z));
     mem.set(base);
     for (let k = 1; k <= at; k += 1) {
       apply(mem, segs[k].delta);
     }
+    spans.forEach(([a], i) => mem.set(live[i], a));
     /* The next copy is diffed against this stretch's own, which is the
      * region as it stands now, before the calls are made again. */
     head = mem.slice();
@@ -386,6 +593,7 @@ export function createJournal(e, opts = {}) {
     replay(s.buf, m[1]);
     segs.length = at + 1;
     s.n = m[1];
+    forgetSetupAfter(m[0], m[1]);
     seg = s;
     snapshot(t);
     return true;
@@ -423,7 +631,14 @@ export function createJournal(e, opts = {}) {
       });
     }
     return {
-      build, abi: e.sim_abi_version(), lo: region.lo, hi: region.hi, names: names.slice(), region: copy, segs: out,
+      build,
+      abi: e.sim_abi_version(),
+      lo: region.lo,
+      hi: region.hi,
+      names: names.slice(),
+      region: copy,
+      segs: out,
+      setup: setup.init ? exportSetup(segs[at].id) : null,
     };
   }
 
@@ -436,7 +651,7 @@ export function createJournal(e, opts = {}) {
       pageBytes += s.delta ? s.delta.data.byteLength : 0;
     }
     return {
-      region: size, segments: segs.length, calls, callBytes, pageBytes,
+      region: size, segments: segs.length, calls, callBytes, pageBytes, setupBytes: setup.n * 8 + setup.entries * 8, setupCalls: setup.entries,
       bytes: callBytes + pageBytes + (base ? base.byteLength * 2 : 0),
       oldestT: segs.length ? segs[0].t : null,
     };
@@ -445,6 +660,70 @@ export function createJournal(e, opts = {}) {
   return {
     exports, snapshot, mark, due, canRestore, restore, stats, setLogging, exportSpan, named, region, names,
   };
+}
+
+/*
+ * The spans of the region, [start, end) from its base, that malloc and
+ * free keep their state in (dlmalloc's malloc_state and sbrk's break, for
+ * this build). The module has no symbols, so they are found by watching:
+ * blocks of every small bin's size and of every power of two to 1 MB made
+ * and freed, every word of the region that moves marked, and marks less
+ * than 64 bytes apart joined, so a field the probe happened not to move
+ * between two that it did is inside the span. The plant never allocates
+ * (the file's head), so no plant byte moves under malloc. Every block the
+ * probe makes it frees, so the heap is left as it was found.
+ */
+export function allocatorSpans(e, region) {
+  const words = (region.hi - region.lo) >> 2;
+  const before = new Int32Array(e.memory.buffer, region.lo, words).slice();
+  const moved = new Uint8Array(words);
+  const look = () => {
+    const now = new Int32Array(e.memory.buffer, region.lo, words);
+    for (let i = 0; i < words; i += 1) {
+      if (now[i] !== before[i]) {
+        moved[i] = 1;
+      }
+    }
+  };
+  const sizes = [];
+  for (let n = 8; n <= 512; n += 8) {
+    sizes.push(n);
+  }
+  for (let n = 1024; n <= 1 << 20; n *= 2) {
+    sizes.push(n, n + 24);
+  }
+  const held = sizes.map((n) => e.malloc(n));
+  look();
+  /* Every other block back first, so the bins fill, then the rest. */
+  held.forEach((p, i) => {
+    if (i % 2 === 0) {
+      e.free(p);
+    }
+  });
+  look();
+  for (const n of sizes) {
+    e.free(e.malloc(n));
+  }
+  look();
+  held.forEach((p, i) => {
+    if (i % 2 === 1) {
+      e.free(p);
+    }
+  });
+  look();
+  const spans = [];
+  for (let i = 0; i < words; i += 1) {
+    if (!moved[i]) {
+      continue;
+    }
+    const last = spans[spans.length - 1];
+    if (last && i * 4 - last[1] < 64) {
+      last[1] = i * 4 + 4;
+    } else {
+      spans.push([i * 4, i * 4 + 4]);
+    }
+  }
+  return spans;
 }
 
 /*

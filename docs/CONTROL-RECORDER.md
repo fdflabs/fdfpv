@@ -76,10 +76,12 @@ Deflated, about 140 kB for the region and 22 kB a second for the rest (a Timber 
 cut with it when the replay opens (while the journal still holds what its rows name) and it is packed when
 the clip is saved; trimming keeps the whole of it and moves the rows' marks.
 
-`npm run replay:refly -- CLIP.fdfreplay [--wasm sim.wasm] [--every s] [--json out.json]` flies it again on a
+`npm run replay:refly -- CLIP.fdfreplay [--wasm new.wasm] [--old clip-build.wasm] [--transplant] [--every s]
+[--json out.json]` first flies it again, exactly, on the build that recorded it (the module given if it is that
+build, else `--old`, else `git cat-file blob <id>` from this checkout), on a
 fresh module: the region written in, the calls made again, the plant's state block read at every row and
 hashed against the hash the row recorded, and at every journal copy the flight passes the whole region held
-to that copy byte for byte (except the 20 or so bytes malloc keeps its own state in, which are the shell's
+to that copy byte for byte (except the 460 bytes malloc keeps its own state in, which are the shell's
 heap and not the plant). It prints position, attitude, velocity and rate differences against the recording
 every `--every` seconds and at the first row that differs, then a summary: rows flown, rows bit for bit,
 where the two first part past 1 cm, 1 degree, 0.1 m/s and 10 deg/s, and the worst of each. Exit 0 only when
@@ -90,11 +92,34 @@ every row it can fly matches.
   constants back and flies the old plant, bit for bit: the self test proves both. So a module whose git blob
   id is not the clip's is refused by that id, never by its layout happening to match, and the tool prints the
   `git cat-file blob <id>` that gets the right one back.
-- **What it does not do yet: fly the clip through a changed plant.** Answering "does this fix change the
-  owner's fall" needs the new build started in the clip's state, and the state only exists as the old build's
-  memory. That needs the clip to carry the calls that set the flight up (the sim_init diff, the airframe,
-  tune, power and world calls since the last sim_init) so a new build can be set up the same way and placed at
-  the first row; it is not built.
+- **Through a changed plant (added 2026-10-13, w38 replay refly2).** When the module given is not the clip's
+  build (or with `--transplant`), the clip is then flown twice more: once on the clip's build and once on the
+  new one, each set up the same way and started in the same state. "Set up" is the clip's setup log: the text
+  of the last sim_init and every call the shell made since it except the every-step ones (sim_input,
+  sim_step, sim_set_ground, sim_set_ground_material, sim_damage_events and the sim_wing_gear reader), each
+  with where it fell in the journal's stretches, so only the calls made before the first row are made. The
+  state is the clip's own at that row, from the exact re-fly, put in with sim_set_pose and sim_set_velocity;
+  then the journal's calls from that row on are made again, the sticks' timestamps moved onto the new
+  module's clock. What cannot be carried into another build starts fresh: the controller's filters and
+  integrators, the motors, the pack, damage. That is the transplant's jolt, the same on both builds, so the
+  tool reports two comparisons: the clip's build transplanted against the recording (the jolt, what the
+  method costs) and the new build transplanted against the clip's build transplanted (what the fix changes),
+  with a table every `--every` seconds and where each pair first parts.
+- **The setup log's size.** The shell declares the world again round the craft about twice a second (a clear,
+  then the trees, clumps, wires and solids near it); a clear makes the declarations of its kind before it moot,
+  so those made before the oldest kept stretch are dropped as the journal runs, and those before a clip's
+  first stretch when the clip is cut. Measured in headless Chromium on swiss2 (2026-10-13): after 70 s of
+  flight the log held 45,239 doubles (6,119 calls, 0.36 MB) on the Interceptor and 65,159 (8,502 calls,
+  0.52 MB) on the Timber, steady, nowhere near its 2^20 double bound; most of it is the river's channel
+  (4,766 sim_water_channel_point calls at load) and the world's clumps. In a saved 3 s Timber clip it was
+  5,434 calls, 299 kB raw, 104 kB deflated, beside a 5.7 kB sim_init text.
+- **How big the jolt is.** On the replay:sticks Timber clip, transplanted onto its own build: 0.13 m and 0.5
+  degrees from the recording after 3 s in one run, 0.89 m and 2.8 degrees (11 deg/s on the rates from the
+  first 0.1 s) in another, so it depends on what the fresh controller meets at the first row; it is why the
+  verdict is the two builds against each other. On the self test's 30 s Skyhunter flight: 1.7 m and 1.7 degrees after 30 s, while a
+  build with the air density changed parts from the clip's build by 25.7 m and 26 degrees.
+- A clip saved before the setup log was kept (an early version 17 file) flies exactly on its build and is
+  refused for a transplant with that reason.
 - A row before the first kept copy, or in a stretch the journal stopped writing (a sim_init, the recording
   switched off), cannot be flown back to, and the tool counts them.
 - Verified: a clip saved in headless Chromium (npm run replay:sticks) re-flies in Node with every row bit for
@@ -158,12 +183,16 @@ Upload anything. Record when the switch is off. Replace the flight log.
   read back by parseCsv and loaded by Compare sticks.
 - `npm run replay:sticks [OUT_DIR]` (browser): a Timber flown through four stick settings with a flap
   notch, the replay's nubs where each setting puts them, the Sticks CSV button pressed with a pointer,
-  saved and replayed as version 17 and the saved file flown again in Node by replay:refly, bit for bit, an old clip played with its note, the gimbals clear of the rest of the
+  saved and replayed as version 17 and the saved file flown again in Node by replay:refly, bit for bit, then
+  transplanted twice onto the same build from its setup log, the two flights the same, an old clip played with its note, the gimbals clear of the rest of the
   screen at 1280 by 720 and 800 by 600, and the export read by /dev/hover.html. Leaves pictures in OUT_DIR.
 - `npm run replay:refly:selftest` (CI-able, Node, about 2 s): a 40 s scripted Skyhunter flight recorded
   through a journaled module as the crash cam records it, saved as version 17, read back and flown again:
   every row's hash and every copy match, and a clip trimmed to 10..20 s too. Negative controls: gravity
   changed by 0.2 % after the copy is written differs from the first row and parts by 0.76 m over 30 s; a
   build with the airframes' air density changed is refused by its id, flies 27 m away from the original from
-  its own start, yet the clip's region written into it flies the old plant bit for bit. A version 16 clip is
-  refused with its reason, and a file cut short or with a mark outside its stretches is refused on reading.
+  its own start, yet the clip's region written into it flies the old plant bit for bit. Transplanted twice onto
+  its own build the clip flies identically, the transplant starts exactly in the recording's state and its
+  jolt is reported; transplanted onto the changed build it parts from the first rows; the world declared
+  twice a second keeps only the declarations a clip can need. A version 16 clip is refused with its reason,
+  and a file cut short or with a mark outside its stretches is refused on reading.
