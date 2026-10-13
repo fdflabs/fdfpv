@@ -5,6 +5,31 @@
  * always one every screen can fly. A new mission is a file beside this one
  * and a line here.
  *
+ * A campaign mission's file states its place, and src/game/campaign.js
+ * derives ACT1 from it (actOf), so the list a screen shows and the gate
+ * the room holds are this table's:
+ *
+ *   act      the campaign act it is flown in (1, Defend the Paraná)
+ *   order    its place in the act, 1 up, flown in that order
+ *   key      the card's words, string keys `campaign.m.<key>` and
+ *            `campaign.m.<key>_blurb`
+ *   free     the one mission a pilot without the campaign may fly
+ *   release  whether a pilot may fly it at all (the owner, 2026-10-04:
+ *            "only make the first mission available, until its 100%
+ *            correct, then only when storyline, videos, etc. of mission 2
+ *            is done do you make that available"): 'available' is offered
+ *            and started; 'development' is shown Under Development and
+ *            only a developer's room starts it (campaign.js released).
+ *            The room refuses anything else (edge/rooms/war.js start), so
+ *            this field is the gate, not the screen. A mission is made
+ *            available here and nowhere else. First Light went back to
+ *            'development' on 2026-10-07 (the owner: it has no narration,
+ *            nothing of what Mission 1 of The Interior has; under
+ *            construction until it is as finished); the owner's own
+ *            account still flies it (DEV_ACCOUNTS, devHost).
+ *
+ * The drill has no act, so no campaign offers it.
+ *
  * A wave is { at, kind, n, per, route, target, spread }: n attackers for
  * one pilot and `per` more for each pilot after the first (waveSize), all
  * going for `target`, or, where it is a list, the k-th of them for
@@ -43,6 +68,15 @@ import { WAR_AIRFRAMES } from '../../../../configs/airframes.js';
  * the room refuses any other (edge/rooms/war.js flies). */
 export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, drill]
   .map((m) => [m.id, { ...m, aircraft: WAR_AIRFRAMES }])));
+
+/* Act missions that are only planned: no file yet, so nothing to fly,
+ * shown Coming Soon (release 'soon'). Writing one's file moves its row
+ * there. */
+export const PLANNED = Object.freeze([
+  { id: 'itaipu-5', act: 1, order: 5, key: 'river' },
+  { id: 'itaipu-6', act: 1, order: 6, key: 'corridor' },
+  { id: 'itaipu-7', act: 1, order: 7, key: 'breach' },
+]);
 
 /* The time of day a mission is flown at (TECH-NEEDS T1.11): its `time`,
  * 'night' for the night raid's older `night` flag, or null for the map's

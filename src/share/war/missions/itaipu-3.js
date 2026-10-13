@@ -35,6 +35,12 @@ import { round, withWaves } from '../stages.js';
 
 export default withWaves({
   id: 'itaipu-3',
+  /* Act 1's mission 3 (index.js, the campaign's fields). */
+  act: 1,
+  order: 3,
+  key: 'switchyard',
+  free: false,
+  release: 'development',
   /* A string key (src/strings): Switchyard blackout. */
   title: 'war.mission.itaipu_3',
   map: 'itaipu',
