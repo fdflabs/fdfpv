@@ -2188,6 +2188,8 @@ export default {
   "comfort.chase_smooth": "Suave",
   "comfort.subtitles": "Subtítulos de radio",
   "comfort.subtitles_note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+  "comfort.ui_scale": "Tamaño de los menús",
+  "comfort.ui_scale_note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
   "spec.rates.betaflight.rcrate.label": "Tasa RC",
   "spec.rates.betaflight.rcrate.note": "La parte lineal de la curva, y toda la curva cuando Super rate es cero. 1.00 son 200 °/s con el stick a fondo.",
   "spec.rates.betaflight.srate.label": "Super rate",

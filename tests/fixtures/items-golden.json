@@ -9097,6 +9097,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -10189,6 +10231,48 @@
      "note": "A fine card.",
      "info": true,
      "drives": {}
+    },
+    {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
     },
     {
      "id": "pilot:render-scale",
@@ -11285,6 +11369,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -12379,6 +12505,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -13463,6 +13631,48 @@
      "note": "Read from the WebGL context that is drawing the world.",
      "info": true,
      "drives": {}
+    },
+    {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
     },
     {
      "id": "pilot:render-scale",
@@ -14727,6 +14937,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "70%",
@@ -15817,6 +16069,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -16885,6 +17179,48 @@
      "note": "Read from the WebGL context that is drawing the world.",
      "info": true,
      "drives": {}
+    },
+    {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
     },
     {
      "id": "pilot:render-scale",
@@ -35336,6 +35672,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -36428,6 +36806,48 @@
      "note": "A fine card.",
      "info": true,
      "drives": {}
+    },
+    {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
     },
     {
      "id": "pilot:escala-de-renderizado",
@@ -37524,6 +37944,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -38618,6 +39080,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -39702,6 +40206,48 @@
      "note": "Leído del contexto WebGL que está dibujando el mundo.",
      "info": true,
      "drives": {}
+    },
+    {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
     },
     {
      "id": "pilot:escala-de-renderizado",
@@ -40966,6 +41512,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "70%",
@@ -42056,6 +42644,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -43124,6 +43754,48 @@
      "note": "Leído del contexto WebGL que está dibujando el mundo.",
      "info": true,
      "drives": {}
+    },
+    {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
     },
     {
      "id": "pilot:escala-de-renderizado",

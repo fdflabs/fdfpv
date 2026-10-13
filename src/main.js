@@ -14268,6 +14268,7 @@ export async function boot({
    * change takes the same guarded resize path a window resize does, so the
    * composer and every prepass target follow; no world is rebuilt. */
   function applyDisplaySettings(s) {
+    document.documentElement.style.setProperty('--ui-scale', String(s.uiScale / 100));
     const userScale = renderScaleOf(s);
     if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
       resizeDirty = true;

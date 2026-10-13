@@ -55,6 +55,15 @@ export function prefersReducedMotion() {
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+/* The menus' size, percent: CSS zoom on every screen (index.html .screen),
+ * because the sheet sizes its type in px and a root font size would move
+ * nothing. The flight HUD keeps its size. */
+export const UI_SCALES = [100, 115, 130];
+
+export function normaliseUiScale(raw) {
+  return UI_SCALES.includes(raw) ? raw : 100;
+}
+
 export const CHASE_SMOOTHING = ['tight', 'standard', 'smooth'];
 
 const CHASE_LAG_MS = { tight: 60, standard: 120, smooth: 300 };

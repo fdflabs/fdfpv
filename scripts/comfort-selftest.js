@@ -44,7 +44,7 @@ Object.defineProperty(globalThis, 'navigator', { value: { userAgent: 'Mozilla/5.
 let reduce = false;
 globalThis.window = { matchMedia: (q) => ({ matches: reduce && q === '(prefers-reduced-motion: reduce)' }) };
 
-const { SHAKE_LEVELS, shakeScale, normaliseShake, CHASE_SMOOTHING, chaseLagMs } = await import('../src/render/comfort.js');
+const { SHAKE_LEVELS, shakeScale, normaliseShake, CHASE_SMOOTHING, chaseLagMs, UI_SCALES, normaliseUiScale } = await import('../src/render/comfort.js');
 const ui = await import('../src/ui/ui.js');
 
 console.log('the shake scale');
@@ -67,6 +67,10 @@ check('tight lags less and smooth more', chaseLagMs('tight') < 120 && chaseLagMs
 check('an unknown choice is standard', chaseLagMs('nope') === 120);
 check('three choices', JSON.stringify(CHASE_SMOOTHING) === '["tight","standard","smooth"]');
 
+console.log('menu size');
+check('100, 115 and 130 percent', JSON.stringify(UI_SCALES) === '[100,115,130]');
+check('a stored size is kept, anything else is 100', normaliseUiScale(130) === 130 && normaliseUiScale(200) === 100 && normaliseUiScale('130') === 100);
+
 console.log('loadSettings');
 const load = (profile) => {
   store.clear();
@@ -77,7 +81,8 @@ const load = (profile) => {
 };
 reduce = false;
 let s = load(null);
-check('a first visit: shake on, chase standard', s.cameraShake === 'on' && s.chaseSmooth === 'standard', JSON.stringify([s.cameraShake, s.chaseSmooth]));
+check('a first visit: shake on, chase standard, subtitles on, menus at 100',
+  s.cameraShake === 'on' && s.chaseSmooth === 'standard' && s.subtitles === true && s.uiScale === 100, JSON.stringify([s.cameraShake, s.chaseSmooth, s.subtitles, s.uiScale]));
 reduce = true;
 s = load(null);
 check('a first visit asking for reduced motion: shake reduced', s.cameraShake === 'reduced');
