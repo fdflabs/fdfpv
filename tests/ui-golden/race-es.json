@@ -5119,7 +5119,7 @@
     "current": "betaflight-interceptor",
     "id": "pids:ajuste-pid",
     "label": "Ajuste PID",
-    "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Your edits.",
+    "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Tus cambios.",
     "options": [
      {
       "label": "De fábrica",

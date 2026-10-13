@@ -49,6 +49,7 @@ import { fileURLToPath } from 'node:url';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { TUNES } from '../configs/registry.js';
 import { TRICKS } from '../src/game/tricks-sheet.js';
+import { PATTERNS } from '../src/game/trickdetect.js';
 import en from '../src/strings/en.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -56,7 +57,9 @@ const FILE = join(root, 'tests', 'fixtures', 'es-leaks.json');
 const RECORD = process.argv.includes('--record');
 const STRICT = /^(paused|quick)/;
 const FIELDS = ['label', 'value', 'note'];
-const ENGLISH = /\b(the|and|you|your|with|is|it|of|to|this|that|from|when|here)\b/i;
+/* Letter boundaries, not \b: to \b an accented letter is not a word
+ * character, so "dieciséis" read as an English "is". */
+const ENGLISH = /(?<!\p{L})(the|and|you|your|with|is|it|of|to|this|that|from|when|here)(?!\p{L})/iu;
 
 /* The same word in Spanish, or a name nobody translates. */
 const SHARED = new Set([
@@ -67,6 +70,7 @@ const SHARED = new Set([
   ...AIRFRAMES.flatMap((a) => [a.short, a.name]),
   /* Freestyle trick names are the sport's English jargon in Spanish too. */
   ...TRICKS.map((t) => t.name),
+  ...PATTERNS.map((p) => p.name),
 ]);
 /* A value made only of shared words ("Cub, Acro"), or a duration. */
 const sharedValue = (text) => text.split(', ').every((part) => SHARED.has(part)) || /^\d+ (h|min)( \d+ min)?$/.test(text);

@@ -1316,7 +1316,7 @@ function pidsRows(ui, s) {
  * comes from. */
 function tunePickRow(s, midRun) {
   const ids = tuneChoices(s.airframe);
-  const door = ids.includes(CUSTOM_TUNE.id) ? '' : str('ui.stock_is_the_only_tune_shipped', { fc: SCREEN_TITLES.fc, name: CUSTOM_TUNE.name });
+  const door = ids.includes(CUSTOM_TUNE.id) ? '' : str('ui.stock_is_the_only_tune_shipped', { fc: SCREEN_TITLES.fc, name: tuneName(CUSTOM_TUNE.id) });
   return {
     ...choice(
       str('ui.tune'),

@@ -52431,7 +52431,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -52487,7 +52487,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -52543,7 +52543,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -53108,7 +53108,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits. Changing it during a run puts the quad back on the start line.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Tus cambios. Changing it during a run puts the quad back on the start line.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -53547,7 +53547,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
