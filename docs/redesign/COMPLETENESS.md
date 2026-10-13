@@ -484,38 +484,63 @@ the player's difficulty (PILLARS 19). Enemy health is never the knob.
 
 ## 9. Developer tools (items 33 to 37)
 
-**33. AI debug overlay. MISSING.** Nothing draws an attacker's state,
-target or route; there are console hooks (`window.__war`, `__warAt`,
-`__warMap`, main.js 5080 to 5155). **Done:** behind phase 28's dev gate,
-an overlay draws each attacker's route (routes.js already computes it),
-its hunter target, its stage and its next waypoint. Check: `war:markers`
-(local) gains a dev screenshot assertion. Size M. Phase 28.
+**33. AI debug overlay. BUILT (phase 28).** src/ui/wardebug.js, in
+developer mode only (its `set` turns on only under devhooks.js DEV, and
+the toggle `__warDebug(true | false)` is a devHooks hook): over the
+picture, every live attacker's route from now, 60 s ahead (routes.js
+poseAt), its next waypoint (the end of its leg, an orbit's centre, a
+line's end), a Hunter's target seat as HUNTS said it with a line to that
+pilot, and a label of its kind, id and the stage whose spawn it is.
+Drawn from roomwar `debugAt`, after the frame's render as the war markers
+are. Check: `war:markers` (local, GPU): off until the toggle and off
+again draws nothing; on, every live attacker listed with its stage, each
+but a Hunter with a route and a next waypoint, the faced contact's route
+and label on the picture, and a next waypoint that is a point of the
+mission file's own route; a picture in its outdir.
 
-**34. Spawn and stage tools. PARTIAL.** URL flags exist: `?time=`,
-`?spawn=`, `?craft=`, `?gpu=low`, `?map=` (main.js 616, 1742, ui.js
-3384); console hooks `__placeCraft`, `__setCam`, `__crashSetDamage`,
-`__warDo('start' | 'brief' | 'end')` (main.js 17507, 16865, 17698, 5207).
-Missing: skip stage, complete objective, invulnerability, change wind.
-**Done:** the war's room accepts `skip`, `complete` and `invulnerable`
-ops only from a room made with a dev flag that public rooms refuse. Check:
-`rooms:selftest` (CI) asserts a public room refuses them. Size M. Phase
-28.
+**34. Spawn and stage tools. BUILT (phase 28), invulnerability and wind
+left.** URL flags: `?time=`, `?spawn=`, `?craft=`, `?gpu=low`, `?map=`
+(main.js, ui.js); developer hooks `__placeCraft`, `__setCam`,
+`__crashSetDamage`, `__weather`, and `__warDo('start' | 'brief' | 'end' |
+'skip' | 'complete')`. The war's room (edge/rooms/war.js devOp) takes
+`{ op: 'skip' }`, the stage left by its first exit that is not a loss as
+if it had fired, and `{ op: 'complete', objective? }`, the stage's
+objective (every open one, without an id) done at the frontier; both
+logged as `{ what: 'dev' }`. Host only; a public room refuses them
+`'public'`, and a private room `'dev'` unless the server starts missions
+in development (DEV_MISSIONS) or the host is one of its DEV_ACCOUNTS. The
+admission is the server's, decided by the lead, not a flag the client
+sets on the room: a mission won by a skip counts. Check: `rooms:selftest`
+(CI), the war section's developer ops: both refusals, a non host, an
+unknown objective, complete, skip into the result beat and the next
+stage after it. Not built: invulnerability and changing the wind in a
+room.
 
-**35. Developer console. PARTIAL.** 141 `window.__` hooks in main.js
-plus others, used by the browser checks; no command layer. **Done,
-decided by the author:** no typed console; the hooks get one documented
-index (`window.__dev.help()`) behind the dev gate. A console that parses
-commands is a second UI to maintain. Size S. Phase 28.
+**35. Developer console. BUILT (phase 28).** No typed console, decided by
+the author: a console that parses commands is a second UI to maintain.
+src/share/devhooks.js HOOKS indexes every `window.__` hook src defines,
+180 of them, with what each changes or null for one that only reads;
+`window.__dev.help()` lists the gated ones in developer mode
+(`help(true)` all). Check: `lint:shell` (CI) fails a hook missing from the
+index, an index row nothing in src names, and `window.__dev.help()` on a
+local host that does not list the index's gated hooks.
 
-**36. Debug and release builds. PARTIAL.** Pages excludes tests/browser,
-scripts, edge, docs' markdown and more (.github/workflows/pages.yml 42 to
-47), and the client holds no server secret. But every `window.__` hook
-and URL flag ships to players, ungated. **Done:** hooks that change state
-(placing the craft, damage, war ops) register only under `?dev=1` or on a
-local host (the `LOCAL_HOSTS` test already in src/maps/itaipu.js 207);
-the browser checks pass `?dev=1`. Read only hooks may stay. Check: a new
-case in `lint:shell` (local) loads without the flag and finds no state
-changing hook. Size M. Phase 28.
+**36. Debug and release builds. BUILT (phase 28).** Pages excludes
+tests/browser, scripts, edge, docs' markdown and more
+(.github/workflows/pages.yml 42 to 47), and the client holds no server
+secret. The 62 hooks that change state (placing the craft, damage, war
+ops, the shell's own objects) and `__dev` itself are assigned to
+`devHooks`, and the one flag a check sets that src reads,
+`__showSticks`, is read through it. devHooks is window
+only in developer mode: `?dev=1`, or a local host by devhooks.js
+LOCAL_HOST, the one rule the Itaipu map's local data and index.html's
+front door use too (the front door, which runs before any module, holds a
+copy marked KEEP IN STEP). Elsewhere they land in an object nothing holds.
+Read only hooks stay on window. Every browser check runs on 127.0.0.1, so
+none passes a flag. Check: `lint:shell` (CI) fails a gated hook assigned
+to window, a read only one assigned to devHooks, the front door's copy
+differing from LOCAL_HOST, and a second page served under a public host
+name (openPage `host`) that shows any gated or unindexed hook.
 
 **37. Content validation. EXISTS.** In CI: `lint:presets` (every tune),
 `lint:catalog`, `modes:selftest` (the registry whole, its strings and

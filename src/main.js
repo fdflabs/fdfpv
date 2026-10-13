@@ -174,6 +174,7 @@ import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
 import { SIZE_MAX as WAR_BOOM_MAX, createExplosions } from './render/explosion.js';
 import { createWarHud } from './ui/warhud.js';
 import { createWarMarkers } from './ui/warmarkers.js';
+import { createWarDebug } from './ui/wardebug.js';
 import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
@@ -4496,6 +4497,18 @@ export async function boot({
   };
   const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
+  /* The attackers' debug overlay (src/ui/wardebug.js), developer mode
+   * only: __warDebug(true | false) turns it on or off, __warDebug() reads
+   * what it drew. */
+  const warDebug = createWarDebug(shell.camera, shell.renderer.domElement);
+  devHooks.__warDebug = (on) => (on === undefined ? warDebug.shown() : warDebug.set(on));
+  const warSeatAt = (seat) => {
+    if (seat === roomWar.seat()) {
+      return [pCurr.x, pCurr.y, pCurr.z];
+    }
+    const peer = [...roomPeers.values()].find((x) => x.seat === seat && x.drawnPose);
+    return peer ? [peer.drawnPose.px, peer.drawnPose.py, peer.drawnPose.pz] : null;
+  };
   /* One marker an object: the Avionics HUD's boxes, by reference. */
   warMarkers.setClaims(avionicsHud.claims);
   const warCalls = createWarCalls();
@@ -5858,6 +5871,7 @@ export async function boot({
     warHud.update(null);
     warHud.drawn(false);
     warMarkers.clear();
+    warDebug.clear();
     if (warBegunId != null) {
       warFinish();
     }
@@ -6224,6 +6238,7 @@ export async function boot({
     if (replay) {
       warHud.update(null);
       warMarkers.update(null, now, events);
+      warDebug.update(null, now);
       return;
     }
     warHud.events(events);
@@ -6241,6 +6256,7 @@ export async function boot({
     const watched = warWatch();
     warMarkers.setNamed(v.sets);
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
+    warDebug.update(roomWar.live() ? roomWar.debugAt(now) : null, now, roomWar.mission(), warSeatAt);
     if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched), spilling(v.gates, now)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
@@ -19419,8 +19435,9 @@ export async function boot({
     const inAir = !landed && !launchStaging && !crashed && !poseLock;
     ui.setStickOverlay({
       /* window.__showSticks: a capture's own switch, so a recorded flight
-       * shows the sticks whatever flies it (scripts/hover-video.js). */
-      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+       * shows the sticks whatever flies it (scripts/hover-video.js); read
+       * through devHooks, so only in developer mode. */
+      show: devHooks.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,

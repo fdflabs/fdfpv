@@ -45,7 +45,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
-import { HOOKS, devOpen } from '../src/share/devhooks.js';
+import { HOOKS, LOCAL_HOST, devOpen } from '../src/share/devhooks.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -1485,11 +1485,17 @@ function judgeHookIndex(fail, note) {
       fail(`hook index: ${name} is defined nowhere in src; take it out of HOOKS`);
     }
   }
-  const asked = [['https://example.org/?dev=1', true], ['https://example.org/', false], ['http://localhost:8080/', true], ['http://[::1]:8080/', true]];
+  const asked = [['https://example.org/?dev=1', true], ['https://example.org/', false], ['http://localhost:8080/', true], ['http://[::1]:8080/', true],
+    ['http://127.0.0.2/', true], ['http://localhost.example.org/', false], ['http://127.0.0.1.example.org/', false]];
   for (const [url, open] of asked) {
     if (devOpen(new URL(url)) !== open) {
       fail(`developer mode at ${url} is ${!open}, should be ${open}`);
     }
+  }
+  /* index.html's front door runs before any module, so it holds a copy. */
+  const door = readFileSync(join(ROOT, 'index.html'), 'utf8').match(/if \(\/(.+)\/\.test\(location\.hostname\)\)/);
+  if (!door || door[1] !== LOCAL_HOST.source) {
+    fail(`index.html's front door tests ${door ? door[1] : 'no hostname'}, not devhooks.js LOCAL_HOST ${LOCAL_HOST.source}`);
   }
   const gated = HOOKS.filter(([, changes]) => changes !== null).length;
   note(`hook index: ${HOOKS.length} hooks, ${gated} gated, ${assigned.size} assigned in src`);
