@@ -214,7 +214,7 @@ export { WAYS, formatRunClock, formatTime };
 export const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
-  'calibrate', 'friends', 'rooms', 'roomnew', 'controls',
+  'calibrate', 'friends', 'rooms', 'roomnew', 'controls', 'controller',
 ]);
 
 /*
@@ -236,6 +236,8 @@ export const SCREEN_TITLES = {
   planerates: str('ui.rates'),
   pids: 'PIDs',
   controls: str('keybinds.title'),
+  controller: str('controller.title'),
+  flywith: str('flywith.title'),
   fc: str('ui.firmware_bench'),
   paused: str('ui.paused'),
   quick: str('pause.flight'),
@@ -266,7 +268,7 @@ export {
   AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe, chosenTime,
 };
 
-export const FREESTYLE_SCORING_LABEL = { off: 'Off', free: str('ui.free_flight'), scored: str('ui.scored_run') };
+export const FREESTYLE_SCORING_LABEL = { off: str('ui.off'), free: str('ui.free_flight'), scored: str('ui.scored_run') };
 
 /*
  * Scoring is unfinished, so whenever it is switched on the row's note opens
@@ -736,6 +738,8 @@ export class Ui {
      * room is entered again or a write succeeds. This browser's last
      * answer, not a setting. */
     this.ratesNotice = null;
+    /* Why a reset of settings or progress did not happen, on Settings. */
+    this.resetNotice = null;
     /* The flight controller editor: the session holds the draft dump and
      * builds the rows, the shell owns what Save means (onFcSave). */
     this.onFcOpen = null;    /* (page) => void */

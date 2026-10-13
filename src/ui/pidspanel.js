@@ -43,9 +43,9 @@ const STOCK_MARK = 'rgba(244, 236, 214, 0.75)';
 const FONT = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
 
 const AXES = {
-  roll: { name: 'Roll', color: SAKURA },
-  pitch: { name: 'Pitch', color: MINT },
-  yaw: { name: 'Yaw', color: SLATE },
+  roll: { name: str('ratespanel.roll'), color: SAKURA },
+  pitch: { name: str('ui.pitch'), color: MINT },
+  yaw: { name: str('ui.yaw_axis'), color: SLATE },
 };
 
 /* Captions under each group and prefixes in the readout. Read once at load,

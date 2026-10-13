@@ -94,7 +94,7 @@ function curve(id, label, color, dash, profile, axisName) {
  */
 export function ratesCurves(rates) {
   const profile = normaliseRates(rates || {});
-  const yaw = curve('yaw', 'Yaw', SLATE, [5, 4], profile, 'yaw');
+  const yaw = curve('yaw', str('ui.yaw_axis'), SLATE, [5, 4], profile, 'yaw');
   if (pitchMatchesRoll(profile)) {
     return [curve('rollpitch', str('ui.roll_pitch'), SAKURA, null, profile, 'roll'), yaw];
   }

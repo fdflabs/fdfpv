@@ -56,8 +56,13 @@ export function slotSpawn(sp, slot) {
   return { ...sp, ...place(sp, right, forward) };
 }
 
-/* Where slot `slot`'s pilot stands: { x, z }. */
+/* Where slot `slot`'s pilot stands: { x, z }. A spawn with its own row
+ * may carry its own line, `stations`, [right, forward] a slot: the line
+ * across the heading falls off a dam's crest as the row would. */
 export function stationFor(sp, slot) {
+  if (sp.stations) {
+    return place(sp, ...sp.stations[slot]);
+  }
   const right = (slot - (SLOT_RIGHT_M.length - 1) / 2) * STATION_GAP_M;
   return place(sp, right, -STATION_BACK_M);
 }

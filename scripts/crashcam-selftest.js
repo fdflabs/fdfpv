@@ -77,6 +77,12 @@
  *    clip without sticks still the version before and read back without
  *    them, and its refusals; the export a control recording that parses
  *    and that Compare sticks loads.
+ * 25. The app build that flew a clip (src/replay/file.js version 18): a
+ *    deploy's stamp and a checkout's null each round trip bit for bit
+ *    beside the sticks; the clip without a build (one an older file gave)
+ *    still the version before and read back without one, so My clips says
+ *    "build unknown"; a trim keeps it; its refusals, a version 18 file
+ *    without its build first.
  *
  * Run: npm run crashcam:selftest
  *
@@ -133,7 +139,10 @@ import { OPUS_BPS } from '../src/share/voice.js';
 import { FLAG_CRASHED, FLAG_QUAD } from '../src/share/roomwire.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
-import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
+import { decodeReplay, encodeReplay, FILE_MAX_BYTES, REFUSALS, ReplayFileError } from '../src/replay/file.js';
+import { buildOf } from '../src/replay/editor.js';
+import EN_STRINGS from '../src/strings/en.js';
+import ES_STRINGS from '../src/strings/es.js';
 import {
   BODY_N, MODES, STICK, STICK_N, STICK_SCALE, controlRows, createSticksRing, sticksAt,
 } from '../src/replay/sticks.js';
@@ -1128,6 +1137,33 @@ function file() {
     check(err instanceof ReplayFileError && err.airframe === 'sky1800' && err.map === null,
       'refused: an aircraft this build does not fly, by name', `${err.message}, airframe ${err.airframe}`);
   }
+  /* What the pilot is told: each refusal names one of REFUSALS, and each
+   * has its words in English and Spanish (replay.refused_<reason>); the
+   * English detail stays in the message, for the log. */
+  const reasonOf = (bytes, known = null) => {
+    try {
+      decodeReplay(bytes, known);
+      return 'accepted';
+    } catch (err) {
+      return err instanceof ReplayFileError ? err.reason : `threw ${err.message}`;
+    }
+  };
+  const newer = buf.slice(0);
+  new DataView(newer).setUint32(4, 999, true);
+  const reasons = [
+    ['not a file', reasonOf('not bytes'), 'not_replay'],
+    ['not a replay', reasonOf(new Uint8Array(64).buffer), 'not_replay'],
+    ['too big', reasonOf(new ArrayBuffer(FILE_MAX_BYTES + 1)), 'too_large'],
+    ['a version this build does not read', reasonOf(newer), 'version'],
+    ['an aircraft this build does not fly', reasonOf(buf, { airframe: () => false, map: () => true }), 'aircraft'],
+    ['a map this build does not have', reasonOf(buf, { airframe: () => true, map: () => false }), 'map'],
+    ['a damaged header', reasonOf(withHeader((h) => { h.meta.paint = { decals: [], wear: 2 }; })()), 'damaged'],
+  ];
+  for (const [why, got, want] of reasons) {
+    check(got === want, `the pilot is told why: ${why} is ${want}`, got);
+  }
+  const unsaid = REFUSALS.filter((r) => !EN_STRINGS[`replay.refused_${r}`] || !ES_STRINGS[`replay.refused_${r}`]);
+  check(unsaid.length === 0, 'every refusal has its words in English and Spanish', unsaid.join());
   /* The five inch and the 65 mm whoop, removed on 2026-10-03: a clip flown
    * on one is refused by its id against this build's own table, and that id
    * is one retiredAirframe names, which is what the crash cam's screen says
@@ -1626,12 +1662,14 @@ function peersRecord() {
   refused(() => encodeReplay(clip).slice(0, buf.byteLength - 4), 'a file cut short in its pieces');
 }
 
-/* A file with its version (in both places) changed and nothing else. */
-function reheader(buf, version) {
+/* A file with its version (in both places) changed and nothing else but
+ * what `edit` does to its header. */
+function reheader(buf, version, edit = () => {}) {
   const dv = new DataView(buf);
   const hl = dv.getUint32(8, true);
   const h = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 12, hl)));
   h.v = version;
+  edit(h);
   const json = new TextEncoder().encode(JSON.stringify(h));
   const oldStart = 12 + hl + ((8 - ((12 + hl) % 8)) % 8);
   const start = 12 + json.length + ((8 - ((12 + json.length) % 8)) % 8);
@@ -2204,7 +2242,7 @@ function animRecord() {
   gateFile(withClock, refused);
   soundFile(withClock, refused);
   voiceFile(withClock, refused);
-  sticksFile(withClock, refused);
+  buildFile(sticksFile(withClock, refused), refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -3013,6 +3051,61 @@ function sticksFile(withClock, refused) {
     none = err;
   }
   check(none instanceof Error, 'a clip saved before the sticks has no export, and says so', none ? none.message : 'exported');
+  return clip;
+}
+
+/*
+ * 25. The app build that flew a clip (src/replay/file.js version 18), the
+ * first field held only in the header: its rule is written once
+ * (HEADER_ONLY), so these are the cases any such field must pass.
+ */
+function buildFile(sticksClip, refused) {
+  console.log('25. the app build that flew a clip, saved (version 18) and shown in My clips');
+  const v = (b) => new DataView(b).getUint32(4, true);
+  const bytesOf = (b) => Buffer.from(new Uint8Array(b));
+  const old = encodeReplay(sticksClip);
+  const clip = { ...sticksClip, build: '0e9b7431f2ab' };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(v(buf) === 18 && back.build === '0e9b7431f2ab' && same(back.sticks.ch, sticksClip.sticks.ch) && same(back.anim, sticksClip.anim),
+    'a clip with its build is saved as version 18 and comes back with it, the sticks and the clock beside it', `${buf.byteLength - old.byteLength} bytes for the build`);
+  check(bytesOf(encodeReplay(back)).equals(bytesOf(buf)), 'written again, the same bytes');
+  const local = decodeReplay(encodeReplay({ ...sticksClip, build: null }));
+  check(local.build === null && buildOf(local) === 'local build', 'a clip flown on a checkout keeps null and shows as a local build', buildOf(local));
+  const t = trimWhole(clip, clip.time[3], clip.time[clip.n - 3]);
+  check(t.build === clip.build && decodeReplay(encodeReplay(t)).build === clip.build, 'a trim keeps the build', `${t.n} rows`);
+
+  /* The old clip: the same rows without a build, written as a build
+   * before this one wrote them. */
+  const was = decodeReplay(old);
+  check(v(old) === 16 && !('build' in was) && bytesOf(encodeReplay(was)).equals(bytesOf(old)),
+    'the same clip without a build is still version 16, reads back without one and writes the same bytes again');
+  check(buildOf(was) === 'build unknown' && buildOf(back) === 'build 0e9b7431f2ab',
+    'My clips says build unknown for an older clip and names the build of a new one', `${buildOf(was)}; ${buildOf(back)}`);
+
+  refused(() => reheader(old, 18), 'a version 18 file without its build');
+  refused(() => reheader(buf, 16), 'a build in a file that says version 16');
+  const withBuild = (b) => reheader(buf, 18, (h) => { h.build = b; });
+  check(decodeReplay(withBuild('abc')).build === 'abc', 'the header rewritten with another good build still reads (the mutations below are the only change)');
+  refused(() => withBuild(42), 'a build that is a number');
+  refused(() => withBuild('x'.repeat(41)), 'a build over 40 characters');
+  refused(() => withBuild('../../etc'), 'a build with characters no stamp has');
+  let threw = null;
+  try {
+    const bare = { ...clip };
+    delete bare.sticks;
+    encodeReplay(bare);
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a clip with a build and no sticks is refused when written, not saved as a file no build reads', threw ? threw.message : 'written');
+  threw = null;
+  try {
+    encodeReplay({ ...clip, build: 7 });
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a build that is not one is refused when written', threw ? threw.message : 'written');
 }
 
 ring();

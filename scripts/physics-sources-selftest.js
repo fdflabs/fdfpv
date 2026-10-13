@@ -23,7 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { scan, check, prune } from './physics-sources-lint.js';
+import { scanFile, scanJs, scanFolder, check, prune, PINS } from './physics-sources-lint.js';
 
 const F = 'src/native/plant_wing.c';
 const BASE = [
@@ -56,24 +56,137 @@ const cases = [
   ['a baselined constant that gains a cite is stale', BASE.replace('  .cd0 = 0.030,', '  .cd0 = 0.030, /* docs/WING-STAGE1.md */'), BASELINE, 1],
 ];
 
+/* Arrays and tables: a bare array, a struct field whose value spans rows
+ * and a positional table, braces inside a comment to step over, and an
+ * integer element (an index), which is not a constant. */
+const EBASE = [
+  '/* rows { of } a table, cited nowhere */',
+  'static const double OCV[3] = {',
+  '  3.000, 3.562,',
+  '  4.200,',
+  '};',
+  'const FixedWingParams FW_B = {',
+  '  .axial_curve = {',
+  '    1.0000, 0.9681,',
+  '  },',
+  '};',
+  'static const PartDef PARTS_B[] = {',
+  '  { .parent = -1, BOX(-0.04, 0.07) },',
+  '};',
+].join('\n');
+const EBASELINE = [
+  `${F} OCV[] = 3.000`, `${F} OCV[] = 3.562`, `${F} OCV[] = 4.200`,
+  `${F} FW_B.axial_curve[] = 1.0000`, `${F} FW_B.axial_curve[] = 0.9681`,
+  `${F} PARTS_B[][] = BOX(-0.04, 0.07)`,
+];
+const ewith = (...extra) => EBASE + '\n' + extra.join('\n');
+
+cases.push(
+  ['today\'s arrays and tables, every uncited element baselined', EBASE, EBASELINE, 0],
+  ['new array cited directly above its opening line', ewith('/* docs/SEA-STAGE1.md table 2 */', 'static const double SEA[2] = { 1.2195, 1.0 };'), EBASELINE, 0],
+  ['new table row cited on its continuation line', EBASE.replace('    1.0000, 0.9681,', '    1.0000, 0.9681,\n    0.9281, 0.8794, /* npm run prop:curves */'), EBASELINE, 0],
+  ['a field list cited by the comment directly above its opening', EBASE.replace('  .axial_curve = {', '  /* scripts/prop-curves.js */\n  .torque_curve = {\n    0.5, 0.4,\n  },\n  .axial_curve = {'), EBASELINE, 0],
+  ['new array, no source', ewith('static const double SEA[2] = { 1.2195, 1.0 };'), EBASELINE, 2],
+  ['a cite above another array does not cover this one', ewith('/* docs/SEA-STAGE1.md */', 'static const double SEA_T[1] = { 1.2195 };', 'static const double SEA_E[2] = { 0.1214, 0.4589 };'), EBASELINE, 2],
+  ['a struct header cite over new rows still fails', EBASE.replace('const FixedWingParams FW_B = {', '/* docs/WING-STAGE1.md */\nconst FixedWingParams FW_B = {').replace('    1.0000, 0.9681,', '    1.0000, 0.9681, 0.9281,'), EBASELINE, 1],
+  ['a changed element is one stale and one new entry', EBASE.replace('3.562', '3.560'), EBASELINE, 2],
+  ['an inserted element is one new entry and moves none', EBASE.replace('  3.000, 3.562,', '  3.000, 3.300, 3.562,'), EBASELINE, 1],
+  ['an array on a scalar field\'s line counts once, as that field', ewith('const FixedWingParams FW_C = {', '  .stall_re = { 1.0e4, 2.0e4 },', '};'), EBASELINE, 1],
+);
+
+/* JavaScript: module level numbers and the objects and arrays they are
+ * built of, past a comment with braces, a string with a comma and a regex
+ * with a bracket; a layout table (SIM_*), a derived value and a number in
+ * a function body are not constants. */
+const JF = 'configs/power.js';
+const JBASE = [
+  'const IN = 0.0254;',
+  'export const SIM_POWER = { KIND: 0, MASS: 1 };',
+  'const b = 1.4, W = m * g;',
+  'const ROW = {',
+  "  kv: 920, // a comment { with braces, }",
+  '  massKg: 2.10 - 0.536,',
+  "  name: 'x, y}',",
+  '  re: /[{(,]/,',
+  '  curve: [1.0000, 0.9617],',
+  '};',
+  'function f(x) { return x * 3.7; }',
+].join('\n');
+const JBASELINE = [
+  `${JF} IN = 0.0254`, `${JF} b = 1.4`, `${JF} ROW.kv = 920`, `${JF} ROW.massKg = 2.10 - 0.536`,
+  `${JF} ROW.curve[] = 1.0000`, `${JF} ROW.curve[] = 0.9617`,
+];
+const jwith = (...extra) => JBASE + '\n' + extra.join('\n');
+const jcases = [
+  ['today\'s configs, every uncited constant baselined', JBASE, JBASELINE, 0],
+  ['new constant cited on its line', jwith('const RHO = 1.225; // docs/POWER-STAGE1.md'), JBASELINE, 0],
+  ['new declarations sharing a cited line', jwith('const c1 = 2.5, c2 = 3.5; /* FITTED: npm run stall:probe */'), JBASELINE, 0],
+  ['new option cited by its source property', jwith("const OPT = { kv: 800, thrustG: 2790, source: ['https://example.com/x'.slice(0)] };"), JBASELINE, 0],
+  ['new option, a source property as a list of names', jwith('const OPT = { kv: 800, thrustG: 2790, source: [HH, SUNNYSKY] };'), JBASELINE, 0],
+  ['new constant, no source', jwith('const RHO = 1.225;'), JBASELINE, 1],
+  ['new option, no source', jwith('const OPT = { kv: 800, thrustG: 2790 };'), JBASELINE, 2],
+  ['a source property in another object does not cover this one', jwith('const OPT = [{ kv: 800, source: [HH] }, { kv: 920 }];'), JBASELINE, 1],
+  ['a changed value is one stale and one new entry', JBASE.replace('kv: 920', 'kv: 900'), JBASELINE, 2],
+  ['a helper building a row of data: its arguments count', jwith("const PACKS = [lipo('3s1300', 3, 1300, 113)];"), JBASELINE, 3],
+  ['a declaration with no semicolon still ends at the next one', jwith('const Z = 1.5', 'const Y = 2.5;'), JBASELINE, 2],
+];
+/* An aircraft folder: JSON, so a number is cited by a source property in
+ * its object (an array beside it included); only the physics sections
+ * count. */
+const AF = 'aircraft/x/aircraft.js';
+const folder = (edit = () => {}) => {
+  const f = {
+    id: 'x',
+    airframe: { simId: 15, grams: 2350, rates: { roll: { rcRate: 1.0 } }, gear: { restHeight: 0.2291 } },
+    kit: { slots: [1.5] },
+    tuning: { cg: { mm: 110, source: 'FMS manual p. 26' }, throws: { high: [19.8, 12.0], source: 'manual p. 9' }, nose: 0.3 },
+    power: { table: { massKg: 2.35 }, estimates: { x: 4.2 } },
+    hangar: { anchors: { x: 0.1 } },
+  };
+  edit(f);
+  return `/*\n * header\n */\n\nexport default ${JSON.stringify(f, null, 2)};\n`;
+};
+const FBASE = folder();
+const FBASELINE = [`${AF} airframe.grams = 2350`, `${AF} airframe.gear.restHeight = 0.2291`, `${AF} tuning.nose = 0.3`, `${AF} power.table.massKg = 2.35`];
+const fcases = [
+  ['today\'s folder, every uncited number baselined', FBASE, FBASELINE, 0],
+  ['a new throws row cited by the source beside it', folder((f) => { f.tuning.throws.low = [10.0, 6.0]; }), FBASELINE, 0],
+  ['a new number in an object with a source', folder((f) => { f.tuning.cg.range = 15; }), FBASELINE, 0],
+  ['a new airframe number, no source', folder((f) => { f.airframe.cameraFov = 120; }), FBASELINE, 1],
+  ['a source covers its own object, not one inside it', folder((f) => { f.airframe.source = 'FMS spec sheet'; }), FBASELINE, 1],
+  ['a changed value is one stale and one new entry', folder((f) => { f.airframe.grams = 2400; }), FBASELINE, 2],
+];
+const outside = check(scanFolder(AF, folder((f) => {
+  f.airframe.simId = 16; f.airframe.rates.roll.rcRate = 1.2; f.kit.slots = [2.5]; f.power.estimates.x = 5.0; f.hangar.anchors.x = 0.2;
+})), FBASELINE).length;
+
 let pass = 0;
 let fail = 0;
 for (const [name, text, baseline, want] of cases) {
-  const got = check(scan(F, text), baseline).length;
+  const got = check(scanFile(F, text), baseline).length;
   if (got === want) { pass++; continue; }
   fail++;
   console.error(`FAIL ${name}: ${got} problem(s), wanted ${want}`);
 }
 
-const over = check(scan(F, BASE), BASELINE, BASELINE.length - 1).length;
+const over = check(scanFile(F, BASE), BASELINE, { ...PINS, scalar: BASELINE.length - 1 }).length;
 if (over === 1) pass++; else { fail++; console.error(`FAIL baseline over the pin: ${over} problem(s), wanted 1`); }
+
+const eover = check(scanFile(F, EBASE), EBASELINE, { ...PINS, element: EBASELINE.length - 1 }).length;
+if (eover === 1) pass++; else { fail++; console.error(`FAIL elements over their pin: ${eover} problem(s), wanted 1`); }
+/* Each pin counts its own kind only: a scalar pin of 0 holds a baseline of
+ * elements, and an element pin of 0 a baseline of scalars. */
+const apart = check(scanFile(F, EBASE), EBASELINE, { ...PINS, scalar: 0 }).length + check(scanFile(F, BASE), BASELINE, { ...PINS, element: 0 }).length;
+if (apart === 0) pass++; else { fail++; console.error(`FAIL one kind counted against the other's pin: ${apart} problem(s), wanted 0`); }
+const ints = check(scanFile(F, EBASE.replace('.parent = -1', '.parent = 0, .wheel = 3')), EBASELINE).length;
+if (ints === 0) pass++; else { fail++; console.error(`FAIL an integer element (an index) counted as a constant: ${ints} problem(s), wanted 0`); }
 
 /* Negative control: with citation detection disabled, every cited case
  * above must fail, or the cited passes prove nothing. */
 const never = /(?!)/;
 for (const [name, text, baseline, want] of cases) {
-  if (want !== 0 || text === BASE) continue;
-  if (check(scan(F, text, never), baseline).length > 0) { pass++; continue; }
+  if (want !== 0 || text === BASE || text === EBASE) continue;
+  if (check(scanFile(F, text, never), baseline).length > 0) { pass++; continue; }
   fail++;
   console.error(`FAIL negative control ${name}: still passes with citations disabled`);
 }
@@ -81,11 +194,46 @@ for (const [name, text, baseline, want] of cases) {
 /* prune drops a cited and a gone entry, keeps the rest, and never admits
  * a new uncited constant. */
 const cited = BASE.replace('  .cd0 = 0.030,', '  .cd0 = 0.030, /* docs/WING-STAGE1.md */') + '\n#define NEW_K 2.0';
-const pruned = prune(scan(F, cited), [...BASELINE, `${F} FW_A.cm_0 = 0.02`]);
+const pruned = prune(scanFile(F, cited), [...BASELINE, `${F} FW_A.cm_0 = 0.02`]);
 const wantPruned = [BASELINE[0], BASELINE[2]];
 if (JSON.stringify(pruned) === JSON.stringify(wantPruned)) pass++; else { fail++; console.error(`FAIL prune: ${JSON.stringify(pruned)}`); }
-const afterPrune = check(scan(F, cited), pruned).length;
+const afterPrune = check(scanFile(F, cited), pruned).length;
 if (afterPrune === 1) pass++; else { fail++; console.error(`FAIL prune admitted a new uncited constant: ${afterPrune} problem(s), wanted 1`); }
+
+for (const [name, text, baseline, want] of jcases) {
+  const got = check(scanJs(JF, text), baseline).length;
+  if (got === want) { pass++; continue; }
+  fail++;
+  console.error(`FAIL ${name}: ${got} problem(s), wanted ${want}`);
+}
+for (const [name, text, baseline, want] of jcases) {
+  if (want !== 0 || text === JBASE) continue;
+  if (check(scanJs(JF, text, /(?!)/, /(?!)/), baseline).length > 0) { pass++; continue; }
+  fail++;
+  console.error(`FAIL negative control ${name}: still passes with citations disabled`);
+}
+const notConstants = check(scanJs(JF, jwith('const SIM_TUNE = { CG: 0, RATE: 1 };', 'export const SIM_TUNE_DOUBLES = 12;', 'const Vs = Math.sqrt(2 * W / (1.225 * S));', 'const ARGS = process.argv.slice(2), K = Math.pow(1.5, 2);', 'const PICK = { pack: PACKS[1], cell: CELLS[0][2] };', 'const g2 = (x) => { return x * 9.81; };')), JBASELINE).length;
+if (notConstants === 0) pass++; else { fail++; console.error(`FAIL a layout table, a derived value or a function body counted as a constant: ${notConstants} problem(s), wanted 0`); }
+const jover = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, js: JBASELINE.length - 1 }).length;
+const japart = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, scalar: 0, element: 0 }).length;
+if (jover === 1 && japart === 0) pass++; else { fail++; console.error(`FAIL the js pin: over ${jover} (wanted 1), against the C pins ${japart} (wanted 0)`); }
+
+for (const [name, text, baseline, want] of fcases) {
+  const got = check(scanFolder(AF, text), baseline).length;
+  if (got === want) { pass++; continue; }
+  fail++;
+  console.error(`FAIL ${name}: ${got} problem(s), wanted ${want}`);
+}
+for (const [name, text, baseline, want] of fcases) {
+  if (want !== 0 || text === FBASE) continue;
+  if (check(scanFolder(AF, text, /(?!)/, /(?!)/), baseline).length > 0) { pass++; continue; }
+  fail++;
+  console.error(`FAIL negative control ${name}: still passes with citations disabled`);
+}
+if (outside === 0) pass++; else { fail++; console.error(`FAIL a number outside the physics sections (id, rates, kit, estimates, anchors) counted: ${outside} problem(s), wanted 0`); }
+const fover = check(scanFolder(AF, FBASE), FBASELINE, { ...PINS, aircraft: FBASELINE.length - 1 }).length;
+const fapart = check(scanFolder(AF, FBASE), FBASELINE, { ...PINS, js: 0 }).length;
+if (fover === 1 && fapart === 0) pass++; else { fail++; console.error(`FAIL the aircraft pin: over ${fover} (wanted 1), against the js pin ${fapart} (wanted 0)`); }
 
 console.log(`physics-sources-selftest: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

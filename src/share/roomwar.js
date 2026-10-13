@@ -26,8 +26,8 @@
  * taken it off by then.
  *
  * What the shell reads: view() (the room's: state, wave, output, rack,
- * scores), attackersAt(roomMs), takeEvents(), and mine() for this pilot's
- * own score row. What it sends: start(mission) and end(), the host's.
+ * scores; on the watch seat never a result), attackersAt(roomMs),
+ * takeEvents(), and mine() for this pilot's own score row. What it sends: start(mission) and end(), the host's.
  *
  * Pure: no DOM, no timers, no three.js, the room clock handed in, so a
  * check in Node can drive it against edge/rooms/core.js.
@@ -52,12 +52,21 @@ import { decodeAgents, decodeHunts } from './roomwire.js';
 import { KINDS, planAgent, poseAt } from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
 import { MISSIONS } from './war/missions/index.js';
+import { WATCH_SEAT } from './roomrace.js';
 
 /* A hunter's samples older than this behind its newest are dropped: the
  * far interest band sends one a second, and the shell draws near now. */
 const KEEP_MS = 3000;
 
 const LIVE = new Set(['countdown', 'live']);
+
+/* The view a seat holds: the watch seat's never with a result, whose
+ * stars and credits the campaign pays whoever holds it
+ * (src/ui/campaign.js observe); the room sends it none (core.js
+ * watchedView), and a room from before might. */
+function held(view, seat) {
+  return seat === WATCH_SEAT && view && view.result != null ? { ...view, result: null } : view;
+}
 
 /* a + (b - a) u on quaternions, the short way, normalised. */
 function nlerp(a, b, u, out) {
@@ -173,8 +182,15 @@ export function createRoomWar(send) {
   function dead(m) {
     const at = m.at;
     const list = [];
+    /* This pilot's kills are only those the room credited to this seat; a
+     * room from before `credited` names none, so none are counted. */
+    const credited = m.by === seat && Array.isArray(m.credited) ? new Set(m.credited) : new Set();
+    const kills = [];
     for (const id of m.ids || []) {
       const x = agents.get(id);
+      if (credited.has(id)) {
+        kills.push({ id, kind: x ? x.a.kind : null });
+      }
       if (!x) {
         continue;
       }
@@ -189,6 +205,7 @@ export function createRoomWar(send) {
        * it said so, the target's own. */
       mw: typeof m.mw === 'number' ? m.mw : m.target && mission() && mission().targets[m.target] ? mission().targets[m.target].mw : 0,
       mine: m.why === 'boom' && m.by === seat,
+      kills,
     });
     if (m.scouts === true) {
       events.push({ type: 'scouts', at, by: m.by });
@@ -204,7 +221,7 @@ export function createRoomWar(send) {
         reset();
       }
       room = w.code ?? null;
-      war = next;
+      war = held(next, seat);
     },
 
     /* A room message this module owns. Returns true when it was one. */
@@ -223,7 +240,7 @@ export function createRoomWar(send) {
         }
         const was = war.state;
         const stageWas = war.stage ? `${war.stage.id}@${war.stage.at}` : null;
-        war = m.war;
+        war = held(m.war, seat);
         if (was !== war.state) {
           events.push({ type: 'state', from: was, to: war.state, why: war.why ?? null });
         }
@@ -342,10 +359,18 @@ export function createRoomWar(send) {
       return out.sort((a, b) => a.id - b.id);
     },
 
+    /* attackersAt(t), each with its birth record (born) and its plan
+     * (routes.js planAgent), for the developer overlay (src/ui/wardebug.js). */
+    debugAt(t) {
+      return this.attackersAt(t).map((a) => ({ ...a, born: agents.get(a.id).a, plan: agents.get(a.id).plan }));
+    },
+
     /* What happened since the last call, oldest first, each once:
      *   { type: 'born', agents }
      *   { type: 'dead', ids, agents: [{ id, kind, p }], at, by, why, p,
-     *     target, hit, mw, mine }
+     *     target, hit, mw, mine, kills: [{ id, kind }] }
+     *                                          kills: those of ids the room
+     *                                          credited to this seat
      *   { type: 'boom', seat, at, p, mine }    mine: break this craft
      *   { type: 'scouts', at, by }             that dead was a scout
      *                                          wave's last: later waves
@@ -370,6 +395,10 @@ export function createRoomWar(send) {
     },
     seat() {
       return seat;
+    },
+    /* The watch seat's: the room's war, none of it its own. */
+    watcher() {
+      return seat === WATCH_SEAT;
     },
     error() {
       return error;
@@ -409,6 +438,14 @@ export function createRoomWar(send) {
     },
     skipIntro() {
       send({ type: 'war', op: 'skipIntro' });
+    },
+    /* Host only, in developer mode (edge/rooms/war.js devOp): the stage
+     * left now, or an objective of it (every one, without an id) done. */
+    skip() {
+      send({ type: 'war', op: 'skip' });
+    },
+    complete(objective = null) {
+      send({ type: 'war', op: 'complete', ...(objective ? { objective } : {}) });
     },
     /* Any pilot: the films it has watched to the end, { id: version }
      * (the host's skip waits on everybody's, edge/rooms/war.js). */

@@ -33,6 +33,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { WATCH_SEAT } from './roomrace.js';
+
 /* One point a second of reign (docs/TAG-PLAN.md decision 5). */
 export const POINT_MS = 1000;
 /* The goals the host picks from, in points (decision 5), and the custom
@@ -136,6 +138,10 @@ export function createRoomTag(send) {
     seat() {
       return seat;
     },
+    /* The watch seat's: the room's game, none of it its own. */
+    watcher() {
+      return seat === WATCH_SEAT;
+    },
     error() {
       return error;
     },
@@ -158,10 +164,14 @@ export function createRoomTag(send) {
       return tag.state === 'countdown' || tag.state === 'live';
     },
 
-    /* 'lobby' (no match), 'countdown', 'ace', 'hunter', 'results'. */
+    /* 'lobby' (no match), 'countdown', 'ace', 'hunter', 'results', and
+     * the watch seat's 'watching' all a match long. */
     role(roomNow) {
       if (tag.state === 'results') {
         return 'results';
+      }
+      if (seat === WATCH_SEAT) {
+        return api.on() ? 'watching' : 'lobby';
       }
       if (tag.state === 'countdown' || (tag.state === 'live' && roomNow != null && roomNow < tag.goAt)) {
         return 'countdown';
@@ -186,16 +196,17 @@ export function createRoomTag(send) {
 
     /* A match counting down, once: the shell puts the pilot on their slot. */
     takeStart(roomNow) {
-      if (api.on() && startTaken !== tag.id && roomNow != null && roomNow < tag.goAt) {
+      if (seat !== WATCH_SEAT && api.on() && startTaken !== tag.id && roomNow != null && roomNow < tag.goAt) {
         startTaken = tag.id;
         return tag;
       }
       return null;
     },
 
-    /* A match's results, once, for the results screen. */
+    /* A match's results, once, for the results screen; none for the watch
+     * seat, whose scoreboard shows them (roomtaghud.js tagHudView). */
     takeResults() {
-      if (tag.state === 'results' && resultsTaken !== tag.id) {
+      if (seat !== WATCH_SEAT && tag.state === 'results' && resultsTaken !== tag.id) {
         resultsTaken = tag.id;
         return tag;
       }

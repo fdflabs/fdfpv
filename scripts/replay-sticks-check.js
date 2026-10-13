@@ -17,8 +17,9 @@
  *  3. The Sticks CSV button, pressed with a pointer, hands over a control
  *     recording (src/share/controlrec.js) of the range, one row a clip
  *     row, every setting in it.
- *  4. Saved to My clips and played from there: version 17, sticks and all,
- *     with what flies it again (src/replay/refly.js). The saved file is
+ *  4. Saved to My clips and played from there: version 18, sticks and all,
+ *     with what flies it again (src/replay/refly.js) and the app build
+ *     that flew it, null on this unstamped checkout. The saved file is
  *     left in OUT_DIR and flown again in Node by npm run replay:refly,
  *     which must give every row back bit for bit: a flight recorded in
  *     Chromium, re-flown in Node. Then with --transplant: set up from the
@@ -305,14 +306,17 @@ async function main() {
       for (let i = 0; i < u8.length; i += 0x8000) {
         bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
       }
-      return { size: row.bytes.byteLength, version: new DataView(row.bytes).getUint32(4, true), b64: btoa(bin) };
+      return {
+        size: row.bytes.byteLength, version: new DataView(row.bytes).getUint32(4, true), build: row.build, b64: btoa(bin),
+      };
     })()`);
     const saved = join(outDir, 'sticks.fdfreplay');
     writeFileSync(saved, Buffer.from(bytes.b64, 'base64'));
     await page.evaluate(`${H}.api.playSaved(${JSON.stringify(id)})`);
     await page.until(`window.__crashCam.live() && ${H}.view() && !${H}.view().live`, 3 * FRAME_MS);
     const vs = await page.evaluate(`JSON.stringify(${H}.view())`).then(JSON.parse);
-    check('saved as version 17 and played back with its sticks', bytes.version === 17 && Boolean(vs.sticks), `${bytes.size} bytes, version ${bytes.version}`);
+    check('saved as version 18 and played back with its sticks, the row naming a checkout\'s build', bytes.version === 18 && bytes.build === null && Boolean(vs.sticks),
+      `${bytes.size} bytes, version ${bytes.version}, build ${bytes.build}`);
     const re = spawnSync(process.execPath, [join(root, 'scripts', 'replay-refly.js'), saved], { encoding: 'utf8' });
     writeFileSync(join(outDir, 'sticks-refly.txt'), `${re.stdout}${re.stderr}`);
     const tally = /bit for bit: (\d+)\/(\d+)/.exec(re.stdout);
@@ -336,6 +340,7 @@ async function main() {
       const c = { ...${H}.clip(), meta: { ...${H}.clip().meta, name: 'old' } };
       delete c.sticks;
       delete c.refly;
+      delete c.build;
       const buf = f.encodeReplay(c);
       await ${H}.api.importFile(new File([buf], 'old.fdfreplay'));
       return { version: new DataView(buf).getUint32(4, true), size: buf.byteLength };

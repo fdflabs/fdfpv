@@ -167,7 +167,7 @@ export class GhostRecorder {
 }
 
 export class GhostLap {
-  constructor(data, { label = 'Ghost', name = '', source = 'session' } = {}) {
+  constructor(data, { label = str('ghost.default_label'), name = '', source = 'session' } = {}) {
     this.rateHz = data.rateHz;
     this.durationMs = data.durationMs;
     this.count = data.count;

@@ -228,9 +228,10 @@ export class RoomGameLobby {
     return this.game(core) ? { lobby: this.view(core) } : {};
   }
 
+  /* Its watchers too (core.js watch), who see who is ready and are never
+   * asked: the flags and the times count the people (settle). */
   changed(core) {
-    const data = JSON.stringify({ type: 'lobby', lobby: this.view(core) });
-    return [...core.seats.keys()].map((conn) => ({ send: conn, data }));
+    return core.everyone(JSON.stringify({ type: 'lobby', lobby: this.view(core) }));
   }
 
   /* Whether the room's clock must run for a time to come. */

@@ -32,6 +32,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { logError, logWarn } from '../share/crashrecord.js';
 import { KIND_INDEX, SOURCE_STRIDE } from './world-kinds.js';
 
 /* Ids on the wire: each family of sources in its own range, so a war's
@@ -233,7 +234,7 @@ export class WorldAudio {
     if (typeof audio.attachWorld !== 'function') {
       if (!this.warned) {
         this.warned = true;
-        console.warn('audio: the world is silent, MotorAudio has no attachWorld');
+        logWarn('audio', 'audio: the world is silent, MotorAudio has no attachWorld');
       }
       return;
     }
@@ -256,7 +257,7 @@ export class WorldAudio {
       }
       this.node = node;
     });
-    this.ready.catch((e) => console.error('audio: the world\'s worklet failed to load', e));
+    this.ready.catch((e) => logError('audio', 'audio: the world\'s worklet failed to load', e));
   }
 
   /* The walls this map's explosions echo off (damWalls). */

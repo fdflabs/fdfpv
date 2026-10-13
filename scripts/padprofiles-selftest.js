@@ -26,7 +26,7 @@
 
 import { AETR_MAP, builtInKind, builtInMap, standardPadMap } from '../src/input/padmap.js';
 import {
-  PAD_PROFILES, deviceKey, parsePadId, profileFor,
+  PAD_PROFILES, deviceKey, deviceKind, parsePadId, profileFor,
 } from '../src/input/padprofiles.js';
 
 let failed = 0;
@@ -147,6 +147,15 @@ keyIs(null, '');
 check('the same radio in both browsers\' forms is one key', deviceKey(EDGETX_CHROMIUM) === deviceKey(EDGETX_FIREFOX));
 check('two EdgeTX radios (same USB ids) are two keys',
   deviceKey(EDGETX_CHROMIUM) !== deviceKey('TX16S Joystick (Vendor: 1209 Product: 4f54)'));
+
+console.log('\nthe kind of device the controller question lights');
+const kindIs = (name, gp, want) => check(`${name} is ${show(want)}`, deviceKind(gp) === want, show(deviceKind(gp)));
+kindIs('a standard pad', pad(XBOX_CHROMIUM, 4, 'standard'), 'gamepad');
+kindIs('a standard pad named like an ELRS radio', pad(ELRS3_CHROMIUM, 8, 'standard'), 'gamepad');
+kindIs('EdgeTX over USB', pad(EDGETX_CHROMIUM, 8), 'radio');
+kindIs('ELRS 3.x over Bluetooth', pad(ELRS3_CHROMIUM, 8), 'radio');
+kindIs('an unknown unmapped joystick', pad('Some joystick', 4), 'radio');
+kindIs('nothing plugged in', null, null);
 
 console.log('\nnegative control: a mutated row must be caught');
 const edgetx = PAD_PROFILES.find((row) => row.key === 'edgetx-usb');

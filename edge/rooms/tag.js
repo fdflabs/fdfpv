@@ -214,8 +214,7 @@ export class RoomTag {
   }
 
   broadcast(core, msg) {
-    const data = JSON.stringify(msg);
-    return [...core.seats.keys()].map((conn) => ({ send: conn, data }));
+    return core.everyone(JSON.stringify(msg));
   }
 
   changed(core) {

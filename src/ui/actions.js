@@ -6,6 +6,7 @@
  *   back()                               Escape and the Back row
  *   select()                             Enter on the row under the cursor
  *   hubCards, hangarCards, openHub       home and its three hubs
+ *   continueWay                          home's Continue, the last session
  *   seatMap, flown, seatMatchesMode      the seat and the first flight
  *   openBuilder, actOnCard, duplicateCard, storeCardChange,
  *   openBoardCourse                      the rows of a chosen course card
@@ -31,14 +32,19 @@
  */
 
 import { KEYBIND_PREFIX, keybindAction } from './controls.js';
+import { FLY_WITH_PREFIX, answerFlyWith } from './flywith.js';
 import { MAPS } from '../maps/registry.js';
 import { airframeById } from '../../configs/airframes.js';
 import { clearPidsFor } from '../../configs/pids.js';
 import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
 import { needSignIn } from '../share/account.js';
+import { resetProgress, resetSettings } from '../share/save.js';
+import { ACT1, released } from '../game/campaign.js';
+import { freshProgress } from '../game/progress.js';
 import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
 import { tracksConfigured } from '../share/cloud.js';
+import { MODES, modeById } from '../share/modes.js';
 import { hasFlyableTrack } from '../share/listing.js';
 import { clearShareImport, readShareImport } from '../share/session.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
@@ -126,6 +132,12 @@ function answerGate(ui, way, picked, keepWorld) {
   ui.craftGate = false;
   ui.mode = way.mode;
   ui.roomGame = way.game ?? null;
+  /* Every session's card passes here (src/main.js openSession acts it),
+   * so this is the activity home's Continue reopens. A way the registry
+   * has no card for (the rooms panel's friends, the war's own) leaves the
+   * last one standing. */
+  const activity = MODES.find((m) => m.card.way === way.id);
+  if (activity) ui.settings.lastActivity = activity.id;
   saveSettings(ui.settings);
   tellShell(ui);
   ui.returnTo = 'title';
@@ -253,6 +265,29 @@ function onSubjectCard(ui, action) {
  * FALL_THROUGH, which hands the action on to the shell's onAction. */
 const FALL_THROUGH = Symbol('fall through');
 
+/* Reset settings or progress (src/share/save.js) after a confirm, then
+ * reload, as the language row does: modules hold the live settings, so
+ * the page starts again from what was stored. */
+function askReset(ui, half, reset) {
+  ui.askConfirm({
+    title: str(`ui.reset_${half}_ask`),
+    detail: str(`ui.reset_${half}_detail`),
+    yes: str(`ui.reset_${half}`),
+    no: str('ui.keep_it'),
+    danger: true,
+  }).then((ok) => {
+    if (!ok) return;
+    try {
+      reset();
+    } catch (e) {
+      ui.resetNotice = str('ui.reset_failed');
+      ui.renderMenu();
+      return;
+    }
+    window.location.reload();
+  });
+}
+
 const ACTIONS = {
   'update-reload'() { window.location.reload(); },
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
@@ -279,6 +314,13 @@ const ACTIONS = {
    * firsts the wall's trophies stand for (src/ui/progress-ui.js). */
   'hangar-trophies'(ui) {
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'challenges');
+  },
+  /* The war's shop (src/ui/campaign.js), its Upgrades, under the Hangar
+   * as well as in Operations. */
+  'campaign-shop'(ui) {
+    if (ui.onCampaignShop) {
+      ui.onCampaignShop();
+    }
   },
   'hangar-shop'(ui) {
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'shop');
@@ -363,9 +405,10 @@ const ACTIONS = {
     if (ui.onAction) ui.onAction('fly', ui.settings);
   },
   rates(ui) {
-    /* Reached from Settings or Quad, Back returns there; from the bench,
-     * returnTo is left to the pause chain it may be carrying. */
-    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
+    /* Reached from the Controller, Settings or Quad, Back returns there;
+     * from the bench, returnTo is left to the pause chain it may be
+     * carrying. */
+    if (['pilot', 'quad', 'quick', 'controller'].includes(ui.screen)) {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
@@ -375,13 +418,23 @@ const ACTIONS = {
   },
   /* A plane's rates, from the same rows: Back as the quad's Rates. */
   planerates(ui) {
-    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
+    if (['pilot', 'quad', 'quick', 'controller'].includes(ui.screen)) {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
       ui.returnTo = pauseOrTitle(ui);
     }
     ui.show('planerates');
+  },
+  /* The Controller screen, from Settings (Back returns there) or the
+   * Hangar's card. */
+  controller(ui) {
+    ui.controllerFrom = ui.screen === 'pilot' ? 'pilot' : null;
+    if (!ui.controllerFrom) ui.returnTo = pauseOrTitle(ui);
+    ui.show('controller');
+  },
+  'controller-builtin'(ui) {
+    if (ui.onController) ui.onController({ builtIn: true });
   },
   pids(ui) {
     if (ui.screen === 'quad' || ui.screen === 'quick') {
@@ -472,6 +525,8 @@ const ACTIONS = {
       ui.renderMenu();
     });
   },
+  resetsettings(ui) { askReset(ui, 'settings', () => resetSettings()); },
+  resetprogress(ui) { askReset(ui, 'progress', () => resetProgress({ progress: freshProgress(false) })); },
   back(ui) { ui.back(); },
   /* Escape from the title, as a row: both halves of the gate cleared. A
    * lobby's card came from a hub, and the gate reopens on that hub. */
@@ -533,6 +588,7 @@ const PREFIXES = [
   }],
   ['map:', (ui, action, id) => ui.seatMap(id)],
   [KEYBIND_PREFIX, keybindAction],
+  [FLY_WITH_PREFIX, answerFlyWith],
 ];
 
 /* Without an account the menus are for looking at: anything behind a card
@@ -561,6 +617,11 @@ const BACK_FROM = {
   },
   calibrate(ui) {
     ui.act('calibrate-cancel');
+    return true;
+  },
+  /* Escape on the controller question is its Skip. */
+  flywith(ui) {
+    ui.act('flywith:skip');
     return true;
   },
   rooms(ui) {
@@ -624,6 +685,12 @@ const BACK_FROM = {
   rates(ui) { return backToOrigin(ui, 'ratesFrom'); },
   planerates(ui) { return backToOrigin(ui, 'ratesFrom'); },
   pids(ui) { return backToOrigin(ui, 'pidsFrom'); },
+  controller(ui) { return backToOrigin(ui, 'controllerFrom'); },
+  /* Keys and buttons is the Controller screen's. */
+  controls(ui) {
+    ui.show('controller');
+    return true;
+  },
 };
 
 function backToOrigin(ui, field) {
@@ -779,12 +846,20 @@ export const actionMethods = {
     /* Operations also holds the war's field hangar, which needs no rooms
      * server to walk round. */
     const field = { label: str('walk.field'), action: 'field-walk', key: 'ops-field' };
-    const linksOf = (hub) => {
+    const own = (hub) => {
       if (hub.id === 'hangar') {
         return this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }));
       }
       return hub.id === 'ops' ? [...ways(hub.id), field] : ways(hub.id);
     };
+    /* Continue stands in the last activity's own link, its press that
+     * card's (src/ui/cards.js gateLinks, pickForWay), so the session is
+     * the one the pilot last chose for it. In its place, not beside it:
+     * the label is no longer than any activity's it replaces, in either
+     * language, so the links' wrapping never gains a line and the hub no
+     * height. */
+    const last = this.continueWay();
+    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.action ? { label: str('hub.continue'), action: l.action, key: 'continue' } : l));
     return HUBS.map((hub) => ({
       label: str(hub.label),
       card: `hub-${hub.id}`,
@@ -798,8 +873,20 @@ export const actionMethods = {
     })).filter((card) => card.links.length > 0);
   },
 
+  /* The card of the activity whose session this pilot last opened, or
+   * null: none yet, an id this build does not know, or the war while no
+   * mission of its campaign is released (src/game/campaign.js), since its
+   * Play would open nothing a pilot may fly. */
+  continueWay() {
+    const activity = modeById(this.settings.lastActivity);
+    if (!activity) return null;
+    if (activity.id === 'war' && !ACT1.some((m) => released(m.id))) return null;
+    return WAYS.find((w) => w.id === activity.card.way) ?? null;
+  },
+
   /* The Hangar's cards: the aircraft, its customising when it has any,
-   * the radio, and how the sticks fly. */
+   * the war's upgrades, the controller (src/ui/controller.js), and how
+   * the sticks fly. */
   hangarCards() {
     const plan = craftSvg(airframeById(this.settings.airframe));
     const card = (id, label, svg, blurb, action) => ({ label, card: `hangar-${id}`, svg, blurb, facts: [], action });
@@ -807,7 +894,8 @@ export const actionMethods = {
       card('walk', str('walk.card'), null, str('walk.blurb'), 'hangar-walk'),
       card('aircraft', str('ui.aircraft'), plan, str('hub.aircraft_blurb'), 'hangar-aircraft'),
       ...(customisable(this.settings.airframe) ? [card('customise', str('hangar.customise'), plan, str(airframeById(this.settings.airframe).fixedWing ? 'hangar.row_note' : 'hangar.row_note_quad'), 'customise')] : []),
-      card('sticks', str('ui.calibrate_sticks'), null, str('hub.sticks_blurb'), 'calibrate'),
+      card('upgrades', str('hub.upgrades'), null, str('hub.upgrades_blurb'), 'campaign-shop'),
+      card('controller', str('controller.title'), null, str('controller.card_blurb'), 'controller'),
       card('howto', str('ui.how_to_fly'), null, str('ui.the_sticks_live_and_what_the'), 'howto'),
     ];
   },

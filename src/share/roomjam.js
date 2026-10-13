@@ -20,6 +20,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { WATCH_SEAT } from './roomrace.js';
+
 /* A run's length in seconds, the host's choice between matches; the
  * second is a room's until its host picks. */
 export const RUN_SECONDS = [45, 60, 90];
@@ -161,6 +163,10 @@ export function createRoomJam(send) {
     seat() {
       return seat;
     },
+    /* The watch seat's: the room's match, none of it its own. */
+    watcher() {
+      return seat === WATCH_SEAT;
+    },
     error() {
       return error;
     },
@@ -197,8 +203,9 @@ export function createRoomJam(send) {
       return null;
     },
 
+    /* None for the watch seat, whose scoreboard shows them (jamhud.js). */
     takeResults() {
-      if (jam.state === 'results' && resultsTaken !== jam.id) {
+      if (seat !== WATCH_SEAT && jam.state === 'results' && resultsTaken !== jam.id) {
         resultsTaken = jam.id;
         return jam;
       }

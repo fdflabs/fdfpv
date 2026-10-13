@@ -61,31 +61,49 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* Act 1, in the order it is flown (docs/campaign/MISSIONS.md section 2).
- * `free` is the one mission a pilot without the campaign may fly. The ids
- * are the room's mission ids (src/share/war/missions/index.js).
- *
- * `release` is whether a pilot may fly it at all (the owner, 2026-10-04:
- * "only make the first mission available, until its 100% correct, then
- * only when storyline, videos, etc. of mission 2 is done do you make that
- * available"): 'available' is offered and started; 'development' has code
- * in the build and is shown Under Development; 'soon' is only planned, has
- * no mission file, and is shown Coming Soon. The room refuses to start
- * anything but 'available' (edge/rooms/war.js start), so this row is the
- * gate, not the screen. A mission is made available here and nowhere else.
- * First Light went back to 'development' on 2026-10-07 (the owner: it has
- * no narration, nothing of what Mission 1 of The Interior has; under
- * construction until it is as finished); the owner's own account still
- * flies it (DEV_ACCOUNTS, devHost). */
-export const ACT1 = [
-  { id: 'itaipu-1', key: 'intakes', free: true, release: 'development' },
-  { id: 'itaipu-2', key: 'spillway', free: false, release: 'development' },
-  { id: 'itaipu-3', key: 'switchyard', free: false, release: 'development' },
-  { id: 'itaipu-4', key: 'night', free: false, release: 'development' },
-  { id: 'itaipu-5', key: 'river', free: false, release: 'soon' },
-  { id: 'itaipu-6', key: 'corridor', free: false, release: 'soon' },
-  { id: 'itaipu-7', key: 'breach', free: false, release: 'soon' },
-];
+import { MISSIONS, PLANNED } from '../share/war/missions/index.js';
+
+/* The releases a mission with a file may state; a planned one, with none,
+ * is 'soon'. */
+const FLOWN = ['available', 'development'];
+
+/*
+ * Act `act` of the campaign, in the order it is flown (docs/campaign/
+ * MISSIONS.md section 2), as { id, key, free, release }: every mission in
+ * `missions` (the room's registry, src/share/war/missions/index.js) and
+ * every row of `planned` that states that act, the planned ones 'soon'.
+ * The registry's fields and the gate they are are documented there. An
+ * act that does not add up (an order twice or missing, a release a
+ * mission cannot have, more than one free mission) throws
+ * at load, so a wrong file stops the build's checks rather than a screen.
+ */
+export function actOf(act, missions = MISSIONS, planned = PLANNED) {
+  const flown = Object.values(missions).filter((m) => m.act === act);
+  for (const m of flown) {
+    if (!FLOWN.includes(m.release)) {
+      throw new Error(`campaign: ${m.id} release ${JSON.stringify(m.release)} is not one of ${FLOWN}`);
+    }
+  }
+  const rows = [...flown, ...planned.filter((m) => m.act === act).map((m) => ({ ...m, free: false, release: 'soon' }))]
+    .sort((x, y) => x.order - y.order);
+  rows.forEach((m, i) => {
+    if (m.order !== i + 1) {
+      throw new Error(`campaign: act ${act} has ${m.id} at order ${m.order} where ${i + 1} belongs`);
+    }
+    if (typeof m.key !== 'string' || !m.key) {
+      throw new Error(`campaign: ${m.id} has no key`);
+    }
+  });
+  if (new Set(rows.map((m) => m.id)).size !== rows.length) {
+    throw new Error(`campaign: act ${act} names a mission twice`);
+  }
+  if (rows.filter((m) => m.free === true).length > 1) {
+    throw new Error(`campaign: act ${act} has more than one free mission`);
+  }
+  return rows.map((m) => ({ id: m.id, key: m.key, free: m.free === true, release: m.release }));
+}
+
+export const ACT1 = actOf(1);
 
 /* Whether mission `id` may be started. A mission outside Act 1 (the
  * drill, itaipu-drill.js, which no screen offers, and the checks' own) is

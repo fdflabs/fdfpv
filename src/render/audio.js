@@ -54,6 +54,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { logError, logWarn } from '../share/crashrecord.js';
 import { Music } from './music.js';
 import { WarRadio, VOICE_DUCK } from './warradio.js';
 import { ReplayBeds } from './replaybeds.js';
@@ -724,7 +725,7 @@ export class MotorAudio {
       }
       this.attach(new Context());
     } else if (ctx.state !== 'running' && ctx.state !== 'closed') {
-      ctx.resume().catch((e) => console.error('audio: the context would not resume', e));
+      ctx.resume().catch((e) => logError('audio', 'audio: the context would not resume', e));
     }
     this.enabled = true;
   }
@@ -767,7 +768,7 @@ export class MotorAudio {
         this.states.shift();
       }
       if (ctx.state !== 'running') {
-        console.warn(`audio: the context is ${ctx.state}; the next key or press resumes it`);
+        logWarn('audio', `audio: the context is ${ctx.state}; the next key or press resumes it`);
       }
     });
   }
@@ -1023,7 +1024,7 @@ export class MotorAudio {
         this.connectWorld(this.worldNode);
       }
     });
-    this.ready.catch((e) => console.error('audio: the engine failed to load', e));
+    this.ready.catch((e) => logError('audio', 'audio: the engine failed to load', e));
   }
 
   /*
@@ -1211,8 +1212,8 @@ export class MotorAudio {
     c.kicked = true;
     this.stalls += 1;
     this.states.push({ at: Math.round(wall * 1000), state: 'stalled' });
-    console.warn(`audio: the context says running but its clock has stood at ${ctx.currentTime.toFixed(3)} s for ${(wall - c.wall).toFixed(1)} s; suspending and resuming it`);
-    ctx.suspend().then(() => ctx.resume()).catch((e) => console.error('audio: the stalled context would not restart', e));
+    logWarn('audio', `audio: the context says running but its clock has stood at ${ctx.currentTime.toFixed(3)} s for ${(wall - c.wall).toFixed(1)} s; suspending and resuming it`);
+    ctx.suspend().then(() => ctx.resume()).catch((e) => logError('audio', 'audio: the stalled context would not restart', e));
   }
 
   /*
@@ -1228,7 +1229,7 @@ export class MotorAudio {
       if (this.faults.length > 50) {
         this.faults.shift();
       }
-      console.error(`audio: the ${name} worklet ${f.kind}`, f.message || '', f.context || '', `fault ${f.faults || 1}, ${f.scrubbed || 0} values scrubbed`);
+      logError('audio', `audio: the ${name} worklet ${f.kind}`, f.message || '', f.context || '', `fault ${f.faults || 1}, ${f.scrubbed || 0} values scrubbed`);
     };
     node.addEventListener('processorerror', (e) => note({ kind: 'died', message: String((e && e.message) || 'processorerror') }));
     node.port.addEventListener('message', (e) => {

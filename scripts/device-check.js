@@ -39,6 +39,11 @@
  * can scroll to it (the Freestyle room's world cards do on a phone, and that
  * is fine). So each assertion scrolls the thing into view as a person would
  * and only then asks whether it is visible.
+ *
+ * Every device is walked twice, in English and with ?lang=es, because
+ * Spanish runs longer (docs/redesign/COMPLETENESS.md item 39): in both, no
+ * words on a screen or in the command bar may be cut: text that runs past
+ * the box that clips it, an ellipsis included.
  */
 
 import { dirname } from 'node:path';
@@ -58,6 +63,8 @@ const DEVICES = [
   ['tablet landscape', 1180, 820],
   ['small phone', 360, 640],
 ];
+
+const LANGS = ['en', 'es'];
 
 const SCREENS = [
   'title', 'courses', 'freestyle', 'quad', 'pilot', 'launch', 'rates', 'pids', 'fc', 'paused',
@@ -95,6 +102,39 @@ function probe(screens, minTap, tapExempt) {
   const H = window.innerHeight;
   const coarse = matchMedia('(pointer: coarse)').matches;
   const lost = (box) => box.top >= H - 4 || box.bottom > H + 4;
+  /* Text that runs past the box that clips it (an ancestor that does
+   * not let it overflow, or the window), a one pixel box being text
+   * hidden for screen readers. */
+  const cutIn = (boxes) => {
+    const out = [];
+    for (const box of boxes.filter(Boolean)) {
+      const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+        const el = t.parentElement;
+        if (!t.textContent.trim() || !el || !el.getClientRects().length) {
+          continue;
+        }
+        const range = document.createRange();
+        range.selectNodeContents(t);
+        const r = range.getBoundingClientRect();
+        let left = 0;
+        let right = window.innerWidth;
+        let hidden = false;
+        for (let a = el; a && a !== document.documentElement; a = a.parentElement) {
+          if (getComputedStyle(a).overflowX !== 'visible') {
+            const b = a.getBoundingClientRect();
+            hidden = hidden || b.width <= 1;
+            left = Math.max(left, b.left);
+            right = Math.min(right, b.right);
+          }
+        }
+        if (r.width && !hidden && (r.left < left - 1 || r.right > right + 1)) {
+          out.push(t.textContent.trim().slice(0, 30));
+        }
+      }
+    }
+    return out;
+  };
 
   const checkScreen = (name) => {
     const out = [];
@@ -116,6 +156,10 @@ function probe(screens, minTap, tapExempt) {
     }
     if (document.documentElement.scrollWidth > W + 1) {
       out.push('the page scrolls sideways');
+    }
+    const cut = cutIn([ui.screens[name], document.querySelector('.frame-bot')]);
+    if (cut.length) {
+      out.push(`words cut: ${cut.join(' | ')}`);
     }
     const stops = visible.filter((el) => el.classList.contains('row'));
     const ends = stops.length ? [stops[0], stops[stops.length - 1]] : [];
@@ -152,9 +196,20 @@ function probe(screens, minTap, tapExempt) {
   };
 
   const result = {};
+  /* The negative control: a label cut on purpose must be found. */
+  ui.show('title');
+  const control = document.createElement('span');
+  control.style.cssText = 'display: block; width: 20px; overflow: hidden; white-space: nowrap;';
+  control.textContent = 'cut on purpose';
+  ui.screens.title.append(control);
+  const caught = cutIn([control]).length === 1;
+  control.remove();
+  if (!caught) {
+    result.title = ['negative control: a label cut on purpose was not found'];
+  }
   for (const name of screens) {
     try {
-      result[name] = checkScreen(name);
+      result[name] = [...(result[name] || []), ...checkScreen(name)];
     } catch (e) {
       result[name] = [`threw: ${e && e.message ? e.message : e}`];
     }
@@ -163,8 +218,8 @@ function probe(screens, minTap, tapExempt) {
   return JSON.stringify({ coarse, screens: result });
 }
 
-async function walk([label, width, height]) {
-  const page = await openPage({ root, width, height, touch: true, seed: [seed] });
+async function walk([label, width, height], lang) {
+  const page = await openPage({ root, width, height, touch: true, seed: [seed], url: `/index.html?lang=${lang}` });
   try {
     await page.until('window.__shellReady === true', 90000);
     await page.until('!!window.__ui', 10000);
@@ -176,17 +231,17 @@ async function walk([label, width, height]) {
 }
 
 async function main() {
-  console.log('device check: every screen, on a phone and a tablet');
+  console.log('device check: every screen, on a phone and a tablet, in English and Spanish');
   console.log('');
   const failures = [];
-  for (const device of DEVICES) {
-    const where = `${device[0]} ${device[1]}x${device[2]}`;
-    const { coarse, screens } = await walk(device);
+  for (const [device, lang] of DEVICES.flatMap((d) => LANGS.map((l) => [d, l]))) {
+    const where = `${device[0]} ${device[1]}x${device[2]} ${lang}`;
+    const { coarse, screens } = await walk(device, lang);
     if (!coarse) {
       failures.push(`${where}: pointer: coarse did not match, so the touch rules were not exercised`);
     }
     const bad = SCREENS.filter((name) => screens[name].length);
-    console.log(`  ${where.padEnd(26)} ${bad.length ? `${bad.length} screen(s) with problems` : 'all clear'}`);
+    console.log(`  ${where.padEnd(29)} ${bad.length ? `${bad.length} screen(s) with problems` : 'all clear'}`);
     for (const name of bad) {
       failures.push(...screens[name].map((p) => `${where} ${name}: ${p}`));
     }
@@ -199,7 +254,7 @@ async function main() {
     }
     return 1;
   }
-  console.log('PASS, every row and every note is reachable on every device');
+  console.log('PASS, every row and every note is reachable and no words are cut on every device, in both languages');
   return 0;
 }
 

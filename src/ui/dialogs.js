@@ -45,7 +45,9 @@ import { btn, el } from './widgets.js';
 import { createShotTray } from './bugshots.js';
 import { clampWeight, gravityScaleFor, saveSettings, WEIGHT_MAX } from './settings.js';
 import { nameRules, readPilotName, writePilotName } from '../share/pilot.js';
-import { BUG_KINDS, submitBug } from '../share/bugs.js';
+import { BUG_KINDS, reportFields, submitBug } from '../share/bugs.js';
+import { loadPadChoice } from '../input/stickstore.js';
+import { pageVersion } from './update.js';
 import { crashRecord } from '../share/crashrecord.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
@@ -438,8 +440,8 @@ export const dialogMethods = {
       if (detail) {
         box.append(el('p', 'lede', detail));
       }
-      const yesBtn = btn(danger ? 'name-dialog-btn danger' : 'name-dialog-btn on', yes || 'Yes');
-      const noBtn = btn(danger ? 'name-dialog-btn on' : 'name-dialog-btn', no || 'No');
+      const yesBtn = btn(danger ? 'name-dialog-btn danger' : 'name-dialog-btn on', yes || str('ui.yes'));
+      const noBtn = btn(danger ? 'name-dialog-btn on' : 'name-dialog-btn', no || str('ui.no'));
       box.append(buttonRow(noBtn, yesBtn));
       present(this, box);
 
@@ -612,7 +614,11 @@ export const dialogMethods = {
    * sticks arrive (stickProbe: a keyboard, a radio and two thumbs had all
    * been filed as one quad's feel); a frame fault and the last crash or page
    * errors, noted when they happened because by F8 the wreck is reset.
-   * `fault` and `crash` are present only when there is one.
+   * `fault` and `crash` are present only when there is one. The build,
+   * aircraft, activity and controller (src/share/bugs.js reportFields) say
+   * which game and which machine, and `log` the last warnings it wrote
+   * (crashrecord.js), present when there are any. The board takes 32 keys:
+   * with a crash, a fault, the log and the feel form's five this is 31.
    */
   bugSnapshot() {
     const s = this.settings || {};
@@ -620,8 +626,11 @@ export const dialogMethods = {
     const gpu = this.gpuInfo || {};
     const fault = frameFault();
     const crash = crashRecord.report();
+    const log = crashRecord.log();
     const rates = s.rates || {};
     return {
+      ...reportFields({ version: pageVersion(), airframe: s.airframe, mode: this.mode, pad: loadPadChoice() }),
+      ...(log && { log }),
       href: safely(() => clip(window.location.href, HREF_CHARS)),
       screen: this.screen,
       map: s.map || '',

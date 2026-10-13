@@ -147,6 +147,12 @@ const STAGE_LOST = { when: { allOut: true }, radio: 'stage-lost' };
 
 export default withWaves({
   id: 'itaipu-1',
+  /* Act 1's mission 1 (index.js, the campaign's fields). */
+  act: 1,
+  order: 1,
+  key: 'intakes',
+  free: true,
+  release: 'development',
   /* A string key (src/strings): First Light. */
   title: 'war.mission.itaipu_1',
   map: 'itaipu',

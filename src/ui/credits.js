@@ -1,4 +1,5 @@
 import { str } from '../strings/index.js';
+import { pageVersion } from './update.js';
 /*
  * credits.js: who made this, who flew it, and whose work it stands on.
  *
@@ -272,4 +273,7 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
     document.createTextNode('.'),
   );
   host.append(legal);
+  /* The build, so a screenshot of the credits says which one it was. */
+  const version = pageVersion();
+  host.append(el('p', 'credits-legal', version ? str('loading.build', { version }) : str('loading.local_build')));
 }

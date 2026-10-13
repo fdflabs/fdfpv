@@ -1,8 +1,26 @@
 # Progression: mastery and discovery, no grind
 
-**Status: PROPOSAL** (2026-10-03), under docs/PILLARS.md sections 7, 8, 9
-and 22. Nothing here is built. It extends what exists and replaces none of
-it.
+**Status: PARTLY BUILT** (proposed 2026-10-03, under docs/PILLARS.md
+sections 7, 8, 9 and 22; state as of 2026-10-13). docs/ECONOMY.md is the
+later contract and wins where the two differ: three currencies, not two
+(tokens buy cosmetics), progress is `v: 2`, and the mastery milestones are
+first flight, ten minutes and an hour. Built, by the phases of section 10:
+
+- phase 1: firsts from the war (a mission's win and each star), training
+  (a lesson flown and passed), Streamer Combat and Catch the Ace! (a round
+  or a match finished, once per world); bests are not built, since no rule
+  gives the `bests` shape a value;
+- phase 2: flight time per aircraft (src/share/flighttime.js) with its
+  milestones as pips in the hangar; landings, crashes and laps per
+  aircraft counted from the event log (src/game/events.js) into progress;
+- phase 3: medals on built courses (src/game/medals.js);
+- phase 6, in part: the pilot's numbers on Flight Club's page
+  (src/ui/pilotstats.js, docs/PILOT-STATS.md), landings among them.
+
+Waiting for content, not code: discovery (section 6) needs each world's
+named places, their radii and an XP amount; the per aircraft challenges
+(section 5) need their stories and amounts. Certifications arrive with
+TRAINING.md. It extends what exists and replaces none of it.
 
 ## 1. What exists, and stays
 

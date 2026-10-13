@@ -44,6 +44,7 @@
 
 import { plural, str } from '../strings/index.js';
 import { allowanceOf, roundOf, spentOf } from './warround.js';
+import { WATCH_SEAT } from '../share/roomrace.js';
 import en from '../strings/en.js';
 
 const GREEN = '#7dff9a';
@@ -696,7 +697,10 @@ export function createWarHud(nameOf, restart = null) {
     }
     cell(phase, countdown != null ? AMBER : GREEN);
     cell(str('war.contacts', { n: v.alive ?? 0 }), v.alive > 0 ? AMBER : GREEN);
-    if (left != null) {
+    /* The watch seat has no airframes, rack or kills of its own. */
+    if (me === WATCH_SEAT) {
+      cell(str('war.hud_watch'));
+    } else if (left != null) {
       /* Past PIPS_ROUND the pips would crowd the line: a count instead. */
       const pips = allow <= PIPS_ROUND ? `${'■'.repeat(left)}${'□'.repeat(allow - left)}` : `■×${left}`;
       cell(`${str('war.airframes')} ${pips}`, left <= 1 ? RED : GREEN);
@@ -711,13 +715,15 @@ export function createWarHud(nameOf, restart = null) {
       const pips = v.rackMax <= PIPS_MAX ? ` ${'■'.repeat(v.rack)}${'□'.repeat(Math.max(0, v.rackMax - v.rack))}` : '';
       cell(str('war.rack', { n: v.rack, of: v.rackMax }) + pips, v.rack <= 1 ? RED : GREEN);
     }
-    cell(str('war.kills', { n: mine ? mine.kills : 0 }));
-    if (performance.now() < killsPulse) {
-      line.lastChild.animate([
-        { color: '#ffffff', textShadow: `0 0 10px ${AMBER}`, transform: 'scale(1.35)' },
-        { color: GREEN, transform: 'scale(1)' },
-      ], { duration: 1200, easing: 'ease-out' });
-      line.lastChild.style.display = 'inline-block';
+    if (me !== WATCH_SEAT) {
+      cell(str('war.kills', { n: mine ? mine.kills : 0 }));
+      if (performance.now() < killsPulse) {
+        line.lastChild.animate([
+          { color: '#ffffff', textShadow: `0 0 10px ${AMBER}`, transform: 'scale(1.35)' },
+          { color: GREEN, transform: 'scale(1)' },
+        ], { duration: 1200, easing: 'ease-out' });
+        line.lastChild.style.display = 'inline-block';
+      }
     }
     const over = v.state === 'won' || v.state === 'lost' || v.state === 'ended';
     banner.style.display = over ? 'block' : 'none';

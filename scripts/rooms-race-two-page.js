@@ -285,7 +285,7 @@ try {
   /* The rematch, from the results screen, and the host ends it. */
   await a.evaluate("window.__roomRaceDo('race-start', 2); true");
   for (const p of [a, b]) {
-    await p.until("window.__roomRace().role === 'countdown' && window.__roomRace().race.laps === 2", 15000);
+    await p.until("window.__roomRace().role === 'countdown' && window.__roomRace().race.laps === 2 && window.__roomRace().hold > 0", 15000);
   }
   const m = await state(b);
   check('race again: both back on the line for a second race', m.race.id === ra.race.id + 1 && m.run === m.race.id, JSON.stringify({ id: m.race.id, was: ra.race.id, run: m.run, role: m.role }));

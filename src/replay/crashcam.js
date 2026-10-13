@@ -94,6 +94,7 @@ import { simPosToThree, simQuatToThree } from '../render/frame.js';
 import { partLabel, PART_KINDS } from '../../configs/parts.js';
 import { airframeById, retiredAirframe } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
+import { pageVersion } from '../ui/update.js';
 
 /* The keyboard key that opens the replay; the pad's button is the
  * pilot's `replay` binding (src/input/actions.js, X by default). */
@@ -747,6 +748,13 @@ export function createCrashCam(host) {
       const sticks = sticksRing.clip(first, n);
       if (sticks) {
         clip.sticks = sticks;
+      }
+      /* The app build that flew it, taken here and not at Save: a clip
+       * opened from an older file and saved again is not this build's
+       * flight. Only a clip with its sticks and clock can be version 18;
+       * one without them is saved as before, its build unknown. */
+      if (sticks && clip.anim) {
+        clip.build = pageVersion();
       }
       /* What flies the clip again (src/replay/refly.js), taken now, while
        * the journal still holds the stretches its rows name. */
@@ -1876,7 +1884,20 @@ export function createCrashCam(host) {
   }
 
   /* The standard pad's button edges, for the screen to bind beside the
-   * keys (src/replay/editor.js onPad). */
+   * keys (src/replay/editor.js onPad). Read through input.padHeld, the
+   * one place the pad is polled (lint:input). */
+  let padPrev = 0;
+  function padEdges() {
+    let now = 0;
+    input.padHeld().forEach((pressed, i) => {
+      if (pressed && i < 31) {
+        now |= 1 << i;
+      }
+    });
+    const edges = now & ~padPrev;
+    padPrev = now;
+    return edges;
+  }
   function padInEditor() {
     editor.onPad(padEdges());
   }
@@ -2097,7 +2118,7 @@ export function createCrashCam(host) {
       const thumb = await thumbnail();
       const dropped = await store.putClip({
         id, name: clip.meta.name, created, thumb, bytes,
-        airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
+        airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build,
       });
       session.savedId = id;
       session.savedCreated = created;
@@ -2151,7 +2172,7 @@ export function createCrashCam(host) {
         /* A clip flown on a retired aircraft is refused by its name: the
          * clip holds that aircraft's crash parts, which no other model has. */
         const gone = retiredAirframe(err.airframe);
-        throw new Error(gone ? str('replay.aircraft_retired', { aircraft: gone.name }) : str('replay.not_a_replay'));
+        throw new Error(gone ? str('replay.aircraft_retired', { aircraft: gone.name }) : str(`replay.refused_${err.reason}`));
       }
       throw err;
     }
@@ -2160,7 +2181,7 @@ export function createCrashCam(host) {
   async function playSaved(id) {
     const row = await store.getClip(id);
     if (!row) {
-      throw new Error('that clip is gone');
+      throw new Error(str('replay.clip_gone'));
     }
     const clip = decode(row.bytes);
     if (clip.meta.map !== host.mapId()) {
@@ -2175,7 +2196,7 @@ export function createCrashCam(host) {
   async function exportSaved(id) {
     const row = await store.getClip(id);
     if (!row) {
-      throw new Error('that clip is gone');
+      throw new Error(str('replay.clip_gone'));
     }
     const blob = new Blob([row.bytes], { type: 'application/octet-stream' });
     const safe = row.name.replace(/[^a-z0-9 _-]/gi, '').trim().replace(/\s+/g, '-') || 'replay';
@@ -2191,7 +2212,7 @@ export function createCrashCam(host) {
     const clip = decode(bytes);
     await store.putClip({
       id: store.newId(), name: clip.meta.name, created: Date.now(), thumb: null, bytes,
-      airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
+      airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build,
     });
     return clip.meta.name;
   }

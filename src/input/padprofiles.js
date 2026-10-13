@@ -98,3 +98,16 @@ export function profileFor(gp) {
   const parsed = parsePadId(gp.id);
   return PAD_PROFILES.find((row) => fits(row.match, gp, parsed)) || GUESS;
 }
+
+/*
+ * What kind of device a pad is, as the controller question asks it: a
+ * pad the browser maps to the standard layout is a gamepad, and anything
+ * else (an EdgeTX radio, an ExpressLRS joystick, any unmapped joystick)
+ * flies as a radio does, through the calibration wizard. null for none.
+ */
+export function deviceKind(gp) {
+  if (!gp) {
+    return null;
+  }
+  return profileFor(gp).key === 'standard' ? 'gamepad' : 'radio';
+}

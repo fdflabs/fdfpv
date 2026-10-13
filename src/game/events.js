@@ -21,17 +21,37 @@
  * PRODUCERS today, each a line at a call site that already existed:
  *
  *   spawned       a new flight (src/main.js resetCraft, Progress.startFlight)
- *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js)
+ *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
+ *                 a lap carries {ms, airframe, medal}, the medal it
+ *                 reached on a course with medals or null (a lesson
+ *                 judges it, src/game/training.js)
  *   touch {kind}  the same; a contact the shell reports every step is one
  *                 event per kind per run of contact (see append)
- *   crash         the crash flag's rising edge (Progress.tick)
- *   landing       RunWatch's landing: down and whole after a real flight
+ *   crash {airframe}
+ *                 the crash flag's rising edge (Progress.tick)
+ *   landing {airframe}
+ *                 RunWatch's landing: down and whole after a real flight,
+ *                 on the run's aircraft (progression counts landings,
+ *                 crashes and laps per aircraft, src/game/progress.js
+ *                 foldEvents)
+ *   kill {airframe, victim}
+ *                 an attacker the war's room credited to this pilot's
+ *                 warhead (edge/rooms/war.js dead `credited`, read by
+ *                 src/share/roomwar.js), victim its kind; one a victim,
+ *                 so a blast that took two is two (src/main.js,
+ *                 Progress.killed; counted per aircraft like a landing)
+ *   round {game, world}
+ *                 a Streamer Combat round or a Catch the Ace! match
+ *                 ended by the room with this pilot seated (src/main.js,
+ *                 Progress.roundFinished); a room race this pilot
+ *                 finished, game 'race', carries {pilots} too, how many
+ *                 were on its grid
  *   mission_end {mission, won, stars}
  *                 a mission's result applied to the save
  *                 (src/ui/campaign.js, src/ui/opscampaign.js)
  *
- * The rest of the vocabulary (objective, stage, kill, hit, round, joined,
- * left, mission_start) is the war's and the rooms', named now so their
+ * The rest of the vocabulary (objective, stage, hit, joined, left,
+ * mission_start, and the war's rounds) is the war's and the rooms', named now so their
  * producers add rows, not words.
  *
  * RunWatch reads it first: Progress appends gate and lap here and hands

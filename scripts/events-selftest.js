@@ -92,6 +92,11 @@ console.log('typed and append only');
   check('the flight ends once, at its sim time', log.ended && log.endSimMs === 2000);
   check('nothing is appended after it ends', throws(() => log.append('crash', 2100)));
 }
+{
+  const log = new EventLog();
+  check('a lap carries its medal, or null on a course without', log.append('lap', 1, { ms: 1, airframe: 'x', medal: 'bronze' }).medal === 'bronze'
+    && log.append('lap', 2, { ms: 1, airframe: 'x', medal: null }).medal === null);
+}
 
 console.log('the room clock');
 {
@@ -134,6 +139,8 @@ class ViaLog {
 
   event(type, data) { return this.flight.append(type, this.simMs, data); }
 
+  get airframe() { return this.watch.ctx ? this.watch.ctx.airframe : null; }
+
   gatePass() { return feedRunWatch(this.watch, this.event('gate')); }
 
   touch(kind) {
@@ -144,15 +151,15 @@ class ViaLog {
 
   start(ctx) { this.watch.start(ctx); return []; }
 
-  lap(ms) { return feedRunWatch(this.watch, this.event('lap', { ms })); }
+  lap(ms) { return feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe, medal: null })); }
 
   tick(state) {
     this.simMs = state.simMs;
-    if (state.crashed && !this.wasCrashed) this.event('crash');
+    if (state.crashed && !this.wasCrashed) this.event('crash', { airframe: this.airframe });
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
     const out = this.watch.tick(state);
-    if (this.watch.landings > landings) this.event('landing');
+    if (this.watch.landings > landings) this.event('landing', { airframe: this.airframe });
     return out;
   }
 }
@@ -301,12 +308,45 @@ console.log('the shell\'s producers');
   check('Progress feeds RunWatch gate and lap from the log, and tells it every touch',
     ui.includes("feedRunWatch(this.watch, this.event('gate'))")
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
-    && ui.includes("feedRunWatch(this.watch, this.event('lap', { ms }))"));
+    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal });\n    const done = feedRunWatch(this.watch, lapped);"));
+  check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
   check('and logs a crash and a landing from its tick',
-    ui.includes("this.event('crash')") && ui.includes("this.event('landing')"));
+    ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe })"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
+  check('a room game\'s end is logged as a round, Streamer Combat and Catch the Ace!',
+    src('src/main.js').includes("ui.progress.roundFinished('combat', worldId())") && src('src/main.js').includes("ui.progress.roundFinished('tag', worldId())")
+    && ui.includes("this.event('round', { game, world, ...more })"));
+  check('a room race this pilot finished is a round with its grid\'s size, once per race',
+    src('src/main.js').includes("const over = roomRace.takeResults();")
+    && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
+  check('a kill the room credited is logged, one a victim, on the seated aircraft',
+    src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills);")
+    && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind });"));
+}
+
+console.log('a kill the room credited, through the client, into the log');
+{
+  const { createRoomWar } = await import('../src/share/roomwar.js');
+  const war = createRoomWar(() => {});
+  war.onWelcome({ seat: 1, war: { state: 'lobby' } });
+  const p = [0, 0, 0];
+  war.onMessage({ type: 'war', op: 'dead', ids: [4, 5], credited: [4, 5], at: 100, by: 1, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [6], credited: [], at: 200, by: 1, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [7], credited: [7], at: 300, by: 2, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [8], at: 400, by: 1, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [9], credited: [9], at: 500, by: 1, why: 'pierce', p });
+  const log = new EventLog();
+  for (const ev of war.takeEvents()) {
+    for (const k of ev.type === 'dead' ? ev.kills : []) {
+      log.append('kill', ev.at, { airframe: 'cub1400', victim: k.kind });
+    }
+  }
+  const kills = log.events.filter((e) => e.type === 'kill');
+  check('only this seat\'s credited victims, a pierce\'s too: none for a blast credited nobody, another seat\'s, or a room that did not say',
+    show(kills.map((e) => e.simMs)) === show([100, 100, 500]), show(kills));
+  check('each carries its aircraft and victim as plain values', kills.every((e) => e.airframe === 'cub1400' && 'victim' in e && Object.isFrozen(e)));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

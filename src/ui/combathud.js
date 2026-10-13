@@ -28,6 +28,7 @@
 
 import { str, plural } from '../strings/index.js';
 import { streamerColour } from '../share/roomwire.js';
+import { WATCH_SEAT } from '../share/roomrace.js';
 
 const LINE_MS = 5000;
 const SHOUT_MS = 1600;
@@ -222,9 +223,13 @@ export function createCombatHud(nameOf) {
     box.style.display = 'flex';
     const rows = standings(round);
     const mine = round.scores.find((s) => s.seat === me);
+    /* The watch seat flies no paper and takes off for nothing. */
+    const watcher = me === WATCH_SEAT;
     let text;
     if (round.state === 'countdown') {
-      text = str('combat.hud_countdown', { time: clock(round.startsAt - roomNow) });
+      text = str(watcher ? 'combat.hud_watch_countdown' : 'combat.hud_countdown', { time: clock(round.startsAt - roomNow) });
+    } else if (round.state === 'on' && watcher) {
+      text = str('combat.hud_watch', { time: clock(round.endsAt - roomNow) });
     } else if (round.state === 'on') {
       text = str('combat.hud', {
         time: clock(round.endsAt - roomNow), points: plural('count.points', mine ? mine.points : 0), paper: Math.round(paper), pull: pull.toFixed(1),
@@ -276,7 +281,7 @@ export function createCombatHud(nameOf) {
         })));
         board.append(row);
       });
-      if (you) {
+      if (you && !watcher) {
         const line = el({ marginTop: '8px', font: '600 14px system-ui, sans-serif' });
         line.textContent = you;
         board.append(line);

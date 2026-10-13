@@ -31,7 +31,7 @@ a week or more) and its phase (PLAN.md section 5).
 means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
-**Counts over the 83 items with a verdict:** 30 EXISTS, 43 PARTIAL, 7
+**Counts over the 83 items with a verdict:** 32 EXISTS, 41 PARTIAL, 7
 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -281,47 +281,38 @@ roster through connect after launch, disconnect, reconnect on another
 index and a switch, asserting the chosen device and the queued picker.
 Size S. Phase 20.
 
-**16. Controller identification. PARTIAL.** The device is stored as the
-browser's `id` string plus `index` (`webfpv.pad.v1`, input.js 370); the
-vendor and product are stripped for display only (input.js 335); the
-axis count is checked live, not stored; and the stick mapping is one
-global blob (`webfpv_stick_map_v1`, input.js 61), not per device. So a
-pilot with a radio and a gamepad recalibrates on every swap. **Done:**
-mappings keyed by device (`{ id, vendor, product, axisCount, buttonCount,
-mapping, calibratedAt }`, vendor and product parsed from the id where the
-browser puts them), the global map migrated to the device it was made on
-(phase 19's migration list). This is the data PLAN.md phase 7's "presets
-per device" needs. Check: `input:selftest` (CI) with two devices and a
-swap. Size M. Phase 20.
+**16. Controller identification. BUILT (FOUNDATIONS #9).** The device
+is parsed from the browser's id in both browser forms (`parsePadId`,
+src/input/padprofiles.js) and a calibration is stored per device under
+`deviceKey` = vendor:product:name (`fdfpv.stick_maps.v2`,
+src/input/stickstore.js); the old single map was migrated to the device it
+was made on. Pad buttons are one binding for every standard pad (the W3C
+layout is the same on each), `settings.padbinds` (phase 20). Checks:
+`input:selftest` (CI) with two radios and the migration, `padprofiles:selftest`
+(CI), `lint:input` (local) two radio page.
 
-**17. Axis sanity checks. PARTIAL.** The wizard (input.js 2380 to 2470)
-rejects a noisy centre (`REST_NOISE 0.08` over 900 ms), demands range on
-the sweep (`SWEEP_TRAVEL 0.55`, `THROTTLE_MIN_RANGE 0.3`), refuses an axis
-already claimed (`pickUnusedAxis`, so duplicates cannot happen), learns
-direction and offers reverse per channel, tracks endpoints (the selftest
-has a stick wound in to half travel), and says when the radio unplugs
-mid wizard. Missing: a named stuck or dead channel message (today the
-sweep just never completes) and a dead zone setting (hard coded 0.012,
-PLAN.md 2.6). **Done:** the sweep names the channel that never moved; the
-dead zone is a setting (phase 7's controller screen). Check:
-`input:selftest` (CI) with a frozen axis. Size S. Phase 20 (the message),
-phase 7 (the setting).
+**17. Axis sanity checks. BUILT (the message, phase 20); the dead zone
+setting is phase 7.** The wizard rejects a noisy centre, demands range on
+the sweep, refuses an axis already claimed, learns direction and offers
+reverse, tracks endpoints, and says when the radio unplugs mid wizard. A
+sweep eight seconds short of full travel now names every axis that never
+moved, as a channel when the device's map is vouched for ("yaw (axis 1)")
+and as an axis otherwise (`stuckAxes`, src/input/calibrate.js). The dead
+zone is still hard coded 0.012. Check: `input:selftest` (CI) with a frozen
+axis on a radio and on a standard pad.
 
-**18. Controller loss failsafe. MISSING.** Undefined, and untested. Read
-from the code: when the only pad goes, `poll()` falls to the keyboard;
-roll, pitch and yaw go to zero, and the throttle holds the pad's last
-value because the keyboard collective mirrored it and does not spring
-unless W or S were used (input.js 2630, 2977). Nothing pauses: the picker
-is queued as `missing` only when another pad remains (input.js 1533).
-Betaflight's own failsafe is compiled in (`sim_rx_signal`, sim_abi.h 306;
-`failsafe:trace`, local) but standing rule 1 (no signal loss in the flight
-model) keeps it out of play. **Done, decided by the author (cheap,
-reversible):** solo pauses the moment the flying device goes, and opens
-the picker; in a room (where pause cannot freeze the world, item 23) the
-sticks centre, the throttle holds, and the picker opens over the flight
-with the room still running, exactly today's sticks made deliberate and
-shown. Check: `input:selftest` (CI) removes the pad mid flight in both
-cases. Size S. Phase 20.
+**18. Controller loss failsafe. BUILT (phase 20).** The roster reports
+the flying device's loss once (`takeDeviceLoss`, src/input/input.js); the
+keys' sticks centre and their collective is marked unused, so the throttle
+holds where the device left it. Solo, the run pauses and a notice says
+why; in a room (which cannot pause its world, item 23) the craft flies on
+centred sticks and a held throttle and a notice says so. With another
+device present the picker is queued as before and opens over the pause.
+Betaflight's own failsafe stays out of play (standing rule 1). Checks:
+`input:selftest` (CI) removes the device mid flight, alone and with
+another present; `lint:input` (local) unplugs the pad in a solo flight and
+sees the pause. The room branch has no browser check (it needs a room
+server).
 
 **19. Keyboard, mouse and gamepad fallback. EXISTS.** Keyboard flight
 (WASD and arrows as a Mode 2 radio, hold time as the analogue, input.js
@@ -330,24 +321,22 @@ cases. Size S. Phase 20.
 gamepad with no calibration (`standardPadMap`, input.js 96). Checks:
 `input:selftest` (CI); `lint:input`, `mouse:shell` (local).
 
-**20. Input abstraction. PARTIAL.** Flight is abstracted: every source
-becomes the same four channels (`roll`, `pitch`, `yaw`, `throttle`, the
-sim_abi.h convention), queued as timestamped samples (input.js 30 to 37;
-`input.drain()`, main.js 14426). Actions are not: they arrive as key
-codes (`input.onKey`, main.js 12938: `KeyR` reset, `KeyX` unstick) and
-several modules read devices directly: src/replay/crashcam.js 623 calls
-`navigator.getGamepads()`; src/builder/buildmode.js 1241 reads `gp.axes`
-for its camera; src/ui/voiceui.js 270 reads a pad button for push to
-talk; main.js 7726 to 7803 and 7892 read arrow keys and `KeyT` from
-`input.keys` for turtle and flip. No camera axes, no `action1`. **Done:**
-src/input owns an action table (`reset`, `unstick`, `flip`, `replay`,
-`talk`, `ready`, `cameraPitch`, `cameraYaw`, menu navigation), each with
-default bindings per source as data; callers ask `input.action(name)` or
-`input.axis(name)`; the four readers above move onto it. Bindings become
-remappable in phase 7's controller screen (item 40). Check: `lint:input`
-grows a grep that fails on `getGamepads`, `.axes[` or `.buttons[` outside
-src/input; `input:selftest` (CI) asserts each action from each source.
-Size M. Phase 20.
+**20. Input abstraction. BUILT (phase 20).** Flight is abstracted as
+before (four channels, timestamped samples). Actions are one table,
+src/input/actions.js: each action's default key and default standard pad
+button. Keys move through keybinds.js and buttons through padbinds.js, on
+the same rules (src/input/bindings.js); in flight a bound button arrives
+as its action's key, so main.js's key readers serve the pad, and the pad
+only actions (replay, talk, swap) and stepping out read their button by
+name (`input.padAction`). No module outside src/input reads a device: the
+crash cam, the builder's camera and buttons, push to talk, the camera
+ball and the turtle and flip ask src/input. Remappable in Settings >
+Controls (docs/KEYBINDS.md). Not built: named camera axes (`cameraPitch`,
+`cameraYaw`) and menu navigation as actions; the builder and menu buttons
+are read through src/input by name but are fixed. Checks: `lint:input`
+(local) fails on `getGamepads`, `.axes[` or `.buttons[` outside src/input;
+`input:selftest` (CI) asserts the actions from keys and pad;
+`keybinds:check` (local) binds a pad button on the real page.
 
 ## 5. Physics and frame (items 21 to 22)
 
@@ -429,7 +418,14 @@ debrief frame reads phase 22's log, so route, time, crashes, landings and
 kills come from what happened. Check: phase 10's results checks, plus
 `events:selftest` folding a debrief. Size M. Phase 10, after 22.
 
-**27. Unified statistics. MISSING.** stats.js sends three anonymous
+**27. Unified statistics. PARTIAL.** Built (2026-10-13): landings,
+crashes, laps and kills per aircraft, folded from phase 22's log into
+`progress` (src/game/progress.js COUNTED, foldEvents), merged as the
+higher by progressmerge, checked by `progress:selftest` (a stream folded
+twice gives one count). A kill is logged only for a victim the room
+credited (war.js `dead` carries `credited`, `rooms:selftest`). Still
+missing: missions started and completed. What follows
+is the gap as first written. stats.js sends three anonymous
 counters to the board (visit, session, flush: laps, flight seconds,
 crashes since the last flush) and keeps none of them (src/share/stats.js
 11 to 20). There is no per pilot lifetime model: no flight time, distance,
@@ -489,38 +485,63 @@ the player's difficulty (PILLARS 19). Enemy health is never the knob.
 
 ## 9. Developer tools (items 33 to 37)
 
-**33. AI debug overlay. MISSING.** Nothing draws an attacker's state,
-target or route; there are console hooks (`window.__war`, `__warAt`,
-`__warMap`, main.js 5080 to 5155). **Done:** behind phase 28's dev gate,
-an overlay draws each attacker's route (routes.js already computes it),
-its hunter target, its stage and its next waypoint. Check: `war:markers`
-(local) gains a dev screenshot assertion. Size M. Phase 28.
+**33. AI debug overlay. BUILT (phase 28).** src/ui/wardebug.js, in
+developer mode only (its `set` turns on only under devhooks.js DEV, and
+the toggle `__warDebug(true | false)` is a devHooks hook): over the
+picture, every live attacker's route from now, 60 s ahead (routes.js
+poseAt), its next waypoint (the end of its leg, an orbit's centre, a
+line's end), a Hunter's target seat as HUNTS said it with a line to that
+pilot, and a label of its kind, id and the stage whose spawn it is.
+Drawn from roomwar `debugAt`, after the frame's render as the war markers
+are. Check: `war:markers` (local, GPU): off until the toggle and off
+again draws nothing; on, every live attacker listed with its stage, each
+but a Hunter with a route and a next waypoint, the faced contact's route
+and label on the picture, and a next waypoint that is a point of the
+mission file's own route; a picture in its outdir.
 
-**34. Spawn and stage tools. PARTIAL.** URL flags exist: `?time=`,
-`?spawn=`, `?craft=`, `?gpu=low`, `?map=` (main.js 616, 1742, ui.js
-3384); console hooks `__placeCraft`, `__setCam`, `__crashSetDamage`,
-`__warDo('start' | 'brief' | 'end')` (main.js 17507, 16865, 17698, 5207).
-Missing: skip stage, complete objective, invulnerability, change wind.
-**Done:** the war's room accepts `skip`, `complete` and `invulnerable`
-ops only from a room made with a dev flag that public rooms refuse. Check:
-`rooms:selftest` (CI) asserts a public room refuses them. Size M. Phase
-28.
+**34. Spawn and stage tools. BUILT (phase 28), invulnerability and wind
+left.** URL flags: `?time=`, `?spawn=`, `?craft=`, `?gpu=low`, `?map=`
+(main.js, ui.js); developer hooks `__placeCraft`, `__setCam`,
+`__crashSetDamage`, `__weather`, and `__warDo('start' | 'brief' | 'end' |
+'skip' | 'complete')`. The war's room (edge/rooms/war.js devOp) takes
+`{ op: 'skip' }`, the stage left by its first exit that is not a loss as
+if it had fired, and `{ op: 'complete', objective? }`, the stage's
+objective (every open one, without an id) done at the frontier; both
+logged as `{ what: 'dev' }`. Host only; a public room refuses them
+`'public'`, and a private room `'dev'` unless the server starts missions
+in development (DEV_MISSIONS) or the host is one of its DEV_ACCOUNTS. The
+admission is the server's, decided by the lead, not a flag the client
+sets on the room: a mission won by a skip counts. Check: `rooms:selftest`
+(CI), the war section's developer ops: both refusals, a non host, an
+unknown objective, complete, skip into the result beat and the next
+stage after it. Not built: invulnerability and changing the wind in a
+room.
 
-**35. Developer console. PARTIAL.** 141 `window.__` hooks in main.js
-plus others, used by the browser checks; no command layer. **Done,
-decided by the author:** no typed console; the hooks get one documented
-index (`window.__dev.help()`) behind the dev gate. A console that parses
-commands is a second UI to maintain. Size S. Phase 28.
+**35. Developer console. BUILT (phase 28).** No typed console, decided by
+the author: a console that parses commands is a second UI to maintain.
+src/share/devhooks.js HOOKS indexes every `window.__` hook src defines,
+180 of them, with what each changes or null for one that only reads;
+`window.__dev.help()` lists the gated ones in developer mode
+(`help(true)` all). Check: `lint:shell` (CI) fails a hook missing from the
+index, an index row nothing in src names, and `window.__dev.help()` on a
+local host that does not list the index's gated hooks.
 
-**36. Debug and release builds. PARTIAL.** Pages excludes tests/browser,
-scripts, edge, docs' markdown and more (.github/workflows/pages.yml 42 to
-47), and the client holds no server secret. But every `window.__` hook
-and URL flag ships to players, ungated. **Done:** hooks that change state
-(placing the craft, damage, war ops) register only under `?dev=1` or on a
-local host (the `LOCAL_HOSTS` test already in src/maps/itaipu.js 207);
-the browser checks pass `?dev=1`. Read only hooks may stay. Check: a new
-case in `lint:shell` (local) loads without the flag and finds no state
-changing hook. Size M. Phase 28.
+**36. Debug and release builds. BUILT (phase 28).** Pages excludes
+tests/browser, scripts, edge, docs' markdown and more
+(.github/workflows/pages.yml 42 to 47), and the client holds no server
+secret. The 62 hooks that change state (placing the craft, damage, war
+ops, the shell's own objects) and `__dev` itself are assigned to
+`devHooks`, and the one flag a check sets that src reads,
+`__showSticks`, is read through it. devHooks is window
+only in developer mode: `?dev=1`, or a local host by devhooks.js
+LOCAL_HOST, the one rule the Itaipu map's local data and index.html's
+front door use too (the front door, which runs before any module, holds a
+copy marked KEEP IN STEP). Elsewhere they land in an object nothing holds.
+Read only hooks stay on window. Every browser check runs on 127.0.0.1, so
+none passes a flag. Check: `lint:shell` (CI) fails a gated hook assigned
+to window, a read only one assigned to devHooks, the front door's copy
+differing from LOCAL_HOST, and a second page served under a public host
+name (openPage `host`) that shows any gated or unindexed hook.
 
 **37. Content validation. EXISTS.** In CI: `lint:presets` (every tune),
 `lint:catalog`, `modes:selftest` (the registry whole, its strings and
@@ -533,49 +554,54 @@ airframe drawn), `itaipu:spawns`. Phase 12 adds `airframes:check`.
 
 ## 10. Words (items 38 to 39)
 
-**38. Localization readiness. PARTIAL**, nearly done. English and Spanish,
-3301 keys each (src/strings/en.js, es.js); `strings:selftest` (CI) holds
-parity, placeholders and plurals; `lint:copy` (CI) fails on prose outside
-the tables; the bootloader's rows are keys (`data-label`, loading.js 817).
-Left: four stage names typed in English beside two that are keys
-(`STAGE_NAMES`, loading.js 98: Renderer, Board, Map, World), and
-`ReplayFileError` messages shown inside a translated line
-(src/replay/editor.js 461, 1141). Trick names are proper names by
-decision (copy-lint.js `EXCUSED`). Portuguese is a new table, not a
-retrofit. **Done:** those strings are keys. Check: `lint:copy` narrows
-loading.js's excuse to the recovery advice. Size S. Phase 24.
+**38. Localization readiness. BUILT (phase 24).** English and Spanish
+(src/strings/en.js, es.js); `strings:selftest` (CI) holds parity,
+placeholders and plurals; `lint:copy` (CI) fails on prose outside the
+tables and on a label of one capitalised word that is not compared
+against (isWord: key names, proper names, units and a few ids excused by
+name, 13 fixed samples first). A refused replay says why in the pilot's
+language, one key per reason (src/replay/file.js REFUSALS: not a replay,
+too large, a version this build cannot read, an aircraft or map it lacks,
+damaged), the English detail kept for the log; `crashcam:selftest`
+proves each. Trick names, and a pad's Pitch and Roll key caps, are
+proper names by decision.
 
-**39. Text expansion. PARTIAL.** Spanish ships and runs longer, so the
-problem is real, but every layout check (`lint:responsive`,
-`lint:devices`, `modes:card`, all local) runs in English only. **Done:**
-`modes:card` and `lint:devices` run once more with `?lang=es` and assert
-no clipped label (scrollWidth over clientWidth) on the title, the hubs and
-the lobby. Size S. Phase 24.
+**39. Text expansion. BUILT (phase 24).** `lint:devices` walks every
+device in English and Spanish and `modes:card` page H opens home, Flight
+Club and a lobby with ?lang=es at four sizes; both fail on a cut word
+(text past the box that clips it, an ellipsis included) after one cut on
+purpose is found, and both run in CI on shard-3. What they found was
+fixed in the layout: menu rows wrap a control under its label and a
+value onto two lines rather than cut them, the phone's command bar
+comes down a step, and on a touch phone home's hub links stay 44 px and
+the hubs scroll.
 
 ## 11. Comfort, audio, graphics (items 40 to 47)
 
-**40. Accessibility fundamentals. PARTIAL.** Present: rates and mouse
-sensitivity, mouse invert, reverse per channel, stick modes 1 to 4,
-field of view and camera angle, angle mode, three HUD styles, subtitles
-in the war films (src/render/warintro.js 549), `prefers-reduced-motion`
-in two places. Missing: key and button remapping (item 20 makes it
-possible), text scaling, in flight subtitles for the war radio (warSay,
-main.js 3337, is audio only), hold or toggle choices (manual flip is hold
-only). **Done:** remapping in phase 7's controller screen; radio lines
-shown as one line captions when a Subtitles setting is on (on by
-default; the lines' text is already in the strings); a UI scale setting
-of 100, 115, 130 percent on the root font size. Check: `war:radio` (local)
-asserts a caption per line; `lint:responsive` (local) at 130 percent.
-Size M. Phase 25 (phase 7 for remapping).
+**40. Accessibility fundamentals. BUILT except hold or toggle choices.**
+Present: rates and mouse sensitivity, mouse invert, reverse per channel,
+stick modes 1 to 4, field of view and camera angle, angle mode, three HUD
+styles, subtitles in the war films (src/render/warintro.js),
+`prefers-reduced-motion` in several places. Key and pad button remapping
+in Settings > Controls (phase 20, docs/KEYBINDS.md). The war radio's
+story, guide, briefing and debrief lines are captions (main.js
+warSubtitles; the calls are the HUD's callouts), now behind a Radio
+subtitles setting, on by default (phase 25). A Menu size of 100, 115 or
+130 percent, as CSS zoom on the menu screens because the sheet sizes type
+in px (phase 25). Missing: hold or toggle choices (manual flip is hold
+only). Checks: `war:radio` (CI) asserts a one line caption per line in
+both languages; `uiscale:check` (local) at 130 percent; `lint:responsive
+-- --ui-scale 130` (local).
 
-**41. Motion sickness controls. PARTIAL.** Field of view (75 to 115,
-src/render/lens.js 79) and angle mode exist. Camera shake is always on
-(lens shake, lens.js 163; impact kick; the war's shake) and chase
-smoothing is a fixed lerp (main.js 15684). Head bob and motion blur do not
-exist, so there is nothing to switch off. **Done:** a Camera shake
-setting (on, reduced, off) scaling the three shakes, and `prefers-reduced-
-motion` defaulting it to reduced; a chase smoothing choice. Check: a
-selftest of the shake scale (pure). Size S. Phase 25.
+**41. Motion sickness controls. BUILT (phase 25).** Field of view (75 to
+115, src/render/lens.js) and angle mode exist. A Camera shake setting (on,
+reduced to a third, off) scales the lens shake, the impact kick and the
+war's shake together where they are applied; on is the default and the
+measured picture, and a pilot whose system asks for reduced motion and
+never chose starts on reduced. Chase smoothing (tight 60 ms, standard
+120 ms as before, smooth 300 ms) sets the chase camera's follow, the
+pilot's and the spectator's. Head bob and motion blur do not exist.
+Check: `comfort:selftest` (CI).
 
 **42. Audio mixer categories. EXISTS.** Master (`volume`), motors, wind,
 music, effects, voice, ambience, other (ui.js 862 to 881), on the buses of
@@ -598,21 +624,33 @@ beside it. No Ultra: high is the top this renderer has. Check:
 `lint:quality` (local).
 
 **45. Resolution scaling. EXISTS.** Render scale 100, 85, 70, 55
-(ui.js 387) and a dynamic pacer that holds 60 frames per second by
-scaling the internal buffer, with CPU bound detection
-(src/render/pace.js, `TARGET_HZ = 60`). No check holds the pacer; phase 29
-adds one.
+(ui.js 387) and a dynamic resolution pacer that holds the GPU to the
+owner's 90 frames per second by scaling the internal buffer, with a
+check that a step bought its time back (src/render/dynres.js,
+`TARGET_HZ = 90`; there is no src/render/pace.js). What it floors is the
+render scale (0.75 Balanced, 0.5 Performance), not a frame rate: no 30
+fps floor is defined (item 71). No check holds the pacer: phase 29 did
+not add one, because its frame times on this box's shared card measure
+the other lanes (docs/BUDGETS.md: alps-low at Low 49 ms a frame with the
+card 100 % busy, 6.1 ms at 25 %). A pacer check needs a quiet card.
 
-**46. Performance budgets. PARTIAL.** Written: 300 draw calls, 2.5 M
-triangles, never under 60 fps at 1080p on a five year old mid range laptop
-(docs/ITAIPU-PLAN.md 570, docs/SWISS2-LOOP.md 28, src/render/budget.js 4).
-Enforced only for Itaipu's views (`BUDGET`, scripts/itaipu-views.js 211,
-local) and the damage shots; verify compares a round trip with its own
-boot, not an absolute. Nothing for the menu, the Alps or the valley, no
-AI count or texture memory line. **Done:** one budget table in
-a new docs/BUDGETS.md (menu, each world, war at full load: calls,
-triangles, texture MB, attackers, peers), each row held by a local check
-that fails over it. Size M. Phase 29.
+**46. Performance budgets. PARTIAL.** docs/BUDGETS.md is one table:
+the menu (`title`), each world (`alps-low`, `swiss-low`, `itaipu-stream`,
+`interior-ops`) and the war at full load (`itaipu-war`), at Low, Medium
+and High, measured on this box 2026-10-13. Draw calls, triangles, live
+textures and the GPU floor are held at a ceiling set from the
+measurement beside it by `perf -- --budgets` (scripts/perf-play.js,
+local: one run per tier, an Itaipu set peaks at 4.3 GB); frame times
+are written with the card's busy share beside them and never held. At
+High the menu and the alps (390 to 397 calls), swiss2 (350 calls, 3.77
+M triangles), Itaipu's town (5.65 M) and the war (3.03 M) are over the
+written contract of 300 calls and 2.5 M triangles (docs/ITAIPU-PLAN.md
+570, src/render/budget.js 4); the ceilings hold today's cost, not the
+contract. Missing: texture megabytes (three counts textures, not their
+bytes), attackers and peers. **Done:** texture bytes summed off the live
+textures, the war's attacker count and a second pilot (a Node peer on
+the room socket, docs/PERF.md "Not measured") as columns, held the same
+way; the High rows brought under the contract. Size M. Phase 30.
 
 **47. Object pooling. EXISTS.** Explosions, debris, breakage pieces,
 smoke, attackers and war markers are fixed pools or instanced meshes that
@@ -635,19 +673,32 @@ chunked quadtree LOD (src/maps/terrain/engine.js) over height tiles
 fetched under a byte ceiling (src/maps/terrain/tiles.js). The valley and
 the Alps load whole. Checks: `itaipu:check` (local), `grid:check`.
 
-**50. Spawn safety. PARTIAL.** Itaipu's spawns are checked offline:
-every spawn settles undamaged 2 s after start, every seat of an eight
-pilot room settles, courses too (scripts/itaipu-spawns-check.js,
-`itaipu:spawns`, local); seats are 8 m apart (src/game/slots.js). No such
-check for the valley or the Alps, and nothing at run time. **Done:**
-`itaipu:spawns` generalised to every world and every mode's spawn list.
-Size S. Phase 29.
+**50. Spawn safety. PARTIAL.** Every start on every buildable world is
+checked: the map's own, spawnFor's answer per kind and `?spawn=` wish,
+each float start, each moved to all eight room seats, and the pilots'
+stations, read off the seated map's height, water and colliders: above
+the ground and not covered, dry (on the water for a float), clear of
+solids, facing a 1 in 4 climb out clear for 150 m, with negative
+controls per world (scripts/world-spawns-check.js, `world:spawns`, CI,
+123 checks in 55 s). It found Itaipu's room stations under the dam
+(200 to 219 m); the crest start now carries its own station line
+(src/maps/itaipu/spawns.js, src/game/slots.js). Itaipu's starts also
+settle undamaged in the plant, its seats and courses too
+(`itaipu:spawns`, local). Missing: race starts of tracks built in the
+valleys (src/builder/course.js startFor, src/game/trackdoc.js). **Done:**
+`world:spawns` reads a seated track's start too. Size S. Phase 30.
 
-**51. Camera collision. PARTIAL.** The FPV and chase cameras are clamped
-above the terrain (main.js 15419, 15682), not against buildings, walls
-or the dam. **Done:** the chase camera pulls in along a ray to the craft
-against the world's collision boxes (the obstacles the plant already
-has). Check: a local shot at the dam's face. Size M. Phase 29.
+**51. Camera collision. EXISTS.** The chase camera, a wing's, a
+wreck's and the one behind a watched peer, pulls in along the line to
+the craft until it is 0.4 m clear of every solid the plant meets
+(src/render/chasearm.js pullIn, after the smoothing in src/main.js
+chaseCamera and watchCamera); a craft nearer a solid than that lends the
+camera its own gap, so a plane parked on a deck keeps its arm. Above the
+ground and the roofs it is clamped as before. Checks:
+`chasearm:selftest` (CI, real colliders, each case proven wrong
+unfixed), `chase:walls` (local: the plane by a wall on the alps and by
+the dam on Itaipu; with the fix removed it fails, the line 0.00 m from
+the wall).
 
 **52. Respawn logic. EXISTS**, per mode as the checklist asks: combat
 tops up paper, unlimited (combat.js 26); the war spends an airframe per
@@ -657,14 +708,19 @@ itself and the server accepts the voided lap (race.js 327); a teleport is
 `FLAG_SPAWNING` for 5 s. Checks: `combat:restart`, `combat:harness`,
 `war:harness` (CI).
 
-**53. Boundary handling. PARTIAL.** Past each world's edge there is a
-landable apron (src/maps/terrain/apron.js), so nothing falls out of the
-world; but there is no warning, no prompt, no defined end. **Done:** one
-rule for every world: past its playable radius (a field in the registry
-row) the HUD says "Turn back" with a bearing home, and past twice that
-radius the craft is reset to its spawn after a five second notice. No
-invisible wall. Check: a Node test of the rule on the registry's radii.
-Size S. Phase 29.
+**53. Boundary handling. EXISTS.** One rule for every world
+(src/game/edges.js, src/main.js edgeFrame): past the world's playable
+square the banner says turn back with the start's bearing and distance,
+past twice it a five second notice and then the R key's own reset,
+called off by coming back inside. No wall and no force. The squares are
+3000 m for the alps and swiss2 (the valley's field), 10240 m for Itaipu
+(half its data) and 8000 m for the Interior (its play area), squares
+because every world's data is one; past each is ground (far range,
+apron). A live operation keeps its own boundary instead (edge/rooms/
+ops.js `BOUNDARY_MS`). Strings `edge.turn_back`, `edge.leaving`, en and
+es. Checks: `edges:selftest` (CI: each square against its source
+constant, twice it inside what the world draws, the rule with
+controls), `edges:page` (local, the alps).
 
 **54. Anti-frustration. EXISTS.** R resets (main.js 12962), X unsticks
 in place (12974), turtle mode rights a flipped quad from the arrows
@@ -820,13 +876,17 @@ a pad, a low end GPU, a high refresh display). **Done:** a table in
 docs/DEVICES.md, one row per device and date, filled when someone flies
 one; the owner's machines and the Pocket first. Size S. Phase 30.
 
-**71. Frame-rate targets. PARTIAL.** A target exists: 60 frames per
-second at 1080p on a five year old mid range laptop (budget.js 4,
-ITAIPU-PLAN.md 570), and the pacer holds it (pace.js). No minimum
-playable or recommended machine is written. **Done:** the three lines in
-docs/BUDGETS.md beside item 46's budgets: minimum 30 (the pacer's
-floor), target 60, recommended the reference laptop named. Size S. Phase
-29.
+**71. Frame-rate targets. PARTIAL.** Two targets are written: the
+owner's 90 frames per second, which the dynamic resolution holds
+(src/render/dynres.js `TARGET_HZ = 90`, perf-play.js `BUDGET_MS`), and 60
+at 1080p on a five year old mid range laptop (budget.js 4, ITAIPU-PLAN.md
+570). Both are in docs/BUDGETS.md. No minimum is defined (the pacer
+floors the render scale, not frames per second) and no reference
+machine is named; the tiers name eras only (Low "Steam Deck and similar
+handhelds", Medium "a 2020-era laptop with integrated graphics", High
+"a 2021-era PC or a strong laptop"). **Done:** the owner's decision on a
+minimum frame rate and a named recommended machine, written in
+docs/BUDGETS.md. Owner decision pending. Size S. Phase 29.
 
 ## 17. Progression and groups (items 72 to 77)
 
@@ -895,29 +955,41 @@ by a name a pilot typed, deliberately: saved liveries (hangar-paint.js
 936) and board callsigns. Checks: `modes:selftest`, `war:stages`,
 `hulls:check` (CI).
 
-**80. Configuration vs code. PARTIAL.** Data: a track (a builder JSON
+**80. Configuration vs code. BUILT for war missions and the aircraft
+checklist (phase 26, 2026-10-13).** Data: a track (a builder JSON
 document), mission text (string keys), an activity's art and facts
-(modes.js), a world's entry (registry.js). Code: a new mission is a file,
-an import in src/share/war/missions/index.js 40, an entry in `ACT1`
-(src/game/campaign.js 62) and its strings, three places that can
-disagree; a new aircraft is a plant row in C, a WASM build, a renderer in
-src/render, and static imports in main.js 190 to 203. The aircraft's C row
-is decided (item 21). **Done:** `ACT1` derived from the mission registry
-(each mission carries its act and order), so a mission is a file and an
-import; an aircraft checklist in configs/airframes.js's header that
-phase 12's `airframes:check` enforces (a renderer, a hull, a picture, its
-strings). Check: `campaign:selftest` and `war:stages` (CI). Size S. Phase
-26.
+(modes.js), a world's entry (registry.js). A war mission's file states
+its campaign place (`act`, `order`, `key`, `free`, `release`) and
+src/game/campaign.js derives `ACT1` from the registry
+(src/share/war/missions/index.js) with `actOf`, which throws at load on
+an order twice or missing, an impossible release, a missing key or two
+free missions; a mission with no file yet is a row of `PLANNED` beside
+the registry. So a new mission is a file, an import and its strings. The
+Interior's list (`INTERIOR`, campaign.js) is still a hand list: its
+registry, src/share/ops/missions.js, imports interior/node.js, which is
+Node only, and campaign.js reaches the browser (settings.js,
+progressmerge.js). A new aircraft is a folder (docs/AIRCRAFT-FOLDER.md),
+its plant table generated into the C, a renderer in src/render. The
+aircraft checklist is in scripts/airframes-check.js's header and
+docs/AIRCRAFT-FOLDER.md: name, blurb, facts, size, weight, cameras,
+class, roles, kit, and the description and note in English and
+Spanish, each with a negative control; a renderer is held by
+src/render/craft.js at load and a hull by `hulls:check`. There is no
+picture field: the picker and the hangar draw the model. Checks:
+`campaign:selftest`, `airframes:check`, `aircraft:folder`, `war:stages`
+(CI).
 
-**81. Feature flags. PARTIAL.** No flags system; unfinished things are
-hidden ad hoc: a mission not in the build is filtered (`inBuild`, main.js
-5438), an upgrade waits on an act (`later: 2`, campaign.js 97), servers
-can be switched off (`?rooms=off`). **Done, decided by the author:** no
-general flags object (one place to hide a row is enough); a `hidden`
-field on the mode registry's rows and on missions, read where `inBuild`
-reads today. Unfinished code otherwise lives on its branch. Check:
-`modes:selftest` (CI) asserts a hidden row reaches no card. Size S.
-Phase 26.
+**81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
+system, decided by the author: one place to hide a row is enough. A war
+mission's gate is its file's `release` (available, development, soon;
+the owner's 2026-10-04 rule), read through campaign.js `released` by the
+rooms server (core.js, front.js, war.js), the campaign list and the
+briefing; kept three valued rather than a `hidden` boolean, because Under
+development and Coming soon are different cards. `inBuild` is gone. An
+upgrade waits on an act (`later: 2`, campaign.js UPGRADES); servers can
+be switched off (`?rooms=off`). **Still to do:** a `hidden` field on the
+mode registry's rows (src/share/modes.js, the sessions lane's), with
+`modes:selftest` (CI) asserting a hidden row reaches no card. Size S.
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,
@@ -926,18 +998,14 @@ src/ui/campaign.js 188), "Coming in Act {n}" on a later upgrade
 (PLAN.md section 1, PILLARS 12 on AI fill). No TODO or FIXME in src. No
 check enforces it.
 
-**83. Consistent terminology. PARTIAL.** `lint:nouns` (CI) holds one
-rule: the pilot reads "track", never "course" (scripts/noun-lint.js);
-docs/SPANISH-GLOSSARY.md fixes the Spanish (track pista, room sala). But
-the strings say room 230 times, lobby 43, game 23, match 12, session 6,
-and the redesign's words (operation, mission, activity, session, party)
-are not fixed anywhere. **Done:** one glossary in
-docs/SPANISH-GLOSSARY.md, both languages: operation (Defend the Paraná),
-mission (one of its seven), activity (a Flight Club entry), session (a
-room set up for an activity, what the pilot sees), round (one go in a
-session), room (the code's word, never shown where session fits), party
-not used (the session's pilots); `lint:nouns` grows a rule per settled
-word. Size S. Phase 24.
+**83. Consistent terminology. BUILT (phase 24).** One glossary,
+docs/SPANISH-GLOSSARY.md "The game's nouns": operation, mission, stage,
+activity, session, lobby, round, room, party not used, in both
+languages, with where today's copy still differs (match for round,
+session for a browser's visit, Spanish sesión for a run). `lint:nouns`
+(CI) holds a rule per word that is gone from the copy: course (track) and
+party; a word still used in the old sense gets its rule when its copy
+moves. Checks: `lint:nouns`.
 
 **84. Protect the family-origin use case. Held by the owner: to be
 discussed with the owner later.**

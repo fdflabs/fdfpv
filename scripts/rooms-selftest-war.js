@@ -90,6 +90,19 @@ function hover(p) {
  * starts the campaign's missions in development too (edge/rooms/war.js
  * devMissions), as a check's own server does; the VM's room never does.
  */
+/* The kills a client seated at `seat` hears from what socket i got: the
+ * room's war messages through src/share/roomwar.js, as the shell would. */
+function heardKills(e, i, seat) {
+  const c = createRoomWar(() => {});
+  c.onWelcome({ seat, war: { state: 'lobby' } });
+  for (const x of e.socks[i].got) {
+    if (x && x.type === 'war') {
+      c.onMessage(x);
+    }
+  }
+  return c.takeEvents().filter((x) => x.type === 'dead').flatMap((x) => x.kills);
+}
+
 function warRoom({
   n = 2, pub = false, map = 'itaipu', mission = null, air = 'cub1400', start = true, code = 'W4RR00', dev = false,
 } = {}) {
@@ -553,6 +566,14 @@ export function warSection(check) {
       JSON.stringify(booms));
     check('the blast kills both strikes, the one 4 m behind with it', dead.length === 1 && dead[0].ids.join() === '1,2' && dead[0].by === 1 && dead[0].why === 'boom',
       JSON.stringify(dead));
+    check('and its dead says both are seat 1\'s kills (credited), as the score counts them', dead.length === 1 && Array.isArray(dead[0].credited)
+      && dead[0].credited.join() === '1,2', JSON.stringify(dead));
+    const one = heardKills(e, 0, 1);
+    const two = heardKills(e, 1, 2);
+    /* The check's mission is not in the client's MISSIONS, so it draws
+     * nothing and knows no kinds: the ids are what is checked here. */
+    check('seat 1\'s client hears both as its kills; seat 2\'s hears none of its own',
+      one.map((k) => k.id).join() === '1,2' && two.length === 0, JSON.stringify({ one, two }));
     const v = e.view(1);
     const s1 = v.scores.find((r) => r.seat === 1);
     check('two kills for seat 1, with their targets\' megawatts saved; one airframe spent, two earned', s1.kills === 2 && s1.mw === 2000 && v.rack === 5,
@@ -585,6 +606,44 @@ export function warSection(check) {
       e.of(1, 'boom').length === 1 && e.of(1, 'dead').length === 1 && e.of(1, 'dead')[0].ids.join() === '1', JSON.stringify(e.of(1, 'dead')));
     check('and its pilot has no kill, no megawatts saved and no airframe earned, but the airframe is spent',
       (!parked || (parked.kills === 0 && parked.mw === 0)) && !v.earned[2] && v.spent[2] === 1, JSON.stringify({ parked, spent: v.spent, earned: v.earned }));
+    const said = e.of(1, 'dead')[0];
+    check('and its dead credits nobody: by seat 2, credited empty, so no client counts a kill the room did not',
+      Boolean(said) && said.by === 2 && Array.isArray(said.credited) && said.credited.length === 0, JSON.stringify(said));
+    check('so seat 2\'s client hears the strike die and counts no kill', heardKills(e, 1, 2).length === 0);
+    const old = createRoomWar(() => {});
+    old.onWelcome({ seat: 2, war: { state: 'lobby' } });
+    old.onMessage({ ...said, credited: undefined });
+    check('a room from before credited: the client counts no kill, never more than the room', old.takeEvents().every((x) => x.kills.length === 0));
+  }
+
+  {
+    /* Two defenders, side by side, meet one strike head on: one warhead
+     * takes it, and the room credits that one kill to one pilot only. */
+    const m = testMission([
+      { at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' },
+    ], { r: [[-1200, Y, 0], [-600, Y, 0]] });
+    const meetT = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
+    /* Seat 2 alone on its line takes the strike: it is a contender. */
+    const alone = warRoom({ mission: m });
+    alone.paths[0] = hover([900, Y, -900]);
+    alone.paths[1] = level(-900 + 15 * meetT / 1000, 3, -15);
+    alone.fly(meetT + 2000);
+    const solo = alone.of(1, 'dead').filter((d) => d.why === 'boom');
+    check('seat 2 alone on that line, 3 m off seat 1\'s, takes the strike and is credited it',
+      solo.length === 1 && solo[0].by === 2 && solo[0].credited.join() === '1' && alone.view(1).scores.find((r) => r.seat === 2).kills === 1,
+      JSON.stringify(solo));
+    const e = warRoom({ mission: m });
+    e.paths[0] = level(-900 + 15 * meetT / 1000, 0, -15);
+    e.paths[1] = level(-900 + 15 * meetT / 1000, 3, -15);
+    e.fly(meetT + 2000);
+    const dead = e.of(1, 'dead').filter((d) => d.why === 'boom');
+    const v = e.view(1);
+    const kills = v.scores.reduce((n, r) => n + r.kills, 0);
+    const by = dead.length ? v.scores.find((r) => r.seat === dead[0].by) : null;
+    check('two defenders at one strike: one dead, credited once, to the seat its score counts the kill for',
+      dead.length === 1 && dead[0].credited.join() === '1' && kills === 1 && by && by.kills === 1,
+      JSON.stringify({ dead, scores: v.scores }));
+    check('and the two clients hear one kill between them', heardKills(e, 0, 1).length + heardKills(e, 1, 2).length === 1);
   }
 
   {
@@ -774,6 +833,7 @@ export function warSection(check) {
     const v = e.view();
     check('a penetrator takes the first Strike without ending the flight (no boom, nothing spent), then goes off on the second',
       dead.length === 2 && dead[0].why === 'pierce' && dead[0].ids.join() === '1' && dead[1].why === 'boom' && dead[1].ids.join() === '2'
+      && dead[0].credited.join() === '1' && dead[1].credited.join() === '2'
       && e.of(1, 'boom').length === 1 && v.spent[1] === 1 && v.earned[1] === 2, JSON.stringify(dead.map((d) => [d.why, d.ids])));
   }
   {
@@ -815,7 +875,7 @@ export function warSection(check) {
   {
     /* THE RELEASE GATE (the owner, 2026-10-04: only mission 1 until it is
      * right; 2026-10-07: mission 1 held too, until it has its narration;
-     * src/game/campaign.js ACT1 release). A room refuses to start a
+     * the mission file's `release`, read by campaign.js released). A room refuses to start a
      * mission in development, by its word, whatever a client sends: a
      * stale build, a crafted socket, a ?missions=dev page. The drill,
      * which no campaign offers, starts as ever; a check's own room (dev)
@@ -1224,5 +1284,62 @@ export function warSection(check) {
       check(`the HUD's line, ${name}: ${want}`, Boolean(got) && want.test(got.text), got ? got.text : 'nothing');
     }
     check('and nothing once the war is over or not on', ['lobby', 'won', 'lost', 'ended'].every((state) => waveStatus({ ...base, state }, m2, 3000) === null));
+  }
+
+  console.log('war: developer ops (skip, complete)');
+  {
+    /* Mission 1 live in its first stage, the host hovering in it. */
+    const live = (opts) => {
+      const e = warRoom({
+        n: 2, mission: MISSIONS['itaipu-1'], air: WAR_DEFAULT, ...opts,
+      });
+      e.paths[0] = hover([0, 400, 0]);
+      e.paths[1] = hover([20, 400, 0]);
+      e.fly(COUNTDOWN_MS + 5000);
+      return e;
+    };
+    const stageOf = (e) => e.r.war.match?.stage?.id ?? null;
+    const devLog = (e) => e.r.war.log.filter((x) => x.what === 'dev');
+
+    /* A public room made for the war starts it through its lobby
+     * (gamelobby.js), which this helper does not drive: the war is
+     * started private and the room made public under it. */
+    const pub = live({ dev: true, code: 'D3VP01' });
+    pub.r.meta.public = true;
+    const pubStage = stageOf(pub);
+    pub.say(0, { type: 'war', op: 'skip' });
+    pub.say(0, { type: 'war', op: 'complete' });
+    pub.fly(pub.clock + 2000);
+    check('a public room refuses skip and complete \'public\', even on a server that starts missions in development',
+      pub.errors(0).filter((x) => x === 'public').length === 2 && pubStage === 'eyes' && stageOf(pub) === 'eyes' && devLog(pub).length === 0,
+      `${pub.errors(0).join()} stage ${pubStage} then ${stageOf(pub)}`);
+
+    /* The drill: released, so a room with no developer flag starts it. */
+    const plain = live({ code: 'D3VP02', mission: MISSIONS['itaipu-drill'] });
+    const plainStage = stageOf(plain);
+    plain.say(0, { type: 'war', op: 'skip' });
+    plain.say(0, { type: 'war', op: 'complete' });
+    check('a private room on a server with no developer missions and no developer host refuses them \'dev\'',
+      plain.errors(0).filter((x) => x === 'dev').length === 2 && plainStage !== null && stageOf(plain) === plainStage && devLog(plain).length === 0,
+      `${plain.errors(0).join()} stage ${plainStage} then ${stageOf(plain)}`);
+
+    const dev = live({ dev: true, code: 'D3VP03' });
+    check('a developer room is live in mission 1\'s first stage', dev.r.war.match.state === 'live' && stageOf(dev) === 'eyes', stageOf(dev));
+    dev.say(1, { type: 'war', op: 'skip' });
+    check('a pilot who is not the host opens nothing', stageOf(dev) === 'eyes' && devLog(dev).length === 0);
+    dev.say(0, { type: 'war', op: 'complete', objective: 'nope' });
+    check('complete naming an objective the stage lacks is refused \'objective\'', dev.errors(0).includes('objective'), dev.errors(0).join());
+    dev.say(0, { type: 'war', op: 'complete', objective: 'scout' });
+    const obj = dev.view(1).stage.objectives.find((o) => o.id === 'scout');
+    check('complete settles the objective done, and every screen\'s view says so', obj && obj.state === 'done'
+      && devLog(dev).some((x) => x.op === 'complete' && x.objective === 'scout'), JSON.stringify(obj));
+    dev.say(0, { type: 'war', op: 'skip' });
+    const left = dev.r.war.log.filter((x) => x.what === 'stage' && x.stage === 'eyes');
+    check('skip leaves the stage by its first exit that is not a loss, into its result beat', left.length === 1 && left[0].exit === 0
+      && dev.r.war.match.roundState === 'result' && dev.r.war.match.state === 'live', JSON.stringify(left));
+    dev.say(0, { type: 'war', op: 'skip' });
+    check('a skip during the result beat is refused \'off\'', dev.errors(0).includes('off'), dev.errors(0).join());
+    dev.fly(dev.clock + 16000);
+    check('and the next stage opens after the beat, as a fired exit\'s would', stageOf(dev) === 'probe' && dev.view(0).stage.id === 'probe', stageOf(dev));
   }
 }

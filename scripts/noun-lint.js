@@ -33,6 +33,12 @@
  * are read by developers only, and renaming a stored key would orphan every
  * track already saved in someone's browser. Comments are free to say the
  * word, since one may have to explain why a key is still spelled that way.
+ *
+ * The same holds for every noun docs/SPANISH-GLOSSARY.md settles where the
+ * word it replaces is gone from the copy (RULES): "party" is never shown,
+ * a session's pilots are its pilots. A settled word the copy still uses in
+ * the old sense (match for round, room where session fits) gets its rule
+ * when the copy is moved, not before.
  */
 
 import { readdir, readFile } from 'node:fs/promises';
@@ -49,7 +55,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * it went with the map on 2026-08-30: an exception outliving the file it
  * excuses is how such a list stops meaning anything.
  */
-const ALLOWED = [];
+const ALLOWED = [
+  /* An ops blurb's "third party" is the legal sense, someone outside the
+   * meeting, not a group of pilots. */
+  { file: 'src/strings/en.js', text: 'a meeting with a third party' },
+];
 
 const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', '.loop', 'vendor', 'dist', 'tests', 'tmp']);
 
@@ -65,7 +75,22 @@ const SKIP_FILES = [
   (rel) => /^scripts\/[a-z-]+-check\.js$/.test(rel),
 ];
 
-const WORD = /(?<![A-Za-z0-9_])[cC]ourses?(?![A-Za-z0-9_])/;
+/* Each word the player never reads, and the one they read instead. */
+const RULES = [
+  { name: 'course', word: /(?<![A-Za-z0-9_])[cC]ourses?(?![A-Za-z0-9_])/, say: 'track' },
+  { name: 'party', word: /(?<![A-Za-z0-9_])[pP]art(y|ies)(?![A-Za-z0-9_])/, say: 'the session\'s pilots' },
+];
+const WORD = { test: (text) => RULES.some((r) => r.word.test(text)) };
+
+/* The rules on fixed samples: a rule that stops matching, or matches a
+ * word it should not, fails here before the scan. */
+const SAMPLES = [['Pick a course', true], ['Join the party', true], ['Two parties', true], ['partly cloudy', false],
+  ['a counterparty', false], ['of course-grained', true], ['the track', false]];
+const wrong = SAMPLES.filter(([text, want]) => WORD.test(text) !== want);
+if (wrong.length) {
+  console.log(`FAIL, the rules judged ${wrong.length} fixed sample(s) wrong: ${wrong.map(([t]) => JSON.stringify(t)).join(', ')}`);
+  process.exit(1);
+}
 const MACHINE_TOKEN = /^[a-z0-9\-_./#?=&:]+$/;
 /* ${...} is code, not text: ${card.course.track.id} puts the word in front
  * of the lint and nothing in front of a player. */
@@ -211,16 +236,16 @@ for await (const path of walk(root)) {
   }
 }
 
-console.log(`noun lint: ${scanned} file(s) scanned for a player-visible "course"`);
+console.log(`noun lint: ${scanned} file(s) scanned for a player-visible ${RULES.map((r) => `"${r.name}"`).join(' or ')}`);
 if (failures.length) {
   for (const failure of failures) {
     console.log(failure);
   }
   console.log('');
-  console.log(`FAIL, ${failures.length} player-visible "course"`);
-  console.log('The player sees one noun. Use track, or add an argued exception to ALLOWED.');
+  console.log(`FAIL, ${failures.length} player-visible word(s) the glossary retired`);
+  console.log(`The player sees one noun. Use ${RULES.map((r) => r.say).join(', ')}, or add an argued exception to ALLOWED.`);
   process.exit(1);
 }
 console.log(`  allowed, with reasons in this file: ${ALLOWED.length}`);
 console.log('');
-console.log('PASS, the player only ever sees a track');
+console.log('PASS, the player only ever sees a track, and never a party');

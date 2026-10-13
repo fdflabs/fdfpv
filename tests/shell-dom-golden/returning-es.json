@@ -41,7 +41,7 @@
          ],
          "kids": [
           {
-           "t": "Lap"
+           "t": "Vuelta"
           }
          ]
         },
@@ -1519,7 +1519,7 @@
          ],
          "kids": [
           {
-           "t": "Keyboard"
+           "t": "Teclado"
           }
          ]
         },
@@ -1877,7 +1877,7 @@
            "tag": "dt",
            "kids": [
             {
-             "t": "Turtle"
+             "t": "Modo tortuga"
             }
            ]
           },
@@ -2899,6 +2899,20 @@
           },
           {
            "t": "."
+          }
+         ]
+        },
+        {
+         "tag": "p",
+         "attrs": [
+          [
+           "class",
+           "credits-legal"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Versión local"
           }
          ]
         }
@@ -4569,7 +4583,7 @@
                ],
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               }
@@ -4607,7 +4621,7 @@
                ],
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               }
@@ -4645,7 +4659,7 @@
                ],
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               }
@@ -4675,7 +4689,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               },
@@ -4703,7 +4717,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               },
@@ -4731,7 +4745,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               },
@@ -4859,7 +4873,7 @@
        "tag": "h2",
        "kids": [
         {
-         "t": "Controles"
+         "t": "Teclas y botones"
         }
        ]
       },
@@ -4957,8 +4971,258 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-fc": {
+   "div.screen.screen-page.screen-pilot.screen-controller": {
     "after": "div.screen.screen-page.screen-pilot.screen-controls",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-controller"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "Controlador"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Todo lo que hay entre tus manos y la aeronave: qué dispositivo vuela, cómo se asignan sus palancas y cómo se sienten, y las teclas."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu menu-scroll"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Vuelve. Los cambios ya están guardados. Las flechas siguen moviendo el menú."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-pilot.screen-flywith": {
+    "after": "div.screen.screen-page.screen-pilot.screen-controller",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-flywith"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "¿Con qué vas a volar?"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Elige lo que tienes en las manos y el juego se prepara para eso. Puedes cambiarlo cuando quieras en el Hangar."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "↑↓"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Enter"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Las flechas mueven, Enter elige. Escape salta. En una radio: pitch para moverte, roll a la derecha para elegir."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-fc": {
+    "after": "div.screen.screen-page.screen-pilot.screen-flywith",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -8735,7 +8999,7 @@
          ],
          "kids": [
           {
-           "t": "Lap"
+           "t": "Vuelta"
           }
          ]
         },
@@ -10213,7 +10477,7 @@
          ],
          "kids": [
           {
-           "t": "Keyboard"
+           "t": "Teclado"
           }
          ]
         },
@@ -10571,7 +10835,7 @@
            "tag": "dt",
            "kids": [
             {
-             "t": "Turtle"
+             "t": "Modo tortuga"
             }
            ]
           },
@@ -11593,6 +11857,20 @@
           },
           {
            "t": "."
+          }
+         ]
+        },
+        {
+         "tag": "p",
+         "attrs": [
+          [
+           "class",
+           "credits-legal"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Versión local"
           }
          ]
         }
@@ -13263,7 +13541,7 @@
                ],
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               }
@@ -13301,7 +13579,7 @@
                ],
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               }
@@ -13339,7 +13617,7 @@
                ],
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               }
@@ -13369,7 +13647,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               },
@@ -13397,7 +13675,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               },
@@ -13425,7 +13703,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               },
@@ -13553,7 +13831,7 @@
        "tag": "h2",
        "kids": [
         {
-         "t": "Controles"
+         "t": "Teclas y botones"
         }
        ]
       },
@@ -13651,8 +13929,258 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-fc": {
+   "div.screen.screen-page.screen-pilot.screen-controller": {
     "after": "div.screen.screen-page.screen-pilot.screen-controls",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-controller"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "Controlador"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Todo lo que hay entre tus manos y la aeronave: qué dispositivo vuela, cómo se asignan sus palancas y cómo se sienten, y las teclas."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu menu-scroll"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Vuelve. Los cambios ya están guardados. Las flechas siguen moviendo el menú."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-pilot.screen-flywith": {
+    "after": "div.screen.screen-page.screen-pilot.screen-controller",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-flywith"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "¿Con qué vas a volar?"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Elige lo que tienes en las manos y el juego se prepara para eso. Puedes cambiarlo cuando quieras en el Hangar."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "↑↓"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Enter"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Las flechas mueven, Enter elige. Escape salta. En una radio: pitch para moverte, roll a la derecha para elegir."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-fc": {
+    "after": "div.screen.screen-page.screen-pilot.screen-flywith",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -17484,6 +18012,12 @@
    "instance": "Carousel"
   },
   "checkVersion": "function",
+  "controllerHelp": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller.2.1"
+  },
+  "controllerMenu": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller.2.0"
+  },
   "controlsHelp": {
    "node": "#ui/div.screen.screen-page.screen-pilot.screen-controls.2.1"
   },
@@ -17558,6 +18092,12 @@
   },
   "firstNote": {
    "node": "#ui/div.screen.screen-title.0.0.0.5"
+  },
+  "flywithHelp": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith.2.1"
+  },
+  "flywithMenu": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith.2.0"
   },
   "frameBot": {
    "node": "#ui/div.frame-bot"
@@ -18229,6 +18769,18 @@
      "controls",
      {
       "node": "#ui/div.screen.screen-page.screen-pilot.screen-controls"
+     }
+    ],
+    [
+     "controller",
+     {
+      "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller"
+     }
+    ],
+    [
+     "flywith",
+     {
+      "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith"
      }
     ],
     [

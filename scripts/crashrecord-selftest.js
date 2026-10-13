@@ -27,7 +27,9 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createCrashRecord, watchPageErrors, CRASH_RECENT_MS, MAX_ERRORS } from '../src/share/crashrecord.js';
+import {
+  createCrashRecord, watchPageErrors, crashRecord, logWarn, logError, CRASH_RECENT_MS, MAX_ERRORS, LOG_CATEGORIES, LOG_MAX, LOG_REPORT_CHARS,
+} from '../src/share/crashrecord.js';
 
 let failed = 0;
 let passed = 0;
@@ -120,6 +122,75 @@ const clock = () => t;
     a && a.errors[0].where === 'at roomFrame (fdfpv/src/main.js:2349:12) | at frameBody (fdfpv/src/main.js:11300:5)', a && a.errors[0].where);
   check('and a rejection, named as one', a && a.errors[1].message === 'unhandledrejection: board 500', a && a.errors[1].message);
   check('a rejection with no Error behind it still says what it was', a && a.errors[2].message === 'unhandledrejection: plain');
+}
+
+{
+  /* The log of warnings (COMPLETENESS 65). */
+  const r = createCrashRecord(clock);
+  check('no warnings, no log', r.log() === null);
+  check('the eight categories, closed', LOG_CATEGORIES.join() === 'input,network,physics,ai,mission,render,save,audio'
+    && Object.isFrozen(LOG_CATEGORIES));
+  let threw = false;
+  try {
+    r.noteLog('graphics', 'x');
+  } catch (e) {
+    threw = true;
+  }
+  check('an unknown category throws at the call site', threw && r.log() === null);
+  r.noteLog('network', 'offline cache not registered: SecurityError');
+  t += 2000;
+  r.noteLog('audio', 'audio: the context is suspended');
+  r.noteLog('audio', 'audio: the context is suspended');
+  const a = r.log();
+  check('each warning with its category and age, oldest first, a repeat counted',
+    a.length === 2 && a[0].cat === 'network' && a[0].ageS === 2 && a[1].cat === 'audio' && a[1].count === 2, JSON.stringify(a));
+  for (let i = 0; i < LOG_MAX + 20; i += 1) r.noteLog('save', `step ${i}`);
+  check(`the ring keeps the last ${LOG_MAX}`, (() => {
+    const all = createCrashRecord(clock);
+    for (let i = 0; i < LOG_MAX + 20; i += 1) all.noteLog('save', `s${i}`);
+    const got = all.log();
+    return got[got.length - 1].msg === `s${LOG_MAX + 19}` && got.every((e) => e.msg !== 's0' && e.msg !== 's19');
+  })());
+  const long = 'y'.repeat(5000);
+  const w = createCrashRecord(clock);
+  for (let i = 0; i < LOG_MAX; i += 1) w.noteLog(LOG_CATEGORIES[i % 8], `${long.slice(0, 150)}#${i}`);
+  const worst = w.log();
+  const chars = JSON.stringify(worst).length;
+  check(`a worst case log is ${chars} chars, inside its ${LOG_REPORT_CHARS}`, chars <= LOG_REPORT_CHARS, String(chars));
+  const fit = createCrashRecord(clock);
+  for (let i = 0; i < LOG_MAX; i += 1) fit.noteLog('render', `${'z'.repeat(150)}#${i}`);
+  const kept = fit.log();
+  check('and keeps the newest, dropping the oldest that do not fit',
+    kept[kept.length - 1].msg.endsWith(`#${LOG_MAX - 1}`) && kept.length < LOG_MAX && kept.length > 5
+    && JSON.stringify(kept).length <= LOG_REPORT_CHARS, `${kept.length} kept`);
+  const both = createCrashRecord(clock);
+  both.noteCraft({ kind: long, airframe: long, map: long, flags: new Array(50).fill(long), hits: new Array(50).fill({ part: long, type: long, surface: long, closing: 1 }) });
+  for (let i = 0; i < 10; i += 1) both.noteError(long + i, long);
+  for (let i = 0; i < LOG_MAX; i += 1) both.noteLog('render', `${'y'.repeat(150)}#${i}`);
+  const together = JSON.stringify({ crash: both.report(), log: both.log() }).length;
+  check(`the crash record and the log at their worst are ${together} chars, under half the board's 8000`, together < 4000, String(together));
+}
+
+{
+  /* logWarn and logError: the console line as before, and the log. */
+  const said = [];
+  const warn = console.warn;
+  const error = console.error;
+  console.warn = (...a) => said.push(['warn', ...a]);
+  console.error = (...a) => said.push(['error', ...a]);
+  try {
+    const e = new Error('quota');
+    logWarn('save', 'save: refused', e);
+    logError('audio', 'audio: the engine failed to load', { code: 3 });
+  } finally {
+    console.warn = warn;
+    console.error = error;
+  }
+  check('the console gets exactly what it got before', said.length === 2 && said[0][1] === 'save: refused'
+    && said[0][2] instanceof Error && said[1][0] === 'error');
+  const got = crashRecord.log();
+  check('and the page\'s log the line, an error by its message', got && got[0].msg === 'save: refused quota'
+    && got[1].msg === 'audio: the engine failed to load {"code":3}', JSON.stringify(got));
 }
 
 console.log(`\n${passed} passed${failed ? `, ${failed} FAILED` : ''}`);

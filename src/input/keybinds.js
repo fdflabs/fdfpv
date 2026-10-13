@@ -50,12 +50,13 @@ export const ACTIONS = TABLE.filter((a) => a.key).map((a) => ({ id: a.id, code: 
 
 /* Read in flight for something else (src/input/keyboard.js, main.js
  * input.onKey and its held keys, src/ui/keys.js flightKey, the builder,
- * the crash cam, push to talk, F3 and F8). */
+ * the crash cam's V, push to talk's N (src/share/voice.js PTT_KEY), F3
+ * and F8). */
 export const RESERVED = new Set([
   'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyZ', 'KeyQ', 'KeyE',
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight',
   'Escape', 'Tab', 'BracketLeft', 'BracketRight', 'Space', 'Enter', 'Backspace', 'Backquote',
-  'KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY', 'KeyM', 'KeyB', 'KeyV', 'Period', 'Equal', 'Minus', 'PageUp', 'PageDown',
+  'KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY', 'KeyM', 'KeyB', 'KeyV', 'KeyN', 'Period', 'Equal', 'Minus', 'PageUp', 'PageDown',
   'F3', 'F8',
 ]);
 
@@ -68,7 +69,15 @@ const table = bindingTable(ACTIONS.map((a) => ({ id: a.id, def: a.code })), (cod
 /* Whether any key is moved; settings keep no field until one is. */
 export const hasKeybinds = table.has;
 export const emptyKeybinds = table.empty;
-export const normaliseKeybinds = table.normalise;
+/* A profile saved before N was reserved may hold an action on N, which
+ * took push to talk away in flight; it is dropped, and said so. */
+export function normaliseKeybinds(raw) {
+  const onN = (m) => Boolean(m) && typeof m === 'object' && Object.values(m).includes('KeyN');
+  if (raw && typeof raw === 'object' && (onN(raw.all) || Object.values(raw.by || {}).some(onN))) {
+    console.warn('keybinds: a binding on N is dropped; N is push to talk');
+  }
+  return table.normalise(raw);
+}
 /* Each action's key on `airframe` (null: the every-aircraft bindings). */
 export const effectiveKeys = table.effective;
 export const boundForAircraft = table.boundForAircraft;

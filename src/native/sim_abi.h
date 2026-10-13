@@ -731,6 +731,22 @@ int sim_set_wind(double vx, double vy, double gust);
 int sim_wind(double *out);
 
 /*
+ * THE GUSTS' CLOCK. sim_set_wind_clock(ms): where the gusts' clock stands at
+ * step 0, whole milliseconds, 0 to 1e15: a room's clock at the run's start,
+ * so every plant in the room meets the same gust at the same room
+ * millisecond, bit for bit, where each would otherwise run its gusts from
+ * its own step 0. The gust clock is the step's plus this, wrapping every
+ * 2^27 ms (37.3 h; src/native/plant_wing.c at plant_wind says why). It moves
+ * only the gusts' phase: the mean wind, the vertical air and every other
+ * term are untouched. A world property like the wind, kept across
+ * sim_reset and sim_init; 0, the default, is the plant's own clock, so a
+ * plant that never sets it is bit identical to one from before it existed.
+ * SIM_ERR_BAD_ARG for a value not finite, negative, past 1e15 or not whole.
+ * Additive, version unchanged.
+ */
+int sim_set_wind_clock(double ms);
+
+/*
  * VERTICAL AIR. sim_set_air_vertical(w): the air's vertical velocity at the
  * craft, m/s, up positive, -10 to 10: a thermal's rise, a ridge's or a
  * dam face's lift, the sink beside them. The host reads it off its weather

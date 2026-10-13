@@ -623,6 +623,65 @@ heading('the wizard names the hand the stick mode puts the channel on');
   b.im.setStickMode(2);
 }
 
+/* ------------------------------------------- feel: dead zone and expo */
+
+heading('feel: a dead zone and an expo per device, kept beside its map');
+{
+  const store = storage();
+  const pad = gamepad();
+  const b = new Bench(pad, store);
+  b.run(100);
+  const im = b.im;
+  const roll = (v) => {
+    b.set(2, v);
+    b.run(48);
+    return im.channels.roll;
+  };
+  check('off by default: the stick reads as it always has', roll(0.05) === 0.05 && roll(-0.5) === -0.5, show([roll(0.05), roll(-0.5)]));
+  check('a dead zone on an uncalibrated gamepad is kept', im.setFeel({ deadZone: 10 }) === true && im.feel.deadZone === 10);
+  check('and does not save its built-in layout as a calibration', im.map.stored === false && !store.dump().includes('"maps":{"0'), store.dump());
+  check('inside the dead zone the stick reads zero', roll(0.08) === 0, String(roll(0.08)));
+  check('past it the travel is scaled back to full, with no jump', near(roll(0.55), 0.5) && near(roll(1), 1) && near(roll(-0.55), -0.5),
+    show([roll(0.55), roll(1), roll(-0.55)]));
+  check('the throttle is not shaped', (() => { b.set(3, 0); b.run(48); return near(im.channels.throttle, 0.5); })(), String(im.channels.throttle));
+  const throttleWas = im.map.throttle.axis;
+  im.setStickMode(1);
+  b.run(48);
+  check('a stick mode change still rebuilds the built-in layout: mode 1 moves the throttle to the right stick',
+    throttleWas === 1 && im.map.throttle.axis === 3 && im.map.stored === false, show(im.map));
+  im.setStickMode(2);
+  b.run(48);
+  im.setFeel({ deadZone: 0, expo: 50 });
+  check('expo 50: half stick is 0.3125, full stick is full', near(roll(0.5), 0.5 * 0.5 + 0.125 * 0.5) && near(roll(1), 1), show([roll(0.5), roll(1)]));
+  check('a dead zone or an expo not on the list is off', (im.setFeel({ deadZone: 3, expo: 33 }), im.feel.deadZone === 0 && im.feel.expo === 0), show(im.feel));
+  im.setFeel({ deadZone: 6, expo: 25 });
+  check('the summary carries it for the Controller screen', show(im.padSummary().feel) === show({ deadZone: 6, expo: 25 }) && im.padSummary().profile === 'standard');
+
+  const again = new Bench(gamepad(), store);
+  again.run(100);
+  check('a reload flies the device with its own feel', show(again.im.feel) === show({ deadZone: 6, expo: 25 }), show(again.im.feel));
+  const other = new Bench(radio([0, 0, -1, 0]), store);
+  other.run(100);
+  check('another device has its own, off', show(other.im.feel) === show({ deadZone: 0, expo: 0 }), show(other.im.feel));
+  check('no device seen: nothing to keep a feel for', new Bench(null, storage()).im.setFeel({ deadZone: 10 }) === false);
+}
+
+heading('the built-in layout: a calibration dropped, its feel kept');
+{
+  const store = storage();
+  const b = new Bench(radio([0, 0, -1, 0], 4), store);
+  b.run(100);
+  check('nothing calibrated: nothing to drop', b.im.useBuiltInMap() === false);
+  check('calibrated on AETR with roll reversed', calibrate(b, plainRadio) === true && b.im.acceptCalibration() && b.im.map.stored === true);
+  b.im.setFeel({ deadZone: 4 });
+  check('dropped', b.im.useBuiltInMap() === true && b.im.map.stored === false && b.im.padSummary().calibrated === false);
+  check('and storage holds no map for it', show(JSON.parse(store.getItem('fdfpv.stick_maps.v2')).maps) === '{}', store.dump());
+  check('the feel stays', b.im.feel.deadZone === 4);
+  const again = new Bench(radio([0, 0, -1, 0], 4), store);
+  again.run(100);
+  check('a reload flies it uncalibrated with its feel', again.im.map.stored === false && again.im.feel.deadZone === 4);
+}
+
 /* ------------------------------------------------------- mouse flight */
 
 const MOUSE_EVENTS = ['mousemove', 'wheel', 'mousedown', 'mouseup', 'contextmenu'];
@@ -1459,6 +1518,8 @@ heading('phase 20: one action table, read by name from every source');
   binding = { binds: pb.bindButton(pb.bindButton(undefined, 'talk', 'a').binds, 'swap', 'lt').binds, airframe: null, flight: true };
   press('a', true);
   check('talk moved to A reads A', b.im.padAction('talk') && b.im.padActionLabel('talk') === 'A');
+  check('the camera ball asks who holds a button: A is talk now, the right trigger nobody\'s',
+    b.im.padActionOn('a') === 'talk' && b.im.padActionOn('rt') === null);
   press('a', false);
   press('lt', true);
   check('swap moved to the left trigger: the flight swap opens on it', b.im.padSwapButtons().open === true && !b.im.padAction('talk'));

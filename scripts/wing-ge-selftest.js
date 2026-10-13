@@ -116,7 +116,11 @@ const PLANES = [
  * 75408e31a83e82dd), cap580 (was ca753897fc920c72), slick (was
  * eb98eb5f61ba0c32). Re-pinned for the F-16's measured side force
  * (w38-physics-2, cy_tab, NASA TP-1538 table III) and its AS3X re-derived
- * on it, the ground's term unchanged: f16 (was 75a6cac5f8258f81). */
+ * on it, the ground's term unchanged: f16 (was 75a6cac5f8258f81).
+ * Re-pinned for the stalled wing's plate force in the plane of symmetry
+ * (w38-physics-2, plant_wing.c THE PLATE'S FORCE IN A SIDESLIP), the
+ * ground's term unchanged: bramor (was 8191b109670108ee), cap580 (was
+ * f77ccae2a596aa22). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
   sky: '6ec975f7afcb036b',
@@ -124,7 +128,7 @@ const PINS = {
   slowstick: '731483e6eb017e98',
   radian: '80300ab2345b8d8f',
   timber: '4b2f4b3fb5f79720',
-  bramor: '8191b109670108ee',
+  bramor: '997e5371cc805783',
   timberf: '8d8de74bcbab6724',
   cubf: '7d63c9e2c78386ee',
   bombshell: '65e981219dac8893',
@@ -140,7 +144,7 @@ const PINS = {
   extra: 'e2126e2b566fa933',
   nighttimber: 'c6d1310b299055bc',
   hercules: 'eb28e3fc65379972',
-  cap580: 'f77ccae2a596aa22',
+  cap580: '344350ea67641586',
   slick: '1172512292cfbb69',
 };
 

@@ -492,12 +492,12 @@ export class CalibrationWizard {
 
   title() {
     const titles = {
-      center: 'Centre',
+      center: str('ui.cal_centre'),
       sweep: str('ui.full_range'),
-      throttle: 'Throttle',
-      roll: 'Roll',
-      pitch: 'Pitch',
-      yaw: 'Yaw',
+      throttle: str('ui.throttle'),
+      roll: str('ratespanel.roll'),
+      pitch: str('ui.pitch'),
+      yaw: str('ui.yaw_axis'),
       select: str('ui.menu_switch'),
       confirm: this.checkOnly ? str('ui.check_sticks') : str('input.check'),
     };

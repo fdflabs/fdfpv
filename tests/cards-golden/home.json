@@ -76,6 +76,14 @@
             "kids": [
              "Free Flight"
             ]
+           },
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-training",
+            "tabindex": "-1",
+            "kids": [
+             "Learn to fly"
+            ]
            }
           ]
          }
@@ -143,6 +151,14 @@
             "kids": [
              "The Interior"
             ]
+           },
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-ops-field",
+            "tabindex": "-1",
+            "kids": [
+             "Field hangar"
+            ]
            }
           ]
          }
@@ -205,6 +221,14 @@
           "kids": [
            {
             "tag": "button",
+            "cls": "gate-link gate-card-hangar-walk",
+            "tabindex": "-1",
+            "kids": [
+             "Walk in"
+            ]
+           },
+           {
+            "tag": "button",
             "cls": "gate-link gate-card-hangar-aircraft",
             "tabindex": "-1",
             "kids": [
@@ -221,10 +245,18 @@
            },
            {
             "tag": "button",
-            "cls": "gate-link gate-card-hangar-sticks",
+            "cls": "gate-link gate-card-hangar-upgrades",
             "tabindex": "-1",
             "kids": [
-             "Calibrate sticks"
+             "Upgrades"
+            ]
+           },
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-hangar-controller",
+            "tabindex": "-1",
+            "kids": [
+             "Controller"
             ]
            },
            {
@@ -337,7 +369,7 @@
     "cards": {
      "tag": "div",
      "cls": "gate-cards",
-     "data-count": "2",
+     "data-count": "3",
      "kids": [
       {
        "tag": "div",
@@ -481,6 +513,81 @@
          ]
         }
        ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-training",
+       "role": "button",
+       "aria-label": "Learn to fly",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "img",
+           "cls": "gate-card-shot",
+           "alt": "",
+           "decoding": "async",
+           "src": "assets/posters/swiss2.jpg"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Learn to fly"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Lessons from the first takeoff to racing your ghost, one step at a time."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts",
+           "kids": [
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Short lessons, in order"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "SAFE Select first, then AS3X"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Nothing waits on them"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
       }
      ]
     },
@@ -489,6 +596,12 @@
       true,
       0,
       "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
       false
      ],
      [
@@ -505,7 +618,7 @@
     "cards": {
      "tag": "div",
      "cls": "gate-cards",
-     "data-count": "1",
+     "data-count": "2",
      "kids": [
       {
        "tag": "div",
@@ -574,6 +687,44 @@
          ]
         }
        ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-ops-field",
+       "role": "button",
+       "aria-label": "Field hangar",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art"
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Field hangar"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
       }
      ]
     },
@@ -582,6 +733,12 @@
       true,
       0,
       "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
       false
      ]
     ]
@@ -592,15 +749,53 @@
     "cards": {
      "tag": "div",
      "cls": "gate-cards",
-     "data-count": "4",
+     "data-count": "6",
      "kids": [
       {
        "tag": "div",
-       "cls": "gate-card gate-card-hangar-aircraft on",
+       "cls": "gate-card gate-card-hangar-walk on",
        "role": "button",
-       "aria-label": "Aircraft",
+       "aria-label": "Walk in",
        "aria-current": "true",
        "tabindex": "0",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art"
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Walk in"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Your hangar as a place: the aircraft on its stand, the bench, the door to the field."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hangar-aircraft",
+       "role": "button",
+       "aria-label": "Aircraft",
+       "aria-current": "false",
+       "tabindex": "-1",
        "kids": [
         {
          "tag": "div",
@@ -686,9 +881,9 @@
       },
       {
        "tag": "div",
-       "cls": "gate-card gate-card-hangar-sticks",
+       "cls": "gate-card gate-card-hangar-upgrades",
        "role": "button",
-       "aria-label": "Calibrate sticks",
+       "aria-label": "Upgrades",
        "aria-current": "false",
        "tabindex": "-1",
        "kids": [
@@ -704,14 +899,52 @@
            "tag": "div",
            "cls": "gate-card-name",
            "kids": [
-            "Calibrate sticks"
+            "Upgrades"
            ]
           },
           {
            "tag": "p",
            "cls": "gate-card-blurb",
            "kids": [
-            "A radio in joystick mode or a gamepad: map and centre its sticks."
+            "Warheads, a second rack and speed for the war, paid in credits."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hangar-controller",
+       "role": "button",
+       "aria-label": "Controller",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art"
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Controller"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Choose joystick, Calibrate sticks, how the sticks feel and fly, and the keys: everything between your hands and the aircraft."
            ]
           },
           {
@@ -767,6 +1000,18 @@
       true,
       0,
       "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
       false
      ],
      [

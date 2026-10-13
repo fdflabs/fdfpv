@@ -97,7 +97,8 @@ async function shot(page, name) {
  * min, Cub 25 min, Skyhunter 5 min, 8 h 30 min in all. By mode: Track Day
  * 1 h 30 min, Free Flight 6 h 15 min, Streamer Combat 20 min, Catch the
  * Ace 10 min, Trick Battle 15 min. XP 700 is level 5 (600 to 900). Four
- * medals, three tracks lapped, two missions won with six stars.
+ * medals, three tracks lapped, two missions won with six stars. Thirteen
+ * landings on three aircraft.
  */
 const FLIGHT = {
   home0001: { by: { bramor2300: { free: 22200, race: 1800 }, interceptor: { race: 3600, combat: 1200 }, cub1400: { tag: 600, jam: 900 } }, first: '2026-09-01' },
@@ -131,6 +132,7 @@ const PROGRESS = {
   casual: {},
   lessons: {},
   lessonsFlown: {},
+  landings: { bramor2300: 9, cub1400: 3, sky1800: 1 },
   unlockAll: false,
 };
 const seed = (settings) => `try {
@@ -148,14 +150,14 @@ const WANT = {
     planes: '4', top: 'Most flown: Bramor C4EYE, 6 h 40 min',
     medals: '4', medalsSub: '2 Gold · 1 Silver · 1 Bronze', tracks: '3', won: '2', stars: '6 of 36 stars',
     modes: ['Track Day 1 h 30 min', 'Free Flight 6 h 15 min', 'Streamer Combat 20 min', 'Catch the Ace! 10 min', 'Trick Battle 15 min'],
-    flights: '42 flights', games: { tag: '1/5 won · best 9', jam: '2/3 won · best 1,250' },
+    flights: '42 flights', landings: '13 landings', games: { tag: '1/5 won · best 9', jam: '2/3 won · best 1,250' },
   },
   es: {
     time: '8 h 30 min', label: 'Tiempo total de vuelo', level: '5', xp: '700 de 900 XP',
     planes: '4', top: 'La más volada: Bramor C4EYE, 6 h 40 min',
     medals: '4', medalsSub: '2 Oro · 1 Plata · 1 Bronce', tracks: '3', won: '2', stars: '6 de 36 estrellas',
     modes: ['Día de pista 1 h 30 min', 'Vuelo Libre 6 h 15 min', 'Combate de serpentinas 20 min', '¡Atrapa al As! 10 min', 'Batalla de Trucos 15 min'],
-    flights: '42 vuelos', games: { tag: '1/5 ganadas · mejor 9', jam: '2/3 ganadas · mejor 1250' },
+    flights: '42 vuelos', landings: '13 aterrizajes', games: { tag: '1/5 ganadas · mejor 9', jam: '2/3 ganadas · mejor 1250' },
   },
 };
 
@@ -172,7 +174,7 @@ const READ = `(() => {
     medals: tile('medals', 'value'), medalsSub: tile('medals', 'sub'),
     tracks: tile('tracks', 'value'), won: tile('war', 'value'), stars: tile('war', 'sub'),
     modes: [...host.querySelectorAll('.gate-stats-mode')].map((m) => m.querySelector('.gate-stats-mode-name').textContent + ' ' + m.querySelector('.gate-stats-mode-time').textContent),
-    flights: q('[data-stat="flights"]'), tokens: q('[data-stat="tokens"]'),
+    flights: q('[data-stat="flights"]'), landings: q('[data-stat="landings"]'), tokens: q('[data-stat="tokens"]'),
     games: Object.fromEntries([...host.querySelectorAll('.gate-stats-mode')].filter((m) => m.querySelector('.gate-stats-mode-game'))
       .map((m) => [m.dataset.mode, m.querySelector('.gate-stats-mode-game').textContent])),
   };

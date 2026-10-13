@@ -57,11 +57,13 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { bodyPosToModel, simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
+import { chaseLagMs, shakeScale } from './render/comfort.js';
+import { pullIn } from './render/chasearm.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind, lockOf } from './game/progress.js';
-import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
+import { STRIPS, applyLesson, bankOf, gateCue, glidePoints, headingOf, heldSettings, lateralG, restoreSettings } from './game/training.js';
 import { createGlidePath } from './render/glidepath.js';
 import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
@@ -86,11 +88,12 @@ import { FreestyleScore, formatScore } from './game/score.js';
 import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
 import { formatRunClock, lengthText } from './ui/format.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
+import { AiOpponent, seatOpponent } from './game/aiopponent.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime, seatedFreestyleMap } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager, thermalMode } from './avionics/sensors.js';
@@ -138,6 +141,7 @@ import {
   LATE_MS, applyHit, checkHit, hullFor, roomForcesDamage, sideFor,
 } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
+import { WORLD_EDGES, edgeState, edgeStep } from './game/edges.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
@@ -173,10 +177,11 @@ import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
 import { SIZE_MAX as WAR_BOOM_MAX, createExplosions } from './render/explosion.js';
 import { createWarHud } from './ui/warhud.js';
 import { createWarMarkers } from './ui/warmarkers.js';
+import { createWarDebug } from './ui/wardebug.js';
 import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
-import { BRIEF_LINES, DEBRIEF_LINES, createWarCalls } from './render/warradio.js';
+import { BRIEF_LINES, DEBRIEF_LINES, captionOf, createWarCalls } from './render/warradio.js';
 import {
   createNudger as createWarNudger, ground as warGround, headingOf as warHeadingOf, nudgeOf as warNudgeOf, threatOf as warThreatOf,
 } from './share/war/nudge.js';
@@ -196,7 +201,9 @@ import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
-import { checkSession, needSignIn } from './share/account.js';
+import {
+  checkSession, fetchBlocks, heldBlocks, needSignIn, setBlocked,
+} from './share/account.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
  * use and kept in this browser. See src/share/identity.js. */
@@ -309,7 +316,7 @@ const WING_MOUNTS = {
  * a wing, so the title never shows a seaplane parked on grass. */
 const TITLE_CRAFT = 'sky1800';
 import { disposeSceneGraph, shareInstancedDepth } from './render/shell.js';
-import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
+import { normaliseRates, RATE_DEFAULTS, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
@@ -341,6 +348,7 @@ import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
 import { crashRecord } from './share/crashrecord.js';
 import { reportPageErrors } from './share/clientreport.js';
+import { devHooks } from './share/devhooks.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
@@ -698,6 +706,56 @@ export async function boot({
   input.startPolling(2);
   loading.system('input', 'ready');
   const ui = new Ui(uiRoot);
+  /*
+   * A LESSON'S SETTINGS (src/game/training.js): what the pilot's aircraft,
+   * tune, flight mode and weather were before the first lesson, held in
+   * memory and in storage, so a reload mid lesson puts them back too;
+   * restored when the lesson is left (Progress.endLesson, any other card)
+   * and here, on the load after one. Without storage the memory still
+   * restores them within the page.
+   */
+  const LESSON_RESTORE_KEY = 'fdfpv.lessonRestore';
+  let lessonHeld = null;
+  try {
+    lessonHeld = JSON.parse(localStorage.getItem(LESSON_RESTORE_KEY) || 'null');
+  } catch (e) {
+    /* Unreadable: nothing to put back. */
+  }
+  function lessonSettingValid(key, value) {
+    if (key === 'airframe') {
+      return airframeById(value).id === value;
+    }
+    if (key === 'tune') {
+      return TUNES.some((t) => t.id === value && t.airframe === ui.settings.airframe);
+    }
+    if (key === 'flightMode') {
+      return value === 'acro' || value === 'angle';
+    }
+    return WEATHER_PRESETS.includes(value);
+  }
+  function holdLessonSettings() {
+    if (lessonHeld) {
+      return;
+    }
+    lessonHeld = heldSettings(ui.settings);
+    try {
+      localStorage.setItem(LESSON_RESTORE_KEY, JSON.stringify(lessonHeld));
+    } catch (e) {
+      /* No storage: held in memory for this page. */
+    }
+  }
+  function restoreLessonSettings() {
+    if (restoreSettings(ui.settings, lessonHeld, seatAirframe, lessonSettingValid)) {
+      ui.persistSettings();
+    }
+    lessonHeld = null;
+    try {
+      localStorage.removeItem(LESSON_RESTORE_KEY);
+    } catch (e) {
+      /* No storage: nothing was kept there. */
+    }
+  }
+  restoreLessonSettings();
   /* Every model of a plane is built in the pilot's paint for it
    * (src/render/livery.js, configs/liveries.js), read from the settings as
    * they are when it is built. The boot craft, built above, is a quad. */
@@ -745,7 +803,7 @@ export async function boot({
   let avxTruth = AVX_NO_TRUTH;
   let avxFed = false;
   let avxLastT = -1;
-  window.__avionics = {
+  devHooks.__avionics = {
     deny: (what, on) => telemetry.deny(what, on),
     ai: (on) => { avxHud.ai = Boolean(on); },
     /* The TrackManager's snapshot, for a check to read or to seed. */
@@ -770,7 +828,8 @@ export async function boot({
    * Page Up and Page Down) the lens's zoom, K the sensor's digital zoom,
    * J the sensor's mode, U locks the ball on the ground under the cross
    * or frees it (B is the track builder's), Space captures. A standard pad: the D-pad slews, the
-   * triggers zoom, L3 captures, R3 locks. A mouse: the right button drags
+   * right trigger zooms in and A out (the left trigger is push to talk),
+   * L3 captures, R3 locks. A mouse: the right button drags
    * the picture, the wheel zooms (with Shift while the mouse flies).
    *
    * In an ops match every screen reports its camera to the room two a
@@ -824,7 +883,9 @@ export async function boot({
     const v = roomOps.view();
     const mission = roomOps.mission();
     const match = roomOps.match();
-    if (!mission || !match) {
+    /* The watch seat has no debrief: no flight, no capture, nothing to
+     * record (its banner says the end, warWatchBanner). */
+    if (!mission || !match || roomOps.watcher()) {
       return;
     }
     rolesBoard.close();
@@ -1124,7 +1185,9 @@ export async function boot({
     return {
       pan: Number(at('right')) - Number(at('left')),
       tilt: Number(at('up')) - Number(at('down')),
-      zoom: input.padValue('rt') - input.padValue('lt'),
+      /* Out on A, not the left trigger, which is push to talk's; A gives
+       * way to a flight action the pilot bound to it (docs/KEYBINDS.md). */
+      zoom: input.padValue('rt') - (input.padActionOn('a') ? 0 : input.padValue('a')),
       capture: at('ls'),
       lock: at('rs'),
     };
@@ -1388,8 +1451,10 @@ export async function boot({
     /* The aircraft of the role this seat flies (dealt at the start, or
      * taken or swapped since): seated before it is flown, and again when
      * the role changes to another aircraft. */
-    const craft = consentDue ? null : opsRoleCraft(v);
-    const activeKey = consentDue ? null : opsActiveKey(v);
+    /* The watch seat holds no role and is put in no aircraft. */
+    const seated = !consentDue && !roomOps.watcher();
+    const craft = seated ? opsRoleCraft(v) : null;
+    const activeKey = seated ? opsActiveKey(v) : null;
     if (!roomOps.live() && opsHolds.size) {
       opsHoldsClear();
     }
@@ -1408,7 +1473,7 @@ export async function boot({
       }
     }
     /* A match begun: into the air, as a war's begins (warBegin). */
-    if (!consentDue && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
+    if (seated && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
       opsBegunFor = match;
       opsHoldsClear();
       opsFlownKey = activeKey;
@@ -1428,7 +1493,7 @@ export async function boot({
         opsHud.cardEvent([str('ops.roles.swap_asked', { name: opsSeatName(x.from) })]);
       }
     }
-    if (!roomOps.on() || !flying) {
+    if (!roomOps.on() || !flying || roomOps.watcher()) {
       return;
     }
     if (!ballOn) {
@@ -2052,7 +2117,7 @@ export async function boot({
   }
 
   const lockV = new THREE.Vector3();
-  window.__ops = {
+  devHooks.__ops = {
     view: () => roomOps.view(),
     seat: () => roomOps.seat(),
     ball: () => (ball ? {
@@ -3407,11 +3472,16 @@ export async function boot({
     return fromY != null ? view.height(x, z, fromY) : groundAt(x, z);
   }
 
+  /* Where a reset puts the craft, for the world's edge's bearing home
+   * (edgeFrame). Up here because boot reaches adoptSpawn. */
+  const edgeHome = { x: 0, z: 0 };
   function adoptSpawn() {
     seatRestHeight(airframeById(runAirframe), startsAfloat());
     const sp = runSpawn();
     startX = sp.x;
     startZ = sp.z;
+    edgeHome.x = sp.x;
+    edgeHome.z = sp.z;
     startYaw = sp.yaw;
     startPitch = sp.pitch || 0;
     /* The spawn sits on the ground under it, which on these maps is
@@ -3504,7 +3574,7 @@ export async function boot({
   /* Decided per frame with `scoring`, consulted every step. */
   let figureCraft = false;
   /* The checks land a trick as a detector would (scripts/callouts-check.js). */
-  window.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
+  devHooks.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
   function scoreCrash() {
     score.crash();
     if (jamScore) {
@@ -4144,7 +4214,16 @@ export async function boot({
   const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
-  }, () => ui.refreshFriends());
+  }, () => ui.refreshFriends(), {
+    /* A signed in peer's name is its callsign (src/share/rooms.js shownName). */
+    callsignOf: (seat) => {
+      const peer = roomPeers.get(seat);
+      return peer && typeof peer.name === 'string' ? peer.name : null;
+    },
+    held: heldBlocks,
+    fetch: fetchBlocks,
+    setBlocked,
+  });
   /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
    * turns it on in the room screen, never to a pilot muted or reported. */
   const voice = createVoice({ send: (m) => roomLinkState.send(m), isMuted: (seat) => roomSafety.isMuted(seat) });
@@ -4157,8 +4236,8 @@ export async function boot({
     confirm: (o) => ui.askConfirm(o),
   });
   /* Harness only, for scripts/voicechat-two-page.js. */
-  window.__voice = voice;
-  window.__voiceUi = voiceUi;
+  devHooks.__voice = voice;
+  devHooks.__voiceUi = voiceUi;
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
@@ -4245,6 +4324,8 @@ export async function boot({
         /* A pilot who came while the round was on (a join, the title's
          * panel) goes up into it; one flying already flies on. */
         roomCall('game');
+      } else if (n.state === 'over' && roomCombat.mine() && mode !== 'replay') {
+        ui.progress.roundFinished('combat', worldId());
       } else if (n.state === 'countdown') {
         /* A round's countdown is the time to take off in, so every pilot
          * in the room goes up with it, from wherever they are (roomCall).
@@ -4489,6 +4570,18 @@ export async function boot({
   };
   const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
+  /* The attackers' debug overlay (src/ui/wardebug.js), developer mode
+   * only: __warDebug(true | false) turns it on or off, __warDebug() reads
+   * what it drew. */
+  const warDebug = createWarDebug(shell.camera, shell.renderer.domElement);
+  devHooks.__warDebug = (on) => (on === undefined ? warDebug.shown() : warDebug.set(on));
+  const warSeatAt = (seat) => {
+    if (seat === roomWar.seat()) {
+      return [pCurr.x, pCurr.y, pCurr.z];
+    }
+    const peer = [...roomPeers.values()].find((x) => x.seat === seat && x.drawnPose);
+    return peer ? [peer.drawnPose.px, peer.drawnPose.py, peer.drawnPose.pz] : null;
+  };
   /* One marker an object: the Avionics HUD's boxes, by reference. */
   warMarkers.setClaims(avionicsHud.claims);
   const warCalls = createWarCalls();
@@ -4652,9 +4745,32 @@ export async function boot({
       return peer ? str('jam.watching', { name: roomName(peer.name) }) : str('jam.watching_none');
     }
     if (roomWatching()) {
-      return peer ? str('rooms.watching', { name: roomName(peer.name) }) : str('rooms.watching_none');
+      return peer ? str('rooms.watching', { name: roomName(peer.name) }) : watchingNone();
     }
-    return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
+    /* A mission of stages says stage, as its card and HUD do
+     * (src/ui/warround.js unit). */
+    const tail = roomWar.view()?.stage ? '_stage' : '';
+    return peer ? str(`war.out${tail}`, { name: roomName(peer.name) }) : str(`war.out_none${tail}`);
+  }
+
+  /* The watch seat's line with nobody flying: what the room is doing
+   * then, an ops mission's end (it has no debrief, opsDebrief) or the
+   * lobby, who is ready and when it starts. */
+  function watchingNone() {
+    const ops = roomOps.view();
+    if (roomOps.match() && ['won', 'lost', 'ended'].includes(ops.state)) {
+      return str(`rooms.watching_${ops.state}`);
+    }
+    const lobby = gameLobby();
+    if (!lobby) {
+      return str('rooms.watching_none');
+    }
+    const now = roomLinkState.roomNow();
+    if (lobby.countdownAt != null && now != null) {
+      return str('rooms.watching_lobby_go', { s: Math.max(0, Math.ceil((lobby.countdownAt - now) / 1000)) });
+    }
+    const people = [...roomPeers.values()].filter((p) => !p.name.bot).length;
+    return str('rooms.watching_lobby', { ready: Object.keys(lobby.ready).length, n: people });
   }
 
   /* Set once the campaign screen exists (further down); the start row
@@ -4860,7 +4976,7 @@ export async function boot({
   }
   function gameLobbyToggle() {
     const lobby = gameLobby();
-    if (lobby) {
+    if (lobby && !roomLinkState.state().welcome.watch) {
       roomLinkState.send({ type: 'lobby', op: 'ready', ready: !gameLobbyReady(lobby) });
     }
   }
@@ -4877,9 +4993,12 @@ export async function boot({
     const war = lobbyGame() === 'war';
     const readyLabel = ready ? (war ? 'brief.stand_down' : 'lobby.unready') : (war ? 'brief.deploy' : 'lobby.ready');
     const readyNote = ready ? 'lobby.unready_note' : (war ? 'brief.deploy_note' : 'lobby.ready_note');
-    const rows = [{
+    /* The watch seat is never asked to be ready (edge/rooms/gamelobby.js
+     * counts the people). */
+    const watching = Boolean(roomLinkState.state().welcome.watch);
+    const rows = [...(watching ? [] : [{
       label: str(readyLabel), note: str(readyNote), action: 'friends-lobby-ready', primary: true,
-    }, ...lobbyInviteRows(), ...lobbyVisibilityRows(host)];
+    }]), ...lobbyInviteRows(), ...lobbyVisibilityRows(host)];
     rows.push(...game.rows(host));
     if (host && game.start) {
       rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: game.start });
@@ -4914,7 +5033,8 @@ export async function boot({
     const w = roomLinkState.state().welcome;
     const now = roomLinkState.roomNow();
     const secs = (at) => (at == null || now == null ? null : Math.max(0, Math.ceil((at - now) / 1000)));
-    const seats = [w.seat, ...[...roomPeers.keys()].sort((a, b) => a - b)];
+    /* The watch seat is no pilot of the lobby's. */
+    const seats = [...(w.watch ? [] : [w.seat]), ...[...roomPeers.keys()].sort((a, b) => a - b)];
     const v = roomWar.view();
     const mine = v && Array.isArray(v.scores) ? v.scores.find((x) => x.seat === w.seat) : null;
     const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
@@ -5106,7 +5226,7 @@ export async function boot({
   async function roomWarJoinGate(w) {
     /* Any game room's lobby, by a link or the title's panel, is where its
      * pilot lands; a round on flies them in (roomHotJoin). */
-    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !LOBBY_GAMES[w.mode].on()) {
+    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !LOBBY_GAMES[w.mode].on() && !w.watch) {
       ui.craftGate = false;
       ui.mode = 'freestyle';
       ui.returnTo = 'title';
@@ -5353,6 +5473,9 @@ export async function boot({
   const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
   let warLineWords = null;
   function warSubtitles(items, prio, hud, now = false) {
+    if (!ui.settings.subtitles) {
+      return;
+    }
     const ids = items.flat().filter((id) => typeof id === 'string' && (prio === 'story' || prio === 'guide' || WAR_SUBTITLED.has(id)));
     if (!ids.length) {
       return;
@@ -5363,8 +5486,7 @@ export async function boot({
     warLineWords.then((words) => {
       const lang = currentLocale();
       for (const id of ids) {
-        const l = words.get(id);
-        const text = l && (l[lang] ?? l.en);
+        const text = captionOf(words.get(id), lang);
         if (text) {
           hud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000), now);
         }
@@ -5580,6 +5702,10 @@ export async function boot({
   let warCraftSaid = null;
   /* Said, and the war aircraft flown kept for the next war. */
   function warCraftFrame(v) {
+    /* The watch seat flies nothing, and its saved aircraft stays its own. */
+    if (roomWar.watcher()) {
+      return;
+    }
     /* From the briefing, so the pilot is seated in it before the go. */
     if (v.state === 'briefing' || roomWar.on()) {
       warSeatCraft();
@@ -5618,6 +5744,10 @@ export async function boot({
       audio.setWarBed(v.state === 'countdown' ? 'intro' : staged);
     }
     const w = roomLinkState.state().welcome;
+    /* The watch seat is not put in the air: it watches from where it is. */
+    if (roomWar.watcher()) {
+      return;
+    }
     if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
       ui.onAction('restart');
     } else {
@@ -5849,6 +5979,7 @@ export async function boot({
     warHud.update(null);
     warHud.drawn(false);
     warMarkers.clear();
+    warDebug.clear();
     if (warBegunId != null) {
       warFinish();
     }
@@ -6123,7 +6254,7 @@ export async function boot({
     const round = roomWar.live() ? roundOf(v) : null;
     const roundKey = round ? `${roomWar.match()}/${round.n}:${round.state}` : null;
     if (round && roundKey !== warRoundSeen && warRoundSeen && warRoundSeen.startsWith(`${roomWar.match()}/`)) {
-      if (round.state === 'live' && mode === 'flight') {
+      if (round.state === 'live' && mode === 'flight' && !roomWar.watcher()) {
         ui.onAction('restart');
       } else if (round.state === 'result') {
         warSay(warCalls.round(round.result));
@@ -6151,6 +6282,12 @@ export async function boot({
       warLog.push({ ...ev, heardAt: now });
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
         warBurn(ev.target, ev.at);
+      }
+      /* Before the replay's skip: these are live room events, each heard
+       * once, and a crash replay may already be on when the room's word on
+       * this pilot's warhead arrives. */
+      if (ev.type === 'dead' && ev.kills.length) {
+        ui.progress.killed(ev.kills);
       }
       if (ev.type === 'state' && ev.to === 'live' && audio.warRadio && audio.warRadio.track !== 'intro') {
         audio.setWarBed('combat');
@@ -6215,6 +6352,7 @@ export async function boot({
     if (replay) {
       warHud.update(null);
       warMarkers.update(null, now, events);
+      warDebug.update(null, now);
       return;
     }
     warHud.events(events);
@@ -6232,6 +6370,7 @@ export async function boot({
     const watched = warWatch();
     warMarkers.setNamed(v.sets);
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
+    warDebug.update(roomWar.live() ? roomWar.debugAt(now) : null, now, roomWar.mission(), warSeatAt);
     if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched), spilling(v.gates, now)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
@@ -6246,7 +6385,7 @@ export async function boot({
     /* Under the outro the film has the screen; the end card comes after. */
     const hudOn = mode === 'flight' && ui.screen === 'flight' && !warOutroOn(v);
     warHud.update(hudOn ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
-    warRoundCard.update(hudOn ? v : null, now, debriefCardLine());
+    warRoundCard.update(hudOn ? v : null, now, roomWar.watcher() ? null : debriefCardLine());
   }
 
   /* The war's guide nudge (src/share/war/nudge.js), for a mission that
@@ -6617,10 +6756,12 @@ export async function boot({
 
   /* Where the room flies now: its world, on its track when it has one
    * there, except in the games played in free flight. Combat is flown
-   * wherever the room is, so its rounds never move anybody off a track. */
+   * wherever the room is, so its rounds never move anybody off a track.
+   * A watcher is never seated on the track: its own hidden aircraft would
+   * time laps, pass gates and keep records of a race it is not in. */
   function roomTarget(w) {
     const t = roomRace.track();
-    const free = roomTag.on() || roomJam.on() || roomWar.on();
+    const free = roomTag.on() || roomJam.on() || roomWar.on() || Boolean(w.watch);
     return { world: w.map, track: t && t.map === w.map && !free ? t : null };
   }
   const roomTargetKey = (t) => `${t.world}|${t.track ? t.track.id : ''}`;
@@ -7222,8 +7363,10 @@ export async function boot({
     const at = peer.foot ? peer.foot.draw(performance.now()) : null;
     fig.group.visible = true;
     if (!at) {
-      const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
-      fig.group.position.set(st.x, groundAt(st.x, st.z), st.z);
+      const sp = view.spawn || { x: 0, z: 0, yaw: 0 };
+      const st = stationFor(sp, peer.seat - 1);
+      /* On the deck a spawn's hint names, not the ground under it. */
+      fig.group.position.set(st.x, sp.y != null ? view.height(st.x, st.z, sp.y) : groundAt(st.x, st.z), st.z);
       fig.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
       fig.setBodyVisible(true);
       fig.stride(0, dt);
@@ -7336,7 +7479,7 @@ export async function boot({
   /* Harness only: the peer marks as planned this frame, and a role to
    * try one with, for scripts/peermarks-two-page.js. */
   window.__peerMarks = () => peerMarks.summary();
-  window.__peerMarkRole = (seat, role) => peerMarks.setRole(seat, role);
+  devHooks.__peerMarkRole = (seat, role) => peerMarks.setRole(seat, role);
   /* Harness only: the room and what is drawn of it, for
    * scripts/rooms-two-page.js. */
   window.__rooms = () => {
@@ -7415,7 +7558,7 @@ export async function boot({
     const sp = view.spawn;
     const wet = view.water && view.water[0] ? view.water[0].spawn : null;
     const probe = (p) => {
-      const y = groundAt(p.x, p.z);
+      const y = sp.y != null ? view.height(p.x, p.z, sp.y) : groundAt(p.x, p.z);
       return { x: p.x, z: p.z, y, gap: view.colliders ? view.colliders.gapAt(p.x, y + 1, p.z, 6) : Infinity };
     };
     return {
@@ -7427,6 +7570,25 @@ export async function boot({
         return { x: p.x, z: p.z, wet: Boolean(waterAt(p.x, p.z)) };
       }) : null,
     };
+  };
+  /* Harness only: every start the shell can make on this map before a
+   * room's row moves it (mapSpawn): the map's own, what spawnFor answers
+   * each kind and each ?spawn= wish, and each water body's float start,
+   * for scripts/world-spawns-check.js. */
+  window.__spawnStarts = () => {
+    const home = view.spawn;
+    const out = [{ label: 'home', start: home }];
+    const bodies = (view.water || []).filter((b) => b.spawn);
+    bodies.forEach((b, i) => out.push({ label: `water ${b.name || i}`, start: b.spawn, float: true }));
+    if (view.spawnFor) {
+      for (const kind of ['plane', 'quad', 'float']) {
+        out.push({ label: kind, start: view.spawnFor(home, kind, null), float: kind === 'float' });
+      }
+      for (const wish of ['air', ...bodies.map((b) => b.name).filter(Boolean)]) {
+        out.push({ label: `wish ${wish}`, start: view.spawnFor(home, 'float', wish), float: true });
+      }
+    }
+    return out;
   };
   /* Harness only: the combat round and what this page draws of it, for
    * scripts/combat-two-page.js. */
@@ -7456,11 +7618,12 @@ export async function boot({
       said: combatHud.said(),
     };
   };
-  window.__combatStart = (minutes) => roomCombat.start(minutes);
+  devHooks.__combatStart = (minutes) => roomCombat.start(minutes);
   /* Defend Itaipu for the checks (scripts/war-twopage.js --main), the same
    * three the wire module gave it: the war as this page holds it, where
    * every attacker is at a room ms, and the host's start (or 'brief', the
-   * start behind the intro's briefing) and end; and the radio link, which
+   * start behind the intro's briefing) and end, with a developer room's
+   * skip and complete (edge/rooms/war.js devOp); and the radio link, which
    * a war must leave as the preset has it. */
   window.__war = () => ({
     fx: warBooms.stats(),
@@ -7516,7 +7679,7 @@ export async function boot({
    * lines on a real room's match), what the map shows now (each target
    * not whole, each district's level), and each live frame's map, logged
    * while switched on. */
-  window.__warHear = (m) => roomWar.onMessage(m);
+  devHooks.__warHear = (m) => roomWar.onMessage(m);
   /* What the structures show now, for the checks: the chunks out, and
    * each piece of rubble where it lies, rounded to the millimetre. */
   function warBroken() {
@@ -7539,7 +7702,7 @@ export async function boot({
     }
     return { targets, levels: it.look.night() ? it.look.night().levels() : null, broken: warBroken() };
   };
-  window.__warMapLog = (on) => {
+  devHooks.__warMapLog = (on) => {
     warMapLog = on ? [] : null;
     return true;
   };
@@ -7547,7 +7710,7 @@ export async function boot({
   /* A swarm's worth of explosions at once, 150 m ahead of the camera, for
    * scripts/war-boom.js: the frame's draw calls and time over 40 frames
    * before and during, and whether the pools held. */
-  window.__warFxBurst = async (n = 10) => {
+  devHooks.__warFxBurst = async (n = 10) => {
     const frames = (k) => new Promise((resolve) => {
       const ms = [];
       let last = performance.now();
@@ -7593,23 +7756,27 @@ export async function boot({
    * host's Watch intro, for the checks. Harness only. */
   window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
   window.__warCutaway = () => warCutaway.state();
-  window.__warCutawayTest = (cue, pip) => warCutaway.request(cue, performance.now(), null, pip);
-  window.__warIntroWatch = () => warIntroWatch();
-  window.__warDo = (op, arg) => {
+  devHooks.__warCutawayTest = (cue, pip) => warCutaway.request(cue, performance.now(), null, pip);
+  devHooks.__warIntroWatch = () => warIntroWatch();
+  devHooks.__warDo = (op, arg) => {
     if (op === 'start') {
       roomWar.start(arg || WAR_MISSION);
     } else if (op === 'brief') {
       roomWar.start(arg || WAR_MISSION, { intro: true });
     } else if (op === 'end') {
       roomWar.end();
+    } else if (op === 'skip') {
+      roomWar.skip();
+    } else if (op === 'complete') {
+      roomWar.complete(arg);
     }
     return true;
   };
-  window.__roomJoin = (code) => roomLinkState.join(code);
-  window.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
-  window.__roomSay = (kind, id) => roomSafety.say(kind, id);
-  window.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
-  window.__roomCreate = async (room = {}) => {
+  devHooks.__roomJoin = (code, opts) => roomLinkState.join(code, opts);
+  devHooks.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
+  devHooks.__roomSay = (kind, id) => roomSafety.say(kind, id);
+  devHooks.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
+  devHooks.__roomCreate = async (room = {}) => {
     const code = await roomLinkState.create(room.map || (view ? view.id : worldId()), false, room);
     roomLinkState.join(code);
     return code;
@@ -7880,9 +8047,11 @@ export async function boot({
     },
     send: (obj) => roomLinkState.send(obj),
     view: () => roomWar.view(),
+    /* The watch seat's room is not one the campaign plays: no loadout
+     * said, no result paid (roomWar strips it there too). */
     room: () => {
       const st = roomLinkState.state();
-      return { phase: st.phase, code: st.code, seat: roomWar.seat() };
+      return { phase: roomWar.watcher() ? 'watching' : st.phase, code: st.code, seat: roomWar.seat() };
     },
     /* A combat quad's chosen payload is its warhead (configs/combat.js). */
     craftWarhead: (allowed, equipped) => {
@@ -7893,6 +8062,7 @@ export async function boot({
   });
   campaignRef = campaign;
   ui.onCampaignCard = () => campaign.open();
+  ui.onCampaignShop = () => campaign.open('shop');
   /*
    * THE INTERIOR'S CARD (src/ui/opscampaign.js): its missions and their
    * states, its consent at Play. The start itself waits for track WORLD's
@@ -7942,22 +8112,22 @@ export async function boot({
     passed: (id) => Boolean(ui.settings.progress.lessons[id]),
     fly: (lesson) => {
       const s = ui.settings;
-      const craft = lesson.airframe || s.airframe;
-      if (craft !== s.airframe) {
-        seatAirframe(s, craft);
-      }
-      if (lesson.tune) {
-        s.tune = lesson.tune;
-      }
-      if (lesson.mode) {
-        s.flightMode = lesson.mode;
-      }
+      holdLessonSettings();
+      applyLesson(s, lesson, seatAirframe);
+      const craft = s.airframe;
       ui.progress.startLesson(lesson);
+      /* A lesson flown with other pilots goes in by its activity's lobby,
+       * as that activity's card does with a rooms server. */
+      if (lesson.room && ui.friendsRow && ui.friendsRow()) {
+        ui.onGameCard(`way-${modeById(lesson.room).card.way}`, lesson.room, seatedFreestyleMap(s)?.id || 'swiss2');
+        return;
+      }
       ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
     },
   });
   ui.onTrainingCard = () => trainingScreen.open();
-  window.__training = trainingScreen;
+  ui.progress.onLessonEnd = restoreLessonSettings;
+  devHooks.__training = trainingScreen;
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
    * Phase 0, the lead's call), on the mission's map, the pilot in the
@@ -7982,7 +8152,7 @@ export async function boot({
     roomLinkState.join(code);
     return code;
   }
-  window.__opsCampaign = interiorScreen;
+  devHooks.__opsCampaign = interiorScreen;
   ui.onTrackChosen = () => {
     if (lobbyGame() !== 'race' || !roomHost(roomLinkState.state().welcome)) {
       return false;
@@ -8008,7 +8178,7 @@ export async function boot({
     }
     return true;
   };
-  window.__campaign = campaign;
+  devHooks.__campaign = campaign;
 
   function roomLeave() {
     roomRaceRetire();
@@ -8282,7 +8452,7 @@ export async function boot({
   function roomRaceFrame(now, wallMs) {
     if (wallMs > roomRaceCheckAt) {
       roomRaceCheckAt = wallMs + 500;
-      roomRace.ready(roomTrackReady());
+      roomRace.ready(roomTrackReady(), now);
     }
     const start = roomRace.takeStart(now);
     if (start) {
@@ -8312,6 +8482,15 @@ export async function boot({
       }
     }
     raceHoldWas = raceHoldMs;
+    /* A race this pilot finished, once per race: a round in the flight's
+     * log with how many were on the grid, which the lesson Racing a pilot
+     * judges (src/game/training.js). A race's grid is people only (no AI
+     * pilots race, src/share/modes.js allowAI). */
+    const over = roomRace.takeResults();
+    const finished = over && (over.standings || []).find((r) => r.seat === roomRace.seat() && r.ms != null);
+    if (finished) {
+      ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length });
+    }
     /* Four times a second is plenty for an order that moves a gate at a
      * time, and it keeps the names' lookups off every frame. */
     if (wallMs < roomHudAt) {
@@ -8480,7 +8659,7 @@ export async function boot({
       error: roomRace.error(),
     };
   };
-  window.__roomRaceDo = (action, laps) => {
+  devHooks.__roomRaceDo = (action, laps) => {
     if (laps) {
       roomRaceLaps = laps;
     }
@@ -8680,6 +8859,7 @@ export async function boot({
     const mine = done && roomTag.standings().find((row) => row.seat === roomTag.seat());
     if (mine) {
       recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
+      ui.progress.roundFinished('tag', worldId());
     }
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
@@ -8790,7 +8970,7 @@ export async function boot({
     return r ? { name: r.name, points: Math.max(0, Math.round(r.net)) } : null;
   }
   /* The host's start, for the checks (the lobby's Start now sends it too). */
-  window.__roomJamStart = (seconds) => roomJam.start(seconds);
+  devHooks.__roomJamStart = (seconds) => roomJam.start(seconds);
   window.__roomJam = () => {
     const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
     return {
@@ -8990,7 +9170,7 @@ export async function boot({
     }
     return out;
   };
-  window.__roomTagDo = (action, goal) => {
+  devHooks.__roomTagDo = (action, goal) => {
     if (goal != null) {
       roomTagPick = { preset: 'custom', custom: goalOf(goal) };
     }
@@ -9099,7 +9279,7 @@ export async function boot({
    * its data (Best before any lap is closed) and then simply chases nothing
    * until a lap exists. A board choice is armed only once its lap is here. */
   function chosenLap() {
-    if (!chaseAllowed() || ghostChoice === 'off') {
+    if (!chaseAllowed() || ghostChoice === 'off' || ghostChoice === AI_CHOICE) {
       return null;
     }
     if (!ghostChoice.startsWith('board:')) {
@@ -9123,9 +9303,10 @@ export async function boot({
       label: str('main.text', { name: time.name, formatTime: formatTime(time.lapMs) }),
     }));
     return [
-      { id: 'off', label: 'Off' },
+      { id: 'off', label: str('ui.off') },
       { id: 'best', label: str('main.your_best_this_session') },
       { id: 'previous', label: str('main.your_previous_lap') },
+      { id: AI_CHOICE, label: str('main.ai_opponent') },
       ...rivals,
     ];
   }
@@ -9134,6 +9315,9 @@ export async function boot({
   function ghostRowNoteText() {
     if (ghostChoice === 'off') {
       return str('main.nobody_to_chase_laps_still_record');
+    }
+    if (ghostChoice === AI_CHOICE) {
+      return opponentNote();
     }
     if (ghostChoice.startsWith('board:')) {
       if (boardFetch) {
@@ -9171,7 +9355,9 @@ export async function boot({
 
   function pickGhost(id) {
     ghostChoice = id;
-    if (SESSION_MODES.includes(id)) {
+    if (id === AI_CHOICE) {
+      pickOpponent();
+    } else if (SESSION_MODES.includes(id)) {
       ui.settings.ghost = id;
       ui.persistSettings();
     } else if (!ghostBoardLap || `board:${ghostBoardLap.timeId}` !== id) {
@@ -9236,6 +9422,7 @@ export async function boot({
    * reached the row offers the session modes and nothing breaks.
    */
   function ghostCourseChanged() {
+    dropOpponent();
     ghostRecorder.abort();
     ghostLap = null;
     ghostChased = null;
@@ -9324,6 +9511,9 @@ export async function boot({
     recordPose(simNow - race.lapStartMs, pCurr, qPrev);
     if (opened) {
       armGhost();
+      if (ghostChoice === AI_CHOICE && !aiOpp) {
+        startOpponent();
+      }
     }
   }
 
@@ -9366,9 +9556,192 @@ export async function boot({
     }
   }
 
+  /*
+   * THE AI OPPONENT (src/game/aiopponent.js, docs/redesign/PLAN.md 18): the
+   * Ghost row's AI opponent choice races a lap with a pilot of its own on a
+   * plant of its own, through this course's ground and solids, instead of
+   * drawing the lap as a pacer. Solo, quads only (its pilot flies a quad
+   * in ANGLE mode). Its lap: the board lap fetched for the course, else
+   * the pilot's own best this session; a lap with a cut in it (a crash's
+   * recovery jump) is not one it can fly. Its plant is seated and its
+   * sticks learnt (a tenth of a second) when it is chosen and at a run's
+   * reset when the aircraft or pack changed, never at a lap; it starts from a
+   * hover on the line when the pilot's lap opens and flies on the pilot's
+   * own sim clock, so a frame's length changes nothing about it. Its own
+   * Race keeps its laps off the pilot's record, the ghost recorder, the
+   * event log and the progress (docs/AI-PILOTS-CONTRACT.md).
+   */
+  const AI_CHOICE = 'ai';
+  let aiOpp = null;
+  let aiOppStartMs = 0;
+  let aiSeat = null;
+  let aiRig = null;
+  let aiRigAirframe = '';
+  const aiPos = new THREE.Vector3();
+  const aiQuat = new THREE.Quaternion();
+  const aiNormal = new THREE.Vector3();
+  const aiWorld = {
+    toSim: (x, y, z, out) => worldPosToSim(x, y, z, out),
+    dirToSim: (x, y, z, out) => worldDirToSim(x, y, z, out),
+    fromSim: (st, out) => {
+      poseFromState(st, aiPos);
+      out.x = aiPos.x;
+      out.y = aiPos.y;
+      out.z = aiPos.z;
+      return out;
+    },
+    worldQuat: (st, out) => {
+      simQuatToThree(st[7], st[8], st[9], st[10], aiQuat).premultiply(qSpawn);
+      out.x = aiQuat.x;
+      out.y = aiQuat.y;
+      out.z = aiQuat.z;
+      out.w = aiQuat.w;
+      return out;
+    },
+    floorHeight: (x, z, fromY) => floorHeight(x, z, fromY),
+    groundNormal: (x, z, fromY, out) => {
+      sampleGroundNormal(x, z, fromY, aiNormal);
+      out.x = aiNormal.x;
+      out.y = aiNormal.y;
+      out.z = aiNormal.z;
+      return out;
+    },
+    colliders: () => view.colliders,
+  };
+
+  function opponentAllowed() {
+    return chaseAllowed() && !roomRun() && !airframeById(runAirframe).fixedWing;
+  }
+
+  function opponentLap() {
+    const lap = ghostBoardLap || ghostBook.best(ghostCourseKey());
+    return lap && !lap.cut.includes(1) ? lap : null;
+  }
+
+  function opponentNote() {
+    if (airframeById(runAirframe).fixedWing) {
+      return str('main.ai_opponent_quads_only');
+    }
+    const lap = opponentLap();
+    return lap
+      ? str('main.ai_opponent_races', { formatTime: formatTime(lap.durationMs) })
+      : str('main.ai_opponent_needs_a_lap');
+  }
+
+  /* The opponent's plant for the seat flown now, seated and learnt once
+   * per aircraft and pack; a board lap for it when the course has one. */
+  const opponentKey = () => `${runAirframe}:${runVoltage}`;
+  function pickOpponent() {
+    if (!opponentAllowed()) {
+      return;
+    }
+    const af = airframeById(runAirframe);
+    const key = opponentKey();
+    if (!aiSeat || aiSeat.key !== key) {
+      const seat = { key, seated: null };
+      aiSeat = seat;
+      fetchTuneText(af.defaultTune)
+        .then((text) => seatOpponent(() => simBytes.then(loadSim), {
+          simId: af.simId,
+          tuneText: composeConfig(text, RATE_DEFAULTS, RATES_KEEP),
+          gravity: af.gravityBase,
+          cellVoltage: runVoltage,
+          rates: RATE_DEFAULTS,
+        }))
+        .then((seated) => {
+          seat.seated = seated;
+          syncGhostRow();
+        })
+        .catch((e) => {
+          console.warn('AI opponent: the plant could not be seated', e);
+          if (aiSeat === seat) {
+            aiSeat = null;
+          }
+        });
+    }
+    const first = ghostBoardTimes && ghostBoardTimes[0];
+    if (first && !ghostBoardLap && !boardFetch) {
+      fetchBoardLap(first.id);
+    }
+  }
+
+  function startOpponent() {
+    const lap = opponentLap();
+    /* A plant seated for another aircraft or pack waits for the next run,
+     * whose reset seats it again: never in flight. */
+    const seated = aiSeat && aiSeat.key === opponentKey() ? aiSeat.seated : null;
+    if (!opponentAllowed() || !lap || !seated) {
+      return;
+    }
+    /* The pilot's own referee's gates, in its flying order, handed over
+     * with their axes so the opponent's Race reads the same stations. */
+    const gates = race.gates.map((g, k) => ({
+      position: { x: g.x, y: g.y, z: g.z },
+      axes: { across: g.ax, up: g.ay, travel: g.az },
+      apertures: g.apertures,
+      flyOrder: k,
+      kindName: g.kindName,
+      virtual: g.virtual,
+    }));
+    aiOpp = new AiOpponent({ seated, lap, gates, trackClass: 'full', world: aiWorld });
+    aiOppStartMs = simTimeMs;
+    if (!aiRig || aiRigAirframe !== runAirframe) {
+      if (aiRig) {
+        if (aiRig.group.parent) {
+          aiRig.group.parent.remove(aiRig.group);
+        }
+        disposeSceneGraph(aiRig.group);
+      }
+      aiRig = buildGhostCraft(runAirframe);
+      aiRigAirframe = runAirframe;
+      shell.keepAcrossMaps(aiRig.group);
+    }
+    aiRig.setLabel(str('main.ai_opponent'));
+  }
+
+  function dropOpponent() {
+    aiOpp = null;
+    if (aiRig) {
+      aiRig.setPresence(0);
+    }
+  }
+
+  /* After the pilot's plant has stepped: the opponent flies on to the same
+   * sim clock (it waits while the pilot's clock waits) and is drawn. */
+  function opponentFrame() {
+    if (!aiOpp || !aiRig) {
+      return;
+    }
+    if (mode === 'flight') {
+      aiOpp.stepTo(simTimeMs - aiOppStartMs);
+    }
+    aiWorld.fromSim(aiOpp.state, aiRig.group.position);
+    aiWorld.worldQuat(aiOpp.state, aiRig.group.quaternion);
+    aiRig.setPresence(mode === 'flight' || mode === 'paused' || mode === 'results' ? 1 : 0);
+    const scene = shell.quad.parent;
+    if (scene && aiRig.group.parent !== scene) {
+      scene.add(aiRig.group);
+    }
+  }
+
+  function opponentResultNote() {
+    if (!aiOpp) {
+      return null;
+    }
+    const laps = aiOpp.laps();
+    if (!laps.length) {
+      return str(aiOpp.crashed ? 'main.ai_opponent_crashed' : 'main.ai_opponent_no_lap', { laps: plural('count.laps', 0) });
+    }
+    const vars = { laps: plural('count.laps', laps.length), formatTime: formatTime(aiOpp.bestMs()) };
+    return str(aiOpp.crashed ? 'main.ai_opponent_crashed' : 'main.ai_opponent_result', vars);
+  }
+
   /* The results line about the ghost the last lap was flown against, or
    * null: level within 10 ms, else who was ahead and by how much. */
   function ghostResultNote() {
+    if (ghostChoice === AI_CHOICE) {
+      return opponentResultNote();
+    }
     const best = ghostChased ? race.bestLapMs() : null;
     if (best == null) {
       return null;
@@ -10300,6 +10673,10 @@ export async function boot({
   /* The seated world's note, held for the next flight. See showCourseNotes. */
   let heldNotes = null;
   let padPickReturn = 'title';
+  /* The wizard hands the pilot back to the screen it was opened from:
+   * Settings, the Controller screen, or the title (the Hangar's card and
+   * the new pilot's controller question both open it from there). */
+  let calibrateReturn = 'pilot';
   /* The laps this run lasts, fixed at its start: settings.laps can change
    * from pause and must not end a run early. */
   let runLaps = ui.settings.laps;
@@ -12455,7 +12832,7 @@ export async function boot({
   /* n loads laid in a ring about the craft, `falling` of them released
    * now 60 m up, the rest long landed: scripts/hercules-perf.js's field at
    * the cap. */
-  window.__paradropFill = (n, falling = 0) => {
+  devHooks.__paradropFill = (n, falling = 0) => {
     for (let i = 0; i < n; i += 1) {
       const a = i * 2.399963;
       const r = 8 + 0.9 * Math.sqrt(i) * 6;
@@ -12759,6 +13136,7 @@ export async function boot({
    * sticks already held, so they are not dropped to zero under it.
    */
   function resetCraft(at, keepSticks = false) {
+    runRoute.cut();
     leaveFoot();
     if (at) {
       seatSpawnAt(at);
@@ -12813,6 +13191,19 @@ export async function boot({
       throw new Error(`sim_set_air_vertical refused ${up}: ${simErrorName(codeUp)}`);
     }
   }
+  /* The gusts' clock at the run's start (sim_set_wind_clock), whole ms:
+   * the room's, so every pilot in the room meets the same gust at the same
+   * room millisecond; solo, 0, the plant's own. Set once at every windy
+   * run's start, whatever the plant held (a replay's take over puts back the
+   * recorded one); a calm run makes no call, its gusts are none. */
+  let gustClockMs = 0;
+  function setWindClock(ms) {
+    const code = sim.e.sim_set_wind_clock(ms);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_wind_clock refused ${ms}: ${simErrorName(code)}`);
+    }
+    gustClockMs = ms;
+  }
   let weatherT0 = 0;
   let weatherFlown = null;
   function seatWeather() {
@@ -12830,6 +13221,10 @@ export async function boot({
     /* null until the room's clock has synced: the run's own clock then. */
     const roomMs = welcome ? roomLinkState.roomNow() : null;
     weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
+    const gustMs = Number.isFinite(roomMs) ? Math.floor(roomMs) : 0;
+    if (weather) {
+      setWindClock(gustMs);
+    }
     weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
       setWind(0, 0, 0, 0);
@@ -12837,9 +13232,11 @@ export async function boot({
     }
   }
   /* Before a step: the air at the craft, on the plant's own clock. */
+  let airT = 0;
   function pushWeather(st) {
     poseFromState(st, airPos);
-    weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
+    airT = weatherT0 + st[0];
+    weather.at(airPos.x, airPos.y, airPos.z, airT, airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
     setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
@@ -12874,7 +13271,7 @@ export async function boot({
   /* The look held at a rain intensity whatever the air, for the haze
    * check's pictures (null lets the air decide again). Harness only. */
   let wetHold = null;
-  window.__wetHold = (w) => {
+  devHooks.__wetHold = (w) => {
     wetHold = w;
   };
   /* One frame drawn now at rain intensity `wet`, read back, for
@@ -12882,7 +13279,7 @@ export async function boot({
    * in one task, so nothing between two calls moves but `wet`. Returns
    * the frame's FNV-1a hash, its mean luma, the luma's standard
    * deviation (its contrast) and a luma thumbnail. Harness only. */
-  window.__wetFrame = (wet) => {
+  devHooks.__wetFrame = (wet) => {
     view.setWet?.(wet);
     if (view.post) {
       view.post.render();
@@ -12919,7 +13316,28 @@ export async function boot({
   window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
-  window.__weather = (preset, seed) => {
+  /* The air last handed to the plant, where and when (map frame, weather
+   * seconds), the room's clock now, and the wind the plant holds now; with
+   * a point, this run's air there instead. scripts/rooms-wind-two-page.js. */
+  window.__airFlown = (x, y, z, t) => {
+    if (!weather) {
+      return null;
+    }
+    if (t !== undefined) {
+      const out = { x: 0, z: 0, gust: 0, up: 0 };
+      weather.at(x, y, z, t, out);
+      return { x: out.x, z: out.z, gust: out.gust, up: out.up };
+    }
+    const held = sim.e.malloc(16);
+    sim.e.sim_wind(held);
+    const wind = Array.from(new Float64Array(sim.e.memory.buffer, held, 2));
+    sim.e.free(held);
+    return {
+      roomMs: roomLinkState.roomNow(), t: airT, step: stateCurr ? stateCurr[0] : null, gustClockMs, pos: [airPos.x, airPos.y, airPos.z],
+      air: { x: airOut.x, z: airOut.z, gust: airOut.gust, up: airOut.up }, set: [airSim.x, airSim.y], wind,
+    };
+  };
+  devHooks.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
     ui.settings.weather = preset;
     soloSeed = seed >>> 0;
@@ -13119,7 +13537,7 @@ export async function boot({
     stateCurr = readState();
     statePrev = stateCurr;
     acc = 0;
-    race.recover('Crashed', nowWall);
+    race.recover(str('ui.crashed'), nowWall);
     flightStats.noteCrash();
     if (crashCam) {
       crashCam.noteCrash('clip');
@@ -13303,6 +13721,10 @@ export async function boot({
     ghostGap = null;
     ghostChased = null;
     ghostRig.setPresence(0);
+    dropOpponent();
+    if (ghostChoice === AI_CHOICE) {
+      pickOpponent();
+    }
     runLaps = ui.settings.laps;
     progressKey = '';
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
@@ -13340,7 +13762,17 @@ export async function boot({
     }
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
+      sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
+      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr),
     });
+  }
+  /* The craft's speed through the air, m/s: the plant's world velocity
+   * (sim_abi.h state [4..6]) less the air it last stepped in, the mean
+   * wind and the rising air (pushWeather), gusts left out; still air
+   * without weather. */
+  function airspeedNow() {
+    const air = weather ? airSim : { x: 0, y: 0 };
+    return Math.hypot(stateCurr[4] - air.x, stateCurr[5] - air.y, stateCurr[6] - (weather ? airOut.up : 0));
   }
   /* The track a lap closed on: a built track (seated, or the casual sky
    * track's test flight), or the world's own. A built track is keyed by
@@ -14377,6 +14809,7 @@ export async function boot({
    * change takes the same guarded resize path a window resize does, so the
    * composer and every prepass target follow; no world is rebuilt. */
   function applyDisplaySettings(s) {
+    document.documentElement.style.setProperty('--ui-scale', String(s.uiScale / 100));
     const userScale = renderScaleOf(s);
     if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
       resizeDirty = true;
@@ -15308,6 +15741,12 @@ export async function boot({
   }
 
   function openPadPick(reason) {
+    /* The new pilot's question comes first, and a plugged in radio routes
+     * from it to the wizard: no picker the roster queued opens over it
+     * (src/ui/flywith.js, the lead's call, 2026-10-13). */
+    if (reason !== 'menu' && ui.screen === 'flywith') {
+      return;
+    }
     /* A name being typed owns the keyboard; input.js holds the pick until
      * the dialog closes and the frame loop asks again. */
     if (ui.nameDialog && !ui.nameDialog.hidden) {
@@ -15358,7 +15797,7 @@ export async function boot({
   });
   /* One sync now, resolving to whether it changed anything here, for
    * scripts/account-browser-check.js, which cannot wait out the minute. */
-  window.__accountSync = () => accountUi.sync();
+  devHooks.__accountSync = () => accountUi.sync();
   /* The hangar's visits switch is sent at once rather than within the
    * minute: a friend is waiting at the door (src/ui/hangarwalk.js). */
   ui.onSyncNow = () => accountUi.sync();
@@ -15437,6 +15876,25 @@ export async function boot({
 
   const sayNoRadio = () => flashNotice(str('main.no_radio_or_gamepad_found_plug_2'), 3200);
 
+  /* The Controller screen's feel rows and its Built-in layout row
+   * (src/ui/controller.js): the input keeps them per device. */
+  ui.onController = (change) => {
+    if (change.builtIn) {
+      if (input.useBuiltInMap()) {
+        flashNotice(str('controller.builtin_done'), 2800);
+      }
+    } else if (!input.setFeel(change)) {
+      flashNotice(str('controller.feel_unsaved'), 5200);
+    }
+    ui.setPadInfo(input.padSummary());
+    ui.renderMenu();
+  };
+  const openCalibrate = () => {
+    if (ui.screen !== 'calibrate') {
+      calibrateReturn = ui.screen;
+    }
+    ui.show('calibrate');
+  };
   /* The calibrate screen's rows. Its frame loop branch blanks the banner
    * every frame, so the wizard's own steps say nothing here: the gimbals
    * moving under the pilot's sticks are the answer. */
@@ -15447,7 +15905,7 @@ export async function boot({
         return;
       }
       input.startCalibration();
-      ui.show('calibrate');
+      openCalibrate();
     }],
     /* The check step alone, against the saved mapping, refused the same
      * way when nothing is plugged in: a mapping with no radio behind it
@@ -15457,11 +15915,11 @@ export async function boot({
         sayNoRadio();
         return;
       }
-      ui.show('calibrate');
+      openCalibrate();
     }],
     ['calibrate-cancel', () => {
       input.cancelCalibration();
-      ui.show('pilot');
+      ui.show(calibrateReturn);
     }],
     ['calibrate-reverse', () => input.reverseMovingChannel()],
     /* Settings owns the stick mode (ui.cycleStickMode writes it and
@@ -15473,7 +15931,7 @@ export async function boot({
       if (!input.acceptCalibration()) {
         return;
       }
-      ui.show('pilot');
+      ui.show(calibrateReturn);
       /* What storage did, not that the wizard ended: a private window or
        * a full quota keeps the mapping for this page only (saveMap). */
       const kept = input.calResult !== 'saved-unstored';
@@ -16044,7 +16502,7 @@ export async function boot({
 
   /* Harness: the walk as it stands, and a turn (checks steer with it;
    * the pilot turns with the mouse, a stick or a thumb). */
-  window.__foot = {
+  devHooks.__foot = {
     state: () => ({
       on: walker !== null,
       could: canStepOut(),
@@ -17496,11 +17954,12 @@ export async function boot({
    * THE FRAME LOOP.
    *
    * One frame is a fixed sequence of phases, each a function below, run in
-   * this order by frameBody: open the frame (wall clock, counters), read
-   * the pilot, advance the plant on the accumulator, compose the drawn
-   * pose, read back what the solid world did, run the race, dress the
-   * world, place the lens, pick the camera, move the scenery, draw, feed
-   * the mix, feed the HUD, settle the banner, close the frame. The phases
+   * this order by frameBody: open the frame (wall clock, counters), hold
+   * the world's edge, read the pilot, advance the plant on the
+   * accumulator, compose the drawn pose, read back what the solid world
+   * did, run the race, dress the world, place the lens, pick the camera,
+   * move the scenery, draw, feed the mix, feed the HUD, settle the banner,
+   * close the frame. The phases
    * hand each other one record, `fr`, written once per frame and never
    * reallocated (P8: the loop allocates nothing).
    *
@@ -17565,8 +18024,10 @@ export async function boot({
     if (!openFrame(nowWall)) {
       return;
     }
+    edgeFrame();
     readPilot();
     advancePlant();
+    opponentFrame();
     composePose();
     readContacts();
     raceFrame();
@@ -17580,6 +18041,43 @@ export async function boot({
     hudFrame();
     bannerFrame();
     closeFrame();
+  }
+
+  /*
+   * THE WORLD'S EDGE (src/game/edges.js): turn back past the world's
+   * square, the start again past twice it, with the R key's own reset, on
+   * last frame's pose as a key between frames would be. A live operation
+   * keeps its own boundary (edge/rooms/ops.js) instead, and a pilot on
+   * foot has left the aircraft where it is. Home is where the reset puts
+   * the craft (runSpawn), taken at each run's start: a clip recovery moves
+   * startX, not the start a reset goes back to.
+   */
+  const worldEdge = edgeState();
+  let edgeBanner = null;
+  /* ms of flight on the wall clock, held in a pause: a parked craft's sim
+   * clock does not run, and a craft landed out there is reset too. */
+  let edgeMs = 0;
+  function edgeFrame() {
+    if (mode === 'paused') {
+      return;
+    }
+    const half = WORLD_EDGES[view.id];
+    if (!half || mode !== 'flight' || walker !== null || roomOps.on() || warSpectating() || roomWatching() || jamWatching()) {
+      worldEdge.since = null;
+      edgeBanner = null;
+      return;
+    }
+    edgeMs += fr.dt;
+    const phase = edgeStep(half, worldEdge, pCurr.x, pCurr.z, edgeHome.x, edgeHome.z, edgeMs);
+    if (phase === 'reset') {
+      edgeBanner = null;
+      reset();
+      return;
+    }
+    edgeBanner = phase === 'in' ? null : [
+      str(phase === 'turn' ? 'edge.turn_back' : 'edge.leaving', { bearing: worldEdge.bearing, km: worldEdge.km.toFixed(1), s: Math.ceil(worldEdge.msLeft / 1000) }),
+      phase === 'turn' ? 'edge' : true,
+    ];
   }
 
   /*
@@ -17690,7 +18188,7 @@ export async function boot({
     if (rcPending.length > 1024) {
       rcPending.splice(0, rcPending.length - 256);
     }
-    /* Settings > Controls waiting for a pad button takes the pad first. */
+    /* Keys and buttons waiting for a pad button takes the pad first. */
     if (ui.isModal() && !bindPad(ui, input.padHeld())) {
       ui.pollPad(padNav());
     }
@@ -18650,10 +19148,11 @@ export async function boot({
     const shake = lensShake.update(dt, rpmMean / FULL_THROTTLE_RPM);
     decayImpactKick(dt);
     warShakeFrame(dt);
+    const shakeBy = shakeScale(ui.settings.cameraShake);
     qShake.setFromEuler(shakeEuler.set(
-      shake.x + impactKick.x + warShake.x,
-      shake.y + impactKick.y + warShake.y,
-      shake.z + impactKick.z + warShake.z,
+      (shake.x + impactKick.x + warShake.x) * shakeBy,
+      (shake.y + impactKick.y + warShake.y) * shakeBy,
+      (shake.z + impactKick.z + warShake.z) * shakeBy,
       'XYZ',
     ));
     fpvQuat.multiply(qShake);
@@ -18891,10 +19390,13 @@ export async function boot({
     const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
     chaseAim.y = Math.max(chaseAim.y, floor);
     if (chaseValid) {
-      chasePos.lerp(chaseAim, 1 - Math.exp(-dt / 120));
+      chasePos.lerp(chaseAim, 1 - Math.exp(-dt / chaseLagMs(ui.settings.chaseSmooth)));
     } else {
       chasePos.copy(chaseAim);
       chaseValid = true;
+    }
+    if (view.colliders) {
+      pullIn(view.colliders, chaseAnchor, chasePos);
     }
     shell.quad.visible = !roomWatching();
     shell.camera.up.set(0, 1, 0);
@@ -18977,7 +19479,7 @@ export async function boot({
   }
 
   function chaseCamera(dt, nowWall, span) {
-    const k = 1 - Math.exp(-dt / 120);
+    const k = 1 - Math.exp(-dt / chaseLagMs(ui.settings.chaseSmooth));
     const water = craftOnWater();
     const afloat = Boolean(water && water.state[3] > 0);
     chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / (afloat ? 700 : 250)));
@@ -19025,6 +19527,11 @@ export async function boot({
     } else {
       chasePos.copy(chaseAim);
       chaseValid = true;
+    }
+    /* Short of every wall on the way back from the craft, after the
+     * smoothing, so the arm folds in at once and eases out. */
+    if (view.colliders) {
+      pullIn(view.colliders, chaseAnchor, chasePos);
     }
     shell.camera.position.copy(chasePos);
     shell.camera.lookAt(introLook.copy(chaseAnchor).addScaledVector(chaseDir, span));
@@ -19373,8 +19880,9 @@ export async function boot({
     const inAir = !landed && !launchStaging && !crashed && !poseLock;
     ui.setStickOverlay({
       /* window.__showSticks: a capture's own switch, so a recorded flight
-       * shows the sticks whatever flies it (scripts/hover-video.js). */
-      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+       * shows the sticks whatever flies it (scripts/hover-video.js); read
+       * through devHooks, so only in developer mode. */
+      show: devHooks.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,
@@ -19638,7 +20146,7 @@ export async function boot({
   }
 
   function leaveCalibration(nowWall) {
-    ui.show('pilot');
+    ui.show(calibrateReturn);
     if (input.calResult === 'saved') {
       notice = { text: str('main.stick_mapping_saved'), untilMs: nowWall + 2800 };
     } else if (input.calResult === 'saved-unstored') {
@@ -19653,7 +20161,7 @@ export async function boot({
     const inFlight = ui.screen === 'flight';
     const launch = fr.launch;
     if (crashed && inFlight) {
-      return ['Crashed', true];
+      return [str('ui.crashed'), true];
     }
     if (inFlight && (warSpectating() || roomWatching() || jamWatching())) {
       return [warWatchBanner(), true];
@@ -19669,6 +20177,9 @@ export async function boot({
     }
     if ((turtleWait || turtleRecover || turtleFlip.active) && inFlight) {
       return [turtleBannerText(), true];
+    }
+    if (edgeBanner && inFlight) {
+      return edgeBanner;
     }
     if ((airHoldMs > 0 || raceHoldMs > 0) && !ui.isModal()) {
       return [String(Math.ceil(Math.max(airHoldMs, raceHoldMs) / 1000)), false];
@@ -19889,10 +20400,10 @@ export async function boot({
 
   /* Live handles. __race is a getter because a map swap replaces the race
    * object; the others live as long as the page. */
-  window.__ui = ui;
-  window.__input = input;
-  window.__race = () => race;
-  window.__audio = audio;
+  devHooks.__ui = ui;
+  devHooks.__input = input;
+  devHooks.__race = () => race;
+  devHooks.__audio = audio;
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
@@ -19987,7 +20498,7 @@ export async function boot({
   /* Park the camera at (a, b, c) looking at (d, e, f); null hands it back.
    * The optional fov pins the lens too, since otherwise a capture gets the
    * title's lens or the pilot's depending on how fast the machine booted. */
-  window.__setCam = (a, b, c, d, e, f, fov) => {
+  devHooks.__setCam = (a, b, c, d, e, f, fov) => {
     camOverride = a == null ? null : [a, b, c, d, e, f, fov];
   };
 
@@ -20019,7 +20530,7 @@ export async function boot({
    * the clock, which a headless page would take minutes to reach.
    */
   window.__score = () => score.summary();
-  window.__scoreFinish = () => {
+  devHooks.__scoreFinish = () => {
     score.finish();
     endFreestyleRun();
     return score.summary();
@@ -20044,11 +20555,11 @@ export async function boot({
    * world draws a few frames a second, and a probe steering from
    * requestAnimationFrame cannot fly anything at that rate.
    */
-  window.__drawOff = (on = true) => {
+  devHooks.__drawOff = (on = true) => {
     harnessNoDraw = Boolean(on);
     return harnessNoDraw;
   };
-  window.__frameMs = (ms = 0) => {
+  devHooks.__frameMs = (ms = 0) => {
     harnessFrameMs = Math.max(0, Math.min(FRAME_DT_MAX, Number(ms) || 0));
     return harnessFrameMs;
   };
@@ -20209,7 +20720,7 @@ export async function boot({
   window.__celCount = () => celTimeCount();
 
   /* The radio link: switch preset with an id, and read what is in force. */
-  window.__link = (id) => {
+  devHooks.__link = (id) => {
     if (id != null) {
       rcLink.setPreset(id);
       rcLink.reset(rcNextMs);
@@ -20246,10 +20757,22 @@ export async function boot({
       position: ghostRig.group.position.toArray(),
       gapMs: ghostGap ? ghostGap.deltaMs : null,
       boardTimes: (ghostBoardTimes || []).length,
+      opponent: {
+        seated: Boolean(aiSeat && aiSeat.seated),
+        learnMs: aiSeat && aiSeat.seated ? aiSeat.seated.learnMs : null,
+        racing: Boolean(aiOpp),
+        laps: aiOpp ? aiOpp.laps() : [],
+        crashed: Boolean(aiOpp && aiOpp.crashed),
+        contacts: aiOpp ? aiOpp.touched || 0 : 0,
+        ms: aiOpp ? aiOpp.ms : 0,
+        next: aiOpp ? aiOpp.race.next : -1,
+        visible: Boolean(aiRig && aiRig.group.visible),
+        position: aiRig ? aiRig.group.position.toArray() : null,
+      },
     };
   };
   /* Arm a lap from wire base64 as if the board had sent it. */
-  window.__ghostLoad = (b64, name) => {
+  devHooks.__ghostLoad = (b64, name) => {
     const lap = new GhostLap(decodeGhost(ghostFromBase64(b64)), {
       label: str('main.board_lap'),
       name: name || 'Harness',
@@ -20262,12 +20785,12 @@ export async function boot({
     syncGhostRow();
     return { armed: Boolean(ghostLap), durationMs: lap.durationMs, splits: lap.splits.length };
   };
-  window.__ghostPick = (id) => {
+  devHooks.__ghostPick = (id) => {
     pickGhost(String(id));
     return ghostChoice;
   };
   /* Light the OSD's gap readout for 2.8 s without flying two laps. */
-  window.__ghostGapShow = (deltaMs, final) => {
+  devHooks.__ghostGapShow = (deltaMs, final) => {
     ghostGap = { deltaMs: Number(deltaMs), final: Boolean(final), untilWall: performance.now() + 2800 };
     return ghostGap;
   };
@@ -20419,7 +20942,7 @@ export async function boot({
    * hull falls over; __releasePose lets go. The camera is placed at once,
    * so a capture taken before the next frame sees the seat.
    */
-  window.__seatCraft = (kind) => {
+  devHooks.__seatCraft = (kind) => {
     if (!stateCurr) {
       return null;
     }
@@ -20486,10 +21009,11 @@ export async function boot({
    * sweeps think the craft was last frame, for a test that needs the chord
    * between the two to cross something; it defaults to the point itself.
    */
-  window.__placeCraft = (x, y, z, fromX, fromY, fromZ) => {
+  devHooks.__placeCraft = (x, y, z, fromX, fromY, fromZ) => {
     if (!stateCurr) {
       return null;
     }
+    runRoute.cut();
     const code = teleportPlant({ x, y, z }, 1, 0, 0, 0);
     if (code !== SIM_OK) {
       return { ok: false, code };
@@ -20522,7 +21046,7 @@ export async function boot({
     groundPrev.copy(racePrev);
     return window.__craftState();
   };
-  window.__releasePose = () => {
+  devHooks.__releasePose = () => {
     poseLock = false;
     return true;
   };
@@ -20540,7 +21064,7 @@ export async function boot({
   /* The jelly's whacks this run (jellyPass), and whether the seated
    * aircraft meets the soft pieces as jelly. */
   window.__jelly = () => ({ soft: softKindsFor() !== 0, whacks: jellyLog.map((w) => ({ ...w })) });
-  window.__crashThrow = (o) => {
+  devHooks.__crashThrow = (o) => {
     crashCamShowsCraft = o.showCraft !== false;
     /* `fresh` puts the plant back to its first step first, as R does, so
      * the throw starts from the same plant whatever the craft did on the
@@ -20659,8 +21183,8 @@ export async function boot({
   window.__crashWater = () => (view.water || []).map((w) => ({
     kind: w.kind, spawn: w.spawn, surfaceY: w.surfaceY, line: w.line, halfWidth: w.halfWidth,
   }));
-  window.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
-  window.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
+  devHooks.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
+  devHooks.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
   /* Each drawn piece's farthest vertex outside its part's hull box, for a
    * check that no stray triangle rides off with a broken part. */
   window.__wreckAudit = () => wreckRig.audit();
@@ -20714,7 +21238,7 @@ export async function boot({
       'throttle_limit_type', 'throttle_limit_percent',
     ]),
   });
-  window.__setTune = (id) => {
+  devHooks.__setTune = (id) => {
     ui.settings.tune = id;
     applySettings(ui.settings);
   };
@@ -21009,14 +21533,14 @@ export async function boot({
    * does, and reset there: the water is declared again in the new spawn's
    * frame, which is what a check of the waves' frame needs. `y` is the
    * fromY hint a spawn may carry (a seat on a dam's crest). Harness only. */
-  window.__respawn = (x, z, yaw, y) => {
+  devHooks.__respawn = (x, z, yaw, y) => {
     resetCraft({ x, z, yaw, y });
     return true;
   };
   /* Show the map's waves on the title too, so a parked camera
    * (scripts/swiss2-views.js, swiss2-perf.js with --waves) sees the lake
    * as a pilot on it would, stood still at the sim clock where it is. */
-  window.__wavesOn = () => {
+  devHooks.__wavesOn = () => {
     declareWater();
     wavesAtTitle = true;
     return Boolean(view.setWaves);
@@ -21045,7 +21569,7 @@ export async function boot({
   /* An opening in the dam as the war's damage hands one to the map
    * (map.onOpening, docs/FLOOD.md), and the water through every opening
    * this frame (map.waterFlows), for scripts/water-page.js. Harness only. */
-  window.__mapOpening = (o) => {
+  devHooks.__mapOpening = (o) => {
     if (!view || typeof view.onOpening !== 'function') return false;
     view.onOpening(o);
     return true;
@@ -21056,7 +21580,7 @@ export async function boot({
   window.__mapReplayWater = () => (view && view.replayWater ? view.replayWater() : null);
   /* A mission's gate state handed to the map (map.setGateState), for
    * scripts/itaipu-views.js --gates. Harness only. */
-  window.__mapGates = (list) => {
+  devHooks.__mapGates = (list) => {
     if (!view || typeof view.setGateState !== 'function') return false;
     warGatesTo(list);
     return true;
@@ -21076,7 +21600,7 @@ export async function boot({
    * it needs it instead of waiting minutes of slow headless frames for it.
    * Answers the train's offset where the map has one.
    */
-  window.__animTo = (step) => {
+  devHooks.__animTo = (step) => {
     view.updateAnim(step);
     if (!view.stats) {
       return null;
@@ -21099,7 +21623,7 @@ export async function boot({
   };
   /* The live scene graph, which tests/lib/checks.js walks to measure the
    * reference objects against the sizes this project claims. */
-  window.__mapScene = () => view.scene;
+  devHooks.__mapScene = () => view.scene;
   /* THREE itself, for page side measurements (a Box3, a Vector3) that would
    * otherwise load a second three.js whose classes this scene's objects are
    * not instances of. */
@@ -21120,7 +21644,7 @@ export async function boot({
    * sets it for its next sweep (fromY biased as that pass biases it), so
    * a probe's __hit meets what the craft's would. The next frame sets it
    * again from the craft. Harness only. */
-  window.__cover = (x, y, z) => {
+  devHooks.__cover = (x, y, z) => {
     if (view.cover) {
       view.cover(x, z, y - SURFACE_BIAS);
     }
@@ -21170,7 +21694,7 @@ export async function boot({
    * throttle. The override sits at the top of input.poll's ladder, so roll,
    * pitch and yaw stick too, not only the throttle.
    */
-  window.__stick = (roll, pitch, yaw, throttle) => {
+  devHooks.__stick = (roll, pitch, yaw, throttle) => {
     if (roll != null) {
       input.harnessChannels = { roll, pitch, yaw, throttle };
       return { roll, pitch, yaw, throttle };
@@ -21209,11 +21733,11 @@ export async function boot({
   /* A flat canopy at world height `top` over the whole loaded map, so
    * scripts/canopy-check.js can exercise the contact pass's canopy call on a
    * map without a forest of its own. Gone with the next map load. */
-  window.__canopyTop = (top) => {
+  devHooks.__canopyTop = (top) => {
     view.canopyAt = () => top;
   };
   /* Load a world as ?map= would at the title, which ends the title's own. */
-  window.__setMap = (id) => {
+  devHooks.__setMap = (id) => {
     titleWorld = null;
     paintBest();
     ui.settings.map = id;
@@ -21485,7 +22009,7 @@ export async function boot({
   voice.setRecorder(crashCam.voiceSink);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
-  window.__crashCam = {
+  devHooks.__crashCam = {
     stats: () => crashCam.stats(),
     open: () => crashCam.open(),
     live: () => crashCam.live,

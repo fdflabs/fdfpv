@@ -11,7 +11,8 @@ cards, one panel in the page's own language: bracketed mono labels, the dark
 glass of the rooms panel, the cards' name face for the numbers.
 
 - Headline: TOTAL FLIGHT TIME, hours and minutes, large; under it the
-  flights flown and, signed in, the account's tokens.
+  flights flown, the landings on every aircraft and, signed in, the
+  account's tokens.
 - Tiles: pilot level with its XP to the next and a bar; aircraft flown and
   the most flown with its time; medals (gold, silver, bronze); tracks
   lapped; campaign missions won with stars out of every mission's three.
@@ -41,6 +42,7 @@ the Hangar are not asked for.
 | Medals | `settings.progress.medals`, counted per step (src/game/medals.js MEDAL_STEPS) |
 | Tracks lapped | `Object.keys(settings.progress.courses).length`, the courses a lap was closed on |
 | Flights | `countTotals(settings.pilotCounts).flights` (src/share/pilotcounts.js) |
+| Landings | the sum of `settings.progress.landings` (src/game/progress.js foldLandings, counted per aircraft from the flight's event log) |
 | Catch the Ace!, Trick Battle: won of played, best | `countTotals(settings.pilotCounts).tag` / `.jam` |
 | Tokens | `readWallet().balance` (src/share/account.js): the wallet every progress sync's answer carries, held in local storage. No call is made to paint; signed out, no line |
 | Missions won, stars | `cleanCampaign(settings.campaign).missions` (src/game/campaign.js), both campaigns |

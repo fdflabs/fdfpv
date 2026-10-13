@@ -60,6 +60,12 @@ export function createRoute() {
       topM = 0;
       end = null;
     },
+    /* The craft was put somewhere rather than flown there (a respawn, a
+     * reset to a spawn, a harness placing it): the next position starts a
+     * new leg, so the jump is never counted as distance flown. */
+    cut() {
+      last = null;
+    },
     /* x, y (up), z in metres; simMs the sim clock. */
     add(simMs, x, y, z) {
       if (![simMs, x, y, z].every(Number.isFinite)) {

@@ -184,6 +184,16 @@ function when(ms) {
   return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+/* A My clips row's app build (src/replay/file.js version 18): a deploy's
+ * stamp, null from a checkout, absent on a clip saved before builds were
+ * kept. */
+export function buildOf(row) {
+  if (row.build === undefined) {
+    return str('replay.clip_build_unknown');
+  }
+  return row.build === null ? str('replay.clip_build_local') : str('replay.clip_build', { version: row.build });
+}
+
 function readPrefs() {
   try {
     const raw = JSON.parse(localStorage.getItem(EXPORT_PREFS_KEY) || '{}');
@@ -1188,7 +1198,7 @@ export function createEditor(api) {
     th.append(el('span', 'cc-dur', fmt(row.duration || 0)));
     const body = el('div', 'cc-clip-body');
     const nm = el('div', 'cc-clip-name', row.name);
-    const meta = el('div', 'cc-clip-meta', str('replay.clip_meta', { when: when(row.created), map: api.mapName(row.map) }));
+    const meta = el('div', 'cc-clip-meta', str('replay.clip_meta', { when: when(row.created), map: api.mapName(row.map), build: buildOf(row) }));
     const acts = el('div', 'cc-clip-actions');
     const bPlayIt = button('cc-btn small primary', str('replay.play'), '', async () => {
       try {
