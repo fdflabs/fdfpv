@@ -49,6 +49,16 @@ export const STICK_HOLD_MS = 1000;
  * height lesson's 25 to 35 m band. */
 export const STALL_FLOOR_M = 30;
 export const STALL_RECOVERED = AIR_START_STALL_MARGIN;
+/* The coordinated turn (docs/redesign/TRAINING.md 9, the lead 2026-10-13):
+ * a figure eight, two full circles of opposite bank, each counted on the
+ * heading only while the bank is between EIGHT_BANK's two angles, with
+ * the body's lateral acceleration under SLIP_G g the whole way. The FAA
+ * Airplane Flying Handbook (FAA-H-8083-3C, Basic Flight Maneuvers) flies a
+ * coordinated turn with the inclinometer's ball centred; 0.1 g is the
+ * lead's reading of the ball within half its width. */
+export const SLIP_G = 0.1;
+export const EIGHT_BANK = [(20 * Math.PI) / 180, (45 * Math.PI) / 180];
+const G = 9.81;
 /* The thermal lesson (docs/redesign/TRAINING.md 9): metres climbed with
  * the throttle closed (Sticks' closed end) in rising air. More than a
  * zoom gives: the Radian trading 15 m/s for its 6.49 m/s stall climbs
@@ -68,7 +78,8 @@ const STICK_ENDS = {
 /*
  * Steps: { sticks: true } every stick held at each of its ends (STICK_END)
  * for STICK_HOLD_MS, in any order; { stall: true } a stall entered and
- * recovered without going under STALL_FLOOR_M; { thermal: true }
+ * recovered without going under STALL_FLOOR_M; { eight: true } a
+ * coordinated figure eight; { thermal: true }
  * THERMAL_CLIMB_M climbed, throttle closed, in rising air; { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
@@ -100,6 +111,7 @@ export const LESSONS = [
     steps: [{ airborne: TAKEOFF_HOLD_MS }, { turn: 'left' }, { turn: 'right' }, { land: true }],
   },
   { id: 'wing_height', track: 'wing', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ hold: 20000, low: 25, high: 35 }] },
+  { id: 'wing_eight', track: 'wing', airframe: 'cub1400', tune: 'cub-as3x', place: 'swiss2', steps: [{ eight: true }] },
   { id: 'wing_stall', track: 'wing', airframe: 'timber1500', tune: 'timber-as3x', place: 'swiss2', steps: [{ stall: true }] },
   {
     id: 'wing_approaches', track: 'wing', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', aid: 'glide',
@@ -193,10 +205,10 @@ export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'racing'];
  * when every lesson of it is passed, a pass by "I fly already" included,
  * and kept from then on (progress.certs, synced; a merge never drops one).
  * Because a stored one is never taken back, a track is listed only once
- * every lesson TRAINING.md gives it exists here: Fixed wing waits on its
- * coordinated turn, Defence on the stage engine; First flight has none. The words are training.cert.<track>.
+ * every lesson TRAINING.md gives it exists here: Defence waits on the
+ * stage engine; First flight has none. The words are training.cert.<track>.
  */
-export const CERTS = ['glider', 'multirotor', 'racing'];
+export const CERTS = ['wing', 'glider', 'multirotor', 'racing'];
 
 /* The certifications `passed` (lesson id to its pass time) has earned. */
 export function certsEarned(passed) {
@@ -226,6 +238,39 @@ export function headingOf(st) {
   const y = st[9];
   const z = st[10];
   return Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+}
+
+/* The craft's bank from a plant state: the roll about its nose, radians,
+ * positive with the right wing down (the plant's y is left, so a positive
+ * roll lifts the left wing). */
+export function bankOf(st) {
+  const w = st[7];
+  const x = st[8];
+  const y = st[9];
+  const z = st[10];
+  return Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y));
+}
+
+/*
+ * The body's lateral acceleration, g, what an inclinometer's ball reads:
+ * the specific force (the velocity's change over one plant step, less
+ * gravity) along the body's left axis, from two consecutive plant states
+ * (src/native/sim_abi.h: [0] t, [4..6] world velocity, [7..10] body to
+ * world). Positive to the left; null without two states a step apart.
+ */
+export function lateralG(prev, curr) {
+  const dt = prev && curr ? curr[0] - prev[0] : 0;
+  if (!(dt > 0)) {
+    return null;
+  }
+  const fx = (curr[4] - prev[4]) / dt;
+  const fy = (curr[5] - prev[5]) / dt;
+  const fz = (curr[6] - prev[6]) / dt + G;
+  const w = curr[7];
+  const x = curr[8];
+  const y = curr[9];
+  const z = curr[10];
+  return (fx * 2 * (x * y - w * z) + fy * (1 - 2 * (x * x + z * z)) + fz * 2 * (y * z + w * x)) / G;
 }
 
 export function lessonById(id) {
@@ -278,6 +323,7 @@ export class LessonWatch {
     this.endsHeld = new Set();
     this.stalled = false;
     this.thermalLow = null;
+    this.eight = null;
   }
 
   get current() {
@@ -302,9 +348,14 @@ export class LessonWatch {
    * frame, `airspeed` m/s through the air and `stall` the seated
    * aircraft's clean stall, m/s (null on a quad), `airUp` the air's rise
    * where the craft is, m/s. `pos` carries its height, y. Returns whether
-   * the lesson is passed.
+   * the lesson is passed. `bank` is the craft's bank, radians, positive
+   * right wing down (bankOf), and `slipG` its lateral acceleration, g
+   * (lateralG).
    */
-  tick({ simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok', sticks = null, airspeed = null, stall = null, airUp = 0 }) {
+  tick({
+    simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok', sticks = null, airspeed = null, stall = null, airUp = 0,
+    bank = null, slipG = null,
+  }) {
     if (this.passed) {
       return true;
     }
@@ -331,6 +382,8 @@ export class LessonWatch {
       this.judgeSticks(simMs, sticks);
     } else if (s.stall) {
       this.judgeStall(grounded, agl, airspeed, stall);
+    } else if (s.eight) {
+      this.judgeEight(grounded, heading, bank, slipG);
     } else if (s.thermal) {
       this.judgeThermal(grounded, pos, sticks, airUp);
     } else if (s.airborne != null && !grounded && simMs - this.airSince >= s.airborne) {
@@ -382,6 +435,41 @@ export class LessonWatch {
     if (airspeed < stall) {
       this.stalled = true;
     } else if (this.stalled && airspeed >= STALL_RECOVERED * stall) {
+      this.advance();
+    }
+  }
+
+  /* { eight: true }, on the heading's integral `h`, which counts a frame's
+   * turn only while the bank is in EIGHT_BANK towards it (right wing down
+   * turning right). The first circle is `h` reaching a full turn either
+   * way, `dir`; the second is `h` coming back a full turn from the
+   * furthest it went, `peak`, so the circles are joined where the heading
+   * reverses. A slip of SLIP_G or more, or the ground, starts it again. */
+  judgeEight(grounded, heading, bank, slipG) {
+    if (heading == null || bank == null || slipG == null) {
+      return;
+    }
+    if (grounded || Math.abs(slipG) >= SLIP_G) {
+      this.eight = null;
+      return;
+    }
+    const e = this.eight ?? { heading, h: 0, dir: 0, peak: 0 };
+    this.eight = e;
+    const d = turnBetween(e.heading, heading);
+    e.heading = heading;
+    const inBand = Math.abs(bank) >= EIGHT_BANK[0] && Math.abs(bank) <= EIGHT_BANK[1];
+    if (inBand && Math.sign(d) === (bank > 0 ? -1 : 1)) {
+      e.h += d;
+    }
+    if (e.dir === 0) {
+      if (Math.abs(e.h) >= TURN_RAD) {
+        e.dir = Math.sign(e.h);
+        e.peak = e.h;
+      }
+      return;
+    }
+    e.peak = e.dir > 0 ? Math.max(e.peak, e.h) : Math.min(e.peak, e.h);
+    if ((e.peak - e.h) * e.dir >= TURN_RAD) {
       this.advance();
     }
   }

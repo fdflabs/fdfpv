@@ -173,9 +173,9 @@ inputs and the flight's event log, each with a near miss that fails.
   the lesson that completes it. Stored as `progress.certs` (track to the
   time it was earned), synced, merged as the union at the earlier time.
   A stored one is never taken back, so a track is listed in `CERTS` only
-  once every lesson this document gives it exists: Multirotor and
-  Racing now. Fixed wing waits on its coordinated turn, Glider on its
-  track, Defence on the stage engine. First flight has none.
+  once every lesson this document gives it exists: Fixed wing, Glider,
+  Multirotor and Racing. Defence waits on the stage engine. First
+  flight has none.
 - **Gates** (track 3) is not built: the tree's casual sky tracks are
   offered only to a fixed wing (src/ui/items.js `newTrackRows`), so a
   quad has no casual course to fly. Casual sky tracks for quads are a
@@ -205,12 +205,26 @@ inputs and the flight's event log, each with a near miss that fails.
   and `stall` is flaps up: with flaps down the real stall is slower
   (T4, 6.31 m/s), so a pilot flying slow on full flaps may count a stall
   the wing did not have.
-- **Coordinated turn** is not built. The lead's rule is a figure eight
-  of two circles with the slip under "the HUD's own ball threshold",
-  but the HUD has no slip ball and no threshold anywhere in the tree.
-  The slip itself can be read from the plant (the velocity in the body
-  frame); what is missing is the number that says how little slip is
-  coordinated. Until it is given, Fixed wing has no certification.
+- **Coordinated turn** (`wing_eight`), on the Cub in AS3X (Stabilised
+  coordinates the rudder for the pilot, which is the thing being
+  taught): a figure eight, two full circles of opposite bank joined
+  where the heading reverses, judged on the heading's integral. A
+  frame's turn counts only while the bank is 20 to 45 degrees towards
+  it; the first circle is a full turn either way, the second a full
+  turn back from the furthest the first went. Coordinated is the body's
+  lateral acceleration under 0.1 g the whole way. The FAA Airplane
+  Flying Handbook (FAA-H-8083-3C, Basic Flight Maneuvers) teaches a
+  coordinated turn as one flown with the inclinometer's ball centred,
+  the rudder keeping it there; 0.1 g is the lead's reading of the
+  ball within half its width, not a figure from the handbook (this
+  lane did not have the handbook's text to quote). The lateral acceleration
+  is the specific force along the body's left axis from two
+  consecutive plant states (the velocity's change over the 1 ms step,
+  less gravity). A slip of 0.1 g or more, or the ground, starts the
+  eight again. The numbers are the lead's (2026-10-13); the HUD shows
+  no ball, so the pilot flies it by feel and the result. Measured on
+  the plant (the Cub at 28 degrees of bank, no rudder): a steady 0.035
+  g, with no step to step noise over the 1 ms difference.
 - **Glider**, a track of three after Fixed wing, on the Radian in
   Stabilised on the Swiss valley (the NRJ is not used yet):
   - *Launch and hold* (`glider_launch`): airborne 20 s without touching
@@ -230,3 +244,6 @@ inputs and the flight's event log, each with a near miss that fails.
     src/maps/alps/heights.js) from the threshold the glide path is drawn
     to. The aid draws no box; the strip is the box.
   The track has no "I fly already": no lesson of it covers the others.
+  The Radian opens at level 5, and a glider lesson seats it at any
+  level: training gates nothing (section 4), so the lesson does not
+  wait on the level.

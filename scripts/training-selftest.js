@@ -22,7 +22,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, STALL_FLOOR_M, STALL_RECOVERED, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, EIGHT_BANK, SLIP_G, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -73,7 +73,7 @@ function fly(id, segments, { laps = [], gates = '' } = {}) {
       heading += (s.yawRate ?? 0) * FRAME_MS / 1000;
       w.tick({
         simMs: t, crashed: Boolean(s.crashed), grounded: Boolean(s.grounded), heading: Math.atan2(Math.sin(heading), Math.cos(heading)),
-        agl: s.agl ?? (s.grounded ? 0 : 30), pos: { x: s.x ?? 0, y: s.y ?? 0, z: s.z ?? 0 }, battery: s.battery ?? 'ok', airUp: s.up ?? 0,
+        agl: s.agl ?? (s.grounded ? 0 : 30), pos: { x: s.x ?? 0, y: s.y ?? 0, z: s.z ?? 0 }, battery: s.battery ?? 'ok', airUp: s.up ?? 0, bank: s.bank ?? 0, slipG: s.slip ?? 0,
         sticks: { roll: 0, pitch: 0, yaw: 0, throttle: 0.5, ...s.sticks }, airspeed: s.v ?? null, stall: s.stall === undefined ? TIMBER_STALL : s.stall,
       });
     }
@@ -162,6 +162,27 @@ expect('stall: a crash in the recovery', fly('wing_stall', [flyAt(1000, 40, 6.5)
 expect('stall: a quad has no stall', fly('wing_stall', [flyAt(1000, 40, 0.5, { stall: null }), flyAt(1000, 40, 15, { stall: null })]), false);
 expect('stall: the floor is 30 m and recovery 1.3 times (the lead, 2026-10-13)', STALL_FLOOR_M === 30 && STALL_RECOVERED === 1.3, true);
 
+/* The figure eight: heading by yaw rate, bank in radians (right wing
+ * down positive), slip in g. A circle in 8 s at 30 degrees of bank. */
+const DEG = Math.PI / 180;
+const left = (ms, bank = 30, slip = 0) => ({ ms, grounded: false, yawRate: CIRCLE, bank: -bank * DEG, slip });
+const right = (ms, bank = 30, slip = 0) => ({ ms, grounded: false, yawRate: -CIRCLE, bank: bank * DEG, slip });
+const roll = (ms) => ({ ms, grounded: false, bank: 0 });
+expect('eight: a circle left, a circle right', fly('wing_eight', [roll(1000), left(8200), roll(600), right(8200)]), true);
+expect('eight: right first, then left, at 22 and 44 degrees', fly('wing_eight', [right(8200, 22), roll(600), left(8200, 44)]), true);
+expect('eight: an overrun of the first circle, then the reversal', fly('wing_eight', [left(11000), roll(600), right(8200)]), true);
+expect('eight: a slip of 0.15 g, then a whole clean eight', fly('wing_eight', [left(4000, 30, 0.15), left(8200), right(8200)]), true);
+expect('eight: a slip of 0.12 g in the second circle', fly('wing_eight', [left(8200), right(4000), right(500, 30, -0.12), right(4000)]), false);
+expect('eight: 0.09 g of slip throughout', fly('wing_eight', [left(8200, 30, 0.09), right(8200, 30, -0.09)]), true);
+expect('eight: two circles left', fly('wing_eight', [left(16400)]), false);
+expect('eight: a left circle and three quarters right', fly('wing_eight', [left(8200), right(6000)]), false);
+expect('eight: banked 15 degrees', fly('wing_eight', [left(8200, 15), right(8200, 15)]), false);
+expect('eight: banked 50 degrees', fly('wing_eight', [left(8200, 50), right(8200, 50)]), false);
+expect('eight: flat, rudder only (bank 0)', fly('wing_eight', [left(8200, 0), right(8200, 0)]), false);
+expect('eight: crossed, yawing left banked right', fly('wing_eight', [{ ms: 8200, grounded: false, yawRate: CIRCLE, bank: 30 * DEG }, right(8200)]), false);
+expect('eight: touching down between the circles', fly('wing_eight', [left(8200), ground(300), right(8200)]), false);
+expect('eight: 0.1 g and 20 to 45 degrees (the lead, 2026-10-13)', SLIP_G === 0.1 && Math.abs(EIGHT_BANK[0] - 20 * DEG) < 1e-12 && Math.abs(EIGHT_BANK[1] - 45 * DEG) < 1e-12, true);
+
 /* The glider track. A thermal: height y climbed, throttle closed, in
  * rising air; a frame's height steps linearly through a segment. */
 const glide = (ms, y0, y1, up = 1.5, throttle = 0) => ({ ms, grounded: false, up, sticks: { throttle }, y0, y1 });
@@ -242,6 +263,29 @@ for (const yaw of [0.4, 1.5, -0.7, 2.9]) {
   const nose = noseOf(st);
   expect(`heading ${yaw} read back`, Math.abs(headingOf(st) - yaw) < 1e-9, true);
   expect(`heading ${yaw} > 0 is a nose to the left (+y)`, Math.sign(nose[1]) === Math.sign(Math.sin(yaw)), true);
+}
+/* The bank's sign and the lateral g against the plant's frame: a roll
+ * that puts the right wing down is a positive bank; a level turn at that
+ * bank, its acceleration g tan(bank) to the right, reads no slip, and the
+ * same acceleration with the wings level reads tan(bank) g. */
+function rolled(t, roll, vy) {
+  const st = new Float64Array(20);
+  st[0] = t;
+  st[4] = 15;
+  st[5] = vy;
+  st[7] = Math.cos(roll / 2);
+  st[8] = Math.sin(roll / 2);
+  return st;
+}
+{
+  const b = 30 * Math.PI / 180;
+  const st = rolled(0, b, 0);
+  const leftTipZ = 2 * (st[9] * st[10] + st[7] * st[8]);
+  expect('a positive bank lifts the left wing: the right is down', bankOf(st) > 0 && leftTipZ > 0 && Math.abs(bankOf(st) - b) < 1e-12, true);
+  const a = -9.81 * Math.tan(b);
+  expect('a coordinated level turn reads no slip', Math.abs(lateralG(rolled(0, b, 0), rolled(0.001, b, a * 0.001))) < 1e-9, true);
+  expect('the same turn flat reads tan(bank) g', Math.abs(Math.abs(lateralG(rolled(0, 0, 0), rolled(0.001, 0, a * 0.001))) - Math.tan(b)) < 1e-9, true);
+  expect('one state twice has no slip to read', lateralG(rolled(0, b, 0), rolled(0, b, 0)), null);
 }
 expect('every lesson is on a listed track', LESSONS.every((l) => TRACKS.includes(l.track)), true);
 for (const t of TRACKS) {

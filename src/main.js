@@ -62,7 +62,7 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind, lockOf } from './game/progress.js';
-import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
+import { STRIPS, bankOf, gateCue, glidePoints, headingOf, lateralG } from './game/training.js';
 import { createGlidePath } from './render/glidepath.js';
 import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
@@ -13376,6 +13376,7 @@ export async function boot({
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
       sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
+      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr),
     });
   }
   /* The craft's speed through the air, m/s: the plant's world velocity
