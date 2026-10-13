@@ -50,8 +50,8 @@
  *
  *   settings blob   saveSettings (src/ui/settings.js), through
  *                   Ui.persistSettings, on every settings change, and so:
- *   progression     a lap, a challenge, Unlock all, a first sight
- *                   (src/ui/progress-ui.js)
+ *   progression     a lap, a challenge, Unlock all, a first sight, a
+ *                   landing or a crash counted (src/ui/progress-ui.js)
  *   campaign        a commit of the campaign store (createCampaignStore,
  *                   src/game/campaign.js), a film seen, a result applied
  *   controllers     a calibration accepted, a pad chosen

@@ -2768,6 +2768,7 @@ export default {
   "progress.toast_first": "Una primera vez",
   "progress.toast_first_level": "Una primera vez, ¡nivel {n}!",
   "progress.first_more": "y {n} primeras veces más",
+  "progress.first.game": "{game}, terminado en {world}",
   "progress.first.lesson": "Lección aprobada: {lesson}",
   "progress.first.win": "{mission}: ganada",
   "progress.first.star": "{mission}: estrella {n}",

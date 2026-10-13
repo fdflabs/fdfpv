@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, foldLandings, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
@@ -272,16 +272,28 @@ export class Progress {
     this.flight.append('spawned', simMs);
   }
 
-  /* This flight's events not yet counted into progress, counted
-   * (progress.js foldLandings) and stored. A sync answered by a server
-   * older than the landings hands back progress without the map. */
+  /* This flight's events not yet folded into progress, folded
+   * (progress.js foldEvents) and stored when any was. */
   foldFlight() {
-    this.state.landings ??= {};
-    const at = foldLandings(this.state, this.flight.events, this.folded);
-    if (at > this.folded) {
-      this.folded = at;
+    const { at, counted } = foldEvents(this.state, this.flight.events, this.folded);
+    this.folded = at;
+    if (counted) {
       this.save();
     }
+  }
+
+  /* A Streamer Combat round or a Catch the Ace! match this pilot had a
+   * seat in, ended by the room, on world `world` (src/main.js): logged,
+   * folded, and its first paid now rather than at the next flight time. */
+  roundFinished(game, world) {
+    this.event('round', { game, world });
+    this.foldFlight();
+    this.checkFirsts();
+  }
+
+  /* The seated aircraft, for the events counted per aircraft. */
+  get airframe() {
+    return this.watch.ctx ? this.watch.ctx.airframe : null;
   }
 
   /* One event into this flight's log at the last tick's sim time. */
@@ -367,7 +379,8 @@ export class Progress {
   lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const done = feedRunWatch(this.watch, this.event('lap', { ms }));
+    const done = feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe }));
+    this.foldFlight();
     this.save();
     this.show(events);
     this.show(won);
@@ -381,12 +394,15 @@ export class Progress {
   tick(state) {
     this.simMs = state.simMs;
     /* Its own edge: startRun clears RunWatch's flag mid crash. */
-    if (state.crashed && !this.wasCrashed) this.event('crash');
+    if (state.crashed && !this.wasCrashed) {
+      this.event('crash', { airframe: this.airframe });
+      this.foldFlight();
+    }
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
     this.award(this.watch.tick(state));
     if (this.watch.landings > landings) {
-      this.event('landing', { airframe: this.watch.ctx ? this.watch.ctx.airframe : null });
+      this.event('landing', { airframe: this.airframe });
       this.foldFlight();
     }
     if (this.lesson) {
@@ -414,6 +430,7 @@ export class Progress {
       seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
       lessons: this.state.lessons,
       flown: this.state.lessonsFlown,
+      played: this.state.played,
     });
     if (events.length) {
       this.save();
@@ -758,11 +775,19 @@ const MISSION_KEYS = new Map([
   ...INTERIOR.map((m) => [m.id, `ops.campaign.interior.m.${m.key}`]),
 ]);
 
+/* The words for a room game's first (progress.js PLAYED_GAMES, WORLDS):
+ * each game's card name and each world's registry name. */
+const GAME_NAMES = { combat: 'combat.card', tag: 'roomtag.section' };
+const WORLD_NAMES = { alps: 'registry.the_alps', swiss2: 'registry.swiss2', itaipu: 'registry.itaipu', interior: 'registry.interior' };
+
 /* A first's words, from its key (progress.js firstsOf). */
 export function firstTitle(key) {
   const [what, id, part] = key.split(':');
   if (what === 'lesson') {
     return str('progress.first.lesson', { lesson: str(`training.lesson.${id}`) });
+  }
+  if (what === 'game') {
+    return str('progress.first.game', { game: str(GAME_NAMES[id]), world: str(WORLD_NAMES[part]) });
   }
   if (what === 'mission') {
     const mission = str(MISSION_KEYS.get(id) ?? id);

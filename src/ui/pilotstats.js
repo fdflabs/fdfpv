@@ -63,7 +63,7 @@ function planeName(id) {
   return gone ? gone.name : null;
 }
 
-/* Every landing on every aircraft (src/game/progress.js landings). */
+/* Every landing on every aircraft (src/game/progress.js COUNTED). */
 function landingTotal(by) {
   return Object.values(by || {}).reduce((n, v) => n + (Number.isInteger(v) && v > 0 ? v : 0), 0);
 }

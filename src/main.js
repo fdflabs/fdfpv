@@ -4250,6 +4250,8 @@ export async function boot({
         /* A pilot who came while the round was on (a join, the title's
          * panel) goes up into it; one flying already flies on. */
         roomCall('game');
+      } else if (n.state === 'over' && roomCombat.mine() && mode !== 'replay') {
+        ui.progress.roundFinished('combat', worldId());
       } else if (n.state === 'countdown') {
         /* A round's countdown is the time to take off in, so every pilot
          * in the room goes up with it, from wherever they are (roomCall).
@@ -8693,6 +8695,7 @@ export async function boot({
     const mine = done && roomTag.standings().find((row) => row.seat === roomTag.seat());
     if (mine) {
       recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
+      ui.progress.roundFinished('tag', worldId());
     }
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
