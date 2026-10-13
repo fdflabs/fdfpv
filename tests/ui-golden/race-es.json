@@ -7078,7 +7078,7 @@
     "current": "interceptor",
     "id": "quad:aeronave",
     "label": "Aeronave",
-    "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+    "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
     "options": [
      {
       "label": "Seven inch",
@@ -7598,7 +7598,7 @@
     "action": "rates",
     "id": "quick:a-rates",
     "label": "Tasas",
-    "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+    "note": "Hasta dónde llegan los sticks, y el límite de throttle. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
     "value": "Actual, 670 roll y pitch, 670 yaw °/s"
    },
    {
@@ -8097,9 +8097,9 @@
     "value": "Apagado"
    },
    {
-    "id": "rates:acelerador-medio",
-    "label": "Acelerador medio",
-    "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+    "id": "rates:throttle-medio",
+    "label": "Throttle medio",
+    "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
     "num": {
      "cli": 50,
      "spec": {
@@ -8116,9 +8116,9 @@
     }
    },
    {
-    "id": "rates:expo-de-acelerador",
-    "label": "Expo de acelerador",
-    "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+    "id": "rates:expo-de-throttle",
+    "label": "Expo de throttle",
+    "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
     "num": {
      "cli": 0,
      "spec": {
@@ -8213,11 +8213,11 @@
    },
    {
     "cls": "row",
-    "text": "Acelerador medio▲▼"
+    "text": "Throttle medio▲▼"
    },
    {
     "cls": "row",
-    "text": "Expo de acelerador▲▼"
+    "text": "Expo de throttle▲▼"
    },
    {
     "cls": "row",
@@ -8371,7 +8371,7 @@
    },
    {
     "i": 14,
-    "id": "rates:acelerador-medio",
+    "id": "rates:throttle-medio",
     "to": "rates",
     "calls": [
      [
@@ -8382,7 +8382,7 @@
    },
    {
     "i": 15,
-    "id": "rates:expo-de-acelerador",
+    "id": "rates:expo-de-throttle",
     "to": "rates",
     "calls": [
      [

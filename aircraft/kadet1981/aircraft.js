@@ -539,7 +539,7 @@ export default {
       "power.kadet.fs64": "O.S. FS-64V de cuatro tiempos, 13 x 6",
       "power.kadet.fsa56": "O.S. FSa-56II de cuatro tiempos, 12 x 6",
       "power.kadet.stock": "O.S. FS-52S de cuatro tiempos, 12 x 6 (de serie)",
-      "airframe.blurb.kadet1981": "Un SIG Kadet Senior de 78 pulgadas, el clásico entrenador de balsa con film amarillo y rojo transparente, con un cuatro tiempos O.S. FS-52: timón de dirección, profundidad y acelerador, sin alerones, y una rueda de nariz que dirige. El stick de roll mueve el timón y se nivela solo cuando lo sueltas. Vuélalo contra el sol para ver sus costillas.",
+      "airframe.blurb.kadet1981": "Un SIG Kadet Senior de 78 pulgadas, el clásico entrenador de balsa con film amarillo y rojo transparente, con un cuatro tiempos O.S. FS-52: timón de dirección, profundidad y throttle, sin alerones, y una rueda de nariz que dirige. El stick de roll mueve el timón y se nivela solo cuando lo sueltas. Vuélalo contra el sol para ver sus costillas.",
       "livery.scheme.kadet1981.stock": "Film amarillo y rojo",
       "livery.scheme.kadet1981.sig_kit": "Kit de SIG, rojo y negro",
       "livery.scheme.kadet1981.sport_red": "Senior Sport, rojo",

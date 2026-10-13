@@ -321,7 +321,7 @@ export default {
     },
     "es": {
       "carousel.note.interceptor": "El quad más rápido: un 7 pulgadas estirado de velocidad que alcanza a un dron de ataque y lo embiste.",
-      "airframe.blurb.interceptor": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería.",
+      "airframe.blurb.interceptor": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería.",
       "motors.interceptor.stock": "Motores de serie",
       "motors.interceptor.v2808_1500": "Bobinado más caliente, V2808 1500 kV",
       "motors.interceptor.xing2_2809_1600": "Ráfaga, 2809 1600 kV, se calienta",

@@ -371,7 +371,7 @@ export default {
       "carousel.note.uglystik1567": "El avión deportivo de Phil Kraft, el paso siguiente al entrenador. Va a donde lo apuntas: hace toneles, rizos y vuela invertido empujando un poco.",
       "power.uglystik.stock": "O.S. 61FX de dos tiempos, 12 x 6 (de serie)",
       "power.uglystik.fx46": "O.S. 46FX de dos tiempos, 11 x 6",
-      "airframe.blurb.uglystik1567": "El Das Ugly Stik de Phil Kraft, 62 pulgadas de balsa de lados planos en el rojo de RCM con paneles blancos y cruces negras, con un dos tiempos O.S. .61. El avión deportivo después del entrenador: hace roll con sus alerones de tira, rizan a fondo de acelerador, vuela invertido con un empujón y va adonde lo apuntas hasta que le digas otra cosa.",
+      "airframe.blurb.uglystik1567": "El Das Ugly Stik de Phil Kraft, 62 pulgadas de balsa de lados planos en el rojo de RCM con paneles blancos y cruces negras, con un dos tiempos O.S. .61. El avión deportivo después del entrenador: hace roll con sus alerones de tira, rizan a fondo de throttle, vuela invertido con un empujón y va adonde lo apuntas hasta que le digas otra cosa.",
       "livery.scheme.uglystik1567.stock": "Rojo de RCM, paneles blancos, cruces negras"
     }
   }

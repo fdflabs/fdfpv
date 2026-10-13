@@ -25,7 +25,8 @@
  * its line off. It is a ratchet, not an excuse list. Every name a tune can
  * have must have a key (tune.name.<word>) or be in SHARED, every tune its
  * note (tune.note.<id>), and every aircraft its description
- * (airframe.blurb.<id>).
+ * (airframe.blurb.<id>). No Spanish string may name a stick axis in
+ * Spanish (acelerador, gas, alabeo, cabeceo, guiñada).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -123,6 +124,10 @@ const unnoted = [...TUNES, CUSTOM_TUNE].flatMap((t) => {
   if (en[key] !== t.note) return [`${key}: en ${JSON.stringify(en[key])} is not the registry's note ${JSON.stringify(t.note)}`];
   return es[key] === undefined ? [`${key}: no es`] : [];
 });
+/* docs/SPANISH-GLOSSARY.md keeps the stick axes English in labels and in
+ * prose alike; these are the words it replaced. */
+const AXIS_WORDS = /(?<!\p{L})(acelerador(es)?|gas|alabeo|cabeceo|guiñada)(?!\p{L})/iu;
+const axisWords = Object.entries(es).filter(([, text]) => AXIS_WORDS.test(text)).map(([key, text]) => `${key}: ${text}`);
 /* The aircraft row reads airframe.blurb.<id>; the page throws on a missing key. */
 const unblurbed = AIRFRAMES.filter((a) => en[`airframe.blurb.${a.id}`] === undefined).map((a) => a.id);
 const found = [...new Set(leaks)].sort();
@@ -158,6 +163,10 @@ for (const n of unkeyed) {
 }
 for (const n of unnoted) {
   console.error(`FAIL  tune note ${n}`);
+  bad += 1;
+}
+for (const l of axisWords) {
+  console.error(`FAIL  say throttle, roll, pitch or yaw (docs/SPANISH-GLOSSARY.md): ${l}`);
   bad += 1;
 }
 for (const id of unblurbed) {
