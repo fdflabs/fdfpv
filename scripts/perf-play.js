@@ -12,6 +12,13 @@
  *     SIM_GPU=1 node scripts/perf-play.js [OUT_DIR] [--scenarios=itaipu-war,swiss-low,wing-cruise]
  *         [--seconds=30] [--preset=high] [--pace=free|raf] [--cap=90]
  *         [--mode=quality|balanced|performance] [--objects] [--alloc] [--buffers] [--gctrace]
+ *         [--budgets]
+ *
+ * --budgets holds each scenario's run to its row at the preset in
+ * docs/BUDGETS.md (draw calls, triangles, live textures, GPU floor) and
+ * exits 1 on a row over its ceiling or a run with no row; that table's
+ * rows are title (the menu), alps-low, swiss-low, itaipu-stream,
+ * interior-ops and itaipu-war at each of the three presets.
  *
  * Writes OUT_DIR/perf-play.json (every frame's numbers) and prints a table
  * per scenario. OUT_DIR defaults to a folder under the system temp dir; the
@@ -110,7 +117,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { loadavg, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -129,6 +136,7 @@ const BUDGET_MS = 1000 / 90;
 
 const opts = {
   scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0, mode: '', objects: false, alloc: false, buffers: false, gctrace: false,
+  budgets: false,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -812,6 +820,26 @@ const SCENARIOS = {
       await page.sleep(1000);
     },
   },
+  /* The menu: the title over the alps, its attract flight, nothing
+   * flown (docs/BUDGETS.md's menu row). */
+  title: {
+    map: 'alps',
+    airframe: '7inch',
+    async start(page) {
+      await page.until("window.__craftState && window.__craftState().mode === 'title'", 60000);
+      await page.sleep(3000);
+    },
+  },
+  /* The cel alps at eight metres, as swiss-low flies the photographic
+   * valley. */
+  'alps-low': {
+    map: 'alps',
+    airframe: '7inch',
+    async start(page) {
+      await fly(page, 'alps');
+      await climb(page, PILOT(8, QUAD(-0.6, 0.06)));
+    },
+  },
   /* The Swiss valley at eight metres, forward and circling. */
   'swiss-low': {
     map: 'swiss2',
@@ -1319,6 +1347,7 @@ async function runScenario(id) {
       s.grass[name] = { ...g, built: g.built - g0.built, forced: g.forced - g0.forced, buildMs: g.buildMs - g0.buildMs };
     }
     s.load = { before: loadBefore, after: loadAfter };
+    s.textures = await page.evaluate('window.__gpuMemory().textures');
     s.consoleErrors = page.errors.filter((e) => !String(e).startsWith('network:')).slice(0, 5);
     console.log(table(id, s));
     for (const [name, g] of Object.entries(s.grass)) {
@@ -1336,18 +1365,68 @@ async function runScenario(id) {
   }
 }
 
+/*
+ * --budgets: docs/BUDGETS.md's table, each row a scenario at a preset with
+ * a ceiling in each held column, written `measured (<= ceiling)`. The run
+ * fails a row whose measurement is over a ceiling, or that has no row.
+ * Frame times are written there and never held here: the card is shared
+ * (see docs/PERF.md), and only the GPU floor stands up to that.
+ */
+const HELD = [
+  ['calls', 'draw calls, max', (s) => s.calls.max],
+  ['tris', 'triangles M, max', (s) => s.trisM.max],
+  ['textures', 'live textures', (s) => s.textures],
+  ['floor', 'GPU floor ms', (s) => s.gpuMs.floor],
+];
+async function budgetRows() {
+  const text = await readFile(join(root, 'docs', 'BUDGETS.md'), 'utf8');
+  const rows = new Map();
+  for (const line of text.split('\n')) {
+    const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+    if (cells.length < 2 + HELD.length || !SCENARIOS[cells[0].replace(/`/g, '')]) {
+      continue;
+    }
+    const ceilings = cells.slice(2, 2 + HELD.length).map((c) => {
+      const m = c.match(/<= ([\d.]+)/);
+      return m ? Number(m[1]) : NaN;
+    });
+    rows.set(`${cells[0].replace(/`/g, '')} ${cells[1]}`, ceilings);
+  }
+  return rows;
+}
+function holdRow(rows, id, s) {
+  const ceilings = rows.get(`${id} ${opts.preset}`);
+  if (!ceilings) {
+    console.log(`BUDGET FAIL ${id} ${opts.preset}: no row in docs/BUDGETS.md`);
+    return 1;
+  }
+  let over = 0;
+  HELD.forEach(([, name, of], k) => {
+    const v = of(s);
+    const ok = Number.isFinite(ceilings[k]) && v <= ceilings[k];
+    over += ok ? 0 : 1;
+    console.log(`BUDGET ${ok ? 'pass' : 'FAIL'} ${id} ${opts.preset} ${name}: ${f(v, 2)} against ${ceilings[k]}`);
+  });
+  return over;
+}
+
 const report = {
   when: new Date().toISOString(), budgetMs: BUDGET_MS, preset: opts.preset, pace: opts.pace, seconds: opts.seconds, scenarios: [],
 };
 /* Each scenario flown `repeat` times: the card is shared, so the run with
  * the least frame time is the one the desktop disturbed least, and the
  * spread says how much it disturbed the others. */
+const rows = opts.budgets ? await budgetRows() : null;
+let overBudget = 0;
 for (const id of String(opts.scenarios).split(',')) {
   const runs = [];
   for (let k = 0; k < opts.repeat; k += 1) {
     runs.push(await runScenario(id));
     report.scenarios.push(runs[runs.length - 1]);
     await writeFile(join(outDir, 'perf-play.json'), JSON.stringify(report));
+  }
+  if (rows) {
+    overBudget += holdRow(rows, id, runs[runs.length - 1].summary);
   }
   if (runs.length > 1) {
     const avgs = runs.map((r) => r.summary.frameMs.avg);
@@ -1359,4 +1438,4 @@ console.log(`-> ${join(outDir, 'perf-play.json')}`);
 /* The war scenario's rooms server leaves its room's purge alarm
  * (edge/rooms/node.js Room.schedule) on the event loop after stop(),
  * which held this process open once the report was written. */
-process.exit(0);
+process.exit(overBudget ? 1 : 0);

@@ -877,6 +877,8 @@ export default {
   "main.weight_changed_lap_voided": "Weight changed\nLap voided",
   "main.wrecked_lap_over": "Wrecked. Lap over",
   "main.wrecked_r_resets": "Wrecked. R back to the pad, X to fly on from here",
+  "edge.turn_back": "Turn back: the start is {km} km away, bearing {bearing}°",
+  "edge.leaving": "Too far out: back to the start in {s} s. It is {km} km away, bearing {bearing}°",
   "main.you_beat_the_ghost_at_by": "You beat the ghost, {who} at {formatTime}, by {v3}.",
   "main.your_best_this_session": "Your best this session",
   "main.your_edits": "your edits",

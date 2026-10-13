@@ -870,6 +870,8 @@ export default {
   "main.weight_changed_lap_voided": "Peso cambiado\nVuelta anulada",
   "main.wrecked_lap_over": "Destrozado. Vuelta terminada",
   "main.wrecked_r_resets": "Destrozado. R vuelve a la salida, X sigue volando desde aquí",
+  "edge.turn_back": "Da la vuelta: la salida está a {km} km, rumbo {bearing}°",
+  "edge.leaving": "Demasiado lejos: vuelves a la salida en {s} s. Está a {km} km, rumbo {bearing}°",
   "main.you_beat_the_ghost_at_by": "Le ganaste al fantasma, {who} con {formatTime}, por {v3}.",
   "main.your_best_this_session": "Tu mejor tiempo de esta sesión",
   "main.your_edits": "tus ediciones",
