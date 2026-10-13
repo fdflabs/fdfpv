@@ -73,7 +73,7 @@ import {
   AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
-import { VIEW_LABEL, trickLevel } from './trickfilm.js';
+import { trickLevel } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 import { controllerRows, usingLabel } from './controller.js';
@@ -547,7 +547,7 @@ function trickRows(ui) {
   return ui.trickRows().map((t) => ({
     label: t.name,
     value: `${formatScore(t.points)}`,
-    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: VIEW_LABEL[t.view].replace('seen ', '') }),
+    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: str(`trickfilm.view.${t.view}`) }),
     action: 'noop',
   }));
 }
