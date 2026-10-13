@@ -4857,7 +4857,7 @@
        ],
        "kids": [
         {
-         "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+         "t": "Choose the key and the pad button for each flight action. Press a row, then the key or the button; Escape cancels, Backspace puts the defaults back."
         }
        ]
       },
@@ -13475,7 +13475,7 @@
        ],
        "kids": [
         {
-         "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+         "t": "Choose the key and the pad button for each flight action. Press a row, then the key or the button; Escape cancels, Backspace puts the defaults back."
         }
        ]
       },

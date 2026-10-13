@@ -70,6 +70,7 @@ import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { translate as translateKey, effectiveKeys, keyLabel } from './input/keybinds.js';
+import { bindPad } from './ui/controls.js';
 import { createFootInput } from './input/footinput.js';
 import { SKIP_KINDS as FOOT_SKIP, createWalker, depthInside, findClear, step as stepWalker } from './game/onfoot.js';
 import { BODY_RADIUS, EYE_HEIGHT, STATURE, STEP_UP } from './game/human.js';
@@ -17574,7 +17575,8 @@ export async function boot({
     if (rcPending.length > 1024) {
       rcPending.splice(0, rcPending.length - 256);
     }
-    if (ui.isModal()) {
+    /* Settings > Controls waiting for a pad button takes the pad first. */
+    if (ui.isModal() && !bindPad(ui, input.padHeld())) {
       ui.pollPad(padNav());
     }
     /* Every way onto the ground is a landing and gets the spawn's throttle

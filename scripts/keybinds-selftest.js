@@ -105,6 +105,8 @@ check('junk reads entry by entry', same(normaliseKeybinds({ v: 9, all: { reset: 
 check('a stored clash keeps the first', same(normaliseKeybinds({ all: { reset: 'KeyN', unstick: 'KeyN' } }).all, { reset: 'KeyN' }));
 check('a stored default key is dropped (it is no move)', same(normaliseKeybinds({ all: { reset: 'KeyR' } }).all, {}));
 check('keybinds is a synced section, whole', SYNCED_SECTIONS.keybinds === 'whole' && same(pickSynced({ keybinds: b, graphics: 'low' }), { keybinds: b }));
+check('padbinds is a synced section, whole', SYNCED_SECTIONS.padbinds === 'whole'
+  && same(pickSynced({ padbinds: { v: 1, all: { reset: 'a' }, by: {} }, graphics: 'low' }), { padbinds: { v: 1, all: { reset: 'a' }, by: {} } }));
 
 console.log('InputManager.keyDown');
 globalThis.window = { addEventListener() {}, removeEventListener() {} };

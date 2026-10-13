@@ -4873,7 +4873,7 @@
        ],
        "kids": [
         {
-         "t": "Elige la tecla de cada acción de vuelo. Pulsa una fila y luego la tecla; Escape cancela, Retroceso vuelve a la de fábrica."
+         "t": "Elige la tecla y el botón del mando de cada acción de vuelo. Pulsa una fila y luego la tecla o el botón; Escape cancela, Retroceso vuelve a los de fábrica."
         }
        ]
       },
@@ -13507,7 +13507,7 @@
        ],
        "kids": [
         {
-         "t": "Elige la tecla de cada acción de vuelo. Pulsa una fila y luego la tecla; Escape cancela, Retroceso vuelve a la de fábrica."
+         "t": "Elige la tecla y el botón del mando de cada acción de vuelo. Pulsa una fila y luego la tecla o el botón; Escape cancela, Retroceso vuelve a los de fábrica."
         }
        ]
       },
