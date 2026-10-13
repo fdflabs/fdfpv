@@ -16736,7 +16736,7 @@
     "quadAction/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -16756,7 +16756,7 @@
     "quadAction/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -16864,13 +16864,13 @@
     "quadValue/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
      {
       "keys": [
-       "Alabeo"
+       "Roll"
       ],
       "text": "Ajustar"
      },
@@ -16890,13 +16890,13 @@
     "quadValue/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
      {
       "keys": [
-       "Alabeo"
+       "Roll"
       ],
       "text": "Ajustar"
      },
@@ -16997,7 +16997,7 @@
     "quadOff/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17017,7 +17017,7 @@
     "quadOff/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17111,7 +17111,7 @@
     "cards/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17131,7 +17131,7 @@
     "cards/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17225,7 +17225,7 @@
     "titleMenu/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17245,7 +17245,7 @@
     "titleMenu/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17322,7 +17322,7 @@
     "titleGate/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17336,7 +17336,7 @@
     "titleGate/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17415,7 +17415,7 @@
     "titleHub/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17436,7 +17436,7 @@
     "titleHub/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17532,7 +17532,7 @@
     "flight/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17552,7 +17552,7 @@
     "flight/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17646,7 +17646,7 @@
     "bench/pad/0": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -17666,7 +17666,7 @@
     "bench/pad/5": [
      {
       "keys": [
-       "Cabeceo"
+       "Pitch"
       ],
       "text": "Mover"
      },
@@ -20380,7 +20380,7 @@
           "tag": "SPAN",
           "cls": "kbd pad",
           "children": [
-           "Cabeceo"
+           "Pitch"
           ]
          },
          " Mover"
@@ -20493,7 +20493,7 @@
           "tag": "SPAN",
           "cls": "kbd pad",
           "children": [
-           "Cabeceo"
+           "Pitch"
           ]
          },
          " Mover"
@@ -20607,7 +20607,7 @@
           "tag": "SPAN",
           "cls": "kbd pad",
           "children": [
-           "Cabeceo"
+           "Pitch"
           ]
          },
          " Mover"
