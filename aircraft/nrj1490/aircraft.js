@@ -41,6 +41,8 @@ export default {
     "sizeMm": 1490,
     "grams": 213,
     "trackClass": "wing",
+    "class": "glider",
+    "roles": [],
     "cells": 1,
     "packVoltages": [
       4.2,
