@@ -596,6 +596,14 @@ async function cardsSweep() {
       calls: ui.calls.splice(0),
     };
   }
+  /* Home's Continue: in the last activity's own link while that link is
+   * there (a room game's is not without rooms), never for the war while
+   * no mission is released, nor for an id this build does not know. */
+  for (const [last, rooms] of [['combat', true], ['combat', false], ['race', true], ['free', false], ['war', true], ['nosuch', true]]) {
+    const ui = setUp('gate-home');
+    ui.settings.lastActivity = last;
+    out[`continue ${last} rooms:${rooms}`] = ui.hubCards(rooms).map((c) => c.links.map((l) => `${l.key}:${l.action}`));
+  }
   return out;
 }
 

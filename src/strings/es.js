@@ -1894,6 +1894,7 @@ export default {
   "event.tier.bronze": "bronce",
   "event.tier.silver": "plata",
   "event.tier.gold": "oro",
+  "hub.continue": "Continuar",
   "hub.club": "Club de vuelo",
   "hub.club_blurb": "Vuela lo que quieras. Contra el reloj, cortando serpentinas, persiguiendo al As, o solo volar.",
   "hub.hangar": "Hangar",

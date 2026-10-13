@@ -1889,6 +1889,7 @@ export default {
   "event.tier.bronze": "bronze",
   "event.tier.silver": "silver",
   "event.tier.gold": "gold",
+  "hub.continue": "Continue",
   "hub.club": "Flight Club",
   "hub.club_blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
   "hub.hangar": "Hangar",
