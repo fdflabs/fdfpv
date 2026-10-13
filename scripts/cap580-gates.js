@@ -361,7 +361,8 @@ check: {
       const bankT = Math.min(Math.PI / 2, ms / 1000 * 3);
       iA = Math.max(-0.5, Math.min(0.5, iA - 1.0 * (bank - bankT) * dt));
       const roll = clamp(-0.8 * (bank - bankT) - 0.05 * s[11] + iA);
-      /* The rudder put on over half a second and left there. */
+      /* The rudder put on over half a second, a hand's movement (0.3 s
+       * wings vertical first, 0.5 s on: ESTIMATED), and left there. */
       const yaw = ms < 300 ? 0 : rudder * Math.min(1, (ms - 300) / 500);
       const psi = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
       let dpsi = psi - psi0;

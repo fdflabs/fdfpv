@@ -70,7 +70,8 @@ const PLANES = [
 ];
 
 /* The gates' hands but the throttle, one step: h holds the ailerons'
- * integral, psi0 and the rudder, put on over half a second and left. */
+ * integral, psi0 and the rudder, put on over half a second (the gates'
+ * ESTIMATED hand's movement) and left. */
 function hands(sim, s, h, ms, dt) {
   const bank = fullBank(s);
   const bankT = Math.min(Math.PI / 2, ms / 1000 * 3);

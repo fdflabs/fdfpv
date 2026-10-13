@@ -94,8 +94,9 @@ async function knifePass(V) {
     const bankT = back ? Math.max(0, Math.PI / 2 - (ms - KNIFE_MS) / 1000 * 3) : Math.min(Math.PI / 2, ms / 1000 * 3);
     iA = Math.max(-0.5, Math.min(0.5, iA - 1.0 * (bank - bankT) * dt));
     const roll = clamp(-0.8 * (bank - bankT) - 0.05 * s[11] + iA);
-    /* The rudder put on over half a second and left there, off again
-     * with the roll back (the gates' hands, extra-gates.js E12). */
+    /* The rudder put on over half a second, a hand's movement (0.3 s
+     * wings vertical first, 0.5 s on: ESTIMATED), and left there, off
+     * again with the roll back (the gates' hands, extra-gates.js E12). */
     const yaw = back || ms < 300 ? 0 : rudder * Math.min(1, (ms - 300) / 500);
     let dpsi = heading(s) - psi0;
     while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
