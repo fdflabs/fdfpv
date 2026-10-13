@@ -478,12 +478,19 @@ the player's difficulty (PILLARS 19). Enemy health is never the knob.
 
 ## 9. Developer tools (items 33 to 37)
 
-**33. AI debug overlay. MISSING.** Nothing draws an attacker's state,
-target or route; there are console hooks (`window.__war`, `__warAt`,
-`__warMap`, main.js 5080 to 5155). **Done:** behind phase 28's dev gate,
-an overlay draws each attacker's route (routes.js already computes it),
-its hunter target, its stage and its next waypoint. Check: `war:markers`
-(local) gains a dev screenshot assertion. Size M. Phase 28.
+**33. AI debug overlay. BUILT (phase 28).** src/ui/wardebug.js, in
+developer mode only (its `set` turns on only under devhooks.js DEV, and
+the toggle `__warDebug(true | false)` is a devHooks hook): over the
+picture, every live attacker's route from now, 60 s ahead (routes.js
+poseAt), its next waypoint (the end of its leg, an orbit's centre, a
+line's end), a Hunter's target seat as HUNTS said it with a line to that
+pilot, and a label of its kind, id and the stage whose spawn it is.
+Drawn from roomwar `debugAt`, after the frame's render as the war markers
+are. Check: `war:markers` (local, GPU): off until the toggle and off
+again draws nothing; on, every live attacker listed with its stage, each
+but a Hunter with a route and a next waypoint, the faced contact's route
+and label on the picture, and a next waypoint that is a point of the
+mission file's own route; a picture in its outdir.
 
 **34. Spawn and stage tools. BUILT (phase 28), invulnerability and wind
 left.** URL flags: `?time=`, `?spawn=`, `?craft=`, `?gpu=low`, `?map=`

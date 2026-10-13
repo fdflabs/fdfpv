@@ -342,6 +342,12 @@ export function createRoomWar(send) {
       return out.sort((a, b) => a.id - b.id);
     },
 
+    /* attackersAt(t), each with its birth record (born) and its plan
+     * (routes.js planAgent), for the developer overlay (src/ui/wardebug.js). */
+    debugAt(t) {
+      return this.attackersAt(t).map((a) => ({ ...a, born: agents.get(a.id).a, plan: agents.get(a.id).plan }));
+    },
+
     /* What happened since the last call, oldest first, each once:
      *   { type: 'born', agents }
      *   { type: 'dead', ids, agents: [{ id, kind, p }], at, by, why, p,
