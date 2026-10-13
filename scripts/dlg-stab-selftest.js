@@ -84,11 +84,13 @@ function fullBank(s) {
 }
 
 /* Fixed sticks for a while, as glider-stab-selftest.js flies them. */
+let lastPeakR = 0;
 function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
   const total = seconds * 1000;
   let worstBank = 0;
   let worstRef = 0;
   let sumBank = 0;
+  let peakR = 0;
   let sumPitch = 0;
   let sumBeta = 0;
   let n = 0;
@@ -111,6 +113,7 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
     if (ms >= total - 1000) {
       sumBank += bank;
+      peakR = Math.max(peakR, Math.abs(s[13]));
       sumPitch += attitude(s).pitch;
       sumBeta += wingDebug(sim)[1];
       n += 1;
@@ -124,7 +127,10 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
   }
   clockMs += total;
+  const floor = lastPeakR;
+  lastPeakR = peakR;
   return {
+    floor,
     bank: sumBank / n, endBank: fullBank(s), pitch: sumPitch / n, endPitch: attitude(s).pitch, beta: sumBeta / n,
     worstBank, worst: worstRef, p: sumP / m, q: sumQ / m, rAll: sumRAll / mAll,
     v: Math.hypot(s[4], s[5], s[6]), vz: s[6], z: s[3], y: s[2], omega: s[14],
@@ -154,7 +160,11 @@ check('and 0.6 of right stick circles it at about 30 degrees, still gliding', th
 fly(0, 0, 0, 0, 4);
 const yawed = fly(0, 0, 1, 0, 1);
 check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] * DEG < -7.75, `rudder ${deg(surfaces()[3])} deg`);
-check('and yaws the nose right', yawed.rAll * DEG > 3, `${deg(yawed.rAll)} deg/s`);
+/* "Yaws the nose right" is a sign: the rate the stick buys over the
+ * stabiliser must clear what the aircraft did with the sticks where they
+ * were, the worst yaw rate of the hold before (fly's floor). Until
+ * 2026-10-13 it had to clear 3 deg/s, a number from nowhere (4133ca0aa). */
+check('and yaws the nose right', yawed.rAll > yawed.floor, `${deg(yawed.rAll)} deg/s, the sticks where they were wandered ${deg(yawed.floor)}`);
 
 console.log('acro');
 must(sim.e.sim_wing_set_stab(2), 'set acro');

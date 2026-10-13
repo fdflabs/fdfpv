@@ -87,11 +87,13 @@ function fullBank(s) {
  * body rates over the last quarter second (roll right, nose up and nose
  * right positive), the mean sideslip over the last second, and the end
  * state. */
+let lastPeakR = 0;
 function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
   const total = seconds * 1000;
   let worstBank = 0;
   let worstRef = 0;
   let sumBank = 0;
+  let peakR = 0;
   let sumPitch = 0;
   let sumBeta = 0;
   let n = 0;
@@ -115,6 +117,7 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
     if (ms >= total - 1000) {
       sumBank += bank;
+      peakR = Math.max(peakR, Math.abs(s[13]));
       sumPitch += attitude(s).pitch;
       sumBeta += wingDebug(sim)[1];
       n += 1;
@@ -129,7 +132,10 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
   }
   clockMs += total;
+  const floor = lastPeakR;
+  lastPeakR = peakR;
   return {
+    floor,
     bank: sumBank / n, endBank: fullBank(s), pitch: sumPitch / n, endPitch: attitude(s).pitch, beta: sumBeta / n,
     worstBank, worst: worstRef, p: sumP / m, q: sumQ / m, r: sumR / m, rAll: sumRAll / mAll,
     v: Math.hypot(s[4], s[5], s[6]), vz: s[6], z: s[3], y: s[2],
@@ -165,7 +171,11 @@ const settled = fly(0, 0, 0, 0.65, 4);
 check('and centring brings it back to trim', Math.abs(settled.pitch * DEG - 2) < 4 && Math.abs(settled.bank * DEG) < 4, `pitch ${deg(settled.pitch)}, bank ${deg(settled.bank)}`);
 const yawed = fly(0, 0, 1, 0.65, 1);
 check('full right yaw stick is full right rudder over the coordinator', surfaces()[3] * DEG < -20, `rudder ${deg(surfaces()[3])} deg`);
-check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
+/* "Yaws the nose right" is a sign: the rate the stick buys over the
+ * stabiliser must clear what the aircraft did with the sticks where they
+ * were, the worst yaw rate of the hold before (fly's floor). Until
+ * 2026-10-13 it had to clear 3 deg/s, a number from nowhere (4133ca0aa). */
+check('and yaws the nose right', yawed.r > yawed.floor, `${deg(yawed.r)} deg/s, the sticks where they were wandered ${deg(yawed.floor)}`);
 const unyawed = fly(0, 0, 0, 0.65, 4);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
 
@@ -232,7 +242,7 @@ const acroYaw = fly(0, 0, 1, 0.75, 1);
  * coordinator in Acro (2026-09-25) the rudder's yaw overshoots and the nose
  * fishtails before it settles, and a quarter second sample can land in the
  * swing back. */
-check('full right yaw stick yaws the nose right', acroYaw.rAll * DEG > 3, `${deg(acroYaw.rAll)} deg/s over the hold`);
+check('full right yaw stick yaws the nose right', acroYaw.rAll > acroYaw.floor, `${deg(acroYaw.rAll)} deg/s over the hold, the sticks where they were wandered ${deg(acroYaw.floor)}`);
 check('and the roll lock holds the bank against it, within 5 degrees', Math.abs((acroYaw.endBank - beforeYaw.endBank) * DEG) < 5, `${deg(beforeYaw.endBank)} -> ${deg(acroYaw.endBank)} deg`);
 
 console.log('manual');
