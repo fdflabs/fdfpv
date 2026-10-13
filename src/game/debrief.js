@@ -285,7 +285,7 @@ export function withPosted(d, posted) {
   return { ...d, records: [line, ...d.records.filter((r) => r.what !== 'debrief.run_best')] };
 }
 
-export function fromFree({ aircraft, fixedWing = false, summary, flightMs, totalS, route = null, replay, landed = null, posted = null }) {
+export function fromFree({ aircraft, fixedWing = false, summary, flightMs, totalS, route = null, replay, landed = null, posted = null, condition = null }) {
   const scored = summary.timed !== false;
   const kind = summary.tricks > 0 ? 'complete' : 'ended';
   const accuracy = [];
@@ -303,6 +303,7 @@ export function fromFree({ aircraft, fixedWing = false, summary, flightMs, total
     aircraft,
     fixedWing,
     result: { kind, landed: fixedWing ? landed : null },
+    condition: conditionWord(condition),
     route,
     time: { flightMs, runMs: scored ? summary.durationMs : null },
     accuracy,

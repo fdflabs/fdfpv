@@ -14675,6 +14675,7 @@ export async function boot({
       /* Down and whole when the run ends: a plane put on the ground, not
        * one still in the air or in pieces when the horn went. */
       landed: fixedWing ? landed && !crashed && !wrecked : null,
+      condition: conditionOf(crashFlags, fixedWing),
     }));
   }
 

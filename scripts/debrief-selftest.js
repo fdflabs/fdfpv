@@ -99,6 +99,9 @@ const ok = { ok: true, why: null };
   const base = { aircraft: 'whoop65', log: [{ n: 1, ms: 40000 }], recordAtStart: null, flightMs: 1, totalS: 1, replay: ok };
   check('condition: the three words', JSON.stringify(CONDITIONS) === '["operational","impaired","destroyed"]');
   check('condition: race carries each word', CONDITIONS.every((c) => fromRace({ ...base, condition: c }).condition === c));
+  const free = { aircraft: '5inch', summary: { total: 0, tricks: 0, unique: 0, crashes: 0, timed: false, durationMs: 0 }, flightMs: 1, totalS: 1, replay: ok };
+  check('condition: freestyle carries each word', CONDITIONS.every((c) => fromFree({ ...free, condition: c }).condition === c));
+  check('condition: freestyle without one has none', fromFree(free).condition === null);
   let threw = false;
   try {
     fromRace({ ...base, condition: 'worn' });
