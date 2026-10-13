@@ -557,6 +557,8 @@ jobs:
       - run: npm run jam:selftest
       - run: npm run figures:selftest
       - run: npm run personpilot:selftest
+      # The first AI pilot behind a ghost on the plant, judged by race.js.
+      - run: npm run aipilot:harness
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
