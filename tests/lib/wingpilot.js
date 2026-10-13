@@ -2920,8 +2920,8 @@ export function stickForThrow(share) {
  * throttle per m/s of sink, the trim's integral cornered a quarter below
  * crossover as personLoop's, held against the stops. Stepped every dt. */
 export const KNIFE_SINK = {
-  [EXTRA_AIRFRAME]: { wc: 2, gain: 25.574 },
-  [CAP_AIRFRAME]: { wc: 2, gain: 22.128 },
+  [EXTRA_AIRFRAME]: { wc: 2, gain: 25.19 },
+  [CAP_AIRFRAME]: { wc: 2, gain: 20.76 },
   [SLICK_AIRFRAME]: { wc: 2, gain: 17.64 },
 };
 export function knifeThrottle(airframe, u0) {

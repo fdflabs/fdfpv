@@ -193,7 +193,7 @@ Bands are never widened to pass.
 | C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.00 |
 | C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.410 stick on the 4.1 V pack (the finite wing's broadside force, below) | 7.84 to 11.75, 0.349 to 0.471 | 9.41, 0.368, elevator 0.87 |
 | C11b | the harrier in AS3X: the gyro damps the rock | the height hold starting at the derived 0.410 (it started at an unsourced 0.58 until 2026-10-12, which on the seated pack climbed out of the entry) | bank spread under Manual's | 2.9 against 5.5 |
-| C12 | knife edge at 20 m/s | 29.9 deg, 0.555 stick (4.1 V pack), rudder 83 percent | 22.5 to 37.4, 0.472 to 0.638 | 27.5, 0.604 at 22.1 m/s, rudder 0.89 |
+| C12 | knife edge at 20 m/s | 29.9 deg, 0.555 stick (4.1 V pack), rudder 80 percent | 22.5 to 37.4, 0.472 to 0.638 | 25.9, 0.629 at 23.3 m/s, rudder 0.87 |
 | C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.5 |
 | C14 | take off roll | 3.64 m (4.1 V pack) | 2.19 to 5.82 | 5.47 |
 | C15 | the Extra, Night Timber, Hercules unmoved | batch's hashes | identical | identical |

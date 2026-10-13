@@ -47,7 +47,7 @@ const json = async (f) => JSON.parse(await readFile(join(root, f), 'utf8'));
 
 /* Each aircraft at its knife edge gate's speed. */
 const PLANES = {
-  extra: { sim: EXTRA_AIRFRAME, name: 'Extra', knife: (await json('tests/extra-thresholds.json')).e12_knife_edge },
+  extra: { sim: EXTRA_AIRFRAME, name: 'Extra', knife: (await json('tests/extra-thresholds.json')).e12_knife_edge, past26: true },
   cap: { sim: CAP_AIRFRAME, name: 'CAP', knife: (await json('tests/cap580-thresholds.json')).c12_knife_edge },
 };
 const plane = PLANES[process.argv[2] || 'extra'];
@@ -122,7 +122,15 @@ async function knifePass(V) {
 const { figures, beta } = await knifePass(plane.knife.speed);
 const names = figures.map((f) => `${f.figure} ${f.grade}`).join(', ') || 'nothing';
 console.log(`${plane.name} at ${plane.knife.speed} m/s: sideslip ${beta.toFixed(1)} deg; named ${names}`);
-check(`the ${plane.name}'s knife edge holds more than 26 deg of sideslip`, beta > 26, `${beta.toFixed(1)} deg`);
+/* The sideslip is the gate's derived band (its thresholds), not a number
+ * of this file's. The Extra's, 32.9 deg derived, also carries the
+ * regression caf950abc guards: the judge once refused a span tilted past
+ * 26 deg (|l_z| > 0.9) and so never named a real knife edge; a pass
+ * tilted past that must still be named. The CAP, on the corrected
+ * rudder band (the fin swirl, 2026-10-13), settles at 23 m/s and 25.9
+ * deg, under 26, so it no longer carries that case. */
+check(`the ${plane.name}'s knife edge holds the gate's derived sideslip, ${plane.knife.betaMin} to ${plane.knife.betaMax} deg`, beta >= plane.knife.betaMin && beta <= plane.knife.betaMax, `${beta.toFixed(1)} deg`);
+if (plane.past26) check(`the ${plane.name}'s knife edge tilts the span past the judge's old 26 deg tolerance`, beta > 26, `${beta.toFixed(1)} deg`);
 const k = figures.find((f) => f.figure === 'knife_edge_pass');
 check(`the ${plane.name}'s knife edge pass is named and graded 4 to 10`, k && k.grade >= 4 && k.grade <= 10, k ? `grade ${k.grade}` : 'not named');
 check('nothing else is named', figures.length === 1 && Boolean(k), names);

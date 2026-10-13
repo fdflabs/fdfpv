@@ -345,6 +345,20 @@ const dragAt = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); ret
 const Vp = nStatic / 60 * 8 * IN;
 const prop = wingProp('FW_CAP1702');
 const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* The prop's torque on the air at a thrust and axial speed, as the plant
+ * takes it (plant_wing.c q_air, prop_spool): torque_arm Ts n^2
+ * torque_curve(mu) at the speed share n that gives the thrust there on
+ * axial_curve, the two curves the table carries (APC's, npm run
+ * prop:curves -- wings; scripts/lib/propcurve.js wingProp). The static
+ * torque_arm T alone is 1.5 to 2.1 times short with way on, where the
+ * prop's power coefficient holds up as its thrust coefficient falls. */
+function qAirAt(thrust, u) {
+  let lo = 0, hi = 2;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (prop.thrust(Ts, u, mid) < thrust) lo = mid; else hi = mid; }
+  const n = (lo + hi) / 2;
+  return torqueArm * Ts * n * n * prop.cp(Math.max(0, u) / (prop.pitchSpeed * n));
+}
+
 let vTopApc = 10;
 for (let i = 0; i < 80; i += 1) vTopApc = apcAt(vTopApc) > dragAt(vTopApc) ? vTopApc + 30 / 2 ** (i + 1) : vTopApc - 30 / 2 ** (i + 1);
 const tTopApc = apcAt(vTopApc) * Ts / apcCurve[0][1];
@@ -572,11 +586,15 @@ function knifeEdge(V) {
     const bt = bDeg / DEG, sb = Math.sin(bt), cb = Math.cos(bt);
     const u = V * cb;
     let thrust = qb * S * CD0 / cb;
-    let side = 0, dr = 0;
+    let side = 0, dr = 0, q = 0, xs = 0;
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
       const rest = qb * S * b * ((Cnb - slip.slip_cn_b - CnbFus) * sb + CnbFus * sb * cb);
-      const fp = { rho, V, u, sb, w, S, b, jet: { kj: JET_KJ, R: propR, x: propX, T: thrust } };
+      /* The swirl at the fin (knifefin.js xs): the torque on the air at
+       * this thrust and speed, SWIRL_KEEP of it past the root. */
+      q = qAirAt(thrust, u);
+      xs = swirlAtFin(slip, w, q, SWIRL_KEEP, u).xs;
+      const fp = { rho, V, u, sb, w, S, b, jet: { kj: JET_KJ, R: propR, x: propX, T: thrust }, xs };
       /* The crossflow drag at its centre of pressure, side_x ahead of the CG. */
       const restX = rest - sideX * 0.5 * rho * sideCda * (V * sb) ** 2;
       dr = knifeRudder(fin, fp, restX, throwR);
@@ -589,7 +607,7 @@ function knifeEdge(V) {
     if (side * cb + thrust * sb >= W) {
       let lo = 0, hi = nAt(1, u);
       for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(u, mid) < thrust) lo = mid; else hi = mid; }
-      return { V, betaDeg: bDeg, duty: stickFor(lo, u), thrust, drOfThrow: Math.abs(dr) / throwR };
+      return { V, betaDeg: bDeg, duty: stickFor(lo, u), thrust, drOfThrow: Math.abs(dr) / throwR, qAir: q, swirlKeep: SWIRL_KEEP, xs };
     }
   }
   return null;

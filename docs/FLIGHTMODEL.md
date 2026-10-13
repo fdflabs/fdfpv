@@ -543,13 +543,16 @@ R-474) on each fuselage's side area from its derivation or render model.
   close to 0.0 percent, and the derivation at the plant's state needs the
   rudder the plant holds: 84, 77 and 100 percent. So the Slick's knife
   edge at 30 m/s needs all of its rudder, in the plant and in the
-  derivation alike; the 105 percent the thresholds quote is the
-  derivation without the swirl, and S12 stays red on the stop. The
-  derive scripts do not pass the swirl yet: it wants the prop's torque
-  on the air at the flown point (1.5 to 2.1 times torque_arm times
-  thrust there, the plant's torque curve at that advance ratio) and the
-  root's share (the Extra's measured root keeps 0.32 of the swirl, not
-  SWIRL_KEEP's 0.65).
+  derivation alike. The three derive scripts pass the swirl now: the
+  torque on the air from the table's torque_curve at the thrust and
+  speed flown (qAirAt; torque_arm times thrust alone is 1.5 to 2.1
+  times short with way on) and the root's share (the Extra's measured
+  root, rootShare, keeps 0.32; the CAP and Slick SWIRL_KEEP's 0.65), and
+  their rudder bands moved 84 to 83, 83 to 80 and 105 to 103 percent of
+  the throw; the sideslip and throttle bands did not move. On them E12
+  holds 32.9 deg at 0.501 and 15.0 m/s (derived 32.9, 0.496, 15), C12
+  25.9 at 0.629 and 23.3 m/s, and S12 stays red on the stop: 103 percent
+  derived at 30 m/s, the plant on 100 at 30.7.
 
 ### The probe, PR 3 to PR 4
 
