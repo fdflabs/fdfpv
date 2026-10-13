@@ -122,9 +122,13 @@ poses and the race's, tag's, jam's and combat's state (core.js everyone,
 the race's passes too), and is welcomed into a game as it stands: the
 flight screen shows the standings, the laps and the clock, and over the
 end the final order, never a results screen, a score or a logged round
-(src/share/roomrace.js WATCH_SEAT; `watch:twopage`). The war, the ops and
-the lobby stay the seats': their pages act for a seat (the briefing, the
-campaign's stars, the debrief, Ready), so a watcher is sent none of them.
+(src/share/roomrace.js WATCH_SEAT; `watch:twopage`). It is sent the war's,
+the ops' and the lobby's state too, the war's and the ops' view with no
+result (core.js viewed, watchedView), since a page holding one pays the
+campaign's stars and credits and records the debrief: the war HUD says
+Watching in place of airframes and kills, no war aircraft, role, debrief,
+loadout or Ready is its own, and with nobody flying its banner says the
+lobby's ready count and countdown or an ops mission's end.
 
 ## 6. Checks that hold this flow
 
