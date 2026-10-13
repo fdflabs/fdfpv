@@ -8248,12 +8248,17 @@ export async function boot({
   /*
    * The debrief on a card shown in flight (the war's round, a combat
    * round's results): the pilot flies on, so no screen of facts, one line
-   * and the key that opens the replay (docs/DEBRIEF.md).
+   * and the key that opens the replay (docs/DEBRIEF.md). The condition is
+   * the HUD's word as the card is drawn, so a war airframe spent on its
+   * target reads Destroyed until the pilot is back in the air.
    */
   function debriefCardLine() {
     const route = runRoute.snapshot();
     return str('debrief.card_line', {
-      air: formatRunClock(runAirMs), dist: lengthText(route ? route.distanceM : 0), key: crashCam ? crashCam.replayKey() : 'V',
+      air: formatRunClock(runAirMs),
+      dist: lengthText(route ? route.distanceM : 0),
+      cond: str(`debrief.cond_${conditionOf(crashFlags, airframeById(runAirframe).fixedWing)}`),
+      key: crashCam ? crashCam.replayKey() : 'V',
     });
   }
   /* The results screen, from the room's order; again as it changes. */
