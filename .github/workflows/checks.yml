@@ -106,6 +106,10 @@ jobs:
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
+      # The save envelope over every historic store: each reader answers the
+      # same after it opens, a broken blob goes to .corrupt and its .prev
+      # comes back (src/share/save.js).
+      - run: npm run save:selftest
       # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
       - run: npm run hangar:room
       - run: npm run parts:check
