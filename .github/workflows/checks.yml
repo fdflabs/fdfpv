@@ -82,6 +82,9 @@ jobs:
       # The lessons: data that exists, words in en and es, each judge.
       - run: npm run training:selftest
       - run: npm run progress:selftest
+      # The gameplay event log, and RunWatch judging the same challenges from
+      # it as from direct calls (src/game/events.js).
+      - run: npm run events:selftest
       # Medals on built courses (src/game/medals.js): times, award, merge.
       - run: npm run medals:selftest
       # Best laps synced to the account, lower wins (src/share/records.js).
@@ -106,6 +109,10 @@ jobs:
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
+      # The save envelope over every historic store: each reader answers the
+      # same after it opens, a broken blob goes to .corrupt and its .prev
+      # comes back (src/share/save.js).
+      - run: npm run save:selftest
       # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
       - run: npm run hangar:room
       - run: npm run parts:check
