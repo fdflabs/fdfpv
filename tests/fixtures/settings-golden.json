@@ -2023,6 +2023,32 @@
     "webfpv.settings.v3": "{\"rates\":{\"type\":\"actual\",\"roll\":{\"rcRate\":70,\"srate\":670,\"expo\":0},\"pitch\":{\"rcRate\":70,\"srate\":500,\"expo\":0},\"yaw\":{\"rcRate\":70,\"srate\":400,\"expo\":0}}}"
    }
   },
+  "load:plane-stock-lens": {
+   "settings": {
+    "airframe": "cub1400",
+    "airframeAsked": true,
+    "floats": {},
+    "graphics": "low",
+    "progress": {
+     "casual": {},
+     "challenges": {},
+     "courses": {},
+     "firsts": {},
+     "lessons": {},
+     "lessonsFlown": {},
+     "medals": {},
+     "seen": {},
+     "unlockAll": true,
+     "v": 2,
+     "xp": 0
+    },
+    "tune": "cub-manual",
+    "tuneFor": {}
+   },
+   "storage": {
+    "webfpv.settings.v3": "{\"airframeAsked\":true,\"airframe\":\"cub1400\",\"cameraFov\":100,\"cameraAngle\":5}"
+   }
+  },
   "load:progress-existing": {
    "settings": {
     "airframe": "interceptor",

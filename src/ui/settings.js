@@ -508,11 +508,17 @@ function adoptSeatedStock(s) {
   return s;
 }
 
+/* The lenses a profile may hold: the Field of view row's choices and every
+ * aircraft's stock one, which the row does not list (the planes' 100, the
+ * combat quads' 90). Holding the row's alone put every plane on 85 at the
+ * next load. */
+const LENSES = [...new Set([...CAMERA_FOVS, ...AIRFRAMES.map((a) => a.cameraFov)])];
+
 /* Fields that must be one of a list, and the list. A value not on it
  * takes the default, except the tune, which takes the aircraft's own. */
 const ONE_OF = {
   link: () => Object.keys(LINK_PRESETS),
-  cameraFov: () => CAMERA_FOVS,
+  cameraFov: () => LENSES,
   renderScale: () => RENDER_SCALES,
   fpsCap: () => FPS_CAPS,
   perfMode: () => PERF_MODES,
