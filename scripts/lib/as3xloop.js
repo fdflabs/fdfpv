@@ -221,14 +221,31 @@ export function margins(resp, axis, k, kh, T) {
 }
 
 /* The largest factor on (k, kh) together, their ratio kept, that holds
- * both margins on every response given, bisected on the measured loops. */
+ * both margins on every response given, and on every factor below it: a
+ * receiver whose gain is turned up from zero passes through each of them.
+ * The margins are not monotonic in the gain (a loop can lose its margin
+ * at one gain and get it back at a higher one, where another crossing
+ * takes over), so a bisection that only doubles while the gain holds can
+ * land on either side of such a window: on the Slick's hover alone it
+ * returned 1.579 for the roll damper, whose margin fails from 0.0429 and
+ * holds again at 1 (batch 735a677bf's plant; w37-flat-fall).
+ * Taken over every condition together it happened to land on 0.0429,
+ * which is why the tables were right. The factor is found as the
+ * first failure on a sampled sweep, 2 percent apart from 1e-4 to 64,
+ * then bisected between that sample and the last that held, 40 halvings.
+ * Below the sweep's first sample a loop holds (a gain of nothing changes
+ * nothing). */
 export function gainForMargins(resps, axis, k, kh, T) {
   const ok = (g) => resps.every((resp) => {
     const m = margins(resp, axis, g * k, g * kh, T);
     return m.gmDb >= GM_MIN_DB && (m.pmDeg === null || m.pmDeg >= PM_MIN_DEG);
   });
-  let lo = 0, hi = 1;
-  while (ok(hi) && hi < 64) { lo = hi; hi *= 2; }
+  let lo = 0, hi = null;
+  for (let g = 1e-4; g <= 64; g *= 1.02) {
+    if (!ok(g)) { hi = g; break; }
+    lo = g;
+  }
+  if (hi === null) return lo;
   for (let i = 0; i < 40; i += 1) {
     const mid = (lo + hi) / 2;
     if (ok(mid)) lo = mid; else hi = mid;
