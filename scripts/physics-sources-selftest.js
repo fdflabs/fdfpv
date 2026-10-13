@@ -23,7 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { scanFile, check, prune } from './physics-sources-lint.js';
+import { scanFile, scanJs, check, prune, PINS } from './physics-sources-lint.js';
 
 const F = 'src/native/plant_wing.c';
 const BASE = [
@@ -94,6 +94,42 @@ cases.push(
   ['an array on a scalar field\'s line counts once, as that field', ewith('const FixedWingParams FW_C = {', '  .stall_re = { 1.0e4, 2.0e4 },', '};'), EBASELINE, 1],
 );
 
+/* JavaScript: module level numbers and the objects and arrays they are
+ * built of, past a comment with braces, a string with a comma and a regex
+ * with a bracket; a layout table (SIM_*), a derived value and a number in
+ * a function body are not constants. */
+const JF = 'configs/power.js';
+const JBASE = [
+  'const IN = 0.0254;',
+  'export const SIM_POWER = { KIND: 0, MASS: 1 };',
+  'const b = 1.4, W = m * g;',
+  'const ROW = {',
+  "  kv: 920, // a comment { with braces, }",
+  '  massKg: 2.10 - 0.536,',
+  "  name: 'x, y}',",
+  '  re: /[{(,]/,',
+  '  curve: [1.0000, 0.9617],',
+  '};',
+  'function f(x) { return x * 3.7; }',
+].join('\n');
+const JBASELINE = [
+  `${JF} IN = 0.0254`, `${JF} b = 1.4`, `${JF} ROW.kv = 920`, `${JF} ROW.massKg = 2.10 - 0.536`,
+  `${JF} ROW.curve[] = 1.0000`, `${JF} ROW.curve[] = 0.9617`,
+];
+const jwith = (...extra) => JBASE + '\n' + extra.join('\n');
+const jcases = [
+  ['today\'s configs, every uncited constant baselined', JBASE, JBASELINE, 0],
+  ['new constant cited on its line', jwith('const RHO = 1.225; // docs/POWER-STAGE1.md'), JBASELINE, 0],
+  ['new declarations sharing a cited line', jwith('const c1 = 2.5, c2 = 3.5; /* FITTED: npm run stall:probe */'), JBASELINE, 0],
+  ['new option cited by its source property', jwith("const OPT = { kv: 800, thrustG: 2790, source: ['https://example.com/x'.slice(0)] };"), JBASELINE, 0],
+  ['new option, a source property as a list of names', jwith('const OPT = { kv: 800, thrustG: 2790, source: [HH, SUNNYSKY] };'), JBASELINE, 0],
+  ['new constant, no source', jwith('const RHO = 1.225;'), JBASELINE, 1],
+  ['new option, no source', jwith('const OPT = { kv: 800, thrustG: 2790 };'), JBASELINE, 2],
+  ['a source property in another object does not cover this one', jwith('const OPT = [{ kv: 800, source: [HH] }, { kv: 920 }];'), JBASELINE, 1],
+  ['a changed value is one stale and one new entry', JBASE.replace('kv: 920', 'kv: 900'), JBASELINE, 2],
+  ['a helper building a row of data: its arguments count', jwith("const PACKS = [lipo('3s1300', 3, 1300, 113)];"), JBASELINE, 3],
+  ['a declaration with no semicolon still ends at the next one', jwith('const Z = 1.5', 'const Y = 2.5;'), JBASELINE, 2],
+];
 let pass = 0;
 let fail = 0;
 for (const [name, text, baseline, want] of cases) {
@@ -103,14 +139,14 @@ for (const [name, text, baseline, want] of cases) {
   console.error(`FAIL ${name}: ${got} problem(s), wanted ${want}`);
 }
 
-const over = check(scanFile(F, BASE), BASELINE, BASELINE.length - 1).length;
+const over = check(scanFile(F, BASE), BASELINE, { ...PINS, scalar: BASELINE.length - 1 }).length;
 if (over === 1) pass++; else { fail++; console.error(`FAIL baseline over the pin: ${over} problem(s), wanted 1`); }
 
-const eover = check(scanFile(F, EBASE), EBASELINE, Infinity, EBASELINE.length - 1).length;
+const eover = check(scanFile(F, EBASE), EBASELINE, { ...PINS, element: EBASELINE.length - 1 }).length;
 if (eover === 1) pass++; else { fail++; console.error(`FAIL elements over their pin: ${eover} problem(s), wanted 1`); }
 /* Each pin counts its own kind only: a scalar pin of 0 holds a baseline of
  * elements, and an element pin of 0 a baseline of scalars. */
-const apart = check(scanFile(F, EBASE), EBASELINE, 0, EBASELINE.length).length + check(scanFile(F, BASE), BASELINE, BASELINE.length, 0).length;
+const apart = check(scanFile(F, EBASE), EBASELINE, { ...PINS, scalar: 0 }).length + check(scanFile(F, BASE), BASELINE, { ...PINS, element: 0 }).length;
 if (apart === 0) pass++; else { fail++; console.error(`FAIL one kind counted against the other's pin: ${apart} problem(s), wanted 0`); }
 const ints = check(scanFile(F, EBASE.replace('.parent = -1', '.parent = 0, .wheel = 3')), EBASELINE).length;
 if (ints === 0) pass++; else { fail++; console.error(`FAIL an integer element (an index) counted as a constant: ${ints} problem(s), wanted 0`); }
@@ -133,6 +169,24 @@ const wantPruned = [BASELINE[0], BASELINE[2]];
 if (JSON.stringify(pruned) === JSON.stringify(wantPruned)) pass++; else { fail++; console.error(`FAIL prune: ${JSON.stringify(pruned)}`); }
 const afterPrune = check(scanFile(F, cited), pruned).length;
 if (afterPrune === 1) pass++; else { fail++; console.error(`FAIL prune admitted a new uncited constant: ${afterPrune} problem(s), wanted 1`); }
+
+for (const [name, text, baseline, want] of jcases) {
+  const got = check(scanJs(JF, text), baseline).length;
+  if (got === want) { pass++; continue; }
+  fail++;
+  console.error(`FAIL ${name}: ${got} problem(s), wanted ${want}`);
+}
+for (const [name, text, baseline, want] of jcases) {
+  if (want !== 0 || text === JBASE) continue;
+  if (check(scanJs(JF, text, /(?!)/, /(?!)/), baseline).length > 0) { pass++; continue; }
+  fail++;
+  console.error(`FAIL negative control ${name}: still passes with citations disabled`);
+}
+const notConstants = check(scanJs(JF, jwith('const SIM_TUNE = { CG: 0, RATE: 1 };', 'export const SIM_TUNE_DOUBLES = 12;', 'const Vs = Math.sqrt(2 * W / (1.225 * S));', 'const ARGS = process.argv.slice(2), K = Math.pow(1.5, 2);', 'const g2 = (x) => { return x * 9.81; };')), JBASELINE).length;
+if (notConstants === 0) pass++; else { fail++; console.error(`FAIL a layout table, a derived value or a function body counted as a constant: ${notConstants} problem(s), wanted 0`); }
+const jover = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, js: JBASELINE.length - 1 }).length;
+const japart = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, scalar: 0, element: 0 }).length;
+if (jover === 1 && japart === 0) pass++; else { fail++; console.error(`FAIL the js pin: over ${jover} (wanted 1), against the C pins ${japart} (wanted 0)`); }
 
 console.log(`physics-sources-selftest: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
