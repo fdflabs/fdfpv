@@ -22,7 +22,9 @@
   "(min-width: 900px)": true,
   "(orientation: portrait)": false,
   "(pointer: coarse)": false,
-  "(prefers-reduced-motion: reduce)": false
+  "(prefers-reduced-motion: reduce)": false,
+  "(max-width: 860px) and (min-height: 521px)": false,
+  "(min-width: 861px) and (min-height: 821px)": false
  },
  "states": {
   "banner-edge": "13b41c0434e894038653eddc",
@@ -77,7 +79,7 @@
   "gate-first": "64cbc0fb2f20d9922d218e32",
   "gate-home-rooms": "441d6d58c1c0dcf3190e5657",
   "gate-hub-club": "121e8fb81882760b179f480d",
-  "gate-hub-club-rooms": "13e6bb560f425ce6e2977f4f",
+  "gate-hub-club-rooms": "79a3aebb9dfcb63b5246866d",
   "gate-hub-hangar": "37f248df4e27d6b431f0798f",
   "gate-hub-ops": "96f21fbc5cc5f6ffd42862cb",
   "gate-rooms-cursor": "eb54d34fe9b27da9798e2446",

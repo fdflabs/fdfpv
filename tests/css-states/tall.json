@@ -22,7 +22,9 @@
   "(min-width: 900px)": true,
   "(orientation: portrait)": false,
   "(pointer: coarse)": false,
-  "(prefers-reduced-motion: reduce)": false
+  "(prefers-reduced-motion: reduce)": false,
+  "(max-width: 860px) and (min-height: 521px)": false,
+  "(min-width: 861px) and (min-height: 821px)": true
  },
  "states": {
   "banner-edge": "68d8faab96833ce9ea789d82",
@@ -76,8 +78,8 @@
   "friends-war-lobby-go": "9a03b1f1c13833cceb4b1ba7",
   "gate-first": "f7a59a2f2ce3bfa75f92058b",
   "gate-home-rooms": "39a26de98ba5db8875e2241b",
-  "gate-hub-club": "f59137563b7454ae3acc98a9",
-  "gate-hub-club-rooms": "578b10fdfe99dd4b9f9a7087",
+  "gate-hub-club": "299afa950fdd8a8d5e7bda98",
+  "gate-hub-club-rooms": "b532b69a99570e38f82f4893",
   "gate-hub-hangar": "582188fb447b09ced7c2fafb",
   "gate-hub-ops": "e9fe23d894a3a9b1940eb0be",
   "gate-rooms-cursor": "2b3aa64ef73348606ed8198f",
