@@ -4939,9 +4939,21 @@ export async function boot({
       last: game === 'war' && v && (v.state === 'won' || v.state === 'lost' || v.state === 'ended') && v.mission === mission ? {
         state: v.state, stars: v.result ? v.result.stars : null, kills: mine ? mine.kills : 0,
       } : null,
+      open: lobbyOpenSeats(w),
       /* Operations' briefing, the head of a war room's lobby. */
       brief: game === 'war' ? briefingOf(mission, { public: Boolean(w.public), code: sessionVisibility() === 'solo' ? null : roomLinkState.state().code }) : null,
     };
+  }
+  /* The lobby's empty seats (docs/redesign/PLAN.md 2.4): the room's cap
+   * less the people here, an AI pilot's seat being one a person takes,
+   * and who may take them. None in a solo session, which nobody joins. */
+  function lobbyOpenSeats(w) {
+    const who = sessionVisibility();
+    const n = (Number.isInteger(w.cap) ? w.cap : 0) - roomHere().n;
+    if (who === 'solo' || n <= 0) {
+      return null;
+    }
+    return { seats: plural('count.open_seats', n), note: str(`lobby.open_${who}`) };
   }
   function missionKey(id) {
     const m = ACT1.find((x) => x.id === id);
@@ -4951,10 +4963,11 @@ export async function boot({
   /*
    * A PUBLIC ROOM ON ITAIPU, where the owner, hosting three pilots, asked
    * "where do i start itaipu war". The war stays out of public rooms
-   * (section 9, and the room server refuses it), and the server cannot
-   * turn a live room private (edge/rooms/core.js has no such message), so
-   * the host's way is a new private room on Itaipu, its invite code shown
-   * on top for the others to join by.
+   * (section 9, and the room server refuses it). Its host may make this
+   * room private in place (the lobby's Who joins row, edge/rooms/core.js
+   * setPublic), after which the war fits it (warFits); this row stays the
+   * one press way, a new private room on Itaipu, its invite code shown on
+   * top for the others to join by.
    */
   function warPublicRows(host) {
     const why = { label: str('war.public_needs_private'), info: true };
@@ -5204,9 +5217,11 @@ export async function boot({
   /*
    * The lobby's Who joins row. A pilot alone changes it by moving to a
    * fresh room of the new kind, there being nobody to take along (the
-   * war's keeps its mission); with others here it is a fact until the
-   * room takes the change in place (the host's, server first: SESSIONS.md
-   * 2, not built yet).
+   * war's keeps its mission). With others here the host changes it in
+   * place, where the room takes that (edge/rooms/core.js setPublic, its
+   * welcome's publicInPlace): Public or Friends, the room keeping its
+   * pilots, and Solo only while it is the room's, since there is nobody
+   * left to keep out. Anywhere else it is a fact.
    */
   function lobbyVisibilityRows(host) {
     const st = roomLinkState.state();
@@ -5216,6 +5231,19 @@ export async function boot({
       return [];
     }
     const label = (v) => str(`lobby.visibility_${v}`);
+    if (host && roomHere().n > 1 && st.welcome.publicInPlace === true) {
+      const offered = VISIBILITIES.filter((v) => v !== 'solo' || v === current);
+      return [choice(str('lobby.visibility'), str('lobby.visibility_here_note'), offered, current, label, (v) => {
+        if (v === current) {
+          return;
+        }
+        markSolo(null);
+        roomLinkState.send({ type: 'public', on: v === 'public' });
+        ui.settings.sessionVisibility = { ...ui.settings.sessionVisibility, [modeOfWire(st.welcome.mode)]: v };
+        ui.persistSettings();
+        ui.refreshFriends();
+      })];
+    }
     if (!host || roomHere().n > 1) {
       return [{ label: str('lobby.visibility'), value: label(current), note: str('lobby.visibility_fixed'), info: true }];
     }

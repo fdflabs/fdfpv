@@ -288,8 +288,8 @@ display and three fields, not a second lobby:
 | --- | --- | --- |
 | Activity, world, setting (minutes, goal, mission, track) | the room's `meta.mode`, `meta.map`, the lobby's setting | exists |
 | Pilots, ready, host, me | `welcome.lobby.ready`, peers | exists |
-| Empty slots up to the cap | registry `maxPlayers` | new display |
-| Visibility: Solo, Friends, Public | `meta.public` plus whether the code is shown | partly |
+| Empty slots up to the cap | the room's cap less the people here | exists, one row (not under Solo) |
+| Visibility: Solo, Friends, Public | `meta.public` plus whether the code is shown | exists |
 | Invite code | private rooms | exists |
 | Drop in | registry `allowDropIn` | exists as behaviour |
 | AI fill | registry `allowAI` | none; the row is hidden while false |
@@ -301,9 +301,9 @@ private (code only). Three values map onto those with no server change:
 shown; **Solo** is a private room whose code is not shown, so nobody can
 find or join it. Changing visibility alone in a lobby is a quiet move to
 a fresh room (nobody else to move). Changing it with others present is a
-host action that needs the server to change `meta.public` in place: a
-new host message, server first, the same contract path as FLOW-AUDIT PR
-8.
+host action that changes `meta.public` in place: `{ type: 'public', on }`,
+server first, the same contract path as FLOW-AUDIT PR 8 (edge/rooms/
+core.js setPublic, the welcome's `publicInPlace`).
 
 **Offline** (no rooms server): Track Day and Free Flight still run, with a
 local session whose only visibility is Solo; the other values and the
@@ -515,7 +515,7 @@ builds on them (the note under the table). Status as of 2026-10-03.
 | 3 | The campaign engine and films (#363, #365), and the replay work (#367, #369, #370): not the redesign's, but every later phase assumes them. | Their own. | merged: #363, #365, #367, #369, #370 (and #379, #380) |
 | 4 | Tokens of section 4.1 into the sheet, the sheet moved into its own file, Saira Condensed, the danger button on `--pdcs-fail`, a repo wide no dash lint. Pixel identical except the name face. | `ui:playground` grows to the new tokens; adds `lint:dashes` (Node, CI); `boot:loader`, `lint:responsive`; `shots` before and after. | merged, #376 |
 | 5 | Home becomes three hubs with activity links; hubs as screens; the rooms panel to Flight Club's Join a session; breadcrumb from state. | Rewrites `lint:shell`, `modes:card` (adds 2560x1080), `friends:card`, `war:card`, `campaign:check`, `boot:loader`, `flow:check`. | merged, #382; Flight Club first on home is #386, open |
-| 6 | Session visibility: Solo, Friends, Public; public by default, each pilot's last choice remembered per activity; empty slots; the in place change (server first) (SESSIONS.md 2). | `game:lobby` x6 adds the visibility rows; `rooms:server` adds the op; `flow:check`. | the three values, the memory and the move alone: 2026-10-13 batch; empty slots and the in place op open |
+| 6 | Session visibility: Solo, Friends, Public; public by default, each pilot's last choice remembered per activity; empty slots; the in place change (server first) (SESSIONS.md 2). | `game:lobby` x6 adds the visibility rows; `rooms:selftest` and `rooms:server` add the op; `flow:check`. | built, 2026-10-13 batch: the three values, the memory, the move alone, the empty seats and the in place op (edge/rooms/core.js setPublic; live once the VM has it) |
 | 7 | The controller question for a new pilot, routed by device (TRAINING.md 2), and the controller screen: dead zone, gamepad expo, a channel editor, presets per device, profiles per aircraft class. | `input:selftest` (Node, CI) extended; `lint:input`, `lint:devices`; `flow:check` adds the first run question. | planned |
 | 8 | Training tracks 1 and 4 (TRAINING.md 3), a `training` activity in the registry; certifications stored. | `progress:selftest` runs each lesson's judge on recorded inputs; `modes:selftest` adds the activity. | planned |
 | 9 | Operations: the mission list and the briefing as the war session's head, facts from the registry and MISSIONS.md. | Rewrites `campaign:check`; `war:lobby`, `game:lobby --game=war`. | planned, after 3 |

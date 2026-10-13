@@ -1,9 +1,10 @@
 # Sessions: choose what, then who, then Ready
 
 **Status: the core EXISTS** (#359 server, #372 client, merged 2026-10-02),
-the hubs since #382, and the three visibility values since the 2026-10-13
-batch (src/main.js openSession, the one way into a room); the in place
-change with others present is **planned**. This is the flow as built, the
+the hubs since #382, and the three visibility values, the empty seats
+and the host's in place change since the 2026-10-13 batch (src/main.js
+openSession, the one way into a room; edge/rooms/core.js setPublic).
+This is the flow as built, the
 rules it keeps (docs/FLOW-AUDIT.md rules 1 to 17) and what the redesign
 adds, so nobody builds a second lobby.
 
@@ -23,7 +24,8 @@ adds, so nobody builds a second lobby.
    | The war: its consent first, once per pilot           [exists]
    v
  LOBBY (the session)                       home inside a room (FLOW rule 4)
-   | pilots and their Ready flags, Who joins (Public, Friends, Solo), the
+   | pilots and their Ready flags, the open seats (the cap less the
+   | people; none shown for Solo), Who joins (Public, Friends, Solo), the
    | host's one setting (mission, minutes, goal, track), the aircraft row,
    | Leave, invite code if private and not solo
    |
@@ -63,12 +65,20 @@ activity is remembered in settings (`sessionVisibility`, synced). A pilot
 alone in a lobby who changes visibility moves to a fresh room of the new
 kind (nobody to take along; the war's keeps its mission). The room cannot
 tell Solo from Friends, so the Solo room's code is kept in the page's
-session storage and a reload into it keeps the code hidden. **Planned:** a
-host with others present changes it in place: a new host message, server
-first, shown only when the welcome says the room takes it (the FLOW-AUDIT
-contract path); until then the row is a fact with others present. The
-war's public rooms keep their consent for every pilot, and a mission in
-development gets a private room whatever was chosen (the release gate).
+session storage and a reload into it keeps the code hidden. A host with
+others present changes it in place: `{ type: 'public', on }` (edge/rooms/
+core.js setPublic), server first, offered only when the welcome's
+`publicInPlace` says the room takes it (the FLOW-AUDIT contract path),
+Public or Friends (Solo only while it is the room's: there is nobody left
+to keep out). The room keeps its code, pilots and game; its cap becomes
+the kind's (16 public, 8 private) and its listing follows at once. Going
+public follows POST /v2/create's rules (public rooms open, no game on
+that a public room runs only when made for it, no ops mission, a war
+room only for a released mission); going private needs no more people
+than 8. On a server without it, and for a pilot who is not the host, the
+row is a fact. The war's public rooms keep their consent for every pilot,
+and a mission in development gets a private room whatever was chosen (the
+release gate).
 
 **Changed from the thread:** Friends means "people with the code", because
 there is no friends list; a friends list would need accounts the game does
@@ -109,5 +119,6 @@ child race without taking a slot.
 `game:lobby` (all five activities, click by click), `flow:check` (no hub in
 a room, Leave the only way out), `war:card`, `campaign:check`,
 `rooms:selftest` (the lobby's times and flags), `modes:selftest` (the
-registry). The visibility phase adds rows to `game:lobby` and an op to
-`rooms:server`.
+registry). The visibility phase added the Who joins rows to `game:lobby`
+(alone, each a fresh room; with B there, in place), the op to
+`rooms:selftest` (rooms-selftest-visibility.js) and to `rooms:server`.

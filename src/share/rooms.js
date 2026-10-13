@@ -507,6 +507,14 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.lobby = m.lobby;
         }
         handlers.onLobby?.();
+      } else if (m.type === 'public') {
+        /* The host changed who joins in place (edge/rooms/core.js
+         * setPublic). */
+        if (welcome && typeof m.on === 'boolean') {
+          welcome.public = m.on;
+          welcome.cap = m.cap;
+        }
+        handlers.onRoom?.();
       } else if (m.type === 'bots') {
         /* The host switched the room's AI pilots (edge/rooms/roombots.js). */
         if (welcome && typeof m.level === 'string') {

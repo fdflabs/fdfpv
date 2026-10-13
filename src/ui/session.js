@@ -146,6 +146,12 @@ function drawLobby(box, v, status) {
   }
   const pilots = el('div', 'war-lobby-pilots');
   pilots.append(...v.pilots.map(lobbyPilot));
+  if (v.open) {
+    /* Not a .war-lobby-pilot: whoever counts the pilots counts people. */
+    const open = el('div', 'war-lobby-open');
+    open.append(el('span', 'war-lobby-open-seats', v.open.seats), el('span', 'war-lobby-flag', v.open.note));
+    pilots.append(open);
+  }
   box.append(pilots);
 }
 
@@ -327,7 +333,7 @@ export const sessionMethods = {
       return;
     }
     const status = lobbyStatus(v);
-    const key = JSON.stringify([v.mission, status, v.pilots, v.last, v.brief]);
+    const key = JSON.stringify([v.mission, status, v.pilots, v.open, v.last, v.brief]);
     if (key === this.warLobbyKey) {
       return;
     }

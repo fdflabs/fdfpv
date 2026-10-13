@@ -19,9 +19,14 @@
  *   flight's round never ends; A leaves it for the title instead and
  *   clicks the card again into a room of its own.
  *
+ *   A, alone, picks Who joins: Friends, Solo, then Public, each a fresh
+ *   room of its kind, remembered for the activity.
+ *
  *   B clicks the same card, one click, and lands in A's lobby, each in the
- *   other's pilots. Both ready: the round on both. Its end: both back in
- *   the lobby, nobody ready.
+ *   other's pilots. With B there (not the war), A's Who joins changes the
+ *   room in place: Friends, off the list, B shown the code; Public again.
+ *   Both ready: the round on both. Its end: both back in the lobby, nobody
+ *   ready.
  *
  *   The round again (the host's Start now; free flight's both ready). C,
  *   on the title, clicks the room on the title's rooms panel, one click,
@@ -364,8 +369,8 @@ try {
    * choice is remembered for the activity in A's settings, which the card
    * reads (src/main.js openSession). Three creates: with the card's three
    * above, the front's six for an address in a minute, so the card is not
-   * pressed again here. The war's row is a fact (its room is campaign
-   * Play's).
+   * pressed again here. The war's room is made by campaign Play through
+   * the same way in, its mission kept.
    */
   const WHO = `(() => {
     const ui = window.__ui;
@@ -500,6 +505,44 @@ try {
     check(`B: ${GAME === 'war' ? 'Flight Club, then A\'s room on its panel' : 'one click on the same card'} (${b.clicks - bBefore}) and B is in A's lobby, each in the other's pilots`,
       b.clicks - bBefore === B_CLICKS && b2.code === code && b2.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && b2.shown && a2.pilots.length === 2 && b2.pilots.length === 2 && b2.flying !== 'flight', JSON.stringify({ a: a2.pilots, b: b2.pilots, code: b2.code }));
     await shot(b, '2-b-lobby');
+
+    /* WHO JOINS IN PLACE (edge/rooms/core.js setPublic): with B here, A's
+     * row offers Public and Friends and changes the room it is in. Friends:
+     * the same code, B told, its invite code on B's lobby, off the
+     * browser's list, the empty seats a private room's; Public again, back
+     * on the list for C below. The war's room is private whatever is
+     * chosen (mission 1 in development), so its row is left to the rows
+     * above. */
+    if (GAME !== 'war') {
+      const PLACE = `(() => {
+        const it = window.__ui.items().find((x) => x.options && x.options.map((o) => o.value).join() === 'public,friends');
+        const open = document.querySelector('.war-lobby-open-seats');
+        return { offered: Boolean(it), code: window.__rooms().code, public: window.__rooms().public, open: open ? open.textContent : null };
+      })()`;
+      const pickHere = (v) => a.evaluate(`(() => { window.__ui.items().find((x) => x.options && x.options.map((o) => o.value).join() === 'public,friends').pick(${JSON.stringify(v)}); return true; })()`);
+      const before = await a.evaluate(PLACE);
+      await pickHere('friends');
+      await b.until('window.__rooms().public === false', 15000).catch(() => {});
+      await a.sleep(800);
+      const shut = await a.evaluate(PLACE);
+      const bCode = await b.evaluate("window.__ui.items().some((x) => x.action === 'friends-copy')");
+      check('with B here, A\'s Who joins offers Public and Friends; Friends: the same room made private, B shown its invite code, the open seats a private room\'s',
+        before.offered && before.public === true && /\b14\b/.test(before.open || '') && shut.code === code && shut.public === false && bCode && /\b6\b/.test(shut.open || ''),
+        JSON.stringify({ before, shut, bCode }));
+      check('and it is off the browser\'s list', !(await listedCodes()).includes(code));
+      await pickHere('public');
+      await b.until('window.__rooms().public === true', 15000).catch(() => {});
+      await a.until('window.__rooms().public === true', 15000).catch(() => {});
+      const back = await a.evaluate(PLACE);
+      let relisted = false;
+      for (let i = 0; i < 20 && !relisted; i += 1) {
+        relisted = (await listedCodes()).includes(code);
+        if (!relisted) {
+          await a.sleep(500);
+        }
+      }
+      check('Public again: the same room, listed again', back.code === code && back.public === true && relisted, JSON.stringify({ back, relisted }));
+    }
 
     /* BOTH READY: the round on both; its end, both back. */
     await a.tap('KeyR');
