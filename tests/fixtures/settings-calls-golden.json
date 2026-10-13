@@ -17,6 +17,11 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_addons_clear",
     0
    ]
@@ -92,6 +97,11 @@
    ],
    [
     "sim_power_clear",
+    0
+   ],
+   [
+    "sim_wing_set_heading",
+    1824664,
     0
    ],
    [
@@ -173,6 +183,11 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_addons_clear",
     0
    ]
@@ -248,6 +263,11 @@
    ],
    [
     "sim_power_clear",
+    0
+   ],
+   [
+    "sim_wing_set_heading",
+    1824664,
     0
    ],
    [
@@ -334,6 +354,11 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_addons_clear",
     0
    ],
@@ -417,6 +442,11 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_addons_clear",
     0
    ],
@@ -450,7 +480,7 @@
     "run",
     "sim_bf_get",
     16,
-    "3cb95d16"
+    "9db1bba4"
    ]
   ],
   "probes": {
@@ -524,6 +554,11 @@
    ],
    [
     "sim_power_clear",
+    0
+   ],
+   [
+    "sim_wing_set_heading",
+    1824664,
     0
    ],
    [
@@ -633,13 +668,13 @@
    [
     "sim_water_components",
     0,
-    1568144,
+    1823712,
     0
    ],
    [
     "sim_water_components",
     1,
-    1568144,
+    1823712,
     0
    ],
    [
@@ -656,7 +691,7 @@
     "run",
     "sim_bf_get",
     16,
-    "ce76aa89"
+    "46a2f34f"
    ]
   ],
   "probes": {
@@ -736,6 +771,11 @@
    ],
    [
     "sim_power_clear",
+    0
+   ],
+   [
+    "sim_wing_set_heading",
+    1824664,
     0
    ],
    [
@@ -845,13 +885,13 @@
    [
     "sim_water_components",
     0,
-    1568144,
+    1823712,
     0
    ],
    [
     "sim_water_components",
     1,
-    1568144,
+    1823712,
     0
    ],
    [
@@ -868,7 +908,7 @@
     "run",
     "sim_bf_get",
     16,
-    "3cb95d16"
+    "9db1bba4"
    ]
   ],
   "probes": {
@@ -942,6 +982,11 @@
    ],
    [
     "sim_power_clear",
+    0
+   ],
+   [
+    "sim_wing_set_heading",
+    1824664,
     0
    ],
    [
@@ -1028,6 +1073,11 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_addons_clear",
     0
    ],
@@ -1111,6 +1161,11 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_addons_clear",
     0
    ]
@@ -1186,6 +1241,11 @@
    ],
    [
     "sim_power_clear",
+    0
+   ],
+   [
+    "sim_wing_set_heading",
+    1824664,
     0
    ],
    [
@@ -1272,13 +1332,18 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_set_addons",
-    1569096,
+    1824664,
     0
    ],
    [
     "sim_set_addon_inertia",
-    1569096,
+    1824664,
     0
    ],
    [
@@ -1295,7 +1360,7 @@
     "run",
     "sim_bf_get",
     16,
-    "3cb95d16"
+    "9db1bba4"
    ],
    [
     "sim_reset",
@@ -1390,13 +1455,13 @@
    [
     "sim_water_components",
     0,
-    1568144,
+    1823712,
     0
    ],
    [
     "sim_water_components",
     1,
-    1568144,
+    1823712,
     0
    ],
    [
@@ -1548,6 +1613,11 @@
     0
    ],
    [
+    "sim_wing_set_heading",
+    1824664,
+    0
+   ],
+   [
     "sim_addons_clear",
     0
    ],
@@ -1565,7 +1635,7 @@
     "run",
     "sim_bf_get",
     16,
-    "3cb95d16"
+    "9db1bba4"
    ],
    [
     "sim_reset",
@@ -1660,13 +1730,13 @@
    [
     "sim_water_components",
     0,
-    1568144,
+    1823712,
     0
    ],
    [
     "sim_water_components",
     1,
-    1568144,
+    1823712,
     0
    ],
    [
@@ -1958,7 +2028,7 @@
     "run",
     "sim_bf_get",
     16,
-    "b12dc316"
+    "9c2ab824"
    ]
   ],
   "probes": {
@@ -2420,13 +2490,13 @@
    [
     "sim_water_components",
     0,
-    1568144,
+    1823712,
     0
    ],
    [
     "sim_water_components",
     1,
-    1568144,
+    1823712,
     0
    ],
    [
@@ -2443,7 +2513,7 @@
     "run",
     "sim_bf_get",
     16,
-    "e57d6e61"
+    "1e959eaf"
    ]
   ],
   "probes": {
@@ -2604,13 +2674,13 @@
    [
     "sim_water_components",
     0,
-    1568144,
+    1823712,
     0
    ],
    [
     "sim_water_components",
     1,
-    1568144,
+    1823712,
     0
    ],
    [
@@ -2631,7 +2701,7 @@
     "run",
     "sim_part_info",
     16,
-    "6cf034b3"
+    "b00dfff3"
    ]
   ],
   "probes": {
@@ -2770,7 +2840,7 @@
    [
     "sim_water_components",
     0,
-    1568144,
+    1823712,
     0
    ],
    [
