@@ -285,7 +285,7 @@ Realistic, **exists**: handling, momentum, scale, camera, control response
 
 | Effect | Status |
 | --- | --- |
-| Wind and gusts in flight | **partial**: the plant has them (sim_set_wind: mean up to 30 m/s, gusts as a fixed sum of cosines on the sim clock, deterministic); nothing in the game sets them yet |
+| Wind and gusts in flight | **exists**: the plant has them (sim_set_wind: mean up to 30 m/s, gusts as a fixed sum of cosines on the sim clock, deterministic); the Weather setting sets them solo, and in a room the host's is everyone's (docs/WEATHER-CONTRACT.md). The gusts' phase is each plant's own clock, not the room's |
 | Thermals | **exists** for the soaring planes (sim_air_lift) |
 | Water that answers wind | **exists** (src/native/water.c) |
 | Time of day | **partial**: per world and per mission |
