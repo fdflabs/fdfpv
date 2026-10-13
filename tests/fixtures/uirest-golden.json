@@ -303,6 +303,7 @@
      "tuneFor": {},
      "tune": "betaflight-interceptor",
      "packVoltage": 4.2,
+     "cameraFor": {},
      "cameraFov": 95,
      "cameraAngle": 45
     },
@@ -4622,6 +4623,7 @@
      "tuneFor": {},
      "tune": "betaflight-interceptor",
      "packVoltage": 4.2,
+     "cameraFor": {},
      "cameraFov": 95,
      "cameraAngle": 45
     },

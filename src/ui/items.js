@@ -71,7 +71,7 @@ import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
 import {
   AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
-  PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, tuneChoices,
+  PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
 import { VIEW_LABEL, trickLevel } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
@@ -606,6 +606,7 @@ function quadRows(ui, s) {
       (d) => {
         const from = s.cameraAngle;
         s.cameraAngle = clampCameraAngle(from + d);
+        keepCamera(s);
         /* Offered once, on the step up across the threshold, and only when
          * the yaw rate is above what the tip would set it to. */
         const crossed = from < YAW_TIP_TILT && s.cameraAngle >= YAW_TIP_TILT;
@@ -620,7 +621,10 @@ function quadRows(ui, s) {
       CAMERA_FOVS,
       s.cameraFov,
       (n) => str('ui.n_degrees_vertical', { n }),
-      (n) => { s.cameraFov = n; },
+      (n) => {
+        s.cameraFov = n;
+        keepCamera(s);
+      },
     ),
     { label: str('ui.flight'), section: true },
     choice(
