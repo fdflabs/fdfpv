@@ -28,6 +28,7 @@ import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { wingProp } from './lib/propcurve.js';
 import { planeTable, propMoments, wash } from './lib/wash.js';
+import { fuselageRatio, smoothstep } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -632,6 +633,23 @@ const plantCLmax = (() => {
 
 const Vtrim = 8.0, CLtrim = 2 * W / (rho * Vtrim * Vtrim * S), Cm0 = -Cma * CLtrim / CLa;
 
+/* The side crossflow drag area: the fuselage's side, SBs, at Allen and
+ * Perkins' crossflow coefficient of 1.2 times their eta of 0.7, the 1.2 a
+ * round body's taken over to the drawn sections (scripts/lib/crossflow.js,
+ * NACA TN 3038), as the Extra's. The sections: station, half width, top,
+ * bottom, squareness, in, the drawn model's FUSE
+ * (src/render/bombshellcraft.js, the stabiliser's trailing edge at 30.75),
+ * the windscreen and the deck straight and the cowl eased as its fuseAt
+ * draws them. */
+const FUSE = [
+  [0.40, 0.80, 0.62, -0.40, 2.4], [1.00, 0.95, 0.85, -1.00, 2.8], [2.25, 1.02, 0.92, -1.55, 3.6],
+  [2.45, 1.02, 0.94, -1.62, 3.6], [3.875, 1.02, 2.60, -2.00, 3.6], [6.60, 1.02, 2.505, -2.25, 3.6],
+  [11.06, 1.00, 2.35, -2.08, 3.6], [13.10, 0.95, 1.79, -1.91, 3.4], [17.10, 0.80, 0.97, -1.60, 3.2],
+  [21.00, 0.60, 0.45, -1.30, 3.0], [24.10, 0.42, 0.19, -1.04, 2.8], [30.75, 0.17, 0.16, -0.56, 2.6],
+];
+const sectionK = fuselageRatio(FUSE, 4000, (i, u) => (i < 2 ? smoothstep(i, u) : u));
+const sideCda = SBs * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const Vcruise = level(0.75);
 const lat = lateral(Vcruise);
@@ -657,6 +675,7 @@ const rows = [
   ['zero lift line deg', f(alphaZL * DEG, 2)],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ, Clp', `${f(Clb, 4)} ${f(Clp)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

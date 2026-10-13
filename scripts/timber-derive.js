@@ -25,6 +25,7 @@
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { hold } from './lib/hinge.js';
 import { FLEET, heldAt } from './servo-derive.js';
+import { fuselageRatio, smoothstep } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -305,6 +306,22 @@ function trimAt(V) {
   return { thetaDeg: p[0] * DEG, deDeg: p[1] * DEG, duty: p[2] };
 }
 
+/* The side crossflow drag area: the fuselage's side, 1.04 m by 0.13 m,
+ * 0.125 m^2 (docs/TIMBER-STAGE1.md), at Allen and Perkins' crossflow
+ * coefficient of 1.2 times their eta of 0.7, the 1.2 a round body's taken
+ * over to the drawn sections (scripts/lib/crossflow.js, NACA TN 3038), as
+ * the Extra's. The sections: station, half width, top, bottom, squareness,
+ * m, the drawn model's FUSE (src/render/timbercraft.js, the rudder's post
+ * at 0.975), its windscreen's segment straight as its fuseAt draws it. */
+const FUSE = [
+  [0.045, 0.036, 0.028, -0.030, 2.4], [0.070, 0.044, 0.034, -0.042, 2.6], [0.120, 0.050, 0.038, -0.054, 2.8],
+  [0.190, 0.055, 0.040, -0.066, 3.2], [0.262, 0.057, 0.074, -0.070, 3.6], [0.505, 0.057, 0.072, -0.070, 3.6],
+  [0.560, 0.052, 0.052, -0.066, 3.2], [0.720, 0.038, 0.034, -0.054, 2.8], [0.880, 0.022, 0.020, -0.042, 2.4],
+  [0.975, 0.010, 0.012, -0.036, 2.2],
+];
+const sectionK = fuselageRatio(FUSE, 4000, (i, u) => (i === 3 ? u : smoothstep(i, u)));
+const sideCda = 0.125 * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
 const J = (o, n = 3) => JSON.stringify(o, (kk, v) => (typeof v === 'number' ? +v.toFixed(n) : v));
 /* T6 flies full aileron from level at full throttle, its top speed: the
@@ -320,6 +337,7 @@ const rows = [
   ['CLα, h_n, static margin (fuselage dh)', `${f(CLa)} ${f(hn)} ${f(SM)} (${f(fusCma / CLa, 4)})`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ, Clp, Clδa (tau)', `${f(Clb, 4)} ${f(Clp)} ${f(Clda)} (${f(tauA)})`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

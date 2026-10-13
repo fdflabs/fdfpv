@@ -32,6 +32,7 @@
 import { biplaneCell } from './lib/biplane.js';
 import { biplaneGroundTerms, wingGround } from './lib/groundeffect.js';
 import { wingProp } from './lib/propcurve.js';
+import { fuselageRatio } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -489,6 +490,22 @@ function takeoff(mu, vRot, Vtail, ge = false) {
   return { x, t, V };
 }
 
+/* The side crossflow drag area: the fuselage's side, 0.171 m^2, at Allen
+ * and Perkins' crossflow coefficient of 1.2 times their eta of 0.7, the 1.2
+ * a round body's taken over to the drawn sections
+ * (scripts/lib/crossflow.js, NACA TN 3038), as the Extra's. The sections:
+ * station, half width, top, bottom, squareness, m, the drawn model's FUSE
+ * (src/render/tigermothcraft.js, the firewall at 0.196, the rudder's post
+ * at 1.287). */
+const FUSE = [
+  [0.028, 0.022, 0.030, -0.028, 2.0], [0.045, 0.034, 0.042, -0.050, 2.2], [0.090, 0.044, 0.052, -0.078, 2.6],
+  [0.150, 0.050, 0.060, -0.098, 3.0], [0.196, 0.054, 0.064, -0.108, 3.4], [0.300, 0.062, 0.070, -0.118, 3.6],
+  [0.450, 0.064, 0.074, -0.122, 3.6], [0.600, 0.060, 0.070, -0.118, 3.6], [0.800, 0.046, 0.056, -0.104, 3.4],
+  [1.000, 0.032, 0.042, -0.092, 3.2], [1.150, 0.020, 0.030, -0.082, 3.0], [1.287, 0.010, 0.020, -0.075, 2.6],
+];
+const sectionK = fuselageRatio(FUSE);
+const sideCda = 0.171 * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const lat = lateral(Vtrim);
 const latSlow = lateral(1.3 * Vs);
@@ -511,6 +528,7 @@ const rows = [
   ['zero lift line deg; its sin, cos', `${f(alphaZL * DEG, 3)}; ${Math.sin(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)} ${Math.cos(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq, 3)} ${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['fin: AR_v a_v V_V l_v; CYβ Cnβ (fus) Cnr', `${f(arV, 3)} ${f(av, 4)} ${f(VV, 5)} ${f(lv, 4)}; ${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ: dihedral, heights, fin, total', `${f(ClbDih, 4)} ${f(ClbHeight, 4)} ${f(ClbFin, 4)} ${f(Clb, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Clp, Clδa', `${f(Clp, 4)} ${f(Clda, 4)}`],

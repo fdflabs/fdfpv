@@ -124,7 +124,7 @@
         {"field":"slip_cy_b","expr":"-0.2654","packed":true},
         {"field":"slip_cl_b","expr":"-0.01018","packed":true},
         {"field":"slip_loss","expr":"{ 0.2655, 0.3311, 0 }","comment":"scripts/wash-derive.js"},
-        {"field":"side_cda","expr":"0.2016","comment":"0.84 of 0.24 m^2, the box fuselage in side view, scripts/kadet-derive.js"},
+        {"field":"side_cda","expr":"0.3468","comment":"the drawn box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run kadet:derive"},
         {"field":"hinge_hold","expr":"{ 0, 321, 533.2 }","comment":"servo blow back, npm run servo:derive"},
         {"field":"hinge_alpha","expr":"{ 0, 0.5115, 0.4531 }","comment":"npm run servo:derive"},
         {"field":"tail_deda","expr":"0.38","comment":"d eps / d alpha, scripts/kadet-derive.js, DATCOM; read only by GROUND EFFECT on a linear table"},

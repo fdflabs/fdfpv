@@ -81,30 +81,37 @@ const PLANES = [
  * wing, Skyhunter, Bramor, F-16, Zagi, NRJ and the two Strikers did not
  * move. The Night Timber re-pinned for its fuselage's measured crossflow
  * drag (w37-physics-servo; was f34bb151437c1dde), the ground's term
- * unchanged. */
+ * unchanged. Twelve re-pinned for their fuselages' crossflow drag on
+ * their drawn sections (w38-fuselage-side, NACA TN 3038 through
+ * scripts/lib/crossflow.js), the ground's term unchanged: the Skyhunter,
+ * Cub, Radian, Timber, Timber floats, Cub floats, Bombshell, Kadet, P-51,
+ * Ugly Stik, Tiger Moth and Hercules (were 67c0dfd1d6dce1d1,
+ * b8541ee8b370c6f4, 08b9109d261f83b5, 42cf55e4be2ce1de, 1714bd0bf5b41596,
+ * 6df7666ef3a9b593, cb55e508b565c328, 2af0141678d16393, 3f5b18c3d6fd6773,
+ * 7eed8ee1f43b5c98, 1617c025e09104fb and 4405e5e3b684abe5). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
-  sky: '67c0dfd1d6dce1d1',
-  cub: 'b8541ee8b370c6f4',
+  sky: 'a0e9654872f117b8',
+  cub: '53b0ed725308b1a0',
   slowstick: '731483e6eb017e98',
-  radian: '08b9109d261f83b5',
-  timber: '42cf55e4be2ce1de',
+  radian: '7a89ca11e112bfe3',
+  timber: '6f4dc161dc2c4d5b',
   bramor: '639bbf37df657ca7',
-  timberf: '1714bd0bf5b41596',
-  cubf: '6df7666ef3a9b593',
-  bombshell: 'cb55e508b565c328',
-  kadet: '2af0141678d16393',
-  p51: '3f5b18c3d6fd6773',
+  timberf: '7d1a5eba1683439d',
+  cubf: '94d5decb25853be4',
+  bombshell: 'a4517d5f8efe5d1f',
+  kadet: '72ca1f7516cee3ba',
+  p51: '03e3300de3a1086a',
   f16: '68bf198f7585f9e2',
   zagi: 'abccd77d1b7b9034',
-  uglystik: '7eed8ee1f43b5c98',
+  uglystik: '72067e8d4610b92d',
   nrj: '31151485dea980a5',
-  tigermoth: '1617c025e09104fb',
+  tigermoth: '6bfa8b2e5b0b0234',
   strikerprop: 'ac1ebe1d9baba2ed',
   strikerjet: '2c30dccda291887d',
   extra: '3507628f2a5cfd82',
   nighttimber: '964632c1e2defb8e',
-  hercules: '4405e5e3b684abe5',
+  hercules: '17e4cfd6a556458f',
   cap580: '8abf9aeac1ba645b',
   slick: 'd7e7790e169321bc',
 };

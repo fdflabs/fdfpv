@@ -23,6 +23,7 @@
  */
 
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
+import { fuselageRatio } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -326,6 +327,22 @@ function stickFor(delta, travel) {
   return Math.sign(delta) * lo;
 }
 
+/* The side crossflow drag area: the fuselage's side, 0.083 m^2, the render
+ * model's, at Allen and Perkins' crossflow coefficient of 1.2 times their
+ * eta of 0.7, the 1.2 a round body's taken over to the drawn sections
+ * (scripts/lib/crossflow.js, NACA TN 3038), as the Extra's. The sections:
+ * station, half width, top, bottom, squareness, m, the drawn model's FUSE
+ * (src/render/glidercraft.js). */
+const FUSE = [
+  [0.014, 0.013, 0.005, -0.021, 2.0], [0.030, 0.026, 0.018, -0.030, 2.2], [0.055, 0.035, 0.032, -0.035, 2.4],
+  [0.095, 0.040, 0.046, -0.043, 2.6], [0.155, 0.042, 0.060, -0.052, 2.8], [0.250, 0.042, 0.070, -0.045, 2.8],
+  [0.312, 0.040, 0.070, -0.040, 2.8], [0.440, 0.031, 0.066, -0.030, 2.6], [0.565, 0.025, 0.063, -0.021, 2.5],
+  [0.690, 0.021, 0.059, -0.012, 2.4], [0.820, 0.018, 0.055, -0.001, 2.3], [0.945, 0.017, 0.050, 0.010, 2.2],
+  [1.040, 0.013, 0.046, 0.020, 2.2], [1.088, 0.008, 0.043, 0.028, 2.0],
+];
+const sectionK = fuselageRatio(FUSE);
+const sideCda = 0.083 * 1.2 * sectionK * 0.7;
+
 const f = (x, nd = 3) => (x === null ? 'none' : Number(x).toFixed(nd));
 const rows = [
   ['planform area drawn m2, MAC m, MAC LE aft of root m', `${f(areaDrawn, 4)} ${f(MAC, 4)} ${f(macLE, 4)}`],
@@ -338,6 +355,7 @@ const rows = [
   ['CLα, h_n, static margin', `${f(CLa)} ${f(hn)} ${f(SM)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ (wing, total), equivalent Γ deg, Clp, Clδa', `${f(ClbWing, 4)} ${f(Clb, 4)} ${f(gammaEq * DEG, 2)} ${f(Clp)} ${f(Clda)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr, Cnδa per CL', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)} ${f(CndaPerCL, 4)}`],

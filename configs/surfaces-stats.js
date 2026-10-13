@@ -90,24 +90,24 @@ export const SURFACE_STATS = {
   "cub1400": {
     "a": [
       {
-        "full": 204,
+        "full": 203,
         "fifth": 21.1,
-        "kept": 0.848
+        "kept": 0.85
       },
       {
-        "full": 245,
+        "full": 244,
         "fifth": 26.7,
-        "kept": 0.781
+        "kept": 0.782
       },
       {
-        "full": 314,
+        "full": 313,
         "fifth": 33.6,
-        "kept": 0.715
+        "kept": 0.717
       },
       {
-        "full": 411,
+        "full": 409,
         "fifth": 42,
-        "kept": 0.583
+        "kept": 0.586
       }
     ],
     "e": [
@@ -136,22 +136,22 @@ export const SURFACE_STATS = {
       {
         "full": 57,
         "fifth": 9.3,
-        "kept": 1.045
+        "kept": 1.043
       },
       {
         "full": 73,
         "fifth": 11.5,
-        "kept": 1.026
+        "kept": 1.022
       },
       {
         "full": 95,
         "fifth": 14.7,
-        "kept": 0.985
+        "kept": 0.974
       },
       {
         "full": 124,
         "fifth": 18.8,
-        "kept": 0.91
+        "kept": 0.887
       }
     ]
   },
@@ -306,10 +306,10 @@ export const SURFACE_STATS = {
       {
         "full": 497,
         "fifth": 58.7,
-        "kept": 0.791
+        "kept": 0.792
       },
       {
-        "full": 558,
+        "full": 557,
         "fifth": 66,
         "kept": 0.729
       }
@@ -340,22 +340,22 @@ export const SURFACE_STATS = {
       {
         "full": 126,
         "fifth": 19.4,
-        "kept": 1.017
+        "kept": 1.012
       },
       {
         "full": 158,
         "fifth": 23.9,
-        "kept": 0.963
+        "kept": 0.954
       },
       {
         "full": 196,
         "fifth": 29.3,
-        "kept": 0.882
+        "kept": 0.865
       },
       {
         "full": 238,
         "fifth": 35.1,
-        "kept": 0.773
+        "kept": 0.747
       }
     ]
   }

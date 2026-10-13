@@ -32,6 +32,7 @@
 import { planeTable, propMoments, wash } from './lib/wash.js';
 import { wingProp } from './lib/propcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
+import { profileRatio } from './lib/crossflow.js';
 
 const SLIP = deriveWash('FW_UGLYSTIK1567');
 const DEG = 180 / Math.PI;
@@ -602,6 +603,26 @@ function takeoff(mu, vRot) {
   return { x, t, V };
 }
 
+/* The side crossflow drag area: the slab box's side, SBs, at Allen and
+ * Perkins' crossflow coefficient of 1.2 times their eta of 0.7, the 1.2 a
+ * round body's taken over to the drawn sections (scripts/lib/crossflow.js,
+ * NACA TN 3038), as the Extra's. The sections: the drawn model's FUSE
+ * (src/render/uglystikcraft.js), station, top height, half width, in, the
+ * bottom flat at 22.08, straight between rows, each a rectangle with its
+ * corners rounded on a quarter inch (the kit's "sand a radius on all the
+ * outside corners", drawn so), no more than 0.45 of a side. */
+const FUSE = [[4.25, 18.47, 1.775], [11.31, 17.92, 1.98], [11.31 + 12.48, 18.00, 1.98], [49.28, 21.40, 0.40]];
+const sectionK = profileRatio((s) => {
+  let i = 0;
+  while (s > FUSE[i + 1][0]) i += 1;
+  const [a, z] = [FUSE[i], FUSE[i + 1]];
+  const u = (s - a[0]) / (z[0] - a[0]);
+  const depth = 22.08 - (a[1] + (z[1] - a[1]) * u);
+  const width = 2 * (a[2] + (z[2] - a[2]) * u);
+  return { depth, f: width / depth, rho: Math.min(0.25, 0.45 * width / 2, 0.45 * depth) / Math.min(width, depth) };
+}, FUSE[0][0], FUSE[FUSE.length - 1][0]);
+const sideCda = SBs * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const lat = lateral(Vtrim);
 /* Hands off at the trim the prop does not let go: its torque against the
@@ -631,6 +652,7 @@ const rows = [
   ['Cmα, Cm0, Cmq', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)}`],
   ['Cmδe, CLδe', `${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ: dihedral, fin, shoulder wing, total', `${f(ClbDihedral, 4)} ${f(ClbFin, 4)} ${f(ClbHigh, 4)} ${f(Clb, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Clp, Clδa', `${f(Clp, 4)} ${f(ClDa, 4)}`],

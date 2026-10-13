@@ -30,6 +30,7 @@ import { planeTable, propMoments, wash } from './lib/wash.js';
 import { wingProp } from './lib/propcurve.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
+import { fuselageRatio, smoothstep } from './lib/crossflow.js';
 
 const SLIP = deriveWash('FW_KADET1981');
 const DEG = 180 / Math.PI;
@@ -540,6 +541,24 @@ const plantCLmax = (() => {
 const Vtrim = level(0.75), CLtrim = 2 * W / (rho * Vtrim * Vtrim * S);
 const Cm0 = -Cma * CLtrim / CLa + thrustZ * D(Vtrim) / (0.5 * rho * Vtrim * Vtrim * S * c);
 
+/* The side crossflow drag area: the box fuselage's side, SBs, at Allen and
+ * Perkins' crossflow coefficient of 1.2 times their eta of 0.7, the 1.2 a
+ * round body's taken over to the drawn sections (scripts/lib/crossflow.js,
+ * NACA TN 3038), as the Extra's. The sections: station, half width, top,
+ * bottom, squareness, in, the drawn model's FUSE (src/render/kadetcraft.js:
+ * the firewall at 4.2, the wing's root from 13.5 for 14.74 at 1.5 deg, the
+ * post at 57.3), the nose eased and the rest straight as its fuseAt draws
+ * them. Its box (squareness 5) is past e 4 and takes TN 3038's sharper
+ * rectangles. */
+const FUSE = [
+  [0.9, 1.05, 1.0, -1.9, 2.6], [2.0, 1.65, 1.6, -3.3, 3.0], [4.2, 1.85, 1.9, -4.1, 4.0],
+  [8.0, 1.875, 2.1, -4.7, 5.0], [11.0, 1.875, 2.4, -5.3, 5.0], [13.5, 1.875, 3.4, -5.7, 5.0],
+  [13.5 + 1150 / 78, 1.875, 3.4 - (1150 / 78) * Math.tan(1.5 / DEG), -6.0, 5.0], [36.0, 1.72, 2.2, -6.0, 5.0],
+  [44.0, 1.35, 0.9, -5.7, 5.0], [51.0, 0.90, -1.0, -5.2, 5.0], [57.3, 0.50, -1.0, -4.6, 5.0],
+];
+const sectionK = fuselageRatio(FUSE, 4000, (i, u) => (i < 2 ? smoothstep(i, u) : u));
+const sideCda = SBs * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const Vcruise = level(0.75);
 const lat = lateral(Vcruise);
@@ -557,6 +576,7 @@ const rows = [
   ['zero lift line deg', f(alphaZL * DEG, 2)],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ (the high wing\'s), Clp', `${f(Clb, 4)} (${f(ClbHigh, 4)}) ${f(Clp)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

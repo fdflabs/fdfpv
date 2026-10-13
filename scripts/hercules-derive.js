@@ -27,6 +27,7 @@
 
 import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
+import { fuselageRatio } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -505,8 +506,21 @@ const Cm0 = -Cma * alphaCruise;
 /* Past the stall (scripts/stall-derive.js's tailed form). */
 const armAc = hCG - 0.25, armCp = 0.40 - hCG, stallDw = eta * VH * at * deda / aw;
 /* The side view's crossflow drag area: the fuselage's side at Allen and
- * Perkins' 1.2 times their 0.65 for a body of fineness 6.5. */
-const sideCda = kitLength * fusH * 0.85 * 1.2 * 0.65;
+ * Perkins' 1.2 times their 0.65 for a body of fineness 6.5, the 1.2 a
+ * round body's taken over to the drawn sections (scripts/lib/crossflow.js,
+ * NACA TN 3038), as the Extra's. The sections: station, half width, top,
+ * bottom, squareness, m, the drawn model's FUSE (src/render/
+ * herculescraft.js, the ramp's hinge at 1.53 and the door's at 1.985),
+ * straight between rows as its fuseAt draws them. */
+const FUSE = [
+  [0.000, 0.012, 0.030, 0.010, 2.0], [0.030, 0.062, 0.062, -0.030, 2.0], [0.065, 0.092, 0.084, -0.062, 2.1],
+  [0.100, 0.118, 0.100, -0.086, 2.3], [0.125, 0.135, 0.128, -0.098, 2.5], [0.200, 0.155, 0.198, -0.110, 2.8],
+  [0.280, 0.163, 0.226, -0.1155, 3.0], [0.380, 0.16525, 0.2335, -0.1168, 3.2], [1.350, 0.16525, 0.2335, -0.1168, 3.2],
+  [0.68 * 2.25, 0.163, 0.2335, -0.070, 3.1], [0.68 * 2.25 + 0.222, 0.150, 0.231, -0.018, 3.0],
+  [1.985, 0.112, 0.225, 0.070, 2.8], [2.140, 0.064, 0.214, 0.135, 2.4], [2.225, 0.020, 0.198, 0.170, 2.0],
+];
+const sectionK = fuselageRatio(FUSE, 4000, (i, u) => u);
+const sideCda = kitLength * fusH * 0.85 * 1.2 * sectionK * 0.65;
 
 const out = {
   m, W, S, b, c, AR, cr, ct, lam, yMAC, hCG, SM, hnNelson, aw, at, av, deda, VH, VV, CLa, Cma, Cm0, Cmq, Cmde, CLde,
@@ -514,7 +528,7 @@ const out = {
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
   roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, liftoffPitchDeg: (CLmax / 1.21 / CLa + alphaZl) * DEG, rotation: rotation(), rotationGround: rotation(true), cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
-  kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
+  kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, sectionK, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
   fusW, fusH, propR, yInboard, yOutboard, aileronIn, aileronOut, throwA, throwE, throwR, xCG, xMACle, kitLength, k, washout,
 };
 if (process.argv.includes('--json')) {
