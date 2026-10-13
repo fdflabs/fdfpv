@@ -387,9 +387,11 @@ export function hoverCondition(startThrottle) {
  * In the receiver's own units, which nothing published maps to a
  * surface's angle: only their ratios are taken (as3x-derive.js). The
  * Timber on floats flies the land plane's receiver and preset. A table
- * without one is not a Spektrum BNF with AS3X, or has no preset. */
+ * without one is not a Spektrum BNF with AS3X, or has no preset.
+ * `kick`: its full Heading is held to its gate's harrier kick
+ * (scripts/lib/harrierkick.js, extra-gates.js E11b; as3x-derive.js). */
 export const AS3X = {
-  FW_EXTRA3D1308: { sim: 29, th: ['extra', 'e11_harrier'], srm: [6, 30, 24], srmName: 'EFL115500 Extra 300 3D 1.3m BNF Basic with AS3X and SAFE Select' },
+  FW_EXTRA3D1308: { sim: 29, th: ['extra', 'e11_harrier'], kick: true, srm: [6, 30, 24], srmName: 'EFL115500 Extra 300 3D 1.3m BNF Basic with AS3X and SAFE Select' },
   FW_TIMBER1500: { sim: 7, srm: [36, 73, 96], srmName: 'EFL105250 Turbo Timber Evolution 1.5m BNF Basic' },
   FW_TIMBER1500F: { sim: 9, srm: [36, 73, 96], srmName: 'EFL105250 Turbo Timber Evolution 1.5m BNF Basic' },
   FW_CUB1400: { sim: 4 },
@@ -530,7 +532,7 @@ export function receiverOf(body, block = null) {
   const travel = [thr('throw_a'), thr('throw_e'), thr('throw_r')];
   const expo = numOf(body, 'expo') ?? 0;
   return {
-    k: listOf(body, 'as3x_k'), kh: listOf(body, 'as3x_kh'), T: frameOf(body), travel,
+    k: listOf(body, 'as3x_k'), kh: listOf(body, 'as3x_kh'), rate: listOf(body, 'as3x_rate'), T: frameOf(body), travel,
     th: block ? [block[3], block[4], block[5]] : travel,
     expo: block ? [block[6], block[7], block[8]] : [expo, expo, expo],
     trim: block ? block[9] : 0,
@@ -772,45 +774,99 @@ export function fanOut(script, names, args = []) {
  * (the expo's cubic on the throw, the trim on the elevator), the gyro's
  * offset added and the sum clipped at the throw, then flown through the
  * stick that gives it, so the plant's own servo slew carries it. The
- * Heading is off (the presets', and the receiver's default). receiverMatches
- * checks it against the plant's mode 3.
+ * Heading at kh (rad of surface per rad, per axis; the plant's is its
+ * share of as3x_kh) sums the rotation beyond what the channel asks, the
+ * channel times as3x_rate, faded with the gain and held to what the throw
+ * can answer, as the plant's. as3x-feel.js F0 checks it against the
+ * plant's mode 3, the Heading off and at full.
  */
 const AS3X_ZERO = 0.4;
 const priority = (x) => Math.max(0, 1 - Math.abs(x) / AS3X_ZERO);
 const shape = (x, expo) => x * x * x * expo + x * (1 - expo);
 
-/* Level at V on throttle thr from launch; sticks(ms) the pilot's [roll,
- * pitch, yaw], mode 3 at gains g (one factor per axis) emulated, or the
- * plant's own mode 3 when g is null. The body rates every step. */
-export function pilotFlight(sim, V, thr, rx, g, sticks, ms) {
+/* The receiver, one millisecond at a time: given the state and the
+ * pilot's [roll, pitch, yaw], the sticks that fly its surfaces in Manual.
+ * g the damper's factor per axis, kh the Heading per axis. */
+export function receiverStepper(rx, g, kh = [0, 0, 0]) {
   const clip = (x, m) => Math.max(-m, Math.min(m, x));
   const clamp1 = (x) => Math.max(-1, Math.min(1, x));
-  must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_wing_set_stab(g ? 0 : 3), 'sim_wing_set_stab');
-  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
-  must(sim.e.sim_wing_launch(V), 'sim_wing_launch');
-  const out = [0, 0, 0];
+  const out = [0, 0, 0], h = [0, 0, 0];
   let tf = 0;
-  const trace = [];
-  for (let i = 0; i < ms; i += 1) {
-    const [roll, pitch, yaw] = sticks(i);
-    let input = [roll, pitch, yaw, thr];
-    if (g) {
-      const s = sim.readState().state;
+  return {
+    reset() { out.fill(0); h.fill(0); tf = 0; },
+    sticks(s, roll, pitch, yaw) {
       const st = [roll, pitch, rx.rudderMix ? clamp1(yaw + roll) : yaw];
       tf -= 0.001;
       if (tf <= 1e-12) {
         tf += rx.T;
-        for (let a = 0; a < 3; a += 1) out[a] = priority(channelOf(rx, a, st[a])) * g[a] * rx.k[a] * s[11 + a];
+        for (let a = 0; a < 3; a += 1) {
+          const c = channelOf(rx, a, st[a]);
+          const pr = priority(c);
+          const err = s[11 + a] - c * rx.rate[a];
+          h[a] = pr > 0 && kh[a] > 0 ? h[a] + pr * err * rx.T : 0;
+          if (kh[a] > 0) h[a] = clip(h[a], rx.th[a] / kh[a]);
+          out[a] = pr * (g[a] * rx.k[a] * s[11 + a] + kh[a] * h[a]);
+        }
       }
       const da = clip(clip(shape(clamp1(st[0]), rx.expo[0]) * rx.th[0], rx.th[0]) - out[0], rx.th[0]);
       const de = clip(clip(shape(clamp1(st[1]), rx.expo[1]) * rx.th[1], rx.th[1]) + rx.trim + out[1], rx.th[1]) - rx.trim;
       const dr = clip(-clip(shape(clamp1(st[2]), rx.expo[2]) * rx.th[2], rx.th[2]) - out[2], rx.th[2]);
       const inv = (d, th, a) => (th > 0 ? stickFor(d / th, rx.expo[a]) : 0);
-      input = rx.rudderMix
-        ? [0, inv(de, rx.th[1], 1), inv(-dr, rx.th[2], 2), thr]
-        : [inv(da, rx.th[0], 0), inv(de, rx.th[1], 1), inv(-dr, rx.th[2], 2), thr];
+      return rx.rudderMix
+        ? [0, inv(de, rx.th[1], 1), inv(-dr, rx.th[2], 2)]
+        : [inv(da, rx.th[0], 0), inv(de, rx.th[1], 1), inv(-dr, rx.th[2], 2)];
+    },
+  };
+}
+
+/* The sim with mode 3 emulated (receiverStepper at g and kh) wherever a
+ * caller asks the plant for it: sim_wing_set_stab(3) flies Manual under
+ * the emulated receiver, any other mode the plant's own, and each input
+ * held over a step is re-sent a millisecond at a time. For a flight
+ * program written against the plant (scripts/lib/harrierkick.js) at a
+ * Heading the plant's share cannot reach. */
+export function emulatedSim(sim, rx, g, kh) {
+  const r = receiverStepper(rx, g, kh);
+  let on = false, held = null;
+  /* The exports object is frozen: a plain copy with the one replaced. */
+  const e = { ...sim.e, memory: sim.e.memory };
+  e.sim_wing_set_stab = (mode) => { on = mode === 3; return sim.e.sim_wing_set_stab(on ? 0 : mode); };
+  const out = Object.create(sim);
+  out.e = e;
+  out.reset = () => { r.reset(); held = null; return sim.reset(); };
+  out.input = (t, roll, pitch, yaw, thr) => {
+    held = { t, roll, pitch, yaw, thr };
+    return on ? 0 : sim.input(t, roll, pitch, yaw, thr);
+  };
+  out.step = (n) => {
+    if (!on) return sim.step(n);
+    for (let i = 0; i < n; i += 1) {
+      const st = r.sticks(sim.readState().state, held.roll, held.pitch, held.yaw);
+      const c = sim.input(held.t + i / 1000, ...st, held.thr);
+      if (c !== 0) return c;
+      const c2 = sim.step(1);
+      if (c2 !== 0) return c2;
     }
+    return 0;
+  };
+  return out;
+}
+
+/* Level at V on throttle thr from launch; sticks(ms) the pilot's [roll,
+ * pitch, yaw], mode 3 at gains g (one factor per axis) and Heading kh
+ * emulated, or the plant's own mode 3 when g is null. The body rates
+ * every step. */
+export function pilotFlight(sim, V, thr, rx, g, sticks, ms, kh = [0, 0, 0]) {
+  must(sim.reset(), 'sim_reset');
+  must(sim.e.sim_wing_set_stab(g ? 0 : 3), 'sim_wing_set_stab');
+  must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(V), 'sim_wing_launch');
+  const r = g ? receiverStepper(rx, g, kh) : null;
+  const trace = [];
+  for (let i = 0; i < ms; i += 1) {
+    const [roll, pitch, yaw] = sticks(i);
+    let input = [roll, pitch, yaw, thr];
+    if (r) input = [...r.sticks(sim.readState().state, roll, pitch, yaw), thr];
     must(sim.input(i / 1000, ...input), 'sim_input');
     must(sim.step(1), 'sim_step');
     trace.push(Array.from(sim.readState().state.slice(11, 14)));

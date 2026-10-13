@@ -51,6 +51,7 @@ import {
   zagiPrelude, uglystikGroundPrelude, dlgRecPrelude, tigermothGroundPrelude,
   gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude, timberFloatRecPrelude, RC_STEP_MS,
 } from '../tests/lib/wingpilot.js';
+import { harrierFlight, harrierKicks } from './lib/harrierkick.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const th = JSON.parse(await readFile(join(root, 'tests/extra-thresholds.json'), 'utf8'));
@@ -279,63 +280,7 @@ check: {
    * must damp the rock: its bank's spread under Manual's. */
   {
     const t11 = th.e11_harrier;
-    const harrier = (mode, kick = 0, rateKick = 0, long = false) => {
-      must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
-      const r = fly(sim, { duty: 0.300, vzTarget: 0, seconds: 8, speed0: 12, ...slow });
-      clockMs = r.endMs;
-      const target = t11.alphaDeg / DEG;
-      /* The height hold starts at the derivation's harrier throttle, 0.408
-       * (extra:derive), as a pilot sets the throttle the harrier needs; it
-       * started at 0.55 with no source until 2026-10-12. */
-      const thr = heightHold(0.408);
-      let iP = 0;
-      let iB = 0;
-      let s = sim.readState().state;
-      const psi0 = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
-      let sv = 0, sd = 0, se = 0, n = 0, worstBank = 0, zMin = Infinity, zMax = -Infinity, sa = 0;
-      const banks = [];
-      let pre = 0, preN = 0, iae = 0, pPre = 0, pKick = 0;
-      const disturbed = kick || rateKick;
-      const after = [];
-      for (let ms = 0; ms < (disturbed || long ? 32000 : 20000); ms += RC_STEP_MS) {
-        if (rateKick && ms === 20000) {
-          must(sim.e.sim_set_velocity(s[4], s[5], s[6], s[11] + rateKick, s[12], s[13]), 'sim_set_velocity');
-          s = sim.readState().state;
-        }
-        const alpha = wingDebug(sim)[0];
-        const bank = fullBank(s);
-        const psi = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
-        const at = Math.min(target, 0.1 + target * ms / 5000);
-        iP = Math.max(-1, Math.min(1, iP + 1.5 * (at - alpha) * RC_STEP_MS / 1000));
-        const pitchStick = clamp(1.5 * (at - alpha) + 0.15 * s[12] + iP);
-        iB = Math.max(-0.5, Math.min(0.5, iB - 1.0 * bank * RC_STEP_MS / 1000));
-        const roll = clamp(-0.6 * bank - 0.06 * s[11] + iB + (kick && ms >= 20000 && ms < 20300 ? kick : 0));
-        let dpsi = psi - psi0;
-        while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
-        while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
-        const yaw = clamp(1.0 * dpsi + 0.2 * s[13]);
-        const t = thr(s);
-        s = step(sim, [roll, pitchStick, yaw, t]);
-        if (disturbed && ms >= 15000 && ms < 20000) { pre += bank * DEG; preN += 1; pPre += s[11]; }
-        if (kick && ms + RC_STEP_MS === 20300) pKick = s[11] - pPre / preN;
-        if (disturbed && ms >= 20000) iae += Math.abs(bank * DEG - pre / preN) * RC_STEP_MS / 1000;
-        if (ms >= 20000) after.push(bank * DEG);
-        if (ms >= 10000 && ms < 20000) {
-          banks.push(bank * DEG);
-          worstBank = Math.max(worstBank, Math.abs(bank * DEG));
-          zMin = Math.min(zMin, s[3]); zMax = Math.max(zMax, s[3]);
-        }
-        if (ms >= 15000) {
-          sv += speed(s); sd += t; se += pitchStick; n += 1; sa += wingDebug(sim)[0];
-        }
-      }
-      const mean = banks.reduce((x, y) => x + y, 0) / banks.length;
-      const spread = Math.sqrt(banks.reduce((x, y) => x + (y - mean) ** 2, 0) / banks.length);
-      let cross = 0;
-      for (let i = 1; i < banks.length; i += 1) if ((banks[i - 1] - mean) * (banks[i] - mean) < 0) cross += 1;
-      must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-      return { iae, pKick, after, v: sv / n, d: sd / n, e: se / n, a: sa / n * DEG, worstBank, spread, period: cross > 1 ? (2 * 10) / cross : null, drift: zMax - zMin };
-    };
+    const harrier = (mode, kick = 0, rateKick = 0, long = false) => harrierFlight(sim, t11, mode, kick, rateKick, long);
     const m = harrier(0);
     const g = harrier(3);
     gate('E11', 'harrier: level at 40 deg of alpha, its rock within the video\'s',
@@ -361,18 +306,7 @@ check: {
      * and not the gyro, and its bank was judged against the settled mean,
      * so the rock's own phase was in it. At the receiver's default
      * Heading, zero, the same ratio is printed and not judged. */
-    const own = (mode, rate) => {
-      const still = harrier(mode, 0, 0, true).after, kicked = harrier(mode, 0, rate).after;
-      return kicked.reduce((x, b, i) => x + Math.abs(b - still[i]) * RC_STEP_MS / 1000, 0);
-    };
-    const kicksAt = (heading) => t11.kickStick.map((k) => {
-      const rate = harrier(0, k).pKick;
-      const m = own(0, rate);
-      must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
-      const gk = own(3, rate);
-      must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
-      return { k, rate, m, g: gk };
-    });
+    const kicksAt = (heading) => harrierKicks(sim, t11, [heading, heading, heading]);
     const said = (kicks) => kicks.map((x) => `kick ${x.k} (${(x.rate * DEG).toFixed(0)} deg/s): ${x.g.toFixed(1)} against Manual's ${x.m.toFixed(1)} deg s, ${(x.g / x.m).toFixed(2)}`).join('; ');
     const kicks = kicksAt(1);
     gate('E11b', 'harrier in AS3X at the full Heading: the gyro damps the rock', kicks.every((x) => x.g / x.m < t11.as3xIaeRatioMax) && g.drift <= t11.maxHeightDrift,

@@ -34,7 +34,8 @@
  *       flight, integrated over 2 s, is less under AS3X than Manual.
  *
  *   F0  the receiver as3x-derive.js flies F1 on to set every table's
- *       gains matches the plant's mode 3, at every rate.
+ *       gains matches the plant's mode 3, at every rate, the Heading off
+ *       and at full.
  *
  * --plane NAME runs one table. Exit 1 on any failure.
  *
@@ -123,14 +124,17 @@ for (const [name, a] of Object.entries(AS3X)) {
      * lib/as3xloop.js's receiver (pilotFlight); here
      * that receiver against the plant's own mode 3, a stick held and let
      * go on each axis, every step's rates. */
-    {
+    for (const heading of [0, 1]) {
       let worst = 0;
+      must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
       for (let ax = 0; ax < 3; ax += 1) {
         const sticks = (i) => { const st = [0, 0, 0]; if (i >= T0 && i < T0 + 600) st[ax] = 0.3; return st; };
-        const p = pilotFlight(sim, V, thr, rx, null, sticks, T0 + 1500), e = pilotFlight(sim, V, thr, rx, [1, 1, 1], sticks, T0 + 1500);
+        const p = pilotFlight(sim, V, thr, rx, null, sticks, T0 + 1500);
+        const e = pilotFlight(sim, V, thr, rx, [1, 1, 1], sticks, T0 + 1500, rx.kh.map((x) => heading * x));
         p.forEach((w, i) => w.forEach((x, k) => { worst = Math.max(worst, Math.abs(x - e[i][k])); }));
       }
-      check('F0 the derivation\'s receiver flies as the plant\'s mode 3', worst < 1e-9, `worst rate difference ${worst.toExponential(1)} rad/s`);
+      must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
+      check(`F0 the derivation's receiver flies as the plant's mode 3, Heading ${heading ? 'full' : 'off'}`, worst < 1e-9, `worst rate difference ${worst.toExponential(1)} rad/s`);
     }
 
     /* F1 */
