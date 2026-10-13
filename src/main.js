@@ -7467,7 +7467,8 @@ export async function boot({
   /* Defend Itaipu for the checks (scripts/war-twopage.js --main), the same
    * three the wire module gave it: the war as this page holds it, where
    * every attacker is at a room ms, and the host's start (or 'brief', the
-   * start behind the intro's briefing) and end; and the radio link, which
+   * start behind the intro's briefing) and end, with a developer room's
+   * skip and complete (edge/rooms/war.js devOp); and the radio link, which
    * a war must leave as the preset has it. */
   window.__war = () => ({
     fx: warBooms.stats(),
@@ -7609,6 +7610,10 @@ export async function boot({
       roomWar.start(arg || WAR_MISSION, { intro: true });
     } else if (op === 'end') {
       roomWar.end();
+    } else if (op === 'skip') {
+      roomWar.skip();
+    } else if (op === 'complete') {
+      roomWar.complete(arg);
     }
     return true;
   };

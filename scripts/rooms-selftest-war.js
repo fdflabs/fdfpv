@@ -1225,4 +1225,61 @@ export function warSection(check) {
     }
     check('and nothing once the war is over or not on', ['lobby', 'won', 'lost', 'ended'].every((state) => waveStatus({ ...base, state }, m2, 3000) === null));
   }
+
+  console.log('war: developer ops (skip, complete)');
+  {
+    /* Mission 1 live in its first stage, the host hovering in it. */
+    const live = (opts) => {
+      const e = warRoom({
+        n: 2, mission: MISSIONS['itaipu-1'], air: WAR_DEFAULT, ...opts,
+      });
+      e.paths[0] = hover([0, 400, 0]);
+      e.paths[1] = hover([20, 400, 0]);
+      e.fly(COUNTDOWN_MS + 5000);
+      return e;
+    };
+    const stageOf = (e) => e.r.war.match?.stage?.id ?? null;
+    const devLog = (e) => e.r.war.log.filter((x) => x.what === 'dev');
+
+    /* A public room made for the war starts it through its lobby
+     * (gamelobby.js), which this helper does not drive: the war is
+     * started private and the room made public under it. */
+    const pub = live({ dev: true, code: 'D3VP01' });
+    pub.r.meta.public = true;
+    const pubStage = stageOf(pub);
+    pub.say(0, { type: 'war', op: 'skip' });
+    pub.say(0, { type: 'war', op: 'complete' });
+    pub.fly(pub.clock + 2000);
+    check('a public room refuses skip and complete \'public\', even on a server that starts missions in development',
+      pub.errors(0).filter((x) => x === 'public').length === 2 && pubStage === 'eyes' && stageOf(pub) === 'eyes' && devLog(pub).length === 0,
+      `${pub.errors(0).join()} stage ${pubStage} then ${stageOf(pub)}`);
+
+    /* The drill: released, so a room with no developer flag starts it. */
+    const plain = live({ code: 'D3VP02', mission: MISSIONS['itaipu-drill'] });
+    const plainStage = stageOf(plain);
+    plain.say(0, { type: 'war', op: 'skip' });
+    plain.say(0, { type: 'war', op: 'complete' });
+    check('a private room on a server with no developer missions and no developer host refuses them \'dev\'',
+      plain.errors(0).filter((x) => x === 'dev').length === 2 && plainStage !== null && stageOf(plain) === plainStage && devLog(plain).length === 0,
+      `${plain.errors(0).join()} stage ${plainStage} then ${stageOf(plain)}`);
+
+    const dev = live({ dev: true, code: 'D3VP03' });
+    check('a developer room is live in mission 1\'s first stage', dev.r.war.match.state === 'live' && stageOf(dev) === 'eyes', stageOf(dev));
+    dev.say(1, { type: 'war', op: 'skip' });
+    check('a pilot who is not the host opens nothing', stageOf(dev) === 'eyes' && devLog(dev).length === 0);
+    dev.say(0, { type: 'war', op: 'complete', objective: 'nope' });
+    check('complete naming an objective the stage lacks is refused \'objective\'', dev.errors(0).includes('objective'), dev.errors(0).join());
+    dev.say(0, { type: 'war', op: 'complete', objective: 'scout' });
+    const obj = dev.view(1).stage.objectives.find((o) => o.id === 'scout');
+    check('complete settles the objective done, and every screen\'s view says so', obj && obj.state === 'done'
+      && devLog(dev).some((x) => x.op === 'complete' && x.objective === 'scout'), JSON.stringify(obj));
+    dev.say(0, { type: 'war', op: 'skip' });
+    const left = dev.r.war.log.filter((x) => x.what === 'stage' && x.stage === 'eyes');
+    check('skip leaves the stage by its first exit that is not a loss, into its result beat', left.length === 1 && left[0].exit === 0
+      && dev.r.war.match.roundState === 'result' && dev.r.war.match.state === 'live', JSON.stringify(left));
+    dev.say(0, { type: 'war', op: 'skip' });
+    check('a skip during the result beat is refused \'off\'', dev.errors(0).includes('off'), dev.errors(0).join());
+    dev.fly(dev.clock + 16000);
+    check('and the next stage opens after the beat, as a fired exit\'s would', stageOf(dev) === 'probe' && dev.view(0).stage.id === 'probe', stageOf(dev));
+  }
 }

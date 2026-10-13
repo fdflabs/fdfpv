@@ -410,6 +410,14 @@ export function createRoomWar(send) {
     skipIntro() {
       send({ type: 'war', op: 'skipIntro' });
     },
+    /* Host only, in developer mode (edge/rooms/war.js devOp): the stage
+     * left now, or an objective of it (every one, without an id) done. */
+    skip() {
+      send({ type: 'war', op: 'skip' });
+    },
+    complete(objective = null) {
+      send({ type: 'war', op: 'complete', ...(objective ? { objective } : {}) });
+    },
     /* Any pilot: the films it has watched to the end, { id: version }
      * (the host's skip waits on everybody's, edge/rooms/war.js). */
     seen(films) {

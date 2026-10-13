@@ -214,7 +214,7 @@ export const HOOKS = [
   ['__warAt', null],
   ['__warCutaway', null],
   ['__warCutawayTest', 'plays a war cutaway cue'],
-  ['__warDo', 'the war host\'s start, briefing and end'],
+  ['__warDo', 'the war host\'s start, briefing and end, and in a developer room skip and complete'],
   ['__warFxBurst', 'sets off a swarm of explosions ahead of the camera'],
   ['__warHear', 'hands the war a message as if from the room'],
   ['__warIntro', null],
