@@ -737,7 +737,7 @@ export async function wasmBuild(bytes) {
   if (!subtle) {
     return null;
   }
-  const head = new TextEncoder().encode(`blob ${bytes.byteLength}\0`);
+  const head = new TextEncoder().encode('blob ' + bytes.byteLength + '\0');
   const all = new Uint8Array(head.length + bytes.byteLength);
   all.set(head, 0);
   all.set(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), head.length);

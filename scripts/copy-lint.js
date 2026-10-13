@@ -58,6 +58,7 @@ const EXCUSED = new Map([
   ['src/fc/dump.js', 'Betaflight CLI lines'],
   ['src/fc/catalog-data.js', 'the Betaflight value table, firmware data'],
   ['src/render/budget.js', 'a developer overlay of GPU allocations'],
+  ['src/replay/refly.js', 'a developer tool; its refusal reasons go to an Error and the replay-refly CLI, not the pilot'],
 ]);
 
 const SHAPE_OK = [
