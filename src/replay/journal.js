@@ -184,6 +184,9 @@ export function createJournal(e, opts = {}) {
    * the oldest, whose copy is `base`), and the calls made since. */
   let seg = null;
   const segs = [];
+  /* The allocator's bytes in the region (allocatorSpans), found on the
+   * first restore. */
+  let spans = null;
   let nextId = 1;
   let base = null;
   let head = null;
@@ -375,10 +378,16 @@ export function createJournal(e, opts = {}) {
       return false;
     }
     const mem = bytes();
+    /* malloc's bookkeeping is in the region too, and it is the shell's,
+     * not the plant's: written back, it would forget a block the shell
+     * made since the copy and hand it out again. It is kept as it is. */
+    spans ??= allocatorSpans(e, region);
+    const live = spans.map(([a, z]) => mem.slice(a, z));
     mem.set(base);
     for (let k = 1; k <= at; k += 1) {
       apply(mem, segs[k].delta);
     }
+    spans.forEach(([a], i) => mem.set(live[i], a));
     /* The next copy is diffed against this stretch's own, which is the
      * region as it stands now, before the calls are made again. */
     head = mem.slice();
@@ -445,6 +454,70 @@ export function createJournal(e, opts = {}) {
   return {
     exports, snapshot, mark, due, canRestore, restore, stats, setLogging, exportSpan, named, region, names,
   };
+}
+
+/*
+ * The spans of the region, [start, end) from its base, that malloc and
+ * free keep their state in (dlmalloc's malloc_state and sbrk's break, for
+ * this build). The module has no symbols, so they are found by watching:
+ * blocks of every small bin's size and of every power of two to 1 MB made
+ * and freed, every word of the region that moves marked, and marks less
+ * than 64 bytes apart joined, so a field the probe happened not to move
+ * between two that it did is inside the span. The plant never allocates
+ * (the file's head), so no plant byte moves under malloc. Every block the
+ * probe makes it frees, so the heap is left as it was found.
+ */
+export function allocatorSpans(e, region) {
+  const words = (region.hi - region.lo) >> 2;
+  const before = new Int32Array(e.memory.buffer, region.lo, words).slice();
+  const moved = new Uint8Array(words);
+  const look = () => {
+    const now = new Int32Array(e.memory.buffer, region.lo, words);
+    for (let i = 0; i < words; i += 1) {
+      if (now[i] !== before[i]) {
+        moved[i] = 1;
+      }
+    }
+  };
+  const sizes = [];
+  for (let n = 8; n <= 512; n += 8) {
+    sizes.push(n);
+  }
+  for (let n = 1024; n <= 1 << 20; n *= 2) {
+    sizes.push(n, n + 24);
+  }
+  const held = sizes.map((n) => e.malloc(n));
+  look();
+  /* Every other block back first, so the bins fill, then the rest. */
+  held.forEach((p, i) => {
+    if (i % 2 === 0) {
+      e.free(p);
+    }
+  });
+  look();
+  for (const n of sizes) {
+    e.free(e.malloc(n));
+  }
+  look();
+  held.forEach((p, i) => {
+    if (i % 2 === 1) {
+      e.free(p);
+    }
+  });
+  look();
+  const spans = [];
+  for (let i = 0; i < words; i += 1) {
+    if (!moved[i]) {
+      continue;
+    }
+    const last = spans[spans.length - 1];
+    if (last && i * 4 - last[1] < 64) {
+      last[1] = i * 4 + 4;
+    } else {
+      spans.push([i * 4, i * 4 + 4]);
+    }
+  }
+  return spans;
 }
 
 /*

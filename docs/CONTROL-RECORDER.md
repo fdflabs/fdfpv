@@ -79,7 +79,7 @@ the clip is saved; trimming keeps the whole of it and moves the rows' marks.
 `npm run replay:refly -- CLIP.fdfreplay [--wasm sim.wasm] [--every s] [--json out.json]` flies it again on a
 fresh module: the region written in, the calls made again, the plant's state block read at every row and
 hashed against the hash the row recorded, and at every journal copy the flight passes the whole region held
-to that copy byte for byte (except the 20 or so bytes malloc keeps its own state in, which are the shell's
+to that copy byte for byte (except the 460 bytes malloc keeps its own state in, which are the shell's
 heap and not the plant). It prints position, attitude, velocity and rate differences against the recording
 every `--every` seconds and at the first row that differs, then a summary: rows flown, rows bit for bit,
 where the two first part past 1 cm, 1 degree, 0.1 m/s and 10 deg/s, and the worst of each. Exit 0 only when

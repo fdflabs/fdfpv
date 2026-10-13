@@ -102,7 +102,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, Sim, SIM_OK } from '../tests/lib/simmod.js';
-import { createJournal, PURE, POINTERS } from '../src/replay/journal.js';
+import {
+  allocatorSpans, createJournal, plantRegion, PURE, POINTERS,
+} from '../src/replay/journal.js';
 import { INFO, PART_KINDS, PARTS_MAX, PART_STATE_DOUBLES, STATE, SURFACE } from '../configs/parts.js';
 import { powerBlock } from '../configs/power.js';
 import {
@@ -164,6 +166,21 @@ function check(ok, what, detail = '') {
 }
 
 const sha = (u8) => createHash('sha256').update(u8).digest('hex').slice(0, 16);
+
+/* The region's hash without malloc's bookkeeping (journal.js
+ * allocatorSpans): the shell's heap, which a take over keeps as it is
+ * rather than putting back (section 24), so it is not the plant. */
+const ALLOCATOR = await (async () => {
+  const m = await loadSim(wasmBytes);
+  return allocatorSpans(m.e, plantRegion(m.e));
+})();
+function plantSha(reg) {
+  const c = reg.slice();
+  for (const [a, z] of ALLOCATOR) {
+    c.fill(0, a, z);
+  }
+  return sha(c);
+}
 
 /* A module with the journal between it and the caller, as the shell has. */
 async function journaled(opts) {
@@ -340,7 +357,7 @@ function flyTakeOver() {
         if (freeAt < 0 && sim.e.sim_free_bodies_active() > 0) {
           freeAt = frames.length;
         }
-        frames.push({ ms, mark: j.mark(), st, parts, hash: sha(region()) });
+        frames.push({ ms, mark: j.mark(), st, parts, hash: plantSha(region()) });
       }
     }
     check(broke, 'the wing was broken off in flight');
@@ -404,7 +421,7 @@ function flyTakeOver() {
         Buffer.from(f.st.buffer, 0, f.st.byteLength)) === 0;
       const sameParts = Buffer.compare(Buffer.from(parts.buffer, parts.byteOffset, parts.byteLength),
         Buffer.from(f.parts.buffer, 0, f.parts.byteLength)) === 0;
-      const sameRegion = sha(reg) === f.hash;
+      const sameRegion = plantSha(reg) === f.hash;
       const good = ok && sameState && sameParts && sameRegion;
       identical += good ? 1 : 0;
       check(good, `frame ${i} (t ${((f.ms + 1) / 1000).toFixed(3)} s) put back`,
@@ -433,6 +450,75 @@ function flyTakeOver() {
     }
     check(identical === picks.length, 'every frame tried was put back exactly', `${identical}/${picks.length}`);
   })();
+}
+
+/* ---- 24. take over and the shell's heap ---- */
+
+/*
+ * The region a take over writes back holds malloc's own bookkeeping as
+ * well as the plant (the plant never allocates; the shell does, between
+ * two copies, for a buffer it makes on first use). Written back with the
+ * rest, the allocator forgot that buffer and handed it out again: two
+ * owners of one block. A take over must leave the allocator as it is, and
+ * still put the plant back bit for bit.
+ */
+async function allocatorTakeOver() {
+  console.log('24. take over leaves the shell\'s heap alone');
+  const { sim, j, raw } = await journaled();
+  const statePtr = sim.e.malloc(64 * 8);
+  const partsPtr = sim.e.malloc(PARTS_MAX * PART_STATE_DOUBLES * 8);
+  const eventsPtr = sim.e.malloc(64 * 16 * 8);
+  const nState = sim.e.sim_state_size();
+  j.snapshot(0);
+  setup(sim);
+  must(sim.e.sim_set_pose(0, 0, 30, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(15), 'sim_wing_launch');
+  let frame = null;
+  let lazy = 0;
+  const BYTES = 32;
+  let moved = 0;
+  let outside = 0;
+  for (let ms = 0; ms < 2500; ms += 1) {
+    stepMs(sim, ms, statePtr, partsPtr, eventsPtr);
+    const t = (ms + 1) / 1000;
+    if (ms % 16 === 15) {
+      if (j.due(t)) {
+        j.snapshot(t);
+      }
+      if (!frame && ms > 400) {
+        frame = { ms, mark: j.mark(), st: new Float64Array(raw.memory.buffer, statePtr, nState).slice() };
+      }
+    }
+    if (ms === 1700) {
+      /* A buffer made on first use, after the frame's copy, as the shell
+       * makes its wing surface and wind buffers. */
+      const was = new Uint8Array(raw.memory.buffer, j.region.lo, j.region.hi - j.region.lo).slice();
+      lazy = sim.e.malloc(BYTES);
+      const p = sim.e.malloc(7 * 8);
+      sim.e.free(p);
+      new Uint8Array(raw.memory.buffer, lazy, BYTES).fill(0xa5);
+      const now = new Uint8Array(raw.memory.buffer, j.region.lo, j.region.hi - j.region.lo);
+      for (let i = 0; i < now.length; i += 1) {
+        if (now[i] !== was[i]) {
+          moved += 1;
+          outside += ALLOCATOR.some(([a0, z0]) => i >= a0 && i < z0) ? 0 : 1;
+        }
+      }
+    }
+  }
+  check(moved > 0 && outside === 0, 'the shell\'s allocations in flight move only the allocator\'s spans',
+    `${moved} bytes moved, ${outside} outside ${ALLOCATOR.map(([a0, z0]) => `${a0}+${z0 - a0}`).join(', ')}`);
+  const ok = j.restore(frame.mark, (frame.ms + 1) / 1000);
+  sim.e.sim_state(statePtr);
+  const st = new Float64Array(raw.memory.buffer, statePtr, nState);
+  const same = st.every((x, i) => Object.is(x, frame.st[i]));
+  check(ok && same, 'the plant is put back bit for bit', `restore ${ok}, state ${same}`);
+  const next = sim.e.malloc(BYTES);
+  new Uint8Array(raw.memory.buffer, next, BYTES).fill(0x5a);
+  const apart = next + BYTES <= lazy || lazy + BYTES <= next;
+  const kept = new Uint8Array(raw.memory.buffer, lazy, BYTES).every((b) => b === 0xa5);
+  check(apart && kept, 'a block made after the frame is still the shell\'s: the next one is elsewhere',
+    `made at ${lazy}, next at ${next}, first block ${kept ? 'intact' : 'overwritten'}`);
 }
 
 /* ---- 15. a cut link and a warhead ---- */
@@ -536,7 +622,7 @@ function flyWarTakeOver() {
         mark: j.mark(),
         st: new Float64Array(raw.memory.buffer, statePtr, nState).slice(),
         parts: new Float64Array(raw.memory.buffer, partsPtr, PARTS_MAX * PART_STATE_DOUBLES).slice(),
-        hash: sha(region()),
+        hash: plantSha(region()),
       });
     });
     check((seen & RX_ACTIVE) !== 0, 'the cut link reached Betaflight\'s stage 2', `states seen 0x${seen.toString(16)}`);
@@ -570,7 +656,7 @@ function flyWarTakeOver() {
       const parts = new Float64Array(again.raw.memory.buffer, pp, PARTS_MAX * PART_STATE_DOUBLES);
       const sameState = Buffer.compare(Buffer.from(st.buffer, st.byteOffset, st.byteLength), Buffer.from(f.st.buffer, 0, f.st.byteLength)) === 0;
       const sameParts = Buffer.compare(Buffer.from(parts.buffer, parts.byteOffset, parts.byteLength), Buffer.from(f.parts.buffer, 0, f.parts.byteLength)) === 0;
-      const sameRegion = sha(reg) === f.hash;
+      const sameRegion = plantSha(reg) === f.hash;
       const good = ok && sameState && sameParts && sameRegion;
       identical += good ? 1 : 0;
       check(good, `frame ${i} (t ${((f.ms + 1) / 1000).toFixed(3)} s) put back`,
@@ -2916,6 +3002,7 @@ await pureReaders();
 await flyTakeOver();
 await flyWarTakeOver();
 await bounded();
+await allocatorTakeOver();
 
 if (failures) {
   console.log(`crashcam:selftest FAILED (${failures})`);

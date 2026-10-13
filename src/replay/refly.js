@@ -56,7 +56,7 @@
  */
 
 import { HEAD, HEAD_N, stateHash } from './recorder.js';
-import { playCalls, plantRegion } from './journal.js';
+import { allocatorSpans, playCalls, plantRegion } from './journal.js';
 
 const PAGE = 4096;
 /* What a file may claim, checked before anything is allocated: the
@@ -304,38 +304,6 @@ function applyDelta(target, delta, size) {
 }
 
 /*
- * The bytes of the region malloc and free keep their own state in, found
- * by allocating and freeing on `e` across the sizes and marking every byte
- * that moved. The plant never allocates (src/replay/journal.js), so these
- * are not the plant: they are the shell's heap, which the shell changes
- * between two copies with no call the journal sees (a buffer made on the
- * first frame, say). A copy is held to the re-fly's region without them.
- */
-function allocatorBytes(e, region) {
-  const size = region.hi - region.lo;
-  const before = new Uint8Array(e.memory.buffer, region.lo, size).slice();
-  const mask = new Uint8Array(size);
-  const look = () => {
-    const now = new Uint8Array(e.memory.buffer, region.lo, size);
-    for (let i = 0; i < size; i += 1) {
-      if (now[i] !== before[i]) {
-        mask[i] = 1;
-      }
-    }
-  };
-  const held = [];
-  for (let n = 8; n <= 1 << 22; n *= 2) {
-    held.push(e.malloc(n), e.malloc(n + 3));
-    look();
-  }
-  for (const p of held.reverse()) {
-    e.free(p);
-    look();
-  }
-  return mask;
-}
-
-/*
  * Fly an unpacked refly again on `e`, a fresh module's exports straight
  * from the instance (nothing allocated from it yet), which the caller has
  * already found to be the clip's build. Every row that can be flown back
@@ -362,7 +330,14 @@ export function reflyRun(e, clip, refly, opts = {}) {
     throw new Error(`the module has no ${missing.join(', ')}: not the clip's build`);
   }
   const fns = refly.names.map((nm) => e[nm]);
-  const allocator = allocatorBytes(e, region);
+  /* malloc's bookkeeping (journal.js allocatorSpans) is the shell's heap,
+   * not the plant: it is left as this module has it when a copy is written,
+   * so the blocks below stay this run's, and left out when the region is
+   * held to a copy, since the recording's shell allocated between copies
+   * with no call the journal sees. */
+  const spans = allocatorSpans(e, region);
+  const allocator = new Uint8Array(region.hi - region.lo);
+  spans.forEach(([a, z]) => allocator.fill(1, a, z));
   const scratch = e.malloc(1 << 16);
   const nState = e.sim_state_size();
   const statePtr = e.malloc(nState * 8);
@@ -390,7 +365,10 @@ export function reflyRun(e, clip, refly, opts = {}) {
   let argvs = null;
   let seeds = 0;
   function seed(k) {
-    mem().set(copyAt(k));
+    const m = mem();
+    const live = spans.map(([a, z]) => m.slice(a, z));
+    m.set(copyAt(k));
+    spans.forEach(([a], i) => m.set(live[i], a));
     seg = k;
     pos = 0;
     argvs = refly.names.map(() => []);
