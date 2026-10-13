@@ -3025,8 +3025,28 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       fa = (ye * ye - y0 * y0) / (y1 * y1 - y0 * y0);
     }
     /* The crossflows: over the stabiliser from its zero lift, V sin(alpha
-     * - a0) in the body's velocities; over the fin, the sideways speed. */
-    const double xa = -w * sim_cos_small(fw->slip_a0) - u * sim_sin_small(fw->slip_a0);
+     * - a0) in the body's velocities; over the fin, the sideways speed.
+     * Where the table has the jet normal force (jet_kj, below), the disc
+     * has already taken that force's share of the air's sideways momentum:
+     * N_j is the momentum drag, the mass flow times the crossflow it turns
+     * onto the axis (Selig, AIAA 2010-7938, eqs. 13 to 16), so the air
+     * through the disc leaves with 1 - N_j / (mdot V_T) of its crossflow
+     * against the body, and the surfaces in the wash meet that, not the
+     * whole of it, or the same momentum is spent twice. The share is the
+     * jet's own k over the disc's mass flow, rho pi R^2 (u + v_i): jet_kj
+     * hanging still, nothing with way on. It is the body's sideways and
+     * normal speeds only; the rates' own crossflow at the tail is the
+     * cn_r and cm_q terms'. Taking the whole of it, a hover drifting
+     * sideways turns its nose into the drift on the fin in the wash, and
+     * the Extra's rudder tilt per stick sits flat at 0.55 to 0.70 from 1
+     * to 4 rad/s (scripts/figures-margins.js, the hover). */
+    double turned = 0.0;
+    if (fw->jet_kj > 0.0) {
+      const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * WING_PI * fw->slip_r * fw->slip_r));
+      turned = fw->jet_kj * w0 * vi / ((u_pos + vi) * (u_pos + vi));
+    }
+    const double v_wash = v * (1.0 - turned), w_wash = w * (1.0 - turned);
+    const double xa = -w_wash * sim_cos_small(fw->slip_a0) - u * sim_sin_small(fw->slip_a0);
     /* The swirl: the prop's torque, torque_arm times the thrust, is the
      * wash's angular momentum flux, the mass flow rho pi R^2 (u + v_i)
      * turning as a solid body at Omega, Q = mdot Omega rw^2 / 2. Every prop
@@ -3066,7 +3086,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       keep = 1.0 - root / q_prop;
     }
     const double xs = (1.0 - fw->slip_loss[2] * lam) * keep * q_prop * (up - dn) / (mdot * rw * rw);
-    const double xb = add_term(-v, -xs);
+    const double xb = add_term(-v_wash, -xs);
     /* The fin's force from its crossflow takes rho v_i, the wash's excess
      * over the free stream, whose own fin terms take the body's sideslip;
      * but nothing outside the wash blows the swirl, so the swirl's
@@ -3075,7 +3095,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * Selig's J 0.52 (fig. 22b, 3.7 to 4.2 times rho v_i's measured, flat
      * with distance) the whole stream's is 4.3 times. The fin's angle in
      * the wash, which saturates it, stays the swirl's own speed. */
-    const double xbf = add_term(-v, -xs * (u_pos + 2.0 * vi) / (2.0 * vi));
+    const double xbf = add_term(-v_wash, -xs * (u_pos + 2.0 * vi) / (2.0 * vi));
     /* A control surface in the wash loses its effect past about 30 deg of
      * the airframe's angle, though the wash still runs along it, by how
      * much as it is deflected (scripts/lib/washcontrol.js, its sources,
@@ -6158,8 +6178,8 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0134, 0.0671, 0.0537 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0847, 3.2812, 2.8431 }, /* npm run as3x:derive */
-  .as3x_rate = { 8.817, -4.054, -4.931 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.083, 2.9395, 0.0808 }, /* npm run as3x:derive */
+  .as3x_rate = { 8.817, -4.146, -5.208 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -6618,9 +6638,9 @@ const FixedWingParams FW_CAP1702 = {
   .jet_kj = 0.80,
   .prop_x = 0.560, /* npm run cap580:derive */
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
-  .as3x_k = { 0.0039, 0.0219, 0.0637 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.089, 0.0754, 0.5733 }, /* npm run as3x:derive */
-  .as3x_rate = { 9.329, -5.053, -2.881 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0039, 0.0203, 0.0637 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3267, 0.2106, 0.734 }, /* npm run as3x:derive */
+  .as3x_rate = { 9.329, -5.054, -3.074 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */
@@ -6784,9 +6804,9 @@ const FixedWingParams FW_SLICK2680 = {
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.006, 0.0301, 0.0583 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0396, 0.3453, 0.4212 }, /* npm run as3x:derive */
-  .as3x_rate = { 5.809, -4.08, -3.111 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0111, 0.0074, 0.1082 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.1847, 0.1626, 0.5271 }, /* npm run as3x:derive */
+  .as3x_rate = { 5.809, -4.432, -3.303 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to

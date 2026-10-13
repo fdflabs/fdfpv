@@ -46,44 +46,44 @@ export const SURFACE_STATS = {
       {
         "full": 348,
         "fifth": 72.2,
-        "kept": 0.879
+        "kept": 0.876
       },
       {
         "full": 374,
         "fifth": 80.1,
-        "kept": 0.825
+        "kept": 0.821
       },
       {
         "full": 394,
-        "fifth": 87.8,
-        "kept": 0.778
+        "fifth": 87.9,
+        "kept": 0.769
       },
       {
         "full": 409,
-        "fifth": 95.7,
-        "kept": 0.72
+        "fifth": 95.8,
+        "kept": 0.707
       }
     ],
     "r": [
       {
-        "full": 320,
+        "full": 321,
         "fifth": 52.8,
-        "kept": 0.561
+        "kept": 0.445
       },
       {
-        "full": 320,
+        "full": 321,
         "fifth": 52.8,
-        "kept": 0.561
+        "kept": 0.445
       },
       {
-        "full": 320,
+        "full": 321,
         "fifth": 52.8,
-        "kept": 0.561
+        "kept": 0.445
       },
       {
-        "full": 320,
+        "full": 321,
         "fifth": 52.8,
-        "kept": 0.561
+        "kept": 0.445
       }
     ]
   },
@@ -182,44 +182,44 @@ export const SURFACE_STATS = {
       {
         "full": 281,
         "fifth": 55.6,
-        "kept": 0.759
+        "kept": 0.756
       },
       {
         "full": 301,
         "fifth": 61.1,
-        "kept": 0.73
+        "kept": 0.726
       },
       {
         "full": 305,
         "fifth": 62.6,
-        "kept": 0.71
+        "kept": 0.706
       },
       {
         "full": 308,
         "fifth": 64.1,
-        "kept": 0.692
+        "kept": 0.687
       }
     ],
     "r": [
       {
-        "full": 158,
+        "full": 159,
         "fifth": 21.9,
-        "kept": 0.852
+        "kept": 0.85
       },
       {
         "full": 213,
         "fifth": 22.4,
-        "kept": 0.799
+        "kept": 0.796
       },
       {
         "full": 222,
         "fifth": 23.4,
-        "kept": 0.761
+        "kept": 0.756
       },
       {
         "full": 231,
         "fifth": 24.5,
-        "kept": 0.721
+        "kept": 0.713
       }
     ]
   },

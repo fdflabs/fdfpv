@@ -536,25 +536,28 @@ export async function knifeLoopPath() {
  * nose's tilt about the body pitch axis on the elevator and about the yaw
  * axis on the rudder, the roll rate on the ailerons, the climb rate on the
  * throttle. Holding the swept flight on the person's own loops instead
- * (their 0.2 s, at HOVER's gains) moves the response by a few per cent:
- * the Extra's rudder 0.72 at -103 deg at 2.4 rad/s against 0.70 at -105,
- * 2026-10-12. A looser hold with no delay lets the flight wander off the
- * hover under the sweep, and its grid jumps, as yawPoint rejects.
+ * (their 0.2 s, at HOVER's gains) moved the response by a few per cent
+ * on the plant of 2026-10-12: the Extra's rudder 0.72 at -103 deg at 2.4
+ * rad/s against 0.70 at -105. A looser hold with no delay lets the
+ * flight wander off the hover under the sweep, and its grid jumps, as
+ * yawPoint rejects.
  *
  * The design is crossoverFor's, the bandwidth criterion's 45 deg and 6 dB
  * on the loop as flown (personLoop's gain, its trim's integral cornered at
  * a quarter of the crossover, the 0.25 s of delay and hold), the highest
  * crossover from 0.8 to 4 rad/s whose loop keeps them and above it never
  * comes back to unity, nor past half beyond -180 deg. The rate loops are
- * flown on a gain. The tilt is a double integrator below 0.6 rad/s, where
- * crossoverFor's check reads its -180 deg as the wrong sense, and from 0.8
- * to 4 rad/s 105 to 156 deg behind, so a gain keeps under 35 deg: the
- * person adds lead (s), from 0 to 0.5 by 0.05, the plant flown being the
- * tilt plus lead times its rate. Where no crossover and lead keep the
- * criterion, the design is the one with the most gain margin at 45 deg of
- * phase (or, where none reaches 45 deg, the most phase), flown and marked
- * short. torque: the roll rate hanging still with
- * the ailerons let go, the mean over 3 to 6 s, E8's.
+ * flown on a gain. The tilt hangs on the hover's own swing below about 1.5
+ * rad/s (the drift the tilt starts, which the jet's force at the disc
+ * turns back), and from 2 to 4 rad/s it is 113 to 148 deg behind, so on a
+ * gain alone the crossover stays at 0.8 to 1.4 rad/s, or short of the
+ * criterion on the CAP's rudder and the Slick: the person adds lead (s),
+ * from 0 to 0.5 by 0.05, the plant flown being the tilt plus lead times
+ * its rate. Where no crossover and lead keep the criterion, the design
+ * is the one with the most gain margin at 45 deg of phase (or, where none
+ * reaches 45 deg, the most phase), flown and marked short. torque: the
+ * roll rate hanging still with the ailerons let go, the mean over 3 to 6
+ * s, E8's.
  */
 const HOVER_LEADS = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
 const PERSON_TAU = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
