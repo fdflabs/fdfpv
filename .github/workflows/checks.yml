@@ -606,6 +606,10 @@ jobs:
       # A hangar that's yours: two pilots' own rooms from their own data,
       # and a level up growing one (docs/HANGAR-ROOM.md).
       - run: npm run foot:mine
+      # The hangar's Surfaces tab on the Cub: the tiers pressed, saved,
+      # seated in the plant and shown in the rates (scripts/surfaces-hangar-check.js).
+      # Outside CI its H6 went red when the tier block grew to nine doubles.
+      - run: npm run surfaces:hangar
       # Every menu screen of the real shell: reachable rows, the baseline's
       # overflow ratchet, stable row ids, the pad's menu switch
       # (scripts/shell-check.js). Outside CI it sat red for five days of
