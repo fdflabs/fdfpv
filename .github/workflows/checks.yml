@@ -480,10 +480,11 @@ jobs:
       # 126 s locally. On the lightest shard by measured time (shard-3,
       # about 24 minutes of steps before these two, 2026-10-13).
       - run: npm run lint:devices
-      # Home's hubs, Flight Club's six cards, the room cards' lobbies, the
-      # rooms panel and the update bar at six sizes, and page H in Spanish
-      # (scripts/mode-cards-check.js). 384 s locally.
-      - run: npm run modes:card
+      # modes:card (home's hubs, the six cards, the lobbies, page H in
+      # Spanish) stays a local check: 384 s on 20 cores here, but on the
+      # 2-core runner it ran past 45 min on release/2026-10-13d (its rooms
+      # server plus AI fill never read calm), so the lead and the lanes run
+      # it before a release instead (2026-10-13).
 
   shard-4:
     runs-on: ubuntu-latest
