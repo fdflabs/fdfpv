@@ -15,9 +15,11 @@
  *   1. storage is written on the old origin: a few of the game's keys,
  *      a server override that must not go, another page's key that must
  *      not go, and a 1.2 MB key that makes the pack three parts;
- *   2. the domain is opened at /?map=swiss2 with nothing stored: it goes to
- *      the sender, comes back a part at a time, and boots with the guest's
- *      storage, at the address it was opened at, with no fragment;
+ *   2. the domain is opened at /?map=swiss2 with nothing stored: the beta's
+ *      front door (landing.html) is shown first with the query kept, as
+ *      for every visitor with no account; Enter goes in, and the game goes
+ *      to the sender, comes back a part at a time, and boots with the
+ *      guest's storage, at the address it was opened at, with no fragment;
  *   3. opened again: no bounce;
  *   4. a link carrying a pack nobody asked for: ignored, fragment gone.
  *
@@ -168,6 +170,13 @@ try {
 
   console.log('2. the domain, first visit');
   await go(`https://${DOMAIN}/?map=swiss2`);
+  /* The front door since a7ac91b9a: no account in this browser, so
+   * index.html sends the tab to landing.html before anything loads, and the
+   * move runs once Enter brings it back. */
+  await page.until(`location.pathname === '/landing.html' && /map=swiss2/.test(document.getElementById('enter') && document.getElementById('enter').getAttribute('href') || '')`, 60000);
+  check('a first visit is shown the front door, its query kept', await page.evaluate("location.search === '?map=swiss2' && document.getElementById('enter').getAttribute('href') === './?map=swiss2'"));
+  check('nothing was moved before Enter', hits.move === 0, String(hits.move));
+  await page.evaluate("document.getElementById('enter').click(), true");
   await page.until(`location.hostname === '${DOMAIN}' && !location.hash && document.getElementById('pdcs-loader') && document.getElementById('pdcs-loader').hidden`, LOAD_MS);
   const got = JSON.parse(await page.evaluate(`JSON.stringify({
     href: location.href,
