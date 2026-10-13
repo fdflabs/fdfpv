@@ -55,6 +55,7 @@
  */
 
 import { MOTORS, hasMotors, motorChoice } from './motors.js';
+import { AIRCRAFT } from './aircraft.js';
 
 /* sim_abi.h's SIM_POWER_* layout. */
 export const SIM_POWER = {
@@ -148,73 +149,33 @@ const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.za
  * with; a tank's mass here is its fuel's, full. */
 const FUEL_G_CC = 0.875;
 
+/* Each aircraft's row is its folder's power.table (aircraft/<id>/aircraft.js);
+ * wing1000, retired, has no folder and keeps its row here. */
 export const TABLE = {
   wing1000: { simId: 2, massKg: 0.65, cells: 4, rCell: 0.012, propIn: 6, cruiseMs: 15, flightTime: null },
-  sky1800: {
-    simId: 3, massKg: 2.10, cells: 4, rCell: 0.008, propIn: 11, cruiseMs: 15,
-    flightTime: { kind: 'atLeast', minutesLow: 10, minutesHigh: 10, note: "Model Aviation's review, 'flights lasting 10 minutes and longer', 4S 5000 at 2.10 kg", source: 'https://www.modelaviation.com/skyhunter' },
-  },
-  cub1400: {
-    simId: 4, massKg: 1.32, cells: 3, rCell: 0.012, propIn: 11, cruiseMs: 12,
-    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 6, note: "FMS: a 4 minute first timer, 'approx. flying duration 6min', 3S 2200", source: 'https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp' },
-  },
-  cub1400f: {
-    simId: 10, massKg: 1.532, cells: 3, rCell: 0.012, propIn: 11, cruiseMs: 12,
-    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 6, note: 'FMS, as the Cub on wheels', source: 'https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp' },
-  },
-  radian2000: { simId: 6, massKg: 0.98, cells: 3, rCell: 0.015, propIn: 9.75, cruiseMs: 7.7, flightTime: null },
-  bramor2300: {
-    simId: 8, massKg: 4.5, cells: 6, rCell: 0.010, propIn: 12, cruiseMs: 16,
-    flightTime: { kind: 'cruise', minutesLow: 180, minutesHigh: 180, end: 'cut', note: "C-Astral, 'up to 3 h' at 16 m/s on LiPo; the pack's capacity is derived from it, so this is a consistency check", source: 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye' },
-  },
-  slowstick1180: { simId: 5, massKg: 0.42, cells: 2, rCell: 0.030, propIn: 11, cruiseMs: 5.5, flightTime: null },
-  timber1500: {
-    simId: 7, massKg: 1.70, cells: 4, rCell: 0.008, propIn: 11, cruiseMs: 13,
-    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 7, note: "E-flite's manual timers, 4 min first flights and 7 min, on the 4S 3200; Model Aviation flew 5 to 8", source: TIMBER_MANUAL },
-  },
-  timber1500f: {
-    simId: 9, massKg: 1.934, cells: 4, rCell: 0.008, propIn: 11, cruiseMs: 13,
-    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 7, note: 'E-flite, as the Timber on wheels', source: TIMBER_MANUAL },
-  },
-  bombshell1118: { simId: 11, massKg: 0.5599, cells: 3, rCell: 0.030, propIn: 7, cruiseMs: 8, flightTime: null },
+  sky1800: AIRCRAFT.TABLE.sky1800,
+  cub1400: AIRCRAFT.TABLE.cub1400,
+  cub1400f: AIRCRAFT.TABLE.cub1400f,
+  radian2000: AIRCRAFT.TABLE.radian2000,
+  bramor2300: AIRCRAFT.TABLE.bramor2300,
+  slowstick1180: AIRCRAFT.TABLE.slowstick1180,
+  timber1500: AIRCRAFT.TABLE.timber1500,
+  timber1500f: AIRCRAFT.TABLE.timber1500f,
+  bombshell1118: AIRCRAFT.TABLE.bombshell1118,
   /* No motor and no POWER entry: the NRJ's plant table, its 1S receiver
    * pack, and its best glide for a cruise (docs/DLG-STAGE1.md). */
-  nrj1490: { simId: 21, massKg: 0.213, cells: 1, rCell: 0.10, propIn: 0, cruiseMs: 5.14, flightTime: null },
-  f16878: {
-    simId: 16, massKg: 2.116, cells: 6, rCell: 0.006, propIn: 69 / 25.4, cruiseMs: 20,
-    flightTime: { kind: 'mixed', minutesLow: 4, minutesHigh: 4, note: "Model Aviation's review of the V2 6S Pro on a 6S 4000, flown as a jet is: 'Flight duration: 4 minutes'", source: 'https://www.modelaviation.com/freewing-f-16' },
-  },
-  kadet1981: {
-    simId: 12, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 10,
-    flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
-  },
-  uglystik1567: { simId: 19, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 17.33, flightTime: null },
-  tigermoth1803: { simId: 23, massKg: 4.6493, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 14.41, flightTime: null },
-  nighttimber1200: {
-    simId: 30, massKg: 1.698, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 13,
-    flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 4, note: "E-flite's manual timer, '4 minutes' on the 4S 2200", source: NIGHTTIMBER_MANUAL },
-  },
-  extra3d1308: {
-    simId: 29, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
-    flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
-  },
-  hercules3077: {
-    simId: 31, massKg: 6.728, cells: 3, rCell: 0.0015, propIn: 12, cruiseMs: 15.46,
-    flightTime: null,
-  },  cap1702: {
-    simId: 32, massKg: 3.6287, cells: 6, rCell: 0.00346, propIn: 18, cruiseMs: 18,
-    flightTime: null,
-  },
-
-  slick2680: {
-    simId: 33, massKg: 12.474, cells: 2, rCell: 0.030, propIn: 28, cruiseMs: 22,
-    flightTime: null,
-  },
-  p51d1450: {
-    simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
-    flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
-  },
-  zagi1219: { simId: 17, massKg: 0.7229, cells: 3, rCell: 0.008, propIn: 5, cruiseMs: 10.3, flightTime: null },
+  nrj1490: AIRCRAFT.TABLE.nrj1490,
+  f16878: AIRCRAFT.TABLE.f16878,
+  kadet1981: AIRCRAFT.TABLE.kadet1981,
+  uglystik1567: AIRCRAFT.TABLE.uglystik1567,
+  tigermoth1803: AIRCRAFT.TABLE.tigermoth1803,
+  nighttimber1200: AIRCRAFT.TABLE.nighttimber1200,
+  extra3d1308: AIRCRAFT.TABLE.extra3d1308,
+  hercules3077: AIRCRAFT.TABLE.hercules3077,
+  cap1702: AIRCRAFT.TABLE.cap1702,
+  slick2680: AIRCRAFT.TABLE.slick2680,
+  p51d1450: AIRCRAFT.TABLE.p51d1450,
+  zagi1219: AIRCRAFT.TABLE.zagi1219,
 };
 
 /* ------------------------------------------------------------------ */
