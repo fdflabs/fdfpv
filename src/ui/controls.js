@@ -1,5 +1,6 @@
 /*
- * controls.js: Settings > Controls, where a pilot moves a flight key or
+ * controls.js: Keys and buttons, under the Hangar's Controller screen
+ * (src/ui/controller.js), where a pilot moves a flight key or
  * pad button. The actions are src/input/actions.js; the rules (what may be
  * bound, clashes, per aircraft) are src/input/keybinds.js and padbinds.js;
  * this is the screen's rows, its press to bind and its word on a refusal.

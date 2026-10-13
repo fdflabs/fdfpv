@@ -22,7 +22,9 @@
   "(min-width: 900px)": true,
   "(orientation: portrait)": false,
   "(pointer: coarse)": false,
-  "(prefers-reduced-motion: reduce)": false
+  "(prefers-reduced-motion: reduce)": false,
+  "(max-width: 860px) and (min-height: 521px)": false,
+  "(min-width: 861px) and (min-height: 821px)": true
  },
  "states": {
   "banner-edge": "5b060536cd21c9ee64bbd65a",
@@ -253,11 +255,11 @@
   "gate-home-rooms:focus:.gate-card": "3626a819ebd2b2d4dc9c9a24",
   "gate-home-rooms:focus:.gate-link": "32fb62ddb1d0c6e461643e80",
   "gate-home-rooms:hover:.gate-link": "32fb62ddb1d0c6e461643e80",
-  "gate-hub-club": "142127aadceda66dc591b7f6",
-  "gate-hub-club-rooms": "c7ed155d221a87dc5856ce8a",
-  "gate-hub-club-rooms:focus:.gate-card": "267fa448820022e11b4946cb",
+  "gate-hub-club": "2d79230253c6c6e89a1256ab",
+  "gate-hub-club-rooms": "1d5d0731baca3b9f2343e747",
+  "gate-hub-club-rooms:focus:.gate-card": "466bed96f5c084e6abcc4cb8",
   "gate-hub-club-rooms:focus:.gate-room": "1353137fb65b704008ac4607",
-  "gate-hub-club:focus:.gate-card": "9f26313950aa2c10218f15f8",
+  "gate-hub-club:focus:.gate-card": "aaf8c457ec7c4f72a196d5c1",
   "gate-hub-hangar": "a141f426b453c4c6e87b7909",
   "gate-hub-hangar:focus:.gate-card": "3e54bafdeb903dd26e067115",
   "gate-hub-ops": "0d4a8d4ca1cbd88b19562497",

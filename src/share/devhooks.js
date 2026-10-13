@@ -10,7 +10,8 @@
  * instead of window, so on a public host it lands in an object nothing
  * can reach.
  *
- * HOOKS is the index: every hook src defines, with what it changes, or
+ * HOOKS is the index: every hook src defines (and __showSticks, the one
+ * src reads that a check sets), with what it changes, or
  * null for one that only reads and stays on window. `npm run lint:shell`
  * fails a hook missing from it, a hook assigned to the wrong one of the
  * two, and a page on a public host that shows a gated hook, so a new
@@ -33,13 +34,20 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* The same three as src/maps/itaipu.js LOCAL_HOSTS (where the map's data
- * is served from this checkout); URL.hostname keeps IPv6's brackets. */
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+/* A developer's own machine, by the page's hostname: the one rule for
+ * developer mode, the Itaipu map's local data (src/maps/itaipu.js) and
+ * index.html's front door, which runs before any module and keeps a copy
+ * (lint:shell fails the two apart). Whole names only, so
+ * localhost.example.org is public; URL.hostname keeps IPv6's brackets. */
+export const LOCAL_HOST = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/;
+
+export function isLocalHost(hostname) {
+  return LOCAL_HOST.test(hostname);
+}
 
 /* Whether a page at `loc` (a Location or URL) is in developer mode. */
 export function devOpen(loc) {
-  return new URLSearchParams(loc.search).get('dev') === '1' || LOCAL_HOSTS.has(loc.hostname);
+  return new URLSearchParams(loc.search).get('dev') === '1' || isLocalHost(loc.hostname);
 }
 
 /* Read once, as the module loads: the shell rewrites its own query later
@@ -58,6 +66,7 @@ export const HOOKS = [
   ['__aids', null],
   ['__aimProbe', null],
   ['__air', null],
+  ['__airFlown', null],
   ['__animMs', null],
   ['__animTo', 'runs the map\'s animation clock to a step'],
   ['__attract', null],
@@ -194,6 +203,7 @@ export const HOOKS = [
   ['__setMap', 'loads a world as ?map= would'],
   ['__setTune', 'switches the tune'],
   ['__shellReady', null],
+  ['__showSticks', 'set by a check: shows the stick overlay whatever flies (read through devHooks)'],
   ['__stepTrace', null],
   ['__stick', 'holds the sticks at the given channels'],
   ['__stickPath', null],
@@ -214,6 +224,7 @@ export const HOOKS = [
   ['__warAt', null],
   ['__warCutaway', null],
   ['__warCutawayTest', 'plays a war cutaway cue'],
+  ['__warDebug', 'draws the attackers\' debug overlay (true, false); with no argument reads what it drew'],
   ['__warDo', 'the war host\'s start, briefing and end, and in a developer room skip and complete'],
   ['__warFxBurst', 'sets off a swarm of explosions ahead of the camera'],
   ['__warHear', 'hands the war a message as if from the room'],

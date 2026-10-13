@@ -210,9 +210,10 @@ async function whoIsOn(request, env) {
 /*
  * The account a session token is, as the accounts server (tracks-api/
  * accounts.js, GET /api/account at env.ACCOUNTS_ORIGIN) answers for it:
- * { callsign, account }, callsign normalised or null for an account with
- * none yet, account its positive integer id or null (an accounts server
- * from before ids). null for no session, one of the wrong shape, or one
+ * { callsign, account, blocks }, callsign normalised or null for an
+ * account with none yet, account its positive integer id or null (an
+ * accounts server from before ids), blocks the ids of the accounts it
+ * blocked ([] from an accounts server from before blocks). null for no session, one of the wrong shape, or one
  * the accounts server does not know (401). Throws when the accounts
  * server is down, failing, or slower than ACCOUNT_WAIT_MS, which a caller
  * must not read as either answer. address is the pilot's, sent as the
@@ -242,6 +243,7 @@ export async function sessionAccount(session, env, address) {
   return {
     callsign: normaliseName(body && body.callsign) || null,
     account: body && Number.isInteger(body.id) && body.id > 0 ? body.id : null,
+    blocks: body && Array.isArray(body.blocks) ? body.blocks.filter((id) => Number.isInteger(id) && id > 0) : [],
   };
 }
 

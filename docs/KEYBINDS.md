@@ -1,12 +1,15 @@
 # Key remapping (OPS #3)
 
-Contract for Settings > Controls, 2026-10-08. Builds on
+Contract for Keys and buttons (called Settings > Controls until
+2026-10-13, when it moved under the Hangar's Controller screen, redesign
+phase 7), 2026-10-08. Builds on
 docs/redesign/COMPLETENESS.md items 20 (input abstraction) and 40
 (accessibility: remapping).
 
 ## What the pilot sees
 
-Settings has a Controls row (under the sticks). It opens a page listing
+The Controller screen (Hangar, Controller; or Settings, Controller) has a
+Keys and buttons row. It opens a page listing
 every flight action with its key: Reset (R), Unstick (X), Flip over, hold
 (T), Launch or launch control (L), Parachute (P), Flaps (F), Landing gear
 (G), Smoke (O), Change view (C). Press a row (Enter or a click), then the

@@ -323,6 +323,9 @@ export class Progress {
 
   endLesson() {
     this.lesson = null;
+    if (this.onLessonEnd) {
+      this.onLessonEnd();
+    }
   }
 
   /* The visual aid the lesson in flight draws, or null. */

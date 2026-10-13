@@ -43,6 +43,39 @@ export const FLIGHT_CHANNELS = ['roll', 'pitch', 'yaw', 'throttle'];
  * hair off its calibrated centre does not creep. */
 const DEADBAND = 0.012;
 
+/*
+ * The pilot's feel for one device, kept with its calibration
+ * (stickstore.js): a dead zone and an expo, both in percent, on roll,
+ * pitch and yaw only. The dead zone is on top of DEADBAND, for a worn
+ * stick that rests further off centre, and the travel past it is scaled
+ * back to full, so the stick does not jump from zero. The expo is the
+ * mouse's curve (mouse.js), for a thumb stick; a radio has its own.
+ * Both off is exactly the reading as it was.
+ */
+export const DEAD_ZONES = [0, 2, 4, 6, 8, 10, 15];
+export const PAD_EXPOS = [0, 25, 50, 75];
+export const NO_FEEL = Object.freeze({ deadZone: 0, expo: 0 });
+
+/* Only the listed values; anything else is off. */
+export function normaliseFeel(src) {
+  const pick = (list, v) => (list.includes(v) ? v : 0);
+  return { deadZone: pick(DEAD_ZONES, src && src.deadZone), expo: pick(PAD_EXPOS, src && src.expo) };
+}
+
+/* Products and sums only: this reaches the flight controller, which must
+ * see the same numbers in every engine (CLAUDE.md, determinism). */
+function felt(v, feel) {
+  const a = v < 0 ? -v : v;
+  const dead = feel.deadZone / 100;
+  if (a <= dead) {
+    return 0;
+  }
+  const s = (a - dead) / (1 - dead);
+  const e = feel.expo / 100;
+  const out = s * (1 - e) + s * s * s * e;
+  return v < 0 ? -out : out;
+}
+
 const centred = (axis, full) => ({ axis, center: 0, full });
 const throttleOn = (axis, low, high) => ({ axis, low, high });
 
@@ -155,11 +188,12 @@ export function centredReading(raw, spec) {
 
 /*
  * The four channels a map reads off a set of axes. An axis the device does
- * not have reads 0. Reversal is applied last; a centred zero stays +0,
- * because the poll compares samples with !== and -0 would read as a change
- * on every poll.
+ * not have reads 0. The feel (dead zone, expo) shapes the three centred
+ * channels; the calibration wizard reads without one. Reversal is applied
+ * last; a centred zero stays +0, because the poll compares samples with
+ * !== and -0 would read as a change on every poll.
  */
-export function readSticks(axes, map) {
+export function readSticks(axes, map, feel = NO_FEEL) {
   const raw = (i) => (i < axes.length ? axes[i] : 0);
   const known = (spec) => Boolean(spec) && Number.isInteger(spec.axis);
   const flips = map.reverse || {};
@@ -172,7 +206,11 @@ export function readSticks(axes, map) {
     if (Math.abs(v) < DEADBAND) {
       return 0;
     }
-    return flips[ch] ? -v : v;
+    const shaped = felt(v, feel);
+    if (shaped === 0) {
+      return 0;
+    }
+    return flips[ch] ? -shaped : shaped;
   };
   let throttle = 0;
   const t = map.throttle;

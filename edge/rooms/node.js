@@ -242,13 +242,14 @@ export const DEAD_MS = 15000;
 const SIGNIN = { close: CLOSE_SIGNIN, reason: 'signin' };
 const UNREACHABLE = { close: CLOSE_ACCOUNTS, reason: 'accounts' };
 
-/* { callsign, account } to seat (account the accounts server's id for
- * the pilot, which the room reads only against DEV_ACCOUNTS), both null
- * for a guest where nothing is checked, or { close, reason } to refuse. text is the socket's first
+/* { callsign, account, blocks } to seat (account the accounts server's id
+ * for the pilot, which the room reads only against DEV_ACCOUNTS; blocks
+ * the ids it blocked, safety.js shut), null, null and [] for a guest
+ * where nothing is checked, or { close, reason } to refuse. text is the socket's first
  * message, null when that was binary. */
 export async function helloAccount(text, env, address) {
   if (!env.ACCOUNTS_ORIGIN) {
-    return { callsign: null, account: null };
+    return { callsign: null, account: null, blocks: [] };
   }
   let msg;
   try {
@@ -545,7 +546,7 @@ class Room {
           }
           return;
         }
-        this.enqueue(() => this.host.message(conn, value, account.callsign, account.account));
+        this.enqueue(() => this.host.message(conn, value, account.callsign, account.account, account.blocks));
       });
     });
     ws.on('close', (code) => {

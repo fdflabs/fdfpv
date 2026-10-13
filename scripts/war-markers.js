@@ -21,6 +21,14 @@
  *   - the overlay's cost with 60 attackers, update and paint, measured in
  *     the page over BENCH_FRAMES frames, is under COST_MS a frame
  *
+ *   - the attackers' debug overlay (src/ui/wardebug.js), off until its
+ *     developer toggle: off, its canvas is never shown and it lists
+ *     nothing; on, parked facing a contact, every live attacker is listed
+ *     with its stage, every one but a Hunter with a route ahead and a next
+ *     waypoint, the contact's route and label on the picture, and a next
+ *     waypoint that is a point of the mission's own route; off again, it
+ *     draws nothing
+ *
  * Pictures of each case go in outdir (build/war-markers by default, not
  * in the repository).
  *
@@ -48,6 +56,7 @@ import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { stagesOf } from '../src/share/war/stages.js';
 import itaipu1 from '../src/share/war/missions/itaipu-drill.js';
 /* The drill: mission 1 as this check was written against, before First
  * Light made it a story (src/share/war/missions/itaipu-drill.js). */
@@ -268,6 +277,40 @@ try {
   await frames(page, 3);
   holdsView('parked facing a contact', await markersOf(page), cam, look);
   await shot(page, '1-parked-facing-a-contact');
+
+  /* The debug overlay: off by default, on and off by its toggle. */
+  const debugOf = () => page.evaluate(`(() => {
+    const c = document.querySelector('canvas.war-debug');
+    return { ...window.__warDebug(), canvas: c ? c.style.display : 'none' };
+  })()`);
+  const debugOff = await debugOf();
+  check('the debug overlay is off until its toggle, and draws nothing', !debugOff.on && debugOff.canvas === 'none' && debugOff.attackers.length === 0,
+    `on ${debugOff.on}, canvas ${debugOff.canvas}, ${debugOff.attackers.length} listed`);
+  await page.evaluate('window.__warDebug(true)');
+  await frames(page, 3);
+  const dbg = await debugOf();
+  const liveNow = await page.evaluate('window.__warAt(window.__rooms().roomNow)');
+  const stageIds = new Set(stagesOf(itaipu1).map((st) => st.id));
+  const listed = new Set(dbg.attackers.map((a) => a.id));
+  const unrouted = dbg.attackers.filter((a) => a.kind !== 'hunter' && (a.route < 2 || !a.next));
+  const unstaged = dbg.attackers.filter((a) => !stageIds.has(a.stage));
+  check('on: every live attacker listed, each with its stage, each but a Hunter with a route ahead and a next waypoint',
+    dbg.on && dbg.canvas === 'block' && liveNow.length > 0 && liveNow.every((a) => listed.has(a.id)) && unrouted.length === 0 && unstaged.length === 0,
+    `${liveNow.length} live, ${dbg.attackers.length} listed, unrouted ${unrouted.map((a) => a.id)}, unstaged ${unstaged.map((a) => `${a.id}:${a.stage}`)}`);
+  const facing = dbg.attackers.find((a) => a.id === near.id);
+  check('on: the contact the camera faces has its route and its label on the picture', Boolean(facing && facing.routePx >= 2 && facing.labelShown),
+    JSON.stringify(facing));
+  /* The script's own read of the mission file: a leg's end is one of its
+   * route's points (the formation's offset is not applied to it). */
+  const onRoute = dbg.attackers.filter((a) => a.next && (itaipu1.routes[a.routeId] ?? []).some((q) => Math.hypot(...q.map((v, i) => v - a.next[i])) < 1));
+  check('on: a next waypoint is a point of the mission\'s own route', onRoute.length > 0,
+    dbg.attackers.map((a) => `${a.kind} ${a.id} ${a.routeId} next ${a.next ? a.next.map(Math.round).join(',') : '-'}`).join(' | '));
+  await shot(page, '1b-the-debug-overlay');
+  await page.evaluate('window.__warDebug(false)');
+  await frames(page, 3);
+  const dbgOff = await debugOf();
+  check('off again: the debug overlay draws nothing', !dbgOff.on && dbgOff.canvas === 'none' && dbgOff.attackers.length === 0,
+    `on ${dbgOff.on}, canvas ${dbgOff.canvas}, ${dbgOff.attackers.length} listed`);
 
   /* The same contact straight behind a camera 300 m off it, looking
    * away. It flies on, so the camera is re-parked on it each frame. */

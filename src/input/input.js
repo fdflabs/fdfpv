@@ -50,10 +50,12 @@ import { str } from '../strings/index.js';
 
 import { DEFAULT_STICK_MODE, normaliseStickMode } from './stickmode.js';
 import {
-  FLIGHT_CHANNELS, builtInKind, builtInMap, normaliseMap, readSticks,
+  AETR_MAP, FLIGHT_CHANNELS, builtInKind, builtInMap, normaliseFeel, normaliseMap, readSticks,
 } from './padmap.js';
-import { deviceKey } from './padprofiles.js';
-import { migrateStickStorage, loadStickMap, saveStickMap } from './stickstore.js';
+import { deviceKey, deviceKind, profileFor } from './padprofiles.js';
+import {
+  forgetStickMap, loadStickFeel, loadStickMap, migrateStickStorage, saveStickFeel, saveStickMap,
+} from './stickstore.js';
 import { KeyboardSticks } from './keyboard.js';
 import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
 import { PadRoster, connectedPads, shortPadName } from './padpick.js';
@@ -125,6 +127,8 @@ export class InputManager {
      * until one is seen. With none, nothing is saved or loaded. */
     this.mapKey = null;
     this.map = loadStickMap(null);
+    /* The device's dead zone and expo, kept beside its map. */
+    this.feel = loadStickFeel(null);
     /* Which built-in layout this.map is while nothing is saved; see
      * builtInKind. 0 is the AETR guess. */
     this.defaultMode = 0;
@@ -289,13 +293,43 @@ export class InputManager {
     }
     this.mapKey = key;
     this.map = loadStickMap(key);
+    this.feel = loadStickFeel(key);
     this.defaultMode = 0;
     this.guess.forget();
     this.forgetAxisResolution();
   }
 
   readGamepad(gp, map = this.map) {
-    return readSticks(gp.axes, map);
+    return readSticks(gp.axes, map, this.feel);
+  }
+
+  /* A change to the device's feel, flying at once. False when there is no
+   * device to keep it for, or storage refused it (it flies this visit). */
+  setFeel(patch) {
+    if (!this.mapKey) {
+      return false;
+    }
+    this.feel = normaliseFeel({ ...this.feel, ...patch });
+    return saveStickFeel(this.mapKey, this.feel);
+  }
+
+  /*
+   * The device's calibration dropped: it flies the layout its profile
+   * vouches for (padprofiles.js), following the stick mode, or the AETR
+   * guess. Its feel stays. False with nothing calibrated to drop.
+   */
+  useBuiltInMap() {
+    const gp = this.firstGamepad();
+    if (!gp || !this.map.stored) {
+      return false;
+    }
+    forgetStickMap(this.mapKey);
+    this.map = normaliseMap({ ...AETR_MAP, stored: false });
+    this.defaultMode = 0;
+    this.guess.forget();
+    this.forgetAxisResolution();
+    this.followDefaultMap(gp);
+    return true;
   }
 
   /* Trusted for the menus too: the pilot's own map, or the guess once its
@@ -437,6 +471,9 @@ export class InputManager {
       mapUsable: this.mapUsable(),
       guessNoYaw: this.guess.noYaw,
       mapKnown: this.mapKnown(),
+      device: deviceKind(gp),
+      profile: gp ? profileFor(gp).key : null,
+      feel: { ...this.feel },
     };
   }
 

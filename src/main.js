@@ -62,7 +62,7 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind, lockOf } from './game/progress.js';
-import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
+import { STRIPS, applyLesson, bankOf, gateCue, glidePoints, headingOf, heldSettings, lateralG, restoreSettings } from './game/training.js';
 import { createGlidePath } from './render/glidepath.js';
 import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
@@ -174,6 +174,7 @@ import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
 import { SIZE_MAX as WAR_BOOM_MAX, createExplosions } from './render/explosion.js';
 import { createWarHud } from './ui/warhud.js';
 import { createWarMarkers } from './ui/warmarkers.js';
+import { createWarDebug } from './ui/wardebug.js';
 import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
@@ -197,7 +198,9 @@ import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
-import { checkSession, needSignIn } from './share/account.js';
+import {
+  checkSession, fetchBlocks, heldBlocks, needSignIn, setBlocked,
+} from './share/account.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
  * use and kept in this browser. See src/share/identity.js. */
@@ -700,6 +703,56 @@ export async function boot({
   input.startPolling(2);
   loading.system('input', 'ready');
   const ui = new Ui(uiRoot);
+  /*
+   * A LESSON'S SETTINGS (src/game/training.js): what the pilot's aircraft,
+   * tune, flight mode and weather were before the first lesson, held in
+   * memory and in storage, so a reload mid lesson puts them back too;
+   * restored when the lesson is left (Progress.endLesson, any other card)
+   * and here, on the load after one. Without storage the memory still
+   * restores them within the page.
+   */
+  const LESSON_RESTORE_KEY = 'fdfpv.lessonRestore';
+  let lessonHeld = null;
+  try {
+    lessonHeld = JSON.parse(localStorage.getItem(LESSON_RESTORE_KEY) || 'null');
+  } catch (e) {
+    /* Unreadable: nothing to put back. */
+  }
+  function lessonSettingValid(key, value) {
+    if (key === 'airframe') {
+      return airframeById(value).id === value;
+    }
+    if (key === 'tune') {
+      return TUNES.some((t) => t.id === value && t.airframe === ui.settings.airframe);
+    }
+    if (key === 'flightMode') {
+      return value === 'acro' || value === 'angle';
+    }
+    return WEATHER_PRESETS.includes(value);
+  }
+  function holdLessonSettings() {
+    if (lessonHeld) {
+      return;
+    }
+    lessonHeld = heldSettings(ui.settings);
+    try {
+      localStorage.setItem(LESSON_RESTORE_KEY, JSON.stringify(lessonHeld));
+    } catch (e) {
+      /* No storage: held in memory for this page. */
+    }
+  }
+  function restoreLessonSettings() {
+    if (restoreSettings(ui.settings, lessonHeld, seatAirframe, lessonSettingValid)) {
+      ui.persistSettings();
+    }
+    lessonHeld = null;
+    try {
+      localStorage.removeItem(LESSON_RESTORE_KEY);
+    } catch (e) {
+      /* No storage: nothing was kept there. */
+    }
+  }
+  restoreLessonSettings();
   /* Every model of a plane is built in the pilot's paint for it
    * (src/render/livery.js, configs/liveries.js), read from the settings as
    * they are when it is built. The boot craft, built above, is a quad. */
@@ -4149,7 +4202,16 @@ export async function boot({
   const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
-  }, () => ui.refreshFriends());
+  }, () => ui.refreshFriends(), {
+    /* A signed in peer's name is its callsign (src/share/rooms.js shownName). */
+    callsignOf: (seat) => {
+      const peer = roomPeers.get(seat);
+      return peer && typeof peer.name === 'string' ? peer.name : null;
+    },
+    held: heldBlocks,
+    fetch: fetchBlocks,
+    setBlocked,
+  });
   /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
    * turns it on in the room screen, never to a pilot muted or reported. */
   const voice = createVoice({ send: (m) => roomLinkState.send(m), isMuted: (seat) => roomSafety.isMuted(seat) });
@@ -4496,6 +4558,18 @@ export async function boot({
   };
   const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
+  /* The attackers' debug overlay (src/ui/wardebug.js), developer mode
+   * only: __warDebug(true | false) turns it on or off, __warDebug() reads
+   * what it drew. */
+  const warDebug = createWarDebug(shell.camera, shell.renderer.domElement);
+  devHooks.__warDebug = (on) => (on === undefined ? warDebug.shown() : warDebug.set(on));
+  const warSeatAt = (seat) => {
+    if (seat === roomWar.seat()) {
+      return [pCurr.x, pCurr.y, pCurr.z];
+    }
+    const peer = [...roomPeers.values()].find((x) => x.seat === seat && x.drawnPose);
+    return peer ? [peer.drawnPose.px, peer.drawnPose.py, peer.drawnPose.pz] : null;
+  };
   /* One marker an object: the Avionics HUD's boxes, by reference. */
   warMarkers.setClaims(avionicsHud.claims);
   const warCalls = createWarCalls();
@@ -4661,7 +4735,10 @@ export async function boot({
     if (roomWatching()) {
       return peer ? str('rooms.watching', { name: roomName(peer.name) }) : str('rooms.watching_none');
     }
-    return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
+    /* A mission of stages says stage, as its card and HUD do
+     * (src/ui/warround.js unit). */
+    const tail = roomWar.view()?.stage ? '_stage' : '';
+    return peer ? str(`war.out${tail}`, { name: roomName(peer.name) }) : str(`war.out_none${tail}`);
   }
 
   /* Set once the campaign screen exists (further down); the start row
@@ -5858,6 +5935,7 @@ export async function boot({
     warHud.update(null);
     warHud.drawn(false);
     warMarkers.clear();
+    warDebug.clear();
     if (warBegunId != null) {
       warFinish();
     }
@@ -6224,6 +6302,7 @@ export async function boot({
     if (replay) {
       warHud.update(null);
       warMarkers.update(null, now, events);
+      warDebug.update(null, now);
       return;
     }
     warHud.events(events);
@@ -6241,6 +6320,7 @@ export async function boot({
     const watched = warWatch();
     warMarkers.setNamed(v.sets);
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
+    warDebug.update(roomWar.live() ? roomWar.debugAt(now) : null, now, roomWar.mission(), warSeatAt);
     if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched), spilling(v.gates, now)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
@@ -7957,19 +8037,9 @@ export async function boot({
     passed: (id) => Boolean(ui.settings.progress.lessons[id]),
     fly: (lesson) => {
       const s = ui.settings;
-      const craft = lesson.airframe || s.airframe;
-      if (craft !== s.airframe) {
-        seatAirframe(s, craft);
-      }
-      if (lesson.tune) {
-        s.tune = lesson.tune;
-      }
-      if (lesson.mode) {
-        s.flightMode = lesson.mode;
-      }
-      if (lesson.weather) {
-        s.weather = lesson.weather;
-      }
+      holdLessonSettings();
+      applyLesson(s, lesson, seatAirframe);
+      const craft = s.airframe;
       ui.progress.startLesson(lesson);
       /* A lesson flown with other pilots goes in by its activity's lobby,
        * as that activity's card does with a rooms server. */
@@ -7981,6 +8051,7 @@ export async function boot({
     },
   });
   ui.onTrainingCard = () => trainingScreen.open();
+  ui.progress.onLessonEnd = restoreLessonSettings;
   devHooks.__training = trainingScreen;
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
@@ -10334,6 +10405,10 @@ export async function boot({
   /* The seated world's note, held for the next flight. See showCourseNotes. */
   let heldNotes = null;
   let padPickReturn = 'title';
+  /* The wizard hands the pilot back to the screen it was opened from:
+   * Settings, the Controller screen, or the title (the Hangar's card and
+   * the new pilot's controller question both open it from there). */
+  let calibrateReturn = 'pilot';
   /* The laps this run lasts, fixed at its start: settings.laps can change
    * from pause and must not end a run early. */
   let runLaps = ui.settings.laps;
@@ -12872,9 +12947,11 @@ export async function boot({
     }
   }
   /* Before a step: the air at the craft, on the plant's own clock. */
+  let airT = 0;
   function pushWeather(st) {
     poseFromState(st, airPos);
-    weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
+    airT = weatherT0 + st[0];
+    weather.at(airPos.x, airPos.y, airPos.z, airT, airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
     setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
@@ -12954,6 +13031,27 @@ export async function boot({
   window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
+  /* The air last handed to the plant, where and when (map frame, weather
+   * seconds), the room's clock now, and the wind the plant holds now; with
+   * a point, this run's air there instead. scripts/rooms-wind-two-page.js. */
+  window.__airFlown = (x, y, z, t) => {
+    if (!weather) {
+      return null;
+    }
+    if (t !== undefined) {
+      const out = { x: 0, z: 0, gust: 0, up: 0 };
+      weather.at(x, y, z, t, out);
+      return { x: out.x, z: out.z, gust: out.gust, up: out.up };
+    }
+    const held = sim.e.malloc(16);
+    sim.e.sim_wind(held);
+    const wind = Array.from(new Float64Array(sim.e.memory.buffer, held, 2));
+    sim.e.free(held);
+    return {
+      roomMs: roomLinkState.roomNow(), t: airT, step: stateCurr ? stateCurr[0] : null, pos: [airPos.x, airPos.y, airPos.z],
+      air: { x: airOut.x, z: airOut.z, gust: airOut.gust, up: airOut.up }, set: [airSim.x, airSim.y], wind,
+    };
+  };
   devHooks.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
     ui.settings.weather = preset;
@@ -13376,6 +13474,7 @@ export async function boot({
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
       sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
+      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr),
     });
   }
   /* The craft's speed through the air, m/s: the plant's world velocity
@@ -15353,6 +15452,12 @@ export async function boot({
   }
 
   function openPadPick(reason) {
+    /* The new pilot's question comes first, and a plugged in radio routes
+     * from it to the wizard: no picker the roster queued opens over it
+     * (src/ui/flywith.js, the lead's call, 2026-10-13). */
+    if (reason !== 'menu' && ui.screen === 'flywith') {
+      return;
+    }
     /* A name being typed owns the keyboard; input.js holds the pick until
      * the dialog closes and the frame loop asks again. */
     if (ui.nameDialog && !ui.nameDialog.hidden) {
@@ -15482,6 +15587,25 @@ export async function boot({
 
   const sayNoRadio = () => flashNotice(str('main.no_radio_or_gamepad_found_plug_2'), 3200);
 
+  /* The Controller screen's feel rows and its Built-in layout row
+   * (src/ui/controller.js): the input keeps them per device. */
+  ui.onController = (change) => {
+    if (change.builtIn) {
+      if (input.useBuiltInMap()) {
+        flashNotice(str('controller.builtin_done'), 2800);
+      }
+    } else if (!input.setFeel(change)) {
+      flashNotice(str('controller.feel_unsaved'), 5200);
+    }
+    ui.setPadInfo(input.padSummary());
+    ui.renderMenu();
+  };
+  const openCalibrate = () => {
+    if (ui.screen !== 'calibrate') {
+      calibrateReturn = ui.screen;
+    }
+    ui.show('calibrate');
+  };
   /* The calibrate screen's rows. Its frame loop branch blanks the banner
    * every frame, so the wizard's own steps say nothing here: the gimbals
    * moving under the pilot's sticks are the answer. */
@@ -15492,7 +15616,7 @@ export async function boot({
         return;
       }
       input.startCalibration();
-      ui.show('calibrate');
+      openCalibrate();
     }],
     /* The check step alone, against the saved mapping, refused the same
      * way when nothing is plugged in: a mapping with no radio behind it
@@ -15502,11 +15626,11 @@ export async function boot({
         sayNoRadio();
         return;
       }
-      ui.show('calibrate');
+      openCalibrate();
     }],
     ['calibrate-cancel', () => {
       input.cancelCalibration();
-      ui.show('pilot');
+      ui.show(calibrateReturn);
     }],
     ['calibrate-reverse', () => input.reverseMovingChannel()],
     /* Settings owns the stick mode (ui.cycleStickMode writes it and
@@ -15518,7 +15642,7 @@ export async function boot({
       if (!input.acceptCalibration()) {
         return;
       }
-      ui.show('pilot');
+      ui.show(calibrateReturn);
       /* What storage did, not that the wizard ended: a private window or
        * a full quota keeps the mapping for this page only (saveMap). */
       const kept = input.calResult !== 'saved-unstored';
@@ -17735,7 +17859,7 @@ export async function boot({
     if (rcPending.length > 1024) {
       rcPending.splice(0, rcPending.length - 256);
     }
-    /* Settings > Controls waiting for a pad button takes the pad first. */
+    /* Keys and buttons waiting for a pad button takes the pad first. */
     if (ui.isModal() && !bindPad(ui, input.padHeld())) {
       ui.pollPad(padNav());
     }
@@ -19419,8 +19543,9 @@ export async function boot({
     const inAir = !landed && !launchStaging && !crashed && !poseLock;
     ui.setStickOverlay({
       /* window.__showSticks: a capture's own switch, so a recorded flight
-       * shows the sticks whatever flies it (scripts/hover-video.js). */
-      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+       * shows the sticks whatever flies it (scripts/hover-video.js); read
+       * through devHooks, so only in developer mode. */
+      show: devHooks.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,
@@ -19684,7 +19809,7 @@ export async function boot({
   }
 
   function leaveCalibration(nowWall) {
-    ui.show('pilot');
+    ui.show(calibrateReturn);
     if (input.calResult === 'saved') {
       notice = { text: str('main.stick_mapping_saved'), untilMs: nowWall + 2800 };
     } else if (input.calResult === 'saved-unstored') {

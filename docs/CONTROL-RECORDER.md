@@ -96,7 +96,8 @@ every row it can fly matches.
   build (or with `--transplant`), the clip is then flown twice more: once on the clip's build and once on the
   new one, each set up the same way and started in the same state. "Set up" is the clip's setup log: the text
   of the last sim_init and every call the shell made since it except the every-step ones (sim_input,
-  sim_step, sim_set_ground, sim_set_ground_material, sim_damage_events and the sim_wing_gear reader), each
+  sim_step, sim_set_ground, sim_set_ground_material, sim_damage_events, the air the weather sets before
+  every step (sim_set_wind, sim_set_air_vertical) and the sim_wing_gear reader), each
   with where it fell in the journal's stretches, so only the calls made before the first row are made. The
   state is the clip's own at that row, from the exact re-fly, put in with sim_set_pose and sim_set_velocity;
   then the journal's calls from that row on are made again, the sticks' timestamps moved onto the new

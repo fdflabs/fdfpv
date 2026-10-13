@@ -14,8 +14,9 @@
  *
  * WHAT IS KEPT, per account: Google's `sub` (its stable account id), the
  * callsign, the pilot key the account carries (below), the progress blob
- * (src/share/progressmerge.js), its tokens and items (wallet.js) and the
- * SHA-256 of each session token. No
+ * (src/share/progressmerge.js), its tokens and items (wallet.js), the
+ * accounts it blocked (blocks, below) and the SHA-256 of each session
+ * token. No
  * email, name or picture. Google's token carries an email, and an account
  * never holds it: it is read only to look an invite up, and stored only
  * when its owner asks for a place on the beta waitlist (waitlist.js).
@@ -38,8 +39,10 @@
  *            account has none yet. While INVITE_ONLY is set, 403
  *            { notInvited } for a Google account that has no account here
  *            and whose email has no invite (waitlist.js)
- *   GET    /api/account            { callsign, publicKey }  what the rooms
- *                                  server asks, with the pilot's session
+ *   GET    /api/account            { id, callsign, publicKey, blocks }  what
+ *                                  the rooms server asks, with the pilot's
+ *                                  session; blocks is the account ids this
+ *                                  pilot blocked
  *   DELETE /api/account            the account, its sessions and progress
  *   DELETE /api/account/session    this session only: sign out
  *   PUT    /api/account/callsign   { callsign, check? }  claim or change;
@@ -57,6 +60,12 @@
  *            past the blob cap, and
  *            413 or 422 when its builds or loadouts are too many, too big
  *            or the wrong shape (progressmerge.js blobRefusal)
+ *   GET    /api/account/blocks     { blocks }  the callsigns of the pilots
+ *            this account blocked, as they are called now
+ *   PUT    /api/account/blocks     { callsign, on }  block (on true) or
+ *            unblock the pilot holding that callsign; answers { blocks }.
+ *            404 for a callsign nobody holds, 422 for the pilot's own,
+ *            409 past BLOCKS_PER_ACCOUNT
  *   GET    /api/account/wallet     { wallet }  { balance, earned, owned },
  *            what the held progress pays paid first (wallet.js)
  *   POST   /api/account/wallet/buy { item }  { wallet }, or 404 no such
@@ -111,7 +120,7 @@ import { inviteOnly, invited, joinWaitlist } from './waitlist.js';
 import { buyItem, deleteWallet, settleWallet } from './wallet.js';
 import { payEvents } from './eventpay.js';
 import {
-  ACCOUNT_WRITE_LIMIT, HANGAR_VISIT_LIMIT, PROGRESS_MAX_CHARS, SESSIONS_PER_ACCOUNT, SESSION_DAYS, SIGNIN_LIMIT,
+  ACCOUNT_WRITE_LIMIT, BLOCKS_PER_ACCOUNT, HANGAR_VISIT_LIMIT, PROGRESS_MAX_CHARS, SESSIONS_PER_ACCOUNT, SESSION_DAYS, SIGNIN_LIMIT,
 } from './limits.js';
 
 const TOKEN_RE = /^[0-9a-f]{64}$/;
@@ -481,6 +490,59 @@ async function adoptTracks(env, request, account) {
   return json(200, { tracks: r.meta.changes });
 }
 
+/*
+ * BLOCKS (COMPLETENESS 60): a mute that outlasts the room. A room's mute
+ * is by seat and dies with the room (src/share/roomsafety.js); a block is
+ * kept here, by account id on both sides, so a rename does not escape it
+ * and every computer the blocker signs in on holds it. The pilot picks a
+ * seat in a room, whose callsign is all the page knows of it, and the
+ * callsign is turned into the account here. The rooms server is given the
+ * ids with each join and refuses the blocked pilot's voice and chat to the
+ * blocker (edge/rooms/safety.js shut); the page is given the callsigns.
+ */
+async function blockedIds(env, accountId) {
+  const rows = await env.DB.prepare('SELECT blocked_id FROM blocks WHERE account_id = ? ORDER BY blocked_id').bind(accountId).all();
+  return rows.results.map((x) => x.blocked_id);
+}
+
+async function blockList(env, accountId) {
+  const rows = await env.DB.prepare(
+    'SELECT a.callsign FROM blocks b JOIN accounts a ON a.id = b.blocked_id WHERE b.account_id = ? ORDER BY a.callsign_key',
+  ).bind(accountId).all();
+  return rows.results.map((x) => x.callsign).filter(Boolean);
+}
+
+async function setBlock(env, request, account) {
+  const read = await readBody(request, SMALL_BODY, 'That request is too big.');
+  if (read.error) {
+    return read.error;
+  }
+  const b = read.body || {};
+  const name = normaliseName(b.callsign);
+  if (!name || typeof b.on !== 'boolean') {
+    return refuse(400, 'A block carries a callsign and on, true or false.');
+  }
+  const target = await env.DB.prepare('SELECT id FROM accounts WHERE callsign_key = ?').bind(name.toLowerCase()).first();
+  if (!target) {
+    return refuse(404, 'No pilot holds that callsign.');
+  }
+  if (target.id === account.id) {
+    return refuse(422, 'You cannot block yourself.');
+  }
+  if (!b.on) {
+    await env.DB.prepare('DELETE FROM blocks WHERE account_id = ? AND blocked_id = ?').bind(account.id, target.id).run();
+    return json(200, { blocks: await blockList(env, account.id) });
+  }
+  const held = await env.DB.prepare('SELECT COUNT(*) AS n FROM blocks WHERE account_id = ?').bind(account.id).first();
+  const already = await env.DB.prepare('SELECT 1 AS y FROM blocks WHERE account_id = ? AND blocked_id = ?').bind(account.id, target.id).first();
+  if (!already && held.n >= BLOCKS_PER_ACCOUNT) {
+    return refuse(409, `You can block at most ${BLOCKS_PER_ACCOUNT} pilots. Unblock one first.`, { full: true });
+  }
+  await env.DB.prepare('INSERT INTO blocks (account_id, blocked_id, created_utc) VALUES (?, ?, ?) ON CONFLICT DO NOTHING')
+    .bind(account.id, target.id, nowUtc()).run();
+  return json(200, { blocks: await blockList(env, account.id) });
+}
+
 async function buy(env, request, account) {
   const read = await readBody(request, SMALL_BODY, 'That request is too big.');
   if (read.error) {
@@ -502,6 +564,7 @@ async function buy(env, request, account) {
 async function deleteAccount(env, account) {
   await deleteWallet(env, account.id);
   await deleteGalleryAccount(env, account.id);
+  await env.DB.prepare('DELETE FROM blocks WHERE account_id = ? OR blocked_id = ?').bind(account.id, account.id).run();
   await env.DB.prepare('DELETE FROM sessions WHERE account_id = ?').bind(account.id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(account.id).run();
   return json(200, { deleted: true });
@@ -585,8 +648,14 @@ export async function accountRoute(env, request, path) {
   }
   if (path === '/api/account' && method === 'GET') {
     /* id: the account's own number, for the rooms server's DEV_ACCOUNTS
-     * (edge/rooms/node.js helloAccount); only ever sent to the account. */
-    return json(200, { id: account.id, callsign: account.callsign ?? null, publicKey: account.public_key ?? null });
+     * (edge/rooms/node.js helloAccount); blocks: the ids it blocked, for
+     * the same server's rooms. Only ever sent to the account. */
+    return json(200, {
+      id: account.id, callsign: account.callsign ?? null, publicKey: account.public_key ?? null, blocks: await blockedIds(env, account.id),
+    });
+  }
+  if (path === '/api/account/blocks' && method === 'GET') {
+    return json(200, { blocks: await blockList(env, account.id) });
   }
   if (path === '/api/account/progress' && method === 'GET') {
     return json(200, { progress: cleanBlob(heldProgress(account)) });
@@ -604,7 +673,7 @@ export async function accountRoute(env, request, path) {
   }
   const writes = new Set([
     'PUT /api/account/callsign', 'PUT /api/account/identity', 'PUT /api/account/progress', 'POST /api/account/adopt', 'DELETE /api/account',
-    'POST /api/account/wallet/buy',
+    'POST /api/account/wallet/buy', 'PUT /api/account/blocks',
   ]);
   if (!writes.has(`${method} ${path}`)) {
     return refuse(404, 'Nothing here.');
@@ -627,6 +696,9 @@ export async function accountRoute(env, request, path) {
   }
   if (path === '/api/account/wallet/buy') {
     return buy(env, request, account);
+  }
+  if (path === '/api/account/blocks') {
+    return setBlock(env, request, account);
   }
   return deleteAccount(env, account);
 }
