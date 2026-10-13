@@ -630,32 +630,6 @@ function rollOut(v0, mu = 0.08) {
   }
   return { x, t };
 }
-/* Where the side crossflow drag acts (plant_wing.c side_x): the side
- * view's centroid ahead of the drawing's CG at 0.710 m (src/render/
- * f16craft.js CG_S), each station weighted by its depth, the body's
- * section taken at the round body's 1.2 as side_cda is (Allen and
- * Perkins, NACA TR 1048); its own sections' wait for TP-1538's measured
- * side force (docs/FLIGHTMODEL.md). The drawing's FUSE rows, station,
- * top and bottom, m, straight between them where the drawing eases
- * them on a monotone cubic: the centroid is the same to half a
- * millimetre either way. ESTIMATED: the drawn body, the intake's duct
- * under it and the strakes' edges not in it. */
-const F16_FUSE = [
-  [0.026, 0.0000, 0.0000], [0.030, 0.0033, -0.0037], [0.050, 0.0060, -0.0066], [0.074, 0.0098, -0.0106],
-  [0.108, 0.0165, -0.0178], [0.141, 0.0228, -0.0230], [0.175, 0.0283, -0.0268], [0.208, 0.0330, -0.0292],
-  [0.242, 0.0368, -0.0306], [0.276, 0.0398, -0.0312], [0.330, 0.0428, -0.0310], [0.400, 0.0442, -0.0300],
-  [0.450, 0.0448, -0.0310], [0.520, 0.0450, -0.0420], [0.600, 0.0450, -0.0540], [0.680, 0.0450, -0.0590],
-  [0.800, 0.0452, -0.0600], [0.900, 0.0460, -0.0590], [0.970, 0.0480, -0.0555], [1.040, 0.0500, -0.0510],
-  [1.120, 0.0500, -0.0460], [1.180, 0.0480, -0.0430], [1.240, 0.0450, -0.0425],
-];
-let fusA = 0, fusM = 0;
-for (let i = 0; i + 1 < F16_FUSE.length; i += 1) {
-  const [s0, t0, b0] = F16_FUSE[i], [s1, t1, b1] = F16_FUSE[i + 1];
-  const d0 = t0 - b0, d1 = t1 - b1, ds = s1 - s0;
-  fusA += (d0 + d1) / 2 * ds;
-  fusM += ds * (d0 * (2 * s0 + s1) + d1 * (s0 + 2 * s1)) / 6;
-}
-const sideX = -(fusM / fusA - 0.710);
 
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const V50 = level(0.5), V75 = level(0.75);
@@ -671,7 +645,7 @@ const rows = [
   ['zero lift line deg, sin, cos', `${f(alphaZL * DEG, 2)} ${Math.sin(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)} ${Math.cos(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
-  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
+  ['   the plant flies TP-1538\'s measured side force in place of CYβ, the drag\'s sideways share and the crossflow', 'npm run f16:derive-hilat, cy_tab'],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['Clβ, Clp, Clδa', `${f(Clb, 4)} ${f(Clp, 4)} ${f(Clda, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],

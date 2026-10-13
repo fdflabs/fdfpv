@@ -534,6 +534,31 @@ static double hi_lat_at(const double row[20], double deg) {
   }
   return row[19];
 }
+/* A table's measured side force coefficient against the body's angle of
+ * attack and the sideslip (FixedWingParams.cy_tab): each row one sideslip
+ * of CY_TAB_DEG, across HI_LAT_DEG. Straight between the sideslips, none
+ * at none, odd in the sideslip. Past the last the sideslip's sine carries
+ * the last row's: ESTIMATED, the table stops at 30 deg and a body flown
+ * sideways keeps a side force that grows as it turns broadside. */
+static const double CY_TAB_DEG[8] = { 2.0, 4.0, 8.0, 10.0, 15.0, 20.0, 25.0, 30.0 };
+static double cy_tab_at(const FixedWingParams *fw, double a_deg, double b_deg, double sin_b) {
+  const double bd = sim_fabs(b_deg);
+  double c;
+  if (bd >= CY_TAB_DEG[7]) {
+    c = hi_lat_at(fw->cy_tab[7], a_deg) * sim_fabs(sin_b) / 0.5;
+  } else {
+    double b0 = 0.0, c0 = 0.0;
+    int j = 0;
+    while (bd > CY_TAB_DEG[j]) {
+      b0 = CY_TAB_DEG[j];
+      c0 = hi_lat_at(fw->cy_tab[j], a_deg);
+      j += 1;
+    }
+    const double c1 = hi_lat_at(fw->cy_tab[j], a_deg);
+    c = c0 + (c1 - c0) * (bd - b0) / (CY_TAB_DEG[j] - b0);
+  }
+  return b_deg < 0.0 ? -c : c;
+}
 /* NACA TR 419 table II, an unswept Clark Y wing's ailerons (below). */
 static const double AIL_KEEP_TR419[7] = { 1.0, 0.40, 0.22, 0.108, 0.148, 0.18, 0.18 };
 /* NASA TP-2011 fig. 55a, a rudder over a low stabiliser (below). */
@@ -2231,6 +2256,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     fw_dmg.cn_beta_fus = f * fw->cn_beta_fus + (1.0 - f) * WING_BODY_CN_BETA;
     fw_dmg.cn_r = fw->cn_r * (0.3 + 0.7 * f);
     fw_dmg.cy_beta = fw->cy_beta * (0.5 + 0.5 * f);
+    for (int j = 0; j < 8; j += 1) {
+      for (int i = 0; i < 20; i += 1) {
+        fw_dmg.cy_tab[j][i] = fw->cy_tab[j][i] * (0.5 + 0.5 * f);
+      }
+    }
     const double r = f < CRASH.rudder_keep ? f : CRASH.rudder_keep;
     fw_dmg.cn_dr = fw->cn_dr * r;
     fw_dmg.cl_dr = fw->cl_dr * r;
@@ -2893,14 +2923,25 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (V > 1e-6) {
     const double L = qbar * fw->area * CL;
     const double D = qbar * fw->area * CD;
-    const double Y = add_term(qbar * fw->area * cyb * beta_s, qbar * fw->area * cydr * delta_r);
+    /* A table with a measured side force (cy_tab, the F-16's from NASA
+     * TP-1538) takes the body's whole power off side force from it: the
+     * tunnel's balance measured it in the body axes, where a broadside
+     * wing's force is the plate's normal and none of it goes sideways with
+     * the wind. So the drag's sideways share, cy_beta's line and the
+     * crossflow (none on such a table) are its, and the rudder's stays. */
+    const int cy_meas = fw->cy_tab[7][4] != 0.0;
+    const double y_beta = cy_meas ? qbar * fw->area * cy_tab_at(fw, a_body, beta * 180.0 / WING_PI, -v / V)
+                                  : qbar * fw->area * cyb * beta_s;
+    const double Y = add_term(y_beta, qbar * fw->area * cydr * delta_r);
     /* Lift is perpendicular to the wind in the x z plane, up in level flight. */
     if (Vxz > 1e-6) {
       F[0] += L * (-w / Vxz);
       F[2] += L * (u / Vxz);
     }
     F[0] -= D * u / V;
-    F[1] -= D * v / V;
+    if (!cy_meas) {
+      F[1] -= D * v / V;
+    }
     F[2] -= D * w / V;
     F[1] -= Y; /* aero y is right, body y is left */
   }
@@ -5437,6 +5478,27 @@ const FixedWingParams FW_F16878 = {
     { -0.112, -0.117, -0.121, -0.026, 0.064, 0.126, 0.203, 0.231, 0.344, 0.210, 0.155, -0.991, -0.917, -0.911, -0.245, 0.065, 0.154, -0.117, 0.003, 0.000 },
     { 0.075, 0.070, 0.066, 0.052, 0.053, -0.007, 0.002, -0.036, -0.155, -0.081, -0.268, -0.185, 0.055, 0.159, -0.177, -0.253, -0.226, -0.020, -0.084, 0.018 },
   },
+  /* The full size F-16's measured side force (NASA TP-1538, table III:
+   * the leading edge flap retracted to 45 deg, the base table past; the
+   * odd part in beta, the tunnel's asymmetry out), in place of cy_beta's
+   * line, the drag's sideways share and the fuselage's crossflow, which
+   * gave 0.51 of it at 4 deg of sideslip and 3 to 4 times it at 30 deg
+   * past 40 deg of alpha. Its slope at 0 deg is -1.078 per rad, against
+   * the build up's -0.470, the fin and a 0.06 allowance for the body
+   * (scripts/f16-derive.js), which left the most of it out. Coefficients on
+   * the wing's area, the geometry similar (research note, "What
+   * transfers"); the tunnel's Reynolds number ESTIMATED within 2 to 3
+   * times the Freewing's. npm run f16:derive-hilat prints every row. */
+  .cy_tab = {
+    { -0.0259, -0.0336, -0.0358, -0.0366, -0.0374, -0.0373, -0.0374, -0.0372, -0.0297, -0.0294, -0.0288, -0.0198, -0.0237, -0.0364, -0.0240, -0.0255, -0.0261, -0.0242, -0.0207, -0.0233 },
+    { -0.0582, -0.0701, -0.0733, -0.0744, -0.0752, -0.0780, -0.0779, -0.0751, -0.0630, -0.0576, -0.0538, -0.0472, -0.0510, -0.0634, -0.0595, -0.0589, -0.0559, -0.0432, -0.0430, -0.0432 },
+    { -0.1041, -0.1478, -0.1494, -0.1567, -0.1647, -0.1659, -0.1648, -0.1606, -0.1314, -0.1150, -0.0870, -0.0805, -0.0837, -0.1217, -0.0981, -0.1076, -0.1049, -0.0828, -0.0837, -0.0839 },
+    { -0.1291, -0.1864, -0.1910, -0.2029, -0.2091, -0.2096, -0.2117, -0.2060, -0.1643, -0.1249, -0.0980, -0.1001, -0.1019, -0.1438, -0.1187, -0.1286, -0.1236, -0.0966, -0.1061, -0.1079 },
+    { -0.1899, -0.2674, -0.2937, -0.3045, -0.3125, -0.3157, -0.3169, -0.3105, -0.2376, -0.1646, -0.1545, -0.1537, -0.1395, -0.1649, -0.1879, -0.1907, -0.1884, -0.1367, -0.1595, -0.1557 },
+    { -0.2627, -0.3291, -0.3715, -0.4016, -0.4240, -0.4315, -0.4327, -0.4174, -0.3019, -0.2578, -0.2438, -0.1982, -0.1678, -0.1530, -0.1240, -0.1974, -0.2080, -0.1636, -0.2120, -0.1992 },
+    { -0.3194, -0.3840, -0.4485, -0.5021, -0.5378, -0.5408, -0.5214, -0.4911, -0.3810, -0.3779, -0.3368, -0.2490, -0.1886, -0.1575, -0.1358, -0.1532, -0.1716, -0.2178, -0.2545, -0.2486 },
+    { -0.3899, -0.4410, -0.5039, -0.5786, -0.6360, -0.6446, -0.6155, -0.5457, -0.4815, -0.4951, -0.3589, -0.2669, -0.2086, -0.2063, -0.1687, -0.1921, -0.2166, -0.2515, -0.3004, -0.3063 },
+  },
   .cl_p = -0.3495,
   .cl_da = 0.1226,
   .cl_r_per_cl = 0.25,
@@ -5489,9 +5551,9 @@ const FixedWingParams FW_F16878 = {
   .stab_trim_throttle = 0.538, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 300.0 * WING_PI / 180.0,
   .acro_pitch_rate = 120.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0017, 0.007, 0.0166 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.1033, 0.1321, 0.305 }, /* npm run as3x:derive */
-  .as3x_rate = { 4.307, -4.458, -1.774 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0021, 0.0052, 0.0107 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.1244, 0.0829, 0.1998 }, /* npm run as3x:derive */
+  .as3x_rate = { 4.411, -4.458, -1.898 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 8.0,
@@ -5525,8 +5587,6 @@ const FixedWingParams FW_F16878 = {
    * 0.2148 m^2 wing, ESTIMATED (f16:derive). */
   .gear_time = 4.0,
   .cd_gear = 0.013,
-  .side_cda = 0.126, /* 0.84 of 0.15 m^2, the fuselage in side view, scripts/f16-derive.js */
-  .side_x = -0.0043, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run f16:derive */
   .hinge_hold = { 1192.4, 0, 1361.5 }, /* servo blow back, npm run servo:derive */
   .hinge_alpha = { 0.2647, 0, 0.2355 }, /* npm run servo:derive */
   .tail_deda = 0.647, /* d eps / d alpha, scripts/f16-derive.js, Nelson, the one its slope takes; read only by GROUND EFFECT on a linear table */

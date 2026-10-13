@@ -320,9 +320,13 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const F = [0, 0, 0];
     if (V > 1e-6) {
       const L = qbar * fw.area * CL, D = qbar * fw.area * CD;
-      const Y = qbar * fw.area * (cyb * betaS + cydr * dR);
+      /* A measured side force (cy_tab, the F-16's) in place of cy_beta's
+       * line and the drag's sideways share, as plant_wing.c takes it. */
+      const cyMeas = fw.cy_tab && fw.cy_tab.length === 8 && fw.cy_tab[7][4] !== 0;
+      const yBeta = cyMeas ? cyTabAt(fw.cy_tab, Math.atan2(sinB, cosB) * 180 / Math.PI, Math.atan2(-v, Vxz) * 180 / Math.PI, -v / V) : cyb * betaS;
+      const Y = qbar * fw.area * (yBeta + cydr * dR);
       if (Vxz > 1e-6) { F[0] += L * (-w / Vxz); F[2] += L * (u / Vxz); }
-      F[0] -= D * u / V; F[1] -= D * v / V; F[2] -= D * w / V;
+      F[0] -= D * u / V; if (!cyMeas) F[1] -= D * v / V; F[2] -= D * w / V;
       F[1] -= Y;
     }
 
@@ -493,6 +497,22 @@ function hiLatAt(row, deg) {
   if (!(deg > HI_LAT_DEG[0])) return row[0];
   for (let i = 0; i < 19; i += 1) if (deg <= HI_LAT_DEG[i + 1]) return row[i] + (row[i + 1] - row[i]) * (deg - HI_LAT_DEG[i]) / (HI_LAT_DEG[i + 1] - HI_LAT_DEG[i]);
   return row[19];
+}
+
+/* plant_wing.c cy_tab_at: a row per sideslip, straight between, odd,
+ * the last row's on the sideslip's sine past it. */
+const CY_TAB_DEG = [2, 4, 8, 10, 15, 20, 25, 30];
+function cyTabAt(tab, aDeg, bDeg, sinB) {
+  const bd = Math.abs(bDeg);
+  let c;
+  if (bd >= 30) {
+    c = hiLatAt(tab[7], aDeg) * Math.abs(sinB) / 0.5;
+  } else {
+    let b0 = 0, c0 = 0, j = 0;
+    while (bd > CY_TAB_DEG[j]) { b0 = CY_TAB_DEG[j]; c0 = hiLatAt(tab[j], aDeg); j += 1; }
+    c = c0 + (hiLatAt(tab[j], aDeg) - c0) * (bd - b0) / (CY_TAB_DEG[j] - b0);
+  }
+  return bDeg < 0 ? -c : c;
 }
 
 /* plant_wing.c root_swirl: the swirl over the wing's root, its roll

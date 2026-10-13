@@ -68,7 +68,7 @@ coefficient below.
 | CL max, blend | 1.10, 3 deg | under the full size F-16's 1.5 to 1.6 for the model's Reynolds number and fixed leading edge; ESTIMATED |
 | Post stall | held 10 deg, falls to 0.8 | the strakes' vortex to Freewing's 30 deg of alpha; ESTIMATED (docs/STALL-STAGE1.md; stall:derive) |
 | Stall arms, stall_dw, stall_asym | -0.0552, 0.2052, 0.1442, 0.0035 | stall:derive: the CG 16 mm ahead of the wing's aerodynamic centre, the plate at 0.40 c, 1 mm of build tolerance |
-| CYβ, Cnβ, Cnr | -0.470, 0.1420, -0.2241 | the fin (the F-16's 5.09 m² at 1/11.5, 0.0385 m², 0.45 m aft), less the long forebody's -0.0683 (Nelson eq. 2.64) |
+| CYβ, Cnβ, Cnr | -0.470, 0.1420, -0.2241 | the fin (the F-16's 5.09 m² at 1/11.5, 0.0385 m², 0.45 m aft), less the long forebody's -0.0683 (Nelson eq. 2.64); the plant flies TP-1538's measured side force instead of this CYβ (cy_tab, -1.078 per rad at 0 deg, docs/FLIGHTMODEL.md) |
 | Clβ, Clp, Clδa | -0.1061, -0.3495, 0.1226 | the sweep's effective dihedral and the fin; strip theory; ailerons from 117 to 300 mm out, a fifth of the chord |
 | Cnδr, CYδr, Clδr | -0.1094, 0.2134, 0.0292 | the rudder, a fifth of the fin |
 

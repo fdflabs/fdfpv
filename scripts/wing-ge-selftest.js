@@ -114,7 +114,9 @@ const PLANES = [
  * 69d7b779b2222825), tigermoth (was dfbcb81229d100c0), extra (was
  * 130ee96df4d170a5), nighttimber (was 2b1e8e70189de507), hercules (was
  * 75408e31a83e82dd), cap580 (was ca753897fc920c72), slick (was
- * eb98eb5f61ba0c32). */
+ * eb98eb5f61ba0c32). Re-pinned for the F-16's measured side force
+ * (w38-physics-2, cy_tab, NASA TP-1538 table III) and its AS3X re-derived
+ * on it, the ground's term unchanged: f16 (was 75a6cac5f8258f81). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
   sky: '6ec975f7afcb036b',
@@ -128,7 +130,7 @@ const PINS = {
   bombshell: '65e981219dac8893',
   kadet: '0a09240a3d188fec',
   p51: '960d687d68dd1fc2',
-  f16: '75a6cac5f8258f81',
+  f16: 'd5f224c3b1ec6518',
   zagi: 'abccd77d1b7b9034',
   uglystik: '0e6442ae5529b6b8',
   nrj: '31151485dea980a5',

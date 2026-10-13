@@ -467,11 +467,32 @@ R-474) on each fuselage's side area from its derivation or render model.
   Hercules 1.02 (Allen and Perkins' 1.2 too, at their eta of 0.65 on 0.85
   of the side view). Each derive script prints its figure. The floats'
   tables carry their land fuselage's.
-- Still on the round body's 1.2, ESTIMATED: the F-16, whose drawn body
-  is two half superellipses on a chine with the strakes' edges at its
-  widest line and the intake's duct under it, shapes TN 3038 did not
-  test; and the Bramor, whose pod blends into its delta with no drawn
-  sections of its own.
+- Still on the round body's 1.2, ESTIMATED: the Bramor, whose pod blends
+  into its delta with no drawn sections of its own.
+- The F-16 flies its measured side force instead (w38-physics-2):
+  `cy_tab`, NASA TP-1538 table III's CY against alpha and beta (the
+  leading edge flap retracted to 45 deg, the base table past, the odd
+  part in beta so the tunnel's asymmetry is out; `npm run
+  f16:derive-hilat` prints it), in the body axes on the wing's area. It
+  replaces three terms on that table: cy_beta's line, the drag's
+  sideways share and the crossflow (its side_cda and side_x are gone);
+  the rudder's stays. Before, the plant gave 0.51 of the data at 4 deg of
+  sideslip and 0.65 at 30 (alpha 0: the build up's cy_beta, -0.470, is
+  the fin and a 0.06 allowance for the body against the measured
+  -1.078), and 1.6 to 4 times it from 40 deg of alpha, where the drag
+  along the wind, CD sin beta, put the broadside wing's force sideways:
+  a tunnel balance measures that force on the plate's normal. Now the
+  table's own values at its points; against the base table with the
+  flap down, under 0.035 apart at alpha 0 to 10 and 40 to 90 deg and up
+  to 0.09 at 20 to 30, the flap's own change. Past 30 deg of sideslip, where the table stops,
+  the 30 deg row is carried on the sideslip's sine, ESTIMATED. Still
+  linear: TP-1538's Cn against beta, which turns restoring past 20 to 25
+  deg at alpha 35 to 55 (hi_lat's ratio is a slope); an open gap.
+- Every other table still takes the drag along the wind with its
+  sideways share, CD sin beta: past the stall, in a slip, that is the
+  broadside wing's normal force pointed sideways, the term the F-16's
+  measured CY showed 1.6 to 4 times too strong. Fleet wide, not moved
+  here: an open item for the lead.
 - The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
   1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
   is gone flying sideways and turns over with the flow from behind. Each
@@ -497,8 +518,8 @@ R-474) on each fuselage's side area from its derivation or render model.
   pod is ahead of its pusher's CG: Extra -0.200 m, CAP -0.129, Slick
   -0.527, Night Timber -0.153, Timber -0.159, Cub -0.136, Radian -0.160,
   Bombshell -0.152, Kadet -0.260, P-51 -0.162, Ugly Stik -0.142, Tiger
-  Moth -0.233, Hercules -0.067, F-16 -0.004 (its body's depth alone, at
-  the round body's 1.2), Skyhunter +0.084; the float versions their land
+  Moth -0.233, Hercules -0.067, Skyhunter +0.084 (the F-16's
+  measured side force has its own, above); the float versions their land
   fuselage's. The Bramor's crossflow stays at its CG. The sideways speed
   is the CG's; the rates' own crossflow along the body is `rot_k`'s.
 - What it costs the knife edge, derived on the plant's own fin and

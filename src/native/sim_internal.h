@@ -969,6 +969,13 @@ typedef struct FixedWingParams {
    * at 0 deg; then Cl_r and Cn_p, per rad, in place of the CL rules. Zero:
    * none, the linear derivatives at every angle. */
   double hi_lat[8][20];
+  /* A measured side force coefficient, CY, against the body's angle of
+   * attack at -20 to 90 deg (plant_wing.c, HI_LAT_DEG) and the sideslip,
+   * one row each at 2, 4, 8, 10, 15, 20, 25 and 30 deg (CY_TAB_DEG), in the
+   * body axes on the wing's area, negative for a wind from the right. In
+   * place of cy_beta's line, the drag's sideways share and the crossflow
+   * (plant_wing.c, cy_tab_at). Zero: none, those three. */
+  double cy_tab[8][20];
   /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
    * deg past the wing's own stall angle: the ailerons' and the fin's and
    * rudder's. Zero: the measured defaults, an unswept wing's ailerons (NACA
