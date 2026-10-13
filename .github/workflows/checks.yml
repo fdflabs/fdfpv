@@ -465,6 +465,15 @@ jobs:
       # counted, and the RC grid follows the module's clock
       # (scripts/config-swap-check.js).
       - run: npm run configswap:check
+      # Every screen on five phones and tablets, in English and Spanish:
+      # every row reachable, no word cut (scripts/device-check.js). 73 to
+      # 126 s locally. On the lightest shard by measured time (shard-3,
+      # about 24 minutes of steps before these two, 2026-10-13).
+      - run: npm run lint:devices
+      # Home's hubs, Flight Club's six cards, the room cards' lobbies, the
+      # rooms panel and the update bar at six sizes, and page H in Spanish
+      # (scripts/mode-cards-check.js). 384 s locally.
+      - run: npm run modes:card
 
   shard-4:
     runs-on: ubuntu-latest
