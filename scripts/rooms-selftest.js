@@ -1258,7 +1258,7 @@ console.log('blocks: a mute that outlasts the room (COMPLETENESS 60)');
   let refuse = false;
   const adapter = {
     callsignOf: (seat) => (seat === seatOf(kc) ? null : `Pilot${seat}`),
-    isBlocked: (c) => kept.includes(c),
+    held: () => kept.slice(),
     setBlocked: async (c, on) => {
       calls.push(`${c}:${on}`);
       if (refuse) {
@@ -1282,6 +1282,9 @@ console.log('blocks: a mute that outlasts the room (COMPLETENESS 60)');
   const opts = (seat) => ka1.peerOptions(seat, false).map((o) => o.value).filter((v) => !v.startsWith('report:'));
   check('a signed in pilot\'s row offers Block beside Mute', opts(kbSeat).join() === 'mute,block');
   check('a guest\'s row does not: there is no account to keep it on', opts(seatOf(kc)).join() === 'mute');
+  const signedOut = createRoomSafety(() => {}, (seat) => `pilot ${seat}`, () => {}, { ...adapter, held: () => null });
+  check('nor does anybody\'s while this pilot is signed out', signedOut.peerOptions(kbSeat, false)[0].value === 'mute'
+    && !signedOut.peerOptions(kbSeat, false).some((o) => o.value === 'block'));
   ka1.peerPick(kbSeat, 'block');
   check('Block mutes in this room at once, since the room learns blocks only at a join',
     ka1.isMuted(kbSeat) && ka.attachment.muted.length === 1 && calls.join() === `Pilot${kbSeat}:true`);
@@ -1295,9 +1298,14 @@ console.log('blocks: a mute that outlasts the room (COMPLETENESS 60)');
   check('but the seat reads muted, with nothing to pick, until the next join', ka1.isMuted(kbSeat) && opts(kbSeat).join() === '');
   ka1.welcomed();
   check('after which it is an ordinary seat again', !ka1.isMuted(kbSeat) && opts(kbSeat).join() === 'mute,block');
-  kept.push(`Pilot${kbSeat}`);
-  check('a block from another computer mutes the seat here with nothing sent', ka1.isMuted(kbSeat) && ka.attachment.muted.length === 0);
+  kept.push(`pilot${kbSeat}`);
+  ka1.welcomed();
+  await settle();
+  check('a block from another computer arrives at the next welcome and mutes the seat with nothing sent, whatever the case',
+    ka1.isMuted(kbSeat) && ka.attachment.muted.length === 0 && opts(kbSeat).join() === 'unblock');
   kept.length = 0;
+  ka1.welcomed();
+  await settle();
   refuse = true;
   ka1.peerPick(kbSeat, 'block');
   await settle();

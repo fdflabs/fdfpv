@@ -199,7 +199,7 @@ import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
 import {
-  checkSession, fetchBlocks, isBlocked, needSignIn, setBlocked, signedIn,
+  checkSession, fetchBlocks, heldBlocks, needSignIn, setBlocked,
 } from './share/account.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
@@ -4206,11 +4206,11 @@ export async function boot({
     /* A signed in peer's name is its callsign (src/share/rooms.js shownName). */
     callsignOf: (seat) => {
       const peer = roomPeers.get(seat);
-      return signedIn() && peer && typeof peer.name === 'string' ? peer.name : null;
+      return peer && typeof peer.name === 'string' ? peer.name : null;
     },
-    isBlocked,
-    setBlocked,
+    held: heldBlocks,
     fetch: fetchBlocks,
+    setBlocked,
   });
   /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
    * turns it on in the room screen, never to a pilot muted or reported. */

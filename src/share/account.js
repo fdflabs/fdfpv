@@ -445,13 +445,14 @@ export async function fetchHangar(callsign) {
  * BLOCKS (tracks-api/accounts.js, COMPLETENESS 60): the callsigns of the
  * pilots this account blocked, as the server last said, kept on the
  * account record so a room can draw them before the server answers and
- * gone with it on sign out. isBlocked reads that; fetchBlocks asks again,
- * which is how another computer's block arrives; setBlocked blocks or
- * unblocks one and keeps the server's answer.
+ * gone with it on sign out. heldBlocks reads that, null while signed out;
+ * fetchBlocks asks again (null while signed out), which is how another
+ * computer's block arrives; setBlocked blocks or unblocks one and keeps
+ * the server's answer.
  */
-export function isBlocked(callsign) {
-  const list = readAccount()?.blocks;
-  return Array.isArray(list) && typeof callsign === 'string' && list.some((c) => c.toLowerCase() === callsign.toLowerCase());
+export function heldBlocks() {
+  const account = readAccount();
+  return account ? (Array.isArray(account.blocks) ? account.blocks : []) : null;
 }
 
 export async function fetchBlocks() {

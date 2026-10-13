@@ -62,20 +62,29 @@ export const UNDO_MS = 30000;
  * send(obj) puts a message on the room's socket; nameOf(seat) is a seat's
  * picker name in this page's language, or null for a seat not here;
  * changed() is called when the rows change with nothing picked (the Undo
- * row running out, a block's answer). blocks, for a signed in pilot, is
- * { callsignOf(seat), isBlocked(callsign), setBlocked(callsign, on), fetch() }
- * (src/share/account.js), callsignOf null for a guest's seat; without it
- * there is no Block.
+ * row running out, a block's answer). blocks is { callsignOf(seat),
+ * held(), fetch(), setBlocked(callsign, on) }: callsignOf null for a
+ * guest's seat, and the rest src/share/account.js's, the blocked
+ * callsigns or null while signed out. Without it, or signed out, there is
+ * no Block.
  */
 export function createRoomSafety(send, nameOf, changed = () => {}, blocks = null) {
   const muted = new Set();
   /* Seats unblocked in this room, which the room still holds blocked
    * until the next join. */
   const unblocked = new Set();
+  /* The account's blocked callsigns, null while signed out: held here,
+   * because isMuted runs for every pilot every frame, and read again at
+   * every welcome and from every block's answer. */
+  let held = blocks ? blocks.held() : null;
+  const keep = (list) => {
+    held = list;
+    changed();
+  };
   const callsignOf = (seat) => (blocks ? blocks.callsignOf(seat) : null);
   const isBlockedSeat = (seat) => {
-    const callsign = callsignOf(seat);
-    return Boolean(callsign && blocks.isBlocked(callsign));
+    const callsign = held && held.length ? callsignOf(seat) : null;
+    return Boolean(callsign) && held.some((c) => c.toLowerCase() === callsign.toLowerCase());
   };
   /* The report picked and not yet confirmed, { seat, reason }, or null. */
   let asking = null;
@@ -149,7 +158,7 @@ export function createRoomSafety(send, nameOf, changed = () => {}, blocks = null
         sendMutes();
       }
       if (blocks) {
-        blocks.fetch().then(changed, () => {});
+        blocks.fetch().then(keep, () => {});
       }
     },
     /* A seat that left is somebody else's next time it is taken. */
@@ -302,7 +311,7 @@ export function createRoomSafety(send, nameOf, changed = () => {}, blocks = null
         opts.push({ value: 'unblock', label: str('friends.unblock') });
       } else if (!unblocked.has(seat)) {
         opts.push({ value: muted.has(seat) ? 'unmute' : 'mute', label: str(muted.has(seat) ? 'friends.unmute' : 'friends.mute') });
-        if (callsign) {
+        if (callsign && held) {
           opts.push({ value: 'block', label: str('friends.block') });
         }
       }
@@ -338,7 +347,7 @@ export function createRoomSafety(send, nameOf, changed = () => {}, blocks = null
         }
         sendMutes();
         note = str(on ? 'friends.blocked_note' : 'friends.unblocked_note', { name });
-        blocks.setBlocked(callsignOf(seat), on).then(changed, () => {
+        blocks.setBlocked(callsignOf(seat), on).then(keep, () => {
           note = str('friends.block_failed', { name });
           changed();
         });
