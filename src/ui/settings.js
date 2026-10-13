@@ -199,6 +199,9 @@ export const DEFAULTS = {
   /* Who joins each activity's session, by registry id (src/share/modes.js
    * visibilityFor): the pilot's last choice, synced. */
   sessionVisibility: {},
+  /* The activity whose session this pilot last opened, by registry id,
+   * '' for none: home's Continue (src/ui/actions.js continueWay), synced. */
+  lastActivity: '',
   warAirframe: '',
   voiceReplayAck: false,
   flightTime: {},
