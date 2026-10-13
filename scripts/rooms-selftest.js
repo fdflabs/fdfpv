@@ -73,7 +73,9 @@ import { footSection } from './rooms-selftest-foot.js';
 import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
-import { emptyRoomSection, gameLobbySection, warLobbySection } from './rooms-selftest-gamelobby.js';
+import {
+  emptyRoomSection, gameLobbySection, lobbyReadySection, warLobbySection,
+} from './rooms-selftest-gamelobby.js';
 import { RoomTag } from '../edge/rooms/tag.js';
 import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
 import { RoomHost } from '../edge/rooms/host.js';
@@ -1995,6 +1997,7 @@ jamSection(check);
 warSection(check);
 warLobbySection(check);
 gameLobbySection(check);
+lobbyReadySection(check);
 botsSection(check);
 emptyRoomSection(check);
 sessionSection(check);

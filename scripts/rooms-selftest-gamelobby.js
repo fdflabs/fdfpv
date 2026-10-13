@@ -46,6 +46,8 @@ import { PROTO } from '../src/share/roomwire.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
+import { createLobbyReady } from '../src/share/roomlobby.js';
+import { FINISH_RESEND_MS } from '../src/share/roomrace.js';
 
 /* A room at room ms 0, its `n` pilots seated: made for the war unless
  * `mode` says otherwise. `dev` starts the campaign's missions in
@@ -515,5 +517,89 @@ export function emptyRoomSection(check) {
     const e = lobbyRoom({ mode: null, n: 1 });
     const closed = e.r.close(e.socks[0], e.clock);
     check('a free flight room with no game over is held its five minutes', closed.some((x) => x.empty && !x.now));
+  }
+}
+
+/*
+ * A Ready the room dropped (a page's texts on joining fill the room's
+ * rate for a second, edge/rooms/core.js TEXT_PER_S): the page's half
+ * (src/share/roomlobby.js) says it again every FINISH_RESEND_MS until the
+ * room's lobby lists it.
+ */
+export function lobbyReadySection(check) {
+  console.log('the lobby: a dropped Ready is said again');
+  /* Pilot 0's page on a room made for tag, its sends delivered at the
+   * room's clock except the first `drop`. */
+  const page = (drop) => {
+    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    const sent = [];
+    const lr = createLobbyReady((obj) => {
+      sent.push(obj);
+      if (sent.length > drop) {
+        e.say(0, obj);
+      }
+    });
+    const seat = e.socks[0].got.find((m) => m.type === 'welcome').seat;
+    lr.set(true, e.lobby(0), seat, e.clock);
+    const t0 = e.clock;
+    for (let t = t0 + 100; t <= t0 + 4000; t += 100) {
+      e.at(t);
+      lr.frame(e.lobby(0), seat, t);
+    }
+    return { e, sent, lr, seat };
+  };
+  const once = page(1);
+  check('the first Ready dropped: said again, the room lists it, and then nothing more', once.sent.length === 2 && once.e.lobby(0).ready[once.seat] === true
+    && once.lr.pending() === null, JSON.stringify({ sent: once.sent.length, ready: once.e.lobby(0).ready }));
+  const twice = page(2);
+  check(`two dropped: a third, ${FINISH_RESEND_MS} ms apart, and listed`, twice.sent.length === 3 && twice.e.lobby(0).ready[twice.seat] === true);
+  const fine = page(0);
+  check('none dropped: said once', fine.sent.length === 1 && fine.e.lobby(0).ready[fine.seat] === true);
+  /* The negative control: a page that says it once, as before, and the
+   * room drops it. */
+  {
+    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    let n = 0;
+    const lr = createLobbyReady((obj) => {
+      n += 1;
+      if (n > 1) {
+        e.say(0, obj);
+      }
+    });
+    const seat = e.socks[0].got.find((m) => m.type === 'welcome').seat;
+    lr.set(true, e.lobby(0), seat, e.clock);
+    e.at(e.clock + 4000);
+    check('said once with no frames after (the page before this) and dropped, the pilot is never ready', n === 1 && !e.lobby(0).ready[seat]);
+  }
+  /* The real drop: the room's own rate, filled by a burst of texts. */
+  {
+    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    const seat = e.socks[0].got.find((m) => m.type === 'welcome').seat;
+    /* A page's burst on joining, as one was seen dropping a Ready: its
+     * films seen, its profile, the day's time, and the clock's pings. */
+    for (const m of [{ type: 'war', op: 'seen', films: {} }, { type: 'ops', op: 'seen', films: {} }, { type: 'daytime', time: null },
+      { type: 'war', op: 'seen', films: {} }, { type: 'ops', op: 'seen', films: {} }, { type: 't', c: 1 }, { type: 't', c: 2 }, { type: 't', c: 3 }, { type: 't', c: 4 }]) {
+      e.say(0, m);
+    }
+    const lr = createLobbyReady((obj) => e.say(0, obj));
+    lr.set(true, e.lobby(0), seat, e.clock);
+    const first = Boolean(e.lobby(0).ready[seat]);
+    const t0 = e.clock;
+    for (let t = t0 + 100; t <= t0 + 3000; t += 100) {
+      e.at(t);
+      lr.frame(e.lobby(0), seat, t);
+    }
+    check('over the room\'s rate: the first Ready is dropped, the next one lands', !first && e.lobby(0).ready[seat] === true, JSON.stringify({ first }));
+  }
+  {
+    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    const sent = [];
+    const lr = createLobbyReady((obj) => sent.push(obj));
+    lr.set(true, e.lobby(0), 0, e.clock);
+    lr.frame(e.lobby(0), 0, e.clock + 5000);
+    check('the watch seat says nothing', sent.length === 0 && lr.pending() === null);
+    const lr2 = createLobbyReady((obj) => sent.push(obj));
+    lr2.set(true, null, 1, 0);
+    check('nor a page with no lobby open (a round on clears every flag)', sent.length === 0 && lr2.pending() === null);
   }
 }
