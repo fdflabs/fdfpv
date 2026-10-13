@@ -1876,7 +1876,20 @@ export function createCrashCam(host) {
   }
 
   /* The standard pad's button edges, for the screen to bind beside the
-   * keys (src/replay/editor.js onPad). */
+   * keys (src/replay/editor.js onPad). Read through input.padHeld, the
+   * one place the pad is polled (lint:input). */
+  let padPrev = 0;
+  function padEdges() {
+    let now = 0;
+    input.padHeld().forEach((pressed, i) => {
+      if (pressed && i < 31) {
+        now |= 1 << i;
+      }
+    });
+    const edges = now & ~padPrev;
+    padPrev = now;
+    return edges;
+  }
   function padInEditor() {
     editor.onPad(padEdges());
   }
