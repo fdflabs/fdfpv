@@ -4557,6 +4557,8 @@ export default {
   "training.lesson.race_lap_note": "Vuela una vuelta de cualquier pista, cada puerta en orden.",
   "training.lesson.race_clean": "Una vuelta limpia",
   "training.lesson.race_clean_note": "Una vuelta sin tocar una puerta, un cartel, un pilón ni un aro.",
+  "training.lesson.race_bronze": "Una vuelta bajo un tiempo",
+  "training.lesson.race_bronze_note": "Vuela una vuelta de una pista con medallas lo bastante rápido para su bronce.",
   "training.lesson.race_ghost": "Gana a tu fantasma",
   "training.lesson.race_ghost_note": "Vuela una vuelta más rápida que el fantasma de tu mejor vuelta.",
   "walk.shop": "Tienda",
