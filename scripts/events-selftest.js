@@ -303,7 +303,7 @@ console.log('the shell\'s producers');
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
     && ui.includes("feedRunWatch(this.watch, this.event('lap', { ms }))"));
   check('and logs a crash and a landing from its tick',
-    ui.includes("this.event('crash')") && ui.includes("this.event('landing')"));
+    ui.includes("this.event('crash')") && ui.includes("this.event('landing', { airframe:"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));

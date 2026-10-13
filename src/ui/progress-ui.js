@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, foldLandings, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
@@ -207,6 +207,8 @@ export class Progress {
     /* This flight's events (src/game/events.js), and the sim clock as the
      * last tick gave it, for the calls that do not carry one. */
     this.flight = new EventLog();
+    /* How far into this flight's log progress has counted. */
+    this.folded = 0;
     this.simMs = 0;
     this.wasCrashed = false;
     this.toasts = [];
@@ -266,7 +268,20 @@ export class Progress {
     this.simMs = simMs;
     this.flight.end(simMs);
     this.flight = new EventLog({ roomNow });
+    this.folded = 0;
     this.flight.append('spawned', simMs);
+  }
+
+  /* This flight's events not yet counted into progress, counted
+   * (progress.js foldLandings) and stored. A sync answered by a server
+   * older than the landings hands back progress without the map. */
+  foldFlight() {
+    this.state.landings ??= {};
+    const at = foldLandings(this.state, this.flight.events, this.folded);
+    if (at > this.folded) {
+      this.folded = at;
+      this.save();
+    }
   }
 
   /* One event into this flight's log at the last tick's sim time. */
@@ -370,7 +385,10 @@ export class Progress {
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
     this.award(this.watch.tick(state));
-    if (this.watch.landings > landings) this.event('landing');
+    if (this.watch.landings > landings) {
+      this.event('landing', { airframe: this.watch.ctx ? this.watch.ctx.airframe : null });
+      this.foldFlight();
+    }
     if (this.lesson) {
       this.lesson.tick(state);
       this.lessonNews();

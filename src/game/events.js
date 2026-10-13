@@ -25,7 +25,10 @@
  *   touch {kind}  the same; a contact the shell reports every step is one
  *                 event per kind per run of contact (see append)
  *   crash         the crash flag's rising edge (Progress.tick)
- *   landing       RunWatch's landing: down and whole after a real flight
+ *   landing {airframe}
+ *                 RunWatch's landing: down and whole after a real flight,
+ *                 on the run's aircraft (progression counts it per
+ *                 aircraft, src/game/progress.js foldLandings)
  *   mission_end {mission, won, stars}
  *                 a mission's result applied to the save
  *                 (src/ui/campaign.js, src/ui/opscampaign.js)

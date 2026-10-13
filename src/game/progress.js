@@ -205,7 +205,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, lessonsFlown: {}, medals: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, lessonsFlown: {}, medals: {}, landings: {}, unlockAll };
 }
 
 /*
@@ -298,6 +298,7 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     lessons: passes(p.lessons),
     lessonsFlown: flags(p.lessonsFlown, 200),
     medals: medalMap(p.medals),
+    landings: landingMap(p.landings),
     unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,
   };
 }
@@ -315,6 +316,51 @@ export function medalMap(o) {
     }
   }
   return out;
+}
+
+/*
+ * LANDINGS PER AIRCRAFT (PROGRESSION.md sections 5 and 9): aircraft
+ * family (liveryKey, so a float plane's count is its land plane's, as its
+ * milestones are) to the landings flown on it. Counted from the flight's
+ * event log (src/game/events.js `landing`, which carries the aircraft),
+ * never from the screen, and merged as the higher of two computers
+ * (src/share/progressmerge.js). Additive inside the stored version: an
+ * older profile reads as none. They pay nothing: no rule gives a landing
+ * XP (docs/ECONOMY.md section 1 lists the milestones that do).
+ */
+const LANDINGS_MAX = 1e9;
+
+export function landingMap(o) {
+  const out = {};
+  if (!isRecord(o)) {
+    return out;
+  }
+  for (const [k, v] of Object.entries(o).slice(0, 500)) {
+    if (/^[a-z0-9_-]{1,40}$/.test(k) && Number.isInteger(v) && v > 0) {
+      out[k] = Math.min(LANDINGS_MAX, v);
+    }
+  }
+  return out;
+}
+
+/*
+ * A flight's landings counted into progress, in place, from the event at
+ * `from` on; returns where the next fold starts. Folding the same log
+ * again from what it returned counts nothing twice.
+ */
+export function foldLandings(progress, events, from = 0) {
+  for (const e of events.slice(from)) {
+    if (e.type === 'landing' && typeof e.airframe === 'string') {
+      const k = liveryKey(e.airframe);
+      progress.landings[k] = Math.min(LANDINGS_MAX, (progress.landings[k] || 0) + 1);
+    }
+  }
+  return Math.max(from, events.length);
+}
+
+/* The landings flown on an aircraft (any of its family). */
+export function landingsOf(progress, airframe) {
+  return (progress && isRecord(progress.landings) && progress.landings[liveryKey(airframe)]) || 0;
 }
 
 /* Other modules' items: registerUnlockables([{ kind, id, airframe, level, name }]). */

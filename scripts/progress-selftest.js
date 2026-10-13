@@ -26,13 +26,15 @@
 import {
   CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
   FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, firstsOf,
-  freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
+  foldLandings, freshProgress, landingsOf, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
 } from '../src/game/progress.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { POWER } from '../configs/power.js';
+import { EventLog } from '../src/game/events.js';
+import { mergeBlobs } from '../src/share/progressmerge.js';
 import { PROPS } from '../configs/hangar-parts.js';
-import { schemesFor } from '../configs/liveries.js';
+import { liveryKey, schemesFor } from '../configs/liveries.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -233,6 +235,52 @@ check('not a hop: under 2 s in the air is not a flight', !run(timber, [{ simMs: 
 check('not on a glow plane', !run(kadetSmall, [{ simMs: 0, battery: 'warning' }, ...flight({ battery: 'warning' })]).has('deadstick'));
 check('the Bombshell glides home after the engine quits', run(bomb, [{ simMs: 0, power: out }, ...flight({ power: out })]).has('bombshell_glide'));
 check('not with the engine running', !run(bomb, flight({ power: running })).has('bombshell_glide'));
+
+/*
+ * LANDINGS PER AIRCRAFT (PROGRESSION.md 5 and 9, COMPLETENESS.md 27):
+ * counted from the flight's event log, once each, per aircraft family,
+ * merged as the higher of two computers.
+ */
+console.log('landings, from the event log');
+{
+  const log = new EventLog();
+  log.append('spawned', 0);
+  log.append('landing', 5000, { airframe: 'cub1400' });
+  log.append('crash', 6000);
+  log.append('landing', 9000, { airframe: 'cub1400' });
+  log.append('landing', 12000, { airframe: 'timber1500' });
+  log.append('landing', 13000, { airframe: null });
+  const p = freshProgress();
+  const at = foldLandings(p, log.events);
+  check('each landing counts once on its aircraft; one with no aircraft counts nowhere', same(p.landings, { cub1400: 2, timber1500: 1 }), JSON.stringify(p.landings));
+  foldLandings(p, log.events, at);
+  check('the same log folded again counts nothing twice', same(p.landings, { cub1400: 2, timber1500: 1 }), JSON.stringify(p.landings));
+  log.append('landing', 20000, { airframe: 'cub1400' });
+  foldLandings(p, log.events, at);
+  check('a landing after the last fold is counted by the next', p.landings.cub1400 === 3);
+  const floatId = AIRFRAMES.find((a) => a.id !== liveryKey(a.id) && a.fixedWing);
+  if (floatId) {
+    const q = freshProgress();
+    const fl = new EventLog();
+    fl.append('landing', 1, { airframe: floatId.id });
+    foldLandings(q, fl.events);
+    check(`a ${floatId.id} landing is its family's (${liveryKey(floatId.id)})`, landingsOf(q, floatId.id) === 1 && q.landings[liveryKey(floatId.id)] === 1, JSON.stringify(q.landings));
+  }
+  check('a landing pays no XP', p.xp === 0);
+  check('a profile from before landings reads as none, everything else kept', same(normaliseProgress({ v: 2, xp: 300, firsts: { a: true } }).landings, {}) && normaliseProgress({ v: 2, xp: 300 }).xp === 300);
+  check('stored landings are whole counts on known shaped keys',
+    same(normaliseProgress({ landings: { cub1400: 4, timber1500: 2.5, 'BAD KEY': 3, kadet1981: -1, sky1800: '7' } }).landings, { cub1400: 4 }));
+  const blob = (landings) => ({ v: 1, data: { progress: { ...freshProgress(), landings } }, stamps: {} });
+  const a = { cub1400: 5, timber1500: 1 };
+  const b = { cub1400: 3, kadet1981: 2 };
+  const m1 = mergeBlobs(blob(a), blob(b)).data.progress.landings;
+  const m2 = mergeBlobs(blob(b), blob(a)).data.progress.landings;
+  check('two computers merge to the higher count per aircraft', same(m1, { cub1400: 5, timber1500: 1, kadet1981: 2 }), JSON.stringify(m1));
+  check('either way round', same(Object.entries(m1).sort(), Object.entries(m2).sort()));
+  check('a merge never exceeds either side', Object.entries(m1).every(([k, n]) => n <= Math.max(a[k] || 0, b[k] || 0)));
+  const m3 = mergeBlobs(blob(m1), blob(m1)).data.progress.landings;
+  check('a blob merged with itself is itself', same(m3, m1));
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;
