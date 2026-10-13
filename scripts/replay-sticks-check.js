@@ -251,19 +251,31 @@ async function main() {
       await shot(page, `replay-sticks-${i + 1}`);
     }
     /* A small window: the dock wraps taller and the head comes close
-     * (style.js); the gimbals must overlap nothing else on screen. */
+     * (style.js); the gimbals and the readout must overlap nothing else on
+     * screen (editor.js placeOsd). */
     const overlaps = () => page.evaluate(`(() => {
       const s = document.querySelector('.cc-sticks').getBoundingClientRect();
       const hit = (q) => [...document.querySelectorAll(q)].some((e) => {
         const b = e.getBoundingClientRect();
         return b.width > 0 && s.left < b.right && b.left < s.right && s.top < b.bottom && b.top < s.bottom;
       });
-      return { box: [s.left, s.top, s.right, s.bottom].map(Math.round), hits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-osd', '.cc-dock'].filter(hit) };
+      const o = document.querySelector('.cc-osd').getBoundingClientRect();
+      const osdHit = (q) => [...document.querySelectorAll(q)].some((e) => {
+        const b = e.getBoundingClientRect();
+        return b.width > 0 && o.left < b.right && b.left < o.right && o.top < b.bottom && b.top < o.bottom;
+      });
+      return {
+        box: [s.left, s.top, s.right, s.bottom].map(Math.round),
+        hits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-osd', '.cc-dock'].filter(hit),
+        osd: [o.left, o.top, o.right, o.bottom].map(Math.round),
+        osdHits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-dock'].filter(osdHit),
+      };
     })()`);
     for (const [w, h] of [[1280, 720], [800, 600]]) {
       await viewport(page, [w, h]);
       const o = await overlaps();
       check(`at ${w} by ${h} the gimbals are on screen and overlap nothing`, o.hits.length === 0 && o.box[1] >= 0 && o.box[2] <= w, `box ${o.box.join(',')}${o.hits.length ? `, over ${o.hits.join(' ')}` : ''}`);
+      check(`at ${w} by ${h} the readout is between the head and the dock`, o.osdHits.length === 0 && o.osd[3] > o.osd[1], `box ${o.osd.join(',')}${o.osdHits.length ? `, over ${o.osdHits.join(' ')}` : ''}`);
       await shot(page, `replay-sticks-${w}`);
     }
     await page.cdp.send('Emulation.clearDeviceMetricsOverride', {}, page.sessionId);

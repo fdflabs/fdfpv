@@ -60,6 +60,14 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { CLIP_CRASH_HOLD_MS } from '../src/game/collide.js';
+import { POINTERS } from '../src/replay/journal.js';
+
+/* Which arguments of each export are heap addresses (journal.js holds the
+ * table to sim_abi.h). They are spelt <ptr>: where the module's allocator
+ * puts a buffer moves with any change to its static data, and pinned
+ * addresses turned every plant rebuild red here (2026-10-13: the wheel
+ * load and water buffers moved, no call or value did). */
+const POINTER_ARGS = Object.fromEntries(Object.entries(POINTERS).map(([name, p]) => [name, [p.in, p.out].filter((i) => i !== undefined)]));
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const RECORD = join(root, 'tests', 'fixtures', 'reset-golden.json');
@@ -96,6 +104,8 @@ function seed(airframe) {
     cb(ts);
   });
   const spell = (v) => (typeof v === 'number' ? (Object.is(v, -0) ? '-0' : String(v)) : typeof v);
+  const POINTER_ARGS = ${JSON.stringify(POINTER_ARGS)};
+  const spellArgs = (key, a) => a.map((v, i) => ((POINTER_ARGS[key] || []).includes(i) ? '<ptr>' : spell(v))).join(', ');
   const note = (s) => {
     if (W.frames.length === 0) W.frames.push([]);
     W.frames[W.frames.length - 1].push(s);
@@ -138,7 +148,7 @@ function seed(airframe) {
           return r;
         }
         if (key === 'sim_step') W.stepped = true;
-        if (W.watching) note(key + '(' + a.map(spell).join(', ') + ') -> ' + spell(r));
+        if (W.watching) note(key + '(' + spellArgs(key, a) + ') -> ' + spell(r));
         return r;
       };
     }
