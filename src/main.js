@@ -7247,8 +7247,10 @@ export async function boot({
     const at = peer.foot ? peer.foot.draw(performance.now()) : null;
     fig.group.visible = true;
     if (!at) {
-      const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
-      fig.group.position.set(st.x, groundAt(st.x, st.z), st.z);
+      const sp = view.spawn || { x: 0, z: 0, yaw: 0 };
+      const st = stationFor(sp, peer.seat - 1);
+      /* On the deck a spawn's hint names, not the ground under it. */
+      fig.group.position.set(st.x, sp.y != null ? view.height(st.x, st.z, sp.y) : groundAt(st.x, st.z), st.z);
       fig.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
       fig.setBodyVisible(true);
       fig.stride(0, dt);
@@ -7452,6 +7454,25 @@ export async function boot({
         return { x: p.x, z: p.z, wet: Boolean(waterAt(p.x, p.z)) };
       }) : null,
     };
+  };
+  /* Harness only: every start the shell can make on this map before a
+   * room's row moves it (mapSpawn): the map's own, what spawnFor answers
+   * each kind and each ?spawn= wish, and each water body's float start,
+   * for scripts/world-spawns-check.js. */
+  window.__spawnStarts = () => {
+    const home = view.spawn;
+    const out = [{ label: 'home', start: home }];
+    const bodies = (view.water || []).filter((b) => b.spawn);
+    bodies.forEach((b, i) => out.push({ label: `water ${b.name || i}`, start: b.spawn, float: true }));
+    if (view.spawnFor) {
+      for (const kind of ['plane', 'quad', 'float']) {
+        out.push({ label: kind, start: view.spawnFor(home, kind, null), float: kind === 'float' });
+      }
+      for (const wish of ['air', ...bodies.map((b) => b.name).filter(Boolean)]) {
+        out.push({ label: `wish ${wish}`, start: view.spawnFor(home, 'float', wish), float: true });
+      }
+    }
+    return out;
   };
   /* Harness only: the combat round and what this page draws of it, for
    * scripts/combat-two-page.js. */
