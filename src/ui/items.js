@@ -78,6 +78,7 @@ import {
 import { VIEW_LABEL, trickLevel } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
+import { flyWithRows } from './flywith.js';
 /* A cycle: ui.js installs this module. These are read only inside the
  * screen functions, after both modules have run, never at this module's
  * top level. */
@@ -1387,6 +1388,7 @@ const SCREENS = {
   planerates: planeRatesRows,
   pids: pidsRows,
   controls: controlsRows,
+  flywith: flyWithRows,
   fc: (ui) => ui.fc.items(),
 };
 

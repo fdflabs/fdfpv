@@ -52,7 +52,7 @@ import { DEFAULT_STICK_MODE, normaliseStickMode } from './stickmode.js';
 import {
   FLIGHT_CHANNELS, builtInKind, builtInMap, normaliseMap, readSticks,
 } from './padmap.js';
-import { deviceKey } from './padprofiles.js';
+import { deviceKey, deviceKind } from './padprofiles.js';
 import { migrateStickStorage, loadStickMap, saveStickMap } from './stickstore.js';
 import { KeyboardSticks } from './keyboard.js';
 import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
@@ -437,6 +437,7 @@ export class InputManager {
       mapUsable: this.mapUsable(),
       guessNoYaw: this.guess.noYaw,
       mapKnown: this.mapKnown(),
+      device: deviceKind(gp),
     };
   }
 

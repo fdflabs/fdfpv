@@ -32,6 +32,7 @@ import { MAPS } from '../maps/registry.js';
 import { readPilotName } from '../share/pilot.js';
 import { activeCourseSummary } from '../share/summary.js';
 import { str } from '../strings/index.js';
+import { cursorOnLit, flyWithPending } from './flywith.js';
 import { fitsAsSegments } from './rows.js';
 import { HUBS } from './ways.js';
 import { btn, el } from './widgets.js';
@@ -66,6 +67,7 @@ const CRUMBS = {
   tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
   controls: ['ui.settings', 'keybinds.title'],
+  flywith: ['flywith.title'],
   friends: ['friends.title'],
   rooms: ['friends.title', 'roombrowser.title'],
   roomnew: ['friends.title', 'roombrowser.title', 'roombrowser.new_title'],
@@ -92,6 +94,7 @@ const MENU_FIELD = {
   planerates: 'planeratesMenu',
   pids: 'pidsMenu',
   controls: 'controlsMenu',
+  flywith: 'flywithMenu',
   fc: 'fcMenu',
   paused: 'pausedMenu',
   quick: 'quickMenu',
@@ -315,6 +318,9 @@ function arriveAt(ui, screen) {
   if (screen === 'howto') {
     ui.renderHowto();
   }
+  if (screen === 'flywith') {
+    cursorOnLit(ui);
+  }
   /* The trick film is the one thing asking for frames outside flight: it
    * runs on exactly one screen. */
   if (ui.trickPlayer) {
@@ -481,6 +487,11 @@ export const navMethods = {
       if (!this.returnTo) {
         this.returnTo = 'title';
       }
+    }
+    /* A new pilot's first screen is the controller question, until it is
+     * answered (src/ui/flywith.js); a room or the address wins over it. */
+    if (screen === 'title' && flyWithPending(this)) {
+      screen = 'flywith';
     }
     leaveFor(this, screen);
     const leaving = this.items()[this.cursor];

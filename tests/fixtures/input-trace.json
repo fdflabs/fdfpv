@@ -5,98 +5,98 @@
  },
  "keyboard flight, Mode 2": {
   "rows": 822,
-  "hash": "4e14c691b2be44aad69c812f1150ac077334020735d3c2ada7a92be4847a4f44"
+  "hash": "de052d27f0117953f359a03c0e9f7a3bfa12b86c69ad17025cf1898fed93e07e"
  },
  "keyboard flight, Mode 1": {
   "rows": 822,
-  "hash": "129f9921d36c60f52ba9e7955ff3849e69ca5e4a63983555b02eb2e95d469e9b"
+  "hash": "23b26f3f87df03a1de7251a32a15d1340bed35027a82bca88a02b198cf8a7e90"
  },
  "keyboard flight, Mode 3": {
   "rows": 822,
-  "hash": "91a53fd0c99e641267c7e013519cc0dfbf1c11c4b63b2b67b905a88fae04103f"
+  "hash": "e4b32dc0be990263f4eb022063b2ea7e58fc8bd60dde9000dbede3a6c402597f"
  },
  "keyboard flight, Mode 4": {
   "rows": 822,
-  "hash": "7bed6ec58788d6bad414eac726d237454911188680195e2df7450677aaefe237"
+  "hash": "7ea9889a4afa3ef2e78be24c132997ac440ea3648e5fa705e3288849887204df"
  },
  "keyboard: launch hold, reset, harness stick": {
   "rows": 191,
-  "hash": "8779fb154e1d9c21be25a00422027f96d31f29f348c66d5a1d3addbf878c61af"
+  "hash": "803797fee63bacaebe2e8a12a910a1284fab74d831f0b08098c2098603345417"
  },
  "keyboard: text fields, repeats, blur, the key hook": {
   "rows": 11,
-  "hash": "2cfb04bd47b9e5b7cdb1a4c51aa26d69eb41dcf2e32d66df1e6d2321fd0f92de"
+  "hash": "873857737a9b071ecb6f13a4b9d31bce31995f5d7a9e80721b104e07fb24d8ad"
  },
  "mouse flight {\"enabled\":true,\"sens\":100,\"expo\":0,\"invert\":false,\"centre\":\"auto\"}": {
   "rows": 395,
-  "hash": "15db6cead5b386891c3e63da2eedb9ae12404d5c8c3ca7e05586ca5d46cca7a8"
+  "hash": "df3ab35641f3fc5bfc11db96b9686f8b77b08a7f445f81c0857c3a88920bcb73"
  },
  "mouse flight {\"enabled\":true,\"sens\":300,\"expo\":75,\"invert\":true,\"centre\":\"spring\"}": {
   "rows": 395,
-  "hash": "488309a111b7317c6eac67fc68ccdbb60382128ba3c6c41a74e0e74a7859173d"
+  "hash": "6a064b597f45537d7f176e52463ce2866eb228a08c78e7255f2b332988c5af62"
  },
  "mouse flight {\"enabled\":true,\"sens\":50,\"expo\":25,\"invert\":false,\"centre\":\"hold\"}": {
   "rows": 395,
-  "hash": "71a26ebc21aa114bf7029b9e28f968f108db52791014bfe87f0e8789177d7114"
+  "hash": "5921246d7eb2207d4520980b8c4c5d35c4451dfdd156e42c7a1df83a1664e75e"
  },
  "mouse flight {\"enabled\":true,\"sens\":123,\"expo\":33,\"invert\":\"yes\",\"centre\":\"wobbly\"}": {
   "rows": 395,
-  "hash": "73e76792ae5d4c4f511c49dead7ba556a3cc2669874a6fca26c735d77f1c57d9"
+  "hash": "9bf53a5207435d5fc9506573fd0d095f250cd138d8d0b5fd401be989d84bf502"
  },
  "touch sticks rung": {
   "rows": 28,
-  "hash": "2fe146379a6893f75467fee4ee064efb281bec74be2d36c46fee7095954cb594"
+  "hash": "94a16cb67dc3f6777f27cb2371eceebb81afbbd2aef9ee51cf5434e9798bbbf8"
  },
  "radio on the AETR guess": {
   "rows": 75,
-  "hash": "92728b1862a3755b62973381a75011ea836d816aab854201cd64bd36e4998e8d"
+  "hash": "f4e02ca25e56282e3a6f7e0bfa6b76bc1076aedb56ac212dcdf92f1bb8c2fbbd"
  },
  "standard gamepad": {
   "rows": 78,
-  "hash": "00c60e304d515df4d73c4d6b9f5fb85aed72a7c0a81be1088058e74a44a2e5c4"
+  "hash": "280b3156a14140282b6819a654c13398737354fa21cd52733a182e48b3ad5511"
  },
  "ExpressLRS joystick over Bluetooth": {
   "rows": 7,
-  "hash": "1c3998c347012f6d0a320c3090ab688ad16448337b2a467ecb2c924159ec7390"
+  "hash": "87200af2dd9f6560787854f6e6dd771b0eb069b44f71d4dc85ecb025d96cdbae"
  },
  "radio with no buttons": {
   "rows": 123,
-  "hash": "2620367afd4f91061d744be1064bc628ec9ca519f74a810e4bcdc4121bc81670"
+  "hash": "e0e6d322717b1705d6a3f220a5b3d079b0cbf2ead444209b56ab7a623c1b6b13"
  },
  "calibration: radio with yaw on axis 4, parked throttle": {
   "rows": 445,
-  "hash": "4fc054071ad1afc83d165fc5c960bb5d9811bbe8825d56a8387924b3cbcc108a"
+  "hash": "d79d32489faf4b2b89d48c0163f3a59b9b431d9f1256b3dad91ad7b3e3045173"
  },
  "calibration: gamepad with a sprung throttle, reverse and zero": {
   "rows": 445,
-  "hash": "c09d24bfcde0dd85d3a95f3e10adb91f578364f3ab30996fe2b192f2c8ca9092"
+  "hash": "bcefeb8405967ff6b9b3f406c44f6664ba5003e088b1309789691e6a888d419c"
  },
  "calibration: no buttons, a spare axis, the menu switch": {
   "rows": 497,
-  "hash": "7de95f3d3612e39b33f934900009b3fcef8e59ce411c4ad3055097897542d79b"
+  "hash": "206c2545bba0b38ab46b8ccfc73004105855047ad54ec6fe385bc39cff9fec50"
  },
  "calibration: skipping the menu switch, cancelling, no radio": {
   "rows": 457,
-  "hash": "22b26fc060e56e43211e3c8213afe70f97644e5cd3463b8be5c1c4afa90a6dfe"
+  "hash": "b37368f724a5a28e745d8026860d41fa7fbaffe72d8b9ce9f6659dea09f6c9c4"
  },
  "calibration: a sprung throttle held down, a diagonal, a lopsided gimbal": {
   "rows": 289,
-  "hash": "6efc2dfe87081ed7ef931564c8743b7962990299ac423b5c77f23e4903ab1122"
+  "hash": "9f771e116f966ad05f814e2f0a01c95bbb1f624bdf3fb67a2ddd330f30ce37bc"
  },
  "calibration: the throttle parks somewhere new after the sweep": {
   "rows": 224,
-  "hash": "862d3f0186475f2c5978cf6c4abf74ba981444d62da5de68c8b73f3d242b9bf5"
+  "hash": "992428dad43c72286ed66b19f4e1d08159d5553f3531874f7051d735106efff1"
  },
  "joystick picker": {
   "rows": 268,
-  "hash": "ede5e6488e74081762a1cb69db82d910836cea6969fb0191c1096724946f372e"
+  "hash": "6c831176a91d85873b39c4e7db33531ee79dc9cdc2ef6d1b72b3830061e73b4e"
  },
  "one radio at boot, stored choices, stored maps": {
   "rows": 44,
-  "hash": "1b71b230eafcc6e464e4440c063812dbf464f0450400f1c7ffdb4f7c78ff5575"
+  "hash": "f7fe1662787e2663773d9ba4257556b30ca8432e36cd5e88e4ccd131cd00559e"
  },
  "polling, heartbeat, the queue bound": {
   "rows": 14,
-  "hash": "4a81f0cdcf38a2ec78b07c8c12081aedbff493dfe966d7b8923846d2a52a333e"
+  "hash": "d79935e3eff785a89481fb8fad4d11127d0cd5fe9dadb52d907df1ca53fdd294"
  }
 }

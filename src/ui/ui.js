@@ -236,6 +236,7 @@ export const SCREEN_TITLES = {
   planerates: str('ui.rates'),
   pids: 'PIDs',
   controls: str('keybinds.title'),
+  flywith: str('flywith.title'),
   fc: str('ui.firmware_bench'),
   paused: str('ui.paused'),
   quick: str('pause.flight'),

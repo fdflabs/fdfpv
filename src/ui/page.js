@@ -434,6 +434,14 @@ const PAGES = {
     scroll: true,
     hint: ESC_STORED,
   },
+  /* The new pilot's controller question (src/ui/flywith.js). */
+  flywith: {
+    classes: 'screen-page screen-pilot',
+    title: 'flywith.title',
+    lede: ['rates-lede', 'flywith.lede'],
+    menu: 'flywith',
+    hint: [['↑↓', 'Enter', 'Esc'], 'flywith.hint'],
+  },
   controls: {
     classes: 'screen-page screen-pilot screen-controls',
     title: 'keybinds.title',
@@ -794,7 +802,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

@@ -31,6 +31,7 @@
  */
 
 import { KEYBIND_PREFIX, keybindAction } from './controls.js';
+import { FLY_WITH_PREFIX, answerFlyWith } from './flywith.js';
 import { MAPS } from '../maps/registry.js';
 import { airframeById } from '../../configs/airframes.js';
 import { clearPidsFor } from '../../configs/pids.js';
@@ -567,6 +568,7 @@ const PREFIXES = [
   }],
   ['map:', (ui, action, id) => ui.seatMap(id)],
   [KEYBIND_PREFIX, keybindAction],
+  [FLY_WITH_PREFIX, answerFlyWith],
 ];
 
 /* Without an account the menus are for looking at: anything behind a card
@@ -595,6 +597,11 @@ const BACK_FROM = {
   },
   calibrate(ui) {
     ui.act('calibrate-cancel');
+    return true;
+  },
+  /* Escape on the controller question is its Skip. */
+  flywith(ui) {
+    ui.act('flywith:skip');
     return true;
   },
   rooms(ui) {
