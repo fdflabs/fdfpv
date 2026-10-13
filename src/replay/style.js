@@ -245,6 +245,8 @@ export const CRASHCAM_CSS = `
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85); font-variant-numeric: tabular-nums;
   display: grid; grid-template-columns: auto auto; gap: 2px 14px; align-items: baseline;
 }
+/* One row, for a window too short for three (editor.js placeOsd). */
+.cc-osd.row { grid-template-columns: repeat(6, auto); }
 .cc-osd .k { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate); }
 .cc-osd .v { font-size: 20px; font-weight: 600; }
 .cc-thr { width: 96px; height: 5px; border-radius: 3px; background: rgba(243, 234, 212, 0.2); overflow: hidden; align-self: center; }
@@ -374,9 +376,6 @@ export const CRASHCAM_CSS = `
 @keyframes cc-card { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes cc-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cc-pulse { 50% { opacity: 0.35; } }
-@media (max-width: 900px) {
-  .cc-osd { bottom: 290px; }
-}
 @media (max-height: 640px) {
   .cc-sticks .osd-gimbal-plate { width: 52px; height: 52px; }
   .cc-sticks .osd-gimbal-cap { display: none; }

@@ -45,7 +45,9 @@ const report = await import('../src/share/clientreport.js');
 const stats = await import('../src/share/stats.js');
 const {
   errorEvent, framesEvent, createFrameHistogram, gpuClass, sendClientReport, scrubMessage, FRAME_EDGES_MS,
+  createErrorReporter, createFramesReporter, reportPageErrors, ERROR_SIGS_PER_PAGE,
 } = report;
+const { createCrashRecord } = await import('../src/share/crashrecord.js');
 
 let passed = 0;
 let failed = 0;
@@ -238,6 +240,151 @@ check('Global Privacy Control: nothing is sent', () => {
 check('nothing to say sends nothing', () => {
   beacons.length = 0;
   assert.equal(sendClientReport(null), false);
+  assert.equal(beacons.length, 0);
+});
+
+/* The board's refusals (fdfpv-leaderboard src/validate.js
+ * inspectErrorReport; KEEP IN STEP): an event it refuses is an error
+ * nobody hears about, so every event this side builds must pass them. */
+const BOARD_UNREDUCED = /:\/\/|@|\/\w|\d{6,}/;
+const BOARD_FRAME = /^(?:src|dist|vendor)\/[\w./-]+\.(?:m?js|wasm):\d+(?::\d+)?$/;
+function boardRefuses(e) {
+  return !/^[\x20-\x7e]{0,120}$/.test(e.msg) || BOARD_UNREDUCED.test(e.msg)
+    || !e.where.every((f) => f.length <= 64 && BOARD_FRAME.test(f)) || e.count < 1 || e.count > 999;
+}
+
+check('the board takes every error event the fuzz builds', () => {
+  const r = rng(0xb0a2d);
+  const refused = [];
+  for (let i = 0; i < 4000; i++) {
+    const plant = PLANTS[i % PLANTS.length];
+    const e = errorEvent({ message: plantedText(r, plant), stack: plantedStack(r, plant), count: 1 + Math.floor(r() * 5000) });
+    if (e && boardRefuses(e)) {
+      refused.push(JSON.stringify(e));
+    }
+  }
+  assert.deepEqual(refused.slice(0, 3), []);
+  assert.ok(boardRefuses({ msg: 'see https://x.test', where: [], count: 1 }), 'the copy of the board rule refuses a leak');
+});
+
+/* A clock and a sender the reporters can be driven with. */
+function harness() {
+  const sent = [];
+  let t = 1000;
+  return {
+    sent,
+    send: (event) => sent.push(event) > 0,
+    now: () => t,
+    advance: (ms) => { t += ms; },
+  };
+}
+
+check('errors: the first of a kind goes at once, with count 1', () => {
+  const h = harness();
+  const rep = createErrorReporter({ send: h.send, now: h.now });
+  rep.note({ message: 'x is not a function', stack: 'at f (https://a.test/src/main.js:10:2)' });
+  assert.equal(h.sent.length, 1);
+  assert.deepEqual(Object.keys(h.sent[0]), ALLOWED.error);
+  assert.equal(h.sent[0].count, 1);
+  assert.deepEqual(h.sent[0].where, ['src/main.js:10:2']);
+});
+
+check('errors: repeats are held, then sent once a minute and as the page goes', () => {
+  const h = harness();
+  const rep = createErrorReporter({ send: h.send, now: h.now });
+  const thrown = { message: 'no seat for Ace7', stack: 'src/main.js:1:1' };
+  rep.note(thrown);
+  for (let i = 0; i < 300; i++) {
+    h.advance(16);
+    rep.note({ ...thrown, message: `no seat for Ace${8 + i}` });
+  }
+  assert.equal(h.sent.length, 1, 'nothing more within the minute');
+  h.advance(60000);
+  rep.note(thrown);
+  assert.equal(h.sent.length, 2);
+  assert.equal(h.sent[1].count, 301);
+  assert.equal(h.sent[1].sig, h.sent[0].sig);
+  rep.note(thrown);
+  rep.note(thrown);
+  rep.leaving();
+  assert.equal(h.sent.length, 3);
+  assert.equal(h.sent[2].count, 2);
+  rep.leaving();
+  assert.equal(h.sent.length, 3, 'a second leaving with nothing held sends nothing');
+});
+
+check('errors: a page reports a bounded number of kinds', () => {
+  const h = harness();
+  const rep = createErrorReporter({ send: h.send, now: h.now });
+  for (let i = 0; i < 100; i++) {
+    rep.note({ message: `kind ${'abcdefghijklmnopqrstuvwxyz'[i % 26]}${'abcdefghijklmnopqrstuvwxyz'[Math.floor(i / 26)]}`, stack: '' });
+  }
+  assert.equal(h.sent.length, ERROR_SIGS_PER_PAGE);
+});
+
+check('errors: those thrown before main.js listens are reported when it does', () => {
+  const h = harness();
+  const record = createCrashRecord(() => 0);
+  record.noteError('early one', 'src/boot.js:3:3', 'at x (https://a.test/src/boot.js:3:3)');
+  const handlers = {};
+  const win = {
+    addEventListener: (type, fn) => { handlers[type] = fn; },
+    document: { hidden: false, addEventListener: (type, fn) => { handlers[`doc.${type}`] = fn; } },
+  };
+  reportPageErrors(record, win, createErrorReporter({ send: h.send, now: h.now }));
+  assert.equal(h.sent.length, 1);
+  assert.deepEqual(h.sent[0].where, ['src/boot.js:3:3']);
+  record.noteError('later one', '', '');
+  assert.equal(h.sent.length, 2);
+  record.noteError('later one', '', '');
+  handlers.pagehide();
+  assert.equal(h.sent.length, 3);
+  assert.equal(h.sent[2].count, 1);
+  assert.equal(record.report().errors.length, 2, 'the F8 report still keeps them');
+});
+
+check('frames: one event per minute of drawn frames, the part minute on leaving', () => {
+  const h = harness();
+  const rep = createFramesReporter({ gpu: gpuClass({ usable: true, integrated: true, raw: 'Intel Iris Xe' }), send: h.send });
+  for (let t = 0; t <= 60000; t += 16) {
+    rep.frame(t, t % 1600 === 0 ? 40 : 6, 0.75, 60);
+  }
+  assert.equal(h.sent.length, 1);
+  const f = h.sent[0];
+  assert.deepEqual(Object.keys(f), ALLOWED.frames);
+  assert.equal(f.b.reduce((a, b) => a + b, 0), 3751);
+  assert.equal(f.b[0], 3713);
+  assert.equal(f.b[7], 38);
+  assert.equal(f.gpu, 'integrated');
+  assert.equal(f.cap, 60);
+  assert.equal(f.scale, 0.75);
+  rep.frame(60100, 120, 1, 0);
+  rep.flush();
+  assert.equal(h.sent.length, 2);
+  assert.deepEqual(h.sent[1].b, [0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+  rep.flush();
+  assert.equal(h.sent.length, 2, 'an empty window sends nothing');
+});
+
+check('reporters through the real sender: opted out and GPC send nothing', () => {
+  const run = () => {
+    const errors = createErrorReporter({ now: () => 0 });
+    errors.note({ message: 'opt out probe', stack: 'src/main.js:2:2' });
+    errors.leaving();
+    const frames = createFramesReporter({ gpu: 'discrete' });
+    frames.frame(0, 30, 1, 0);
+    frames.flush();
+  };
+  beacons.length = 0;
+  run();
+  assert.equal(beacons.length, 4, 'counting on: the error and the frames go');
+  beacons.length = 0;
+  stats.setOptedOut(true);
+  run();
+  stats.setOptedOut(false);
+  nav.globalPrivacyControl = true;
+  run();
+  nav.globalPrivacyControl = false;
   assert.equal(beacons.length, 0);
 });
 

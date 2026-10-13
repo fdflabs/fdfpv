@@ -518,17 +518,42 @@ export function createEditor(api) {
 
   document.body.append(root);
 
-  /* The replay OSD sits above the dock, however tall the dock wraps. */
+  /*
+   * The replay OSD sits above the dock, however tall the dock wraps, and
+   * under the head, however far its chips wrap. On a small window (800 by
+   * 600: the dock wraps tall and the chips to a second line) the two
+   * margins do not both fit, so it closes up to the middle of the room
+   * left, and lies in one row when three rows do not fit at all. The
+   * sticks sit under the head's buttons, which never wrap.
+   */
+  const OSD_GAP = 34;
   function placeOsd() {
-    if (!root.hidden) {
-      osd.style.bottom = `${dock.offsetHeight + 34}px`;
-      sticks.style.bottom = `${dock.offsetHeight + 34}px`;
+    if (root.hidden) {
+      return;
     }
+    const above = dock.offsetHeight + OSD_GAP;
+    sticks.style.bottom = `${above}px`;
+    osd.classList.remove('row');
+    const frame = root.getBoundingClientRect();
+    const dockTop = dock.getBoundingClientRect().top;
+    const room = dockTop - headLeft.getBoundingClientRect().bottom;
+    if (room >= osd.offsetHeight + 2 * OSD_GAP) {
+      osd.style.bottom = `${above}px`;
+      return;
+    }
+    if (room < osd.offsetHeight + 8) {
+      osd.classList.add('row');
+    }
+    const lift = Math.max(4, (room - osd.offsetHeight) / 2);
+    osd.style.bottom = `${Math.round(frame.bottom - dockTop + lift)}px`;
   }
   window.addEventListener('resize', () => {
     placeOsd();
     stripSig = '';
   });
+  /* A chip's words change as the clip plays (Last 30 seconds, Saved
+   * clip, the movie's length), and a new word can wrap the head. */
+  new ResizeObserver(() => placeOsd()).observe(headLeft);
 
   /* ---- the stage: drag to look, wheel to zoom ---- */
   let dragFrom = null;

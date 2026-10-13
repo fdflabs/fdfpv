@@ -1,0 +1,43 @@
+{
+ "_about": "Stores as builds before the save envelope (saveVersion 3, no fdfpv.save.version) left them, one per historic shape. scripts/save-selftest.js runs openSave over each and holds every reader to the same answer before and after. Hand written from the shapes the readers accept (src/ui/settings.js, src/input/stickstore.js, src/ui/builds.js, src/share/records.js).",
+ "v3-profile": {
+  "webfpv.settings.v3": "{\"airframeAsked\":true,\"airframe\":\"interceptor\",\"tune\":\"interceptor-race\",\"map\":\"swiss2\",\"sound\":true,\"musicLevel\":3,\"progress\":{\"v\":1,\"xp\":740,\"challenges\":{\"first_course\":true,\"hoops_10\":true},\"unlockAll\":false,\"seen\":{\"cub1400\":true}},\"campaign\":{\"v\":1,\"missions\":{\"m1\":{\"stars\":3,\"won\":true,\"credits\":120},\"m2\":{\"stars\":1,\"won\":false,\"credits\":40}},\"earned\":160,\"owned\":{},\"films\":{\"intro\":2}},\"livery\":{\"cub1400\":{\"scheme\":\"classic\"}},\"rates\":{\"type\":\"actual\",\"roll\":{\"rcRate\":70,\"srate\":670,\"expo\":0},\"pitch\":{\"rcRate\":70,\"srate\":670,\"expo\":0},\"yaw\":{\"rcRate\":70,\"srate\":400,\"expo\":0}}}",
+  "fdfpv.voice": "{\"muted\":{\"peer1\":true},\"volume\":{\"peer2\":3}}",
+  "fdfpv.stick_maps.v2": "{\"v\":2,\"maps\":{\"1209:4f54:Radiomaster Pocket Joystick\":{\"roll\":{\"axis\":0,\"center\":0,\"pos\":1,\"neg\":-1},\"pitch\":{\"axis\":1,\"center\":0,\"pos\":-1,\"neg\":1},\"yaw\":{\"axis\":3,\"center\":0,\"pos\":1,\"neg\":-1},\"throttle\":{\"axis\":2,\"low\":-1,\"high\":1}}},\"orphan\":null}",
+  "fdfpv.pad.v1": "{\"kind\":\"pad\",\"id\":\"Radiomaster Pocket Joystick (Vendor: 1209 Product: 4f54)\",\"index\":0}",
+  "webfpv.builds.v1": "{\"v\":1,\"builds\":[{\"id\":\"b1\",\"name\":\"Race day\",\"airframe\":\"interceptor\"}]}",
+  "webfpv.pilot.name": "Ñandú 7",
+  "fdfpv.lang": "es",
+  "webfpv.lang": "es",
+  "fdfpv.stats.v1": "{\"first\":\"2026-09-01\",\"last\":\"2026-10-12\"}",
+  "webfpv.best.a1b2c3.4.2.interceptor": "41234",
+  "webfpv.bestLapMs": "52000",
+  "webfpv.trackbuilder": "{\"pieces\":[]}"
+ },
+ "pre-progression": {
+  "webfpv.settings.v3": "{\"airframe\":\"cub1400\",\"rcRate\":1.2,\"superRate\":0.7,\"expo\":0.1,\"map\":\"track\"}"
+ },
+ "five-inch-seat": {
+  "webfpv.settings.v3": "{\"airframeAsked\":true,\"airframe\":\"5inch\",\"tune\":\"5inch-freestyle\",\"hudStyleBy\":{\"5inch\":\"osd\",\"interceptor\":\"game\"}}",
+  "fdfpv.fc.v1": "set roll_rc_rate = 7",
+  "fdfpv.fc.airframe.v1": "5inch"
+ },
+ "whoop-seat": {
+  "webfpv.settings.v3": "{\"airframeAsked\":true,\"airframe\":\"whoop65\",\"tune\":\"whoop\"}",
+  "fdfpv.fc.v1": "set roll_rc_rate = 7",
+  "fdfpv.fc.airframe.v1": "whoop65"
+ },
+ "retired-plane-and-world": {
+  "webfpv.settings.v3": "{\"airframeAsked\":true,\"airframe\":\"wing1000\",\"tune\":\"wing-manual\",\"map\":\"city\",\"freestyleMap\":\"yellowstone\"}"
+ },
+ "old-spellings": {
+  "webfpv_stick_map_v1": "{\"roll\":{\"axis\":0,\"center\":0,\"pos\":1,\"neg\":-1},\"pitch\":{\"axis\":1,\"center\":0,\"pos\":-1,\"neg\":1},\"yaw\":{\"axis\":3,\"center\":0,\"pos\":1,\"neg\":-1},\"throttle\":{\"axis\":2,\"low\":-1,\"high\":1}}",
+  "webfpv.pad.v1": "{\"kind\":\"pad\",\"id\":\"TX16S Joystick (Vendor: 1209 Product: 4f54)\",\"index\":1}",
+  "webfpv.lang": "es"
+ },
+ "stick-map-v1": {
+  "fdfpv.stick_map.v1": "{\"roll\":{\"axis\":0,\"center\":0,\"pos\":1,\"neg\":-1},\"pitch\":{\"axis\":1,\"center\":0,\"pos\":-1,\"neg\":1},\"yaw\":{\"axis\":3,\"center\":0,\"pos\":1,\"neg\":-1},\"throttle\":{\"axis\":2,\"low\":-1,\"high\":1}}",
+  "fdfpv.pad.v1": "{\"kind\":\"none\"}"
+ },
+ "empty": {}
+}

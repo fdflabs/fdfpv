@@ -65,7 +65,7 @@
   <body>
     <nav><a href="./">Paraguayan Drone Combat Simulator</a><a href="terms.html">Terms</a><a href="#es">Español</a></nav>
     <h1>FD<span>FPV</span> privacy</h1>
-    <p class="updated">Last changed 4 October 2026.</p>
+    <p class="updated">Last changed 13 October 2026.</p>
     <p class="lede">The Paraguayan Drone Combat Simulator is free, open source and runs in your browser. Playing it needs an account: you sign in with Google before you fly or join a room. This page says what is kept when you sign in and when you do the other things that send anything anywhere, where it is kept, and how to have it removed.</p>
 
     <div class="panel">
@@ -107,7 +107,15 @@
     <p><strong>Voices are kept in replays.</strong> Every pilot's game keeps, in its crash replay, the voices it received from the other pilots in the room: each pilot's voice as it arrived, compressed (Opus, about 24 kilobits a second), for the last half minute or so, and only while that pilot was speaking and not muted by the listener. Any pilot in the room can save such a replay, keep it in their browser, send it to others as a file, and export a movie of it with the voices in it. Your own microphone is not kept by your game, but it is kept by the games of the pilots who hear you. Before your microphone is first turned on, the game tells you this and asks you to confirm; until you do, you can hear the others and nobody hears you. Our server never receives or keeps any of it: replays stay in the browsers of the pilots who made them, and in whatever they choose to share.</p>
 
     <h2>Site statistics</h2>
-    <p>The board counts pilots, sessions, laps, flight time and crashes as totals per day, with the country as two letters and the aircraft, input and map as one of a fixed list. No row describes one visitor, and no address, browser, name or track is kept with them. Your browser decides whether you are new or returning from a date it keeps itself. A browser that sends Global Privacy Control is not counted, and the board has a switch to stop counting yours.</p>
+    <p>The board counts pilots, sessions, laps, flight time and crashes as totals per day, with the country as two letters and the aircraft, input and map as one of a fixed list. No row describes one visitor, and no address, browser, name or track is kept with them. Your browser decides whether you are new or returning from a date it keeps itself. A browser that sends Global Privacy Control is not counted, and the switch below stops yours being counted.</p>
+    <p>The game also sends two kinds of anonymous report, so that we can fix what breaks and see how smoothly it runs:</p>
+    <ul>
+      <li><strong>Page errors.</strong> When something in the game fails: the error's message with every value taken out (web and file addresses, emails, IP addresses, ids, quoted text and any word with a digit in it, other than a number of up to five digits, become placeholders), up to three places in the game's own code where it happened, and how many times. The first of a kind is sent at once and its repeats at most once a minute, and a page sends at most eight kinds.</li>
+      <li><strong>Frame times.</strong> Once a minute while the game is drawing, and when you leave it or switch away: how many frames took how long, as ten counts (up to 8.4, 11.2, 13.9, 16.8, 20, 25, 33.4, 50 and 100 milliseconds, and slower), whether the graphics chip is software, integrated, separate or not said (never its name), the frame cap and the render scale.</li>
+    </ul>
+    <p>Neither says anything about you, your browser, your country or where you came from. The board counts them per day, and only the people who run the Paraguayan Drone Combat Simulator can read them.</p>
+    <p><label><input type="checkbox" data-stats-switch checked /> Send site statistics and reports from this browser</label></p>
+    <p data-stats-gpc hidden>Your browser sends Global Privacy Control, so nothing is sent, whatever the switch says.</p>
     <p>The "All pilots" flight time in the game's Pilot screen is those daily flight time totals added up: a sum, with no row for any one pilot. It is not made from anybody's account.</p>
 
     <h2>Addresses and logs</h2>
@@ -124,7 +132,7 @@
       <li><strong>Your account</strong>: until you delete it. In the game, open Pilot and choose <em>Delete my account</em>. Your account id, callsign, progress, flight time, pilot key and sessions are removed from the server at once, and your callsign is free for others. Until then your flight time is kept for as long as the account is.</li>
       <li><strong>Sessions</strong>: 30 days, or until you sign out.</li>
       <li><strong>Your address on the beta waitlist</strong>: until you ask for it to be removed, with F8 in the game or an issue at the address below. Deleting your account does not remove it, because the two are not tied together.</li>
-      <li><strong>Site statistics</strong>: the daily totals are kept indefinitely. They describe no one, so there is nothing in them to delete for you.</li>
+      <li><strong>Site statistics, error and frame time reports</strong>: the daily totals are kept indefinitely. They describe no one, so there is nothing in them to delete for you.</li>
       <li><strong>Tracks, lap times, board tracks and bug reports</strong>: until they are removed. Deleting your account does not remove them, because they are public records other pilots race against. To have yours removed, send a report with F8 in the game saying which ones (only the people who run the Paraguayan Drone Combat Simulator read it), or open an issue at <a href="https://github.com/fdflabs/fdfpv/issues">github.com/fdflabs/fdfpv/issues</a> (issues there are public).</li>
     </ul>
     <p>The same two ways reach us with any question about this page.</p>
@@ -132,7 +140,7 @@
     <hr />
 
     <h1 id="es">Privacidad de FD<span>FPV</span></h1>
-    <p class="updated">Último cambio: 4 de octubre de 2026.</p>
+    <p class="updated">Último cambio: 13 de octubre de 2026.</p>
     <p class="lede">El Simulador de Combate de Drones Paraguayo es libre, de código abierto y corre en tu navegador. Para jugar hace falta una cuenta: inicias sesión con Google antes de volar o de entrar a una sala. Esta página dice qué se guarda cuando inicias sesión y cuando haces otras cosas que envían datos, dónde se guarda y cómo pedir que se borre.</p>
 
     <div class="panel">
@@ -174,7 +182,15 @@
     <p><strong>Las voces quedan en las repeticiones.</strong> El juego de cada piloto guarda, en su repetición de choque, las voces que recibió de los demás pilotos de la sala: la voz de cada piloto tal como llegó, comprimida (Opus, unos 24 kilobits por segundo), durante el último medio minuto más o menos, y solo mientras ese piloto hablaba y quien escuchaba no lo había silenciado. Cualquier piloto de la sala puede guardar esa repetición, conservarla en su navegador, enviarla a otros como archivo y exportar un video con las voces. Tu propio juego no guarda tu micrófono, pero sí lo guardan los juegos de los pilotos que te oyen. Antes de que tu micrófono se encienda por primera vez, el juego te lo explica y te pide confirmarlo; hasta que lo hagas, oyes a los demás y nadie te oye. Nuestro servidor nunca recibe ni guarda nada de esto: las repeticiones quedan en los navegadores de los pilotos que las hicieron y en lo que ellos decidan compartir.</p>
 
     <h2>Estadísticas del sitio</h2>
-    <p>El tablero cuenta pilotos, sesiones, vueltas, tiempo de vuelo y choques como totales por día, con el país en dos letras y la aeronave, el control y el mapa de una lista fija. Ninguna fila describe a un visitante, y no se guarda con ellas ninguna dirección, navegador, nombre ni pista. Un navegador que envía Global Privacy Control no se cuenta, y el tablero tiene un interruptor para no contar el tuyo.</p>
+    <p>El tablero cuenta pilotos, sesiones, vueltas, tiempo de vuelo y choques como totales por día, con el país en dos letras y la aeronave, el control y el mapa de una lista fija. Ninguna fila describe a un visitante, y no se guarda con ellas ninguna dirección, navegador, nombre ni pista. Un navegador que envía Global Privacy Control no se cuenta, y el interruptor de abajo hace que el tuyo no se cuente.</p>
+    <p>El juego también envía dos tipos de informe anónimo, para que podamos arreglar lo que falla y ver qué tan fluido corre:</p>
+    <ul>
+      <li><strong>Errores de la página.</strong> Cuando algo del juego falla: el mensaje del error sin ningún valor (direcciones web y de archivos, correos, direcciones IP, ids, texto entre comillas y toda palabra con una cifra, salvo un número de hasta cinco cifras, pasan a ser marcadores), hasta tres lugares del código del propio juego donde ocurrió, y cuántas veces. El primero de cada tipo se envía en el acto y sus repeticiones a lo sumo una vez por minuto, y una página envía como mucho ocho tipos.</li>
+      <li><strong>Tiempos de cuadro.</strong> Una vez por minuto mientras el juego dibuja, y al salir o cambiar de pestaña: cuántos cuadros tardaron cuánto, en diez conteos (hasta 8,4, 11,2, 13,9, 16,8, 20, 25, 33,4, 50 y 100 milisegundos, y más), si el chip gráfico es por software, integrado, dedicado o no lo dice (nunca su nombre), el límite de cuadros y la escala de render.</li>
+    </ul>
+    <p>Ninguno dice nada de ti, de tu navegador, de tu país ni de dónde llegaste. El tablero los cuenta por día, y solo las personas que llevan el Simulador de Combate de Drones Paraguayo pueden leerlos.</p>
+    <p><label><input type="checkbox" data-stats-switch checked /> Enviar estadísticas e informes desde este navegador</label></p>
+    <p data-stats-gpc hidden>Tu navegador envía Global Privacy Control, así que no se envía nada, diga lo que diga el interruptor.</p>
     <p>El tiempo de vuelo de "Todos los pilotos" en la pantalla Piloto del juego es la suma de esos totales diarios de tiempo de vuelo: una suma, sin una fila para ningún piloto. No sale de la cuenta de nadie.</p>
 
     <h2>Direcciones y registros</h2>
@@ -191,9 +207,10 @@
       <li><strong>Tu cuenta</strong>: hasta que la borres. En el juego, abre Piloto y elige <em>Borrar mi cuenta</em>. El id, el indicativo, el progreso, el tiempo de vuelo, la clave y las sesiones se quitan del servidor en el acto, y tu indicativo queda libre. Hasta entonces tu tiempo de vuelo se guarda mientras exista la cuenta.</li>
       <li><strong>Sesiones</strong>: 30 días, o hasta cerrar sesión.</li>
       <li><strong>Tu dirección en la lista de espera de la beta</strong>: hasta que pidas que se quite, con F8 en el juego o con un issue en la dirección de abajo. Borrar la cuenta no la quita, porque no están ligadas.</li>
-      <li><strong>Estadísticas del sitio</strong>: los totales diarios se guardan sin plazo. No describen a nadie, así que no hay nada tuyo en ellos que borrar.</li>
+      <li><strong>Estadísticas del sitio e informes de errores y tiempos de cuadro</strong>: los totales diarios se guardan sin plazo. No describen a nadie, así que no hay nada tuyo en ellos que borrar.</li>
       <li><strong>Pistas, tiempos, pistas del tablero y reportes</strong>: hasta que se quiten. Borrar la cuenta no los quita, porque son registros públicos contra los que corren otros pilotos. Para quitar los tuyos, envía un reporte con F8 diciendo cuáles (solo lo leen quienes llevan el Simulador de Combate de Drones Paraguayo), o abre un issue en <a href="https://github.com/fdflabs/fdfpv/issues">github.com/fdflabs/fdfpv/issues</a> (allí son públicos).</li>
     </ul>
     <p>Por esas mismas dos vías puedes preguntarnos cualquier cosa sobre esta página.</p>
+    <script type="module" src="src/share/statsswitch.js"></script>
   </body>
 </html>

@@ -232,6 +232,8 @@ try {
   const f1 = Object.fromEntries(JSON.parse(facts1));
   check('the debrief carries the flight\'s facts: time in the air, required items captured of 11, stars',
     /^\d+:\d\d$/.test(f1['In the air'] || '') && /^\d+ of 11$/.test(f1['Required items captured'] || '') && /^1 of \d+$/.test(f1.Stars || ''), facts1);
+  const hud1 = await page.evaluate('window.__crash().condition');
+  check('and the aircraft\'s condition, the HUD\'s word', f1.Aircraft === { operational: 'Operational', impaired: 'Impaired', destroyed: 'Destroyed' }[hud1], `${f1.Aircraft} (${hud1})`);
   check('no flight, no clip: no replay button', !d1.buttons.includes('replay'), d1.buttons.join());
   const prog = await page.evaluate("(window.__ui.settings.campaign && window.__ui.settings.campaign.missions['interior-1']) || null");
   const flags = await page.evaluate('(window.__ui.settings.campaign && window.__ui.settings.campaign.flags) || null');
