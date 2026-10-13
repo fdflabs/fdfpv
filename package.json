@@ -270,6 +270,8 @@
     "replay:sound": "node scripts/replay-sound.js",
     "replay:voice": "node scripts/replay-voice-two-page.js",
     "replay:sticks": "node scripts/replay-sticks-check.js",
+    "replay:refly": "node scripts/replay-refly.js",
+    "replay:refly:selftest": "node scripts/replay-refly.js --selftest",
     "war:fuze": "node scripts/war-fuze-cue.js",
     "damage:check": "node scripts/damage-check.js",
     "damage:shots": "node scripts/damage-shots.js",
