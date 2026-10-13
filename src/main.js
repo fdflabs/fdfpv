@@ -62,7 +62,7 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind, lockOf } from './game/progress.js';
-import { STRIPS, bankOf, gateCue, glidePoints, headingOf, lateralG } from './game/training.js';
+import { STRIPS, applyLesson, bankOf, gateCue, glidePoints, headingOf, heldSettings, lateralG, restoreSettings } from './game/training.js';
 import { createGlidePath } from './render/glidepath.js';
 import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
@@ -701,6 +701,56 @@ export async function boot({
   input.startPolling(2);
   loading.system('input', 'ready');
   const ui = new Ui(uiRoot);
+  /*
+   * A LESSON'S SETTINGS (src/game/training.js): what the pilot's aircraft,
+   * tune, flight mode and weather were before the first lesson, held in
+   * memory and in storage, so a reload mid lesson puts them back too;
+   * restored when the lesson is left (Progress.endLesson, any other card)
+   * and here, on the load after one. Without storage the memory still
+   * restores them within the page.
+   */
+  const LESSON_RESTORE_KEY = 'fdfpv.lessonRestore';
+  let lessonHeld = null;
+  try {
+    lessonHeld = JSON.parse(localStorage.getItem(LESSON_RESTORE_KEY) || 'null');
+  } catch (e) {
+    /* Unreadable: nothing to put back. */
+  }
+  function lessonSettingValid(key, value) {
+    if (key === 'airframe') {
+      return airframeById(value).id === value;
+    }
+    if (key === 'tune') {
+      return TUNES.some((t) => t.id === value && t.airframe === ui.settings.airframe);
+    }
+    if (key === 'flightMode') {
+      return value === 'acro' || value === 'angle';
+    }
+    return WEATHER_PRESETS.includes(value);
+  }
+  function holdLessonSettings() {
+    if (lessonHeld) {
+      return;
+    }
+    lessonHeld = heldSettings(ui.settings);
+    try {
+      localStorage.setItem(LESSON_RESTORE_KEY, JSON.stringify(lessonHeld));
+    } catch (e) {
+      /* No storage: held in memory for this page. */
+    }
+  }
+  function restoreLessonSettings() {
+    if (restoreSettings(ui.settings, lessonHeld, seatAirframe, lessonSettingValid)) {
+      ui.persistSettings();
+    }
+    lessonHeld = null;
+    try {
+      localStorage.removeItem(LESSON_RESTORE_KEY);
+    } catch (e) {
+      /* No storage: nothing was kept there. */
+    }
+  }
+  restoreLessonSettings();
   /* Every model of a plane is built in the pilot's paint for it
    * (src/render/livery.js, configs/liveries.js), read from the settings as
    * they are when it is built. The boot craft, built above, is a quad. */
@@ -7973,19 +8023,9 @@ export async function boot({
     passed: (id) => Boolean(ui.settings.progress.lessons[id]),
     fly: (lesson) => {
       const s = ui.settings;
-      const craft = lesson.airframe || s.airframe;
-      if (craft !== s.airframe) {
-        seatAirframe(s, craft);
-      }
-      if (lesson.tune) {
-        s.tune = lesson.tune;
-      }
-      if (lesson.mode) {
-        s.flightMode = lesson.mode;
-      }
-      if (lesson.weather) {
-        s.weather = lesson.weather;
-      }
+      holdLessonSettings();
+      applyLesson(s, lesson, seatAirframe);
+      const craft = s.airframe;
       ui.progress.startLesson(lesson);
       /* A lesson flown with other pilots goes in by its activity's lobby,
        * as that activity's card does with a rooms server. */
@@ -7997,6 +8037,7 @@ export async function boot({
     },
   });
   ui.onTrainingCard = () => trainingScreen.open();
+  ui.progress.onLessonEnd = restoreLessonSettings;
   devHooks.__training = trainingScreen;
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in

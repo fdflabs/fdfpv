@@ -22,7 +22,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, EIGHT_BANK, SLIP_G, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -346,6 +346,34 @@ expect('racing: the clean lap\'s skip passes count, as passesOf writes them', ce
 }).join(), 'racing');
 expect('a time that is not a pass earns nothing', certsEarned({ ...allOf('racing'), race_pilot: 0 }).length, 0);
 expect('two tracks at once', certsEarned({ ...allOf('racing'), ...allOf('multirotor') }).join(), 'multirotor,racing');
+
+/* A lesson's settings go back when it is left. `seat` stands in for
+ * settings.js seatAirframe, which also resets the tune. */
+{
+  const seat = (st, id) => {
+    st.airframe = id;
+    st.tune = `${id}-default`;
+    st.seats = (st.seats || 0) + 1;
+  };
+  const ok = () => true;
+  const before = { airframe: 'bramor2300', tune: 'bramor-as3x', flightMode: 'angle', weather: 'calm', livery: 'kept' };
+  const s = { ...before };
+  const held = JSON.parse(JSON.stringify(heldSettings(s)));
+  applyLesson(s, lessonById('glider_thermal'), seat);
+  expect('a lesson seats its aircraft, tune and weather', [s.airframe, s.tune, s.weather].join(), 'radian2000,radian-stab,breeze');
+  applyLesson(s, lessonById('quad_hover'), seat);
+  expect('and a quad lesson its flight mode', [s.airframe, s.flightMode].join(), 'interceptor,angle');
+  expect('what was held puts every one back, through storage\'s JSON', restoreSettings(s, held, seat, ok)
+    && LESSON_SETTINGS.every((k) => s[k] === before[k]) && s.livery === 'kept', true);
+  const t = { ...before };
+  applyLesson(t, lessonById('first_takeoff'), seat);
+  restoreSettings(t, held, seat, (k, v) => k !== 'weather' && v !== 'bramor-as3x');
+  expect('a value the build refuses is not put back', [t.airframe, t.tune, t.weather].join(), 'bramor2300,bramor2300-default,calm');
+  const u = { ...before };
+  restoreSettings(u, held, seat, ok);
+  expect('the same aircraft is not seated again', u.seats, undefined);
+  expect('nothing held, nothing to put back', restoreSettings(u, null, seat, ok) || restoreSettings(u, 'x', seat, ok), false);
+}
 
 console.log(failed ? `FAIL, ${failed} case(s)` : `PASS, ${LESSONS.length} lessons judged`);
 process.exit(failed ? 1 : 0);

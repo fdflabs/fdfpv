@@ -100,6 +100,7 @@ try {
   check('nothing on it is locked: every lesson has Fly', listed && listed.plays === LESSONS.length, JSON.stringify(listed));
   await shot(page, 'lessons');
 
+  const heldBefore = await page.evaluate("(() => { const s = window.__ui.settings; return [s.airframe, s.tune, s.flightMode, s.weather].join(); })()");
   await click(page, '[data-lesson="first_turns"] .campaign-play');
   await page.until("window.__ui.settings.airframe === 'timber1500' && document.querySelector('.training-box') === null", 30000).catch(() => {});
   await page.until("window.__map && window.__map().ready && window.__map().id === 'swiss2'", 300000).catch(() => {});
@@ -155,6 +156,8 @@ try {
   await page.evaluate("window.__ui.pickForWay('way-race-5inch'); true");
   await page.sleep(500);
   check('another card ends the lesson', await page.evaluate('window.__ui.progress.lesson === null'));
+  const heldAfter = await page.evaluate("(() => { const s = window.__ui.settings; return [s.airframe, s.tune, s.flightMode, s.weather].join(); })()");
+  check('and puts back the aircraft, tune, mode and weather of before the first lesson', heldAfter === heldBefore, `${heldAfter} (before ${heldBefore})`);
   /* That card's aircraft picker, closed as a pilot backs out of it. */
   await page.tap('Escape');
   await page.until('!window.__ui.carousel.isOpen', 10000).catch(() => {});

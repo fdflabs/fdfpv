@@ -247,3 +247,9 @@ inputs and the flight's event log, each with a near miss that fails.
   The Radian opens at level 5, and a glider lesson seats it at any
   level: training gates nothing (section 4), so the lesson does not
   wait on the level.
+- **A lesson's settings go back when it ends.** Flying a lesson seats
+  its aircraft, tune, flight mode and weather in the pilot's stored
+  settings; what they were before the first lesson is kept (under
+  `fdfpv.lessonRestore`, so a reload keeps it too) and put back when
+  the lesson is left: the next card pressed, or the next load of the
+  page. A lesson flown after another keeps the first's starting point.

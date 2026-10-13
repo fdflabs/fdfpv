@@ -197,6 +197,54 @@ export function gateCue(cam, to, cone = 0.35) {
   return { angle: Math.atan2(right, upward), ahead: ahead > Math.cos(cone) };
 }
 
+/*
+ * A LESSON'S SETTINGS (docs/redesign/TRAINING.md 9, the lead 2026-10-13):
+ * flying one seats its aircraft, tune, flight mode and weather in the
+ * pilot's stored settings, and what they were goes back when the lesson
+ * is left, so no lesson leaves Breeze or a trainer's tune behind.
+ */
+export const LESSON_SETTINGS = ['airframe', 'tune', 'flightMode', 'weather'];
+
+/* The settings a lesson would change, as they are in `s`. */
+export function heldSettings(s) {
+  return Object.fromEntries(LESSON_SETTINGS.map((k) => [k, s[k]]));
+}
+
+/* Seats `lesson` in settings `s`; `seat(s, id)` seats an aircraft. */
+export function applyLesson(s, lesson, seat) {
+  const craft = lesson.airframe || s.airframe;
+  if (craft !== s.airframe) {
+    seat(s, craft);
+  }
+  if (lesson.tune) {
+    s.tune = lesson.tune;
+  }
+  if (lesson.mode) {
+    s.flightMode = lesson.mode;
+  }
+  if (lesson.weather) {
+    s.weather = lesson.weather;
+  }
+}
+
+/* Puts `held` (heldSettings, maybe from storage) back into `s`, each
+ * value only if `valid(key, value)`: the aircraft first, so the tune is
+ * judged against it. Returns whether there was anything to put back. */
+export function restoreSettings(s, held, seat, valid) {
+  if (!held || typeof held !== 'object') {
+    return false;
+  }
+  if (typeof held.airframe === 'string' && valid('airframe', held.airframe) && held.airframe !== s.airframe) {
+    seat(s, held.airframe);
+  }
+  for (const k of LESSON_SETTINGS.slice(1)) {
+    if (typeof held[k] === 'string' && valid(k, held[k])) {
+      s[k] = held[k];
+    }
+  }
+  return true;
+}
+
 /* The tracks in the order the page lists them. */
 export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'racing'];
 
