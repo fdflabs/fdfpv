@@ -3062,6 +3062,7 @@ export default {
   "replay.clips_unavailable": "Mis clips no se pueden leer aquí: {why}",
   "replay.no_clips_yet": "Aún no hay clips. En la repetición, Guardar deja la toma aquí.",
   "replay.clip_meta": "{when}, {map}, {build}",
+  "replay.clip_meta_opponent": "{when}, {map}, {build}, contra el Rival IA",
   "replay.clip_build": "versión {version}",
   "replay.clip_build_local": "versión local",
   "replay.clip_build_unknown": "versión desconocida",

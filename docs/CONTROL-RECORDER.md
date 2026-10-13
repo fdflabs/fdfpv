@@ -85,6 +85,44 @@ before it) and replay:refly prints it above the module's id. It is the first fie
 file.js HEADER_ONLY is the one rule for such fields (a file of that version or later has it, an older one
 never does), so the next one is a row there, not another version special case.
 
+### The AI opponent in a replay (file version 19)
+
+Added 2026-10-13 (w39 replay v19). A solo race's AI opponent (src/game/aiopponent.js) is now in the replay
+of that race: drawn as the translucent racing ghost it was (src/render/ghostcraft.js, labelled AI opponent),
+where the race drew it, and flown again by replay:refly.
+
+- Every crash cam row keeps the ghost's pose as the frame drew it, which race it is (a run: a new AiOpponent at
+  every lap the race opens from scratch), its own clock, how many of its 4 ms stick rows it had flown, its plant's
+  state hash and where its journal stood (src/replay/opponent.js). Its 4 ms sticks are copied in as flown, so a
+  clip never needs the opponent to still exist when the replay opens.
+- Its kept sticks are float32, rounded from the doubles sim_input took, so they alone do not fly it again (the
+  rows did not either, for the pilot: its ground and its contacts are calls too). What flies it is its journal:
+  the opponent's plant is its own dist/sim.wasm, journaled from the moment it is loaded (seatOpponent, before
+  anything allocates), its region copied once a second of its own clock (stepTo), the learning run before the
+  first copy and so never written down. A clip keeps that journal's stretches from the first row it names, the
+  very refly the pilot's is (src/replay/refly.js; reflyOf takes the rows' marks, reflyRun the rows' hashes).
+- Saved, a clip with an opponent is file version 19: the header's `opponent` ({ runs: [{ laps, crashed }],
+  sticks, refly? }) and after everything else its rows, pose, sticks and, with a refly, its marks and deflated
+  stretches. Its columns are the newest layout's, so it needs the sticks and the animation clock, and its version
+  is past 18's, so it carries the app build: file.js HEADER_ONLY already says a file of version 18 or later has
+  one, so there is no rule of its own for that. The opponent itself is not a HEADER_ONLY row: it has columns. A
+  clip without an opponent is the version 18 file, byte for byte; versions 1 to 18 are read without one. A trim
+  keeps it (its sticks and stretches whole, as the pilot's refly), and a trim that leaves it no row drops it.
+- Refused: an opponent in a file older than 19, a version 19 file without its opponent (or its build), an
+  unknown field, a lap that is not a time, a row naming a race or a stick the file does not have or going back to
+  an earlier race, a pose or a stick that is not one, an opponent that races in no frame, a file cut short.
+- A run whose plant was seated again before the clip was cut (another aircraft or pack) keeps its pose and
+  sticks; its rows cannot be flown back to, as a journal that is gone cannot be kept.
+- My clips says "against the AI opponent" after the build. Its laps are its own Race's, kept per run as the
+  last row of that run saw them, and never the pilot's record.
+- **Size.** Measured: in the replay:refly self test, 30.0 s at 62.5 rows a second, the opponent added 1.07 MB
+  to a 0.97 MB clip (its refly 0.85 MB deflated: about 140 kB of region and 23 kB a second of calls, as the
+  pilot's; sticks 0.12 MB; rows, pose and marks 0.10 MB). In the page (crashcam:e2e, 13.0 s, 778 rows) it added
+  0.58 MB to 0.81 MB. So a full 30 s race clip about doubles, to about 2 MB, and My clips' forty grow by about
+  45 MB at most if every one is a race against the opponent.
+
+`npm run replay:refly -- CLIP.fdfreplay [--wasm new.wasm]
+
 `npm run replay:refly -- CLIP.fdfreplay [--wasm new.wasm] [--old clip-build.wasm] [--transplant] [--every s]
 [--json out.json]` first flies it again, exactly, on the build that recorded it (the module given if it is that
 build, else `--old`, else `git cat-file blob <id>` from this checkout), on a
@@ -135,6 +173,10 @@ every row it can fly matches.
 - Verified: a clip saved in headless Chromium (npm run replay:sticks) re-flies in Node with every row bit for
   bit, which is the Node and browser determinism CLAUDE.md requires, on a real recording.
 - An old clip (version 1 to 16) is read as before and refused by replay:refly with what it holds instead.
+- A version 19 clip's AI opponent is flown too, on its own fresh module of its own build (refused by its id
+  otherwise): every row it raced in hashed against its recorded hash, the region held to its journal's copies,
+  and at each row the last sim_input its journal made held to the stick row it kept there. Its laps are printed
+  as its Race closed them. Exit 0 only when the pilot and the opponent both match.
 
 ## Data
 
@@ -188,6 +230,11 @@ Upload anything. Record when the switch is off. Replace the flight log.
   row pressed with a pointer hands over a CSV that parses; a restart keeps the last flight; the viewer's
   Last flight button, pressed with a pointer, shows it.
 - `npm run actions:golden`, `npm run war:legacy`: unchanged.
+- `npm run crashcam:selftest` (section 26): the opponent's ring (a row before it raced is none, a race opened
+  again is a second run, the sticks of both in one column with each row naming the one in force), drawn between
+  two rows of a run and never across two, the version 19 round trip bit for bit beside the build, the same clip
+  without it the version 18 file byte for byte, a trim, My clips' line in English and Spanish, and the refusals
+  above, an opponent in a version 18 file and a version 19 file without its opponent first.
 - `npm run crashcam:selftest` (section 25): the app build, a stamp and a checkout's null each through the
   version 18 round trip bit for bit; the same clip without one still version 16, the same bytes, shown as
   "build unknown"; a trim keeps it; refused: a version 18 file without its build, one in a version 16 file,
@@ -212,4 +259,12 @@ Upload anything. Record when the switch is off. Replace the flight log.
   its own build the clip flies identically, the transplant starts exactly in the recording's state and its
   jolt is reported; transplanted onto the changed build it parts from the first rows; the world declared
   twice a second keeps only the declarations a clip can need. A version 16 clip is refused with its reason,
-  and a file cut short or with a mark outside its stretches is refused on reading.
+  and a file cut short or with a mark outside its stretches is refused on reading. Section 8: an AI opponent
+  raced beside the clip as the page races one (the interceptor on the ring, a lap closed, then a race opened
+  again into a wall, so contacts are in its journal), saved as version 19: every row it raced flies back bit
+  for bit, its kept sticks are its journal's sim_input calls, and negative controls (a kept stick or a hash
+  changed, another build) are caught.
+- `npm run crashcam:e2e` (section 7, `--opponent-only` runs it alone): the interceptor on the ring with the
+  Ghost row on AI opponent; the replay draws the opponent's ghost where the race drew it last and through the
+  clip; saved as version 19 with My clips saying so; the saved file flown again in Node, the pilot and the
+  opponent each bit for bit; what the opponent adds to the file printed.

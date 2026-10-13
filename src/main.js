@@ -9655,6 +9655,7 @@ export async function boot({
           gravity: af.gravityBase,
           cellVoltage: runVoltage,
           rates: RATE_DEFAULTS,
+          wasm: simWasm,
         }))
         .then((seated) => {
           seat.seated = seated;
@@ -21972,6 +21973,8 @@ export async function boot({
     flightMode: flightModeNow,
     flapNotch: () => (airframeById(runAirframe).flaps ? flapNotch : -1),
     stickMode: () => ui.settings.stickMode,
+    /* The AI opponent racing and what drew it, or null (src/replay/opponent.js). */
+    opponent: () => (aiOpp && aiRig ? { opp: aiOpp, drawn: aiRig.group } : null),
     agl: () => lastClearance,
     surfaces: () => (shell.setSurfaces && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null),
     flaps: () => (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0),

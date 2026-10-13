@@ -82,12 +82,17 @@ export const REFLY_INIT_MAX = 1 << 20;
 const BUILD_RE = /^[0-9a-f]{40}$/;
 const NAME_RE = /^sim_\w{1,60}$/;
 
+/* A row's journal mark as the pilot's rows keep it, in the head. */
+const headMark = (clip) => (k) => [clip.head[k * HEAD_N + HEAD.markSeg], clip.head[k * HEAD_N + HEAD.markPos]];
+
 /*
  * A clip's refly from the journal's span (journal.exportSpan, taken when
- * the clip was cut) and the rows' marks in its head. Null when the span is
- * missing or no row can be flown back to.
+ * the clip was cut) and the rows' marks: `markAt(k)` gives row k's
+ * [stretch id, place], the head's by default (the AI opponent's rows keep
+ * their own, src/replay/opponent.js). Null when the span is missing or no
+ * row can be flown back to.
  */
-export function reflyOf(span, clip) {
+export function reflyOf(span, clip, markAt = headMark(clip)) {
   if (!span || !span.segs.length) {
     return null;
   }
@@ -95,8 +100,7 @@ export function reflyOf(span, clip) {
   const marks = new Int32Array(clip.n * 2);
   let any = false;
   for (let k = 0; k < clip.n; k += 1) {
-    const id = clip.head[k * HEAD_N + HEAD.markSeg];
-    const pos = clip.head[k * HEAD_N + HEAD.markPos];
+    const [id, pos] = markAt(k);
     const at = index.has(id) ? index.get(id) : -1;
     const seg = at >= 0 ? span.segs[at] : null;
     const ok = seg && pos <= seg.calls.length && (seg.broken === null || pos <= seg.broken);
@@ -397,6 +401,8 @@ function applyDelta(target, delta, size) {
  *
  * `opts.seeded(e)`, when given, is called each time a copy is written:
  * the self test's negative control changes the plant there.
+ * `opts.hashAt(k)`, when given, is row k's recorded hash in place of the
+ * head's (the AI opponent's rows keep their own).
  *
  * Returns { states: (Float64Array | null)[n], hashes: (boolean | null)[n],
  * copies: { checked, same, first, allocator }, seeds }: `allocator` the
@@ -468,6 +474,7 @@ export function reflyRun(e, clip, refly, opts = {}) {
     pos = to;
   }
 
+  const hashAt = opts.hashAt || ((k) => clip.head[k * HEAD_N + HEAD.stateHash]);
   const states = new Array(clip.n).fill(null);
   const hashes = new Array(clip.n).fill(null);
   for (let k = 0; k < clip.n; k += 1) {
@@ -510,7 +517,7 @@ export function reflyRun(e, clip, refly, opts = {}) {
     e.sim_state(statePtr);
     const st = new Float64Array(e.memory.buffer, statePtr, nState).slice();
     states[k] = st;
-    hashes[k] = stateHash(st) === clip.head[k * HEAD_N + HEAD.stateHash];
+    hashes[k] = stateHash(st) === hashAt(k);
   }
   return {
     states, hashes, copies, seeds,

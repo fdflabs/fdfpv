@@ -3057,6 +3057,7 @@ export default {
   "replay.clips_unavailable": "My clips cannot be read here: {why}",
   "replay.no_clips_yet": "No clips yet. In the replay, Save keeps the shot here.",
   "replay.clip_meta": "{when}, {map}, {build}",
+  "replay.clip_meta_opponent": "{when}, {map}, {build}, against the AI opponent",
   "replay.clip_build": "build {version}",
   "replay.clip_build_local": "local build",
   "replay.clip_build_unknown": "build unknown",

@@ -168,6 +168,19 @@
  * version before, byte for byte, and versions 1 to 17 are read without
  * it: their build is unknown.
  *
+ * Version 19 added a solo race's AI opponent (src/replay/opponent.js): the
+ * header's `opponent` ({ runs, sticks, refly? }: each race it ran in the
+ * clip with its laps and whether it crashed, how many 4 ms stick rows it
+ * kept, and its own plant's journal, a refly header as the pilot's is),
+ * and after everything else each row's run, clock, stick count and state
+ * hash, i32[n x 4], its pose as drawn, f32[n x 7], its sticks,
+ * f32[sticks x 4], then, with a refly, each row's place in its stretches,
+ * i32[n x 2], and the stretches deflated, `bytes` of them. Its columns
+ * are the newest layout's, so it needs the sticks and the animation clock,
+ * and its version is past 18's, so it has the build (HEADER_ONLY: no rule
+ * of its own). A clip without an opponent is written as the version
+ * before, byte for byte, and versions 1 to 18 are read without one.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -210,8 +223,13 @@ import { AIR_N, checkSound } from './sound.js';
 import { SEGMENT_BYTES_MAX, SEGMENTS_MAX, checkVoice } from './voicerec.js';
 import { BODY_N, STICK_N, checkSticks } from './sticks.js';
 import { checkReflyHeader, checkReflyMarks } from './refly.js';
+import {
+  OPP_POSE_N, ROW_N as OPP_ROW_N, STICK_W as OPP_STICK_W, checkOpponent,
+} from './opponent.js';
 
-export const FILE_VERSION = 18;
+export const FILE_VERSION = 19;
+/* A clip with a solo race's AI opponent in it. */
+const OPPONENT_VERSION = 19;
 /* A clip that flies again and does not name its app build. */
 const REFLY_VERSION = 17;
 /* A clip with its sticks and nothing to fly it again with. */
@@ -248,7 +266,7 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
 /* The deploy stamp's own characters (scripts/stamp-version.js), which
  * names a commit in 12 of them. */
 const BUILD_RE = /^[A-Za-z0-9._-]{1,40}$/;
@@ -282,6 +300,12 @@ function versionFor(clip) {
 
 /* The lowest version whose columns hold what a clip has. */
 function layoutVersion(clip) {
+  if (clip.opponent) {
+    if (!clip.sticks || !clip.anim) {
+      throw new Error('a clip with its AI opponent and no sticks or no animation clock');
+    }
+    return OPPONENT_VERSION;
+  }
   if (clip.refly && clip.refly.packed) {
     if (!clip.sticks || !clip.anim) {
       throw new Error('a clip that flies again without its sticks or its animation clock');
@@ -393,6 +417,12 @@ function animBytes(n, version) {
   return version >= 8 ? n * 8 : 0;
 }
 
+/* The AI opponent's bytes: its rows, its pose, its sticks, and its
+ * refly's marks and stretches when it has one. */
+function opponentBytes(n, sticks, reflyBytes) {
+  return n * OPP_ROW_N * 4 + n * OPP_POSE_N * 4 + sticks * OPP_STICK_W * 4 + (reflyBytes === null ? 0 : n * 8 + reflyBytes);
+}
+
 /* The sticks' bytes: their channels, then the plant's velocity and rates. */
 function sticksBytes(n) {
   return n * (STICK_N * 2 + BODY_N * 4);
@@ -414,7 +444,8 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice', 'sticks', 'refly', 'build'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice', 'sticks', 'refly', 'build', 'opponent'];
+const OPPONENT_KEYS = ['runs', 'sticks', 'refly'];
 const SOUND_KEYS = ['events'];
 const VOICE_KEYS = ['pieces'];
 const PIECE_KEYS = ['seat', 'from', 'to', 'mime', 'bytes'];
@@ -506,15 +537,14 @@ export function encodeReplay(clip) {
    * written as the version before, as it was before this existed. */
   const refly = clip.refly && clip.refly.packed ? clip.refly : null;
   if (refly) {
-    header.refly = {
-      build: refly.build,
-      abi: refly.abi,
-      lo: refly.lo,
-      hi: refly.hi,
-      names: refly.names,
-      segs: refly.segs,
-      ...(refly.setup ? { setup: refly.setup } : {}),
-      bytes: refly.packed.byteLength,
+    header.refly = reflyHeader(refly);
+  }
+  /* The opponent's refly, like the pilot's, only once packed. */
+  const opp = clip.opponent || null;
+  const oppRefly = opp && opp.refly && opp.refly.packed ? opp.refly : null;
+  if (opp) {
+    header.opponent = {
+      runs: opp.runs, sticks: opp.sticks.length / OPP_STICK_W, ...(oppRefly ? { refly: reflyHeader(oppRefly) } : {}),
     };
   }
   for (const f of HEADER_ONLY) {
@@ -533,7 +563,8 @@ export function encodeReplay(clip) {
     + (clip.sound ? n * AIR_N * 4 : 0)
     + (clip.voice ? n * 8 + clip.voice.pieces.reduce((x, s) => x + s.bytes.length, 0) : 0)
     + (clip.sticks ? sticksBytes(n) : 0)
-    + (refly ? n * 8 + refly.packed.byteLength : 0);
+    + (refly ? n * 8 + refly.packed.byteLength : 0)
+    + (opp ? opponentBytes(n, opp.sticks.length / OPP_STICK_W, oppRefly ? oppRefly.packed.byteLength : null) : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -614,7 +645,33 @@ export function encodeReplay(clip) {
     u8.set(refly.packed, o);
     o += refly.packed.byteLength;
   }
+  if (opp) {
+    for (const col of [opp.rows.subarray(0, n * OPP_ROW_N), opp.pose.subarray(0, n * OPP_POSE_N), opp.sticks]) {
+      u8.set(new Uint8Array(col.buffer, col.byteOffset, col.byteLength), o);
+      o += col.byteLength;
+    }
+    if (oppRefly) {
+      u8.set(new Uint8Array(oppRefly.marks.buffer, oppRefly.marks.byteOffset, n * 8), o);
+      o += n * 8;
+      u8.set(oppRefly.packed, o);
+      o += oppRefly.packed.byteLength;
+    }
+  }
   return buf;
+}
+
+/* A packed refly's header, the pilot's and the opponent's alike. */
+function reflyHeader(refly) {
+  return {
+    build: refly.build,
+    abi: refly.abi,
+    lo: refly.lo,
+    hi: refly.hi,
+    names: refly.names,
+    segs: refly.segs,
+    ...(refly.setup ? { setup: refly.setup } : {}),
+    bytes: refly.packed.byteLength,
+  };
 }
 
 /* ---- read ---- */
@@ -948,14 +1005,25 @@ export function decodeReplay(buf, known = null) {
     }
   }
   if (header.refly !== undefined) {
-    try {
-      checkReflyHeader(header.refly, n);
-    } catch (err) {
-      throw new ReplayFileError(err.message);
+    checkedReflyHeader(header.refly, n, 'refly');
+  }
+  if (version < OPPONENT_VERSION && header.opponent !== undefined) {
+    throw new ReplayFileError(`an AI opponent in a file older than version ${OPPONENT_VERSION}`);
+  }
+  if (version === OPPONENT_VERSION && header.opponent === undefined) {
+    throw new ReplayFileError(`a version ${OPPONENT_VERSION} file without its AI opponent`);
+  }
+  let oppBytes = 0;
+  if (header.opponent !== undefined) {
+    const O = header.opponent;
+    onlyKeys(O, OPPONENT_KEYS, 'opponent');
+    if (!Number.isInteger(O.sticks) || O.sticks < 0 || O.sticks * OPP_STICK_W * 4 > FILE_MAX_BYTES) {
+      throw new ReplayFileError('opponent.sticks is out of range');
     }
-    if (header.refly.bytes > FILE_MAX_BYTES) {
-      throw new ReplayFileError('refly.bytes is out of range');
+    if (O.refly !== undefined) {
+      checkedReflyHeader(O.refly, n, 'opponent.refly');
     }
+    oppBytes = opponentBytes(n, O.sticks, O.refly === undefined ? null : O.refly.bytes);
   }
   if (version < 13 && header.voice !== undefined) {
     throw new ReplayFileError('voices in a file older than version 13');
@@ -1039,7 +1107,7 @@ export function decodeReplay(buf, known = null) {
   const soundBytes = header.sound !== undefined ? n * AIR_N * 4 : 0;
   const stickBytes = header.sticks ? sticksBytes(n) : 0;
   const reflyBytes = header.refly ? n * 8 + header.refly.bytes : 0;
-  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes + soundBytes + voiceBytes + stickBytes + reflyBytes !== buf.byteLength) {
+  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes + soundBytes + voiceBytes + stickBytes + reflyBytes + oppBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant, smoke, ...(anim ? [anim] : [])]) {
@@ -1160,27 +1228,64 @@ export function decodeReplay(buf, known = null) {
     o += stickBytes;
   }
   if (header.refly) {
-    const H = header.refly;
-    const marks = new Int32Array(buf.slice(o, o + n * 8));
-    o += n * 8;
+    clip.refly = readRefly(buf, o, header.refly, n);
+    o += n * 8 + header.refly.bytes;
+  }
+  if (header.opponent) {
+    const O = header.opponent;
+    const take = (View, count, width) => {
+      const col = new View(buf.slice(o, o + count * width * 4));
+      o += count * width * 4;
+      return col;
+    };
+    const opponent = {
+      rows: take(Int32Array, n, OPP_ROW_N),
+      pose: take(Float32Array, n, OPP_POSE_N),
+      sticks: take(Float32Array, O.sticks, OPP_STICK_W),
+      runs: O.runs,
+      refly: O.refly ? readRefly(buf, o, O.refly, n) : null,
+    };
     try {
-      checkReflyMarks(marks, H, n);
+      checkOpponent(opponent, n);
     } catch (err) {
       throw new ReplayFileError(err.message);
     }
-    clip.refly = {
-      build: H.build,
-      abi: H.abi,
-      lo: H.lo,
-      hi: H.hi,
-      names: H.names,
-      segs: H.segs,
-      setup: H.setup || null,
-      marks,
-      packed: new Uint8Array(buf.slice(o, o + H.bytes)),
-    };
+    clip.opponent = opponent;
   }
   return clip;
+}
+
+/* A refly header checked (src/replay/refly.js), its refusal a file's. */
+function checkedReflyHeader(h, n, what) {
+  try {
+    checkReflyHeader(h, n);
+  } catch (err) {
+    throw new ReplayFileError(what === 'refly' ? err.message : `${what}: ${err.message}`);
+  }
+  if (h.bytes > FILE_MAX_BYTES) {
+    throw new ReplayFileError(`${what}.bytes is out of range`);
+  }
+}
+
+/* A refly's marks and packed stretches at `o`, as its header `H` says. */
+function readRefly(buf, o, H, n) {
+  const marks = new Int32Array(buf.slice(o, o + n * 8));
+  try {
+    checkReflyMarks(marks, H, n);
+  } catch (err) {
+    throw new ReplayFileError(err.message);
+  }
+  return {
+    build: H.build,
+    abi: H.abi,
+    lo: H.lo,
+    hi: H.hi,
+    names: H.names,
+    segs: H.segs,
+    setup: H.setup || null,
+    marks,
+    packed: new Uint8Array(buf.slice(o + n * 8, o + n * 8 + H.bytes)),
+  };
 }
 
 /* An edit checked against its clip's length and pilots (src/replay/edit.js),

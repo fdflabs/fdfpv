@@ -11,6 +11,7 @@
  *   peers.js, peerscene.js  the other pilots in a room, in the same rows,
  *                and drawn again;
  *   journal.js   the plant's copies and calls, for TAKE OVER;
+ *   opponent.js  a solo race's AI opponent, drawn again as its ghost;
  *   edit.js      the movie: shots, cuts, speeds, and how they map to time;
  *   cameras.js   where the replay's camera is, for a rig or an edit;
  *   file.js, store.js  a replay as bytes, and My clips;
@@ -72,6 +73,8 @@ import {
 } from './voicerec.js';
 import { controlRows, createSticksRing, sticksAt } from './sticks.js';
 import { packRefly, reflyOf } from './refly.js';
+import { createOpponentRing, opponentAt } from './opponent.js';
+import { buildGhostCraft } from '../render/ghostcraft.js';
 import { toCsv } from '../share/controlrec.js';
 import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
@@ -138,6 +141,8 @@ export function createCrashCam(host) {
   const voiceRing = createVoiceRing(rec.capacity);
   /* The pilot's sticks, the flight mode and the flaps (src/replay/sticks.js). */
   const sticksRing = createSticksRing(rec.capacity);
+  /* A solo race's AI opponent (src/replay/opponent.js). */
+  const opponentRing = createOpponentRing(rec.capacity);
   /* Harness only: the paper as recorded, by ring row, while switched on. */
   let paperLog = null;
   /* Harness only: the peers as recorded, by ring row, while switched on. */
@@ -185,6 +190,7 @@ export function createCrashCam(host) {
     soundRing.begin(-1);
     voiceRing.begin(-1);
     sticksRing.begin(-1);
+    opponentRing.begin(-1);
     if (S) {
       return;
     }
@@ -220,6 +226,7 @@ export function createCrashCam(host) {
       soundRing.clear();
       voiceRing.clear();
       sticksRing.clear();
+      opponentRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -234,6 +241,7 @@ export function createCrashCam(host) {
     soundRing.begin(i);
     voiceRing.begin(i);
     sticksRing.begin(i);
+    opponentRing.begin(i);
     const roomMs = host.roomNow ? host.roomNow() : null;
     voiceRing.at(roomMs);
     if (roomMs != null) {
@@ -260,6 +268,12 @@ export function createCrashCam(host) {
     const flags = host.flags();
     rec.status(i, journal.mark(), sp, flags, host.wrecked(), host.speed(), host.throttle(), host.agl());
     sticksRing.write(input.channels, host.flightMode(), host.flapNotch(), st);
+    /* The opponent as this frame drew it, after it flew to the pilot's
+     * clock (src/main.js opponentFrame runs before this). */
+    const opp = host.opponent ? host.opponent() : null;
+    if (opp) {
+      opponentRing.write(opp.opp, opp.drawn);
+    }
     const parts = host.parts();
     const count = parts ? host.partCount() : 0;
     if (parts && count > 1) {
@@ -767,6 +781,12 @@ export function createCrashCam(host) {
         if (refly) {
           clip.refly = refly;
         }
+        /* The AI opponent, when one raced in it: its file version is past
+         * the build's, so it needs what the build needs. */
+        const opponent = opponentRing.clip(first, n);
+        if (opponent) {
+          clip.opponent = opponent;
+        }
       }
     }
     /* A saved clip of one frame is a still, and plays as one. */
@@ -905,8 +925,15 @@ export function createCrashCam(host) {
     const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor, host.worldBoom || null) : null;
     /* A war's attackers, when the clip has them. */
     const war = clip.war ? createWarScene(clip.war, clip.n, parent, { audio, worldBoom: host.worldBoom || null }) : null;
+    /* A solo race's AI opponent, the translucent ghost it was in the race. */
+    let ghost = null;
+    if (clip.opponent) {
+      ghost = buildGhostCraft(af);
+      ghost.setLabel(str('main.ai_opponent'));
+      parent.add(ghost.group);
+    }
     return {
-      craft, wreck, debris, smoke, peers, paper, war, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
+      craft, wreck, debris, smoke, peers, paper, war, ghost, opp: { pos: [0, 0, 0], quat: [0, 0, 0, 1], sticks: null }, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
   }
 
@@ -924,7 +951,14 @@ export function createCrashCam(host) {
     if (sc.undoLook) {
       sc.undoLook();
     }
-    for (const g of [sc.craft.group, sc.wreck.group, sc.debris.group, sc.smoke.group]) {
+    if (sc.ghost) {
+      sc.ghost.group.traverse((o) => {
+        if (o.material && o.material.map) {
+          o.material.map.dispose();
+        }
+      });
+    }
+    for (const g of [sc.craft.group, sc.wreck.group, sc.debris.group, sc.smoke.group, ...(sc.ghost ? [sc.ghost.group] : [])]) {
       g.removeFromParent();
       g.traverse((o) => {
         if (o.geometry) {
@@ -1265,6 +1299,15 @@ export function createCrashCam(host) {
       S.scene.peers.pose(s.k, s.a, moving ? speed * Math.min(1, (step / speed) * 60) : 0, S.osd, inside);
       S.scene.peers.smokeTo(from, t, shell.canvas.clientHeight || 720, shell.camera.fov);
     }
+    if (S.scene.ghost) {
+      const o = S.scene.opp;
+      const racing = opponentAt(S.clip.opponent, s.k, s.a, o);
+      S.scene.ghost.setPresence(racing ? 1 : 0);
+      if (racing) {
+        S.scene.ghost.group.position.set(o.pos[0], o.pos[1], o.pos[2]);
+        S.scene.ghost.group.quaternion.set(o.quat[0], o.quat[1], o.quat[2], o.quat[3]);
+      }
+    }
     aimCamera();
     /* After the camera: the ribbons are never drawn thinner than a few
      * pixels, so they are drawn from where it is this frame. */
@@ -1536,6 +1579,10 @@ export function createCrashCam(host) {
       toast: S.toast,
       name: c.meta.name,
       peers: S.scene.peers ? S.scene.peers.list() : [],
+      /* The AI opponent's ghost as drawn, or null for a clip without one. */
+      opponent: S.scene.ghost ? {
+        visible: S.scene.ghost.group.visible, pos: S.scene.opp.pos.slice(), sticks: S.scene.opp.sticks, runs: S.clip.opponent.runs,
+      } : null,
       edit,
       shot,
       movie: { t: ed.movieTime(edit, S.t), dur: ed.movieDuration(edit) },
@@ -2114,11 +2161,14 @@ export function createCrashCam(host) {
       if (clip.refly) {
         clip.refly = await packRefly(clip.refly);
       }
+      if (clip.opponent && clip.opponent.refly) {
+        clip.opponent = { ...clip.opponent, refly: await packRefly(clip.opponent.refly) };
+      }
       const bytes = encodeReplay(clip);
       const thumb = await thumbnail();
       const dropped = await store.putClip({
         id, name: clip.meta.name, created, thumb, bytes,
-        airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build,
+        airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build, ...(clip.opponent ? { opponent: true } : {}),
       });
       session.savedId = id;
       session.savedCreated = created;
@@ -2212,7 +2262,7 @@ export function createCrashCam(host) {
     const clip = decode(bytes);
     await store.putClip({
       id: store.newId(), name: clip.meta.name, created: Date.now(), thumb: null, bytes,
-      airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build,
+      airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build, ...(clip.opponent ? { opponent: true } : {}),
     });
     return clip.meta.name;
   }
