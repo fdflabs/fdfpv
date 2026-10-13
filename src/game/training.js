@@ -26,6 +26,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { AIR_START_STALL_MARGIN } from '../../configs/airframes.js';
 import { MEDAL_STEPS } from './medals.js';
 
 /* What a flight must do before it counts, and how long down and still is a
@@ -40,6 +41,14 @@ const TURN_RAD = 2 * Math.PI;
  * yaw -1 to 1, throttle 0 to 1). */
 export const STICK_END = 0.95;
 export const STICK_HOLD_MS = 1000;
+/* The stall lesson (docs/redesign/TRAINING.md 9, the lead 2026-10-13): a
+ * stall is the airspeed under the aircraft's derived clean stall
+ * (configs/airframes.js `stall`), recovered once it is back to the margin
+ * the air starts and the catapults use, AIR_START_STALL_MARGIN times it,
+ * all of it at least STALL_FLOOR_M over the ground: the middle of the
+ * height lesson's 25 to 35 m band. */
+export const STALL_FLOOR_M = 30;
+export const STALL_RECOVERED = AIR_START_STALL_MARGIN;
 const STICK_ENDS = {
   'roll+': (c) => c.roll >= STICK_END,
   'roll-': (c) => c.roll <= -STICK_END,
@@ -53,7 +62,8 @@ const STICK_ENDS = {
 
 /*
  * Steps: { sticks: true } every stick held at each of its ends (STICK_END)
- * for STICK_HOLD_MS, in any order; { airborne: ms } in the air that long without touching down;
+ * for STICK_HOLD_MS, in any order; { stall: true } a stall entered and
+ * recovered without going under STALL_FLOOR_M; { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
  * clean meaning no rim touched; { ghost: true } a lap faster than the
@@ -83,6 +93,7 @@ export const LESSONS = [
     steps: [{ airborne: TAKEOFF_HOLD_MS }, { turn: 'left' }, { turn: 'right' }, { land: true }],
   },
   { id: 'wing_height', track: 'wing', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ hold: 20000, low: 25, high: 35 }] },
+  { id: 'wing_stall', track: 'wing', airframe: 'timber1500', tune: 'timber-as3x', place: 'swiss2', steps: [{ stall: true }] },
   {
     id: 'wing_approaches', track: 'wing', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', aid: 'glide',
     steps: [{ land: true }, { land: true }, { land: true }],
@@ -246,6 +257,7 @@ export class LessonWatch {
     this.streak = 0;
     this.endSince = {};
     this.endsHeld = new Set();
+    this.stalled = false;
   }
 
   get current() {
@@ -267,9 +279,11 @@ export class LessonWatch {
    * radians (z up, positive left), `agl` metres above the ground under
    * it, `pos` its { x, z } in the world, `battery` the OSD's 'ok',
    * 'warning' or 'critical', `sticks` the channels the plant got this
-   * frame. Returns whether the lesson is passed.
+   * frame, `airspeed` m/s through the air and `stall` the seated
+   * aircraft's clean stall, m/s (null on a quad). Returns whether the
+   * lesson is passed.
    */
-  tick({ simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok', sticks = null }) {
+  tick({ simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok', sticks = null, airspeed = null, stall = null }) {
     if (this.passed) {
       return true;
     }
@@ -294,6 +308,8 @@ export class LessonWatch {
     const s = this.current;
     if (s.sticks && sticks) {
       this.judgeSticks(simMs, sticks);
+    } else if (s.stall) {
+      this.judgeStall(grounded, agl, airspeed, stall);
     } else if (s.airborne != null && !grounded && simMs - this.airSince >= s.airborne) {
       this.advance();
     } else if (s.turn && heading != null) {
@@ -325,6 +341,24 @@ export class LessonWatch {
       }
     }
     if (this.endsHeld.size === Object.keys(STICK_ENDS).length) {
+      this.advance();
+    }
+  }
+
+  /* { stall: true }: under the stall speed and back to STALL_RECOVERED
+   * times it, never under STALL_FLOOR_M in between; going under it, or
+   * down, makes the next stall the one that counts. */
+  judgeStall(grounded, agl, airspeed, stall) {
+    if (!(stall > 0) || airspeed == null || agl == null) {
+      return;
+    }
+    if (grounded || agl < STALL_FLOOR_M) {
+      this.stalled = false;
+      return;
+    }
+    if (airspeed < stall) {
+      this.stalled = true;
+    } else if (this.stalled && airspeed >= STALL_RECOVERED * stall) {
       this.advance();
     }
   }

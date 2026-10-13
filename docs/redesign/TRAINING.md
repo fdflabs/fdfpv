@@ -191,3 +191,23 @@ inputs and the flight's event log, each with a near miss that fails.
   than on How to fly (src/ui/ui.js), which is not a flight and has no
   judge. "I fly already" on First flight does not cover it: the
   unaided round asks nothing of full travel.
+- **The stall** (`wing_stall`): the airspeed under the aircraft's
+  derived clean stall (configs/airframes.js `stall`, the Timber's 7.20
+  m/s from tests/timber-thresholds.json T2), then back up to 1.3 times
+  it, never under 30 m over the ground in between. 1.3 is
+  `AIR_START_STALL_MARGIN`, the margin the air starts and the Bramor's
+  catapult already use; 30 m is the lead's floor, the middle of the
+  height lesson's 25 to 35 m band. Airspeed is the plant's velocity
+  less the air it stepped in (the mean wind and the rising air, gusts
+  left out). Flown in AS3X, because SAFE Select caps
+  the pitch and levels the wings, which is the thing being taught away.
+  Known limit: the rule is speed, the plant stalls on angle of attack,
+  and `stall` is flaps up: with flaps down the real stall is slower
+  (T4, 6.31 m/s), so a pilot flying slow on full flaps may count a stall
+  the wing did not have.
+- **Coordinated turn** is not built. The lead's rule is a figure eight
+  of two circles with the slip under "the HUD's own ball threshold",
+  but the HUD has no slip ball and no threshold anywhere in the tree.
+  The slip itself can be read from the plant (the velocity in the body
+  frame); what is missing is the number that says how little slip is
+  coordinated. Until it is given, Fixed wing has no certification.

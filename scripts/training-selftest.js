@@ -22,7 +22,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, STICK_END, STICK_HOLD_MS, certsEarned, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, STALL_FLOOR_M, STALL_RECOVERED, STICK_END, STICK_HOLD_MS, certsEarned, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -62,6 +62,7 @@ expect('ids are unique', new Set(LESSONS.map((l) => l.id)).size, LESSONS.length)
  * agl, x, z, battery }; `gates` after the frames is passes and rims in
  * order, 'g' and 'r'. */
 const FRAME_MS = 16;
+const TIMBER_STALL = airframeById('timber1500').stall;
 function fly(id, segments, { laps = [], gates = '' } = {}) {
   const w = new LessonWatch(lessonById(id));
   let t = 0;
@@ -72,7 +73,7 @@ function fly(id, segments, { laps = [], gates = '' } = {}) {
       w.tick({
         simMs: t, crashed: Boolean(s.crashed), grounded: Boolean(s.grounded), heading: Math.atan2(Math.sin(heading), Math.cos(heading)),
         agl: s.agl ?? (s.grounded ? 0 : 30), pos: { x: s.x ?? 0, z: s.z ?? 0 }, battery: s.battery ?? 'ok',
-        sticks: { roll: 0, pitch: 0, yaw: 0, throttle: 0.5, ...s.sticks },
+        sticks: { roll: 0, pitch: 0, yaw: 0, throttle: 0.5, ...s.sticks }, airspeed: s.v ?? null, stall: s.stall === undefined ? TIMBER_STALL : s.stall,
       });
     }
   }
@@ -145,6 +146,20 @@ expect('sticks: an end let go at 0.6 s twice', fly('first_sticks', [...sweep(110
 expect('sticks: a crash after half, then the other half', fly('first_sticks', [...sweep(1100, ENDS.slice(0, 4)), crash, ...sweep(1100, ENDS.slice(4))]), false);
 expect('sticks: centred for ten seconds', fly('first_sticks', [stick(10000, {})]), false);
 expect('sticks: the ends are 95 percent, held a second (the lead, 2026-10-13)', STICK_END === 0.95 && STICK_HOLD_MS === 1000, true);
+
+/* The stall, on the Timber's own derived clean stall (TIMBER_STALL). */
+const flyAt = (ms, agl, v, more = {}) => ({ ms, grounded: false, agl, v, ...more });
+expect('stall: the Timber\'s clean stall is its derived 7.2 m/s', TIMBER_STALL, 7.2);
+expect('stall: under it at 40 m, back to 1.3 times it', fly('wing_stall', [flyAt(3000, 40, 12), flyAt(1000, 40, 6.5), flyAt(1000, 38, 9.5)]), true);
+expect('stall: a first one under the floor, then one above it', fly('wing_stall', [flyAt(1000, 25, 6.5), flyAt(1000, 25, 10), flyAt(3000, 45, 12), flyAt(800, 45, 7), flyAt(800, 41, 9.4)]), true);
+expect('stall: back only to 9 m/s, 1.25 times', fly('wing_stall', [flyAt(3000, 40, 12), flyAt(1000, 40, 6.5), flyAt(3000, 40, 9)]), false);
+expect('stall: the whole stall at 25 m', fly('wing_stall', [flyAt(3000, 25, 12), flyAt(1000, 25, 6.5), flyAt(1000, 25, 10)]), false);
+expect('stall: under the floor in the recovery', fly('wing_stall', [flyAt(1000, 40, 6.5), flyAt(500, 28, 8), flyAt(1000, 31, 10)]), false);
+expect('stall: slow flight, never under the stall', fly('wing_stall', [flyAt(3000, 40, 7.5), flyAt(3000, 40, 12)]), false);
+expect('stall: slow on the ground, then fast in the air', fly('wing_stall', [{ ms: 2000, grounded: true, v: 3 }, flyAt(3000, 40, 12)]), false);
+expect('stall: a crash in the recovery', fly('wing_stall', [flyAt(1000, 40, 6.5), crash, flyAt(3000, 40, 12)]), false);
+expect('stall: a quad has no stall', fly('wing_stall', [flyAt(1000, 40, 0.5, { stall: null }), flyAt(1000, 40, 15, { stall: null })]), false);
+expect('stall: the floor is 30 m and recovery 1.3 times (the lead, 2026-10-13)', STALL_FLOOR_M === 30 && STALL_RECOVERED === 1.3, true);
 
 /* Racing a pilot: the round event a finished room race logs. */
 const raced = (rounds) => {

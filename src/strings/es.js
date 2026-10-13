@@ -4515,6 +4515,8 @@ export default {
   "training.track.multirotor": "Multirotor",
   "training.lesson.wing_height": "El throttle es la altura",
   "training.lesson.wing_height_note": "En el Timber en modo Stabilised: mantente entre 25 y 35 metros sobre el suelo durante 20 segundos, con el throttle para subir y bajar.",
+  "training.lesson.wing_stall": "La pérdida",
+  "training.lesson.wing_stall_note": "Por encima de 30 m, frena el avión hasta que entre en pérdida y recupera la velocidad de vuelo picando sin bajar de 30 m.",
   "training.lesson.wing_approaches": "Aproximaciones",
   "training.lesson.wing_approaches_note": "Tres aterrizajes seguidos sin chocar, por la senda de planeo hasta la pista de aterrizaje.",
   "training.lesson.wing_deadstick": "Sin motor",

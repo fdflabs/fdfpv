@@ -4510,6 +4510,8 @@ export default {
   "training.track.multirotor": "Multirotor",
   "training.lesson.wing_height": "Throttle is height",
   "training.lesson.wing_height_note": "On the Timber with Stabilised: hold between 25 and 35 metres over the ground for 20 seconds, using the throttle to climb and descend.",
+  "training.lesson.wing_stall": "The stall",
+  "training.lesson.wing_stall_note": "Above 30 m, slow the plane until it stalls, then dive back to flying speed without going under 30 m.",
   "training.lesson.wing_approaches": "Approaches",
   "training.lesson.wing_approaches_note": "Three landings in a row without a crash, down the glide path to the strip.",
   "training.lesson.wing_deadstick": "Dead stick",

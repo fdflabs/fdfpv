@@ -13372,8 +13372,16 @@ export async function boot({
     }
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
-      sticks: input.channels,
+      sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null,
     });
+  }
+  /* The craft's speed through the air, m/s: the plant's world velocity
+   * (sim_abi.h state [4..6]) less the air it last stepped in, the mean
+   * wind and the rising air (pushWeather), gusts left out; still air
+   * without weather. */
+  function airspeedNow() {
+    const air = weather ? airSim : { x: 0, y: 0 };
+    return Math.hypot(stateCurr[4] - air.x, stateCurr[5] - air.y, stateCurr[6] - (weather ? airOut.up : 0));
   }
   /* The track a lap closed on: a built track (seated, or the casual sky
    * track's test flight), or the world's own. A built track is keyed by
