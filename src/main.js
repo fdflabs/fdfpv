@@ -12944,9 +12944,11 @@ export async function boot({
     }
   }
   /* Before a step: the air at the craft, on the plant's own clock. */
+  let airT = 0;
   function pushWeather(st) {
     poseFromState(st, airPos);
-    weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
+    airT = weatherT0 + st[0];
+    weather.at(airPos.x, airPos.y, airPos.z, airT, airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
     setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
@@ -13026,6 +13028,27 @@ export async function boot({
   window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
+  /* The air last handed to the plant, where and when (map frame, weather
+   * seconds), the room's clock now, and the wind the plant holds now; with
+   * a point, this run's air there instead. scripts/rooms-wind-two-page.js. */
+  window.__airFlown = (x, y, z, t) => {
+    if (!weather) {
+      return null;
+    }
+    if (t !== undefined) {
+      const out = { x: 0, z: 0, gust: 0, up: 0 };
+      weather.at(x, y, z, t, out);
+      return { x: out.x, z: out.z, gust: out.gust, up: out.up };
+    }
+    const held = sim.e.malloc(16);
+    sim.e.sim_wind(held);
+    const wind = Array.from(new Float64Array(sim.e.memory.buffer, held, 2));
+    sim.e.free(held);
+    return {
+      roomMs: roomLinkState.roomNow(), t: airT, step: stateCurr ? stateCurr[0] : null, pos: [airPos.x, airPos.y, airPos.z],
+      air: { x: airOut.x, z: airOut.z, gust: airOut.gust, up: airOut.up }, set: [airSim.x, airSim.y], wind,
+    };
+  };
   devHooks.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
     ui.settings.weather = preset;

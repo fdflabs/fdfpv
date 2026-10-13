@@ -66,6 +66,7 @@ export const HOOKS = [
   ['__aids', null],
   ['__aimProbe', null],
   ['__air', null],
+  ['__airFlown', null],
   ['__animMs', null],
   ['__animTo', 'runs the map\'s animation clock to a step'],
   ['__attract', null],
