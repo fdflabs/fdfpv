@@ -55,7 +55,6 @@
  */
 
 import * as THREE from 'three';
-import { PAD_BUTTONS } from '../input/padbuttons.js';
 import {
   createRecorder, createSample, locate, sampleAt, trimClip, HEAD, HEAD_N, PARTS_MAX, POSE, PART_STATE_STRIDE, SMOKE, SMOKE_N, WINDOW_S,
 } from './recorder.js';
@@ -96,9 +95,9 @@ import { partLabel, PART_KINDS } from '../../configs/parts.js';
 import { airframeById, retiredAirframe } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
 
-/* The keyboard key and the standard pad button that open the replay. */
+/* The keyboard key that opens the replay; the pad's button is the
+ * pilot's `replay` binding (src/input/actions.js, X by default). */
 export const REPLAY_KEY = 'KeyV';
-export const REPLAY_PAD = PAD_BUTTONS.x;
 /* How long the prompt stays up after a crash, ms. */
 const PROMPT_MS = 9000;
 /* A crash this long after a part came off is "lost a part and crashed". */
@@ -157,7 +156,7 @@ export function createCrashCam(host) {
     frames: 0, totalMs: 0, maxMs: 0, snapMs: 0, snapMaxMs: 0, snaps: 0, peerFrames: 0, peerMs: 0, peerMaxMs: 0,
     paperFrames: 0, paperMs: 0, paperMaxMs: 0, paperRow: -1, paperRowMs: 0,
   };
-  let padPrev = 0;
+  let replayPadWas = false;
 
   /* The editor's session, null while flying. */
   let S = null;
@@ -194,7 +193,7 @@ export function createCrashCam(host) {
      * shell hands it promptKey), as it draws the game's banners; the chip
      * is the Game HUD's. */
     const up = host.mode() === 'flight' && host.screen() === 'flight' && (nowWall < promptUntil || host.wrecked());
-    promptKey = up ? (padConnected() ? 'X' : 'V') : null;
+    promptKey = up ? replayKey() : null;
     editor.prompt(up && !host.osdOn(), promptKey || 'V');
     if (!recording || host.mode() !== 'flight') {
       return;
@@ -663,39 +662,21 @@ export function createCrashCam(host) {
 
   /* ---- the pad ---- */
 
-  function standardPad() {
-    const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
-    for (const gp of pads) {
-      if (gp && gp.connected && gp.mapping === 'standard') {
-        return gp;
-      }
-    }
-    return null;
-  }
-
+  /* The flying device, when it is a standard pad (a radio's switches are
+   * not buttons by name). */
   function padConnected() {
-    return Boolean(standardPad());
+    return Boolean(input.standardPad());
   }
 
-  /* Edges of the pad's buttons as a bit mask. */
-  function padEdges() {
-    const gp = standardPad();
-    let now = 0;
-    if (gp) {
-      gp.buttons.forEach((b, i) => {
-        if (b && b.pressed && i < 31) {
-          now |= 1 << i;
-        }
-      });
-    }
-    const edges = now & ~padPrev;
-    padPrev = now;
-    return edges;
+  function replayKey() {
+    return padConnected() ? input.padActionLabel('replay') : 'V';
   }
 
   function pollFlightPad() {
-    const edges = padEdges();
-    if ((edges & (1 << REPLAY_PAD)) && host.mode() === 'flight' && host.screen() === 'flight') {
+    const now = input.padAction('replay');
+    const pressed = now && !replayPadWas;
+    replayPadWas = now;
+    if (pressed && host.mode() === 'flight' && host.screen() === 'flight') {
       open();
     }
   }
@@ -2435,7 +2416,7 @@ export function createCrashCam(host) {
     /* A saved clip from My clips, by id (the hangar's TV). */
     playSaved: (id) => playSaved(id),
     /* The key that opens the replay in flight, for a card that says so. */
-    replayKey: () => (padConnected() ? 'X' : 'V'),
+    replayKey: () => replayKey(),
     /* Back to the flight, as the replay's own way out does: a room that
      * starts a game takes a pilot out of the crash cam (src/main.js). */
     close: () => close(),

@@ -1232,13 +1232,13 @@ export function createBuildMode(host) {
       sprint = false;
     }
     let fast = sprint;
-    if (gp && gp.mapping === 'standard' && gp.axes.length >= 4) {
-      ahead -= stick(gp.axes[1]);
-      side += stick(gp.axes[0]);
-      yawIn -= stick(gp.axes[2]);
-      lookIn -= stick(gp.axes[3]);
-      const trig = (i) => (gp.buttons[i] ? gp.buttons[i].value : 0);
-      rise += stick(trig(PAD.rt)) - stick(trig(PAD.lt));
+    const sticks = input.padSticks();
+    if (sticks) {
+      ahead -= stick(sticks.ly);
+      side += stick(sticks.lx);
+      yawIn -= stick(sticks.rx);
+      lookIn -= stick(sticks.ry);
+      rise += stick(input.padValue('rt')) - stick(input.padValue('lt'));
       fast = fast || padDown(PAD.ls);
     } else if (gp) {
       const ch = input.channels;
@@ -2529,12 +2529,7 @@ export function createBuildMode(host) {
    */
   function readPad() {
     const gp = input.firstGamepad();
-    const now = [];
-    if (gp && gp.buttons && gp.mapping === 'standard') {
-      for (let i = 0; i < gp.buttons.length; i += 1) {
-        now.push(Boolean(gp.buttons[i] && gp.buttons[i].pressed));
-      }
-    }
+    const now = input.padHeld();
     const was = padPrev;
     padPrev = now;
     return {

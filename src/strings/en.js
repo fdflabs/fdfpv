@@ -578,7 +578,7 @@ export default {
   "foot.free_flight_only": "Stepping out is for free flight.",
   "foot.no_room": "No clear ground near the pilot's spot to step out onto.",
   "foot.click_to_look": "Click to look around. Escape frees the mouse and pauses.",
-  "foot.pad_view": "hold B",
+  "foot.pad_view": "hold {button}",
   "foot.chip_out": "Step out",
   "foot.chip_fly": "Fly",
   "input.the_touch_sticks": "the touch sticks",

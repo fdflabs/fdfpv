@@ -54,12 +54,13 @@ const NOTHING = () => ({ select: false, back: false });
 const pressed = (gp, i) => Boolean(gp.buttons[i] && gp.buttons[i].pressed);
 const standard = (gp) => Boolean(gp) && gp.mapping === 'standard';
 
-/* Y opens the aircraft picker, the shoulders step through it. */
-export function swapButtons(gp) {
+/* `open` (Y unless the pilot moved it, padbinds.js `swap`) opens the
+ * aircraft picker, the shoulders step through it. */
+export function swapButtons(gp, open = B.y) {
   if (!standard(gp) || !gp.buttons) {
     return null;
   }
-  return { open: pressed(gp, B.y), prev: pressed(gp, B.lb), next: pressed(gp, B.rb) };
+  return { open: pressed(gp, open), prev: pressed(gp, B.lb), next: pressed(gp, B.rb) };
 }
 
 /* X, which the aircraft picker takes as Customise. */
@@ -74,12 +75,13 @@ export function startButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, B.start);
 }
 
-/* B, held in flight to step out of a landed aircraft and to fly again
- * (main.js THE PILOT ON FOOT). Not View: on a world the builder works
- * in, View enters the builder (src/builder/buildmode.js PAD.back). B is
- * a menu's back, and in flight nothing else reads it. */
-export function footButton(gp) {
-  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 1);
+/* `button` (B unless the pilot moved it, padbinds.js `foot`), held in
+ * flight to step out of a landed aircraft and to fly again (main.js THE
+ * PILOT ON FOOT). Not View: on a world the builder works in, View enters
+ * the builder (src/builder/buildmode.js PAD.back). B is a menu's back, and
+ * in flight nothing else reads it. */
+export function footButton(gp, button = B.b) {
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, button);
 }
 
 /* Y, which the aircraft picker takes as its Floats switch. */

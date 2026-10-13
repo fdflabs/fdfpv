@@ -18,6 +18,10 @@
  * boots with two EdgeTX radios and the one stick map an older build saved,
  * and reloads, to see each radio keep its own calibration.
  *
+ * Before any page: no file under src outside src/input reads a device
+ * (navigator.getGamepads, a pad's .buttons[ or .axes[): every reader asks
+ * src/input by name (src/input/actions.js).
+ *
  * Not part of npm run verify; it says nothing about the flight model. Run
  * it on a change to src/input, the calibrate screen, the Settings room or
  * the title's trouble rows.
@@ -40,7 +44,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { dirname } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
@@ -959,18 +964,102 @@ async function twoRadios(page, ev) {
   check('and the Pocket flies its own map again, yaw on 4', onPocket.using === POCKET && onPocket.stored && onPocket.yaw === 4, show(onPocket));
 }
 
+/* Phase 20: a pad button the pilot bound to an action with a key arrives
+ * as that key in flight, and only in flight; a pad-only action reads its
+ * bound button. */
+async function padActions(page, ev) {
+  heading('a pad button bound to Reset arrives as R in flight, and nowhere else');
+  await ev(`
+    window.__heard = [];
+    const was = input.onKey;
+    input.onKey = (code, repeat) => { window.__heard.push(code); return was(code, repeat); };
+    ui.settings.padbinds = { v: 1, all: { reset: 'a' }, by: {} };
+    return true;
+  `);
+  const press = (i, on) => page.evaluate(`window.__pad.buttons[${i}] = { pressed: ${on}, touched: ${on}, value: ${on ? 1 : 0} }; window.__pad.timestamp += 1; true`);
+  /* The xbox walk left the slot reporting a radio: its switches are not
+   * buttons by name. */
+  await press(0, true);
+  await page.sleep(500);
+  const radio = await page.evaluate("JSON.stringify({ heard: window.__heard, held: window.__input.keys.has('KeyR') })");
+  await press(0, false);
+  check('a radio\'s first button is not A: nothing heard', radio === show({ heard: [], held: false }), radio);
+  await page.evaluate(`(() => { const p = window.__pad; p.mapping = 'standard'; p.id = 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)';
+    p.axes = [0, 0, 0, 0]; p.timestamp += 1; return true; })()`);
+  await page.sleep(300);
+  await press(0, true);
+  /* A reset clears the held keys (main.js rearmSticks), for the keyboard's R too. */
+  const heardR = await came(page, "window.__heard.includes('KeyR')", 3000);
+  check('A pressed in flight: onKey hears R, so the craft resets', heardR, show(await page.evaluate('window.__heard')));
+  await press(0, false);
+  await page.sleep(300);
+  const once = await page.evaluate("window.__heard.filter((c) => c === 'KeyR').length");
+  check('one press is one R', once === 1, String(once));
+  await ev(`ui.settings.padbinds = { v: 1, all: { flip: 'a' }, by: {} }; return true;`);
+  await press(0, true);
+  check('flip moved to A: held, T is held and the flip reads it', await came(page, "window.__input.keys.has('KeyT') && window.__input.actionHeld('flip')", 3000));
+  await press(0, false);
+  check('A released: T is let go', await came(page, "!window.__input.keys.has('KeyT')", 3000));
+  await ev(`ui.settings.padbinds = { v: 1, all: { talk: 'a', swap: 'lt' }, by: {} }; return true;`);
+  await press(0, true);
+  const talk = await came(page, "window.__input.padAction('talk') === true", 3000);
+  check('talk moved to A: A held reads as talk', talk);
+  await press(0, false);
+  const swap = await page.evaluate("JSON.stringify([window.__input.padButtonOf('swap'), window.__input.padActionLabel('replay')])");
+  check('swap moved to LT, replay still on X', swap === show(['lt', 'X']), swap);
+  await ev(`ui.show('title'); return true;`);
+  await page.evaluate('window.__heard.length = 0; true');
+  await press(0, true);
+  await page.sleep(500);
+  const menus = await page.evaluate("JSON.stringify({ heard: window.__heard, held: window.__input.keys.has('KeyR') })");
+  await press(0, false);
+  check('on the title A is not R', menus === show({ heard: [], held: false }), menus);
+  await ev('delete ui.settings.padbinds; return true;');
+}
+
+/* Phase 20: devices are read in src/input only. */
+function deviceReads() {
+  heading('no device is read outside src/input');
+  const src = join(root, 'src');
+  const hits = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) {
+        if (p !== join(src, 'input')) {
+          walk(p);
+        }
+      } else if (e.name.endsWith('.js')) {
+        readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
+          if (/getGamepads|\.buttons\[|\.axes\[/.test(line) && !/^\s*(\*|\/\/)/.test(line)) {
+            hits.push(`${relative(root, p)}:${i + 1}`);
+          }
+        });
+      }
+    }
+  };
+  walk(src);
+  check('getGamepads, .buttons[ and .axes[ appear only under src/input', hits.length === 0, hits.join(' '));
+}
+
 /* --------------------------------------------------------------- the run */
 
 const PAGES = [
   ['booting the shell with a six axis radio', 'the mouse page', {}, SIX_AXIS_RADIO,
     [signposts, hover, noYawRow, wizardNoButtons, throttleZero, checkSticks, padEdges, frameFault, mouseFlight]],
   ['booting the shell as a touch device', 'the touch page', { touch: true }, SIX_AXIS_RADIO, [touchModes]],
-  ['booting the shell with an Xbox pad', 'the Xbox page', {}, XBOX, [xbox]],
+  ['booting the shell with an Xbox pad', 'the Xbox page', {}, XBOX, [xbox, padActions]],
   ['booting the shell with two radios and an old stick map', 'the two radio page', {}, TWO_RADIOS, [twoRadios]],
 ];
 
 async function main() {
   const t0 = Date.now();
+  deviceReads();
+  if (failed) {
+    console.log('\na device read outside src/input; the pages were not run');
+    process.exitCode = 1;
+    return;
+  }
   let page = null;
   try {
     for (const [banner, name, extra, pad, walks] of PAGES) {

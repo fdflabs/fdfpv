@@ -576,7 +576,7 @@ export default {
   "foot.free_flight_only": "Bajarse es solo en vuelo libre.",
   "foot.no_room": "No hay suelo libre cerca del lugar del piloto para bajarte.",
   "foot.click_to_look": "Haz clic para mirar alrededor. Escape libera el ratón y pausa.",
-  "foot.pad_view": "mantén B",
+  "foot.pad_view": "mantén {button}",
   "foot.chip_out": "Bajarse",
   "foot.chip_fly": "Volar",
   "input.the_touch_sticks": "los sticks táctiles",
