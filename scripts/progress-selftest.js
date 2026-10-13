@@ -25,8 +25,8 @@
 
 import {
   CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
-  FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, firstsOf,
-  COUNTED, countOf, foldCounts, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
+  FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, everyFirst, firstsOf,
+  COUNTED, PLAYED_GAMES, WORLDS, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
 } from '../src/game/progress.js';
 import { AIRFRAMES } from '../configs/airframes.js';
@@ -254,14 +254,14 @@ console.log('landings, crashes and laps, from the event log');
   log.append('landing', 12000, { airframe: 'timber1500' });
   log.append('landing', 13000, { airframe: null });
   const p = freshProgress();
-  const first = foldCounts(p, log.events);
+  const first = foldEvents(p, log.events);
   check('each counts once on its aircraft; one with no aircraft counts nowhere',
     same(p.landings, { cub1400: 2, timber1500: 1 }) && same(p.crashes, { cub1400: 1 }) && same(p.laps, { timber1500: 1 }) && first.counted === 5,
     JSON.stringify([p.landings, p.crashes, p.laps, first.counted]));
-  const again = foldCounts(p, log.events, first.at);
+  const again = foldEvents(p, log.events, first.at);
   check('the same log folded again counts nothing twice', again.counted === 0 && same(p.landings, { cub1400: 2, timber1500: 1 }) && same(p.crashes, { cub1400: 1 }));
   log.append('landing', 20000, { airframe: 'cub1400' });
-  foldCounts(p, log.events, first.at);
+  foldEvents(p, log.events, first.at);
   check('an event after the last fold is counted by the next', countOf(p, 'landing', 'cub1400') === 3);
   const floatId = AIRFRAMES.find((a) => a.id !== liveryKey(a.id) && a.fixedWing);
   if (floatId) {
@@ -269,7 +269,7 @@ console.log('landings, crashes and laps, from the event log');
     const fl = new EventLog();
     fl.append('landing', 1, { airframe: floatId.id });
     fl.append('crash', 2, { airframe: floatId.id });
-    foldCounts(q, fl.events);
+    foldEvents(q, fl.events);
     check(`a ${floatId.id} landing and crash are its family's (${liveryKey(floatId.id)})`,
       countOf(q, 'landing', floatId.id) === 1 && q.crashes[liveryKey(floatId.id)] === 1, JSON.stringify(q));
   }
@@ -292,6 +292,37 @@ console.log('landings, crashes and laps, from the event log');
     check(`${map}: a merge never exceeds either side, and a blob merged with itself is itself`,
       Object.entries(m1).every(([k, n]) => n <= Math.max(a[k] || 0, b[k] || 0)) && same(mergeBlobs(blob(map, m1), blob(map, m1)).data.progress[map], m1));
   }
+}
+
+/*
+ * A ROOM GAME FINISHED, ONCE PER WORLD (PROGRESSION.md 3, the lead's
+ * ruling of 2026-10-13): Streamer Combat and Catch the Ace! firsts.
+ */
+console.log('room games: a first per game and world');
+{
+  const { MAPS } = await import('../src/maps/registry.js');
+  check('the worlds are the registry\'s, less the track seat', same([...WORLDS].sort(), MAPS.map((m) => m.id).filter((id) => id !== 'track').sort()), WORLDS.join());
+  check('a room game first pays the lower Flight Club activity first, a course\'s first lap', FIRST_XP.game === FIRST_LAP_XP && FIRST_LAP_XP < FIRST_XP.lesson);
+  const p = freshProgress();
+  const log = new EventLog();
+  log.append('round', 1, { game: 'combat', world: 'alps' });
+  log.append('round', 2, { game: 'combat', world: 'alps' });
+  log.append('round', 3, { game: 'tag', world: 'itaipu' });
+  log.append('round', 4, { game: 'jam', world: 'alps' });
+  log.append('round', 5, { game: 'combat', world: 'atlantis' });
+  foldEvents(p, log.events);
+  check('a round is played on its world; an unknown game or world is not', same(p.played, { 'combat:alps': true, 'tag:itaipu': true }), JSON.stringify(p.played));
+  const ev = awardFirsts(p, { played: p.played });
+  check('each pays once, at FIRST_XP.game', same(ev.filter((e) => e.type === 'first').map((e) => e.key), ['game:combat:alps', 'game:tag:itaipu']) && p.xp === 2 * FIRST_XP.game, `${p.xp}`);
+  check('the same game on the same world again pays nothing', awardFirsts(p, { played: p.played }).length === 0);
+  p.played['combat:swiss2'] = true;
+  check('the same game on another world pays', same(awardFirsts(p, { played: p.played }).filter((e) => e.type === 'first').map((e) => e.key), ['game:combat:swiss2']));
+  check('a made up game or world is no first: the list is finite', firstsOf({ played: { 'combat:atlantis': true, 'jam:alps': true, 'war:alps': true } }).length === 0);
+  check('every game on every world is in the full list, once', everyFirst().filter((f) => f.key.startsWith('game:')).length === PLAYED_GAMES.length * WORLDS.length);
+  check('played survives a load and junk is dropped', same(normaliseProgress({ played: { 'tag:alps': true, 'combat:alps': 1 } }).played, { 'tag:alps': true }));
+  const blob = (played) => ({ v: 1, data: { progress: { ...freshProgress(), played } }, stamps: {} });
+  check('two computers merge played as the union', same(mergeBlobs(blob({ 'tag:alps': true }), blob({ 'combat:itaipu': true })).data.progress.played, { 'combat:itaipu': true, 'tag:alps': true }));
+  check('Unlock all is untouched by a room game first', (() => { const q = freshProgress(true); awardFirsts(q, { played: { 'tag:alps': true } }); return q.unlockAll === true && q.xp === FIRST_XP.game; })());
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

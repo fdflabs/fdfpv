@@ -205,7 +205,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, lessonsFlown: {}, medals: {}, landings: {}, crashes: {}, laps: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, medals: {}, landings: {}, crashes: {}, laps: {}, unlockAll };
 }
 
 /*
@@ -295,6 +295,7 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     seen: flags(p.seen, 2000),
     casual: flags(p.casual, 500),
     firsts: flags(p.firsts, 2000),
+    played: flags(p.played, 200),
     lessons: passes(p.lessons),
     lessonsFlown: flags(p.lessonsFlown, 200),
     medals: medalMap(p.medals),
@@ -351,14 +352,20 @@ export function countMap(o) {
 }
 
 /*
- * A flight's counted events added to progress, in place, from the event
- * at `from` on. Returns { at, counted }: where the next fold starts, and
- * how many it counted. Folding the same log again from `at` counts
- * nothing twice.
+ * A flight's events folded into progress, in place, from the event at
+ * `from` on: the COUNTED ones per aircraft, and a room game's `round`
+ * {game, world} as played there. Returns { at, counted }: where the next
+ * fold starts, and how many events it took. Folding the same log again
+ * from `at` takes nothing twice.
  */
-export function foldCounts(progress, events, from = 0) {
+export function foldEvents(progress, events, from = 0) {
   let counted = 0;
   for (const e of events.slice(from)) {
+    if (e.type === 'round' && PLAYED_GAMES.includes(e.game) && WORLDS.includes(e.world)) {
+      progress.played ??= {};
+      progress.played[`${e.game}:${e.world}`] = true;
+      counted += 1;
+    }
     const map = COUNTED[e.type];
     if (map && typeof e.airframe === 'string') {
       const k = liveryKey(e.airframe);
@@ -607,9 +614,24 @@ export function awardChallenge(progress, id) {
  * airframe id (src/share/flighttime.js flightTotals().byAirframe). A float
  * plane's time counts for its land plane, the one the hangar shows.
  */
-export const FIRST_XP = { win: 100, star: 40, flight: 40, ten: 60, hour: 150, lesson: 60 };
+export const FIRST_XP = { win: 100, star: 40, flight: 40, ten: 60, hour: 150, lesson: 60, game: 40 };
 export const MILESTONE_S = { flight: 1, ten: 600, hour: 3600 };
 const MISSION_IDS = new Set([...ACT1, ...INTERIOR].map((m) => m.id));
+/*
+ * A ROOM GAME FINISHED, ONCE PER WORLD (PROGRESSION.md section 3): a
+ * Streamer Combat round or a Catch the Ace! match this pilot had a seat
+ * in, at its end, on each world. Kept as `played`, flags of
+ * '<game>:<world>' (folded from the log's `round` event, foldEvents),
+ * and paid as the first 'game:<game>:<world>'. FIRST_XP.game is the
+ * lead's ruling of 2026-10-13: the Flight Club activity firsts are a
+ * course's first lap (FIRST_LAP_XP, 40) and a lesson (60), and the lower
+ * pays. The worlds are the registry's (src/maps/registry.js MAPS less
+ * the track seat, which is no world), listed here because the registry
+ * pulls the string table and the server reads this file; the selftest
+ * holds the two equal.
+ */
+export const PLAYED_GAMES = ['combat', 'tag'];
+export const WORLDS = ['alps', 'swiss2', 'itaipu', 'interior'];
 const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) => af.id);
 
 /* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
@@ -621,8 +643,15 @@ const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) =
  * skip is no shortcut to XP or tokens. A covered lesson flown later is
  * flagged then and pays then.
  */
-export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {} } = {}) {
+export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {}, played = {} } = {}) {
   const out = [];
+  for (const g of PLAYED_GAMES) {
+    for (const w of WORLDS) {
+      if (isRecord(played) && played[`${g}:${w}`] === true) {
+        out.push({ key: `game:${g}:${w}`, xp: FIRST_XP.game });
+      }
+    }
+  }
   for (const l of LESSONS) {
     if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0 && isRecord(flown) && flown[l.id] === true) {
       out.push({ key: `lesson:${l.id}`, xp: FIRST_XP.lesson });
@@ -665,6 +694,7 @@ export function everyFirst() {
     seconds: Object.fromEntries(MASTERED.map((id) => [id, MILESTONE_S.hour])),
     lessons: Object.fromEntries(LESSONS.map((l) => [l.id, 1])),
     flown: Object.fromEntries(LESSONS.map((l) => [l.id, true])),
+    played: Object.fromEntries(PLAYED_GAMES.flatMap((g) => WORLDS.map((w) => [`${g}:${w}`, true]))),
   });
 }
 

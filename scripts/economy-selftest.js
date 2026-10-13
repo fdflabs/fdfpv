@@ -53,13 +53,19 @@ for (const af of AIRFRAMES) {
 const everything = {
   v: 1,
   data: {
-    progress: { challenges: { ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), my_own: true }, lessons: { ...Object.fromEntries(LESSONS.map((l) => [l.id, 1759800000000])), my_lesson: 1 }, lessonsFlown: { ...Object.fromEntries(LESSONS.map((l) => [l.id, true])), my_lesson: true } },
+    progress: { challenges: { ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), my_own: true }, lessons: { ...Object.fromEntries(LESSONS.map((l) => [l.id, 1759800000000])), my_lesson: 1 }, lessonsFlown: { ...Object.fromEntries(LESSONS.map((l) => [l.id, true])), my_lesson: true },
+      played: { ...Object.fromEntries(everyFirst().filter((f) => f.key.startsWith('game:')).map((f) => [f.key.slice(5), true])), 'combat:my_world': true, 'my_game:alps': true } },
     campaign: { v: 1, missions: Object.fromEntries(everyFirst().filter((f) => f.key.startsWith('mission:')).map((f) => [f.key.split(':')[1], { stars: 99, won: true, credits: 0 }])) },
     flightTime: flight,
   },
 };
 const all = grantsFrom(everything);
 check('a record holding every fact there is pays exactly the ceiling', sum(all) === grantCeiling(), `${sum(all)} against ${grantCeiling()}`);
+check('every first there is is granted by the record holding every fact, at a whole, positive amount',
+  everyFirst().every((f) => all.some((g) => g.key === `first:${f.key}` && Number.isInteger(g.amount) && g.amount > 0)) && Number.isInteger(grantCeiling()));
+check('a room game finished once per world pays FIRST_TOKENS.game, and only on a known game and world',
+  all.filter((g) => g.key.startsWith('first:game:')).length === 8 && all.filter((g) => g.key.startsWith('first:game:')).every((g) => g.amount === FIRST_TOKENS.game)
+  && !all.some((g) => /my_world|my_game/.test(g.key)));
 check('every grant key is unique, so the server pays each once', new Set(all.map((g) => g.key)).size === all.length);
 check('a made up challenge, lesson, mission or aircraft pays nothing; every known lesson pays', !all.some((g) => /my_own|my_lesson/.test(g.key))
   && LESSONS.every((l) => all.some((g) => g.key === `first:lesson:${l.id}` && g.amount === FIRST_TOKENS.lesson))

@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, foldCounts, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
@@ -272,14 +272,23 @@ export class Progress {
     this.flight.append('spawned', simMs);
   }
 
-  /* This flight's events not yet counted into progress, counted
-   * (progress.js foldCounts) and stored when any was. */
+  /* This flight's events not yet folded into progress, folded
+   * (progress.js foldEvents) and stored when any was. */
   foldFlight() {
-    const { at, counted } = foldCounts(this.state, this.flight.events, this.folded);
+    const { at, counted } = foldEvents(this.state, this.flight.events, this.folded);
     this.folded = at;
     if (counted) {
       this.save();
     }
+  }
+
+  /* A Streamer Combat round or a Catch the Ace! match this pilot had a
+   * seat in, ended by the room, on world `world` (src/main.js): logged,
+   * folded, and its first paid now rather than at the next flight time. */
+  roundFinished(game, world) {
+    this.event('round', { game, world });
+    this.foldFlight();
+    this.checkFirsts();
   }
 
   /* The seated aircraft, for the events counted per aircraft. */
@@ -421,6 +430,7 @@ export class Progress {
       seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
       lessons: this.state.lessons,
       flown: this.state.lessonsFlown,
+      played: this.state.played,
     });
     if (events.length) {
       this.save();
@@ -765,11 +775,19 @@ const MISSION_KEYS = new Map([
   ...INTERIOR.map((m) => [m.id, `ops.campaign.interior.m.${m.key}`]),
 ]);
 
+/* The words for a room game's first (progress.js PLAYED_GAMES, WORLDS):
+ * each game's card name and each world's registry name. */
+const GAME_NAMES = { combat: 'combat.card', tag: 'roomtag.section' };
+const WORLD_NAMES = { alps: 'registry.the_alps', swiss2: 'registry.swiss2', itaipu: 'registry.itaipu', interior: 'registry.interior' };
+
 /* A first's words, from its key (progress.js firstsOf). */
 export function firstTitle(key) {
   const [what, id, part] = key.split(':');
   if (what === 'lesson') {
     return str('progress.first.lesson', { lesson: str(`training.lesson.${id}`) });
+  }
+  if (what === 'game') {
+    return str('progress.first.game', { game: str(GAME_NAMES[id]), world: str(WORLD_NAMES[part]) });
   }
   if (what === 'mission') {
     const mission = str(MISSION_KEYS.get(id) ?? id);
