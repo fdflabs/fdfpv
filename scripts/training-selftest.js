@@ -26,6 +26,7 @@ import { GLIDE, LESSONS, LessonWatch, SKIPS, STRIPS, TRACKS, gateCue, glidePoint
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
+import { MEDAL_STEPS, medalFor } from '../src/game/medals.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -128,6 +129,15 @@ expect('race clean: rim only', fly('race_clean', [], { laps: [{ rim: true }] }),
 expect('ghost: faster', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: 30000 }] }), true);
 expect('ghost: slower', fly('race_ghost', [], { laps: [{ ms: 31000, ghostMs: 30000 }] }), false);
 expect('ghost: no ghost', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: null }] }), false);
+/* A lap under a time: the medal is medals.js's own, from a course's gold. */
+const GOLD = { goldMs: 30000 };
+const lapOn = (ms, medals = GOLD) => ({ ms, medal: medalFor(medals, ms) });
+expect('bronze: a lap at 1.3 times gold', fly('race_bronze', [], { laps: [lapOn(39000)] }), true);
+expect('bronze: a gold lap passes too', fly('race_bronze', [], { laps: [lapOn(29000)] }), true);
+expect('bronze: slower than bronze, then bronze', fly('race_bronze', [], { laps: [lapOn(41000), lapOn(40000)] }), true);
+expect('bronze: a lap at 1.4 times gold', fly('race_bronze', [], { laps: [lapOn(42000)] }), false);
+expect('bronze: a fast lap on a course with no medals', fly('race_bronze', [], { laps: [lapOn(10000, null)] }), false);
+expect('every medal step is a medal', LESSONS.flatMap((l) => l.steps).filter((st) => st.medal !== undefined).every((st) => MEDAL_STEPS.includes(st.medal)), true);
 
 /* The turn sign against the plant's frame (src/render/frame.js: z up, x
  * forward, y left): rotate the nose by the state's quaternion and see

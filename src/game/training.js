@@ -26,6 +26,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { MEDAL_STEPS } from './medals.js';
+
 /* What a flight must do before it counts, and how long down and still is a
  * landing: the same as progress.js judges a landing by. */
 export const TAKEOFF_HOLD_MS = 20000;
@@ -37,7 +39,9 @@ const TURN_RAD = 2 * Math.PI;
  * Steps: { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
- * clean meaning no rim touched; { ghost: true } a lap faster than the ghost;
+ * clean meaning no rim touched; { ghost: true } a lap faster than the
+ * ghost; { medal: 'bronze' } a lap that reaches that medal or a better
+ * one on a course with medals (src/game/medals.js);
  * { hold: ms, low, high, radius } held in a height band (and a circle);
  * { land: true, deadstick: true } a landing after the pack ran low;
  * { gates: n } n gates or hoops in a row without a touch. `mode` is a
@@ -72,6 +76,7 @@ export const LESSONS = [
   { id: 'quad_precision', track: 'multirotor', airframe: null, mode: null, place: null, aid: 'gate', steps: [{ gates: 10 }] },
   { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: false }] },
   { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', covers: ['race_lap'], steps: [{ laps: 1, clean: true }] },
+  { id: 'race_bronze', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ medal: 'bronze' }] },
   { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ ghost: true }] },
 ];
 
@@ -318,13 +323,16 @@ export class LessonWatch {
     this.streak = 0;
   }
 
-  /* A lap closed: `ms` its time, `ghostMs` the ghost's lap or null. */
-  lap({ ms = null, ghostMs = null } = {}) {
+  /* A lap closed: `ms` its time, `ghostMs` the ghost's lap or null,
+   * `medal` the medal it reached or null. */
+  lap({ ms = null, ghostMs = null, medal = null } = {}) {
     const s = this.current;
     if (!s) {
       return this.passed;
     }
     if (s.ghost && ms != null && ghostMs != null && ms < ghostMs) {
+      this.advance();
+    } else if (s.medal && MEDAL_STEPS.indexOf(medal) >= MEDAL_STEPS.indexOf(s.medal)) {
       this.advance();
     } else if (s.laps && (this.clean || !s.clean)) {
       this.laps += 1;

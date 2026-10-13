@@ -386,7 +386,7 @@ export class Progress {
     this.show(won);
     this.award(done);
     if (this.lesson) {
-      this.lesson.lap({ ms, ghostMs });
+      this.lesson.lap({ ms, ghostMs, medal });
       this.lessonNews();
     }
   }
