@@ -886,29 +886,41 @@ by a name a pilot typed, deliberately: saved liveries (hangar-paint.js
 936) and board callsigns. Checks: `modes:selftest`, `war:stages`,
 `hulls:check` (CI).
 
-**80. Configuration vs code. PARTIAL.** Data: a track (a builder JSON
+**80. Configuration vs code. BUILT for war missions and the aircraft
+checklist (phase 26, 2026-10-13).** Data: a track (a builder JSON
 document), mission text (string keys), an activity's art and facts
-(modes.js), a world's entry (registry.js). Code: a new mission is a file,
-an import in src/share/war/missions/index.js 40, an entry in `ACT1`
-(src/game/campaign.js 62) and its strings, three places that can
-disagree; a new aircraft is a plant row in C, a WASM build, a renderer in
-src/render, and static imports in main.js 190 to 203. The aircraft's C row
-is decided (item 21). **Done:** `ACT1` derived from the mission registry
-(each mission carries its act and order), so a mission is a file and an
-import; an aircraft checklist in configs/airframes.js's header that
-phase 12's `airframes:check` enforces (a renderer, a hull, a picture, its
-strings). Check: `campaign:selftest` and `war:stages` (CI). Size S. Phase
-26.
+(modes.js), a world's entry (registry.js). A war mission's file states
+its campaign place (`act`, `order`, `key`, `free`, `release`) and
+src/game/campaign.js derives `ACT1` from the registry
+(src/share/war/missions/index.js) with `actOf`, which throws at load on
+an order twice or missing, an impossible release, a missing key or two
+free missions; a mission with no file yet is a row of `PLANNED` beside
+the registry. So a new mission is a file, an import and its strings. The
+Interior's list (`INTERIOR`, campaign.js) is still a hand list: its
+registry, src/share/ops/missions.js, imports interior/node.js, which is
+Node only, and campaign.js reaches the browser (settings.js,
+progressmerge.js). A new aircraft is a folder (docs/AIRCRAFT-FOLDER.md),
+its plant table generated into the C, a renderer in src/render. The
+aircraft checklist is in scripts/airframes-check.js's header and
+docs/AIRCRAFT-FOLDER.md: name, blurb, facts, size, weight, cameras,
+class, roles, kit, and the description and note in English and
+Spanish, each with a negative control; a renderer is held by
+src/render/craft.js at load and a hull by `hulls:check`. There is no
+picture field: the picker and the hangar draw the model. Checks:
+`campaign:selftest`, `airframes:check`, `aircraft:folder`, `war:stages`
+(CI).
 
-**81. Feature flags. PARTIAL.** No flags system; unfinished things are
-hidden ad hoc: a mission not in the build is filtered (`inBuild`, main.js
-5438), an upgrade waits on an act (`later: 2`, campaign.js 97), servers
-can be switched off (`?rooms=off`). **Done, decided by the author:** no
-general flags object (one place to hide a row is enough); a `hidden`
-field on the mode registry's rows and on missions, read where `inBuild`
-reads today. Unfinished code otherwise lives on its branch. Check:
-`modes:selftest` (CI) asserts a hidden row reaches no card. Size S.
-Phase 26.
+**81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
+system, decided by the author: one place to hide a row is enough. A war
+mission's gate is its file's `release` (available, development, soon;
+the owner's 2026-10-04 rule), read through campaign.js `released` by the
+rooms server (core.js, front.js, war.js), the campaign list and the
+briefing; kept three valued rather than a `hidden` boolean, because Under
+development and Coming soon are different cards. `inBuild` is gone. An
+upgrade waits on an act (`later: 2`, campaign.js UPGRADES); servers can
+be switched off (`?rooms=off`). **Still to do:** a `hidden` field on the
+mode registry's rows (src/share/modes.js, the sessions lane's), with
+`modes:selftest` (CI) asserting a hidden row reaches no card. Size S.
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,
