@@ -182,7 +182,7 @@ for (const [name, text, baseline, want] of jcases) {
   fail++;
   console.error(`FAIL negative control ${name}: still passes with citations disabled`);
 }
-const notConstants = check(scanJs(JF, jwith('const SIM_TUNE = { CG: 0, RATE: 1 };', 'export const SIM_TUNE_DOUBLES = 12;', 'const Vs = Math.sqrt(2 * W / (1.225 * S));', 'const ARGS = process.argv.slice(2), K = Math.pow(1.5, 2);', 'const g2 = (x) => { return x * 9.81; };')), JBASELINE).length;
+const notConstants = check(scanJs(JF, jwith('const SIM_TUNE = { CG: 0, RATE: 1 };', 'export const SIM_TUNE_DOUBLES = 12;', 'const Vs = Math.sqrt(2 * W / (1.225 * S));', 'const ARGS = process.argv.slice(2), K = Math.pow(1.5, 2);', 'const PICK = { pack: PACKS[1], cell: CELLS[0][2] };', 'const g2 = (x) => { return x * 9.81; };')), JBASELINE).length;
 if (notConstants === 0) pass++; else { fail++; console.error(`FAIL a layout table, a derived value or a function body counted as a constant: ${notConstants} problem(s), wanted 0`); }
 const jover = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, js: JBASELINE.length - 1 }).length;
 const japart = check(scanJs(JF, JBASE), JBASELINE, { ...PINS, scalar: 0, element: 0 }).length;

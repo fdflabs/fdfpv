@@ -79,7 +79,7 @@ export const JS_FILES = [
   'configs/hangar-parts.js',
   'configs/hullfit.js',
 ];
-export const PINNED_JS_COUNT = 5092;
+export const PINNED_JS_COUNT = 4907;
 export const PINS = { scalar: PINNED_COUNT, element: PINNED_ELEMENT_COUNT, js: PINNED_JS_COUNT };
 const PIN_NAMES = { scalar: 'PINNED_COUNT', element: 'PINNED_ELEMENT_COUNT', js: 'PINNED_JS_COUNT' };
 const BASELINE = 'scripts/physics-sources-baseline.txt';
@@ -331,8 +331,10 @@ export function scanJs(file, text, cite = CITE, sourceKey = SOURCE_KEY) {
         const callee = tok.t === '(' && value.length && /^[A-Za-z_$]/.test(value[value.length - 1].t) ? `.${value[value.length - 1].t.replace(/^.*\./, '')}()` : '';
         el.nested = true;
         const abi = frame.abi || ABI.test(name ?? '');
-        const formula = frame.formula || (callee !== '' && !frame.literal);
-        frames.push({ path: frame.path + (name ?? '') + (callee || (tok.t === '(' ? '()' : '')), open: tok.line, leaves: [], source: false, abi, formula, literal: tok.t !== '(', close: OPEN[tok.t], held: el });
+        /* x[0] reads an element; it is no array of numbers. */
+        const index = tok.t === '[' && value.length > 0 && /^[\w$)\]'"`]/.test(value[value.length - 1].t.slice(-1));
+        const formula = frame.formula || index || (callee !== '' && !frame.literal);
+        frames.push({ path: frame.path + (name ?? '') + (callee || (tok.t === '(' ? '()' : '')), open: tok.line, leaves: [], source: false, abi, formula, literal: tok.t !== '(' && !index, close: OPEN[tok.t], held: el });
         el = [];
       } else if (frames.length > 1 && tok.t === frame.close) {
         finish();
