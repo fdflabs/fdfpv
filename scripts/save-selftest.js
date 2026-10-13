@@ -285,5 +285,50 @@ console.log('the envelope round trips');
   }
 }
 
+console.log('reset settings and reset progress each keep the other half');
+{
+  const { freshProgress } = await import('../src/game/progress.js');
+  const good = FIXTURE['v3-profile'];
+  const blob = JSON.parse(good[SETTINGS_KEY]);
+  const was = readAll(new Storage(good));
+  const defaults = readAll(new Storage({})).settings;
+
+  const s1 = new Storage(good);
+  save.resetSettings(s1);
+  const a = readAll(s1);
+  check('settings reset: the progress reads as before', show(a.settings.progress) === show(was.settings.progress));
+  check('and the campaign', show(a.settings.campaign) === show(was.settings.campaign) && a.settings.campaign.earned === 160);
+  check('and the paint', show(a.settings.livery) === show(was.settings.livery));
+  check('and the best laps', show(a.records) === show(was.records) && s1.getItem('webfpv.bestLapMs') === '52000');
+  check('and the stick calibration and builds', s1.getItem('fdfpv.stick_maps.v2') === good['fdfpv.stick_maps.v2']
+    && show(a.builds) === show(was.builds));
+  check('the settings go back to their defaults', a.settings.musicLevel === defaults.musicLevel && a.settings.map === defaults.map
+    && was.settings.musicLevel !== defaults.musicLevel && was.settings.map !== defaults.map,
+  show([a.settings.musicLevel, a.settings.map, was.settings.musicLevel, was.settings.map, defaults.musicLevel, defaults.map]));
+  check('the seat stays, and the first run question is not asked again', a.settings.airframe === was.settings.airframe && a.settings.airframeAsked === true);
+  check('every kept field is a progress or an owned one', Object.keys(JSON.parse(s1.getItem(SETTINGS_KEY)))
+    .every((k) => save.PROGRESS_FIELDS.includes(k) || save.OWNED_FIELDS.includes(k)));
+
+  const s2 = new Storage(good);
+  save.resetProgress({ progress: freshProgress(false) }, s2);
+  const b = readAll(s2);
+  const fresh = readAll(new Storage({})).settings;
+  check('progress reset: XP, challenges and seen are a new pilot\'s', show(b.settings.progress) === show(fresh.progress), show(b.settings.progress));
+  check('and nothing is unlocked as for a pilot from before progression', b.settings.progress.unlockAll === false);
+  check('the campaign, flight time and counts are empty', show(b.settings.campaign) === show(fresh.campaign)
+    && show(b.settings.flightTime) === '{}' && show(b.settings.pilotCounts) === '{}');
+  check('the best laps are gone', show(b.records) === '{}' && s2.getItem('webfpv.bestLapMs') === null);
+  const keep = (x) => { const { progress, campaign, flightTime, pilotCounts, ...rest } = x; return rest; };
+  check('the settings read exactly as before', show(keep(b.settings)) === show(keep(was.settings)));
+  check('the name, language and builds are untouched', b.pilot === was.pilot && b.lang === was.lang && show(b.builds) === show(was.builds));
+  check('a profile with nothing stored resets to defaults', (() => {
+    const e = new Storage({});
+    save.resetSettings(e);
+    save.resetProgress({ progress: freshProgress(false) }, e);
+    return readAll(e).settings.progress.unlockAll === false;
+  })());
+  check('the fixture really had progress to lose', blob.progress.xp === 740);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

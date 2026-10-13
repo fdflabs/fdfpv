@@ -736,6 +736,8 @@ export class Ui {
      * room is entered again or a write succeeds. This browser's last
      * answer, not a setting. */
     this.ratesNotice = null;
+    /* Why a reset of settings or progress did not happen, on Settings. */
+    this.resetNotice = null;
     /* The flight controller editor: the session holds the draft dump and
      * builds the rows, the shell owns what Save means (onFcSave). */
     this.onFcOpen = null;    /* (page) => void */

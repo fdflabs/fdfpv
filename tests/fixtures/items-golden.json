@@ -8587,6 +8587,26 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reset progress",
+     "note": "XP, challenges, medals, the campaign, flight time and best laps back to a new pilot's. Your settings stay.",
+     "action": "resetprogress",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -9652,6 +9672,26 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reset progress",
+     "note": "XP, challenges, medals, the campaign, flight time and best laps back to a new pilot's. Your settings stay.",
+     "action": "resetprogress",
      "drives": {}
     },
     {
@@ -10723,6 +10763,26 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reset progress",
+     "note": "XP, challenges, medals, the campaign, flight time and best laps back to a new pilot's. Your settings stay.",
+     "action": "resetprogress",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -11791,6 +11851,19 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -12848,6 +12921,19 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
      "drives": {}
     },
     {
@@ -14083,6 +14169,26 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reset progress",
+     "note": "XP, challenges, medals, the campaign, flight time and best laps back to a new pilot's. Your settings stay.",
+     "action": "resetprogress",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-help",
      "label": "Help",
      "section": true,
@@ -15116,6 +15222,26 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reset progress",
+     "note": "XP, challenges, medals, the campaign, flight time and best laps back to a new pilot's. Your settings stay.",
+     "action": "resetprogress",
      "drives": {}
     },
     {
@@ -16192,6 +16318,26 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-saved-data",
+     "label": "Saved data",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Reset settings",
+     "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reset progress",
+     "note": "XP, challenges, medals, the campaign, flight time and best laps back to a new pilot's. Your settings stay.",
+     "action": "resetprogress",
      "drives": {}
     },
     {
@@ -33482,6 +33628,26 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reiniciar progreso",
+     "note": "XP, desafíos, medallas, la campaña, el tiempo de vuelo y las mejores vueltas vuelven a los de un piloto nuevo. Tus ajustes se mantienen.",
+     "action": "resetprogress",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -34547,6 +34713,26 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reiniciar progreso",
+     "note": "XP, desafíos, medallas, la campaña, el tiempo de vuelo y las mejores vueltas vuelven a los de un piloto nuevo. Tus ajustes se mantienen.",
+     "action": "resetprogress",
      "drives": {}
     },
     {
@@ -35618,6 +35804,26 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reiniciar progreso",
+     "note": "XP, desafíos, medallas, la campaña, el tiempo de vuelo y las mejores vueltas vuelven a los de un piloto nuevo. Tus ajustes se mantienen.",
+     "action": "resetprogress",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -36686,6 +36892,19 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -37743,6 +37962,19 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
      "drives": {}
     },
     {
@@ -38978,6 +39210,26 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reiniciar progreso",
+     "note": "XP, desafíos, medallas, la campaña, el tiempo de vuelo y las mejores vueltas vuelven a los de un piloto nuevo. Tus ajustes se mantienen.",
+     "action": "resetprogress",
+     "drives": {}
+    },
+    {
      "id": "pilot:s-ayuda",
      "label": "Ayuda",
      "section": true,
@@ -40011,6 +40263,26 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reiniciar progreso",
+     "note": "XP, desafíos, medallas, la campaña, el tiempo de vuelo y las mejores vueltas vuelven a los de un piloto nuevo. Tus ajustes se mantienen.",
+     "action": "resetprogress",
      "drives": {}
     },
     {
@@ -41087,6 +41359,26 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-datos-guardados",
+     "label": "Datos guardados",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetsettings",
+     "label": "Restablecer ajustes",
+     "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",
+     "action": "resetsettings",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-resetprogress",
+     "label": "Reiniciar progreso",
+     "note": "XP, desafíos, medallas, la campaña, el tiempo de vuelo y las mejores vueltas vuelven a los de un piloto nuevo. Tus ajustes se mantienen.",
+     "action": "resetprogress",
      "drives": {}
     },
     {
