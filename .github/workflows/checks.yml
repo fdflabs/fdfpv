@@ -180,6 +180,15 @@ jobs:
       - run: npm run slowstick:stab
       - run: npm run timber:gates
       - run: npm run timber:stab
+      # Phase 29's pure Node halves, under a second each: the one world
+      # edge rule on every world's square (src/game/edges.js) and the
+      # chase camera's arm against real colliders (src/render/chasearm.js).
+      # Their page halves, chase:walls and edges:page, stay local: one
+      # boots two worlds and Itaipu's data to put a plane by a wall, the
+      # other waits out a five second notice, and each only re-proves the
+      # wiring these units already hold.
+      - run: npm run edges:selftest
+      - run: npm run chasearm:selftest
 
   shard-2:
     runs-on: ubuntu-latest
@@ -647,6 +656,15 @@ jobs:
           ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
           path: itaipu-data-ci
       - run: npm run lint:memory
+        env:
+          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
+      # Every start on every world, room seats and stations included, is
+      # above ground, dry, clear of solids and facing a way out, with
+      # negative controls per world (scripts/world-spawns-check.js). It
+      # boots Itaipu, so it sits by the data checked out above. 55 s
+      # locally, on the shard with Itaipu's data and the most headroom
+      # (608 s, tools/reshard-timings.json).
+      - run: npm run world:spawns
         env:
           FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
 
