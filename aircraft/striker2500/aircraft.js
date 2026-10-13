@@ -47,6 +47,10 @@ export default {
     "grams": 13824.9,
     "thrustToWeight": 2.09,
     "trackClass": "wing",
+    "class": "wing",
+    "roles": [
+      "combat"
+    ],
     "cells": 2,
     "packVoltages": [
       4.2,

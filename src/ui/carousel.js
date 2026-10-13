@@ -50,8 +50,10 @@ export const PICK_FILTERS = ['quad', 'plane', 'all'];
 export const MINE = 'mine';
 const TABS = [...PICK_FILTERS, MINE];
 
+/* The tab an aircraft sits under: its folder's class (configs/airframes.js
+ * CLASSES), every class but the multirotor a plane's. */
 export function kindOf(id) {
-  return airframeById(id).fixedWing ? 'plane' : 'quad';
+  return airframeById(id).class === 'multirotor' ? 'quad' : 'plane';
 }
 
 /* The aircraft a tab shows, in configs/airframes.js order, which is the
