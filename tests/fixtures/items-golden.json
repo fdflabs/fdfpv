@@ -30453,6 +30453,14 @@
     },
     {
      "id": "tricks:a-noop~14",
+     "label": "Immelmann Turn",
+     "value": "250",
+     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por debajo, llevando medio giro de flip, luego medio giro de roll. Visto de lado.",
+     "action": "noop",
+     "drives": {}
+    },
+    {
+     "id": "tricks:a-noop~15",
      "label": "Power Flip",
      "value": "350",
      "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto de lado.",
@@ -30460,7 +30468,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~15",
+     "id": "tricks:a-noop~16",
      "label": "Power Roll",
      "value": "450",
      "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto de lado.",
@@ -30468,7 +30476,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~16",
+     "id": "tricks:a-noop~17",
      "label": "Inverted 360 Powerloop",
      "value": "650",
      "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto de lado.",
@@ -30476,7 +30484,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~17",
+     "id": "tricks:a-noop~18",
      "label": "Flip Stall Rewind",
      "value": "275",
      "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto de lado.",
@@ -30484,7 +30492,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~18",
+     "id": "tricks:a-noop~19",
      "label": "360 Stall Rewind",
      "value": "275",
      "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto desde atrás.",
@@ -30492,7 +30500,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~19",
+     "id": "tricks:a-noop~20",
      "label": "Split-S",
      "value": "100",
      "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto de lado.",
@@ -30500,7 +30508,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~20",
+     "id": "tricks:a-noop~21",
      "label": "Split Yaw",
      "value": "300",
      "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto de lado.",
@@ -30508,7 +30516,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~21",
+     "id": "tricks:a-noop~22",
      "label": "Yaw Spin",
      "value": "50",
      "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto desde arriba.",
@@ -30516,7 +30524,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~22",
+     "id": "tricks:a-noop~23",
      "label": "Flip",
      "value": "50",
      "note": "Fiable. Principiante. Un giro completo de flip. Visto de lado.",
@@ -30524,7 +30532,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~23",
+     "id": "tricks:a-noop~24",
      "label": "Roll",
      "value": "50",
      "note": "Fiable. Principiante. Un giro completo de roll. Visto desde atrás.",
@@ -30532,7 +30540,15 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~24",
+     "id": "tricks:a-noop~25",
+     "label": "Segmented Flips/Rolls",
+     "value": "75",
+     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation otra vez en el mismo sentido, tras una pausa. Visto de lado.",
+     "action": "noop",
+     "drives": {}
+    },
+    {
+     "id": "tricks:a-noop~26",
      "label": "Invert Rewind",
      "value": "75",
      "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto de lado.",
@@ -30540,7 +30556,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~25",
+     "id": "tricks:a-noop~27",
      "label": "Vanny Roll",
      "value": "125",
      "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto desde arriba.",
@@ -30548,7 +30564,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~26",
+     "id": "tricks:a-noop~28",
      "label": "Double Flip",
      "value": "150",
      "note": "Fiable. Principiante. Dos giros completos de flip. Visto de lado.",
@@ -30556,7 +30572,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~27",
+     "id": "tricks:a-noop~29",
      "label": "Double Roll",
      "value": "150",
      "note": "Fiable. Principiante. Dos giros completos de roll. Visto desde atrás.",
@@ -30564,7 +30580,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~28",
+     "id": "tricks:a-noop~30",
      "label": "Juicy Flick",
      "value": "200",
      "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
@@ -30572,7 +30588,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~29",
+     "id": "tricks:a-noop~31",
      "label": "Snapback",
      "value": "200",
      "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
@@ -30580,7 +30596,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~30",
+     "id": "tricks:a-noop~32",
      "label": "Rubik's Cube",
      "value": "325",
      "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto de lado.",
@@ -30588,7 +30604,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~31",
+     "id": "tricks:a-noop~33",
      "label": "Cubik's Rube",
      "value": "325",
      "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto de lado.",
@@ -30596,7 +30612,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~32",
+     "id": "tricks:a-noop~34",
      "label": "Inverted Yaw Spin",
      "value": "400",
      "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto desde arriba.",
@@ -30604,7 +30620,7 @@
      "drives": {}
     },
     {
-     "id": "tricks:a-noop~33",
+     "id": "tricks:a-noop~35",
      "label": "Inverted Yaw Tracking",
      "value": "425",
      "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto desde arriba.",

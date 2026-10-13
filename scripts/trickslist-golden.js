@@ -27,6 +27,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -35,8 +36,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const FILE = join(root, 'tests', 'fixtures', 'trickslist-golden.json');
 const RECORD = process.argv.includes('--record');
 const target = process.env.TRICKSLIST_MODULE ? pathToFileURL(resolve(process.env.TRICKSLIST_MODULE)).href : '../src/ui/trickslist.js';
-const t = await import(target);
+/* The trick sheet reads the string table when it loads, as the page loads
+ * it after taking the pilot's language (src/boot.js), so each language is
+ * taken in its own process before the list module is imported. */
+const CHILD = process.env.TRICKSLIST_GOLDEN_LOCALE;
 const { useLocale } = await import('../src/strings/index.js');
+if (CHILD) await useLocale(CHILD);
+const t = await import(target);
 
 function snapshot() {
   const list = t.scoreableTricks();
@@ -47,7 +53,14 @@ function snapshot() {
     count: t.countScoreableTricks(),
   };
 }
-const got = JSON.parse(JSON.stringify({ en: snapshot(), es: (await useLocale('es'), snapshot()) }));
+if (CHILD) {
+  process.stdout.write(JSON.stringify(snapshot()), () => process.exit(0));
+  await new Promise(() => {});
+}
+const take = (locale) => JSON.parse(execFileSync(process.execPath, [fileURLToPath(import.meta.url)], {
+  encoding: 'utf8', env: { ...process.env, TRICKSLIST_GOLDEN_LOCALE: locale }, maxBuffer: 64 << 20,
+}));
+const got = { en: take('en'), es: take('es') };
 if (RECORD) {
   writeFileSync(FILE, `${JSON.stringify(got, null, 1)}\n`);
   console.log(`wrote ${FILE}`);

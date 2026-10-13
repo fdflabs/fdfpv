@@ -1,9 +1,9 @@
 {
- "commit": "84c33b7e4181fc4d9ac3d75e06ef038a78d3774a",
+ "commit": "6ea18c98b252119f087e9e5d92087f71cb503ade",
  "cases": {
   "exports": "dc0d9a928c986e895f89a691de34b7229cca33ef150045c0b19f7e782303e3cd",
   "snap": "f6344f11d056f6a8d6cee8c11dc370e3a6c4ebfd2e07a8a5ada6961cce5dcb8a",
-  "driver-score-selftest": "a2bc16d990fabe81ec29d3c012c15eb7bc13100937c32674e7c10463ec421f58",
+  "driver-score-selftest": "32c8b9a4442f060d3b57695d1b37ca701261a2f5e7fd7be02d33f47f1a8fd885",
   "driver-trick-sweep": "885d2df342f7555cd9c3124b0b723f74f4f0394722d4d5a1edeac9502d58eb9c",
   "driver-path-check": "7dd9d6a5a31400647fdcf2f074933411a5ccd86d202c17c9058e26e57f35b52a",
   "driver-orbit-check": "51808c4a9df53b694daf80d834864a87b0814e15ef108eedbc9c9c50c68362eb",
