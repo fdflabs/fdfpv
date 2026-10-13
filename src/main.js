@@ -19475,6 +19475,18 @@ export async function boot({
     /* Read once: guidedPrompt retires the guided flag as a side effect. */
     const guidedText = (ui.guided && !crashflipOn && !turtleRecover && lastUpz >= 0) ? guidedPrompt(race) : '';
     ui.setPadInfo(input.padSummary());
+    /* The flying device went (input.noteDeviceLoss). Solo pauses; a room
+     * cannot stop its world, so it flies on centred sticks and a held
+     * throttle and says so. A picker queued with it opens after this. */
+    if (input.takeDeviceLoss() && mode === 'flight' && ui.screen === 'flight') {
+      if (inRoom()) {
+        flashNotice(str('input.device_lost_room'), 6000);
+      } else {
+        ui.act('pause');
+        ui.show('paused');
+        flashNotice(str('input.device_lost_solo'), 6000);
+      }
+    }
     const queuedPick = input.takePadPickQueue();
     if (queuedPick) {
       openPadPick(queuedPick);

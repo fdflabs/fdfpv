@@ -1017,6 +1017,20 @@ async function padActions(page, ev) {
   await ev('delete ui.settings.padbinds; return true;');
 }
 
+/* Phase 20: the flying pad goes mid flight in a solo run, which pauses. */
+async function padLoss(page, ev) {
+  heading('the pad unplugged mid flight, solo: the run pauses');
+  await ev(`${PAST_GATE} ui.onAction('fly', ui.settings); return true;`);
+  await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
+  await page.sleep(500);
+  await page.evaluate('window.__pad.connected = false; window.__pad.timestamp += 1; true');
+  const paused = await came(page, "window.__ui.screen === 'paused' || window.__ui.screen === 'padpick'", 5000);
+  const st = await page.evaluate("JSON.stringify({ screen: window.__ui.screen, mode: window.__craftState().mode, source: window.__input.stats().source })");
+  check('the pause menu is up and the run is paused', paused && JSON.parse(st).screen === 'paused', st);
+  await page.evaluate('window.__pad.connected = true; window.__pad.timestamp += 1; true');
+  check('plugged back in, it is the flying device again', await came(page, '!!window.__input.firstGamepad()', 5000));
+}
+
 /* Phase 20: devices are read in src/input only. */
 function deviceReads() {
   heading('no device is read outside src/input');
@@ -1048,7 +1062,7 @@ const PAGES = [
   ['booting the shell with a six axis radio', 'the mouse page', {}, SIX_AXIS_RADIO,
     [signposts, hover, noYawRow, wizardNoButtons, throttleZero, checkSticks, padEdges, frameFault, mouseFlight]],
   ['booting the shell as a touch device', 'the touch page', { touch: true }, SIX_AXIS_RADIO, [touchModes]],
-  ['booting the shell with an Xbox pad', 'the Xbox page', {}, XBOX, [xbox, padActions]],
+  ['booting the shell with an Xbox pad', 'the Xbox page', {}, XBOX, [xbox, padActions, padLoss]],
   ['booting the shell with two radios and an old stick map', 'the two radio page', {}, TWO_RADIOS, [twoRadios]],
 ];
 

@@ -1499,6 +1499,87 @@ heading('phase 20: one action table, read by name from every source');
   free('KeyW');
 }
 
+heading('phase 20: a sweep that never completes names the axis that never moved');
+{
+  /* A radio with a dead fourth channel: the three live axes swept to both
+   * ends, the fourth frozen at rest. */
+  const b = new Bench(radio([0, 0, -1, 0]));
+  b.im.startCalibration();
+  check('the centre settles', b.reach('sweep'));
+  b.sweep([0, 1, 2]);
+  b.run(3000);
+  check('three seconds short: no name yet, the keep going hint', b.view.stuck.length === 0 && /Keep going/.test(b.view.hint), b.view.hint);
+  b.run(6000);
+  const v = b.view;
+  check('past eight seconds: axis 4 is named, as an axis (an unrecognised radio\'s map is a guess)',
+    show(v.stuck) === show([{ axis: 3, channel: null }]) && /axis 4/.test(v.hint) && /stuck/.test(v.hint), `${show(v.stuck)} ${v.hint}`);
+  b.sweep([3]);
+  b.run(1000);
+  check('swept at last: the wizard moves on and the name goes', b.view.step !== 'sweep' && b.view.stuck.length === 0, b.view.step);
+
+  const p = new Bench(gamepad());
+  p.im.startCalibration();
+  p.reach('sweep');
+  p.sweep([1, 2, 3]);
+  p.run(9000);
+  check('a standard pad in Mode 2: the frozen left stick across is named yaw (axis 1)',
+    show(p.view.stuck) === show([{ axis: 0, channel: 'yaw' }]) && /yaw \(axis 1\)/.test(p.view.hint), `${show(p.view.stuck)} ${p.view.hint}`);
+}
+
+heading('phase 20: the flying device goes mid flight');
+{
+  const pad = radio([0, 0, -1, 0]);
+  const list = [pad];
+  const b = new Bench(list);
+  b.im.setPadChoice({ kind: 'pad', id: pad.id, index: 0 });
+  b.run(200);
+  /* AETR: roll 0, pitch 1, throttle 2, yaw 3. */
+  b.set(2, 0.2);
+  b.set(0, 0.6);
+  b.set(3, -0.5);
+  b.run(300);
+  const before = { ...b.im.channels };
+  check('flying on the radio: rolled, yawed, throttle up', before.roll > 0.3 && before.yaw < -0.3 && before.throttle > 0.4, show(before));
+  check('no loss while it is here', b.im.takeDeviceLoss() === false);
+  list.length = 0;
+  b.tick();
+  check('unplugged: the loss is reported once', b.im.takeDeviceLoss() === true && b.im.takeDeviceLoss() === false);
+  b.run(2000);
+  const after = b.im.channels;
+  check('the sticks centre and the throttle holds where the radio left it, for two seconds',
+    after.roll === 0 && after.pitch === 0 && after.yaw === 0 && Math.abs(after.throttle - before.throttle) < 1e-9, show({ before, after }));
+  check('nothing is queued with no device left to pick', b.im.takePadPickQueue() === null);
+
+  /* A pilot who flew the keys' collective before plugging the radio in:
+   * the loss must not hand the throttle back to that collective's spring. */
+  const late = [];
+  const k = new Bench(late);
+  k.im.keyDown({ code: 'KeyW', repeat: false, target: null, preventDefault() {} });
+  k.run(400);
+  k.im.keyUp({ code: 'KeyW', target: null });
+  k.run(100);
+  const radioLate = radio([0, 0, 0.2, 0]);
+  late.push(radioLate);
+  k.run(300);
+  const flying = k.im.channels.throttle;
+  late.length = 0;
+  k.run(2000);
+  check('keys flown before the radio: the throttle still holds after the loss',
+    k.im.takeDeviceLoss() === true && flying > 0.4 && Math.abs(k.im.channels.throttle - flying) < 1e-9, show({ flying, after: k.im.channels.throttle }));
+
+  const two = [radio([0, 0, -1, 0], 0, 'Radio A'), radio([0, 0, -1, 0], 0, 'Radio B')];
+  two[1].index = 1;
+  const t = new Bench(two);
+  t.im.setPadChoice({ kind: 'pad', id: 'Radio A', index: 0 });
+  t.run(200);
+  t.im.takePadPickQueue();
+  two.splice(0, 1);
+  t.tick();
+  check('with another device left: the loss is reported and the picker is queued as missing',
+    t.im.takeDeviceLoss() === true && t.im.takePadPickQueue() === 'missing');
+  check('and the keyboard flies meanwhile, centred', t.im.channels.roll === 0 && t.im.firstGamepad() === null);
+}
+
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
 for (const f of failures) {
   console.log(`  FAIL ${f}`);

@@ -48,7 +48,7 @@
 import { str } from '../strings/index.js';
 import { stickCaption, stickSideOf } from './stickmode.js';
 import {
-  builtInMap, normaliseMap, reversals, readSticks,
+  builtInKind, builtInMap, normaliseMap, reversals, readSticks,
 } from './padmap.js';
 import { watchedAxes, furthestFromRest } from './padpick.js';
 
@@ -78,6 +78,11 @@ const LEAST_THROTTLE_RANGE = 0.3;
  * same question as the identify steps, with the same feel. */
 const NAMED = 0.45;
 const NAMED_LEAD = 0.18;
+/* How long the sweep runs short before the axes that never left rest are
+ * named: a pilot sweeping four corners has every stick out within a few
+ * seconds, so by this point an axis still at rest is stuck, switched off
+ * in the radio, or a switch. */
+const STUCK_MS = 8000;
 
 /*
  * The steps for a given radio. A radio with buttons, or with no axis left
@@ -176,6 +181,7 @@ export class CalibrationWizard {
     this.high = rest ? rest.slice() : null;
     this.steadyAt = null;
     this.parked = null;
+    this.sweepMs = 0;
   }
 
   advance() {
@@ -217,6 +223,7 @@ export class CalibrationWizard {
     if (this.step === 'center') {
       this.findRest(axes, dtMs);
     } else if (this.step === 'sweep') {
+      this.sweepMs += dtMs;
       this.watchSweep(axes, dtMs);
     } else if (this.step !== 'confirm') {
       this.identify(axes, dtMs);
@@ -388,6 +395,30 @@ export class CalibrationWizard {
     return true;
   }
 
+  /*
+   * On a sweep that has run STUCK_MS short of full travel: every axis that
+   * never left its rest, as { axis, channel }, `channel` named only when
+   * the device's built-in map is vouched for (a recognised radio, a
+   * standard pad), never from the AETR guess.
+   */
+  stuckAxes(gp, mode) {
+    if (this.step !== 'sweep' || this.sweepMs < STUCK_MS || !gp || !this.low) {
+      return [];
+    }
+    if (fullTravelCount(this.low, this.high) >= Math.min(4, this.low.length)) {
+      return [];
+    }
+    const map = builtInKind(gp, mode) ? builtInMap(gp, mode) : null;
+    const channelOf = (axis) => (map ? ASKED.find((ch) => map[ch] && map[ch].axis === axis) || null : null);
+    const stuck = [];
+    for (let i = 0; i < this.low.length; i += 1) {
+      if (this.high[i] - this.low[i] < AT_REST) {
+        stuck.push({ axis: i, channel: channelOf(i) });
+      }
+    }
+    return stuck;
+  }
+
   complete() {
     const d = this.draft;
     return this.step === 'confirm' && Boolean(d.roll && d.pitch && d.yaw && d.throttle);
@@ -432,6 +463,7 @@ export class CalibrationWizard {
     }
     const checking = this.step === 'confirm';
     const moving = checking ? movingChannel(channels) : null;
+    const stuck = this.stuckAxes(gp, mode);
     return {
       step: this.step,
       phase: this.phase,
@@ -451,9 +483,10 @@ export class CalibrationWizard {
       canReverse: Boolean(moving),
       reverse: reversals(this.draft && this.draft.reverse),
       checkOnly: Boolean(this.checkOnly),
+      stuck,
       title: this.title(),
       prompt: this.prompt(mode),
-      hint: this.hint(travelled, need, gp, checking ? channels.throttle : 0, moving),
+      hint: this.hint(travelled, need, gp, checking ? channels.throttle : 0, moving, stuck),
     };
   }
 
@@ -504,12 +537,19 @@ export class CalibrationWizard {
     }[this.step]?.() ?? '';
   }
 
-  hint(travelled, need, gp, idleThrottle, moving) {
+  hint(travelled, need, gp, idleThrottle, moving, stuck = []) {
     if (!gp) {
       return str('input.radio_disconnected_plug_it_back_in');
     }
     if (this.step === 'center') {
       return str('input.waiting_until_the_reading_is_steady');
+    }
+    if (this.step === 'sweep' && stuck.length) {
+      /* Axes counted from 1, as a radio counts its channels. */
+      const names = stuck.map((s) => (s.channel
+        ? str('input.stuck_channel', { channel: s.channel, n: s.axis + 1 })
+        : str('input.stuck_axis', { n: s.axis + 1 })));
+      return str('input.stuck_sweep', { names: names.join(', ') });
     }
     if (this.step === 'sweep') {
       return travelled < need

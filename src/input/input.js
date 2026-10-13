@@ -109,6 +109,8 @@ export class InputManager {
     this.padBinding = null;
     /* The key codes a pad button holds down for its action (pollPadKeys). */
     this.padKeysDown = new Set();
+    /* Set when the flying device went; takeDeviceLoss reads it once. */
+    this.deviceLost = false;
     this.stickMode = DEFAULT_STICK_MODE;
     this.keyboard = new KeyboardSticks(this.stickMode);
     this.mouseStick = new MouseStick();
@@ -681,6 +683,34 @@ export class InputManager {
       && Boolean(this.touchSource && this.touchSource.active());
   }
 
+  /* ------------------------------------------------ controller loss */
+
+  /*
+   * The flying device went. The keyboard rung takes over (readSource):
+   * roll, pitch and yaw spring to centre, and the throttle holds where the
+   * pad left it, because the keys' collective mirrors the pad and does not
+   * spring until a throttle key is used. That is made deliberate here, not
+   * left to whatever the keys did before the pad came: the springs centre
+   * now and the collective is marked unused. main.js decides the rest
+   * (solo pauses; a room keeps flying on these sticks and says so).
+   */
+  noteDeviceLoss() {
+    if (!this.roster.lost) {
+      return;
+    }
+    this.roster.lost = false;
+    this.keyboard.centreSprings();
+    this.keyboard.collectiveUsed = false;
+    this.deviceLost = true;
+  }
+
+  /* True once after the flying device went. */
+  takeDeviceLoss() {
+    const lost = Boolean(this.deviceLost);
+    this.deviceLost = false;
+    return lost;
+  }
+
   /* ----------------------------------------------- actions by name */
 
   /* The chosen device when the browser maps it to the W3C standard
@@ -797,6 +827,7 @@ export class InputManager {
     const gp = this.firstGamepad();
     this.pollPadKeys();
     this.roster.track();
+    this.noteDeviceLoss();
     this.followDevice(gp);
     this.followDefaultMap(gp);
     this.measureRates(gp, dtMs);
