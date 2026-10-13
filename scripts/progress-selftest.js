@@ -238,12 +238,14 @@ check('not with the engine running', !run(bomb, flight({ power: running })).has(
 
 /*
  * COUNTS PER AIRCRAFT (PROGRESSION.md 5 and 9, COMPLETENESS.md 27):
- * landings, crashes and laps counted from the flight's event log, once
- * each, per aircraft family, merged as the higher of two computers.
+ * landings, crashes, laps and kills counted from the flight's event log,
+ * once each, per aircraft family, merged as the higher of two computers.
  */
-console.log('landings, crashes and laps, from the event log');
+console.log('landings, crashes, laps and kills, from the event log');
 {
-  check('counted: landings, crashes and laps, no kills', same(COUNTED, { landing: 'landings', crash: 'crashes', lap: 'laps' }));
+  check('counted: landings, crashes, laps and kills', same(COUNTED, {
+    landing: 'landings', crash: 'crashes', lap: 'laps', kill: 'kills',
+  }));
   const log = new EventLog();
   log.append('spawned', 0);
   log.append('landing', 5000, { airframe: 'cub1400' });
@@ -273,9 +275,26 @@ console.log('landings, crashes and laps, from the event log');
     check(`a ${floatId.id} landing and crash are its family's (${liveryKey(floatId.id)})`,
       countOf(q, 'landing', floatId.id) === 1 && q.crashes[liveryKey(floatId.id)] === 1, JSON.stringify(q));
   }
+  /* A kill is logged only for a victim the room credited to this pilot
+   * (src/share/roomwar.js), one event a victim: a blast that took two is
+   * two kills on the aircraft that flew it. */
+  const k = freshProgress();
+  const kl = new EventLog();
+  kl.append('spawned', 0);
+  kl.append('kill', 4000, { airframe: 'cub1400', victim: 'strike' });
+  kl.append('kill', 4000, { airframe: 'cub1400', victim: 'strike' });
+  kl.append('crash', 4000, { airframe: 'cub1400' });
+  kl.append('kill', 9000, { airframe: 'timber1500', victim: 'scout' });
+  kl.append('kill', 9500, { airframe: null, victim: 'decoy' });
+  const kf = foldEvents(k, kl.events);
+  const kAgain = foldEvents(k, kl.events, kf.at);
+  check('kills count per aircraft like landings: a two kill blast is two, one with no aircraft counts nowhere, a second fold takes nothing',
+    same(k.kills, { cub1400: 2, timber1500: 1 }) && countOf(k, 'kill', 'cub1400') === 2 && kf.counted === 4 && kAgain.counted === 0 && k.xp === 0,
+    JSON.stringify([k.kills, kf.counted, kAgain.counted]));
+  check('a fresh profile has no kills', same(freshProgress().kills, {}));
   check('a count pays no XP', p.xp === 0);
   const older = normaliseProgress({ v: 2, xp: 300, firsts: { a: true } });
-  check('a profile from before the counts reads as none, everything else kept', same(older.landings, {}) && same(older.crashes, {}) && same(older.laps, {}) && older.xp === 300);
+  check('a profile from before the counts reads as none, everything else kept', same(older.landings, {}) && same(older.crashes, {}) && same(older.laps, {}) && same(older.kills, {}) && older.xp === 300);
   const families = [...new Set(AIRFRAMES.map((af) => liveryKey(af.id)))];
   const dropped = families.filter((id) => Object.values(COUNTED).some((m) => normaliseProgress({ [m]: { [id]: 1 } })[m][id] !== 1));
   check(`every aircraft family's counts survive a load (${families.length})`, dropped.length === 0, dropped.join());

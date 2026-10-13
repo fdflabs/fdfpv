@@ -159,9 +159,17 @@
  *                                             (src/share/war/contact.js)
  *   { type: 'war', op: 'dead', ids, at, by, why, p }
  *                                             why 'boom' (by the seat),
+ *                                             'pierce' (by the seat),
  *                                             'arrive' (by 0, with target
  *                                             and hit), 'leave' (by 0) or
  *                                             'wire' (by 0, on a line);
+ *                                             a boom and a pierce carry
+ *                                             credited, the ids of those
+ *                                             counted as `by`'s kills
+ *                                             (none when its airframe
+ *                                             never took off), so a
+ *                                             client counts exactly the
+ *                                             room's;
  *                                             scouts: true on the boom that
  *                                             killed a scout wave's last
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
@@ -1763,7 +1771,7 @@ export class RoomWar {
       type: 'war', op: 'boom', seat: d.seat, at: tc, p: at,
     });
     out.push(...this.broadcast(core, {
-      type: 'war', op: 'dead', ids, at: tc, by: d.seat, why: pierce ? 'pierce' : 'boom', p: at, ...(scoutsDown ? { scouts: true } : {}),
+      type: 'war', op: 'dead', ids, credited: credited.map((a) => a.id), at: tc, by: d.seat, why: pierce ? 'pierce' : 'boom', p: at, ...(scoutsDown ? { scouts: true } : {}),
     }));
     if (stalled.length) {
       out.push(...this.stall(core, stalled, tc));

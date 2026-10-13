@@ -295,6 +295,15 @@ export class Progress {
     }
   }
 
+  /* Attackers the room credited to this pilot's warhead (src/share/roomwar.js
+   * dead `kills`), each a `kill` on the seated aircraft, then folded. */
+  killed(kills) {
+    for (const k of kills) {
+      this.event('kill', { airframe: this.airframe, victim: k.kind });
+    }
+    this.foldFlight();
+  }
+
   /* The seated aircraft, for the events counted per aircraft. */
   get airframe() {
     return this.watch.ctx ? this.watch.ctx.airframe : null;

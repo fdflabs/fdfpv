@@ -173,8 +173,15 @@ export function createRoomWar(send) {
   function dead(m) {
     const at = m.at;
     const list = [];
+    /* This pilot's kills are only those the room credited to this seat; a
+     * room from before `credited` names none, so none are counted. */
+    const credited = m.by === seat && Array.isArray(m.credited) ? new Set(m.credited) : new Set();
+    const kills = [];
     for (const id of m.ids || []) {
       const x = agents.get(id);
+      if (credited.has(id)) {
+        kills.push({ id, kind: x ? x.a.kind : null });
+      }
       if (!x) {
         continue;
       }
@@ -189,6 +196,7 @@ export function createRoomWar(send) {
        * it said so, the target's own. */
       mw: typeof m.mw === 'number' ? m.mw : m.target && mission() && mission().targets[m.target] ? mission().targets[m.target].mw : 0,
       mine: m.why === 'boom' && m.by === seat,
+      kills,
     });
     if (m.scouts === true) {
       events.push({ type: 'scouts', at, by: m.by });
@@ -351,7 +359,9 @@ export function createRoomWar(send) {
     /* What happened since the last call, oldest first, each once:
      *   { type: 'born', agents }
      *   { type: 'dead', ids, agents: [{ id, kind, p }], at, by, why, p,
-     *     target, hit, mw, mine }
+     *     target, hit, mw, mine, kills: [{ id, kind }] }
+     *                                          kills: those of ids the room
+     *                                          credited to this seat
      *   { type: 'boom', seat, at, p, mine }    mine: break this craft
      *   { type: 'scouts', at, by }             that dead was a scout
      *                                          wave's last: later waves

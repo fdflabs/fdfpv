@@ -34,6 +34,12 @@
  *                 on the run's aircraft (progression counts landings,
  *                 crashes and laps per aircraft, src/game/progress.js
  *                 foldEvents)
+ *   kill {airframe, victim}
+ *                 an attacker the war's room credited to this pilot's
+ *                 warhead (edge/rooms/war.js dead `credited`, read by
+ *                 src/share/roomwar.js), victim its kind; one a victim,
+ *                 so a blast that took two is two (src/main.js,
+ *                 Progress.killed; counted per aircraft like a landing)
  *   round {game, world}
  *                 a Streamer Combat round or a Catch the Ace! match
  *                 ended by the room with this pilot seated (src/main.js,
@@ -44,7 +50,7 @@
  *                 a mission's result applied to the save
  *                 (src/ui/campaign.js, src/ui/opscampaign.js)
  *
- * The rest of the vocabulary (objective, stage, kill, hit, joined, left,
+ * The rest of the vocabulary (objective, stage, hit, joined, left,
  * mission_start, and the war's rounds) is the war's and the rooms', named now so their
  * producers add rows, not words.
  *

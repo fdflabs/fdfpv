@@ -30,8 +30,8 @@
  *              either side is set; Unlock all is on if either turned it
  *              on; lessons passed and certifications are the union at
  *              the earlier time; medals per course the better of the two;
- *              landings, crashes and laps per aircraft the higher
- *              of the two; the
+ *              landings, crashes, laps and kills per aircraft the
+ *              higher of the two; the
  *              version is the newer of the two.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.

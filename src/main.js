@@ -6239,6 +6239,12 @@ export async function boot({
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
         warBurn(ev.target, ev.at);
       }
+      /* Before the replay's skip: these are live room events, each heard
+       * once, and a crash replay may already be on when the room's word on
+       * this pilot's warhead arrives. */
+      if (ev.type === 'dead' && ev.kills.length) {
+        ui.progress.killed(ev.kills);
+      }
       if (ev.type === 'state' && ev.to === 'live' && audio.warRadio && audio.warRadio.track !== 'intro') {
         audio.setWarBed('combat');
       }

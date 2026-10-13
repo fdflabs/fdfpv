@@ -321,6 +321,32 @@ console.log('the shell\'s producers');
     && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
+  check('a kill the room credited is logged, one a victim, on the seated aircraft',
+    src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills);")
+    && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind });"));
+}
+
+console.log('a kill the room credited, through the client, into the log');
+{
+  const { createRoomWar } = await import('../src/share/roomwar.js');
+  const war = createRoomWar(() => {});
+  war.onWelcome({ seat: 1, war: { state: 'lobby' } });
+  const p = [0, 0, 0];
+  war.onMessage({ type: 'war', op: 'dead', ids: [4, 5], credited: [4, 5], at: 100, by: 1, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [6], credited: [], at: 200, by: 1, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [7], credited: [7], at: 300, by: 2, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [8], at: 400, by: 1, why: 'boom', p });
+  war.onMessage({ type: 'war', op: 'dead', ids: [9], credited: [9], at: 500, by: 1, why: 'pierce', p });
+  const log = new EventLog();
+  for (const ev of war.takeEvents()) {
+    for (const k of ev.type === 'dead' ? ev.kills : []) {
+      log.append('kill', ev.at, { airframe: 'cub1400', victim: k.kind });
+    }
+  }
+  const kills = log.events.filter((e) => e.type === 'kill');
+  check('only this seat\'s credited victims, a pierce\'s too: none for a blast credited nobody, another seat\'s, or a room that did not say',
+    show(kills.map((e) => e.simMs)) === show([100, 100, 500]), show(kills));
+  check('each carries its aircraft and victim as plain values', kills.every((e) => e.airframe === 'cub1400' && 'victim' in e && Object.isFrozen(e)));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
