@@ -6,7 +6,7 @@
  *   npm run war:card                       starts its own on a free port
  *   npm run war:card -- http://127.0.0.1:8797 [outdir]
  *
- * The gate draws five cards, no Defend Itaipu among them (the owner took
+ * Home draws three hubs, no Defend Itaipu among their links (the owner took
  * it off on 2026-09-30; Defend the Paraná is the way in now) and no Fly
  * with friends (taken off 2026-10-02: every card is a room now), inside the window at 1280x720, 1920x1080, 390x844, 360x640 and
  * 844x390, tags clear of the command bar, no sideways scroll; and again
@@ -105,7 +105,12 @@ async function shot(page, name) {
 const STAGE1_SPAWNED_MS = 3000 + Math.max(...MISSION1.stages[0].spawns.map((w) => [w.at].flat().at(-1) * 1000 * (MISSION1.pace?.[1] ?? 1)));
 
 const HUBS = 'Flight Club,Operations,Hangar';
-const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
+/* Flight Club's cards in the registry's order (src/share/modes.js), Trick
+ * Battle since 9da784b30, and the lesson. */
+const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Trick Battle,Learn to fly';
+/* Operations' links: the two campaigns and the war's field hangar
+ * (2bc31815e). */
+const OPS = 'Defend the Paraná,The Interior,Field hangar';
 
 const LAYOUT = `(() => ({
   w: window.innerWidth, h: window.innerHeight, sw: document.documentElement.scrollWidth,
@@ -272,10 +277,11 @@ try {
   await page.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
 
   /* HOME, THE THREE HUBS AT EVERY SIZE: the war is Operations', its first
-   * link Defend the Paraná, The Interior beside it (N20). */
+   * link Defend the Paraná, The Interior beside it (N20), then the field
+   * hangar. */
   const first = await page.evaluate(LAYOUT);
-  check('home is three hubs; Operations\' links are Defend the Paraná and The Interior: no Defend Itaipu card (the owner took it off, 2026-09-30), no Fly with friends (2026-10-02)',
-    first.cards.map((x) => x.name).join() === HUBS && first.cards[1].links.join() === 'Defend the Paraná,The Interior'
+  check('home is three hubs; Operations\' links are Defend the Paraná, The Interior and the field hangar: no Defend Itaipu card (the owner took it off, 2026-09-30), no Fly with friends (2026-10-02)',
+    first.cards.map((x) => x.name).join() === HUBS && first.cards[1].links.join() === OPS
     && !first.cards.some((x) => x.links.includes('Defend Itaipu') || x.links.includes('Fly with friends')), JSON.stringify(first.cards.map((x) => [x.name, x.links])));
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
@@ -306,11 +312,13 @@ try {
   /* The panel is Flight Club's. */
   await resize(page, 1280, 720);
   await toClub(page);
-  check('Flight Club\'s five cards', (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join() === CLUB, (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join());
+  check(`Flight Club's ${CLUB.split(',').length} cards`, (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join() === CLUB, (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join());
   await page.until("document.querySelectorAll('.gate-rooms-list .gate-room').length === 3", 30000).catch(() => {});
   const PANEL_CUT = `[...document.querySelectorAll('.gate-rooms-count, .gate-room-name, .gate-room-value')]
     .filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;
-  const LONG_LISTED = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
+  /* A listed room's name, not the Watch beside it (SESSIONS.md 5), which
+   * wears the same name class. */
+  const LONG_LISTED = "[...document.querySelectorAll('.gate-rooms-list .gate-room:not(.gate-room-watch) .gate-room-name')].map((n) => n.textContent)";
   /* How many rooms the panel lists (src/ui/roombrowser.js): one on a
    * short upright phone, two on an upright one, three otherwise. */
   for (const [w, h, row, n] of [[1280, 720, true, 3], [1920, 1080, true, 3], [390, 844, false, 2], [360, 640, false, 1], [844, 390, true, 3]]) {
@@ -326,8 +334,8 @@ try {
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
     const listed = await page.evaluate(LONG_LISTED);
     const cut = await page.evaluate(PANEL_CUT);
-    check(`${w} by ${h}, three 32 letter names listed: Flight Club's four cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
-      laidOut(v, 4) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+    check(`${w} by ${h}, three 32 letter names listed: Flight Club's ${CLUB.split(',').length} cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+      laidOut(v, CLUB.split(',').length) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     check(`${w} by ${h}: the panel lists ${['none', 'one', 'two', 'three'][n]} of them, no name cut`, listed.length === n
       && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
     await shot(page, `gate-listed-${w}x${h}`);
