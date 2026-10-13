@@ -33,7 +33,12 @@
  * gate's own axes, and the first pace whose ghost it cannot follow
  * through every gate is the pilot's ceiling on this course, a
  * measurement. On this course the misses are at the dive gate (el-2,
- * pitched half a radian down), off its 0.86 m half opening.
+ * pitched half a radian down), off its 0.86 m half opening. A pace the
+ * reference itself cannot lap gives no ghost, and is printed as such.
+ *
+ * THE GATE. The pilot is handed the referee's next gate (its centre and
+ * travel axis, as the pilot sees it ahead), and flies the opening on the
+ * last stretch to it (src/game/aipilot.js gateAim).
  *
  * NEGATIVE CONTROL. The same plant on the same line, the sticks centred
  * at the hover throttle: no gate, no lap.
@@ -76,7 +81,7 @@ import { Race } from '../src/game/race.js';
 import { raceFromDocument } from '../src/game/verify.js';
 import { GhostLap, GhostRecorder } from '../src/game/ghost.js';
 import { decodeGhost, encodeGhost, GHOST_RATE_HZ } from '../src/share/ghostdata.js';
-import { simPosToThree, simQuatToThree, threePosToSim } from '../src/render/frame.js';
+import { simPosToThree, simQuatToThree, threeDirToSim, threePosToSim } from '../src/render/frame.js';
 import {
   AI_STEP_MS, ANGLE_LIMIT_DEG, aiPilot, learnSticks, lineFromGhost, stickFor,
 } from '../src/game/aipilot.js';
@@ -90,7 +95,7 @@ const af = airframeById(arg('--airframe') ?? 'interceptor');
 if (af.fixedWing) throw new Error(`aipilot:harness flies multirotors; ${af.id} is a fixed wing`);
 const COURSE = 'tests/fixtures/map-track-v4.json';
 /* m/s along the reference line. */
-const PACES = [5, 6, 7, 8, 9, 10];
+const PACES = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16];
 const LAPS = 4;
 const START_MS = -3000;
 /* The reference line runs straight this far either side of a gate. */
@@ -203,6 +208,14 @@ function referenceLine(pace) {
   };
 }
 
+/* A referee's gate as the pilot sees it: the opening's centre and the
+ * travel axis, plant frame (src/game/aipilot.js gateAim). */
+function gateOf(g) {
+  const c = threePosToSim(g.x, g.y + g.apertures[0].centreY, g.z, { x: 0, y: 0, z: 0 });
+  const n = threeDirToSim(g.az.x, g.az.y, g.az.z, { x: 0, y: 0, z: 0 });
+  return { c: [c.x, c.y, c.z], n: [n.x, n.y, n.z] };
+}
+
 /* Per gate, the worst miss of the craft's centre off the opening's centre
  * at its crossings of the gate's plane, in the gate's axes; the flight
  * counts it from its first lap's close, past the start from a hover. */
@@ -236,6 +249,7 @@ async function fly({ line, pilot, learnt, laps, recordLap = 0 }) {
   const psi = Math.atan2(to.p[1] - at.p[1], to.p[0] - at.p[0]);
   sim.e.sim_set_pose(at.p[0], at.p[1], at.p[2], Math.cos(psi / 2), 0, 0, Math.sin(psi / 2));
   const race = referee();
+  const seenGates = race.gates.map(gateOf);
   const rec = new GhostRecorder();
   const worst = new Map();
   const v = { x: 0, y: 0, z: 0, w: 1, set(a, b, c, d) { Object.assign(this, { x: a, y: b, z: c, w: d }); return this; } };
@@ -243,7 +257,7 @@ async function fly({ line, pilot, learnt, laps, recordLap = 0 }) {
   let prev = null;
   const endMs = (laps + 2) * line.durationMs - START_MS;
   for (let ms = 0; ms < endMs && race.laps.length < laps; ms += AI_STEP_MS) {
-    const sticks = pilot ? pilot.sticks(ms, sim.readState().state) : [0, 0, 0, learnt.hover];
+    const sticks = pilot ? pilot.sticks(ms, sim.readState().state, seenGates[race.next]) : [0, 0, 0, learnt.hover];
     sim.input(ms / 1000, ...sticks);
     sim.step(AI_STEP_MS);
     const s = sim.readState().state;
@@ -326,9 +340,9 @@ if (slow.ghostMs !== null) {
     slow.off.map((d) => `${d >= 0 ? '+' : ''}${d.toFixed(1)} ms`).join(', '));
 }
 const ceiling = flown.find((f) => f.ghostMs === null || f.ai.race.laps.length < LAPS);
-console.log(ceiling
-  ? `ceiling on this course: ${ceiling.pace} m/s is the first pace the AI pilot does not follow through every gate`
-  : `no ceiling found up to ${PACES[PACES.length - 1]} m/s`);
+if (!ceiling) console.log(`no ceiling found up to ${PACES[PACES.length - 1]} m/s`);
+else if (ceiling.ghostMs === null) console.log(`no ceiling below ${ceiling.pace} m/s, the first pace the reference cannot lap`);
+else console.log(`ceiling on this course: ${ceiling.pace} m/s is the first pace the AI pilot does not follow through every gate`);
 
 /* The negative control, on the slowest ghost's line. */
 if (slow.ghostMs !== null) {

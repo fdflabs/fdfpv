@@ -34,9 +34,11 @@
  * error closed on the line as seen. Feedback on the ghost tau ahead
  * instead (pure pursuit on t + lead) flies tighter at a walking pace but
  * cuts the corner before tests/fixtures/map-track-v4.json's dive gate:
- * measured with aipilot:harness on 2026-10-13, it took no lap behind a
- * 9 m/s ghost, where this closes every lap at 77 percent of the half
- * opening.
+ * measured with aipilot:harness on 2026-10-13, before the gate aim below,
+ * it took no lap behind a 9 m/s ghost where this closed every lap. On the
+ * last stretch to a gate the person flies the opening it can see
+ * (gateAim): that took the interceptor's ceiling there from 10 m/s to
+ * 14 and the 7 inch's from 8 to 14.
  *
  * FRAMES. The law works in the plant's world frame (Z up, metres, SI). A
  * line is handed in already in that frame: lineFromGhost() converts a
@@ -228,13 +230,47 @@ export function lineFromGhost(lap, origin = { x: 0, y: 0, z: 0 }) {
   };
 }
 
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/*
+ * THE GATE IT CAN SEE. gate is { c, n }: the next gate's opening centre
+ * and its travel axis, plant frame. Flying on as it goes (pos, vel, as
+ * seen), the quad meets the gate's plane in hit seconds, at a miss m off
+ * the centre. Inside the horizon (the line loop's own time constant,
+ * 1 / wLine: further out the line's correction acts first) the person
+ * flies the opening, not the ghost: the speed across the axis that takes
+ * the miss out by the crossing, never faster than their whole delay tau
+ * allows, replaces the line's correction across the axis. Null outside
+ * the horizon or flying away from the plane.
+ */
+function straightMiss(gate, pos, vel) {
+  const closing = dot(vel, gate.n);
+  const r = [0, 1, 2].map((k) => pos[k] - gate.c[k]);
+  const before = -dot(r, gate.n);
+  if (!(closing > 0) || !(before > 0)) return null;
+  const hit = before / closing;
+  return { hit, m: [0, 1, 2].map((k) => r[k] + vel[k] * hit) };
+}
+
+function gateAim(gate, pos, vel, ghost, horizon, tau) {
+  const self = straightMiss(gate, pos, vel);
+  if (!self || self.hit > horizon) return null;
+  /* The ghost's own straight miss is the turn still to come on its line
+   * into this gate, which the feedforward flies: only the rest is the
+   * person's to take out. */
+  const line = straightMiss(gate, ghost.p, ghost.v);
+  const m = self.m.map((x, k) => x - (line ? line.m[k] : 0));
+  return m.map((x) => -x / Math.max(self.hit, tau));
+}
+
 /*
  * The pilot. opts: line (lineFromGhost's shape), rates (the profile the
  * plant is seated with), learnt (learnSticks' answer), startMs (the line's
  * time at the pilot's clock zero), person (PERSON by default) and quantise
- * (the hand's fiftieths, on by default). sticks(ms, state) is called every
- * AI_STEP_MS with the clock and the plant's state block, and returns
- * [roll, pitch, yaw, throttle].
+ * (the hand's fiftieths, on by default). sticks(ms, state, gate) is
+ * called every AI_STEP_MS with the clock, the plant's state block and the
+ * next gate as gateAim() takes it (or null), and returns [roll, pitch,
+ * yaw, throttle].
  */
 export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, quantise = true }) {
   const eyeS = (person.delayMs + person.everyMs / 2) / 1000;
@@ -261,7 +297,7 @@ export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, qua
     wTilt,
     wClimb,
     wLine,
-    sticks(ms, s) {
+    sticks(ms, s, gate = null) {
       sight.push(s.slice(0, 11));
       if (!sight.looks(ms)) return held;
       const seen = sight.ago();
@@ -274,7 +310,13 @@ export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, qua
       const [w, x, y, z] = [seen[7], seen[8], seen[9], seen[10]];
       const psi = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
       /* The line as seen: a speed asked along each world axis. */
-      const want = [0, 1, 2].map((k) => was.v[k] + wLine * (was.p[k] - pos[k]));
+      const e = [0, 1, 2].map((k) => was.p[k] - pos[k]);
+      const aim = gate ? gateAim(gate, pos, vel, was, 1 / wLine, tiltTau) : null;
+      if (aim) {
+        const along = dot(e, gate.n);
+        for (let k = 0; k < 3; k += 1) e[k] = along * gate.n[k];
+      }
+      const want = [0, 1, 2].map((k) => was.v[k] + wLine * e[k] + (aim ? aim[k] : 0));
       /* The speed: a tilt along and across the nose, closing the seen
        * error, and the ghost's turn ahead flown as it comes. */
       const c = Math.cos(psi);
