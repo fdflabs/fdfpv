@@ -33,7 +33,7 @@ import {
   chalet, barn, farmhouse, gasthof, shop, church, hangar, bridge, fountain, bench, busShelter,
   roadSign, telegraphPole, cone, fence,
 } from '../../render/library/kit.js';
-import { ribbon } from './ribbon.js';
+import { ribbon, mergeRibbons } from './ribbon.js';
 import { standWalls } from '../../render/library/roofs.js';
 import { setSolidSurface } from '../../game/crashworld.js';
 import { STRIP_L, STRIP_W, STRIP_Y } from './terrain.js';
@@ -146,6 +146,9 @@ export async function buildVillage(ctx) {
    * a metre at the worst; five metres everywhere cost three thousand
    * triangles the budget does not have. A span is split until no chord
    * sits more than half the road's lift below the ground. */
+  /* The road, the street, the lanes and the tracks, merged by material
+   * once they are all laid (mergeRibbons). */
+  const strips = [];
   const roadPts = [{ x: valleyAxis(-2700) + 55, z: -2700 }];
   const chordSag = (z0, z1) => {
     let worst = 0;
@@ -174,8 +177,7 @@ export async function buildVillage(ctx) {
     }
   }
   const road = ribbon(roadPts, 6.5, 0.06, heightAt, mats.asphalt);
-  scene.add(road.mesh);
-  scene.add(ribbon(roadPts, 0.18, 0.09, heightAt, mats.paint).mesh);
+  strips.push(road.mesh, ribbon(roadPts, 0.18, 0.09, heightAt, mats.paint).mesh);
   const pole = (x, z) => {
     telegraphPole(frame(bake, x, onGround(x, z), z, 0));
     colliders.addPost('pole', x, z, heightAt(x, z), heightAt(x, z) + 7.7, 0.15);
@@ -198,7 +200,7 @@ export async function buildVillage(ctx) {
     for (let k = 0; k <= n; k += 1) {
       pts.push({ x: x0 + (x1 - x0) * (k / n), z: STREET_Z });
     }
-    scene.add(ribbon(pts, 5, 0.06, heightAt, mats.asphalt).mesh);
+    strips.push(ribbon(pts, 5, 0.06, heightAt, mats.asphalt).mesh);
   };
   const roadX = valleyAxis(STREET_Z) + 55;
   const squareEast = SQUARE.x + SQUARE.w / 2;
@@ -311,7 +313,7 @@ export async function buildVillage(ctx) {
     for (let k = 0; k <= n; k += 1) {
       pts.push({ x, z: z0 + (z1 - z0) * (k / n) });
     }
-    scene.add(ribbon(pts, 3.5, 0.05, heightAt, mats.gravel).mesh);
+    strips.push(ribbon(pts, 3.5, 0.05, heightAt, mats.gravel).mesh);
   };
   const laneHouses = (lx, zFrom, zTo, seed) => {
     const dir = Math.sign(zTo - zFrom);
@@ -400,10 +402,13 @@ export async function buildVillage(ctx) {
   farm({ x: -318, z: 300, ry: -2.0, barnKind: 'stall', barnAt: { dx: 22, dz: -22, ry: -0.4 }, board: 'larchDark', gap: 0 });
   const eastX = valleyAxis(450) + 55;
   farm({ x: eastX + 50, z: 455, ry: Math.PI / 2 + 0.3, barnKind: 'hay', barnAt: { dx: 20, dz: 26, ry: 1.2 }, board: 'honey', gap: 3 });
-  const track = (pts) => scene.add(ribbon(pts, 3.2, 0.05, heightAt, mats.gravel).mesh);
+  const track = (pts) => strips.push(ribbon(pts, 3.2, 0.05, heightAt, mats.gravel).mesh);
   track([{ x: -258, z: -160 }, { x: -230, z: -120 }, { x: -170, z: -40 }, { x: -120, z: 20 }, { x: -100, z: 38 }]);
   track([{ x: -302, z: 282 }, { x: -284, z: 222 }, { x: -262, z: 170 }, { x: -215, z: 135 }, { x: SQUARE.x - SQUARE.w / 2 + 1, z: SQUARE.z + SQUARE.d / 2 - 2 }]);
   track([{ x: eastX + 3, z: 470 }, { x: eastX + 22, z: 468 }, { x: eastX + 40, z: 460 }]);
+  for (const mesh of mergeRibbons(strips)) {
+    scene.add(mesh);
+  }
 
   /*
    * THE PASTURES: fence lines round the fields the cattle stand in, with

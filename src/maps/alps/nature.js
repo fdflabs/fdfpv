@@ -34,7 +34,7 @@
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { noise2, smoothstep } from '../../render/library/noise.js';
-import { ribbon, ribbonCentre } from './ribbon.js';
+import { ribbon, ribbonCentre, mergeRibbons } from './ribbon.js';
 import {
   FIELD, HALF, STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,
   TREE_LINE, SNOW_LINE, streamX, treeLine, forestDensity,
@@ -675,14 +675,16 @@ export function buildStream(ctx, sites) {
   const bedMat = look.material('stream-bed', { color: 0x8f8a78, rim: 0.05 });
   const streamMat = look.material('stream', { color: 0x3d7a97, rim: 0.4, rimColor: 0xe6f3ff, transparent: true, opacity: 0.72 });
   const rivers = [];
+  const strips = [];
   for (const [pts, w] of [[aboveFall, 3.6], [belowFall, 3.6], [lower, 5.2]]) {
-    scene.add(ribbon(pts, w * 1.5, 0.04, groundAt, bankMat).mesh);
-    scene.add(ribbon(pts, w * 1.1, 0.08, groundAt, bedMat).mesh);
-    scene.add(ribbon(pts, w, 0.14, groundAt, streamMat).mesh);
+    strips.push(ribbon(pts, w * 1.5, 0.04, groundAt, bankMat).mesh);
+    strips.push(ribbon(pts, w * 1.1, 0.08, groundAt, bedMat).mesh);
+    strips.push(ribbon(pts, w, 0.14, groundAt, streamMat).mesh);
     if (pts.length > 1) {
       rivers.push({ line: ribbonCentre(pts, w, 0.14, groundAt), width: w });
     }
   }
+  scene.add(...mergeRibbons(strips));
   return rivers;
 }
 
@@ -929,7 +931,9 @@ export function buildForests(ctx, sites) {
  * BOULDERS. Three sizes of icosahedron, seeded onto the steep ground
  * and the scree, thickest under the cliffs, with a scatter along the
  * torrent in the side valley. Every rock gets a sphere. Twenty faces a rock rather than a dodecahedron's thirty six,
- * which over a thousand rocks is sixteen thousand triangles.
+ * which over a thousand rocks is sixteen thousand triangles. The sizes
+ * are one unit icosahedron scaled per instance, so a band is one draw in
+ * each pass (scene, ink prepass, sensor view, shadow), not three.
  * Returns how many.
  */
 export function buildRocks(ctx, sites) {
@@ -937,14 +941,14 @@ export function buildRocks(ctx, sites) {
   const { slopeAt, keepOff, upper } = sites;
   const rockMat = look.material('rock', { color: 0x8b8880, rim: 0.26 });
   const sizes = [0.9, 1.7, 3.0];
-  const rockGeos = sizes.map((r) => new THREE.IcosahedronGeometry(r, 0));
-  const rocks = sizes.map(() => Array.from({ length: BANDS }, () => []));
+  const rockGeo = new THREE.IcosahedronGeometry(1, 0);
+  const rocks = Array.from({ length: BANDS }, () => []);
   const dropRock = (x, z, y, size) => {
     const r = sizes[size];
     const sy = 0.65 + rng() * 0.35;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rng() * 3, rng() * 3, rng() * 3));
     const cy = y + r * 0.3 * sy;
-    rocks[size][bandOf(z)].push({ x, y: cy, z, quat: q, sx: 1, sy, sz: 1 });
+    rocks[bandOf(z)].push({ x, y: cy, z, quat: q, sx: r, sy: sy * r, sz: r });
     colliders.addSphere('rock', x, cy, z, r * 0.9);
   };
   let rockCount = 0;
@@ -976,12 +980,10 @@ export function buildRocks(ctx, sites) {
     dropRock(x, z, heightAt(x, z), rng() < 0.7 ? 0 : 1);
     rockCount += 1;
   }
-  rocks.forEach((bands, size) => {
-    bands.forEach((places, b) => {
-      if (places.length) {
-        scene.add(instanced(rockGeos[size], rockMat, places, `rocks-${size}-${b}`));
-      }
-    });
+  rocks.forEach((places, b) => {
+    if (places.length) {
+      scene.add(instanced(rockGeo, rockMat, places, `rocks-${b}`));
+    }
   });
   return rockCount;
 }
@@ -989,7 +991,10 @@ export function buildRocks(ctx, sites) {
 /*
  * FLOWERS. Small tilted quads in the pasture below the tree line, in
  * the same patches the paint warms, yellow and white with a little
- * purple, and never in the forest.
+ * purple, and never in the forest. The three colours are one palette
+ * material (celmat.js) picked per instance, so the field is one draw in
+ * each pass, the yellows first, then the whites and the purples, the
+ * order three drew the three colour meshes this replaced in.
  * Returns how many.
  */
 export function buildFlowers(ctx, sites) {
@@ -998,7 +1003,7 @@ export function buildFlowers(ctx, sites) {
   const petalGeo = new THREE.PlaneGeometry(0.42, 0.42);
   petalGeo.rotateX(-Math.PI / 2 + 0.6);
   const petals = [[], [], []];
-  const petalMats = [0xf2d94e, 0xf6f3e8, 0x9a6fc4].map((color) => look.material('flowers', { color, rim: 0, side: THREE.DoubleSide }));
+  const petalMat = look.material('flowers', { palette: [0xf2d94e, 0xf6f3e8, 0x9a6fc4].map((color) => ({ color, rim: 0 })), side: THREE.DoubleSide });
   let flowers = 0;
   /* Clusters, not singles: one candidate that passes every test seeds
    * a dozen flowers round it, each costing one height read, which is
@@ -1033,11 +1038,9 @@ export function buildFlowers(ctx, sites) {
       flowers += 1;
     }
   }
-  petals.forEach((places, k) => {
-    if (places.length) {
-      scene.add(instanced(petalGeo, petalMats[k], places, `flowers-${k}`));
-    }
-  });
+  const colour = new Uint8Array(petals.flatMap((places, k) => places.map(() => k)));
+  petalGeo.setAttribute('aCelKey', new THREE.InstancedBufferAttribute(colour, 1));
+  scene.add(instanced(petalGeo, petalMat, petals.flat(), 'flowers-0'));
   return flowers;
 }
 
