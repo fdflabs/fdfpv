@@ -489,6 +489,9 @@ function harrier(alphaDeg) {
  * iteration. The fuselage's share of the weathercock is Munk's couple,
  * on sin beta cos beta (plant_wing.c, MUNK'S MOMENT).
  */
+/* Selig's jet normal force at the disc, the table's jet_kj (AIAA 2010-7938:
+ * about 80 percent behind a smooth cowling). */
+const KNIFE_JET_KJ = 0.80;
 function knifeEdge(V) {
   /* The fin and rudder as the plant flies them (scripts/lib/knifefin.js). */
   const fin = { av, cn: tailCn, cnb: slipCnb, cyb: slipCyb, cndr: Cndr, cydr: CYdr };
@@ -501,7 +504,7 @@ function knifeEdge(V) {
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
       const rest = qb * S * b * ((Cnb - slipCnb - CnbFus) * sb + CnbFus * sb * cb);
-      const fp = { rho, V, u, sb, w, S, b };
+      const fp = { rho, V, u, sb, w, S, b, jet: { kj: KNIFE_JET_KJ, R: propR, x: propX, T: thrust } };
       /* The crossflow drag at its centre of pressure, side_x ahead of the CG. */
       const restX = rest - sideX * 0.5 * rho * sideCda * (V * sb) ** 2;
       dr = knifeRudder(fin, fp, restX, throwR);

@@ -576,7 +576,7 @@ function knifeEdge(V) {
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
       const rest = qb * S * b * ((Cnb - slip.slip_cn_b - CnbFus) * sb + CnbFus * sb * cb);
-      const fp = { rho, V, u, sb, w, S, b };
+      const fp = { rho, V, u, sb, w, S, b, jet: { kj: JET_KJ, R: propR, x: propX, T: thrust } };
       /* The crossflow drag at its centre of pressure, side_x ahead of the CG. */
       const restX = rest - sideX * 0.5 * rho * sideCda * (V * sb) ** 2;
       dr = knifeRudder(fin, fp, restX, throwR);

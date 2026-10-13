@@ -110,7 +110,11 @@ async function knifePass(V) {
     /* Rolled level, the elevator holds the height again, not the heading. */
     const pitchStick = back && bank < 0.5 ? clamp(-0.3 * s[6] + 0.15 * s[12]) : clamp(0.8 * dpsi + 0.15 * s[12]);
     iT = Math.max(0, Math.min(1, iT + 0.0005 * (V - speed(s))));
-    const t = clamp(iT + 0.1 * (V - speed(s)));
+    /* The throttle holds the speed and, with the sink rate, the height: once the
+     * rudder is on its stop the sideslip can lift no more and only the thrust's
+     * share along the yawed axis can, so a hand on the speed alone cuts the power
+     * as the aircraft sinks and gathers speed, and sinks on. */
+    const t = clamp(iT + 0.1 * (V - speed(s)) + 0.3 * (0 - s[6]));
     must(sim.input(clockMs / 1000, roll, pitchStick, yaw, t), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');
     clockMs += RC_STEP_MS;

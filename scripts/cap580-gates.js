@@ -367,7 +367,11 @@ check: {
       while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
       const pitchStick = clamp(0.8 * dpsi + 0.15 * s[12]);
       iT = Math.max(0, Math.min(1, iT + 0.0005 * (V - speed(s))));
-      const t = clamp(iT + 0.1 * (V - speed(s)));
+      /* The throttle holds the speed and, with the sink rate, the height: once the
+       * rudder is on its stop the sideslip can lift no more and only the thrust's
+       * share along the yawed axis can, so a hand on the speed alone cuts the power
+       * as the aircraft sinks and gathers speed, and sinks on. */
+      const t = clamp(iT + 0.1 * (V - speed(s)) + 0.3 * (0 - s[6]));
       s = step(sim, [roll, pitchStick, yaw, t]);
       if (ms >= 10000) {
         sb += wingDebug(sim)[1]; sd += t; sr += yaw; n += 1;

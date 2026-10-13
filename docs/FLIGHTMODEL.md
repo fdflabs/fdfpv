@@ -501,12 +501,17 @@ R-474) on each fuselage's side area from its derivation or render model.
   the round body's 1.2), Skyhunter +0.084; the float versions their land
   fuselage's. The Bramor's crossflow stays at its CG. The sideways speed
   is the CG's; the rates' own crossflow along the body is `rot_k`'s.
-- What it costs the knife edge, derived: the Extra at 15 m/s needs 93
-  percent of its rudder (was 77) at 35.2 deg of sideslip; the CAP at 20
-  m/s 92 percent (was 82) at 31.7; the Slick at 30 m/s 109 percent (was
-  81): no level knife edge there; the Night Timber 200, 184 and 166
-  percent at 12, 14 and 16 m/s (was 158, 144, 130). On the plant the
-  Extra's E12 and the Slick's S12 run out of rudder (red, not loosened).
+- What it costs the knife edge, derived on the plant's own fin and
+  rudder (scripts/lib/knifefin.js) with Selig's jet normal force and the
+  crossflow the disc turns: the Extra at 15 m/s needs 84 percent of its
+  rudder at 32.9 deg of sideslip (the plant flies it at 33.3 and 0.89
+  stick); the CAP at 20 m/s 83 percent at 29.9; the Slick at 30 m/s 105
+  percent: no level knife edge there (S12 red, not loosened); the Night
+  Timber 200, 184 and 166 percent at 12, 14 and 16 m/s. The plant's own
+  budget at E12 (a scratch build, w38-crossflow-moment): fin and rudder
+  in the free stream -10.2 and +7.9 N m, in the wash -3.1 and +5.1, Munk
+  +1.3, the crossflow at side_x -1.4, the jet +0.3, the turned share
+  +0.2, the swirl +0.2; everything else under 0.01.
 
 ### The probe, PR 3 to PR 4
 
