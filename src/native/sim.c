@@ -2902,6 +2902,14 @@ SIM_EXPORT int sim_wing_slip(double *out) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wing_yaw_budget(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_yaw_budget(out);
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_wing_command(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;

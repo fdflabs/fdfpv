@@ -1260,6 +1260,7 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
+void plant_wing_yaw_budget(double out[26]);
 void plant_wing_command(double out[3]);
 void plant_wing_strips(double out[8]);
 void plant_wing_set_gyro(int on);

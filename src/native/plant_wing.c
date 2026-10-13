@@ -288,6 +288,31 @@ void plant_wing_biplane(double out[4]) {
  * it. */
 static double g_slip[6];
 
+/* The yaw moment term by term as the last step added it to the body's
+ * M[2], N m, for a check that holds the plant's budget against a
+ * derivation's (scripts/knife-budget.js): [0] the fin in the free stream
+ * on the sideslip, [1] the rudder in the free stream, [2] the rest of
+ * cn_beta (wing, body outside Munk's share), [3] Munk's couple, [4] yaw
+ * damping cn_r, [5] cn_p, [6] the ailerons' adverse yaw, [7] the roll
+ * coefficients turned into the body's yaw by sin beta, [8] the flow from
+ * behind, [9] the thrust line's yaw, [10] the fin in the wash, [11] the
+ * rudder in the wash, [12] the wash's damping, [13] the jet normal force,
+ * [14] the crossflow drag at side_x, [15] P factor, [16] rot_k's extra
+ * damping, [17] the gyroscope, [18] their sum, [19] M[2] as stepped (the
+ * strips, contacts and crash on top); [20] the fin's plate ratio in the
+ * free stream, [21] in the wash, [22] its crossflow speed in the wash
+ * (the swirl's force share in it), [23] the rudder, [24] the prop's
+ * torque on the air, [25] the share of the swirl that reaches the fin.
+ * Read only by sim_wing_yaw_budget; nothing in a step reads it. */
+#define YAW_BUDGET_DOUBLES 26
+static double g_yaw[YAW_BUDGET_DOUBLES];
+
+void plant_wing_yaw_budget(double out[YAW_BUDGET_DOUBLES]) {
+  for (int i = 0; i < YAW_BUDGET_DOUBLES; i += 1) {
+    out[i] = g_yaw[i];
+  }
+}
+
 void plant_wing_slip(double out[6]) {
   for (int i = 0; i < 6; i += 1) {
     out[i] = g_slip[i];
@@ -3014,6 +3039,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   for (int i = 0; i < 6; i += 1) {
     g_slip[i] = 0.0;
   }
+  for (int i = 0; i < YAW_BUDGET_DOUBLES; i += 1) {
+    g_yaw[i] = 0.0;
+  }
   if (fw->slip_r > 0.0 && thrust > 0.0) {
     const double dp = thrust / (WING_PI * fw->slip_r * fw->slip_r);
     const double vi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * dp / PLANT.rho) - u_pos);
@@ -3165,6 +3193,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     l_slip = fw->area * fw->span *
              (kv * fw->slip_cl_b * xbf + pv * fw->cl_dr * delta_r + dp * fa * kwa * fw->cl_da * delta_a);
     l_slip = add_term(l_slip, root);
+    g_yaw[10] = -fw->area * fw->span * kv * fw->slip_cn_b * xbf;
+    g_yaw[11] = -fw->area * fw->span * pv * fw->cn_dr * delta_r;
+    g_yaw[12] = -fw->area * fw->span * kv * fw->slip_cn_r * r_a * 0.5 * fw->span;
+    g_yaw[21] = rv;
+    g_yaw[22] = xbf;
+    g_yaw[24] = q_prop;
+    g_yaw[25] = keep;
     g_slip[0] = l_slip;
     g_slip[1] = -m_slip;
     g_slip[2] = -n_slip;
@@ -3306,6 +3341,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   cn_sum = add_term(cn_sum, (hi_lat ? hi_lat_at(fw->hi_lat[7], a_body) : fw->cn_p_per_cl * CL) * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, cndr * delta_r);
+  const double cl_sum_stab = cl_sum;
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
   const double cn_b = cn_sum * cos_b + cl_sum * sin_b;
   /* The sideslip's own moments are mostly the fin's and the dihedral's,
@@ -3370,6 +3406,24 @@ void plant_wing_step(SimState *s, const double rc[4]) {
                                           cm_st_f),
                                  add_term(cm_f, -(fw->cg_shift / fw->chord) * CL));
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
+  {
+    /* The yaw budget's free stream terms, each as it reaches the body's
+     * yaw (the stability axis ones through cos beta, the roll ones
+     * through sin beta), negated as n_aero is below. */
+    const double qsb = -qbar * fw->area * fw->span;
+    const double fin_b = fw->slip_cn_b * rv_fin;
+    g_yaw[0] = qsb * cos_b * fin_b * beta_s;
+    g_yaw[1] = qsb * cos_b * cndr * delta_r;
+    g_yaw[2] = qsb * cos_b * (cnb - fin_b - cn_fus) * beta_s;
+    g_yaw[3] = qsb * cn_fus * munk;
+    g_yaw[4] = qsb * cos_b * fw->cn_r * r_cnr * rs * b2v;
+    g_yaw[5] = qsb * cos_b * (hi_lat ? hi_lat_at(fw->hi_lat[7], a_body) : fw->cn_p_per_cl * CL) * ps * b2v;
+    g_yaw[6] = qsb * cos_b * fw->cn_da_per_cl * CL * da_m;
+    g_yaw[7] = qsb * sin_b * cl_sum_stab;
+    g_yaw[8] = qsb * back * add_term(cnb, -cn_fus) * beta_s;
+    g_yaw[20] = rv_fin;
+    g_yaw[23] = delta_r;
+  }
   double M[3];
   M[0] = l_aero - q_react; /* the prop turns one way; the airframe answers the other */
   /* A thrust line off the CG pitches with power, (0, z, 0) x (T, 0, 0).
@@ -3380,6 +3434,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * table leaves them out, and add_term keeps its arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
   M[2] = add_term(-n_aero, m_thrust_yaw);
+  g_yaw[9] = m_thrust_yaw;
   /* The open ramp's moment, nose up positive as cm_0's, so the body's
    * pitch takes it negated as m_aero is. */
   if (fw->door_time > 0.0) {
@@ -3393,12 +3448,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (fw->jet_kj > 0.0) {
     M[1] += jet_m[1];
     M[2] += jet_m[2];
+    g_yaw[13] = jet_m[2];
   }
   M[2] = add_term(M[2], side_n);
+  g_yaw[14] = side_n;
   /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
    * is a prop whose motor the chute has cut. */
   if (s->motor_omega[0] > 0.0) {
     M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
+    g_yaw[15] = fw->pfactor * thrust * -w / s->motor_omega[0];
   }
   /* The air a slow aircraft turns through (FixedWingParams.rot_k): each
    * axis' flat plate damping, k w^2, and the table's linear damping at the
@@ -3419,6 +3477,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       const double kq = fw->rot_k[i] * wr * wr;
       const double more = sim_sqrt(lq * lq + kq * kq) - lq;
       M[i] -= wr < 0.0 ? -more : more;
+      if (i == 2) {
+        g_yaw[16] = -(wr < 0.0 ? -more : more);
+      }
     }
   }
   /* The prop as a gyroscope: its angular momentum H along body x, and the
@@ -3429,6 +3490,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double H = fw->j_prop * (w_rot < 0.0 ? s->motor_omega[0] : w_rot);
     M[1] -= s->omega[2] * H;
     M[2] += s->omega[1] * H;
+    g_yaw[17] = s->omega[1] * H;
+  }
+  for (int i = 0; i < 18; i += 1) {
+    g_yaw[18] += g_yaw[i];
   }
 
   /* The wing's strips past the stall, strip_stall above. A strip that
@@ -3649,6 +3714,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   g_debug[5] = l_aero; g_debug[6] = m_aero; g_debug[7] = n_aero; g_debug[8] = thrust;
   g_debug[9] = F[0]; g_debug[10] = F[1]; g_debug[11] = F[2];
   g_debug[12] = M[0]; g_debug[13] = M[1]; g_debug[14] = M[2];
+  g_yaw[19] = M[2];
   g_debug[15] = u; g_debug[16] = v; g_debug[17] = w; g_debug[18] = delta_e; g_debug[19] = delta_a;
 
   /* Velocity and position, semi implicit. */

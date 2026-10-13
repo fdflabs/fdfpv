@@ -354,6 +354,7 @@
     "stab:hold": "node scripts/stab-hold-derive.js --check",
     "stab:straight": "node scripts/stab-straight-derive.js --check",
     "knife:throttle": "node scripts/knife-throttle-derive.js --check",
+    "knife:budget": "node scripts/knife-budget.js",
     "air:vertical": "node scripts/air-vertical-selftest.js",
     "extra:gates": "node scripts/extra-gates.js",
     "extra:stab": "node scripts/extra-stab-selftest.js",

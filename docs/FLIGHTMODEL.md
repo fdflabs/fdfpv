@@ -529,6 +529,27 @@ R-474) on each fuselage's side area from its derivation or render model.
   the derivation asks 105 percent of the throw: the derivation's yaw
   budget is about 5 percent of the rudder heavier than the plant's; S12
   stays red on the stop until one of them is shown right.
+- The budget, in the tree (2026-10-13): sim_wing_yaw_budget exports the
+  body's yaw moment term by term as the step adds it, and `npm run
+  knife:budget` (scripts/knife-budget.js, in CI) flies the three gates'
+  knife edges and holds each term against the derivation's formula
+  (knifefin.js, wash.js) on the plant's own table at the state the plant
+  settled at. Every term agreed to a thousandth of a newton metre but
+  one: the fin in the wash, where the derivation left out the prop's
+  swirl at the fin (0.17 N m of the Extra's 13 at E12, 1.07 of the CAP's
+  31 at C12, 4.77 of the Slick's 205 at S12: 1.1, 2.5 and 2.1 percent of
+  the rudder's throw, the swirl helping the rudder on each). With the
+  swirl in knifeFin (its `xs`, the plant's own formula) the three budgets
+  close to 0.0 percent, and the derivation at the plant's state needs the
+  rudder the plant holds: 84, 77 and 100 percent. So the Slick's knife
+  edge at 30 m/s needs all of its rudder, in the plant and in the
+  derivation alike; the 105 percent the thresholds quote is the
+  derivation without the swirl, and S12 stays red on the stop. The
+  derive scripts do not pass the swirl yet: it wants the prop's torque
+  on the air at the flown point (1.5 to 2.1 times torque_arm times
+  thrust there, the plant's torque curve at that advance ratio) and the
+  root's share (the Extra's measured root keeps 0.32 of the swirl, not
+  SWIRL_KEEP's 0.65).
 
 ### The probe, PR 3 to PR 4
 

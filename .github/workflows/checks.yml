@@ -65,6 +65,7 @@ jobs:
       # Each stab selftest's straight throw, derived (scripts/lib/throwflight.js).
       - run: npm run stab:straight
       - run: npm run knife:throttle
+      - run: npm run knife:budget
       - run: npm run as3x:derive
       # Each table's servo hold against its surfaces' hinge moment and its
       # servos' published torque (scripts/servo-derive.js, servo blow back).
