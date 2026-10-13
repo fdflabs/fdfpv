@@ -65,7 +65,7 @@ const SCREENS = [
 ];
 const FC_TABS = ['setup', 'configuration', 'pid', 'receiver', 'motors'];
 
-/* Owned by src/trackbuilder/storage.js and src/share/session.js, neither of
+/* Owned by src/trackbuilder/storage.js and src/share/trackseat.js, neither of
  * which exports its key. */
 const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
 const IMPORT_KEY = 'webfpv.share.import.v1';

@@ -48,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { markAirHintSeen } from '../src/ui/settings.js';
-import { writeShareImport } from '../src/share/session.js';
+import { writeShareImport } from '../src/share/trackseat.js';
 import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));

@@ -50,7 +50,7 @@ import { readPilotName } from '../share/pilot.js';
 import { readWallet } from '../share/account.js';
 import {
   readBind, readEditKey, readShareImport, writeShareImport,
-} from '../share/session.js';
+} from '../share/trackseat.js';
 import { currentLocale, str, plural } from '../strings/index.js';
 import { duplicateTrack, toPlain } from '../trackbuilder/model.js';
 import {
@@ -610,7 +610,7 @@ export const cardMethods = {
 
   /*
    * Seat one of the pilot's own tracks for Play, in the share seat that
-   * every flown track is read from (src/share/session.js writeShareImport).
+   * every flown track is read from (src/share/trackseat.js writeShareImport).
    * One this browser published is seated as its listing, so a lap on it
    * can still go to the board. Returns whether it was seated.
    */

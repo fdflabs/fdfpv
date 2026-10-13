@@ -334,8 +334,8 @@ jobs:
       # against a transcript of answers, requests and storage.
       - run: npm run listing:selftest
       # The share seat, edit keys, binds and lap bookkeeping kept in this
-      # browser (src/share/session.js), against a pinned transcript.
-      - run: npm run session:selftest
+      # browser (src/share/trackseat.js), against a pinned transcript.
+      - run: npm run trackseat:selftest
       # The Stage 1 verification checks (tests/lib/checks.js) against a pinned
       # transcript: the real sim over the fixtures for the checks that need no
       # browser, stand ins for the build, the harness and the page runs.

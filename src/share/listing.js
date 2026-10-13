@@ -45,7 +45,7 @@ import {
   writeBind,
   writeEditKey,
   writeShareImport,
-} from './session.js';
+} from './trackseat.js';
 
 /*
  * Painted-on element types: no collider, not in the flying order, so adding

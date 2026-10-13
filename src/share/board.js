@@ -55,7 +55,7 @@ import { noAircraftFlies, trackClassOf } from '../trackbuilder/elements.js';
 import { isMapTrack } from '../trackbuilder/model.js';
 import { API_ORIGIN, SITE_HOSTS } from './api.js';
 import { carryRenamedKeys } from './oldkeys.js';
-import { writeShareImport } from './session.js';
+import { writeShareImport } from './trackseat.js';
 import { str, currentLocale } from '../strings/index.js';
 
 /* The development board, next to a shell served from loopback. */

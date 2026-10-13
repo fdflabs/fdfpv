@@ -57,7 +57,7 @@ import { accountsAvailable } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
 import { pageVersion } from './update.js';
-import { lapSlot, readPendingTime, readPostedBest } from '../share/session.js';
+import { lapSlot, readPendingTime, readPostedBest } from '../share/trackseat.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
   LOCALES, LOCALE_NAMES, currentLocale, hasStr, plural, rememberLocale, str,

@@ -164,7 +164,7 @@ const { settingsDelta, storeView } = await import('../tests/lib/golden-settings.
  * The methods are given a copy taken before any constructor ran. */
 const DEFAULTS = structuredClone(LIVE_DEFAULTS);
 const { ACCOUNT_KEY } = await import('../src/share/pilot.js');
-const { writeShareImport } = await import('../src/share/session.js');
+const { writeShareImport } = await import('../src/share/trackseat.js');
 const { useLocale } = await import('../src/strings/index.js');
 
 const MAP_TRACK = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
