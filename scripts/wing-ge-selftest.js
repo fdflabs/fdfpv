@@ -100,7 +100,10 @@ const PLANES = [
  * 6bfa8b2e5b0b0234), strikerprop (was ac1ebe1d9baba2ed), strikerjet (was
  * 2c30dccda291887d), extra (was 3507628f2a5cfd82), nighttimber (was
  * 964632c1e2defb8e), hercules (was 17e4cfd6a556458f), cap580 (was
- * 8abf9aeac1ba645b), slick (was d7e7790e169321bc). */
+ * 8abf9aeac1ba645b), slick (was d7e7790e169321bc). The Extra, CAP and
+ * Slick again on the combined plant with w38-hover-yaw's wash and their
+ * AS3X re-derived on it, the ground's term unchanged (were
+ * 2fca4407efd2d224, 8e66909096631404 and 5449163f8a43d393). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
   sky: '98dbc41182defb65',
@@ -121,11 +124,11 @@ const PINS = {
   tigermoth: 'dfbcb81229d100c0',
   strikerprop: 'cc5c73165bbbee13',
   strikerjet: '3a313d5090f2f3fb',
-  extra: '2fca4407efd2d224',
+  extra: '130ee96df4d170a5',
   nighttimber: '2b1e8e70189de507',
   hercules: '75408e31a83e82dd',
-  cap580: '8e66909096631404',
-  slick: '5449163f8a43d393',
+  cap580: 'ca753897fc920c72',
+  slick: 'eb98eb5f61ba0c32',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */

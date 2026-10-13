@@ -6183,8 +6183,8 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0177, 0.0885, 0.0708 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0877, 0.001, 3.2756 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.183, -2.85, -3.509 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.083, 0.001, 2.5845 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.183, -2.914, -3.689 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -6648,7 +6648,7 @@ const FixedWingParams FW_CAP1702 = {
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
   .as3x_k = { 0.023, 0.1276, 0.3707 }, /* npm run as3x:derive */
   .as3x_kh = { 0.0083, 0.0169, 0.0046 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.778, -2.052, -1.567 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.778, -2.052, -1.263 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */
@@ -6813,9 +6813,9 @@ const FixedWingParams FW_SLICK2680 = {
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0549, 0.1374, 0.1415 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0089, 0.2421, 0.0703 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.641, -3.353, -1.638 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0549, 0.2757, 0.533 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.0089, 0.0059, 0.013 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.641, -2.585, -1.544 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
