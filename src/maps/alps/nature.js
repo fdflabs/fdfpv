@@ -991,7 +991,10 @@ export function buildRocks(ctx, sites) {
 /*
  * FLOWERS. Small tilted quads in the pasture below the tree line, in
  * the same patches the paint warms, yellow and white with a little
- * purple, and never in the forest.
+ * purple, and never in the forest. The three colours are one palette
+ * material (celmat.js) picked per instance, so the field is one draw in
+ * each pass, the yellows first, then the whites and the purples, the
+ * order three drew the three colour meshes this replaced in.
  * Returns how many.
  */
 export function buildFlowers(ctx, sites) {
@@ -1000,7 +1003,7 @@ export function buildFlowers(ctx, sites) {
   const petalGeo = new THREE.PlaneGeometry(0.42, 0.42);
   petalGeo.rotateX(-Math.PI / 2 + 0.6);
   const petals = [[], [], []];
-  const petalMats = [0xf2d94e, 0xf6f3e8, 0x9a6fc4].map((color) => look.material('flowers', { color, rim: 0, side: THREE.DoubleSide }));
+  const petalMat = look.material('flowers', { palette: [0xf2d94e, 0xf6f3e8, 0x9a6fc4].map((color) => ({ color, rim: 0 })), side: THREE.DoubleSide });
   let flowers = 0;
   /* Clusters, not singles: one candidate that passes every test seeds
    * a dozen flowers round it, each costing one height read, which is
@@ -1035,11 +1038,9 @@ export function buildFlowers(ctx, sites) {
       flowers += 1;
     }
   }
-  petals.forEach((places, k) => {
-    if (places.length) {
-      scene.add(instanced(petalGeo, petalMats[k], places, `flowers-${k}`));
-    }
-  });
+  const colour = new Uint8Array(petals.flatMap((places, k) => places.map(() => k)));
+  petalGeo.setAttribute('aCelKey', new THREE.InstancedBufferAttribute(colour, 1));
+  scene.add(instanced(petalGeo, petalMat, petals.flat(), 'flowers-0'));
   return flowers;
 }
 
