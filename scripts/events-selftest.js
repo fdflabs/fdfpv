@@ -321,6 +321,9 @@ console.log('the shell\'s producers');
     && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
+  const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe \\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));
+  check('a mission start and result carry the seated aircraft and are folded at once',
+    missionLogged('src/ui/campaign.js', 'mission_start') && missionLogged('src/ui/campaign.js', 'mission_end') && missionLogged('src/ui/opscampaign.js', 'mission_end'));
   check('a kill the room credited is logged, one a victim, on the seated aircraft',
     src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills);")
     && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind });"));

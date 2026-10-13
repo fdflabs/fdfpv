@@ -419,12 +419,17 @@ kills come from what happened. Check: phase 10's results checks, plus
 `events:selftest` folding a debrief. Size M. Phase 10, after 22.
 
 **27. Unified statistics. PARTIAL.** Built (2026-10-13): landings,
-crashes, laps and kills per aircraft, folded from phase 22's log into
-`progress` (src/game/progress.js COUNTED, foldEvents), merged as the
-higher by progressmerge, checked by `progress:selftest` (a stream folded
-twice gives one count). A kill is logged only for a victim the room
-credited (war.js `dead` carries `credited`, `rooms:selftest`). Still
-missing: missions started and completed. What follows
+crashes, laps, kills and missions started and completed per aircraft,
+folded from phase 22's log into `progress` (src/game/progress.js
+COUNTED, foldEvents), merged as the higher by progressmerge, checked by
+`progress:selftest` (a stream folded twice gives one count). A kill is
+logged only for a victim the room credited (war.js `dead` carries
+`credited`, `rooms:selftest`). A mission is started when the client
+sees its war begin and completed when its result is applied, won or
+lost (src/ui/campaign.js observe). Still missing: The Interior's
+mission_start, which needs a call from main.js where an ops match
+begins (opscampaign.js only hears of a match at its debrief), so for
+The Interior completed can exceed started. What follows
 is the gap as first written. stats.js sends three anonymous
 counters to the board (visit, session, flush: laps, flight seconds,
 crashes since the last flush) and keeps none of them (src/share/stats.js

@@ -363,6 +363,13 @@ export function createCampaignScreen({
     const res = resultOf(v);
     if (!watched.has(key)) {
       watched.set(key, res !== null);
+      /* Seen begun, the same vantage its mission_end is seen from (so a
+       * pilot who did not press start counts it too); a reload mid war
+       * sees it begin again. */
+      if (!res && v.state !== 'won' && v.state !== 'lost' && ACT1.some((m) => m.id === v.mission)) {
+        ui.progress.event('mission_start', { mission: v.mission, airframe: ui.progress.airframe });
+        ui.progress.foldFlight();
+      }
       return;
     }
     if (watched.get(key)) {
@@ -386,7 +393,8 @@ export function createCampaignScreen({
     }
     last = str(res.won ? 'campaign.result_won' : 'campaign.result_lost', { n: i + 1, stars: res.stars, credits: res.credits });
     commit((s) => applyResult(s, v.mission, res));
-    ui.progress.event('mission_end', { mission: v.mission, won: res.won === true, stars: res.stars });
+    ui.progress.event('mission_end', { mission: v.mission, won: res.won === true, stars: res.stars, airframe: ui.progress.airframe });
+    ui.progress.foldFlight();
   }
 
   /* Forgets Play's mission once the pilot is in another room than the
