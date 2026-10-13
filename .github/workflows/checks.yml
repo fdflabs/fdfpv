@@ -259,6 +259,7 @@ jobs:
       # A replay keeps the pilot's sticks, mode and flaps, plays them back on the
       # gimbals and exports them as a control recording (scripts/replay-sticks-check.js).
       - run: npm run replay:sticks
+      - run: npm run replay:refly:selftest
       - run: npm run crashrecord:selftest
       - run: npm run replaylib:selftest
       - run: npm run edit:selftest
