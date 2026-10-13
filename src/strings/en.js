@@ -4757,4 +4757,13 @@ export default {
   "replay.refused_map": "the replay was flown on a map this version does not have",
   "replay.refused_damaged": "the replay file is damaged",
   "replay.clip_gone": "that clip is gone",
+  "main.ai_opponent": "AI opponent",
+  "main.ai_opponent_races": "An AI pilot races that lap, {formatTime}, on a quad of its own through the same gates.",
+  "main.ai_opponent_needs_a_lap": "No lap for an AI pilot to race yet. Finish one and it races it on a quad of its own.",
+  "main.ai_opponent_quads_only": "AI opponents fly quads only. Seat a quad to race one.",
+  "main.ai_opponent_result": "AI opponent: {laps}, best {formatTime}.",
+  "main.ai_opponent_no_lap": "The AI opponent closed no lap.",
+  "main.ai_opponent_crashed": "The AI opponent crashed after {laps}.",
+  "count.laps.one": "{n} lap",
+  "count.laps.other": "{n} laps",
 };
