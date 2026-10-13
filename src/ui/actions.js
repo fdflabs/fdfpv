@@ -857,9 +857,11 @@ export const actionMethods = {
      * the one the pilot last chose for it. In its place, not beside it:
      * the label is no longer than any activity's it replaces, in either
      * language, so the links' wrapping never gains a line and the hub no
-     * height. */
+     * height. It keeps the activity's key, so the link still wears that
+     * card's class (src/ui/cards.js gateLinks) and is the same thing at
+     * home and in the hub. */
     const last = this.continueWay();
-    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.action ? { label: str('hub.continue'), action: l.action, key: 'continue' } : l));
+    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.action ? { ...l, label: str('hub.continue'), continue: true } : l));
     return HUBS.map((hub) => ({
       label: str(hub.label),
       card: `hub-${hub.id}`,

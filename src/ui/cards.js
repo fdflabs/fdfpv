@@ -163,13 +163,13 @@ function cardArt(it) {
  * A hub card's activities, each one press into its lobby (pickForWay,
  * exactly as the activity's own card does inside the hub) or the Hangar's
  * action. Each link wears its activity card's class, so a check or a
- * pilot finds the same thing at home and in the hub. Not a cursor stop:
- * the card is.
+ * pilot finds the same thing at home and in the hub, Continue too (it
+ * adds gate-card-continue). Not a cursor stop: the card is.
  */
 function gateLinks(ui, links) {
   const row = el('div', 'gate-links');
   for (const link of links) {
-    const b = btn(`gate-link gate-card-${link.key}`, link.label);
+    const b = btn(`gate-link gate-card-${link.key}${link.continue ? ' gate-card-continue' : ''}`, link.label);
     b.tabIndex = -1;
     b.addEventListener('click', (e) => {
       /* The card under it would take the click as a press of the hub. */
@@ -326,7 +326,7 @@ export const cardMethods = {
       return;
     }
     const cards = this.items().filter((it) => it.card);
-    const shape = cards.map((it) => `${it.card}:${(it.links || []).map((l) => l.key).join(',')}`).join('|');
+    const shape = cards.map((it) => `${it.card}:${(it.links || []).map((l) => `${l.key}${l.continue ? '+' : ''}`).join(',')}`).join('|');
     /* The screen takes its hub's accent (index.html, THE HUBS). */
     if (this.screens.title) {
       this.screens.title.dataset.hub = this.hub || '';
