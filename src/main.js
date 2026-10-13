@@ -6719,10 +6719,12 @@ export async function boot({
 
   /* Where the room flies now: its world, on its track when it has one
    * there, except in the games played in free flight. Combat is flown
-   * wherever the room is, so its rounds never move anybody off a track. */
+   * wherever the room is, so its rounds never move anybody off a track.
+   * A watcher is never seated on the track: its own hidden aircraft would
+   * time laps, pass gates and keep records of a race it is not in. */
   function roomTarget(w) {
     const t = roomRace.track();
-    const free = roomTag.on() || roomJam.on() || roomWar.on();
+    const free = roomTag.on() || roomJam.on() || roomWar.on() || Boolean(w.watch);
     return { world: w.map, track: t && t.map === w.map && !free ? t : null };
   }
   const roomTargetKey = (t) => `${t.world}|${t.track ? t.track.id : ''}`;
@@ -7733,7 +7735,7 @@ export async function boot({
     }
     return true;
   };
-  devHooks.__roomJoin = (code) => roomLinkState.join(code);
+  devHooks.__roomJoin = (code, opts) => roomLinkState.join(code, opts);
   devHooks.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
   devHooks.__roomSay = (kind, id) => roomSafety.say(kind, id);
   devHooks.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);

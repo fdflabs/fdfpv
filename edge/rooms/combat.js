@@ -180,7 +180,7 @@ export class RoomCombat {
 
   /* Every change the room announces is also kept. */
   broadcast(core) {
-    return [this.store(), ...core.others(null, JSON.stringify(this.view()))];
+    return [this.store(), ...core.everyone(JSON.stringify(this.view()))];
   }
 
   store() {
@@ -462,7 +462,7 @@ export class RoomCombat {
     };
     this.nextId += 1;
     this.log.push({ ...ev, decided: core.roomMs(now) });
-    return [...core.others(null, JSON.stringify(ev)), ...this.broadcast(core)];
+    return [...core.everyone(JSON.stringify(ev)), ...this.broadcast(core)];
   }
 
   /* The room tick: the round's clock. */

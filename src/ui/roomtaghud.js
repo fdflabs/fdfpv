@@ -44,13 +44,19 @@ function crowned(row, nameOf) {
 /* What the scoreboard draws now, or null: nothing before the go. */
 export function tagHudView(rt, now, nameOf) {
   const role = rt.role(now);
-  if (role !== 'ace' && role !== 'hunter') {
+  /* The watch seat's stays up over the results, its only results. */
+  const final = role === 'results' && rt.watcher();
+  if (role !== 'ace' && role !== 'hunter' && role !== 'watching' && !final) {
     return null;
   }
   const v = rt.view();
   let title = str('roomtag.hud_hunter', { goal: v.goal });
-  if (role === 'ace') {
+  if (final) {
+    title = str('roomtag.hud_watch_final');
+  } else if (role === 'ace') {
     title = str('roomtag.hud_ace', { goal: v.goal });
+  } else if (role === 'watching') {
+    title = str('roomtag.hud_watch', { goal: v.goal });
   } else if (rt.orb()) {
     title = str('roomtag.hud_loose');
   }

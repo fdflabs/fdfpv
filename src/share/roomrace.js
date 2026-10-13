@@ -46,6 +46,12 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+/* The seat a watcher is welcomed to (edge/rooms/core.js watch): it sees
+ * the room's games and plays in none. Here because this file imports
+ * nothing, so the other games' modules (roomtag.js, roomjam.js, which
+ * src/share/modes.js imports) take it without an import cycle. */
+export const WATCH_SEAT = 0;
+
 /* How often an unanswered finish is sent again. A text message over the
  * room's rate is dropped, not queued (edge/rooms/core.js TEXT_PER_S), and
  * the finish is the one message a race cannot do without. */
@@ -166,6 +172,10 @@ export function createRoomRace(send) {
     seat() {
       return seat;
     },
+    /* The watch seat's: the room's game, none of it its own. */
+    watcher() {
+      return seat === WATCH_SEAT;
+    },
     /* The last thing the room refused (track_big, none_ready, ...), until
      * the next race message. */
     error() {
@@ -179,7 +189,8 @@ export function createRoomRace(send) {
      * This pilot's part, now: 'lobby' (no race), 'countdown' and 'racing'
      * (a racer before and after goAt), 'finished', 'out' (retired or gone),
      * 'spectating' (joined after the start, or had no track seated when it
-     * began: they wait for the next one), 'results'.
+     * began: they wait for the next one), 'watching' (the watch seat's,
+     * the whole race), 'results'.
      */
     role(roomNow) {
       if (race.state === 'results') {
@@ -187,6 +198,9 @@ export function createRoomRace(send) {
       }
       if (race.state !== 'on') {
         return 'lobby';
+      }
+      if (seat === WATCH_SEAT) {
+        return 'watching';
       }
       if (!(race.racers || []).includes(seat)) {
         return 'spectating';
@@ -288,6 +302,9 @@ export function createRoomRace(send) {
      * TEXT_PER_S), and a host's ready goes out in the burst its Play and
      * its track make, so it was lost and the host never on the grid. */
     ready(isReady, roomNow = null) {
+      if (seat === WATCH_SEAT) {
+        return;
+      }
       const want = track && isReady ? track.id : null;
       const held = track && (race.ready || []).includes(seat) ? track.id : null;
       if (want === readySent && (want === held || roomNow == null || roomNow - readySentAt < FINISH_RESEND_MS)) {

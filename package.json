@@ -205,6 +205,7 @@
     "rooms:load": "node scripts/rooms-load.js",
     "rooms:twopage": "node scripts/rooms-two-page.js",
     "rooms:racetwopage": "node scripts/rooms-race-two-page.js",
+    "watch:twopage": "node scripts/watch-two-page.js",
     "rooms:slots": "node scripts/rooms-slots-check.js",
     "world:spawns": "node scripts/world-spawns-check.js",
     "chasearm:selftest": "node scripts/chasearm-selftest.js",

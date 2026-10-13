@@ -31,6 +31,9 @@ import { PRIVATE_CAP, RoomCore, WATCH_CAP } from '../edge/rooms/core.js';
 import { reportRoom } from '../edge/rooms/lobby.js';
 import { checkRoomLine } from '../src/share/roomlist.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
+import { createRoomRace } from '../src/share/roomrace.js';
+import { createRoomTag } from '../src/share/roomtag.js';
+import { createRoomJam } from '../src/share/roomjam.js';
 
 const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
 const trackDoc = mapTrackDocument({ id: 'trk-watch001' });
@@ -284,5 +287,218 @@ export function watchSection(check) {
     check('a server from before sends none: null, the line kept', watchers === 1 && checkRoomLine(old)?.watchers === null);
     check('a count of the wrong shape is null, the line kept', checkRoomLine({ ...lines[1], watchers: -1 })?.watchers === null
       && checkRoomLine({ ...lines[1], watchers: 1.5 })?.watchers === null);
+  }
+}
+
+/*
+ * WHAT A WATCHER SEES (redesign phase 17): each game's state as it
+ * changes, the race's passes too, the same messages its pilots get and
+ * none they do not; the pilots' own messages byte for byte what they get
+ * with nobody watching. The war, the ops and the lobby stay the seats'
+ * (their pages act for a seat): a watcher is sent none of them.
+ */
+export function watchStateSection(check) {
+  console.log('what a watcher sees: each game\'s state (phase 17)');
+  const sock = (name) => ({ name, got: [], closed: null });
+  const run = (actions) => {
+    for (const a of actions) {
+      if (a.send) {
+        a.send.got.push(typeof a.data === 'string' ? JSON.parse(a.data) : a.data);
+      }
+    }
+  };
+  const texts = (s) => s.got.filter((m) => !(m instanceof Uint8Array));
+  const ofType = (s, type) => texts(s).filter((m) => m.type === type);
+  const lastOf = (s, type) => ofType(s, type).at(-1) ?? null;
+
+  /* One game played out by two pilots, a watcher seated before the start
+   * (watch 'before'), after it ('after') or never (null). Every run from
+   * the same clock and the same tokens, so two runs compare byte for byte. */
+  const play = (g, watch) => {
+    let now = 9_100_000;
+    let tokens = 0;
+    const newToken = () => {
+      tokens += 1;
+      return `3b${tokens.toString(16).padStart(30, '0')}`;
+    };
+    const room = new RoomCore({
+      code: 'W4TCHS', cap: PRIVATE_CAP, friendly: false, map: g.map ?? 'swiss2', epoch: now - 1000, public: false,
+      mode: g.mode, mission: g.mission ?? null, name: null, pick: [1, 1, 11], hidden: false,
+    });
+    /* The first Ace the same in every run. */
+    room.tag.random = () => 0.25;
+    const hello = (s, i, extra = {}) => run(room.hello(s, {
+      type: 'hello', proto: PROTO, build: 'fdfpv', name: [1, 2, 40 + i], profile, level: ROOM_LEVEL, war: WAR_JOIN, ...extra,
+    }, now, `10.0.39.${i}`, newToken));
+    const say = (s, msg) => {
+      now += 300;
+      run(room.message(s, JSON.stringify(msg), now));
+    };
+    const tickTo = (t) => {
+      while (now < t) {
+        now = Math.min(t, now + 500);
+        run(room.tick(now));
+      }
+    };
+    const pilots = [sock('p0'), sock('p1')];
+    pilots.forEach((p, i) => hello(p, i + 1));
+    const w = watch ? sock('watch') : null;
+    if (watch === 'before') {
+      hello(w, 9, { watch: true });
+    }
+    for (const msg of g.start) {
+      for (const p of msg.all ? pilots : [pilots[0]]) {
+        say(p, msg.all ?? msg);
+      }
+    }
+    tickTo(now + 7000);
+    if (watch === 'after') {
+      hello(w, 9, { watch: true });
+    }
+    const mid = w ? w.got.length : 0;
+    for (const [who, msg] of g.play) {
+      say(pilots[who], typeof msg === 'function' ? msg(room) : msg);
+    }
+    tickTo(now + 1000);
+    return {
+      room, pilots, w, mid,
+    };
+  };
+
+  const STATE = [
+    {
+      label: 'race',
+      mode: 'race',
+      type: 'race',
+      start: [{ type: 'track', doc: trackDoc }, { all: { type: 'race', op: 'ready', ready: true, track: trackDoc.id } }, { type: 'race', op: 'start', laps: 1 }],
+      play: [
+        [0, (room) => ({ type: 'event', kind: 'gate', race: room.race.race.id, lap: 0, gate: 1, t: 900, points: 0 })],
+        [1, (room) => ({ type: 'event', kind: 'gate', race: room.race.race.id, lap: 0, gate: 1, t: 1100, points: 0 })],
+        [0, (room) => ({ type: 'race', op: 'finish', race: room.race.race.id, ms: 1800, lap: 1, points: 0 })],
+        [1, (room) => ({ type: 'race', op: 'finish', race: room.race.race.id, ms: 2300, lap: 1, points: 0 })],
+      ],
+      on: (m) => m.race.state === 'on',
+      over: (m) => m.race.state === 'results' && m.race.standings.length === 2 && m.race.standings[0].seat === 1 && m.race.standings[0].ms === 1800,
+      welcomed: (ww) => ww.race && ww.race.state === 'on' && ww.track && ww.track.id === trackDoc.id,
+    },
+    {
+      label: 'tag',
+      mode: 'tag',
+      type: 'tag',
+      start: [{ type: 'tag', op: 'start', goal: 5 }],
+      play: [[0, { type: 'tag', op: 'end' }]],
+      on: (m) => m.tag.state === 'live',
+      over: (m) => m.tag.state === 'results' && m.tag.scores.length === 2,
+      welcomed: (ww) => ww.tag && ww.tag.state === 'live',
+    },
+    {
+      label: 'jam',
+      mode: 'jam',
+      type: 'jam',
+      start: [{ type: 'jam', op: 'start', seconds: 60 }],
+      play: [[0, { type: 'jam', op: 'end' }]],
+      on: (m) => m.jam.state === 'turn' || m.jam.state === 'run',
+      over: (m) => m.jam.state === 'results' && m.jam.order.length === 2,
+      welcomed: (ww) => ww.jam && ww.jam.state !== 'lobby',
+    },
+    {
+      label: 'combat',
+      mode: 'combat',
+      type: 'combat',
+      start: [{ type: 'combat', op: 'start', minutes: 3 }],
+      play: [[0, { type: 'combat', op: 'stop' }]],
+      on: (m) => m.state === 'on' || m.state === 'countdown',
+      /* The host's stop: a round's own end needs pilots flying to run
+       * the room's clock three minutes. */
+      over: (m) => m.state === 'idle' && m.scores.length === 2,
+      welcomed: (ww, w) => ofType(w, 'combat').some((m) => m.state === 'on' || m.state === 'countdown'),
+    },
+  ];
+  for (const g of STATE) {
+    const before = play(g, 'before');
+    const alone = play(g, null);
+    const seen = ofType(before.w, g.type).filter((m) => !m.error);
+    check(`${g.label}: a watcher there from the start gets the game's state, on and then over`, seen.some(g.on) && g.over(seen.at(-1)),
+      JSON.stringify(seen.map((m) => (m.race ?? m.tag ?? m.jam ?? m).state)));
+    const told = ofType(before.pilots[0], g.type).filter((m) => !m.error);
+    check(`${g.label}: the same state messages its pilots get`, JSON.stringify(seen) === JSON.stringify(told), `${seen.length} vs ${told.length}`);
+    /* The one difference allowed: a welcome's count of watchers. */
+    const heard = (p) => p.got.map((m) => JSON.stringify(m.type === 'welcome' ? { ...m, watchers: 0 } : m));
+    const differs = before.pilots.map((p, i) => {
+      const [x, y] = [heard(p), heard(alone.pilots[i])];
+      const k = x.findIndex((m, j) => m !== y[j]);
+      return x.length === y.length && k < 0 ? null : `p${i} at ${k}: ${x[k]} vs ${y[k]}`;
+    }).filter(Boolean);
+    check(`${g.label}: and the pilots' messages byte for byte those with nobody watching`, differs.length === 0, differs.join(' | ').slice(0, 400));
+    check(`${g.label}: the watcher is in no standings and scored nothing`, !JSON.stringify(seen.at(-1)).includes('"seat":0'));
+    const after = play(g, 'after');
+    const ww = after.w.got.find((m) => m.type === 'welcome');
+    check(`${g.label}: a watcher who comes after the start is welcomed into the game as it stands`, Boolean(ww) && ww.seat === 0 && g.welcomed(ww, after.w),
+      JSON.stringify(ww && { race: ww.race?.state, tag: ww.tag?.state, jam: ww.jam?.state }));
+    check(`${g.label}: and sees it end`, g.over(lastOf(after.w, g.type)));
+  }
+  /* The page's half: each game's module fed what the watcher was sent
+   * takes the watch seat for a view with no part of its own. */
+  {
+    const sent = [];
+    const send = (m) => sent.push(m);
+    const feed = (mod, w, until) => {
+      const roles = [];
+      let took = null;
+      for (const m of texts(w)) {
+        if (m.type === 'welcome') {
+          mod.onWelcome(m);
+        } else if (mod.onMessage(m)) {
+          roles.push(mod.role(until(m)));
+          took = took ?? mod.takeStart?.(until(m)) ?? null;
+        }
+      }
+      return { roles, took, results: mod.takeResults() };
+    };
+    const race = play(STATE[0], 'before');
+    const rr = createRoomRace(send);
+    const fr = feed(rr, race.w, (m) => (m.race?.goAt ?? 0) + 500);
+    rr.ready(true);
+    check('race page: the watcher is watching, never on the line, never readied, standings to the finish',
+      fr.roles.includes('watching') && !fr.roles.some((r) => r === 'countdown' || r === 'racing' || r === 'spectating') && fr.took === null && sent.length === 0
+      && rr.watcher() && rr.standings().length === 2 && rr.standings()[0].ms === 1800, JSON.stringify({ roles: [...new Set(fr.roles)], took: fr.took, sent }));
+    const tag = play(STATE[1], 'before');
+    const rt = createRoomTag(send);
+    const ft = feed(rt, tag.w, (m) => (m.tag?.goAt ?? 0) + 500);
+    check('tag page: the watcher is watching, no chase boost, no slot, no results screen',
+      ft.roles.includes('watching') && !ft.roles.some((r) => r === 'ace' || r === 'hunter' || r === 'countdown') && ft.took === null && ft.results === null
+      && rt.boost((tag.room.tag.match?.goAt ?? 0) + 500) === 1 && sent.length === 0, JSON.stringify({ roles: [...new Set(ft.roles)], results: Boolean(ft.results) }));
+    const jam = play(STATE[2], 'before');
+    const rj = createRoomJam(send);
+    for (const m of texts(jam.w)) {
+      if (m.type === 'welcome') {
+        rj.onWelcome(m);
+      } else {
+        rj.onMessage(m);
+      }
+    }
+    check('jam page: the watcher has no run and no results screen', rj.watcher() && !rj.mine() && rj.takeResults() === null && rj.view().state === 'results');
+    /* The negative control: a pilot's page fed the same takes them. */
+    const pr = createRoomTag(() => {});
+    texts(tag.pilots[0]).forEach((m) => (m.type === 'welcome' ? pr.onWelcome(m) : pr.onMessage(m)));
+    check('and a pilot\'s tag page fed its own messages still gets its results', pr.takeResults() !== null && !pr.watcher());
+  }
+  {
+    const g = STATE[0];
+    const { w } = play(g, 'before');
+    const passes = ofType(w, 'event').filter((m) => m.kind === 'gate');
+    check('race: a watcher hears every pass, the laps moving in its standings', passes.length === 2 && passes.map((m) => m.seat).join() === '1,2'
+      && passes.every((m) => m.lap === 0 && m.gate === 1), JSON.stringify(passes));
+    const { pilots } = play(g, 'before');
+    check('race: a pilot still hears only the other\'s pass, never its own', ofType(pilots[0], 'event').filter((m) => m.kind === 'gate').map((m) => m.seat).join() === '2');
+  }
+  {
+    const g = {
+      label: 'war', mode: 'war', map: 'itaipu', mission: 'itaipu-drill', start: [{ type: 'war', op: 'start', mission: 'itaipu-drill' }], play: [],
+    };
+    const { w, pilots, room } = play(g, 'before');
+    check('war: the pilots\' war is on, and a watcher is sent none of it, nor the lobby\'s, nor the ops\'',
+      room.game() === 'war' && ofType(pilots[0], 'war').length > 0 && ['war', 'ops', 'lobby'].every((t) => ofType(w, t).length === 0),
+      `${room.game()} pilot war ${ofType(pilots[0], 'war').length}, watcher ${['war', 'ops', 'lobby'].map((t) => ofType(w, t).length).join(',')}`);
   }
 }
