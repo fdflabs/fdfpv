@@ -163,6 +163,7 @@
     "figures:table": "node scripts/figures-table.js",
     "figures:table:check": "node scripts/figures-table.js --check",
     "personpilot:selftest": "node scripts/personpilot-selftest.js",
+    "aipilot:harness": "node scripts/aipilot-harness.js",
     "callouts:check": "node scripts/callouts-check.js",
     "trickfilm:golden": "node scripts/trickfilm-golden.js",
     "loading:golden": "node scripts/loading-golden.js",
