@@ -931,7 +931,9 @@ export function buildForests(ctx, sites) {
  * BOULDERS. Three sizes of icosahedron, seeded onto the steep ground
  * and the scree, thickest under the cliffs, with a scatter along the
  * torrent in the side valley. Every rock gets a sphere. Twenty faces a rock rather than a dodecahedron's thirty six,
- * which over a thousand rocks is sixteen thousand triangles.
+ * which over a thousand rocks is sixteen thousand triangles. The sizes
+ * are one unit icosahedron scaled per instance, so a band is one draw in
+ * each pass (scene, ink prepass, sensor view, shadow), not three.
  * Returns how many.
  */
 export function buildRocks(ctx, sites) {
@@ -939,14 +941,14 @@ export function buildRocks(ctx, sites) {
   const { slopeAt, keepOff, upper } = sites;
   const rockMat = look.material('rock', { color: 0x8b8880, rim: 0.26 });
   const sizes = [0.9, 1.7, 3.0];
-  const rockGeos = sizes.map((r) => new THREE.IcosahedronGeometry(r, 0));
-  const rocks = sizes.map(() => Array.from({ length: BANDS }, () => []));
+  const rockGeo = new THREE.IcosahedronGeometry(1, 0);
+  const rocks = Array.from({ length: BANDS }, () => []);
   const dropRock = (x, z, y, size) => {
     const r = sizes[size];
     const sy = 0.65 + rng() * 0.35;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rng() * 3, rng() * 3, rng() * 3));
     const cy = y + r * 0.3 * sy;
-    rocks[size][bandOf(z)].push({ x, y: cy, z, quat: q, sx: 1, sy, sz: 1 });
+    rocks[bandOf(z)].push({ x, y: cy, z, quat: q, sx: r, sy: sy * r, sz: r });
     colliders.addSphere('rock', x, cy, z, r * 0.9);
   };
   let rockCount = 0;
@@ -978,12 +980,10 @@ export function buildRocks(ctx, sites) {
     dropRock(x, z, heightAt(x, z), rng() < 0.7 ? 0 : 1);
     rockCount += 1;
   }
-  rocks.forEach((bands, size) => {
-    bands.forEach((places, b) => {
-      if (places.length) {
-        scene.add(instanced(rockGeos[size], rockMat, places, `rocks-${size}-${b}`));
-      }
-    });
+  rocks.forEach((places, b) => {
+    if (places.length) {
+      scene.add(instanced(rockGeo, rockMat, places, `rocks-${b}`));
+    }
   });
   return rockCount;
 }
