@@ -34,7 +34,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -441,7 +441,13 @@ const FUSE = [
   [0.600, 0.075, 0.072, -0.113, 3.8], [0.800, 0.065, 0.070, -0.096, 3.6], [1.000, 0.051, 0.064, -0.078, 3.2],
   [1.200, 0.035, 0.056, -0.060, 2.8], [1.400, 0.018, 0.046, -0.043, 2.4], [1.530, 0.008, 0.040, -0.034, 2.2],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.560 m behind the prop's plane at 0.040 (src/render/capcraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.040 + 0.560));
 const sideCda = fusL * fusD * 0.8 * 1.2 * sectionK * 0.7;
 
 /* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
@@ -566,7 +572,7 @@ function knifeEdge(V) {
     let side = 0, dr = 0;
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
-      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
+      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) - sideX * 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
       const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slip.slip_cy_b) * (V * sb)
@@ -709,7 +715,7 @@ function throwFlight(mount = true) {
     const H = propJ * n * wFull;
     const L = lAero - qReact + lSlip;
     const M = q * S * c * cm + mSlip + propX * zJet + r * H;
-    const N = -nAero + propX * fThrust - nSlip + propX * fJet + PFACTOR * thrust * -w / (n * wFull) - qn * H;
+    const N = -nAero + propX * fThrust - nSlip + propX * fJet + PFACTOR * thrust * -w / (n * wFull) - qn * H - sideX * 0.5 * rho * sideCda * v * Math.abs(v);
     /* Etkin and Reid ch. 4, body axes, z up, qn nose up: gravity and the
      * rates' turning of the velocity; the attitude's rates. */
     const sph = Math.sin(phi), cph = Math.cos(phi), sth = Math.sin(theta), cth = Math.cos(theta);
@@ -780,7 +786,7 @@ export const FW = {
   slip_cn_b: r(slip.slip_cn_b, 4), slip_cn_r: r(slip.slip_cn_r, 4), slip_cy_b: r(slip.slip_cy_b, 4), slip_cl_b: r(slip.slip_cl_b, 4),
   slip_loss: arr(slip.slip_loss, 4),
   strip_tau: arr(stripTau, 4), tail_at: r(at, 3), tail_av: r(av, 3), tail_deda: r(deda, 3),
-  side_cda: r(sideCda, 4), rot_k: arr(rotK, 5), j_prop: r(propJ, 6),
+  side_cda: r(sideCda, 4), side_x: r(sideX, 4), rot_k: arr(rotK, 5), j_prop: r(propJ, 6),
 };
 export const PT = {
   mass_kg: r(m, 4), inertia: arr([Ixx, Iyy, Izz], 4), r_cell: r(rCell, 5), pack_c: `${r(packMah, 1)} * 3.6`, prop_r: r(propR, 4),
@@ -828,6 +834,7 @@ const rows = [
   ['bench rpm fraction at throttle 0.4 .. 1 (the plant\'s is the throttle)', benchRpmFrac.map(([t, n]) => `${t}:${f(n, 3)}`).join(' ')],
   ['slipstream', J(slip, 4)],
   ['rot_k roll pitch yaw N m s2; side_cda m2, its section over a round body\'s (TN 3038)', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}; ${f(sideCda, 4)}, ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['C1 level at 75 percent', f(level(0.75), 2)],
   ['C2 stall, CLmax / a_w', `${f(Vs, 2)} ${f(CLmax / aw, 5)}`],
   ['C3 L/D at 15 m/s', f(ld(15), 2)],

@@ -27,7 +27,7 @@
 
 import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -520,7 +520,13 @@ const FUSE = [
   [0.68 * 2.25, 0.163, 0.2335, -0.070, 3.1], [0.68 * 2.25 + 0.222, 0.150, 0.231, -0.018, 3.0],
   [1.985, 0.112, 0.225, 0.070, 2.8], [2.140, 0.064, 0.214, 0.135, 2.4], [2.225, 0.020, 0.198, 0.170, 2.0],
 ];
-const sectionK = fuselageRatio(FUSE, 4000, (i, u) => u);
+const side = fuselage(FUSE, 4000, (i, u) => u);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG at 0.9238 (src/render/herculescraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.9238));
 const sideCda = kitLength * fusH * 0.85 * 1.2 * sectionK * 0.65;
 
 const out = {
@@ -529,7 +535,7 @@ const out = {
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
   roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, liftoffPitchDeg: (CLmax / 1.21 / CLa + alphaZl) * DEG, rotation: rotation(), rotationGround: rotation(true), cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,
-  kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, sectionK, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
+  kMain, kNose, cMain, cNose, armAc, armCp, stallDw, sideCda, sectionK, sideX, alphaZl, zThrust, zWing, zFin, hbCG, lh, lv, Sh, bh, Sv, hFin,
   fusW, fusH, propR, yInboard, yOutboard, aileronIn, aileronOut, throwA, throwE, throwR, xCG, xMACle, kitLength, k, washout,
 };
 if (process.argv.includes('--json')) {

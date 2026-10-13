@@ -26,7 +26,7 @@ import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { plateCnOf, wingDrag, wingLift } from './lib/liftcurve.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { planeTable, wash } from './lib/wash.js';
-import { fuselageRatio, smoothstep } from './lib/crossflow.js';
+import { fuselage, smoothstep } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -245,7 +245,13 @@ const FUSE = [
   [0.410, 0.045, 0.098, -0.052, 3.0], [0.500, 0.040, 0.084, -0.040, 2.8], [0.620, 0.031, 0.068, -0.022, 2.6],
   [0.740, 0.019, 0.053, -0.002, 2.4], [0.838, 0.006, 0.046, 0.012, 2.2],
 ];
-const sectionK = fuselageRatio(FUSE, 4000, (i, u) => (i === 3 ? u : smoothstep(i, u)));
+const side = fuselage(FUSE, 4000, (i, u) => (i === 3 ? u : smoothstep(i, u)));
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.060 m behind the leading edge at 0.200 (src/render/cubcraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.200 + 0.060));
 const sideCda = 0.11 * 1.2 * sectionK * 0.7;
 
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
@@ -351,7 +357,8 @@ const taxiTurn = (() => {
       nSlip = fw.area * fw.span * (kv * (fw.slip_cn_b * xb - fw.slip_cn_r * r * 0.5 * fw.span) + pv * fw.cn_dr * dr);
       lSlip = fw.area * fw.span * (kv * fw.slip_cl_b * xb + pv * fw.cl_dr * dr) + (1 - swirlKeep) * qAir;
     }
-    F[1] -= 0.5 * rho * fw.side_cda * v * Math.abs(v);
+    const fSide = -0.5 * rho * fw.side_cda * v * Math.abs(v);
+    F[1] += fSide;
     const b2v = fw.span / (2 * Vrate);
     const ps = p * cosB - r * sinB, rs = -r * cosB - p * sinB;
     const clSum = clb * beta + fw.cl_p * ps * b2v + clSep + fw.cl_r_per_cl * CL * rs * b2v + cldr * dr;
@@ -362,7 +369,7 @@ const taxiTurn = (() => {
     const M = [
       qbar * fw.area * fw.span * (clSum * cosB - cnSum * sinB) - qAir + lSlip,
       -mAero + fw.thrust_z * thrust - mSlip - r * fw.j_prop * omegaM,
-      -qbar * fw.area * fw.span * (cnSum * cosB + clSum * sinB + cnFus) - nSlip + (omegaM > 0 ? fw.pfactor * thrust * -w / omegaM : 0),
+      -qbar * fw.area * fw.span * (cnSum * cosB + clSum * sinB + cnFus) - nSlip + fw.side_x * fSide + (omegaM > 0 ? fw.pfactor * thrust * -w / omegaM : 0),
     ];
     return { F, M };
   }
@@ -423,6 +430,7 @@ const rows = [
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['Clβ, Clp, Clδa', `${f(Clb, 4)} ${f(Clp)} ${f(Clda)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

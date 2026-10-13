@@ -32,7 +32,7 @@
 import { planeTable, propMoments, wash } from './lib/wash.js';
 import { wingProp } from './lib/propcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
-import { profileRatio } from './lib/crossflow.js';
+import { profile } from './lib/crossflow.js';
 
 const SLIP = deriveWash('FW_UGLYSTIK1567');
 const DEG = 180 / Math.PI;
@@ -612,7 +612,7 @@ function takeoff(mu, vRot) {
  * corners rounded on a quarter inch (the kit's "sand a radius on all the
  * outside corners", drawn so), no more than 0.45 of a side. */
 const FUSE = [[4.25, 18.47, 1.775], [11.31, 17.92, 1.98], [11.31 + 12.48, 18.00, 1.98], [49.28, 21.40, 0.40]];
-const sectionK = profileRatio((s) => {
+const side = profile((s) => {
   let i = 0;
   while (s > FUSE[i + 1][0]) i += 1;
   const [a, z] = [FUSE[i], FUSE[i + 1]];
@@ -621,6 +621,12 @@ const sectionK = profileRatio((s) => {
   const width = 2 * (a[2] + (z[2] - a[2]) * u);
   return { depth, f: width / depth, rho: Math.min(0.25, 0.45 * width / 2, 0.45 * depth) / Math.min(width, depth) };
 }, FUSE[0][0], FUSE[FUSE.length - 1][0]);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG at 16.0 in (src/render/uglystikcraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (16.0)) * 0.0254;
 const sideCda = SBs * 1.2 * sectionK * 0.7;
 
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
@@ -654,6 +660,7 @@ const rows = [
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['Clβ: dihedral, fin, shoulder wing, total', `${f(ClbDihedral, 4)} ${f(ClbFin, 4)} ${f(ClbHigh, 4)} ${f(Clb, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Clp, Clδa', `${f(Clp, 4)} ${f(ClDa, 4)}`],

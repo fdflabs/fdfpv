@@ -249,7 +249,7 @@ export default {
       },
       "kv650": {
         "4s2600": {
-          "topSpeed": 33.49,
+          "topSpeed": 33.5,
           "minutes": 25.8
         }
       }

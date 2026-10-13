@@ -1078,10 +1078,13 @@ typedef struct FixedWingParams {
    * viscous crossflow (NACA TR 1048) with Jorgensen's eta for a body's
    * fineness (NASA TR R-474): a force against the sideways speed squared,
    * which the table's linear side force leaves out and which carries the
-   * weight in a knife edge with the thrust's share. Taken at the CG. Zero
-   * is an aircraft without, and then nothing is read.
+   * weight in a knife edge with the thrust's share. Zero is an aircraft
+   * without, and then nothing is read. side_x: where it acts, m ahead of
+   * the CG (negative aft), the centroid of the side view weighted by each
+   * station's crossflow drag (Allen and Perkins); zero takes it at the CG.
    */
   double side_cda;
+  double side_x;
   /*
    * THE SURFACE'S KNEE, docs/EDGE-STAGE1.md: a plain flap's lift stops
    * growing in proportion to its angle past 15 deg or so as the flow

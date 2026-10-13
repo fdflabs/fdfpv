@@ -23,7 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { slipLoss, tailWash } from './lib/wash.js';
@@ -297,7 +297,13 @@ const FUSE = [
   [0.220, 0.064, 0.062, -0.100, 3.0], [0.340, 0.063, 0.060, -0.104, 3.2], [0.480, 0.058, 0.055, -0.098, 3.2],
   [0.700, 0.042, 0.046, -0.070, 3.0], [0.950, 0.024, 0.036, -0.042, 2.8], [1.137, 0.009, 0.030, -0.030, 2.4],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.302 m behind the prop's plane at 0.035 (src/render/extracraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.035 + 0.302));
 const sideCda = (1.26 * 0.125) * 1.2 * sectionK * 0.7;
 
 /* Hanging on the prop: the thrust the weight, no airspeed. */
@@ -491,7 +497,7 @@ function knifeEdge(V) {
     let side = 0, dr = 0, w = null;
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
-      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) + rho * w.vi * w.fv * S * b * slipCnb * (V * sb);
+      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) - sideX * 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * b * slipCnb * (V * sb);
       const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
@@ -578,6 +584,7 @@ const rows = [
   ['slipstream: tail CLα, Cmα, a0; fin Cnβ, Cnr, CYβ, Clβ', `${f(slipCla, 4)} ${f(slipCma, 4)} ${f(slipA0, 4)}; ${f(slipCnb, 4)} ${f(slipCnr, 4)} ${f(slipCyb, 4)} ${f(slipClb, 4)}`],
   ['rot_k roll pitch yaw N m s2', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}`],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['E1 level at 75 percent', f(level(0.75), 2)],
   ['E2 stall, CLmax / CLα', `${f(Vs, 2)} ${f(CLmax / CLa, 5)}`],
   ['E3 L/D at 12, 14 m/s', `${f(ld(12), 2)} ${f(ld(14), 2)}`],

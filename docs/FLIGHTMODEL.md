@@ -487,6 +487,26 @@ R-474) on each fuselage's side area from its derivation or render model.
   fin lost in a crash leaves the body's WING_BODY_CN_BETA on the same
   form. The pitch analogue, Munk's u w, is the fuselage's cm_alpha share
   and is still linear in alpha.
+- The crossflow force acts at its own centre of pressure, `side_x` ahead
+  of the CG (w38-crossflow-moment): Allen and Perkins (NACA TR 1048) take
+  a body's viscous crossflow station by station, so it acts at the side
+  view's centroid with each station weighted by its own drag, depth
+  times its TN 3038 section ratio (`scripts/lib/crossflow.js` profile),
+  ESTIMATED on the drawn sections. Until then it acted at the CG and
+  turned nothing. Aft of the CG on every aircraft but the Skyhunter, whose
+  pod is ahead of its pusher's CG: Extra -0.200 m, CAP -0.129, Slick
+  -0.527, Night Timber -0.153, Timber -0.159, Cub -0.136, Radian -0.160,
+  Bombshell -0.152, Kadet -0.260, P-51 -0.162, Ugly Stik -0.142, Tiger
+  Moth -0.233, Hercules -0.067, F-16 -0.004 (its body's depth alone, at
+  the round body's 1.2), Skyhunter +0.084; the float versions their land
+  fuselage's. The Bramor's crossflow stays at its CG. The sideways speed
+  is the CG's; the rates' own crossflow along the body is `rot_k`'s.
+- What it costs the knife edge, derived: the Extra at 15 m/s needs 93
+  percent of its rudder (was 77) at 35.2 deg of sideslip; the CAP at 20
+  m/s 92 percent (was 82) at 31.7; the Slick at 30 m/s 109 percent (was
+  81): no level knife edge there; the Night Timber 200, 184 and 166
+  percent at 12, 14 and 16 m/s (was 158, 144, 130). On the plant the
+  Extra's E12 and the Slick's S12 run out of rudder (red, not loosened).
 
 ### The probe, PR 3 to PR 4
 

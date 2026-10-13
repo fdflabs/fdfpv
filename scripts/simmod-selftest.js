@@ -60,7 +60,10 @@ import { transcript } from './lib/transcript.js';
  * (its readState and powerState after its flight), from its pod's
  * crossflow on its drawn sections and Munk's sin 2 beta; with those two
  * table values put back the old digest returns. */
-const PINNED = 'cfdf5ff551842b923514f186ddbda3352282f8cc74806b30b383fef7163d70a8';
+/* Re-pinned for w38-crossflow-moment: the Skyhunter's records again, its
+ * pod's crossflow now acting at its own centre of pressure (side_x); with
+ * side_x out and the AS3X tables as they were it is cfdf5ff551842b92 again. */
+const PINNED = '8ae7a4a2914f63b0c3c63785c0076e135e10d0fc0f240b10c1cd0efb6d56b4e6';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));

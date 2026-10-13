@@ -30,7 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -571,7 +571,13 @@ const FUSE = [
   [1.338, 0.108, 0.279, -0.111, 2.8], [1.600, 0.085, 0.237, -0.099, 2.6], [1.863, 0.060, 0.195, -0.086, 2.6],
   [2.047, 0.044, 0.166, -0.078, 2.4], [2.250, 0.020, 0.118, -0.067, 2.2],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.6093 m behind the prop's plane at 0.160 (src/render/slickcraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.160 + 0.6093));
 const sideCda = (fusL * 0.26) * 1.2 * sectionK * 0.7;
 /* Hanging, the thrust's share along the axis holds the weight. */
 const hoverThrust = W / cosYaw;
@@ -751,7 +757,7 @@ function knifeEdge(V) {
     let side = 0, dr = 0, w = null;
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
-      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) + rho * w.vi * w.fv * S * b * slipCnb * (V * sb) + propX * thrust * sinYaw;
+      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) - sideX * 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * b * slipCnb * (V * sb) + propX * thrust * sinYaw;
       const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
@@ -851,7 +857,7 @@ export const TABLE = {
   stall_k: stallK, stall_top: 1.0,
   slip_r: r(propR, 4), slip_yh: r(bhH, 4), slip_a0: r(slipA0, 4), slip_cl_a: r(slipCla, 4), slip_cm_a: r(slipCma, 4),
   slip_cn_b: r(slipCnb, 4), slip_cn_r: r(slipCnr, 4), slip_cy_b: r(slipCyb, 4), slip_cl_b: r(slipClb, 4),
-  tail_at: r(at, 3), tail_av: r(av, 3), tail_deda: r(deda, 3), side_cda: r(sideCda, 4),
+  tail_at: r(at, 3), tail_av: r(av, 3), tail_deda: r(deda, 3), side_cda: r(sideCda, 4), side_x: r(sideX, 4),
   j_prop: r(propJ, 5),
 };
 export const TABLE_PAIRS = {
@@ -916,6 +922,7 @@ const rows = [
   ['slipstream: tail CLα, Cmα, a0; fin Cnβ, Cnr, CYβ, Clβ', `${f(slipCla, 4)} ${f(slipCma, 4)} ${f(slipA0, 4)}; ${f(slipCnb, 4)} ${f(slipCnr, 4)} ${f(slipCyb, 4)} ${f(slipClb, 4)}`],
   ['rot_k roll pitch yaw N m s2', `${f(rotK[0], 4)} ${f(rotK[1], 4)} ${f(rotK[2], 4)}`],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['strip_c, strip_tau', `${stripC.map((v) => f(v)).join(' ')}; ${stripTau.map((v) => f(v)).join(' ')}`],
   ['stall: arm_ac, arm_cp, dw', `${f(hCG - 0.25, 4)} ${f(armCp, 4)} ${f(stallDw, 4)}`],
   ['S1 level at 75 percent of the stick (rpm share there)', `${f(DERIVED.e1, 2)} (${f(nAt(0.75, DERIVED.e1), 4)})`],

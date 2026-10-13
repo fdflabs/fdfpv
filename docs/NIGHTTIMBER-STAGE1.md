@@ -188,13 +188,15 @@ makes (a person hovers it); the counts are printed every run.
 ### Findings for the flight lanes (not fixed here)
 
 - **Knife edge.** The derivation finds no level knife edge: the rudder
-  would need 158, 144 and 130 percent of its throw at 12, 14 and 16 m/s
+  would need 200, 184 and 166 percent of its throw at 12, 14 and 16 m/s
   (`npm run nighttimber:derive`, N12). The fuselage's side force is now
   its drawn rounded box section's, NACA TN 3038 through
   `scripts/lib/crossflow.js`, 1.32 times the round body's (side_cda 0.1152
   to 0.1522), which took about 11 points off each; the fuselage's share
   of the weathercock on Munk's sin 2 beta (NACA TR 184, w38-fuselage-side)
-  put back 6 to 9, its destabilising couple weaker at the sideslip. The video shows knife
+  put back 6 to 9, its destabilising couple weaker at the sideslip; the
+  crossflow acting at its centre of pressure, 0.153 m aft of the CG
+  (w38-crossflow-moment), added 36 to 42. The video shows knife
   edges and a crankshaft (08:40). The estimated motor and the rudder's
   share in the wash are the remaining suspects; no gate is set against
   reality, and none is set that reality contradicts.
