@@ -909,6 +909,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       ['c11_harrier', 'dutyDerived', D.harrier40.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
       ['c12_knife_edge', 'betaDerived', D.knife20.betaDeg, 2, 'betaMin', 'betaMax', 0.75, 1.25, 1],
       ['c12_knife_edge', 'dutyDerived', D.knife20.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
+      ['c12_knife_edge', 'rudderDerived', D.knife20.drOfThrow, 3, null, null],
       ['c14_takeoff', 'derived', D.takeoff.x, 3, 'distMin', 'distMax', 0.60, 1.60, 2],
     ];
     for (const [gate, key, value, n, lo, hi, fl, fh, nb] of BANDS) {

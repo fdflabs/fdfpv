@@ -11,16 +11,13 @@
  * gain at the crossover.
  *
  * The knife edge is the gates' own hands (rolled to 90 deg on the
- * ailerons, the height through the sideslip on the rudder, the heading
- * on the elevator, the speed on the throttle), flown 12 s to settle
- * (SETTLE_SINK below) and captured there with the hands' integrals; the sweep
- * then flies from that state with the throttle held at the captured stick
- * and stepped, the bank and heading hands closed (successive loop closure,
- * McRuer, Ashkenas and Graham 1973) and the rudder held where it was: the
- * loop is for the height once the rudder is on its stop and the sideslip
- * can lift no more. With the rudder's own height loop closed the climb
- * leads the throttle by 50 deg at 0.4 rad/s, its integral holding the
- * height there already, and no crossover is the throttle's.
+ * ailerons, the rudder put on to the derivation's share of its throw and
+ * left there, the height on the throttle, the heading on the elevator;
+ * the sources at wingpilot.js knifeThrottle), flown 12 s to settle
+ * (SETTLE_SINK below) and captured there with the hands' integrals; the
+ * sweep then flies from that state with the throttle held at the captured
+ * stick and stepped, the bank and heading hands closed (successive loop
+ * closure, McRuer, Ashkenas and Graham 1973) and the rudder where it is.
  *
  *   node scripts/knife-throttle-derive.js           print each design
  *   node scripts/knife-throttle-derive.js --check   fail where KNIFE_SINK
@@ -48,7 +45,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import {
-  must, fly, wingDebug, fullBank, leadDesign, RC_STEP_MS, KNIFE_SINK, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME,
+  must, fly, fullBank, leadDesign, stickForThrow, RC_STEP_MS, KNIFE_SINK, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -62,34 +59,29 @@ const AIR = [0, 600, 60, 1, 0, 0, 0];
 const STEP_S = 0.5;
 /* The settling flight only finds the held knife edge: there the sink is
  * zero and this gain drops out of the throttle, so the point the design is
- * taken at is the knife edge's, whatever gain reached it. */
+ * taken at is the knife edge's, whatever gain reached it; its trim's
+ * integral is cornered as the designed hand's, at 2 rad/s over 4. */
 const SETTLE_SINK = 0.3;
 
 const PLANES = [
-  { name: 'extra', airframe: EXTRA_AIRFRAME, V: (await json('tests/extra-thresholds.json')).e12_knife_edge.speed, iT0: 0.6 },
-  { name: 'cap', airframe: CAP_AIRFRAME, V: (await json('tests/cap580-thresholds.json')).c12_knife_edge.speed, iT0: 0.6 },
-  { name: 'slick', airframe: SLICK_AIRFRAME, V: (await json('tests/slick-thresholds.json')).s12_knife_edge.speed,
-    iT0: (await json('tests/slick-thresholds.json')).s12_knife_edge.dutyDerived },
+  { name: 'extra', airframe: EXTRA_AIRFRAME, knife: (await json('tests/extra-thresholds.json')).e12_knife_edge },
+  { name: 'cap', airframe: CAP_AIRFRAME, knife: (await json('tests/cap580-thresholds.json')).c12_knife_edge },
+  { name: 'slick', airframe: SLICK_AIRFRAME, knife: (await json('tests/slick-thresholds.json')).s12_knife_edge },
 ];
 
-/* The gates' hands, one step: h holds their integrals and psi0. The
- * throttle is h.iT plus the speed's and k of the sink's. */
-function hands(sim, s, h, V, k, ms, dt) {
+/* The gates' hands but the throttle, one step: h holds the ailerons'
+ * integral, psi0 and the rudder, put on over half a second and left. */
+function hands(sim, s, h, ms, dt) {
   const bank = fullBank(s);
   const bankT = Math.min(Math.PI / 2, ms / 1000 * 3);
   h.iA = Math.max(-0.5, Math.min(0.5, h.iA - 1.0 * (bank - bankT) * dt));
   const roll = clamp(-0.8 * (bank - bankT) - 0.05 * s[11] + h.iA);
-  h.iH = Math.max(-0.3, Math.min(0.9, h.iH + 0.2 * (0 - s[6]) * dt));
-  const betaT = 0.3 + 0.2 * (0 - s[6]) + h.iH;
-  const beta = wingDebug(sim)[1];
-  h.iB = Math.max(-1, Math.min(1, h.iB + 3 * (betaT - beta) * dt));
-  const yaw = ms < 300 ? 0 : clamp(-3 * (betaT - beta) - h.iB + 0.3 * s[13]);
+  const yaw = ms < 300 ? 0 : h.rudder * Math.min(1, (ms - 300) / 500);
   let dpsi = yawOf(s) - h.psi0;
   while (dpsi > Math.PI) dpsi -= 2 * Math.PI;
   while (dpsi < -Math.PI) dpsi += 2 * Math.PI;
   const pitch = clamp(0.8 * dpsi + 0.15 * s[12]);
-  h.iT = Math.max(0, Math.min(1, h.iT + 0.0005 * (V - speed(s))));
-  return [roll, pitch, yaw, clamp(h.iT + 0.1 * (V - speed(s)) + k * (0 - s[6]))];
+  return [roll, pitch, yaw];
 }
 
 async function design(p) {
@@ -97,16 +89,18 @@ async function design(p) {
   if (sim.init(configText) !== SIM_OK) throw new Error('sim_init failed');
   must(sim.e.sim_set_airframe(p.airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
-  let clock = fly(sim, { duty: 0.6, vTarget: p.V, seconds: 10, speed0: p.V, guard: false, start: AIR }).endMs;
+  const V = p.knife.speed;
+  let clock = fly(sim, { duty: 0.6, vTarget: V, seconds: 10, speed0: V, guard: false, start: AIR }).endMs;
   let s = sim.readState().state;
-  const h = { iA: 0, iH: 0, iB: 0, iT: p.iT0, psi0: yawOf(s) };
+  const h = { iA: 0, psi0: yawOf(s), rudder: -stickForThrow(p.knife.rudderDerived) };
   const dt = RC_STEP_MS / 1000;
-  let yawStick = 0, thrStick = 0;
+  let yawStick = 0, thrStick = 0, iT = p.knife.dutyDerived;
   for (let ms = 0; ms < 12000; ms += RC_STEP_MS) {
-    const st = hands(sim, s, h, p.V, SETTLE_SINK, ms, dt);
+    const st = hands(sim, s, h, ms, dt);
     yawStick = st[2];
-    thrStick = st[3];
-    must(sim.input(clock / 1000, ...st), 'sim_input');
+    iT = Math.max(0, Math.min(1, iT + SETTLE_SINK * (0 - s[6]) * dt / 2));
+    thrStick = Math.max(0, Math.min(1, iT + SETTLE_SINK * (0 - s[6])));
+    must(sim.input(clock / 1000, ...st, thrStick), 'sim_input');
     must(sim.step(RC_STEP_MS), 'sim_step');
     clock += RC_STEP_MS;
     s = sim.readState().state;
@@ -130,11 +124,10 @@ async function design(p) {
     start();
     let st = sim.readState().state;
     for (let ms = 0; ms < STEP_S * 1000; ms += RC_STEP_MS) {
-      const out = hands(sim, st, live, p.V, 0, t, dt);
+      const out = hands(sim, st, live, t, dt);
       t += RC_STEP_MS;
       out[2] = cap.yaw;
-      out[3] = clamp(cap.thr + dThr);
-      must(sim.input(ms / 1000, ...out), 'sim_input');
+      must(sim.input(ms / 1000, ...out, clamp(cap.thr + dThr)), 'sim_input');
       must(sim.step(RC_STEP_MS), 'sim_step');
       st = sim.readState().state;
     }
@@ -148,7 +141,7 @@ async function design(p) {
    * below crossover). */
   const g = [];
   for (let i = 2; i <= 60; i += 1) g.push({ w: i / 5, mag: K / (i / 5), phase: -Math.PI / 2 });
-  return { ...leadDesign(g, [0]), K, trim: cap.thr, sink: -cap.s[6] };
+  return { ...leadDesign(g, [0]), K, trim: cap.thr, sink: -cap.s[6], V: speed(cap.s), rudder: cap.yaw };
 }
 
 /* The step a person's throttle makes itself felt over: long enough for
@@ -157,12 +150,14 @@ async function design(p) {
 const check = process.argv.includes('--check');
 let bad = 0;
 for (const p of PLANES) {
+  const V = p.knife.speed;
   const d = await design(p);
   const k = Number((d.wc / d.gain).toFixed(3));
-  const pinned = KNIFE_SINK[p.airframe];
-  const ok = Math.abs(k - pinned) < 0.0005 && !d.short;
+  const pin = KNIFE_SINK[p.airframe];
+  const pinned = Number((pin.wc / pin.gain).toFixed(3));
+  const ok = pin.wc === d.wc && Math.abs(pin.gain - d.gain) < 0.05 && !d.short;
   if (!ok) bad += 1;
-  console.log(`${p.name.padEnd(6)} knife edge at ${p.V} m/s, sink ${d.sink.toFixed(3)} m/s, throttle trim ${d.trim.toFixed(3)}: climb acceleration ${d.K.toFixed(2)} m/s2 per stick; crossover ${d.wc} rad/s, PM ${d.pmDeg} deg, GM ${d.gmDb === null ? 'none' : `${d.gmDb} dB`}${d.short ? ' SHORT' : ''}; the person's gain ${k} throttle per m/s of sink, pinned ${pinned}${check && !ok ? '  DIFFERS' : ''}`);
+  console.log(`${p.name.padEnd(6)} knife edge entered at ${V} m/s, held at ${d.V.toFixed(1)} m/s with rudder ${d.rudder.toFixed(2)}, sink ${d.sink.toFixed(3)} m/s, throttle trim ${d.trim.toFixed(3)}: climb acceleration ${d.K.toFixed(2)} m/s2 per stick; crossover ${d.wc} rad/s, PM ${d.pmDeg} deg, GM ${d.gmDb === null ? 'none' : `${d.gmDb} dB`}${d.short ? ' SHORT' : ''}; the person's gain ${k} throttle per m/s of sink (wc ${d.wc} over gain ${d.gain}), pinned ${pinned} (${pin.wc} over ${pin.gain})${check && !ok ? '  DIFFERS' : ''}`);
 }
 if (check && bad) {
   console.error(`knife-throttle: ${bad} gain(s) differ from the design; pin KNIFE_SINK in tests/lib/wingpilot.js`);

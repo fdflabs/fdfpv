@@ -504,7 +504,7 @@ R-474) on each fuselage's side area from its derivation or render model.
 - What it costs the knife edge, derived on the plant's own fin and
   rudder (scripts/lib/knifefin.js) with Selig's jet normal force and the
   crossflow the disc turns: the Extra at 15 m/s needs 84 percent of its
-  rudder at 32.9 deg of sideslip (the plant flies it at 33.3 and 0.89
+  rudder at 32.9 deg of sideslip (the plant flies it at 33.6 and 0.90
   stick); the CAP at 20 m/s 83 percent at 29.9; the Slick at 30 m/s 105
   percent: no level knife edge there (S12 red, not loosened); the Night
   Timber 200, 184 and 166 percent at 12, 14 and 16 m/s. The plant's own
@@ -512,6 +512,23 @@ R-474) on each fuselage's side area from its derivation or render model.
   in the free stream -10.2 and +7.9 N m, in the wash -3.1 and +5.1, Munk
   +1.3, the crossflow at side_x -1.4, the jet +0.3, the turned share
   +0.2, the swirl +0.2; everything else under 0.01.
+- The gates' knife edge hands (2026-10-13): the rudder put on to the
+  derivation's share of its throw and left there, the height on the
+  throttle alone, the speed where it falls, as the knife edge is taught
+  ("power alone will be responsible for altitude", Precision Aerobatics
+  tip 8; "use rudder as needed to maintain altitude", Hawkinson, Model
+  Aviation Sept 1999; wingpilot.js knifeThrottle, the throttle's gain
+  derived by knife-throttle-derive.js). Until then the hands held the
+  gate's speed on the throttle, nobody's number, and once the rudder was
+  on its stop that hand cut the power as the sinking knife edge gathered
+  speed: E12 lost 35 m with the crossflow moment on. With the taught
+  hands the derivation predicts the plant's knife edge: the Extra 33.6
+  deg at 0.497 and 14.7 m/s (derived 32.9, 0.496, 15), the CAP 27.5 at
+  0.604 and 22.1 m/s (29.9, 0.555, 20), and the Slick holds a level knife
+  edge with the stick on its stop, 25.5 deg at 0.453 and 30.7 m/s, where
+  the derivation asks 105 percent of the throw: the derivation's yaw
+  budget is about 5 percent of the rudder heavier than the plant's; S12
+  stays red on the stop until one of them is shown right.
 
 ### The probe, PR 3 to PR 4
 
