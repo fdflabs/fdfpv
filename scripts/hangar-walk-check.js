@@ -320,7 +320,7 @@ try {
   /* A pilot who has flown to the workshop's level walks into the
    * workshop: progress as flying leaves it, set in place. */
   await page.evaluate(`(() => { const p = window.__ui.progress.state; p.unlockAll = false; p.xp = ${LEVEL_XP[TIER_LEVELS.workshop - 1]};
-    p.firsts = { 'mission:m1:win': true, 'mission:m1:star1': true, 'aircraft:timber1500:flight': true, 'lesson:hover': true, 'aircraft:cub1400:ten': false };
+    p.firsts = { 'mission:m1:win': true, 'mission:m1:star1': true, 'aircraft:timber1500:flight': true, 'lesson:hover': true, 'game:tag:alps': true, 'aircraft:cub1400:ten': false };
     p.medals = { 'board:alps-sprint': 'gold', 'board:swiss-hoops': 'bronze' }; return true; })()`);
   check('the Hangar hub card clicked again', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
   await page.until("window.__ui.hub === 'hangar'", 10000);
@@ -331,7 +331,8 @@ try {
   room = ROOMS[s.tier];
   occ = occupancy(room, LAYOUTS[s.tier]);
   await shot('05-workshop');
-  check('the trophy wall holds a trophy per Flight Club medal and per first paid, none for one unpaid', s.view.trophies === 6, `${s.view.trophies} trophies (2 medals, 4 firsts)`);
+  check('the trophy wall holds a trophy per Flight Club medal and per first paid, none for one unpaid', s.view.trophies === 7, `${s.view.trophies} trophies (2 medals, 5 firsts)`);
+  check('a room game first is its own green cup, not a lesson\'s', (s.view.trophyKinds || []).filter((k) => k === 'game').length === 1, JSON.stringify(s.view.trophyKinds));
   const door = s.stations.find((x) => x.id === 'door');
   s = await walkTo(room, occ, door);
   await page.sleep(200);
