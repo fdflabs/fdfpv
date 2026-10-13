@@ -203,6 +203,7 @@ export const HOOKS = [
   ['__setTune', 'switches the tune'],
   ['__shellReady', null],
   ['__showSticks', 'set by a check: shows the stick overlay whatever flies (read through devHooks)'],
+  ['__spawnStarts', null],
   ['__stepTrace', null],
   ['__stick', 'holds the sticks at the given channels'],
   ['__stickPath', null],
