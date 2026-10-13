@@ -149,6 +149,15 @@ export function createJournal(e, opts = {}) {
     throw new Error('journal: no scratch');
   }
   const retain = opts.retain ?? RETAIN;
+  /* Which dist/sim.wasm this is, once hashed (`opts.wasm`, its bytes), for
+   * a saved clip to name: the region and the calls replay on that build
+   * and no other. */
+  let build = null;
+  const named = opts.wasm ? wasmBuild(opts.wasm).then((id) => {
+    build = id;
+  }, (err) => {
+    console.warn('journal: the build could not be named, saved clips will not say which it was', err);
+  }) : Promise.resolve();
 
   const names = [];
   const raw = [];
@@ -383,36 +392,39 @@ export function createJournal(e, opts = {}) {
   }
 
   function replay(buf, n) {
-    const argvs = names.map(() => []);
-    let r = 0;
-    while (r < n) {
-      let id = buf[r];
-      if (id < 0) {
-        id = -1 - id;
-        r += 1;
-        raw[id].apply(null, argvs[id]);
-        continue;
-      }
-      const argc = buf[r + 1];
-      const k = buf[r + 2];
-      r += 3;
-      const argv = argvs[id];
-      argv.length = argc;
-      for (let i = 0; i < argc; i += 1) {
-        argv[i] = buf[r + i];
-      }
-      r += argc;
-      const ptr = POINTERS[names[id]];
-      if (ptr && ptr.out !== undefined) {
-        argv[ptr.out] = scratch;
-      }
-      if (ptr && ptr.in !== undefined) {
-        new Float64Array(e.memory.buffer, scratch, k).set(buf.subarray(r, r + k));
-        argv[ptr.in] = scratch;
-      }
-      r += k;
-      raw[id].apply(null, argv);
+    playCalls(e, raw, names, scratch, buf, 0, n, names.map(() => []));
+  }
+
+  /*
+   * The stretches from the one numbered `fromId` (or the oldest kept, if
+   * that one is gone) to the newest, as a saved clip keeps them
+   * (src/replay/refly.js): the region as it stood at the first one's copy,
+   * then each later one's changed pages, and every stretch's calls. Copies
+   * throughout, so the journal flying on changes nothing handed out.
+   */
+  function exportSpan(fromId) {
+    const at = segs.findIndex((s) => s.id >= fromId);
+    if (at < 0) {
+      return null;
     }
+    const copy = base.slice();
+    for (let k = 1; k <= at; k += 1) {
+      apply(copy, segs[k].delta);
+    }
+    const out = [];
+    for (let k = at; k < segs.length; k += 1) {
+      const s = segs[k];
+      out.push({
+        id: s.id,
+        t: s.t,
+        delta: k === at ? null : s.delta,
+        calls: s.buf.slice(0, s.n),
+        broken: s.brokenAt === Infinity ? null : s.brokenAt,
+      });
+    }
+    return {
+      build, abi: e.sim_abi_version(), lo: region.lo, hi: region.hi, names: names.slice(), region: copy, segs: out,
+    };
   }
 
   /* What the journal holds, for the harness and the memory report. */
@@ -430,5 +442,71 @@ export function createJournal(e, opts = {}) {
     };
   }
 
-  return { exports, snapshot, mark, due, canRestore, restore, stats, setLogging, region, names };
+  return {
+    exports, snapshot, mark, due, canRestore, restore, stats, setLogging, exportSpan, named, region, names,
+  };
+}
+
+/*
+ * A build's name: the git blob id of its bytes, sha1 of "blob <length>\0"
+ * and the bytes, so `git cat-file blob <id>` hands back the very module a
+ * clip was flown on (dist/sim.wasm is committed). Null where the page has
+ * no SubtleCrypto (an insecure origin).
+ */
+export async function wasmBuild(bytes) {
+  const subtle = globalThis.crypto && globalThis.crypto.subtle;
+  if (!subtle) {
+    return null;
+  }
+  const head = new TextEncoder().encode(`blob ${bytes.byteLength}\0`);
+  const all = new Uint8Array(head.length + bytes.byteLength);
+  all.set(head, 0);
+  all.set(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), head.length);
+  const digest = new Uint8Array(await subtle.digest('SHA-1', all));
+  return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/*
+ * Calls `buf[from..to)` as the journal wrote them, made again on `fns`
+ * (by id, as `names` numbers them): a call that wrote to the heap writes
+ * to `scratch` instead, and one that read doubles from it reads the copy
+ * the journal kept, put at `scratch`. `argvs` is each function's last
+ * arguments, one array per id: a stretch starts with them empty, and a
+ * caller that stops part way through one hands the same arrays back to
+ * carry on, since a call made again with the same arguments is written as
+ * its id alone.
+ */
+export function playCalls(e, fns, names, scratch, buf, from, to, argvs) {
+  let r = from;
+  while (r < to) {
+    let id = buf[r];
+    if (id < 0) {
+      id = -1 - id;
+      r += 1;
+      fns[id].apply(null, argvs[id]);
+      continue;
+    }
+    const argc = buf[r + 1];
+    const k = buf[r + 2];
+    r += 3;
+    const argv = argvs[id];
+    argv.length = argc;
+    for (let i = 0; i < argc; i += 1) {
+      argv[i] = buf[r + i];
+    }
+    r += argc;
+    const ptr = POINTERS[names[id]];
+    if (ptr && ptr.out !== undefined) {
+      argv[ptr.out] = scratch;
+    }
+    if (ptr && ptr.in !== undefined) {
+      new Float64Array(e.memory.buffer, scratch, k).set(buf.subarray(r, r + k));
+      argv[ptr.in] = scratch;
+    }
+    r += k;
+    fns[id].apply(null, argv);
+  }
+  if (r !== to) {
+    throw new Error(`journal: a call runs past ${to}`);
+  }
 }

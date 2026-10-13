@@ -72,6 +72,7 @@ import {
   MIMES, SEGMENT_MS, createVoiceRing, voiceClockAt, voicesAt,
 } from './voicerec.js';
 import { controlRows, createSticksRing, sticksAt } from './sticks.js';
+import { packRefly, reflyOf } from './refly.js';
 import { toCsv } from '../share/controlrec.js';
 import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
@@ -765,6 +766,18 @@ export function createCrashCam(host) {
       const sticks = sticksRing.clip(first, n);
       if (sticks) {
         clip.sticks = sticks;
+      }
+      /* What flies the clip again (src/replay/refly.js), taken now, while
+       * the journal still holds the stretches its rows name. */
+      if (sticks && clip.anim) {
+        let from = 0;
+        for (let k = 0; k < clip.n && from === 0; k += 1) {
+          from = clip.head[k * HEAD_N + HEAD.markSeg];
+        }
+        const refly = from > 0 ? reflyOf(journal.exportSpan(from), clip) : null;
+        if (refly) {
+          clip.refly = refly;
+        }
       }
     }
     /* A saved clip of one frame is a still, and plays as one. */
@@ -2096,6 +2109,9 @@ export function createCrashCam(host) {
     /* Everything that can fail inside the try, so the pilot is told: an
      * encode that threw (a misaligned column, once) was a silent no-op. */
     try {
+      if (clip.refly) {
+        clip.refly = await packRefly(clip.refly);
+      }
       const bytes = encodeReplay(clip);
       const thumb = await thumbnail();
       const dropped = await store.putClip({

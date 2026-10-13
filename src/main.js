@@ -2932,12 +2932,14 @@ export async function boot({
     /* What came in while the board was being asked: usually all of it. */
     loading.report('sim', ...simProgress);
   }
-  const sim = await loadSim(await simBytes);
+  const simWasm = await simBytes;
+  const sim = await loadSim(simWasm);
   /* The crash cam's journal stands between the shell and the module from
    * here on, before anything has allocated or captured sim.e: it writes
    * down the calls take over replays, and changes none of them
-   * (src/replay/journal.js). */
-  const journal = createJournal(sim.e);
+   * (src/replay/journal.js). The bytes name the build a saved clip was
+   * flown on (src/replay/refly.js). */
+  const journal = createJournal(sim.e, { wasm: simWasm });
   sim.e = journal.exports;
   /* Every entry point the shell calls, checked once here, so a stale
    * dist/sim.wasm stops the boot by name instead of failing mid flight. */

@@ -28,12 +28,13 @@
  * on the first row. A 30 s clip at 120 Hz grows by the same 130 KB, about
  * a tenth of what a solo clip already is.
  *
- * NOT A RE-RUN. A clip cannot be flown through the plant again to give the
- * same flight: it holds one sample of the sticks a drawn frame, where the
+ * NOT A RE-RUN. These rows cannot fly the plant again to give the same
+ * flight: they hold one sample of the sticks a drawn frame, where the
  * plant took them on the 250 Hz RC grid over 1 ms steps, and of the
  * plant's state only its pose, velocity and rates, not the controller's,
- * the wind's or the motors' (src/replay/journal.js keeps all of that in
- * memory for TAKE OVER, and a saved clip never has). See
+ * the wind's or the motors'. What does fly a clip again is the journal's
+ * region and calls, which a clip saved since file version 17 carries
+ * beside these (src/replay/refly.js, npm run replay:refly). See
  * docs/CONTROL-RECORDER.md.
  *
  * Pure: no DOM, no clock.

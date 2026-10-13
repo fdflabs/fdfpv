@@ -140,6 +140,16 @@
  * byte for byte, and versions 1 to 15 are read without them: their
  * replay says it has no sticks to show.
  *
+ * Version 17 added what flies a clip again (src/replay/refly.js): the
+ * header's `refly` ({ build, abi, lo, hi, names, segs, bytes }: which
+ * dist/sim.wasm flew it, where its plant sits, the module's functions by
+ * the calls' numbers, and the journal's stretches), and after the sticks
+ * each row's place in those stretches, i32[n x 2], then the stretches'
+ * region copy, changed pages and calls, deflated, `bytes` of them. A clip
+ * without it is written as the version before, byte for byte, and
+ * versions 1 to 16 are read without it: they cannot be flown again
+ * (docs/CONTROL-RECORDER.md).
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -181,8 +191,11 @@ import { HUNTER_N, checkWar } from './warrec.js';
 import { AIR_N, checkSound } from './sound.js';
 import { SEGMENT_BYTES_MAX, SEGMENTS_MAX, checkVoice } from './voicerec.js';
 import { BODY_N, STICK_N, checkSticks } from './sticks.js';
+import { checkReflyHeader, checkReflyMarks } from './refly.js';
 
-export const FILE_VERSION = 16;
+export const FILE_VERSION = 17;
+/* A clip with its sticks and nothing to fly it again with. */
+const STICKS_VERSION = 16;
 /* A clip with a war's gate state and no sticks. */
 const GATES_VERSION = 15;
 /* A clip with explosions on the map's clock and no gate state. */
@@ -215,14 +228,20 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
+  if (clip.refly && clip.refly.packed) {
+    if (!clip.sticks || !clip.anim) {
+      throw new Error('a clip that flies again without its sticks or its animation clock');
+    }
+    return FILE_VERSION;
+  }
   if (clip.sticks) {
     if (!clip.anim) {
       throw new Error('a clip with its sticks and no animation clock');
     }
-    return FILE_VERSION;
+    return STICKS_VERSION;
   }
   if (clip.war && clip.war.world && clip.war.world.some((m) => m.gates)) {
     if (!clip.anim) {
@@ -344,7 +363,7 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice', 'sticks'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice', 'sticks', 'refly'];
 const SOUND_KEYS = ['events'];
 const VOICE_KEYS = ['pieces'];
 const PIECE_KEYS = ['seat', 'from', 'to', 'mime', 'bytes'];
@@ -430,6 +449,16 @@ export function encodeReplay(clip) {
   if (clip.sticks) {
     header.sticks = true;
   }
+  /* Written only once packed (refly.js packRefly, the one step of a save
+   * that has to wait, which saveReplay takes): a clip cut from the live
+   * recording and written as it is (a check measuring a file, say) is
+   * written as the version before, as it was before this existed. */
+  const refly = clip.refly && clip.refly.packed ? clip.refly : null;
+  if (refly) {
+    header.refly = {
+      build: refly.build, abi: refly.abi, lo: refly.lo, hi: refly.hi, names: refly.names, segs: refly.segs, bytes: refly.packed.byteLength,
+    };
+  }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
@@ -440,7 +469,8 @@ export function encodeReplay(clip) {
     + (war ? n * 8 + n * war.slots * HUNTER_N * 4 + (war.world ? n * 8 : 0) : 0)
     + (clip.sound ? n * AIR_N * 4 : 0)
     + (clip.voice ? n * 8 + clip.voice.pieces.reduce((x, s) => x + s.bytes.length, 0) : 0)
-    + (clip.sticks ? sticksBytes(n) : 0);
+    + (clip.sticks ? sticksBytes(n) : 0)
+    + (refly ? n * 8 + refly.packed.byteLength : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -514,6 +544,12 @@ export function encodeReplay(clip) {
     o += n * STICK_N * 2;
     u8.set(new Uint8Array(body.buffer, body.byteOffset, n * BODY_N * 4), o);
     o += n * BODY_N * 4;
+  }
+  if (refly) {
+    u8.set(new Uint8Array(refly.marks.buffer, refly.marks.byteOffset, n * 8), o);
+    o += n * 8;
+    u8.set(refly.packed, o);
+    o += refly.packed.byteLength;
   }
   return buf;
 }
@@ -822,8 +858,24 @@ export function decodeReplay(buf, known = null) {
   if (version < 16 && header.sticks !== undefined) {
     throw new ReplayFileError('sticks in a file older than version 16');
   }
-  if (version === 16 && header.sticks !== true) {
-    throw new ReplayFileError('a version 16 file without its sticks');
+  if (version >= 16 && header.sticks !== true) {
+    throw new ReplayFileError(`a version ${version} file without its sticks`);
+  }
+  if (version < 17 && header.refly !== undefined) {
+    throw new ReplayFileError('a refly in a file older than version 17');
+  }
+  if (version === 17 && header.refly === undefined) {
+    throw new ReplayFileError('a version 17 file without its refly');
+  }
+  if (header.refly !== undefined) {
+    try {
+      checkReflyHeader(header.refly, n);
+    } catch (err) {
+      throw new ReplayFileError(err.message);
+    }
+    if (header.refly.bytes > FILE_MAX_BYTES) {
+      throw new ReplayFileError('refly.bytes is out of range');
+    }
   }
   if (version < 13 && header.voice !== undefined) {
     throw new ReplayFileError('voices in a file older than version 13');
@@ -906,7 +958,8 @@ export function decodeReplay(buf, known = null) {
   const warBytes = header.war ? n * 8 + hunterBytes + (mapped ? n * 8 : 0) : 0;
   const soundBytes = header.sound !== undefined ? n * AIR_N * 4 : 0;
   const stickBytes = header.sticks ? sticksBytes(n) : 0;
-  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes + soundBytes + voiceBytes + stickBytes !== buf.byteLength) {
+  const reflyBytes = header.refly ? n * 8 + header.refly.bytes : 0;
+  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes + soundBytes + voiceBytes + stickBytes + reflyBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant, smoke, ...(anim ? [anim] : [])]) {
@@ -1019,6 +1072,20 @@ export function decodeReplay(buf, known = null) {
       throw new ReplayFileError(err.message);
     }
     clip.sticks = sticks;
+    o += stickBytes;
+  }
+  if (header.refly) {
+    const H = header.refly;
+    const marks = new Int32Array(buf.slice(o, o + n * 8));
+    o += n * 8;
+    try {
+      checkReflyMarks(marks, H, n);
+    } catch (err) {
+      throw new ReplayFileError(err.message);
+    }
+    clip.refly = {
+      build: H.build, abi: H.abi, lo: H.lo, hi: H.hi, names: H.names, segs: H.segs, marks, packed: new Uint8Array(buf.slice(o, o + H.bytes)),
+    };
   }
   return clip;
 }

@@ -54,6 +54,7 @@ import { trimWar } from './warrec.js';
 import { trimSound } from './sound.js';
 import { trimVoice } from './voicerec.js';
 import { trimSticks } from './sticks.js';
+import { trimRefly } from './refly.js';
 
 /* Seconds of flight a replay holds, and the most rows it takes to hold
  * them: 120 a second. A faster display is sampled down to that; a slower
@@ -387,6 +388,7 @@ export function trimClip(clip, t0, t1) {
     ...(clip.sound ? { sound: trimSound(clip.sound, a, b, base, clip.time[b]) } : {}),
     ...(clip.voice ? { voice: trimVoice(clip.voice, a, b) } : {}),
     ...(clip.sticks ? { sticks: trimSticks(clip.sticks, a, b) } : {}),
+    ...(clip.refly ? { refly: trimRefly(clip.refly, a, b) } : {}),
   };
 }
 
