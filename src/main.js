@@ -826,15 +826,17 @@ export async function boot({
       return;
     }
     rolesBoard.close();
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
     debrief.show({
       key: match, view: v, mission, seat: roomOps.seat(), host: opsHost() === roomOps.seat(), stills: stills.of(match), next: interiorScreen.next(v.mission),
       flight: {
         aircraft: runAirframe,
-        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+        fixedWing,
         flightMs: runAirMs,
         totalS: aircraftSecondsNow(),
         route: runRoute.snapshot(),
         replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+        condition: conditionOf(crashFlags, fixedWing),
       },
     });
     interiorScreen.record(match, v);

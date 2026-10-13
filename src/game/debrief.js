@@ -248,7 +248,7 @@ export function fromRoom({ activity, aircraft, fixedWing = false, place, of, fin
  * An ops mission's end (src/ui/debrief.js). won and ended as the room
  * judged them; items the debrief's frames ({ required, kind }: 'mine' and
  * 'squad' are captured); stars { got, of }; flight this pilot's own
- * { aircraft, fixedWing, flightMs, totalS, route, replay }.
+ * { aircraft, fixedWing, flightMs, totalS, route, replay, condition }.
  */
 export function fromOps({ won, ended, items, stars, flight }) {
   const required = items.filter((f) => f.required);
@@ -265,6 +265,7 @@ export function fromOps({ won, ended, items, stars, flight }) {
     aircraft: flight.aircraft,
     fixedWing: Boolean(flight.fixedWing),
     result: { kind: won ? 'won' : ended ? 'ended' : 'lost', landed: null },
+    condition: conditionWord(flight.condition ?? null),
     route: flight.route ?? null,
     time: { flightMs: flight.flightMs, runMs: null },
     accuracy,
