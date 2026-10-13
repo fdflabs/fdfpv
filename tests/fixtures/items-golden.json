@@ -31395,7 +31395,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -31836,7 +31836,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
      "action": "pids",
      "drives": {}
     },
@@ -32265,7 +32265,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
      "action": "pids",
      "drives": {}
     },
@@ -32706,7 +32706,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -33151,7 +33151,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -33640,7 +33640,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -34129,7 +34129,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -34570,7 +34570,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -35003,7 +35003,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica, master 120%",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -35444,7 +35444,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "Tus cambios",
-     "note": "The dump you saved on the Flight controller screen, every field of it. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "El dump que guardaste en la pantalla de la controladora de vuelo, con todos sus campos. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -35885,7 +35885,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "Estabilizado",
-     "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "Un gyro sostiene el avión una vez que deja el suelo. El stick de roll pide una inclinación de hasta 60 grados, el de pitch un pitch de hasta 30, con los sticks centrados vuela nivelado, y el timón de dirección se coordina solo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },

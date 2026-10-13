@@ -118,6 +118,14 @@ function tuneName(id) {
   return hasStr(key) ? str(key) : name;
 }
 
+/* A tune's note in the pilot's language. The registry keeps it in English
+ * as the record; scripts/es-leak-lint.js holds every tune to a key whose
+ * English is that note word for word. */
+function tuneNote(id) {
+  const tune = tuneById(id);
+  return str(`tune.note.${tune.id.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`);
+}
+
 /* The rate system's name: Classic is Betaflight's, the rest are brands. */
 /* A firmware field's label and note from configs/ (rates.js, pids.js),
  * which name them in English for the bench and the pinned transcripts;
@@ -231,13 +239,12 @@ function planeRatesRows(ui, s) {
 /* The tune row: the PIDs room's door, saying when the quad flies something
  * other than the tune's own numbers. */
 function tuneRow(s, midRun) {
-  const tune = tuneById(s.tune);
   const adjusted = pidsAdjusted(s.pids, s.tune);
   return {
     label: str('ui.tune'),
     value: adjusted ? `${tuneName(s.tune)}, ${pidsSummary(s.pids, s.tune).toLowerCase()}` : tuneName(s.tune),
     action: 'pids',
-    note: str('ui.opens_where_the_tune_is_chosen', { note: tune.note, pids: SCREEN_TITLES.pids, v3: midRun ? MID_RUN_WARNING : '' }),
+    note: str('ui.opens_where_the_tune_is_chosen', { note: tuneNote(s.tune), pids: SCREEN_TITLES.pids, v3: midRun ? MID_RUN_WARNING : '' }),
   };
 }
 

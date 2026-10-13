@@ -7188,7 +7188,7 @@
     "action": "pids",
     "id": "quad:a-pids",
     "label": "Ajuste PID",
-    "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+    "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
     "value": "De fábrica"
    },
    {
