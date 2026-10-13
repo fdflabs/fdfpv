@@ -90,6 +90,7 @@ export function createRoomRace(send) {
   let finishSentAt = -Infinity;
   let retired = false;
   let readySent = null;
+  let readySentAt = -Infinity;
   let startTaken = null;
   let resultsTaken = null;
   let error = null;
@@ -281,13 +282,19 @@ export function createRoomRace(send) {
     },
 
     /* Whether this pilot's world has the room's track seated, sent when it
-     * changes so the host sees who can race. */
-    ready(isReady) {
+     * changes so the host sees who can race, and again every
+     * FINISH_RESEND_MS on the room clock until the room's race says it:
+     * a ready over the room's text rate is dropped (edge/rooms/core.js
+     * TEXT_PER_S), and a host's ready goes out in the burst its Play and
+     * its track make, so it was lost and the host never on the grid. */
+    ready(isReady, roomNow = null) {
       const want = track && isReady ? track.id : null;
-      if (want === readySent) {
+      const held = track && (race.ready || []).includes(seat) ? track.id : null;
+      if (want === readySent && (want === held || roomNow == null || roomNow - readySentAt < FINISH_RESEND_MS)) {
         return;
       }
       readySent = want;
+      readySentAt = roomNow ?? -Infinity;
       send({ type: 'race', op: 'ready', track: track ? track.id : null, ready: Boolean(want) });
     },
 

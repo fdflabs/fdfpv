@@ -8411,7 +8411,7 @@ export async function boot({
   function roomRaceFrame(now, wallMs) {
     if (wallMs > roomRaceCheckAt) {
       roomRaceCheckAt = wallMs + 500;
-      roomRace.ready(roomTrackReady());
+      roomRace.ready(roomTrackReady(), now);
     }
     const start = roomRace.takeStart(now);
     if (start) {
