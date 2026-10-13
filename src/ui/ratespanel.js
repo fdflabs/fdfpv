@@ -119,7 +119,7 @@ function spokenSummary(curves) {
   const perCurve = curves.map((c) => {
     const points = READOUT_AT.map((stick) => str('ratespanel.at', {
       v1: Math.round(rateAt(c, stick)),
-      v2: stick === 1 ? str('ratespanel.the_stop') : `${stick * 100} percent`,
+      v2: stick === 1 ? str('ratespanel.the_stop') : str('ratespanel.percent', { v1: stick * 100 }),
     }));
     return str('ratespanel.degrees_per_second', { label: c.label, v2: points.join(', ') });
   });

@@ -1034,6 +1034,7 @@ export default {
   "ratespanel.degrees_per_second": "{label}: {v2} degrees per second",
   "ratespanel.full_stick": "Full stick",
   "ratespanel.hover_sits_at": "Hover sits at",
+  "ratespanel.percent": "{v1} percent",
   "ratespanel.roll": "Roll",
   "ratespanel.stick": "{v1}% stick",
   "ratespanel.stick_to_rate_curve": "Stick to rate curve. {v1}.",
