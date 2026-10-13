@@ -958,6 +958,11 @@ typedef struct FixedWingParams {
   double cl_beta_wing;
   double cl_beta_fin;
   double cn_beta_fin;
+  /* The fuselage's (and floats') share of cn_beta, Munk's moment, from
+   * each derivation; taken on u v / V^2 in the body, sin 2 beta over 2,
+   * where the rest is on sin beta (plant_wing.c, MUNK'S MOMENT). Zero:
+   * the whole cn_beta on sin beta. */
+  double cn_beta_fus;
   /* Measured lateral derivatives against the body's angle of attack, at
    * -20 to 90 deg (plant_wing.c, HI_LAT_DEG): cn_beta, cl_beta, cl_p,
    * cn_r, the ailerons' and the rudder's moments, as ratios to their value

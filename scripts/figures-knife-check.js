@@ -95,7 +95,14 @@ async function knifePass(V) {
     iH = Math.max(-0.3, Math.min(0.9, iH + 0.2 * (0 - s[6]) * dt));
     const betaT = back ? 0 : 0.3 + 0.2 * (0 - s[6]) + iH;
     const beta = wingDebug(sim)[1];
-    iB = back ? 0 : Math.max(-1, Math.min(1, iB + 3 * (betaT - beta) * dt));
+    /* Conditional integration: the integral stands still while the rudder
+     * is on its stop and the error would push it further on, as a hand on
+     * a stick against its stop does; without it the integral wound past
+     * full rudder for a second and the knife edge was lost unwinding it. */
+    const yawFree = -3 * (betaT - beta) - iB + 0.3 * s[13];
+    const dI = 3 * (betaT - beta) * dt;
+    const pinned = (yawFree <= -1 && dI > 0) || (yawFree >= 1 && dI < 0);
+    iB = back ? 0 : Math.max(-1, Math.min(1, pinned ? iB : iB + dI));
     const yaw = ms < 300 ? 0 : clamp(-3 * (betaT - beta) - iB + 0.3 * s[13]);
     let dpsi = heading(s) - psi0;
     while (dpsi > Math.PI) dpsi -= 2 * Math.PI;

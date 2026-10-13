@@ -134,7 +134,6 @@ src/native/plant_wing.c FW_SKY1800.stall_dw = 0.1448
 src/native/plant_wing.c FW_SKY1800.stall_k = 0.72
 src/native/plant_wing.c FW_SKY1800.stall_top = 5.3 * WING_PI / 180.0
 src/native/plant_wing.c FW_SKY1800.strip_c = { 1.132, 1.044, 0.956, 0.868 }
-src/native/plant_wing.c FW_SKY1800.side_cda = 0.0722
 src/native/plant_wing.c FW_SKY1800.slip_a0 = 0.005368, .slip_cl_a = 0.3771, .slip_cm_a = -1.305, .slip_cn_b = 0.1552
 src/native/plant_wing.c FW_SKY1800.slip_cn_r = -0.119, .slip_cy_b = -0.4011, .slip_cl_b = -0.02228, .slip_pusher = 1
 src/native/plant_wing.c FW_CUB1400.span = 1.40
@@ -275,7 +274,6 @@ src/native/plant_wing.c FW_RADIAN2000.stall_top = 1.4 * WING_PI / 180.0
 src/native/plant_wing.c FW_RADIAN2000.strip_c = { 1.101, 1.096, 1.074, 0.775 }
 src/native/plant_wing.c FW_RADIAN2000.slip_a0 = 0.04411, .slip_cl_a = 0.3737, .slip_cm_a = -1.382, .slip_cn_b = 0.1043
 src/native/plant_wing.c FW_RADIAN2000.slip_cn_r = -0.06673, .slip_cy_b = -0.3254, .slip_cl_b = -0.02115
-src/native/plant_wing.c FW_RADIAN2000.side_cda = 0.0697
 src/native/plant_wing.c FW_NRJ1490.span = 1.49
 src/native/plant_wing.c FW_NRJ1490.area = 0.190
 src/native/plant_wing.c FW_NRJ1490.chord = 0.1378
@@ -634,7 +632,6 @@ src/native/plant_wing.c FW_TIMBER1500F.stall_top = 3.7 * WING_PI / 180.0
 src/native/plant_wing.c FW_TIMBER1500F.strip_c = { 1.0, 1.0, 1.0, 1.0 }
 src/native/plant_wing.c FW_TIMBER1500F.slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042
 src/native/plant_wing.c FW_TIMBER1500F.slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498
-src/native/plant_wing.c FW_TIMBER1500F.side_cda = 0.105
 src/native/plant_wing.c FW_CUB1400F.span = 1.40
 src/native/plant_wing.c FW_CUB1400F.area = 0.28
 src/native/plant_wing.c FW_CUB1400F.chord = 0.20
@@ -703,7 +700,6 @@ src/native/plant_wing.c FW_CUB1400F.stall_top = 4.6 * WING_PI / 180.0
 src/native/plant_wing.c FW_CUB1400F.strip_c = { 1.0, 1.0, 1.0, 1.0 }
 src/native/plant_wing.c FW_CUB1400F.slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783
 src/native/plant_wing.c FW_CUB1400F.slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429
-src/native/plant_wing.c FW_CUB1400F.side_cda = 0.0924
 src/native/plant_wing.c FW_BOMBSHELL1118.span = 1.1176
 src/native/plant_wing.c FW_BOMBSHELL1118.area = 0.212903
 src/native/plant_wing.c FW_BOMBSHELL1118.chord = 0.1905

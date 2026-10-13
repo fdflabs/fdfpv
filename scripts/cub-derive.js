@@ -26,6 +26,7 @@ import { groundTerms, wingGround } from './lib/groundeffect.js';
 import { plateCnOf, wingDrag, wingLift } from './lib/liftcurve.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { planeTable, wash } from './lib/wash.js';
+import { fuselageRatio, smoothstep } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -57,7 +58,8 @@ const Cmq = -2 * eta * at * VH * lh / c, Cmde = eta * VH * at * tauE, CLde = -et
 const Vtrim = 12, CLtrim = 2 * W / (rho * Vtrim * Vtrim * S), Cm0 = -Cma * CLtrim / CLa;
 const av = 2 * Math.PI * arV / (arV + 2), VV = Sv * lv / (S * b);
 const CYb = -av * Sv / S - 0.10;
-const Cnb = av * VV - 1.3 * fusVol / (S * b);
+const CnbFus = -1.3 * fusVol / (S * b);
+const Cnb = av * VV + CnbFus;
 const Cnr = -2 * av * VV * lv / b - CD0 / 4;
 const Clb = -aw * gamma * (1 + 2 * taper) / (6 * (1 + taper)) - av * (Sv / S) * (zv / b);
 const Clp = -aw * (1 + 3 * taper) / (12 * (1 + taper));
@@ -230,6 +232,22 @@ function modesAbout(x0, de, d) {
   return { phugoid: modes[0], short: modes[1] };
 }
 
+/* The side crossflow drag area: the fuselage's side, 0.9 m by 0.14 m, 0.11
+ * m^2 (docs/CUB-STAGE1.md), at Allen and Perkins' crossflow coefficient of
+ * 1.2 times their eta of 0.7, the 1.2 a round body's taken over to the
+ * drawn sections (scripts/lib/crossflow.js, NACA TN 3038), as the Extra's.
+ * The sections: station, half width, top, bottom, squareness, m, the drawn
+ * model's FUSE (src/render/cubcraft.js, the rudder's post at 0.838), its
+ * windscreen's segment straight as its fuseAt draws it. */
+const FUSE = [
+  [0.040, 0.024, 0.026, -0.024, 2.4], [0.052, 0.034, 0.036, -0.036, 2.6], [0.075, 0.040, 0.044, -0.046, 2.8],
+  [0.125, 0.046, 0.050, -0.053, 3.0], [0.200, 0.0475, 0.098, -0.056, 3.2], [0.360, 0.0475, 0.098, -0.056, 3.2],
+  [0.410, 0.045, 0.098, -0.052, 3.0], [0.500, 0.040, 0.084, -0.040, 2.8], [0.620, 0.031, 0.068, -0.022, 2.6],
+  [0.740, 0.019, 0.053, -0.002, 2.4], [0.838, 0.006, 0.046, 0.012, 2.2],
+];
+const sectionK = fuselageRatio(FUSE, 4000, (i, u) => (i === 3 ? u : smoothstep(i, u)));
+const sideCda = 0.11 * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
 /*
  * C19, THE TAXI TURN: full right rudder on the tailwheel at a throttle, the
@@ -337,12 +355,14 @@ const taxiTurn = (() => {
     const b2v = fw.span / (2 * Vrate);
     const ps = p * cosB - r * sinB, rs = -r * cosB - p * sinB;
     const clSum = clb * beta + fw.cl_p * ps * b2v + clSep + fw.cl_r_per_cl * CL * rs * b2v + cldr * dr;
-    const cnSum = cnb * beta + fw.cn_r * rs * b2v + fw.cn_p_per_cl * CL * ps * b2v + cndr * dr;
+    const cnSum = (cnb - fw.cn_beta_fus) * beta + fw.cn_r * rs * b2v + fw.cn_p_per_cl * CL * ps * b2v + cndr * dr;
+    /* Munk's moment, the fuselage's share on -u v / V^2 in the body (plant_wing.c). */
+    const cnFus = fw.cn_beta_fus * -(u * v) / (V * V);
     const omegaM = 0.85 * n * fw.rpm_no_load * 2 * Math.PI / 60;
     const M = [
       qbar * fw.area * fw.span * (clSum * cosB - cnSum * sinB) - qAir + lSlip,
       -mAero + fw.thrust_z * thrust - mSlip - r * fw.j_prop * omegaM,
-      -qbar * fw.area * fw.span * (cnSum * cosB + clSum * sinB) - nSlip + (omegaM > 0 ? fw.pfactor * thrust * -w / omegaM : 0),
+      -qbar * fw.area * fw.span * (cnSum * cosB + clSum * sinB + cnFus) - nSlip + (omegaM > 0 ? fw.pfactor * thrust * -w / omegaM : 0),
     ];
     return { F, M };
   }
@@ -401,6 +421,8 @@ const rows = [
   ['CLα, h_n, static margin', `${f(CLa)} ${f(hn)} ${f(SM)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ, Clp, Clδa', `${f(Clb, 4)} ${f(Clp)} ${f(Clda)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

@@ -35,6 +35,7 @@
         {"field":"cm_q","expr":"-4.0"},
         {"field":"cm_de","expr":"0.894","comment":"delta_e positive pitches the nose up","gap":9},
         {"field":"cn_beta","expr":"0.0352","comment":"the winglets, less the pod","gap":6},
+        {"field":"cn_beta_fus","expr":"-0.012","comment":"Munk's, the pod's of cn_beta, ESTIMATED as in scripts/bramor-derive.js"},
         {"field":"cn_r","expr":"-0.0297"},
         {"field":"cn_p_per_cl","expr":"-0.125"},
         {"field":"cn_da_per_cl","expr":"-0.062","comment":"adverse yaw, -0.2 Cl_da (Roskam)"},

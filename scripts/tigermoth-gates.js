@@ -55,7 +55,7 @@ import {
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
-  turnYawLimitDeg, spinWatch, personWingsHold, rollMode,
+  turnYawLimitDeg, spinWatch, stallWingsHold,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -88,6 +88,7 @@ const within = (v, b) => v >= b.min && v <= b.max;
 const band = (b) => `${b.min} to ${b.max}`;
 const speed = (s) => Math.hypot(s[4], s[5], s[6]);
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+const loopSaid = (d) => `${d.wc} rad/s on ${d.gain}, lead ${d.lead} s, PM ${d.pmDeg} deg, GM ${d.gmDb === null ? 'none' : `${d.gmDb} dB`}${d.short ? ' SHORT of the criterion' : ''}`;
 
 let clockMs = 0;
 function step(sim, sticks) {
@@ -212,21 +213,18 @@ check: {
      * nose): the engine is up to speed before the pull, which since the
      * prop spins up on its inertia (prop_spool) it was not when the
      * throttle opened at the pull. */
-    /* The roll mode the pilot adapts to, at the entry (wingpilot.js
-     * rollMode), then the entry flown again for the test itself. */
-    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
-    const mode = rollMode((sticks) => step(sim, sticks).s, duty);
+    /* The wings held by a person (wingpilot.js stallWingsHold): the bank
+     * loop's crossover measured at the entry and in the stall it is held
+     * in, then the entry flown again for the test itself. */
+    const person = hold ? stallWingsHold(sim, { entry: t8.entry, duty, alphaStall: th.t2_stall.alphaStall }) : null;
     clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
     const spin = spinWatch(th.t2_stall.alphaStall, t8.maxBankDeg);
     let o = { s: sim.readState().state };
-    /* The wings held by a person, as U11b's (uglystik-gates.js,
-     * wingpilot.js personWingsHold): the gain adapted to its roll mode. */
-    const person = personWingsHold(mode);
     let stickSq = 0, stickPeak = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
-      const roll = hold ? person(o.s) : 0;
+      const roll = hold ? person(o.s, wingDebug(sim)[0]) : 0;
       ailSum += Math.abs(roll);
       stickSq += roll * roll; stickPeak = Math.max(stickPeak, Math.abs(roll));
       /* Power on, the rudder against the engine's yaw, as Great Planes'
@@ -244,7 +242,7 @@ check: {
       alphaMax = Math.max(alphaMax, wingDebug(sim)[0]);
     }
     const ailMean = ailSum / (t8.seconds * 1000 / RC_STEP_MS);
-    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t8.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(person.gain).toFixed(2)} per rad)` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
+    const said = `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, alpha up to ${(alphaMax * DEG).toFixed(1)}${hold ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t8.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}; the person's bank loop ${loopSaid(person.design.entry)} at the entry, ${loopSaid(person.design.stall)} stalled)` : ''}, ${(z0 - o.s[3]).toFixed(1)} m lost, ${speed(o.s).toFixed(2)} m/s at the end`;
     if (!hold) {
       gate(id, 'full up held, power off, hands off: recorded', alphaMax > th.t2_stall.alphaStall, said, 'recorded');
       continue;
@@ -264,8 +262,8 @@ check: {
    * Instruction in the Air", Wonders of World Aviation, 1938). Its earlier
    * form held the wings within 15 deg on the ailerons, a premise that text
    * contradicts. Full up held 10 s at half throttle from 1.2 Vs, the
-   * person (wingpilot.js personWingsHold, McRuer's crossover on the roll
-   * mode measured at the entry) trying on the ailerons, the yaw rate on
+   * person (wingpilot.js stallWingsHold, McRuer's crossover on the bank
+   * loop measured at the entry and in the stall) trying on the ailerons, the yaw rate on
    * the rudder as Great Planes' manual says: a wing drops (past the
    * gate's 15 deg) and is never on its back. The text says the machine
    * "will begin to go into a spin", so an incipient spin is not judged a
@@ -288,14 +286,12 @@ check: {
     const t8 = th.t8_stall_power_on;
     const duty = t8.duty;
     const rudderOf = (s) => Math.max(-1, Math.min(1, 0.6 * s[13]));
+    const person = stallWingsHold(sim, { entry: t8.entry, duty, alphaStall: th.t2_stall.alphaStall, rudder: rudderOf });
     clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
-    const mode = rollMode((sticks) => step(sim, sticks).s, duty);
-    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
-    const person = personWingsHold(mode);
     let o = { s: sim.readState().state };
     let worstBank = 0, inverted = false, alphaMax = 0, yawSum = 0, bankSum = 0, vSum = 0, n = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
-      o = step(sim, [person(o.s), 1, rudderOf(o.s), duty]);
+      o = step(sim, [person(o.s, wingDebug(sim)[0]), 1, rudderOf(o.s), duty]);
       const bank = fullBank(o.s);
       worstBank = Math.max(worstBank, Math.abs(bank * DEG));
       inverted = inverted || Math.abs(bank) > Math.PI / 2;
@@ -317,7 +313,7 @@ check: {
     const recovered = tSpeed !== null && tLevel !== null && worstAfter <= t8.maxBankDeg;
     gate('T8b', 'full up held, half throttle: a wing drops; unstalled, the wings come level',
       dropped && !inverted && recovered,
-      `held: bank up to ${worstBank.toFixed(1)}, yaw ${yawMean.toFixed(1)} deg/s over the last 2 s at bank ${(bankSum / n).toFixed(1)}, alpha up to ${(alphaMax * DEG).toFixed(1)}, gain ${person.gain.toFixed(2)} per rad; let go: ${t8.entry} m/s back at ${tSpeed === null ? 'never' : `${tSpeed.toFixed(2)} s`}, within ${t8.maxBankDeg} deg at ${tLevel === null ? 'never' : `${tLevel.toFixed(2)} s`}, then under ${worstAfter.toFixed(1)}`,
+      `held: bank up to ${worstBank.toFixed(1)}, yaw ${yawMean.toFixed(1)} deg/s over the last 2 s at bank ${(bankSum / n).toFixed(1)}, alpha up to ${(alphaMax * DEG).toFixed(1)}, the person's bank loop ${loopSaid(person.design.entry)} at the entry, ${loopSaid(person.design.stall)} stalled; let go: ${t8.entry} m/s back at ${tSpeed === null ? 'never' : `${tSpeed.toFixed(2)} s`}, within ${t8.maxBankDeg} deg at ${tLevel === null ? 'never' : `${tLevel.toFixed(2)} s`}, then under ${worstAfter.toFixed(1)}`,
       `a drop past ${t8.maxBankDeg}, never on its back (the turn at its bank ${yawMax.toFixed(1)} deg/s, reported); the speed back, the wings within it by the end and held`);
   }
 

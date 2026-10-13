@@ -455,16 +455,38 @@ R-474) on each fuselage's side area from its derivation or render model.
   side force is war:legacy's and is not this lane's to move.
 - The floats' own side area is not in the float versions' figure: the
   land fuselage's is, ESTIMATED.
-- The 1.2 is a round body's. The Extra, CAP, Slick (63d1a6073) and the
-  Night Timber (w37-physics-servo) take theirs on their drawn rounded box
-  sections, NACA TN 3038 through `scripts/lib/crossflow.js`. Still on the
-  round body's, with what their drawn FUSE tables give (2026-10-12, not
-  applied: each moves its own gates): the Timber 1.19, Cub 1.40, Tiger
-  Moth 1.48, Radian 1.34, Bombshell 1.52, Hercules 1.02 times it (the
-  Hercules is at 0.78 of its side view, another source). The Kadet's box
-  sections (squareness 5) are past the lib's 4 and need TN 3038's sharper
-  rounded squares; the P-51, F-16 and Ugly Stik draw their fuselages in
-  other forms.
+- The 1.2 is a round body's. Each aircraft whose fuselage is drawn in
+  sections takes its own, NACA TN 3038 Table I through
+  `scripts/lib/crossflow.js`, the section's drag over a round body's
+  averaged over the side view: the Extra 1.30, CAP 1.30, Slick 1.35
+  (63d1a6073), Night Timber 1.32 (w37-physics-servo); and
+  (w38-fuselage-side) the Timber 1.19, Cub 1.40, Tiger Moth 1.48, Radian
+  1.34, Bombshell 1.52, Kadet 1.72 (its square box past squareness 4, on
+  Table I's sharper rectangles), P-51 1.29, Ugly Stik 1.69 (its slab box
+  with the kit's quarter inch corners), Skyhunter 1.16 (its pod) and
+  Hercules 1.02 (Allen and Perkins' 1.2 too, at their eta of 0.65 on 0.85
+  of the side view). Each derive script prints its figure. The floats'
+  tables carry their land fuselage's.
+- Still on the round body's 1.2, ESTIMATED: the F-16, whose drawn body
+  is two half superellipses on a chine with the strakes' edges at its
+  widest line and the intake's duct under it, shapes TN 3038 did not
+  test; and the Bramor, whose pod blends into its delta with no drawn
+  sections of its own.
+- The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
+  1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
+  is gone flying sideways and turns over with the flow from behind. Each
+  derivation's fuselage share of cn_beta (-1.3 Vol / (S b), or Nelson's
+  K_N term) is `cn_beta_fus`, taken out of the stability axis terms and
+  put on -u v / V^2 in the body (plant_wing.c, MUNK'S MOMENT): the same
+  at small sideslip, none at 90 deg, where before it stayed whole (the
+  Extra's -0.043 of 0.24) and a share of it went into roll. Every table
+  with a fuselage carries it, the Strikers' from `combat:derive`; the
+  float versions add the floats' (`floats:derive`); the Skyhunter's and
+  the Bramor's pods are their documents' and ESTIMATED. The F-16's
+  measured ratio against alpha (hi_lat) takes it as it takes the rest. A
+  fin lost in a crash leaves the body's WING_BODY_CN_BETA on the same
+  form. The pitch analogue, Munk's u w, is the fuselage's cm_alpha share
+  and is still linear in alpha.
 
 ### The probe, PR 3 to PR 4
 
@@ -1209,15 +1231,18 @@ too). The harrier's rock is a roll the pilot is holding, and a roll
 Heading sums the bank those corrections leave and fights them; pitch
 and yaw Heading hold axes the rock only couples into.
 
+On the batch's plant after w38-fuselage-side (abd2b5d7b):
+
 | | Margin rule's Heading | Held | Kicked rock, of Manual's |
 |---|---|---|---|
-| Extra | 0.083, 2.9395, 0.0808 | 0, 2.9395, 0.0808 | 0.81 and 0.84 |
-| CAP | 0.3267, 0.2106, 0.734 | all of it | 0.87 and 0.96 |
-| Slick | 0.1847, 0.1626, 0.5271 | 0, 0, 0.5271 | 0.48 and 0.42 |
+| Extra | 0.0837, 0.8927, 0.412 | 0, 0.8927, 0.412 | 0.58 and 0.61 |
+| CAP | 0.3373, 0.2732, 0.7792 | 0.2867 (0.85 of it), 0.2732, 0.7792 | 0.71 and 0.70 |
+| Slick | 0.1208, 0.0639, 0.7848 | 0, 0.0639, 0.7848 | 0.39 and 0.39 |
 
-The Slick's roll (0.75 of the rule's) and yaw each hold alone but not
-together, at any common factor down to a twentieth, so it keeps the
-yaw. The rule is judged at the full Heading only. The tune screen sets
+On the plant before it, the Slick's roll (0.75 of the rule's) and yaw
+each held alone but not together, at any common factor down to a
+twentieth, and it kept the yaw alone. The rule is judged at the full
+Heading only. The tune screen sets
 Heading in tenths, and between a twentieth and a fifth of the Extra's
 yaw Heading the rock is worse than Manual's (1.03 to 1.08) before it is
 better from two fifths (0.99 and 0.97); the receiver's damper alone

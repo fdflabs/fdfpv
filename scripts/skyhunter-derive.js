@@ -27,6 +27,7 @@
  */
 
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
+import { cornerOf, profileRatio } from './lib/crossflow.js';
 
 const rho = 1.225;
 const g = 9.81;
@@ -107,6 +108,36 @@ function eigen4(A) {
   return z;
 }
 
+/* The side crossflow drag area: the pod's side, 0.086 m^2, the render
+ * model's (ESTIMATED), at Allen and Perkins' crossflow coefficient of 1.2
+ * times their eta of 0.7, the 1.2 a round body's taken over to the drawn
+ * sections (scripts/lib/crossflow.js, NACA TN 3038), as the Extra's. The
+ * sections: station, half width, half height, squareness, m, the drawn
+ * model's POD (src/render/skycraft.js), smoothstepped between rows, and
+ * its nose from -0.385, an ellipse in side and plan that takes the first
+ * row's width and height down by sqrt(1 - u^2) and its squareness to 2. */
+const POD = [
+  [-0.300, 0.066, 0.075, 2.6], [-0.100, 0.068, 0.079, 2.8], [0.050, 0.066, 0.078, 2.8],
+  [0.130, 0.056, 0.066, 2.5], [0.195, 0.042, 0.046, 2.2], [0.235, 0.028, 0.028, 2.0],
+];
+const NOSE_Z = -0.385;
+const sectionK = profileRatio((z) => {
+  if (z <= POD[0][0]) {
+    const [z0, w, h, e] = POD[0];
+    const u = (z0 - z) / (z0 - NOSE_Z);
+    const k = Math.sqrt(Math.max(0, 1 - u * u));
+    return { depth: 2 * h * k, f: w / h, rho: cornerOf(2 + (e - 2) * k) };
+  }
+  let i = 0;
+  while (z > POD[i + 1][0]) i += 1;
+  const [a, bb] = [POD[i], POD[i + 1]];
+  const u = (z - a[0]) / (bb[0] - a[0]);
+  const t = u * u * (3 - 2 * u);
+  const at = (j) => a[j] + (bb[j] - a[j]) * t;
+  return { depth: 2 * at(2), f: at(1) / at(2), rho: cornerOf(at(3)) };
+}, NOSE_Z, POD[POD.length - 1][0]);
+const sideCda = 0.086 * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 2) => Number(x).toFixed(n);
 const ph = phugoid(15);
 const rows = [
@@ -118,6 +149,7 @@ const rows = [
   ['S10 at 15 m/s: duty, dT/du N s/m', `${f(ph.duty, 3)} ${f(ph.dTdu, 3)}`],
   ['   phugoid period s, zeta', `${f(ph.ph.T)} ${f(ph.ph.zeta)}`],
   ['   short period s, zeta', `${f(ph.sp.T)} ${f(ph.sp.zeta)}`],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
 ];
 for (const [name, v] of rows) {
   console.log(`${name.padEnd(48)} ${v}`);

@@ -303,9 +303,10 @@ const respsOf = (ms) => [0, 1, 2].map((ax) => ms.flatMap((m) => m.conds.map((c) 
  * that fails, the most axes at their own scales that hold together, the
  * others none (the lower worst ratio between two sets of as many), and
  * where no set holds, all of them at the largest common factor on the
- * same sweep that holds (lead decision 2026-10-13). The Slick's roll and
- * yaw hold alone (0.75 and 1 of the rule's) and not together, at any
- * common factor down to a twentieth; its yaw alone holds. Not "every scale below it
+ * same sweep that holds (lead decision 2026-10-13). On a5e1d975e's plant
+ * the Slick's roll and yaw held alone (0.75 and 1 of the rule's) and not
+ * together, at any common factor down to a twentieth; its yaw alone
+ * held. Not "every scale below it
  * too", as the margin rule's is: the receiver's damper alone leaves the
  * Extra's rock at 1.00 and 1.005 of Manual's, so no Heading near zero
  * holds, and on the Extra the yaw Heading worsens it from a twentieth to

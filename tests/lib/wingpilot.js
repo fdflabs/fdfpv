@@ -223,12 +223,16 @@ export function responseAt(sim, start, hold, w, axis, read) {
  * it, the magnitude times w. start and hold are responseAt's; read must
  * give the response its own sense (rising with the stick at low
  * frequency), the other sense throws. */
-export function crossoverFor(sim, start, hold, axis, read) {
+export function responseGrid(sim, start, hold, axis, read) {
   const grid = [];
   for (let i = 2; i <= 60; i += 1) grid.push({ w: i / 5, ...responseAt(sim, start, hold, i / 5, axis, read) });
   for (let i = 1; i < grid.length; i += 1) {
     grid[i].phase = grid[i - 1].phase + Math.atan2(Math.sin(grid[i].phase - grid[i - 1].phase), Math.cos(grid[i].phase - grid[i - 1].phase));
   }
+  return grid;
+}
+export function crossoverFor(sim, start, hold, axis, read) {
+  const grid = responseGrid(sim, start, hold, axis, read);
   if (grid[0].phase > Math.PI / 4 || grid[0].phase < -3 * Math.PI / 4) throw new Error(`crossoverFor: the response's phase at ${grid[0].w} rad/s is ${(grid[0].phase * 180 / Math.PI).toFixed(0)} deg, read has the wrong sense`);
   let best = null;
   for (const c of grid.filter((g) => g.w >= 0.8 - 1e-9 && g.w <= 4 + 1e-9)) {
@@ -243,6 +247,51 @@ export function crossoverFor(sim, start, hold, axis, read) {
   }
   if (best === null) throw new Error('crossoverFor: no frequency on the grid keeps the margin');
   return best;
+}
+
+/* The leads a person adds, s, flying an attitude and its rate together on
+ * an element that lags more than K / s near crossover (McRuer and Jex
+ * 1967; McRuer and Krendel, AGARDograph 188, 1974: the pilot Kp s e^-tau
+ * s on an acceleration element). */
+export const PERSON_LEADS = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
+
+/* The loop as flown at crossover wc with lead on a measured response grid
+ * ({ w, mag, phase } from 0.4 to 12 rad/s, the phase unwrapped): its
+ * margins and whether it keeps the criterion. */
+export function leadLoop(g, wc, lead) {
+  const c = g.find((x) => Math.abs(x.w - wc) < 1e-9);
+  const k = 1 / (c.mag * Math.hypot(1, lead * wc));
+  const L = g.map((x) => {
+    const i = wc / (4 * x.w);
+    return { w: x.w, mag: k * x.mag * Math.hypot(1, lead * x.w) * Math.hypot(1, i), phase: x.phase + Math.atan(lead * x.w) - x.w * TAU_PERSON - Math.atan(i) };
+  });
+  const cross = L.find((l) => l.w >= wc - 1e-9 && l.mag < 1) ?? L[L.length - 1];
+  const turn = L.find((l) => l.w > cross.w && l.phase <= -Math.PI);
+  const pmDeg = (Math.PI + cross.phase) * 180 / Math.PI;
+  const gmDb = turn ? -20 * Math.log10(turn.mag) : null;
+  const above = L.filter((l) => l.w > cross.w + 1e-9);
+  const meets = pmDeg >= 45 && (gmDb === null || gmDb >= 6) && above.every((l) => l.mag < 1 && (l.phase > -Math.PI || l.mag <= 0.5));
+  return { wc, gain: Number((c.mag * Math.hypot(1, lead * wc) * wc).toFixed(3)), lead, pmDeg: Number(pmDeg.toFixed(1)), gmDb: gmDb === null ? null : Number(gmDb.toFixed(1)), meets };
+}
+/* The design on a grid: the highest crossover (0.8 to 4 rad/s) and lead
+ * that keep the criterion; where none does, the one with the most gain
+ * margin at 45 deg of phase (or, where none reaches 45 deg, the most
+ * phase), marked short. */
+export function leadDesign(g, leads) {
+  let best = null;
+  let fallback = null;
+  for (const lead of leads) {
+    for (let i = 4; i <= 20; i += 1) {
+      const l = leadLoop(g, i / 5, lead);
+      if (l.meets && (!best || l.wc > best.wc || (l.wc === best.wc && l.pmDeg > best.pmDeg))) best = l;
+      const gm = l.gmDb ?? Infinity;
+      const better = !fallback || (l.pmDeg >= 45 ? fallback.pmDeg < 45 || gm > (fallback.gmDb ?? Infinity) : fallback.pmDeg < 45 && l.pmDeg > fallback.pmDeg);
+      if (better) fallback = l;
+    }
+  }
+  const pick = best ?? fallback;
+  const { meets, ...rest } = pick;
+  return { ...rest, short: !best };
 }
 
 /*
@@ -1855,66 +1904,84 @@ export function edgeRoll(s, b = 0) {
   return Math.max(-1, Math.min(1, -0.8 * e - 0.05 * s[11]));
 }
 /*
- * The roll mode a pilot adapts to, measured where the hold begins: a fifth
- * of aileron for 0.2 s from the state the gate is in, its roll rate p(t) =
- * A (1 - exp(-a t)) read at 0.1 and 0.2 s, giving the roll damping a
- * (1/s, the roll subsidence) and the aileron's roll acceleration per unit
- * stick, L = A a / 0.2, at the speed v0 it was measured at. stepFn(sticks)
- * steps the gate's sim one RC step and returns the state; throttle is the
- * gate's own.
+ * A person's hands holding the wings level through a stall, designed as
+ * every other person loop is (responseGrid and leadDesign, the bandwidth
+ * criterion's 45 deg and 6 dB on the airframe's own measured response):
+ * the bank on the ailerons at the two conditions the hold flies, the entry
+ * (wings level at `entry` m/s, the gate's approach to the stall, held at
+ * its attitude) and the stall itself (full up held `stallS` s from that
+ * entry, the mush the hold is judged in). A stalled wing's roll damping is
+ * a fraction of the attached wing's, so one gain sized on the entry's roll
+ * mode crosses far higher in the stall, past its margin, and rings (the
+ * Tiger Moth's T8a, 2026-10-13). Where the bank lags more than K / s at
+ * crossover, as it does stalled, the person adds lead, flying the bank and
+ * its rate together, as on the hover's tilt (leadDesign); where no
+ * crossover and lead keep the criterion, the best there is, marked short
+ * on .design. The person flies the entry's loop until they see the stall,
+ * the wing past alphaStall 0.2 s late (as faaPowerOnStall recognises it),
+ * and the stall's from then on: a gain schedule, the crossover model's
+ * adaptation to a changed controlled element (McRuer and Jex 1967). The
+ * loop is personLoop's, its trim carried across the switch so the stick
+ * does not jump. rudder(s) is the gate's rudder (none by default), duty
+ * its throttle; the pull is the same full up the gate holds, at `duty`
+ * (the entry at entryDuty, the gate's own, where it differs). Each
+ * condition is captured once from a flight the gate itself flies, then set
+ * again for every swept flight (responseAt), so the sweep's input clock
+ * starts at zero. Returns the hold, a function of the state and the
+ * plant's angle of attack called every RC_STEP_MS, with the two designs on
+ * .design.
  */
-export function rollMode(stepFn, throttle) {
-  const n1 = Math.round(100 / RC_STEP_MS);
-  let p1 = 0, p2 = 0, s = null;
-  for (let i = 1; i <= 2 * n1; i += 1) {
-    s = stepFn([0.2, 0, 0, throttle]);
-    if (i === n1) p1 = s[11];
-    if (i === 2 * n1) p2 = s[11];
-  }
-  const e = Math.min(0.99, Math.max(0.01, p2 / p1 - 1));
-  const a = -Math.log(e) / 0.1;
-  const A = p1 / (1 - e);
-  return { a, L: A * a / 0.2, v0: Math.hypot(s[4], s[5], s[6]) };
-}
-
-/*
- * A person's hands holding the wings level through a stall: the bank seen
- * 0.2 s late, the stick moved ten times a second in steps of a fiftieth of
- * its travel (hover-probe.js's pilot), and the gain the person adapts to
- * the aircraft's own roll mode (rollMode above): McRuer's crossover model
- * (McRuer and Jex, IEEE Trans. HFE 1967), the pilot and aircraft open loop
- * crossing over at 3 rad/s, the middle of the 2 to 4 rad/s a person flies
- * an attitude task at, where the 0.2 s delay leaves about 50 deg of phase
- * margin. With phi / stick = L / (s (s + a)), the gain is wc sqrt(wc^2 +
- * a^2) / L stick per radian of bank, with an integral as a hand trims a
- * steady torque. The person keeps adapting as the speed changes (the
- * crossover model's adaptation): L goes with the dynamic pressure and a
- * with the speed, from the mode measured at v0. Returns a function of the
- * state, called every RC_STEP_MS, that gives the aileron stick; .gain is
- * the gain at v0.
- */
-export const CROSSOVER_RAD_S = 3;
-export function personWingsHold({ a, L, v0 }) {
-  const wc = CROSSOVER_RAD_S;
-  const gainAt = (v) => {
-    const r = v0 > 0 && v > 0 ? v / v0 : 1;
-    return wc * Math.sqrt(wc * wc + a * a * r * r) / (L * r * r);
+export function stallWingsHold(sim, { entry, duty, entryDuty = duty, alphaStall, stallS = 5, rudder = () => 0, start = [0, 0, 300, 1, 0, 0, 0] }) {
+  const bankHold = (s) => Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11]));
+  const capture = () => {
+    const s = sim.readState().state;
+    return { pos: [s[1], s[2], s[3]], q: [s[7], s[8], s[9], s[10]], vel: [s[4], s[5], s[6]], om: [s[11], s[12], s[13]] };
   };
-  const k = gainAt(v0);
-  const eye = eyes({ stepMs: RC_STEP_MS });
-  let stick = 0, iBank = 0, ms = 0;
-  const hold = (s) => {
-    eye.push({ bank: fullBank(s), v: Math.hypot(s[4], s[5], s[6]) });
-    if (eye.looks(ms)) {
-      const d = eye.ago();
-      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * d.bank * 0.1));
-      const raw = Math.max(-1, Math.min(1, -gainAt(d.v) * d.bank + iBank));
-      stick = quant(raw);
-    }
+  let ms = fly(sim, { duty: entryDuty, vTarget: entry, seconds: 25, guard: false, speed0: entry, start }).endMs;
+  const atEntry = capture();
+  const theta0 = attitude(sim.readState().state).pitch;
+  for (let t = 0; t < stallS * 1000; t += RC_STEP_MS) {
+    const s = sim.readState().state;
+    must(sim.input(ms / 1000, bankHold(s), 1, rudder(s), duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
     ms += RC_STEP_MS;
+  }
+  const inStall = capture();
+  const setTo = (c) => () => {
+    must(sim.reset(), 'sim_reset');
+    must(sim.e.sim_set_pose(...c.pos, ...c.q), 'sim_set_pose');
+    must(sim.e.sim_wing_launch(Math.hypot(...c.vel)), 'sim_wing_launch');
+    must(sim.e.sim_set_velocity(...c.vel, ...c.om), 'sim_set_velocity');
+  };
+  const entryStart = setTo(atEntry);
+  const stallStart = setTo(inStall);
+  const trim = pitchTrim(sim, () => { entryStart(); return [0, 0, 0, entryDuty]; });
+  const holds = {
+    entry: (s) => [bankHold(s), Math.max(-1, Math.min(1, trim + 2.5 * (theta0 - attitude(s).pitch) + 0.25 * s[12])), rudder(s), entryDuty],
+    stall: (s) => [bankHold(s), 1, rudder(s), duty],
+  };
+  const read = (s) => fullBank(s);
+  const designAt = (start, h) => leadDesign(responseGrid(sim, () => { start(); return h(sim.readState().state); }, h, 0, read), PERSON_LEADS);
+  const design = { entry: designAt(entryStart, holds.entry), stall: designAt(stallStart, holds.stall) };
+  const eye = eyes({ stepMs: RC_STEP_MS });
+  let d0 = design.entry;
+  let loop = personLoop(d0.wc, d0.gain);
+  let stalled = false, stick = 0, t = 0;
+  const hold = (s, alpha) => {
+    eye.push({ bank: fullBank(s), p: s[11], alpha });
+    if (eye.looks(t)) {
+      const d = eye.ago();
+      if (!stalled && Math.abs(d.alpha) > alphaStall) {
+        stalled = true;
+        d0 = design.stall;
+        loop = personLoop(d0.wc, d0.gain, { u0: stick });
+      }
+      stick = quant(loop.step(-(d.bank + d0.lead * d.p)));
+    }
+    t += RC_STEP_MS;
     return stick;
   };
-  hold.gain = k;
+  hold.design = design;
   return hold;
 }
 
@@ -1928,7 +1995,7 @@ export function personWingsHold({ a, L, v0 }) {
  * AOA ... level the wings ... coordinate with rudder ... the throttle is
  * already at the climb power setting". The stall is recognised when the
  * wing passes alphaStall, acted on 0.2 s later (the person's delay,
- * personWingsHold's), then the elevator neutral, the wings on rudderLevel
+ * PERSON's), then the elevator neutral, the wings on rudderLevel
  * and the power kept. "With sufficient airspeed and control effectiveness"
  * the airplane is returned to its flightpath, so the wings are judged once
  * the speed is back to v0. Returns the stall's time (null if none), the
@@ -1998,8 +2065,8 @@ export function zagiPrelude(sim, { mu = 1.4, e = 0 } = {}) {
 /* Wings level on the roll stick, and the nose held at a pitch on the
  * elevons, gently: the Zagi answers a tenth of its stick. */
 /* trim, when given ({ i: 0 }, kept by the caller): the hand that trims a
- * steady moment out, as personWingsHold's, 0.2 of stick per radian of
- * error a second; without it the hold is the proportional one it was. */
+ * steady moment out, 0.2 of stick per radian of error a second (the
+ * wings hold's before stallWingsHold); without it the hold is the proportional one it was. */
 export function zagiHold(s, { bank = 0, pitch = 0, trim = null } = {}) {
   const a = attitude(s);
   const roll = Math.max(-1, Math.min(1, -1.0 * (a.bank - bank) - 0.08 * s[11]));

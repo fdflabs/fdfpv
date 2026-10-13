@@ -310,6 +310,42 @@ loop, aileron roll and 4-point roll are
 | Harrier, Inverted Harrier, Rolling Harrier | unproven | - | the 3D lane's: through the 0.2 s the height loop shuts the throttle as the nose rises and the wing stalls without its wash |
 | Waterfall | **unproven** (was flown) | - / - / - | **BIG FAILURE against the RealFlight bar**: not flyable on the measured slipstream (Deters, Ananda and Selig 2015). Data gap: no tail-plane survey behind a prop with a fuselage; the plant's static elevator authority at x/D 3 is FITTED and ESTIMATED. On the combined plant none of about 1000 flights is named; the elevator's static-wash authority leaves the pivot too slow, and inverted after the first half turn the yaw runs away to 7 rad/s with full right rudder (named a spin). On the seat alone, from 28 m/s, 87 of round 4's 175. Flown (round 4) on the Extra's Extreme elevator and aileron |
 
+### Round 10 (2026-10-13, w38-waterfall-recheck): the waterfall again
+
+Round 8's crossflow fix changed the regime the waterfall died in (the
+tail in the static jet, the yaw running away into a spin), so it was
+flown again on 7f03192c4. Still not flyable: named in none of 1,914
+(and none of 175 on the plant before round 8).
+
+| Flights | Aircraft (tiers) | Named | What it flew instead |
+|---|---|---|---|
+| round 4's 175 (rudder 0.1 to 0.2, aileron 0.6 to 1, wings 0 to 2), entered at ENTRY_V | Extra (Extreme) | 0 | half roll 51, spin 1 |
+| the same, from the 22 m/s level pass | Extra (Extreme) | 0 | spin 60, half roll 46, parachute 13 |
+| the same at ENTRY_V on the plant before round 8 | Extra (Extreme) | 0 | spin 81, half roll 18 |
+| Scott's throttle cut on the back side (cut from 0.3 to 0.6 of a turn, back at 0.8 to 1, to 0, 0.3 or 0.6), rudder 0.05 to 0.15, 432 | Extra (Extreme) | 0 | harrier 77, half roll 71, spin 44 |
+| round 4's 175, both entries | CAP (stock; it has no tiers) | 0 | harrier 175, rolls |
+| round 4's 175, both entries, and the 432 with the cut | Slick (Extreme) | 0 | rolls; spin 34 of 432 |
+
+- **The yaw is no longer the limit.** At ENTRY_V the spins fell from 81
+  of 175 to 1; through the pivot the yaw moments now balance (net within
+  0.3 N m), the nose turning right at 2 rad/s on 0.15 of right rudder.
+- **The pitch is.** The first half turn pivots at 5.6 to 6.4 rad/s at 5
+  m/s. Inverted at full power the aircraft then falls and speeds up, to
+  10 m/s within the turn, and the pivot decays to 2 rad/s: a loop, not a
+  pivot (the judge's pitchover wants 2.5 rad/s under 10 m/s). The nose up
+  moment is the elevator and stabiliser in the wash, -2.5 to -6.7 N m, and
+  the jet's normal force, -1 to -2; against it the free stream's, +4 to
+  +8.7 N m: at 5 m/s mostly the pitch damping (cm_q, about 2.7 of 4), at 10
+  m/s mostly the static stability at 60 deg of angle of attack (about 4.4
+  of 6.1). The throttle cut keeps the speed down but takes the wash, and
+  the elevator with it, so it does not pivot either.
+- **The open question** is the one round 6 named: the elevator's authority
+  in the static jet at x/D 3 is FITTED and ESTIMATED, with no tail survey
+  behind a prop with a fuselage; and the linear cm_q, taken at 50 to 80 deg
+  of angle of attack, is not checked against post stall rotary data. Either
+  could be what holds the pivot back. Unproven, a big failure against the
+  RealFlight bar, unchanged.
+
 ### Round 9 (2026-10-13, w38-line-aileron): the wings held on the lines
 
 The line hold flew no aileron (holdLine's rollStick 0), and round 8 lost

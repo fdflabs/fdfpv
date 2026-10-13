@@ -324,7 +324,7 @@ check: {
      * Heading and records the rock against Manual's; it judges only the
      * height (lead decision 2026-10-12). Since w38-as3x-travel the full
      * Heading is held by as3x:derive to E11b's kick on this harrier,
-     * 0.87 and 0.96 of Manual's when derived. */
+     * 0.71 and 0.70 of Manual's when derived on abd2b5d7b's plant. */
     must(sim.setHeading([1, 1, 1]), 'sim_wing_set_heading');
     const g = harrier(3);
     must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');

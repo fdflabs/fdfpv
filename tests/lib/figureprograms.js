@@ -341,9 +341,9 @@ const POINT_LEAD = 0.35;
  * 200 its 2-point, 550 and over the Slick's 8-point.
  */
 export const POINT_STOP = {
-  [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.341 },
-  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.048 },
-  [SLICK_AIRFRAME]: { wc: 2.8, gain: 5.188 },
+  [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.353 },
+  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.198 },
+  [SLICK_AIRFRAME]: { wc: 2.6, gain: 5.192 },
 };
 export const POINT_HOLD_MS = 400;
 /* The point's stop as the person flies it: e is the roll still to go to
@@ -399,10 +399,10 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 13.731 },
-  elevation: { wc: 0.8, gain: 1.079 },
+  bank: { wc: 2, gain: 13.785 },
+  elevation: { wc: 0.8, gain: 1.065 },
   heading: { wc: 2, gain: 6.041 },
-  trim: { rudder: 0.38, elevation: 0.187, speed: 32.9 },
+  trim: { rudder: 0.38, elevation: 0.188, speed: 32.9 },
 };
 const G = 9.80665;
 const knife = (ms) => ({
@@ -492,7 +492,7 @@ const knife = (ms) => ({
  * turn) the Extra did not finish the loop and reached the ground in all
  * four. It lets go 0.3 s of the path's rate early.
  */
-export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.972 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.959 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const knifeLoop = () => ({
   name: 'knife loop',
@@ -640,13 +640,13 @@ const rollingCircle = (rolls, rate = 1.6) => ({
  */
 export const HOVER = {
   [EXTRA_AIRFRAME]: {
-    pitch: { wc: 3, gain: 5.179, lead: 0.35 }, yaw: { wc: 2.8, gain: 5.352, lead: 0.3 }, roll: { wc: 2.4, gain: 7.632 }, climb: { wc: 1.8, gain: 34.935 }, torque: -3.31,
+    pitch: { wc: 3, gain: 5.179, lead: 0.35 }, yaw: { wc: 2.8, gain: 5.345, lead: 0.3 }, roll: { wc: 2.4, gain: 7.632 }, climb: { wc: 1.8, gain: 34.935 }, torque: -3.31,
   },
   [CAP_AIRFRAME]: {
-    pitch: { wc: 3, gain: 4.063, lead: 0.5 }, yaw: { wc: 1, gain: 2.591, lead: 0.5 }, roll: { wc: 3, gain: 7.059 }, climb: { wc: 1.8, gain: 33.447 }, torque: -3.29,
+    pitch: { wc: 3, gain: 4.063, lead: 0.5 }, yaw: { wc: 1, gain: 2.881, lead: 0.5 }, roll: { wc: 3, gain: 7.021 }, climb: { wc: 1.8, gain: 33.447 }, torque: -3.29,
   },
   [SLICK_AIRFRAME]: {
-    pitch: { wc: 2.6, gain: 2.366, lead: 0.5 }, yaw: { wc: 1.8, gain: 1.646, lead: 0.5 }, roll: { wc: 2.8, gain: 2.451 }, climb: { wc: 0.8, gain: 22.584 }, torque: -2.31,
+    pitch: { wc: 2.6, gain: 2.366, lead: 0.5 }, yaw: { wc: 1.8, gain: 1.628, lead: 0.5 }, roll: { wc: 2.8, gain: 2.476 }, climb: { wc: 0.8, gain: 22.584 }, torque: -2.31,
   },
 };
 /* The drift's tilt and the height's climb rate a person asks for at most:
