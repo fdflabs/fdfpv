@@ -129,25 +129,27 @@ with lobby.ai_race_note as its note.
 
 ## Cost, measured (2026-10-13, this desktop, Node 22)
 
-Three fresh processes each, process CPU (process.cpuUsage, which counts
+Three fresh processes each, in two sittings an hour apart whose numbers
+differ by up to 30 percent with what else the desktop ran (the slower
+second, same code), process CPU (process.cpuUsage, which counts
 V8's compiler and collector threads: on the VM's one core they compete
 for the same core), tests/fixtures/map-track-v4.json stood on the swiss2
 ground at 8 m/s, two laps:
 
-- **Flying**: 3.4 to 3.6 ms of CPU per AI seat per second flown with three
+- **Flying**: 3.4 to 4.6 ms of CPU per AI seat per second flown with three
   seats, 4.2 to 4.4 with one (the room's tick, judge and pose bytes
-  included); a 33 ms room tick with three AI racers took at most 2.1 to
-  3.6 ms. aipilot:harness's opponent alone is 2.0 ms (477 ms for 233 s).
-- **Before the first race on a track and level**: 0.64 s of wall and
-  about 1.0 s of CPU to find and prove the ghost, once per process, of
-  which the longest single block of the event loop, the reference lap
-  flown in one loop (tests/lib/aireference.js fly), was 323 to 332 ms:
+  included); a 33 ms room tick with three AI racers took at most 1.4 to
+  4.0 ms. aipilot:harness's opponent alone is 2.0 ms (477 ms for 233 s).
+- **Before the first race on a track and level**: 0.64 to 0.88 s of wall
+  and 1.0 to 1.35 s of CPU to find and prove the ghost, once per process,
+  of which the longest single block of the event loop, the reference lap
+  flown in one loop (tests/lib/aireference.js fly), was 323 to 454 ms:
   every room in the process stalls that long. The proof flies in 2 s
   slices and yields between them. Seating a racer's plant after that:
   1 to 3 ms.
 - **The VM**: one core, slower than this one. Its figure is the lead's
   to measure before a public room fills with AI racers; at this desktop's
-  rate three AI seats are about 1 percent of a core.
+  rate three AI seats are 1.0 to 1.4 percent of a core.
 
 ## What it does NOT do
 
