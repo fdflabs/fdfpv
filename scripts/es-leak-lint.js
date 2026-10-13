@@ -74,7 +74,7 @@ const STAND_INS = new Set([
   'OWLS', 'Two pilots in the room.', 'No room', 'Make one or join one.', 'Off', 'Nobody is watching.', 'Best lap', 'Your best, beside you.', 'Room',
   'Leave the room', 'Back to flying alone.', 'The code.', 'Start the race', 'Everybody is ready.', 'Rejoin', 'OWLS is still open.',
   'Room results', 'rows of rooms', 'rows of roomnew', 'Rooms panel home=true', 'Rooms panel home=false', 'bench row',
-  'Storage refused the save.', 'Hung track', 'No author', 'Nameless', 'Old world', 'Valley run', 'Barn loop', 'Empty field', 'One gate', 'Callsign', 'Ace Pilot', 'A fine card.', 'Stand-in GPU 9000', 'Bando', 'Saved before creative mode',
+  'Storage refused the save.', 'Hung track', 'No author', 'Nameless', 'Old world', 'Valley run', 'Barn loop', 'Empty field', 'One gate', 'Callsign', 'Ace Pilot', 'A fine card.', 'Stand-in GPU 9000', 'Bando', 'Saved before creative mode', 'Joystick 1, Xbox',
 ]);
 
 function dump(locale) {

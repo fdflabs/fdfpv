@@ -31,7 +31,7 @@ a week or more) and its phase (PLAN.md section 5).
 means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
-**Counts over the 83 items with a verdict:** 30 EXISTS, 43 PARTIAL, 7
+**Counts over the 83 items with a verdict:** 32 EXISTS, 41 PARTIAL, 7
 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -554,31 +554,27 @@ airframe drawn), `itaipu:spawns`. Phase 12 adds `airframes:check`.
 
 ## 10. Words (items 38 to 39)
 
-**38. Localization readiness. PARTIAL, words BUILT (phase 24).** English
-and Spanish (src/strings/en.js, es.js); `strings:selftest` (CI) holds
-parity, placeholders and plurals; `lint:copy` (CI) fails on prose outside
-the tables and, since 2026-10-13, on a label of one capitalised word that
-is not compared against (isWord, with key names, proper names, units and
-two ids excused by name, and 13 fixed samples first). The loader's stage
-names and every one word label it found are keys; loading.js is scanned
-again. Trick names are proper names by decision (copy-lint.js
-`EXCUSED`). Left: `ReplayFileError`'s 95 messages (src/replay/file.js),
-shown inside a translated line (src/replay/editor.js); the proposal is a
-key per pilot reason (not a replay, too large, a newer version, an
-aircraft or map this build lacks, damaged) with the detail kept in
-English for the log. Size S.
+**38. Localization readiness. BUILT (phase 24).** English and Spanish
+(src/strings/en.js, es.js); `strings:selftest` (CI) holds parity,
+placeholders and plurals; `lint:copy` (CI) fails on prose outside the
+tables and on a label of one capitalised word that is not compared
+against (isWord: key names, proper names, units and a few ids excused by
+name, 13 fixed samples first). A refused replay says why in the pilot's
+language, one key per reason (src/replay/file.js REFUSALS: not a replay,
+too large, a version this build cannot read, an aircraft or map it lacks,
+damaged), the English detail kept for the log; `crashcam:selftest`
+proves each. Trick names, and a pad's Pitch and Roll key caps, are
+proper names by decision.
 
-**39. Text expansion. CHECKED (phase 24), not fixed.** `lint:devices`
-walks every device in English and Spanish, and `modes:card` page H opens
-home, Flight Club and a lobby with ?lang=es at four sizes; both fail on a
-cut word (text running past the box that clips it, an ellipsis included),
-after a word cut on purpose is found. Both are red with what they find,
-most of it in English too: the menu's stepper values (camera angle "5
-deg..." on every device, the lobby's Round "3 min"), the GPU name, the
-pids percent signs, the FC bench's names, How to fly's tabs on a phone,
-the lobby's room name, Solo and Back; in Spanish alone at 360 also Arcade,
-Reducida, Normal, Modo 4, Aviónica and Todavía sin volar. The fixes are
-the menu rows' and the lobby's.
+**39. Text expansion. BUILT (phase 24).** `lint:devices` walks every
+device in English and Spanish and `modes:card` page H opens home, Flight
+Club and a lobby with ?lang=es at four sizes; both fail on a cut word
+(text past the box that clips it, an ellipsis included) after one cut on
+purpose is found, and both run in CI on shard-3. What they found was
+fixed in the layout: menu rows wrap a control under its label and a
+value onto two lines rather than cut them, the phone's command bar
+comes down a step, and on a touch phone home's hub links stay 44 px and
+the hubs scroll.
 
 ## 11. Comfort, audio, graphics (items 40 to 47)
 
@@ -628,21 +624,33 @@ beside it. No Ultra: high is the top this renderer has. Check:
 `lint:quality` (local).
 
 **45. Resolution scaling. EXISTS.** Render scale 100, 85, 70, 55
-(ui.js 387) and a dynamic pacer that holds 60 frames per second by
-scaling the internal buffer, with CPU bound detection
-(src/render/pace.js, `TARGET_HZ = 60`). No check holds the pacer; phase 29
-adds one.
+(ui.js 387) and a dynamic resolution pacer that holds the GPU to the
+owner's 90 frames per second by scaling the internal buffer, with a
+check that a step bought its time back (src/render/dynres.js,
+`TARGET_HZ = 90`; there is no src/render/pace.js). What it floors is the
+render scale (0.75 Balanced, 0.5 Performance), not a frame rate: no 30
+fps floor is defined (item 71). No check holds the pacer: phase 29 did
+not add one, because its frame times on this box's shared card measure
+the other lanes (docs/BUDGETS.md: alps-low at Low 49 ms a frame with the
+card 100 % busy, 6.1 ms at 25 %). A pacer check needs a quiet card.
 
-**46. Performance budgets. PARTIAL.** Written: 300 draw calls, 2.5 M
-triangles, never under 60 fps at 1080p on a five year old mid range laptop
-(docs/ITAIPU-PLAN.md 570, docs/SWISS2-LOOP.md 28, src/render/budget.js 4).
-Enforced only for Itaipu's views (`BUDGET`, scripts/itaipu-views.js 211,
-local) and the damage shots; verify compares a round trip with its own
-boot, not an absolute. Nothing for the menu, the Alps or the valley, no
-AI count or texture memory line. **Done:** one budget table in
-a new docs/BUDGETS.md (menu, each world, war at full load: calls,
-triangles, texture MB, attackers, peers), each row held by a local check
-that fails over it. Size M. Phase 29.
+**46. Performance budgets. PARTIAL.** docs/BUDGETS.md is one table:
+the menu (`title`), each world (`alps-low`, `swiss-low`, `itaipu-stream`,
+`interior-ops`) and the war at full load (`itaipu-war`), at Low, Medium
+and High, measured on this box 2026-10-13. Draw calls, triangles, live
+textures and the GPU floor are held at a ceiling set from the
+measurement beside it by `perf -- --budgets` (scripts/perf-play.js,
+local: one run per tier, an Itaipu set peaks at 4.3 GB); frame times
+are written with the card's busy share beside them and never held. At
+High the menu and the alps (390 to 397 calls), swiss2 (350 calls, 3.77
+M triangles), Itaipu's town (5.65 M) and the war (3.03 M) are over the
+written contract of 300 calls and 2.5 M triangles (docs/ITAIPU-PLAN.md
+570, src/render/budget.js 4); the ceilings hold today's cost, not the
+contract. Missing: texture megabytes (three counts textures, not their
+bytes), attackers and peers. **Done:** texture bytes summed off the live
+textures, the war's attacker count and a second pilot (a Node peer on
+the room socket, docs/PERF.md "Not measured") as columns, held the same
+way; the High rows brought under the contract. Size M. Phase 30.
 
 **47. Object pooling. EXISTS.** Explosions, debris, breakage pieces,
 smoke, attackers and war markers are fixed pools or instanced meshes that
@@ -665,19 +673,32 @@ chunked quadtree LOD (src/maps/terrain/engine.js) over height tiles
 fetched under a byte ceiling (src/maps/terrain/tiles.js). The valley and
 the Alps load whole. Checks: `itaipu:check` (local), `grid:check`.
 
-**50. Spawn safety. PARTIAL.** Itaipu's spawns are checked offline:
-every spawn settles undamaged 2 s after start, every seat of an eight
-pilot room settles, courses too (scripts/itaipu-spawns-check.js,
-`itaipu:spawns`, local); seats are 8 m apart (src/game/slots.js). No such
-check for the valley or the Alps, and nothing at run time. **Done:**
-`itaipu:spawns` generalised to every world and every mode's spawn list.
-Size S. Phase 29.
+**50. Spawn safety. PARTIAL.** Every start on every buildable world is
+checked: the map's own, spawnFor's answer per kind and `?spawn=` wish,
+each float start, each moved to all eight room seats, and the pilots'
+stations, read off the seated map's height, water and colliders: above
+the ground and not covered, dry (on the water for a float), clear of
+solids, facing a 1 in 4 climb out clear for 150 m, with negative
+controls per world (scripts/world-spawns-check.js, `world:spawns`, CI,
+123 checks in 55 s). It found Itaipu's room stations under the dam
+(200 to 219 m); the crest start now carries its own station line
+(src/maps/itaipu/spawns.js, src/game/slots.js). Itaipu's starts also
+settle undamaged in the plant, its seats and courses too
+(`itaipu:spawns`, local). Missing: race starts of tracks built in the
+valleys (src/builder/course.js startFor, src/game/trackdoc.js). **Done:**
+`world:spawns` reads a seated track's start too. Size S. Phase 30.
 
-**51. Camera collision. PARTIAL.** The FPV and chase cameras are clamped
-above the terrain (main.js 15419, 15682), not against buildings, walls
-or the dam. **Done:** the chase camera pulls in along a ray to the craft
-against the world's collision boxes (the obstacles the plant already
-has). Check: a local shot at the dam's face. Size M. Phase 29.
+**51. Camera collision. EXISTS.** The chase camera, a wing's, a
+wreck's and the one behind a watched peer, pulls in along the line to
+the craft until it is 0.4 m clear of every solid the plant meets
+(src/render/chasearm.js pullIn, after the smoothing in src/main.js
+chaseCamera and watchCamera); a craft nearer a solid than that lends the
+camera its own gap, so a plane parked on a deck keeps its arm. Above the
+ground and the roofs it is clamped as before. Checks:
+`chasearm:selftest` (CI, real colliders, each case proven wrong
+unfixed), `chase:walls` (local: the plane by a wall on the alps and by
+the dam on Itaipu; with the fix removed it fails, the line 0.00 m from
+the wall).
 
 **52. Respawn logic. EXISTS**, per mode as the checklist asks: combat
 tops up paper, unlimited (combat.js 26); the war spends an airframe per
@@ -687,14 +708,19 @@ itself and the server accepts the voided lap (race.js 327); a teleport is
 `FLAG_SPAWNING` for 5 s. Checks: `combat:restart`, `combat:harness`,
 `war:harness` (CI).
 
-**53. Boundary handling. PARTIAL.** Past each world's edge there is a
-landable apron (src/maps/terrain/apron.js), so nothing falls out of the
-world; but there is no warning, no prompt, no defined end. **Done:** one
-rule for every world: past its playable radius (a field in the registry
-row) the HUD says "Turn back" with a bearing home, and past twice that
-radius the craft is reset to its spawn after a five second notice. No
-invisible wall. Check: a Node test of the rule on the registry's radii.
-Size S. Phase 29.
+**53. Boundary handling. EXISTS.** One rule for every world
+(src/game/edges.js, src/main.js edgeFrame): past the world's playable
+square the banner says turn back with the start's bearing and distance,
+past twice it a five second notice and then the R key's own reset,
+called off by coming back inside. No wall and no force. The squares are
+3000 m for the alps and swiss2 (the valley's field), 10240 m for Itaipu
+(half its data) and 8000 m for the Interior (its play area), squares
+because every world's data is one; past each is ground (far range,
+apron). A live operation keeps its own boundary instead (edge/rooms/
+ops.js `BOUNDARY_MS`). Strings `edge.turn_back`, `edge.leaving`, en and
+es. Checks: `edges:selftest` (CI: each square against its source
+constant, twice it inside what the world draws, the rule with
+controls), `edges:page` (local, the alps).
 
 **54. Anti-frustration. EXISTS.** R resets (main.js 12962), X unsticks
 in place (12974), turtle mode rights a flipped quad from the arrows
@@ -850,13 +876,17 @@ a pad, a low end GPU, a high refresh display). **Done:** a table in
 docs/DEVICES.md, one row per device and date, filled when someone flies
 one; the owner's machines and the Pocket first. Size S. Phase 30.
 
-**71. Frame-rate targets. PARTIAL.** A target exists: 60 frames per
-second at 1080p on a five year old mid range laptop (budget.js 4,
-ITAIPU-PLAN.md 570), and the pacer holds it (pace.js). No minimum
-playable or recommended machine is written. **Done:** the three lines in
-docs/BUDGETS.md beside item 46's budgets: minimum 30 (the pacer's
-floor), target 60, recommended the reference laptop named. Size S. Phase
-29.
+**71. Frame-rate targets. PARTIAL.** Two targets are written: the
+owner's 90 frames per second, which the dynamic resolution holds
+(src/render/dynres.js `TARGET_HZ = 90`, perf-play.js `BUDGET_MS`), and 60
+at 1080p on a five year old mid range laptop (budget.js 4, ITAIPU-PLAN.md
+570). Both are in docs/BUDGETS.md. No minimum is defined (the pacer
+floors the render scale, not frames per second) and no reference
+machine is named; the tiers name eras only (Low "Steam Deck and similar
+handhelds", Medium "a 2020-era laptop with integrated graphics", High
+"a 2021-era PC or a strong laptop"). **Done:** the owner's decision on a
+minimum frame rate and a named recommended machine, written in
+docs/BUDGETS.md. Owner decision pending. Size S. Phase 29.
 
 ## 17. Progression and groups (items 72 to 77)
 

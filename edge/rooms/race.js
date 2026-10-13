@@ -22,7 +22,8 @@
  * What the room sends: { type: 'track', track } to everybody when the host
  * loads one, { type: 'race', race } (the whole race, small) whenever it
  * changes, and each pass relayed as { type: 'event', kind, seat, ... } to
- * the others. A joiner gets the track and the race in its welcome.
+ * the others; the watchers get all of it too (core.js watch). A joiner
+ * gets the track and the race in its welcome, a watcher too.
  *
  * TIMES. goAt is room clock ms (edge/rooms/core.js roomMs). A racer's
  * times are ms since goAt on the same clock, measured by the racer: the
@@ -212,8 +213,7 @@ export class RoomRace {
   }
 
   broadcast(core, msg) {
-    const data = JSON.stringify(msg);
-    return [...core.seats.keys()].map((conn) => ({ send: conn, data }));
+    return core.everyone(JSON.stringify(msg));
   }
 
   changed(core) {
@@ -339,13 +339,8 @@ export class RoomRace {
       return [];
     }
     r.progress[s.seat] = p;
-    const out = [];
-    for (const other of core.seats.keys()) {
-      if (other !== conn) {
-        out.push({ send: other, data: JSON.stringify({ type: 'event', kind: msg.kind, seat: s.seat, race: r.id, ...p }) });
-      }
-    }
-    return out;
+    /* The watchers too: the laps moving in their standings. */
+    return core.roster(conn, JSON.stringify({ type: 'event', kind: msg.kind, seat: s.seat, race: r.id, ...p }));
   }
 
   finish(core, s, msg, now) {

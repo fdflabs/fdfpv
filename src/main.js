@@ -88,6 +88,7 @@ import { FreestyleScore, formatScore } from './game/score.js';
 import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
 import { formatRunClock, lengthText } from './ui/format.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
+import { AiOpponent, seatOpponent } from './game/aiopponent.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
@@ -315,7 +316,7 @@ const WING_MOUNTS = {
  * a wing, so the title never shows a seaplane parked on grass. */
 const TITLE_CRAFT = 'sky1800';
 import { disposeSceneGraph, shareInstancedDepth } from './render/shell.js';
-import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
+import { normaliseRates, RATE_DEFAULTS, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
@@ -6719,10 +6720,12 @@ export async function boot({
 
   /* Where the room flies now: its world, on its track when it has one
    * there, except in the games played in free flight. Combat is flown
-   * wherever the room is, so its rounds never move anybody off a track. */
+   * wherever the room is, so its rounds never move anybody off a track.
+   * A watcher is never seated on the track: its own hidden aircraft would
+   * time laps, pass gates and keep records of a race it is not in. */
   function roomTarget(w) {
     const t = roomRace.track();
-    const free = roomTag.on() || roomJam.on() || roomWar.on();
+    const free = roomTag.on() || roomJam.on() || roomWar.on() || Boolean(w.watch);
     return { world: w.map, track: t && t.map === w.map && !free ? t : null };
   }
   const roomTargetKey = (t) => `${t.world}|${t.track ? t.track.id : ''}`;
@@ -7733,7 +7736,7 @@ export async function boot({
     }
     return true;
   };
-  devHooks.__roomJoin = (code) => roomLinkState.join(code);
+  devHooks.__roomJoin = (code, opts) => roomLinkState.join(code, opts);
   devHooks.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
   devHooks.__roomSay = (kind, id) => roomSafety.say(kind, id);
   devHooks.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
@@ -8411,7 +8414,7 @@ export async function boot({
   function roomRaceFrame(now, wallMs) {
     if (wallMs > roomRaceCheckAt) {
       roomRaceCheckAt = wallMs + 500;
-      roomRace.ready(roomTrackReady());
+      roomRace.ready(roomTrackReady(), now);
     }
     const start = roomRace.takeStart(now);
     if (start) {
@@ -9238,7 +9241,7 @@ export async function boot({
    * its data (Best before any lap is closed) and then simply chases nothing
    * until a lap exists. A board choice is armed only once its lap is here. */
   function chosenLap() {
-    if (!chaseAllowed() || ghostChoice === 'off') {
+    if (!chaseAllowed() || ghostChoice === 'off' || ghostChoice === AI_CHOICE) {
       return null;
     }
     if (!ghostChoice.startsWith('board:')) {
@@ -9265,6 +9268,7 @@ export async function boot({
       { id: 'off', label: str('ui.off') },
       { id: 'best', label: str('main.your_best_this_session') },
       { id: 'previous', label: str('main.your_previous_lap') },
+      { id: AI_CHOICE, label: str('main.ai_opponent') },
       ...rivals,
     ];
   }
@@ -9273,6 +9277,9 @@ export async function boot({
   function ghostRowNoteText() {
     if (ghostChoice === 'off') {
       return str('main.nobody_to_chase_laps_still_record');
+    }
+    if (ghostChoice === AI_CHOICE) {
+      return opponentNote();
     }
     if (ghostChoice.startsWith('board:')) {
       if (boardFetch) {
@@ -9310,7 +9317,9 @@ export async function boot({
 
   function pickGhost(id) {
     ghostChoice = id;
-    if (SESSION_MODES.includes(id)) {
+    if (id === AI_CHOICE) {
+      pickOpponent();
+    } else if (SESSION_MODES.includes(id)) {
       ui.settings.ghost = id;
       ui.persistSettings();
     } else if (!ghostBoardLap || `board:${ghostBoardLap.timeId}` !== id) {
@@ -9375,6 +9384,7 @@ export async function boot({
    * reached the row offers the session modes and nothing breaks.
    */
   function ghostCourseChanged() {
+    dropOpponent();
     ghostRecorder.abort();
     ghostLap = null;
     ghostChased = null;
@@ -9463,6 +9473,9 @@ export async function boot({
     recordPose(simNow - race.lapStartMs, pCurr, qPrev);
     if (opened) {
       armGhost();
+      if (ghostChoice === AI_CHOICE && !aiOpp) {
+        startOpponent();
+      }
     }
   }
 
@@ -9505,9 +9518,192 @@ export async function boot({
     }
   }
 
+  /*
+   * THE AI OPPONENT (src/game/aiopponent.js, docs/redesign/PLAN.md 18): the
+   * Ghost row's AI opponent choice races a lap with a pilot of its own on a
+   * plant of its own, through this course's ground and solids, instead of
+   * drawing the lap as a pacer. Solo, quads only (its pilot flies a quad
+   * in ANGLE mode). Its lap: the board lap fetched for the course, else
+   * the pilot's own best this session; a lap with a cut in it (a crash's
+   * recovery jump) is not one it can fly. Its plant is seated and its
+   * sticks learnt (a tenth of a second) when it is chosen and at a run's
+   * reset when the aircraft or pack changed, never at a lap; it starts from a
+   * hover on the line when the pilot's lap opens and flies on the pilot's
+   * own sim clock, so a frame's length changes nothing about it. Its own
+   * Race keeps its laps off the pilot's record, the ghost recorder, the
+   * event log and the progress (docs/AI-PILOTS-CONTRACT.md).
+   */
+  const AI_CHOICE = 'ai';
+  let aiOpp = null;
+  let aiOppStartMs = 0;
+  let aiSeat = null;
+  let aiRig = null;
+  let aiRigAirframe = '';
+  const aiPos = new THREE.Vector3();
+  const aiQuat = new THREE.Quaternion();
+  const aiNormal = new THREE.Vector3();
+  const aiWorld = {
+    toSim: (x, y, z, out) => worldPosToSim(x, y, z, out),
+    dirToSim: (x, y, z, out) => worldDirToSim(x, y, z, out),
+    fromSim: (st, out) => {
+      poseFromState(st, aiPos);
+      out.x = aiPos.x;
+      out.y = aiPos.y;
+      out.z = aiPos.z;
+      return out;
+    },
+    worldQuat: (st, out) => {
+      simQuatToThree(st[7], st[8], st[9], st[10], aiQuat).premultiply(qSpawn);
+      out.x = aiQuat.x;
+      out.y = aiQuat.y;
+      out.z = aiQuat.z;
+      out.w = aiQuat.w;
+      return out;
+    },
+    floorHeight: (x, z, fromY) => floorHeight(x, z, fromY),
+    groundNormal: (x, z, fromY, out) => {
+      sampleGroundNormal(x, z, fromY, aiNormal);
+      out.x = aiNormal.x;
+      out.y = aiNormal.y;
+      out.z = aiNormal.z;
+      return out;
+    },
+    colliders: () => view.colliders,
+  };
+
+  function opponentAllowed() {
+    return chaseAllowed() && !roomRun() && !airframeById(runAirframe).fixedWing;
+  }
+
+  function opponentLap() {
+    const lap = ghostBoardLap || ghostBook.best(ghostCourseKey());
+    return lap && !lap.cut.includes(1) ? lap : null;
+  }
+
+  function opponentNote() {
+    if (airframeById(runAirframe).fixedWing) {
+      return str('main.ai_opponent_quads_only');
+    }
+    const lap = opponentLap();
+    return lap
+      ? str('main.ai_opponent_races', { formatTime: formatTime(lap.durationMs) })
+      : str('main.ai_opponent_needs_a_lap');
+  }
+
+  /* The opponent's plant for the seat flown now, seated and learnt once
+   * per aircraft and pack; a board lap for it when the course has one. */
+  const opponentKey = () => `${runAirframe}:${runVoltage}`;
+  function pickOpponent() {
+    if (!opponentAllowed()) {
+      return;
+    }
+    const af = airframeById(runAirframe);
+    const key = opponentKey();
+    if (!aiSeat || aiSeat.key !== key) {
+      const seat = { key, seated: null };
+      aiSeat = seat;
+      fetchTuneText(af.defaultTune)
+        .then((text) => seatOpponent(() => simBytes.then(loadSim), {
+          simId: af.simId,
+          tuneText: composeConfig(text, RATE_DEFAULTS, RATES_KEEP),
+          gravity: af.gravityBase,
+          cellVoltage: runVoltage,
+          rates: RATE_DEFAULTS,
+        }))
+        .then((seated) => {
+          seat.seated = seated;
+          syncGhostRow();
+        })
+        .catch((e) => {
+          console.warn('AI opponent: the plant could not be seated', e);
+          if (aiSeat === seat) {
+            aiSeat = null;
+          }
+        });
+    }
+    const first = ghostBoardTimes && ghostBoardTimes[0];
+    if (first && !ghostBoardLap && !boardFetch) {
+      fetchBoardLap(first.id);
+    }
+  }
+
+  function startOpponent() {
+    const lap = opponentLap();
+    /* A plant seated for another aircraft or pack waits for the next run,
+     * whose reset seats it again: never in flight. */
+    const seated = aiSeat && aiSeat.key === opponentKey() ? aiSeat.seated : null;
+    if (!opponentAllowed() || !lap || !seated) {
+      return;
+    }
+    /* The pilot's own referee's gates, in its flying order, handed over
+     * with their axes so the opponent's Race reads the same stations. */
+    const gates = race.gates.map((g, k) => ({
+      position: { x: g.x, y: g.y, z: g.z },
+      axes: { across: g.ax, up: g.ay, travel: g.az },
+      apertures: g.apertures,
+      flyOrder: k,
+      kindName: g.kindName,
+      virtual: g.virtual,
+    }));
+    aiOpp = new AiOpponent({ seated, lap, gates, trackClass: 'full', world: aiWorld });
+    aiOppStartMs = simTimeMs;
+    if (!aiRig || aiRigAirframe !== runAirframe) {
+      if (aiRig) {
+        if (aiRig.group.parent) {
+          aiRig.group.parent.remove(aiRig.group);
+        }
+        disposeSceneGraph(aiRig.group);
+      }
+      aiRig = buildGhostCraft(runAirframe);
+      aiRigAirframe = runAirframe;
+      shell.keepAcrossMaps(aiRig.group);
+    }
+    aiRig.setLabel(str('main.ai_opponent'));
+  }
+
+  function dropOpponent() {
+    aiOpp = null;
+    if (aiRig) {
+      aiRig.setPresence(0);
+    }
+  }
+
+  /* After the pilot's plant has stepped: the opponent flies on to the same
+   * sim clock (it waits while the pilot's clock waits) and is drawn. */
+  function opponentFrame() {
+    if (!aiOpp || !aiRig) {
+      return;
+    }
+    if (mode === 'flight') {
+      aiOpp.stepTo(simTimeMs - aiOppStartMs);
+    }
+    aiWorld.fromSim(aiOpp.state, aiRig.group.position);
+    aiWorld.worldQuat(aiOpp.state, aiRig.group.quaternion);
+    aiRig.setPresence(mode === 'flight' || mode === 'paused' || mode === 'results' ? 1 : 0);
+    const scene = shell.quad.parent;
+    if (scene && aiRig.group.parent !== scene) {
+      scene.add(aiRig.group);
+    }
+  }
+
+  function opponentResultNote() {
+    if (!aiOpp) {
+      return null;
+    }
+    const laps = aiOpp.laps();
+    if (!laps.length) {
+      return str(aiOpp.crashed ? 'main.ai_opponent_crashed' : 'main.ai_opponent_no_lap', { laps: plural('count.laps', 0) });
+    }
+    const vars = { laps: plural('count.laps', laps.length), formatTime: formatTime(aiOpp.bestMs()) };
+    return str(aiOpp.crashed ? 'main.ai_opponent_crashed' : 'main.ai_opponent_result', vars);
+  }
+
   /* The results line about the ghost the last lap was flown against, or
    * null: level within 10 ms, else who was ahead and by how much. */
   function ghostResultNote() {
+    if (ghostChoice === AI_CHOICE) {
+      return opponentResultNote();
+    }
     const best = ghostChased ? race.bestLapMs() : null;
     if (best == null) {
       return null;
@@ -12957,6 +13153,19 @@ export async function boot({
       throw new Error(`sim_set_air_vertical refused ${up}: ${simErrorName(codeUp)}`);
     }
   }
+  /* The gusts' clock at the run's start (sim_set_wind_clock), whole ms:
+   * the room's, so every pilot in the room meets the same gust at the same
+   * room millisecond; solo, 0, the plant's own. Set once at every windy
+   * run's start, whatever the plant held (a replay's take over puts back the
+   * recorded one); a calm run makes no call, its gusts are none. */
+  let gustClockMs = 0;
+  function setWindClock(ms) {
+    const code = sim.e.sim_set_wind_clock(ms);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_wind_clock refused ${ms}: ${simErrorName(code)}`);
+    }
+    gustClockMs = ms;
+  }
   let weatherT0 = 0;
   let weatherFlown = null;
   function seatWeather() {
@@ -12974,6 +13183,10 @@ export async function boot({
     /* null until the room's clock has synced: the run's own clock then. */
     const roomMs = welcome ? roomLinkState.roomNow() : null;
     weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
+    const gustMs = Number.isFinite(roomMs) ? Math.floor(roomMs) : 0;
+    if (weather) {
+      setWindClock(gustMs);
+    }
     weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
       setWind(0, 0, 0, 0);
@@ -13082,7 +13295,7 @@ export async function boot({
     const wind = Array.from(new Float64Array(sim.e.memory.buffer, held, 2));
     sim.e.free(held);
     return {
-      roomMs: roomLinkState.roomNow(), t: airT, step: stateCurr ? stateCurr[0] : null, pos: [airPos.x, airPos.y, airPos.z],
+      roomMs: roomLinkState.roomNow(), t: airT, step: stateCurr ? stateCurr[0] : null, gustClockMs, pos: [airPos.x, airPos.y, airPos.z],
       air: { x: airOut.x, z: airOut.z, gust: airOut.gust, up: airOut.up }, set: [airSim.x, airSim.y], wind,
     };
   };
@@ -13470,6 +13683,10 @@ export async function boot({
     ghostGap = null;
     ghostChased = null;
     ghostRig.setPresence(0);
+    dropOpponent();
+    if (ghostChoice === AI_CHOICE) {
+      pickOpponent();
+    }
     runLaps = ui.settings.laps;
     progressKey = '';
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
@@ -17772,6 +17989,7 @@ export async function boot({
     edgeFrame();
     readPilot();
     advancePlant();
+    opponentFrame();
     composePose();
     readContacts();
     raceFrame();
@@ -20501,6 +20719,18 @@ export async function boot({
       position: ghostRig.group.position.toArray(),
       gapMs: ghostGap ? ghostGap.deltaMs : null,
       boardTimes: (ghostBoardTimes || []).length,
+      opponent: {
+        seated: Boolean(aiSeat && aiSeat.seated),
+        learnMs: aiSeat && aiSeat.seated ? aiSeat.seated.learnMs : null,
+        racing: Boolean(aiOpp),
+        laps: aiOpp ? aiOpp.laps() : [],
+        crashed: Boolean(aiOpp && aiOpp.crashed),
+        contacts: aiOpp ? aiOpp.touched || 0 : 0,
+        ms: aiOpp ? aiOpp.ms : 0,
+        next: aiOpp ? aiOpp.race.next : -1,
+        visible: Boolean(aiRig && aiRig.group.visible),
+        position: aiRig ? aiRig.group.position.toArray() : null,
+      },
     };
   };
   /* Arm a lap from wire base64 as if the board had sent it. */

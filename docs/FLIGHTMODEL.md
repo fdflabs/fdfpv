@@ -488,11 +488,30 @@ R-474) on each fuselage's side area from its derivation or render model.
   the 30 deg row is carried on the sideslip's sine, ESTIMATED. Still
   linear: TP-1538's Cn against beta, which turns restoring past 20 to 25
   deg at alpha 35 to 55 (hi_lat's ratio is a slope); an open gap.
-- Every other table still takes the drag along the wind with its
-  sideways share, CD sin beta: past the stall, in a slip, that is the
-  broadside wing's normal force pointed sideways, the term the F-16's
-  measured CY showed 1.6 to 4 times too strong. Fleet wide, not moved
-  here: an open item for the lead.
+- The separated wing's plate force in a sideslip (w38-physics-2,
+  plant_wing.c THE PLATE'S FORCE IN A SIDESLIP). Every table took its
+  whole drag along the wind, so past the stall, in a slip, the broadside
+  wing's normal force went sideways as CD sin beta. A plate's pressure
+  force is normal to the plate: TP-1538's balance has the F-16 broadside
+  (alpha 90) at 30 deg of sideslip at CY -0.305 (scan, PDF p. 74), where
+  CD 2.14 along the wind would give -1.07. Now the plate's share of the
+  drag (sigma times the plate and Viterna's B2, the flaps' normal force
+  past the stall, each biplane wing's) goes with the lift, along the
+  wind's share in the plane of symmetry; the skin's, the gear's and the
+  attached wing's induced drag stay on the whole wind. Below the stall
+  blend sigma is zero and nothing moves (the quad's and the 1000 mm
+  wing's recordings hold; the Skyhunter's trace first differs at the
+  step its alpha first reaches the blend). At 15 m/s, 30 deg of
+  sideslip, body CY: the Extra -0.592 to -0.335 at alpha 40 and -0.932
+  to -0.335 at 90 (its normal force CZ 1.073 to 1.232, against 1.238
+  with no slip); the Night Timber -0.654 to -0.343 and -0.938 to -0.343.
+- Still open: the plate's size in a sideslip stays on the angle in the
+  plane of symmetry. TP-1538's F-16 normal force at 30 deg of sideslip is
+  0.79, 0.76, 0.74, 0.69 of its unslipped value at alpha 20, 30, 40, 50
+  (cos^2 beta is 0.75), then 0.86, 0.90, 0.99, 0.94 at 60 to 90; the
+  plant keeps 1.0 (the digitized CZ, delta_h 0, the odd part's mean of
+  the two sides; one aircraft, a strake vortex below 50 deg). No plate
+  in sideslip source in hand.
 - The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
   1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
   is gone flying sideways and turns over with the flow from behind. Each

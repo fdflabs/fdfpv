@@ -2172,7 +2172,7 @@ export function createCrashCam(host) {
         /* A clip flown on a retired aircraft is refused by its name: the
          * clip holds that aircraft's crash parts, which no other model has. */
         const gone = retiredAirframe(err.airframe);
-        throw new Error(gone ? str('replay.aircraft_retired', { aircraft: gone.name }) : str('replay.not_a_replay'));
+        throw new Error(gone ? str('replay.aircraft_retired', { aircraft: gone.name }) : str(`replay.refused_${err.reason}`));
       }
       throw err;
     }
@@ -2181,7 +2181,7 @@ export function createCrashCam(host) {
   async function playSaved(id) {
     const row = await store.getClip(id);
     if (!row) {
-      throw new Error('that clip is gone');
+      throw new Error(str('replay.clip_gone'));
     }
     const clip = decode(row.bytes);
     if (clip.meta.map !== host.mapId()) {
@@ -2196,7 +2196,7 @@ export function createCrashCam(host) {
   async function exportSaved(id) {
     const row = await store.getClip(id);
     if (!row) {
-      throw new Error('that clip is gone');
+      throw new Error(str('replay.clip_gone'));
     }
     const blob = new Blob([row.bytes], { type: 'application/octet-stream' });
     const safe = row.name.replace(/[^a-z0-9 _-]/gi, '').trim().replace(/\s+/g, '-') || 'replay';

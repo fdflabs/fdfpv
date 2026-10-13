@@ -121,10 +121,14 @@ const KEY_CAPS = new Set(['Alt', 'Backquote', 'Backspace', 'Comma', 'Control', '
 const PROPER = new Set(['Menlo', 'Consolas', 'Chrome', 'Edge', 'Firefox', 'Opera', 'Safari', 'Version', 'Bearer', 'Grok', 'Claude',
   'Paraguayan', 'Drone', 'Combat', 'Simulator', 'Desktop', 'Files', 'Hz']);
 
-/* A word a file uses as an id, never shown as itself. */
+/* A word a file uses as an id, never shown as itself, or shows as it is
+ * in every language. */
 const WORD_IDS = new Map([
   ['src/input/input.js', new Set(['Keyboard'])], /* the pad picker's sentinel; items.js shows ui.keyboard for it */
   ['src/main.js', new Set(['Harness'])], /* a check's ghost name, through a window.__ hook */
+  /* A pad's sticks on a key cap: FPV words that stay English in Spanish
+   * (docs/SPANISH-GLOSSARY.md, the lead 2026-10-13). */
+  ['src/ui/nav.js', new Set(['Pitch', 'Roll'])],
 ]);
 
 /* A comparison, a membership test or a key list just before the literal. */

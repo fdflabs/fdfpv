@@ -107,12 +107,24 @@ only visibility is Solo; the room games show disabled with the reason. A
 room the server will not make says so with one retry (exists, #372). A
 reload returns to the same session (FLOW rule 6).
 
-## 5. Spectating (planned)
+## 5. Spectating (built, PLAN.md phase 17)
 
 A watch seat in any room: the pilot joins without an aircraft and follows
 a pilot with the replay's follow camera on the live peers. Counted apart
 from the cap's flying seats. For the family case: a parent watching a
 child race without taking a slot.
+
+Built as edge/rooms/core.js watch: up to WATCH_CAP (8) watchers a room,
+counted apart in the welcome and the room browser (`watchers`). The page
+follows a pilot with the war spectator's watch camera (src/main.js
+warWatch), not the replay's follow camera. A watcher is sent the pilots'
+poses and the race's, tag's, jam's and combat's state (core.js everyone,
+the race's passes too), and is welcomed into a game as it stands: the
+flight screen shows the standings, the laps and the clock, and over the
+end the final order, never a results screen, a score or a logged round
+(src/share/roomrace.js WATCH_SEAT; `watch:twopage`). The war, the ops and
+the lobby stay the seats': their pages act for a seat (the briefing, the
+campaign's stars, the debrief, Ready), so a watcher is sent none of them.
 
 ## 6. Checks that hold this flow
 
