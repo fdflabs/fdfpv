@@ -26,6 +26,12 @@ import drill from './itaipu-drill.js';
 export default {
   ...drill,
   id: 'itaipu-4',
+  /* Act 1's mission 4 (index.js, the campaign's fields). */
+  act: 1,
+  order: 4,
+  key: 'night',
+  free: false,
+  release: 'development',
   /* A string key (src/strings): Night raid. */
   title: 'war.mission.itaipu_4',
   /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);

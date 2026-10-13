@@ -41,6 +41,16 @@ types, doubles by `Object.is`), every folder states the stock packs and rates (B
 which `configs/airframes.js` gives every row), and that twelve single-field changes made in memory each
 fail.
 
+## Checklist
+
+What a new aircraft's folder must carry before the picker and the hangar can show it, held per folder by
+`npm run airframes:check` (in CI), with a negative control for each item: a name and blurb, three or four
+facts, `sizeMm` and `grams`, the FPV camera's `cameraFov` and `cameraAngle`, `class` and `roles`, a kit
+(`kit.slots`, a float version's from its land plane) and `airframe.blurb.<id>` and `carousel.note.<id>` in
+both `strings.en` and `strings.es`. The list itself is in `scripts/airframes-check.js`'s header. A renderer
+is held by `src/render/craft.js` at load and a crash hull by `hulls:check`. There is no picture: the picker
+and the hangar draw the model.
+
 ## Read from the folder
 
 Every aircraft's AIRFRAMES row in `configs/airframes.js` is `AIRCRAFT`'s, each in its place in the
