@@ -622,8 +622,17 @@ export function warSection(check) {
     const m = testMission([
       { at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' },
     ], { r: [[-1200, Y, 0], [-600, Y, 0]] });
-    const e = warRoom({ mission: m });
     const meetT = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
+    /* Seat 2 alone on its line takes the strike: it is a contender. */
+    const alone = warRoom({ mission: m });
+    alone.paths[0] = hover([900, Y, -900]);
+    alone.paths[1] = level(-900 + 15 * meetT / 1000, 3, -15);
+    alone.fly(meetT + 2000);
+    const solo = alone.of(1, 'dead').filter((d) => d.why === 'boom');
+    check('seat 2 alone on that line, 3 m off seat 1\'s, takes the strike and is credited it',
+      solo.length === 1 && solo[0].by === 2 && solo[0].credited.join() === '1' && alone.view(1).scores.find((r) => r.seat === 2).kills === 1,
+      JSON.stringify(solo));
+    const e = warRoom({ mission: m });
     e.paths[0] = level(-900 + 15 * meetT / 1000, 0, -15);
     e.paths[1] = level(-900 + 15 * meetT / 1000, 3, -15);
     e.fly(meetT + 2000);
