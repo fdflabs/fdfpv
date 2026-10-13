@@ -847,6 +847,7 @@ function soundRows(s) {
   const tracks = musicIds();
   return [
     toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
+    toggle(str('comfort.subtitles'), str('comfort.subtitles_note'), Boolean(s.subtitles), (v) => { s.subtitles = Boolean(v); }),
     levelRow(str('ui.volume'), str('ui.overall_level_zero_to_ten'), s, 'volume'),
     levelRow(str('ui.motors_and_engines'), str('ui.the_blade_pass_tone_you_fly'), s, 'motorLevel'),
     levelRow(str('ui.wind'), str('ui.air_over_the_airframe_rises_with'), s, 'windLevel'),

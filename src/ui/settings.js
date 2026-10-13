@@ -258,6 +258,8 @@ export const DEFAULTS = {
    * reduced motion request once, then is stored like any other choice. */
   cameraShake: 'on',
   chaseSmooth: 'standard',
+  /* The war radio's lines as captions (main.js warSubtitles). */
+  subtitles: true,
   wingView: 'fpv',
   hudStyle: 'osd',
   hudStyleBy: {},

@@ -177,7 +177,7 @@ import { createWarMarkers } from './ui/warmarkers.js';
 import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
-import { BRIEF_LINES, DEBRIEF_LINES, createWarCalls } from './render/warradio.js';
+import { BRIEF_LINES, DEBRIEF_LINES, captionOf, createWarCalls } from './render/warradio.js';
 import {
   createNudger as createWarNudger, ground as warGround, headingOf as warHeadingOf, nudgeOf as warNudgeOf, threatOf as warThreatOf,
 } from './share/war/nudge.js';
@@ -5242,6 +5242,9 @@ export async function boot({
   const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
   let warLineWords = null;
   function warSubtitles(items, prio, hud, now = false) {
+    if (!ui.settings.subtitles) {
+      return;
+    }
     const ids = items.flat().filter((id) => typeof id === 'string' && (prio === 'story' || prio === 'guide' || WAR_SUBTITLED.has(id)));
     if (!ids.length) {
       return;
@@ -5252,8 +5255,7 @@ export async function boot({
     warLineWords.then((words) => {
       const lang = currentLocale();
       for (const id of ids) {
-        const l = words.get(id);
-        const text = l && (l[lang] ?? l.en);
+        const text = captionOf(words.get(id), lang);
         if (text) {
           hud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000), now);
         }

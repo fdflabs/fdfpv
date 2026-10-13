@@ -9453,6 +9453,32 @@
      }
     },
     {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volume",
      "label": "Volume",
      "value": "6",
@@ -10516,6 +10542,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -11589,6 +11641,32 @@
      }
     },
     {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volume",
      "label": "Volume",
      "value": "6",
@@ -12657,6 +12735,32 @@
      }
     },
     {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volume",
      "label": "Volume",
      "value": "6",
@@ -13712,6 +13816,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -14953,6 +15083,32 @@
      }
     },
     {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volume",
      "label": "Volume",
      "value": "6",
@@ -16017,6 +16173,32 @@
      }
     },
     {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volume",
      "label": "Volume",
      "value": "10",
@@ -17056,6 +17238,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -35484,6 +35692,32 @@
      }
     },
     {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volumen",
      "label": "Volumen",
      "value": "6",
@@ -36547,6 +36781,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -37620,6 +37880,32 @@
      }
     },
     {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volumen",
      "label": "Volumen",
      "value": "6",
@@ -38688,6 +38974,32 @@
      }
     },
     {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volumen",
      "label": "Volumen",
      "value": "6",
@@ -39743,6 +40055,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -40984,6 +41322,32 @@
      }
     },
     {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volumen",
      "label": "Volumen",
      "value": "6",
@@ -42048,6 +42412,32 @@
      }
     },
     {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:volumen",
      "label": "Volumen",
      "value": "10",
@@ -43087,6 +43477,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }

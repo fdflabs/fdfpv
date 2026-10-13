@@ -2181,6 +2181,8 @@ export default {
   "comfort.chase_tight": "Tight",
   "comfort.chase_standard": "Standard",
   "comfort.chase_smooth": "Smooth",
+  "comfort.subtitles": "Radio subtitles",
+  "comfort.subtitles_note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
   "spec.rates.betaflight.rcrate.label": "RC rate",
   "spec.rates.betaflight.rcrate.note": "The linear part of the curve, and the whole of it when Super rate is zero. 1.00 is 200 deg/s at full stick.",
   "spec.rates.betaflight.srate.label": "Super rate",
