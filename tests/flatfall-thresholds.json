@@ -1,0 +1,10 @@
+{
+  "note": "The flat fall gate, scripts/flat-fall-check.js (npm run flat-fall:check). Never widened to pass; argue in the derivation instead.",
+  "gate": {
+    "noseDeg": 45,
+    "flatDeg": 60,
+    "spinDps": 30,
+    "multiple": 1.5,
+    "source": "The time is each aircraft's own: the one degree of freedom swing of its nose from 90 deg to noseDeg off a fall straight down, from rest, on the plant's own static moment (measured at 90 to 40 deg), its damping of that rate and its drag along the fall, with the live inertia. multiple is ESTIMATED, the room for what one degree of freedom leaves out: the path turning toward the nose as the wing's lift builds (shortens it) and the swing coupling into roll (lengthens it). On the plant of 2026-10-12 (w37-flat-fall) the 28 drops flew 0.71 to 1.06 of their swing; before the fix the Extra and the CAP on their sides never came within 45 deg of the path in 10 s. noseDeg 45 is half the flat fall's 90. flatDeg 60 and spinDps 30: flat is the nose more than 60 deg off the path while turning slower than 30 deg/s, a fall that neither dives nor spins: a spin turns, so a nose held off the path while turning faster than that is a spin and passes. Both are ESTIMATED, a gate's definition and not a constant of the aircraft."
+  }
+}
