@@ -21,14 +21,17 @@
  * PRODUCERS today, each a line at a call site that already existed:
  *
  *   spawned       a new flight (src/main.js resetCraft, Progress.startFlight)
- *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js)
+ *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
+ *                 a lap carries {ms, airframe}
  *   touch {kind}  the same; a contact the shell reports every step is one
  *                 event per kind per run of contact (see append)
- *   crash         the crash flag's rising edge (Progress.tick)
+ *   crash {airframe}
+ *                 the crash flag's rising edge (Progress.tick)
  *   landing {airframe}
  *                 RunWatch's landing: down and whole after a real flight,
- *                 on the run's aircraft (progression counts it per
- *                 aircraft, src/game/progress.js foldLandings)
+ *                 on the run's aircraft (progression counts landings,
+ *                 crashes and laps per aircraft, src/game/progress.js
+ *                 foldCounts)
  *   mission_end {mission, won, stars}
  *                 a mission's result applied to the save
  *                 (src/ui/campaign.js, src/ui/opscampaign.js)

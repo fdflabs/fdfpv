@@ -134,6 +134,8 @@ class ViaLog {
 
   event(type, data) { return this.flight.append(type, this.simMs, data); }
 
+  get airframe() { return this.watch.ctx ? this.watch.ctx.airframe : null; }
+
   gatePass() { return feedRunWatch(this.watch, this.event('gate')); }
 
   touch(kind) {
@@ -144,15 +146,15 @@ class ViaLog {
 
   start(ctx) { this.watch.start(ctx); return []; }
 
-  lap(ms) { return feedRunWatch(this.watch, this.event('lap', { ms })); }
+  lap(ms) { return feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe })); }
 
   tick(state) {
     this.simMs = state.simMs;
-    if (state.crashed && !this.wasCrashed) this.event('crash');
+    if (state.crashed && !this.wasCrashed) this.event('crash', { airframe: this.airframe });
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
     const out = this.watch.tick(state);
-    if (this.watch.landings > landings) this.event('landing');
+    if (this.watch.landings > landings) this.event('landing', { airframe: this.airframe });
     return out;
   }
 }
@@ -301,9 +303,9 @@ console.log('the shell\'s producers');
   check('Progress feeds RunWatch gate and lap from the log, and tells it every touch',
     ui.includes("feedRunWatch(this.watch, this.event('gate'))")
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
-    && ui.includes("feedRunWatch(this.watch, this.event('lap', { ms }))"));
+    && ui.includes("feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe }))"));
   check('and logs a crash and a landing from its tick',
-    ui.includes("this.event('crash')") && ui.includes("this.event('landing', { airframe:"));
+    ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe })"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));

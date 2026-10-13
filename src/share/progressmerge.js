@@ -30,7 +30,8 @@
  *              either side is set; Unlock all is on if either turned it
  *              on; lessons passed are the union at the earlier pass
  *              time; medals per course the better of the two;
- *              landings per aircraft the higher of the two; the
+ *              landings, crashes and laps per aircraft the higher
+ *              of the two; the
  *              version is the newer of the two.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
@@ -95,6 +96,7 @@
 
 import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
+import { COUNTED } from '../game/progress.js';
 import { retiredAirframe } from '../../configs/airframes.js';
 import { tiersShape } from '../../configs/surfaces.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
@@ -328,15 +330,17 @@ function mergeProgress(a, b) {
       out.medals[k] = best;
     }
   }
-  /* Landings per aircraft: a count, the higher of the two, so two
-   * computers flying offline may undercount and never overcount. */
-  const ga = isRecord(a.landings) ? a.landings : {};
-  const gb = isRecord(b.landings) ? b.landings : {};
-  out.landings = {};
-  for (const k of new Set([...Object.keys(ga), ...Object.keys(gb)])) {
-    const n = Math.max(Number.isInteger(ga[k]) ? ga[k] : 0, Number.isInteger(gb[k]) ? gb[k] : 0);
-    if (n > 0) {
-      out.landings[k] = n;
+  /* Counts per aircraft (progress.js COUNTED): the higher of the two,
+   * so two computers flying offline may undercount and never overcount. */
+  for (const map of Object.values(COUNTED)) {
+    const ga = isRecord(a[map]) ? a[map] : {};
+    const gb = isRecord(b[map]) ? b[map] : {};
+    out[map] = {};
+    for (const k of new Set([...Object.keys(ga), ...Object.keys(gb)])) {
+      const n = Math.max(Number.isInteger(ga[k]) ? ga[k] : 0, Number.isInteger(gb[k]) ? gb[k] : 0);
+      if (n > 0) {
+        out[map][k] = n;
+      }
     }
   }
   out.unlockAll = a.unlockAll === true || b.unlockAll === true;

@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, foldLandings, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, foldCounts, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
@@ -273,15 +273,18 @@ export class Progress {
   }
 
   /* This flight's events not yet counted into progress, counted
-   * (progress.js foldLandings) and stored. A sync answered by a server
-   * older than the landings hands back progress without the map. */
+   * (progress.js foldCounts) and stored when any was. */
   foldFlight() {
-    this.state.landings ??= {};
-    const at = foldLandings(this.state, this.flight.events, this.folded);
-    if (at > this.folded) {
-      this.folded = at;
+    const { at, counted } = foldCounts(this.state, this.flight.events, this.folded);
+    this.folded = at;
+    if (counted) {
       this.save();
     }
+  }
+
+  /* The seated aircraft, for the events counted per aircraft. */
+  get airframe() {
+    return this.watch.ctx ? this.watch.ctx.airframe : null;
   }
 
   /* One event into this flight's log at the last tick's sim time. */
@@ -367,7 +370,8 @@ export class Progress {
   lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const done = feedRunWatch(this.watch, this.event('lap', { ms }));
+    const done = feedRunWatch(this.watch, this.event('lap', { ms, airframe: this.airframe }));
+    this.foldFlight();
     this.save();
     this.show(events);
     this.show(won);
@@ -381,12 +385,15 @@ export class Progress {
   tick(state) {
     this.simMs = state.simMs;
     /* Its own edge: startRun clears RunWatch's flag mid crash. */
-    if (state.crashed && !this.wasCrashed) this.event('crash');
+    if (state.crashed && !this.wasCrashed) {
+      this.event('crash', { airframe: this.airframe });
+      this.foldFlight();
+    }
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
     this.award(this.watch.tick(state));
     if (this.watch.landings > landings) {
-      this.event('landing', { airframe: this.watch.ctx ? this.watch.ctx.airframe : null });
+      this.event('landing', { airframe: this.airframe });
       this.foldFlight();
     }
     if (this.lesson) {
