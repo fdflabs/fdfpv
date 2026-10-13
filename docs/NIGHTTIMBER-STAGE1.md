@@ -295,3 +295,16 @@ that PR says "needs a VM deploy".
   check through the real Kit page (`?time=night`, real pointer), `kits:perf`
   on a quiet GPU, day and night pictures.
 - PR 4: `progress:selftest`, `kits:selftest` (the shop total), `lint:copy`.
+
+## Open: the video's human hover
+
+N17 asked that hover-probe.js's person paced pilot hold the Night Timber the
+video's way (a slow 75 deg/s torque roll) in AS3X. On the receiver's factory
+preset ratios (EFL13850's .SRM, held under the margin ceiling, w37-fc-feel-3)
+none of the 648 does, and none does in Manual either; 4 and 6 hold it
+stopping the roll. The one that held before rode on ceiling gains three to
+thirteen times the factory tune's in pitch and yaw. The person pilot is the
+limit here, not the receiver, so N17 now asks only that AS3X be no worse
+than Manual for it. A person pilot that hovers it as the video's pilot does
+is open.
+

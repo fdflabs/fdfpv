@@ -201,7 +201,7 @@ try {
   await reseat(page);
   await page.sleep(500);
   const fresh = await craft(page);
-  say(JSON.stringify(fresh.tiers) === JSON.stringify([1, 1, 1, 0, 0, 0]) && fresh.massKg === stock.massKg,
+  say(JSON.stringify(fresh.tiers) === JSON.stringify([1, 1, 1, 0, 0, 0, 1, 1, 1]) && fresh.massKg === stock.massKg,
     `H6 not yet earned, it flies stock: ${JSON.stringify(fresh.tiers)}, ${fresh.massKg} kg`);
   await openSurfaces(page);
   const lock = await page.evaluate("(() => { const b = document.querySelector('.hangar [data-key=\"surface-a-sport\"]'); const s = document.querySelector('.hangar [data-key=\"surface-a-stock\"]'); return { sport: b.disabled || b.classList.contains('pg-locked'), stock: s.disabled || s.classList.contains('pg-locked') }; })()");

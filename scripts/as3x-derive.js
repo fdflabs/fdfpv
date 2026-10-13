@@ -64,7 +64,7 @@ import { TABLE } from '../configs/power.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import {
   AS3X, rowOf, receiverOf, gainForMargins, measurePlane, revive, fanOut,
-  planeSim, diveCondition, closedFlight, rings,
+  planeSim, diveCondition, closedFlight, rings, pilotFlight,
 } from './lib/as3xloop.js';
 
 const self = fileURLToPath(import.meta.url);
@@ -160,28 +160,70 @@ function slopes(sim, [lv, lthr], hoverStart) {
 }
 
 
-/* One table, in its own process: the airframe measured over its
- * envelope, and the heading's rates on the gates' seat. */
-if (opt('--plane')) {
-  const name = opt('--plane');
-  const a = AS3X[name];
-  const body = rowOf(src, name);
-  const sim = await planeSim(a.sim, SEAT_GATES);
-  /* The hover's held from the stick that hangs the weight on the prop on
-   * the 4.1 V pack this seats (wingSeat hoverStick); an engine, which no
-   * row hovers, from 0.6. */
-  const electric = /\.current_full = [1-9]/.test(body);
-  const hoverStart = electric ? wingSeat(name).hoverStick(SEAT_GATES) ?? 1 : 0.6;
-  const rate = slopes(sim, levelOf(a, body), hoverStart).map(r3);
-  process.stdout.write(JSON.stringify({ measure: await measurePlane(name, src), rate }));
-  process.exit(0);
-}
 
 /* Four places, downward: the table never above its derivation. */
 const f4 = (x) => Math.floor(x * 1e4) / 1e4;
-/* The damper on one axis: the highest that keeps the margin rule
- * everywhere, the Heading at the receiver's default, zero. */
-const dampFor = (resps, axis, T) => f4(gainForMargins(resps, axis, 1, 0, T));
+/* The damper. Each axis' ceiling is the highest gain that keeps the
+ * margin rule everywhere, the Heading at the receiver's default, zero.
+ * Where the BNF's own receiver preset gives its factory gains (lib
+ * as3xloop.js AS3X srm), the damper has their ratios between the axes,
+ * at the largest single scale that keeps every axis under its ceiling:
+ * the ratios are E-flite's tune, the scale FITTED, since no published
+ * figure maps Spektrum's gain units to a surface's angle (lead decision
+ * 2026-10-12, the owner's "just do small corrections never actually
+ * change the way the plane behaves"). A table without a preset:
+ * unseenDamper below. */
+function factoryDamper(srm, ceiling) {
+  const scale = Math.min(...srm.map((g, ax) => (g > 0 && ceiling[ax] > 0 ? ceiling[ax] / g : Infinity)));
+  return srm.map((g, ax) => (ceiling[ax] > 0 ? f4(scale * g) : 0));
+}
+
+/* A table without a factory preset: the owner's "never actually change
+ * the way the plane behaves" (2026-10-12) is the design rule, with the
+ * margin's ceiling. The ceiling vector at the largest single scale, up to
+ * 1, under which every axis' stick, stepped to half and to full at the
+ * table's cruise, answers on that axis within the eye's just noticeable
+ * difference of Manual's answer: 7 percent of Manual's peak rate (De
+ * Bruyn and Orban, Vision Research 28(12) 1988, "about 7%"; as3x-feel.js
+ * F1, which flies the same on the plant's own mode 3). The receiver is
+ * lib/as3xloop.js pilotFlight's, which agrees with mode 3 to under 1e-9 rad/s
+ * (as3x-feel.js prints it), bisected to 1 percent of the scale (lead
+ * decision 2026-10-12). */
+const F1_STICKS = [0.5, 1];
+const WEBER = 0.07;
+function stickHolds(sim, V, thr, rx, g) {
+  const t0 = 1000, ms = 1800;
+  const answer = (gains, ax, s) => {
+    const moved = pilotFlight(sim, V, thr, rx, gains, (i) => { const st = [0, 0, 0]; if (i >= t0) st[ax] = s; return st; }, ms);
+    const still = pilotFlight(sim, V, thr, rx, gains, () => [0, 0, 0], ms);
+    return moved.slice(t0).map((w, i) => w[ax] - still[t0 + i][ax]);
+  };
+  for (let ax = 0; ax < 3; ax += 1) {
+    if (!(rx.k[ax] > 0)) continue;
+    for (const s of F1_STICKS) {
+      const m = answer([0, 0, 0], ax, s), a = answer(g, ax, s);
+      const peak = Math.max(...m.map(Math.abs));
+      if (Math.max(...a.map((x, i) => Math.abs(x - m[i]))) > WEBER * peak) return false;
+    }
+  }
+  return true;
+}
+function unseenDamper(sim, name, body, ceiling) {
+  const rx = { ...receiverOf(body), k: ceiling };
+  const V = Object.values(TABLE).find((t) => t.simId === AS3X[name].sim).cruiseMs;
+  const thr = Number(body.match(/\.stab_trim_throttle = ([0-9.]+)/)[1]);
+  const holds = (s) => stickHolds(sim, V, thr, rx, [s, s, s]);
+  let scale = 1;
+  if (!holds(1)) {
+    let lo = 0, hi = 1;
+    while (hi - lo > 0.01) {
+      const mid = (lo + hi) / 2;
+      if (holds(mid)) lo = mid; else hi = mid;
+    }
+    scale = lo;
+  }
+  return ceiling.map((c) => f4(scale * c));
+}
 
 /* The full Heading on that damper: its integral cornered at a quarter of
  * the fastest crossover the frame allows, pi / (4 T), so kh = k pi /
@@ -195,15 +237,35 @@ const dampFor = (resps, axis, T) => f4(gainForMargins(resps, axis, 1, 0, T));
  * the full Heading leaves. */
 const headingFor = (k, T) => f4(k * Math.PI / (16 * T));
 
+/* One table, in its own process: the airframe measured over its
+ * envelope, and the heading's rates on the gates' seat. */
+if (opt('--plane')) {
+  const name = opt('--plane');
+  const a = AS3X[name];
+  const body = rowOf(src, name);
+  const sim = await planeSim(a.sim, SEAT_GATES);
+  /* The hover's held from the stick that hangs the weight on the prop on
+   * the 4.1 V pack this seats (wingSeat hoverStick); an engine, which no
+   * row hovers, from 0.6. */
+  const electric = /\.current_full = [1-9]/.test(body);
+  const hoverStart = electric ? wingSeat(name).hoverStick(SEAT_GATES) ?? 1 : 0.6;
+  const rate = slopes(sim, levelOf(a, body), hoverStart).map(r3);
+  const measure = await measurePlane(name, src);
+  const m = revive(JSON.parse(JSON.stringify(measure)));
+  const resps = [0, 1, 2].map((ax) => m.conds.map((c) => c.resp[ax]).filter((r) => r));
+  const ceiling = resps.map((r, ax) => (r.length ? gainForMargins(r, ax, 1, 0, m.T) : 0));
+  const k = a.srm ? factoryDamper(a.srm, ceiling) : unseenDamper(sim, name, body, ceiling);
+  process.stdout.write(JSON.stringify({ measure, rate, k }));
+  process.exit(0);
+}
+
 const fleet = await fanOut(self, Object.keys(AS3X));
 let bad = 0;
 for (const name of Object.keys(AS3X)) {
-  const { measure, rate } = fleet[name];
+  const { measure, rate, k } = fleet[name];
   const m = revive(measure);
   const body = rowOf(src, name);
   const T = m.T;
-  const resps = [0, 1, 2].map((ax) => m.conds.map((c) => c.resp[ax]).filter((r) => r));
-  const k = resps.map((r, ax) => (r.length ? dampFor(r, ax, T) : 0));
   const kh = k.map((x) => headingFor(x, T));
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
   /* The loop closed on the plant at the dive, all three axes on the
