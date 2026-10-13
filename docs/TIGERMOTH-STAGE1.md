@@ -287,18 +287,25 @@ alpha, sinking; hands off the ailerons it then rolls off slowly, left.
 "Stalls, spins, aerobatics are straightforward" (Phillips); Great Planes:
 "flies smoothly and predictably" but no self recovery.
 
-**T8a is red since 2026-10-13 (w38-fuselage-side), not loosened.** With
-the fuselage's share of cn_beta on Munk's couple (FLIGHTMODEL.md, PR 4),
-the stability axis turn no longer adds its cn_fus beta sin alpha of roll,
-+0.0035 per rad at the mush's 18 deg. Full up held with the wings held by
-the person model it now banks 17.8 deg and rolls 73.7 deg/s, the stick at
-its stops (the band: 15 deg, 20 deg/s); hands off (T8c) it is as before,
-18.0 deg against 19.4. The person's crossover loop is sized on the
-unstalled roll mode (wingpilot.js rollMode at the entry) and oscillates
-in the stall. That spurious roll was holding it: on the old plant T8a
-already failed at cl_beta -0.0600 for the table's -0.0577 (bank 5.8 deg),
-4 percent more dihedral. Open for the flight lanes: the person's hold in
-a stall, or the stalled roll damping it meets.
+**T8a's person, re-designed 2026-10-13 (w38-fuselage-side).** With the
+fuselage's share of cn_beta on Munk's couple (FLIGHTMODEL.md, PR 4) the
+stability axis turn no longer adds its cn_fus beta sin alpha of roll,
++0.0035 per rad at the mush's 18 deg, and T8a went red: the person's
+wings hold, one gain sized on the entry's roll mode, rang in the stall
+(bank 17.8 deg, roll 73.7 deg/s, the stick at its stops) while hands off
+(T8c) the aircraft was as before. On the old plant it already failed at
+4 percent more dihedral. The hold is now designed as the other person
+loops are (wingpilot.js stallWingsHold): the bank loop's crossover
+measured at the 1.2 Vs entry and in the mush 5 s into full up, the
+bandwidth criterion's 45 deg and 6 dB, with lead where the stalled bank
+lags (leadDesign, the hover's rule), and switched when the person sees
+the wing past its stall. The entry's loop crosses at 2 rad/s, lead 0.1
+s (PM 61 deg, GM 6.5 dB); the stall's at 1.6 rad/s, lead 0.2 s (PM 52
+deg, GM 6.6 dB). T8a: bank 1.3 deg, roll 2.1 deg/s, the ailerons 0.01 of
+the stick. At half throttle (T8b) the stall's design is short of the
+criterion (2 rad/s, lead 0.5 s, PM 26 deg, GM 1.2 dB, the best there
+is): the wing still drops, to 19.0 deg (43.9 before), as T8b's text
+expects.
 
 ## The landing gear
 
