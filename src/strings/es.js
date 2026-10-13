@@ -3678,6 +3678,7 @@ export default {
   "brief.room": "Sala",
   "brief.room_public": "Pública: cualquiera puede entrar",
   "brief.room_private": "Privada, código {code}",
+  "brief.room_solo": "Privada: nadie más puede entrar",
   "brief.deploy": "Desplegar",
   "brief.deploy_note": "Digan que están listos (R hace lo mismo). Cuando todos aquí lo estén, también solo, suena el informe y empieza la misión.",
   "brief.stand_down": "Retirarse",

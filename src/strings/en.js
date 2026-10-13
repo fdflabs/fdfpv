@@ -3673,6 +3673,7 @@ export default {
   "brief.room": "Room",
   "brief.room_public": "Public: anyone can join",
   "brief.room_private": "Private, invite code {code}",
+  "brief.room_solo": "Private: nobody else can join",
   "brief.deploy": "Deploy",
   "brief.deploy_note": "Say you are ready to go (R does the same). When everybody here is, you alone too, the briefing plays and the mission starts.",
   "brief.stand_down": "Stand down",

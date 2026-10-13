@@ -48,7 +48,8 @@ function openingObjectives(mission) {
 
 /*
  * The briefing of mission `id` for a room, or null for an id that is no
- * mission. `room` is { public, code }: who can join.
+ * mission. `room` is { public, code }: who can join, the code null for a
+ * private room nobody is told it (Solo).
  */
 export function briefingOf(id, room = { public: true, code: null }) {
   const mission = MISSIONS[id];
@@ -69,7 +70,7 @@ export function briefingOf(id, room = { public: true, code: null }) {
       { label: str('brief.aircraft'), value: str('brief.aircraft_value', { names: mission.aircraft.map((a) => airframeById(a).name).join(', '), n: mission.airframes }) },
       { label: str('brief.length'), value: minutes ? str('brief.minutes', { low: minutes[0], high: minutes[1] }) : str('brief.length_open') },
       { label: str('brief.pilots'), value: str('brief.pilots_value', { low: PILOTS[0], high: PILOTS[1] }) },
-      { label: str('brief.room'), value: room.public ? str('brief.room_public') : str('brief.room_private', { code: room.code || '' }) },
+      { label: str('brief.room'), value: room.public ? str('brief.room_public') : room.code ? str('brief.room_private', { code: room.code }) : str('brief.room_solo') },
     ],
   };
 }
