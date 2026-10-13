@@ -1163,6 +1163,92 @@ is flown on the sticks, as in Manual but damped. A pilot who wants the
 old hold turns the Heading up and spends margin, as on the real
 receiver. The section above describes the receiver before this.
 
+### The receiver reads the channels, at every rate (w38-as3x-travel)
+
+The manuals separate the travel from the rates. The receiver learns the
+travel: "Relearn Travel and Reverse: Used to re-teach the receiver and
+AS3000 the travel limits and reversing after ... changes are made to
+travel adjust, absolute travel, and servo reversing", and on the
+nose-wheel "Learn Travel ... Press apply after maximizing the rates and
+moving the channel to the extremes" (the AS3000 manual); the AR631 asks
+for "Relearn Servo Settings" after "sub-trim, travel or other setup
+changes". The older AR635 says the same from the other side: "Changing
+the servo total travel from 125% will affect the tuning and performance
+of the AS3X technology. Always mechanically adjust the aircraft
+linkages for less control surface throw", while on a radio without
+travel adjust "If you need to use low rates ... you can do so without
+affecting the performance of the AS3X system". The Extra's manual
+(EFL115500 p. 4): "To ensure AS3X technology functions properly, do not
+lower rate values below 50%. If lower rates are desired, manually
+adjust the position of the pushrods on the servo arm." The AR631's
+troubleshooting lists "Travel or Rates reduced causing reduced servo
+resolution" under oscillation, with the same remedy. None of them says
+the gyro's output is scaled by the rate.
+
+So in mode 3 the gyro's offset is surface per rad/s, the same at every
+rate, and as3x_k and as3x_kh are the gains at the full travel. What the
+rates change is what the receiver reads: the channel, after the
+transmitter's rate and expo, over the travel it learned with the rates
+at their most (plant_wing.c as3x_channel; FixedWingParams.as3x_travel,
+the throws under a tune). Priority and the Heading's asked rate read it,
+so at a low rate, or with expo, a half stick leaves the gyro some of its
+gain where the full rate's half stick left none. as3x_rate is per unit
+of that channel.
+
+as3x:derive measures every aircraft on its table and at every rate the
+tune screen offers, and holds the feel rule (as3x-feel F1) at the stock
+rate and at the high on every table, the factory presets included. The
+Extra's preset scale answered a half stick at its stock low rate 7.6,
+9.0 and 8.1 percent off Manual's (roll, pitch, yaw), over the 7 percent
+the eye can see; its damper goes from 0.0177, 0.0885, 0.0708 to 0.0134,
+0.0671, 0.0537, which answers 5.9, 7.0 and 6.3 percent at low rate and
+0.7, 0.2 and 0.9 at high. The CAP and the Slick, at 60 and 55 percent
+expo, keep about a sixth of theirs. Held only at the stock and the high,
+a pilot on another rate can still see the gyro: as3x-feel prints those
+rates' F1 unjudged, up to 24 percent (the Tiger Moth's pitch at low rate).
+Holding F1 at every rate would cut the dampers further, the P-51's and
+the CAP's to about a third again.
+
+A bigger surface tier raises the high throw above the table's, so its
+channel reads past the learned travel; it is held at the travel. The
+real receiver would relearn the travel after that change, which this
+does not model.
+
+The full Heading on the 3D aircraft (lead decision 2026-10-13). With the
+damper held to F1 at the Extra's stock low rate, the margin rule's full
+Heading (0.083, 2.9395, 0.0808) made extra:gates E11b's harrier kick
+worse than Manual's, 2.62 and 3.34 of it. One axis at a time: roll 1.52
+and 1.80, pitch 0.99 and 0.99, yaw 0.81 and 0.85, pitch and yaw
+together 0.81 and 0.84. A single scale on all three goes to nothing,
+since any roll Heading worsens it (a hundredth gives 1.10). So
+as3x:derive now holds each axis' full Heading on the Extra, the CAP and
+the Slick to E11b's property, as the damper is to F1: the largest scale
+on the margin rule's, per axis, that keeps the kicked rock under
+Manual's with every axis at its full Heading at once, flown on each
+aircraft's own gate harrier (scripts/lib/harrierkick.js) with the JS
+receiver carrying the Heading (as3x-feel F0 checks it at full Heading
+too). The harrier's rock is a roll the pilot is holding, and a roll
+Heading sums the bank those corrections leave and fights them; pitch
+and yaw Heading hold axes the rock only couples into.
+
+On the batch's plant after w38-fuselage-side (abd2b5d7b):
+
+| | Margin rule's Heading | Held | Kicked rock, of Manual's |
+|---|---|---|---|
+| Extra | 0.0837, 0.8927, 0.412 | 0, 0.8927, 0.412 | 0.58 and 0.61 |
+| CAP | 0.3373, 0.2732, 0.7792 | 0.2867 (0.85 of it), 0.2732, 0.7792 | 0.71 and 0.70 |
+| Slick | 0.1208, 0.0639, 0.7848 | 0, 0.0639, 0.7848 | 0.39 and 0.39 |
+
+On the plant before it, the Slick's roll (0.75 of the rule's) and yaw
+each held alone but not together, at any common factor down to a
+twentieth, and it kept the yaw alone. The rule is judged at the full
+Heading only. The tune screen sets
+Heading in tenths, and between a twentieth and a fifth of the Extra's
+yaw Heading the rock is worse than Manual's (1.03 to 1.08) before it is
+better from two fifths (0.99 and 0.97); the receiver's damper alone
+leaves it at 1.00 and 1.005. Heading defaults to zero, and the tune
+help keeps the AR631's warning against it on the yaw axis.
+
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
