@@ -38,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 
 import { wingEngine, wingProp } from './lib/propcurve.js';
 import { slipLoss, tailWash } from './lib/wash.js';
+import { knifeFin, knifeRudder } from './lib/knifefin.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -748,6 +749,8 @@ function harrier(alphaDeg) {
  * at the sideslip less thrust_yaw, and its sideways part at prop_x pitches
  * the nose down with the weathercock's moment, against the rudder. */
 function knifeEdge(V) {
+  /* The fin and rudder as the plant flies them (scripts/lib/knifefin.js). */
+  const fin = { av, cn: tailCn, cnb: slipCnb, cyb: slipCyb, cndr: Cndr, cydr: CYdr };
   const qb = 0.5 * rho * V * V;
   for (let bDeg = 1; bDeg < 60; bDeg += 0.01) {
     const bt = bDeg / DEG, sb = Math.sin(bt), cb = Math.cos(bt);
@@ -757,13 +760,16 @@ function knifeEdge(V) {
     let side = 0, dr = 0, w = null;
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
-      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) - sideX * 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * b * slipCnb * (V * sb) + propX * thrust * sinYaw;
-      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
-      dr = -nBeta / nPerDr;
-      side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
-        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
+      const rest = qb * S * b * ((Cnb - slipCnb - CnbFus) * sb + CnbFus * sb * cb) + propX * thrust * sinYaw;
+      const fp = { rho, V, u, sb, w, S, b };
+      /* The crossflow drag at its centre of pressure, side_x ahead of the CG. */
+      const restX = rest - sideX * 0.5 * rho * sideCda * (V * sb) ** 2;
+      dr = knifeRudder(fin, fp, restX, throwR);
+      if (dr === null) break;
+      side = qb * S * (-(CYb - slipCyb)) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 - knifeFin(fin, fp, dr).y;
       thrust = (qb * S * CD0 + side * sb) / ct;
     }
+    if (dr === null) continue;
     if (T(u, 1) < thrust) break;
     if (side * cb + thrust * st >= W) {
       let lo = 0, hi = 1;
