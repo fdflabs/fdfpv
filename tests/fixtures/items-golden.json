@@ -30192,7 +30192,7 @@
     {
      "id": "freestyle:anuncios-de-trucos",
      "label": "Anuncios de trucos",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Nombra cada truco y figura acrobática al completarla, con su nota, sus puntos y la cadena. También con el puntaje apagado.",
      "sw": true,
      "on": true,
@@ -30264,7 +30264,7 @@
     {
      "id": "freestyle:da-os-en-choques",
      "label": "Daños en choques",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
      "sw": true,
      "on": true,
@@ -30390,7 +30390,7 @@
     {
      "id": "freestyle:solo-superficies-de-f-brica",
      "label": "Solo superficies de fábrica",
-     "value": "Apagado",
+     "value": "No",
      "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
      "sw": true,
      "on": false,
@@ -30502,7 +30502,7 @@
     {
      "id": "freestyle:anuncios-de-trucos",
      "label": "Anuncios de trucos",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Nombra cada truco y figura acrobática al completarla, con su nota, sus puntos y la cadena. También con el puntaje apagado.",
      "sw": true,
      "on": true,
@@ -30574,7 +30574,7 @@
     {
      "id": "freestyle:da-os-en-choques",
      "label": "Daños en choques",
-     "value": "Apagado",
+     "value": "No",
      "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
      "sw": true,
      "on": false,
@@ -30700,7 +30700,7 @@
     {
      "id": "freestyle:solo-superficies-de-f-brica",
      "label": "Solo superficies de fábrica",
-     "value": "Apagado",
+     "value": "No",
      "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
      "sw": true,
      "on": false,
@@ -31133,7 +31133,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -31574,7 +31574,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -32003,7 +32003,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": true,
@@ -32448,7 +32448,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -32889,7 +32889,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -33330,7 +33330,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -33771,7 +33771,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -34204,7 +34204,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -34645,7 +34645,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -35086,7 +35086,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -35527,7 +35527,7 @@
     {
      "id": "quad:control-de-lanzamiento",
      "label": "Control de lanzamiento",
-     "value": "Apagado",
+     "value": "No",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
      "on": false,
@@ -35695,7 +35695,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Apagado",
+     "value": "No",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
@@ -35788,7 +35788,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -36168,7 +36168,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": false,
@@ -36194,7 +36194,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -36356,7 +36356,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": true,
@@ -36382,7 +36382,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -36606,7 +36606,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -36638,7 +36638,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Apagado",
+     "value": "No",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": false,
@@ -36859,7 +36859,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Apagado",
+     "value": "No",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
@@ -36952,7 +36952,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -37332,7 +37332,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": false,
@@ -37358,7 +37358,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -37520,7 +37520,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": true,
@@ -37546,7 +37546,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -37770,7 +37770,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -37802,7 +37802,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Apagado",
+     "value": "No",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": false,
@@ -38023,7 +38023,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Apagado",
+     "value": "No",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
@@ -38116,7 +38116,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -38496,7 +38496,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": false,
@@ -38522,7 +38522,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -38684,7 +38684,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": true,
@@ -38710,7 +38710,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -38934,7 +38934,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -38966,7 +38966,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Apagado",
+     "value": "No",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": false,
@@ -39187,7 +39187,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Apagado",
+     "value": "No",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
@@ -39280,7 +39280,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -39660,7 +39660,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": false,
@@ -39686,7 +39686,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -39848,7 +39848,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": true,
@@ -39874,7 +39874,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -40098,7 +40098,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -40130,7 +40130,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Apagado",
+     "value": "No",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": false,
@@ -40336,7 +40336,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Apagado",
+     "value": "No",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
@@ -40429,7 +40429,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -40809,7 +40809,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": false,
@@ -40835,7 +40835,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -40997,7 +40997,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": true,
@@ -41023,7 +41023,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -41247,7 +41247,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -41279,7 +41279,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Apagado",
+     "value": "No",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": false,
@@ -41493,7 +41493,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": true,
@@ -41619,7 +41619,7 @@
     {
      "id": "pilot:invertir-cabeceo-del-rat-n",
      "label": "Invertir cabeceo del ratón",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Desactivado: empuja el ratón hacia adelante y el morro baja, como un stick. Activado: adelante levanta el morro, como una cámara de juego.",
      "sw": true,
      "on": true,
@@ -41754,7 +41754,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -42134,7 +42134,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": true,
@@ -42160,7 +42160,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -42322,7 +42322,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Apagado",
+     "value": "No",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": false,
@@ -42348,7 +42348,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -42568,7 +42568,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -42600,7 +42600,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": true,
@@ -42821,7 +42821,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Apagado",
+     "value": "No",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
@@ -42914,7 +42914,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -43294,7 +43294,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": false,
@@ -43320,7 +43320,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -43482,7 +43482,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": true,
@@ -43508,7 +43508,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -43700,7 +43700,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -43732,7 +43732,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Apagado",
+     "value": "No",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": false,
@@ -43961,7 +43961,7 @@
     {
      "id": "pilot:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
-     "value": "Apagado",
+     "value": "No",
      "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
@@ -44054,7 +44054,7 @@
     {
      "id": "pilot:mostrar-sticks",
      "label": "Mostrar sticks",
-     "value": "Apagado",
+     "value": "No",
      "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
      "sw": true,
      "on": false,
@@ -44434,7 +44434,7 @@
     {
      "id": "pilot:lectura-de-frames",
      "label": "Lectura de frames",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
      "sw": true,
      "on": false,
@@ -44460,7 +44460,7 @@
     {
      "id": "pilot:gu-a-de-misi-n",
      "label": "Guía de misión",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
      "sw": true,
      "on": true,
@@ -44622,7 +44622,7 @@
     {
      "id": "pilot:sonido",
      "label": "Sonido",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Todo el sonido: motores, viento, música y avisos.",
      "sw": true,
      "on": true,
@@ -44648,7 +44648,7 @@
     {
      "id": "pilot:subt-tulos-de-radio",
      "label": "Subtítulos de radio",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
      "sw": true,
      "on": true,
@@ -44872,7 +44872,7 @@
     {
      "id": "pilot:tono-binaural",
      "label": "Tono binaural",
-     "value": "Apagado",
+     "value": "No",
      "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
      "sw": true,
      "on": false,
@@ -44904,7 +44904,7 @@
     {
      "id": "pilot:registro-de-vuelo",
      "label": "Registro de vuelo",
-     "value": "Apagado",
+     "value": "No",
      "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
      "sw": true,
      "on": false,
@@ -45257,7 +45257,7 @@
     {
      "id": "launch:da-os-en-choques",
      "label": "Daños en choques",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
      "sw": true,
      "on": true,
@@ -45496,7 +45496,7 @@
     {
      "id": "launch:da-os-en-choques",
      "label": "Daños en choques",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
      "sw": true,
      "on": true,
@@ -45780,7 +45780,7 @@
     {
      "id": "launch:da-os-en-choques",
      "label": "Daños en choques",
-     "value": "Apagado",
+     "value": "No",
      "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
      "sw": true,
      "on": false,
@@ -46019,7 +46019,7 @@
     {
      "id": "launch:da-os-en-choques",
      "label": "Daños en choques",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
      "sw": true,
      "on": true,
@@ -46258,7 +46258,7 @@
     {
      "id": "launch:da-os-en-choques",
      "label": "Daños en choques",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
      "sw": true,
      "on": true,
@@ -48240,7 +48240,7 @@
     {
      "id": "rates:pitch-separado",
      "label": "Pitch separado",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Roll y pitch comparten un solo juego de números, que es como están configurados la mayoría de los quads y lo que el firmware trae de fábrica. Enciéndelo para darle a pitch los suyos.",
      "sw": true,
      "on": false,
@@ -48750,7 +48750,7 @@
     {
      "id": "rates:pitch-separado",
      "label": "Pitch separado",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Encendido. Pitch tiene sus propios tres números y su propia curva en el gráfico. Apagar esto copia roll sobre pitch.",
      "sw": true,
      "on": true,
@@ -49384,7 +49384,7 @@
     {
      "id": "rates:pitch-separado",
      "label": "Pitch separado",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Roll y pitch comparten un solo juego de números, que es como están configurados la mayoría de los quads y lo que el firmware trae de fábrica. Enciéndelo para darle a pitch los suyos.",
      "sw": true,
      "on": false,
@@ -49915,7 +49915,7 @@
     {
      "id": "rates:pitch-separado",
      "label": "Pitch separado",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Roll y pitch comparten un solo juego de números, que es como están configurados la mayoría de los quads y lo que el firmware trae de fábrica. Enciéndelo para darle a pitch los suyos.",
      "sw": true,
      "on": false,
@@ -50420,7 +50420,7 @@
     {
      "id": "rates:pitch-separado",
      "label": "Pitch separado",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Roll y pitch comparten un solo juego de números, que es como están configurados la mayoría de los quads y lo que el firmware trae de fábrica. Enciéndelo para darle a pitch los suyos.",
      "sw": true,
      "on": false,
@@ -50917,7 +50917,7 @@
     {
      "id": "rates:pitch-separado",
      "label": "Pitch separado",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Roll y pitch comparten un solo juego de números, que es como están configurados la mayoría de los quads y lo que el firmware trae de fábrica. Enciéndelo para darle a pitch los suyos.",
      "sw": true,
      "on": false,
@@ -51479,7 +51479,7 @@
     {
      "id": "pids:fijar-pids-directamente",
      "label": "Fijar PIDs directamente",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Los deslizadores de abajo manejan los PIDs a través del tuning simplificado del propio firmware. Enciende esto para escribir cada valor tú mismo, partiendo de exactamente lo que está volando ahora.",
      "sw": true,
      "on": false,
@@ -52044,7 +52044,7 @@
     {
      "id": "pids:fijar-pids-directamente",
      "label": "Fijar PIDs directamente",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Los deslizadores de abajo manejan los PIDs a través del tuning simplificado del propio firmware. Enciende esto para escribir cada valor tú mismo, partiendo de exactamente lo que está volando ahora.",
      "sw": true,
      "on": false,
@@ -52483,7 +52483,7 @@
     {
      "id": "pids:fijar-pids-directamente",
      "label": "Fijar PIDs directamente",
-     "value": "Encendido",
+     "value": "Sí",
      "note": "Encendido. Los deslizadores están apagados (simplified_pids_mode OFF, como lo fija el modo experto de una app de configuración) y la tabla de abajo es lo que vuela. Apagar esto restaura los deslizadores y recuerda la tabla.",
      "sw": true,
      "on": true,
@@ -53117,7 +53117,7 @@
     {
      "id": "pids:fijar-pids-directamente",
      "label": "Fijar PIDs directamente",
-     "value": "Apagado",
+     "value": "No",
      "note": "Apagado. Los deslizadores de abajo manejan los PIDs a través del tuning simplificado del propio firmware. Enciende esto para escribir cada valor tú mismo, partiendo de exactamente lo que está volando ahora.",
      "sw": true,
      "on": false,

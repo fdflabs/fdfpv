@@ -125,7 +125,7 @@ export function toggle(label, note, on, set) {
     note,
     sw: true,
     on: current,
-    value: current ? str('ui.on') : str('ui.off'),
+    value: current ? str('ui.switch_on') : str('ui.switch_off'),
     current,
     adjust: (dir) => set(dir > 0),
     flip: () => set(!current),

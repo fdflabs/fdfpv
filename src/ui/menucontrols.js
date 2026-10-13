@@ -593,7 +593,7 @@ export const menuControlMethods = {
   /* Off and On, both labelled: half of these rows are two named behaviours
    * rather than an on and an off in the pilot's head. */
   makeSwitch(it, i) {
-    const choices = [false, true].map((on) => ({ label: on ? str('ui.on') : str('ui.off'), lit: it.on === on, value: on }));
+    const choices = [false, true].map((on) => ({ label: on ? str('ui.switch_on') : str('ui.switch_off'), lit: it.on === on, value: on }));
     return choiceStrip(this, it, i, choices, (on) => this.setSwitch(it, on));
   },
 
