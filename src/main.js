@@ -7449,7 +7449,7 @@ export async function boot({
     const sp = view.spawn;
     const wet = view.water && view.water[0] ? view.water[0].spawn : null;
     const probe = (p) => {
-      const y = groundAt(p.x, p.z);
+      const y = sp.y != null ? view.height(p.x, p.z, sp.y) : groundAt(p.x, p.z);
       return { x: p.x, z: p.z, y, gap: view.colliders ? view.colliders.gapAt(p.x, y + 1, p.z, 6) : Infinity };
     };
     return {
@@ -17585,11 +17585,12 @@ export async function boot({
    * THE FRAME LOOP.
    *
    * One frame is a fixed sequence of phases, each a function below, run in
-   * this order by frameBody: open the frame (wall clock, counters), read
-   * the pilot, advance the plant on the accumulator, compose the drawn
-   * pose, read back what the solid world did, run the race, dress the
-   * world, place the lens, pick the camera, move the scenery, draw, feed
-   * the mix, feed the HUD, settle the banner, close the frame. The phases
+   * this order by frameBody: open the frame (wall clock, counters), hold
+   * the world's edge, read the pilot, advance the plant on the
+   * accumulator, compose the drawn pose, read back what the solid world
+   * did, run the race, dress the world, place the lens, pick the camera,
+   * move the scenery, draw, feed the mix, feed the HUD, settle the banner,
+   * close the frame. The phases
    * hand each other one record, `fr`, written once per frame and never
    * reallocated (P8: the loop allocates nothing).
    *
