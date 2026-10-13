@@ -28,6 +28,11 @@ pages, counts a visit, loads the board and its bugs page, and takes back
 what it made. See its header, and `deploy/vm/README.md` for the sign in
 file it needs.
 
+`npm run smoke` (local, about ten minutes) is the proof that the game holds
+together end to end before a release: boot on a fresh profile, a private
+room on Itaipu, the drill flown to its result, and a reload that opens the
+save clean with the time flown kept. See its header.
+
 # The move to the game's own domain
 
 The owner's decision of 3 October 2026: the game lives at
