@@ -11,6 +11,751 @@
   "rows": [],
   "leads": []
  },
+ "controller": {
+  "screen": "controller",
+  "items": [
+   {
+    "id": "controller:s-device",
+    "label": "Device",
+    "section": true
+   },
+   {
+    "action": "choosepad",
+    "id": "controller:a-choosepad",
+    "label": "Choose joystick",
+    "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
+    "value": "Keyboard"
+   },
+   {
+    "id": "controller:recognised-as",
+    "info": true,
+    "label": "Recognised as",
+    "note": "Plug in a radio in joystick mode or a gamepad and move a stick. Until then the keyboard flies.",
+    "value": "Nothing plugged in"
+   },
+   {
+    "action": "calibrate",
+    "id": "controller:a-calibrate",
+    "label": "Calibrate sticks",
+    "note": "Centre, full range, then one named move per stick. Saved after you check it."
+   },
+   {
+    "action": "calibrate-check",
+    "id": "controller:a-calibrate-check",
+    "label": "Check sticks",
+    "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save."
+   },
+   {
+    "current": 2,
+    "id": "controller:stick-mode",
+    "label": "Stick mode",
+    "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+    "options": [
+     {
+      "label": "Mode 1",
+      "value": 1
+     },
+     {
+      "label": "Mode 2",
+      "value": 2
+     },
+     {
+      "label": "Mode 3",
+      "value": 3
+     },
+     {
+      "label": "Mode 4",
+      "value": 4
+     }
+    ],
+    "value": "Mode 2"
+   },
+   {
+    "id": "controller:s-rates",
+    "label": "How the sticks fly, this aircraft",
+    "section": true
+   },
+   {
+    "action": "planerates",
+    "id": "controller:a-planerates",
+    "label": "Rates",
+    "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+    "value": "Low, 22.2° 14.9° 17.6°"
+   },
+   {
+    "id": "controller:s-keyboard-and-mouse",
+    "label": "Keyboard and mouse",
+    "section": true
+   },
+   {
+    "action": "controls",
+    "id": "controller:a-controls",
+    "label": "Keys and buttons",
+    "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out."
+   },
+   {
+    "current": false,
+    "id": "controller:mouse-flight",
+    "label": "Mouse flight",
+    "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "action": "back",
+    "id": "controller:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-nav on",
+    "text": "Choose joystickKeyboard"
+   },
+   {
+    "cls": "row row-info",
+    "text": "Recognised asNothing plugged in"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Calibrate sticks"
+   },
+   {
+    "cls": "row",
+    "text": "Check sticks"
+   },
+   {
+    "cls": "row",
+    "text": "Stick modeMode 1Mode 2Mode 3Mode 4"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "RatesLow, 22.2° 14.9° 17.6°"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Keys and buttons"
+   },
+   {
+    "cls": "row",
+    "text": "Mouse flightOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 1,
+    "id": "controller:a-choosepad",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "choosepad",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "controller:recognised-as",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "controller:a-calibrate",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "calibrate",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "controller:a-calibrate-check",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "calibrate-check",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "controller:stick-mode",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "controller:a-planerates",
+    "to": "planerates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "planerates"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "controller:a-controls",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "controls"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "controller:mouse-flight",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "controller:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "controls": {
+  "screen": "controls",
+  "items": [
+   {
+    "current": "all",
+    "id": "controls:keys-for",
+    "label": "Keys for",
+    "note": "Every aircraft, or only the one seated. An aircraft's own key wins over the one for every aircraft.",
+    "options": [
+     {
+      "label": "Every aircraft",
+      "value": "all"
+     },
+     {
+      "label": "Turbo Timber",
+      "value": "aircraft"
+     }
+    ],
+    "value": "Every aircraft"
+   },
+   {
+    "action": "keybind:reset",
+    "id": "controls:a-keybind:reset",
+    "label": "Reset",
+    "note": "Default: R. Press, then the new key or pad button.",
+    "value": "R"
+   },
+   {
+    "action": "keybind:unstick",
+    "id": "controls:a-keybind:unstick",
+    "label": "Unstick",
+    "note": "Default: X. Press, then the new key or pad button.",
+    "value": "X"
+   },
+   {
+    "action": "keybind:flip",
+    "id": "controls:a-keybind:flip",
+    "label": "Flip over (hold)",
+    "note": "Default: T. Press, then the new key or pad button.",
+    "value": "T"
+   },
+   {
+    "action": "keybind:launch",
+    "id": "controls:a-keybind:launch",
+    "label": "Launch, or launch control",
+    "note": "Default: L. Press, then the new key or pad button.",
+    "value": "L"
+   },
+   {
+    "action": "keybind:chute",
+    "id": "controls:a-keybind:chute",
+    "label": "Parachute",
+    "note": "Default: P. Press, then the new key or pad button.",
+    "value": "P"
+   },
+   {
+    "action": "keybind:flaps",
+    "id": "controls:a-keybind:flaps",
+    "label": "Flaps",
+    "note": "Default: F. Press, then the new key or pad button.",
+    "value": "F"
+   },
+   {
+    "action": "keybind:gear",
+    "id": "controls:a-keybind:gear",
+    "label": "Landing gear",
+    "note": "Default: G. Press, then the new key or pad button.",
+    "value": "G"
+   },
+   {
+    "action": "keybind:smoke",
+    "id": "controls:a-keybind:smoke",
+    "label": "Smoke",
+    "note": "Default: O. Press, then the new key or pad button.",
+    "value": "O"
+   },
+   {
+    "action": "keybind:view",
+    "id": "controls:a-keybind:view",
+    "label": "Change view",
+    "note": "Default: C. Press, then the new key or pad button.",
+    "value": "C"
+   },
+   {
+    "action": "keybind:foot",
+    "id": "controls:a-keybind:foot",
+    "label": "Step out, or fly again",
+    "note": "Default: 1, pad B. Press, then the new key or pad button.",
+    "value": "1, pad B"
+   },
+   {
+    "action": "keybind:replay",
+    "id": "controls:a-keybind:replay",
+    "label": "Open the replay",
+    "note": "Default: Pad X. Press, then the new pad button.",
+    "value": "Pad X"
+   },
+   {
+    "action": "keybind:talk",
+    "id": "controls:a-keybind:talk",
+    "label": "Push to talk",
+    "note": "Default: Pad LT. Press, then the new pad button.",
+    "value": "Pad LT"
+   },
+   {
+    "action": "keybind:swap",
+    "id": "controls:a-keybind:swap",
+    "label": "Change aircraft",
+    "note": "Default: Pad Y. Press, then the new pad button.",
+    "value": "Pad Y"
+   },
+   {
+    "action": "keybind:*",
+    "id": "controls:a-keybind:*",
+    "label": "Reset all to defaults",
+    "note": "Every flight key and pad button back to the default, for every aircraft."
+   },
+   {
+    "action": "back",
+    "id": "controls:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "Keys forEvery aircraft"
+   },
+   {
+    "cls": "row",
+    "text": "ResetR"
+   },
+   {
+    "cls": "row",
+    "text": "UnstickX"
+   },
+   {
+    "cls": "row",
+    "text": "Flip over (hold)T"
+   },
+   {
+    "cls": "row",
+    "text": "Launch, or launch controlL"
+   },
+   {
+    "cls": "row",
+    "text": "ParachuteP"
+   },
+   {
+    "cls": "row",
+    "text": "FlapsF"
+   },
+   {
+    "cls": "row",
+    "text": "Landing gearG"
+   },
+   {
+    "cls": "row",
+    "text": "SmokeO"
+   },
+   {
+    "cls": "row",
+    "text": "Change viewC"
+   },
+   {
+    "cls": "row",
+    "text": "Step out, or fly again1, pad B"
+   },
+   {
+    "cls": "row",
+    "text": "Open the replayPad X"
+   },
+   {
+    "cls": "row",
+    "text": "Push to talkPad LT"
+   },
+   {
+    "cls": "row",
+    "text": "Change aircraftPad Y"
+   },
+   {
+    "cls": "row",
+    "text": "Reset all to defaults"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "controls:keys-for",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "controls:a-keybind:reset",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "controls:a-keybind:unstick",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "controls:a-keybind:flip",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "controls:a-keybind:launch",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "controls:a-keybind:chute",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "controls:a-keybind:flaps",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "controls:a-keybind:gear",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "controls:a-keybind:smoke",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "controls:a-keybind:view",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "controls:a-keybind:foot",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "controls:a-keybind:replay",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 12,
+    "id": "controls:a-keybind:talk",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 13,
+    "id": "controls:a-keybind:swap",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 14,
+    "id": "controls:a-keybind:*",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 15,
+    "id": "controls:a-back",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "controller"
+     ]
+    ]
+   }
+  ]
+ },
  "courses": {
   "screen": "courses",
   "items": [
@@ -2926,6 +3671,147 @@
    }
   ]
  },
+ "flywith": {
+  "screen": "flywith",
+  "items": [
+   {
+    "action": "flywith:radio",
+    "id": "flywith:a-flywith:radio",
+    "label": "A radio",
+    "note": "Your own transmitter in joystick mode over USB or Bluetooth: a RadioMaster, or any EdgeTX or OpenTX radio. Next, the wizard maps and centres its sticks.",
+    "primary": false,
+    "value": ""
+   },
+   {
+    "action": "flywith:gamepad",
+    "id": "flywith:a-flywith:gamepad",
+    "label": "A gamepad",
+    "note": "A console controller. Its layout is known, so it flies with no setup. Next, how its sticks fly.",
+    "primary": false,
+    "value": ""
+   },
+   {
+    "action": "flywith:keys",
+    "id": "flywith:a-flywith:keys",
+    "label": "Keyboard and mouse",
+    "note": "Nothing to plug in. Next, which keys fly.",
+    "primary": true,
+    "value": ""
+   },
+   {
+    "action": "flywith:skip",
+    "id": "flywith:a-flywith:skip",
+    "label": "Skip",
+    "note": "Straight to the game. The Hangar sets up a controller whenever you want.",
+    "primary": false,
+    "value": ""
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row",
+    "text": "A radio"
+   },
+   {
+    "cls": "row",
+    "text": "A gamepad"
+   },
+   {
+    "cls": "row row-primary on",
+    "text": "Keyboard and mouse"
+   },
+   {
+    "cls": "row",
+    "text": "Skip"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "flywith:a-flywith:radio",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "flywith:a-flywith:gamepad",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "flywith:a-flywith:keys",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "flywith:a-flywith:skip",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ]
+    ]
+   }
+  ]
+ },
  "freestyle": {
   "screen": "freestyle",
   "items": [
@@ -3010,11 +3896,20 @@
     "value": "Off"
    },
    {
+    "current": true,
+    "id": "freestyle:trick-callouts",
+    "label": "Trick callouts",
+    "note": "Names every trick and aerobatic figure as you land it, with its grade, its points and the chain. Shown with the score off too.",
+    "on": true,
+    "sw": true,
+    "value": "On"
+   },
+   {
     "action": "quad",
     "id": "freestyle:a-quad",
     "label": "Plane",
     "note": "The machine. Its Tune row opens PIDs, where the tune is chosen and the firmware's own sliders adjust it, and the camera, the flight mode and the firmware bench are there too.",
-    "value": "Timber, Acro"
+    "value": "Timber, AS3X"
    },
    {
     "current": "expert",
@@ -3043,6 +3938,73 @@
     "value": "On"
    },
    {
+    "current": "calm",
+    "id": "freestyle:weather",
+    "label": "Weather",
+    "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+    "options": [
+     {
+      "label": "Calm",
+      "value": "calm"
+     },
+     {
+      "label": "Breeze",
+      "value": "breeze"
+     },
+     {
+      "label": "Gusty",
+      "value": "gusty"
+     },
+     {
+      "label": "Fronts",
+      "value": "front"
+     }
+    ],
+    "value": "Calm"
+   },
+   {
+    "current": "own",
+    "id": "freestyle:time-of-day",
+    "label": "Time of day",
+    "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+    "options": [
+     {
+      "label": "World's own",
+      "value": "own"
+     },
+     {
+      "label": "Day",
+      "value": "day"
+     },
+     {
+      "label": "Morning",
+      "value": "morning"
+     },
+     {
+      "label": "Noon",
+      "value": "noon"
+     },
+     {
+      "label": "Golden hour",
+      "value": "golden"
+     },
+     {
+      "label": "Night",
+      "value": "night"
+     }
+    ],
+    "value": "World's own"
+   },
+   {
+    "current": false,
+    "id": "freestyle:stock-surfaces-only",
+    "label": "Stock surfaces only",
+    "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
     "action": "back",
     "id": "freestyle:a-back",
     "label": "Back"
@@ -3054,8 +4016,12 @@
     "text": "ScoringOffFree flightScored run"
    },
    {
+    "cls": "row",
+    "text": "Trick calloutsOffOn"
+   },
+   {
     "cls": "row row-nav",
-    "text": "PlaneTimber, Acro"
+    "text": "PlaneTimber, AS3X"
    },
    {
     "cls": "row",
@@ -3064,6 +4030,18 @@
    {
     "cls": "row",
     "text": "Crash damageOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "WeatherCalmBreezeGustyFronts"
+   },
+   {
+    "cls": "row",
+    "text": "Time of dayWorld's own"
+   },
+   {
+    "cls": "row",
+    "text": "Stock surfaces onlyOffOn"
    },
    {
     "cls": "row",
@@ -3176,6 +4154,25 @@
    },
    {
     "i": 5,
+    "id": "freestyle:trick-callouts",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 6,
     "id": "freestyle:a-quad",
     "to": "quad",
     "calls": [
@@ -3194,7 +4191,7 @@
     ]
    },
    {
-    "i": 6,
+    "i": 7,
     "id": "freestyle:physics-model",
     "to": "freestyle",
     "calls": [
@@ -3213,7 +4210,7 @@
     ]
    },
    {
-    "i": 7,
+    "i": 8,
     "id": "freestyle:crash-damage",
     "to": "freestyle",
     "calls": [
@@ -3232,7 +4229,60 @@
     ]
    },
    {
-    "i": 8,
+    "i": 9,
+    "id": "freestyle:weather",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "freestyle:time-of-day",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "freestyle:stock-surfaces-only",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 12,
     "id": "freestyle:a-back",
     "to": "title",
     "calls": [
@@ -3509,7 +4559,7 @@
     "id": "launch:a-quad",
     "label": "Plane",
     "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
-    "value": "Timber, Acro"
+    "value": "Timber, AS3X"
    },
    {
     "id": "launch:s-what-this-run-counts-as",
@@ -3617,7 +4667,7 @@
     "action": "launch-go",
     "id": "launch:a-launch-go",
     "label": "Fly",
-    "note": "Your best on Track is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the Acro tune. Change any part of it and you are on a different board. This run is on a perfect link.",
+    "note": "Your best on Track is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the AS3X tune. Change any part of it and you are on a different board. This run is on a perfect link.",
     "primary": true
    },
    {
@@ -3633,7 +4683,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "PlaneTimber, Acro"
+    "text": "PlaneTimber, AS3X"
    },
    {
     "cls": "row",
@@ -3853,6 +4903,13 @@
     "label": "Restart run"
    },
    {
+    "action": "quick",
+    "id": "paused:a-quick",
+    "label": "Flight",
+    "note": "What you change between attempts: tune, rates, mode, view and graphics, for the aircraft in the air.",
+    "value": "Timber, AS3X"
+   },
+   {
     "action": "hotswap",
     "id": "paused:a-hotswap",
     "label": "Change aircraft",
@@ -3860,86 +4917,10 @@
     "value": "Timber"
    },
    {
-    "action": "customise",
-    "id": "paused:a-customise",
-    "label": "Customise",
-    "note": "The power and the paint of the plane you are flying. Save puts them on it where it is."
-   },
-   {
-    "id": "paused:s-does-it-feel-wrong",
-    "label": "Does it feel wrong?",
-    "section": true
-   },
-   {
-    "action": "pids",
-    "id": "paused:a-pids",
-    "label": "Tune",
-    "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept. Changing it during a run puts the quad back on the start line.",
-    "value": "Acro"
-   },
-   {
-    "action": "rates",
-    "id": "paused:a-rates",
-    "label": "Rates",
-    "note": "How far the sticks go, and the throttle limit. Yours, not the tune's. Changing them here leaves the quad where it is and the clock running.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "action": "feel",
-    "id": "paused:a-feel",
-    "label": "Flight feel",
-    "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it."
-   },
-   {
-    "id": "paused:s-elsewhere",
-    "label": "Elsewhere",
-    "section": true
-   },
-   {
-    "action": "quad",
-    "id": "paused:a-quad",
-    "label": "Plane",
-    "note": "PIDs, camera, flight mode and the firmware bench. Changing it during a run puts the quad back on the start line.",
-    "value": "Timber, Acro"
-   },
-   {
     "action": "pilot",
     "id": "paused:a-pilot",
     "label": "Settings",
-    "note": "Rates, your radio, graphics and sound.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "current": "high",
-    "id": "paused:graphics",
-    "label": "Graphics",
-    "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
-    "options": [
-     {
-      "label": "Low",
-      "value": "low"
-     },
-     {
-      "label": "Medium",
-      "value": "medium"
-     },
-     {
-      "label": "High",
-      "value": "high"
-     }
-    ],
-    "value": "High"
-   },
-   {
-    "action": "howto",
-    "id": "paused:a-howto",
-    "label": "How to fly"
-   },
-   {
-    "action": "credits",
-    "id": "paused:a-credits",
-    "label": "Credits",
-    "note": "Who made this, who flew it, and whose work it stands on."
+    "note": "Your radio and keys, screen, sound, language, and help."
    },
    {
     "action": "mytracks",
@@ -3964,43 +4945,15 @@
    },
    {
     "cls": "row",
+    "text": "FlightTimber, AS3X"
+   },
+   {
+    "cls": "row",
     "text": "Change aircraftTimber"
    },
    {
-    "cls": "row",
-    "text": "Customise"
-   },
-   {
     "cls": "row row-nav",
-    "text": "TuneAcro"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "cls": "row",
-    "text": "Flight feel"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "PlaneTimber, Acro"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "SettingsActual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "cls": "row",
-    "text": "GraphicsLowMediumHigh"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "How to fly"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "Credits"
+    "text": "Settings"
    },
    {
     "cls": "row",
@@ -4050,6 +5003,25 @@
    },
    {
     "i": 2,
+    "id": "paused:a-quick",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quick"
+     ]
+    ]
+   },
+   {
+    "i": 3,
     "id": "paused:a-hotswap",
     "to": "paused",
     "calls": [
@@ -4064,112 +5036,7 @@
     ]
    },
    {
-    "i": 3,
-    "id": "paused:a-customise",
-    "to": "paused",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onHangarPreview",
-      "timber1500",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 5,
-    "id": "paused:a-pids",
-    "to": "pids",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "back"
-     ],
-     [
-      "onHangarPreview",
-      "timber1500",
-      "object"
-     ],
-     [
-      "onScreenChange",
-      "pids"
-     ]
-    ]
-   },
-   {
-    "i": 6,
-    "id": "paused:a-rates",
-    "to": "rates",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "rates"
-     ]
-    ]
-   },
-   {
-    "i": 7,
-    "id": "paused:a-feel",
-    "to": "paused",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 9,
-    "id": "paused:a-quad",
-    "to": "quad",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "quad"
-     ]
-    ]
-   },
-   {
-    "i": 10,
+    "i": 4,
     "id": "paused:a-pilot",
     "to": "pilot",
     "calls": [
@@ -4188,64 +5055,7 @@
     ]
    },
    {
-    "i": 11,
-    "id": "paused:graphics",
-    "to": "paused",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 12,
-    "id": "paused:a-howto",
-    "to": "howto",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "howto"
-     ]
-    ]
-   },
-   {
-    "i": 13,
-    "id": "paused:a-credits",
-    "to": "credits",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "credits"
-     ]
-    ]
-   },
-   {
-    "i": 14,
+    "i": 5,
     "id": "paused:a-mytracks",
     "to": "courses",
     "calls": [
@@ -4277,7 +5087,7 @@
     ]
    },
    {
-    "i": 15,
+    "i": 6,
     "id": "paused:a-title",
     "to": "title",
     "calls": [
@@ -4306,26 +5116,26 @@
   "screen": "pids",
   "items": [
    {
-    "current": "timber-acro",
+    "current": "timber-as3x",
     "id": "pids:tune",
     "label": "Tune",
     "note": "Everything below belongs to this one, and each tune keeps its own adjustment. Stock is the only tune shipped. Edit one on Firmware bench and save it, and it joins this row as Your edits.",
     "options": [
      {
-      "label": "Stabilised",
-      "value": "timber-stab"
-     },
-     {
-      "label": "Acro",
-      "value": "timber-acro"
+      "label": "AS3X",
+      "value": "timber-as3x"
      },
      {
       "label": "Manual",
       "value": "timber-manual"
+     },
+     {
+      "label": "SAFE Select",
+      "value": "timber-stab"
      }
     ],
     "pickOnly": true,
-    "value": "Acro"
+    "value": "AS3X"
    },
    {
     "current": false,
@@ -4544,7 +5354,7 @@
     "disabled": true,
     "id": "pids:a-pids-default",
     "label": "Back to the tune's own values",
-    "note": "Acro is already flying its own values."
+    "note": "AS3X is already flying its own values."
    },
    {
     "action": "back",
@@ -4555,7 +5365,7 @@
   "rows": [
    {
     "cls": "row on",
-    "text": "TuneStabilisedAcroManual"
+    "text": "TuneAS3XManualSAFE Select"
    },
    {
     "cls": "row",
@@ -4851,64 +5661,27 @@
     "section": true
    },
    {
-    "action": "choosepad",
-    "id": "pilot:a-choosepad",
-    "label": "Choose joystick",
-    "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
+    "action": "controller",
+    "id": "pilot:a-controller",
+    "label": "Controller",
+    "note": "Which device flies, its calibration, dead zone and expo, the stick mode, and the keys and buttons.",
     "value": "Keyboard"
    },
    {
     "current": false,
-    "id": "pilot:mouse-flight",
-    "label": "Mouse flight",
-    "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+    "id": "pilot:show-sticks",
+    "label": "Show sticks",
+    "note": "Your two sticks over the flight, low in the middle, whatever you fly with. Flying by keyboard or mouse shows them anyway.",
     "on": false,
     "sw": true,
     "value": "Off"
    },
    {
-    "action": "calibrate",
-    "id": "pilot:a-calibrate",
-    "label": "Calibrate sticks",
-    "note": "Centre, full range, then one named move per stick. Saved after you check it."
-   },
-   {
-    "action": "calibrate-check",
-    "id": "pilot:a-calibrate-check",
-    "label": "Check sticks",
-    "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save."
-   },
-   {
-    "current": 2,
-    "id": "pilot:stick-mode",
-    "label": "Stick mode",
-    "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
-    "options": [
-     {
-      "label": "Mode 1",
-      "value": 1
-     },
-     {
-      "label": "Mode 2",
-      "value": 2
-     },
-     {
-      "label": "Mode 3",
-      "value": 3
-     },
-     {
-      "label": "Mode 4",
-      "value": 4
-     }
-    ],
-    "value": "Mode 2"
-   },
-   {
-    "action": "rates",
-    "id": "pilot:a-rates",
-    "label": "Rates",
-    "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+    "action": "comparesticks",
+    "id": "pilot:a-comparesticks",
+    "label": "Compare sticks",
+    "note": "Opens a control recording, one of your own flights or the flight lab's pilot, and plays its sticks as a ring on your sticks from the moment you are in the air. Choose it again to put it away. It is kept until the page closes.",
+    "value": "None"
    },
    {
     "current": "perfect",
@@ -4994,6 +5767,27 @@
     "label": "GPU",
     "note": "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2. WebGL 2 is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded.",
     "value": "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+   },
+   {
+    "current": 100,
+    "id": "pilot:menu-size",
+    "label": "Menu size",
+    "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+    "options": [
+     {
+      "label": "100%",
+      "value": 100
+     },
+     {
+      "label": "115%",
+      "value": 115
+     },
+     {
+      "label": "130%",
+      "value": 130
+     }
+    ],
+    "value": "100%"
    },
    {
     "current": 100,
@@ -5174,6 +5968,15 @@
     "value": "On"
    },
    {
+    "current": true,
+    "id": "pilot:radio-subtitles",
+    "label": "Radio subtitles",
+    "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+    "on": true,
+    "sw": true,
+    "value": "On"
+   },
+   {
     "id": "pilot:volume",
     "label": "Volume",
     "note": "Overall level. Zero to ten.",
@@ -5272,6 +6075,52 @@
     "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads."
    },
    {
+    "action": "downloadcontrolrec",
+    "id": "pilot:a-downloadcontrolrec",
+    "label": "Download control recording",
+    "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html."
+   },
+   {
+    "id": "pilot:build",
+    "info": true,
+    "label": "Build",
+    "note": "The version of the game this page runs. A bug report carries it.",
+    "value": "Local build"
+   },
+   {
+    "id": "pilot:s-saved-data",
+    "label": "Saved data",
+    "section": true
+   },
+   {
+    "action": "resetsettings",
+    "id": "pilot:a-resetsettings",
+    "label": "Reset settings",
+    "note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay."
+   },
+   {
+    "action": "resetprogress",
+    "id": "pilot:a-resetprogress",
+    "label": "Reset progress",
+    "note": "XP, challenges, medals, the campaign, flight time and best laps back to a new pilot's. Your settings stay."
+   },
+   {
+    "id": "pilot:s-help",
+    "label": "Help",
+    "section": true
+   },
+   {
+    "action": "howto",
+    "id": "pilot:a-howto",
+    "label": "How to fly"
+   },
+   {
+    "action": "credits",
+    "id": "pilot:a-credits",
+    "label": "Credits",
+    "note": "Who made this, who flew it, and whose work it stands on."
+   },
+   {
     "action": "back",
     "id": "pilot:a-back",
     "label": "Back"
@@ -5300,27 +6149,15 @@
    },
    {
     "cls": "row row-nav",
-    "text": "Choose joystickKeyboard"
+    "text": "ControllerKeyboard"
    },
    {
     "cls": "row",
-    "text": "Mouse flightOffOn"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "Calibrate sticks"
+    "text": "Show sticksOffOn"
    },
    {
     "cls": "row",
-    "text": "Check sticks"
-   },
-   {
-    "cls": "row",
-    "text": "Stick modeMode 1Mode 2Mode 3Mode 4"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
+    "text": "Compare sticksNone"
    },
    {
     "cls": "row",
@@ -5341,6 +6178,10 @@
    {
     "cls": "row row-info",
     "text": "GPUNVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+   },
+   {
+    "cls": "row",
+    "text": "Menu size100%115%130%"
    },
    {
     "cls": "row",
@@ -5377,6 +6218,10 @@
    {
     "cls": "row",
     "text": "SoundOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Radio subtitlesOffOn"
    },
    {
     "cls": "row",
@@ -5425,6 +6270,30 @@
    {
     "cls": "row",
     "text": "Download flight log"
+   },
+   {
+    "cls": "row",
+    "text": "Download control recording"
+   },
+   {
+    "cls": "row row-info",
+    "text": "BuildLocal build"
+   },
+   {
+    "cls": "row",
+    "text": "Reset settings"
+   },
+   {
+    "cls": "row",
+    "text": "Reset progress"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "How to fly"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Credits"
    },
    {
     "cls": "row",
@@ -5510,8 +6379,8 @@
    },
    {
     "i": 7,
-    "id": "pilot:a-choosepad",
-    "to": "pilot",
+    "id": "pilot:a-controller",
+    "to": "controller",
     "calls": [
      [
       "onUiSound",
@@ -5522,15 +6391,14 @@
       "select"
      ],
      [
-      "onAction",
-      "choosepad",
-      "object"
+      "onScreenChange",
+      "controller"
      ]
     ]
    },
    {
     "i": 8,
-    "id": "pilot:mouse-flight",
+    "id": "pilot:show-sticks",
     "to": "pilot",
     "calls": [
      [
@@ -5549,7 +6417,7 @@
    },
    {
     "i": 9,
-    "id": "pilot:a-calibrate",
+    "id": "pilot:a-comparesticks",
     "to": "pilot",
     "calls": [
      [
@@ -5559,74 +6427,11 @@
      [
       "onUiSound",
       "select"
-     ],
-     [
-      "onAction",
-      "calibrate",
-      "object"
      ]
     ]
    },
    {
     "i": 10,
-    "id": "pilot:a-calibrate-check",
-    "to": "pilot",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "calibrate-check",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 11,
-    "id": "pilot:stick-mode",
-    "to": "pilot",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 12,
-    "id": "pilot:a-rates",
-    "to": "rates",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "rates"
-     ]
-    ]
-   },
-   {
-    "i": 13,
     "id": "pilot:radio-link",
     "to": "pilot",
     "calls": [
@@ -5641,7 +6446,7 @@
     ]
    },
    {
-    "i": 14,
+    "i": 11,
     "id": "pilot:stick-latency",
     "to": "pilot",
     "calls": [
@@ -5660,7 +6465,7 @@
     ]
    },
    {
-    "i": 15,
+    "i": 12,
     "id": "pilot:a-quad",
     "to": "quad",
     "calls": [
@@ -5679,7 +6484,7 @@
     ]
    },
    {
-    "i": 17,
+    "i": 14,
     "id": "pilot:graphics",
     "to": "pilot",
     "calls": [
@@ -5698,7 +6503,7 @@
     ]
    },
    {
-    "i": 18,
+    "i": 15,
     "id": "pilot:gpu",
     "to": "pilot",
     "calls": [
@@ -5709,7 +6514,26 @@
     ]
    },
    {
-    "i": 19,
+    "i": 16,
+    "id": "pilot:menu-size",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 17,
     "id": "pilot:render-scale",
     "to": "pilot",
     "calls": [
@@ -5728,7 +6552,7 @@
     ]
    },
    {
-    "i": 20,
+    "i": 18,
     "id": "pilot:performance-mode",
     "to": "pilot",
     "calls": [
@@ -5743,7 +6567,7 @@
     ]
    },
    {
-    "i": 21,
+    "i": 19,
     "id": "pilot:frame-cap",
     "to": "pilot",
     "calls": [
@@ -5758,7 +6582,7 @@
     ]
    },
    {
-    "i": 22,
+    "i": 20,
     "id": "pilot:frame-readout",
     "to": "pilot",
     "calls": [
@@ -5777,7 +6601,7 @@
     ]
    },
    {
-    "i": 23,
+    "i": 21,
     "id": "pilot:mission-guidance",
     "to": "pilot",
     "calls": [
@@ -5796,7 +6620,7 @@
     ]
    },
    {
-    "i": 24,
+    "i": 22,
     "id": "pilot:hud-style",
     "to": "pilot",
     "calls": [
@@ -5815,7 +6639,7 @@
     ]
    },
    {
-    "i": 25,
+    "i": 23,
     "id": "pilot:pilot-markers",
     "to": "pilot",
     "calls": [
@@ -5834,7 +6658,7 @@
     ]
    },
    {
-    "i": 26,
+    "i": 24,
     "id": "pilot:thermal-palette",
     "to": "pilot",
     "calls": [
@@ -5849,7 +6673,7 @@
     ]
    },
    {
-    "i": 28,
+    "i": 26,
     "id": "pilot:sound",
     "to": "pilot",
     "calls": [
@@ -5868,7 +6692,26 @@
     ]
    },
    {
-    "i": 29,
+    "i": 27,
+    "id": "pilot:radio-subtitles",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 28,
     "id": "pilot:volume",
     "to": "pilot",
     "calls": [
@@ -5883,7 +6726,7 @@
     ]
    },
    {
-    "i": 30,
+    "i": 29,
     "id": "pilot:motors-and-engines",
     "to": "pilot",
     "calls": [
@@ -5898,7 +6741,7 @@
     ]
    },
    {
-    "i": 31,
+    "i": 30,
     "id": "pilot:wind",
     "to": "pilot",
     "calls": [
@@ -5913,7 +6756,7 @@
     ]
    },
    {
-    "i": 32,
+    "i": 31,
     "id": "pilot:other-aircraft",
     "to": "pilot",
     "calls": [
@@ -5928,7 +6771,7 @@
     ]
    },
    {
-    "i": 33,
+    "i": 32,
     "id": "pilot:effects",
     "to": "pilot",
     "calls": [
@@ -5943,7 +6786,7 @@
     ]
    },
    {
-    "i": 34,
+    "i": 33,
     "id": "pilot:ambience",
     "to": "pilot",
     "calls": [
@@ -5958,7 +6801,7 @@
     ]
    },
    {
-    "i": 35,
+    "i": 34,
     "id": "pilot:voice",
     "to": "pilot",
     "calls": [
@@ -5973,7 +6816,7 @@
     ]
    },
    {
-    "i": 36,
+    "i": 35,
     "id": "pilot:music",
     "to": "pilot",
     "calls": [
@@ -5988,7 +6831,7 @@
     ]
    },
    {
-    "i": 37,
+    "i": 36,
     "id": "pilot:music-track",
     "to": "pilot",
     "calls": [
@@ -6007,7 +6850,7 @@
     ]
    },
    {
-    "i": 38,
+    "i": 37,
     "id": "pilot:binaural-tone",
     "to": "pilot",
     "calls": [
@@ -6026,7 +6869,7 @@
     ]
    },
    {
-    "i": 40,
+    "i": 39,
     "id": "pilot:flight-log",
     "to": "pilot",
     "calls": [
@@ -6045,7 +6888,7 @@
     ]
    },
    {
-    "i": 41,
+    "i": 40,
     "id": "pilot:a-downloadflightlog",
     "to": "pilot",
     "calls": [
@@ -6065,8 +6908,465 @@
     ]
    },
    {
+    "i": 41,
+    "id": "pilot:a-downloadcontrolrec",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "downloadcontrolrec",
+      "object"
+     ]
+    ]
+   },
+   {
     "i": 42,
+    "id": "pilot:build",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 44,
+    "id": "pilot:a-resetsettings",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 45,
+    "id": "pilot:a-resetprogress",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 47,
+    "id": "pilot:a-howto",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 48,
+    "id": "pilot:a-credits",
+    "to": "credits",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "credits"
+     ]
+    ]
+   },
+   {
+    "i": 49,
     "id": "pilot:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "planerates": {
+  "screen": "planerates",
+  "items": [
+   {
+    "current": "low",
+    "id": "planerates:rates",
+    "label": "Rates",
+    "note": "The Timber's throws at full stick, aileron, elevator and rudder, as its manual gives them. Low is the manual's low rate, or 70 percent of high where it gives none; Mid is halfway, a three position switch's middle.",
+    "options": [
+     {
+      "label": "Low, 22.2° 14.9° 17.6°",
+      "value": "low"
+     },
+     {
+      "label": "Mid, 26.1° 17.4° 22.3°",
+      "value": "mid"
+     },
+     {
+      "label": "High, 30° 20° 27°",
+      "value": "high"
+     }
+    ],
+    "value": "Low, 22.2° 14.9° 17.6°"
+   },
+   {
+    "current": 5,
+    "id": "planerates:aileron-expo",
+    "label": "Aileron expo",
+    "note": "Softens the stick around centre without changing full stick's throw: 0 is straight, 100 all curve.",
+    "options": [
+     {
+      "label": "0%",
+      "value": 0
+     },
+     {
+      "label": "5%",
+      "value": 5
+     },
+     {
+      "label": "10%",
+      "value": 10
+     },
+     {
+      "label": "20%",
+      "value": 20
+     },
+     {
+      "label": "30%",
+      "value": 30
+     },
+     {
+      "label": "40%",
+      "value": 40
+     },
+     {
+      "label": "50%",
+      "value": 50
+     },
+     {
+      "label": "60%",
+      "value": 60
+     },
+     {
+      "label": "70%",
+      "value": 70
+     },
+     {
+      "label": "80%",
+      "value": 80
+     },
+     {
+      "label": "90%",
+      "value": 90
+     },
+     {
+      "label": "100%",
+      "value": 100
+     }
+    ],
+    "value": "5%"
+   },
+   {
+    "current": 5,
+    "id": "planerates:elevator-expo",
+    "label": "Elevator expo",
+    "note": "Softens the stick around centre without changing full stick's throw: 0 is straight, 100 all curve.",
+    "options": [
+     {
+      "label": "0%",
+      "value": 0
+     },
+     {
+      "label": "5%",
+      "value": 5
+     },
+     {
+      "label": "10%",
+      "value": 10
+     },
+     {
+      "label": "20%",
+      "value": 20
+     },
+     {
+      "label": "30%",
+      "value": 30
+     },
+     {
+      "label": "40%",
+      "value": 40
+     },
+     {
+      "label": "50%",
+      "value": 50
+     },
+     {
+      "label": "60%",
+      "value": 60
+     },
+     {
+      "label": "70%",
+      "value": 70
+     },
+     {
+      "label": "80%",
+      "value": 80
+     },
+     {
+      "label": "90%",
+      "value": 90
+     },
+     {
+      "label": "100%",
+      "value": 100
+     }
+    ],
+    "value": "5%"
+   },
+   {
+    "current": 5,
+    "id": "planerates:rudder-expo",
+    "label": "Rudder expo",
+    "note": "Softens the stick around centre without changing full stick's throw: 0 is straight, 100 all curve.",
+    "options": [
+     {
+      "label": "0%",
+      "value": 0
+     },
+     {
+      "label": "5%",
+      "value": 5
+     },
+     {
+      "label": "10%",
+      "value": 10
+     },
+     {
+      "label": "20%",
+      "value": 20
+     },
+     {
+      "label": "30%",
+      "value": 30
+     },
+     {
+      "label": "40%",
+      "value": 40
+     },
+     {
+      "label": "50%",
+      "value": 50
+     },
+     {
+      "label": "60%",
+      "value": 60
+     },
+     {
+      "label": "70%",
+      "value": 70
+     },
+     {
+      "label": "80%",
+      "value": 80
+     },
+     {
+      "label": "90%",
+      "value": 90
+     },
+     {
+      "label": "100%",
+      "value": 100
+     }
+    ],
+    "value": "5%"
+   },
+   {
+    "current": 0,
+    "id": "planerates:elevator-to-flap-mix",
+    "label": "Elevator to flap mix",
+    "note": "A radio mix 3D pilots set for the harrier: up elevator lowers the flaps too, by this much of their full travel at full stick, on top of the flap switch. Off as the plane ships.",
+    "options": [
+     {
+      "label": "Off",
+      "value": 0
+     },
+     {
+      "label": "25%",
+      "value": 25
+     },
+     {
+      "label": "50%",
+      "value": 50
+     },
+     {
+      "label": "75%",
+      "value": 75
+     },
+     {
+      "label": "100%",
+      "value": 100
+     }
+    ],
+    "value": "Off"
+   },
+   {
+    "action": "back",
+    "id": "planerates:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "RatesLow, 22.2° 14.9° 17.6°"
+   },
+   {
+    "cls": "row",
+    "text": "Aileron expo5%"
+   },
+   {
+    "cls": "row",
+    "text": "Elevator expo5%"
+   },
+   {
+    "cls": "row",
+    "text": "Rudder expo5%"
+   },
+   {
+    "cls": "row",
+    "text": "Elevator to flap mixOff"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "planerates:rates",
+    "to": "planerates",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "planerates:aileron-expo",
+    "to": "planerates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "planerates:elevator-expo",
+    "to": "planerates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "planerates:rudder-expo",
+    "to": "planerates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "planerates:elevator-to-flap-mix",
+    "to": "planerates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "planerates:a-back",
     "to": "title",
     "calls": [
      [
@@ -6169,6 +7469,26 @@
       "value": "tigermoth1803"
      },
      {
+      "label": "Extra 300 3D",
+      "value": "extra3d1308"
+     },
+     {
+      "label": "Night Timber X",
+      "value": "nighttimber1200"
+     },
+     {
+      "label": "C-130 Hercules",
+      "value": "hercules3077"
+     },
+     {
+      "label": "CAP 580",
+      "value": "cap1702"
+     },
+     {
+      "label": "Slick 580",
+      "value": "slick2680"
+     },
+     {
       "label": "P-51D Mustang",
       "value": "p51d1450"
      },
@@ -6196,8 +7516,8 @@
     "action": "pids",
     "id": "quad:a-pids",
     "label": "Tune",
-    "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept.",
-    "value": "Acro"
+    "note": "E-flite's gyro, as the Timber ships. The sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. F sets the flaps. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept.",
+    "value": "AS3X"
    },
    {
     "action": "fc",
@@ -6247,6 +7567,48 @@
     "value": "100 degrees vertical"
    },
    {
+    "current": "on",
+    "id": "quad:camera-shake",
+    "label": "Camera shake",
+    "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+    "options": [
+     {
+      "label": "On",
+      "value": "on"
+     },
+     {
+      "label": "Reduced",
+      "value": "reduced"
+     },
+     {
+      "label": "Off",
+      "value": "off"
+     }
+    ],
+    "value": "On"
+   },
+   {
+    "current": "standard",
+    "id": "quad:chase-smoothing",
+    "label": "Chase smoothing",
+    "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+    "options": [
+     {
+      "label": "Tight",
+      "value": "tight"
+     },
+     {
+      "label": "Standard",
+      "value": "standard"
+     },
+     {
+      "label": "Smooth",
+      "value": "smooth"
+     }
+    ],
+    "value": "Standard"
+   },
+   {
     "id": "quad:s-flight",
     "label": "Flight",
     "section": true
@@ -6278,11 +7640,11 @@
     "value": "Off"
    },
    {
-    "action": "rates",
-    "id": "quad:a-rates",
+    "action": "planerates",
+    "id": "quad:a-planerates",
     "label": "Rates",
-    "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+    "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+    "value": "Low, 22.2° 14.9° 17.6°"
    },
    {
     "action": "back",
@@ -6297,7 +7659,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TuneAcro"
+    "text": "TuneAS3X"
    },
    {
     "cls": "row row-nav",
@@ -6313,6 +7675,14 @@
    },
    {
     "cls": "row",
+    "text": "Camera shakeOnReducedOff"
+   },
+   {
+    "cls": "row",
+    "text": "Chase smoothingTightStandardSmooth"
+   },
+   {
+    "cls": "row",
     "text": "Flight modeAcroAngle"
    },
    {
@@ -6321,7 +7691,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
+    "text": "RatesLow, 22.2° 14.9° 17.6°"
    },
    {
     "cls": "row",
@@ -6413,8 +7783,8 @@
     ]
    },
    {
-    "i": 8,
-    "id": "quad:flight-mode",
+    "i": 7,
+    "id": "quad:camera-shake",
     "to": "quad",
     "calls": [
      [
@@ -6432,8 +7802,8 @@
     ]
    },
    {
-    "i": 9,
-    "id": "quad:launch-control",
+    "i": 8,
+    "id": "quad:chase-smoothing",
     "to": "quad",
     "calls": [
      [
@@ -6452,8 +7822,46 @@
    },
    {
     "i": 10,
-    "id": "quad:a-rates",
-    "to": "rates",
+    "id": "quad:flight-mode",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "quad:launch-control",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 12,
+    "id": "quad:a-planerates",
+    "to": "planerates",
     "calls": [
      [
       "onUiSound",
@@ -6465,12 +7873,12 @@
      ],
      [
       "onScreenChange",
-      "rates"
+      "planerates"
      ]
     ]
    },
    {
-    "i": 11,
+    "i": 13,
     "id": "quad:a-back",
     "to": "title",
     "calls": [
@@ -6493,6 +7901,294 @@
      [
       "onAction",
       "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "quick": {
+  "screen": "quick",
+  "items": [
+   {
+    "id": "quick:s-aircraft",
+    "label": "Aircraft",
+    "section": true
+   },
+   {
+    "action": "pids",
+    "id": "quick:a-pids",
+    "label": "Flight mode",
+    "note": "Opens where the flight mode is chosen, with what each mode does to the sticks.",
+    "value": "AS3X"
+   },
+   {
+    "action": "planerates",
+    "id": "quick:a-planerates",
+    "label": "Rates",
+    "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+    "value": "Low, 22.2° 14.9° 17.6°"
+   },
+   {
+    "action": "feel",
+    "id": "quick:a-feel",
+    "label": "Flight feel",
+    "note": "Tell the people tuning it how it flies. One word is enough; your aircraft, mode and rates go with it."
+   },
+   {
+    "action": "quad",
+    "id": "quick:a-quad",
+    "label": "Plane setup",
+    "note": "Camera, flight mode and the firmware bench. Back returns to the pause menu."
+   },
+   {
+    "action": "customise",
+    "id": "quick:a-customise",
+    "label": "Customise",
+    "note": "The power and the paint of the plane you are flying. Save puts them on it where it is."
+   },
+   {
+    "id": "quick:s-view",
+    "label": "View",
+    "section": true
+   },
+   {
+    "current": "osd",
+    "id": "quick:hud-style",
+    "label": "HUD style",
+    "note": "What the first person view draws over the picture. FPV OSD is the flight controller's own on screen display, the white characters it puts in the pilot's goggles: pack, current, timers, horizon, and the lap clock in the same type. Game is this game's own readout. Avionics is a sensor and tracking display: heading, speed and height tapes, the link, navigation and energy panels, the camera and the AI's tracks; H switches AI tracking, J the camera mode, K the zoom, I puts the camera full screen (J then picks thermal) and back, U sizes the camera inset, Y draws more or less (full, standard, minimal), . (period) changes the thermal palette. Each aircraft keeps its own choice, and the combat drones start on Avionics. Chase and line of sight always use the game's.",
+    "options": [
+     {
+      "label": "FPV OSD",
+      "value": "osd"
+     },
+     {
+      "label": "Game",
+      "value": "game"
+     },
+     {
+      "label": "Avionics",
+      "value": "avionics"
+     }
+    ],
+    "value": "FPV OSD"
+   },
+   {
+    "current": "high",
+    "id": "quick:graphics",
+    "label": "Graphics",
+    "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+    "options": [
+     {
+      "label": "Low",
+      "value": "low"
+     },
+     {
+      "label": "Medium",
+      "value": "medium"
+     },
+     {
+      "label": "High",
+      "value": "high"
+     }
+    ],
+    "value": "High"
+   },
+   {
+    "action": "back",
+    "id": "quick:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-nav on",
+    "text": "Flight modeAS3X"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "RatesLow, 22.2° 14.9° 17.6°"
+   },
+   {
+    "cls": "row",
+    "text": "Flight feel"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Plane setup"
+   },
+   {
+    "cls": "row",
+    "text": "Customise"
+   },
+   {
+    "cls": "row",
+    "text": "HUD styleFPV OSDGameAvionics"
+   },
+   {
+    "cls": "row",
+    "text": "GraphicsLowMediumHigh"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 1,
+    "id": "quick:a-pids",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "pids"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "quick:a-planerates",
+    "to": "planerates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "planerates"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "quick:a-feel",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "quick:a-quad",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quad"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "quick:a-customise",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onHangarPreview",
+      "timber1500",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "quick:hud-style",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "quick:graphics",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "quick:a-back",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "paused"
+     ],
+     [
+      "onAction",
+      "paused",
       "object"
      ]
     ]
@@ -7071,7 +8767,7 @@
    {
     "i": 20,
     "id": "rates:a-back",
-    "to": "title",
+    "to": "paused",
     "calls": [
      [
       "onUiSound",
@@ -7087,11 +8783,11 @@
      ],
      [
       "onScreenChange",
-      "title"
+      "paused"
      ],
      [
       "onAction",
-      "title",
+      "paused",
       "object"
      ]
     ]
@@ -7264,6 +8960,10 @@
      {
       "label": "Combat",
       "value": "3"
+     },
+     {
+      "label": "Trick Battle",
+      "value": "4"
      }
     ],
     "value": "Just fly"
@@ -7612,7 +9312,7 @@
    {
     "i": 1,
     "id": "standings:a-back",
-    "to": "title",
+    "to": "paused",
     "calls": [
      [
       "onUiSound",
@@ -7628,11 +9328,11 @@
      ],
      [
       "onScreenChange",
-      "title"
+      "paused"
      ],
      [
       "onAction",
-      "title",
+      "paused",
       "object"
      ]
     ]
@@ -7661,6 +9361,11 @@
       "action": "way-freestyle-wing1000",
       "key": "freestyle-wing1000",
       "label": "Free Flight"
+     },
+     {
+      "action": "way-training",
+      "key": "training",
+      "label": "Learn to fly"
      }
     ],
     "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>"
@@ -7679,6 +9384,11 @@
       "action": "way-interior",
       "key": "interior",
       "label": "The Interior"
+     },
+     {
+      "action": "field-walk",
+      "key": "ops-field",
+      "label": "Field hangar"
      }
     ],
     "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
@@ -7694,6 +9404,11 @@
     "label": "Hangar",
     "links": [
      {
+      "action": "hangar-walk",
+      "key": "hangar-walk",
+      "label": "Walk in"
+     },
+     {
       "action": "hangar-aircraft",
       "key": "hangar-aircraft",
       "label": "Aircraft"
@@ -7704,9 +9419,14 @@
       "label": "Customise"
      },
      {
-      "action": "calibrate",
-      "key": "hangar-sticks",
-      "label": "Calibrate sticks"
+      "action": "campaign-shop",
+      "key": "hangar-upgrades",
+      "label": "Upgrades"
+     },
+     {
+      "action": "controller",
+      "key": "hangar-controller",
+      "label": "Controller"
      },
      {
       "action": "howto",
@@ -8859,5 +10579,11 @@
     ]
    }
   ]
+ },
+ "walk": {
+  "screen": "walk",
+  "items": [],
+  "rows": [],
+  "leads": []
  }
 }

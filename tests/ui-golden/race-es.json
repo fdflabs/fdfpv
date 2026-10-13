@@ -11,6 +11,751 @@
   "rows": [],
   "leads": []
  },
+ "controller": {
+  "screen": "controller",
+  "items": [
+   {
+    "id": "controller:s-dispositivo",
+    "label": "Dispositivo",
+    "section": true
+   },
+   {
+    "action": "choosepad",
+    "id": "controller:a-choosepad",
+    "label": "Elegir joystick",
+    "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
+    "value": "Teclado"
+   },
+   {
+    "id": "controller:reconocido-como",
+    "info": true,
+    "label": "Reconocido como",
+    "note": "Conecta una radio en modo joystick o un mando y mueve una palanca. Mientras tanto vuela el teclado.",
+    "value": "Nada conectado"
+   },
+   {
+    "action": "calibrate",
+    "id": "controller:a-calibrate",
+    "label": "Calibrar sticks",
+    "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes."
+   },
+   {
+    "action": "calibrate-check",
+    "id": "controller:a-calibrate-check",
+    "label": "Comprobar sticks",
+    "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes."
+   },
+   {
+    "current": 2,
+    "id": "controller:modo-de-sticks",
+    "label": "Modo de sticks",
+    "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+    "options": [
+     {
+      "label": "Modo 1",
+      "value": 1
+     },
+     {
+      "label": "Modo 2",
+      "value": 2
+     },
+     {
+      "label": "Modo 3",
+      "value": 3
+     },
+     {
+      "label": "Modo 4",
+      "value": 4
+     }
+    ],
+    "value": "Modo 2"
+   },
+   {
+    "id": "controller:s-rates",
+    "label": "Cómo vuelan las palancas, cada multirrotor",
+    "section": true
+   },
+   {
+    "action": "rates",
+    "id": "controller:a-rates",
+    "label": "Tasas",
+    "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+   },
+   {
+    "id": "controller:s-teclado-y-rat-n",
+    "label": "Teclado y ratón",
+    "section": true
+   },
+   {
+    "action": "controls",
+    "id": "controller:a-controls",
+    "label": "Teclas y botones",
+    "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse."
+   },
+   {
+    "current": false,
+    "id": "controller:vuelo-con-rat-n",
+    "label": "Vuelo con ratón",
+    "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+    "on": false,
+    "sw": true,
+    "value": "No"
+   },
+   {
+    "action": "back",
+    "id": "controller:a-back",
+    "label": "Volver"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-nav on",
+    "text": "Elegir joystickTeclado"
+   },
+   {
+    "cls": "row row-info",
+    "text": "Reconocido comoNada conectado"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Calibrar sticks"
+   },
+   {
+    "cls": "row",
+    "text": "Comprobar sticks"
+   },
+   {
+    "cls": "row",
+    "text": "Modo de sticksModo 1Modo 2Modo 3Modo 4"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Teclas y botones"
+   },
+   {
+    "cls": "row",
+    "text": "Vuelo con ratónNoSí"
+   },
+   {
+    "cls": "row",
+    "text": "Volver"
+   }
+  ],
+  "leads": [
+   {
+    "i": 1,
+    "id": "controller:a-choosepad",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "choosepad",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "controller:reconocido-como",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "controller:a-calibrate",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "calibrate",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "controller:a-calibrate-check",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "calibrate-check",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "controller:modo-de-sticks",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "controller:a-rates",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "rates"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "controller:a-controls",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "controls"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "controller:vuelo-con-rat-n",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "controller:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "controls": {
+  "screen": "controls",
+  "items": [
+   {
+    "current": "all",
+    "id": "controls:teclas-para",
+    "label": "Teclas para",
+    "note": "Todas las aeronaves, o solo la elegida. La tecla propia de una aeronave gana sobre la de todas.",
+    "options": [
+     {
+      "label": "Todas las aeronaves",
+      "value": "all"
+     },
+     {
+      "label": "Interceptor",
+      "value": "aircraft"
+     }
+    ],
+    "value": "Todas las aeronaves"
+   },
+   {
+    "action": "keybind:reset",
+    "id": "controls:a-keybind:reset",
+    "label": "Reiniciar",
+    "note": "De fábrica: R. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "R"
+   },
+   {
+    "action": "keybind:unstick",
+    "id": "controls:a-keybind:unstick",
+    "label": "Desatascar",
+    "note": "De fábrica: X. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "X"
+   },
+   {
+    "action": "keybind:flip",
+    "id": "controls:a-keybind:flip",
+    "label": "Voltear (mantener)",
+    "note": "De fábrica: T. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "T"
+   },
+   {
+    "action": "keybind:launch",
+    "id": "controls:a-keybind:launch",
+    "label": "Lanzar, o control de lanzamiento",
+    "note": "De fábrica: L. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "L"
+   },
+   {
+    "action": "keybind:chute",
+    "id": "controls:a-keybind:chute",
+    "label": "Paracaídas",
+    "note": "De fábrica: P. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "P"
+   },
+   {
+    "action": "keybind:flaps",
+    "id": "controls:a-keybind:flaps",
+    "label": "Flaps",
+    "note": "De fábrica: F. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "F"
+   },
+   {
+    "action": "keybind:gear",
+    "id": "controls:a-keybind:gear",
+    "label": "Tren de aterrizaje",
+    "note": "De fábrica: G. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "G"
+   },
+   {
+    "action": "keybind:smoke",
+    "id": "controls:a-keybind:smoke",
+    "label": "Humo",
+    "note": "De fábrica: O. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "O"
+   },
+   {
+    "action": "keybind:view",
+    "id": "controls:a-keybind:view",
+    "label": "Cambiar vista",
+    "note": "De fábrica: C. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "C"
+   },
+   {
+    "action": "keybind:foot",
+    "id": "controls:a-keybind:foot",
+    "label": "Bajarse, o volver a volar",
+    "note": "De fábrica: 1, mando B. Pulsa y luego la nueva tecla o el botón del mando.",
+    "value": "1, mando B"
+   },
+   {
+    "action": "keybind:replay",
+    "id": "controls:a-keybind:replay",
+    "label": "Abrir la repetición",
+    "note": "De fábrica: Mando X. Pulsa y luego el nuevo botón del mando.",
+    "value": "Mando X"
+   },
+   {
+    "action": "keybind:talk",
+    "id": "controls:a-keybind:talk",
+    "label": "Pulsar para hablar",
+    "note": "De fábrica: Mando LT. Pulsa y luego el nuevo botón del mando.",
+    "value": "Mando LT"
+   },
+   {
+    "action": "keybind:swap",
+    "id": "controls:a-keybind:swap",
+    "label": "Cambiar de aeronave",
+    "note": "De fábrica: Mando Y. Pulsa y luego el nuevo botón del mando.",
+    "value": "Mando Y"
+   },
+   {
+    "action": "keybind:*",
+    "id": "controls:a-keybind:*",
+    "label": "Restablecer todo",
+    "note": "Todas las teclas de vuelo y los botones del mando vuelven a los de fábrica, para todas las aeronaves."
+   },
+   {
+    "action": "back",
+    "id": "controls:a-back",
+    "label": "Volver"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "Teclas paraTodas las aeronaves"
+   },
+   {
+    "cls": "row",
+    "text": "ReiniciarR"
+   },
+   {
+    "cls": "row",
+    "text": "DesatascarX"
+   },
+   {
+    "cls": "row",
+    "text": "Voltear (mantener)T"
+   },
+   {
+    "cls": "row",
+    "text": "Lanzar, o control de lanzamientoL"
+   },
+   {
+    "cls": "row",
+    "text": "ParacaídasP"
+   },
+   {
+    "cls": "row",
+    "text": "FlapsF"
+   },
+   {
+    "cls": "row",
+    "text": "Tren de aterrizajeG"
+   },
+   {
+    "cls": "row",
+    "text": "HumoO"
+   },
+   {
+    "cls": "row",
+    "text": "Cambiar vistaC"
+   },
+   {
+    "cls": "row",
+    "text": "Bajarse, o volver a volar1, mando B"
+   },
+   {
+    "cls": "row",
+    "text": "Abrir la repeticiónMando X"
+   },
+   {
+    "cls": "row",
+    "text": "Pulsar para hablarMando LT"
+   },
+   {
+    "cls": "row",
+    "text": "Cambiar de aeronaveMando Y"
+   },
+   {
+    "cls": "row",
+    "text": "Restablecer todo"
+   },
+   {
+    "cls": "row",
+    "text": "Volver"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "controls:teclas-para",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "controls:a-keybind:reset",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "controls:a-keybind:unstick",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "controls:a-keybind:flip",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "controls:a-keybind:launch",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "controls:a-keybind:chute",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "controls:a-keybind:flaps",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "controls:a-keybind:gear",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "controls:a-keybind:smoke",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "controls:a-keybind:view",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "controls:a-keybind:foot",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "controls:a-keybind:replay",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 12,
+    "id": "controls:a-keybind:talk",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 13,
+    "id": "controls:a-keybind:swap",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 14,
+    "id": "controls:a-keybind:*",
+    "to": "controls",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 15,
+    "id": "controls:a-back",
+    "to": "controller",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "controller"
+     ]
+    ]
+   }
+  ]
+ },
  "courses": {
   "screen": "courses",
   "items": [
@@ -219,7 +964,7 @@
       "value": "power"
      },
      {
-      "label": "Presets",
+      "label": "Preajustes",
       "value": "presets"
      },
      {
@@ -2414,7 +3159,7 @@
    },
    {
     "cls": "row",
-    "text": "Recorrer cada claveOffOn"
+    "text": "Recorrer cada claveNoSí"
    },
    {
     "cls": "row",
@@ -2926,6 +3671,147 @@
    }
   ]
  },
+ "flywith": {
+  "screen": "flywith",
+  "items": [
+   {
+    "action": "flywith:radio",
+    "id": "flywith:a-flywith:radio",
+    "label": "Una radio",
+    "note": "Tu propio transmisor en modo joystick por USB o Bluetooth: una RadioMaster, o cualquier radio EdgeTX u OpenTX. Después, el asistente asigna y centra sus palancas.",
+    "primary": false,
+    "value": ""
+   },
+   {
+    "action": "flywith:gamepad",
+    "id": "flywith:a-flywith:gamepad",
+    "label": "Un mando",
+    "note": "Un mando de consola. Su disposición es conocida, así que vuela sin configurar nada. Después, cómo vuelan sus palancas.",
+    "primary": false,
+    "value": ""
+   },
+   {
+    "action": "flywith:keys",
+    "id": "flywith:a-flywith:keys",
+    "label": "Teclado y ratón",
+    "note": "Nada que conectar. Después, qué teclas vuelan.",
+    "primary": true,
+    "value": ""
+   },
+   {
+    "action": "flywith:skip",
+    "id": "flywith:a-flywith:skip",
+    "label": "Saltar",
+    "note": "Directo al juego. El Hangar configura un mando cuando quieras.",
+    "primary": false,
+    "value": ""
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row",
+    "text": "Una radio"
+   },
+   {
+    "cls": "row",
+    "text": "Un mando"
+   },
+   {
+    "cls": "row row-primary on",
+    "text": "Teclado y ratón"
+   },
+   {
+    "cls": "row",
+    "text": "Saltar"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "flywith:a-flywith:radio",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "flywith:a-flywith:gamepad",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "flywith:a-flywith:keys",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "flywith:a-flywith:skip",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ]
+    ]
+   }
+  ]
+ },
  "freestyle": {
   "screen": "freestyle",
   "items": [
@@ -2994,7 +3880,7 @@
     "note": "Apagado: sin superposición, sin nombres y sin reloj de sesión, solo el valle y el quad. Vuelo libre: los trucos se nombran y puntúan a medida que los aterrizas, sin reloj y sin tablero, y la sesión nunca termina. Ese es el indicado para aprender un Powerloop. Sesión puntuada: dos minutos en el reloj, y con lo que termines vas al tablero de puntajes.",
     "options": [
      {
-      "label": "Off",
+      "label": "Apagado",
       "value": "off"
      },
      {
@@ -3007,14 +3893,23 @@
      }
     ],
     "pickOnly": true,
-    "value": "Off"
+    "value": "Apagado"
+   },
+   {
+    "current": true,
+    "id": "freestyle:anuncios-de-trucos",
+    "label": "Anuncios de trucos",
+    "note": "Nombra cada truco y figura acrobática al completarla, con su nota, sus puntos y la cadena. También con el puntaje apagado.",
+    "on": true,
+    "sw": true,
+    "value": "Sí"
    },
    {
     "action": "quad",
     "id": "freestyle:a-quad",
-    "label": "Quad",
+    "label": "Dron",
     "note": "La máquina. Su fila Tune abre PIDs, donde se elige el tune y los propios sliders del firmware lo ajustan, y ahí también están la cámara, el modo de vuelo y el banco de firmware.",
-    "value": "Factory default"
+    "value": "De fábrica"
    },
    {
     "current": "expert",
@@ -3040,7 +3935,74 @@
     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
     "on": true,
     "sw": true,
-    "value": "On"
+    "value": "Sí"
+   },
+   {
+    "current": "calm",
+    "id": "freestyle:clima",
+    "label": "Clima",
+    "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+    "options": [
+     {
+      "label": "Calma",
+      "value": "calm"
+     },
+     {
+      "label": "Brisa",
+      "value": "breeze"
+     },
+     {
+      "label": "Ráfagas",
+      "value": "gusty"
+     },
+     {
+      "label": "Frentes",
+      "value": "front"
+     }
+    ],
+    "value": "Calma"
+   },
+   {
+    "current": "own",
+    "id": "freestyle:hora-del-d-a",
+    "label": "Hora del día",
+    "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+    "options": [
+     {
+      "label": "La del mundo",
+      "value": "own"
+     },
+     {
+      "label": "Día",
+      "value": "day"
+     },
+     {
+      "label": "Mañana",
+      "value": "morning"
+     },
+     {
+      "label": "Mediodía",
+      "value": "noon"
+     },
+     {
+      "label": "Hora dorada",
+      "value": "golden"
+     },
+     {
+      "label": "Noche",
+      "value": "night"
+     }
+    ],
+    "value": "La del mundo"
+   },
+   {
+    "current": false,
+    "id": "freestyle:solo-superficies-de-f-brica",
+    "label": "Solo superficies de fábrica",
+    "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+    "on": false,
+    "sw": true,
+    "value": "No"
    },
    {
     "action": "back",
@@ -3051,11 +4013,15 @@
   "rows": [
    {
     "cls": "row",
-    "text": "PuntuaciónOff"
+    "text": "PuntuaciónApagado"
+   },
+   {
+    "cls": "row",
+    "text": "Anuncios de trucosNoSí"
    },
    {
     "cls": "row row-nav",
-    "text": "QuadFactory default"
+    "text": "DronDe fábrica"
    },
    {
     "cls": "row",
@@ -3063,7 +4029,19 @@
    },
    {
     "cls": "row",
-    "text": "Daños en choquesOffOn"
+    "text": "Daños en choquesNoSí"
+   },
+   {
+    "cls": "row",
+    "text": "ClimaCalmaBrisaRáfagasFrentes"
+   },
+   {
+    "cls": "row",
+    "text": "Hora del díaLa del mundo"
+   },
+   {
+    "cls": "row",
+    "text": "Solo superficies de fábricaNoSí"
    },
    {
     "cls": "row",
@@ -3176,6 +4154,25 @@
    },
    {
     "i": 5,
+    "id": "freestyle:anuncios-de-trucos",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 6,
     "id": "freestyle:a-quad",
     "to": "quad",
     "calls": [
@@ -3194,7 +4191,7 @@
     ]
    },
    {
-    "i": 6,
+    "i": 7,
     "id": "freestyle:modelo-de-f-sica",
     "to": "freestyle",
     "calls": [
@@ -3213,7 +4210,7 @@
     ]
    },
    {
-    "i": 7,
+    "i": 8,
     "id": "freestyle:da-os-en-choques",
     "to": "freestyle",
     "calls": [
@@ -3232,7 +4229,60 @@
     ]
    },
    {
-    "i": 8,
+    "i": 9,
+    "id": "freestyle:clima",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "freestyle:hora-del-d-a",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "freestyle:solo-superficies-de-f-brica",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 12,
     "id": "freestyle:a-back",
     "to": "title",
     "calls": [
@@ -3507,9 +4557,9 @@
    {
     "action": "quad",
     "id": "launch:a-quad",
-    "label": "Quad",
-    "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
-    "value": "Factory default"
+    "label": "Dron",
+    "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
+    "value": "De fábrica"
    },
    {
     "id": "launch:s-como-qu-cuenta-esta-sesi-n",
@@ -3582,7 +4632,7 @@
     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
     "on": true,
     "sw": true,
-    "value": "On"
+    "value": "Sí"
    },
    {
     "current": "perfect",
@@ -3617,7 +4667,7 @@
     "action": "launch-go",
     "id": "launch:a-launch-go",
     "label": "Volar",
-    "note": "Tu mejor en Pista está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Factory default. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
+    "note": "Tu mejor en Pista está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
     "primary": true
    },
    {
@@ -3633,7 +4683,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "QuadFactory default"
+    "text": "DronDe fábrica"
    },
    {
     "cls": "row",
@@ -3649,7 +4699,7 @@
    },
    {
     "cls": "row",
-    "text": "Daños en choquesOffOn"
+    "text": "Daños en choquesNoSí"
    },
    {
     "cls": "row",
@@ -3850,7 +4900,14 @@
    {
     "action": "restart",
     "id": "paused:a-restart",
-    "label": "Reiniciar sesión"
+    "label": "Reiniciar vuelo"
+   },
+   {
+    "action": "quick",
+    "id": "paused:a-quick",
+    "label": "Vuelo",
+    "note": "Lo que cambias entre intentos: ajuste, tasas, modo, vista y gráficos, para la aeronave en el aire.",
+    "value": "Interceptor, De fábrica"
    },
    {
     "action": "hotswap",
@@ -3860,86 +4917,10 @@
     "value": "Interceptor"
    },
    {
-    "action": "customise",
-    "id": "paused:a-customise",
-    "label": "Personalizar",
-    "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está."
-   },
-   {
-    "id": "paused:s-se-siente-mal",
-    "label": "¿Se siente mal?",
-    "section": true
-   },
-   {
-    "action": "pids",
-    "id": "paused:a-pids",
-    "label": "Tune",
-    "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
-    "value": "Factory default"
-   },
-   {
-    "action": "rates",
-    "id": "paused:a-rates",
-    "label": "Rates",
-    "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "action": "feel",
-    "id": "paused:a-feel",
-    "label": "Sensación de vuelo",
-    "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella."
-   },
-   {
-    "id": "paused:s-en-otro-lugar",
-    "label": "En otro lugar",
-    "section": true
-   },
-   {
-    "action": "quad",
-    "id": "paused:a-quad",
-    "label": "Quad",
-    "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
-    "value": "Factory default"
-   },
-   {
     "action": "pilot",
     "id": "paused:a-pilot",
     "label": "Ajustes",
-    "note": "Rates, tu radio, gráficos y sonido.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "current": "high",
-    "id": "paused:gr-ficos",
-    "label": "Gráficos",
-    "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
-    "options": [
-     {
-      "label": "Low",
-      "value": "low"
-     },
-     {
-      "label": "Medium",
-      "value": "medium"
-     },
-     {
-      "label": "High",
-      "value": "high"
-     }
-    ],
-    "value": "High"
-   },
-   {
-    "action": "howto",
-    "id": "paused:a-howto",
-    "label": "Cómo volar"
-   },
-   {
-    "action": "credits",
-    "id": "paused:a-credits",
-    "label": "Créditos",
-    "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya."
+    "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda."
    },
    {
     "action": "mytracks",
@@ -3960,47 +4941,19 @@
    },
    {
     "cls": "row",
-    "text": "Reiniciar sesión"
+    "text": "Reiniciar vuelo"
+   },
+   {
+    "cls": "row",
+    "text": "VueloInterceptor, De fábrica"
    },
    {
     "cls": "row",
     "text": "Cambiar de aeronaveInterceptor"
    },
    {
-    "cls": "row",
-    "text": "Personalizar"
-   },
-   {
     "cls": "row row-nav",
-    "text": "TuneFactory default"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "cls": "row",
-    "text": "Sensación de vuelo"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "QuadFactory default"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "AjustesActual, 670 roll and pitch, 670 yaw deg/s"
-   },
-   {
-    "cls": "row",
-    "text": "GráficosLowMediumHigh"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "Cómo volar"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "Créditos"
+    "text": "Ajustes"
    },
    {
     "cls": "row",
@@ -4050,6 +5003,25 @@
    },
    {
     "i": 2,
+    "id": "paused:a-quick",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quick"
+     ]
+    ]
+   },
+   {
+    "i": 3,
     "id": "paused:a-hotswap",
     "to": "paused",
     "calls": [
@@ -4064,112 +5036,7 @@
     ]
    },
    {
-    "i": 3,
-    "id": "paused:a-customise",
-    "to": "paused",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onHangarPreview",
-      "interceptor",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 5,
-    "id": "paused:a-pids",
-    "to": "pids",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "back"
-     ],
-     [
-      "onHangarPreview",
-      "interceptor",
-      "object"
-     ],
-     [
-      "onScreenChange",
-      "pids"
-     ]
-    ]
-   },
-   {
-    "i": 6,
-    "id": "paused:a-rates",
-    "to": "rates",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "rates"
-     ]
-    ]
-   },
-   {
-    "i": 7,
-    "id": "paused:a-feel",
-    "to": "paused",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 9,
-    "id": "paused:a-quad",
-    "to": "quad",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "quad"
-     ]
-    ]
-   },
-   {
-    "i": 10,
+    "i": 4,
     "id": "paused:a-pilot",
     "to": "pilot",
     "calls": [
@@ -4188,64 +5055,7 @@
     ]
    },
    {
-    "i": 11,
-    "id": "paused:gr-ficos",
-    "to": "paused",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 12,
-    "id": "paused:a-howto",
-    "to": "howto",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "howto"
-     ]
-    ]
-   },
-   {
-    "i": 13,
-    "id": "paused:a-credits",
-    "to": "credits",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "credits"
-     ]
-    ]
-   },
-   {
-    "i": 14,
+    "i": 5,
     "id": "paused:a-mytracks",
     "to": "courses",
     "calls": [
@@ -4277,7 +5087,7 @@
     ]
    },
    {
-    "i": 15,
+    "i": 6,
     "id": "paused:a-title",
     "to": "title",
     "calls": [
@@ -4307,17 +5117,17 @@
   "items": [
    {
     "current": "betaflight-interceptor",
-    "id": "pids:tune",
-    "label": "Tune",
+    "id": "pids:ajuste-pid",
+    "label": "Ajuste PID",
     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Your edits.",
     "options": [
      {
-      "label": "Factory default",
+      "label": "De fábrica",
       "value": "betaflight-interceptor"
      }
     ],
     "pickOnly": true,
-    "value": "Factory default"
+    "value": "De fábrica"
    },
    {
     "current": false,
@@ -4326,7 +5136,7 @@
     "note": "Apagado. Los deslizadores de abajo manejan los PIDs a través del tuning simplificado del propio firmware. Enciende esto para escribir cada valor tú mismo, partiendo de exactamente lo que está volando ahora.",
     "on": false,
     "sw": true,
-    "value": "Off"
+    "value": "No"
    },
    {
     "id": "pids:s-deslizadores-de-tune-del-firmware",
@@ -4334,9 +5144,9 @@
     "section": true
    },
    {
-    "id": "pids:master-multiplier",
-    "label": "Master multiplier",
-    "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for.",
+    "id": "pids:multiplicador-maestro",
+    "label": "Multiplicador maestro",
+    "note": "Todo a la vez: P, I, D y feedforward escalan juntos, con sus proporciones. Es la perilla de \"hazlo más rígido\", la que pedía la opinión de sensación de vuelo. El de fábrica está en 100; el preset rígido que venía aquí estaba en 185, más o menos el tamaño de paso que pedía esa opinión.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4358,9 +5168,9 @@
     }
    },
    {
-    "id": "pids:tracking-p-and-i",
-    "label": "Tracking, P and I",
-    "note": "How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.",
+    "id": "pids:seguimiento-p-e-i",
+    "label": "Seguimiento, P e I",
+    "note": "Con qué fuerza persigue el dron la tasa que pide el stick. Bajo es perezoso y suave, alto se clava en el objetivo y lo sostiene.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4382,9 +5192,9 @@
     }
    },
    {
-    "id": "pids:drift-and-wobble-i",
-    "label": "Drift and wobble, I",
-    "note": "The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.",
+    "id": "pids:deriva-y-bamboleo-i",
+    "label": "Deriva y bamboleo, I",
+    "note": "El término de error lento por sí solo. Muy bajo deriva de la actitud en movimientos largos; muy alto acumula durante un movimiento largo y lo suelta como un tirón al centrar el stick. En este modelo el tirón llega mucho antes que la deriva.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4406,9 +5216,9 @@
     }
    },
    {
-    "id": "pids:damping-d",
-    "label": "Damping, D",
-    "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high.",
+    "id": "pids:amortiguaci-n-d",
+    "label": "Amortiguación, D",
+    "note": "Resiste la rotación, suaviza las paradas, calma el propwash. En un dron real la D se paga en calor de motores y ruido del giroscopio; el giroscopio de este modelo está limpio, así que amortiguar es casi gratis y los ajustes rígidos la llevan alta.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4430,9 +5240,9 @@
     }
    },
    {
-    "id": "pids:dynamic-damping-d-max",
-    "label": "Dynamic damping, D max",
-    "note": "How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.",
+    "id": "pids:amortiguaci-n-din-mica-d-max",
+    "label": "Amortiguación dinámica, D max",
+    "note": "Cuánta D extra llega en movimientos rápidos y paradas, sobre la D base. Cero mantiene la D constante.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4454,9 +5264,9 @@
     }
    },
    {
-    "id": "pids:stick-response-ff",
-    "label": "Stick response, FF",
-    "note": "Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.",
+    "id": "pids:respuesta-al-stick-ff",
+    "label": "Respuesta al stick, FF",
+    "note": "El feedforward empuja con el propio movimiento del stick, antes de que exista error. Alto es inmediato; demasiado alto se pasa al inicio de cada movimiento. Cero vuela solo con P y D.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4478,9 +5288,9 @@
     }
    },
    {
-    "id": "pids:pitch-tracking",
-    "label": "Pitch tracking",
-    "note": "Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.",
+    "id": "pids:seguimiento-de-cabeceo",
+    "label": "Seguimiento de cabeceo",
+    "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4502,9 +5312,9 @@
     }
    },
    {
-    "id": "pids:pitch-damping",
-    "label": "Pitch damping",
-    "note": "Pitch D relative to roll, for the same reason pitch tracking exists.",
+    "id": "pids:amortiguaci-n-de-cabeceo",
+    "label": "Amortiguación de cabeceo",
+    "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
     "num": {
      "cli": 100,
      "spec": {
@@ -4536,7 +5346,7 @@
     "disabled": true,
     "id": "pids:a-pids-default",
     "label": "Volver a los valores propios del tune",
-    "note": "Factory default ya está volando sus propios valores."
+    "note": "De fábrica ya está volando sus propios valores."
    },
    {
     "action": "back",
@@ -4547,43 +5357,43 @@
   "rows": [
    {
     "cls": "row on",
-    "text": "TuneFactory default"
+    "text": "Ajuste PIDDe fábrica"
    },
    {
     "cls": "row",
-    "text": "Fijar PIDs directamenteOffOn"
+    "text": "Fijar PIDs directamenteNoSí"
    },
    {
     "cls": "row",
-    "text": "Master multiplier%"
+    "text": "Multiplicador maestro%"
    },
    {
     "cls": "row",
-    "text": "Tracking, P and I%"
+    "text": "Seguimiento, P e I%"
    },
    {
     "cls": "row",
-    "text": "Drift and wobble, I%"
+    "text": "Deriva y bamboleo, I%"
    },
    {
     "cls": "row",
-    "text": "Damping, D%"
+    "text": "Amortiguación, D%"
    },
    {
     "cls": "row",
-    "text": "Dynamic damping, D max%"
+    "text": "Amortiguación dinámica, D max%"
    },
    {
     "cls": "row",
-    "text": "Stick response, FF%"
+    "text": "Respuesta al stick, FF%"
    },
    {
     "cls": "row",
-    "text": "Pitch tracking%"
+    "text": "Seguimiento de cabeceo%"
    },
    {
     "cls": "row",
-    "text": "Pitch damping%"
+    "text": "Amortiguación de cabeceo%"
    },
    {
     "cls": "row row-nav",
@@ -4601,7 +5411,7 @@
   "leads": [
    {
     "i": 0,
-    "id": "pids:tune",
+    "id": "pids:ajuste-pid",
     "to": "pids",
     "calls": [
      [
@@ -4631,7 +5441,7 @@
    },
    {
     "i": 3,
-    "id": "pids:master-multiplier",
+    "id": "pids:multiplicador-maestro",
     "to": "pids",
     "calls": [
      [
@@ -4642,7 +5452,7 @@
    },
    {
     "i": 4,
-    "id": "pids:tracking-p-and-i",
+    "id": "pids:seguimiento-p-e-i",
     "to": "pids",
     "calls": [
      [
@@ -4653,7 +5463,7 @@
    },
    {
     "i": 5,
-    "id": "pids:drift-and-wobble-i",
+    "id": "pids:deriva-y-bamboleo-i",
     "to": "pids",
     "calls": [
      [
@@ -4664,7 +5474,7 @@
    },
    {
     "i": 6,
-    "id": "pids:damping-d",
+    "id": "pids:amortiguaci-n-d",
     "to": "pids",
     "calls": [
      [
@@ -4675,7 +5485,7 @@
    },
    {
     "i": 7,
-    "id": "pids:dynamic-damping-d-max",
+    "id": "pids:amortiguaci-n-din-mica-d-max",
     "to": "pids",
     "calls": [
      [
@@ -4686,7 +5496,7 @@
    },
    {
     "i": 8,
-    "id": "pids:stick-response-ff",
+    "id": "pids:respuesta-al-stick-ff",
     "to": "pids",
     "calls": [
      [
@@ -4697,7 +5507,7 @@
    },
    {
     "i": 9,
-    "id": "pids:pitch-tracking",
+    "id": "pids:seguimiento-de-cabeceo",
     "to": "pids",
     "calls": [
      [
@@ -4708,7 +5518,7 @@
    },
    {
     "i": 10,
-    "id": "pids:pitch-damping",
+    "id": "pids:amortiguaci-n-de-cabeceo",
     "to": "pids",
     "calls": [
      [
@@ -4789,8 +5599,8 @@
   "screen": "pilot",
   "items": [
    {
-    "id": "pilot:s-you",
-    "label": "You",
+    "id": "pilot:s-t",
+    "label": "Tú",
     "section": true
    },
    {
@@ -4843,64 +5653,27 @@
     "section": true
    },
    {
-    "action": "choosepad",
-    "id": "pilot:a-choosepad",
-    "label": "Elegir joystick",
-    "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
+    "action": "controller",
+    "id": "pilot:a-controller",
+    "label": "Controlador",
+    "note": "Qué dispositivo vuela, su calibración, zona muerta y expo, el modo de palancas, y las teclas y botones.",
     "value": "Teclado"
    },
    {
     "current": false,
-    "id": "pilot:vuelo-con-rat-n",
-    "label": "Vuelo con ratón",
-    "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+    "id": "pilot:mostrar-sticks",
+    "label": "Mostrar sticks",
+    "note": "Tus dos sticks sobre el vuelo, abajo al centro, vueles con lo que vueles. Con teclado o mouse se muestran siempre.",
     "on": false,
     "sw": true,
-    "value": "Off"
+    "value": "No"
    },
    {
-    "action": "calibrate",
-    "id": "pilot:a-calibrate",
-    "label": "Calibrar sticks",
-    "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes."
-   },
-   {
-    "action": "calibrate-check",
-    "id": "pilot:a-calibrate-check",
-    "label": "Comprobar sticks",
-    "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes."
-   },
-   {
-    "current": 2,
-    "id": "pilot:modo-de-sticks",
-    "label": "Modo de sticks",
-    "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
-    "options": [
-     {
-      "label": "Modo 1",
-      "value": 1
-     },
-     {
-      "label": "Modo 2",
-      "value": 2
-     },
-     {
-      "label": "Modo 3",
-      "value": 3
-     },
-     {
-      "label": "Modo 4",
-      "value": 4
-     }
-    ],
-    "value": "Modo 2"
-   },
-   {
-    "action": "rates",
-    "id": "pilot:a-rates",
-    "label": "Rates",
-    "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+    "action": "comparesticks",
+    "id": "pilot:a-comparesticks",
+    "label": "Comparar sticks",
+    "note": "Abre una grabación de mandos, de uno de tus vuelos o del piloto del laboratorio de vuelo, y reproduce sus sticks como un anillo sobre los tuyos desde que despegas. Elígela de nuevo para quitarla. Se guarda hasta que cierres la página.",
+    "value": "Ninguna"
    },
    {
     "current": "perfect",
@@ -4952,7 +5725,7 @@
     "action": "quad",
     "id": "pilot:a-quad",
     "label": "Tune, PIDs y el firmware",
-    "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí."
+    "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí."
    },
    {
     "id": "pilot:s-pantalla",
@@ -4966,19 +5739,19 @@
     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
     "options": [
      {
-      "label": "Low",
+      "label": "Bajo",
       "value": "low"
      },
      {
-      "label": "Medium",
+      "label": "Medio",
       "value": "medium"
      },
      {
-      "label": "High",
+      "label": "Alto",
       "value": "high"
      }
     ],
-    "value": "High"
+    "value": "Alto"
    },
    {
     "id": "pilot:gpu",
@@ -4986,6 +5759,27 @@
     "label": "GPU",
     "note": "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2. WebGL 2 está dibujando en esta GPU. En una laptop con dos GPU debería ser el chip dedicado, porque la sesión pidió alto rendimiento. No se sube nada.",
     "value": "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+   },
+   {
+    "current": 100,
+    "id": "pilot:tama-o-de-los-men-s",
+    "label": "Tamaño de los menús",
+    "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+    "options": [
+     {
+      "label": "100%",
+      "value": 100
+     },
+     {
+      "label": "115%",
+      "value": 115
+     },
+     {
+      "label": "130%",
+      "value": 130
+     }
+    ],
+    "value": "100%"
    },
    {
     "current": 100,
@@ -5073,7 +5867,7 @@
     "note": "Un recuadro chico abajo a la izquierda, sobre la batería, con los frames por segundo, el 1 por ciento más lento, cuánto tarda un frame y qué dibuja. F3 lo muestra y lo oculta en cualquier pantalla.",
     "on": false,
     "sw": true,
-    "value": "Off"
+    "value": "No"
    },
    {
     "current": true,
@@ -5082,7 +5876,7 @@
     "note": "En una misión de operaciones, una línea con el objetivo y su cuenta, un anillo sobre el objetivo y un chevrón en el borde hacia él. Apagada, la voz de la misión y sus indicaciones siguen igual.",
     "on": true,
     "sw": true,
-    "value": "On"
+    "value": "Sí"
    },
    {
     "current": "avionics",
@@ -5163,7 +5957,16 @@
     "note": "Todo el sonido: motores, viento, música y avisos.",
     "on": true,
     "sw": true,
-    "value": "On"
+    "value": "Sí"
+   },
+   {
+    "current": true,
+    "id": "pilot:subt-tulos-de-radio",
+    "label": "Subtítulos de radio",
+    "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+    "on": true,
+    "sw": true,
+    "value": "Sí"
    },
    {
     "id": "pilot:volumen",
@@ -5241,7 +6044,7 @@
     "note": "Un tono suave de 1000 Hz, con 6 Hz de diferencia entre los oídos. Necesita audífonos para hacer algo.",
     "on": false,
     "sw": true,
-    "value": "Off"
+    "value": "No"
    },
    {
     "id": "pilot:s-diagn-stico",
@@ -5255,13 +6058,59 @@
     "note": "Graba la sesión para descargarla como CSV de blackbox. Guarda todo el vuelo en memoria.",
     "on": false,
     "sw": true,
-    "value": "Off"
+    "value": "No"
    },
    {
     "action": "downloadflightlog",
     "id": "pilot:a-downloadflightlog",
     "label": "Descargar registro de vuelo",
     "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee."
+   },
+   {
+    "action": "downloadcontrolrec",
+    "id": "pilot:a-downloadcontrolrec",
+    "label": "Descargar grabación de mandos",
+    "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html."
+   },
+   {
+    "id": "pilot:versi-n",
+    "info": true,
+    "label": "Versión",
+    "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+    "value": "Versión local"
+   },
+   {
+    "id": "pilot:s-datos-guardados",
+    "label": "Datos guardados",
+    "section": true
+   },
+   {
+    "action": "resetsettings",
+    "id": "pilot:a-resetsettings",
+    "label": "Restablecer ajustes",
+    "note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen."
+   },
+   {
+    "action": "resetprogress",
+    "id": "pilot:a-resetprogress",
+    "label": "Reiniciar progreso",
+    "note": "XP, desafíos, medallas, la campaña, el tiempo de vuelo y las mejores vueltas vuelven a los de un piloto nuevo. Tus ajustes se mantienen."
+   },
+   {
+    "id": "pilot:s-ayuda",
+    "label": "Ayuda",
+    "section": true
+   },
+   {
+    "action": "howto",
+    "id": "pilot:a-howto",
+    "label": "Cómo volar"
+   },
+   {
+    "action": "credits",
+    "id": "pilot:a-credits",
+    "label": "Créditos",
+    "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya."
    },
    {
     "action": "back",
@@ -5292,27 +6141,15 @@
    },
    {
     "cls": "row row-nav",
-    "text": "Elegir joystickTeclado"
+    "text": "ControladorTeclado"
    },
    {
     "cls": "row",
-    "text": "Vuelo con ratónOffOn"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "Calibrar sticks"
+    "text": "Mostrar sticksNoSí"
    },
    {
     "cls": "row",
-    "text": "Comprobar sticks"
-   },
-   {
-    "cls": "row",
-    "text": "Modo de sticksModo 1Modo 2Modo 3Modo 4"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
+    "text": "Comparar sticksNinguna"
    },
    {
     "cls": "row",
@@ -5328,11 +6165,15 @@
    },
    {
     "cls": "row",
-    "text": "GráficosLowMediumHigh"
+    "text": "GráficosBajoMedioAlto"
    },
    {
     "cls": "row row-info",
     "text": "GPUNVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+   },
+   {
+    "cls": "row",
+    "text": "Tamaño de los menús100%115%130%"
    },
    {
     "cls": "row",
@@ -5348,11 +6189,11 @@
    },
    {
     "cls": "row",
-    "text": "Lectura de framesOffOn"
+    "text": "Lectura de framesNoSí"
    },
    {
     "cls": "row",
-    "text": "Guía de misiónOffOn"
+    "text": "Guía de misiónNoSí"
    },
    {
     "cls": "row",
@@ -5368,7 +6209,11 @@
    },
    {
     "cls": "row",
-    "text": "SonidoOffOn"
+    "text": "SonidoNoSí"
+   },
+   {
+    "cls": "row",
+    "text": "Subtítulos de radioNoSí"
    },
    {
     "cls": "row",
@@ -5408,15 +6253,39 @@
    },
    {
     "cls": "row",
-    "text": "Tono binauralOffOn"
+    "text": "Tono binauralNoSí"
    },
    {
     "cls": "row",
-    "text": "Registro de vueloOffOn"
+    "text": "Registro de vueloNoSí"
    },
    {
     "cls": "row",
     "text": "Descargar registro de vuelo"
+   },
+   {
+    "cls": "row",
+    "text": "Descargar grabación de mandos"
+   },
+   {
+    "cls": "row row-info",
+    "text": "VersiónVersión local"
+   },
+   {
+    "cls": "row",
+    "text": "Restablecer ajustes"
+   },
+   {
+    "cls": "row",
+    "text": "Reiniciar progreso"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Cómo volar"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Créditos"
    },
    {
     "cls": "row",
@@ -5502,8 +6371,8 @@
    },
    {
     "i": 7,
-    "id": "pilot:a-choosepad",
-    "to": "pilot",
+    "id": "pilot:a-controller",
+    "to": "controller",
     "calls": [
      [
       "onUiSound",
@@ -5514,15 +6383,14 @@
       "select"
      ],
      [
-      "onAction",
-      "choosepad",
-      "object"
+      "onScreenChange",
+      "controller"
      ]
     ]
    },
    {
     "i": 8,
-    "id": "pilot:vuelo-con-rat-n",
+    "id": "pilot:mostrar-sticks",
     "to": "pilot",
     "calls": [
      [
@@ -5541,7 +6409,7 @@
    },
    {
     "i": 9,
-    "id": "pilot:a-calibrate",
+    "id": "pilot:a-comparesticks",
     "to": "pilot",
     "calls": [
      [
@@ -5551,74 +6419,11 @@
      [
       "onUiSound",
       "select"
-     ],
-     [
-      "onAction",
-      "calibrate",
-      "object"
      ]
     ]
    },
    {
     "i": 10,
-    "id": "pilot:a-calibrate-check",
-    "to": "pilot",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "calibrate-check",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 11,
-    "id": "pilot:modo-de-sticks",
-    "to": "pilot",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 12,
-    "id": "pilot:a-rates",
-    "to": "rates",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "rates"
-     ]
-    ]
-   },
-   {
-    "i": 13,
     "id": "pilot:enlace-de-radio",
     "to": "pilot",
     "calls": [
@@ -5633,7 +6438,7 @@
     ]
    },
    {
-    "i": 14,
+    "i": 11,
     "id": "pilot:latencia-de-sticks",
     "to": "pilot",
     "calls": [
@@ -5652,7 +6457,7 @@
     ]
    },
    {
-    "i": 15,
+    "i": 12,
     "id": "pilot:a-quad",
     "to": "quad",
     "calls": [
@@ -5671,7 +6476,7 @@
     ]
    },
    {
-    "i": 17,
+    "i": 14,
     "id": "pilot:gr-ficos",
     "to": "pilot",
     "calls": [
@@ -5690,7 +6495,7 @@
     ]
    },
    {
-    "i": 18,
+    "i": 15,
     "id": "pilot:gpu",
     "to": "pilot",
     "calls": [
@@ -5701,7 +6506,26 @@
     ]
    },
    {
-    "i": 19,
+    "i": 16,
+    "id": "pilot:tama-o-de-los-men-s",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 17,
     "id": "pilot:escala-de-renderizado",
     "to": "pilot",
     "calls": [
@@ -5720,7 +6544,7 @@
     ]
    },
    {
-    "i": 20,
+    "i": 18,
     "id": "pilot:modo-de-rendimiento",
     "to": "pilot",
     "calls": [
@@ -5735,7 +6559,7 @@
     ]
    },
    {
-    "i": 21,
+    "i": 19,
     "id": "pilot:l-mite-de-frames",
     "to": "pilot",
     "calls": [
@@ -5750,7 +6574,7 @@
     ]
    },
    {
-    "i": 22,
+    "i": 20,
     "id": "pilot:lectura-de-frames",
     "to": "pilot",
     "calls": [
@@ -5769,7 +6593,7 @@
     ]
    },
    {
-    "i": 23,
+    "i": 21,
     "id": "pilot:gu-a-de-misi-n",
     "to": "pilot",
     "calls": [
@@ -5788,7 +6612,7 @@
     ]
    },
    {
-    "i": 24,
+    "i": 22,
     "id": "pilot:estilo-del-hud",
     "to": "pilot",
     "calls": [
@@ -5807,7 +6631,7 @@
     ]
    },
    {
-    "i": 25,
+    "i": 23,
     "id": "pilot:marcas-de-pilotos",
     "to": "pilot",
     "calls": [
@@ -5822,7 +6646,7 @@
     ]
    },
    {
-    "i": 26,
+    "i": 24,
     "id": "pilot:paleta-t-rmica",
     "to": "pilot",
     "calls": [
@@ -5837,7 +6661,7 @@
     ]
    },
    {
-    "i": 28,
+    "i": 26,
     "id": "pilot:sonido",
     "to": "pilot",
     "calls": [
@@ -5856,7 +6680,26 @@
     ]
    },
    {
-    "i": 29,
+    "i": 27,
+    "id": "pilot:subt-tulos-de-radio",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 28,
     "id": "pilot:volumen",
     "to": "pilot",
     "calls": [
@@ -5871,7 +6714,7 @@
     ]
    },
    {
-    "i": 30,
+    "i": 29,
     "id": "pilot:motores",
     "to": "pilot",
     "calls": [
@@ -5886,7 +6729,7 @@
     ]
    },
    {
-    "i": 31,
+    "i": 30,
     "id": "pilot:viento",
     "to": "pilot",
     "calls": [
@@ -5901,7 +6744,7 @@
     ]
    },
    {
-    "i": 32,
+    "i": 31,
     "id": "pilot:otras-aeronaves",
     "to": "pilot",
     "calls": [
@@ -5916,7 +6759,7 @@
     ]
    },
    {
-    "i": 33,
+    "i": 32,
     "id": "pilot:efectos",
     "to": "pilot",
     "calls": [
@@ -5931,7 +6774,7 @@
     ]
    },
    {
-    "i": 34,
+    "i": 33,
     "id": "pilot:ambiente",
     "to": "pilot",
     "calls": [
@@ -5946,7 +6789,7 @@
     ]
    },
    {
-    "i": 35,
+    "i": 34,
     "id": "pilot:voz",
     "to": "pilot",
     "calls": [
@@ -5961,7 +6804,7 @@
     ]
    },
    {
-    "i": 36,
+    "i": 35,
     "id": "pilot:m-sica",
     "to": "pilot",
     "calls": [
@@ -5976,7 +6819,7 @@
     ]
    },
    {
-    "i": 37,
+    "i": 36,
     "id": "pilot:pista-de-m-sica",
     "to": "pilot",
     "calls": [
@@ -5995,7 +6838,7 @@
     ]
    },
    {
-    "i": 38,
+    "i": 37,
     "id": "pilot:tono-binaural",
     "to": "pilot",
     "calls": [
@@ -6014,7 +6857,7 @@
     ]
    },
    {
-    "i": 40,
+    "i": 39,
     "id": "pilot:registro-de-vuelo",
     "to": "pilot",
     "calls": [
@@ -6033,7 +6876,7 @@
     ]
    },
    {
-    "i": 41,
+    "i": 40,
     "id": "pilot:a-downloadflightlog",
     "to": "pilot",
     "calls": [
@@ -6053,7 +6896,106 @@
     ]
    },
    {
+    "i": 41,
+    "id": "pilot:a-downloadcontrolrec",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "downloadcontrolrec",
+      "object"
+     ]
+    ]
+   },
+   {
     "i": 42,
+    "id": "pilot:versi-n",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 44,
+    "id": "pilot:a-resetsettings",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 45,
+    "id": "pilot:a-resetprogress",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 47,
+    "id": "pilot:a-howto",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 48,
+    "id": "pilot:a-credits",
+    "to": "credits",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "credits"
+     ]
+    ]
+   },
+   {
+    "i": 49,
     "id": "pilot:a-back",
     "to": "title",
     "calls": [
@@ -6061,6 +7003,48 @@
       "onUiSound",
       "move"
      ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "planerates": {
+  "screen": "planerates",
+  "items": [
+   {
+    "action": "back",
+    "id": "planerates:a-back",
+    "label": "Volver"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "Volver"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "planerates:a-back",
+    "to": "title",
+    "calls": [
      [
       "onUiSound",
       "select"
@@ -6094,7 +7078,7 @@
     "current": "interceptor",
     "id": "quad:aeronave",
     "label": "Aeronave",
-    "note": "An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+    "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
     "options": [
      {
       "label": "Seven inch",
@@ -6157,6 +7141,26 @@
       "value": "tigermoth1803"
      },
      {
+      "label": "Extra 300 3D",
+      "value": "extra3d1308"
+     },
+     {
+      "label": "Night Timber X",
+      "value": "nighttimber1200"
+     },
+     {
+      "label": "C-130 Hercules",
+      "value": "hercules3077"
+     },
+     {
+      "label": "CAP 580",
+      "value": "cap1702"
+     },
+     {
+      "label": "Slick 580",
+      "value": "slick2680"
+     },
+     {
       "label": "P-51D Mustang",
       "value": "p51d1450"
      },
@@ -6183,9 +7187,9 @@
    {
     "action": "pids",
     "id": "quad:a-pids",
-    "label": "Tune",
+    "label": "Ajuste PID",
     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
-    "value": "Factory default"
+    "value": "De fábrica"
    },
    {
     "action": "fc",
@@ -6201,38 +7205,80 @@
    {
     "id": "quad:ngulo-de-c-mara",
     "label": "Ángulo de cámara",
-    "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
+    "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 45 grados, el 71 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
     "step": true,
-    "value": "30 degrees"
+    "value": "45 grados"
    },
    {
-    "current": 85,
+    "current": 95,
     "id": "quad:campo-de-visi-n",
     "label": "Campo de visión",
     "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
     "options": [
      {
-      "label": "75 degrees vertical",
+      "label": "75 grados verticales",
       "value": 75
      },
      {
-      "label": "85 degrees vertical",
+      "label": "85 grados verticales",
       "value": 85
      },
      {
-      "label": "95 degrees vertical",
+      "label": "95 grados verticales",
       "value": 95
      },
      {
-      "label": "105 degrees vertical",
+      "label": "105 grados verticales",
       "value": 105
      },
      {
-      "label": "115 degrees vertical",
+      "label": "115 grados verticales",
       "value": 115
      }
     ],
-    "value": "85 degrees vertical"
+    "value": "95 grados verticales"
+   },
+   {
+    "current": "on",
+    "id": "quad:vibraci-n-de-c-mara",
+    "label": "Vibración de cámara",
+    "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+    "options": [
+     {
+      "label": "Activada",
+      "value": "on"
+     },
+     {
+      "label": "Reducida",
+      "value": "reduced"
+     },
+     {
+      "label": "Apagada",
+      "value": "off"
+     }
+    ],
+    "value": "Activada"
+   },
+   {
+    "current": "standard",
+    "id": "quad:suavizado-de-persecuci-n",
+    "label": "Suavizado de persecución",
+    "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+    "options": [
+     {
+      "label": "Ajustado",
+      "value": "tight"
+     },
+     {
+      "label": "Normal",
+      "value": "standard"
+     },
+     {
+      "label": "Suave",
+      "value": "smooth"
+     }
+    ],
+    "value": "Normal"
    },
    {
     "id": "quad:s-vuelo",
@@ -6250,7 +7296,7 @@
       "value": "acro"
      },
      {
-      "label": "Angle",
+      "label": "Ángulo",
       "value": "angle"
      }
     ],
@@ -6258,19 +7304,19 @@
    },
    {
     "current": false,
-    "id": "quad:launch-control",
-    "label": "Launch control",
+    "id": "quad:control-de-lanzamiento",
+    "label": "Control de lanzamiento",
     "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
     "on": false,
     "sw": true,
-    "value": "Off"
+    "value": "No"
    },
    {
     "action": "rates",
     "id": "quad:a-rates",
-    "label": "Rates",
-    "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
-    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+    "label": "Tasas",
+    "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
    },
    {
     "action": "back",
@@ -6285,7 +7331,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TuneFactory default"
+    "text": "Ajuste PIDDe fábrica"
    },
    {
     "cls": "row row-nav",
@@ -6293,23 +7339,31 @@
    },
    {
     "cls": "row",
-    "text": "Ángulo de cámara30 degrees▲▼"
+    "text": "Ángulo de cámara45 grados▲▼"
    },
    {
     "cls": "row",
-    "text": "Campo de visión85 degrees vertical"
+    "text": "Campo de visión95 grados verticales"
    },
    {
     "cls": "row",
-    "text": "Modo de vueloAcroAngle"
+    "text": "Vibración de cámaraActivadaReducidaApagada"
    },
    {
     "cls": "row",
-    "text": "Launch controlOffOn"
+    "text": "Suavizado de persecuciónAjustadoNormalSuave"
+   },
+   {
+    "cls": "row",
+    "text": "Modo de vueloAcroÁngulo"
+   },
+   {
+    "cls": "row",
+    "text": "Control de lanzamientoNoSí"
    },
    {
     "cls": "row row-nav",
-    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
+    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
    },
    {
     "cls": "row",
@@ -6401,8 +7455,8 @@
     ]
    },
    {
-    "i": 8,
-    "id": "quad:modo-de-vuelo",
+    "i": 7,
+    "id": "quad:vibraci-n-de-c-mara",
     "to": "quad",
     "calls": [
      [
@@ -6420,8 +7474,8 @@
     ]
    },
    {
-    "i": 9,
-    "id": "quad:launch-control",
+    "i": 8,
+    "id": "quad:suavizado-de-persecuci-n",
     "to": "quad",
     "calls": [
      [
@@ -6440,6 +7494,44 @@
    },
    {
     "i": 10,
+    "id": "quad:modo-de-vuelo",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "quad:control-de-lanzamiento",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 12,
     "id": "quad:a-rates",
     "to": "rates",
     "calls": [
@@ -6458,7 +7550,7 @@
     ]
    },
    {
-    "i": 11,
+    "i": 13,
     "id": "quad:a-back",
     "to": "title",
     "calls": [
@@ -6487,6 +7579,294 @@
    }
   ]
  },
+ "quick": {
+  "screen": "quick",
+  "items": [
+   {
+    "id": "quick:s-aeronave",
+    "label": "Aeronave",
+    "section": true
+   },
+   {
+    "action": "pids",
+    "id": "quick:a-pids",
+    "label": "Ajuste PID",
+    "note": "Abre donde se elige el ajuste y sus deslizadores lo afinan. Cambiar el ajuste pone el dron de vuelta en la línea de salida.",
+    "value": "De fábrica"
+   },
+   {
+    "action": "rates",
+    "id": "quick:a-rates",
+    "label": "Tasas",
+    "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+   },
+   {
+    "action": "feel",
+    "id": "quick:a-feel",
+    "label": "Sensación de vuelo",
+    "note": "Cuéntale a quienes lo ajustan cómo vuela. Con una palabra basta; tu aeronave, modo y tasas van con ella."
+   },
+   {
+    "action": "quad",
+    "id": "quick:a-quad",
+    "label": "Configurar dron",
+    "note": "Cámara, modo de vuelo y el banco de firmware. Volver regresa al menú de pausa."
+   },
+   {
+    "action": "customise",
+    "id": "quick:a-customise",
+    "label": "Personalizar",
+    "note": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está."
+   },
+   {
+    "id": "quick:s-vista",
+    "label": "Vista",
+    "section": true
+   },
+   {
+    "current": "avionics",
+    "id": "quick:estilo-del-hud",
+    "label": "Estilo del HUD",
+    "note": "Lo que la vista en primera persona dibuja sobre la imagen. OSD FPV es la pantalla del propio controlador de vuelo, los caracteres blancos que pone en las gafas del piloto: batería, corriente, tiempos, horizonte y el reloj de vuelta con la misma letra. Juego es la lectura propia de este juego. Aviónica es una pantalla de sensores y seguimiento: cintas de rumbo, velocidad y altura, los paneles de enlace, navegación y energía, la cámara y las pistas de la IA; H activa el seguimiento IA, J cambia el modo de cámara, K el zoom, I pone la cámara a pantalla completa (y J elige la térmica) y la devuelve, U cambia el tamaño del recuadro de cámara, Y dibuja más o menos (completo, estándar, mínimo), . (punto) cambia la paleta térmica. Cada aeronave guarda su propia elección, y los drones de combate empiezan en Aviónica. La cámara de persecución y la vista desde tierra usan siempre la del juego.",
+    "options": [
+     {
+      "label": "OSD FPV",
+      "value": "osd"
+     },
+     {
+      "label": "Juego",
+      "value": "game"
+     },
+     {
+      "label": "Aviónica",
+      "value": "avionics"
+     }
+    ],
+    "value": "Aviónica"
+   },
+   {
+    "current": "high",
+    "id": "quick:gr-ficos",
+    "label": "Gráficos",
+    "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
+    "options": [
+     {
+      "label": "Bajo",
+      "value": "low"
+     },
+     {
+      "label": "Medio",
+      "value": "medium"
+     },
+     {
+      "label": "Alto",
+      "value": "high"
+     }
+    ],
+    "value": "Alto"
+   },
+   {
+    "action": "back",
+    "id": "quick:a-back",
+    "label": "Volver"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-nav on",
+    "text": "Ajuste PIDDe fábrica"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+   },
+   {
+    "cls": "row",
+    "text": "Sensación de vuelo"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Configurar dron"
+   },
+   {
+    "cls": "row",
+    "text": "Personalizar"
+   },
+   {
+    "cls": "row",
+    "text": "Estilo del HUDOSD FPVJuegoAviónica"
+   },
+   {
+    "cls": "row",
+    "text": "GráficosBajoMedioAlto"
+   },
+   {
+    "cls": "row",
+    "text": "Volver"
+   }
+  ],
+  "leads": [
+   {
+    "i": 1,
+    "id": "quick:a-pids",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "pids"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "quick:a-rates",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "rates"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "quick:a-feel",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "quick:a-quad",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quad"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "quick:a-customise",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onHangarPreview",
+      "interceptor",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "quick:estilo-del-hud",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "quick:gr-ficos",
+    "to": "quick",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "quick:a-back",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "paused"
+     ],
+     [
+      "onAction",
+      "paused",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
  "rates": {
   "screen": "rates",
   "items": [
@@ -6498,10 +7878,10 @@
     "value": "Radio"
    },
    {
-    "id": "rates:preset",
+    "id": "rates:preajuste",
     "info": true,
-    "label": "Preset",
-    "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+    "label": "Preajuste",
+    "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
     "value": "Ninguno guardado"
    },
    {
@@ -6511,7 +7891,7 @@
     "note": "En qué sistema de rates están los números de abajo. Los cinco son propios del firmware y los cinco vuelan: la curva se elige en fc/rc.c con este único campo. Actual es el valor por defecto del firmware 4.5 y el único cuya columna de Rate máximo significa exactamente lo que dice en el tope. Cambiar esto carga los valores por defecto de ese sistema, porque un RC rate Classic de 1.00 y una sensibilidad central de Actual de 70 son el mismo número guardado y no el mismo ajuste.",
     "options": [
      {
-      "label": "Classic",
+      "label": "Clásico",
       "value": "BETAFLIGHT"
      },
      {
@@ -6540,7 +7920,7 @@
     "note": "Apagado. Roll y pitch comparten un solo juego de números, que es como están configurados la mayoría de los quads y lo que el firmware trae de fábrica. Enciéndelo para darle a pitch los suyos.",
     "on": false,
     "sw": true,
-    "value": "Off"
+    "value": "No"
    },
    {
     "id": "rates:s-roll-y-pitch",
@@ -6548,9 +7928,9 @@
     "section": true
    },
    {
-    "id": "rates:centre-sensitivity",
-    "label": "Centre sensitivity",
-    "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+    "id": "rates:sensibilidad-central",
+    "label": "Sensibilidad central",
+    "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
     "num": {
      "cli": 7,
      "spec": {
@@ -6567,9 +7947,9 @@
     }
    },
    {
-    "id": "rates:max-rate",
-    "label": "Max rate",
-    "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s.",
+    "id": "rates:tasa-m-xima",
+    "label": "Tasa máxima",
+    "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s.",
     "num": {
      "cli": 67,
      "spec": {
@@ -6588,7 +7968,7 @@
    {
     "id": "rates:expo",
     "label": "Expo",
-    "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+    "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
     "num": {
      "cli": 0,
      "spec": {
@@ -6605,14 +7985,14 @@
     }
    },
    {
-    "id": "rates:s-yaw",
-    "label": "Yaw",
+    "id": "rates:s-gui-ada",
+    "label": "Guiñada",
     "section": true
    },
    {
-    "id": "rates:centre-sensitivity~2",
-    "label": "Centre sensitivity",
-    "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. A stick completo este eje da 670 deg/s.",
+    "id": "rates:sensibilidad-central~2",
+    "label": "Sensibilidad central",
+    "note": "Qué tan rápido responde el dron a un movimiento pequeño del stick, como la PENDIENTE de la curva en el centro. Baja es tranquila para una línea suave, alta es nerviosa y rápida. No es la tasa a medio stick: mira la curva. Las apps de configuración llaman a esta columna Center Sensitivity. A stick completo este eje da 670 deg/s.",
     "num": {
      "cli": 7,
      "spec": {
@@ -6629,9 +8009,9 @@
     }
    },
    {
-    "id": "rates:max-rate~2",
-    "label": "Max rate",
-    "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 30 grados hacia arriba, así que el 50 por ciento de un yaw rueda el horizonte en vez de girarlo: 335 deg/s de roll de imagen a pedal a fondo.",
+    "id": "rates:tasa-m-xima~2",
+    "label": "Tasa máxima",
+    "note": "Lo que hace el dron con el stick a fondo, exactamente. Para esto existen las tasas Actual: el final de la curva es el número que escribes, haga lo que haga la expo con el centro. A stick completo este eje da 670 deg/s. Los quads hacen yaw más lento de lo que hacen roll, así que muchos pilotos ponen yaw por debajo de roll. Tu cámara está inclinada 45 grados hacia arriba, así que el 71 por ciento de un yaw rueda el horizonte en vez de girarlo: 474 deg/s de roll de imagen a pedal a fondo.",
     "num": {
      "cli": 67,
      "spec": {
@@ -6650,7 +8030,7 @@
    {
     "id": "rates:expo~2",
     "label": "Expo",
-    "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+    "note": "Cuánto del recorrido se pasa cerca del centro. Cero es una recta desde la sensibilidad central hasta el tope. Más alto suaviza el centro y mantiene el mismo máximo, por eso los extremos de la curva no se mueven al cambiarla.",
     "num": {
      "cli": 0,
      "spec": {
@@ -6667,8 +8047,8 @@
     }
    },
    {
-    "id": "rates:s-throttle",
-    "label": "Throttle",
+    "id": "rates:s-acelerador",
+    "label": "Acelerador",
     "section": true
    },
    {
@@ -6678,7 +8058,7 @@
     "note": "Apagado. Este quad tiene casi nueve a uno de empuje a peso y hace hover al 24.1 por ciento del stick, así que la mayor parte del recorrido está por encima del hover. Limitarlo reduce todo el stick y devuelve la resolución.",
     "options": [
      {
-      "label": "Off",
+      "label": "Apagado",
       "value": 100
      },
      {
@@ -6714,12 +8094,12 @@
       "value": 40
      }
     ],
-    "value": "Off"
+    "value": "Apagado"
    },
    {
-    "id": "rates:throttle-mid",
-    "label": "Throttle mid",
-    "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+    "id": "rates:acelerador-medio",
+    "label": "Acelerador medio",
+    "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
     "num": {
      "cli": 50,
      "spec": {
@@ -6736,9 +8116,9 @@
     }
    },
    {
-    "id": "rates:throttle-expo",
-    "label": "Throttle expo",
-    "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+    "id": "rates:expo-de-acelerador",
+    "label": "Expo de acelerador",
+    "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
     "num": {
      "cli": 0,
      "spec": {
@@ -6755,15 +8135,15 @@
     }
    },
    {
-    "id": "rates:s-presets",
-    "label": "Presets",
+    "id": "rates:s-preajustes",
+    "label": "Preajustes",
     "section": true
    },
    {
     "action": "rates-save",
     "id": "rates:a-rates-save",
     "label": "Guardar como preset",
-    "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded."
+    "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada."
    },
    {
     "action": "rates-delete",
@@ -6793,7 +8173,7 @@
    },
    {
     "cls": "row row-info",
-    "text": "PresetNinguno guardado"
+    "text": "PreajusteNinguno guardado"
    },
    {
     "cls": "row",
@@ -6801,27 +8181,15 @@
    },
    {
     "cls": "row",
-    "text": "Pitch separadoOffOn"
+    "text": "Pitch separadoNoSí"
    },
    {
     "cls": "row",
-    "text": "Centre sensitivitydeg/s▲▼"
+    "text": "Sensibilidad centraldeg/s▲▼"
    },
    {
     "cls": "row",
-    "text": "Max ratedeg/s▲▼"
-   },
-   {
-    "cls": "row",
-    "text": "Expo▲▼"
-   },
-   {
-    "cls": "row",
-    "text": "Centre sensitivitydeg/s▲▼"
-   },
-   {
-    "cls": "row",
-    "text": "Max ratedeg/s▲▼"
+    "text": "Tasa máximadeg/s▲▼"
    },
    {
     "cls": "row",
@@ -6829,15 +8197,27 @@
    },
    {
     "cls": "row",
-    "text": "Límite de throttleOff"
+    "text": "Sensibilidad centraldeg/s▲▼"
    },
    {
     "cls": "row",
-    "text": "Throttle mid▲▼"
+    "text": "Tasa máximadeg/s▲▼"
    },
    {
     "cls": "row",
-    "text": "Throttle expo▲▼"
+    "text": "Expo▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Límite de throttleApagado"
+   },
+   {
+    "cls": "row",
+    "text": "Acelerador medio▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Expo de acelerador▲▼"
    },
    {
     "cls": "row",
@@ -6865,7 +8245,7 @@
    },
    {
     "i": 1,
-    "id": "rates:preset",
+    "id": "rates:preajuste",
     "to": "rates",
     "calls": [
      [
@@ -6910,7 +8290,7 @@
    },
    {
     "i": 5,
-    "id": "rates:centre-sensitivity",
+    "id": "rates:sensibilidad-central",
     "to": "rates",
     "calls": [
      [
@@ -6921,7 +8301,7 @@
    },
    {
     "i": 6,
-    "id": "rates:max-rate",
+    "id": "rates:tasa-m-xima",
     "to": "rates",
     "calls": [
      [
@@ -6943,7 +8323,7 @@
    },
    {
     "i": 9,
-    "id": "rates:centre-sensitivity~2",
+    "id": "rates:sensibilidad-central~2",
     "to": "rates",
     "calls": [
      [
@@ -6954,7 +8334,7 @@
    },
    {
     "i": 10,
-    "id": "rates:max-rate~2",
+    "id": "rates:tasa-m-xima~2",
     "to": "rates",
     "calls": [
      [
@@ -6991,7 +8371,7 @@
    },
    {
     "i": 14,
-    "id": "rates:throttle-mid",
+    "id": "rates:acelerador-medio",
     "to": "rates",
     "calls": [
      [
@@ -7002,7 +8382,7 @@
    },
    {
     "i": 15,
-    "id": "rates:throttle-expo",
+    "id": "rates:expo-de-acelerador",
     "to": "rates",
     "calls": [
      [
@@ -7059,7 +8439,7 @@
    {
     "i": 20,
     "id": "rates:a-back",
-    "to": "title",
+    "to": "paused",
     "calls": [
      [
       "onUiSound",
@@ -7075,11 +8455,11 @@
      ],
      [
       "onScreenChange",
-      "title"
+      "paused"
      ],
      [
       "onAction",
-      "title",
+      "paused",
       "object"
      ]
     ]
@@ -7252,6 +8632,10 @@
      {
       "label": "Combate",
       "value": "3"
+     },
+     {
+      "label": "Batalla de Trucos",
+      "value": "4"
      }
     ],
     "value": "Solo volar"
@@ -7600,7 +8984,7 @@
    {
     "i": 1,
     "id": "standings:a-back",
-    "to": "title",
+    "to": "paused",
     "calls": [
      [
       "onUiSound",
@@ -7616,11 +9000,11 @@
      ],
      [
       "onScreenChange",
-      "title"
+      "paused"
      ],
      [
       "onAction",
-      "title",
+      "paused",
       "object"
      ]
     ]
@@ -7649,6 +9033,11 @@
       "action": "way-freestyle-wing1000",
       "key": "freestyle-wing1000",
       "label": "Vuelo Libre"
+     },
+     {
+      "action": "way-training",
+      "key": "training",
+      "label": "Aprender a volar"
      }
     ],
     "svg": "<svg viewBox=\"0 0 417 417\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><rect x=\"186.5\" y=\"170.5\" width=\"44\" height=\"76\" rx=\"10\" fill=\"currentColor\" fill-opacity=\"0.30\"/><circle cx=\"318.95007922133874\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"318.95007922133874\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/></svg>"
@@ -7667,6 +9056,11 @@
       "action": "way-interior",
       "key": "interior",
       "label": "El Interior"
+     },
+     {
+      "action": "field-walk",
+      "key": "ops-field",
+      "label": "Hangar de campaña"
      }
     ],
     "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
@@ -7682,6 +9076,11 @@
     "label": "Hangar",
     "links": [
      {
+      "action": "hangar-walk",
+      "key": "hangar-walk",
+      "label": "Entrar"
+     },
+     {
       "action": "hangar-aircraft",
       "key": "hangar-aircraft",
       "label": "Aeronave"
@@ -7692,9 +9091,14 @@
       "label": "Personalizar"
      },
      {
-      "action": "calibrate",
-      "key": "hangar-sticks",
-      "label": "Calibrar sticks"
+      "action": "campaign-shop",
+      "key": "hangar-upgrades",
+      "label": "Mejoras"
+     },
+     {
+      "action": "controller",
+      "key": "hangar-controller",
+      "label": "Controlador"
      },
      {
       "action": "howto",
@@ -7765,231 +9169,231 @@
     "action": "noop",
     "id": "tricks:a-noop",
     "label": "1 Trippy Spin",
-    "note": "Fiable. Block. Un giro completo o más alrededor de un poste, volado panza arriba. Visto visto desde arriba.",
+    "note": "Fiable. Bloque básico. Un giro completo o más alrededor de un poste, volado panza arriba. Visto visto desde arriba.",
     "value": "100"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~2",
     "label": "Matty Flip",
-    "note": "Fiable. Novice. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto visto de lado.",
+    "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~3",
     "label": "Anti Matty",
-    "note": "Fiable. Novice. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto visto de lado.",
+    "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto visto de lado.",
     "value": "250"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~4",
     "label": "Power Matty",
-    "note": "Fiable. Intermediate. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto visto de lado.",
     "value": "300"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~5",
     "label": "Matty Roll",
-    "note": "Fiable. Advanced. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip and un giro completo de roll. Visto visto de lado.",
+    "note": "Fiable. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip y un giro completo de roll. Visto visto de lado.",
     "value": "425"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~6",
     "label": "Matty 360",
-    "note": "Exigente. Advanced. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip and un giro completo de yaw spin. Visto visto de lado.",
+    "note": "Exigente. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip y un giro completo de yaw spin. Visto visto de lado.",
     "value": "425"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~7",
     "label": "Maverick Loop",
-    "note": "Fiable. Beginner. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto visto de lado.",
+    "note": "Fiable. Principiante. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto visto de lado.",
     "value": "100"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~8",
     "label": "Mavvy Roll",
-    "note": "Fiable. Novice. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto visto de lado.",
     "value": "250"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~9",
     "label": "Donkey Loop",
-    "note": "Fiable. Master. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip and un giro completo de roll and un giro completo de yaw spin. Visto visto de lado.",
+    "note": "Fiable. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip y un giro completo de roll y un giro completo de yaw spin. Visto visto de lado.",
     "value": "600"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~10",
     "label": "Eject Roll",
-    "note": "Fiable. Novice. Medio giro de flip, luego un giro completo de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Medio giro de flip, luego un giro completo de roll. Visto visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~11",
     "label": "Orbit x2",
-    "note": "Fiable. Beginner. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto visto desde arriba.",
+    "note": "Fiable. Principiante. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto visto desde arriba.",
     "value": "75"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~12",
     "label": "Trippy Spin x2",
-    "note": "Fiable. Advanced. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto visto desde arriba.",
+    "note": "Fiable. Avanzado. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto visto desde arriba.",
     "value": "500"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~13",
     "label": "Powerloop",
-    "note": "Fiable. Novice. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto visto de lado.",
+    "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~14",
     "label": "Power Flip",
-    "note": "Fiable. Intermediate. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto visto de lado.",
     "value": "350"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~15",
     "label": "Power Roll",
-    "note": "Exigente. Advanced. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip and un giro completo de roll. Visto visto de lado.",
+    "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto visto de lado.",
     "value": "450"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~16",
     "label": "Inverted 360 Powerloop",
-    "note": "Exigente. Master. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip and un giro completo de yaw spin. Visto visto de lado.",
+    "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto visto de lado.",
     "value": "650"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~17",
     "label": "Flip Stall Rewind",
-    "note": "Fiable. Novice. Un giro completo de flip, tras una pausa. Visto visto de lado.",
+    "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto visto de lado.",
     "value": "275"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~18",
     "label": "360 Stall Rewind",
-    "note": "Fiable. Novice. Un giro completo de roll, tras una pausa. Visto visto desde atrás.",
+    "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto visto desde atrás.",
     "value": "275"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~19",
     "label": "Split-S",
-    "note": "Exigente. Beginner. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll and medio giro de flip. Visto visto de lado.",
+    "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto visto de lado.",
     "value": "100"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~20",
     "label": "Split Yaw",
-    "note": "Exigente. Intermediate. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll and medio giro de flip and medio giro de yaw spin. Visto visto de lado.",
+    "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto visto de lado.",
     "value": "300"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~21",
     "label": "Yaw Spin",
-    "note": "Fiable. Beginner. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto visto desde arriba.",
+    "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto visto desde arriba.",
     "value": "50"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~22",
     "label": "Flip",
-    "note": "Fiable. Beginner. Un giro completo de flip. Visto visto de lado.",
+    "note": "Fiable. Principiante. Un giro completo de flip. Visto visto de lado.",
     "value": "50"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~23",
     "label": "Roll",
-    "note": "Fiable. Beginner. Un giro completo de roll. Visto visto desde atrás.",
+    "note": "Fiable. Principiante. Un giro completo de roll. Visto visto desde atrás.",
     "value": "50"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~24",
     "label": "Invert Rewind",
-    "note": "Fiable. Beginner. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto visto de lado.",
+    "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto visto de lado.",
     "value": "75"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~25",
     "label": "Vanny Roll",
-    "note": "Fiable. Beginner. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto visto desde arriba.",
+    "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto visto desde arriba.",
     "value": "125"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~26",
     "label": "Double Flip",
-    "note": "Fiable. Beginner. Dos giros completos de flip. Visto visto de lado.",
+    "note": "Fiable. Principiante. Dos giros completos de flip. Visto visto de lado.",
     "value": "150"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~27",
     "label": "Double Roll",
-    "note": "Fiable. Beginner. Dos giros completos de roll. Visto visto desde atrás.",
+    "note": "Fiable. Principiante. Dos giros completos de roll. Visto visto desde atrás.",
     "value": "150"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~28",
     "label": "Juicy Flick",
-    "note": "Fiable. Novice. Medio giro de flip, luego medio giro de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~29",
     "label": "Snapback",
-    "note": "Fiable. Novice. Medio giro de flip, luego medio giro de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~30",
     "label": "Rubik's Cube",
-    "note": "Fiable. Intermediate. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto visto de lado.",
     "value": "325"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~31",
     "label": "Cubik's Rube",
-    "note": "Fiable. Intermediate. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto visto de lado.",
     "value": "325"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~32",
     "label": "Inverted Yaw Spin",
-    "note": "Fiable. Advanced. Un giro completo de yaw spin, boca abajo. Visto visto desde arriba.",
+    "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto visto desde arriba.",
     "value": "400"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~33",
     "label": "Inverted Yaw Tracking",
-    "note": "Fiable. Advanced. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto visto desde arriba.",
+    "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto visto desde arriba.",
     "value": "425"
    }
   ],
@@ -8785,5 +10189,11 @@
     ]
    }
   ]
+ },
+ "walk": {
+  "screen": "walk",
+  "items": [],
+  "rows": [],
+  "leads": []
  }
 }
