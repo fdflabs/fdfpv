@@ -528,24 +528,31 @@ airframe drawn), `itaipu:spawns`. Phase 12 adds `airframes:check`.
 
 ## 10. Words (items 38 to 39)
 
-**38. Localization readiness. PARTIAL**, nearly done. English and Spanish,
-3301 keys each (src/strings/en.js, es.js); `strings:selftest` (CI) holds
+**38. Localization readiness. PARTIAL, words BUILT (phase 24).** English
+and Spanish (src/strings/en.js, es.js); `strings:selftest` (CI) holds
 parity, placeholders and plurals; `lint:copy` (CI) fails on prose outside
-the tables; the bootloader's rows are keys (`data-label`, loading.js 817).
-Left: four stage names typed in English beside two that are keys
-(`STAGE_NAMES`, loading.js 98: Renderer, Board, Map, World), and
-`ReplayFileError` messages shown inside a translated line
-(src/replay/editor.js 461, 1141). Trick names are proper names by
-decision (copy-lint.js `EXCUSED`). Portuguese is a new table, not a
-retrofit. **Done:** those strings are keys. Check: `lint:copy` narrows
-loading.js's excuse to the recovery advice. Size S. Phase 24.
+the tables and, since 2026-10-13, on a label of one capitalised word that
+is not compared against (isWord, with key names, proper names, units and
+two ids excused by name, and 13 fixed samples first). The loader's stage
+names and every one word label it found are keys; loading.js is scanned
+again. Trick names are proper names by decision (copy-lint.js
+`EXCUSED`). Left: `ReplayFileError`'s 95 messages (src/replay/file.js),
+shown inside a translated line (src/replay/editor.js); the proposal is a
+key per pilot reason (not a replay, too large, a newer version, an
+aircraft or map this build lacks, damaged) with the detail kept in
+English for the log. Size S.
 
-**39. Text expansion. PARTIAL.** Spanish ships and runs longer, so the
-problem is real, but every layout check (`lint:responsive`,
-`lint:devices`, `modes:card`, all local) runs in English only. **Done:**
-`modes:card` and `lint:devices` run once more with `?lang=es` and assert
-no clipped label (scrollWidth over clientWidth) on the title, the hubs and
-the lobby. Size S. Phase 24.
+**39. Text expansion. CHECKED (phase 24), not fixed.** `lint:devices`
+walks every device in English and Spanish, and `modes:card` page H opens
+home, Flight Club and a lobby with ?lang=es at four sizes; both fail on a
+cut word (text running past the box that clips it, an ellipsis included),
+after a word cut on purpose is found. Both are red with what they find,
+most of it in English too: the menu's stepper values (camera angle "5
+deg..." on every device, the lobby's Round "3 min"), the GPU name, the
+pids percent signs, the FC bench's names, How to fly's tabs on a phone,
+the lobby's room name, Solo and Back; in Spanish alone at 360 also Arcade,
+Reducida, Normal, Modo 4, Aviónica and Todavía sin volar. The fixes are
+the menu rows' and the lobby's.
 
 ## 11. Comfort, audio, graphics (items 40 to 47)
 
@@ -892,29 +899,41 @@ by a name a pilot typed, deliberately: saved liveries (hangar-paint.js
 936) and board callsigns. Checks: `modes:selftest`, `war:stages`,
 `hulls:check` (CI).
 
-**80. Configuration vs code. PARTIAL.** Data: a track (a builder JSON
+**80. Configuration vs code. BUILT for war missions and the aircraft
+checklist (phase 26, 2026-10-13).** Data: a track (a builder JSON
 document), mission text (string keys), an activity's art and facts
-(modes.js), a world's entry (registry.js). Code: a new mission is a file,
-an import in src/share/war/missions/index.js 40, an entry in `ACT1`
-(src/game/campaign.js 62) and its strings, three places that can
-disagree; a new aircraft is a plant row in C, a WASM build, a renderer in
-src/render, and static imports in main.js 190 to 203. The aircraft's C row
-is decided (item 21). **Done:** `ACT1` derived from the mission registry
-(each mission carries its act and order), so a mission is a file and an
-import; an aircraft checklist in configs/airframes.js's header that
-phase 12's `airframes:check` enforces (a renderer, a hull, a picture, its
-strings). Check: `campaign:selftest` and `war:stages` (CI). Size S. Phase
-26.
+(modes.js), a world's entry (registry.js). A war mission's file states
+its campaign place (`act`, `order`, `key`, `free`, `release`) and
+src/game/campaign.js derives `ACT1` from the registry
+(src/share/war/missions/index.js) with `actOf`, which throws at load on
+an order twice or missing, an impossible release, a missing key or two
+free missions; a mission with no file yet is a row of `PLANNED` beside
+the registry. So a new mission is a file, an import and its strings. The
+Interior's list (`INTERIOR`, campaign.js) is still a hand list: its
+registry, src/share/ops/missions.js, imports interior/node.js, which is
+Node only, and campaign.js reaches the browser (settings.js,
+progressmerge.js). A new aircraft is a folder (docs/AIRCRAFT-FOLDER.md),
+its plant table generated into the C, a renderer in src/render. The
+aircraft checklist is in scripts/airframes-check.js's header and
+docs/AIRCRAFT-FOLDER.md: name, blurb, facts, size, weight, cameras,
+class, roles, kit, and the description and note in English and
+Spanish, each with a negative control; a renderer is held by
+src/render/craft.js at load and a hull by `hulls:check`. There is no
+picture field: the picker and the hangar draw the model. Checks:
+`campaign:selftest`, `airframes:check`, `aircraft:folder`, `war:stages`
+(CI).
 
-**81. Feature flags. PARTIAL.** No flags system; unfinished things are
-hidden ad hoc: a mission not in the build is filtered (`inBuild`, main.js
-5438), an upgrade waits on an act (`later: 2`, campaign.js 97), servers
-can be switched off (`?rooms=off`). **Done, decided by the author:** no
-general flags object (one place to hide a row is enough); a `hidden`
-field on the mode registry's rows and on missions, read where `inBuild`
-reads today. Unfinished code otherwise lives on its branch. Check:
-`modes:selftest` (CI) asserts a hidden row reaches no card. Size S.
-Phase 26.
+**81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
+system, decided by the author: one place to hide a row is enough. A war
+mission's gate is its file's `release` (available, development, soon;
+the owner's 2026-10-04 rule), read through campaign.js `released` by the
+rooms server (core.js, front.js, war.js), the campaign list and the
+briefing; kept three valued rather than a `hidden` boolean, because Under
+development and Coming soon are different cards. `inBuild` is gone. An
+upgrade waits on an act (`later: 2`, campaign.js UPGRADES); servers can
+be switched off (`?rooms=off`). **Still to do:** a `hidden` field on the
+mode registry's rows (src/share/modes.js, the sessions lane's), with
+`modes:selftest` (CI) asserting a hidden row reaches no card. Size S.
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,
@@ -923,18 +942,14 @@ src/ui/campaign.js 188), "Coming in Act {n}" on a later upgrade
 (PLAN.md section 1, PILLARS 12 on AI fill). No TODO or FIXME in src. No
 check enforces it.
 
-**83. Consistent terminology. PARTIAL.** `lint:nouns` (CI) holds one
-rule: the pilot reads "track", never "course" (scripts/noun-lint.js);
-docs/SPANISH-GLOSSARY.md fixes the Spanish (track pista, room sala). But
-the strings say room 230 times, lobby 43, game 23, match 12, session 6,
-and the redesign's words (operation, mission, activity, session, party)
-are not fixed anywhere. **Done:** one glossary in
-docs/SPANISH-GLOSSARY.md, both languages: operation (Defend the Paraná),
-mission (one of its seven), activity (a Flight Club entry), session (a
-room set up for an activity, what the pilot sees), round (one go in a
-session), room (the code's word, never shown where session fits), party
-not used (the session's pilots); `lint:nouns` grows a rule per settled
-word. Size S. Phase 24.
+**83. Consistent terminology. BUILT (phase 24).** One glossary,
+docs/SPANISH-GLOSSARY.md "The game's nouns": operation, mission, stage,
+activity, session, lobby, round, room, party not used, in both
+languages, with where today's copy still differs (match for round,
+session for a browser's visit, Spanish sesión for a run). `lint:nouns`
+(CI) holds a rule per word that is gone from the copy: course (track) and
+party; a word still used in the old sense gets its rule when its copy
+moves. Checks: `lint:nouns`.
 
 **84. Protect the family-origin use case. Held by the owner: to be
 discussed with the owner later.**

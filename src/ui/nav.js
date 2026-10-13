@@ -734,7 +734,7 @@ export const navMethods = {
     const pad = this.lastInput === 'pad';
     if (this.screen === 'walk' && this.walk && this.walk.photo) {
       return [
-        { keys: pad ? ['Roll'] : ['Drag', 'Wheel'], text: str('walk.photo_aim') },
+        { keys: pad ? [str('ratespanel.roll')] : [str('ui.cap_drag'), str('ui.cap_wheel')], text: str('walk.photo_aim') },
         { keys: [pad ? 'A' : 'Space'], text: str('walk.photo_take'), action: 'walk-photo-take' },
         { keys: ['T'], text: str('walk.turntable'), action: 'walk-turntable' },
         { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
@@ -746,7 +746,7 @@ export const navMethods = {
     if (this.screen === 'walk' && this.walk && this.walk.visit) {
       return [
         { keys: [], text: str('walk.visiting', { callsign: this.walk.visit.callsign }) },
-        { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
+        { keys: pad ? [str('ui.pitch'), str('ratespanel.roll')] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'B' : 'Esc'], text: str('walk.home'), action: 'hangar-walk' },
       ];
     }
@@ -760,20 +760,20 @@ export const navMethods = {
         ...(this.roomLineupList ? this.roomLineupList() : []).filter((e) => !e.own).slice(0, VISIT_PEERS)
           .map((e) => ({ keys: [], text: str('walk.visit_peer', { callsign: e.name }), action: `walk-visit:${e.name}` })),
         { keys: [], text: str(open ? 'walk.visits_on' : 'walk.visits_off'), action: 'walk-visits' },
-        { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
+        { keys: pad ? [str('ui.pitch'), str('ratespanel.roll')] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'A' : 'E'], text: str('walk.use') },
         { keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' },
       ];
     }
     const hints = [];
-    const arrows = (a, b) => (pad ? ['Pitch'] : [a, b]);
+    const arrows = (a, b) => (pad ? [str('ui.pitch')] : [a, b]);
     if (this.cardScreen()) {
       /* Pitch walks a card strip on the pad; roll chooses and backs. */
       hints.push({ keys: arrows('←', '→'), text: str('ui.move') });
     } else {
       hints.push({ keys: arrows('↑', '↓'), text: str('ui.move') });
       if (this.rowKind(this.items()[this.cursor]) === 'value') {
-        hints.push({ keys: pad ? ['Roll'] : ['←', '→'], text: str('ui.adjust') });
+        hints.push({ keys: pad ? [str('ratespanel.roll')] : ['←', '→'], text: str('ui.adjust') });
       }
     }
     hints.push({ keys: [pad ? 'A' : 'Enter'], text: str('ui.choose') });

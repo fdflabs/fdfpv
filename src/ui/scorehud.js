@@ -284,7 +284,7 @@ export class ScoreHud {
       } else if (e.kind === 'bank') {
         this.announce(`+${formatScore(e.points)}`, 'is-bank');
       } else if (e.kind === 'bail') {
-        const text = e.points > 0 ? str('scorehud.bailed', { formatScore: formatScore(e.points) }) : 'Bailed';
+        const text = e.points > 0 ? str('scorehud.bailed', { formatScore: formatScore(e.points) }) : str('scorehud.bailed_plain');
         this.announce(text, 'is-bail');
         this.rows.textContent = '';
       }

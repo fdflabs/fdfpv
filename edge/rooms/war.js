@@ -102,8 +102,8 @@
  *                                           lost in (a countdown, no
  *                                           briefing; RESTART_STARS)
  *
- * A start of a campaign mission not yet released (src/game/campaign.js
- * ACT1 `release`) is refused 'unreleased', whatever the client showed.
+ * A start of a campaign mission not yet released (its `release` in its
+ * file, src/share/war/missions; campaign.js released) is refused 'unreleased', whatever the client showed.
  *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
  *                                           countdown starts now; refused
  *                                           'unwatched' unless every pilot

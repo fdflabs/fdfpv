@@ -266,7 +266,7 @@ export {
   AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe, chosenTime,
 };
 
-export const FREESTYLE_SCORING_LABEL = { off: 'Off', free: str('ui.free_flight'), scored: str('ui.scored_run') };
+export const FREESTYLE_SCORING_LABEL = { off: str('ui.off'), free: str('ui.free_flight'), scored: str('ui.scored_run') };
 
 /*
  * Scoring is unfinished, so whenever it is switched on the row's note opens
