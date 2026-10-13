@@ -1,10 +1,9 @@
 /*
  * tag-two-page.js: Catch the Ace! in three headless pages of the real
- * shell, one room on the Swiss valley (docs/TAG-PLAN.md, checks). By hand,
- * against a running rooms Worker:
+ * shell, one room on the Swiss valley (docs/TAG-PLAN.md, checks), on a
+ * rooms server of its own (tests/lib/roomsserver.js), or the one named:
  *
- *   npx wrangler dev --config edge/rooms/wrangler.toml --port 8797
- *   SIM_GPU=1 node scripts/tag-two-page.js http://127.0.0.1:8797 [outdir]
+ *   SIM_GPU=1 node scripts/tag-two-page.js [rooms-url] [outdir]
  *
  * A (a red Cub) makes the room, B (a blue Cub) and C (a five inch) join,
  * all three fly, and A starts a match to GOAL points. Every page is put on
@@ -45,9 +44,9 @@ import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { PROTECT_MS } from '../src/share/roomtag.js';
 import { hullFor } from '../src/game/midair.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rooms = process.argv[2] || 'http://127.0.0.1:8797';
 const outDir = process.argv[3] || join(root, 'build', 'tag-two-page');
 
 let failed = 0;
@@ -118,8 +117,9 @@ const aceMark = (p) => p.evaluate(`(() => {
 /* Held in the air at (x, y, z), nose toward -x, so a Cub's span is along z. */
 const hold = (p, at) => p.evaluate(`window.__crashThrow({ x: ${at.x}, y: ${at.y}, z: ${at.z}, yaw: 90, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, showCraft: true })`);
 
-const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
-console.log(`Catch the Ace in three pages, rooms at ${rooms}`);
+const server = await roomsServer(process.argv[2], 'tag-two-page');
+const url = `/index.html?rooms=${encodeURIComponent(server.url)}`;
+console.log(`Catch the Ace in three pages, rooms at ${server.url}`);
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor(AIR[0], '#d8432f') });
 const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor(AIR[1], '#2f6fd6') });
 const c = await openPage({ root, url, width: 1280, height: 720, seed: seedFor(AIR[2], null) });
@@ -322,6 +322,7 @@ try {
   for (const p of pages) {
     await p.close();
   }
+  await server.stop();
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
