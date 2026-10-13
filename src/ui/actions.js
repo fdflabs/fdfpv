@@ -6,6 +6,7 @@
  *   back()                               Escape and the Back row
  *   select()                             Enter on the row under the cursor
  *   hubCards, hangarCards, openHub       home and its three hubs
+ *   continueWay                          home's Continue, the last session
  *   seatMap, flown, seatMatchesMode      the seat and the first flight
  *   openBuilder, actOnCard, duplicateCard, storeCardChange,
  *   openBoardCourse                      the rows of a chosen course card
@@ -39,9 +40,11 @@ import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
 import { needSignIn } from '../share/account.js';
 import { resetProgress, resetSettings } from '../share/save.js';
+import { ACT1, released } from '../game/campaign.js';
 import { freshProgress } from '../game/progress.js';
 import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
 import { tracksConfigured } from '../share/cloud.js';
+import { MODES, modeById } from '../share/modes.js';
 import { hasFlyableTrack } from '../share/listing.js';
 import { clearShareImport, readShareImport } from '../share/session.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
@@ -129,6 +132,12 @@ function answerGate(ui, way, picked, keepWorld) {
   ui.craftGate = false;
   ui.mode = way.mode;
   ui.roomGame = way.game ?? null;
+  /* Every session's card passes here (src/main.js openSession acts it),
+   * so this is the activity home's Continue reopens. A way the registry
+   * has no card for (the rooms panel's friends, the war's own) leaves the
+   * last one standing. */
+  const activity = MODES.find((m) => m.card.way === way.id);
+  if (activity) ui.settings.lastActivity = activity.id;
   saveSettings(ui.settings);
   tellShell(ui);
   ui.returnTo = 'title';
@@ -837,12 +846,20 @@ export const actionMethods = {
     /* Operations also holds the war's field hangar, which needs no rooms
      * server to walk round. */
     const field = { label: str('walk.field'), action: 'field-walk', key: 'ops-field' };
-    const linksOf = (hub) => {
+    const own = (hub) => {
       if (hub.id === 'hangar') {
         return this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }));
       }
       return hub.id === 'ops' ? [...ways(hub.id), field] : ways(hub.id);
     };
+    /* Continue stands in the last activity's own link, its press that
+     * card's (src/ui/cards.js gateLinks, pickForWay), so the session is
+     * the one the pilot last chose for it. In its place, not beside it:
+     * the label is no longer than any activity's it replaces, in either
+     * language, so the links' wrapping never gains a line and the hub no
+     * height. */
+    const last = this.continueWay();
+    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.action ? { label: str('hub.continue'), action: l.action, key: 'continue' } : l));
     return HUBS.map((hub) => ({
       label: str(hub.label),
       card: `hub-${hub.id}`,
@@ -854,6 +871,17 @@ export const actionMethods = {
       links: linksOf(hub),
       action: `hub-${hub.id}`,
     })).filter((card) => card.links.length > 0);
+  },
+
+  /* The card of the activity whose session this pilot last opened, or
+   * null: none yet, an id this build does not know, or the war while no
+   * mission of its campaign is released (src/game/campaign.js), since its
+   * Play would open nothing a pilot may fly. */
+  continueWay() {
+    const activity = modeById(this.settings.lastActivity);
+    if (!activity) return null;
+    if (activity.id === 'war' && !ACT1.some((m) => released(m.id))) return null;
+    return WAYS.find((w) => w.id === activity.card.way) ?? null;
   },
 
   /* The Hangar's cards: the aircraft, its customising when it has any,

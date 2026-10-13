@@ -144,6 +144,8 @@ export const SYNCED_SECTIONS = {
   hangarVisit: 'whole',
   /* The last Solo, Friends or Public per activity (settings.js). */
   sessionVisibility: 'keyed',
+  /* The activity home's Continue reopens (settings.js), a registry id. */
+  lastActivity: 'whole',
   records: 'best',
 };
 

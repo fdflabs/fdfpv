@@ -83,6 +83,9 @@ export function checkRoomLine(r, skew = 0) {
     round: Number.isInteger(r.round) && r.round > 0 ? r.round : null,
     ready: Number.isInteger(r.ready) && r.ready >= 0 ? r.ready : null,
     state: STATES.includes(r.state) ? r.state : 'waiting',
+    /* Its watch seats (edge/rooms/core.js watch), apart from n and the
+     * cap; null from a server from before 2026-10-13. */
+    watchers: Number.isInteger(r.watchers) && r.watchers >= 0 ? r.watchers : null,
     closesAt: empty ? r.emptySince + EMPTY_CLOSE_MS + skew : null,
   };
 }

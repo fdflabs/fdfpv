@@ -58,6 +58,7 @@ import { measureBudget } from './render/budget.js';
 import { bodyPosToModel, simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
 import { chaseLagMs, shakeScale } from './render/comfort.js';
+import { pullIn } from './render/chasearm.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
@@ -139,6 +140,7 @@ import {
   LATE_MS, applyHit, checkHit, hullFor, roomForcesDamage, sideFor,
 } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
+import { WORLD_EDGES, edgeState, edgeStep } from './game/edges.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
@@ -3465,11 +3467,16 @@ export async function boot({
     return fromY != null ? view.height(x, z, fromY) : groundAt(x, z);
   }
 
+  /* Where a reset puts the craft, for the world's edge's bearing home
+   * (edgeFrame). Up here because boot reaches adoptSpawn. */
+  const edgeHome = { x: 0, z: 0 };
   function adoptSpawn() {
     seatRestHeight(airframeById(runAirframe), startsAfloat());
     const sp = runSpawn();
     startX = sp.x;
     startZ = sp.z;
+    edgeHome.x = sp.x;
+    edgeHome.z = sp.z;
     startYaw = sp.yaw;
     startPitch = sp.pitch || 0;
     /* The spawn sits on the ground under it, which on these maps is
@@ -7317,8 +7324,10 @@ export async function boot({
     const at = peer.foot ? peer.foot.draw(performance.now()) : null;
     fig.group.visible = true;
     if (!at) {
-      const st = stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, peer.seat - 1);
-      fig.group.position.set(st.x, groundAt(st.x, st.z), st.z);
+      const sp = view.spawn || { x: 0, z: 0, yaw: 0 };
+      const st = stationFor(sp, peer.seat - 1);
+      /* On the deck a spawn's hint names, not the ground under it. */
+      fig.group.position.set(st.x, sp.y != null ? view.height(st.x, st.z, sp.y) : groundAt(st.x, st.z), st.z);
       fig.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
       fig.setBodyVisible(true);
       fig.stride(0, dt);
@@ -7510,7 +7519,7 @@ export async function boot({
     const sp = view.spawn;
     const wet = view.water && view.water[0] ? view.water[0].spawn : null;
     const probe = (p) => {
-      const y = groundAt(p.x, p.z);
+      const y = sp.y != null ? view.height(p.x, p.z, sp.y) : groundAt(p.x, p.z);
       return { x: p.x, z: p.z, y, gap: view.colliders ? view.colliders.gapAt(p.x, y + 1, p.z, 6) : Infinity };
     };
     return {
@@ -7522,6 +7531,25 @@ export async function boot({
         return { x: p.x, z: p.z, wet: Boolean(waterAt(p.x, p.z)) };
       }) : null,
     };
+  };
+  /* Harness only: every start the shell can make on this map before a
+   * room's row moves it (mapSpawn): the map's own, what spawnFor answers
+   * each kind and each ?spawn= wish, and each water body's float start,
+   * for scripts/world-spawns-check.js. */
+  window.__spawnStarts = () => {
+    const home = view.spawn;
+    const out = [{ label: 'home', start: home }];
+    const bodies = (view.water || []).filter((b) => b.spawn);
+    bodies.forEach((b, i) => out.push({ label: `water ${b.name || i}`, start: b.spawn, float: true }));
+    if (view.spawnFor) {
+      for (const kind of ['plane', 'quad', 'float']) {
+        out.push({ label: kind, start: view.spawnFor(home, kind, null), float: kind === 'float' });
+      }
+      for (const wish of ['air', ...bodies.map((b) => b.name).filter(Boolean)]) {
+        out.push({ label: `wish ${wish}`, start: view.spawnFor(home, 'float', wish), float: true });
+      }
+    }
+    return out;
   };
   /* Harness only: the combat round and what this page draws of it, for
    * scripts/combat-two-page.js. */
@@ -17671,11 +17699,12 @@ export async function boot({
    * THE FRAME LOOP.
    *
    * One frame is a fixed sequence of phases, each a function below, run in
-   * this order by frameBody: open the frame (wall clock, counters), read
-   * the pilot, advance the plant on the accumulator, compose the drawn
-   * pose, read back what the solid world did, run the race, dress the
-   * world, place the lens, pick the camera, move the scenery, draw, feed
-   * the mix, feed the HUD, settle the banner, close the frame. The phases
+   * this order by frameBody: open the frame (wall clock, counters), hold
+   * the world's edge, read the pilot, advance the plant on the
+   * accumulator, compose the drawn pose, read back what the solid world
+   * did, run the race, dress the world, place the lens, pick the camera,
+   * move the scenery, draw, feed the mix, feed the HUD, settle the banner,
+   * close the frame. The phases
    * hand each other one record, `fr`, written once per frame and never
    * reallocated (P8: the loop allocates nothing).
    *
@@ -17740,6 +17769,7 @@ export async function boot({
     if (!openFrame(nowWall)) {
       return;
     }
+    edgeFrame();
     readPilot();
     advancePlant();
     composePose();
@@ -17755,6 +17785,43 @@ export async function boot({
     hudFrame();
     bannerFrame();
     closeFrame();
+  }
+
+  /*
+   * THE WORLD'S EDGE (src/game/edges.js): turn back past the world's
+   * square, the start again past twice it, with the R key's own reset, on
+   * last frame's pose as a key between frames would be. A live operation
+   * keeps its own boundary (edge/rooms/ops.js) instead, and a pilot on
+   * foot has left the aircraft where it is. Home is where the reset puts
+   * the craft (runSpawn), taken at each run's start: a clip recovery moves
+   * startX, not the start a reset goes back to.
+   */
+  const worldEdge = edgeState();
+  let edgeBanner = null;
+  /* ms of flight on the wall clock, held in a pause: a parked craft's sim
+   * clock does not run, and a craft landed out there is reset too. */
+  let edgeMs = 0;
+  function edgeFrame() {
+    if (mode === 'paused') {
+      return;
+    }
+    const half = WORLD_EDGES[view.id];
+    if (!half || mode !== 'flight' || walker !== null || roomOps.on() || warSpectating() || roomWatching() || jamWatching()) {
+      worldEdge.since = null;
+      edgeBanner = null;
+      return;
+    }
+    edgeMs += fr.dt;
+    const phase = edgeStep(half, worldEdge, pCurr.x, pCurr.z, edgeHome.x, edgeHome.z, edgeMs);
+    if (phase === 'reset') {
+      edgeBanner = null;
+      reset();
+      return;
+    }
+    edgeBanner = phase === 'in' ? null : [
+      str(phase === 'turn' ? 'edge.turn_back' : 'edge.leaving', { bearing: worldEdge.bearing, km: worldEdge.km.toFixed(1), s: Math.ceil(worldEdge.msLeft / 1000) }),
+      phase === 'turn' ? 'edge' : true,
+    ];
   }
 
   /*
@@ -19072,6 +19139,9 @@ export async function boot({
       chasePos.copy(chaseAim);
       chaseValid = true;
     }
+    if (view.colliders) {
+      pullIn(view.colliders, chaseAnchor, chasePos);
+    }
     shell.quad.visible = !roomWatching();
     shell.camera.up.set(0, 1, 0);
     shell.camera.position.copy(chasePos);
@@ -19201,6 +19271,11 @@ export async function boot({
     } else {
       chasePos.copy(chaseAim);
       chaseValid = true;
+    }
+    /* Short of every wall on the way back from the craft, after the
+     * smoothing, so the arm folds in at once and eases out. */
+    if (view.colliders) {
+      pullIn(view.colliders, chaseAnchor, chasePos);
     }
     shell.camera.position.copy(chasePos);
     shell.camera.lookAt(introLook.copy(chaseAnchor).addScaledVector(chaseDir, span));
@@ -19846,6 +19921,9 @@ export async function boot({
     }
     if ((turtleWait || turtleRecover || turtleFlip.active) && inFlight) {
       return [turtleBannerText(), true];
+    }
+    if (edgeBanner && inFlight) {
+      return edgeBanner;
     }
     if ((airHoldMs > 0 || raceHoldMs > 0) && !ui.isModal()) {
       return [String(Math.ceil(Math.max(airHoldMs, raceHoldMs) / 1000)), false];

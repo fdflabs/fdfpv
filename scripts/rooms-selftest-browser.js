@@ -255,7 +255,7 @@ export async function browserSection(check) {
   check('a line says the name, world, pilots, cap and game', sky && sky.name === 'Sky Club' && sky.map === 'swiss2' && sky.n === 1
     && sky.cap === PUBLIC_CAP && sky.game === null && sky.state === 'waiting' && validNamePick(sky.pick), JSON.stringify(sky));
   check('and a room set up for a game shows it, waiting', list.rooms.find((r) => r.code === moded.code).game === 'combat');
-  check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,emptySince,game,map,mission,mode,n,name,pick,ready,round,state,wave,waves');
+  check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,emptySince,game,map,mission,mode,n,name,pick,ready,round,state,watchers,wave,waves');
   await m1.leave();
   check('a room its last pilot left is not listed', !(await s.list()).rooms.some((r) => r.code === moded.code));
 
