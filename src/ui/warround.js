@@ -102,7 +102,10 @@ export function createWarRoundCard(nameOf) {
       position: 'fixed', top: '42%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: '43', pointerEvents: 'none', display: 'none',
       fontFamily: FONT, textTransform: 'uppercase', textAlign: 'center',
       background: 'rgba(4, 10, 6, 0.78)', borderTop: '3px solid', borderBottom: '3px solid', padding: '18px 48px 20px',
-      minWidth: 'min(880px, 92vw)', maxWidth: '92vw', boxSizing: 'border-box',
+      /* As wide as its longest line, from 880 px up to the screen's edge
+       * less a margin: fixed at its left: 50%, the card would otherwise
+       * shrink to its min width and wrap the debrief line at 1280 wide. */
+      width: 'max-content', minWidth: 'min(880px, 92vw)', maxWidth: '92vw', boxSizing: 'border-box',
       textShadow: '0 0 8px rgba(0, 0, 0, 0.95), 0 2px 3px rgba(0, 0, 0, 0.95)',
     });
     title = document.createElement('div');

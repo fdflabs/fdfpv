@@ -6,10 +6,11 @@
  *
  * Free Flight, scored, on the card's own plane: the run is flown for a few
  * seconds and ended with the horn (window.__scoreFinish). The rows check
- * the facts (time in the air, crashes, the landing line a plane adds, this
- * aircraft's total), that Watch the replay is reached by a real pointer,
- * opens the crash cam and comes back, and that the board's answer to a
- * posted run becomes the record line. In English and Spanish.
+ * the facts (time in the air, crashes, the landing line a plane adds, the
+ * aircraft's condition, this aircraft's total), that Watch the replay is
+ * reached by a real pointer, opens the crash cam and comes back, and that
+ * the board's answer to a posted run becomes the record line. In English
+ * and Spanish.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -157,6 +158,15 @@ async function run(lang) {
     await playFree(page);
     await page.sleep(4000);
     const plane = await page.evaluate('window.__ui.settings.airframe');
+    /* In Spanish the plane loses a control surface first, so one language
+     * reads a damaged aircraft: the debrief must say Impaired, as the HUD
+     * does, not the whole one it took off in. */
+    if (lang === 'es') {
+      const part = await page.evaluate("window.__crash().partLabels.findIndex((l) => /^(aileron|elevon|gear)/.test(l))");
+      const broke = await page.evaluate(`window.__crashBreak(${part})`);
+      await page.until("window.__crash().condition === 'impaired'", 8000).catch(() => {});
+      say(part >= 0 && broke === 'OK', `a control surface or the gear broken off in flight: part ${part} ${broke}`);
+    }
     await page.evaluate('window.__scoreFinish()');
     await page.until("window.__craftState().mode === 'results' && window.__ui.screen === 'results'", 30000);
     await page.sleep(700);
@@ -164,8 +174,12 @@ async function run(lang) {
     say(Boolean(f) && f.visible, `the facts block is on screen (${plane})`);
     say(Boolean(f) && f.clear, `the facts cover none of the hero, the table or the menu: ${f && f.box}`);
     const has = (k) => f && f.dts.includes(t[k]);
-    say(has('debrief.air_time') && has('debrief.crashes') && has('debrief.landing') && has('debrief.aircraft_time'),
+    say(has('debrief.air_time') && has('debrief.crashes') && has('debrief.landing') && has('debrief.condition') && has('debrief.aircraft_time'),
       `its lines: ${f && f.dts.join(' | ')}`);
+    const hud = await page.evaluate('window.__crash().condition');
+    const condition = f && f.dds[f.dts.indexOf(t['debrief.condition'])];
+    say(condition === t[`debrief.cond_${hud}`] && hud === (lang === 'es' ? 'impaired' : 'operational'),
+      `the aircraft's condition is the HUD's word, ${hud}: ${condition}`);
     const landing = f && f.dds[f.dts.indexOf(t['debrief.landing'])];
     say([t['debrief.landed'], t['debrief.not_landed']].includes(landing), `a plane says whether it landed: ${landing}`);
     await shot(page, `debrief-free-${lang}.png`);
