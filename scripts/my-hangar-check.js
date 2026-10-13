@@ -7,8 +7,11 @@
  * way it was before My Hangar existed: the Super Timber scheme and the
  * lights. Then:
  *
- *   1. My Hangar is a fourth tab, reached with the arrows, and empty it
+ *   1. My Hangar is a fifth tab, reached with the arrows, and empty it
  *      says how to fill it and offers nothing to choose.
+ *  1b. Favourites, the tab before it, likewise when empty; V stars the
+ *      Timber and a click on the star the Zagi, both then listed in the
+ *      table's order, and a click on a star there takes its card out.
  *   2. Customise on the stock Timber (C), the Timber X scheme, Save to My
  *      Hangar: the name offered, typed over and Enter. The picker comes
  *      back on My Hangar with the build centred, it is stored under its
@@ -26,8 +29,9 @@
  *   8. Delete: the Delete key asks with Keep under the cursor and Enter
  *      keeps it; asked again, Right and Enter delete it; a pad's Y asks
  *      and B keeps.
- *   9. Reloaded: the builds, the one worn and the stock Timber's own
- *      customisation all kept, the stock card still drawn in it.
+ *   9. Reloaded: the builds, the one worn, the star and the stock
+ *      Timber's own customisation all kept, the stock card still drawn
+ *      in it.
  *  10. A drone: the 7 inch's loadout (src/ui/hangar-combat.js) saved as
  *      a build, chosen and carried, and the stock 7 inch its own again.
  * And no console error or uncaught exception anywhere.
@@ -59,6 +63,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { BUILDS_KEY } from '../src/ui/builds.js';
+import { pickList } from '../src/ui/carousel.js';
 import { airframeById } from '../configs/airframes.js';
 import { coloursFor } from '../configs/liveries.js';
 
@@ -190,6 +195,28 @@ async function main() {
     say(empty.filter === 'mine' && empty.ids.length === 0 && !empty.choose && !empty.custom && /Customise/.test(empty.note) && /Save to My Hangar/.test(empty.note),
       `ArrowDown reaches My Hangar; empty, it says how to add one and offers no Choose: ${empty.name} / ${empty.note}`);
     await shots(page, 'my-hangar-empty');
+
+    console.log('1b. favourites');
+    await toTab(page, 'fav');
+    const noFav = await card(page);
+    say(noFav.filter === 'fav' && noFav.ids.length === 0 && !noFav.choose && /press V/.test(noFav.note),
+      `ArrowDown reaches Favourites; empty, it says how to star one: ${noFav.name} / ${noFav.note}`);
+    await toTab(page, 'plane');
+    await centre(page, T);
+    await page.tap('KeyV');
+    const starred = await page.evaluate("({ on: window.__ui.carousel.favBtn.classList.contains('on'), list: window.__ui.settings.favourites.list })");
+    say(starred.on && same(starred.list, [T]), `V stars the Timber: ${JSON.stringify(starred)}`);
+    await centre(page, 'zagi1219');
+    await page.evaluate(click('.carousel-fav'));
+    await toTab(page, 'fav');
+    let favs = await card(page);
+    const order = pickList('all').filter((id) => id === T || id === 'zagi1219');
+    say(same(favs.ids, order), `a click stars the Zagi, and Favourites lists both in the table's order: ${favs.ids.join(', ')}`);
+    await centre(page, 'zagi1219');
+    await page.evaluate(click('.carousel-fav'));
+    favs = await card(page);
+    say(same(favs.ids, [T]) && favs.key === T && same(await page.evaluate('window.__ui.settings.favourites.list'), [T]),
+      `a click on its star there takes the Zagi out: ${favs.ids.join(', ')}`);
 
     console.log('2. the first Timber build, by keyboard');
     await toTab(page, 'plane');
@@ -406,6 +433,7 @@ async function main() {
     await ready(page);
     const after = await page.evaluate('({ builds: window.__ui.myBuilds.map((b) => [b.name, b.airframe, b.fit.livery]), s: window.__ui.settings })');
     say(same(after.builds, [['Bush Strip', T, null], ['Survey', T, { scheme: 'twin' }]]), `both builds are kept: ${JSON.stringify(after.builds)}`);
+    say(same(after.s.favourites.list, [T]), `the star is kept: ${JSON.stringify(after.s.favourites)}`);
     say(after.s.buildFits[T] && after.s.buildFits[T].build === bush.id && after.s.livery[T] === undefined && same(after.s.buildFits[T].stock[T].livery, OWN.livery),
       'Bush Strip is still worn, the pilot\'s own still kept aside');
     await openPicker(page);

@@ -189,7 +189,7 @@ import {
   SETTINGS_KEY, FLIGHT_MODES, PACK_VOLTAGES, LAP_COUNTS, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES,
   hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor,
   FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats,
-  seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices, chosenTime,
+  seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices, chosenTime, toggleFavourite,
 } from './settings.js';
 import {
   choice, cycle, fitsAsSegments, number, stampIds, stepper, toggle,
@@ -951,6 +951,13 @@ export class Ui {
         },
       },
       builds: this.pickerBuilds(),
+      favourites: {
+        has: (id) => s.favourites.list.includes(id),
+        toggle: (id) => {
+          s.favourites = toggleFavourite(s.favourites, id);
+          this.persistSettings();
+        },
+      },
       onCustomise: (id, reopen, build) => this.openHangar(id, reopen, build),
       onChoose: (card, build) => {
         const id = build ? build.airframe : withFloats(s, card);
