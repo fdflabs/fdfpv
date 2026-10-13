@@ -288,6 +288,8 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const b2 = (fw.k_induced * clmax * clmax - plateCn * sS * sS) / cS;
     const cdFlat = cd0 + plateCn * sinA * sinA + (cosA > 0 ? b2 * cosA : 0);
     const CD = (1 - sigma) * (cd0 + fw.k_induced * clLin * clLin) + sigma * cdFlat;
+    /* The plate's share, which goes with the lift (plant_wing.c, THE PLATE'S FORCE IN A SIDESLIP). */
+    const cdPlate = sigma * (plateCn * sinA * sinA + (cosA > 0 ? b2 * cosA : 0));
 
     /* The tail on its own angle (hi_alpha), the sideslip terms with it. */
     let cmStiff = fw.cm_alpha * alpha, cmDe = fw.cm_de;
@@ -326,7 +328,9 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
       const yBeta = cyMeas ? cyTabAt(fw.cy_tab, Math.atan2(sinB, cosB) * 180 / Math.PI, Math.atan2(-v, Vxz) * 180 / Math.PI, -v / V) : cyb * betaS;
       const Y = qbar * fw.area * (yBeta + cydr * dR);
       if (Vxz > 1e-6) { F[0] += L * (-w / Vxz); F[2] += L * (u / Vxz); }
-      F[0] -= D * u / V; if (!cyMeas) F[1] -= D * v / V; F[2] -= D * w / V;
+      const Dp = qbar * fw.area * cdPlate, Dw = D - Dp;
+      F[0] -= Dw * u / V; if (!cyMeas) F[1] -= Dw * v / V; F[2] -= Dw * w / V;
+      if (Vxz > 1e-6) { F[0] -= Dp * u / Vxz; F[2] -= Dp * w / Vxz; } else { F[0] -= Dp * u / V; F[2] -= Dp * w / V; }
       F[1] -= Y;
     }
 

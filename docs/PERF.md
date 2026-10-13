@@ -26,6 +26,15 @@ a memory ceiling, with the temp dir off the tmpfs:
     TMPDIR=$HOME/.cache/fdfpv-lead-tmp SIM_GPU=1 systemd-run --user --scope -p MemoryMax=8G \
         node scripts/perf-play.js OUT_DIR --repeat=2 --seconds=30
 
+That command draws on GPU 0, the desktop's card. Through
+`~/.cache/run-check.sh <worktree> perf -- OUT_DIR ...` it draws on GPU 1
+(85:00.0, x4) since 2026-10-13: the wrapper hides GPU 0's /dev/nvidia0
+in a bwrap, because NVIDIA's EGL takes the first card it can open and
+no Chrome flag picks another. It falls back to GPU 0, with a line, when
+GPU 1 is missing or full; `CHECK_GPU=0` keeps a run on GPU 0, as the
+baselines below were taken. Inside the bwrap nvidia-smi sees GPU 1 as
+index 0, so the run's "gpu load 0:" is GPU 1's.
+
 It prints a table per run and writes OUT_DIR/perf-play.json with every
 frame. The frames stay out of the repository; the numbers worth keeping
 go here.

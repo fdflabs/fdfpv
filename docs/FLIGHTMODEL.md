@@ -488,11 +488,30 @@ R-474) on each fuselage's side area from its derivation or render model.
   the 30 deg row is carried on the sideslip's sine, ESTIMATED. Still
   linear: TP-1538's Cn against beta, which turns restoring past 20 to 25
   deg at alpha 35 to 55 (hi_lat's ratio is a slope); an open gap.
-- Every other table still takes the drag along the wind with its
-  sideways share, CD sin beta: past the stall, in a slip, that is the
-  broadside wing's normal force pointed sideways, the term the F-16's
-  measured CY showed 1.6 to 4 times too strong. Fleet wide, not moved
-  here: an open item for the lead.
+- The separated wing's plate force in a sideslip (w38-physics-2,
+  plant_wing.c THE PLATE'S FORCE IN A SIDESLIP). Every table took its
+  whole drag along the wind, so past the stall, in a slip, the broadside
+  wing's normal force went sideways as CD sin beta. A plate's pressure
+  force is normal to the plate: TP-1538's balance has the F-16 broadside
+  (alpha 90) at 30 deg of sideslip at CY -0.305 (scan, PDF p. 74), where
+  CD 2.14 along the wind would give -1.07. Now the plate's share of the
+  drag (sigma times the plate and Viterna's B2, the flaps' normal force
+  past the stall, each biplane wing's) goes with the lift, along the
+  wind's share in the plane of symmetry; the skin's, the gear's and the
+  attached wing's induced drag stay on the whole wind. Below the stall
+  blend sigma is zero and nothing moves (the quad's and the 1000 mm
+  wing's recordings hold; the Skyhunter's trace first differs at the
+  step its alpha first reaches the blend). At 15 m/s, 30 deg of
+  sideslip, body CY: the Extra -0.592 to -0.335 at alpha 40 and -0.932
+  to -0.335 at 90 (its normal force CZ 1.073 to 1.232, against 1.238
+  with no slip); the Night Timber -0.654 to -0.343 and -0.938 to -0.343.
+- Still open: the plate's size in a sideslip stays on the angle in the
+  plane of symmetry. TP-1538's F-16 normal force at 30 deg of sideslip is
+  0.79, 0.76, 0.74, 0.69 of its unslipped value at alpha 20, 30, 40, 50
+  (cos^2 beta is 0.75), then 0.86, 0.90, 0.99, 0.94 at 60 to 90; the
+  plant keeps 1.0 (the digitized CZ, delta_h 0, the odd part's mean of
+  the two sides; one aircraft, a strake vortex below 50 deg). No plate
+  in sideslip source in hand.
 - The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
   1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
   is gone flying sideways and turns over with the flow from behind. Each
@@ -1433,6 +1452,57 @@ w38-fuselage-side, between a twentieth and a fifth of the Extra's yaw
 Heading the rock was worse than Manual's (1.03 to 1.08); on
 4dc533c3b's every tenth of it is better. Heading defaults to zero, and
 the tune help keeps the AR631's warning against it on the yaw axis.
+
+On 20fde9b91's plant (the plate's force in the plane of symmetry) the
+receiver's damper alone leaves the Extra's kicked rock at 0.984 and 0.987
+of Manual's, and the yaw Heading worsens it evenly from zero: 0.995 and
+0.997 at a twentieth of the rule's, 1.005 and 1.008 at a tenth, crossing
+near 0.064. The sweep's first step holds, so the Extra's yaw Heading is
+0.001 (w38-physics-3 checked it against the sweep: one step under a
+measured crossing, not under the search's resolution; the fleet's other
+Headings of 0.0012 to 0.0041 are the margin rule's own). Open:
+extra:stab's level yaw kick at the full Heading is judged again and is
+red, 0.5 against Manual's 0.4 deg left after 1 s. The nose is back on
+its flight path by 0.6 s in both modes, the yaw Heading at 0.001
+changes nothing on the line (the pitch Heading's coupling moves it 0.51
+to 0.46), and the gap is in the line's baseline: it takes the rate before
+the kick as the flight's own through the second, while after the 0.3 s
+lead in the unkicked flight's rate still moves by -0.23 deg (Manual),
+-0.16 (damper) and -0.19 (full Heading). Against the same flight
+unkicked the kick leaves 0.76, 0.76 and 0.73 deg. Re-posed (lead,
+2026-10-13): the level kick lines now take the kicked flight's rate less
+the same flight's unkicked, in each mode, which is what they claim to
+measure; the yaw line reads 0.6 against Manual's 0.7 deg and passes.
+
+The partial deflection form for hi_alpha tails, tried and DECLINED
+(w38-physics-3, kept on branch w38-physics-3-partial, 8adde8410). Each
+surface's normal force as the plate's on its own angle plus the
+deflection's increment at no incidence times a share kept at that
+angle, from Ma, Smeur and de Croon 2022's free stream runs (4TU
+doi:10.4121/16620226, 0 throttle, the 7.5 to 14 m/s runs;
+~/Desktop/fdfpv-loop/research/wash-control/WASH-CONTROL.md, the free
+stream). It took the Night Timber's full back harrier to 58 deg of body
+angle against the video's 40 to 45 (26 to 35 before), lost the level
+knife edge at the Extra's, the CAP's and the Slick's gates (the Slick
+holds none at all), and walled the Slick's pitch at alpha 19 deg short
+of its harrier. The cause is the full deflection's dip to 0.55 at 20
+deg, and the fall from 8 to 14 deg: the MH32 wing's own stall (a full
+span 25 percent flap, open jet, low Reynolds numbers), carried onto
+tails whose plate saturates near 17 to 22 deg, with 40 to 50 percent
+controls. Real Extras, CAPs and Slicks knife edge slow and harrier, so
+these data do not describe a tail with a large control. What would
+settle it: a vertical tail or isolated low aspect ratio fin, rudder 40
+to 50 percent of the chord, measured at yaw angles of 20 to 60 deg
+with the rudder deflected both ways (NACA vertical tail tests at large
+angles of yaw with rudder deflection; Hoerner, Fluid-Dynamic Lift,
+control surfaces at high incidence), and the same for a stabiliser and
+elevator past 20 deg of incidence. Until then the plant keeps the
+single saturating plate. Also found: the free stream numbers above from
+tmp/ma-sides.py took in the 5 to 6 m/s run, whose zero-incidence
+increments are under the balance's resolution (full up 0.026 N m, half
+up 0.073); on the three faster runs full against keeps 0.55, 0.78,
+0.65, 0.73, 0.70 at 20 to 60 deg and half against 0.87, 0.90, 0.67,
+0.61, 0.45.
 
 ## A prop spins up
 

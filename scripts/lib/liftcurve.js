@@ -97,7 +97,8 @@ export function plateCnOf(span, area) {
  * (plant_wing.c, no flaps): the linear wing's cd0 + k CL_lin^2 blended into
  * Viterna's CDmax sin^2 + B2 cos, B2 taking the drag at the stall angle,
  * cd0 + k CLmax^2 (NASA TM-82944 eqs. 15 and 17). Its B2 term for the
- * stalled moment's normal force is returned with it.
+ * stalled moment's normal force is returned with it, and the plate's share
+ * of the drag.
  */
 export function wingDrag(w, alpha, { cd0, k, clLin }) {
   const lc = wingLift(w, alpha);
@@ -106,5 +107,7 @@ export function wingDrag(w, alpha, { cd0, k, clLin }) {
   const b2 = (k * w.clmax * w.clmax - w.plateCn * Math.sin(aS) ** 2) / Math.cos(aS);
   const b2c = Math.cos(alpha) > 0 ? b2 * Math.cos(alpha) : 0;
   const cdFlat = cd0 + w.plateCn * Math.sin(alpha) ** 2 + b2c;
-  return { CD: (1 - lc.sigma) * (cd0 + k * clLin * clLin) + lc.sigma * cdFlat, b2c, sigma: lc.sigma };
+  /* cdPlate: the plate's share, which goes with the lift in a sideslip
+   * (plant_wing.c, THE PLATE'S FORCE IN A SIDESLIP). */
+  return { CD: (1 - lc.sigma) * (cd0 + k * clLin * clLin) + lc.sigma * cdFlat, b2c, sigma: lc.sigma, cdPlate: lc.sigma * (w.plateCn * Math.sin(alpha) ** 2 + b2c) };
 }

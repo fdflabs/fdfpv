@@ -314,7 +314,8 @@ const taxiTurn = (() => {
     const lc = wingLift(curve, alpha, { fre });
     const clLin = fw.cl_alpha * alpha;
     const CL = lc.CL + tailCl * gt.dTail;
-    const CD = wingDrag(curve, alpha, { cd0: fw.cd0, k: fw.k_induced, clLin }).CD - (1 - lc.sigma) * gt.clw * gt.dAlpha;
+    const wd = wingDrag(curve, alpha, { cd0: fw.cd0, k: fw.k_induced, clLin });
+    const CD = wd.CD - (1 - lc.sigma) * gt.clw * gt.dAlpha;
     const sinA = Math.sin(alpha), cosA = Math.cos(alpha);
     const b2 = (fw.k_induced * fw.cl_max ** 2 - curve.plateCn * Math.sin(aStall) ** 2) / Math.cos(aStall);
     const b2c = cosA > 0 ? b2 * cosA : 0;
@@ -336,8 +337,8 @@ const taxiTurn = (() => {
       const bd = Math.abs(beta) * DEG - 4;
       if (bd > 0) clSep = -Math.sign(beta) * Math.sign(alpha) * sepW * kk * bd;
     }
-    const L = qbar * fw.area * CL, D = qbar * fw.area * CD;
-    const F = [L * (-w / Vxz) - D * u / V, -D * v / V - qbar * fw.area * (fw.cy_beta * beta + cydr * dr), L * (u / Vxz) - D * w / V];
+    const L = qbar * fw.area * CL, Dp = qbar * fw.area * wd.cdPlate, D = qbar * fw.area * CD - Dp;
+    const F = [L * (-w / Vxz) - D * u / V - Dp * u / Vxz, -D * v / V - qbar * fw.area * (fw.cy_beta * beta + cydr * dr), L * (u / Vxz) - D * w / V - Dp * w / Vxz];
     const n = seat.at(SEAT_GATES, d, Math.max(0, u)).n;
     const thrust = prop.thrust(fw.thrust_static, Math.max(0, u), n);
     F[0] += thrust;

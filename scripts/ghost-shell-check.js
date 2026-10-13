@@ -275,9 +275,12 @@ async function english(track) {
     const c2 = (await ghost(page)).choice;
     await page.evaluate('window.__ui.ghostRow.cycle(1)');
     const c3 = (await ghost(page)).choice;
-    await page.evaluate('window.__ui.ghostRow.cycle(-1)');
+    await page.evaluate('window.__ui.ghostRow.cycle(1)');
     const c4 = (await ghost(page)).choice;
-    say(c1 === 'best' && c2 === 'previous' && c3 === 'off' && c4 === 'previous', `the row cycles off, ${c1}, ${c2}, ${c3}, and back to ${c4}`);
+    await page.evaluate('window.__ui.ghostRow.cycle(-1)');
+    const c5 = (await ghost(page)).choice;
+    say(c1 === 'best' && c2 === 'previous' && c3 === 'ai' && c4 === 'off' && c5 === 'ai',
+      `the row cycles off, ${c1}, ${c2}, ${c3} (the AI opponent), ${c4}, and back to ${c5}`);
 
     /* A board lap, as a board fetch arms one. */
     const b64 = await page.evaluate("window.__ghostExport('best')");

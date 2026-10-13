@@ -8,8 +8,9 @@
  * by the valley, which knows the terrain; nothing here reads a height.
  *
  * Every builder writes into a bake, sorted by material, so the whole
- * village is one mesh per surface colour, and anything repeated more
- * than twenty times (a fence post, a pole, a cone) goes through the
+ * village is one mesh for every plain surface colour together (a palette
+ * picked per vertex) and one per other material, and anything repeated
+ * more than twenty times (a fence post, a pole, a cone) goes through the
  * bake's instance table and is one InstancedMesh.
  *
  * Roofs are closed solids built face by face (roofShell), not slabs
@@ -86,8 +87,9 @@ export function villageMaterials() {
 /*
  * A bake is what the builders write into: geometry by material key, and
  * an instance table for parts repeated too often to bake. bakeAll merges
- * every geometry of a key into one mesh with that key's material and
- * turns each instance entry into one InstancedMesh.
+ * every geometry of a key into one mesh with that key's material, the
+ * plain colours' meshes into one, and turns each instance entry into one
+ * InstancedMesh.
  */
 export function makeBake() {
   const parts = {};
@@ -122,20 +124,48 @@ export function makeBake() {
 
 export function bakeAll(bake, mats, { castShadow = true } = {}) {
   const group = new THREE.Group();
-  for (const key of Object.keys(bake.parts)) {
-    const geos = bake.parts[key];
-    if (!geos.length || !mats[key]) {
-      continue;
-    }
-    /* Boxes are indexed and extrusions are not, and a merge wants one or
-     * the other; the whole village goes unindexed, which costs nothing at
-     * this size. */
-    const merged = mergeGeometries(geos.map((g) => (g.index ? g.toNonIndexed() : g)), false);
-    const mesh = new THREE.Mesh(merged, mats[key]);
+  const add = (mesh, name) => {
     mesh.castShadow = castShadow;
     mesh.receiveShadow = true;
-    mesh.name = `village-${key}`;
+    mesh.name = `village-${name}`;
     group.add(mesh);
+  };
+  /* Boxes are indexed and extrusions are not, and a merge wants one or
+   * the other; the whole village goes unindexed, which costs nothing at
+   * this size. */
+  const mergedPart = (key) => mergeGeometries(bake.parts[key].map((g) => (g.index ? g.toNonIndexed() : g)), false);
+  const keys = Object.keys(bake.parts).filter((key) => bake.parts[key].length && mats[key]);
+  /*
+   * Every surface whose material is a plain colour (paletteEntry) joins
+   * one palette mesh per render state its material is in now (a ribbon
+   * turns the road's and the tracks' materials double sided after they
+   * were made), the parts in the order three drew the per colour meshes
+   * (by material id), so where two colours touch the same one is drawn
+   * last. Each colour's mesh was a call in the scene, the ink prepass, the
+   * sensor view and each shadow cascade: the Alps' 32 colours cost about
+   * sixty calls a frame at High (docs/BUDGETS.md).
+   */
+  const painted = keys.filter((key) => paletteEntry(mats[key])).sort((a, b) => mats[a].id - mats[b].id);
+  const byState = new Map();
+  for (const key of painted) {
+    const state = JSON.stringify(RENDER_STATE.map((p) => mats[key][p]));
+    byState.set(state, [...(byState.get(state) ?? []), key]);
+  }
+  for (const [n, group] of [...byState.values()].entries()) {
+    const parts = group.map((key, i) => {
+      const g = mergedPart(key);
+      g.setAttribute('aCelKey', new THREE.BufferAttribute(new Uint8Array(g.attributes.position.count).fill(i), 1));
+      return g;
+    });
+    const material = celMaterial({ palette: group.map((key) => paletteEntry(mats[key])) });
+    for (const p of RENDER_STATE) {
+      material[p] = mats[group[0]][p];
+    }
+    add(new THREE.Mesh(mergeGeometries(parts, false), material), `painted-${n}`);
+    parts.forEach((g) => g.dispose());
+  }
+  for (const key of keys.filter((k) => !painted.includes(k))) {
+    add(new THREE.Mesh(mergedPart(key), mats[key]), key);
   }
   for (const name of Object.keys(bake.instances)) {
     const entry = bake.instances[name];
@@ -144,15 +174,33 @@ export function bakeAll(bake, mats, { castShadow = true } = {}) {
     }
     const mesh = new THREE.InstancedMesh(entry.geometry, mats[entry.key], entry.matrices.length);
     entry.matrices.forEach((mx, i) => mesh.setMatrixAt(i, mx));
-    mesh.castShadow = castShadow;
-    mesh.receiveShadow = true;
-    mesh.name = `village-${name}`;
-    group.add(mesh);
+    add(mesh, name);
   }
   /* The merged parts were cloned from the sources, so those can go; an
    * instanced mesh draws its source directly and keeps it. */
   disposeSources(new Set(Object.values(bake.instances).map((e) => e.geometry)));
   return group;
+}
+
+/*
+ * A material's palette entry when it is a plain cel colour (celmat.js
+ * keeps its options as JSON in celKey): only color, rim and rimColor set,
+ * which the palette carries per vertex. Anything else, a map, a texture's
+ * key, transparency, cloth, a rim start of its own, is null and keeps its
+ * own draw.
+ */
+const PALETTE_OPTIONS = new Set(['color', 'rim', 'rimColor']);
+
+/* What else of a material decides how its triangles draw, beside the
+ * shader: surfaces whose materials differ in any of these keep apart. */
+const RENDER_STATE = ['side', 'shadowSide', 'transparent', 'opacity', 'alphaTest', 'depthWrite', 'depthTest', 'blending', 'polygonOffset',
+  'polygonOffsetFactor', 'polygonOffsetUnits', 'fog', 'flatShading', 'wireframe', 'colorWrite', 'visible', 'dithering', 'toneMapped'];
+function paletteEntry(mat) {
+  if (!mat.userData.cel || !mat.userData.celKey.startsWith('{')) {
+    return null;
+  }
+  const opts = JSON.parse(mat.userData.celKey);
+  return Object.keys(opts).every((k) => PALETTE_OPTIONS.has(k)) ? opts : null;
 }
 
 /*

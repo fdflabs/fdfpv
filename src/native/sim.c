@@ -3163,6 +3163,14 @@ SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_set_wind_clock(double ms) {
+  if (!finite_d(ms) || !(ms >= 0.0) || !(ms <= 1e15) || ms != (double)(long long)ms) {
+    return SIM_ERR_BAD_ARG;
+  }
+  SIM_GUST_STEP0 = ((long long)ms * SIM_STEP_HZ / 1000) % GUST_WRAP_STEPS;
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_set_air_vertical(double w) {
   if (!finite_d(w) || !(w >= -10.0) || !(w <= 10.0)) {
     return SIM_ERR_BAD_ARG;

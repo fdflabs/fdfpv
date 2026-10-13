@@ -19,6 +19,7 @@
  */
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /*
  * A ribbon of surface along a polyline, hugging the ground: the road and
@@ -66,6 +67,30 @@ export function ribbon(points, width, lift, heightAt, material) {
   const mesh = new THREE.Mesh(geo, material);
   mesh.receiveShadow = true;
   return { mesh, dist, points };
+}
+
+/*
+ * Ribbons that share an opaque material, as one mesh each: the vertices
+ * are the ribbons' own, in the order given, so only the number of draws
+ * changes, and every draw is one in the scene, the ink prepass and the
+ * sensor view. A transparent ribbon keeps its own mesh, since three sorts
+ * transparent meshes back to front and a merge would sort them as one.
+ */
+export function mergeRibbons(meshes) {
+  const byMaterial = new Map();
+  for (const mesh of meshes) {
+    const key = mesh.material.transparent ? mesh : mesh.material;
+    byMaterial.set(key, [...(byMaterial.get(key) ?? []), mesh]);
+  }
+  return [...byMaterial.values()].map((list) => {
+    if (list.length === 1) {
+      return list[0];
+    }
+    const mesh = new THREE.Mesh(mergeGeometries(list.map((m) => m.geometry), false), list[0].material);
+    mesh.receiveShadow = true;
+    list.forEach((m) => m.geometry.dispose());
+    return mesh;
+  });
 }
 
 /* A ribbon's centre line as drawn: at each point the middle of the row's
