@@ -648,6 +648,11 @@ typedef struct FixedWingParams {
   double as3x_rate[3];
   /* The gyro's servo frame, s; zero is Spektrum's default, 22 ms. */
   double as3x_frame;
+  /* The travel the receiver learned, rad at full channel, aileron,
+   * elevator and rudder: the throws under the pilot's tuning, whose rates
+   * are a share of them (plant_tune_over). Zero on every table, which
+   * reads its own throws. */
+  double as3x_travel[3];
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */

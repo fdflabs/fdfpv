@@ -17,8 +17,12 @@
  * (scripts/lib/as3xloop.js: 6 dB of gain under the onset, MIL-F-9490D,
  * and 45 deg of phase) at every condition the aircraft flies, slow
  * flight to the full throttle dive, the harrier and the hover where it
- * flies them, measured on the plant with the receiver's own frame and
- * the servos' slew (as3xloop.js measurePlane). Then the full Heading on
+ * flies them, on the table and at every rate the tune screen offers,
+ * measured on the plant with the receiver's own frame and the servos'
+ * slew (as3xloop.js measurePlane). The gains are surface per rad/s at
+ * the full travel, the same at every rate: the receiver's rates scale
+ * the stick it reads and not its own offset (plant_wing.c as3x_channel).
+ * Then the full Heading on
  * that damper, the highest that still keeps it. Each is cut to four
  * places downward, so the table never sits above its derivation.
  *
@@ -64,7 +68,7 @@ import { TABLE } from '../configs/power.js';
 import { SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import {
   AS3X, GM_MIN_DB, PM_MIN_DEG, rowOf, receiverOf, gainForMargins, margins, measurePlane, revive, fanOut,
-  planeSim, diveCondition, closedFlight, rings, pilotFlight,
+  planeSim, diveCondition, closedFlight, rings, pilotFlight, channelOf, stockRate, tuneOf, setupsOf,
 } from './lib/as3xloop.js';
 
 const self = fileURLToPath(import.meta.url);
@@ -124,17 +128,26 @@ function hoverHeld(sim, start) {
   }
   return { st, t, held };
 }
-function slopes(sim, [lv, lthr], hoverStart) {
+function slopes(sim, rx, [lv, lthr], hoverStart) {
   const out = [];
   for (let ax = 0; ax < 3; ax += 1) {
     /* The same flight twice from the same start, the stick moved and
      * left centred: what the airframe does on its own (a launch a touch
-     * off trim, a hold still settling) is in both and drops out. */
+     * off trim, a hold still settling) is in both and drops out. Per unit
+     * of the channel the receiver reads (plant_wing.c as3x_channel), the
+     * stick's move through the table's expo; an axis with no surface of
+     * its own reads no channel, and nothing reads its rate, which stays
+     * per unit stick. */
+    let dc = 0.1;
     const mean = (prep, d) => {
       const r = prep();
       let t = r.t, sum = 0, n = 0;
       const st = r.st.slice();
       st[ax] = Math.max(-1, Math.min(1, st[ax] + d));
+      if (d !== 0) {
+        const c = channelOf(rx, ax, st[ax]) - channelOf(rx, ax, r.st[ax]);
+        dc = c !== 0 ? c : d;
+      }
       for (let ms = 0; ms < 400; ms += MS) {
         must(sim.input(t / 1000, ...st), 'sim_input');
         must(sim.step(MS), 'sim_step');
@@ -143,7 +156,7 @@ function slopes(sim, [lv, lthr], hoverStart) {
       }
       return sum / n;
     };
-    const at = (prep) => (mean(prep, 0.1) - mean(prep, 0)) / 0.1;
+    const at = (prep) => { const m = mean(prep, 0.1); return (m - mean(prep, 0)) / dc; };
     const cruise = at(() => {
       must(sim.reset(), 'sim_reset');
       must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
@@ -171,24 +184,31 @@ const f4 = (x) => Math.floor(x * 1e4) / 1e4;
  * the ratios are E-flite's tune, the scale FITTED, since no published
  * figure maps Spektrum's gain units to a surface's angle (lead decision
  * 2026-10-12, the owner's "just do small corrections never actually
- * change the way the plane behaves"). A table without a preset:
- * unseenDamper below. */
+ * change the way the plane behaves"). Every table then, preset or not:
+ * feelDamper below. */
 function factoryDamper(srm, ceiling) {
   const scale = Math.min(...srm.map((g, ax) => (g > 0 && ceiling[ax] > 0 ? ceiling[ax] / g : Infinity)));
-  return srm.map((g, ax) => (ceiling[ax] > 0 ? f4(scale * g) : 0));
+  return srm.map((g, ax) => (ceiling[ax] > 0 ? scale * g : 0));
 }
 
-/* A table without a factory preset: the owner's "never actually change
- * the way the plane behaves" (2026-10-12) is the design rule, with the
- * margin's ceiling. The ceiling vector at the largest single scale, up to
- * 1, under which every axis' stick, stepped to half and to full at the
- * table's cruise, answers on that axis within the eye's just noticeable
- * difference of Manual's answer: 7 percent of Manual's peak rate (De
- * Bruyn and Orban, Vision Research 28(12) 1988, "about 7%"; as3x-feel.js
- * F1, which flies the same on the plant's own mode 3). The receiver is
- * lib/as3xloop.js pilotFlight's, which agrees with mode 3 to under 1e-9 rad/s
- * (as3x-feel.js prints it), bisected to 1 percent of the scale (lead
- * decision 2026-10-12). */
+/* Then the owner's "never actually change the way the plane behaves"
+ * (2026-10-12) as the design rule, under the margin's ceiling: the
+ * vector (the factory preset's, else the ceiling) at the largest single
+ * scale, up to 1, under which every axis' stick, stepped to half and to
+ * full at the table's cruise, answers on that axis within the eye's just
+ * noticeable difference of Manual's answer: 7 percent of Manual's peak
+ * rate (De Bruyn and Orban, Vision Research 28(12) 1988, "about 7%";
+ * as3x-feel.js F1, which flies the same on the plant's own mode 3). It
+ * is flown at the stock rate and at the table's own, the high: the
+ * receiver reads the sticks through the rates (plant_wing.c
+ * as3x_channel), so at a low rate priority leaves the gyro more of a
+ * stick and the same gains answer it more. Until w38-as3x-travel it was
+ * flown on the table alone and only where there was no preset; at the
+ * Extra's stock low rate the preset's scale answered a half stick 7.6,
+ * 9.0 and 8.1 percent off Manual's. The receiver is lib/as3xloop.js
+ * pilotFlight's, which agrees with mode 3 to under 1e-9 rad/s
+ * (as3x-feel.js F0 prints it, at every rate), bisected to 1 percent of
+ * the scale (lead decision 2026-10-12). */
 const F1_STICKS = [0.5, 1];
 const WEBER = 0.07;
 function stickHolds(sim, V, thr, rx, g) {
@@ -208,11 +228,15 @@ function stickHolds(sim, V, thr, rx, g) {
   }
   return true;
 }
-function unseenDamper(sim, name, body, ceiling) {
-  const rx = { ...receiverOf(body), k: ceiling };
+async function feelDamper(name, body, vector) {
   const V = Object.values(TABLE).find((t) => t.simId === AS3X[name].sim).cruiseMs;
   const thr = Number(body.match(/\.stab_trim_throttle = ([0-9.]+)/)[1]);
-  const holds = (s) => stickHolds(sim, V, thr, rx, [s, s, s]);
+  const flown = [];
+  for (const rate of new Set([stockRate(name), 'high'])) {
+    const block = tuneOf(name, rate);
+    flown.push({ sim: await planeSim(AS3X[name].sim, SEAT_GATES, block), rx: { ...receiverOf(body, block), k: vector } });
+  }
+  const holds = (s) => flown.every((f) => stickHolds(f.sim, V, thr, f.rx, [s, s, s]));
   let scale = 1;
   if (!holds(1)) {
     let lo = 0, hi = 1;
@@ -222,7 +246,7 @@ function unseenDamper(sim, name, body, ceiling) {
     }
     scale = lo;
   }
-  return ceiling.map((c) => f4(scale * c));
+  return vector.map((c) => f4(scale * c));
 }
 
 /* The full Heading on that damper, by the damper's own rule: the largest
@@ -262,8 +286,14 @@ function headingFor(resps, axis, k, T) {
   return f4(lo);
 }
 
+/* Each axis' responses over every condition of every setup measured. */
+const respsOf = (ms) => [0, 1, 2].map((ax) => ms.flatMap((m) => m.conds.map((c) => c.resp[ax])).filter((r) => r));
+
 /* One table, in its own process: the airframe measured over its
- * envelope, and the heading's rates on the gates' seat. */
+ * envelope on the table and at every rate the tune screen offers
+ * (as3xloop.js setupsOf: the throws and the expo move the dive's and the
+ * hover's hold, and so where they fly), and the heading's rates on the
+ * gates' seat. */
 if (opt('--plane')) {
   const name = opt('--plane');
   const a = AS3X[name];
@@ -274,24 +304,28 @@ if (opt('--plane')) {
    * row hovers, from 0.6. */
   const electric = /\.current_full = [1-9]/.test(body);
   const hoverStart = electric ? wingSeat(name).hoverStick(SEAT_GATES) ?? 1 : 0.6;
-  const rate = slopes(sim, levelOf(a, body), hoverStart).map(r3);
-  const measure = await measurePlane(name, src);
-  const m = revive(JSON.parse(JSON.stringify(measure)));
-  const resps = [0, 1, 2].map((ax) => m.conds.map((c) => c.resp[ax]).filter((r) => r));
-  const ceiling = resps.map((r, ax) => (r.length ? gainForMargins(r, ax, 1, 0, m.T) : 0));
-  const k = a.srm ? factoryDamper(a.srm, ceiling) : unseenDamper(sim, name, body, ceiling);
-  process.stdout.write(JSON.stringify({ measure, rate, k }));
+  const rate = slopes(sim, receiverOf(body), levelOf(a, body), hoverStart).map(r3);
+  const measures = [];
+  for (const { block } of setupsOf(name)) measures.push(await measurePlane(name, src, block));
+  const ms = measures.map((x) => revive(JSON.parse(JSON.stringify(x))));
+  const resps = respsOf(ms);
+  const ceiling = resps.map((r, ax) => (r.length ? gainForMargins(r, ax, 1, 0, ms[0].T) : 0));
+  const k = await feelDamper(name, body, a.srm ? factoryDamper(a.srm, ceiling) : ceiling);
+  /* A pipe takes the write asynchronously: exit only once it is out,
+   * or a large measure arrives cut short. */
+  await new Promise((resolve) => { process.stdout.write(JSON.stringify({ measures, rate, k }), resolve); });
   process.exit(0);
 }
 
 const fleet = await fanOut(self, Object.keys(AS3X));
 let bad = 0;
 for (const name of Object.keys(AS3X)) {
-  const { measure, rate, k } = fleet[name];
-  const m = revive(measure);
+  const { measures, rate, k } = fleet[name];
+  const ms = measures.map(revive);
+  const m = ms[0];
   const body = rowOf(src, name);
   const T = m.T;
-  const resps = [0, 1, 2].map((ax) => m.conds.map((c) => c.resp[ax]).filter((r) => r));
+  const resps = respsOf(ms);
   const kh = k.map((x, ax) => headingFor(resps[ax], ax, x, T));
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
   /* The loop closed on the plant at the dive, all three axes on the

@@ -60,6 +60,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../../tests/lib/simmod.js';
 import { must, attitude } from '../../tests/lib/wingpilot.js';
 import { TABLE } from '../../configs/power.js';
+import { RATES, normalizeEntry, setupFor, stockEntry, tuneBlock } from '../../configs/tuning.js';
 import { SEAT_FULL, wingSeat } from './propcurve.js';
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -408,6 +409,25 @@ export const AS3X = {
   FW_SLICK2680: { sim: 33, th: ['slick', 's11_harrier'] },
 };
 
+/* The tune block a table flies at `rate` (configs/tuning.js RATES), the
+ * rest of the stock setup kept, or at the stock setup itself for null:
+ * null where that is the table's own (the high rate, no first flight
+ * rate in the manual). */
+export function tuneOf(name, rate = null) {
+  const id = Object.keys(TABLE).find((k) => TABLE[k].simId === AS3X[name].sim);
+  const { massKg, packKg, limits } = setupFor(id, null);
+  const entry = normalizeEntry(id, rate ? { ...stockEntry(id), rate } : {}, limits);
+  return tuneBlock(id, entry, massKg, packKg);
+}
+/* The rates the tune screen offers, and the stock one. */
+export const stockRate = (name) => stockEntry(Object.keys(TABLE).find((k) => TABLE[k].simId === AS3X[name].sim)).rate;
+export { RATES };
+/* Every setup the receiver is flown on: the table as the gates fly it,
+ * and each rate whose block is not the table's own. */
+export function setupsOf(name) {
+  return [{ rate: 'table', block: null }, ...RATES.map((rate) => ({ rate, block: tuneOf(name, rate) })).filter((c) => c.block)];
+}
+
 /* A table's body in plant_wing.c's source, and a number or list off it. */
 export function rowOf(src, name) {
   return src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
@@ -500,15 +520,32 @@ function stickFor(d, expo) {
   return (lo + hi) / 2;
 }
 
-export function receiverOf(body) {
+/* The receiver on the table, or under a tune block (sim_wing_set_tune,
+ * configs/tuning.js tuneBlock) seated on the plant: its throws, expo per
+ * surface and trim, over the travel the receiver learned, the table's
+ * throws (plant.c plant_tune_over). */
+export function receiverOf(body, block = null) {
   const deg = Math.PI / 180;
   const thr = (f) => { const m = new RegExp(`\\.${f} = ([0-9.]+) \\* WING_PI / 180\\.0`).exec(body); return m ? Number(m[1]) * deg : numOf(body, f) ?? 0; };
-  const trim = /\.trim_e = /.test(body) ? thr('trim_e') : 0;
+  const travel = [thr('throw_a'), thr('throw_e'), thr('throw_r')];
+  const expo = numOf(body, 'expo') ?? 0;
   return {
-    k: listOf(body, 'as3x_k'), kh: listOf(body, 'as3x_kh'), T: frameOf(body),
-    th: [thr('throw_a'), thr('throw_e'), thr('throw_r')], expo: numOf(body, 'expo') ?? 0, trim,
+    k: listOf(body, 'as3x_k'), kh: listOf(body, 'as3x_kh'), T: frameOf(body), travel,
+    th: block ? [block[3], block[4], block[5]] : travel,
+    expo: block ? [block[6], block[7], block[8]] : [expo, expo, expo],
+    trim: block ? block[9] : 0,
     rudderMix: /\.mix = FW_MIX_RUDDER/.test(body),
   };
+}
+
+/* What the receiver reads on axis a's channel at stick x: plant_wing.c
+ * as3x_channel, the stick's shape on the full throw times the throw over
+ * the learned travel, within the travel. */
+export function channelOf(rx, a, x) {
+  const t = rx.travel[a] > 0 ? rx.travel[a] : rx.th[a];
+  if (!(t > 0)) return 0;
+  const c = Math.max(-1, Math.min(1, shape(Math.max(-1, Math.min(1, x)), rx.expo[a]))) * (rx.th[a] / t);
+  return Math.max(-1, Math.min(1, c));
 }
 
 /* A flight at condition cond with the receiver closed at gains g (one
@@ -544,9 +581,9 @@ export function closedFlight(sim, cond, rx, g, axis, kick, ms = 1500) {
     const de = clip(rx.trim + out[1], rx.th[1]) - rx.trim;
     const dr = clip(-out[2], rx.th[2]);
     const st = [
-      rx.th[0] > 0 && !rx.rudderMix ? stickFor(da / rx.th[0], rx.expo) : 0,
-      rx.th[1] > 0 ? stickFor(de / rx.th[1], rx.expo) : 0,
-      rx.th[2] > 0 ? stickFor(-dr / rx.th[2], rx.expo) : 0,
+      rx.th[0] > 0 && !rx.rudderMix ? stickFor(da / rx.th[0], rx.expo[0]) : 0,
+      rx.th[1] > 0 ? stickFor(de / rx.th[1], rx.expo[1]) : 0,
+      rx.th[2] > 0 ? stickFor(-dr / rx.th[2], rx.expo[2]) : 0,
       cond.hold(s)[3],
     ];
     must(sim.input(t0 + i / 1000, ...st), 'sim_input');
@@ -625,20 +662,23 @@ export function onsetGain(sim, cond, rx, axis, kick) {
 const RHO = 1.225;
 const G = 9.80665;
 
-export async function planeSim(simId, volts = SEAT_FULL) {
+/* `block`: a tune block to seat (tuneOf), or none for the table. */
+export async function planeSim(simId, volts = SEAT_FULL, block = null) {
   const sim = await loadSim(new Uint8Array(readFileSync(join(ROOT, 'dist/sim.wasm'))));
   must(sim.init(readFileSync(join(ROOT, 'tests/fixtures/config-baseline.diff'), 'utf8')), 'sim_init');
   must(sim.e.sim_set_airframe(simId), 'sim_set_airframe');
   must(sim.setCellVoltage(volts), 'sim_set_cell_voltage');
+  if (block) must(sim.setTune(block), 'sim_wing_set_tune');
   sim.surfPtr = sim.e.malloc(4 * 8);
   return sim;
 }
 
-export async function measurePlane(name, src) {
+/* `block`: a tune block seated (tuneOf), the table's own for none. */
+export async function measurePlane(name, src, block = null) {
   const a = AS3X[name];
   const body = rowOf(src, name);
   const T = frameOf(body);
-  const sim = await planeSim(a.sim);
+  const sim = await planeSim(a.sim, SEAT_FULL, block);
   const t = Object.values(TABLE).find((x) => x.simId === a.sim);
   const trim = numOf(body, 'stab_trim_throttle');
   const vs = Math.sqrt(2 * t.massKg * G / (RHO * numOf(body, 'area') * numOf(body, 'cl_max')));
@@ -761,15 +801,15 @@ export function pilotFlight(sim, V, thr, rx, g, sticks, ms) {
       tf -= 0.001;
       if (tf <= 1e-12) {
         tf += rx.T;
-        for (let a = 0; a < 3; a += 1) out[a] = priority(st[a]) * g[a] * rx.k[a] * s[11 + a];
+        for (let a = 0; a < 3; a += 1) out[a] = priority(channelOf(rx, a, st[a])) * g[a] * rx.k[a] * s[11 + a];
       }
-      const da = clip(shape(clamp1(st[0]), rx.expo) * rx.th[0] - out[0], rx.th[0]);
-      const de = clip(shape(clamp1(st[1]), rx.expo) * rx.th[1] + rx.trim + out[1], rx.th[1]) - rx.trim;
-      const dr = clip(-shape(clamp1(st[2]), rx.expo) * rx.th[2] - out[2], rx.th[2]);
-      const inv = (d, th) => (th > 0 ? stickFor(d / th, rx.expo) : 0);
+      const da = clip(clip(shape(clamp1(st[0]), rx.expo[0]) * rx.th[0], rx.th[0]) - out[0], rx.th[0]);
+      const de = clip(clip(shape(clamp1(st[1]), rx.expo[1]) * rx.th[1], rx.th[1]) + rx.trim + out[1], rx.th[1]) - rx.trim;
+      const dr = clip(-clip(shape(clamp1(st[2]), rx.expo[2]) * rx.th[2], rx.th[2]) - out[2], rx.th[2]);
+      const inv = (d, th, a) => (th > 0 ? stickFor(d / th, rx.expo[a]) : 0);
       input = rx.rudderMix
-        ? [0, inv(de, rx.th[1]), inv(-dr, rx.th[2]), thr]
-        : [inv(da, rx.th[0]), inv(de, rx.th[1]), inv(-dr, rx.th[2]), thr];
+        ? [0, inv(de, rx.th[1], 1), inv(-dr, rx.th[2], 2), thr]
+        : [inv(da, rx.th[0], 0), inv(de, rx.th[1], 1), inv(-dr, rx.th[2], 2), thr];
     }
     must(sim.input(i / 1000, ...input), 'sim_input');
     must(sim.step(1), 'sim_step');
