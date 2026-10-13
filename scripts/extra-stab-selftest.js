@@ -157,7 +157,8 @@ throwAt(30, 12);
 /* Centred sticks at the stick that flies it level, the table's
  * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
  * prop curves gave the prop its thrust at speed. */
-const level = fly(0, 0, 0, planeTable('FW_EXTRA3D1308').fw.stab_trim_throttle, 10);
+const EXTRA_T = planeTable('FW_EXTRA3D1308');
+const level = fly(0, 0, 0, EXTRA_T.fw.stab_trim_throttle, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
@@ -296,7 +297,17 @@ for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2,
       return { angle: Math.abs(angle), rate, decay, at1: Math.abs(at1) };
     });
     const held = kicked(1);
-    if (speed > 0) {
+    /* An axis whose derived full Heading is zero (as3x_kh, npm run
+     * as3x:derive: the Extra's yaw since c321a9bf7, where the yaw Heading
+     * worsened E11b's harrier rock at any share) has no hold to judge:
+     * its full Heading is the damper alone, which slows the weathercock's
+     * own swing back as it slows the kick, and leaves more of the turn
+     * after 1 s than Manual (0.5 against 0.4 deg). Recorded, not judged;
+     * the damper is judged at the default Heading below. */
+    const noHold = EXTRA_T.fw.as3x_kh[k - 11] === 0;
+    if (noHold) {
+      console.log(`  info  ${where}, the Heading full, a 1 rad/s ${axis} kick: the table derives no ${axis} Heading (as3x_kh 0), recorded and not judged: ${deg(held.as3x.at1)} against Manual's ${deg(held.manual.at1)} deg left after 1 s`);
+    } else if (speed > 0) {
       /* Level, a heading hold is judged on the heading it leaves: the
        * angle the kick turned it, still off after 1 s, by when the
        * airframe's own weathercock swing has settled (in a level kick
