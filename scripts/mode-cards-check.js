@@ -111,8 +111,8 @@ const N_CARDS = NAMES.split(',').length;
 /* Operations: the war's campaign and The Interior beside it
  * (docs/campaign/interior/TECH-NEEDS.md N20), then the war's field hangar
  * (2bc31815e). The Hangar: the walk, the aircraft and its customising,
- * Upgrades and Choose joystick (the hangar lane), the sticks. */
-const LINKS = `${NAMES}|Defend the Paraná,The Interior,Field hangar|Walk in,Aircraft,Customise,Upgrades,Choose joystick,Calibrate sticks,How to fly`;
+ * Upgrades (the hangar lane), the Controller (5d14c657f), How to fly. */
+const LINKS = `${NAMES}|Defend the Paraná,The Interior,Field hangar|Walk in,Aircraft,Customise,Upgrades,Controller,How to fly`;
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -246,7 +246,7 @@ try {
     && await a.evaluate("document.querySelector('.screen-title .gate-cards').firstElementChild.classList.contains('gate-card-hub-club')"),
   home.cards.filter((x) => x.on).map((x) => x.name).join());
   check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
-  check('each hub lists its activities as links: Flight Club\'s cards; the war, The Interior and the field hangar; the Hangar\'s seven',
+  check('each hub lists its activities as links: Flight Club\'s cards; the war, The Interior and the field hangar; the Hangar\'s six',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
   check('home shows the rooms panel (the owner, 2026-10-03), above the cards and clear of them and of the corner chips', panelLaidOut(home),
     `panel ${JSON.stringify(home.panel)} chips ${JSON.stringify(home.chips)} first card ${JSON.stringify(home.cards[0].box)}`);
@@ -357,7 +357,8 @@ try {
   await d.click('.gate-card-ace');
   await d.until(`window.__rooms().code === ${JSON.stringify(lc.code)} && ${IN_LOBBY}`, 60000).catch(() => {});
   const dRoom = await d.evaluate('window.__rooms()');
-  check('D taps the card into C\'s lobby', dRoom.phase === 'open' && dRoom.code === lc.code && dRoom.seat === 2, `${dRoom.phase} ${dRoom.code} ${dRoom.seat}`);
+  /* Not seat 2: the room's AI pilots sit between C and D (a567f50a5). */
+  check('D taps the card into C\'s lobby', dRoom.phase === 'open' && dRoom.code === lc.code && dRoom.seat > 1, `${dRoom.phase} ${dRoom.code} ${dRoom.seat}`);
   await shot(d, 'ace-lobby-phone');
 
   await c.tap('KeyR');
@@ -377,6 +378,19 @@ try {
     await p.close();
   }
 }
+
+/* The server as the VM's: its valve (edge/rooms/health.js) refuses a new
+ * public room while the process is busy, and four pages with the AI
+ * pilots of Catch the Ace keep it busy. They are closed; the rooms panel
+ * needs it calm again, which the valve says after 30 s of quiet. */
+let calm = false;
+for (let i = 0; i < 120 && !calm; i += 1) {
+  calm = (await (await fetch(`${rooms}/v2/public`)).json()).busy === false;
+  if (!calm) {
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+}
+check('the rooms server is calm again once A to D have left', calm);
 
 /* THE ROOMS PANEL, driven. A public room with a name to find. */
 const OPEN = `Open Club ${100 + Math.floor(Math.random() * 900)}`;
