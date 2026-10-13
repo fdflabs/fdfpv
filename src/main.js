@@ -12646,6 +12646,7 @@ export async function boot({
     breakTrails(Boolean(at));
     statePrev = readState();
     stateCurr = statePrev;
+    ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
   }
 
   function seatSpawnAt(at) {
