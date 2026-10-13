@@ -413,25 +413,27 @@ check: {
   }
 
   /* C14: full throttle from standing, the take off sticks of
-   * wingpilot.js; liftoff is the last step on the wheels before 200 ms
-   * clear of them. */
+   * wingpilot.js. Liftoff is where sustained flight begins: the last
+   * step on the wheels, clear of them from then on and climbing, here to
+   * LIFTOFF_CLIMB over the wheels' last height. At
+   * full throttle on its tail the CAP's thrust and the wing in the wash
+   * carry it off the wheels at 7 m/s for a few hundred milliseconds
+   * before it flies (0.36 to 0.64 s, about 4 cm up), which the gate's
+   * earlier 200 ms clear read as the liftoff. */
   {
     const t14 = th.c14_takeoff;
+    const LIFTOFF_CLIMB = 2;
     onStrip();
     for (let ms = 0; ms < 1000; ms += RC_STEP_MS) step(sim, [0, 0, 0, 0]);
     const x0 = sim.readState().state[1];
     let last = null;
-    let off = 0;
     let lof = null;
     for (let ms = 0; ms < 6000 && !lof; ms += RC_STEP_MS) {
       const s = step(sim, [...capTakeoffSticks(sim.readState().state), 1]);
-      const loaded = wheelLoads(sim).some((f) => f > 0);
-      if (loaded) {
-        last = { dist: s[1] - x0, v: speed(s), t: ms / 1000, y: s[2] };
-        off = 0;
-      } else {
-        off += RC_STEP_MS;
-        if (off >= 200) lof = last;
+      if (wheelLoads(sim).some((f) => f > 0)) {
+        last = { dist: s[1] - x0, v: speed(s), t: ms / 1000, y: s[2], z: s[3] };
+      } else if (last && s[3] >= last.z + LIFTOFF_CLIMB) {
+        lof = last;
       }
     }
     gate('C14', 'takes off, tail up, from standing', lof != null && lof.dist >= t14.distMin && lof.dist <= t14.distMax,

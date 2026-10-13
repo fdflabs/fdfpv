@@ -209,14 +209,39 @@ const pullRates = bothModes((mode) => {
   return fly(0, 1, 0, 1.0, 0.5).q;
 });
 check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
+/* Centred after a pull, the pitch rate the aircraft is left with over
+ * RELEASE_S: the peak of its swing back, against the pull (the pull's own
+ * rate at the release is the same in both, the gyro not yet having
+ * acted), and its root mean square. A mean over a short
+ * window reads a rate swinging through zero as a small one whichever way
+ * it swings (it was the mean over 0.1 s, 2.626 against 2.628 deg/s, on a
+ * swing back of 24 against 32). */
+const RELEASE_S = 0.5;
+function releaseRates() {
+  let peak = 0;
+  let sq = 0;
+  let n = 0;
+  for (let ms = 0; ms < RELEASE_S * 1000; ms += RC_STEP_MS) {
+    must(sim.input((clockMs + ms) / 1000, 0, 0, 0, 1.0), 'input');
+    must(sim.step(RC_STEP_MS), 'step');
+    const q = -sim.readState().state[12];
+    peak = Math.max(peak, -q);
+    sq += q * q;
+    n += 1;
+  }
+  clockMs += RELEASE_S * 1000;
+  return { peak, rms: Math.sqrt(sq / n) };
+}
 const released = bothModes((mode) => {
   throwAt(120, 20);
   fly(0, 0, 0, 1.0, 1);
   mode();
   fly(0, 1, 0, 1.0, 0.3);
-  return Math.abs(fly(0, 0, 0, 1.0, 0.1).q);
+  return releaseRates();
 });
-check('centred after a pull, the pitch rate 0.1 s on is below Manual\'s: it damps', released.as3x < released.manual, `${deg(released.as3x)} against ${deg(released.manual)} deg/s`);
+check(`centred after a pull, the pitch rate over ${RELEASE_S} s is below Manual's, its swing back's peak and its rms: it damps`,
+  released.as3x.peak < released.manual.peak && released.as3x.rms < released.manual.rms,
+  `swing back ${deg(released.as3x.peak)} against ${deg(released.manual.peak)}, rms ${deg(released.as3x.rms)} against ${deg(released.manual.rms)} deg/s`);
 must(sim.e.sim_wing_set_stab(3), 'set as3x');
 throwAt(120, 20);
 fly(0, 0, 0, 1.0, 1);
