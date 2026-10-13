@@ -7,10 +7,13 @@
  *  1. A first visit with nothing plugged in opens on "What will you fly
  *     with?", not the title: radio, gamepad, keyboard and mouse, skip
  *     (touch only on a touch screen), the cursor on keyboard and mouse.
- *  2. A standard pad plugged in lights A gamepad, live. Choosing it opens
+ *  2. A standard pad plugged in lights A gamepad, live, and no picker
+ *     opens over the question. Choosing it opens
  *     How to fly on the radio or gamepad tab; Back is the title, and a
  *     reload is the title: never asked again.
- *  3. A first visit with an EdgeTX radio plugged in lights A radio;
+ *  3. A first visit with two EdgeTX radios plugged in (which queues the
+ *     joystick picker at boot) opens on the question, never the picker
+ *     first, and lights A radio;
  *     choosing it opens the calibration wizard, and Escape out of the
  *     wizard is the title.
  *  4. Escape on the question skips it, and the skip is kept.
@@ -137,8 +140,8 @@ try {
   console.log('2. a gamepad');
   await page.evaluate(`window.__pads.push(${JSON.stringify(PADS.gamepad)}); true`);
   await page.until("window.__ui.padInfo.device === 'gamepad'", 10000);
-  await settle();
-  check('back on the question after the picker', await page.evaluate("window.__ui.screen === 'flywith'"), await page.evaluate('window.__ui.screen'));
+  await page.sleep(1000);
+  check('plugging it in opens no picker over the question', await page.evaluate("window.__ui.screen === 'flywith'"), await page.evaluate('window.__ui.screen'));
   const lit = JSON.parse(await rowsNow()).find((r) => r[0] === 'flywith:gamepad');
   check('A gamepad says plugged in', lit && lit[1] === 'Plugged in', JSON.stringify(lit));
   check('A gamepad is clicked', await clickRow("it.action === 'flywith:gamepad'"));
@@ -153,9 +156,12 @@ try {
   check('a reload is the title: never asked again', await page.evaluate("window.__ui.screen === 'title'"), await page.evaluate('window.__ui.screen'));
 
   console.log('3. a radio');
-  await firstVisit([PADS.radio]);
-  await settle();
-  check('the question again on a first visit', await page.evaluate("window.__ui.screen === 'flywith'"), await page.evaluate('window.__ui.screen'));
+  /* Two devices: the roster queues its picker at boot only for two or
+   * more (src/input/padpick.js seed). */
+  await firstVisit([PADS.radio, { ...PADS.radio, index: 1, id: 'TX16S Joystick (Vendor: 1209 Product: 4f54)' }]);
+  await page.until("window.__ui.padInfo.device === 'radio'", 10000);
+  await page.sleep(1000);
+  check('a radio plugged in at boot: the question first, no picker before it', await page.evaluate("window.__ui.screen === 'flywith'"), await page.evaluate('window.__ui.screen'));
   const radio = JSON.parse(await rowsNow()).find((r) => r[0] === 'flywith:radio');
   check('A radio says plugged in', radio && radio[1] === 'Plugged in', JSON.stringify(radio));
   const onRadio = await cursorAction();

@@ -142,7 +142,9 @@ headless case in `flow:check`.
 
 ## 8. Phases
 
-1. The controller question and its routing (radio to the wizard).
+1. The controller question and its routing (radio to the wizard). Built
+   (w38-controller, src/ui/flywith.js): asked before any card and before
+   any joystick picker; `controller:check` drives it.
 2. Track 1 and Track 4 (they use only what exists).
 3. Tracks 2 and 3, with the landing aid and the racing line.
 4. The Glider track.

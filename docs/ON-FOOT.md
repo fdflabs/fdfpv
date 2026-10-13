@@ -10,7 +10,7 @@ slices.
 - Landed and stopped (`landed`, plant speed under 0.5 m/s, throttle under the takeoff release),
   in free flight only (the mode registry's `onFoot`, `src/share/modes.js`; not a war, a mission,
   a watcher's seat or the builder): the foot key steps out. After a landing the banner says so.
-- Keyboard: `1` (keybind action `foot`, movable in Settings > Controls). Every letter is taken in
+- Keyboard: `1` (keybind action `foot`, movable in Keys and buttons on the Controller screen, under the Hangar). Every letter is taken in
   flight, and F is the flaps, which a pilot sets while parked. Pad: hold B half a second (View
   enters the builder on worlds it works in). Touch: the Step out / Fly chip under Aircraft.
 - On foot: W A S D or the arrows walk, Shift runs, the mouse looks while captured (a click
