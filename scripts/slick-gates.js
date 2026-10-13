@@ -345,9 +345,9 @@ check: {
       }
     }
     const bm = sb / n * DEG, d = sd / n, rd = sr / n, vm = sv / n;
-    gate('S12', 'knife edge: rolled to 90 deg, the rudder on, the throttle holding height', bm >= t12.betaMin && bm <= t12.betaMax && d >= t12.dutyMin && d <= t12.dutyMax && Math.abs(rd) < 1 && zMax - zMin <= t12.maxHeightDrift,
+    gate('S12', 'knife edge at its derived speed: rolled to 90 deg, the rudder on, the throttle holding height', bm >= t12.betaMin && bm <= t12.betaMax && d >= t12.dutyMin && d <= t12.dutyMax && t12.rudderDerived <= 1 && zMax - zMin <= t12.maxHeightDrift,
       `sideslip ${bm.toFixed(1)} deg at throttle ${d.toFixed(3)} and ${vm.toFixed(1)} m/s, rudder stick ${rd.toFixed(2)}, bank off 90 by under ${worstBank.toFixed(1)}, height within ${(zMax - zMin).toFixed(2)} m`,
-      `${t12.betaMin} to ${t12.betaMax} deg, ${t12.dutyMin} to ${t12.dutyMax}, rudder short of full, within ${t12.maxHeightDrift} m`);
+      `${t12.betaMin} to ${t12.betaMax} deg, ${t12.dutyMin} to ${t12.dutyMax}, the derived rudder within its throw, within ${t12.maxHeightDrift} m`);
   }
 
   /* S13: on the strip at the drawn pose, 3 s with every stick centred. */

@@ -543,6 +543,40 @@ function knifeEdge(V) {
   return null;
 }
 
+/* The gate's knife edge: the hardest level knife edge the derivation says
+ * the aircraft can hold, the speed at which the balance asks the most of
+ * the rudder among the speeds it asks no more than the full throw (the
+ * rudder's share rises from the slow side as the fuselage's saturating
+ * side force gives way to the fin's weathercock, peaks, and falls with
+ * the speed as the sideslip does; where the peak is past the throw, as
+ * the Slick's is, this is the floor, the slowest speed with a level knife
+ * edge), to 0.5 m/s; null where no speed holds one. The gate's speed
+ * is derived, not chosen (2026-10-13). */
+function knifeGate() {
+  const need = (V) => { const k = knifeEdge(V); return k === null ? Infinity : k.drOfThrow; };
+  /* Coarse at 2 m/s for the peak's bracket, then the peak to 0.25 m/s by
+   * halving the bracket about the best of three; where the peak is past
+   * the throw, the fast side's crossing of the throw to 0.5 m/s (each
+   * knife edge costs seconds; the peak is flat to 0.5 m/s). */
+  let peakV = null, peak = -Infinity, fastV = null;
+  for (let V = 6; V <= 50; V += 2) {
+    const d = need(V);
+    if (d < Infinity && d > peak) { peak = d; peakV = V; }
+    if (d <= 1 && (fastV === null || V > fastV)) fastV = V;
+  }
+  if (peakV === null || fastV === null) return null;
+  let lo = peakV - 2, hi = peakV + 2;
+  while (hi - lo > 0.5) {
+    const a = lo + (hi - lo) / 4, c = hi - (hi - lo) / 4, da = need(a), dc = need(c);
+    if (da > peak) { peak = da; peakV = a; } else if (dc > peak) { peak = dc; peakV = c; }
+    if (peakV <= a) hi = (lo + hi) / 2; else if (peakV >= c) lo = (lo + hi) / 2; else { lo = a; hi = c; }
+  }
+  if (peak <= 1) return knifeEdge(Number(peakV.toFixed(2)));
+  lo = peakV; hi = fastV;
+  while (hi - lo > 0.5) { const mid = (lo + hi) / 2; if (need(mid) > 1) lo = mid; else hi = mid; }
+  return knifeEdge(Number(hi.toFixed(2)));
+}
+
 /*
  * The rest on the gear, off the side view: the main axles 0.153 m ahead of
  * the CG and 0.213 under it with 57 mm wheels, the tailwheel's 0.824 m
@@ -638,6 +672,7 @@ const rows = [
   ['   35', J(harrier(35))],
   ['   40', J(harrier(40))],
   ['   45', J(harrier(45))],
+  ['E12 the gate\'s knife edge, the hardest held (knifeGate)', J(knifeGate())],
   ['E12 knife edge at 12, 15, 18 m/s', ''],
   ['   12', J(knifeEdge(12))],
   ['   15', J(knifeEdge(15))],

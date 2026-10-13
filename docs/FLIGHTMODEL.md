@@ -553,6 +553,28 @@ R-474) on each fuselage's side area from its derivation or render model.
   holds 32.9 deg at 0.501 and 15.0 m/s (derived 32.9, 0.496, 15), C12
   25.9 at 0.629 and 23.3 m/s, and S12 stays red on the stop: 103 percent
   derived at 30 m/s, the plant on 100 at 30.7.
+- The gates' knife edge speeds were chosen (15, 20, 30 m/s, no source
+  in f6e9c7eb7, 02f1011f3, 2a9a395cc). Derived now (knifeGate in each
+  derive script): the rudder the balance needs is not monotonic in the
+  speed, it rises from the slow side as the fuselage's saturating side
+  force gives way to the fin's weathercock, peaks, and falls with the
+  sideslip (Extra 0.70 of the throw at 8 m/s, 0.905 at 11.75, 0.83 at
+  15, 0.37 at 30; CAP 0.40 at 8, 0.90 at 15, 0.80 at 20; Slick 1.42 at
+  15 to 20, 1.03 at 30, 0.70 at 40), so there is no floor at full rudder
+  for the Extra or the CAP: they hold a level knife edge at every speed
+  from 8 to 32 m/s. The gate's point is the hardest knife edge the
+  derivation says the aircraft holds, the greatest rudder share among
+  the speeds within the throw: Extra 11.75 m/s (41.5 deg, 0.465, 91
+  percent), CAP 15 (39.4, 0.483, 90), Slick 30.76 (25.4, 0.454, 100: the
+  peak is past the throw, so this is the floor, the slowest speed with a
+  level knife edge; between 12 and 31 m/s the derivation says the Slick
+  cannot hold one, which a real Slick 580 does, so its fin against its
+  rudder is still the open question). The gates judge the plant there
+  (the rudder's clause is the derivation's share within the throw), and
+  all three hold: E12 39.5 deg at 0.473 and 12.5 m/s, C12 32.2 at 0.548
+  and 19.2, S12 25.4 at 0.454 and 30.8 on the stop, the budgets whole.
+  With the rudder pinned the plant slides along the family to a speed a
+  little past the derived one (the peak is flat), still inside the bands.
 
 ### The probe, PR 3 to PR 4
 

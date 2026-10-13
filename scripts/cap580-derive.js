@@ -612,6 +612,40 @@ function knifeEdge(V) {
   }
   return null;
 }
+
+/* The gate's knife edge: the hardest level knife edge the derivation says
+ * the aircraft can hold, the speed at which the balance asks the most of
+ * the rudder among the speeds it asks no more than the full throw (the
+ * rudder's share rises from the slow side as the fuselage's saturating
+ * side force gives way to the fin's weathercock, peaks, and falls with
+ * the speed as the sideslip does; where the peak is past the throw, as
+ * the Slick's is, this is the floor, the slowest speed with a level knife
+ * edge), to 0.5 m/s; null where no speed holds one. The gate's speed
+ * is derived, not chosen (2026-10-13). */
+function knifeGate() {
+  const need = (V) => { const k = knifeEdge(V); return k === null ? Infinity : k.drOfThrow; };
+  /* Coarse at 2 m/s for the peak's bracket, then the peak to 0.25 m/s by
+   * halving the bracket about the best of three; where the peak is past
+   * the throw, the fast side's crossing of the throw to 0.5 m/s (each
+   * knife edge costs seconds; the peak is flat to 0.5 m/s). */
+  let peakV = null, peak = -Infinity, fastV = null;
+  for (let V = 6; V <= 50; V += 2) {
+    const d = need(V);
+    if (d < Infinity && d > peak) { peak = d; peakV = V; }
+    if (d <= 1 && (fastV === null || V > fastV)) fastV = V;
+  }
+  if (peakV === null || fastV === null) return null;
+  let lo = peakV - 2, hi = peakV + 2;
+  while (hi - lo > 0.5) {
+    const a = lo + (hi - lo) / 4, c = hi - (hi - lo) / 4, da = need(a), dc = need(c);
+    if (da > peak) { peak = da; peakV = a; } else if (dc > peak) { peak = dc; peakV = c; }
+    if (peakV <= a) hi = (lo + hi) / 2; else if (peakV >= c) lo = (lo + hi) / 2; else { lo = a; hi = c; }
+  }
+  if (peak <= 1) return knifeEdge(Number(peakV.toFixed(2)));
+  lo = peakV; hi = fastV;
+  while (hi - lo > 0.5) { const mid = (lo + hi) / 2; if (need(mid) > 1) lo = mid; else hi = mid; }
+  return knifeEdge(Number(hi.toFixed(2)));
+}
 /*
  * THE STABILISED THROW, cap580:stab's "straight": thrown level at 16 m/s,
  * 75 percent, every stick centred for 10 s. The right thrust turns its
@@ -822,7 +856,7 @@ export const GEAR = {
 export const DERIVED = {
   W, Ts, Vp, Vs, CLa, aw, CLmax, hoverDuty, hoverBench, vClimb, pb2v, torqueRoll: torqueRoll * DEG, aileronRollNet: aileronRollNet * DEG,
   pitchAccHover, yawAccHover, restPitchDeg, cgHeight, tailShare, level75: level(0.75), top: level(1), ld: ld(14),
-  harrier40: harrier(40), knife20: knifeEdge(20), takeoff: takeoff(), vRotate, ld15: ld(15),
+  harrier40: harrier(40), knifeGate: knifeGate(), knife20: knifeEdge(20), takeoff: takeoff(), vRotate, ld15: ld(15),
   straight: throwOn[throwOn.length - 1].y,
 };
 /* The plant's own constants the throw flies on, as plant_wing.c defines them. */
@@ -925,9 +959,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       ['c10_zero_speed', 'yawDerived', D.yawAccHover, 2, 'yawMin', 'yawMax', 0.75, 1.25, 1],
       ['c11_harrier', 'vDerived', D.harrier40.V, 3, 'vMin', 'vMax', 0.80, 1.20, 2],
       ['c11_harrier', 'dutyDerived', D.harrier40.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
-      ['c12_knife_edge', 'betaDerived', D.knife20.betaDeg, 2, 'betaMin', 'betaMax', 0.75, 1.25, 1],
-      ['c12_knife_edge', 'dutyDerived', D.knife20.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
-      ['c12_knife_edge', 'rudderDerived', D.knife20.drOfThrow, 3, null, null],
+      ['c12_knife_edge', 'speed', D.knifeGate.V, 2, null, null],
+      ['c12_knife_edge', 'betaDerived', D.knifeGate.betaDeg, 2, 'betaMin', 'betaMax', 0.75, 1.25, 1],
+      ['c12_knife_edge', 'dutyDerived', D.knifeGate.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
+      ['c12_knife_edge', 'rudderDerived', D.knifeGate.drOfThrow, 3, null, null],
       ['c14_takeoff', 'derived', D.takeoff.x, 3, 'distMin', 'distMax', 0.60, 1.60, 2],
     ];
     for (const [gate, key, value, n, lo, hi, fl, fh, nb] of BANDS) {
@@ -993,7 +1028,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       ['c9_aileron_hover.derived', th.c9_aileron_hover.derived, D.aileronRollNet],
       ['c10_zero_speed.pitchDerived', th.c10_zero_speed.pitchDerived, D.pitchAccHover], ['c10_zero_speed.yawDerived', th.c10_zero_speed.yawDerived, D.yawAccHover],
       ['c11_harrier.vDerived', th.c11_harrier.vDerived, D.harrier40.V], ['c11_harrier.dutyDerived', th.c11_harrier.dutyDerived, D.harrier40.duty],
-      ['c12_knife_edge.betaDerived', th.c12_knife_edge.betaDerived, D.knife20.betaDeg], ['c12_knife_edge.dutyDerived', th.c12_knife_edge.dutyDerived, D.knife20.duty],
+      ['c12_knife_edge.speed', th.c12_knife_edge.speed, D.knifeGate.V], ['c12_knife_edge.rudderDerived', th.c12_knife_edge.rudderDerived, D.knifeGate.drOfThrow],
+      ['c12_knife_edge.betaDerived', th.c12_knife_edge.betaDerived, D.knifeGate.betaDeg], ['c12_knife_edge.dutyDerived', th.c12_knife_edge.dutyDerived, D.knifeGate.duty],
       ['c13_rest.pitchDerived', th.c13_rest.pitchDerived, D.restPitchDeg], ['c13_rest.zDerived', th.c13_rest.zDerived, D.cgHeight],
       ['c13_rest.tailDerived', th.c13_rest.tailDerived, D.tailShare], ['c14_takeoff.derived', th.c14_takeoff.derived, D.takeoff.x],
       ['stab_straight.derived', th.stab_straight.derived, D.straight],

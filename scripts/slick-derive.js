@@ -801,6 +801,40 @@ function knifeEdge(V) {
   return null;
 }
 
+/* The gate's knife edge: the hardest level knife edge the derivation says
+ * the aircraft can hold, the speed at which the balance asks the most of
+ * the rudder among the speeds it asks no more than the full throw (the
+ * rudder's share rises from the slow side as the fuselage's saturating
+ * side force gives way to the fin's weathercock, peaks, and falls with
+ * the speed as the sideslip does; where the peak is past the throw, as
+ * the Slick's is, this is the floor, the slowest speed with a level knife
+ * edge), to 0.5 m/s; null where no speed holds one. The gate's speed
+ * is derived, not chosen (2026-10-13). */
+function knifeGate() {
+  const need = (V) => { const k = knifeEdge(V); return k === null ? Infinity : k.drOfThrow; };
+  /* Coarse at 2 m/s for the peak's bracket, then the peak to 0.25 m/s by
+   * halving the bracket about the best of three; where the peak is past
+   * the throw, the fast side's crossing of the throw to 0.5 m/s (each
+   * knife edge costs seconds; the peak is flat to 0.5 m/s). */
+  let peakV = null, peak = -Infinity, fastV = null;
+  for (let V = 6; V <= 50; V += 2) {
+    const d = need(V);
+    if (d < Infinity && d > peak) { peak = d; peakV = V; }
+    if (d <= 1 && (fastV === null || V > fastV)) fastV = V;
+  }
+  if (peakV === null || fastV === null) return null;
+  let lo = peakV - 2, hi = peakV + 2;
+  while (hi - lo > 0.5) {
+    const a = lo + (hi - lo) / 4, c = hi - (hi - lo) / 4, da = need(a), dc = need(c);
+    if (da > peak) { peak = da; peakV = a; } else if (dc > peak) { peak = dc; peakV = c; }
+    if (peakV <= a) hi = (lo + hi) / 2; else if (peakV >= c) lo = (lo + hi) / 2; else { lo = a; hi = c; }
+  }
+  if (peak <= 1) return knifeEdge(Number(peakV.toFixed(2)));
+  lo = peakV; hi = fastV;
+  while (hi - lo > 0.5) { const mid = (lo + hi) / 2; if (need(mid) > 1) lo = mid; else hi = mid; }
+  return knifeEdge(Number(hi.toFixed(2)));
+}
+
 /*
  * THE GEAR, off the side view: the main axles and the tailwheel's as
  * drawn, the wheels 105 and 38 mm, the 630 mm track (the label; the
@@ -905,10 +939,11 @@ export const PLANT = {
 
 const hRows = [35, 40, 45].map((a) => harrier(a));
 const kRows = [20, 25, 30].map((v) => knifeEdge(v));
+const kGate = knifeGate();
 export const DERIVED = {
   e1: level(0.75), e2: Vs, alphaStall: CLmax / aw, e3: ld(1.4 * Vs), e3speed: 1.4 * Vs, e4: level(1),
   e5: pb2v, e6: hoverDuty, e7: vClimb, e8: torqueRoll * DEG, e9: aileronRollNet * DEG,
-  e10p: pitchAccHover, e10y: yawAccHover, idleShare, e11: hRows[1], e12: kRows[2], restPitch: restPitch * DEG, cgHeight, tailShare,
+  e10p: pitchAccHover, e10y: yawAccHover, idleShare, e11: hRows[1], e12: kGate, restPitch: restPitch * DEG, cgHeight, tailShare,
   e14: takeoff(),
 };
 
@@ -970,6 +1005,7 @@ const rows = [
   ['S11 the wing past the stall: CL, CD at 40 deg', `${f(clPlant(40 / DEG).CL, 3)} ${f(clPlant(40 / DEG).CD, 3)}`],
   ['S11 harrier at 35, 40, 45 deg', hRows.map((h) => J(h)).join(' ')],
   ['S12 knife edge at 20, 25, 30 m/s', kRows.map((k) => J(k)).join(' ')],
+  ['S12 the gate\'s knife edge, the hardest held (knifeGate)', J(kGate)],
   ['S13 rest: pitch deg, CG height m, tail share, prop tip clear m', `${f(restPitch * DEG, 2)} ${f(cgHeight, 4)} ${f(tailShare, 4)} ${f(propClear, 4)}`],
   ['S14 take off roll', J(DERIVED.e14)],
   ['gear: main axle x z, tail axle x z, wheelbase', `${f(mainAx[0], 4)} ${f(mainAx[1], 4)} ${f(tailAx[0], 4)} ${f(tailAx[1], 4)} ${f(wheelbase, 4)}`],
@@ -1018,7 +1054,7 @@ function bandsJson(old = {}) {
     s9_aileron_hover: { derived: r(D.e9, 1), min: Math.round(D.e9 * 0.6), max: Math.round(D.e9 * 1.4), unit: 'deg/s', source: SRC`the same with full right aileron: the ailerons' inboard share in the slipstream beats the net torque, derived ${D.e9.toFixed(0)} deg/s right; 40 percent either way, the difference of two estimates` },
     s10_zero_speed: { pitchDerived: r(D.e10p, 2), yawDerived: r(D.e10y, 2), idleDerived: r(D.idleShare, 4), pitchMin: r(D.e10p * 0.75, 2), pitchMax: r(D.e10p * 1.25, 2), yawMin: r(D.e10y * 0.75, 2), yawMax: r(D.e10y * 1.25, 2), idleMax: r(D.idleShare * 1.5, 3), unit: 'rad/s^2', source: SRC`hanging still, full up elevator and full right rudder from rest: the slipstream's dp on the surfaces' immersed shares, each saturating on a flat plate (hi_alpha), derived ${D.e10p.toFixed(2)} in pitch and ${D.e10y.toFixed(2)} in yaw, the yaw over the same kick with the rudder centred (the right thrust and the swirl yaw it without one); 25 percent either way. A petrol engine idles rather than stopping: at its idle the wash's dp, and the authority, is (idle / hover rpm)^2 = ${D.idleShare.toFixed(4)} of the hover's, under 1.5 times that` },
     s11_harrier: { alphaDeg: 40, vDerived: r(D.e11.V, 2), dutyDerived: r(D.e11.duty, 3), vMin: r(D.e11.V * 0.8, 2), vMax: r(D.e11.V * 1.2, 2), dutyMin: r(D.e11.duty * 0.85, 3), dutyMax: r(D.e11.duty * 1.15, 3), maxBankDeg: 10, maxHeightDrift: 2.0, source: SRC`level at a body angle of attack of 40 deg, the throttle holding height: the stalled wing's plate lift and the thrust's vertical share against the weight, derived ${D.e11.V.toFixed(2)} m/s at a stick of ${D.e11.duty.toFixed(3)} with the elevator at ${(D.e11.deOfThrow * 100).toFixed(0)} percent of its throw; the speed 20 percent and the throttle 15 percent either way, the elevator short of full` },
-    s12_knife_edge: { speed: 30.0, betaDerived: r(D.e12.betaDeg, 2), dutyDerived: r(D.e12.duty, 3), rudderDerived: r(D.e12.drOfThrow, 3), betaMin: r(D.e12.betaDeg * 0.75, 2), betaMax: r(D.e12.betaDeg * 1.25, 2), dutyMin: r(D.e12.duty * 0.85, 3), dutyMax: r(Math.min(1, D.e12.duty * 1.15), 3), maxHeightDrift: 3.0, source: SRC`rolled right to 90 deg at 30 m/s, height held on the rudder, the right thrust 3 deg down from the axis and its yaw on the rudder too: derived ${D.e12.betaDeg.toFixed(1)} deg of sideslip at a stick of ${D.e12.duty.toFixed(3)} with the rudder at ${(D.e12.drOfThrow * 100).toFixed(0)} percent of its throw; the sideslip 25 percent and the throttle 15 percent either way, the rudder short of full. Re-derived 2026-10-12 with the fuselage's crossflow on its drawn rounded box section, not a round body's: NACA TN 3038 Table I, the 1:2 ellipse 1.6 and the 1:1 rounded square at r/b 0.333 1.0 over the same tunnel's circle 1.0 (scripts/lib/crossflow.js), was 25.53 deg at 0.440; the same widths about it.` },
+    s12_knife_edge: { speed: r(D.e12.V, 2), betaDerived: r(D.e12.betaDeg, 2), dutyDerived: r(D.e12.duty, 3), rudderDerived: r(D.e12.drOfThrow, 3), betaMin: r(D.e12.betaDeg * 0.75, 2), betaMax: r(D.e12.betaDeg * 1.25, 2), dutyMin: r(D.e12.duty * 0.85, 3), dutyMax: r(Math.min(1, D.e12.duty * 1.15), 3), maxHeightDrift: 3.0, source: SRC`rolled right to 90 deg at ${D.e12.V} m/s, height held on the rudder, the right thrust 3 deg down from the axis and its yaw on the rudder too: derived ${D.e12.betaDeg.toFixed(1)} deg of sideslip at a stick of ${D.e12.duty.toFixed(3)} with the rudder at ${(D.e12.drOfThrow * 100).toFixed(0)} percent of its throw; the sideslip 25 percent and the throttle 15 percent either way, the rudder short of full. Re-derived 2026-10-12 with the fuselage's crossflow on its drawn rounded box section, not a round body's: NACA TN 3038 Table I, the 1:2 ellipse 1.6 and the 1:1 rounded square at r/b 0.333 1.0 over the same tunnel's circle 1.0 (scripts/lib/crossflow.js), was 25.53 deg at 0.440; the same widths about it.` },
     s13_rest: { pitchDerived: r(D.restPitch, 2), zDerived: r(D.cgHeight, 4), tailDerived: r(D.tailShare, 4), pitchMin: r(D.restPitch - 0.5, 2), pitchMax: r(D.restPitch + 0.5, 2), zMin: r(D.cgHeight - 0.005, 4), zMax: r(D.cgHeight + 0.005, 4), tailMin: r(D.tailShare - 0.035, 3), tailMax: r(D.tailShare + 0.035, 3), source: SRC`the sheet's side view on its wheels, ${D.restPitch.toFixed(2)} deg nose up, the CG ${D.cgHeight.toFixed(4)} m up, ${(D.tailShare * 100).toFixed(1)} percent of the weight on the tailwheel; half a degree, 5 mm and 3.5 points either way` },
     s14_takeoff: { derived: r(D.e14.x, 2), distMin: r(D.e14.x * 0.6, 2), distMax: r(D.e14.x * 1.6, 2), source: SRC`full throttle from standing, the engine spooling up from its idle on its map against the prop's torque curve, the tail up at 8 m/s and the nose to 8 deg at 15 m/s: liftoff at ${D.e14.V.toFixed(1)} m/s after ${D.e14.x.toFixed(2)} m (slick:derive); 40 percent short and 60 long, the Extra's, since the plant's roll has the gear's springs, the engine's spool and the pilot's hands in it and the derivation has none` },
     s16_cross_host: { source: "the Slick's recorded take off, hover, torque roll and flight, state trace hash, Node against headless Chrome" },
@@ -1109,6 +1145,8 @@ if (isMain && process.argv.includes('--check')) {
     ['s10_zero_speed.idleDerived', th.s10_zero_speed?.idleDerived, DERIVED.idleShare, 0.00005],
     ['s11_harrier.vDerived', th.s11_harrier?.vDerived, DERIVED.e11.V, 0.005],
     ['s11_harrier.dutyDerived', th.s11_harrier?.dutyDerived, DERIVED.e11.duty, 0.0005],
+    ['s12_knife_edge.speed', th.s12_knife_edge?.speed, DERIVED.e12.V, 0.005],
+    ['s12_knife_edge.rudderDerived', th.s12_knife_edge?.rudderDerived, DERIVED.e12.drOfThrow, 0.0005],
     ['s12_knife_edge.betaDerived', th.s12_knife_edge?.betaDerived, DERIVED.e12.betaDeg, 0.05],
     ['s12_knife_edge.dutyDerived', th.s12_knife_edge?.dutyDerived, DERIVED.e12.duty, 0.0005],
     ['s13_rest.pitchDerived', th.s13_rest?.pitchDerived, DERIVED.restPitch, 0.005],

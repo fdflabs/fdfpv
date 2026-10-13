@@ -265,7 +265,7 @@ figures from `npm run extra:derive`. Bands are never widened to pass.
 | E10 | full elevator at zero airspeed | 38.86 rad/s² at the hover, flown at the hover's own stick on the 4.1 V pack, 0.470 (until 2026-10-12 the gate flew sqrt(W/Ts), 0.6255, the prop's speed share, as its stick) | 29.1 to 48.6 | 36.8; prop stopped 0.00 |
 | E10b | full rudder at zero airspeed | 32.47 rad/s² at the hover | 24.4 to 40.6 | 31.1; prop stopped 0.00 |
 | E11 | harrier at 40 deg of alpha | 7.76 m/s, 0.408 throttle (4.1 V pack), elevator 86 percent; entered from 0.300, level at 12 m/s, the height hold starting at the 0.408 | 6.21 to 9.31, 0.348 to 0.468, short of full | 7.47, 0.373, stick 0.94 |
-| E12 | knife edge at 15 m/s | 32.9 deg sideslip, 0.496 throttle (4.1 V pack), rudder 83 percent | 24.7 to 41.1, 0.422 to 0.570, short of full | 32.9, 0.501 at 15.0 m/s, stick -0.89 |
+| E12 | knife edge at its derived speed, 11.75 m/s (the hardest held, knifeGate) | 41.5 deg sideslip, 0.465 throttle (4.1 V pack), rudder 91 percent | 31.1 to 51.8, 0.396 to 0.534, the derived rudder within its throw | 39.5, 0.473 at 12.5 m/s, stick -0.94 |
 | E13 | standing on its wheels | 6.7 deg, 0.2221 m, 18.3 percent on the tail | half a degree, 5 mm, 15 to 22 percent | 6.69, 0.2222, 18.0 |
 | E14 | take off roll | 1.96 m (4.1 V pack) | 1.18 to 3.13 | 2.83 |
 | E15 | every other aircraft unmoved | main's hashes | identical | identical |
@@ -299,7 +299,9 @@ How each is derived:
   tail and the wash's share on it. The wing rocks as it goes into the
   stall, a harrier's wing rock; the gate's pilot holds the angle, the
   wings and the heading with integrals and reads the last 5 of 20 s.
-- **E12, the knife edge.** Rolled to 90 deg at 15 m/s: the body's side
+- **E12, the knife edge.** Rolled to 90 deg at the derived speed, the
+  hardest level knife edge the derivation holds (knifeGate, 11.75 m/s;
+  15 m/s until 2026-10-13 was chosen): the body's side
   force is normal to its axis, as a slender body's and a fin's are, so it
   lifts by cos beta and drags by sin beta; the thrust along the axis lifts
   by sin beta and pulls by cos beta. The sideslip and throttle that hold

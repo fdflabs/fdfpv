@@ -193,7 +193,7 @@ Bands are never widened to pass.
 | C10b | full rudder at zero airspeed | 14.91 rad/s² | 11.2 to 18.6 | 13.7; prop stopped 0.00 |
 | C11 | harrier at 40 deg of alpha | 9.80 m/s, 0.410 stick on the 4.1 V pack (the finite wing's broadside force, below) | 7.84 to 11.75, 0.349 to 0.471 | 9.41, 0.368, elevator 0.87 |
 | C11b | the harrier in AS3X: the gyro damps the rock | the height hold starting at the derived 0.410 (it started at an unsourced 0.58 until 2026-10-12, which on the seated pack climbed out of the entry) | bank spread under Manual's | 2.9 against 5.5 |
-| C12 | knife edge at 20 m/s | 29.9 deg, 0.555 stick (4.1 V pack), rudder 80 percent | 22.5 to 37.4, 0.472 to 0.638 | 25.9, 0.629 at 23.3 m/s, rudder 0.87 |
+| C12 | knife edge at its derived speed, 15 m/s (the hardest held, knifeGate) | 39.4 deg, 0.483 stick (4.1 V pack), rudder 90 percent | 29.6 to 49.2, 0.411 to 0.555 | 32.2, 0.548 at 19.2 m/s, rudder 0.94 |
 | C13 | standing on its wheels | 10.87 deg, 0.313 m, 16.9 percent | half a degree, 5 mm, 3.5 points | 10.88, 0.3134, 16.5 |
 | C14 | take off roll | 3.64 m (4.1 V pack) | 2.19 to 5.82 | 5.47 |
 | C15 | the Extra, Night Timber, Hercules unmoved | batch's hashes | identical | identical |
@@ -220,8 +220,9 @@ Notes on the derivations:
   Extra's E6 width. Until the propulsion lane's electric law landed the
   plant's steady speed was the stick itself, its hover 0.614, and this
   row was printed as a WAIT, 15 percent off the bench.
-- **C12 and C17, the knife edge and the judge.** At 20 m/s the CAP holds
-  its knife edge at 30 deg of sideslip. The judge
+- **C12 and C17, the knife edge and the judge.** At its derived speed,
+  15 m/s (knifeGate, the hardest held; 20 m/s until 2026-10-13 was
+  chosen), the CAP holds its knife edge at 39 deg of sideslip. The judge
   (src/game/figuredetect.js) names a knife edge by the wing in the vertical
   plane along the line (FAI F3P-AA 23), which sideslip leaves alone, so C17
   judges C12's own knife edge (until 2026-10-11 it took the span within
