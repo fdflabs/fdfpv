@@ -82,6 +82,8 @@ import { raceFromDocument } from '../src/game/verify.js';
 import { GhostLap, GhostRecorder } from '../src/game/ghost.js';
 import { decodeGhost, encodeGhost, GHOST_RATE_HZ } from '../src/share/ghostdata.js';
 import { simPosToThree, simQuatToThree, threeDirToSim, threePosToSim } from '../src/render/frame.js';
+import { AiOpponent, START_MS as OPPONENT_START_MS, seatOpponent } from '../src/game/aiopponent.js';
+import { Colliders, setCraftAirframe } from '../src/game/collide.js';
 import {
   AI_STEP_MS, ANGLE_LIMIT_DEG, aiPilot, learnSticks, lineFromGhost, stickFor,
 } from '../src/game/aipilot.js';
@@ -323,7 +325,7 @@ for (const pace of PACES) {
   const worst = [...ai.worst.values()].reduce((w, x) => (x.off > w.off ? x : w), { off: -1 });
   const after = ai.race.laps.slice(1);
   const off = after.map((t) => t - lap.durationMs);
-  flown.push({ pace, ghostMs: lap.durationMs, ai, after, off });
+  flown.push({ pace, ghostMs: lap.durationMs, ai, after, off, record: reference.ghost });
   console.log(`${pace} m/s: ghost ${ms3(lap.durationMs)} s; AI laps ${ai.race.laps.map(ms3).join(', ') || 'none'}; `
     + `gate ${ai.race.next} next; `
     + (worst.off < 0 ? 'no lap closed' : `worst gate miss ${(worst.off * 100).toFixed(0)}% of the half opening`
@@ -350,6 +352,81 @@ if (slow.ghostMs !== null) {
   const idle = await fly({ line: ref, learnt, laps: 1, pilot: null });
   check('centred sticks at the hover on the same line: no gate, no lap', idle.race.laps.length === 0 && idle.race.lapStartMs === null,
     `${idle.race.laps.length} laps, lap ${idle.race.lapStartMs === null ? 'never opened' : 'opened'}`);
+}
+
+/*
+ * THE OPPONENT (src/game/aiopponent.js), the pilot as the page races it:
+ * its own plant seated by seatOpponent, the ground raised into it every
+ * step (here a floor far below the course), the hull swept through the
+ * course's solids. Each gate is framed (four bars round its opening, as
+ * the gate's own frame stands); behind the OPPONENT_PACE ghost it takes
+ * every gate and touches no frame. Then a wall in front of the wide gate
+ * (el-3, square to the world): the opponent meets it (one contact
+ * at least) and closes no lap past it. The frame is the plant's
+ * contact, never a moved pose.
+ */
+const OPPONENT_PACE = 8;
+const BAR_R = 0.05;
+/* The wall stands this far before the gate's plane, out of the 0.5 m deep
+ * box race.js scores a quad's pass in (CLASS_BOX.full), and twice the
+ * opening across, so only a pass through it could take the gate. */
+const WALL_AHEAD = 1;
+setCraftAirframe(af.dims);
+function solids(wall) {
+  const col = new Colliders();
+  for (const g of referee().gates) {
+    const ap = g.apertures[0];
+    if (g.virtual) continue;
+    const c = [g.x, g.y + ap.centreY, g.z];
+    const corner = (u, v) => c.map((x, k) => x + u * (ap.clearW / 2 + BAR_R) * [g.ax.x, g.ax.y, g.ax.z][k]
+      + v * (ap.clearH / 2 + BAR_R) * [g.ay.x, g.ay.y, g.ay.z][k]);
+    const ring = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
+    ring.forEach((a, i) => col.add('gate', ...a, ...ring[(i + 1) % 4], BAR_R));
+    if (wall && g.idx === wall) {
+      const z = c[2] - g.az.z * WALL_AHEAD;
+      col.addBox('wall', c[0] - ap.clearW, c[1] - ap.clearH, z - 0.05, c[0] + ap.clearW, c[1] + ap.clearH, z + 0.05);
+    }
+  }
+  col.build();
+  return col;
+}
+const identity = {
+  toSim: (x, y, z, out) => threePosToSim(x, y, z, out),
+  dirToSim: (x, y, z, out) => threeDirToSim(x, y, z, out),
+  fromSim: (st, out) => {
+    out.x = -st[2];
+    out.y = st[3];
+    out.z = -st[1];
+    return out;
+  },
+  worldQuat: (st, out) => simQuatToThree(st[7], st[8], st[9], st[10], { set(a, b, c, d) { Object.assign(out, { x: a, y: b, z: c, w: d }); return out; } }),
+  floorHeight: () => -1000,
+  groundNormal: (x, z, y, out) => Object.assign(out, { x: 0, y: 1, z: 0 }),
+};
+const opPace = flown.find((f) => f.pace === OPPONENT_PACE);
+async function race(col) {
+  const seated = await seatOpponent(() => loadSim(wasm), {
+    simId: af.simId, tuneText: tune, gravity: af.gravityBase, cellVoltage: 4.2, rates: RATE_DEFAULTS,
+  });
+  const lap = new GhostLap(decodeGhost(encodeGhost(opPace.record)), { label: 'reference' });
+  const op = new AiOpponent({ seated, lap, gates: course.gates, trackClass: course.trackClass, world: { ...identity, colliders: () => col } });
+  const t0 = performance.now();
+  op.stepTo((LAPS + 2) * lap.durationMs - OPPONENT_START_MS);
+  return { op, ms: performance.now() - t0, lap };
+}
+if (opPace?.record) {
+  const framed = await race(solids(null));
+  const wide = referee().gates.find((g) => !g.virtual && g.apertures[0].clearW >= 3);
+  const walled = await race(solids(wide.idx));
+  console.log(`opponent behind the ${OPPONENT_PACE} m/s ghost: laps ${framed.op.laps().map(ms3).join(', ') || 'none'}, `
+    + `${framed.op.touched || 0} contacts, ${(framed.op.sticks().length / 4)} stick rows, ${framed.ms.toFixed(0)} ms of CPU for `
+    + `${ms3(framed.op.ms)} s flown; walled: laps ${walled.op.laps().length}, ${walled.op.touched || 0} contacts`);
+  check(`the opponent closes ${LAPS} laps through the framed gates, touching no frame`,
+    framed.op.laps().length >= LAPS && !framed.op.touched, `${framed.op.laps().length} laps, ${framed.op.touched || 0} contacts`);
+  check('a wall before the wide gate: the opponent meets it and closes no lap',
+    walled.op.touched > 0 && walled.op.laps().length === 0, `${walled.op.touched || 0} contacts, ${walled.op.laps().length} laps`);
+  check('every 4 ms row of its sticks is kept', framed.op.sticks().length / 4 === Math.ceil(framed.op.ms / AI_STEP_MS),
+    `${framed.op.sticks().length / 4} rows over ${framed.op.ms} ms`);
 }
 
 console.log(`\naipilot harness: ${pass} passed, ${fail} failed`);

@@ -41,9 +41,9 @@
  * 14 and the 7 inch's from 8 to 14.
  *
  * FRAMES. The law works in the plant's world frame (Z up, metres, SI). A
- * line is handed in already in that frame: lineFromGhost() converts a
- * GhostLap (scene frame, y up) with src/render/frame.js, given the scene
- * point the plant's origin is drawn at.
+ * line and a gate are handed in already in that frame: lineFromGhost()
+ * converts a GhostLap (scene frame, y up) through the converter it is
+ * given, frame.js's in a harness and the shell's spawn frame in the page.
  *
  * DETERMINISM. The sticks are a pure function of the states the plant
  * returned, so one engine flies the same line the same way every time. The
@@ -200,16 +200,19 @@ export function learnSticks(sim, rates) {
  * A GhostLap as a line in the plant's frame: at(tMs) gives { p, v, a },
  * position, velocity and acceleration there, the lap looped so a race of
  * several laps keeps chasing it (a lap is closed: it ends on the line it
- * started on). origin is the scene point the plant's (0, 0, 0) is drawn at.
+ * started on). toSim(x, y, z, out) takes a scene point into the plant's
+ * frame: frame.js threePosToSim where the plant's origin is the scene's,
+ * the shell's worldPosToSim (the spawn's offset, turn and height) in the
+ * page.
  */
-export function lineFromGhost(lap, origin = { x: 0, y: 0, z: 0 }) {
+export function lineFromGhost(lap, toSim = threePosToSim) {
   const pose = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
   const out = { x: 0, y: 0, z: 0 };
   const dur = lap.durationMs;
   const H = 1000 / lap.rateHz;
   const posAt = (t) => {
     lap.sample(((t % dur) + dur) % dur, pose);
-    threePosToSim(pose.px - origin.x, pose.py - origin.y, pose.pz - origin.z, out);
+    toSim(pose.px, pose.py, pose.pz, out);
     return [out.x, out.y, out.z];
   };
   /* Velocity over one grid step either side; acceleration over three,
