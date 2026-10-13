@@ -94,6 +94,7 @@ import { simPosToThree, simQuatToThree } from '../render/frame.js';
 import { partLabel, PART_KINDS } from '../../configs/parts.js';
 import { airframeById, retiredAirframe } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
+import { pageVersion } from '../ui/update.js';
 
 /* The keyboard key that opens the replay; the pad's button is the
  * pilot's `replay` binding (src/input/actions.js, X by default). */
@@ -747,6 +748,13 @@ export function createCrashCam(host) {
       const sticks = sticksRing.clip(first, n);
       if (sticks) {
         clip.sticks = sticks;
+      }
+      /* The app build that flew it, taken here and not at Save: a clip
+       * opened from an older file and saved again is not this build's
+       * flight. Only a clip with its sticks and clock can be version 18;
+       * one without them is saved as before, its build unknown. */
+      if (sticks && clip.anim) {
+        clip.build = pageVersion();
       }
       /* What flies the clip again (src/replay/refly.js), taken now, while
        * the journal still holds the stretches its rows name. */
@@ -2110,7 +2118,7 @@ export function createCrashCam(host) {
       const thumb = await thumbnail();
       const dropped = await store.putClip({
         id, name: clip.meta.name, created, thumb, bytes,
-        airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
+        airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build,
       });
       session.savedId = id;
       session.savedCreated = created;
@@ -2204,7 +2212,7 @@ export function createCrashCam(host) {
     const clip = decode(bytes);
     await store.putClip({
       id: store.newId(), name: clip.meta.name, created: Date.now(), thumb: null, bytes,
-      airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration,
+      airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.meta.duration, build: clip.build,
     });
     return clip.meta.name;
   }

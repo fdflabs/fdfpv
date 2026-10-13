@@ -30,8 +30,10 @@
  *
  * The self test records a scripted flight through a journaled module as
  * the shell does, saves it as a file, reads it back and flies it again:
- * every row must match. Then two negative controls: the plant changed
- * after the copy is written (gravity, by the ABI) must show a divergence,
+ * every row must match. Saved without an app build it is version 17 as
+ * before; saved with one it is version 18, and that file is the one flown.
+ * Then two negative controls: the plant changed after the copy is written
+ * (gravity, by the ABI) must show a divergence,
  * and a build with a changed airframe constant must be refused by its id,
  * where its region would otherwise have flown the old plant bit for bit.
  * Last a windy flight, the air set before every step: it flies back bit
@@ -390,10 +392,14 @@ async function main(argv) {
   const clip = decodeReplay(buf);
   console.log(`${args.clip}: version ${version}, ${clip.n} rows, ${clip.time[clip.n - 1].toFixed(2)} s, `
     + `${clip.meta.airframe} on ${clip.meta.map}, "${clip.meta.name}"`);
+  /* The app build (file version 18) beside the module's: many deploys
+   * share one dist/sim.wasm and differ in everything around it. */
+  const app = clip.build === undefined ? 'unknown (saved before version 18)' : (clip.build ?? 'a local checkout');
+  console.log(`app build: ${app}`);
   if (!clip.refly) {
-    fail(`version ${version} keeps no journal, so it cannot be flown again: it holds the drawn pose${clip.sticks
+    fail(`this version ${version} clip keeps no journal, so it cannot be flown again: it holds the drawn pose${clip.sticks
       ? ', one stick sample, velocity and body rates a frame' : (version >= 1 ? ' and the throttle' : '')}, not the plant's `
-      + 'state or the calls at the plant\'s rate. Only a clip saved by a build with file version 17 can be re-flown.');
+      + 'state or the calls at the plant\'s rate. Only a clip saved with its journal, file version 17 or later, can be re-flown.');
   }
   const d = describeRefly(clip.refly, clip.n);
   const U = clip.refly.setup;
@@ -677,9 +683,24 @@ async function selftest() {
   const without = { ...clip };
   delete without.refly;
   check(new DataView(encodeReplay(without)).getUint32(4, true) === 16, 'without it the same clip is still version 16');
+  /* The version 17 file above is the old clip: no app build. Stamped as
+   * the crash cam stamps a live clip, the same clip is version 18. */
+  const stamped = encodeReplay({ ...clip, build: '0e9b7431f2ab' });
+  const back18 = decodeReplay(stamped);
+  check(new DataView(stamped).getUint32(4, true) === 18 && back18.build === '0e9b7431f2ab' && back18.refly.build === build
+    && Buffer.from(back18.refly.packed).equals(Buffer.from(back.refly.packed)),
+  'with its app build the clip is version 18, the build beside the module\'s id and the same refly', `app ${back18.build}, module ${back18.refly.build}`);
+  check(!('build' in back), 'the version 17 file reads back without an app build: unknown');
+  const said17 = stamped.slice(0);
+  const hl = new DataView(said17).getUint32(8, true);
+  const head = new TextDecoder().decode(new Uint8Array(said17, 12, hl));
+  new DataView(said17).setUint32(4, 17, true);
+  new Uint8Array(said17).set(new TextEncoder().encode(head.replace('"v":18', '"v":17')), 12);
+  const old17 = refusal(said17);
+  check(old17 === 'build in a file older than version 18', 'an app build in a file that says version 17 is refused', old17);
 
-  console.log('2. flown again on its build: every row bit for bit');
-  const same = await refly(back, wasmBytes);
+  console.log('2. flown again on its build, from the version 18 file: every row bit for bit');
+  const same = await refly(back18, wasmBytes);
   const s = same.cmp.summary;
   printSummary(s);
   check(s.flown === clip.n && s.identical === s.flown, 'every row\'s state hashes as recorded', `${s.identical}/${s.flown}`);
