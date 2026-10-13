@@ -27,6 +27,7 @@ import { fuselageRatio } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { slipLoss, tailWash } from './lib/wash.js';
+import { knifeFin, knifeRudder } from './lib/knifefin.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -483,6 +484,8 @@ function harrier(alphaDeg) {
  * on sin beta cos beta (plant_wing.c, MUNK'S MOMENT).
  */
 function knifeEdge(V) {
+  /* The fin and rudder as the plant flies them (scripts/lib/knifefin.js). */
+  const fin = { av, cn: tailCn, cnb: slipCnb, cyb: slipCyb, cndr: Cndr, cydr: CYdr };
   const qb = 0.5 * rho * V * V;
   for (let bDeg = 1; bDeg < 60; bDeg += 0.01) {
     const bt = bDeg / DEG, sb = Math.sin(bt), cb = Math.cos(bt);
@@ -491,13 +494,14 @@ function knifeEdge(V) {
     let side = 0, dr = 0, w = null;
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
-      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) + rho * w.vi * w.fv * S * b * slipCnb * (V * sb);
-      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
-      dr = -nBeta / nPerDr;
-      side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
-        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
+      const rest = qb * S * b * ((Cnb - slipCnb - CnbFus) * sb + CnbFus * sb * cb);
+      const fp = { rho, V, u, sb, w, S, b };
+      dr = knifeRudder(fin, fp, rest, throwR);
+      if (dr === null) break;
+      side = qb * S * (-(CYb - slipCyb)) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 - knifeFin(fin, fp, dr).y;
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
+    if (dr === null) continue;
     if (T(u, 1) < thrust) break;
     if (side * cb + thrust * sb >= W) {
       let lo = 0, hi = 1;

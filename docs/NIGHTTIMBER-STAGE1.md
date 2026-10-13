@@ -188,7 +188,7 @@ makes (a person hovers it); the counts are printed every run.
 ### Findings for the flight lanes (not fixed here)
 
 - **Knife edge.** The derivation finds no level knife edge: the rudder
-  would need 158, 144 and 130 percent of its throw at 12, 14 and 16 m/s
+  would need 156, 143 and 129 percent of its throw at 12, 14 and 16 m/s
   (`npm run nighttimber:derive`, N12). The fuselage's side force is now
   its drawn rounded box section's, NACA TN 3038 through
   `scripts/lib/crossflow.js`, 1.32 times the round body's (side_cda 0.1152
