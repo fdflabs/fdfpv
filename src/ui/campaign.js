@@ -157,6 +157,9 @@ export function createCampaignScreen({
     page = to;
     askDev();
     if (ui.nameDialog.hidden) {
+      /* Escape on the shop goes back to the missions it was opened from;
+       * opened on the shop (the Hangar's Upgrades), it closes. */
+      const openedOn = to;
       ui.nameWait = null;
       ui.nameKeyHandler = (e) => {
         if (e.key !== 'Escape') {
@@ -164,7 +167,7 @@ export function createCampaignScreen({
         }
         e.preventDefault();
         e.stopPropagation();
-        if (page === 'shop') {
+        if (page === 'shop' && openedOn !== 'shop') {
           open('missions');
         } else {
           close();

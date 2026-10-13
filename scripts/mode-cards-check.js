@@ -1,5 +1,5 @@
 /*
- * mode-cards-check.js: the home's three hubs and Flight Club's five
+ * mode-cards-check.js: the home's three hubs and Flight Club's
  * cards, and the two room game cards driven through the real shell the way
  * a pilot drives them, against a local rooms server (never the live one):
  *
@@ -43,6 +43,13 @@
  * Enter reloads the page; the pad's up and select do the same. In a room,
  * where the room bar asks for the reload instead, its button is a stop the
  * same way and Enter on it reloads.
+ *
+ * Page H, in Spanish (?lang=es), which runs longer (docs/redesign/
+ * COMPLETENESS.md item 39): home's hubs, Flight Club's cards and Streamer
+ * Combat's lobby with the command bar, at 1280 by 720, 390 by 844, 360 by
+ * 640 and 844 by 390, and no word of theirs is cut: text running past the
+ * box that clips it, an ellipsis included (scripts/device-check.js
+ * cutIn). A word cut on purpose must be found first.
  *
  * No page error on any page. Pictures in outdir, not in the repository.
  *
@@ -96,11 +103,16 @@ async function shot(page, name) {
 }
 
 const HUBS = 'Flight Club,Operations,Hangar';
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
+/* Flight Club's cards in the registry's order, Trick Battle since
+ * 9da784b30. */
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Trick Battle,Learn to fly';
+const N_CARDS = NAMES.split(',').length;
 /* Each hub's links, in order, as home draws them. */
 /* Operations: the war's campaign and The Interior beside it
- * (docs/campaign/interior/TECH-NEEDS.md N20). */
-const LINKS = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly|Defend the Paraná,The Interior|Aircraft,Customise,Calibrate sticks,How to fly';
+ * (docs/campaign/interior/TECH-NEEDS.md N20), then the war's field hangar
+ * (2bc31815e). The Hangar: the walk, the aircraft and its customising,
+ * Upgrades and Choose joystick (the hangar lane), the sticks. */
+const LINKS = `${NAMES}|Defend the Paraná,The Interior,Field hangar|Walk in,Aircraft,Customise,Upgrades,Choose joystick,Calibrate sticks,How to fly`;
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -144,7 +156,7 @@ function panelLaidOut(v) {
     && v.cards.every((c) => p[3] <= c.box[1] && apartBox(p, c.box)) && v.chips.every((c) => apartBox(p, c));
 }
 
-function laidOut(v, n = 5) {
+function laidOut(v, n = N_CARDS) {
   const c = v.cards;
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
@@ -234,7 +246,7 @@ try {
     && await a.evaluate("document.querySelector('.screen-title .gate-cards').firstElementChild.classList.contains('gate-card-hub-club')"),
   home.cards.filter((x) => x.on).map((x) => x.name).join());
   check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
-  check('each hub lists its activities as links: Track Day, Free Flight, Streamer Combat, Catch the Ace, Learn to fly; the war and The Interior; the Hangar\'s four',
+  check('each hub lists its activities as links: Flight Club\'s cards; the war, The Interior and the field hangar; the Hangar\'s seven',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
   check('home shows the rooms panel (the owner, 2026-10-03), above the cards and clear of them and of the corner chips', panelLaidOut(home),
     `panel ${JSON.stringify(home.panel)} chips ${JSON.stringify(home.chips)} first card ${JSON.stringify(home.cards[0].box)}`);
@@ -247,18 +259,18 @@ try {
   }
   await resize(a, 1280, 720);
 
-  /* INTO FLIGHT CLUB, by the keyboard: its five cards at every size. */
+  /* INTO FLIGHT CLUB, by the keyboard: its cards at every size. */
   await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'club')); return true; })()");
   await a.tap('Enter');
   await a.until(`window.__ui.hub === 'club' && ${LAYOUT}.cards.length === 5 && ${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
   const first = await a.evaluate(LAYOUT);
-  check('Enter on Flight Club opens its five cards, in order, no Fly with friends (the owner, 2026-10-02)', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check(`Enter on Flight Club opens its ${N_CARDS} cards, in order, no Fly with friends (the owner, 2026-10-02)`, first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   check('and the breadcrumb names the hub', /Flight Club$/.test(first.crumb), first.crumb);
   for (const [w, h, row] of SIZES) {
     await resize(a, w, h);
     const v = await a.evaluate(LAYOUT);
-    check(`${w} by ${h}: five cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+    check(`${w} by ${h}: ${N_CARDS} cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shapeOf(v, row), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     check(`${w} by ${h}: the rooms panel in the window without scrolling, above the cards, clear of them and of the corner chips`,
       panelLaidOut(v), `panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)} first card ${JSON.stringify(v.cards[0].box)}`);
@@ -269,17 +281,18 @@ try {
   /* THE KEYBOARD ALONG THE ROW. */
   await a.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const walk = [await onCard(a)];
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < N_CARDS - 1; i += 1) {
     await a.tap('ArrowRight');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < N_CARDS - 2; i += 1) {
     await a.tap('ArrowLeft');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  check('Right walks all five cards and Left steps back to Free Flight', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Streamer Combat>Free Flight`, walk.join(' > '));
+  const back = NAMES.split(',').slice(1, -1).reverse();
+  check(`Right walks all ${N_CARDS} cards and Left steps back to Free Flight`, walk.join('>') === `${NAMES.split(',').join('>')}>${back.join('>')}`, walk.join(' > '));
   await a.tap('ArrowRight');
   await a.sleep(150);
 
@@ -495,7 +508,9 @@ try {
   }
   await f.until('window.__ui.onGate()', 10000).catch(() => {});
   await toClub(f);
-  const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
+  /* A listed room's name, not the Watch beside it, which wears the same
+   * name class. */
+  const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room:not(.gate-room-watch) .gate-room-name')].map((n) => n.textContent)";
   /* How many rooms the panel lists (src/ui/roombrowser.js): one on a
    * short upright phone, two on an upright one, three otherwise. */
   for (const [w, h, n] of [[390, 844, 2], [360, 640, 1], [844, 390, 3], [1280, 720, 3]]) {
@@ -605,6 +620,86 @@ try {
   check('no page error on the update bar\'s page', gErrs.length === 0, gErrs.slice(0, 3).join(' | '));
 } finally {
   await g.close();
+}
+/* SPANISH. The words in the boxes `selector` names that run past the box
+ * that clips them (scripts/device-check.js cutIn, the same function). */
+const CUT_WORDS = `(boxes) => {
+    const out = [];
+    for (const box of boxes.filter(Boolean)) {
+      const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+        const el = t.parentElement;
+        if (!t.textContent.trim() || !el || !el.getClientRects().length) {
+          continue;
+        }
+        const range = document.createRange();
+        range.selectNodeContents(t);
+        const r = range.getBoundingClientRect();
+        let left = 0;
+        let right = window.innerWidth;
+        let hidden = false;
+        for (let a = el; a && a !== document.documentElement; a = a.parentElement) {
+          if (getComputedStyle(a).overflowX !== 'visible') {
+            const b = a.getBoundingClientRect();
+            hidden = hidden || b.width <= 1;
+            left = Math.max(left, b.left);
+            right = Math.min(right, b.right);
+          }
+        }
+        if (r.width && !hidden && (r.left < left - 1 || r.right > right + 1)) {
+          out.push(t.textContent.trim().slice(0, 30));
+        }
+      }
+    }
+    return out;
+  }`;
+const CUT_IN = (selector) => `(${CUT_WORDS})([...document.querySelectorAll(${JSON.stringify(selector)})])`;
+const ES_SIZES = [[1280, 720], [390, 844], [360, 640], [844, 390]];
+const h = await openPage({ root, url: `${url}&lang=es`, width: 1280, height: 720 });
+try {
+  await h.until('window.__shellReady === true', 300000);
+  await h.until('window.__ui.onGate()', 60000).catch(() => {});
+  check('H reads Spanish', await h.evaluate("document.documentElement.lang === 'es'"));
+  const control = await h.evaluate(`(() => {
+    const n = document.createElement('span');
+    n.style.cssText = 'display: block; width: 20px; overflow: hidden; white-space: nowrap;';
+    n.textContent = 'cortado a propósito';
+    document.querySelector('.screen-title').append(n);
+    const found = (${CUT_WORDS})([n]).length === 1;
+    n.remove();
+    return found;
+  })()`);
+  check('negative control: a word cut on purpose is found', control);
+  for (const [w, hh] of ES_SIZES) {
+    await resize(h, w, hh);
+    const cut = await h.evaluate(CUT_IN('.screen-title .gate-card'));
+    check(`es, ${w} by ${hh}: no word on home's hubs is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-home-${w}x${hh}`);
+  }
+  await resize(h, 1280, 720);
+  await toClub(h);
+  for (const [w, hh] of ES_SIZES) {
+    await resize(h, w, hh);
+    const cut = await h.evaluate(CUT_IN('.screen-title .gate-card, .crumb'));
+    check(`es, ${w} by ${hh}: no word on Flight Club's cards is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-club-${w}x${hh}`);
+  }
+  await resize(h, 1280, 720);
+  const combat = await h.evaluate("window.__ui.items().findIndex((it) => it.card === 'combat')");
+  await h.evaluate(`(() => { window.__ui.setCursor(${combat}); return true; })()`);
+  await h.tap('Enter');
+  await h.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
+  check('H is in Streamer Combat\'s lobby', await h.evaluate(IN_LOBBY), String(combat));
+  for (const [w, hh] of ES_SIZES) {
+    await resize(h, w, hh);
+    const cut = await h.evaluate(CUT_IN('.screen-friends, .frame-bot'));
+    check(`es, ${w} by ${hh}: no word in the lobby or the command bar is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-lobby-${w}x${hh}`);
+  }
+  const hErrs = h.errors.filter((x) => !x.startsWith('network:'));
+  check('no page error on the Spanish page', hErrs.length === 0, hErrs.slice(0, 3).join(' | '));
+} finally {
+  await h.close();
 }
 await server.stop();
 console.log(`\n${passed} passed, ${failed} failed`);

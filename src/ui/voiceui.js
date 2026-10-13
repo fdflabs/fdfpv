@@ -39,7 +39,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { PTT_KEY, PTT_PAD, VOLUME_MAX, VOLUME_STEP } from '../share/voice.js';
+import { PTT_KEY, VOLUME_MAX, VOLUME_STEP } from '../share/voice.js';
 import { str } from '../strings/index.js';
 
 const PREFS_KEY = 'fdfpv.voice';
@@ -266,9 +266,7 @@ export function createVoiceUi(voice, input, changed, notice) {
     /* Every TICK_MS: the talk key or the pad's trigger, then the engine's
      * mutes, levels and gains, then the speaking marks. */
     tick() {
-      const gp = input.firstGamepad();
-      const pad = Boolean(gp && gp.mapping === 'standard' && gp.buttons && gp.buttons[PTT_PAD] && gp.buttons[PTT_PAD].pressed);
-      voice.frame(input.keys.has(PTT_KEY) || pad, peers);
+      voice.frame(input.keys.has(PTT_KEY) || input.padAction('talk'), peers);
       const states = peers.map((p) => `${p.seat}:${voice.linkState(p.seat)}`).join(',');
       if (states !== drawn) {
         drawn = states;

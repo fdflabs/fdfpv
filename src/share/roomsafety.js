@@ -18,6 +18,15 @@
  * undo the mute that came with it; a mute set before the report stays
  * until the pilot unmutes.
  *
+ * A BLOCK is a mute that outlasts the room (COMPLETENESS 60), for a signed
+ * in pilot and another signed in pilot, the only kind with a callsign to
+ * name: kept on the account (tracks-api/accounts.js), so every room after
+ * and every computer of the account holds it, and the rooms server is
+ * given it with each join (edge/rooms/safety.js shut). In the room where
+ * it is set it is sent as a mute, since the room learns blocks only at a
+ * join. An unblock is the account's at once and the room's at the next
+ * join, so the seat reads as muted here until then.
+ *
  * What arrives is shown in a short feed at the bottom left, built the
  * first time a line arrives, so a pilot who never joins a room never
  * builds it. Lines are set with textContent, never as markup.
@@ -53,10 +62,30 @@ export const UNDO_MS = 30000;
  * send(obj) puts a message on the room's socket; nameOf(seat) is a seat's
  * picker name in this page's language, or null for a seat not here;
  * changed() is called when the rows change with nothing picked (the Undo
- * row running out).
+ * row running out, a block's answer). blocks is { callsignOf(seat),
+ * held(), fetch(), setBlocked(callsign, on) }: callsignOf null for a
+ * guest's seat, and the rest src/share/account.js's, the blocked
+ * callsigns or null while signed out. Without it, or signed out, there is
+ * no Block.
  */
-export function createRoomSafety(send, nameOf, changed = () => {}) {
+export function createRoomSafety(send, nameOf, changed = () => {}, blocks = null) {
   const muted = new Set();
+  /* Seats unblocked in this room, which the room still holds blocked
+   * until the next join. */
+  const unblocked = new Set();
+  /* The account's blocked callsigns, null while signed out: held here,
+   * because isMuted runs for every pilot every frame, and read again at
+   * every welcome and from every block's answer. */
+  let held = blocks ? blocks.held() : null;
+  const keep = (list) => {
+    held = list;
+    changed();
+  };
+  const callsignOf = (seat) => (blocks ? blocks.callsignOf(seat) : null);
+  const isBlockedSeat = (seat) => {
+    const callsign = held && held.length ? callsignOf(seat) : null;
+    return Boolean(callsign) && held.some((c) => c.toLowerCase() === callsign.toLowerCase());
+  };
   /* The report picked and not yet confirmed, { seat, reason }, or null. */
   let asking = null;
   /* seat -> { at, mute }: this pilot's reports sent, when, and whether
@@ -117,19 +146,25 @@ export function createRoomSafety(send, nameOf, changed = () => {}) {
   }
 
   return {
-    isMuted: (seat) => muted.has(seat),
+    isMuted: (seat) => muted.has(seat) || unblocked.has(seat) || isBlockedSeat(seat),
     heard: () => heard.slice(),
     note: () => note,
-    /* After every welcome: the room may be a fresh one, or this a fresh seat. */
+    /* After every welcome: the room may be a fresh one, or this a fresh
+     * seat, and either way its join read the account's blocks again. */
     welcomed() {
       note = null;
+      unblocked.clear();
       if (muted.size) {
         sendMutes();
+      }
+      if (blocks) {
+        blocks.fetch().then(keep, () => {});
       }
     },
     /* A seat that left is somebody else's next time it is taken. */
     left(seat) {
       muted.delete(seat);
+      unblocked.delete(seat);
       sent.delete(seat);
       if (asking && asking.seat === seat) {
         asking = null;
@@ -137,6 +172,7 @@ export function createRoomSafety(send, nameOf, changed = () => {}) {
     },
     clear() {
       muted.clear();
+      unblocked.clear();
       sent.clear();
       asking = null;
       note = null;
@@ -261,14 +297,24 @@ export function createRoomSafety(send, nameOf, changed = () => {}) {
       ];
     },
     /* What can be done about another pilot, as a row's list: confirm or
-     * cancel while a report waits; otherwise mute or unmute, a report for
-     * each reason or, while one counts, taking it back, and a host's kick
-     * when kick is given. */
+     * cancel while a report waits; otherwise mute or unmute and block, or
+     * unblock for a pilot blocked (nothing of the three for one unblocked
+     * until the next join), a report for each reason or, while one counts,
+     * taking it back, and a host's kick when kick is given. */
     peerOptions(seat, kick) {
       if (asking && asking.seat === seat) {
         return [{ value: 'confirm', label: str('friends.report_yes') }, { value: 'cancel', label: str('friends.report_no') }];
       }
-      const opts = [{ value: muted.has(seat) ? 'unmute' : 'mute', label: str(muted.has(seat) ? 'friends.unmute' : 'friends.mute') }];
+      const callsign = callsignOf(seat);
+      const opts = [];
+      if (isBlockedSeat(seat)) {
+        opts.push({ value: 'unblock', label: str('friends.unblock') });
+      } else if (!unblocked.has(seat)) {
+        opts.push({ value: muted.has(seat) ? 'unmute' : 'mute', label: str(muted.has(seat) ? 'friends.unmute' : 'friends.mute') });
+        if (callsign && held) {
+          opts.push({ value: 'block', label: str('friends.block') });
+        }
+      }
       const undo = this.undoOptions(seat);
       opts.push(...undo);
       REPORT_REASONS.forEach((id, i) => {
@@ -288,6 +334,23 @@ export function createRoomSafety(send, nameOf, changed = () => {}) {
       if (value === 'mute' || value === 'unmute') {
         this.setMuted(seat, value === 'mute');
         note = value === 'mute' ? str('friends.muted_note', { name: nameOf(seat) || '' }) : null;
+        return null;
+      }
+      if (value === 'block' || value === 'unblock') {
+        const on = value === 'block';
+        const name = nameOf(seat) || '';
+        if (on) {
+          muted.add(seat);
+        } else {
+          muted.delete(seat);
+          unblocked.add(seat);
+        }
+        sendMutes();
+        note = str(on ? 'friends.blocked_note' : 'friends.unblocked_note', { name });
+        blocks.setBlocked(callsignOf(seat), on).then(keep, () => {
+          note = str('friends.block_failed', { name });
+          changed();
+        });
         return null;
       }
       const r = /^report:(\d+)$/.exec(value);

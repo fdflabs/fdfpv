@@ -368,9 +368,14 @@ export const COMPONENTS = [
   },
   {
     id: 'session-visibility',
-    name: 'Session visibility control',
+    name: 'Session visibility: who joins, three values',
     kinds: ['control'],
-    gap: 'Proposed, PLAN.md phase 6. The segments control with three values.',
+    source: 'src/main.js lobbyVisibilityRows',
+    context: ['screen', 'menu'],
+    states: [
+      ['alone, a choice', row(str('lobby.visibility'), '', seg([str('lobby.visibility_public'), str('lobby.visibility_friends'), str('lobby.visibility_solo')], str('lobby.visibility_public')))],
+      ['with others, a fact', row(str('lobby.visibility'), 'row-info', h('span', 'row-value', str('lobby.visibility_friends')))],
+    ],
   },
   {
     id: 'briefing-panel',

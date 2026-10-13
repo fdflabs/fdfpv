@@ -153,6 +153,21 @@
  * rest), which flies the clip on another build; a version 17 file from
  * before it was kept is read without it.
  *
+ * Version 18 added the app build that flew a clip: the header's `build`,
+ * the deploy's stamp (src/ui/update.js pageVersion, what Settings and the
+ * credits show), or null for a page served from a checkout. refly.build
+ * names only the dist/sim.wasm, which many deploys share while their maps,
+ * screens and checks differ. It is the first field that is in the header
+ * and nowhere else, and such a field follows its own rule (HEADER_ONLY):
+ * a file of its version or later has it, an older one never does, and a
+ * clip that has it is written as at least its version. That version's
+ * columns are the newest layout's, each part there when the clip has it,
+ * so it needs what every version from 16 on needs, the sticks and the
+ * animation clock; the refly is there when the clip was packed with one.
+ * A clip without a build (one read from an older file) is written as the
+ * version before, byte for byte, and versions 1 to 17 are read without
+ * it: their build is unknown.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -196,7 +211,9 @@ import { SEGMENT_BYTES_MAX, SEGMENTS_MAX, checkVoice } from './voicerec.js';
 import { BODY_N, STICK_N, checkSticks } from './sticks.js';
 import { checkReflyHeader, checkReflyMarks } from './refly.js';
 
-export const FILE_VERSION = 17;
+export const FILE_VERSION = 18;
+/* A clip that flies again and does not name its app build. */
+const REFLY_VERSION = 17;
 /* A clip with its sticks and nothing to fly it again with. */
 const STICKS_VERSION = 16;
 /* A clip with a war's gate state and no sticks. */
@@ -231,14 +248,45 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-/* The version a clip is written as: the lowest that holds what it has. */
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+/* The deploy stamp's own characters (scripts/stamp-version.js), which
+ * names a commit in 12 of them. */
+const BUILD_RE = /^[A-Za-z0-9._-]{1,40}$/;
+/* The fields only the header holds, each with the version that added it
+ * and whether a value is one. A file of that version or later has the
+ * field and an older one never does; the next such field is one more row
+ * here, read and written by the same code. */
+const HEADER_ONLY = [
+  { key: 'build', since: 18, ok: (b) => b === null || (typeof b === 'string' && BUILD_RE.test(b)) },
+];
+
+/* The version a clip is written as: the lowest that holds what it has.
+ * A header-only field raises it to that field's version, whose columns
+ * need the sticks and the clock (see Version 18 above). */
 function versionFor(clip) {
+  const own = HEADER_ONLY.filter((f) => clip[f.key] !== undefined);
+  const version = Math.max(layoutVersion(clip), ...own.map((f) => f.since));
+  for (const f of HEADER_ONLY.filter((x) => x.since <= version)) {
+    if (clip[f.key] === undefined) {
+      throw new Error(`a version ${version} clip without its ${f.key}`);
+    }
+    if (!f.ok(clip[f.key])) {
+      throw new Error(`a clip whose ${f.key} is not one`);
+    }
+  }
+  if (own.length && (!clip.sticks || !clip.anim)) {
+    throw new Error(`a clip with its ${own[0].key} and no sticks or no animation clock`);
+  }
+  return version;
+}
+
+/* The lowest version whose columns hold what a clip has. */
+function layoutVersion(clip) {
   if (clip.refly && clip.refly.packed) {
     if (!clip.sticks || !clip.anim) {
       throw new Error('a clip that flies again without its sticks or its animation clock');
     }
-    return FILE_VERSION;
+    return REFLY_VERSION;
   }
   if (clip.sticks) {
     if (!clip.anim) {
@@ -366,7 +414,7 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice', 'sticks', 'refly'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice', 'sticks', 'refly', 'build'];
 const SOUND_KEYS = ['events'];
 const VOICE_KEYS = ['pieces'];
 const PIECE_KEYS = ['seat', 'from', 'to', 'mime', 'bytes'];
@@ -468,6 +516,11 @@ export function encodeReplay(clip) {
       ...(refly.setup ? { setup: refly.setup } : {}),
       bytes: refly.packed.byteLength,
     };
+  }
+  for (const f of HEADER_ONLY) {
+    if (f.since <= version) {
+      header[f.key] = clip[f.key];
+    }
   }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
@@ -874,8 +927,19 @@ export function decodeReplay(buf, known = null) {
   if (version < 17 && header.refly !== undefined) {
     throw new ReplayFileError('a refly in a file older than version 17');
   }
-  if (version === 17 && header.refly === undefined) {
+  if (version === REFLY_VERSION && header.refly === undefined) {
     throw new ReplayFileError('a version 17 file without its refly');
+  }
+  for (const f of HEADER_ONLY) {
+    if (version < f.since && header[f.key] !== undefined) {
+      throw new ReplayFileError(`${f.key} in a file older than version ${f.since}`);
+    }
+    if (version >= f.since && header[f.key] === undefined) {
+      throw new ReplayFileError(`a version ${version} file without its ${f.key}`);
+    }
+    if (version >= f.since && !f.ok(header[f.key])) {
+      throw new ReplayFileError(`${f.key} is not a ${f.key}`);
+    }
   }
   if (header.refly !== undefined) {
     try {
@@ -994,6 +1058,11 @@ export function decodeReplay(buf, known = null) {
   };
   if (anim) {
     clip.anim = anim;
+  }
+  for (const f of HEADER_ONLY) {
+    if (version >= f.since) {
+      clip[f.key] = header[f.key];
+    }
   }
   if (header.edit !== undefined) {
     clip.edit = checkedEdit(header.edit, time[n - 1], P);

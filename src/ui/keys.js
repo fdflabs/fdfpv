@@ -162,7 +162,7 @@ export const keyMethods = {
     this.noteInteraction();
     /* A text field is open: typing is for it. */
     if (this.nameDialog && !this.nameDialog.hidden) return true;
-    /* Settings > Controls is waiting for the key to bind. */
+    /* Keys and buttons is waiting for the key to bind. */
     if (!repeat && bindKey(this, code)) return true;
 
     /* Held keys repeat only as navigation; a repeated Enter or Escape

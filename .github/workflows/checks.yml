@@ -146,8 +146,9 @@ jobs:
       # report, exit code and the argv it hands shots.js and the browser,
       # over fakes on PATH, with no Emscripten and no browser.
       - run: npm run verify:selftest
-      # A new or changed constant in the C plant carries its source where it
-      # is defined (CLAUDE.md owner rule 2); today's uncited ones are a
+      # A new or changed constant in the C plant, its JavaScript configs, a
+      # derive script's inputs or an aircraft folder carries its source
+      # where it is defined (CLAUDE.md owner rule 2); today's uncited ones are a
       # baseline that only shrinks (scripts/physics-sources-lint.js). The
       # lint runs first so a lane sees its whole list in one run.
       - run: npm run lint:physics-sources
@@ -213,6 +214,7 @@ jobs:
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
+      - run: npm run comfort:selftest
       - run: npm run touchsticks:selftest
       - run: npm run input:trace
       - run: npm run stickmode:selftest

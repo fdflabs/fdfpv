@@ -45,9 +45,7 @@ import {
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
 import { formatScore } from '../game/score.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
-import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { LINK_PRESETS } from '../input/link.js';
-import { STICK_MODES, normaliseStickMode } from '../input/stickmode.js';
 import { MAPS, mapById } from '../maps/registry.js';
 import { PERF_MODES } from '../render/dynres.js';
 import {
@@ -58,6 +56,7 @@ import { musicIds, trackById } from '../render/tracks.js';
 import { accountsAvailable } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
+import { pageVersion } from './update.js';
 import { lapSlot, readPendingTime, readPostedBest } from '../share/session.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
@@ -69,13 +68,16 @@ import { formatTime } from './format.js';
 import { EVENT_TIERS } from '../game/economy.js';
 import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
+import { CHASE_SMOOTHING, SHAKE_LEVELS, UI_SCALES } from '../render/comfort.js';
 import {
   AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
-  PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, tuneChoices,
+  PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
 import { VIEW_LABEL, trickLevel } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
+import { controllerRows, usingLabel } from './controller.js';
+import { flyWithRows } from './flywith.js';
 /* A cycle: ui.js installs this module. These are read only inside the
  * screen functions, after both modules have run, never at this module's
  * top level. */
@@ -606,6 +608,7 @@ function quadRows(ui, s) {
       (d) => {
         const from = s.cameraAngle;
         s.cameraAngle = clampCameraAngle(from + d);
+        keepCamera(s);
         /* Offered once, on the step up across the threshold, and only when
          * the yaw rate is above what the tip would set it to. */
         const crossed = from < YAW_TIP_TILT && s.cameraAngle >= YAW_TIP_TILT;
@@ -620,8 +623,15 @@ function quadRows(ui, s) {
       CAMERA_FOVS,
       s.cameraFov,
       (n) => str('ui.n_degrees_vertical', { n }),
-      (n) => { s.cameraFov = n; },
+      (n) => {
+        s.cameraFov = n;
+        keepCamera(s);
+      },
     ),
+    choice(str('comfort.shake'), str('comfort.shake_note'), SHAKE_LEVELS, s.cameraShake,
+      (id) => str(`comfort.shake_${id}`), (id) => { s.cameraShake = id; }),
+    choice(str('comfort.chase'), str('comfort.chase_note'), CHASE_SMOOTHING, s.chaseSmooth,
+      (id) => str(`comfort.chase_${id}`), (id) => { s.chaseSmooth = id; }),
     { label: str('ui.flight'), section: true },
     choice(
       str('ui.flight_mode'),
@@ -635,7 +645,7 @@ function quadRows(ui, s) {
       s.launchControl = Boolean(v);
     }),
     /* A signpost to the rates, which are the pilot's, not the machine's. */
-    ratesRow(s, str('ui.not_the_machine_s_rates_are', { pilot: SCREEN_TITLES.pilot })),
+    ratesRow(s, str('ui.not_the_machine_s_rates_are', { pilot: SCREEN_TITLES.controller })),
     backRow(),
   ];
 }
@@ -670,6 +680,13 @@ function pilotRows(ui, s) {
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
     { label: str('ui.download_control_recording'), action: 'downloadcontrolrec', note: str('ui.download_control_recording_note') },
+    { label: str('ui.build'), value: pageVersion() || str('loading.local_build'), note: str('ui.build_note'), info: true },
+    { label: str('ui.saved_data'), section: true },
+    ...(ui.resetNotice ? [{ label: str('ui.not_saved'), value: '', info: true, rowClass: 'row-warn', note: ui.resetNotice }] : []),
+    { label: str('ui.reset_settings'), action: 'resetsettings', note: str('ui.reset_settings_note') },
+    /* Not offered signed in: the account merges progress grow only, so
+     * the next sync would bring it back (src/share/save.js). */
+    ...(readAccount() ? [] : [{ label: str('ui.reset_progress'), action: 'resetprogress', note: str('ui.reset_progress_note') }]),
     { label: str('pause.help'), section: true },
     { label: str('ui.how_to_fly'), action: 'howto' },
     creditsRow(),
@@ -754,48 +771,14 @@ function flightTimeRows(record, everyone) {
   return rows;
 }
 
-function padChooseNote(info) {
-  const n = info && typeof info.count === 'number' ? info.count : 0;
-  if (n <= 0) {
-    return str('ui.plug_in_a_radio_in_joystick');
-  }
-  return n === 1 ? str('ui.one_device_is_plugged_in_open', { using: info.using }) : str('ui.devices_are_plugged_in_move_the', { n });
-}
-
+/* The device setup and the rates live on the Controller screen
+ * (src/ui/controller.js); Settings keeps one row to it, and what the
+ * screen shows of the sticks and how they reach the aircraft. */
 function stickRows(ui, s) {
-  const info = ui.padInfo;
-  /* 'Keyboard' is the pad picker's own sentinel, shown in the pilot's language. */
-  const using = info && info.using && info.using !== 'Keyboard' ? info.using : str('ui.keyboard');
-  const mouse = s.mouseFlight ? [
-    choice(str('ui.mouse_sensitivity'), str('ui.mouse_sensitivity_note'), MOUSE_SENS, s.mouseSens, (n) => `${n}%`, (n) => { s.mouseSens = n; }),
-    choice(str('ui.mouse_expo'), str('ui.mouse_expo_note'), MOUSE_EXPOS, s.mouseExpo, (n) => `${n}%`, (n) => { s.mouseExpo = n; }),
-    toggle(str('ui.mouse_invert'), str('ui.mouse_invert_note'), s.mouseInvert, (v) => { s.mouseInvert = Boolean(v); }),
-    choice(str('ui.mouse_centre'), str('ui.mouse_centre_note'), MOUSE_CENTRES, s.mouseCentre, (id) => str(`ui.mouse_centre_${id}`), (id) => { s.mouseCentre = id; }),
-  ] : [];
   return [
-    { label: str('ui.choose_joystick'), value: using, action: 'choosepad', note: padChooseNote(info) },
-    toggle(str('ui.mouse_flight'), str('ui.mouse_flight_note'), s.mouseFlight, (v) => { s.mouseFlight = Boolean(v); }),
-    ...mouse,
-    { label: str('keybinds.title'), action: 'controls', note: str('keybinds.open_note') },
-    { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
-    {
-      label: str('ui.check_sticks'),
-      action: 'calibrate-check',
-      note: str('ui.your_saved_mapping_live_without_calibrating') + str('ui.if_it_goes_the_wrong_way') + str('ui.moves_on_screen_one_key_puts'),
-    },
-    choice(
-      str('ui.stick_mode'),
-      str('ui.which_stick_is_throttle_and_which') + str('ui.mode_2_is_throttle_on_the') + str('ui.mode_1_puts_throttle_on_the')
-        + str('ui.this_flies_the_thumb_sticks_and') + str('ui.own_a_radio_already_applies_its') + str('ui.so_for_a_radio_this_only'),
-      STICK_MODES,
-      s.stickMode,
-      (n) => str('ui.mode', { n }),
-      (n) => { s.stickMode = normaliseStickMode(n); },
-    ),
+    { label: str('controller.title'), value: usingLabel(ui.padInfo), action: 'controller', note: str('controller.row_note') },
     toggle(str('ui.show_sticks'), str('ui.show_sticks_note'), s.showSticks, (v) => { s.showSticks = Boolean(v); }),
     { label: str('ui.compare_sticks'), value: compareSticksValue(ui.stickRef), action: 'comparesticks', note: str('ui.compare_sticks_note') },
-    /* No mid run warning: rates no longer put the quad on the start line. */
-    ratesRow(s, str('ui.how_far_the_sticks_go_and')),
     linkRow(s, str('ui.no_radio_every_frame_arrives_exactly'), 'ui.hz_ms_delay_ms_jitter_records'),
     choice(str('ui.stick_latency'), str('ui.stick_latency_note'), LATENCY_MODES, s.latencyMode, (id) => str(`ui.latency_${id}`), (id) => { s.latencyMode = id; }),
   ];
@@ -816,6 +799,7 @@ function screenRows(ui, s) {
   return [
     graphicsRow(s),
     gpu,
+    choice(str('comfort.ui_scale'), str('comfort.ui_scale_note'), UI_SCALES, s.uiScale, (n) => `${n}%`, (n) => { s.uiScale = n; }),
     choice(str('ui.render_scale'), str('ui.fewer_pixels_then_stretched_to_fit'), RENDER_SCALES, s.renderScale, (n) => (n >= 100 ? str('ui.native') : `${n}%`), (n) => { s.renderScale = n; }),
     choice(str('ui.performance_mode'), str('ui.performance_mode_note'), PERF_MODES, s.perfMode, (id) => str(`ui.perf_${id}`), (id) => { s.perfMode = id; }),
     choice(str('ui.frame_cap'), str('ui.caps_how_often_the_world_is'), FPS_CAPS, s.fpsCap, (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`), (n) => { s.fpsCap = n; }),
@@ -838,6 +822,7 @@ function soundRows(s) {
   const tracks = musicIds();
   return [
     toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
+    toggle(str('comfort.subtitles'), str('comfort.subtitles_note'), Boolean(s.subtitles), (v) => { s.subtitles = Boolean(v); }),
     levelRow(str('ui.volume'), str('ui.overall_level_zero_to_ten'), s, 'volume'),
     levelRow(str('ui.motors_and_engines'), str('ui.the_blade_pass_tone_you_fly'), s, 'motorLevel'),
     levelRow(str('ui.wind'), str('ui.air_over_the_airframe_rises_with'), s, 'windLevel'),
@@ -845,7 +830,7 @@ function soundRows(s) {
     levelRow(str('ui.effects'), str('ui.effects_note'), s, 'effectsLevel'),
     levelRow(str('ui.ambience'), str('ui.ambience_note'), s, 'ambientLevel'),
     levelRow(str('ui.voice_level'), str('ui.voice_level_note'), s, 'voiceLevel'),
-    stepper(str('ui.music'), str('ui.recorded_tracks_in_flight_and_a'), s.musicLevel > 0 ? `${s.musicLevel}` : 'Off', (d) => {
+    stepper(str('ui.music'), str('ui.recorded_tracks_in_flight_and_a'), s.musicLevel > 0 ? `${s.musicLevel}` : str('ui.off'), (d) => {
       s.musicLevel = Math.max(0, Math.min(10, s.musicLevel + d));
     }),
     choice(
@@ -1228,7 +1213,7 @@ function ratesRoomRows(ui, s) {
         : str('ui.betaflight_scale_limit_full_stick_commands', { throttleCap: r.throttleCap, hover }),
       THROTTLE_CAP_CHOICES,
       r.throttleCap,
-      (n) => (n >= 100 ? 'Off' : `${n}%`),
+      (n) => (n >= 100 ? str('ui.off') : `${n}%`),
       (n) => { r.throttleCap = n; },
     ),
     number(specText('spec.throttle.thrMid').label, str('ui.this_quad_hovers_near_percent_of', { note: specText('spec.throttle.thrMid').note, hover }), THROTTLE_CURVE_FIELDS.thrMid, r.thrMid, (v) => { r.thrMid = v; }),
@@ -1368,6 +1353,10 @@ const SCREENS = {
   planerates: planeRatesRows,
   pids: pidsRows,
   controls: controlsRows,
+  /* No mid run warning on the rates: they no longer put the quad on the
+   * start line. */
+  controller: (ui, s) => controllerRows(ui, s, ratesRow(s, str('ui.how_far_the_sticks_go_and'))),
+  flywith: flyWithRows,
   fc: (ui) => ui.fc.items(),
 };
 

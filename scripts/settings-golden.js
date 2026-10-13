@@ -156,6 +156,12 @@ const CASES = {
   'asked-cub': { airframeAsked: true, airframe: 'cub1400' },
   'unasked-cub': { airframeAsked: false, airframe: 'cub1400' },
   'asked-float': { airframeAsked: true, airframe: 'cub1400f' },
+  /* A plane on its stock lens, which the Field of view row does not list. */
+  'plane-stock-lens': { airframeAsked: true, airframe: 'cub1400', cameraFov: 100, cameraAngle: 5 },
+  /* The start camera nobody set, on the interceptor: its stock instead.
+   * Kept as the pilot's when cameraFor holds it. */
+  'start-camera': { airframeAsked: true, airframe: 'interceptor', cameraAngle: 30, cameraFov: 85 },
+  'start-camera-kept': { airframeAsked: true, airframe: 'interceptor', cameraAngle: 30, cameraFov: 85, cameraFor: { interceptor: { angle: 30, fov: 85 } } },
   'retired-whoop': { airframeAsked: true, airframe: 'whoop65' },
   'retired-wing': { airframeAsked: true, airframe: 'wing1000', tune: 'wing-manual' },
   'unknown-airframe': { airframeAsked: true, airframe: 'nope' },

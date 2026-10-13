@@ -30,10 +30,14 @@
  *
  * The self test records a scripted flight through a journaled module as
  * the shell does, saves it as a file, reads it back and flies it again:
- * every row must match. Then two negative controls: the plant changed
- * after the copy is written (gravity, by the ABI) must show a divergence,
+ * every row must match. Saved without an app build it is version 17 as
+ * before; saved with one it is version 18, and that file is the one flown.
+ * Then two negative controls: the plant changed after the copy is written
+ * (gravity, by the ABI) must show a divergence,
  * and a build with a changed airframe constant must be refused by its id,
  * where its region would otherwise have flown the old plant bit for bit.
+ * Last a windy flight, the air set before every step: it flies back bit
+ * for bit and leaves the setup log as small as a still air one.
  *
  * Exit 0 when the re-fly matches the recording on every row it can fly,
  * 1 when it does not, the clip cannot be flown again or the build is not
@@ -388,10 +392,14 @@ async function main(argv) {
   const clip = decodeReplay(buf);
   console.log(`${args.clip}: version ${version}, ${clip.n} rows, ${clip.time[clip.n - 1].toFixed(2)} s, `
     + `${clip.meta.airframe} on ${clip.meta.map}, "${clip.meta.name}"`);
+  /* The app build (file version 18) beside the module's: many deploys
+   * share one dist/sim.wasm and differ in everything around it. */
+  const app = clip.build === undefined ? 'unknown (saved before version 18)' : (clip.build ?? 'a local checkout');
+  console.log(`app build: ${app}`);
   if (!clip.refly) {
-    fail(`version ${version} keeps no journal, so it cannot be flown again: it holds the drawn pose${clip.sticks
+    fail(`this version ${version} clip keeps no journal, so it cannot be flown again: it holds the drawn pose${clip.sticks
       ? ', one stick sample, velocity and body rates a frame' : (version >= 1 ? ' and the throttle' : '')}, not the plant's `
-      + 'state or the calls at the plant\'s rate. Only a clip saved by a build with file version 17 can be re-flown.');
+      + 'state or the calls at the plant\'s rate. Only a clip saved with its journal, file version 17 or later, can be re-flown.');
   }
   const d = describeRefly(clip.refly, clip.n);
   const U = clip.refly.setup;
@@ -508,6 +516,15 @@ function sticksAt(ms) {
   return [0.3 * tri, -0.1 + 0.05 * tri, 0.1 * tri, 0.7];
 }
 
+/* The air at millisecond ms, as the shell's pushWeather sets it before
+ * every step (src/main.js): a mean that changes every step, gusts and a
+ * rise, plain arithmetic like the sticks. */
+function windAt(ms) {
+  const k = (ms % 3000) / 3000;
+  const tri = k < 0.5 ? 2 * k : 2 - 2 * k;
+  return [4 + 2 * tri, -1.5 + tri, 2, 0.5 * tri - 0.2];
+}
+
 /*
  * The scripted flight through a journaled module, recorded as the crash
  * cam does (src/replay/crashcam.js record): a row every 16 ms with the
@@ -517,7 +534,7 @@ function sticksAt(ms) {
  * inputs and plain setters are both in the calls. Returns the clip as
  * open() cuts it, with its refly.
  */
-async function recordFlight(wasmBytes, configText) {
+async function recordFlight(wasmBytes, configText, windy = false) {
   const plain = await loadSim(wasmBytes);
   const j = createJournal(plain.e, { wasm: wasmBytes });
   const sim = new Sim(j.exports);
@@ -551,6 +568,11 @@ async function recordFlight(wasmBytes, configText) {
       [input.roll, input.pitch, input.yaw, input.throttle] = s;
     }
     sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
+    if (windy) {
+      const [vx, vy, gust, up] = windAt(ms);
+      must(sim.e.sim_set_wind(vx, vy, gust), 'sim_set_wind');
+      must(sim.e.sim_set_air_vertical(up), 'sim_set_air_vertical');
+    }
     if (ms % 500 === 0) {
       /* The world declared again round the craft twice a second, as the
        * shell does: a clear, then what is near (three trees, far enough
@@ -661,9 +683,24 @@ async function selftest() {
   const without = { ...clip };
   delete without.refly;
   check(new DataView(encodeReplay(without)).getUint32(4, true) === 16, 'without it the same clip is still version 16');
+  /* The version 17 file above is the old clip: no app build. Stamped as
+   * the crash cam stamps a live clip, the same clip is version 18. */
+  const stamped = encodeReplay({ ...clip, build: '0e9b7431f2ab' });
+  const back18 = decodeReplay(stamped);
+  check(new DataView(stamped).getUint32(4, true) === 18 && back18.build === '0e9b7431f2ab' && back18.refly.build === build
+    && Buffer.from(back18.refly.packed).equals(Buffer.from(back.refly.packed)),
+  'with its app build the clip is version 18, the build beside the module\'s id and the same refly', `app ${back18.build}, module ${back18.refly.build}`);
+  check(!('build' in back), 'the version 17 file reads back without an app build: unknown');
+  const said17 = stamped.slice(0);
+  const hl = new DataView(said17).getUint32(8, true);
+  const head = new TextDecoder().decode(new Uint8Array(said17, 12, hl));
+  new DataView(said17).setUint32(4, 17, true);
+  new Uint8Array(said17).set(new TextEncoder().encode(head.replace('"v":18', '"v":17')), 12);
+  const old17 = refusal(said17);
+  check(old17 === 'build in a file older than version 18', 'an app build in a file that says version 17 is refused', old17);
 
-  console.log('2. flown again on its build: every row bit for bit');
-  const same = await refly(back, wasmBytes);
+  console.log('2. flown again on its build, from the version 18 file: every row bit for bit');
+  const same = await refly(back18, wasmBytes);
   const s = same.cmp.summary;
   printSummary(s);
   check(s.flown === clip.n && s.identical === s.flown, 'every row\'s state hashes as recorded', `${s.identical}/${s.flown}`);
@@ -767,6 +804,38 @@ async function selftest() {
     old = err.message;
   }
   check(old === 'this clip carries nothing to fly it again with', 'a version 16 clip is refused with a reason', old || 'not refused');
+
+  console.log('7. a windy flight, the air set before every step as the shell sets it');
+  const gusty = await recordFlight(wasmBytes, configText, true);
+  const gustyBack = decodeReplay(encodeReplay({ ...gusty.clip, refly: await packRefly(gusty.clip.refly) }));
+  const windy = await refly(gustyBack, wasmBytes);
+  const ws = windy.cmp.summary;
+  printSummary(ws);
+  check(ws.flown === gusty.clip.n && ws.identical === ws.flown, 'flown again on its build, every row bit for bit',
+    `${ws.identical}/${ws.flown}`);
+  const endW = gusty.clip.plant.subarray((gusty.clip.n - 1) * PLANT_N, gusty.clip.n * PLANT_N);
+  const blown = Math.hypot(endA[0] - endW[0], endA[1] - endW[1], endA[2] - endW[2]);
+  check(blown > 1, 'the wind moved the flight', `${blown.toFixed(2)} m from the still air flight at the end`);
+  /* The air is set every step, so it is the flight, not its setup: in the
+   * setup log it would grow the log by every step and cut it short past
+   * about 100 s of wind, after which no clip of the session could be
+   * flown on another build. */
+  const airCalls = (() => {
+    const u = windy.unpacked.setup;
+    let n = 0;
+    for (let r = 0; r < u.calls.length; r += 3 + u.calls[r + 1] + u.calls[r + 2]) {
+      n += ['sim_set_wind', 'sim_set_air_vertical'].includes(windy.unpacked.names[u.calls[r]]) ? 1 : 0;
+    }
+    return n;
+  })();
+  const WU = gustyBack.refly.setup;
+  check(airCalls === 0 && !WU.overflow, 'the setup log holds none of the per step air',
+    `${airCalls} air calls, ${WU.entries} entries, ${WU.calls * 8} B`);
+  const windSelf = await transplantPair(gustyBack, windy.unpacked, windy.run, wasmBytes, wasmBytes);
+  const wf = windSelf.effect.summary;
+  printPairSummary('self', wf);
+  check(wf.flown > 0 && wf.identical === wf.flown, 'transplanted twice onto the same build, the two windy flights are identical',
+    `${wf.identical}/${wf.flown} rows`);
 
   console.log(failures ? `replay:refly selftest: ${failures} FAILED` : 'replay:refly selftest: all ok');
   process.exit(failures ? 1 : 0);

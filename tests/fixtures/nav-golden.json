@@ -3118,7 +3118,21 @@
          "tag": "SPAN",
          "cls": "crumb-up",
          "children": [
-          "Settings"
+          "Hangar"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-sep",
+         "children": [
+          "/"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-up",
+         "children": [
+          "Controller"
          ]
         },
         {
@@ -3309,7 +3323,21 @@
          "tag": "SPAN",
          "cls": "crumb-up",
          "children": [
-          "Settings"
+          "Hangar"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-sep",
+         "children": [
+          "/"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-up",
+         "children": [
+          "Controller"
          ]
         },
         {
@@ -8689,7 +8717,21 @@
         "tag": "SPAN",
         "cls": "crumb-up",
         "children": [
-         "Settings"
+         "Hangar"
+        ]
+       },
+       {
+        "tag": "SPAN",
+        "cls": "crumb-sep",
+        "children": [
+         "/"
+        ]
+       },
+       {
+        "tag": "SPAN",
+        "cls": "crumb-up",
+        "children": [
+         "Controller"
         ]
        },
        {
@@ -13513,7 +13555,21 @@
          "tag": "SPAN",
          "cls": "crumb-up",
          "children": [
-          "Settings"
+          "Hangar"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-sep",
+         "children": [
+          "/"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-up",
+         "children": [
+          "Controller"
          ]
         },
         {
@@ -13704,7 +13760,21 @@
          "tag": "SPAN",
          "cls": "crumb-up",
          "children": [
-          "Settings"
+          "Hangar"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-sep",
+         "children": [
+          "/"
+         ]
+        },
+        {
+         "tag": "SPAN",
+         "cls": "crumb-up",
+         "children": [
+          "Controller"
          ]
         },
         {
@@ -16736,7 +16806,7 @@
     "quadAction/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -16756,7 +16826,7 @@
     "quadAction/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -16864,13 +16934,13 @@
     "quadValue/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
      {
       "keys": [
-       "Roll"
+       "Alabeo"
       ],
       "text": "Ajustar"
      },
@@ -16890,13 +16960,13 @@
     "quadValue/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
      {
       "keys": [
-       "Roll"
+       "Alabeo"
       ],
       "text": "Ajustar"
      },
@@ -16997,7 +17067,7 @@
     "quadOff/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17017,7 +17087,7 @@
     "quadOff/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17111,7 +17181,7 @@
     "cards/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17131,7 +17201,7 @@
     "cards/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17225,7 +17295,7 @@
     "titleMenu/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17245,7 +17315,7 @@
     "titleMenu/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17322,7 +17392,7 @@
     "titleGate/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17336,7 +17406,7 @@
     "titleGate/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17415,7 +17485,7 @@
     "titleHub/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17436,7 +17506,7 @@
     "titleHub/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17532,7 +17602,7 @@
     "flight/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17552,7 +17622,7 @@
     "flight/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17646,7 +17716,7 @@
     "bench/pad/0": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -17666,7 +17736,7 @@
     "bench/pad/5": [
      {
       "keys": [
-       "Pitch"
+       "Cabeceo"
       ],
       "text": "Mover"
      },
@@ -19084,7 +19154,21 @@
         "tag": "SPAN",
         "cls": "crumb-up",
         "children": [
-         "Settings"
+         "Hangar"
+        ]
+       },
+       {
+        "tag": "SPAN",
+        "cls": "crumb-sep",
+        "children": [
+         "/"
+        ]
+       },
+       {
+        "tag": "SPAN",
+        "cls": "crumb-up",
+        "children": [
+         "Controller"
         ]
        },
        {
@@ -20380,7 +20464,7 @@
           "tag": "SPAN",
           "cls": "kbd pad",
           "children": [
-           "Pitch"
+           "Cabeceo"
           ]
          },
          " Mover"
@@ -20493,7 +20577,7 @@
           "tag": "SPAN",
           "cls": "kbd pad",
           "children": [
-           "Pitch"
+           "Cabeceo"
           ]
          },
          " Mover"
@@ -20607,7 +20691,7 @@
           "tag": "SPAN",
           "cls": "kbd pad",
           "children": [
-           "Pitch"
+           "Cabeceo"
           ]
          },
          " Mover"

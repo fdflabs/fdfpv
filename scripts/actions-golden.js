@@ -443,6 +443,10 @@ const STATES = {
   launch: { screen: 'launch', mode: 'race', craftGate: false, settings: { map: 'track' }, seat: 'track' },
   tricks: { screen: 'tricks', mode: 'freestyle', craftGate: false },
   'drop-open': { screen: 'pilot', mode: 'race', craftGate: false, dropEl: 'drop' },
+  'controller-from-pilot': { screen: 'controller', mode: 'race', craftGate: false, controllerFrom: 'pilot' },
+  'controller-from-hangar': { screen: 'controller', mode: null, craftGate: true, hub: 'hangar', returnTo: 'title' },
+  controls: { screen: 'controls', mode: 'race', craftGate: false },
+  flywith: { screen: 'flywith', craftGate: true, mode: null, firstRun: true },
 };
 
 function setUp(name) {
@@ -450,7 +454,7 @@ function setUp(name) {
   seedStore(state);
   boardDown = Boolean(state.boardDown);
   const ui = makeUi(state);
-  for (const k of ['screen', 'craftGate', 'mode', 'hub', 'returnTo', 'roomFrom', 'ratesFrom', 'pidsFrom', 'fcFrom', 'cardSubject', 'card',
+  for (const k of ['screen', 'craftGate', 'mode', 'hub', 'returnTo', 'roomFrom', 'ratesFrom', 'pidsFrom', 'fcFrom', 'controllerFrom', 'cardSubject', 'card',
     'firstRun', 'standingsFor', 'standingsTimes', 'boardCourses', 'padPickPhase', 'padPickReason', 'lobbyCard', 'dropEl']) {
     if (k in state) ui[k] = state[k];
   }
@@ -480,6 +484,7 @@ const ACTIONS = [
   'pause', 'restart', 'resume', 'postrun', 'posttime', 'noop', 'setname', 'choosepad', 'downloadflightlog', 'exportkey', 'importkey',
   'trackbuilder', 'remix', 'editown', 'race', 'calibrate', 'calibrate-cancel', 'calibrate-save', 'padpick-yes', 'padpick-no', 'padpick-cancel',
   'padpick-skip', 'accountsignin', 'accountsignout', 'hub-club', 'hub-hangar', 'nosuchaction',
+  'controller', 'controller-builtin', 'controls', 'flywith:radio', 'flywith:skip',
 ];
 
 /* The sign in gate (a visitor on a loopback host plays; a tracks origin

@@ -4865,7 +4865,7 @@
        ],
        "kids": [
         {
-         "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+         "t": "Choose the key and the pad button for each flight action. Press a row, then the key or the button; Escape cancels, Backspace puts the defaults back."
         }
        ]
       },
@@ -6808,11 +6808,11 @@
      ],
      "on": [
       [
-       17,
+       19,
        "click"
       ],
       [
-       18,
+       20,
        "keydown"
       ]
      ],
@@ -6946,7 +6946,7 @@
              "attrs": [
               [
                "class",
-               "carousel-tab carousel-tab-mine"
+               "carousel-tab"
               ],
               [
                "role",
@@ -6960,6 +6960,34 @@
              "on": [
               [
                3,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "Favourites"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "carousel-tab carousel-tab-mine"
+              ],
+              [
+               "role",
+               "tab"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               4,
                "click"
               ]
              ],
@@ -6987,23 +7015,23 @@
          ],
          "on": [
           [
-           6,
+           7,
            "pointerdown"
           ],
           [
-           7,
+           8,
            "pointermove"
           ],
           [
-           8,
+           9,
            "pointerup"
           ],
           [
-           9,
+           10,
            "pointercancel"
           ],
           [
-           10,
+           11,
            "wheel"
           ]
          ],
@@ -7026,7 +7054,7 @@
            ],
            "on": [
             [
-             4,
+             5,
              "click"
             ]
            ],
@@ -7054,7 +7082,7 @@
            ],
            "on": [
             [
-             5,
+             6,
              "click"
             ]
            ],
@@ -7150,13 +7178,45 @@
              ],
              "on": [
               [
-               11,
+               12,
                "click"
               ]
              ],
              "kids": [
               {
                "t": "Floats"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "hangar-floats carousel-fav"
+              ],
+              [
+               "data-key",
+               "favourite"
+              ],
+              [
+               "role",
+               "switch"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               13,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "★ Favourite"
               }
              ]
             }
@@ -7189,7 +7249,7 @@
              ],
              "on": [
               [
-               12,
+               14,
                "click"
               ]
              ],
@@ -7217,7 +7277,7 @@
              ],
              "on": [
               [
-               13,
+               15,
                "click"
               ]
              ],
@@ -7290,7 +7350,7 @@
              ],
              "on": [
               [
-               14,
+               16,
                "click"
               ]
              ],
@@ -7314,7 +7374,7 @@
              ],
              "on": [
               [
-               16,
+               18,
                "click"
               ]
              ],
@@ -7338,7 +7398,7 @@
              ],
              "on": [
               [
-               15,
+               17,
                "click"
               ]
              ],
@@ -13491,7 +13551,7 @@
        ],
        "kids": [
         {
-         "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+         "t": "Choose the key and the pad button for each flight action. Press a row, then the key or the button; Escape cancels, Backspace puts the defaults back."
         }
        ]
       },
@@ -15434,11 +15494,11 @@
      ],
      "on": [
       [
-       17,
+       19,
        "click"
       ],
       [
-       18,
+       20,
        "keydown"
       ]
      ],
@@ -15572,7 +15632,7 @@
              "attrs": [
               [
                "class",
-               "carousel-tab carousel-tab-mine"
+               "carousel-tab"
               ],
               [
                "role",
@@ -15586,6 +15646,34 @@
              "on": [
               [
                3,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "Favourites"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "carousel-tab carousel-tab-mine"
+              ],
+              [
+               "role",
+               "tab"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               4,
                "click"
               ]
              ],
@@ -15613,23 +15701,23 @@
          ],
          "on": [
           [
-           6,
+           7,
            "pointerdown"
           ],
           [
-           7,
+           8,
            "pointermove"
           ],
           [
-           8,
+           9,
            "pointerup"
           ],
           [
-           9,
+           10,
            "pointercancel"
           ],
           [
-           10,
+           11,
            "wheel"
           ]
          ],
@@ -15652,7 +15740,7 @@
            ],
            "on": [
             [
-             4,
+             5,
              "click"
             ]
            ],
@@ -15680,7 +15768,7 @@
            ],
            "on": [
             [
-             5,
+             6,
              "click"
             ]
            ],
@@ -15776,13 +15864,45 @@
              ],
              "on": [
               [
-               11,
+               12,
                "click"
               ]
              ],
              "kids": [
               {
                "t": "Floats"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "hangar-floats carousel-fav"
+              ],
+              [
+               "data-key",
+               "favourite"
+              ],
+              [
+               "role",
+               "switch"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               13,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "★ Favourite"
               }
              ]
             }
@@ -15815,7 +15935,7 @@
              ],
              "on": [
               [
-               12,
+               14,
                "click"
               ]
              ],
@@ -15843,7 +15963,7 @@
              ],
              "on": [
               [
-               13,
+               15,
                "click"
               ]
              ],
@@ -15916,7 +16036,7 @@
              ],
              "on": [
               [
-               14,
+               16,
                "click"
               ]
              ],
@@ -15940,7 +16060,7 @@
              ],
              "on": [
               [
-               16,
+               18,
                "click"
               ]
              ],
@@ -15964,7 +16084,7 @@
              ],
              "on": [
               [
-               15,
+               17,
                "click"
               ]
              ],

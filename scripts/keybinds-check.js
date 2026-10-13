@@ -1,15 +1,21 @@
 /*
- * keybinds-check.js: Settings > Controls in the real shell, headless
+ * keybinds-check.js: Keys and buttons (Settings, Controller, Keys and
+ * buttons) in the real shell, headless
  * Chromium through tests/lib/page.js, every press with the pointer or a
  * key the way a keyboard sends it. Run with npm run keybinds:check
  * (local; SIM_GPU=1 for the GPU).
  *
- *  1. Settings, Controls, the Reset row: N binds it. In flight N resets
+ *  1. Settings, Controller, Keys and buttons, the Reset row: 7 binds it. In flight 7 resets
  *     the run (the lap clock goes back) and R no longer does.
- *  2. The Unstick row pressed with N is refused, naming Reset.
+ *  2. The Unstick row pressed with 7 is refused, naming Reset; N is
+ *     refused as push to talk's.
  *  3. Keys for: this aircraft (the Timber); Reset on 3 for it alone. On
- *     the Timber 3 resets; swapped to the Cub, 3 does nothing and N resets.
+ *     the Timber 3 resets; swapped to the Cub, 3 does nothing and 7 resets.
  *  4. Reset all: R resets again and the profile holds no bindings.
+ *  5. A standard pad plugged in: the Reset row armed with the pointer
+ *     takes the pad's A; in flight A resets the run. Unstick on A is
+ *     refused naming Reset, on Start refused as the game's. Reset all
+ *     clears the pad too.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -55,7 +61,9 @@ const SEED = `try {
     Object.assign(s, { airframe: 'timber1500', airframeAsked: true });
     localStorage.setItem(k, JSON.stringify(s));
   }
-} catch (e) { /* storage refused */ }`;
+} catch (e) { /* storage refused */ }
+window.__pads = [];
+navigator.getGamepads = () => window.__pads;`;
 
 const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: [SEED], account: null });
 
@@ -74,7 +82,9 @@ async function clickRow(match, inner = '') {
 async function openControls() {
   await page.evaluate("window.__ui.show('pilot'); true");
   await page.until("window.__ui.screen === 'pilot'", 10000);
-  check('Settings has a Controls row, pressed with the pointer', await clickRow("it.action === 'controls'"));
+  check('Settings has a Controller row, pressed with the pointer', await clickRow("it.action === 'controller'"));
+  await page.until("window.__ui.screen === 'controller'", 10000);
+  check('the Controller has a Keys and buttons row, pressed with the pointer', await clickRow("it.action === 'controls'"));
   await page.until("window.__ui.screen === 'controls'", 10000);
 }
 
@@ -113,22 +123,24 @@ try {
   await page.until('window.__map && window.__map().ready', 400000);
   await page.loaded(60000);
 
-  console.log('1. Reset on N, for every aircraft');
+  console.log('1. Reset on 7, for every aircraft');
   await openControls();
-  check('binding Reset to N is taken', (await bindRow('reset', 'KeyN')) === null);
-  check('the row says N', await page.evaluate("window.__ui.items().find((it) => it.action === 'keybind:reset').value === 'N'"));
-  check('the profile holds it', await page.evaluate("JSON.parse(localStorage.getItem('webfpv.settings.v3')).keybinds.all.reset === 'KeyN'"));
+  check('binding Reset to 7 is taken', (await bindRow('reset', 'Digit7')) === null);
+  check('the row says 7', await page.evaluate("window.__ui.items().find((it) => it.action === 'keybind:reset').value === '7'"));
+  check('the profile holds it', await page.evaluate("JSON.parse(localStorage.getItem('webfpv.settings.v3')).keybinds.all.reset === 'Digit7'"));
   await fly();
-  let r = await resets('KeyN');
-  check('in flight N resets the run', r.yes, `lap ${r.lap} ms after`);
+  let r = await resets('Digit7');
+  check('in flight 7 resets the run', r.yes, `lap ${r.lap} ms after`);
   r = await resets('KeyR');
   check('and R no longer does', !r.yes, `lap ${r.lap} ms after`);
   await leaveFlight();
 
   console.log('2. a clash is refused');
   await openControls();
-  const msg = await bindRow('unstick', 'KeyN');
-  check('Unstick on N is refused, naming Reset', Boolean(msg) && /Reset/.test(msg), msg);
+  const msg = await bindRow('unstick', 'Digit7');
+  check('Unstick on 7 is refused, naming Reset', Boolean(msg) && /Reset/.test(msg), msg);
+  const talkMsg = await bindRow('unstick', 'KeyN');
+  check('Unstick on N is refused: the game reads it in flight (push to talk)', Boolean(talkMsg) && /N is used/.test(talkMsg), talkMsg);
   check('Unstick keeps X', await page.evaluate("window.__ui.items().find((it) => it.action === 'keybind:unstick').value === 'X'"));
 
   console.log('3. a binding for this aircraft only');
@@ -145,8 +157,8 @@ try {
   await page.until("window.__craft().run === 'cub1400' && window.__craftState().mode === 'flight'", 60000);
   r = await resets('Digit3');
   check('on the Cub 3 does nothing', !r.yes, `lap ${r.lap} ms after`);
-  r = await resets('KeyN');
-  check('and N resets, the every-aircraft key', r.yes, `lap ${r.lap} ms after`);
+  r = await resets('Digit7');
+  check('and 7 resets, the every-aircraft key', r.yes, `lap ${r.lap} ms after`);
   await leaveFlight();
 
   console.log('4. reset all');
@@ -157,6 +169,49 @@ try {
   await fly();
   r = await resets('KeyR');
   check('R resets again', r.yes, `lap ${r.lap} ms after`);
+  await leaveFlight();
+
+  console.log('5. a pad button');
+  await page.evaluate(`window.__pads.push({ index: 0, id: 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)',
+    connected: true, mapping: 'standard', timestamp: 1, axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })) }); true`);
+  await page.until("!!window.__input.standardPad()", 10000);
+  const pad = (i, on) => page.evaluate(`(() => { const p = window.__pads[0]; p.buttons[${i}] = { pressed: ${on}, touched: ${on}, value: ${on ? 1 : 0} }; p.timestamp += 1; return true; })()`);
+  async function bindPadRow(id, i) {
+    await clickRow(`it.action === 'keybind:${id}'`);
+    await page.until(`window.__ui.binding === '${id}'`, 5000);
+    await page.sleep(300);
+    await pad(i, true);
+    await page.until('!window.__ui.binding', 5000);
+    await pad(i, false);
+    await page.sleep(300);
+    return page.evaluate('window.__ui.keybindMsg || null');
+  }
+  await openControls();
+  /* Section 3 left Keys for on this aircraft. */
+  await page.evaluate("window.__ui.keysScope = 'all'; window.__ui.renderMenu(); true");
+  check('the Replay row shows the pad\'s X', await page.evaluate("window.__ui.items().find((it) => it.action === 'keybind:replay').value === 'Pad X'"));
+  check('Reset armed with the pointer takes the pad\'s A', (await bindPadRow('reset', 0)) === null);
+  const row = await page.evaluate("window.__ui.items().find((it) => it.action === 'keybind:reset').value");
+  check('the row says R, pad A', row === 'R, pad A', row);
+  check('the press did not also arm a row', await page.evaluate('!window.__ui.binding'));
+  check('the profile holds it', await page.evaluate("JSON.parse(localStorage.getItem('webfpv.settings.v3')).padbinds.all.reset === 'a'"));
+  let m = await bindPadRow('unstick', 0);
+  check('Unstick on A is refused, naming Reset', Boolean(m) && /Reset/.test(m), m);
+  m = await bindPadRow('unstick', 9);
+  check('Unstick on Start is refused as the game\'s', Boolean(m) && /START/.test(m), m);
+  await fly();
+  await page.until('window.__traffic().lap > 2500', 60000);
+  await pad(0, true);
+  await page.sleep(400);
+  await pad(0, false);
+  const lap = await page.evaluate('window.__traffic().lap');
+  check('in flight the pad\'s A resets the run', lap < 1500, `lap ${lap} ms after`);
+  await leaveFlight();
+  await openControls();
+  await clickRow("it.action === 'keybind:*'");
+  await page.sleep(300);
+  check('Reset all clears the pad bindings too', await page.evaluate("JSON.parse(localStorage.getItem('webfpv.settings.v3')).padbinds === undefined"));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } catch (e) {

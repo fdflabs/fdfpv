@@ -32,6 +32,7 @@ import { MAPS } from '../maps/registry.js';
 import { readPilotName } from '../share/pilot.js';
 import { activeCourseSummary } from '../share/summary.js';
 import { str } from '../strings/index.js';
+import { cursorOnLit, flyWithPending } from './flywith.js';
 import { fitsAsSegments } from './rows.js';
 import { HUBS } from './ways.js';
 import { btn, el } from './widgets.js';
@@ -57,7 +58,7 @@ const CRUMBS = {
   quad: ['ui.quad'],
   launch: ['ui.before_you_fly'],
   standings: ['ui.race', 'ui.standings'],
-  rates: ['ui.settings', 'ui.rates'],
+  rates: ['hub.hangar', 'controller.title', 'ui.rates'],
   pids: ['ui.quad', 'PIDs'],
   fc: ['ui.quad', 'ui.firmware_bench'],
   paused: ['ui.paused'],
@@ -65,7 +66,9 @@ const CRUMBS = {
   howto: ['ui.how_to_fly'],
   tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
-  controls: ['ui.settings', 'keybinds.title'],
+  controls: ['hub.hangar', 'controller.title', 'keybinds.title'],
+  controller: ['hub.hangar', 'controller.title'],
+  flywith: ['flywith.title'],
   friends: ['friends.title'],
   rooms: ['friends.title', 'roombrowser.title'],
   roomnew: ['friends.title', 'roombrowser.title', 'roombrowser.new_title'],
@@ -92,6 +95,8 @@ const MENU_FIELD = {
   planerates: 'planeratesMenu',
   pids: 'pidsMenu',
   controls: 'controlsMenu',
+  controller: 'controllerMenu',
+  flywith: 'flywithMenu',
   fc: 'fcMenu',
   paused: 'pausedMenu',
   quick: 'quickMenu',
@@ -315,6 +320,9 @@ function arriveAt(ui, screen) {
   if (screen === 'howto') {
     ui.renderHowto();
   }
+  if (screen === 'flywith') {
+    cursorOnLit(ui);
+  }
   /* The trick film is the one thing asking for frames outside flight: it
    * runs on exactly one screen. */
   if (ui.trickPlayer) {
@@ -481,6 +489,11 @@ export const navMethods = {
       if (!this.returnTo) {
         this.returnTo = 'title';
       }
+    }
+    /* A new pilot's first screen is the controller question, until it is
+     * answered (src/ui/flywith.js); a room or the address wins over it. */
+    if (screen === 'title' && flyWithPending(this)) {
+      screen = 'flywith';
     }
     leaveFor(this, screen);
     const leaving = this.items()[this.cursor];
@@ -734,7 +747,7 @@ export const navMethods = {
     const pad = this.lastInput === 'pad';
     if (this.screen === 'walk' && this.walk && this.walk.photo) {
       return [
-        { keys: pad ? ['Roll'] : ['Drag', 'Wheel'], text: str('walk.photo_aim') },
+        { keys: pad ? [str('ratespanel.roll')] : [str('ui.cap_drag'), str('ui.cap_wheel')], text: str('walk.photo_aim') },
         { keys: [pad ? 'A' : 'Space'], text: str('walk.photo_take'), action: 'walk-photo-take' },
         { keys: ['T'], text: str('walk.turntable'), action: 'walk-turntable' },
         { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
@@ -746,7 +759,7 @@ export const navMethods = {
     if (this.screen === 'walk' && this.walk && this.walk.visit) {
       return [
         { keys: [], text: str('walk.visiting', { callsign: this.walk.visit.callsign }) },
-        { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
+        { keys: pad ? [str('ui.pitch'), str('ratespanel.roll')] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'B' : 'Esc'], text: str('walk.home'), action: 'hangar-walk' },
       ];
     }
@@ -760,20 +773,20 @@ export const navMethods = {
         ...(this.roomLineupList ? this.roomLineupList() : []).filter((e) => !e.own).slice(0, VISIT_PEERS)
           .map((e) => ({ keys: [], text: str('walk.visit_peer', { callsign: e.name }), action: `walk-visit:${e.name}` })),
         { keys: [], text: str(open ? 'walk.visits_on' : 'walk.visits_off'), action: 'walk-visits' },
-        { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
+        { keys: pad ? [str('ui.pitch'), str('ratespanel.roll')] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'A' : 'E'], text: str('walk.use') },
         { keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' },
       ];
     }
     const hints = [];
-    const arrows = (a, b) => (pad ? ['Pitch'] : [a, b]);
+    const arrows = (a, b) => (pad ? [str('ui.pitch')] : [a, b]);
     if (this.cardScreen()) {
       /* Pitch walks a card strip on the pad; roll chooses and backs. */
       hints.push({ keys: arrows('←', '→'), text: str('ui.move') });
     } else {
       hints.push({ keys: arrows('↑', '↓'), text: str('ui.move') });
       if (this.rowKind(this.items()[this.cursor]) === 'value') {
-        hints.push({ keys: pad ? ['Roll'] : ['←', '→'], text: str('ui.adjust') });
+        hints.push({ keys: pad ? [str('ratespanel.roll')] : ['←', '→'], text: str('ui.adjust') });
       }
     }
     hints.push({ keys: [pad ? 'A' : 'Enter'], text: str('ui.choose') });

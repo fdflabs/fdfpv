@@ -38,6 +38,7 @@ import { STICK_MODES, normaliseStickMode, stickCaption } from '../input/stickmod
 import { boardConfigured } from '../share/board.js';
 import { boardFlightSeconds } from '../share/stats.js';
 import { str } from '../strings/index.js';
+import { cursorOnLit } from './flywith.js';
 import { formatRunClock, formatTime } from './format.js';
 import { WEIGHT_STOCK, airHintSeen, clampWeight, markAirHintSeen, saveSettings } from './settings.js';
 import { el, makePadCard, placeNub, placeSticks } from './widgets.js';
@@ -64,15 +65,15 @@ const GEAR_KEYS = { up: 'ui.gear_up', down: 'ui.gear_down' };
 
 /* Wording for input.js's calibration steps; the order is CAL_STEPS. */
 const CAL_LABELS = {
-  center: 'Centre',
+  center: str('ui.cal_centre'),
   sweep: str('ui.full_range'),
-  throttle: 'Throttle',
-  roll: 'Roll',
-  pitch: 'Pitch',
-  yaw: 'Yaw',
+  throttle: str('ui.throttle'),
+  roll: str('ratespanel.roll'),
+  pitch: str('ui.pitch'),
+  yaw: str('ui.yaw_axis'),
   /* Asked only of a radio with no buttons (SELECT_STEP in input.js). */
   select: str('ui.menu_switch'),
-  confirm: 'Check',
+  confirm: str('input.check'),
 };
 
 const NO_CHANNELS = Object.freeze({ roll: 0, pitch: 0, yaw: 0, throttle: 0 });
@@ -107,17 +108,17 @@ function paintClock(ui, freestyle, lapMs, runScored, runTimed, runState, runRema
   let cls;
   if (!freestyle || runScored === false) {
     const timing = Number.isFinite(lapMs);
-    label = freestyle ? 'Air' : 'Lap';
+    label = freestyle ? str('ui.clock_air') : str('ui.lap_label');
     face = timing ? formatTime(lapMs) : '0.00';
     cls = timing ? 'osd-timer' : 'osd-timer waiting';
   } else if (runTimed === false) {
-    label = 'Run';
-    face = 'Free';
+    label = str('ui.clock_run');
+    face = str('ui.clock_free');
     cls = 'osd-timer waiting';
   } else {
     const started = runState === 'flying' || runState === 'over';
     const left = Number.isFinite(runRemainMs) ? runRemainMs : 0;
-    label = 'Run';
+    label = str('ui.clock_run');
     face = started ? formatRunClock(left) : RUN_CLOCK_FULL;
     if (!started) {
       cls = 'osd-timer waiting';
@@ -718,10 +719,17 @@ export const overlayMethods = {
    */
   setPadInfo(info) {
     const before = padTroubleItem(this.padInfo);
+    const deviceWas = this.padInfo && this.padInfo.device;
     this.padInfo = info || { count: 0, using: str('ui.keyboard') };
     const after = padTroubleItem(this.padInfo);
     const changed = (before ? before.label : '') !== (after ? after.label : '');
     if (changed && this.screen === 'title') {
+      this.renderMenu();
+    }
+    /* The controller question lights the device plugged in, live, and
+     * the cursor goes to it: plugging it in is the pilot's answer. */
+    if (deviceWas !== this.padInfo.device && this.screen === 'flywith') {
+      cursorOnLit(this);
       this.renderMenu();
     }
   },

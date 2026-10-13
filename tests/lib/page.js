@@ -310,6 +310,12 @@ async function signIn(callsign) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/* Answered only when unanswered, so a check that answers it itself keeps
+ * its answer across a reload. */
+const FLY_WITH_SKIPPED = `try {
+  if (localStorage.getItem('fdfpv.flywith.v1') === null) localStorage.setItem('fdfpv.flywith.v1', 'skip');
+} catch (e) { /* storage refused: the shell reads that as answered */ }`;
+
 /* Under SIM_CSP (tests/lib/server.js sends the deployed policy as a
  * header), every violation is a console error naming what was blocked,
  * and close() prints each once as a "csp-violation:" line, so any check
@@ -337,6 +343,15 @@ const CSP_SEED = `document.addEventListener('securitypolicyviolation', (e) => co
  * `override`: a path the page fetches from its own server mapped to the
  * JavaScript served in its place, so a check can run another version of
  * one module beside this tree's.
+ *
+ * `host`: a name the page is served under in place of 127.0.0.1, which
+ * Chromium resolves to the loopback server and treats as a secure origin,
+ * so a check sees what a pilot on a public host sees (not a local host:
+ * src/share/devhooks.js closes developer mode).
+ *
+ * `askFlyWith`: leave the new pilot's controller question unanswered
+ * (src/ui/flywith.js). Off, it is answered Skip before the app runs, so
+ * a check that starts from empty storage still starts on the title.
  */
 export async function openPage({
   root,
@@ -348,6 +363,8 @@ export async function openPage({
   args = [],
   account = process.env.SIM_ACCOUNT === '1' ? 'Tester' : null,
   override = {},
+  host = null,
+  askFlyWith = false,
 } = {}) {
   const chrome = findChrome();
   if (!chrome) {
@@ -355,8 +372,10 @@ export async function openPage({
   }
   const signedIn = account ? await signIn(account) : null;
   const server = await startServer(root);
+  const origin = host ? server.origin.replace('127.0.0.1', host) : server.origin;
+  const hostArgs = host ? [`--host-resolver-rules=MAP ${host} 127.0.0.1`, `--unsafely-treat-insecure-origin-as-secure=${origin}`] : [];
   const profile = await mkdtemp(join(tmpdir(), 'sim-page-'));
-  const proc = spawn(chrome, chromeFlags({ width, height, profile, args }));
+  const proc = spawn(chrome, chromeFlags({ width, height, profile, args: [...hostArgs, ...args] }));
   const sweep = () => {
     proc.kill();
     rmSync(profile, RM_RETRIES);
@@ -399,12 +418,12 @@ export async function openPage({
   /* A controller plugged into this machine is a real pad to headless Chrome
    * too, and one has flown a check's aircraft off its parking spot. No page
    * sees a pad unless its own seed, run after this one, stubs one. */
-  const seeds = ['navigator.getGamepads = () => [];', ...(process.env.SIM_CSP ? [CSP_SEED] : []),
+  const seeds = ['navigator.getGamepads = () => [];', ...(askFlyWith ? [] : [FLY_WITH_SKIPPED]), ...(process.env.SIM_CSP ? [CSP_SEED] : []),
     ...(signedIn ? [signedIn.seed] : []), ...seed];
   for (const source of seeds) {
     await call('Page.addScriptToEvaluateOnNewDocument', { source });
   }
-  await call('Page.navigate', { url: `${server.origin}${url}` });
+  await call('Page.navigate', { url: `${origin}${url}` });
 
   /* The expression's value, with a promise awaited. A throw is an error
    * here, not a logged line: every caller is asserting on the answer. */
@@ -500,7 +519,7 @@ export async function openPage({
     sessionId,
     errors,
     warnings,
-    origin: server.origin,
+    origin,
     proc,
     accounts: signedIn?.accounts ?? null,
     account: signedIn?.account ?? null,

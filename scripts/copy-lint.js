@@ -10,6 +10,14 @@
  * console call, a style property, a storage key). Files listed in EXCUSED
  * are not scanned, each with its reason. Run with npm run lint:copy.
  *
+ * ONE WORD is copy too: a literal that is a single capitalised word ('Roll',
+ * 'Off', 'Lap') and is not compared against is a label the pilot reads,
+ * which the sentence rule cannot see because it has no space (isWord).
+ * Excused: the names of keyboard keys (KEY_CAPS; docs/SPANISH-GLOSSARY.md
+ * keeps them as the keyboard prints them), proper names (PROPER), and a
+ * word a file uses as an id rather than as copy (WORD_IDS). The lint first
+ * runs both rules on fixed samples and fails if one is judged wrong.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -44,9 +52,9 @@ const EXCUSED = new Map([
   ['src/game/verify.js', 'runs on the board; its refusal reasons are the board\'s to translate'],
   ['src/game/race.js', 'runs on the board too; its flash text is composed on the OSD'],
   ['src/game/tricks.js', 'trick proper names stay as they are in every language'],
+  ['src/game/tricks-sheet.js', 'GENERATED from the workbook: trick proper names, and difficulty ids that trickLevel turns into words'],
   ['src/ui/fc.js', 'Betaflight field names are the firmware\'s, not ours to translate'],
   ['src/boot.js', 'runs before the string table can load'],
-  ['src/ui/loading.js', 'runs before the string table can load; its copy is the recovery advice'],
   ['src/game/proven.js', 'trick proper names and their proven signatures'],
   ['src/game/trickdetect.js', 'trick proper names, matched by the detector'],
   ['src/render/tracks.js', 'music titles are the tracks\' own names'],
@@ -59,12 +67,15 @@ const EXCUSED = new Map([
   ['src/fc/catalog-data.js', 'the Betaflight value table, firmware data'],
   ['src/render/budget.js', 'a developer overlay of GPU allocations'],
   ['src/replay/refly.js', 'a developer tool; its refusal reasons go to an Error and the replay-refly CLI, not the pilot'],
+  ['src/ui/wardebug.js', 'a developer overlay of the attackers\' routes; drawn only in developer mode'],
+  ['src/share/devhooks.js', 'the developer hook index; read through window.__dev.help() in developer mode, not by the pilot'],
 ]);
 
 const SHAPE_OK = [
   /^[MmLlHhVvCcSsQqTtAaZz0-9xX\s.,\-e]+$/,                      /* svg path, x for a blanked placeholder */
   /(\d(px|em|rem|vh|vw|%|deg|ms|s)\b|rgba?\(|hsla?\(|var\(--|calc\(|translate|scale\(|url\(|(brightness|saturate|hue-rotate|contrast|grayscale|sepia|blur|drop-shadow|invert|opacity)\(|!important|inset\b)/,
   /^\s*[<{[]/,                                                    /* html or json */
+  /^[#.][\w-]+(\s+[#.]?[\w-]+)*$/,                                /* a CSS selector */
   /^[A-Z_0-9]+(\s+[A-Z_0-9]+)+$/,                                 /* constants */
   /^[\s\d.,+\-*/%()=<>!&|?:^~]+$/,                              /* numbers and operators */
   /^(source-over|destination-|lighter|multiply|screen|overlay|round|square|butt|miter|bevel|center|left|right|top|bottom|middle|alphabetic|hanging|ideographic|bold|italic|normal|small-caps)\b/,
@@ -79,7 +90,7 @@ const SHAPE_OK = [
   /\/api\//,                                                        /* a board route */
   /^\s*[a-z-]+=\\?"[^"]*\\?"/,                                      /* markup attributes */
 ];
-const CONTEXT_OK = /(new Error|new TypeError|new RangeError|throw |console\.[a-z]+|\.style\.[a-zA-Z]+ *=|setProperty\(|\.cssText|className *=|classList\.|setAttribute\((['"])(d|viewBox|points|fill|stroke|transform|style|class|font|font-family)\1|\.font *=|\.textBaseline|\.textAlign|\.globalCompositeOperation|\.filter *=|localStorage\.|sessionStorage\.|Symbol\(|new RegExp|assert\(|must\(|import\(|from |\.matchMedia\(|querySelector(All)?\(|getContext\(|new URL\(|fetch\(|performance\.mark|performance\.measure|dataset\.[a-zA-Z]+ *=|\b(bad|missing): *$)[^;]*$/;
+const CONTEXT_OK = /(new Error|new TypeError|new RangeError|throw |console\.[a-z]+|log(?:Warn|Error)\(|\.style\.[a-zA-Z]+ *=|setProperty\(|\.cssText|className *=|classList\.|setAttribute\((['"])(d|viewBox|points|fill|stroke|transform|style|class|font|font-family)\1|\.font *=|\.textBaseline|\.textAlign|\.globalCompositeOperation|\.filter *=|localStorage\.|sessionStorage\.|Symbol\(|new RegExp|assert\(|must\(|import\(|from |\.matchMedia\(|querySelector(All)?\(|getContext\(|new URL\(|fetch\(|performance\.mark|performance\.measure|dataset\.[a-zA-Z]+ *=|\b(bad|missing): *$)[^;]*$/;
 
 function isProse(raw) {
   /* Innermost placeholders first, so a template inside a template blanks
@@ -99,6 +110,62 @@ function isProse(raw) {
     return false; /* a class list: hyphenated tokens, or no English word among them */
   }
   return true;
+}
+
+/* Keys as the keyboard prints them, which stay in every language. */
+const KEY_CAPS = new Set(['Alt', 'Backquote', 'Backspace', 'Comma', 'Control', 'Del', 'Delete', 'End', 'Enter', 'Equal', 'Esc',
+  'Escape', 'Home', 'Meta', 'Minus', 'Period', 'Shift', 'Slash', 'Space', 'Tab']);
+
+/* Proper names and units: fonts, browsers, products, the wordmark, which
+ * stays in English, and units as written (docs/SPANISH-GLOSSARY.md). */
+const PROPER = new Set(['Menlo', 'Consolas', 'Chrome', 'Edge', 'Firefox', 'Opera', 'Safari', 'Version', 'Bearer', 'Grok', 'Claude',
+  'Paraguayan', 'Drone', 'Combat', 'Simulator', 'Desktop', 'Files', 'Hz']);
+
+/* A word a file uses as an id, never shown as itself. */
+const WORD_IDS = new Map([
+  ['src/input/input.js', new Set(['Keyboard'])], /* the pad picker's sentinel; items.js shows ui.keyboard for it */
+  ['src/main.js', new Set(['Harness'])], /* a check's ghost name, through a window.__ hook */
+]);
+
+/* A comparison, a membership test or a key list just before the literal. */
+const COMPARED = /(===|!==|==|!=|\bcase|\.has\(|\.includes\(|\.startsWith\(|\.endsWith\(|\bcode\b[^;]*\|\|)\s*$/;
+
+function isWord(text, before, rel = '') {
+  if (!/^[A-Z][a-z]+$/.test(text) || KEY_CAPS.has(text) || PROPER.has(text) || WORD_IDS.get(rel)?.has(text)) {
+    return false;
+  }
+  const line = before.slice(before.lastIndexOf('\n') + 1);
+  return !COMPARED.test(line) && !CONTEXT_OK.test(before);
+}
+
+/* The rules on fixed samples, each with what it must say: a lint that
+ * stops flagging, or flags everything, fails here first. */
+const SAMPLES = [
+  ['isWord', 'Roll', "  roll: { name: ", true],
+  ['isWord', 'Off', "  return on ? 'On' : ", true],
+  ['isWord', 'Lap', "    label = freestyle ? 'Air' : ", true],
+  ['isWord', 'Escape', "  if (code === ", false],
+  ['isWord', 'Crashed', "    if (reason === ", false],
+  ['isWord', 'Menlo', "const FONT = ['ui-monospace', ", false],
+  ['isWord', 'Enter', "    hints.push({ keys: [pad ? 'A' : ", false],
+  ['isWord', 'Shift', "  if (['Alt', 'Control'].includes(k) || k === ", false],
+  ['isWord', 'roll', "  axis: ", false],
+  ['isWord', 'Bad', "    throw new Error(", false],
+  ['isProse', 'Back to the hangar', '  label: ', true],
+  ['isProse', '#map-preview img', '  this.img = find(', false],
+  ['isProse', 'name-dialog-btn on', '  btn(', false],
+];
+let wrong = 0;
+for (const [rule, text, before, want] of SAMPLES) {
+  const got = rule === 'isWord' ? isWord(text, before) : isProse(text);
+  if (got !== want) {
+    wrong += 1;
+    console.log(`  negative control: ${rule}(${JSON.stringify(text)}) after ${JSON.stringify(before)} said ${got}, must say ${want}`);
+  }
+}
+if (wrong) {
+  console.log(`FAIL, the rules judged ${wrong} of ${SAMPLES.length} fixed samples wrong`);
+  process.exit(1);
 }
 
 async function walk(dir, out = []) {
@@ -127,6 +194,13 @@ for (const f of files) {
   scanned += 1;
   const src = await readFile(f, 'utf8');
   for (const lit of literals(src)) {
+    if (isWord(lit.text, lit.before, rel)) {
+      hits += 1;
+      if (hits <= 60) {
+        console.log(`  ${rel}:${lit.line}  ${JSON.stringify(lit.text)} (one word)`);
+      }
+      continue;
+    }
     if (!isProse(lit.text) || CONTEXT_OK.test(lit.before)) {
       continue;
     }
@@ -142,7 +216,7 @@ for (const f of files) {
     }
   }
 }
-console.log(`copy lint: ${scanned} file(s) scanned, ${EXCUSED.size} excused`);
+console.log(`copy lint: ${scanned} file(s) scanned, ${EXCUSED.size} excused, ${SAMPLES.length} fixed samples judged right`);
 if (hits) {
   console.log(`FAIL, ${hits} sentence(s) outside src/strings`);
   process.exit(1);

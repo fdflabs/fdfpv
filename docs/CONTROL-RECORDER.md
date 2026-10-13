@@ -76,6 +76,15 @@ Deflated, about 140 kB for the region and 22 kB a second for the rest (a Timber 
 cut with it when the replay opens (while the journal still holds what its rows name) and it is packed when
 the clip is saved; trimming keeps the whole of it and moves the rows' marks.
 
+Since file version 18 a clip also names the app build that flew it (the header's `build`: the deploy's
+stamp that Settings and the credits show, null on a page served from a checkout), taken when the replay opens
+on the live recording, so a clip opened from an older file and saved again stays unknown rather than taking
+the build that edited it. The git blob id above names only dist/sim.wasm, which many deploys share while
+their maps, screens and checks differ. My clips shows it after the map ("build unknown" for a clip saved
+before it) and replay:refly prints it above the module's id. It is the first field only the header holds;
+file.js HEADER_ONLY is the one rule for such fields (a file of that version or later has it, an older one
+never does), so the next one is a row there, not another version special case.
+
 `npm run replay:refly -- CLIP.fdfreplay [--wasm new.wasm] [--old clip-build.wasm] [--transplant] [--every s]
 [--json out.json]` first flies it again, exactly, on the build that recorded it (the module given if it is that
 build, else `--old`, else `git cat-file blob <id>` from this checkout), on a
@@ -96,7 +105,8 @@ every row it can fly matches.
   build (or with `--transplant`), the clip is then flown twice more: once on the clip's build and once on the
   new one, each set up the same way and started in the same state. "Set up" is the clip's setup log: the text
   of the last sim_init and every call the shell made since it except the every-step ones (sim_input,
-  sim_step, sim_set_ground, sim_set_ground_material, sim_damage_events and the sim_wing_gear reader), each
+  sim_step, sim_set_ground, sim_set_ground_material, sim_damage_events, the air the weather sets before
+  every step (sim_set_wind, sim_set_air_vertical) and the sim_wing_gear reader), each
   with where it fell in the journal's stretches, so only the calls made before the first row are made. The
   state is the clip's own at that row, from the exact re-fly, put in with sim_set_pose and sim_set_velocity;
   then the journal's calls from that row on are made again, the sticks' timestamps moved onto the new
@@ -178,16 +188,23 @@ Upload anything. Record when the switch is off. Replace the flight log.
   row pressed with a pointer hands over a CSV that parses; a restart keeps the last flight; the viewer's
   Last flight button, pressed with a pointer, shows it.
 - `npm run actions:golden`, `npm run war:legacy`: unchanged.
+- `npm run crashcam:selftest` (section 25): the app build, a stamp and a checkout's null each through the
+  version 18 round trip bit for bit; the same clip without one still version 16, the same bytes, shown as
+  "build unknown"; a trim keeps it; refused: a version 18 file without its build, one in a version 16 file,
+  one that is a number, over 40 characters or with characters no stamp has, and on the way out one without
+  sticks.
 - `npm run crashcam:selftest` (section 23): the sticks ring, quantising, sampling, trimming, the version
   16 round trip bit for bit, a clip without sticks still written as before, the refusals, and the export
   read back by parseCsv and loaded by Compare sticks.
 - `npm run replay:sticks [OUT_DIR]` (browser): a Timber flown through four stick settings with a flap
   notch, the replay's nubs where each setting puts them, the Sticks CSV button pressed with a pointer,
-  saved and replayed as version 17 and the saved file flown again in Node by replay:refly, bit for bit, then
+  saved and replayed as version 18 (its row naming a checkout's null build) and the saved file flown again in Node by replay:refly, bit for bit, then
   transplanted twice onto the same build from its setup log, the two flights the same, an old clip played with its note, the gimbals clear of the rest of the
   screen at 1280 by 720 and 800 by 600, and the export read by /dev/hover.html. Leaves pictures in OUT_DIR.
 - `npm run replay:refly:selftest` (CI-able, Node, about 2 s): a 40 s scripted Skyhunter flight recorded
-  through a journaled module as the crash cam records it, saved as version 17, read back and flown again:
+  through a journaled module as the crash cam records it, saved as version 17 (no app build, the old clip)
+  and as version 18 (with one, the same refly), a build in a file that says 17 refused, and the 18 read back
+  and flown again:
   every row's hash and every copy match, and a clip trimmed to 10..20 s too. Negative controls: gravity
   changed by 0.2 % after the copy is written differs from the first row and parts by 0.76 m over 30 s; a
   build with the airframes' air density changed is refused by its id, flies 27 m away from the original from

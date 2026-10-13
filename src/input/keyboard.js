@@ -128,6 +128,20 @@ export class KeyboardSticks {
     }
   }
 
+  /* -1, 0 or 1: which way `down(code)` holds `channel`'s keys, the
+   * positive key winning; 0 for the throttle, which is not sprung. */
+  push(channel, down) {
+    const spring = this.springs.find(([ch]) => ch === channel);
+    if (!spring) {
+      return 0;
+    }
+    const [, minusKey, plusKey] = spring;
+    if (down(plusKey)) {
+      return 1;
+    }
+    return down(minusKey) ? -1 : 0;
+  }
+
   /* After a mode change a key may now mean another channel, so every
    * sprung channel starts again from centre. The collective carries over. */
   centreSprings() {

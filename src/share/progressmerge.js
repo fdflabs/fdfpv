@@ -28,8 +28,10 @@
  *   progress   XP is the higher of the two; courses flown, challenges
  *              done, firsts paid and the rest are flags, and a flag set on
  *              either side is set; Unlock all is on if either turned it
- *              on; lessons passed are the union at the earlier pass
- *              time; medals per course the better of the two; the
+ *              on; lessons passed and certifications are the union at
+ *              the earlier time; medals per course the better of the two;
+ *              landings, crashes, laps and kills per aircraft the
+ *              higher of the two; the
  *              version is the newer of the two.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
@@ -94,7 +96,8 @@
 
 import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
-import { retiredAirframe } from '../../configs/airframes.js';
+import { COUNTED } from '../game/progress.js';
+import { CLASSES, retiredAirframe } from '../../configs/airframes.js';
 import { tiersShape } from '../../configs/surfaces.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import { cleanPilotCounts, mergePilotCounts } from './pilotcounts.js';
@@ -117,11 +120,17 @@ export const SYNCED_SECTIONS = {
   /* The control surface tiers (configs/surfaces.js), by airframe. */
   surfaces: 'keyed',
   tuneFor: 'keyed',
+  /* The pilot's own camera per aircraft (src/ui/settings.js cameraFor). */
+  cameraFor: 'keyed',
+  /* The pilot's own rates per aircraft class (src/ui/settings.js
+   * swapClassRates), beside the seated class's in `rates`. */
+  ratesFor: 'keyed',
   pids: 'keyed',
   floats: 'keyed',
   tune: 'whole',
   rates: 'whole',
   keybinds: 'whole',
+  padbinds: 'whole',
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
@@ -133,10 +142,12 @@ export const SYNCED_SECTIONS = {
    * (src/share/hangarvisit.js). Absent, as in every blob before it, is
    * closed: no migration step needed, the absence already means off. */
   hangarVisit: 'whole',
+  /* The last Solo, Friends or Public per activity (settings.js). */
+  sessionVisibility: 'keyed',
   records: 'best',
 };
 
-const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts', 'lessonsFlown'];
+const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts', 'played', 'lessonsFlown'];
 
 function isRecord(o) {
   return Boolean(o) && typeof o === 'object' && !Array.isArray(o);
@@ -167,6 +178,8 @@ const ENTRY_SHAPES = {
   /* configs/wear.js holds the fields; the server holds the shape. */
   packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
   surfaces: (key, e) => ID_RE.test(key) && tiersShape(e),
+  cameraFor: (key, e) => ID_RE.test(key) && isRecord(e) && Number.isFinite(e.angle) && Number.isFinite(e.fov),
+  ratesFor: (key, e) => CLASSES.includes(key) && isRecord(e),
   favourites: (key, e) => key === 'list' && Array.isArray(e) && e.length <= FAVOURITES_MAX && e.every((id) => typeof id === 'string' && ID_RE.test(id)),
 };
 
@@ -176,7 +189,7 @@ const ENTRY_SHAPES = {
  * 2026-10-03) is dropped from a clean blob: its motors, props, packs,
  * parts and tune were that aircraft's, and its successor has its own.
  */
-const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'floats', 'combat'];
+const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'cameraFor', 'floats', 'combat'];
 
 /*
  * A build as this build of the game holds it: one made on a retired
@@ -321,15 +334,31 @@ function mergeProgress(a, b) {
       out.medals[k] = best;
     }
   }
+  /* Counts per aircraft (progress.js COUNTED): the higher of the two,
+   * so two computers flying offline may undercount and never overcount. */
+  for (const map of Object.values(COUNTED)) {
+    const ga = isRecord(a[map]) ? a[map] : {};
+    const gb = isRecord(b[map]) ? b[map] : {};
+    out[map] = {};
+    for (const k of new Set([...Object.keys(ga), ...Object.keys(gb)])) {
+      const n = Math.max(Number.isInteger(ga[k]) ? ga[k] : 0, Number.isInteger(gb[k]) ? gb[k] : 0);
+      if (n > 0) {
+        out[map][k] = n;
+      }
+    }
+  }
   out.unlockAll = a.unlockAll === true || b.unlockAll === true;
-  /* Lessons passed: every lesson either passed, at the earlier pass. */
-  const la = isRecord(a.lessons) ? a.lessons : {};
-  const lb = isRecord(b.lessons) ? b.lessons : {};
-  out.lessons = {};
-  for (const id of [...new Set([...Object.keys(la), ...Object.keys(lb)])].sort()) {
-    const t = [la[id], lb[id]].filter((v) => Number.isFinite(v) && v > 0);
-    if (t.length) {
-      out.lessons[id] = Math.min(...t);
+  /* Lessons passed and certifications earned: every one either side
+   * has, at the earlier time. */
+  for (const map of ['lessons', 'certs']) {
+    const ga = isRecord(a[map]) ? a[map] : {};
+    const gb = isRecord(b[map]) ? b[map] : {};
+    out[map] = {};
+    for (const id of [...new Set([...Object.keys(ga), ...Object.keys(gb)])].sort()) {
+      const t = [ga[id], gb[id]].filter((v) => Number.isFinite(v) && v > 0);
+      if (t.length) {
+        out[map][id] = Math.min(...t);
+      }
     }
   }
   /* The newer shape of the two (progress.js PROGRESS_VERSION): an older

@@ -518,6 +518,19 @@ const SCENARIOS = [
   scenario('pilot-combat', { settings: { airframe: 'striker2500', hudStyleBy: { striker2500: 'osd' }, volume: 10, motorLevel: 0, windLevel: 10, otherLevel: 0, effectsLevel: 10, ambientLevel: 0, voiceLevel: 10, musicLevel: 10 }, fields: { screen: 'pilot' } }),
   scenario('pilot-flight-time-some', { settings: { flightTime: { 'device0a': { by: { interceptor: { race: 120 } } } } }, fields: { screen: 'pilot', everyoneFlightS: 3599 } }),
 
+  /* The Controller screen (src/ui/controller.js): what Settings held
+   * for the sticks, nothing plugged in, mouse flight, a calibrated radio,
+   * a gamepad with its feel set, a radio no profile knows, a plane and a
+   * wing (the rates are their class's), the question. */
+  scenario('controller-none', { fields: { screen: 'controller', padInfo: { count: 0 } } }),
+  scenario('controller-mouse', { settings: { mouseFlight: true, mouseSens: 150, mouseExpo: 30, mouseInvert: true, mouseCentre: 'hold', stickMode: 1 }, fields: { screen: 'controller' } }),
+  scenario('controller-radio', { fields: { screen: 'controller', padInfo: { ...padFine, device: 'radio', profile: 'edgetx-usb', feel: { deadZone: 4, expo: 0 } } } }),
+  scenario('controller-gamepad', { fields: { screen: 'controller', padInfo: { ...padFine, using: 'Joystick 1, Xbox', calibrated: false, device: 'gamepad', profile: 'standard', feel: { deadZone: 8, expo: 25 } } } }),
+  scenario('controller-unknown', { fields: { screen: 'controller', padInfo: { ...padGuessing, device: 'radio', profile: 'aetr', feel: { deadZone: 0, expo: 0 } } } }),
+  scenario('controller-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
+  scenario('controller-wing', { settings: { airframe: 'striker2500' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
+  scenario('flywith-gamepad', { fields: { screen: 'flywith', padInfo: { ...padFine, device: 'gamepad', profile: 'standard' } } }),
+
   /* Standings. */
   scenario('standings-none', { fields: { screen: 'standings' } }),
   scenario('standings-empty', { fields: { screen: 'standings', standingsFor: { id: 'board-1', name: 'Hung track' } } }),

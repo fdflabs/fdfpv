@@ -331,6 +331,9 @@ async function main() {
     if (PAGE) {
       const u = new URL(PAGE);
       u.searchParams.set('map', MAP);
+      /* The builder is driven through window.__ui, which a deployed page
+       * registers only in developer mode (src/share/devhooks.js). */
+      u.searchParams.set('dev', '1');
       if (opts.board) {
         u.searchParams.set('board', BOARD);
       }

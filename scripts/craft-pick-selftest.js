@@ -11,9 +11,14 @@
  * 4. Changing aircraft and changing back lands on the tune each was last
  *    flown on (seatAirframe's tuneFor), and a stale entry falls back to
  *    the aircraft's default.
- * 5. Favourites (settings.favourites): a profile's or a sync's list is
+ * 6. Favourites (settings.favourites): a profile's or a sync's list is
  *    held to card ids, once each; the star toggles; the sync keeps a good
  *    list and refuses a bad one, the newer side winning.
+ * 7. The camera goes with the aircraft (keepCamera, seatAirframe's
+ *    cameraFor): the pilot's own angle and lens come back on the aircraft
+ *    they were set on, an aircraft never changed gets its stock, a change
+ *    back to stock leaves no entry, a camera nobody set is not kept, and
+ *    the sync holds the entries' shape.
  *
  * Run with npm run pick:selftest.
  *
@@ -45,7 +50,7 @@ import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 import { cycleCraft, kindOf, pickList, slotOf, slotX } from '../src/ui/carousel.js';
 import { normaliseFloats, seatAirframe, withFloats } from '../src/ui/ui.js';
-import { normaliseFavourites, toggleFavourite } from '../src/ui/settings.js';
+import { keepCamera, normaliseFavourites, toggleFavourite } from '../src/ui/settings.js';
 import { blobRefusal, cleanBlob, mergeBlobs, pickSynced } from '../src/share/progressmerge.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -169,7 +174,7 @@ console.log('5. the Floats toggle');
 }
 
 {
-  console.log('\n5. favourites');
+  console.log('\n6. favourites');
   const f = normaliseFavourites({ list: ['cub1400f', 'wing1000', 'bogus', 7, 'cub1400', 'interceptor', 'bramor2300'] });
   check('a float version is its land plane, a retired aircraft its successor, unknown ids and repeats go',
     f.list.join() === 'cub1400,bramor2300,interceptor', f.list.join());
@@ -188,6 +193,39 @@ console.log('5. the Floats toggle');
   const long = blobRefusal({ data: { favourites: { list: Array.from({ length: 65 }, (_, i) => `a${i}`) } } });
   check('a list that is not ids, or too long, is refused', bad && bad.section === 'favourites' && long && long.section === 'favourites',
     `${JSON.stringify(bad)} ${JSON.stringify(long)}`);
+}
+
+{
+  console.log('\n7. the camera goes with the aircraft');
+  const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+  const stock = (id) => ({ angle: airframeById(id).cameraAngle, fov: airframeById(id).cameraFov });
+  const cam = (s) => ({ angle: s.cameraAngle, fov: s.cameraFov });
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
+  check('an aircraft never changed flies its stock camera', same(cam(s), stock('interceptor')), JSON.stringify(cam(s)));
+  s.cameraAngle = 30;
+  s.cameraFov = 115;
+  keepCamera(s);
+  seatAirframe(s, 'cub1400');
+  check('the Cub gets its own stock, not the quad\'s camera', same(cam(s), stock('cub1400')), JSON.stringify(cam(s)));
+  check('and the quad\'s is kept for it', same(s.cameraFor, { interceptor: { angle: 30, fov: 115 } }), JSON.stringify(s.cameraFor));
+  s.cameraAngle = 12;
+  keepCamera(s);
+  seatAirframe(s, 'interceptor');
+  check('back on the quad, its camera is the pilot\'s', same(cam(s), { angle: 30, fov: 115 }), JSON.stringify(cam(s)));
+  check('an angle alone on the Cub\'s stock lens is kept too', same(s.cameraFor.cub1400, { angle: 12, fov: stock('cub1400').fov }), JSON.stringify(s.cameraFor));
+  s.cameraAngle = stock('interceptor').angle;
+  s.cameraFov = stock('interceptor').fov;
+  keepCamera(s);
+  check('a camera put back to stock leaves no entry', !('interceptor' in s.cameraFor), JSON.stringify(s.cameraFor));
+  const fresh = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates, cameraAngle: 30, cameraFov: 85 }, 'cub1400');
+  check('a camera nobody set (the defaults) is not kept at a seat change', same(fresh.cameraFor, {}), JSON.stringify(fresh.cameraFor));
+  s.cameraFor = { ...s.cameraFor, sky1800: { angle: 'x', fov: 115 }, wing1000: { angle: 10, fov: 95 } };
+  seatAirframe(s, 'sky1800');
+  check('a broken entry or one for an aircraft this build lacks is dropped', same(cam(s), stock('sky1800')) && same(Object.keys(s.cameraFor), ['cub1400']), JSON.stringify(s.cameraFor));
+  const sent = { v: 1, data: pickSynced({ cameraFor: { cub1400: { angle: 12, fov: 100 }, whoop65: { angle: 1, fov: 95 } } }), stamps: {} };
+  check('the sync keeps an entry and drops a retired aircraft\'s', same(cleanBlob(sent).data.cameraFor, { cub1400: { angle: 12, fov: 100 } }), JSON.stringify(cleanBlob(sent).data.cameraFor));
+  const bad = blobRefusal({ data: { cameraFor: { cub1400: { angle: 'x', fov: 100 } } } });
+  check('an entry without a numeric angle and lens is refused', Boolean(bad) && bad.section === 'cameraFor', JSON.stringify(bad));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
