@@ -70,6 +70,7 @@ jobs:
       - run: npm run servo:derive
       - run: npm run as3x:margins
       - run: npm run as3x:feel
+      - run: npm run as3x:tenths
       # The wings' ground effect against its sources and its surfaces
       # against the drawn model (scripts/ge-derive.js).
       - run: npm run ge:derive
