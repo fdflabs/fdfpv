@@ -58,6 +58,7 @@ import { musicIds, trackById } from '../render/tracks.js';
 import { accountsAvailable } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
+import { pageVersion } from './update.js';
 import { lapSlot, readPendingTime, readPostedBest } from '../share/session.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
@@ -670,6 +671,7 @@ function pilotRows(ui, s) {
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
     { label: str('ui.download_control_recording'), action: 'downloadcontrolrec', note: str('ui.download_control_recording_note') },
+    { label: str('ui.build'), value: pageVersion() || str('loading.local_build'), note: str('ui.build_note'), info: true },
     { label: str('ui.saved_data'), section: true },
     ...(ui.resetNotice ? [{ label: str('ui.not_saved'), value: '', info: true, rowClass: 'row-warn', note: ui.resetNotice }] : []),
     { label: str('ui.reset_settings'), action: 'resetsettings', note: str('ui.reset_settings_note') },

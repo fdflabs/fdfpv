@@ -47,8 +47,13 @@
  * this often costs nothing next to the poses a room sends. */
 const CHECK_MS = 3 * 60 * 1000;
 
+/* The deployed build, the commit stamped into the page, or null for a
+ * checkout. The menu tables read this in Node too, where there is no
+ * document or a stand in without querySelector: a checkout's answer. */
 export function pageVersion() {
-  return document.querySelector('meta[name="fdfpv-version"]')?.content || null;
+  const doc = globalThis.document;
+  if (!doc || typeof doc.querySelector !== 'function') return null;
+  return doc.querySelector('meta[name="fdfpv-version"]')?.content || null;
 }
 
 /* A browser without service workers, or one that refuses this one (a

@@ -1279,6 +1279,8 @@ export default {
   "ui.delete_preset": "Eliminar preset",
   "ui.devices_are_plugged_in_move_the": "Hay {n} dispositivos conectados. Mueve el que quieras usar. Windows los lista en el orden de Dispositivos de juego; en esta pantalla es donde eliges.",
   "ui.diagnostics": "Diagnóstico",
+  "ui.build": "Versión",
+  "ui.build_note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
   "ui.saved_data": "Datos guardados",
   "ui.reset_settings": "Restablecer ajustes",
   "ui.reset_settings_note": "Todos los ajustes vuelven a sus valores por defecto. Tu progreso, pintura, piezas y calibración de sticks se mantienen.",

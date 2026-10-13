@@ -8587,6 +8587,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-saved-data",
      "label": "Saved data",
      "section": true,
@@ -9672,6 +9680,14 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
      "drives": {}
     },
     {
@@ -10763,6 +10779,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-saved-data",
      "label": "Saved data",
      "section": true,
@@ -11851,6 +11875,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-saved-data",
      "label": "Saved data",
      "section": true,
@@ -12921,6 +12953,14 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
      "drives": {}
     },
     {
@@ -14169,6 +14209,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-saved-data",
      "label": "Saved data",
      "section": true,
@@ -15222,6 +15270,14 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
      "drives": {}
     },
     {
@@ -16318,6 +16374,14 @@
      "label": "Download control recording",
      "note": "Every 1 ms step of the last minute: sticks, control surfaces, attitude and frame timing. Open it at /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:build",
+     "label": "Build",
+     "value": "Local build",
+     "note": "The version of the game this page runs. A bug report carries it.",
+     "info": true,
      "drives": {}
     },
     {
@@ -33628,6 +33692,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-datos-guardados",
      "label": "Datos guardados",
      "section": true,
@@ -34713,6 +34785,14 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
      "drives": {}
     },
     {
@@ -35804,6 +35884,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-datos-guardados",
      "label": "Datos guardados",
      "section": true,
@@ -36892,6 +36980,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-datos-guardados",
      "label": "Datos guardados",
      "section": true,
@@ -37962,6 +38058,14 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
      "drives": {}
     },
     {
@@ -39210,6 +39314,14 @@
      "drives": {}
     },
     {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
+     "drives": {}
+    },
+    {
      "id": "pilot:s-datos-guardados",
      "label": "Datos guardados",
      "section": true,
@@ -40263,6 +40375,14 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
      "drives": {}
     },
     {
@@ -41359,6 +41479,14 @@
      "label": "Descargar grabación de mandos",
      "note": "Cada paso de 1 ms del último minuto: palancas, superficies de mando, actitud y tiempos de cuadro. Ábrela en /dev/hover.html.",
      "action": "downloadcontrolrec",
+     "drives": {}
+    },
+    {
+     "id": "pilot:versi-n",
+     "label": "Versión",
+     "value": "Versión local",
+     "note": "La versión del juego que corre esta página. Un reporte de error la incluye.",
+     "info": true,
      "drives": {}
     },
     {

@@ -1286,6 +1286,8 @@ export default {
   "ui.detecting": "Detecting",
   "ui.devices_are_plugged_in_move_the": "{n} devices are plugged in. Move the one you want. Windows lists them in Game Controllers order; this screen is how you pick.",
   "ui.diagnostics": "Diagnostics",
+  "ui.build": "Build",
+  "ui.build_note": "The version of the game this page runs. A bug report carries it.",
   "ui.saved_data": "Saved data",
   "ui.reset_settings": "Reset settings",
   "ui.reset_settings_note": "Every setting back to its default. Your progress, paint, parts and stick calibration stay.",
