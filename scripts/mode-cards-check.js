@@ -18,6 +18,13 @@
  * Combat's link on home, one click, and is in A's lobby. Both ready: the
  * round counts down on both pages and A is in the air.
  *
+ * CONTINUE (docs/redesign/COMPLETENESS.md item 57): none on a fresh
+ * profile; after the flight A and B leave and A reloads, and home's Flight
+ * Club shows Continue in Streamer Combat's link, its links no higher than
+ * with that card's label and the hubs inside the window at every size
+ * above; one click on it is Streamer Combat's press, into a public combat
+ * lobby.
+ *
  * Page C clicks Catch the Ace's link on home, one click, into its lobby;
  * page D, a phone held upright, opens Flight Club, walks the stacked cards
  * with ArrowDown and taps Catch the Ace into C's. Both ready, and both
@@ -248,6 +255,7 @@ try {
   check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
   check('each hub lists its activities as links: Flight Club\'s cards; the war, The Interior and the field hangar; the Hangar\'s seven',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
+  check('a fresh profile has no Continue on home (docs/redesign/COMPLETENESS.md item 57)', await a.evaluate("document.querySelector('.gate-card-continue') === null"));
   check('home shows the rooms panel (the owner, 2026-10-03), above the cards and clear of them and of the corner chips', panelLaidOut(home),
     `panel ${JSON.stringify(home.panel)} chips ${JSON.stringify(home.chips)} first card ${JSON.stringify(home.cards[0].box)}`);
   for (const [w, h, row] of SIZES) {
@@ -327,6 +335,52 @@ try {
   check('and A goes up with it', await a.evaluate("window.__craftState().mode === 'flight'"));
   await a.sleep(1500);
   await shot(a, 'combat-countdown');
+
+  /* CONTINUE (docs/redesign/PLAN.md phase 27): A and B leave the room
+   * after the flight, so no room is listed and none is mid round, and A
+   * reloads; Continue stands in Streamer Combat's link on home, every hub
+   * as high as it was, and is that card's press, into a public combat
+   * lobby. */
+  for (const p of [a, b]) {
+    await p.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+    await p.until('window.__rooms().code === null', 20000).catch(() => {});
+  }
+  await a.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await a.cdp.send('Page.navigate', { url: `${a.origin}${url}` }, a.sessionId);
+  await a.until('window.__beforeReload !== true && window.__shellReady === true', 300000);
+  await a.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
+  const cont = await a.evaluate(LAYOUT);
+  check('after the flight and a reload: home\'s Flight Club shows Continue in Streamer Combat\'s place, no other hub any',
+    cont.cards[0].links.join() === NAMES.replace('Streamer Combat', 'Continue') && cont.cards.slice(1).every((x) => !x.links.includes('Continue')),
+    cont.cards.map((x) => x.links.join()).join('|'));
+  /* Flight Club's links as high with Continue as with the label it
+   * stands in for, put back for the measure. */
+  const LINKS_TALL = `(() => {
+    const links = document.querySelector('.gate-card-hub-club .gate-links');
+    const link = links.querySelector('.gate-card-continue');
+    const tall = () => Math.round(links.getBoundingClientRect().height);
+    const with_ = tall();
+    link.textContent = 'Streamer Combat';
+    const own = tall();
+    link.textContent = 'Continue';
+    return [with_, own];
+  })()`;
+  for (const [w, h, row] of SIZES) {
+    await resize(a, w, h);
+    const v = await a.evaluate(LAYOUT);
+    const [withIt, own] = await a.evaluate(LINKS_TALL);
+    check(`${w} by ${h}, with Continue: Flight Club's links no higher than with Streamer Combat's label, home's hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, the rooms panel above them`,
+      withIt <= own && laidOut(v, 3) && shapeOf(v, row) && panelLaidOut(v),
+      `links ${withIt} vs ${own} ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw} panel ${JSON.stringify(v.panel)}`);
+    await shot(a, `continue-home-${w}x${h}`);
+  }
+  await resize(a, 1280, 720);
+  await a.click('.gate-card-continue');
+  await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
+  await a.sleep(800);
+  const lcont = await a.evaluate(LOBBY_OF);
+  check('Continue, one click: A is in the LOBBY of a public room made for combat, Ready under the cursor',
+    lcont.title === 'LOBBY' && lcont.public && lcont.mode === 'combat' && /Streamer Combat/.test(lcont.line) && lcont.here === 'friends-lobby-ready', JSON.stringify(lcont));
 
   /* CATCH THE ACE: C's click; D, a phone, the same card. */
   await c.click('.gate-card-ace');
