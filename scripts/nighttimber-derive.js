@@ -176,7 +176,8 @@ const Cmq = -2 * eta * at * VH * lh / c, Cmde = eta * VH * at * tauE, CLde = -et
 const Vtrim = 13, CLtrim = 2 * W / (rho * Vtrim * Vtrim * S), Cm0 = -Cma * CLtrim / CLa;
 const av = 2 * Math.PI * arV / (arV + 2), VV = Sv * lv / (S * b);
 const CYb = -av * Sv / S - 0.11;
-const Cnb = av * VV - 1.3 * fusVol / (S * b);
+const CnbFus = -1.3 * fusVol / (S * b);
+const Cnb = av * VV + CnbFus;
 const Cnr = -2 * av * VV * lv / b - CD0 / 4;
 /* A flat wing on top (the front view, EFL13875_A04): no dihedral, the
  * high wing's roll (DATCOM, -1.2 sqrt(A) (z_w / b)(2 D / b)) and the
@@ -499,7 +500,7 @@ function knifeEdge(V) {
     let side = 0, dr = 0;
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
-      const nBeta = qb * S * b * Cnb * sb + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
+      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
       const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
       dr = -nBeta / nPerDr;
       side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slip.slip_cy_b) * (V * sb)
@@ -549,6 +550,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['CD0, k', `${f(CD0, 4)} ${f(k, 5)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb, 4)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['Clβ (fin, high wing), Clp, Clδa', `${f(Clb, 4)} (${f(ClbFin, 4)} ${f(ClbHigh, 4)}) ${f(Clp, 4)} ${f(Clda, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

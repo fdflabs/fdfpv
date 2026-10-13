@@ -29,6 +29,7 @@
 
 import { planeTable, wash } from './lib/wash.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
+import { fuselageRatio } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -592,6 +593,22 @@ function takeoff() {
   return { x, t, V, vTail };
 }
 
+/* The side crossflow drag area: the fuselage's side, SBs, at Allen and
+ * Perkins' crossflow coefficient of 1.2 times their eta of 0.7, the 1.2 a
+ * round body's taken over to the drawn sections (scripts/lib/crossflow.js,
+ * NACA TN 3038), as the Extra's. The sections: the drawn model's FUSE_PX
+ * (src/render/p51craft.js), on its pixels of 1.2628 m over 1755, the
+ * drawing's scale (0.16 percent under PX above), station from 105 px and
+ * height from 370 px down: station, top, bottom px, half width m,
+ * squareness. */
+const FUSE = [
+  [225, 293, 412, 0.043, 2.1], [300, 280, 432, 0.047, 2.2], [400, 270, 446, 0.051, 2.3], [520, 264, 456, 0.055, 2.4],
+  [640, 258, 462, 0.057, 2.4], [760, 254, 465, 0.057, 2.4], [900, 253, 466, 0.056, 2.4], [1040, 255, 460, 0.053, 2.3],
+  [1200, 263, 440, 0.047, 2.2], [1400, 282, 410, 0.035, 2.1], [1600, 298, 384, 0.022, 2.0], [1770, 306, 364, 0.010, 2.0],
+].map(([x, top, bottom, w, e]) => [(x - 105) * 1.2628 / 1755, w, (370 - top) * 1.2628 / 1755, (370 - bottom) * 1.2628 / 1755, e]);
+const sectionK = fuselageRatio(FUSE);
+const sideCda = SBs * 1.2 * sectionK * 0.7;
+
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const J = (o, n = 3) => JSON.stringify(o, (kk, v) => (typeof v === 'number' ? +v.toFixed(n) : v));
 const rows = [
@@ -605,6 +622,8 @@ const rows = [
   ['zero lift line deg, sin, cos', `${f(alphaZL * DEG, 2)} ${Math.sin(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)} ${Math.cos(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
+  ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
+  ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ (the low wing\'s), Clp, Clδa', `${f(Clb, 4)} (${f(ClbLow, 4)}) ${f(Clp)} ${f(Clda, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr; tau e, r, a', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}; ${f(tauE)} ${f(tauR)} ${f(tauAil)}`],

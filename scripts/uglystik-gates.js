@@ -55,7 +55,7 @@ import {
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
   p51RecPrelude, p51AirPrelude, f16GroundPrelude,
   loopHold,
-  turnYawLimitDeg, spinWatch, personWingsHold, rollMode,
+  turnYawLimitDeg, spinWatch, stallWingsHold,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -87,6 +87,7 @@ const band = (b) => `${b.min} to ${b.max}`;
 const speed = (s) => Math.hypot(s[4], s[5], s[6]);
 const pct = (a, b) => 100 * Math.abs(a - b) / b;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+const loopSaid = (d) => `${d.wc} rad/s on ${d.gain}, lead ${d.lead} s, PM ${d.pmDeg} deg, GM ${d.gmDb === null ? 'none' : `${d.gmDb} dB`}${d.short ? ' SHORT of the criterion' : ''}`;
 /* The nose's heading on the ground plane, from the body's x axis in the
  * world; through a roll it reads the way the nose points, not the flight
  * path. */
@@ -322,8 +323,13 @@ check: {
    * (docs/UGLYSTIK-STAGE1.md): there the peak roll rate is what a wing
    * drop would show, and the ailerons it takes. */
   for (const [id, t11, duty] of [['U11a', th.u11_stall_power_off, 0], ['U11b', th.u11_stall_power_on, th.u11_stall_power_on.duty]]) {
-    clockMs = fly(sim, { duty: 0, vTarget: t11.entry, seconds: 25, guard: false, speed0: t11.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
-    const mode = rollMode((sticks) => step(sim, sticks).s, 0);
+    /* With power the wings are held by a person (wingpilot.js
+     * stallWingsHold): late and paced as a person is, the bank loop's
+     * crossover measured at the entry and in the stall, with the stick's
+     * whole travel and an integral against the steady torque and swirl on
+     * a stalled wing at a low dynamic pressure; what U11b measures is a
+     * wing drop (the roll rate and the aileron it takes), not the hold. */
+    const hold = duty ? stallWingsHold(sim, { entry: t11.entry, duty, entryDuty: 0, alphaStall: th.u2_stall.alphaStall }) : null;
     clockMs = fly(sim, { duty: 0, vTarget: t11.entry, seconds: 25, guard: false, speed0: t11.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const psi0 = edgeHeading(sim.readState().state);
     let worstBank = 0;
@@ -336,15 +342,9 @@ check: {
     let worstP = 0;
     let ailSum = 0;
     let o = { s: sim.readState().state };
-    /* With power the wings are held by a person (wingpilot.js
-     * personWingsHold): late and paced as a person is, with the stick's
-     * whole travel and an integral against the steady torque and swirl on
-     * a stalled wing at a low dynamic pressure; what U11b measures is a
-     * wing drop (the roll rate and the aileron it takes), not the hold. */
-    const hold = personWingsHold(mode);
     let stickSq = 0, stickPeak = 0;
     for (let ms = 0; ms < t11.seconds * 1000; ms += RC_STEP_MS) {
-      const roll = duty ? hold(o.s) : 0;
+      const roll = duty ? hold(o.s, wingDebug(sim)[0]) : 0;
       ailSum += Math.abs(roll);
       stickSq += roll * roll; stickPeak = Math.max(stickPeak, Math.abs(roll));
       o = step(sim, [roll, 1, 0, duty]);
@@ -362,7 +362,7 @@ check: {
     const held = duty ? worstP <= t11.maxRollRateDegS && ailMean <= t11.maxAileron : true;
     gate(id, `full up held, ${duty ? 'half throttle, wings held' : 'power off'}: nose drops, no wing drop`,
       worstBank <= t11.maxBankDeg && minPitch >= t11.minPitchDeg && spin.ok() && alphaMax > th.u2_stall.alphaStall && held,
-      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, alpha up to ${(alphaMax * DEG).toFixed(1)}${duty ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t11.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}, gain ${(hold.gain).toFixed(2)} per rad)` : ''}, ${speed(o.s).toFixed(2)} m/s at the end`,
+      `bank ${worstBank.toFixed(1)}, pitch ${minPitch.toFixed(0)} to ${maxPitch.toFixed(0)}, yaw ${worstR.toFixed(1)} deg/s (${spin.said()}), roll ${worstP.toFixed(1)} deg/s, heading ${worstHead.toFixed(0)} deg, alpha up to ${(alphaMax * DEG).toFixed(1)}${duty ? `, ailerons ${ailMean.toFixed(2)} of the stick (sd ${Math.sqrt(stickSq / (t11.seconds * 1000 / RC_STEP_MS)).toFixed(2)}, peak ${stickPeak.toFixed(2)}; the person's bank loop ${loopSaid(hold.design.entry)} at the entry, ${loopSaid(hold.design.stall)} stalled)` : ''}, ${speed(o.s).toFixed(2)} m/s at the end`,
       `stalled, bank ${t11.maxBankDeg}, pitch over ${t11.minPitchDeg}, yaw under the turn its bank allows at its speed while stalled${duty ? `, roll under ${t11.maxRollRateDegS} deg/s, ailerons under ${t11.maxAileron}` : ''}`);
   }
 

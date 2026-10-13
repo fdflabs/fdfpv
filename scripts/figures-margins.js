@@ -117,7 +117,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, attitude, responseAt, crossoverFor, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
+import {
+  must, attitude, responseAt, crossoverFor, hangSticks, leadDesign, PERSON_LEADS, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME,
+} from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
 import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP, HOVER, LINE_AIL, lineBank } from '../tests/lib/figureprograms.js';
 
@@ -654,8 +656,7 @@ export async function knifeLoopPath() {
  * roll rate hanging still with the ailerons let go, the mean over 3 to 6
  * s, E8's.
  */
-const HOVER_LEADS = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
-const PERSON_TAU = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
+const HOVER_LEADS = PERSON_LEADS;
 function hoverRig(airframe) {
   const stick = SEATED[airframe].hover;
   let iT = stick;
@@ -693,39 +694,6 @@ function hoverGrid(sim, rig, axis, read) {
   for (const x of g) x.phase += shift;
   return g;
 }
-/* The loop as flown at crossover wc with lead on the grid: its margins
- * and whether it keeps the criterion. */
-function leadLoop(g, wc, lead) {
-  const c = g.find((x) => Math.abs(x.w - wc) < 1e-9);
-  const k = 1 / (c.mag * Math.hypot(1, lead * wc));
-  const L = g.map((x) => {
-    const i = wc / (4 * x.w);
-    return { w: x.w, mag: k * x.mag * Math.hypot(1, lead * x.w) * Math.hypot(1, i), phase: x.phase + Math.atan(lead * x.w) - x.w * PERSON_TAU - Math.atan(i) };
-  });
-  const cross = L.find((l) => l.w >= wc - 1e-9 && l.mag < 1) ?? L[L.length - 1];
-  const turn = L.find((l) => l.w > cross.w && l.phase <= -Math.PI);
-  const pmDeg = (Math.PI + cross.phase) * 180 / Math.PI;
-  const gmDb = turn ? -DB(turn.mag) : null;
-  const above = L.filter((l) => l.w > cross.w + 1e-9);
-  const meets = pmDeg >= 45 && (gmDb === null || gmDb >= 6) && above.every((l) => l.mag < 1 && (l.phase > -Math.PI || l.mag <= 0.5));
-  return { wc, gain: Number((c.mag * Math.hypot(1, lead * wc) * wc).toFixed(3)), lead, pmDeg: Number(pmDeg.toFixed(1)), gmDb: gmDb === null ? null : Number(gmDb.toFixed(1)), meets };
-}
-function hoverDesign(g, leads) {
-  let best = null;
-  let fallback = null;
-  for (const lead of leads) {
-    for (let i = 4; i <= 20; i += 1) {
-      const l = leadLoop(g, i / 5, lead);
-      if (l.meets && (!best || l.wc > best.wc || (l.wc === best.wc && l.pmDeg > best.pmDeg))) best = l;
-      const gm = l.gmDb ?? Infinity;
-      const better = !fallback || (l.pmDeg >= 45 ? fallback.pmDeg < 45 || gm > (fallback.gmDb ?? Infinity) : fallback.pmDeg < 45 && l.pmDeg > fallback.pmDeg);
-      if (better) fallback = l;
-    }
-  }
-  const pick = best ?? fallback;
-  const { meets, ...rest } = pick;
-  return { ...rest, short: !best };
-}
 export async function hoverLoops(airframe) {
   const sim = await fresh();
   const rig = hoverRig(airframe);
@@ -737,7 +705,7 @@ export async function hoverLoops(airframe) {
   };
   const out = { airframe };
   for (const [name, [axis, read, leads]] of Object.entries(axes)) {
-    const d = hoverDesign(hoverGrid(sim, rig, axis, read), leads);
+    const d = leadDesign(hoverGrid(sim, rig, axis, read), leads);
     out[name] = name === 'roll' || name === 'climb' ? (({ lead, ...r }) => r)(d) : d;
   }
   rig.start(sim);

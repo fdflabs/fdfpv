@@ -455,16 +455,38 @@ R-474) on each fuselage's side area from its derivation or render model.
   side force is war:legacy's and is not this lane's to move.
 - The floats' own side area is not in the float versions' figure: the
   land fuselage's is, ESTIMATED.
-- The 1.2 is a round body's. The Extra, CAP, Slick (63d1a6073) and the
-  Night Timber (w37-physics-servo) take theirs on their drawn rounded box
-  sections, NACA TN 3038 through `scripts/lib/crossflow.js`. Still on the
-  round body's, with what their drawn FUSE tables give (2026-10-12, not
-  applied: each moves its own gates): the Timber 1.19, Cub 1.40, Tiger
-  Moth 1.48, Radian 1.34, Bombshell 1.52, Hercules 1.02 times it (the
-  Hercules is at 0.78 of its side view, another source). The Kadet's box
-  sections (squareness 5) are past the lib's 4 and need TN 3038's sharper
-  rounded squares; the P-51, F-16 and Ugly Stik draw their fuselages in
-  other forms.
+- The 1.2 is a round body's. Each aircraft whose fuselage is drawn in
+  sections takes its own, NACA TN 3038 Table I through
+  `scripts/lib/crossflow.js`, the section's drag over a round body's
+  averaged over the side view: the Extra 1.30, CAP 1.30, Slick 1.35
+  (63d1a6073), Night Timber 1.32 (w37-physics-servo); and
+  (w38-fuselage-side) the Timber 1.19, Cub 1.40, Tiger Moth 1.48, Radian
+  1.34, Bombshell 1.52, Kadet 1.72 (its square box past squareness 4, on
+  Table I's sharper rectangles), P-51 1.29, Ugly Stik 1.69 (its slab box
+  with the kit's quarter inch corners), Skyhunter 1.16 (its pod) and
+  Hercules 1.02 (Allen and Perkins' 1.2 too, at their eta of 0.65 on 0.85
+  of the side view). Each derive script prints its figure. The floats'
+  tables carry their land fuselage's.
+- Still on the round body's 1.2, ESTIMATED: the F-16, whose drawn body
+  is two half superellipses on a chine with the strakes' edges at its
+  widest line and the intake's duct under it, shapes TN 3038 did not
+  test; and the Bramor, whose pod blends into its delta with no drawn
+  sections of its own.
+- The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
+  1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
+  is gone flying sideways and turns over with the flow from behind. Each
+  derivation's fuselage share of cn_beta (-1.3 Vol / (S b), or Nelson's
+  K_N term) is `cn_beta_fus`, taken out of the stability axis terms and
+  put on -u v / V^2 in the body (plant_wing.c, MUNK'S MOMENT): the same
+  at small sideslip, none at 90 deg, where before it stayed whole (the
+  Extra's -0.043 of 0.24) and a share of it went into roll. Every table
+  with a fuselage carries it, the Strikers' from `combat:derive`; the
+  float versions add the floats' (`floats:derive`); the Skyhunter's and
+  the Bramor's pods are their documents' and ESTIMATED. The F-16's
+  measured ratio against alpha (hi_lat) takes it as it takes the rest. A
+  fin lost in a crash leaves the body's WING_BODY_CN_BETA on the same
+  form. The pitch analogue, Munk's u w, is the fuselage's cm_alpha share
+  and is still linear in alpha.
 
 ### The probe, PR 3 to PR 4
 
