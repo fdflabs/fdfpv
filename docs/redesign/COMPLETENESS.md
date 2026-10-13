@@ -522,24 +522,31 @@ airframe drawn), `itaipu:spawns`. Phase 12 adds `airframes:check`.
 
 ## 10. Words (items 38 to 39)
 
-**38. Localization readiness. PARTIAL**, nearly done. English and Spanish,
-3301 keys each (src/strings/en.js, es.js); `strings:selftest` (CI) holds
+**38. Localization readiness. PARTIAL, words BUILT (phase 24).** English
+and Spanish (src/strings/en.js, es.js); `strings:selftest` (CI) holds
 parity, placeholders and plurals; `lint:copy` (CI) fails on prose outside
-the tables; the bootloader's rows are keys (`data-label`, loading.js 817).
-Left: four stage names typed in English beside two that are keys
-(`STAGE_NAMES`, loading.js 98: Renderer, Board, Map, World), and
-`ReplayFileError` messages shown inside a translated line
-(src/replay/editor.js 461, 1141). Trick names are proper names by
-decision (copy-lint.js `EXCUSED`). Portuguese is a new table, not a
-retrofit. **Done:** those strings are keys. Check: `lint:copy` narrows
-loading.js's excuse to the recovery advice. Size S. Phase 24.
+the tables and, since 2026-10-13, on a label of one capitalised word that
+is not compared against (isWord, with key names, proper names, units and
+two ids excused by name, and 13 fixed samples first). The loader's stage
+names and every one word label it found are keys; loading.js is scanned
+again. Trick names are proper names by decision (copy-lint.js
+`EXCUSED`). Left: `ReplayFileError`'s 95 messages (src/replay/file.js),
+shown inside a translated line (src/replay/editor.js); the proposal is a
+key per pilot reason (not a replay, too large, a newer version, an
+aircraft or map this build lacks, damaged) with the detail kept in
+English for the log. Size S.
 
-**39. Text expansion. PARTIAL.** Spanish ships and runs longer, so the
-problem is real, but every layout check (`lint:responsive`,
-`lint:devices`, `modes:card`, all local) runs in English only. **Done:**
-`modes:card` and `lint:devices` run once more with `?lang=es` and assert
-no clipped label (scrollWidth over clientWidth) on the title, the hubs and
-the lobby. Size S. Phase 24.
+**39. Text expansion. CHECKED (phase 24), not fixed.** `lint:devices`
+walks every device in English and Spanish, and `modes:card` page H opens
+home, Flight Club and a lobby with ?lang=es at four sizes; both fail on a
+cut word (text running past the box that clips it, an ellipsis included),
+after a word cut on purpose is found. Both are red with what they find,
+most of it in English too: the menu's stepper values (camera angle "5
+deg..." on every device, the lobby's Round "3 min"), the GPU name, the
+pids percent signs, the FC bench's names, How to fly's tabs on a phone,
+the lobby's room name, Solo and Back; in Spanish alone at 360 also Arcade,
+Reducida, Normal, Modo 4, Aviónica and Todavía sin volar. The fixes are
+the menu rows' and the lobby's.
 
 ## 11. Comfort, audio, graphics (items 40 to 47)
 
@@ -929,18 +936,14 @@ src/ui/campaign.js 188), "Coming in Act {n}" on a later upgrade
 (PLAN.md section 1, PILLARS 12 on AI fill). No TODO or FIXME in src. No
 check enforces it.
 
-**83. Consistent terminology. PARTIAL.** `lint:nouns` (CI) holds one
-rule: the pilot reads "track", never "course" (scripts/noun-lint.js);
-docs/SPANISH-GLOSSARY.md fixes the Spanish (track pista, room sala). But
-the strings say room 230 times, lobby 43, game 23, match 12, session 6,
-and the redesign's words (operation, mission, activity, session, party)
-are not fixed anywhere. **Done:** one glossary in
-docs/SPANISH-GLOSSARY.md, both languages: operation (Defend the Paraná),
-mission (one of its seven), activity (a Flight Club entry), session (a
-room set up for an activity, what the pilot sees), round (one go in a
-session), room (the code's word, never shown where session fits), party
-not used (the session's pilots); `lint:nouns` grows a rule per settled
-word. Size S. Phase 24.
+**83. Consistent terminology. BUILT (phase 24).** One glossary,
+docs/SPANISH-GLOSSARY.md "The game's nouns": operation, mission, stage,
+activity, session, lobby, round, room, party not used, in both
+languages, with where today's copy still differs (match for round,
+session for a browser's visit, Spanish sesión for a run). `lint:nouns`
+(CI) holds a rule per word that is gone from the copy: course (track) and
+party; a word still used in the old sense gets its rule when its copy
+moves. Checks: `lint:nouns`.
 
 **84. Protect the family-origin use case. Held by the owner: to be
 discussed with the owner later.**
