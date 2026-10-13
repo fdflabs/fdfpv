@@ -297,6 +297,12 @@ export const cardMethods = {
         card.classList.toggle('on', on);
         card.tabIndex = on ? 0 : -1;
         card.setAttribute('aria-current', String(on));
+        /* Home's hubs scroll in their column on a short touch phone
+         * (index.html, 44 px links): the lit one is brought into it. */
+        const column = card.parentElement;
+        if (on && column && column.scrollHeight > column.clientHeight) {
+          card.scrollIntoView({ block: 'nearest' });
+        }
       });
       for (const { node, i } of this.titleRoomEls || []) {
         node.classList.toggle('on', i === this.cursor);
