@@ -35,7 +35,7 @@
           },
           "yaw": {
             "wc": 2.8,
-            "gain": 2.127,
+            "gain": 2.125,
             "lead": 0.15,
             "pmDeg": 35,
             "gmDb": 2.3,
@@ -43,7 +43,7 @@
           },
           "roll": {
             "wc": 2.4,
-            "gain": 7.637,
+            "gain": 7.638,
             "pmDeg": 47.4,
             "gmDb": 8.1,
             "short": false
@@ -61,30 +61,30 @@
           "airframe": 32,
           "pitch": {
             "wc": 2.2,
-            "gain": 1.702,
+            "gain": 1.701,
             "lead": 0.25,
-            "pmDeg": 51.1,
+            "pmDeg": 51,
             "gmDb": 6.4,
             "short": false
           },
           "yaw": {
             "wc": 1.4,
-            "gain": 0.666,
+            "gain": 0.665,
             "lead": 0.2,
-            "pmDeg": 47,
+            "pmDeg": 46.8,
             "gmDb": 5.3,
             "short": true
           },
           "roll": {
             "wc": 2.8,
-            "gain": 8.281,
-            "pmDeg": 48.9,
-            "gmDb": 7.8,
+            "gain": 8.481,
+            "pmDeg": 48.8,
+            "gmDb": 7.7,
             "short": false
           },
           "climb": {
             "wc": 1.8,
-            "gain": 33.323,
+            "gain": 33.325,
             "pmDeg": 46.4,
             "gmDb": 9.4,
             "short": false
@@ -103,22 +103,22 @@
           },
           "yaw": {
             "wc": 2.2,
-            "gain": 0.898,
+            "gain": 0.893,
             "lead": 0.35,
-            "pmDeg": 53.6,
+            "pmDeg": 53.5,
             "gmDb": 6.3,
             "short": false
           },
           "roll": {
             "wc": 2.8,
-            "gain": 2.38,
-            "pmDeg": 50.9,
+            "gain": 2.403,
+            "pmDeg": 51,
             "gmDb": 6.3,
             "short": false
           },
           "climb": {
             "wc": 0.8,
-            "gain": 22.671,
+            "gain": 22.668,
             "pmDeg": 72.6,
             "gmDb": 11.4,
             "short": false
@@ -176,7 +176,7 @@
             },
             "0 deg 14 m/s": {
               "w180": 11.7,
-              "mag": 5.5,
+              "mag": 5.52,
               "kr": 0.09
             },
             "-45 deg 14 m/s": null,
@@ -192,7 +192,7 @@
             },
             "0 deg 18 m/s": {
               "w180": 12.9,
-              "mag": 6.5,
+              "mag": 6.52,
               "kr": 0.076
             },
             "-45 deg 18 m/s": null,
@@ -208,7 +208,7 @@
             },
             "0 deg 22 m/s": {
               "w180": 14.2,
-              "mag": 7.55,
+              "mag": 7.56,
               "kr": 0.066
             },
             "-45 deg 22 m/s": null,
@@ -233,7 +233,7 @@
             },
             "-45 deg 30 m/s": {
               "w180": 15.9,
-              "mag": 7.09,
+              "mag": 7.08,
               "kr": 0.07
             }
           }
@@ -315,7 +315,7 @@
             },
             "0 deg 22 m/s": {
               "w180": 10.9,
-              "mag": 3.94,
+              "mag": 3.95,
               "kr": 0.126
             },
             "-45 deg 22 m/s": null,
@@ -327,7 +327,7 @@
             },
             "0 deg 26 m/s": {
               "w180": 12,
-              "mag": 4.56,
+              "mag": 4.57,
               "kr": 0.109
             },
             "-45 deg 26 m/s": null,
@@ -335,7 +335,7 @@
             "45 deg 30 m/s": null,
             "0 deg 30 m/s": {
               "w180": 13,
-              "mag": 5.05,
+              "mag": 5.06,
               "kr": 0.098
             },
             "-45 deg 30 m/s": null
@@ -346,7 +346,7 @@
           "kr": [
             [
               8,
-              0.473
+              0.472
             ],
             [
               14,
@@ -354,7 +354,7 @@
             ],
             [
               18,
-              0.244
+              0.243
             ],
             [
               22,
@@ -373,7 +373,7 @@
             "90 deg 8 m/s": {
               "w180": 7.5,
               "mag": 1.06,
-              "kr": 0.473
+              "kr": 0.472
             },
             "45 deg 8 m/s": null,
             "0 deg 8 m/s": null,
@@ -394,7 +394,7 @@
             "45 deg 18 m/s": {
               "w180": 8.6,
               "mag": 2.05,
-              "kr": 0.244
+              "kr": 0.243
             },
             "0 deg 18 m/s": null,
             "-45 deg 18 m/s": null,
@@ -449,22 +449,22 @@
         "extra": {
           "airframe": 29,
           "wc": 2.8,
-          "gain": 9.341,
-          "pmDeg": 46.7,
-          "gmDb": 7
+          "gain": 9.353,
+          "pmDeg": 46.8,
+          "gmDb": 6.9
         },
         "cap": {
           "airframe": 32,
           "wc": 2.8,
-          "gain": 5.048,
-          "pmDeg": 47.9,
-          "gmDb": 6.6
+          "gain": 5.198,
+          "pmDeg": 45.8,
+          "gmDb": 6.7
         },
         "slick": {
           "airframe": 33,
           "wc": 2.6,
-          "gain": 5.191,
-          "pmDeg": 46.1,
+          "gain": 5.192,
+          "pmDeg": 49.2,
           "gmDb": 7.5
         }
       },
@@ -472,8 +472,8 @@
         "bank": {
           "crossoverFor": 2,
           "wc": 2,
-          "gain": 13.731,
-          "pmDeg": 45.2,
+          "gain": 13.785,
+          "pmDeg": 45,
           "wcFound": 2.2,
           "gmDb": 9.2,
           "w180": 5.8
@@ -481,8 +481,8 @@
         "elevation": {
           "crossoverFor": 0.8,
           "wc": 0.8,
-          "gain": 1.078,
-          "pmDeg": 90.8,
+          "gain": 1.064,
+          "pmDeg": 91,
           "wcFound": 1,
           "gmDb": 7.7,
           "w180": 10.4
@@ -490,7 +490,7 @@
         "heading": {
           "crossoverFor": 2.2,
           "wc": 2,
-          "gain": 6.041,
+          "gain": 6.039,
           "pmDeg": 46.3,
           "wcFound": 2.2,
           "gmDb": 9.2,
@@ -498,14 +498,14 @@
         },
         "trim": {
           "rudder": 0.38,
-          "elevation": 0.187,
+          "elevation": 0.188,
           "speed": 32.9
         }
       },
       "knifeLoop": {
         "path": {
           "crossoverFor": 1.6,
-          "gain": 0.971,
+          "gain": 0.958,
           "wc": 0.8,
           "pmDeg": 63.1,
           "wcFound": 1,
@@ -621,7 +621,9 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
+        "flew": [
+          "two_point_roll 0"
+        ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
@@ -667,8 +669,8 @@
         "crashed": false,
         "lowestM": 150,
         "others": {
-          "cap": 6,
-          "slick": 6.5
+          "cap": 6.5,
+          "slick": 6
         },
         "seated": {
           "extra": null,
@@ -712,7 +714,7 @@
         "lowestM": 150,
         "others": {
           "cap": 10,
-          "slick": 9.5
+          "slick": 10
         },
         "seated": {
           "extra": null,
@@ -839,7 +841,7 @@
         "lowestM": 134,
         "others": {
           "cap": 4,
-          "slick": 2
+          "slick": 2.5
         },
         "seated": {
           "extra": null,
@@ -880,7 +882,7 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 100.2,
+        "lowestM": 100.3,
         "others": {
           "cap": 3.5,
           "slick": 2
@@ -974,16 +976,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 10,
+        "grade": 9,
         "flew": [
-          "ke_loop 10"
+          "ke_loop 9"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
           "cap": 8,
-          "slick": 6
+          "slick": 3
         },
         "seated": {
           "extra": null,
@@ -1142,9 +1144,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 7.5,
+        "grade": 7,
         "flew": [
-          "half_roll 7.5"
+          "half_roll 7"
         ],
         "finished": true,
         "crashed": false,
@@ -1192,9 +1194,9 @@
       },
       "measured": {
         "named": true,
-        "grade": 6,
+        "grade": 5.5,
         "flew": [
-          "double_roll 6"
+          "double_roll 5.5"
         ],
         "finished": true,
         "crashed": false,
@@ -1320,9 +1322,9 @@
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 116.8,
+        "lowestM": 116.9,
         "others": {
-          "cap": 0.5,
+          "cap": 0,
           "slick": 2
         },
         "seated": {
@@ -1467,16 +1469,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 6.5,
+        "grade": 7,
         "flew": [
-          "hover 6.5"
+          "hover 7"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
           "cap": 8.5,
-          "slick": 8.5
+          "slick": 7.5
         },
         "seated": {
           "extra": null,
@@ -1511,16 +1513,16 @@
       },
       "measured": {
         "named": true,
-        "grade": 7.5,
+        "grade": 8.5,
         "flew": [
-          "torque_roll 7.5"
+          "torque_roll 8.5"
         ],
         "finished": true,
         "crashed": false,
         "lowestM": 150,
         "others": {
           "cap": 8.5,
-          "slick": 8.5
+          "slick": 7.5
         },
         "seated": {
           "extra": null,
@@ -1555,7 +1557,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 145.6,
+        "lowestM": 145.4,
         "others": {
           "cap": null,
           "slick": null
@@ -1590,12 +1592,11 @@
         "named": false,
         "grade": null,
         "flew": [
-          "half_roll 7",
-          "half_roll 0"
+          "half_roll 7"
         ],
         "finished": true,
         "crashed": false,
-        "lowestM": 141.2,
+        "lowestM": 136.9,
         "others": {
           "cap": null,
           "slick": null
@@ -1630,7 +1631,7 @@
         "flew": [],
         "finished": true,
         "crashed": false,
-        "lowestM": 109.1,
+        "lowestM": 129.2,
         "others": {
           "cap": null,
           "slick": null
@@ -1668,7 +1669,7 @@
         "named": false,
         "grade": null,
         "flew": [
-          "spin 10"
+          "spin 9.5"
         ],
         "finished": true,
         "crashed": false,
@@ -1759,10 +1760,14 @@
       "measured": {
         "named": false,
         "grade": null,
-        "flew": [],
-        "finished": true,
-        "crashed": false,
-        "lowestM": 149.1,
+        "flew": [
+          "half_roll 3",
+          "half_roll 4.5",
+          "half_roll 5.5"
+        ],
+        "finished": false,
+        "crashed": true,
+        "lowestM": 0,
         "others": {
           "cap": null,
           "slick": null

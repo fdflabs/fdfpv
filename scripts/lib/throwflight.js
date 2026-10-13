@@ -13,7 +13,8 @@
  *   the drag on the linear lift with cd0's Reynolds number scaling and the
  *   deflected surfaces' drag; the pitching moment the same way; the six
  *   lateral derivatives and the CL rules' cross terms in the stability
- *   axes; the fuselage's crossflow drag (side_cda);
+ *   axes, the fuselage's share of cn_beta on Munk's u v in the body; the
+ *   fuselage's crossflow drag (side_cda);
  * - the motor: an electric's duty on the seated pack (scripts/lib/
  *   propcurve.js wingSeat, the gates' 4.1 V), an engine's from its idle,
  *   spooled from the duty's speed at the throw on Drela's law (or a glow
@@ -422,10 +423,14 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     let clbL = clb, cnbL = cnb, cldrL = cldr, cndrL = cndr;
     const rClp = hl ? hlAt(2) : 1, rCnr = hl ? hlAt(3) : 1, rAil = hl ? hlAt(4) : 1;
     if (hl) { cnbL *= hlAt(0); clbL *= hlAt(1); const rr = hlAt(5); cldrL *= rr; cndrL *= rr; }
+    /* Munk's moment, the fuselage's share of cn_beta on -u v / V^2 in the
+     * body, out of the stability axes (plant_wing.c, MUNK'S MOMENT). */
+    const cnFus = fw.cn_beta_fus * (hl ? hlAt(0) : 1);
+    const munk = V > 1e-6 ? -(u * v) / (V * V) : 0;
     const dAm = dA * rAil;
     const clS = clbL * betaS + fw.cl_p * rClp * ps * b2v + fw.cl_da * dAm + (hl ? hlAt(6) : fw.cl_r_per_cl * CL) * rs * b2v + cldrL * dR;
-    const cnS = cnbL * betaS + fw.cn_r * rCnr * rs * b2v + (hl ? hlAt(7) : fw.cn_p_per_cl * CL) * ps * b2v + fw.cn_da_per_cl * CL * dAm + cndrL * dR;
-    const clBody = clS * cosB - cnS * sinB, cnBody = cnS * cosB + clS * sinB;
+    const cnS = (cnbL - cnFus) * betaS + fw.cn_r * rCnr * rs * b2v + (hl ? hlAt(7) : fw.cn_p_per_cl * CL) * ps * b2v + fw.cn_da_per_cl * CL * dAm + cndrL * dR;
+    const clBody = clS * cosB - cnS * sinB, cnBody = cnS * cosB + clS * sinB + cnFus * munk;
     const clFlat = plateCn * sinA * cosA;
     const cmLow = -sigma * (fw.lowre_arm_ac * clLin + fw.lowre_arm_cp * clFlat);
     const mAero = qbar * fw.area * fw.chord * (fw.cm_0 + cmStiff + fw.cm_q * qAero * c2v + cmDe * dE + cmLow - (fw.cg_shift / fw.chord) * CL);

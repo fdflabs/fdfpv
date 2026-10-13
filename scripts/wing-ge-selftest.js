@@ -88,32 +88,44 @@ const PLANES = [
  * Ugly Stik, Tiger Moth and Hercules (were 67c0dfd1d6dce1d1,
  * b8541ee8b370c6f4, 08b9109d261f83b5, 42cf55e4be2ce1de, 1714bd0bf5b41596,
  * 6df7666ef3a9b593, cb55e508b565c328, 2af0141678d16393, 3f5b18c3d6fd6773,
- * 7eed8ee1f43b5c98, 1617c025e09104fb and 4405e5e3b684abe5). */
+ * 7eed8ee1f43b5c98, 1617c025e09104fb and 4405e5e3b684abe5). Re-pinned for
+ * the fuselage's share of the weathercock on Munk's sin 2 beta
+ * (w38-fuselage-side, NACA TR 184), the ground's term unchanged: sky (was
+ * a0e9654872f117b8), cub (was 53b0ed725308b1a0), radian (was
+ * 7a89ca11e112bfe3), timber (was 6f4dc161dc2c4d5b), bramor (was
+ * 639bbf37df657ca7), timberf (was 7d1a5eba1683439d), cubf (was
+ * 94d5decb25853be4), bombshell (was a4517d5f8efe5d1f), kadet (was
+ * 72ca1f7516cee3ba), p51 (was 03e3300de3a1086a), f16 (was
+ * 68bf198f7585f9e2), uglystik (was 72067e8d4610b92d), tigermoth (was
+ * 6bfa8b2e5b0b0234), strikerprop (was ac1ebe1d9baba2ed), strikerjet (was
+ * 2c30dccda291887d), extra (was 3507628f2a5cfd82), nighttimber (was
+ * 964632c1e2defb8e), hercules (was 17e4cfd6a556458f), cap580 (was
+ * 8abf9aeac1ba645b), slick (was d7e7790e169321bc). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
-  sky: 'a0e9654872f117b8',
-  cub: '53b0ed725308b1a0',
+  sky: '98dbc41182defb65',
+  cub: 'a800a9bacc6ca86e',
   slowstick: '731483e6eb017e98',
-  radian: '7a89ca11e112bfe3',
-  timber: '6f4dc161dc2c4d5b',
-  bramor: '639bbf37df657ca7',
-  timberf: '7d1a5eba1683439d',
-  cubf: '94d5decb25853be4',
-  bombshell: 'a4517d5f8efe5d1f',
-  kadet: '72ca1f7516cee3ba',
-  p51: '03e3300de3a1086a',
-  f16: '68bf198f7585f9e2',
+  radian: '4e0c156e7201c5a5',
+  timber: 'c56e0195572eefd8',
+  bramor: '8191b109670108ee',
+  timberf: '59bac20e4dbc5e49',
+  cubf: 'ae4a533ae8390f4f',
+  bombshell: '50dcf037afd32e48',
+  kadet: '038828363ad67d9c',
+  p51: '4fed22c5316b798f',
+  f16: '0b2d44b8ed4affdd',
   zagi: 'abccd77d1b7b9034',
-  uglystik: '72067e8d4610b92d',
+  uglystik: '69d7b779b2222825',
   nrj: '31151485dea980a5',
-  tigermoth: '6bfa8b2e5b0b0234',
-  strikerprop: 'ac1ebe1d9baba2ed',
-  strikerjet: '2c30dccda291887d',
-  extra: '3507628f2a5cfd82',
-  nighttimber: '964632c1e2defb8e',
-  hercules: '17e4cfd6a556458f',
-  cap580: '8abf9aeac1ba645b',
-  slick: 'd7e7790e169321bc',
+  tigermoth: 'dfbcb81229d100c0',
+  strikerprop: 'cc5c73165bbbee13',
+  strikerjet: '3a313d5090f2f3fb',
+  extra: '2fca4407efd2d224',
+  nighttimber: '2b1e8e70189de507',
+  hercules: '75408e31a83e82dd',
+  cap580: '8e66909096631404',
+  slick: '5449163f8a43d393',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */

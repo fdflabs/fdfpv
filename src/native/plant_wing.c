@@ -2188,6 +2188,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     fw_dmg.cm_de = fw->cm_de * h;
     fw_dmg.cl_de = fw->cl_de * h;
     fw_dmg.cn_beta = f * fw->cn_beta + (1.0 - f) * WING_BODY_CN_BETA;
+    /* What is left with the fin gone is the body's, Munk's couple
+     * (MUNK'S MOMENT below). */
+    fw_dmg.cn_beta_fus = f * fw->cn_beta_fus + (1.0 - f) * WING_BODY_CN_BETA;
     fw_dmg.cn_r = fw->cn_r * (0.3 + 0.7 * f);
     fw_dmg.cy_beta = fw->cy_beta * (0.5 + 0.5 * f);
     const double r = f < CRASH.rudder_keep ? f : CRASH.rudder_keep;
@@ -2816,8 +2819,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double r_clp = hi_lat ? hi_lat_at(fw->hi_lat[2], a_body) : 1.0;
   const double r_cnr = hi_lat ? hi_lat_at(fw->hi_lat[3], a_body) : 1.0;
   const double r_ail = hi_lat ? hi_lat_at(fw->hi_lat[4], a_body) : 1.0;
+  const double r_cnb = hi_lat ? hi_lat_at(fw->hi_lat[0], a_body) : 1.0;
   if (hi_lat) {
-    cnb *= hi_lat_at(fw->hi_lat[0], a_body);
+    cnb *= r_cnb;
     clb *= hi_lat_at(fw->hi_lat[1], a_body);
     const double r_rud = hi_lat_at(fw->hi_lat[5], a_body);
     cydr *= r_rud;
@@ -3219,7 +3223,25 @@ void plant_wing_step(SimState *s, const double rc[4]) {
 
   cl_sum = add_term(cl_sum, (hi_lat ? hi_lat_at(fw->hi_lat[6], a_body) : fw->cl_r_per_cl * CL) * rs * b2v);
   cl_sum = add_term(cl_sum, cldr * delta_r);
-  double cn_sum = cnb * beta_s + fw->cn_r * r_cnr * rs * b2v;
+  /*
+   * MUNK'S MOMENT. The fuselage's share of cn_beta (cn_beta_fus, each
+   * derivation's -1.3 Vol / (S b) or Nelson's K_N term) is a slender
+   * body's potential flow couple, Munk, "The Aerodynamic Forces on Airship
+   * Hulls", NACA TR 184 (1924): the moment (k2 - k1) rho Vol V^2 sin 2
+   * beta / 2, about the body's normal axis, on the body's axial and
+   * crossflow speeds, u v. So it is taken out of the stability axis
+   * terms, which hold it at full strength at 90 deg of sideslip and turn
+   * a share of it into roll, and put on -u v / V^2 in the body: beta at
+   * small angles (sin beta cos beta cos alpha), so a cruise flies as it
+   * did; none flying sideways, and turned over with the flow from behind,
+   * as the couple is. The measured lateral derivatives' ratio (hi_lat,
+   * the F-16's) takes it as it takes the rest, the whole aircraft's
+   * cn_beta against alpha at small sideslip. A table without it (zero)
+   * keeps its arithmetic.
+   */
+  const double cn_fus = fw->cn_beta_fus * r_cnb;
+  const double munk = V > 1e-6 ? -(u * v) / V2 : 0.0;
+  double cn_sum = add_term(cnb, -cn_fus) * beta_s + fw->cn_r * r_cnr * rs * b2v;
   cn_sum = add_term(cn_sum, (hi_lat ? hi_lat_at(fw->hi_lat[7], a_body) : fw->cn_p_per_cl * CL) * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, cndr * delta_r);
@@ -3230,8 +3252,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * pushed against the speed across it whichever edge leads, so their
    * moments in the body do not turn over when the flow comes from behind.
    * The fuselage's share of cn_beta (Munk's, u v in the body) does turn
-   * over, and is folded with them: small (the Extra's -0.043 of 0.24), and
-   * taken on sin(beta) where it belongs on sin(2 beta), its next fix.
+   * over, and is not among them: it is added in the body below.
    * The stability axes turned with cos_b do turn them over past 90 deg,
    * and falling on its side a little tail first (u < 0, the flow past 90
    * deg) every aircraft turned its nose up away from the fall, the fin
@@ -3245,7 +3266,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * edge pushes the other way), and stay turned with cos_b. */
   const double back = cos_b < 0.0 ? -2.0 * cos_b : 0.0;
   cl_sum = add_term(cl_b, back * clb * beta_s);
-  cn_sum = add_term(cn_b, back * cnb * beta_s);
+  cn_sum = add_term(add_term(cn_b, back * add_term(cnb, -cn_fus) * beta_s), cn_fus * munk);
   const double l_aero = qbar * fw->area * fw->span * cl_sum;
   /* Past the stall the wing's lift no longer grows with alpha, and once it
    * falls what is left of it acts well aft of the quarter chord. The
@@ -3719,6 +3740,7 @@ const FixedWingParams FW_SKY1800 = {
   .cm_q = -14.1,
   .cm_de = 1.23,
   .cn_beta = 0.140,
+  .cn_beta_fus = -0.014, /* Munk's, the pod's -1.3 Vol / (S b) of cn_beta, docs/SKYHUNTER-STAGE1.md */
   .cn_r = -0.126,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.112,
@@ -3834,6 +3856,7 @@ const FixedWingParams FW_CUB1400 = {
   .cm_q = -7.7,
   .cm_de = 0.89,
   .cn_beta = 0.048,
+  .cn_beta_fus = -0.0302, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run cub:derive */
   .cn_r = -0.076,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.136,
@@ -3877,9 +3900,9 @@ const FixedWingParams FW_CUB1400 = {
   .stab_trim_throttle = 0.477, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0054, 0.0125, 0.0668 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.8706, 1.8461, 1.8106 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.288, -1.369, -0.529 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0056, 0.013, 0.0693 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.8524, 1.8547, 1.8292 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.286, -1.369, -0.529 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -3952,6 +3975,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .cm_q = -14.6,
   .cm_de = 0.949,
   .cn_beta = 0.0967,
+  .cn_beta_fus = -0.0074, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run glider:derive */
   .cn_r = -0.0719,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.114, /* long outboard ailerons: plenty of adverse yaw */
@@ -4000,8 +4024,8 @@ const FixedWingParams FW_RADIAN2000 = {
   .acro_roll_rate = 80.0 * WING_PI / 180.0,  /* a glider rolls at 77 deg/s at 12 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0,
   .as3x_k = { 0.0116, 0.0199, 0.0617 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.78, 3.0245, 1.7977 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.296, -0.978, -0.605 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.7801, 3.0245, 1.7932 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.295, -0.978, -0.605 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 5.0,
@@ -4077,6 +4101,7 @@ const FixedWingParams FW_NRJ1490 = {
   .cm_q = -13.609,
   .cm_de = 0.921,
   .cn_beta = 0.1389,
+  .cn_beta_fus = -0.0001, /* Munk's, the pod's -1.3 Vol / (S b) of cn_beta; npm run dlg:derive */
   .cn_r = -0.1179,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.1824,
@@ -4176,6 +4201,7 @@ const FixedWingParams FW_BRAMOR2300 = {
   .cm_q = -4.0,
   .cm_de = 0.894,         /* delta_e positive pitches the nose up */
   .cn_beta = 0.0352,      /* the winglets, less the pod */
+  .cn_beta_fus = -0.012, /* Munk's, the pod's of cn_beta, ESTIMATED as in scripts/bramor-derive.js */
   .cn_r = -0.0297,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.062, /* adverse yaw, -0.2 Cl_da (Roskam) */
@@ -4426,6 +4452,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .cm_q = -8.53,
   .cm_de = 1.175,
   .cn_beta = 0.087,
+  .cn_beta_fus = -0.0169, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run timber:derive */
   .cn_r = -0.095,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.133,
@@ -4470,7 +4497,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
   .as3x_k = { 0.0221, 0.0448, 0.059 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.3176, 0.0064, 1.9575 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.3176, 0.0064, 1.9576 }, /* npm run as3x:derive */
   .as3x_rate = { 2.522, -1.66, -0.968 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
@@ -4565,6 +4592,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .cm_q = -8.53,
   .cm_de = 1.175,
   .cn_beta = 0.0741,      /* less the floats' volume, Munk's moment */
+  .cn_beta_fus = -0.0298, /* Munk's: the Timber's -0.0169 (npm run timber:derive) and the floats' -0.0129 (npm run floats:derive) */
   .cn_r = -0.095,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.133,
@@ -4609,8 +4637,8 @@ const FixedWingParams FW_TIMBER1500F = {
   .acro_roll_rate = 180.0 * WING_PI / 180.0,
   .acro_pitch_rate = 100.0 * WING_PI / 180.0,
   .as3x_k = { 0.0289, 0.0587, 0.0773 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.1837, 0.0081, 2.0489 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.631, -1.708, -1.154 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.1837, 0.0081, 2.0501 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.632, -1.708, -1.154 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4699,6 +4727,7 @@ const FixedWingParams FW_CUB1400F = {
   .cm_q = -7.7,
   .cm_de = 0.89,
   .cn_beta = 0.0308,      /* less the floats' volume, Munk's moment */
+  .cn_beta_fus = -0.0474, /* Munk's: the Cub's -0.0302 (npm run cub:derive) and the floats' -0.0172 (npm run floats:derive) */
   .cn_r = -0.076,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.136,
@@ -4742,9 +4771,9 @@ const FixedWingParams FW_CUB1400F = {
   .stab_trim_throttle = 0.608, /* npm run stab:glide; the stick that flies it level, elevator neutral */
   .acro_roll_rate = 120.0 * WING_PI / 180.0,
   .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0048, 0.013, 0.0615 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.6789, 1.6359, 1.5987 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.422, -1.434, -0.655 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0054, 0.0144, 0.0683 }, /* npm run as3x:derive */
+  .as3x_kh = { 2.657, 1.6594, 1.6614 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.42, -1.434, -0.655 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4821,6 +4850,7 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .cm_q = -14.784,
   .cm_de = 1.277,
   .cn_beta = 0.0810,      /* the fin's, less the cabin fuselage's */
+  .cn_beta_fus = -0.0121, /* the cabin fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run bombshell:derive */
   .cn_r = -0.1002,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = 0.0,
@@ -4865,8 +4895,8 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .acro_roll_rate = 45.0 * WING_PI / 180.0,
   .acro_pitch_rate = 30.0 * WING_PI / 180.0,
   .as3x_k = { 0, 0.0287, 0.1518 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 1.3223, 0.2228 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.944, -0.726, -0.678 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 1.3223, 0.2234 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.945, -0.726, -0.677 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 3.0,
@@ -4962,6 +4992,7 @@ const FixedWingParams FW_KADET1981 = {
   .cm_q = -10.534,
   .cm_de = 1.129,
   .cn_beta = 0.1134,      /* the fin's, less the box fuselage's */
+  .cn_beta_fus = -0.0163, /* the box fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run kadet:derive */
   .cn_r = -0.1374,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = 0.0,
@@ -5103,6 +5134,7 @@ const FixedWingParams FW_P51D1450 = {
   .cm_q = -8.305,
   .cm_de = 1.168,
   .cn_beta = 0.0992,      /* the fin's, less the long fuselage's */
+  .cn_beta_fus = -0.0160, /* the fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run p51:derive */
   .cn_r = -0.1202,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.12,
@@ -5148,8 +5180,8 @@ const FixedWingParams FW_P51D1450 = {
   .acro_roll_rate = 120.0 * WING_PI / 180.0, /* 0.7 of full aileron's 168 deg/s at 17.5 m/s */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* at 16 m/s, 2.5 g, the most it pulls short of its stall */
   .as3x_k = { 0.0097, 0.0127, 0.0441 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.1112, 1.1502, 1.6197 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.626, -4.29, -0.657 }, /* npm run as3x:derive */
+  .as3x_kh = { 2.1112, 1.1502, 1.6189 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.624, -4.29, -0.657 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -5277,6 +5309,7 @@ const FixedWingParams FW_F16878 = {
   .cm_q = -2.263,
   .cm_de = 0.700,
   .cn_beta = 0.1420,      /* the fin's, less the long forebody's */
+  .cn_beta_fus = -0.0683, /* the forebody's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run f16:derive */
   .cn_r = -0.2241,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.05,
@@ -5319,9 +5352,9 @@ const FixedWingParams FW_F16878 = {
   .stab_trim_throttle = 0.538, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
   .acro_roll_rate = 300.0 * WING_PI / 180.0,
   .acro_pitch_rate = 120.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0014, 0.0035, 0.0083 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.0912, 0.1788, 0.4807 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.095, -3.134, -1.244 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0016, 0.0039, 0.0093 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.101, 0.6563, 0.2121 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.028, -3.134, -1.248 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 8.0,
@@ -5514,6 +5547,7 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .cm_q = -6.792,
   .cm_de = 0.6835,
   .cn_beta = 0.1068,      /* the egg and its sub fin, less the slab box's */
+  .cn_beta_fus = -0.0109, /* the slab box's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run uglystik:derive */
   .cn_r = -0.1218,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.06,  /* the bellcranks' differential takes half the Cub's adverse yaw */
@@ -5561,8 +5595,8 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .acro_roll_rate = 80.0 * WING_PI / 180.0, /* 0.85 of full aileron's 95 deg/s at the trim */
   .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, 76 deg/s */
   .as3x_k = { 0.0108, 0.0325, 0.0963 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.0354, 2.7277, 2.4226 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.091, -1.12, -0.49 }, /* npm run as3x:derive */
+  .as3x_kh = { 2.0354, 2.7277, 2.4233 }, /* npm run as3x:derive */
+  .as3x_rate = { 1.091, -1.12, -0.489 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -5665,6 +5699,7 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .cm_q = -8.013,
   .cm_de = 1.0494,
   .cn_beta = 0.0965,      /* the small fin and big rudder, less the fuselage's */
+  .cn_beta_fus = -0.0113, /* the fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run tigermoth:derive */
   .cn_r = -0.1262,
   .cn_p_per_cl = -0.125,
   /* Adverse yaw: Nelson's 2 K CL Cl_da on the bottom wing's own CL, and
@@ -5714,7 +5749,7 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .acro_pitch_rate = 45.0 * WING_PI / 180.0,
   .as3x_k = { 0.0516, 0.1142, 0.257 }, /* npm run as3x:derive */
   .as3x_kh = { 0.2789, 0.6079, 1.3549 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.969, -1.665, -0.872 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.97, -1.665, -0.872 }, /* npm run as3x:derive */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
@@ -5825,6 +5860,7 @@ const FixedWingParams FW_STRIKER_PROP = {
   .cm_q = -1.4020,
   .cm_de = 0.4516,        /* delta_e positive pitches the nose up */
   .cn_beta = 0.0208,      /* the fins, less most of it back to the long fuselage; npm run combat:derive */
+  .cn_beta_fus = -0.0504, /* the long fuselage's, Munk's -1.3 Vol / (S b) of cn_beta; npm run combat:derive */
   .cn_r = -0.0646, /* npm run combat:derive */
   .cn_p_per_cl = -0.2325,
   .cn_da_per_cl = 0.0337,
@@ -5930,6 +5966,7 @@ const FixedWingParams FW_STRIKER_JET = {
   .cm_q = -1.4020,
   .cm_de = 0.4516,
   .cn_beta = 0.0302,
+  .cn_beta_fus = -0.0504, /* the long fuselage's, Munk's -1.3 Vol / (S b) of cn_beta; npm run combat:derive */
   .cn_r = -0.0652,
   .cn_p_per_cl = -0.2325,
   .cn_da_per_cl = 0.0337,
@@ -6058,6 +6095,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .cm_q = -9.496,
   .cm_de = 0.8666,
   .cn_beta = 0.2405,      /* the big fin and rudder, less the fuselage's */
+  .cn_beta_fus = -0.0428, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run extra:derive */
   .cn_r = -0.3577,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.08,  /* ESTIMATED: symmetric section, wide chord ailerons */
@@ -6125,8 +6163,8 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0177, 0.0885, 0.0708 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0876, 0.001, 3.266 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.198, -2.85, -3.509 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.0877, 0.001, 3.2756 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.183, -2.85, -3.509 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -6223,6 +6261,7 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .cm_q = -9.585,
   .cm_de = 1.0393,
   .cn_beta = 0.1544,
+  .cn_beta_fus = -0.0402, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run nighttimber:derive */
   .cn_r = -0.1996,
   .cn_p_per_cl = -0.125,
   .cn_da_per_cl = -0.133, /* the Turbo Timber's */
@@ -6280,8 +6319,8 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .as3x_k = { 0.0189, 0.0139, 0.0111 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0013, 1.3134, 1.6037 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.157, -5.456, -3.132 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.0013, 0.3909, 0.249 }, /* npm run as3x:derive */
+  .as3x_rate = { 6.148, -5.472, -3.082 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
@@ -6378,6 +6417,7 @@ const FixedWingParams FW_HERCULES3077 = {
   .cm_q = -15.83, /* npm run hercules:derive */
   .cm_de = 1.8527, /* npm run hercules:derive */
   .cn_beta = 0.0884,      /* the tall fin, less the deep fuselage's; npm run hercules:derive */
+  .cn_beta_fus = -0.0630, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run hercules:derive */
   .cn_r = -0.1201, /* npm run hercules:derive */
   .cn_p_per_cl = -0.125, /* -CL/8, Nelson's wing estimate, docs/HERCULES-STAGE1.md */
   .cn_da_per_cl = -0.12,  /* the P-51's, a cambered section's plain ailerons, ESTIMATED; FITTED: no published figure, docs/HERCULES-STAGE1.md */
@@ -6432,9 +6472,9 @@ const FixedWingParams FW_HERCULES3077 = {
   .acro_roll_ki = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .acro_pitch_ki = 6.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .acro_i_max = 0.30, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .as3x_k = { 0.0231, 0.0282, 0.0944 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.5445, 1.8849, 2.4184 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.609, -1.209, -0.986 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0234, 0.0286, 0.0957 }, /* npm run as3x:derive */
+  .as3x_kh = { 1.5172, 1.8486, 2.4344 }, /* npm run as3x:derive */
+  .as3x_rate = { 0.608, -1.209, -0.986 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.5, /* FITTED: turn coordination gain, no published figure */
   /* Past the stall, scripts/stall-derive.js's tailed form on this
    * aircraft's numbers; the 18 percent section's rounded trailing edge
@@ -6514,6 +6554,7 @@ const FixedWingParams FW_CAP1702 = {
   .cm_q = -14.673,        /* npm run cap580:derive */
   .cm_de = 1.4644,        /* npm run cap580:derive */
   .cn_beta = 0.1997,      /* npm run cap580:derive */
+  .cn_beta_fus = -0.0366, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run cap580:derive */
   .cn_r = -0.2612,        /* npm run cap580:derive */
   .cn_p_per_cl = -0.125,  /* docs/EXTRA-STAGE1.md: every table's */
   .cn_da_per_cl = -0.08,  /* docs/EXTRA-STAGE1.md: the Extra's, ESTIMATED, a symmetric section and wide chord ailerons */
@@ -6587,7 +6628,7 @@ const FixedWingParams FW_CAP1702 = {
   .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
   .as3x_k = { 0.023, 0.1276, 0.3707 }, /* npm run as3x:derive */
   .as3x_kh = { 0.0083, 0.0169, 0.0046 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.787, -2.052, -1.536 }, /* npm run as3x:derive */
+  .as3x_rate = { 3.778, -2.052, -1.567 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   /* Past the stall, the Extra's forms and its symmetric section's break,
    * npm run cap580:derive. */
@@ -6685,6 +6726,7 @@ const FixedWingParams FW_SLICK2680 = {
   .cm_q = -14.633, /* scripts/slick-derive.js */
   .cm_de = 1.1748, /* scripts/slick-derive.js */
   .cn_beta = 0.2270, /* scripts/slick-derive.js */
+  .cn_beta_fus = -0.0415, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run slick:derive */
   .cn_r = -0.2967, /* scripts/slick-derive.js */
   .cn_p_per_cl = -0.125,  /* the Extra's, docs/EXTRA-STAGE1.md */
   .cn_da_per_cl = -0.08,  /* the Extra's: a symmetric section, wide chord ailerons, 38 up and 37 down, docs/EXTRA-STAGE1.md */
@@ -6751,9 +6793,9 @@ const FixedWingParams FW_SLICK2680 = {
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0549, 0.2757, 0.533 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0089, 0.0059, 0.0129 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.646, -3.315, -1.529 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0549, 0.1374, 0.1415 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.0089, 0.2421, 0.0703 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.641, -3.353, -1.638 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to

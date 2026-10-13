@@ -146,7 +146,8 @@ const Cmq = -2 * eta * at * VH * lh / c, Cmde = eta * VH * at * tauE, CLde = -et
 /* Trimmed at the best glide with the elevator neutral: Cm0 below. */
 const av = 2 * Math.PI * arV / (arV + 2), VV = Sv * lv / (S * b);
 const CYb = -av * Sv / S - 0.02;
-const Cnb = av * VV - 1.3 * (0.019 * 0.024 * 0.024) / (S * b);
+const CnbFus = -1.3 * (0.019 * 0.024 * 0.024) / (S * b);
+const Cnb = av * VV + CnbFus;
 const Cnr = -2 * av * VV * lv / b - CD0 / 4;
 const ClbWing = -(2 * aw / (S * b)) * integrate((y) => dihedral * chordAt(y) * y);
 const Clb = ClbWing - av * (Sv / S) * (zv / b);
@@ -264,6 +265,7 @@ const rows = [
   ['CLα, fuselage Cmα, h_n, static margin', `${f(CLa)} ${f(CmaFuse, 4)} ${f(hn)} ${f(SM)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['Clβ (wing, total), Clp, Clδa', `${f(ClbWing, 4)} ${f(Clb, 4)} ${f(Clp)} ${f(Clda)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr, Cnδa per CL', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)} ${f(CndaPerCL, 4)}`],

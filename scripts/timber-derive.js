@@ -71,7 +71,8 @@ const Cmq = -2 * eta * at * VH * lh / c, Cmde = eta * VH * at * tauE, CLde = -et
 const Vtrim = 13, CLtrim = 2 * W / (rho * Vtrim * Vtrim * S), Cm0 = -Cma * CLtrim / CLa;
 const av = 2 * Math.PI * arV / (arV + 2), VV = Sv * lv / (S * b);
 const CYb = -av * Sv / S - 0.11;
-const Cnb = av * VV - 1.3 * fusVol / (S * b);
+const CnbFus = -1.3 * fusVol / (S * b);
+const Cnb = av * VV + CnbFus;
 const Cnr = -2 * av * VV * lv / b - (CD0 + slatCd0) / 4;
 const Clb = -aw * gamma * (1 + 2 * taper) / (6 * (1 + taper)) - av * (Sv / S) * (zv / b);
 const Clp = -aw * (1 + 3 * taper) / (12 * (1 + taper));
@@ -337,6 +338,7 @@ const rows = [
   ['CLα, h_n, static margin (fuselage dh)', `${f(CLa)} ${f(hn)} ${f(SM)} (${f(fusCma / CLa, 4)})`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
+  ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ, Clp, Clδa (tau)', `${f(Clb, 4)} ${f(Clp)} ${f(Clda)} (${f(tauA)})`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],

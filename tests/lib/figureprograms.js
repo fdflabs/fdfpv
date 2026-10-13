@@ -209,7 +209,7 @@ export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * t
 export const LINE_YAW_KR = {
   [EXTRA_AIRFRAME]: [[8, 0.097], [14, 0.07], [18, 0.062], [22, 0.057], [26, 0.058], [30, 0.059]],
   [CAP_AIRFRAME]: [[8, 0.264], [14, 0.161], [18, 0.138], [22, 0.117], [26, 0.105], [30, 0.098]],
-  [SLICK_AIRFRAME]: [[8, 0.473], [14, 0.327], [18, 0.244], [22, 0.214], [26, 0.179], [30, 0.156]],
+  [SLICK_AIRFRAME]: [[8, 0.472], [14, 0.327], [18, 0.243], [22, 0.214], [26, 0.179], [30, 0.156]],
 };
 export function lineYawKr(airframe, v) {
   const t = LINE_YAW_KR[airframe];
@@ -281,8 +281,8 @@ const POINT_LEAD = 0.35;
  * 200 its 2-point, 550 and over the Slick's 8-point.
  */
 export const POINT_STOP = {
-  [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.341 },
-  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.048 },
+  [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.353 },
+  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.198 },
   [SLICK_AIRFRAME]: { wc: 2.6, gain: 5.191 },
 };
 export const POINT_HOLD_MS = 400;
@@ -339,10 +339,10 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 13.731 },
-  elevation: { wc: 0.8, gain: 1.078 },
-  heading: { wc: 2, gain: 6.041 },
-  trim: { rudder: 0.38, elevation: 0.187, speed: 32.9 },
+  bank: { wc: 2, gain: 13.785 },
+  elevation: { wc: 0.8, gain: 1.064 },
+  heading: { wc: 2, gain: 6.039 },
+  trim: { rudder: 0.38, elevation: 0.188, speed: 32.9 },
 };
 const G = 9.80665;
 const knife = (ms) => ({
@@ -432,7 +432,7 @@ const knife = (ms) => ({
  * turn) the Extra did not finish the loop and reached the ground in all
  * four. It lets go 0.3 s of the path's rate early.
  */
-export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.971 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.958 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const knifeLoop = () => ({
   name: 'knife loop',
@@ -579,13 +579,13 @@ const rollingCircle = (rolls, rate = 1.6) => ({
  */
 export const HOVER = {
   [EXTRA_AIRFRAME]: {
-    pitch: { wc: 2, gain: 2.086, lead: 0.15 }, yaw: { wc: 2.8, gain: 2.127, lead: 0.15 }, roll: { wc: 2.4, gain: 7.637 }, climb: { wc: 1.8, gain: 34.936 }, torque: -3.31,
+    pitch: { wc: 2, gain: 2.086, lead: 0.15 }, yaw: { wc: 2.8, gain: 2.125, lead: 0.15 }, roll: { wc: 2.4, gain: 7.637 }, climb: { wc: 1.8, gain: 34.936 }, torque: -3.31,
   },
   [CAP_AIRFRAME]: {
-    pitch: { wc: 2.2, gain: 1.702, lead: 0.25 }, yaw: { wc: 1.4, gain: 0.666, lead: 0.2 }, roll: { wc: 2.8, gain: 8.281 }, climb: { wc: 1.8, gain: 33.323 }, torque: -3.29,
+    pitch: { wc: 2.2, gain: 1.701, lead: 0.25 }, yaw: { wc: 1.4, gain: 0.665, lead: 0.2 }, roll: { wc: 2.8, gain: 8.481 }, climb: { wc: 1.8, gain: 33.323 }, torque: -3.29,
   },
   [SLICK_AIRFRAME]: {
-    pitch: { wc: 2.4, gain: 1.636, lead: 0.3 }, yaw: { wc: 2.2, gain: 0.898, lead: 0.35 }, roll: { wc: 2.8, gain: 2.38 }, climb: { wc: 0.8, gain: 22.671 }, torque: -2.26,
+    pitch: { wc: 2.4, gain: 1.636, lead: 0.3 }, yaw: { wc: 2.2, gain: 0.893, lead: 0.35 }, roll: { wc: 2.8, gain: 2.403 }, climb: { wc: 0.8, gain: 22.671 }, torque: -2.26,
   },
 };
 /* The drift's tilt and the height's climb rate a person asks for at most:

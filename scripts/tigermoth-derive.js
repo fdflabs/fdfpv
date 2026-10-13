@@ -528,6 +528,7 @@ const rows = [
   ['zero lift line deg; its sin, cos', `${f(alphaZL * DEG, 3)}; ${Math.sin(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)} ${Math.cos(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq, 3)} ${f(Cmde, 4)} ${f(CLde, 4)}`],
   ['fin: AR_v a_v V_V l_v; CYβ Cnβ (fus) Cnr', `${f(arV, 3)} ${f(av, 4)} ${f(VV, 5)} ${f(lv, 4)}; ${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
+  ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
   ['Clβ: dihedral, heights, fin, total', `${f(ClbDih, 4)} ${f(ClbHeight, 4)} ${f(ClbFin, 4)} ${f(Clb, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],

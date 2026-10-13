@@ -230,7 +230,8 @@ const arV = 1.55 * hFin * hFin / Sv; /* the fin end plated by the tailplane and 
 const av = 2 * Math.PI * arV / (arV + 2), VV = Sv * lv / (S * b);
 const fusVol = kitLength * fusW * fusH * 0.6;
 const CYb = -av * Sv / S - 0.11;
-const Cnb = av * VV - 1.3 * fusVol / (S * b);
+const CnbFus = -1.3 * fusVol / (S * b);
+const Cnb = av * VV + CnbFus;
 const Cnr = -2 * av * VV * lv / b - CD0 / 4;
 /* Roll per sideslip: the dihedral (Nelson, Cl beta = -a_w Gamma / 6 times
  * the taper's (1 + 2 lam) / (1 + lam) / 2 for a trapezoid), the high
@@ -524,7 +525,7 @@ const sideCda = kitLength * fusH * 0.85 * 1.2 * sectionK * 0.65;
 
 const out = {
   m, W, S, b, c, AR, cr, ct, lam, yMAC, hCG, SM, hnNelson, aw, at, av, deda, VH, VV, CLa, Cma, Cm0, Cmq, Cmde, CLde,
-  CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, CnbFin: av * VV, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
+  CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, CnbFin: av * VV, CnbFus, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
   roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, liftoffPitchDeg: (CLmax / 1.21 / CLa + alphaZl) * DEG, rotation: rotation(), rotationGround: rotation(true), cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,

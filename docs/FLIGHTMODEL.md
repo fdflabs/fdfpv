@@ -472,6 +472,21 @@ R-474) on each fuselage's side area from its derivation or render model.
   widest line and the intake's duct under it, shapes TN 3038 did not
   test; and the Bramor, whose pod blends into its delta with no drawn
   sections of its own.
+- The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
+  1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
+  is gone flying sideways and turns over with the flow from behind. Each
+  derivation's fuselage share of cn_beta (-1.3 Vol / (S b), or Nelson's
+  K_N term) is `cn_beta_fus`, taken out of the stability axis terms and
+  put on -u v / V^2 in the body (plant_wing.c, MUNK'S MOMENT): the same
+  at small sideslip, none at 90 deg, where before it stayed whole (the
+  Extra's -0.043 of 0.24) and a share of it went into roll. Every table
+  with a fuselage carries it, the Strikers' from `combat:derive`; the
+  float versions add the floats' (`floats:derive`); the Skyhunter's and
+  the Bramor's pods are their documents' and ESTIMATED. The F-16's
+  measured ratio against alpha (hi_lat) takes it as it takes the rest. A
+  fin lost in a crash leaves the body's WING_BODY_CN_BETA on the same
+  form. The pitch analogue, Munk's u w, is the fuselage's cm_alpha share
+  and is still linear in alpha.
 
 ### The probe, PR 3 to PR 4
 
