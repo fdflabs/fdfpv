@@ -105,6 +105,7 @@ import { loadSim, Sim, SIM_OK } from '../tests/lib/simmod.js';
 import {
   allocatorSpans, createJournal, plantRegion, PURE, POINTERS,
 } from '../src/replay/journal.js';
+import { packRefly, reflyOf, unpackRefly } from '../src/replay/refly.js';
 import { INFO, PART_KINDS, PARTS_MAX, PART_STATE_DOUBLES, STATE, SURFACE } from '../configs/parts.js';
 import { powerBlock } from '../configs/power.js';
 import {
@@ -489,6 +490,12 @@ async function allocatorTakeOver() {
         frame = { ms, mark: j.mark(), st: new Float64Array(raw.memory.buffer, statePtr, nState).slice() };
       }
     }
+    if (ms === 1600) {
+      /* A switch thrown after the frame: a setup call of the flight the
+       * take over undoes. */
+      must(sim.e.sim_set_crashflip(1), 'sim_set_crashflip');
+      must(sim.e.sim_set_crashflip(0), 'sim_set_crashflip');
+    }
     if (ms === 1700) {
       /* A buffer made on first use, after the frame's copy, as the shell
        * makes its wing surface and wind buffers. */
@@ -519,6 +526,27 @@ async function allocatorTakeOver() {
   const kept = new Uint8Array(raw.memory.buffer, lazy, BYTES).every((b) => b === 0xa5);
   check(apart && kept, 'a block made after the frame is still the shell\'s: the next one is elsewhere',
     `made at ${lazy}, next at ${next}, first block ${kept ? 'intact' : 'overwritten'}`);
+
+  /* The setup log forgets the undone flight's calls too, so a clip cut
+   * after the take over opens and its setup is the flight flown on. */
+  const span = j.exportSpan(frame.mark[0]);
+  const flips = (() => {
+    let n = 0;
+    for (let r = 0; r < span.setup.calls.length; r += 3 + span.setup.calls[r + 1] + span.setup.calls[r + 2]) {
+      n += j.names[span.setup.calls[r]] === 'sim_set_crashflip' ? 1 : 0;
+    }
+    return n;
+  })();
+  const head = new Float64Array(HEAD_N);
+  head[HEAD.markSeg] = frame.mark[0];
+  head[HEAD.markPos] = frame.mark[1];
+  let opened = 'no refly';
+  const r = reflyOf(span, { n: 1, head });
+  if (r) {
+    opened = await unpackRefly(await packRefly(r)).then(() => 'opened', (err) => err.message);
+  }
+  check(flips === 0 && opened === 'opened', 'the setup log forgets the calls after the frame, and a clip cut from it opens',
+    `${flips} crashflip calls kept, ${opened}`);
 }
 
 /* ---- 15. a cut link and a warhead ---- */

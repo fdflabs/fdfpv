@@ -533,7 +533,7 @@ export function transplantable(refly, n) {
     return { k: -1, why: 'the clip was saved before clips kept their setup log' };
   }
   if (refly.setup.overflow) {
-    return { k: -1, why: 'the setup log ran past its bound while the clip was flown' };
+    return { k: -1, why: 'its setup log was not kept whole (it ran past its bound, or a take over went back past a sim_init)' };
   }
   for (let k = 0; k < n; k += 1) {
     if (refly.marks[k * 2] >= 0) {

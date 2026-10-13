@@ -268,7 +268,7 @@ export function createJournal(e, opts = {}) {
    * when its stretch is earlier, or the same and its place is <= pos. */
   const setupLogged = names.map((nm) => !STEP_CALLS.has(nm) && nm !== 'sim_init');
   const setup = {
-    init: null, buf: new Float64Array(4096), n: 0, where: new Int32Array(512), entries: 0, overflow: false,
+    init: null, initAt: [0, 0], buf: new Float64Array(4096), n: 0, where: new Int32Array(512), entries: 0, overflow: false,
   };
 
   /* Each clear's kind, by function id: the clear's own id for a clear and
@@ -340,7 +340,29 @@ export function createJournal(e, opts = {}) {
     };
   }
 
+  /* A take over forgets every call after its mark, the setup log's with
+   * the rest: a flap notch or a broken part from the flight it undoes is
+   * not the flight flown on. A sim_init after the mark took the setup
+   * before it with it, so the log cannot be whole again until the next. */
+  function forgetSetupAfter(id, pos) {
+    if (setup.initAt[0] > id || (setup.initAt[0] === id && setup.initAt[1] >= pos)) {
+      setup.overflow = true;
+    }
+    let n = 0;
+    let k = 0;
+    for (; k < setup.entries; k += 1) {
+      const ws = setup.where[k * 2];
+      if (ws > id || (ws === id && setup.where[k * 2 + 1] > pos)) {
+        break;
+      }
+      n += 3 + setup.buf[n + 1] + setup.buf[n + 2];
+    }
+    setup.entries = k;
+    setup.n = n;
+  }
+
   function startSetup(ptr, len) {
+    setup.initAt = [seg ? seg.id : 0, seg ? seg.n : 0];
     setup.init = new Uint8Array(e.memory.buffer, ptr, len).slice();
     setup.n = 0;
     setup.entries = 0;
@@ -571,6 +593,7 @@ export function createJournal(e, opts = {}) {
     replay(s.buf, m[1]);
     segs.length = at + 1;
     s.n = m[1];
+    forgetSetupAfter(m[0], m[1]);
     seg = s;
     snapshot(t);
     return true;
