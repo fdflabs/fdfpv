@@ -268,6 +268,9 @@ console.log('landings, from the event log');
   }
   check('a landing pays no XP', p.xp === 0);
   check('a profile from before landings reads as none, everything else kept', same(normaliseProgress({ v: 2, xp: 300, firsts: { a: true } }).landings, {}) && normaliseProgress({ v: 2, xp: 300 }).xp === 300);
+  const families = [...new Set(AIRFRAMES.map((af) => liveryKey(af.id)))];
+  const dropped = families.filter((id) => normaliseProgress({ landings: { [id]: 1 } }).landings[id] !== 1);
+  check(`every aircraft family's landings survive a load (${families.length})`, dropped.length === 0, dropped.join());
   check('stored landings are whole counts on known shaped keys',
     same(normaliseProgress({ landings: { cub1400: 4, timber1500: 2.5, 'BAD KEY': 3, kadet1981: -1, sky1800: '7' } }).landings, { cub1400: 4 }));
   const blob = (landings) => ({ v: 1, data: { progress: { ...freshProgress(), landings } }, stamps: {} });
