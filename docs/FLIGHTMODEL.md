@@ -1453,6 +1453,25 @@ Heading the rock was worse than Manual's (1.03 to 1.08); on
 4dc533c3b's every tenth of it is better. Heading defaults to zero, and
 the tune help keeps the AR631's warning against it on the yaw axis.
 
+On 20fde9b91's plant (the plate's force in the plane of symmetry) the
+receiver's damper alone leaves the Extra's kicked rock at 0.984 and 0.987
+of Manual's, and the yaw Heading worsens it evenly from zero: 0.995 and
+0.997 at a twentieth of the rule's, 1.005 and 1.008 at a tenth, crossing
+near 0.064. The sweep's first step holds, so the Extra's yaw Heading is
+0.001 (w38-physics-3 checked it against the sweep: one step under a
+measured crossing, not under the search's resolution; the fleet's other
+Headings of 0.0012 to 0.0041 are the margin rule's own). Open:
+extra:stab's level yaw kick at the full Heading is judged again and is
+red, 0.5 against Manual's 0.4 deg left after 1 s. The nose is back on
+its flight path by 0.6 s in both modes, the yaw Heading at 0.001
+changes nothing on the line (the pitch Heading's coupling moves it 0.51
+to 0.46), and the gap is in the line's baseline: it takes the rate before
+the kick as the flight's own through the second, while after the 0.3 s
+lead in the unkicked flight's rate still moves by -0.23 deg (Manual),
+-0.16 (damper) and -0.19 (full Heading). Against the same flight
+unkicked the kick leaves 0.76, 0.76 and 0.73 deg. The line stays as
+posed and red until the lead re-poses it.
+
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
