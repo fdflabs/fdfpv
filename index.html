@@ -2671,6 +2671,62 @@
         .gate-card-mark { left: 6px; bottom: 5px; width: 38px; height: 38px; }
       }
 
+      /*
+       * FLIGHT CLUB'S ROOMS, EACH WITH ITS WATCH (src/ui/roombrowser.js
+       * titleItems: every room there is followed by its Watch). Side by
+       * side as six equal tiles they squeezed a 32 letter name to a word a
+       * line and the panel ran the cards under the command bar (war:card,
+       * three rooms listed: 742 px of a 720 px window). Each Watch goes
+       * under its room as a thin button, so a room gets a third of the
+       * strip; on an upright phone, where rooms are lines, beside it. After
+       * the phone blocks, so it wins over their flex rules.
+       */
+      .screen-title.is-gate .gate-rooms-list:has(.gate-room-watch) {
+        display: grid; grid-auto-flow: column; grid-template-rows: auto auto;
+        grid-auto-columns: minmax(0, 1fr); gap: 3px 6px;
+      }
+      .screen-title.is-gate .gate-rooms-list .gate-room-watch { padding-top: 3px; padding-bottom: 3px; }
+      @media (max-width: 860px) and (min-height: 521px) {
+        .screen-title.is-gate .gate-rooms-list:has(.gate-room-watch) {
+          grid-auto-flow: row; grid-template-rows: none; grid-template-columns: minmax(0, 1fr) auto;
+        }
+        /* Narrow, so a 32 letter name keeps to one line beside it. */
+        .screen-title.is-gate .gate-rooms-list .gate-room-watch { padding-left: 6px; padding-right: 6px; }
+        .screen-title.is-gate .gate-rooms-list .gate-room-watch .gate-room-name { letter-spacing: 0.06em; }
+        /* The stacked cards' 4 px gap the count rule above asks for, which
+           the gate's own 10 px outranks: the rooms took that height. */
+        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-cards { gap: 4px; }
+      }
+      /* Home on a short upright phone: the hub cards' links come down a
+         step, as the cards do in the block above, so the Hangar's seven
+         (Upgrades and Choose joystick since the hangar lane) end clear of
+         the command bar (campaign:check at 360 by 640: 612 px of facts
+         over a bar at 588). */
+      @media (max-width: 860px) and (min-height: 521px) and (max-height: 700px) {
+        .screen-title.is-gate[data-hub=""] .gate-links { gap: 4px 6px; margin-top: 2px; }
+        .screen-title.is-gate[data-hub=""] .gate-link { padding: 3px 7px; font-size: 11px; letter-spacing: 0.06em; }
+      }
+      /* With rooms listed, Flight Club's panel and its pilot stats both
+         stand over the cards, so the pictures give back the height, as
+         home's do under its rooms band (106 px at 720 high, so the plan
+         drawing clears the card's number; 330 px at 1080); on a short
+         window on its side the
+         cards are their names and tags, as home's are on a phone. */
+      @media (min-width: 861px) and (min-height: 521px) {
+        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-card-art {
+          height: clamp(64px, calc(62vh - 340px), 400px);
+        }
+      }
+      @media (max-height: 520px) {
+        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-card-art { display: none; }
+      }
+      /* Over 820 high the pilot stats stand at full height over the cards
+         even with no room listed, and Trick Battle's three tags ran under
+         the bar at 1080 (modes:card: 1031 px over a bar at 1028). */
+      @media (min-width: 861px) and (min-height: 821px) {
+        .screen-title.is-gate[data-hub="club"] .gate-card-art { height: clamp(120px, calc(62vh - 340px), 400px); }
+      }
+
       /* The map screen: a card per world, each one playing a short flight
          through it. The rows take the middle of three columns so they stay
          centred under the cards; a help column on one side alone would

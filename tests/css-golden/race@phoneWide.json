@@ -24,7 +24,9 @@
    "(min-width: 861px) and (min-height: 900px)": false,
    "(orientation: portrait)": false,
    "(pointer: coarse)": true,
-   "(prefers-reduced-motion: reduce)": false
+   "(prefers-reduced-motion: reduce)": false,
+   "(max-width: 860px) and (min-height: 521px)": false,
+   "(min-width: 861px) and (min-height: 821px)": false
   },
   "unseen": [
    ".course-card .map-reel { background: rgb(11, 17, 25); }",

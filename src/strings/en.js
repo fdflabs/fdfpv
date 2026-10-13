@@ -3682,6 +3682,8 @@ export default {
   "war.wire.other": "DRONE DOWN ON THE LINES",
   "war.out": "OUT OF AIRFRAMES: watching {name}. Round ends when the last one's down.",
   "war.out_none": "OUT OF AIRFRAMES. Round ends when the last one's down.",
+  "war.out_stage": "OUT OF AIRFRAMES: watching {name}. Stage ends when the last one's down.",
+  "war.out_none_stage": "OUT OF AIRFRAMES. Stage ends when the last one's down.",
   "rooms.watching": "WATCHING {name}. J for the next pilot, Esc to leave.",
   "rooms.watching_none": "WATCHING. Nobody is flying yet. Esc to leave.",
   "war.round": "Round {n}/{of}",

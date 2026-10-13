@@ -3687,6 +3687,8 @@ export default {
   "war.wire.other": "DRON DERRIBADO EN LOS CABLES",
   "war.out": "SIN AERONAVES: mirando a {name}. La ronda termina cuando cae el último.",
   "war.out_none": "SIN AERONAVES. La ronda termina cuando cae el último.",
+  "war.out_stage": "SIN AERONAVES: mirando a {name}. La etapa termina cuando cae el último.",
+  "war.out_none_stage": "SIN AERONAVES. La etapa termina cuando cae el último.",
   "rooms.watching": "MIRANDO A {name}. J para el siguiente piloto, Esc para salir.",
   "rooms.watching_none": "MIRANDO. Nadie vuela todavía. Esc para salir.",
   "war.round": "Ronda {n}/{of}",

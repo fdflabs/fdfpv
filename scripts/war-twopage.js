@@ -373,7 +373,7 @@ async function roundRows(seatA, seatB, goAt) {
   const camOff = dist(w.watch.cam, bPos);
   check('A crashes its round\'s four airframes on the real room, then spectates B: the camera on B, the round and no airframes on the HUD, the markers up', m2.round === 1
     && m2.spent[seatA] === allowance && w.watch.on && w.watch.seat === seatB && camOff < 20 && new RegExp(`${unitOf(m2)} 2/`, 'i').test(w.hud.line) && /airframes □□□□(?![■□])/i.test(w.hud.line)
-    && w.markers.on && /^OUT OF AIRFRAMES: watching .+\. Round ends when the last one's down\.$/.test(w.watch.banner),
+    && w.markers.on && new RegExp(`^OUT OF AIRFRAMES: watching .+\\. ${unitOf(m2) === 'STAGE' ? 'Stage' : 'Round'} ends when the last one's down\\.$`).test(w.watch.banner),
   `room round ${m2.round + 1} spent ${JSON.stringify(m2.spent)}; watching ${w.watch.seat} (B ${seatB}), camera ${camOff.toFixed(1)} m from B, hud "${w.hud.line}", banner "${w.watch.banner}"`);
   await shot(a, '6-A-spectates-B');
   await a.tap('BracketRight');

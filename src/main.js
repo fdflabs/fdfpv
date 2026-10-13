@@ -4735,7 +4735,10 @@ export async function boot({
     if (roomWatching()) {
       return peer ? str('rooms.watching', { name: roomName(peer.name) }) : str('rooms.watching_none');
     }
-    return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
+    /* A mission of stages says stage, as its card and HUD do
+     * (src/ui/warround.js unit). */
+    const tail = roomWar.view()?.stage ? '_stage' : '';
+    return peer ? str(`war.out${tail}`, { name: roomName(peer.name) }) : str(`war.out_none${tail}`);
   }
 
   /* Set once the campaign screen exists (further down); the start row
