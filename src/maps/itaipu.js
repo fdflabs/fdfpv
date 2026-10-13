@@ -63,11 +63,11 @@ import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
 import { attractPath } from './itaipu/attract.js';
 import { damWalls } from '../render/world-audio.js';
+import { isLocalHost } from '../share/devhooks.js';
 
 /* The one place the public data's address is written. */
 export const DATA_BASE = 'https://fdflabs.github.io/fdfpv-itaipu-data/';
 const LOCAL_BASE = 'itaipu-data/';
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /*
  * The shell's default spawn, the planes' and the quads': the main dam's
@@ -207,7 +207,7 @@ export function dataBase() {
   const loc = window.location;
   const param = new URLSearchParams(loc.search).get('itdata');
   const url = param ? new URL(param, document.baseURI).href
-    : LOCAL_HOSTS.has(loc.hostname) ? new URL(`../../${LOCAL_BASE}`, import.meta.url).href
+    : isLocalHost(loc.hostname) ? new URL(`../../${LOCAL_BASE}`, import.meta.url).href
       : DATA_BASE;
   return url.endsWith('/') ? url : `${url}/`;
 }

@@ -19389,8 +19389,9 @@ export async function boot({
     const inAir = !landed && !launchStaging && !crashed && !poseLock;
     ui.setStickOverlay({
       /* window.__showSticks: a capture's own switch, so a recorded flight
-       * shows the sticks whatever flies it (scripts/hover-video.js). */
-      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+       * shows the sticks whatever flies it (scripts/hover-video.js); read
+       * through devHooks, so only in developer mode. */
+      show: devHooks.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,
