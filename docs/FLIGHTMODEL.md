@@ -620,11 +620,28 @@ R-474) on each fuselage's side area from its derivation or render model.
   fin's weathercock at high sideslip is what a real Slick must have more
   or less of. No source in hand for a slab-sided fuselage's side force
   at 40 to 60 deg of crossflow beyond Allen and Perkins' crossflow,
-  already in; the floor stays at 30.76 m/s. The free stream data's
-  with-side loss (0.36 at 40 deg against the plant's 0.45 to 0.6) is
-  a sourced correction to the elevator's harrier-side form fleet-wide,
-  not taken in this slice: it moves every harrier derivation and does
-  not touch the knife edge.
+  already in; the floor stays at 30.76 m/s.
+- The elevator in the harrier against the same data (w38-physics-2,
+  2026-10-13): a harrier's up elevator is on the against side (the
+  leeward, research/wash-control/WASH-CONTROL.md), not the with side,
+  so the free stream with-side figure above (0.36 at 40 deg) does not
+  touch it. At the Night Timber's harrier flown full back
+  (harrier-probe.js --full-back, Manual, mix 0: body 29.2 deg, zero lift
+  33.7, 10.4 m/s, 9.05 N) the elevator's moment is 0.41 free stream and
+  0.59 wash. The plant's free stream plate keeps 0.63 of full up there on
+  Ma's measure (the deflection's own increment at no incidence), against
+  Ma 2022's full flap 0.56 at 30 deg; the wash keeps 0.89 (KW_AGAINST
+  0.93, Ma at 70 percent throttle). Taking Ma's 0.56 for the free stream
+  would lower the elevator's whole moment by about 4.5 percent, away from
+  the video: the Night Timber's 27 to 34 deg against its 40 to 45 is not
+  a shortfall of its elevator at full up.
+  Where the plate is off the data is a partial deflection and the with
+  side: half up keeps 0.29 (Ma 0.82), and with the incidence 0.06 full
+  and 0.07 half (Ma 0.42 and 0.63 at 30 deg), the plant far short of the
+  data, not over it. Both need the deflection's increment taken outside
+  the plate's saturation, a form change on every hi_alpha table's
+  elevator and rudder, free stream and wash, which reopens the knife
+  edge derivations (scripts/lib/knifefin.js, knife:budget); not taken.
 
 ### The probe, PR 3 to PR 4
 
