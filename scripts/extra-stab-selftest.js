@@ -272,18 +272,30 @@ for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2,
       const w = [s[11], s[12], s[13]];
       w[k - 11] += 1;
       must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'kick');
-      let angle = 0, rate = 0;
+      let angle = 0, rate = 0, decay = 0;
       for (let i = 0; i < 125; i += 1) {
         fly(0, 0, 0, duty, 0.004);
         const d = sim.readState().state[k] - s[k];
         angle += d * 0.004;
         rate += Math.abs(d) * 0.004;
+        if (Math.abs(d) >= Math.exp(-1)) decay = (i + 1) * 0.004;
       }
       must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
-      return { angle: Math.abs(angle), rate };
+      return { angle: Math.abs(angle), rate, decay };
     });
     const held = kicked(1);
-    check(`${where}, sticks centred, the Heading full, a 1 rad/s ${axis} kick: it turns less in 0.5 s under AS3X than Manual`, held.as3x.angle < held.manual.angle, `${deg(held.as3x.angle)} against ${deg(held.manual.angle)} deg`);
+    if (speed > 0) {
+      /* Level, the airframe's own stability swings the angle back by
+       * itself, so Manual's signed angle over 0.5 s nearly cancels (yaw
+       * 0.1 deg) and is no measure of the hold: judged instead on how fast
+       * the kick dies, the last moment its rate is still 1/e of the kick
+       * (lead decision 2026-10-12). Until then the angle: in yaw 0.1
+       * against Manual's 0.1 deg on the ceiling gains, 0.2 against 0.1 on
+       * the factory ratios; roll 0.1 against 1.3, pitch 0.4 against 2.2. */
+      check(`${where}, sticks centred, the Heading full, a 1 rad/s ${axis} kick: its rate dies sooner under AS3X than Manual`, held.as3x.decay < held.manual.decay, `${(held.as3x.decay * 1000).toFixed(0)} against ${(held.manual.decay * 1000).toFixed(0)} ms to 1/e`);
+    } else {
+      check(`${where}, sticks centred, the Heading full, a 1 rad/s ${axis} kick: it turns less in 0.5 s under AS3X than Manual`, held.as3x.angle < held.manual.angle, `${deg(held.as3x.angle)} against ${deg(held.manual.angle)} deg`);
+    }
     const damped = kicked(0);
     check(`${where}, sticks centred, the Heading at its default zero, a 1 rad/s ${axis} kick: the rate's departure over 0.5 s is less under AS3X than Manual`, damped.as3x.rate < damped.manual.rate, `${deg(damped.as3x.rate)} against ${deg(damped.manual.rate)} deg`);
   }
