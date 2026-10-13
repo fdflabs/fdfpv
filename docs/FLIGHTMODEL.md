@@ -1018,12 +1018,34 @@ acts at the disc, 0.302 m ahead of the CG (the drawn model), so it damps
 the nose's swing as well as the drift, and it is washed out away from
 the hover by 1 - m, Selig's jet parameter m = V_N / (V_N + w); his
 classic normal force (eq. 4), which he blends with it, is not in this
-plant. The Extra only so far; every other table leaves k_j at zero.
+plant. The Extra, the CAP and the Slick carry it; every other table
+leaves k_j at zero.
 
-Measured: a 2 m/s drift, the attitude held vertical at the hover's
-throttle, is 0.64 m/s a second later along the wing and 0.29 across it,
-against 0.94 and 0.54 without; hover:probe's person-limited pilots
-holding the Extra 10 s, Manual 11 to 59 of 648, AS3X 82 to 169.
+The surfaces in the wash meet what the disc leaves of the crossflow
+(2026-10-13, w38-hover-yaw). N_j is the momentum drag, the mass flow
+through the disc times the crossflow it turns onto the axis, so the air
+that reaches the tail keeps 1 - N_j / (mdot V_T) of the body's sideways
+and normal speeds against the body: k_j hanging still, nothing with way
+on. The fin's and the stabiliser's wash terms take that share; taking
+the whole of it spent the same momentum twice. This is a momentum balance
+on Selig's eqs. 13 to 16, not a step his paper states (his eq. 21 adds
+the local flow and the wash as they are). Measured on the Extra hanging
+still, rudder swept on the zero delay hold: before, the fin in the wash
+turned the nose into the drift the tilt starts, a negative stiffness
+through the drift (-6.9 N m/rad at 1 rad/s, against the jet's +1.5 and
+the inertia's 0.15), and the rudder's tilt per stick sat at 0.55 to 0.70
+from 1 to 4 rad/s; after, it falls as a damped integrator, 6.4 at 1
+rad/s, 2.2 at 2 and 0.92 at 4, 102 to 126 deg behind. The swirl's
+crossflow at the fin is the same at any yaw angle (it is in the body's
+axes) and has no stiffness: 0.001 N m per unit of rudder at 1 to 4
+rad/s. Every hover loop then keeps the bandwidth criterion on all three
+(scripts/figures-margins.js, the hover).
+
+Measured on the plant before the wash's share above: a 2 m/s drift, the
+attitude held vertical at the hover's throttle, is 0.64 m/s a second
+later along the wing and 0.29 across it, against 0.94 and 0.54 without;
+hover:probe's person-limited pilots holding the Extra 10 s, Manual 11 to
+59 of 648, AS3X 82 to 169.
 
 ### Not known: AS3X's heading on this receiver
 

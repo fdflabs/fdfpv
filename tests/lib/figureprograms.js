@@ -173,10 +173,12 @@ const LINE_KI = 1;
  * (scripts/figures-margins.js): the pitch rate a unit of elevator buys
  * grows with the slipstream and the airspeed, K = a + b throttle + c V^2
  * rad/s per stick on the Extra (fitted to its 84 measured steps, the
- * plant at most 25 % over the fit; re-fitted 2026-10-12 on the gates'
- * 4.1 V seat and the measured wash speed, w36-physics, from 1.738 + 1.89
- * thr + 0.0026 V^2 on the seat alone and 1.637 + 1.563 thr + 0.00281 V^2
- * before it), and the rate gain is LINE_GM / K. LINE_GM is the largest,
+ * plant at most 25 % over the fit; re-fitted 2026-10-13 on the wash's
+ * crossflow less the jet's share, w38-hover-yaw, from 1.695 + 1.782 thr
+ * + 0.00274 V^2, and 2026-10-12 on the gates' 4.1 V seat and the measured
+ * wash speed, w36-physics, from 1.738 + 1.89 thr + 0.0026 V^2 on the seat
+ * alone and 1.637 + 1.563 thr + 0.00281 V^2 before it), and the rate gain
+ * is LINE_GM / K. LINE_GM is the largest,
  * to a hundredth, that keeps the 6 dB of the bandwidth criterion on the
  * elevator's measured frequency response, level at a third, two thirds
  * and full throttle (6.1, 6.7 and 7.9 dB; 0.40 keeps 5.9 at a third; it
@@ -186,7 +188,7 @@ const LINE_KI = 1;
  * two thirds, and at full throttle none (-2.6 dB): the humpty's up line
  * went stop to stop on the
  * elevator and snapped the wing. The rudder's is LINE_YAW_KR, below. */
-export const LINE_PITCH_K = { a: 1.695, b: 1.782, c: 0.00274 };
+export const LINE_PITCH_K = { a: 1.71, b: 1.826, c: 0.00268 };
 export const LINE_GM = 0.39;
 export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * thr + LINE_PITCH_K.c * v * v);
 /* The rudder's share of the line hold, kept at the bandwidth criterion's
@@ -207,9 +209,9 @@ export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * t
  * 5.7 on the CAP and about 3 on the Slick at the speeds they fly level;
  * on these the Extra's rings at 0.5. Pinned here and checked there. */
 export const LINE_YAW_KR = {
-  [EXTRA_AIRFRAME]: [[8, 0.097], [14, 0.07], [18, 0.062], [22, 0.057], [26, 0.058], [30, 0.059]],
-  [CAP_AIRFRAME]: [[8, 0.264], [14, 0.161], [18, 0.138], [22, 0.117], [26, 0.105], [30, 0.098]],
-  [SLICK_AIRFRAME]: [[8, 0.472], [14, 0.327], [18, 0.243], [22, 0.214], [26, 0.179], [30, 0.156]],
+  [EXTRA_AIRFRAME]: [[8, 0.097], [14, 0.07], [18, 0.061], [22, 0.057], [26, 0.057], [30, 0.059]],
+  [CAP_AIRFRAME]: [[8, 0.27], [14, 0.162], [18, 0.138], [22, 0.117], [26, 0.105], [30, 0.098]],
+  [SLICK_AIRFRAME]: [[8, 0.478], [14, 0.329], [18, 0.244], [22, 0.214], [26, 0.18], [30, 0.156]],
 };
 export function lineYawKr(airframe, v) {
   const t = LINE_YAW_KR[airframe];
@@ -281,9 +283,9 @@ const POINT_LEAD = 0.35;
  * 200 its 2-point, 550 and over the Slick's 8-point.
  */
 export const POINT_STOP = {
-  [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.353 },
-  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.198 },
-  [SLICK_AIRFRAME]: { wc: 2.6, gain: 5.191 },
+  [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.341 },
+  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.048 },
+  [SLICK_AIRFRAME]: { wc: 2.8, gain: 5.188 },
 };
 export const POINT_HOLD_MS = 400;
 /* The point's stop as the person flies it: e is the roll still to go to
@@ -339,10 +341,10 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 13.785 },
-  elevation: { wc: 0.8, gain: 1.064 },
-  heading: { wc: 2, gain: 6.039 },
-  trim: { rudder: 0.38, elevation: 0.188, speed: 32.9 },
+  bank: { wc: 2, gain: 13.731 },
+  elevation: { wc: 0.8, gain: 1.079 },
+  heading: { wc: 2, gain: 6.041 },
+  trim: { rudder: 0.38, elevation: 0.187, speed: 32.9 },
 };
 const G = 9.80665;
 const knife = (ms) => ({
@@ -432,7 +434,7 @@ const knife = (ms) => ({
  * turn) the Extra did not finish the loop and reached the ground in all
  * four. It lets go 0.3 s of the path's rate early.
  */
-export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.958 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.972 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const knifeLoop = () => ({
   name: 'knife loop',
@@ -564,11 +566,12 @@ const rollingCircle = (rolls, rate = 1.6) => ({
  * on its measured response hanging still at its hover stick (SEATED),
  * pinned here and checked there: the crossover wc (rad/s), the plant gain
  * personLoop takes, and for the tilt the lead (s) the person adds. The
- * nose's tilt per stick is near a double integrator below 0.6 rad/s (its
- * phase within 30 deg of -180), and from there to 4 rad/s the plant's
- * phase stays 105 to 156 deg behind, so a person flying it on a gain, as
- * crossoverFor designs, keeps under 35 deg at every crossover: on such an
- * element the person adds lead, flying the tilt and its rate together
+ * nose's tilt per stick hangs on the hover's own swing below about 1.5
+ * rad/s, and from 2 to 4 rad/s its phase is 113 to 148 deg behind, so a
+ * person flying it on a gain, as crossoverFor designs, crosses at 0.8 to
+ * 1.4 rad/s, or short of the criterion on the CAP's rudder and the
+ * Slick's tilt: on such an element the person adds lead, flying the tilt
+ * and its rate together
  * (McRuer and Jex 1967; McRuer and Krendel, AGARDograph 188, 1974, the
  * crossover model's pilot on an acceleration element, Kp s e^-tau s). The
  * seen rate is the body rate the eyes read off two looks. The roll rate
@@ -579,13 +582,13 @@ const rollingCircle = (rolls, rate = 1.6) => ({
  */
 export const HOVER = {
   [EXTRA_AIRFRAME]: {
-    pitch: { wc: 2, gain: 2.086, lead: 0.15 }, yaw: { wc: 2.8, gain: 2.125, lead: 0.15 }, roll: { wc: 2.4, gain: 7.637 }, climb: { wc: 1.8, gain: 34.936 }, torque: -3.31,
+    pitch: { wc: 3, gain: 5.179, lead: 0.35 }, yaw: { wc: 2.8, gain: 5.352, lead: 0.3 }, roll: { wc: 2.4, gain: 7.632 }, climb: { wc: 1.8, gain: 34.935 }, torque: -3.31,
   },
   [CAP_AIRFRAME]: {
-    pitch: { wc: 2.2, gain: 1.701, lead: 0.25 }, yaw: { wc: 1.4, gain: 0.665, lead: 0.2 }, roll: { wc: 2.8, gain: 8.481 }, climb: { wc: 1.8, gain: 33.323 }, torque: -3.29,
+    pitch: { wc: 3, gain: 4.063, lead: 0.5 }, yaw: { wc: 1, gain: 2.591, lead: 0.5 }, roll: { wc: 3, gain: 7.059 }, climb: { wc: 1.8, gain: 33.447 }, torque: -3.29,
   },
   [SLICK_AIRFRAME]: {
-    pitch: { wc: 2.4, gain: 1.636, lead: 0.3 }, yaw: { wc: 2.2, gain: 0.893, lead: 0.35 }, roll: { wc: 2.8, gain: 2.403 }, climb: { wc: 0.8, gain: 22.671 }, torque: -2.26,
+    pitch: { wc: 2.6, gain: 2.366, lead: 0.5 }, yaw: { wc: 1.8, gain: 1.646, lead: 0.5 }, roll: { wc: 2.8, gain: 2.451 }, climb: { wc: 0.8, gain: 22.584 }, torque: -2.31,
   },
 };
 /* The drift's tilt and the height's climb rate a person asks for at most:
@@ -940,11 +943,11 @@ export const PROGRAMS = {
    * sweep name four rolls in none; one roll in 10 on the Extra or the CAP
    * (0 to 6.5), on all three in none. */
   rolling_circle: [L(), rollingCircle(1), L()],
-  /* Not promoted (2026-10-12): the hover's rudder loop keeps 35 deg and
-   * 2.3 dB on the Extra and 47 deg and 5.3 dB on the CAP at the best
-   * crossover and lead there is (scripts/figures-margins.js hoverLoops),
-   * short of the criterion, so these hovers are held by gains a person
-   * could not hold to it. docs/TRICKS-CATALOG.md, "Hover". */
+  /* Promoted 2026-10-13 (w38-hover-yaw): every hover loop keeps the
+   * criterion on all three (scripts/figures-margins.js hoverLoops) once
+   * the fin in the wash meets the crossflow the disc leaves; before, the
+   * rudder's kept 35 deg and 2.3 dB on the Extra and 47 deg and 5.3 dB
+   * on the CAP. docs/TRICKS-CATALOG.md, "Hover". */
   hover: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < HOVER_CATCH), hover(5000), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   torque_roll: [L(), pull(0.55, 0.5 * PI), line(UP, 8000, 0.4, (d) => d.v < HOVER_CATCH), hover(7000, { letGoMs: 3000 }), line(DOWN, 800, 0.3), pull(0.55, 0.5 * PI, 0.6), L()],
   harrier: [slow(12), harrier(5000), L()],

@@ -2996,8 +2996,28 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       fa = (ye * ye - y0 * y0) / (y1 * y1 - y0 * y0);
     }
     /* The crossflows: over the stabiliser from its zero lift, V sin(alpha
-     * - a0) in the body's velocities; over the fin, the sideways speed. */
-    const double xa = -w * sim_cos_small(fw->slip_a0) - u * sim_sin_small(fw->slip_a0);
+     * - a0) in the body's velocities; over the fin, the sideways speed.
+     * Where the table has the jet normal force (jet_kj, below), the disc
+     * has already taken that force's share of the air's sideways momentum:
+     * N_j is the momentum drag, the mass flow times the crossflow it turns
+     * onto the axis (Selig, AIAA 2010-7938, eqs. 13 to 16), so the air
+     * through the disc leaves with 1 - N_j / (mdot V_T) of its crossflow
+     * against the body, and the surfaces in the wash meet that, not the
+     * whole of it, or the same momentum is spent twice. The share is the
+     * jet's own k over the disc's mass flow, rho pi R^2 (u + v_i): jet_kj
+     * hanging still, nothing with way on. It is the body's sideways and
+     * normal speeds only; the rates' own crossflow at the tail is the
+     * cn_r and cm_q terms'. Taking the whole of it, a hover drifting
+     * sideways turns its nose into the drift on the fin in the wash, and
+     * the Extra's rudder tilt per stick sits flat at 0.55 to 0.70 from 1
+     * to 4 rad/s (scripts/figures-margins.js, the hover). */
+    double turned = 0.0;
+    if (fw->jet_kj > 0.0) {
+      const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * WING_PI * fw->slip_r * fw->slip_r));
+      turned = fw->jet_kj * w0 * vi / ((u_pos + vi) * (u_pos + vi));
+    }
+    const double v_wash = v * (1.0 - turned), w_wash = w * (1.0 - turned);
+    const double xa = -w_wash * sim_cos_small(fw->slip_a0) - u * sim_sin_small(fw->slip_a0);
     /* The swirl: the prop's torque, torque_arm times the thrust, is the
      * wash's angular momentum flux, the mass flow rho pi R^2 (u + v_i)
      * turning as a solid body at Omega, Q = mdot Omega rw^2 / 2. Every prop
@@ -3037,7 +3057,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       keep = 1.0 - root / q_prop;
     }
     const double xs = (1.0 - fw->slip_loss[2] * lam) * keep * q_prop * (up - dn) / (mdot * rw * rw);
-    const double xb = add_term(-v, -xs);
+    const double xb = add_term(-v_wash, -xs);
     /* The fin's force from its crossflow takes rho v_i, the wash's excess
      * over the free stream, whose own fin terms take the body's sideslip;
      * but nothing outside the wash blows the swirl, so the swirl's
@@ -3046,7 +3066,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * Selig's J 0.52 (fig. 22b, 3.7 to 4.2 times rho v_i's measured, flat
      * with distance) the whole stream's is 4.3 times. The fin's angle in
      * the wash, which saturates it, stays the swirl's own speed. */
-    const double xbf = add_term(-v, -xs * (u_pos + 2.0 * vi) / (2.0 * vi));
+    const double xbf = add_term(-v_wash, -xs * (u_pos + 2.0 * vi) / (2.0 * vi));
     /* A control surface in the wash loses its effect past about 30 deg of
      * the airframe's angle, though the wash still runs along it, by how
      * much as it is deflected (scripts/lib/washcontrol.js, its sources,
