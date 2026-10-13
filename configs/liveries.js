@@ -45,6 +45,7 @@
  */
 
 import { airframeById } from './airframes.js';
+import { AIRCRAFT } from './aircraft.js';
 import { CODE_PREFIX, MAX_SAVED, PATTERNS, checkPaint, cleanName, decodeLivery, fromBase64Url } from './paint.js';
 import { KIT_VERSION, LIGHTS_VERSION, checkKit, checkLights, kitParts } from './kits.js';
 
@@ -107,14 +108,16 @@ export const PALETTE = [
  * palette. The combat aircraft are the exception, because they are no
  * maker's model: generic and unmarked (docs/WARFARE-PLAN.md section 3),
  * they wear generic service and test colours, with no source to cite and
- * no insignia (THE COMBAT AIRCRAFT, next).
+ * no insignia (THE COMBAT AIRCRAFT, next). A row in LIVERIES that is not
+ * written here is its folder's livery (aircraft/<id>/aircraft.js); the Cub's
+ * and the Kadet's schemes share a source object and the quads' rows share
+ * their regions, which a folder's copy would split, so those stay here.
  */
 const r = (id, stock, more = {}) => ({ id, stock, ...more });
 const src = (label, url) => ({ label, url });
 const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/Piper_J-3_Cub');
 const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
-const FREEWING = 'https://www.freewing-model.com/';
 
 /*
  * THE COMBAT AIRCRAFT. Their regions are their builders' own
@@ -139,15 +142,6 @@ const GREY = '#b9bdc0';
 const WHITE = '#f2f2f2';
 const ORANGE = '#e73f0e';
 const generic = (id, colours) => ({ id, source: null, colours });
-const STRIKER_SCHEMES = [
-  generic('stock', {}),
-  generic('black', { ...all(BLACK, ['fuselage', 'wing', 'fins', 'nose_cap']), nose_band: '#5a5d62', engine: '#2e3034' }),
-  generic('olive', all(OLIVE, ['fuselage', 'wing', 'fins', 'nose_cap'])),
-  generic('tan', all(TAN, ['fuselage', 'wing', 'fins', 'nose_cap'])),
-  generic('two_tone', { ...all(TAN, ['fuselage', 'nose_cap']), ...all(OLIVE, ['wing', 'fins']) }),
-  generic('arctic', { ...all(ARCTIC, ['fuselage', 'wing', 'nose_cap']), fins: ARCTIC_GREY, nose_band: '#3b3f44' }),
-  generic('test', { ...all(WHITE, ['fuselage', 'wing']), ...all(ORANGE, ['fins', 'nose_cap']), nose_band: '#0e1213' }),
-];
 const BODY = ['frame', 'arms', 'top', 'armour'];
 const quadSchemes = (ids) => {
   const only = (colours) => Object.fromEntries(Object.entries(colours).filter(([k]) => ids.includes(k)));
@@ -168,10 +162,7 @@ const QUAD_FRAME = [r('frame', CARBON), r('arms', CARBON), r('top', CARBON)];
 const QUAD_KIT = [r('pack', '#18191b'), r('payload', '#4d5130')];
 const QUAD_LONG = [...QUAD_FRAME, r('tape', '#5d6038'), ...QUAD_KIT, r('cage', '#3a3f2a'), r('legs', '#18191b'), r('props', '#232527')];
 export const LIVERIES = {
-  sky1800: {
-    regions: [r('wing', '#d4e2ee'), r('tail', '#d4e2ee'), r('pod', '#d4e2ee')],
-    schemes: [{ id: 'stock', source: null, colours: {} }],
-  },
+  sky1800: AIRCRAFT.LIVERIES.sky1800,
   cub1400: {
     regions: [r('wing', '#f0be2a'), r('fuselage', '#f0be2a'), r('tail', '#f0be2a'), r('trim', '#16181a'), r('floats', '#f2f1ec', { floats: true })],
     schemes: [
@@ -180,45 +171,11 @@ export const LIVERIES = {
       { id: 'flitfire', source: WIKI_CUB, colours: { ...all('#b9bdc0', ['wing', 'fuselage', 'tail', 'floats']), trim: '#032257' } },
     ],
   },
-  radian2000: {
-    regions: [r('wing', '#f1f1ec'), r('fuselage', '#f1f1ec'), r('tail', '#f1f1ec'), r('tips', '#cf2a26'), r('canopy', '#1b2127')],
-    schemes: [
-      { id: 'stock', source: null, colours: {} },
-      { id: 'radian', source: src('E-flite Radian decal sheet, EFL4703', 'https://www.horizonhobby.com/product/e-flite-decal-sheet-radian-bnf-basic/EFL4703.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail']), tips: '#e68e19', canopy: '#0e1213' } },
-      { id: 'night', source: src('E-flite Night Radian FT 2.0 m, EFL3650', 'https://www.horizonhobby.com/product/e-flite-night-radian-ft-2.0m-bnf-basic-with-as3x-and-safe-select/EFL3650.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail']), tips: '#b11b24' } },
-    ],
-  },
-  bramor2300: {
-    regions: [r('airframe', '#a9b5c1')],
-    schemes: [
-      { id: 'stock', source: src('C-Astral, Bramor C4EYE', 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye'), colours: {} },
-      { id: 'ppx', source: src('C-Astral, Bramor ppX', 'https://www.c-astral.com/en/unmanned-systems/bramor-ppx'), colours: { airframe: '#dfdcd8' } },
-      { id: 'hivis', source: src('C-Astral, Bramor ppX high visibility option', 'https://www.c-astral.com/en/unmanned-systems/bramor-ppx'), colours: { airframe: '#e73f0e' } },
-    ],
-  },
-  slowstick1180: {
-    regions: [r('wing', '#e5402a'), r('tail', '#e5402a'), r('tape', '#f4f1ea')],
-    schemes: [{ id: 'stock', source: null, colours: {} }],
-  },
-  timber1500: {
-    regions: [r('wing', '#f1f0ea'), r('fuselage', '#f1f0ea'), r('tail', '#f1f0ea'), r('trim', '#d5271f'), r('stripe', '#17191b'), r('floats', '#f1f0ea', { floats: true })],
-    schemes: [
-      { id: 'stock', source: src('E-flite Turbo Timber Evolution, EFL105250', 'https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html'), colours: {} },
-      { id: 'timber', source: src('E-flite Timber 1.5 m, EFL5250', 'https://www.horizonhobby.com/product/e-flite-timber-1.5m-bnf-basic-as3x-with-floats/EFL5250.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail', 'floats']), trim: '#b11b24', stripe: '#0e1213' } },
-      { id: 'timber_x', source: src('E-flite Timber X 1.2 m, EFL3850', 'https://www.horizonhobby.com/product/e-flite-timber-x-1.2m-bnf-basic-with-as3x-and-safe-select/EFL3850.html'), colours: { ...all('#f2f2f2', ['wing', 'fuselage', 'tail', 'floats']), trim: '#85c936', stripe: '#1e1e1d' } },
-      { id: 'super', source: src('E-flite Super Timber 1.7 m, EFL02550', 'https://www.horizonhobby.com/product/e-flite-super-timber-1.7m-bnf-basic-with-as3x-and-safe-select/EFL02550.html'), colours: { ...all('#eaaa06', ['wing', 'tail', 'trim']), fuselage: '#f2f2f2', floats: '#f2f2f2', stripe: '#1a1a1a' } },
-      { id: 'twin', source: src('E-flite Twin Timber 1.6 m, EFL23850', 'https://www.horizonhobby.com/product/e-flite-twin-timber-1.6m-bnf-basic-with-as3x-and-safe-select/EFL23850.html'), colours: { ...all('#0e65ba', ['wing', 'trim']), ...all('#f2f2f2', ['fuselage', 'tail', 'floats']), stripe: '#0f1c3c' } },
-    ],
-  },
-  bombshell1118: {
-    regions: [r('wing', '#c8161a'), r('fuselage', '#17171a'), r('tail', '#17171a'), r('swoop', '#c8161a')],
-    schemes: [
-      { id: 'stock', source: src('BMJR Models, Buzzard Bombshell', 'https://bmjrmodels.com/product/buzzard-bombshell/'), colours: {} },
-      { id: 'baby', source: src('Outerzone oz2180, Baby Bombshell, Flying Models 1992', 'https://outerzone.co.uk/plan_details.asp?ID=2180'), colours: { wing: '#f0db2c', fuselage: '#0e65ba', tail: '#032257', swoop: '#b11b24' } },
-      { id: 'kittur', source: src('Outerzone oz5360, a builder\'s Bombshell', 'https://outerzone.co.uk/plan_details.asp?ID=5360'), colours: { wing: '#f2f2f2', fuselage: '#d1dae2', tail: '#f2f2f2', swoop: '#032257' } },
-      { id: 'class_a', source: src('Outerzone oz6289, a Class A Baby Bombshell', 'https://outerzone.co.uk/plan_details.asp?ID=6289'), colours: { wing: '#ca8462', fuselage: '#c98d64', tail: '#f2f2f2', swoop: '#4e4653' } },
-    ],
-  },
+  radian2000: AIRCRAFT.LIVERIES.radian2000,
+  bramor2300: AIRCRAFT.LIVERIES.bramor2300,
+  slowstick1180: AIRCRAFT.LIVERIES.slowstick1180,
+  timber1500: AIRCRAFT.LIVERIES.timber1500,
+  bombshell1118: AIRCRAFT.LIVERIES.bombshell1118,
   kadet1981: {
     /* The trims are drawn into the same film maps as the wing and the
      * fuselage, so each wears its main region's finish (`finish: false`). */
@@ -230,131 +187,64 @@ export const LIVERIES = {
       { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
     ],
   },
-  uglystik1567: {
-    /* RCM's own model as its May 1985 photographs show it: red all over,
-     * the wing's outer panels, a band round the fuselage behind the wing
-     * and the fin white, and black crosses on them, as the plan labels
-     * them "(WHITE)" and "(BLACK CROSS & BANDS)". */
-    regions: [r('wing', '#c8161a'), r('fuselage', '#c8161a'), r('tail', '#c8161a'), r('panels', '#f2efe6'), r('crosses', '#141416')],
-    schemes: [
-      { id: 'stock', source: src('RCM, Das Ugly Stik, plan 939, May 1985 (Outerzone oz6801)', 'https://outerzone.co.uk/plan_details.asp?ID=6801'), colours: {} },
-    ],
-  },
-  tigermoth1803: {
-    /* Great Planes' own covering, Top Flite's Cub Yellow film all over with
-     * the cowl and a stripe black (the manual's cover and its repair
-     * colour, TOPQ0220); and the RAF's post war trainer finish, overall
-     * silver with yellow bands round the rear fuselage and across the
-     * wings, which the Tiger Moth wore to the end of its RAF service. */
-    regions: [r('wing', '#f5b21c'), r('fuselage', '#f5b21c'), r('tail', '#f5b21c'), r('cowl', '#17181a'), r('bands', '#f5b21c'), r('trim', '#17181a')],
-    schemes: [
-      { id: 'stock', source: src('Great Planes, Tiger Moth ARF GPMA1330 instruction manual', 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf'), colours: {} },
-      { id: 'raf_silver', source: src('RAF Museum, Training Aircraft Colour Schemes', 'https://www.rafmuseum.org.uk/research/online-exhibitions/taking-flight/training-aircraft-colour-schemes/'), colours: { wing: '#c9ccce', fuselage: '#c9ccce', tail: '#c9ccce', cowl: '#b7babd', bands: '#f2c200', trim: '#17181a' } },
-    ],
-  },  extra3d1308: {
-    /* E-flite's moulded foam in its own paint: the nose and spats yellow
-     * orange, the wing's top white with grey outer panels (the tail's
-     * grey), its underside in yellow and black squares. */
-    regions: [r('wing', '#eceef0'), r('fuselage', '#eceef0'), r('nose', '#f2a81d'), r('tail', '#8a9096'), r('trim', '#16181a'), r('checks', '#f2b21d')],
-    schemes: [
-      { id: 'stock', source: src('E-flite Extra 300 3D 1.3m, EFL115500', 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'), colours: {} },
-      { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
-    ],
-  },
-  slick2680: {
-    /* Extreme Flight's three schemes for the V3 in their Oracover colours,
-     * the data sheet's codes where it gives them, the hex the swatch's: the
-     * 10th Anniversary's white with red cowl, pants, tail and wing rays and
-     * black trim (356RC); white with orange, sky blue and dark blue (#10,
-     * #60, #53, #52, 356V3BW); cub yellow with red, light grey and black
-     * (#30, #23, #11, #71, 356CYV3). */
-    regions: [r('wing', '#f2f2ef'), r('fuselage', '#f2f2ef'), r('nose', '#c8141c'), r('tail', '#c8141c'), r('trim', '#16181a'), r('rays', '#c8141c')],
-    schemes: [
-      { id: 'stock', source: src('Extreme Flight 100 in Slick 580 EXP V3, Red/White 10th Anniversary, 356RC', 'https://extremeflightrc.com/products/ef-100-slick-580-exp-v2-red-anniversary-scheme'), colours: {} },
-      { id: 'blueorange', source: src('Extreme Flight 100 in Slick 580 EXP V3, White/Blue/Orange, 356V3BW; Oracover 10, 60, 53, 52', 'https://extremeflightrc.com/products/105-5-slick-580-exp-v2-white-blue-orange'), colours: { nose: '#f26522', tail: '#3d9ad6', rays: '#f26522', trim: '#1c2a5a' } },
-      { id: 'cubyellow', source: src('Extreme Flight 100 in Slick 580 EXP V3, Cub Yellow/Red/Grey, 356CYV3; Oracover 30, 23, 11, 71', 'https://extremeflightrc.com/products/ef-100-slick-580-exp-v3-cub-yellow-red-grey'), colours: { wing: '#f8c300', fuselage: '#f8c300', nose: '#c1121f', tail: '#c1121f', rays: '#b9bbbc' } },
-    ],
-  },
-  nighttimber1200: {
-    /* E-flite's scheme off its photographs (EFL13875): white foam, the
-     * orange red flashes over the wing and along the fuselage, black
-     * stripes and cowl, grey slashes. */
-    regions: [r('wing', '#f2f2ee'), r('fuselage', '#f2f2ee'), r('tail', '#f2f2ee'), r('trim', '#ee4a1f'), r('stripe', '#17191b'), r('grey', '#8d9195')],
-    schemes: [
-      { id: 'stock', source: src('E-flite Night Timber X 1.2m, EFL13875', 'https://www.horizonhobby.com/product/night-timber-x-1.2m-pnp/EFL13875.html'), colours: {} },
-      { id: 'timberx', source: src('E-flite Timber X 1.2m, EFL38500: white, red and black', 'https://www.horizonhobby.com/product/timber-x-1.2m-bnf-basic-with-as3x-and-safe-select/EFL38500.html'), colours: { trim: '#d5271f', grey: '#5a5f63' } },
-    ],
-  },
-  hercules3077: {
-    /* The USAF airlifter's overall grey, FS 36173, the radome a darker
-     * grey as the dielectric paint weathers, the props black; no
-     * insignia (the non goals). */
-    regions: [r('fuselage', '#61686c'), r('wing', '#61686c'), r('tail', '#61686c'), r('radome', '#3e4347'), r('spinners', '#61686c'), r('props', '#1c1d1f'), r('trim', '#2b2e31')],
-    schemes: [
-      { id: 'stock', source: src('USAF SIG, Authentic Decals 72-51, C-130 Hercules USAF cargo versions: "painted in overall AMC Battle Grey (FS36173)"', 'https://usaf-sig.org/index.php/references/reviews/118-decal-reviews/431-authentic-decals-72-51-c-130-hercules-usaf-cargo-versions'), colours: {} },
-    ],
-  },
+  /* RCM's own model as its May 1985 photographs show it: red all over,
+   * the wing's outer panels, a band round the fuselage behind the wing
+   * and the fin white, and black crosses on them, as the plan labels
+   * them "(WHITE)" and "(BLACK CROSS & BANDS)". */
+  uglystik1567: AIRCRAFT.LIVERIES.uglystik1567,
+  /* Great Planes' own covering, Top Flite's Cub Yellow film all over with
+   * the cowl and a stripe black (the manual's cover and its repair
+   * colour, TOPQ0220); and the RAF's post war trainer finish, overall
+   * silver with yellow bands round the rear fuselage and across the
+   * wings, which the Tiger Moth wore to the end of its RAF service. */
+  tigermoth1803: AIRCRAFT.LIVERIES.tigermoth1803,
+  /* E-flite's moulded foam in its own paint: the nose and spats yellow
+   * orange, the wing's top white with grey outer panels (the tail's
+   * grey), its underside in yellow and black squares. */
+  extra3d1308: AIRCRAFT.LIVERIES.extra3d1308,
+  /* Extreme Flight's three schemes for the V3 in their Oracover colours,
+   * the data sheet's codes where it gives them, the hex the swatch's: the
+   * 10th Anniversary's white with red cowl, pants, tail and wing rays and
+   * black trim (356RC); white with orange, sky blue and dark blue (#10,
+   * #60, #53, #52, 356V3BW); cub yellow with red, light grey and black
+   * (#30, #23, #11, #71, 356CYV3). */
+  slick2680: AIRCRAFT.LIVERIES.slick2680,
+  /* E-flite's scheme off its photographs (EFL13875): white foam, the
+   * orange red flashes over the wing and along the fuselage, black
+   * stripes and cowl, grey slashes. */
+  nighttimber1200: AIRCRAFT.LIVERIES.nighttimber1200,
+  /* The USAF airlifter's overall grey, FS 36173, the radome a darker
+   * grey as the dielectric paint weathers, the props black; no
+   * insignia (the non goals). */
+  hercules3077: AIRCRAFT.LIVERIES.hercules3077,
 
-  cap1702: {
-    /* Extreme Flight's two covering schemes for the 67 in CAP 580, the
-     * data sheet's Oracover colours read off its product photographs: the
-     * blue and yellow A464-BY (Dark Blue 52 over the wing's root and the
-     * fuselage, Cub Yellow 30 stripes and spats, Ferrari Red 23 tips, cowl
-     * and flashes) and the green and red A464-GR (May Green 43, White 10,
-     * Ferrari Red 23). */
-    regions: [r('wing', '#2343b4'), r('fuselage', '#2343b4'), r('tail', '#2343b4'), r('stripe', '#f5b318'), r('trim', '#e2202e')],
-    schemes: [
-      { id: 'blueyellow', source: src('Extreme Flight 67 in CAP 580, A464-BY: blue, yellow and red', 'https://extremeflightrc.com/products/ef-67-cap-580-blue-yellow-arf'), colours: {} },
-      { id: 'greenred', source: src('Extreme Flight 67 in CAP 580, A464-GR: green, white and red', 'https://extremeflightrc.com/products/ef-67-cap-580-green-red-arf'), colours: { wing: '#6cc53a', fuselage: '#6cc53a', tail: '#6cc53a', stripe: '#f4f4f2', trim: '#e3202c' } },
-    ],
-  },
+  /* Extreme Flight's two covering schemes for the 67 in CAP 580, the
+   * data sheet's Oracover colours read off its product photographs: the
+   * blue and yellow A464-BY (Dark Blue 52 over the wing's root and the
+   * fuselage, Cub Yellow 30 stripes and spats, Ferrari Red 23 tips, cowl
+   * and flashes) and the green and red A464-GR (May Green 43, White 10,
+   * Ferrari Red 23). */
+  cap1702: AIRCRAFT.LIVERIES.cap1702,
 
-  p51d1450: {
-    /* FMS's natural metal P-51 as its manual photographs it: silver all
-     * over, the red of the nose band, the spinner and the fin's top, and
-     * the black of the anti-glare panel and the identification bands. */
-    regions: [r('wing', '#cad0d5'), r('fuselage', '#cad0d5'), r('tail', '#cad0d5'), r('trim', '#c8161a'), r('stripe', '#17191b')],
-    schemes: [
-      { id: 'stock', source: src('FMS P-51D Mustang V8 1450 mm, the manual\'s photographs', 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf'), colours: {} },
-    ],
-  },
-  nrj1490: {
-    /* OA Composites' own colourways, spread tow carbon under a painted
-     * design: the wing's dark carbon, two bands of colour and the nose
-     * cone, the tail bare carbon. Hyperflight's and Lindinger's listings
-     * name them by colour and number. */
-    regions: [r('wing', '#2b2d31'), r('stripe', '#e8358f'), r('band', '#39b3e6'), r('cone', '#3a9ad9'), r('tail', '#1a1b1d')],
-    schemes: [
-      { id: 'stock', source: src('Hyperflight, NRJ 1.5m DLG, "Blue #5"', 'https://www.hyperflight.co.uk/products.asp?code=NRJ&name=nrj-dlg'), colours: {} },
-      { id: 'red2', source: src('Lindinger, OA-Composites NRJ F3K RED #2', 'https://www.lindinger.at/en/Airplanes/Aircraft-Models/Electric-gliders-Hotliners/OA-COMPOSITES-NRJ-F3K-RED-2-CW40-CENTRIFUGAL-GLIDER/9776531'), colours: { wing: '#9a9ea3', stripe: '#e8358f', band: '#5a5d62', cone: '#e0314a' } },
-      { id: 'orange18', source: src('Lindinger, OA-Composites NRJ F3K ORANGE #18', 'https://www.lindinger.at/en/Airplanes/Aircraft-Models/Electric-gliders-Hotliners/OA-COMPOSITES-NRJ-F3K-ORANGE-18-EXTREME-60-SPIN-GLIDER/9776534'), colours: { stripe: '#f07a1c', band: '#f3d02a', cone: '#f07a1c' } },
-    ],
-  },
-  f16878: {
-    /* Painted foam, not film: Freewing's "modern three tone gray US Air
-     * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270
-     * Medium Gray and 36375 Light Ghost Gray, and the canopy's gold tint. */
-    regions: [r('dark', '#4d5357'), r('medium', '#7f878c'), r('light', '#a9b0b4'), r('canopy', '#8a7440')],
-    schemes: [
-      { id: 'stock', source: src('Freewing F-16 Falcon V3 6S High Performance, FJ21115P', `${FREEWING}freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html`), colours: {} },
-      { id: 'arctic', source: src('Freewing F-16 V3 Arctic Camo, FJ21125P', 'https://motionrc.com/products/freewing-f-16-v3-arctic-camo-high-performance-70mm-edf-jet-pnp-fj21125p'), colours: { dark: '#3b3f44', medium: '#c9ced2', light: '#eef0f1' } },
-    ],
-  },
-  zagi1219: {
-    /* Zagi's HP as zagi.com photographs it: orange covering tape all
-     * over, black winglets, the charcoal canopy and tray; and the 5C
-     * combat wing's scheme, yellow with black tape on the leading edge
-     * and black winglets. */
-    regions: [r('wing', '#f0561e'), r('trim', '#f0561e'), r('winglets', '#17191b'), r('canopy', '#34383c')],
-    schemes: [
-      { id: 'stock', source: src('Zagi, Zagi HP product photograph', 'https://web.archive.org/web/2019/https://zagi.com/product/hp/'), colours: {} },
-      { id: 'combat', source: src('Zagi, Zagi 5C product photograph', 'https://web.archive.org/web/2017/https://zagi.com/category/kits/'), colours: { wing: '#f0db2c', trim: '#17191b' } },
-    ],
-  },
-  striker2500: {
-    regions: [r('fuselage', '#a6b6c6'), r('wing', '#a6b6c6'), r('fins', '#a6b6c6'), r('nose_cap', '#b8c6d4'), r('nose_band', '#26282a'), r('engine', '#9aa0a6')],
-    schemes: STRIKER_SCHEMES,
-  },
+  /* FMS's natural metal P-51 as its manual photographs it: silver all
+   * over, the red of the nose band, the spinner and the fin's top, and
+   * the black of the anti-glare panel and the identification bands. */
+  p51d1450: AIRCRAFT.LIVERIES.p51d1450,
+  /* OA Composites' own colourways, spread tow carbon under a painted
+   * design: the wing's dark carbon, two bands of colour and the nose
+   * cone, the tail bare carbon. Hyperflight's and Lindinger's listings
+   * name them by colour and number. */
+  nrj1490: AIRCRAFT.LIVERIES.nrj1490,
+  /* Painted foam, not film: Freewing's "modern three tone gray US Air
+   * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270
+   * Medium Gray and 36375 Light Ghost Gray, and the canopy's gold tint. */
+  f16878: AIRCRAFT.LIVERIES.f16878,
+  /* Zagi's HP as zagi.com photographs it: orange covering tape all
+   * over, black winglets, the charcoal canopy and tray; and the 5C
+   * combat wing's scheme, yellow with black tape on the leading edge
+   * and black winglets. */
+  zagi1219: AIRCRAFT.LIVERIES.zagi1219,
+  striker2500: AIRCRAFT.LIVERIES.striker2500,
   '7inch': quad(QUAD_LONG),
   '10inch': quad(QUAD_LONG),
   interceptor: quad([...QUAD_FRAME, r('armour', '#2a2b2b'), ...QUAD_KIT, r('legs', '#18191b')]),
