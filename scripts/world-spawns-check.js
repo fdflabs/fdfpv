@@ -54,6 +54,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { MAPS } from '../src/maps/registry.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from '../src/game/slots.js';
+import { FIND_SOLIDS, SEARCH_M } from './lib/solids.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const WORLDS = MAPS.filter((m) => m.load).map((m) => m.id);
@@ -79,14 +80,8 @@ const FACE_CLEAR_M = 1;
 const WET_M = 0.5;
 /* m: a roof or deck over the seat by more than this covers it. */
 const COVER_M = 0.05;
-/* The negative controls' solid is looked for this far round the map's
- * own start, on a grid this fine. */
-const SEARCH_M = 8000;
-const SEARCH_STEP_M = 25;
+/* m: how far short of a solid the facing control stands. */
 const FACE_STAND_M = 15;
-const SOLID_TALL_M = 6;
-const SOLID_HITS = 40;
-const SOLID_APART_M = 50;
 
 let failed = 0;
 let passed = 0;
@@ -216,54 +211,12 @@ async function worldStarts(page, map) {
   return { out, home, wet: listed.find((l) => l.float && !l.start.air) };
 }
 
-/* Up to SOLID_HITS points round `home`, each inside a solid from a metre
- * over the ground to SOLID_TALL_M over it and SOLID_APART_M from the
- * others, nearest first. Tall, because the facing control's line
- * passes a low wall: 15 m out it is 4.75 m up, and a fence that low is no
- * reason to turn. The grid finds a tall solid within a step, then each
- * move goes the solid's gap toward whichever of eight bearings is nearer
- * it, so a thin wall the grid steps over is still entered. */
-const FIND_SOLID = `((h) => {
-  const ground = (x, z) => window.__surface(x, z, window.__surface(x, z, -1000));
-  const gap = (x, z) => {
-    const y = ground(x, z);
-    const a = window.__nearSolid(x, y + 1, z, ${SEARCH_STEP_M});
-    const b = window.__nearSolid(x, y + ${SOLID_TALL_M}, z, ${SEARCH_STEP_M});
-    return Math.max(a == null ? Infinity : a, b == null ? Infinity : b);
-  };
-  const enter = (x, z) => {
-    let g = gap(x, z);
-    for (let k = 0; k < 40 && g > 0; k += 1) {
-      let best = null;
-      for (let a = 0; a < 8; a += 1) {
-        const nx = x + Math.cos(a * Math.PI / 4) * Math.max(0.25, g);
-        const nz = z + Math.sin(a * Math.PI / 4) * Math.max(0.25, g);
-        const ng = gap(nx, nz);
-        if (best === null || ng < best[2]) { best = [nx, nz, ng]; }
-      }
-      if (!(best[2] < g)) { return null; }
-      [x, z, g] = best;
-    }
-    return g === 0 ? { x, z } : null;
-  };
-  const hits = [];
-  for (let r = ${SEARCH_STEP_M}; r <= ${SEARCH_M} && hits.length < ${SOLID_HITS}; r += ${SEARCH_STEP_M}) {
-    for (let x = -r; x <= r; x += ${SEARCH_STEP_M}) {
-      for (let z = -r; z <= r; z += ${SEARCH_STEP_M}) {
-        if (Math.max(Math.abs(x), Math.abs(z)) !== r || !(gap(h.x + x, h.z + z) < ${SEARCH_STEP_M})) { continue; }
-        const at = enter(h.x + x, h.z + z);
-        if (at && hits.length < ${SOLID_HITS} && hits.every((o) => Math.hypot(o.x - at.x, o.z - at.z) > ${SOLID_APART_M})) { hits.push(at); }
-      }
-    }
-  }
-  return hits;
-})`;
 
 async function controls(page, map, home, wet) {
   const cases = [];
   const [under] = await page.evaluate(`${PROBE}([${JSON.stringify(home)}])`);
   cases.push(['an air start under the ground', { ...home, y: undefined, air: { y: under.top - 5 } }, 'air', 'ground']);
-  const hits = await page.evaluate(`${FIND_SOLID}(${JSON.stringify(home)})`);
+  const hits = await page.evaluate(`${FIND_SOLIDS}(${JSON.stringify(home)})`);
   if (hits.length) {
     const hit = hits[0];
     cases.push([`a start inside a solid at (${f1(hit.x)}, ${f1(hit.z)})`, { x: hit.x, z: hit.z, yaw: 0 }, 'ground', 'solid']);

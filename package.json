@@ -206,6 +206,8 @@
     "rooms:racetwopage": "node scripts/rooms-race-two-page.js",
     "rooms:slots": "node scripts/rooms-slots-check.js",
     "world:spawns": "node scripts/world-spawns-check.js",
+    "chasearm:selftest": "node scripts/chasearm-selftest.js",
+    "chase:walls": "node scripts/chase-walls-check.js",
     "hulls:check": "node scripts/hulls-gen.js --check",
     "gen:hulls": "node scripts/hulls-gen.js",
     "midair:harness": "node scripts/midair-harness.js",

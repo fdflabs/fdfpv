@@ -58,6 +58,7 @@ import { measureBudget } from './render/budget.js';
 import { bodyPosToModel, simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
 import { chaseLagMs, shakeScale } from './render/comfort.js';
+import { pullIn } from './render/chasearm.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
@@ -18979,6 +18980,9 @@ export async function boot({
       chasePos.copy(chaseAim);
       chaseValid = true;
     }
+    if (view.colliders) {
+      pullIn(view.colliders, chaseAnchor, chasePos);
+    }
     shell.quad.visible = !roomWatching();
     shell.camera.up.set(0, 1, 0);
     shell.camera.position.copy(chasePos);
@@ -19108,6 +19112,11 @@ export async function boot({
     } else {
       chasePos.copy(chaseAim);
       chaseValid = true;
+    }
+    /* Short of every wall on the way back from the craft, after the
+     * smoothing, so the arm folds in at once and eases out. */
+    if (view.colliders) {
+      pullIn(view.colliders, chaseAnchor, chasePos);
     }
     shell.camera.position.copy(chasePos);
     shell.camera.lookAt(introLook.copy(chaseAnchor).addScaledVector(chaseDir, span));
