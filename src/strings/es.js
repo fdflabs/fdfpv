@@ -3795,6 +3795,7 @@ export default {
   "lobby.ai_pilots": "Pilotos IA",
   "lobby.ai_pilots_note": "Los pilotos IA llenan la sala hasta cuatro y se van cuando entra una persona. No, Fácil, Normal o Difícil.",
   "lobby.ai_pilots_guest_note": "El anfitrión elige los pilotos IA de la sala.",
+  "lobby.ai_race_note": "Los pilotos IA llenan la parrilla hasta cuatro, vuelan el interceptor y dejan su lugar a cualquier persona que entre antes de la largada. El nivel es qué tan rápida va la vuelta que persiguen: la mejor de la pista en la tabla, o la vuelta propia de la sala.",
   "lobby.ai_level.off": "No",
   "lobby.ai_level.easy": "Fácil",
   "lobby.ai_level.normal": "Normal",

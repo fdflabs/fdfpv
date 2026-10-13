@@ -3790,6 +3790,7 @@ export default {
   "lobby.ai_pilots": "AI pilots",
   "lobby.ai_pilots_note": "AI pilots fill the room to four and leave for any person who joins. Off, Easy, Normal or Hard.",
   "lobby.ai_pilots_guest_note": "The host chooses the room's AI pilots.",
+  "lobby.ai_race_note": "AI pilots fill the grid to four, fly the interceptor and leave for any person who joins before the start. The level is how fast the lap they chase goes: the track's best on the board, or the room's own lap.",
   "lobby.ai_level.off": "Off",
   "lobby.ai_level.easy": "Easy",
   "lobby.ai_level.normal": "Normal",

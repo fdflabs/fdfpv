@@ -11,7 +11,9 @@
 #      the service users, /opt/fdfpv,
 #   2. refuses to go on if the VM's sshd allows passwords,
 #   3. rsyncs what the servers import (package*.json, src/, configs/, aircraft/,
-#      edge/, tracks-api/, deploy/vm/) into /opt/fdfpv, and npm ci there,
+#      edge/, tracks-api/, deploy/vm/, and for a race room's AI pilots the
+#      plant, dist/sim.wasm, and the three tests/lib files that load and
+#      fly it, edge/rooms/airace.js) into /opt/fdfpv, and npm ci there,
 #      and writes the commit it copied to /opt/fdfpv/REVISION, with
 #      " dirty" after it when this checkout has uncommitted changes; each
 #      server reads it as it starts (edge/node-http.js readRevision),
@@ -76,6 +78,7 @@ cd "$ROOT"
 rsync -a --delete --relative -e "ssh -i $KEY -o BatchMode=yes" \
   --exclude '.wrangler/' --exclude '*.db' --exclude '*.db-*' --exclude '.dev.vars' \
   package.json package-lock.json src configs aircraft edge tracks-api deploy/vm \
+  dist/sim.wasm tests/lib/simmod.js tests/lib/personpilot.js tests/lib/aireference.js \
   "$VM:/opt/fdfpv/"
 remote 'cd /opt/fdfpv && npm ci --omit=dev --no-audit --no-fund --loglevel=error'
 # Written before step 5 starts the servers, so each reads the commit of
