@@ -287,6 +287,19 @@ alpha, sinking; hands off the ailerons it then rolls off slowly, left.
 "Stalls, spins, aerobatics are straightforward" (Phillips); Great Planes:
 "flies smoothly and predictably" but no self recovery.
 
+**T8a is red since 2026-10-13 (w38-fuselage-side), not loosened.** With
+the fuselage's share of cn_beta on Munk's couple (FLIGHTMODEL.md, PR 4),
+the stability axis turn no longer adds its cn_fus beta sin alpha of roll,
++0.0035 per rad at the mush's 18 deg. Full up held with the wings held by
+the person model it now banks 17.8 deg and rolls 73.7 deg/s, the stick at
+its stops (the band: 15 deg, 20 deg/s); hands off (T8c) it is as before,
+18.0 deg against 19.4. The person's crossover loop is sized on the
+unstalled roll mode (wingpilot.js rollMode at the entry) and oscillates
+in the stall. That spurious roll was holding it: on the old plant T8a
+already failed at cl_beta -0.0600 for the table's -0.0577 (bank 5.8 deg),
+4 percent more dihedral. Open for the flight lanes: the person's hold in
+a stall, or the stalled roll damping it meets.
+
 ## The landing gear
 
 The Pitts's taildragger model: each wheel a spring and damper along the
