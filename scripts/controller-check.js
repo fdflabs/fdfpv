@@ -24,6 +24,10 @@
  *  7. An EdgeTX radio: recognised, no Expo, the built-in layout greyed
  *     until calibrated; the wizard opened here comes back here, and Keys
  *     and buttons backs out to here.
+ *  8. Rates per aircraft class: own rates on the interceptor, the Cub
+ *     chosen in the picker flies stock and the profile keeps the quad's
+ *     under multirotor; the interceptor chosen again has them back. The
+ *     Controller's rates heading names the class.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -245,6 +249,35 @@ try {
   await page.tap('Escape');
   await page.until("window.__ui.screen !== 'controls'", 5000);
   check('Back from Keys and buttons is the Controller', await page.evaluate("window.__ui.screen === 'controller'"), await page.evaluate('window.__ui.screen'));
+
+  console.log('8. rates per aircraft class');
+  const pickCraft = (id) => page.evaluate(`(() => {
+    const ui = window.__ui;
+    ui.openCraftRow(false);
+    const c = ui.carousel;
+    c.setFilter('all');
+    c.goTo(c.ids.indexOf('${id}'));
+    c.chooseBtn.click();
+    return ui.settings.airframe;
+  })()`);
+  const OWN = { type: 'ACTUAL', roll: { rcRate: 8, srate: 80, expo: 20 }, pitch: { rcRate: 8, srate: 80, expo: 20 }, yaw: { rcRate: 6, srate: 50, expo: 10 } };
+  const profileNow = () => page.evaluate("JSON.parse(localStorage.getItem('webfpv.settings.v3'))");
+  const ratesHeading = () => page.evaluate("(window.__ui.items().find((it) => it.id === 'controller:s-rates') || {}).label || null");
+  await page.evaluate("window.__ui.act('controller'); true");
+  await page.until("window.__ui.screen === 'controller'", 5000);
+  check('the interceptor is chosen in the picker', (await pickCraft('interceptor')) === 'interceptor');
+  check('the heading names its class', (await ratesHeading()) === 'How the sticks fly, every multirotor', await ratesHeading());
+  await page.evaluate(`(() => { const ui = window.__ui; ui.settings.rates = { ...ui.settings.rates, ...${JSON.stringify(OWN)} }; ui.writeSettings(); return true; })()`);
+  const own = (await profileNow()).rates;
+  check('own rates on it', own.roll.srate === 80, JSON.stringify(own.roll));
+  check('the Cub is chosen in the picker', (await pickCraft('cub1400')) === 'cub1400');
+  let st = await profileNow();
+  check('the Cub flies stock rates, not the quad\'s', st.rates.roll.srate === 67 && st.rates.yaw.srate === 67, JSON.stringify(st.rates.roll));
+  check('the quad\'s are kept under multirotor', st.ratesFor && st.ratesFor.multirotor && st.ratesFor.multirotor.roll.srate === 80, JSON.stringify(st.ratesFor));
+  check('the heading is the Cub\'s own throws', (await ratesHeading()) === 'How the sticks fly, this aircraft', await ratesHeading());
+  check('the interceptor is chosen again', (await pickCraft('interceptor')) === 'interceptor');
+  st = await profileNow();
+  check('its own rates are back', st.rates.roll.srate === 80 && st.rates.yaw.srate === 50, JSON.stringify(st.rates.roll));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));

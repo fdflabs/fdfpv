@@ -32,7 +32,7 @@
  */
 
 import {
-  AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME,
+  AIRFRAMES, AIRFRAME_IDS, airframeById, CLASSES, currentAirframeId, DEFAULT_AIRFRAME,
   floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe,
 } from '../../configs/airframes.js';
 import { CUSTOM_TUNE, tunesFor } from '../../configs/registry.js';
@@ -466,6 +466,61 @@ function stockCurves(airframe) {
 
 const limitsWith = (power) => (id) => setupFor(id, powerChoice(id, power)).limits;
 
+/* Rates kept per aircraft class (configs/airframes.js CLASSES): only known
+ * classes, each a rates profile as normaliseRates makes it. */
+export function normaliseRatesFor(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const c of CLASSES) {
+    if (raw[c] && typeof raw[c] === 'object') out[c] = normaliseRates(raw[c]);
+  }
+  return out;
+}
+
+/* Rates that were only the old aircraft's stock become the new one's:
+ * its curves, and its throttle cap. */
+function reseedStockRates(s, from, to) {
+  if (sameCurves(s.rates, from.rates)) s.rates = normaliseRates({ ...s.rates, ...stockCurves(to) });
+  if (s.rates && s.rates.throttleCap === from.rates.throttleCap) {
+    s.rates = { ...s.rates, throttleCap: to.rates.throttleCap };
+  }
+}
+
+const sameRates = (a, b) => JSON.stringify(normaliseRates(a)) === JSON.stringify(normaliseRates(b));
+
+/*
+ * Rates are the pilot's per aircraft class, not one set for every stick
+ * (PLAN section 2.6): a quad pilot's 800 deg/s rolls are not a Cub's, and
+ * every tune, a plane's stabilised modes included, flies s.rates. Leaving
+ * a class keeps the pilot's own rates under ratesFor; arriving at one puts
+ * its kept rates back, or, after the pilot's own, the new aircraft's
+ * stock. Rates that are nobody's own (an aircraft's stock, or the touch
+ * screen's defaults) travel as they always have. s.rates stays the one
+ * live set every reader uses.
+ */
+function swapClassRates(s, from, to) {
+  const stock = (af) => ({ ...stockCurves(af), throttleCap: af.rates.throttleCap });
+  const kept = normaliseRatesFor(s.ratesFor);
+  const own = !sameRates(s.rates, stock(from)) && !sameRates(s.rates, TOUCH_RATE_DEFAULTS);
+  if (own) {
+    kept[from.class] = normaliseRates(s.rates);
+  } else {
+    delete kept[from.class];
+  }
+  if (kept[to.class]) {
+    s.rates = normaliseRates(kept[to.class]);
+  } else if (own) {
+    s.rates = normaliseRates(stock(to));
+  } else {
+    reseedStockRates(s, from, to);
+  }
+  if (Object.keys(kept).length) {
+    s.ratesFor = kept;
+  } else {
+    delete s.ratesFor;
+  }
+}
+
 /* Puts an aircraft's stock PIDs into its default tune once, the first
  * time the profile meets that tune. Aircraft without stock PIDs are left
  * alone. */
@@ -486,8 +541,9 @@ function seedStockPids(s, id) {
  *
  * Settings that are the pilot's own stay; settings that were only the old
  * aircraft's stock values become the new one's: rates still at the old
- * stock curves, the old stock throttle cap, and the lens. The tune comes
- * back to what was last flown on the new aircraft. Moving between a plane
+ * stock curves, the old stock throttle cap, and the lens. Own rates stay
+ * within a class: another class brings its own (swapClassRates). The tune
+ * comes back to what was last flown on the new aircraft. Moving between a plane
  * and its float version carries the build (power, parts, tuning) across
  * unless the target already has one of its own.
  */
@@ -524,9 +580,10 @@ export function seatAirframe(s, id) {
   }
 
   if (!to.packVoltages.includes(s.packVoltage)) s.packVoltage = to.packVoltages[0];
-  if (sameCurves(s.rates, from.rates)) s.rates = normaliseRates({ ...s.rates, ...stockCurves(to) });
-  if (s.rates && s.rates.throttleCap === from.rates.throttleCap) {
-    s.rates = { ...s.rates, throttleCap: to.rates.throttleCap };
+  if (from.class !== to.class) {
+    swapClassRates(s, from, to);
+  } else {
+    reseedStockRates(s, from, to);
   }
   /* `to` gets the camera the pilot set on it (keepCamera), or its stock. */
   s.cameraFor = normaliseCameraFor(s.cameraFor);
@@ -699,6 +756,15 @@ export function loadSettings() {
     s.touchRatesOffered = true;
   } else {
     s.rates = normaliseRates(converted || s.rates);
+  }
+  /* The pilot's own rates of the other aircraft classes (swapClassRates),
+   * synced. Absent until one is kept, so a profile that never changed
+   * class with its own rates is stored as before. */
+  const ratesFor = normaliseRatesFor(raw.ratesFor);
+  if (Object.keys(ratesFor).length) {
+    s.ratesFor = ratesFor;
+  } else {
+    delete s.ratesFor;
   }
   s.pids = normalisePids(s.pids);
 

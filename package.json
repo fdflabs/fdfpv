@@ -471,6 +471,7 @@
     "water:render": "node scripts/water-render.js",
     "input:selftest": "node scripts/input-selftest.js",
     "padprofiles:selftest": "node scripts/padprofiles-selftest.js",
+    "classrates:selftest": "node scripts/classrates-selftest.js",
     "comfort:selftest": "node scripts/comfort-selftest.js",
     "uiscale:check": "node scripts/uiscale-check.js",
     "touchsticks:selftest": "node scripts/touchsticks-selftest.js",

@@ -4300,7 +4300,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -4741,7 +4741,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -5170,7 +5170,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -5615,7 +5615,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -6056,7 +6056,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -6197,8 +6197,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.yaw.srate": 67,
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "ACTUAL",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 40,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "adjust(-1)": {
@@ -6215,8 +6239,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.yaw.srate": 67,
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "ACTUAL",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 40,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "open()": {
@@ -6497,7 +6545,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 400 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -6638,8 +6686,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.type": "ACTUAL",
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "BETAFLIGHT",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "adjust(-1)": {
@@ -6656,8 +6728,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.type": "ACTUAL",
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "BETAFLIGHT",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "open()": {
@@ -6938,7 +7034,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Classic, 42 roll and pitch, 42 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -7371,7 +7467,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -7812,7 +7908,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -8253,7 +8349,7 @@
      "id": "quad:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+     "note": "Not the machine's. Rates are yours, so they live under Controller and stay put when you switch tunes. Each kind of aircraft keeps its own: a multirotor's, a plane's, a flying wing's and a glider's. This row goes there, and changing them mid run leaves the quad where it is.",
      "action": "rates",
      "drives": {}
     },
@@ -17246,8 +17342,8 @@
      }
     },
     {
-     "id": "controller:s-how-the-sticks-fly",
-     "label": "How the sticks fly",
+     "id": "controller:s-rates",
+     "label": "How the sticks fly, every multirotor",
      "section": true,
      "drives": {}
     },
@@ -17255,7 +17351,7 @@
      "id": "controller:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "note": "Yours for every multirotor: another kind of aircraft keeps its own, and starts on its stock until you change them. How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
      "action": "rates",
      "drives": {}
     },
@@ -17392,8 +17488,8 @@
      }
     },
     {
-     "id": "controller:s-how-the-sticks-fly",
-     "label": "How the sticks fly",
+     "id": "controller:s-rates",
+     "label": "How the sticks fly, every multirotor",
      "section": true,
      "drives": {}
     },
@@ -17401,7 +17497,7 @@
      "id": "controller:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "note": "Yours for every multirotor: another kind of aircraft keeps its own, and starts on its stock until you change them. How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
      "action": "rates",
      "drives": {}
     },
@@ -17767,8 +17863,8 @@
      }
     },
     {
-     "id": "controller:s-how-the-sticks-fly",
-     "label": "How the sticks fly",
+     "id": "controller:s-rates",
+     "label": "How the sticks fly, every multirotor",
      "section": true,
      "drives": {}
     },
@@ -17776,7 +17872,7 @@
      "id": "controller:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "note": "Yours for every multirotor: another kind of aircraft keeps its own, and starts on its stock until you change them. How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
      "action": "rates",
      "drives": {}
     },
@@ -18008,8 +18104,8 @@
      }
     },
     {
-     "id": "controller:s-how-the-sticks-fly",
-     "label": "How the sticks fly",
+     "id": "controller:s-rates",
+     "label": "How the sticks fly, every multirotor",
      "section": true,
      "drives": {}
     },
@@ -18017,7 +18113,7 @@
      "id": "controller:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "note": "Yours for every multirotor: another kind of aircraft keeps its own, and starts on its stock until you change them. How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
      "action": "rates",
      "drives": {}
     },
@@ -18215,8 +18311,8 @@
      }
     },
     {
-     "id": "controller:s-how-the-sticks-fly",
-     "label": "How the sticks fly",
+     "id": "controller:s-rates",
+     "label": "How the sticks fly, every multirotor",
      "section": true,
      "drives": {}
     },
@@ -18224,7 +18320,299 @@
      "id": "controller:a-rates",
      "label": "Rates",
      "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "note": "Yours for every multirotor: another kind of aircraft keeps its own, and starts on its stock until you change them. How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-keyboard-and-mouse",
+     "label": "Keyboard and mouse",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Keys and buttons",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:mouse-flight",
+     "label": "Mouse flight",
+     "value": "Off",
+     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-plane": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-device",
+     "label": "Device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Choose joystick",
+     "value": "Keyboard",
+     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:recognised-as",
+     "label": "Recognised as",
+     "value": "Nothing plugged in",
+     "note": "Plug in a radio in joystick mode or a gamepad and move a stick. Until then the keyboard flies.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrate sticks",
+     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Check sticks",
+     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:stick-mode",
+     "label": "Stick mode",
+     "value": "Mode 2",
+     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Mode 1"
+      },
+      {
+       "value": 2,
+       "label": "Mode 2"
+      },
+      {
+       "value": 3,
+       "label": "Mode 3"
+      },
+      {
+       "value": 4,
+       "label": "Mode 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-rates",
+     "label": "How the sticks fly, this aircraft",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-planerates",
+     "label": "Rates",
+     "value": "Low, 13.4° 11.2° 11.6°",
+     "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+     "action": "planerates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-keyboard-and-mouse",
+     "label": "Keyboard and mouse",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Keys and buttons",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke, the view and stepping out.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:mouse-flight",
+     "label": "Mouse flight",
+     "value": "Off",
+     "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-wing": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-device",
+     "label": "Device",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Choose joystick",
+     "value": "Keyboard",
+     "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:recognised-as",
+     "label": "Recognised as",
+     "value": "Nothing plugged in",
+     "note": "Plug in a radio in joystick mode or a gamepad and move a stick. Until then the keyboard flies.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrate sticks",
+     "note": "Centre, full range, then one named move per stick. Saved after you check it.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Check sticks",
+     "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:stick-mode",
+     "label": "Stick mode",
+     "value": "Mode 2",
+     "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Mode 1"
+      },
+      {
+       "value": 2,
+       "label": "Mode 2"
+      },
+      {
+       "value": 3,
+       "label": "Mode 3"
+      },
+      {
+       "value": 4,
+       "label": "Mode 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-rates",
+     "label": "How the sticks fly, every flying wing",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "Yours for every flying wing: another kind of aircraft keeps its own, and starts on its stock until you change them. How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
      "action": "rates",
      "drives": {}
     },
@@ -31290,7 +31678,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -31731,7 +32119,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -32160,7 +32548,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -32605,7 +32993,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33046,7 +33434,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33187,8 +33575,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.yaw.srate": 67,
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "ACTUAL",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 40,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "adjust(-1)": {
@@ -33205,8 +33617,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.yaw.srate": 67,
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "ACTUAL",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 40,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "open()": {
@@ -33487,7 +33923,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 400 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33628,8 +34064,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.type": "ACTUAL",
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "BETAFLIGHT",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "adjust(-1)": {
@@ -33646,8 +34106,32 @@
         "tune": "sky-acro",
         "airframe": "sky1800",
         "tuneFor.interceptor": "betaflight-interceptor",
+        "rates.type": "ACTUAL",
         "cameraAngle": 5,
-        "cameraFov": 100
+        "cameraFov": 100,
+        "ratesFor": {
+         "multirotor": {
+          "type": "BETAFLIGHT",
+          "throttleCap": 100,
+          "thrMid": 50,
+          "thrExpo": 0,
+          "roll": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "pitch": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          },
+          "yaw": {
+           "rcRate": 7,
+           "srate": 67,
+           "expo": 0
+          }
+         }
+        }
        }
       },
       "open()": {
@@ -33928,7 +34412,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Clásico, 42 alabeo y cabeceo, 42 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -34361,7 +34845,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -34802,7 +35286,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -35243,7 +35727,7 @@
      "id": "quad:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -44236,8 +44720,8 @@
      }
     },
     {
-     "id": "controller:s-c-mo-vuelan-las-palancas",
-     "label": "Cómo vuelan las palancas",
+     "id": "controller:s-rates",
+     "label": "Cómo vuelan las palancas, cada multirrotor",
      "section": true,
      "drives": {}
     },
@@ -44245,7 +44729,7 @@
      "id": "controller:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
     },
@@ -44382,8 +44866,8 @@
      }
     },
     {
-     "id": "controller:s-c-mo-vuelan-las-palancas",
-     "label": "Cómo vuelan las palancas",
+     "id": "controller:s-rates",
+     "label": "Cómo vuelan las palancas, cada multirrotor",
      "section": true,
      "drives": {}
     },
@@ -44391,7 +44875,7 @@
      "id": "controller:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
     },
@@ -44757,8 +45241,8 @@
      }
     },
     {
-     "id": "controller:s-c-mo-vuelan-las-palancas",
-     "label": "Cómo vuelan las palancas",
+     "id": "controller:s-rates",
+     "label": "Cómo vuelan las palancas, cada multirrotor",
      "section": true,
      "drives": {}
     },
@@ -44766,7 +45250,7 @@
      "id": "controller:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
     },
@@ -44998,8 +45482,8 @@
      }
     },
     {
-     "id": "controller:s-c-mo-vuelan-las-palancas",
-     "label": "Cómo vuelan las palancas",
+     "id": "controller:s-rates",
+     "label": "Cómo vuelan las palancas, cada multirrotor",
      "section": true,
      "drives": {}
     },
@@ -45007,7 +45491,7 @@
      "id": "controller:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
     },
@@ -45205,8 +45689,8 @@
      }
     },
     {
-     "id": "controller:s-c-mo-vuelan-las-palancas",
-     "label": "Cómo vuelan las palancas",
+     "id": "controller:s-rates",
+     "label": "Cómo vuelan las palancas, cada multirrotor",
      "section": true,
      "drives": {}
     },
@@ -45214,7 +45698,299 @@
      "id": "controller:a-rates",
      "label": "Tasas",
      "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-teclado-y-rat-n",
+     "label": "Teclado y ratón",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Teclas y botones",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:vuelo-con-rat-n",
+     "label": "Vuelo con ratón",
+     "value": "Off",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-plane": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-dispositivo",
+     "label": "Dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Elegir joystick",
+     "value": "Teclado",
+     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:reconocido-como",
+     "label": "Reconocido como",
+     "value": "Nada conectado",
+     "note": "Conecta una radio en modo joystick o un mando y mueve una palanca. Mientras tanto vuela el teclado.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrar sticks",
+     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Comprobar sticks",
+     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:modo-de-sticks",
+     "label": "Modo de sticks",
+     "value": "Modo 2",
+     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Modo 1"
+      },
+      {
+       "value": 2,
+       "label": "Modo 2"
+      },
+      {
+       "value": 3,
+       "label": "Modo 3"
+      },
+      {
+       "value": 4,
+       "label": "Modo 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-rates",
+     "label": "Cómo vuelan las palancas, esta aeronave",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-planerates",
+     "label": "Tasas",
+     "value": "Bajo, 13.4° 11.2° 11.6°",
+     "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
+     "action": "planerates",
+     "drives": {}
+    },
+    {
+     "id": "controller:s-teclado-y-rat-n",
+     "label": "Teclado y ratón",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-controls",
+     "label": "Teclas y botones",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo, la vista y bajarse.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
+     "id": "controller:vuelo-con-rat-n",
+     "label": "Vuelo con ratón",
+     "value": "Off",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "mouseFlight": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "mouseFlight": true
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ]
+  },
+  "controller-wing": {
+   "screen": "controller",
+   "items": [
+    {
+     "id": "controller:s-dispositivo",
+     "label": "Dispositivo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-choosepad",
+     "label": "Elegir joystick",
+     "value": "Teclado",
+     "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
+     "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:reconocido-como",
+     "label": "Reconocido como",
+     "value": "Nada conectado",
+     "note": "Conecta una radio en modo joystick o un mando y mueve una palanca. Mientras tanto vuela el teclado.",
+     "info": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate",
+     "label": "Calibrar sticks",
+     "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
+     "action": "calibrate",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-calibrate-check",
+     "label": "Comprobar sticks",
+     "note": "Tu mapeo guardado, en vivo, sin calibrar de nuevo. Mueve un stick y míralo: si va para el lado equivocado, una tecla invierte ese canal, y si el stick equivocado se mueve en pantalla, una tecla los pone en las otras manos. Nada se conserva hasta que guardes.",
+     "action": "calibrate-check",
+     "drives": {}
+    },
+    {
+     "id": "controller:modo-de-sticks",
+     "label": "Modo de sticks",
+     "value": "Modo 2",
+     "note": "Qué stick es throttle y cuál es yaw, según cómo esté configurado tu radio. El Modo 2 es throttle a la izquierda, que es lo que esta página siempre ha sido. El Modo 1 pone el throttle a la derecha y el pitch a la izquierda. Esto vuela los STICKS DE PULGAR y el TECLADO, que no tienen un modo propio. Una radio ya aplica su propio modo antes de que esta página vea un stick, así que para un radio esto solo nombra los sticks dibujados en pantalla.",
+     "current": 2,
+     "options": [
+      {
+       "value": 1,
+       "label": "Modo 1"
+      },
+      {
+       "value": 2,
+       "label": "Modo 2"
+      },
+      {
+       "value": 3,
+       "label": "Modo 3"
+      },
+      {
+       "value": 4,
+       "label": "Modo 4"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "stickMode": 3
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "stickMode": 1
+       }
+      },
+      "pick(\"3\")": {
+       "settings": {
+        "stickMode": 3
+       }
+      }
+     }
+    },
+    {
+     "id": "controller:s-rates",
+     "label": "Cómo vuelan las palancas, cada ala volante",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "controller:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Tuyos para cada ala volante: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
     },

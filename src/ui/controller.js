@@ -27,6 +27,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { airframeById } from '../../configs/airframes.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { DEAD_ZONES, NO_FEEL, PAD_EXPOS } from '../input/padmap.js';
 import { STICK_MODES, normaliseStickMode } from '../input/stickmode.js';
@@ -106,6 +107,22 @@ function mouseRows(s) {
   ];
 }
 
+/* The Betaflight rates are the seated aircraft class's (src/ui/settings.js
+ * swapClassRates); a plane with throws from its manual has its own, and
+ * the same row opens them. One section id either way, so the cursor's
+ * memory of it holds. */
+function ratesRows(s, rates) {
+  const section = { id: 'controller:s-rates', section: true };
+  if (rates.action !== 'rates') {
+    return [{ ...section, label: str('controller.flying_this') }, rates];
+  }
+  const kind = str(`controller.kind_${airframeById(s.airframe).class}`);
+  return [
+    { ...section, label: str('controller.flying', { kind }) },
+    { ...rates, note: str('controller.rates_note', { kind }) + rates.note },
+  ];
+}
+
 /* `rates`: the seated aircraft's Rates row (items.js ratesRow). */
 export function controllerRows(ui, s, rates) {
   const info = ui.padInfo;
@@ -129,8 +146,7 @@ export function controllerRows(ui, s, rates) {
       (n) => { s.stickMode = normaliseStickMode(n); },
     ),
     ...feelRows(ui, info),
-    { label: str('controller.flying'), section: true },
-    rates,
+    ...ratesRows(s, rates),
     { label: str('controller.keys_mouse'), section: true },
     { label: str('keybinds.title'), action: 'controls', note: str('keybinds.open_note') },
     ...mouseRows(s),
