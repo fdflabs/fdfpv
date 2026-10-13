@@ -6486,7 +6486,7 @@
        },
        "type": "button",
        "children": [
-        "Off"
+        "Apagado"
        ]
       },
       {
@@ -6497,7 +6497,7 @@
        },
        "type": "button",
        "children": [
-        "On"
+        "Encendido"
        ]
       }
      ]
@@ -6518,7 +6518,7 @@
        },
        "type": "button",
        "children": [
-        "Off"
+        "Apagado"
        ]
       },
       {
@@ -6529,7 +6529,7 @@
        },
        "type": "button",
        "children": [
-        "On"
+        "Encendido"
        ]
       }
      ]
@@ -6565,10 +6565,10 @@
     }
    },
    "log": [
-    "> click  <button.sw-seg.on \"Off\">",
+    "> click  <button.sw-seg.on \"Apagado\">",
     "markBars 2",
     "< click  stopped",
-    "> click  <button.sw-seg \"On\">",
+    "> click  <button.sw-seg \"Encendido\">",
     "markBars 2",
     "it.adjust 1",
     "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-stab\",\"pids\":{},\"air\":true}",

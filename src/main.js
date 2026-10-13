@@ -9130,7 +9130,7 @@ export async function boot({
       label: str('main.text', { name: time.name, formatTime: formatTime(time.lapMs) }),
     }));
     return [
-      { id: 'off', label: 'Off' },
+      { id: 'off', label: str('ui.off') },
       { id: 'best', label: str('main.your_best_this_session') },
       { id: 'previous', label: str('main.your_previous_lap') },
       ...rivals,
@@ -13127,7 +13127,7 @@ export async function boot({
     stateCurr = readState();
     statePrev = stateCurr;
     acc = 0;
-    race.recover('Crashed', nowWall);
+    race.recover(str('ui.crashed'), nowWall);
     flightStats.noteCrash();
     if (crashCam) {
       crashCam.noteCrash('clip');
@@ -19663,7 +19663,7 @@ export async function boot({
     const inFlight = ui.screen === 'flight';
     const launch = fr.launch;
     if (crashed && inFlight) {
-      return ['Crashed', true];
+      return [str('ui.crashed'), true];
     }
     if (inFlight && (warSpectating() || roomWatching() || jamWatching())) {
       return [warWatchBanner(), true];

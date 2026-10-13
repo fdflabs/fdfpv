@@ -83,11 +83,11 @@ export const MEASURED_MS = {
 };
 
 const STAGE_LABEL = {
-  three: 'Renderer',
-  board: 'Board',
+  three: str('loading.stage_renderer'),
+  board: str('loading.stage_board'),
   sim: str('loading.flight_controller'),
-  module: 'Map',
-  world: 'World',
+  module: str('loading.stage_map'),
+  world: str('loading.stage_world'),
   frame: str('loading.first_frame'),
 };
 
@@ -898,8 +898,8 @@ export class Loading {
       return;
     }
     const name = (STAGE_LABEL[stage.id] || stage.id).toLowerCase();
-    const tail = this.detail ? `, ${this.detail}` : '';
-    this.statusLine(`${str('loading.still_loading_the', { name })}${tail}`);
+    const line = str('loading.still_loading_the', { name });
+    this.statusLine(this.detail ? `${line}, ${this.detail}` : line);
   }
 
   /*

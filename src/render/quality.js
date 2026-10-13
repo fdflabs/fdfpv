@@ -63,15 +63,15 @@ export const GRAPHICS_IDS = ['low', 'medium', 'high'];
  * that.
  */
 const ROWS = [
-  { id: 'low', name: 'Low', note: 'quality.steam_deck_and_similar_handhelds_lower', ratioCap: 1, renderScale: 0.85, shadowMap: 0, outline: false, bloom: false, pixelBudget: 1.5e6 },
-  { id: 'medium', name: 'Medium', note: 'quality.a_2020_era_laptop_with_integrated', ratioCap: 1.25, renderScale: 1, shadowMap: 1024, outline: true, bloom: false, pixelBudget: 2.07e6 },
-  { id: 'high', name: 'High', note: 'quality.a_2021_era_pc_or_a', ratioCap: 2, renderScale: 1, shadowMap: 2048, outline: true, bloom: true, pixelBudget: 2.07e6 },
+  { id: 'low', note: 'quality.steam_deck_and_similar_handhelds_lower', ratioCap: 1, renderScale: 0.85, shadowMap: 0, outline: false, bloom: false, pixelBudget: 1.5e6 },
+  { id: 'medium', note: 'quality.a_2020_era_laptop_with_integrated', ratioCap: 1.25, renderScale: 1, shadowMap: 1024, outline: true, bloom: false, pixelBudget: 2.07e6 },
+  { id: 'high', note: 'quality.a_2021_era_pc_or_a', ratioCap: 2, renderScale: 1, shadowMap: 2048, outline: true, bloom: true, pixelBudget: 2.07e6 },
 ];
 
 /* Built once: a preset is the same object every time it is asked for. */
 const PRESETS = Object.fromEntries(ROWS.map((r) => [r.id, {
   id: r.id,
-  name: r.name,
+  name: str(`quality.name_${r.id}`),
   note: str(r.note),
   pixelRatioCap: r.ratioCap,
   resolutionScale: r.renderScale,
