@@ -3732,7 +3732,6 @@ export default {
   "lobby.last_won": "Last mission won: {stars} of 3 stars, {kills} kills.",
   "lobby.last_lost": "Last mission lost, {kills} kills. Ready again to retry.",
   "lobby.last_ended": "Last mission stopped, {kills} kills.",
-  "war.room_name": "{name}, Paraná",
   "war.earned.one": "+1 AIRFRAME",
   "war.earned.other": "+{n} AIRFRAMES",
   "war.hint_go": "FLY INTO THEM: your warhead detonates within {n} m",

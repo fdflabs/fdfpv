@@ -387,7 +387,18 @@ try {
   };
   const who0 = await a.evaluate(WHO);
   if (GAME === 'war') {
-    check('the briefing says who joins, a fact: Public', who0 && !who0.choice && who0.value === 'Public', JSON.stringify(who0));
+    /* Mission 1 is in development (see the server's start above), so the
+     * room is private whatever is chosen, and reads Friends with its code:
+     * the release gate, not the row. Solo still hides the code, on the row
+     * and on the briefing's Room fact. */
+    const ROOM_FACT = "[...document.querySelectorAll('.war-brief-facts dd')].map((n) => n.textContent)[4] || ''";
+    check('the briefing\'s Who joins row, a choice: Friends, the mission in development keeping the room private, its code shown', who0 && who0.choice && who0.value === 'friends' && who0.public === false && who0.codeRow && who0.here === 'friends-lobby-ready', JSON.stringify(who0));
+    const solo = await pickWho('solo');
+    const fact = await a.evaluate(ROOM_FACT);
+    check('Solo: a fresh private room, no code on the row or in the briefing\'s Room fact, remembered', solo && solo.code !== who0.code && solo.public === false && !solo.codeRow && solo.remembered === 'solo' && !fact.includes(solo.code) && /Solo|nobody/i.test(fact), `${JSON.stringify(solo)} ${fact}`);
+    const pub = await pickWho('public');
+    check('Public: remembered, and still a private room for a mission in development, its code shown again', pub && pub.code !== solo.code && pub.public === false && pub.codeRow && pub.remembered === 'public', JSON.stringify(pub));
+    code = pub.code;
   } else {
     check('the lobby\'s Who joins row, a choice, Public, Ready still under the cursor', who0 && who0.choice && who0.value === 'public' && who0.public === true && who0.here === 'friends-lobby-ready', JSON.stringify(who0));
     const friends = await pickWho('friends');

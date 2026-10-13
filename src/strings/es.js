@@ -3737,7 +3737,6 @@ export default {
   "lobby.last_won": "Última misión ganada: {stars} de 3 estrellas, {kills} derribos.",
   "lobby.last_lost": "Última misión perdida, {kills} derribos. Listo otra vez para reintentar.",
   "lobby.last_ended": "Última misión detenida, {kills} derribos.",
-  "war.room_name": "{name}, Paraná",
   "war.earned.one": "+1 AERONAVE",
   "war.earned.other": "+{n} AERONAVES",
   "war.hint_go": "VUELA CONTRA ELLOS: tu ojiva detona a menos de {n} m",

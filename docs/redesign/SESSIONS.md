@@ -1,9 +1,11 @@
 # Sessions: choose what, then who, then Ready
 
-**Status: the core EXISTS** (#359 server, #372 client, merged 2026-10-02);
-the visibility values and the hubs are **planned**. This is the flow as
-built, the rules it keeps (docs/FLOW-AUDIT.md rules 1 to 17) and what the
-redesign adds, so nobody builds a second lobby.
+**Status: the core EXISTS** (#359 server, #372 client, merged 2026-10-02),
+the hubs since #382, and the three visibility values since the 2026-10-13
+batch (src/main.js openSession, the one way into a room); the in place
+change with others present is **planned**. This is the flow as built, the
+rules it keeps (docs/FLOW-AUDIT.md rules 1 to 17) and what the redesign
+adds, so nobody builds a second lobby.
 
 ## 1. The flow
 
@@ -16,13 +18,14 @@ redesign adds, so nobody builds a second lobby.
    | Public (default, or the pilot's last choice for this activity):
    |   join the busiest public room made for it on its world with a seat;
    |   none: make one, public, named for the pilot      [exists, #372]
-   | Friends: make a private room, its invite code shown [planned, phase 6]
-   | Solo: make a private room, its code not shown       [planned, phase 6]
+   | Friends: make a private room, its invite code shown [exists]
+   | Solo: make a private room, its code not shown       [exists]
    | The war: its consent first, once per pilot           [exists]
    v
  LOBBY (the session)                       home inside a room (FLOW rule 4)
-   | pilots and their Ready flags, the host's one setting (mission,
-   | minutes, goal, track), the aircraft row, Leave, invite code if private
+   | pilots and their Ready flags, Who joins (Public, Friends, Solo), the
+   | host's one setting (mission, minutes, goal, track), the aircraft row,
+   | Leave, invite code if private and not solo
    |
    | Ready alone          -> 5 s, then the round            [exists]
    | everyone Ready       -> 5 s, then the round            [exists]
@@ -56,12 +59,16 @@ in (FLOW rule 14).
 | Solo | not listed; no code shown, so nobody can join | `public: false`, code hidden |
 
 Public is the default (owner, 2026-10-02); each pilot's last choice per
-activity is remembered in settings (synced). A pilot alone in a lobby who
-changes visibility moves to a fresh room of the new kind (nobody to take
-along). A host with others present changes it in place: a new host
-message, server first, shown only when the welcome says the room takes it
-(the FLOW-AUDIT contract path). The war's public rooms keep their consent
-for every pilot.
+activity is remembered in settings (`sessionVisibility`, synced). A pilot
+alone in a lobby who changes visibility moves to a fresh room of the new
+kind (nobody to take along; the war's keeps its mission). The room cannot
+tell Solo from Friends, so the Solo room's code is kept in the page's
+session storage and a reload into it keeps the code hidden. **Planned:** a
+host with others present changes it in place: a new host message, server
+first, shown only when the welcome says the room takes it (the FLOW-AUDIT
+contract path); until then the row is a fact with others present. The
+war's public rooms keep their consent for every pilot, and a mission in
+development gets a private room whatever was chosen (the release gate).
 
 **Changed from the thread:** Friends means "people with the code", because
 there is no friends list; a friends list would need accounts the game does
