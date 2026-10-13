@@ -864,7 +864,7 @@ function soundRows(s) {
     levelRow(str('ui.effects'), str('ui.effects_note'), s, 'effectsLevel'),
     levelRow(str('ui.ambience'), str('ui.ambience_note'), s, 'ambientLevel'),
     levelRow(str('ui.voice_level'), str('ui.voice_level_note'), s, 'voiceLevel'),
-    stepper(str('ui.music'), str('ui.recorded_tracks_in_flight_and_a'), s.musicLevel > 0 ? `${s.musicLevel}` : 'Off', (d) => {
+    stepper(str('ui.music'), str('ui.recorded_tracks_in_flight_and_a'), s.musicLevel > 0 ? `${s.musicLevel}` : str('ui.off'), (d) => {
       s.musicLevel = Math.max(0, Math.min(10, s.musicLevel + d));
     }),
     choice(
@@ -1247,7 +1247,7 @@ function ratesRoomRows(ui, s) {
         : str('ui.betaflight_scale_limit_full_stick_commands', { throttleCap: r.throttleCap, hover }),
       THROTTLE_CAP_CHOICES,
       r.throttleCap,
-      (n) => (n >= 100 ? 'Off' : `${n}%`),
+      (n) => (n >= 100 ? str('ui.off') : `${n}%`),
       (n) => { r.throttleCap = n; },
     ),
     number(specText('spec.throttle.thrMid').label, str('ui.this_quad_hovers_near_percent_of', { note: specText('spec.throttle.thrMid').note, hover }), THROTTLE_CURVE_FIELDS.thrMid, r.thrMid, (v) => { r.thrMid = v; }),

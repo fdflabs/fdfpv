@@ -440,8 +440,8 @@ export const dialogMethods = {
       if (detail) {
         box.append(el('p', 'lede', detail));
       }
-      const yesBtn = btn(danger ? 'name-dialog-btn danger' : 'name-dialog-btn on', yes || 'Yes');
-      const noBtn = btn(danger ? 'name-dialog-btn on' : 'name-dialog-btn', no || 'No');
+      const yesBtn = btn(danger ? 'name-dialog-btn danger' : 'name-dialog-btn on', yes || str('ui.yes'));
+      const noBtn = btn(danger ? 'name-dialog-btn on' : 'name-dialog-btn', no || str('ui.no'));
       box.append(buttonRow(noBtn, yesBtn));
       present(this, box);
 

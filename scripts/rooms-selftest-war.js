@@ -815,7 +815,7 @@ export function warSection(check) {
   {
     /* THE RELEASE GATE (the owner, 2026-10-04: only mission 1 until it is
      * right; 2026-10-07: mission 1 held too, until it has its narration;
-     * src/game/campaign.js ACT1 release). A room refuses to start a
+     * the mission file's `release`, read by campaign.js released). A room refuses to start a
      * mission in development, by its word, whatever a client sends: a
      * stale build, a crafted socket, a ?missions=dev page. The drill,
      * which no campaign offers, starts as ever; a check's own room (dev)

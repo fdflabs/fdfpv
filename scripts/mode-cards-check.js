@@ -44,6 +44,13 @@
  * where the room bar asks for the reload instead, its button is a stop the
  * same way and Enter on it reloads.
  *
+ * Page H, in Spanish (?lang=es), which runs longer (docs/redesign/
+ * COMPLETENESS.md item 39): home's hubs, Flight Club's cards and Streamer
+ * Combat's lobby with the command bar, at 1280 by 720, 390 by 844, 360 by
+ * 640 and 844 by 390, and no word of theirs is cut: text running past the
+ * box that clips it, an ellipsis included (scripts/device-check.js
+ * cutIn). A word cut on purpose must be found first.
+ *
  * No page error on any page. Pictures in outdir, not in the repository.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -605,6 +612,86 @@ try {
   check('no page error on the update bar\'s page', gErrs.length === 0, gErrs.slice(0, 3).join(' | '));
 } finally {
   await g.close();
+}
+/* SPANISH. The words in the boxes `selector` names that run past the box
+ * that clips them (scripts/device-check.js cutIn, the same function). */
+const CUT_WORDS = `(boxes) => {
+    const out = [];
+    for (const box of boxes.filter(Boolean)) {
+      const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+        const el = t.parentElement;
+        if (!t.textContent.trim() || !el || !el.getClientRects().length) {
+          continue;
+        }
+        const range = document.createRange();
+        range.selectNodeContents(t);
+        const r = range.getBoundingClientRect();
+        let left = 0;
+        let right = window.innerWidth;
+        let hidden = false;
+        for (let a = el; a && a !== document.documentElement; a = a.parentElement) {
+          if (getComputedStyle(a).overflowX !== 'visible') {
+            const b = a.getBoundingClientRect();
+            hidden = hidden || b.width <= 1;
+            left = Math.max(left, b.left);
+            right = Math.min(right, b.right);
+          }
+        }
+        if (r.width && !hidden && (r.left < left - 1 || r.right > right + 1)) {
+          out.push(t.textContent.trim().slice(0, 30));
+        }
+      }
+    }
+    return out;
+  }`;
+const CUT_IN = (selector) => `(${CUT_WORDS})([...document.querySelectorAll(${JSON.stringify(selector)})])`;
+const ES_SIZES = [[1280, 720], [390, 844], [360, 640], [844, 390]];
+const h = await openPage({ root, url: `${url}&lang=es`, width: 1280, height: 720 });
+try {
+  await h.until('window.__shellReady === true', 300000);
+  await h.until('window.__ui.onGate()', 60000).catch(() => {});
+  check('H reads Spanish', await h.evaluate("document.documentElement.lang === 'es'"));
+  const control = await h.evaluate(`(() => {
+    const n = document.createElement('span');
+    n.style.cssText = 'display: block; width: 20px; overflow: hidden; white-space: nowrap;';
+    n.textContent = 'cortado a propósito';
+    document.querySelector('.screen-title').append(n);
+    const found = (${CUT_WORDS})([n]).length === 1;
+    n.remove();
+    return found;
+  })()`);
+  check('negative control: a word cut on purpose is found', control);
+  for (const [w, hh] of ES_SIZES) {
+    await resize(h, w, hh);
+    const cut = await h.evaluate(CUT_IN('.screen-title .gate-card'));
+    check(`es, ${w} by ${hh}: no word on home's hubs is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-home-${w}x${hh}`);
+  }
+  await resize(h, 1280, 720);
+  await toClub(h);
+  for (const [w, hh] of ES_SIZES) {
+    await resize(h, w, hh);
+    const cut = await h.evaluate(CUT_IN('.screen-title .gate-card, .crumb'));
+    check(`es, ${w} by ${hh}: no word on Flight Club's cards is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-club-${w}x${hh}`);
+  }
+  await resize(h, 1280, 720);
+  const combat = await h.evaluate("window.__ui.items().findIndex((it) => it.card === 'combat')");
+  await h.evaluate(`(() => { window.__ui.setCursor(${combat}); return true; })()`);
+  await h.tap('Enter');
+  await h.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
+  check('H is in Streamer Combat\'s lobby', await h.evaluate(IN_LOBBY), String(combat));
+  for (const [w, hh] of ES_SIZES) {
+    await resize(h, w, hh);
+    const cut = await h.evaluate(CUT_IN('.screen-friends, .frame-bot'));
+    check(`es, ${w} by ${hh}: no word in the lobby or the command bar is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-lobby-${w}x${hh}`);
+  }
+  const hErrs = h.errors.filter((x) => !x.startsWith('network:'));
+  check('no page error on the Spanish page', hErrs.length === 0, hErrs.slice(0, 3).join(' | '));
+} finally {
+  await h.close();
 }
 await server.stop();
 console.log(`\n${passed} passed, ${failed} failed`);

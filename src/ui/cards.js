@@ -875,7 +875,7 @@ export const cardMethods = {
     }
     const fold = (name) => String(name || '').trim().toLowerCase();
     const me = fold(readPilotName());
-    table.append(standingsRow('standings-row standings-head', '', el('span', 'standings-pilot', str('ui.pilot')), 'Lap'));
+    table.append(standingsRow('standings-row standings-head', '', el('span', 'standings-pilot', str('ui.pilot')), str('ui.lap_label')));
     times.forEach((lap, i) => {
       const pilot = el('span', 'standings-pilot', lap.name || str('ui.unnamed_pilot'));
       /* A ghost is the difference between reading a time and racing it. */

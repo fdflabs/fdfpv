@@ -169,7 +169,8 @@ export function warLobbySection(check) {
     check('and nothing starts on its own', e.war().state === 'lobby');
   }
   {
-    /* The release gate (src/game/campaign.js ACT1 release): the VM's
+    /* The release gate (the mission file's `release`, src/share/war/
+     * missions/index.js, read by campaign.js released): the VM's
      * room never takes a mission in development, by its word, and a room
      * stored set to one before the gate is the first it may start again,
      * not a lobby whose every start is refused. With every mission of Act

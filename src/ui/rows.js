@@ -25,6 +25,7 @@
  */
 
 import { cliOf, formatRate } from '../../configs/rates.js';
+import { str } from '../strings/index.js';
 
 /*
  * A choice row shows its whole set inline, as segments, only when the set
@@ -124,7 +125,7 @@ export function toggle(label, note, on, set) {
     note,
     sw: true,
     on: current,
-    value: current ? 'On' : 'Off',
+    value: current ? str('ui.switch_on') : str('ui.switch_off'),
     current,
     adjust: (dir) => set(dir > 0),
     flip: () => set(!current),

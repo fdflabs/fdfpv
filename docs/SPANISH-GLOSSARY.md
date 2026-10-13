@@ -20,7 +20,33 @@ Fixed choices, use these every time:
 - five inch = cinco pulgadas; sticks = sticks; radio = radio; joystick = joystick; calibrate = calibrar
 - Settings = Ajustes; Credits = Créditos; How to fly = Cómo volar; Publish = Publicar; Upload a time = Subir un tiempo; Fly = Volar; Back = Volver
 - record (a best time) = récord; split = parcial; standings = clasificación; run (freestyle run) = sesión; score = puntaje; trick = truco
-- Off / On = Apagado / Encendido; Best = Mejor; Previous = Anterior; None = Ninguno
+- Off / On = Apagado / Encendido, but a switch's two segments are Sí / No, which fit a phone (ui.switch_on, ui.switch_off); Best = Mejor; Previous = Anterior; None = Ninguno
 - crash = choque; reset = reiniciar; spawn = aparecer; launch control = launch control; turtle mode = modo tortuga; arcade = arcade
 
 Capitalisation as in English (sentence case). Keep trailing punctuation and leading/trailing spaces exactly as the English has them (some strings are fragments joined to others).
+
+## The game's nouns, in both languages
+
+One word for one thing, the redesign's (docs/redesign/COMPLETENESS.md items 78 and 83), settled 2026-10-13. English first, then the Spanish, then what it is.
+
+| English | Spanish | What it is |
+|---|---|---|
+| operation | operación | a campaign of missions flown in order: Defend the Paraná, The Interior |
+| mission | misión | one of an operation's, with its briefing, stages and result |
+| stage | etapa | one part of a mission between its radio calls (src/share/war/stages.js) |
+| activity | actividad | a Flight Club entry: Track Day, Free Flight, Streamer Combat, Catch the Ace!, Trick Battle, Learn to fly |
+| session | sesión | a room set up for one activity or mission, what a pilot makes, joins and leaves |
+| lobby | sala de espera | a session before its round starts |
+| round | ronda | one go in a session, from the countdown to the result |
+| room | sala | the code's word for a session; shown only where the server's room is meant: its code, the room list |
+| party | (not used) | say the session's pilots, los pilotos de la sesión |
+
+Where today's copy still differs, and moves when that copy is next touched rather than in a sweep:
+
+- match: the Catch the Ace! strings say match for a round (roomtag.*, 15 strings). They become round.
+- session: the six English strings that say session mean this browser's visit (ghost.session_best, main.your_best_this_session and four more; gpuinfo's means the graphics context). They become visit or today when the session copy lands.
+- run: Spanish says sesión for a freestyle run (about 35 strings, ui.scored_run and the rest), which collides with session. A run becomes pasada; until those strings move, sesión stays for a run and the session copy waits.
+- iniciar sesión / cerrar sesión (sign in, sign out) are the fixed phrases and stay.
+
+`npm run lint:nouns` holds the words that are gone: course (track) and party.
+

@@ -108,7 +108,7 @@ export function buildFlightOverlay(shell) {
    * freestyle. The ghost line is off until the first gate gives it a gap. */
   const head = el('div', 'osd-top');
   head.append(
-    keep(shell, 'osdClockLabel', 'div', 'osd-label', 'Lap'),
+    keep(shell, 'osdClockLabel', 'div', 'osd-label', str('ui.lap_label')),
     keep(shell, 'osdTimer', 'div', 'osd-timer', '--.--'),
     keep(shell, 'osdGate', 'div', 'osd-gate', ''),
     keep(shell, 'osdLast', 'div', 'osd-best', ''),
@@ -258,9 +258,9 @@ function titleScreen(shell) {
  * Touch is offered, first, only on a device with touch points.
  */
 function howtoTabs(shell) {
-  const sources = [['keyboard', 'Keyboard'], ['mouse', str('ui.mouse')], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')]];
+  const sources = [['keyboard', str('ui.keyboard')], ['mouse', str('ui.mouse')], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')]];
   if (touchWanted()) {
-    sources.unshift(['touch', 'Touch']);
+    sources.unshift(['touch', str('ui.touch')]);
   }
   const row = el('div', 'howto-tabs');
   shell.howtoTabs = {};
