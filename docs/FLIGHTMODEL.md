@@ -1192,6 +1192,38 @@ channel reads past the learned travel; it is held at the travel. The
 real receiver would relearn the travel after that change, which this
 does not model.
 
+The full Heading on the 3D aircraft (lead decision 2026-10-13). With the
+damper held to F1 at the Extra's stock low rate, the margin rule's full
+Heading (0.083, 2.9395, 0.0808) made extra:gates E11b's harrier kick
+worse than Manual's, 2.62 and 3.34 of it. One axis at a time: roll 1.52
+and 1.80, pitch 0.99 and 0.99, yaw 0.81 and 0.85, pitch and yaw
+together 0.81 and 0.84. A single scale on all three goes to nothing,
+since any roll Heading worsens it (a hundredth gives 1.10). So
+as3x:derive now holds each axis' full Heading on the Extra, the CAP and
+the Slick to E11b's property, as the damper is to F1: the largest scale
+on the margin rule's, per axis, that keeps the kicked rock under
+Manual's with every axis at its full Heading at once, flown on each
+aircraft's own gate harrier (scripts/lib/harrierkick.js) with the JS
+receiver carrying the Heading (as3x-feel F0 checks it at full Heading
+too). The harrier's rock is a roll the pilot is holding, and a roll
+Heading sums the bank those corrections leave and fights them; pitch
+and yaw Heading hold axes the rock only couples into.
+
+| | Margin rule's Heading | Held | Kicked rock, of Manual's |
+|---|---|---|---|
+| Extra | 0.083, 2.9395, 0.0808 | 0, 2.9395, 0.0808 | 0.81 and 0.84 |
+| CAP | 0.3267, 0.2106, 0.734 | all of it | 0.87 and 0.96 |
+| Slick | 0.1847, 0.1626, 0.5271 | 0, 0, 0.5271 | 0.48 and 0.42 |
+
+The Slick's roll (0.75 of the rule's) and yaw each hold alone but not
+together, at any common factor down to a twentieth, so it keeps the
+yaw. The rule is judged at the full Heading only. The tune screen sets
+Heading in tenths, and between a twentieth and a fifth of the Extra's
+yaw Heading the rock is worse than Manual's (1.03 to 1.08) before it is
+better from two fifths (0.99 and 0.97); the receiver's damper alone
+leaves it at 1.00 and 1.005. Heading defaults to zero, and the tune
+help keeps the AR631's warning against it on the yaw axis.
+
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is

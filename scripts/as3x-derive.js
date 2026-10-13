@@ -363,7 +363,8 @@ function kickHeading(name, sim, body, k, khRule) {
     common = sweep((x) => alone.map((v) => x * v));
     scale = alone.map((v) => common * v);
   }
-  return { scale, kh: khRule.map((x, ax) => f4(scale[ax] * x)), ratios: ratios(scale), alone, common };
+  /* A whole scale keeps the rule's figure: f4 of 1 times it can round under. */
+  return { scale, kh: khRule.map((x, ax) => (scale[ax] === 1 ? x : f4(scale[ax] * x))), ratios: ratios(scale), alone, common };
 }
 
 /* One table, in its own process: the airframe measured over its
@@ -404,7 +405,7 @@ for (const name of Object.keys(AS3X)) {
   const m = revive(measures[0]);
   const body = rowOf(src, name);
   if (kicked) {
-    console.log(`${name.padEnd(18)} the harrier kick: the margin rule's Heading ${khRule.join(', ')} at ${kicked.scale.map((x) => x.toFixed(2)).join(', ')} (alone ${kicked.alone.map((x) => x.toFixed(2)).join(', ')}, together at ${kicked.common.toFixed(2)}), its rock ${kicked.ratios.map((r) => r.toFixed(2)).join(' and ')} of Manual's`);
+    console.log(`${name.padEnd(18)} the harrier kick: the margin rule's Heading ${khRule.join(', ')} at ${kicked.scale.map((x) => x.toFixed(2)).join(', ')} (alone ${kicked.alone.map((x) => x.toFixed(2)).join(', ')}, common factor ${kicked.common.toFixed(2)}), its rock ${kicked.ratios.map((r) => r.toFixed(2)).join(' and ')} of Manual's`);
   }
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
   /* The loop closed on the plant at the dive, all three axes on the

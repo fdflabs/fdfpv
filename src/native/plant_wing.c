@@ -6178,7 +6178,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
   .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0134, 0.0671, 0.0537 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.083, 2.9395, 0.0808 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 2.9395, 0.0808 }, /* npm run as3x:derive */
   .as3x_rate = { 8.817, -4.146, -5.208 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
@@ -6805,7 +6805,7 @@ const FixedWingParams FW_SLICK2680 = {
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
   .as3x_k = { 0.0111, 0.0074, 0.1082 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.1847, 0.1626, 0.5271 }, /* npm run as3x:derive */
+  .as3x_kh = { 0, 0, 0.5271 }, /* npm run as3x:derive */
   .as3x_rate = { 5.809, -4.432, -3.303 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
