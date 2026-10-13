@@ -18,6 +18,11 @@
  * over 32 keys (inspectContext in the board's src/validate.js), and this
  * is one key of it, clipped field by field.
  *
+ * The same uncaught errors, as thrown, go to one listener (listen):
+ * main.js hands them to src/share/clientreport.js, which reduces them and
+ * sends them anonymously unless the pilot opted out. Kept apart from that
+ * module on purpose: this one loads with boot.js, before the board's.
+ *
  * Nothing here touches the document at import: scripts import src/ui/ui.js
  * in Node, and it imports this.
  *
@@ -43,6 +48,9 @@
  * start of the session does not ride along on a report about the menus. */
 export const CRASH_RECENT_MS = 300000;
 export const MAX_ERRORS = 3;
+/* Uncaught errors kept, as thrown, for a listener that is not there yet:
+ * boot.js watches from the first line and main.js subscribes seconds later. */
+export const MAX_UNHEARD = 8;
 const MAX_HITS = 4;
 const MESSAGE_CHARS = 200;
 const WHERE_CHARS = 160;
@@ -83,6 +91,8 @@ export function createCrashRecord(now = () => performance.now()) {
   let craft = null;
   const errors = [];
   const ring = [];
+  let listener = null;
+  const unheard = [];
 
   /*
    * One aircraft crash, as the shell declared it. `fields` is what it knew
@@ -112,8 +122,15 @@ export function createCrashRecord(now = () => performance.now()) {
   }
 
   /* An uncaught error or rejection. A frame that throws the same thing
-   * every frame is one error with a count, not three copies of it. */
-  function noteError(message, where) {
+   * every frame is one error with a count, not three copies of it. `stack`
+   * is the whole stack as thrown, for the listener only: the report keeps
+   * the clipped `where`. */
+  function noteError(message, where, stack = where) {
+    if (listener) {
+      listener({ message, stack });
+    } else if (unheard.length < MAX_UNHEARD) {
+      unheard.push({ message, stack });
+    }
     const m = clip(message, MESSAGE_CHARS);
     const w = clip(where, WHERE_CHARS);
     const t = now();
@@ -179,7 +196,18 @@ export function createCrashRecord(now = () => performance.now()) {
     return out.length ? out : null;
   }
 
-  return { noteCraft, noteError, noteLog, log, report };
+  /* One listener for every uncaught error as thrown (clientreport.js),
+   * handed the ones from before it subscribed first. */
+  function listen(fn) {
+    listener = fn;
+    for (const e of unheard.splice(0)) {
+      fn(e);
+    }
+  }
+
+  return {
+    noteCraft, noteError, noteLog, log, report, listen,
+  };
 }
 
 /* The one the page uses: boot.js feeds it errors, main.js feeds it crashes,
@@ -194,12 +222,14 @@ export const crashRecord = createCrashRecord();
  */
 export function watchPageErrors(win, record = crashRecord) {
   win.addEventListener('error', (e) => {
-    record.noteError(e.message || (e.error && e.error.message) || 'error', whereOf(e.error, e.filename, e.lineno, e.colno));
+    const at = e.filename ? `${e.filename}:${e.lineno || 0}:${e.colno || 0}` : '';
+    record.noteError(e.message || (e.error && e.error.message) || 'error', whereOf(e.error, e.filename, e.lineno, e.colno),
+      (e.error && e.error.stack) || at);
   });
   win.addEventListener('unhandledrejection', (e) => {
     const r = e.reason;
     const message = r && r.message ? r.message : String(r);
-    record.noteError(`unhandledrejection: ${message}`, whereOf(r));
+    record.noteError(`unhandledrejection: ${message}`, whereOf(r), (r && r.stack) || '');
   });
 }
 

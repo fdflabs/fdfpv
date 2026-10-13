@@ -16,6 +16,11 @@
  *            laps, flight seconds and crashes since the previous flush,
  *            plus a per-tab handle.
  *
+ * Two more, `error` and `frames`, are built in src/share/clientreport.js
+ * (a reduced page error, a minute of frame times as buckets) and go out
+ * through sendReport here, so the same opt out and Global Privacy Control
+ * stop them; they carry no poster slug.
+ *
  * Never sent: addresses, user agents, screen sizes, referrers, pilot names,
  * track ids, tunes, lap times or any timestamp. The board stamps the day
  * from its own clock. The tab handle is minted at page load, only lets the
@@ -219,15 +224,26 @@ export function sendEvent(payload, url = eventsUrl()) {
   if (!counting()) {
     return false;
   }
-  const body = eventBody(payload);
+  /* The held slug goes last so a payload cannot overwrite it. */
+  const body = wireForm({ v: 1, ...payload, source: heldSource() });
   return body !== null && transmit(url, body);
 }
 
-/* The wire form of one event, or null for a payload JSON cannot write.
- * The held slug goes last so a payload cannot overwrite it. */
-function eventBody(payload) {
+/* A client report (clientreport.js): the same gates and sender, without
+ * the poster slug, which is about how a visitor arrived and has nothing
+ * to do with an error or a frame. */
+export function sendReport(payload, url = eventsUrl()) {
+  if (!counting()) {
+    return false;
+  }
+  const body = wireForm({ v: 1, ...payload });
+  return body !== null && transmit(url, body);
+}
+
+/* The wire form of one event, or null for a payload JSON cannot write. */
+function wireForm(event) {
   try {
-    return JSON.stringify({ v: 1, ...payload, source: heldSource() });
+    return JSON.stringify(event);
   } catch (e) {
     return null;
   }

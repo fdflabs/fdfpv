@@ -8,10 +8,11 @@
  * placing the craft through each gate as scripts/ghost-shell-check.js does,
  * end on the results screen. The rows check that the facts block shows the
  * flight (time in the air, the route from above, distance, clean laps, the
- * track record line, this aircraft's total), that Watch the replay is on
- * screen where a real pointer reaches it, that clicking it opens the crash
- * cam on this flight, that Escape comes back to the results (not to a
- * flight that has ended) and that Fly again flies. In English and Spanish.
+ * aircraft's condition, the track record line, this aircraft's total), that
+ * Watch the replay is on screen where a real pointer reaches it, that
+ * clicking it opens the crash cam on this flight, that Escape comes back
+ * to the results (not to a flight that has ended) and that Fly again
+ * flies. In English and Spanish.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -196,10 +197,12 @@ async function run(lang, track) {
     const f = await page.evaluate(FACTS);
     say(Boolean(f) && f.visible, `the facts block is on screen`);
     say(Boolean(f) && f.clear, `the facts cover none of the hero, the laps or the menu: ${f && f.box}`);
-    const want = ['debrief.air_time', 'debrief.distance', 'debrief.top', 'debrief.clean_laps', 'debrief.track_record', 'debrief.aircraft_time'].map((k) => t[k]);
+    const want = ['debrief.air_time', 'debrief.distance', 'debrief.top', 'debrief.clean_laps', 'debrief.condition', 'debrief.track_record', 'debrief.aircraft_time'].map((k) => t[k]);
     say(f && JSON.stringify(f.dts) === JSON.stringify(want), `its lines in order: ${f && f.dts.join(' | ')}`);
     say(f && f.dds[0] !== '0:00' && /^\d+:\d\d$/.test(f.dds[0]), `time in the air counted: ${f && f.dds[0]}`);
     say(f && f.dds[3] === t['debrief.n_of'].replace('{n}', '3').replace('{of}', '3'), `clean laps: ${f && f.dds[3]}`);
+    const hud = await page.evaluate('window.__crash().condition');
+    say(f && f.dds[4] === t[`debrief.cond_${hud}`], `the aircraft's condition is the HUD's word, ${hud}: ${f && f.dds[4]}`);
     say(f && f.points > 5, `the route is drawn from above: ${f && f.points} points`);
     await shot(page, `debrief-race-${lang}.png`);
     const reach = await page.evaluate(REACH('watchreplay'));

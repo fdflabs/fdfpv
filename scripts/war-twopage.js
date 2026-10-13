@@ -341,8 +341,8 @@ async function roundRows(seatA, seatB, goAt) {
       && c.rows.length === 3 && /^NEXT ROUND IN [1-6]$/.test(c.next)),
   `room ${ended.roundResult} ${ended.roundMw} MW, want "${want}"; ${cards.map((c) => JSON.stringify(c)).join(' | ')}`);
   /* Under the pilots' lines, this pilot's debrief line (docs/DEBRIEF.md). */
-  check('the card ends on each pilot\'s own debrief line: time in the air, distance, the replay key',
-    cards.every((c) => c.on && /^You: \d+:\d\d in the air, \d+(\.\d)? k?m\. [VX] replays the last 30 s$/.test(c.rows[c.rows.length - 1])),
+  check('the card ends on each pilot\'s own debrief line: time in the air, distance, the aircraft\'s condition, the replay key',
+    cards.every((c) => c.on && /^You: \d+:\d\d in the air, \d+(\.\d)? k?m\. Aircraft: (Operational|Impaired|Destroyed)\. [VX] replays the last 30 s$/.test(c.rows[c.rows.length - 1])),
     cards.map((c) => c.rows[c.rows.length - 1]).join(' | '));
   await shot(a, '5-A-round-result');
   await watch(async () => roomWarOf().match.round >= 1 && roomWarOf().match.roundState === 'live', goAt + 400000);

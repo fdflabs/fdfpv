@@ -8,7 +8,7 @@ It is PLAN.md phase 10 and COMPLETENESS.md items 26 and 76. Written
 ## What the player sees
 
 When a flight ends, in any activity, the end screen opens with the same
-six facts in the same order, under the activity's own head:
+seven facts in the same order, under the activity's own head:
 
 1. **Result.** One line: new record, run complete, won, lost, mission
    complete, crashed out. The activity's words, as today.
@@ -21,11 +21,15 @@ six facts in the same order, under the activity's own head:
    grade letter: clean laps of laps (race), gates passed of gates (race),
    landed tricks of tricks with a crash count (freestyle), items captured
    of required (ops), hits of shots where the war counts them.
-5. **Records.** What this flight beat or did not: the track record (already
+5. **Condition.** The aircraft in three words (PILLARS 14): Operational,
+   Impaired or Destroyed, the word the HUD showed when the flight ended
+   (src/game/damage.js conditionOf). On the war's and combat's in-flight
+   cards it is part of the one debrief line.
+6. **Records.** What this flight beat or did not: the track record (already
    stored by race.js), the run score against the pilot's best posted one,
    and the aircraft's total flight time after this flight (#392,
    src/share/flighttime.js). "Improved" or "still stands", with the delta.
-6. **Next action.** Under the cursor: Fly again first; then Watch the
+7. **Next action.** Under the cursor: Fly again first; then Watch the
    replay; then the activity's next (Next mission, Change aircraft, Back to
    the lobby); Title last. Enter takes the highlighted one, Escape goes
    back as today.
@@ -69,6 +73,7 @@ normalises its inputs; one renderer reads the record.
   activity: 'race' | 'free' | 'war' | 'ops' | 'tag' | 'combat',
   aircraft: airframe id, fixedWing: bool,
   result: { kind: 'record'|'matched'|'complete'|'won'|'lost'|'ended'|'crashed', landed: bool|null },
+  condition: 'operational'|'impaired'|'destroyed'|null,
   route: { points: [[x, z], ...] (<= 240), distanceM, topM, marks: [[x, z], ...] } | null,
   time: { flightMs, runMs|null },
   accuracy: [{ what: string key, n, of }],
@@ -108,7 +113,7 @@ already exists: race.js's track record, the freestyle board answer
   states gives the expected record; the route sampler stays bounded and
   keeps the start and end; next actions in order per activity.
 - A browser check per wired activity, reaching the rows with a real
-  pointer: the facts block shows the six facts, Watch the replay opens the
+  pointer: the facts block shows the seven facts, Watch the replay opens the
   editor and closing it returns to the end screen, Fly again flies.
 - items:golden and the results goldens re-recorded deliberately where the
   rows change, said so in the PR.
