@@ -37,7 +37,8 @@ import {
 } from '../src/game/hangarroom.js';
 import en from '../src/strings/en.js';
 import { airframeById } from '../configs/airframes.js';
-import { levelOf, LEVEL_XP } from '../src/game/progress.js';
+import { levelOf, LEVEL_XP, milestonesOf } from '../src/game/progress.js';
+import { FLIGHT_ACTIVITIES, flightTotals } from '../src/share/flighttime.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const out = process.argv[2] || join(tmpdir(), 'hangar-walk-check');
@@ -318,6 +319,8 @@ try {
   const doorPrompt = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').textContent");
   check('door: its prompt says Fly', Boolean(doorPrompt) && doorPrompt.includes(en['walk.door']), JSON.stringify(doorPrompt));
   await shot('05-door-prompt');
+  /* Eleven minutes on the seated aircraft: two milestones of three. */
+  await page.evaluate(`(() => { const s = window.__ui.settings; s.flightTime = { walkcheck01: { by: { [s.airframe]: { ${JSON.stringify(FLIGHT_ACTIVITIES[0])}: 660 } } } }; return true; })()`);
   await page.tap('KeyE');
   /* The lineup before launch: the aircraft's card, a moment, then flight. */
   await page.sleep(500);
@@ -325,6 +328,12 @@ try {
   const craftName = await page.evaluate('window.__ui.settings.airframe');
   check('door: E shows the lineup card first, naming the aircraft, still in the room',
     Boolean(card) && card.includes(airframeById(craftName).name) && (await page.evaluate("window.__ui.screen === 'walk'")), JSON.stringify(card));
+  /* Its mastery milestones under it, lit as the time flown on it says. */
+  const pips = await page.evaluate("[...document.querySelectorAll('.walk-lineup .walk-lineup-milestones .hangar-milestone')].map((p) => [p.dataset.milestone, p.classList.contains('on')])");
+  const flown = await page.evaluate('window.__ui.settings.flightTime');
+  const lit = Object.entries(milestonesOf(flightTotals(flown).byAirframe, craftName));
+  check('door: the lineup card shows the aircraft\'s milestones, lit by its time flown',
+    JSON.stringify(pips) === JSON.stringify(lit) && lit.filter(([, on]) => on).length === 2, JSON.stringify(pips));
   await shot('05b-lineup');
   await page.until("window.__ui.screen !== 'walk'", 15000).then(() => true, () => false);
   const after = await page.evaluate('window.__ui.screen');
