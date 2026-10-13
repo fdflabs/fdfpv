@@ -117,6 +117,8 @@ export const SYNCED_SECTIONS = {
   /* The control surface tiers (configs/surfaces.js), by airframe. */
   surfaces: 'keyed',
   tuneFor: 'keyed',
+  /* The pilot's own camera per aircraft (src/ui/settings.js cameraFor). */
+  cameraFor: 'keyed',
   pids: 'keyed',
   floats: 'keyed',
   tune: 'whole',
@@ -167,6 +169,7 @@ const ENTRY_SHAPES = {
   /* configs/wear.js holds the fields; the server holds the shape. */
   packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
   surfaces: (key, e) => ID_RE.test(key) && tiersShape(e),
+  cameraFor: (key, e) => ID_RE.test(key) && isRecord(e) && Number.isFinite(e.angle) && Number.isFinite(e.fov),
   favourites: (key, e) => key === 'list' && Array.isArray(e) && e.length <= FAVOURITES_MAX && e.every((id) => typeof id === 'string' && ID_RE.test(id)),
 };
 
@@ -176,7 +179,7 @@ const ENTRY_SHAPES = {
  * 2026-10-03) is dropped from a clean blob: its motors, props, packs,
  * parts and tune were that aircraft's, and its successor has its own.
  */
-const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'floats', 'combat'];
+const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'cameraFor', 'floats', 'combat'];
 
 /*
  * A build as this build of the game holds it: one made on a retired
