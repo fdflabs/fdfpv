@@ -91,11 +91,25 @@ async function until(page, expr, ms = 60000) {
   throw new Error(`timed out waiting for ${expr}`);
 }
 
+/* Every wait on a drawn frame is budgeted in what a frame can cost, not a
+ * wall time picked by eye. Under load a frame can take far longer than the
+ * page's main thread is busy: the compositor and GPU process, starved of
+ * cores, deliver no frame for tens of seconds while the page sits idle
+ * and answers every poll. Measured 2026-10-12 (scripts/replay-sticks-check.js,
+ * the same page and rasteriser): 4 to 6.3 s a frame at load 55 to 67, over
+ * 20 s in the worst run. The runner's callouts:check failed on #969 and #972
+ * with the sim clock still for over 30 s; stopping this check's own GPU
+ * process for 40 s reproduces it. FRAME_MS is 6 times the worst measured. */
+const FRAME_MS = 120000;
+/* A boot: 67 s at load 55 (scripts/replay-sticks-check.js), over the 60 s
+ * default of until(); this check's own boot timed out at load 113. */
+const BOOT_MS = 300000;
+
 /* Until expr holds within simMs of sim time: the score's combo banks on
  * the sim clock, which a loaded runner advances slower than the wall, so a
  * wall clock bound fails there for nothing. A clock that stops moving for
  * stallMs of wall time is a hang and fails. */
-async function untilSim(page, expr, simMs, stallMs = 30000) {
+async function untilSim(page, expr, simMs, stallMs = FRAME_MS) {
   const lap = () => page.evaluate('window.__traffic().lap');
   const start = await lap();
   let last = start;
@@ -117,7 +131,7 @@ async function untilSim(page, expr, simMs, stallMs = 30000) {
 /* Until the sim clock has moved: at least one score frame has run since. */
 async function aFrame(page) {
   const lap0 = await page.evaluate('window.__traffic().lap');
-  await until(page, `window.__traffic().lap > ${lap0}`);
+  await until(page, `window.__traffic().lap > ${lap0}`, FRAME_MS);
 }
 
 async function shot(page, name) {
@@ -159,7 +173,7 @@ for (const lang of ['en', 'es']) {
     const tag = `${lang}-${size}`;
     const page = await openPage({ root, width, height, seed: seeds(lang) });
     try {
-      await until(page, 'window.__shellReady && window.__ui');
+      await until(page, 'window.__shellReady && window.__ui', BOOT_MS);
       await page.evaluate('window.__drawOff(true)');
       await page.evaluate("(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = 'freestyle'; ui.show('title'); ui.renderMenu(); return true; })()");
       const row = await page.evaluate(`window.__ui.settings.trickCallouts === true && window.__ui.settings.freestyleScoring === 'off'`);
@@ -169,7 +183,7 @@ for (const lang of ['en', 'es']) {
 
       const want = S['aerobatic.loop'].toUpperCase();
       await page.evaluate(land('loop', 8.5));
-      await until(page, `[...document.querySelectorAll('.score-name')].some((r) => r.textContent.toUpperCase().includes(${JSON.stringify(want)}))`);
+      await until(page, `[...document.querySelectorAll('.score-name')].some((r) => r.textContent.toUpperCase().includes(${JSON.stringify(want)}))`, FRAME_MS);
       const one = await page.evaluate(HUD);
       await shot(page, `callout-${tag}-loop`);
       const word = S['aerobatic.grade_sharp'];
@@ -185,7 +199,7 @@ for (const lang of ['en', 'es']) {
       /* The loop's combo banks first, so the chain below is exactly three. */
       await untilSim(page, "getComputedStyle(document.querySelector('.score-combo')).display === 'none'", COMBO_WINDOW_MS + 1000);
       await page.evaluate(`${land('half_roll', 9)}; ${land('aileron_roll', 10)}; ${land('hammerhead', 5.5)}; true`);
-      await until(page, "document.querySelectorAll('.score-name.is-sloppy').length > 0");
+      await until(page, "document.querySelectorAll('.score-name.is-sloppy').length > 0", FRAME_MS);
       const three = await page.evaluate(HUD);
       await shot(page, `callout-${tag}-chain`);
       check(`${tag}: a chain of three shows the combo with its multiplier`, three.combo && /x\s*3/.test(three.combo), three.combo);
