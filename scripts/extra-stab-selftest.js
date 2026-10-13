@@ -298,12 +298,24 @@ for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2,
     });
     const held = kicked(1);
     /* An axis whose derived full Heading is zero (as3x_kh, npm run
-     * as3x:derive: the Extra's yaw since c321a9bf7, where the yaw Heading
-     * worsened E11b's harrier rock at any share) has no hold to judge:
-     * its full Heading is the damper alone, which slows the weathercock's
-     * own swing back as it slows the kick, and leaves more of the turn
-     * after 1 s than Manual (0.5 against 0.4 deg). Recorded, not judged;
-     * the damper is judged at the default Heading below. */
+     * as3x:derive) has no hold to judge: its full Heading is the damper
+     * alone. Recorded, not judged; the damper is judged at the default
+     * Heading below. The Extra's yaw was such an axis from c321a9bf7 to
+     * 20fde9b91, where its derived yaw Heading became 0.001 (one sweep
+     * step under a measured crossing, as3x-derive.js kickHeading), so the
+     * level yaw kick is judged again, and fails, 0.5 against 0.4 deg.
+     * Measured on 20fde9b91 (w38-physics-3), it is not the airframe: the
+     * nose is back on its flight path by 0.6 s in Manual and AS3X alike
+     * (heading against track within 0.05 deg), the yaw Heading at 0.001
+     * changes nothing here (Heading [0, 0, 1] leaves 0.51 deg, as the
+     * damper alone does), and the full Heading's 0.46 is the pitch
+     * Heading's (Heading [0, 1, 0] alone, 0.46). The line takes the rate
+     * before the kick as the flight's own through the second, and after
+     * the 0.3 s lead in that rate is still moving, by mode: unkicked,
+     * the same integral is -0.23 deg in Manual, -0.16 on the damper and
+     * -0.19 at the full Heading. Against the same flight unkicked the
+     * kick leaves 0.76, 0.76 and 0.73 deg. The line is left as posed and
+     * red; how to pose it is the lead's. */
     const noHold = EXTRA_T.fw.as3x_kh[k - 11] === 0;
     if (noHold) {
       console.log(`  info  ${where}, the Heading full, a 1 rad/s ${axis} kick: the table derives no ${axis} Heading (as3x_kh 0), recorded and not judged: ${deg(held.as3x.at1)} against Manual's ${deg(held.manual.at1)} deg left after 1 s`);
