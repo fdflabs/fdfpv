@@ -4981,7 +4981,9 @@ export async function boot({
   function gameLobbyToggle() {
     const lobby = gameLobby();
     if (lobby && !roomLinkState.state().welcome.watch) {
-      lobbyReady.set(!gameLobbyReady(lobby), lobby, roomLinkState.state().welcome.seat, performance.now());
+      /* A press before the room listed the last one turns that one. */
+      const was = lobbyReady.pending() ?? gameLobbyReady(lobby);
+      lobbyReady.set(!was, lobby, roomLinkState.state().welcome.seat, performance.now());
     }
   }
   function gameLobbyRows(host) {

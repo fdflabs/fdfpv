@@ -35,7 +35,8 @@ export function createLobbyReady(send) {
   let sentAt = -Infinity;
 
   const api = {
-    /* The pilot's press. nowMs: any clock in ms, the same every call. */
+    /* The pilot's press. nowMs: the page's clock in ms (performance.now,
+     * a frame's time), the same every call. */
     set(ready, lobby, seat, nowMs) {
       want = Boolean(ready);
       sentAt = -Infinity;
