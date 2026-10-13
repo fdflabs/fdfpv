@@ -999,7 +999,7 @@
         overflow: auto; background: var(--bf-panel);
       }
       .fc-pages {
-        position: sticky; top: 0; z-index: 2; display: flex; flex: 0 0 auto; gap: 0;
+        position: sticky; top: 0; z-index: 2; display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 0;
         background: var(--bf-header); border-bottom: 1px solid #2a2a2a;
       }
       .fc-page {
@@ -2161,18 +2161,30 @@
       .pids-readout { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 
       /* The menu row's parts: label, value and the controls that edit it. */
-      .row-label { flex: 1 1 auto; min-width: 0; }
+      .row-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
       /* Painted bold, not set bold: a heavier weight is wider, and the
          menu's auto track grew under the cursor and shoved the stage. */
       .row.on .row-label { text-shadow: -0.02em 0 0 currentColor, 0.02em 0 0 currentColor; }
+      /* A value wraps rather than ends in an ellipsis: a cut value, the
+         GPU's name or a rates summary on a phone, says less than two lines
+         (lint:devices fails on a cut word). */
       .row-value {
-        flex: 0 1 auto; min-width: 0; max-width: 52%;
-        overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: right;
+        flex: 0 1 auto; min-width: 0; max-width: 52%; margin-left: auto;
+        overflow-wrap: anywhere; text-align: right;
         color: var(--sakura); font-size: 0.86em; font-weight: 600; letter-spacing: 0.03em;
       }
-      /* A room's value is why you pick it; wrap it rather than cut it. */
-      .screen-rooms .row-value { white-space: normal; }
-      .row-control { display: flex; flex: 0 1 auto; align-items: center; gap: 8px; min-width: 0; }
+      /* A control keeps its width: a switch or a stepper too wide for the
+         row beside its label goes under the label, at the right, rather
+         than cutting its own words. Its value is sized by the row, not
+         by the control, which 52% of would cut "5 degrees". The negative
+         margin lets a control, a little taller than a line of text, use
+         the row's padding instead of growing the row. */
+      .row { flex-wrap: wrap; row-gap: 6px; }
+      .row-control {
+        display: flex; flex: 0 0 auto; align-items: center; gap: 8px; max-width: 100%;
+        margin: -2px 0 -2px auto;
+      }
+      .row-control > .row-value { max-width: none; }
       .step-col { display: inline-flex; flex-direction: column; gap: 2px; }
       .step {
         display: grid; place-items: center;
@@ -2183,7 +2195,7 @@
       .step:hover { background: rgba(215, 221, 221, 0.32); }
       /* On/off as two lit segments rather than a drop-down, so both states
          are visible and either is one click. */
-      .row-switch { gap: 0; overflow: hidden; box-shadow: inset 0 0 0 1px var(--pdcs-line); }
+      .row-switch { gap: 0; flex-wrap: wrap; overflow: hidden; box-shadow: inset 0 0 0 1px var(--pdcs-line); }
       .sw-seg {
         appearance: none; margin: 0; border: 0;
         /* No taller than the drop button: Settings shows a dozen of these. */
@@ -2836,7 +2848,7 @@
         margin: 0 0 18px; max-width: 46em; text-align: center;
         font-size: 15px; line-height: 1.6; color: rgba(215, 221, 221, 0.78);
       }
-      .howto-tabs { pointer-events: auto; display: flex; gap: 8px; }
+      .howto-tabs { pointer-events: auto; display: flex; flex-wrap: wrap; gap: 8px; }
       .howto-tab {
         appearance: none; cursor: pointer; padding: 7px 16px;
         border: 0; border-radius: 0; box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.14);
