@@ -49,6 +49,11 @@ export const STICK_HOLD_MS = 1000;
  * height lesson's 25 to 35 m band. */
 export const STALL_FLOOR_M = 30;
 export const STALL_RECOVERED = AIR_START_STALL_MARGIN;
+/* The thermal lesson (docs/redesign/TRAINING.md 9): metres climbed with
+ * the throttle closed (Sticks' closed end) in rising air. More than a
+ * zoom gives: the Radian trading 15 m/s for its 6.49 m/s stall climbs
+ * (15^2 - 6.49^2) / 2g, 9.3 m, with no air rising at all. */
+export const THERMAL_CLIMB_M = 10;
 const STICK_ENDS = {
   'roll+': (c) => c.roll >= STICK_END,
   'roll-': (c) => c.roll <= -STICK_END,
@@ -63,7 +68,8 @@ const STICK_ENDS = {
 /*
  * Steps: { sticks: true } every stick held at each of its ends (STICK_END)
  * for STICK_HOLD_MS, in any order; { stall: true } a stall entered and
- * recovered without going under STALL_FLOOR_M; { airborne: ms } in the air that long without touching down;
+ * recovered without going under STALL_FLOOR_M; { thermal: true }
+ * THERMAL_CLIMB_M climbed, throttle closed, in rising air; { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
  * clean meaning no rim touched; { ghost: true } a lap faster than the
@@ -72,6 +78,7 @@ const STICK_ENDS = {
  * race finished with at least n pilots on its grid, this one among them;
  * { hold: ms, low, high, radius } held in a height band (and a circle);
  * { land: true, deadstick: true } a landing after the pack ran low;
+ * { land: true, onStrip: true } a landing at rest on its place's strip;
  * { gates: n } n gates or hoops in a row without a touch. `mode` is a
  * quad's flight mode, 'angle' (self levelling) or 'acro'.
  * A crash starts the lesson's steps again. `aid` is the visual aid the
@@ -99,6 +106,9 @@ export const LESSONS = [
     steps: [{ land: true }, { land: true }, { land: true }],
   },
   { id: 'wing_deadstick', track: 'wing', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', aid: 'glide', steps: [{ land: true, deadstick: true }] },
+  { id: 'glider_launch', track: 'glider', airframe: 'radian2000', tune: 'radian-stab', place: 'swiss2', steps: [{ airborne: TAKEOFF_HOLD_MS }] },
+  { id: 'glider_thermal', track: 'glider', airframe: 'radian2000', tune: 'radian-stab', place: 'swiss2', weather: 'breeze', steps: [{ thermal: true }] },
+  { id: 'glider_land', track: 'glider', airframe: 'radian2000', tune: 'radian-stab', place: 'swiss2', aid: 'glide', steps: [{ land: true, onStrip: true }] },
   { id: 'quad_hover', track: 'multirotor', airframe: 'interceptor', mode: 'angle', place: 'swiss2', steps: [{ hold: 15000, low: 1, high: 4, radius: 3 }] },
   { id: 'quad_throttle', track: 'multirotor', airframe: 'interceptor', mode: 'angle', place: 'swiss2', steps: [{ hold: 5000, low: 9, high: 11 }] },
   {
@@ -117,12 +127,22 @@ export const LESSONS = [
  * THE STRIPS a glide path is drawn to, in the world's frame (Three.js, y
  * up, metres): the threshold's x and z, and the way a landing rolls along
  * the ground. The Swiss valley's strip is the Alps' (src/maps/alps/terrain.js
- * STRIP_L, along z at the origin; training:selftest reads it from there),
- * landed from its +z end towards -z.
+ * STRIP_L long and STRIP_W wide, along z at the origin; training:selftest
+ * reads them from there), landed from its +z end towards -z.
  */
 export const STRIPS = {
-  swiss2: { x: 0, z: 160 / 2, dirX: 0, dirZ: -1 },
+  swiss2: { x: 0, z: 160 / 2, dirX: 0, dirZ: -1, length: 160, width: 12 },
 };
+
+/* Whether { x, z } in the world is on `strip`: along it from the
+ * threshold, within half its width of its centre line. */
+export function onStrip(strip, p) {
+  const dx = p.x - strip.x;
+  const dz = p.z - strip.z;
+  const along = dx * strip.dirX + dz * strip.dirZ;
+  const across = dx * strip.dirZ - dz * strip.dirX;
+  return along >= 0 && along <= strip.length && Math.abs(across) <= strip.width / 2;
+}
 
 /* The glide path: a gate every SPACING metres back up the approach at
  * SLOPE (radians, a model's steeper approach than a full size 3 degrees),
@@ -166,7 +186,7 @@ export function gateCue(cam, to, cone = 0.35) {
 }
 
 /* The tracks in the order the page lists them. */
-export const TRACKS = ['first', 'wing', 'multirotor', 'racing'];
+export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'racing'];
 
 /*
  * CERTIFICATIONS (PROGRESSION.md 7, the lead 2026-10-13): a track's, earned
@@ -174,10 +194,9 @@ export const TRACKS = ['first', 'wing', 'multirotor', 'racing'];
  * and kept from then on (progress.certs, synced; a merge never drops one).
  * Because a stored one is never taken back, a track is listed only once
  * every lesson TRAINING.md gives it exists here: Fixed wing waits on its
- * coordinated turn, Glider on its track, Defence on the stage engine; First
- * flight has none. The words are training.cert.<track>.
+ * coordinated turn, Defence on the stage engine; First flight has none. The words are training.cert.<track>.
  */
-export const CERTS = ['multirotor', 'racing'];
+export const CERTS = ['glider', 'multirotor', 'racing'];
 
 /* The certifications `passed` (lesson id to its pass time) has earned. */
 export function certsEarned(passed) {
@@ -258,6 +277,7 @@ export class LessonWatch {
     this.endSince = {};
     this.endsHeld = new Set();
     this.stalled = false;
+    this.thermalLow = null;
   }
 
   get current() {
@@ -280,10 +300,11 @@ export class LessonWatch {
    * it, `pos` its { x, z } in the world, `battery` the OSD's 'ok',
    * 'warning' or 'critical', `sticks` the channels the plant got this
    * frame, `airspeed` m/s through the air and `stall` the seated
-   * aircraft's clean stall, m/s (null on a quad). Returns whether the
-   * lesson is passed.
+   * aircraft's clean stall, m/s (null on a quad), `airUp` the air's rise
+   * where the craft is, m/s. `pos` carries its height, y. Returns whether
+   * the lesson is passed.
    */
-  tick({ simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok', sticks = null, airspeed = null, stall = null }) {
+  tick({ simMs, crashed, grounded, heading = null, agl = null, pos = null, battery = 'ok', sticks = null, airspeed = null, stall = null, airUp = 0 }) {
     if (this.passed) {
       return true;
     }
@@ -310,13 +331,15 @@ export class LessonWatch {
       this.judgeSticks(simMs, sticks);
     } else if (s.stall) {
       this.judgeStall(grounded, agl, airspeed, stall);
+    } else if (s.thermal) {
+      this.judgeThermal(grounded, pos, sticks, airUp);
     } else if (s.airborne != null && !grounded && simMs - this.airSince >= s.airborne) {
       this.advance();
     } else if (s.turn && heading != null) {
       this.judgeTurn(s.turn, heading, grounded);
     } else if (s.hold != null) {
       this.judgeHold(s, simMs, grounded, agl, pos);
-    } else if (s.land && grounded && this.flew && (!s.deadstick || this.lowBattery)) {
+    } else if (s.land && grounded && this.flew && (!s.deadstick || this.lowBattery) && (!s.onStrip || (pos && onStrip(STRIPS[this.lesson.place], pos)))) {
       this.downSince ??= simMs;
       if (simMs - this.downSince >= LANDED_MS) {
         /* The next landing needs another flight. */
@@ -359,6 +382,21 @@ export class LessonWatch {
     if (airspeed < stall) {
       this.stalled = true;
     } else if (this.stalled && airspeed >= STALL_RECOVERED * stall) {
+      this.advance();
+    }
+  }
+
+  /* { thermal: true }: the height climbed from the lowest point since the
+   * throttle closed in rising air; opening it, sinking air or the ground
+   * starts again. */
+  judgeThermal(grounded, pos, sticks, airUp) {
+    const soaring = !grounded && pos && sticks && sticks.throttle <= 1 - STICK_END && airUp > 0;
+    if (!soaring) {
+      this.thermalLow = null;
+      return;
+    }
+    this.thermalLow = Math.min(this.thermalLow ?? pos.y, pos.y);
+    if (pos.y - this.thermalLow >= THERMAL_CLIMB_M) {
       this.advance();
     }
   }

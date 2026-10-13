@@ -96,7 +96,7 @@ try {
     };
   })()`);
   check('the Learn to fly card opens the lessons page, every lesson under its track', listed
-    && listed.lessons.join() === LESSONS.map((l) => l.id).join() && listed.tracks.join() === 'First flight,Fixed wing,Multirotor,Racing', JSON.stringify(listed));
+    && listed.lessons.join() === LESSONS.map((l) => l.id).join() && listed.tracks.join() === 'First flight,Fixed wing,Glider,Multirotor,Racing', JSON.stringify(listed));
   check('nothing on it is locked: every lesson has Fly', listed && listed.plays === LESSONS.length, JSON.stringify(listed));
   await shot(page, 'lessons');
 

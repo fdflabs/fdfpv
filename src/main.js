@@ -7967,6 +7967,9 @@ export async function boot({
       if (lesson.mode) {
         s.flightMode = lesson.mode;
       }
+      if (lesson.weather) {
+        s.weather = lesson.weather;
+      }
       ui.progress.startLesson(lesson);
       /* A lesson flown with other pilots goes in by its activity's lobby,
        * as that activity's card does with a rooms server. */
@@ -13372,7 +13375,7 @@ export async function boot({
     }
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
-      sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null,
+      sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
     });
   }
   /* The craft's speed through the air, m/s: the plant's world velocity

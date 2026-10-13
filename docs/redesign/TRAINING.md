@@ -211,3 +211,22 @@ inputs and the flight's event log, each with a near miss that fails.
   The slip itself can be read from the plant (the velocity in the body
   frame); what is missing is the number that says how little slip is
   coordinated. Until it is given, Fixed wing has no certification.
+- **Glider**, a track of three after Fixed wing, on the Radian in
+  Stabilised on the Swiss valley (the NRJ is not used yet):
+  - *Launch and hold* (`glider_launch`): airborne 20 s without touching
+    the ground, First flight's takeoff rule (`TAKEOFF_HOLD_MS`).
+  - *Find a thermal* (`glider_thermal`): 10 m climbed from the lowest
+    point with the throttle closed (5 percent or less, Sticks' closed
+    end) in rising air (the weather's vertical air where the craft is,
+    above zero); opening the throttle, sinking air or the ground starts
+    it again. 10 m is this lane's number, past what a zoom gives: the
+    Radian slowing from 15 m/s to its 6.49 m/s stall climbs 9.3 m in
+    still air. The lesson sets the weather to Breeze, whose thermals
+    rise 2.2 m/s (src/game/weather.js). Known limit: the shell gets the
+    air's rise as one number, so the slope lift on the valley's sides
+    counts as well as a thermal; both are soaring.
+  - *Land on the strip* (`glider_land`): down and still on the strip
+    itself, the glide aid's end: `STRIP_L` by `STRIP_W` (160 by 12 m,
+    src/maps/alps/heights.js) from the threshold the glide path is drawn
+    to. The aid draws no box; the strip is the box.
+  The track has no "I fly already": no lesson of it covers the others.

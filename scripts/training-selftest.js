@@ -22,12 +22,13 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, STALL_FLOOR_M, STALL_RECOVERED, STICK_END, STICK_HOLD_MS, certsEarned, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, STALL_FLOOR_M, STALL_RECOVERED, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
 import { MEDAL_STEPS, medalFor } from '../src/game/medals.js';
 import { modeById } from '../src/share/modes.js';
+import { MAPS as WEATHER_MAPS, PRESETS as WEATHER } from '../src/game/weather.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -72,7 +73,7 @@ function fly(id, segments, { laps = [], gates = '' } = {}) {
       heading += (s.yawRate ?? 0) * FRAME_MS / 1000;
       w.tick({
         simMs: t, crashed: Boolean(s.crashed), grounded: Boolean(s.grounded), heading: Math.atan2(Math.sin(heading), Math.cos(heading)),
-        agl: s.agl ?? (s.grounded ? 0 : 30), pos: { x: s.x ?? 0, z: s.z ?? 0 }, battery: s.battery ?? 'ok',
+        agl: s.agl ?? (s.grounded ? 0 : 30), pos: { x: s.x ?? 0, y: s.y ?? 0, z: s.z ?? 0 }, battery: s.battery ?? 'ok', airUp: s.up ?? 0,
         sticks: { roll: 0, pitch: 0, yaw: 0, throttle: 0.5, ...s.sticks }, airspeed: s.v ?? null, stall: s.stall === undefined ? TIMBER_STALL : s.stall,
       });
     }
@@ -161,6 +162,39 @@ expect('stall: a crash in the recovery', fly('wing_stall', [flyAt(1000, 40, 6.5)
 expect('stall: a quad has no stall', fly('wing_stall', [flyAt(1000, 40, 0.5, { stall: null }), flyAt(1000, 40, 15, { stall: null })]), false);
 expect('stall: the floor is 30 m and recovery 1.3 times (the lead, 2026-10-13)', STALL_FLOOR_M === 30 && STALL_RECOVERED === 1.3, true);
 
+/* The glider track. A thermal: height y climbed, throttle closed, in
+ * rising air; a frame's height steps linearly through a segment. */
+const glide = (ms, y0, y1, up = 1.5, throttle = 0) => ({ ms, grounded: false, up, sticks: { throttle }, y0, y1 });
+function soar(id, segments) {
+  const out = [];
+  for (const g of segments) {
+    const n = Math.max(1, Math.round(g.ms / 200));
+    for (let i = 0; i < n; i += 1) {
+      out.push({ ...g, ms: g.ms / n, y: g.y0 + (g.y1 - g.y0) * ((i + 1) / n) });
+    }
+  }
+  return fly(id, out);
+}
+expect('thermal: 12 m up, throttle closed, rising air', soar('glider_thermal', [glide(20000, 100, 112)]), true);
+expect('thermal: a sink first, then 10 m from the lowest', soar('glider_thermal', [glide(5000, 100, 95), glide(20000, 95, 105.5)]), true);
+expect('thermal: 12 m up under power', soar('glider_thermal', [glide(20000, 100, 112, 1.5, 0.4)]), false);
+expect('thermal: 12 m up in still air, a zoom', soar('glider_thermal', [glide(5000, 100, 112, 0)]), false);
+expect('thermal: 6 m, a burst of throttle, 6 m', soar('glider_thermal', [glide(5000, 100, 106), glide(500, 106, 107, 1.5, 0.5), glide(5000, 107, 113)]), false);
+expect('thermal: 9 m only', soar('glider_thermal', [glide(20000, 100, 109)]), false);
+expect('thermal: 10 m (TRAINING.md 9), past a zoom from 15 m/s', THERMAL_CLIMB_M === 10
+  && (15 ** 2 - airframeById('radian2000').stall ** 2) / (2 * 9.81) < THERMAL_CLIMB_M, true);
+const strip = STRIPS.swiss2;
+expect('the strip box: the threshold\'s centre, the far end, a wheel at the edge', onStrip(strip, { x: 0, z: 80 }) && onStrip(strip, { x: 0, z: -80 }) && onStrip(strip, { x: 5.9, z: 0 }), true);
+expect('the strip box: short of the threshold, past the far end, off the side', onStrip(strip, { x: 0, z: 81 }) || onStrip(strip, { x: 0, z: -81 }) || onStrip(strip, { x: 6.1, z: 0 }), false);
+expect('strip landing: down and still on it', fly('glider_land', [air(6000), { ms: 1200, grounded: true, x: 1, z: 20 }]), true);
+expect('strip landing: down and still beside it', fly('glider_land', [air(6000), { ms: 1200, grounded: true, x: 9, z: 20 }]), false);
+expect('strip landing: short of it in the grass', fly('glider_land', [air(6000), { ms: 1200, grounded: true, x: 0, z: 110 }]), false);
+expect('launch: 21 s up on the Radian', fly('glider_launch', [ground(300), air(21000)]), true);
+expect('launch: 15 s up', fly('glider_launch', [ground(300), air(15000), ground(500)]), false);
+expect('a strip landing flies where there is a strip', LESSONS.filter((l) => l.steps.some((st) => st.onStrip)).every((l) => Boolean(STRIPS[l.place])), true);
+expect('a lesson\'s weather is a preset with thermals where it asks for one', LESSONS.filter((l) => l.weather).every((l) => WEATHER[l.weather] && WEATHER[l.weather].thermal > 0
+  && (!l.steps.some((st) => st.thermal) || Boolean(WEATHER_MAPS[l.place]))), true);
+
 /* Racing a pilot: the round event a finished room race logs. */
 const raced = (rounds) => {
   const w = new LessonWatch(lessonById('race_pilot'));
@@ -218,6 +252,7 @@ for (const t of TRACKS) {
  * cannot import (it needs Three.js), so its length is read from the source. */
 const stripL = Number(/export const STRIP_L = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/heights.js', import.meta.url), 'utf8'))[1]);
 expect('the strip\'s threshold is the Alps terrain\'s strip end', STRIPS.swiss2.z, stripL / 2);
+expect('the strip\'s length and width are the Alps terrain\'s', [STRIPS.swiss2.length, STRIPS.swiss2.width].join(), [stripL, Number(/export const STRIP_W = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/heights.js', import.meta.url), 'utf8'))[1])].join());
 expect('every quad mode is angle or acro', LESSONS.every((l) => l.mode == null || ['angle', 'acro'].includes(l.mode)), true);
 expect('every lesson\'s aid is a known one', LESSONS.every((l) => l.aid === undefined || ['glide', 'gate'].includes(l.aid)), true);
 expect('a glide lesson flies where there is a strip', LESSONS.filter((l) => l.aid === 'glide').every((l) => Boolean(STRIPS[l.place])), true);
