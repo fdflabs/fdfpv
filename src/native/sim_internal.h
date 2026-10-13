@@ -1298,6 +1298,10 @@ extern int SIM_WIND_ON;
 extern double SIM_WIND[2];
 extern double SIM_GUST;
 extern double SIM_AIR_W;
+/* The gusts' clock at step 0, steps, already within the wrap
+ * GUST_WRAP_STEPS (plant_wing.c, sim_set_wind_clock). */
+#define GUST_WRAP_STEPS (1LL << 27)
+extern long long SIM_GUST_STEP0;
 void plant_wind(long long step, double out[3]);
 /* The parachute: 1 pulls it on an airframe that has one and returns 0,
  * anything else returns -1; 0 stows it again, which a reset also does.

@@ -1201,6 +1201,15 @@ double SIM_GUST = 0.0;
  * (sim_set_air_vertical): a thermal, a ridge's lift, a dam's sink, which
  * the host reads off its weather at the craft each step. */
 double SIM_AIR_W = 0.0;
+/* The gusts' clock at step 0 (sim_set_wind_clock): a room's clock at the
+ * run's start, so two plants at the same room millisecond meet the same
+ * gust bit for bit; 0, the default, is the plant's own clock. Held modulo
+ * GUST_WRAP_STEPS, and the gust clock wraps there: 2^27 steps (37.3 h) keeps
+ * the fastest cosine's angle under the 1e6 rad sim_cos reduces exactly
+ * (4.19 rad/s times 134218 s, 5.6e5 rad), where a room clock of Date.now()
+ * milliseconds would be past it. A run from step 0 meets the wrap only 37 h
+ * in, so every run shorter than that is unchanged to the bit. */
+long long SIM_GUST_STEP0 = 0;
 
 void plant_wind(long long step, double out[3]) {
   out[0] = SIM_WIND[0];
@@ -1209,7 +1218,7 @@ void plant_wind(long long step, double out[3]) {
   if (!(SIM_GUST > 0.0)) {
     return;
   }
-  const double t = (double)step * SIM_DT;
+  const double t = (double)((step + SIM_GUST_STEP0) % GUST_WRAP_STEPS) * SIM_DT;
   for (int k = 0; k < GUST_N; k += 1) {
     out[0] += SIM_GUST * GUST_A[k] * sim_cos(GUST_W[k] * t + GUST_PX[k]);
     out[1] += SIM_GUST * GUST_A[k] * sim_cos(GUST_W[k] * t + GUST_PY[k]);

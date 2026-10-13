@@ -12929,6 +12929,19 @@ export async function boot({
       throw new Error(`sim_set_air_vertical refused ${up}: ${simErrorName(codeUp)}`);
     }
   }
+  /* The gusts' clock at the run's start (sim_set_wind_clock), whole ms:
+   * the room's, so every pilot in the room meets the same gust at the same
+   * room millisecond; solo, 0, the plant's own. Set once at every windy
+   * run's start, whatever the plant held (a replay's take over puts back the
+   * recorded one); a calm run makes no call, its gusts are none. */
+  let gustClockMs = 0;
+  function setWindClock(ms) {
+    const code = sim.e.sim_set_wind_clock(ms);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_wind_clock refused ${ms}: ${simErrorName(code)}`);
+    }
+    gustClockMs = ms;
+  }
   let weatherT0 = 0;
   let weatherFlown = null;
   function seatWeather() {
@@ -12946,6 +12959,10 @@ export async function boot({
     /* null until the room's clock has synced: the run's own clock then. */
     const roomMs = welcome ? roomLinkState.roomNow() : null;
     weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
+    const gustMs = Number.isFinite(roomMs) ? Math.floor(roomMs) : 0;
+    if (weather) {
+      setWindClock(gustMs);
+    }
     weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
       setWind(0, 0, 0, 0);
@@ -13054,7 +13071,7 @@ export async function boot({
     const wind = Array.from(new Float64Array(sim.e.memory.buffer, held, 2));
     sim.e.free(held);
     return {
-      roomMs: roomLinkState.roomNow(), t: airT, step: stateCurr ? stateCurr[0] : null, pos: [airPos.x, airPos.y, airPos.z],
+      roomMs: roomLinkState.roomNow(), t: airT, step: stateCurr ? stateCurr[0] : null, gustClockMs, pos: [airPos.x, airPos.y, airPos.z],
       air: { x: airOut.x, z: airOut.z, gust: airOut.gust, up: airOut.up }, set: [airSim.x, airSim.y], wind,
     };
   };
