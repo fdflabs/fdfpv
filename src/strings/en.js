@@ -4597,6 +4597,8 @@ export default {
   "stats.stars": "{n} of {max} stars",
   "stats.flights.one": "{n} flight",
   "stats.flights.other": "{n} flights",
+  "stats.landings.one": "{n} landing",
+  "stats.landings.other": "{n} landings",
   "stats.game": "{won}/{played} won · best {best}",
   "ui.plane_rates_note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
   "ui.plane_rates_lede": "How far the surfaces move at full stick, as the manual sets the radio up. Changes fly at once.",

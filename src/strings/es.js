@@ -4602,6 +4602,8 @@ export default {
   "stats.stars": "{n} de {max} estrellas",
   "stats.flights.one": "{n} vuelo",
   "stats.flights.other": "{n} vuelos",
+  "stats.landings.one": "{n} aterrizaje",
+  "stats.landings.other": "{n} aterrizajes",
   "stats.game": "{won}/{played} ganadas · mejor {best}",
   "ui.plane_rates_note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
   "ui.plane_rates_lede": "Cuánto se mueven las superficies con el stick a fondo, como el manual configura la radio. Los cambios vuelan al instante.",
