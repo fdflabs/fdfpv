@@ -121,7 +121,7 @@ import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import { createJamRun, createRoomJam } from './share/roomjam.js';
 import { jamHudView, jamResultsView, jamTurnShout } from './ui/jamhud.js';
-import { MODES, modeById, modeOfRoom, modeOfWire } from './share/modes.js';
+import { MODES, VISIBILITIES, modeById, modeOfRoom, modeOfWire, visibilityFor } from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
 } from './ui/roomtaghud.js';
@@ -184,6 +184,7 @@ import VOICE_LENGTHS from './share/war/voicelen.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
 import { briefingOf } from './ui/briefing.js';
+import { choice } from './ui/rows.js';
 import {
   ACT1, createCampaignStore, markSeen, released, seenFilm,
 } from './game/campaign.js';
@@ -4874,7 +4875,7 @@ export async function boot({
     const readyNote = ready ? 'lobby.unready_note' : (war ? 'brief.deploy_note' : 'lobby.ready_note');
     const rows = [{
       label: str(readyLabel), note: str(readyNote), action: 'friends-lobby-ready', primary: true,
-    }, ...lobbyInviteRows()];
+    }, ...lobbyInviteRows(), ...lobbyVisibilityRows(host)];
     rows.push(...game.rows(host));
     if (host && game.start) {
       rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: game.start });
@@ -4978,7 +4979,7 @@ export async function boot({
    * the link that opens it. A public room is found in Rooms instead. */
   function lobbyInviteRows() {
     const st = roomLinkState.state();
-    if (!st.code || !st.welcome || st.welcome.public) {
+    if (!st.code || !st.welcome || st.welcome.public || sessionVisibility() === 'solo') {
       return [];
     }
     const war = st.code === warInviteCode;
@@ -5116,16 +5117,124 @@ export async function boot({
   }
 
   /*
+   * THE SESSION (docs/redesign/SESSIONS.md): an activity, then who joins,
+   * then Ready. Who joins is one of src/share/modes.js VISIBILITIES, kept
+   * on the room as its public flag; a private room's code is shown for
+   * friends and hidden for solo, which the room itself cannot tell, so
+   * the solo room's code is kept here, in session storage, and a reload
+   * into the same room (docs/FLOW-AUDIT.md rule 6) keeps it hidden.
+   */
+  const SOLO_KEY = 'fdfpv.roomSolo';
+  function soloCode() {
+    try {
+      return sessionStorage.getItem(SOLO_KEY) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function markSolo(code) {
+    try {
+      if (code) {
+        sessionStorage.setItem(SOLO_KEY, code);
+      } else {
+        sessionStorage.removeItem(SOLO_KEY);
+      }
+    } catch (e) {
+      /* No session storage: the code shows, nobody is told it. */
+    }
+  }
+  /* Who joins the room this pilot is in, read off the room (its public
+   * flag) and the solo code; 'friends' for a private room from anywhere
+   * else (a code, Make a room). Null outside a room. */
+  function sessionVisibility() {
+    const st = roomLinkState.state();
+    if (!st.welcome) {
+      return null;
+    }
+    if (st.welcome.public) {
+      return 'public';
+    }
+    return st.code && st.code === soloCode() ? 'solo' : 'friends';
+  }
+  /*
+   * THE ONE WAY INTO A SESSION, for a card's press and for a change of
+   * who joins alike: a public session joins the busiest public room made
+   * for the game on its world with a seat (into its lobby, or its round
+   * when one is on), else makes a public room named for this pilot and
+   * the game; friends and solo make a private room, named the same, the
+   * solo one's code hidden. The choice is remembered per activity. Lands
+   * in the room's lobby, whatever the card's own screen was (Track Day's
+   * is My tracks): its track, its aircraft, its world are chosen there.
+   * `game` is null for free flight. Resolves the room's code; throws what
+   * the room server refused.
+   */
+  async function openSession(card, game, world, visibility) {
+    const id = modeOfWire(game);
+    if (ui.settings.sessionVisibility[id] !== visibility) {
+      ui.settings.sessionVisibility = { ...ui.settings.sessionVisibility, [id]: visibility };
+      ui.persistSettings();
+    }
+    const open = visibility === 'public';
+    const found = open ? await roomBrowser.bestRoom(game, world) : null;
+    const name = normaliseRoomName(str(`lobby.room_name_${id}`, { name: roomName(ownName()) })) || null;
+    const code = found || await roomLinkState.create(world, false, {
+      name, mode: game, public: open, daytime: chosenTime(ui.settings),
+    });
+    markSolo(visibility === 'solo' ? code : null);
+    if (ui.settings.map !== world) {
+      ui.seatMap(world, { stay: true });
+    }
+    ui.act(card);
+    ui.lobbyCard = card;
+    lobbyCardCode = code;
+    lobbyCardBack = null;
+    if (ui.screen !== 'friends') {
+      ui.returnTo = 'title';
+      ui.show('friends');
+    }
+    roomLinkState.join(code);
+    return code;
+  }
+  /*
+   * The lobby's Who joins row. A pilot alone changes it by moving to a
+   * fresh room of the new kind, there being nobody to take along; with
+   * others here it is a fact until the room takes the change in place (the
+   * host's, server first: SESSIONS.md 2, not built yet), and so is the
+   * war's, whose room campaign Play makes (ui.onWarCard).
+   */
+  function lobbyVisibilityRows(host) {
+    const st = roomLinkState.state();
+    const current = sessionVisibility();
+    const game = lobbyGame();
+    if (!current || !game) {
+      return [];
+    }
+    const label = (v) => str(`lobby.visibility_${v}`);
+    if (game === 'war' || !host || roomHere().n > 1) {
+      return [{ label: str('lobby.visibility'), value: label(current), note: str('lobby.visibility_fixed'), info: true }];
+    }
+    /* A room joined by a code or made by hand has no card behind it: the
+     * activity's own card stands in, so Escape from the new room is the
+     * cards, as from any card's. */
+    const card = ui.lobbyCard || `way-${modeById(game).card.way}`;
+    return [choice(str('lobby.visibility'), str('lobby.visibility_note'), VISIBILITIES, current, label, (v) => {
+      if (v !== current) {
+        openSession(card, st.welcome.mode, st.welcome.map, v).catch(() => {
+          roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
+          ui.refreshFriends();
+        });
+      }
+    })];
+  }
+
+  /*
    * EVERY CARD, ONE PRESS (the owner, 2026-10-02: "it should take me to
    * the lobby of the room ... one two clicks max", and "every click will
-   * take you to the lobby for it, ready to go either single or multi").
-   * The card joins the busiest public room made for its game on its world
-   * with a seat, into its lobby, or into its round when one is on; with
-   * none, it makes one, public, named for this pilot and the game, and
-   * lands in its lobby. The war asks its consent first. `game` is null for
-   * free flight. A room the server would not make is said, with a second
-   * try on offer, and Back leaves the pilot on the title. Resolves the code
-   * of the room, or null.
+   * take you to the lobby for it, ready to go either single or multi"):
+   * the session the pilot last chose for this activity (openSession),
+   * public the first time. The war asks its consent first. A room the
+   * server would not make is said, with a second try on offer, and Back
+   * leaves the pilot on the title. Resolves the code of the room, or null.
    */
   /* The code of the room a title card's press made or joined, or null
    * (ui.onLobbyBack). */
@@ -5139,27 +5248,7 @@ export async function boot({
     }
     for (;;) {
       try {
-        const found = await roomBrowser.bestRoom(game, world);
-        const name = normaliseRoomName(str(`lobby.room_name_${game || 'free'}`, { name: roomName(ownName()) })) || null;
-        const code = found || await roomLinkState.create(world, false, {
-          name, mode: game, public: true, daytime: chosenTime(ui.settings),
-        });
-        if (ui.settings.map !== world) {
-          ui.seatMap(world, { stay: true });
-        }
-        ui.act(card);
-        ui.lobbyCard = card;
-        lobbyCardCode = code;
-        lobbyCardBack = null;
-        /* The lobby, whatever the card's own screen was (Track mode's is
-         * My tracks): its track, its aircraft, its world are chosen
-         * there. */
-        if (ui.screen !== 'friends') {
-          ui.returnTo = 'title';
-          ui.show('friends');
-        }
-        roomLinkState.join(code);
-        return code;
+        return await openSession(card, game, world, visibilityFor(ui.settings, modeOfWire(game)));
       } catch (e) {
         const again = await ui.askConfirm({
           title: str(GAME_CARDS[game || 'free']), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),

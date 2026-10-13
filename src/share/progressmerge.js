@@ -130,6 +130,8 @@ export const SYNCED_SECTIONS = {
    * (src/share/hangarvisit.js). Absent, as in every blob before it, is
    * closed: no migration step needed, the absence already means off. */
   hangarVisit: 'whole',
+  /* The last Solo, Friends or Public per activity (settings.js). */
+  sessionVisibility: 'keyed',
   records: 'best',
 };
 

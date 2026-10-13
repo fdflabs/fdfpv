@@ -482,7 +482,7 @@ not there, or a class the sheet no longer styles, fails it.
 | `modal-confirm` | Confirm dialog | modal | `askConfirm` | exists |
 | `tooltip` | Tooltip | tooltip | none | gap: the help column does this job |
 | `hub-card` | Hub card | card | none | proposed, phase 5 |
-| `session-visibility` | Session visibility, three values | control | none | proposed, phase 6 |
+| `session-visibility` | Session visibility: who joins, three values | control | main.js `lobbyVisibilityRows` | exists, phase 6 |
 | `briefing-panel` | Mission briefing facts | card | none | proposed, phase 9 |
 <!-- /components -->
 

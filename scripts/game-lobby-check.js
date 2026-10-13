@@ -220,6 +220,9 @@ function endRound(code) {
   room.host.run(G.end(room.host.core, now));
 }
 
+/* The codes on the browser's list, as the title's panel reads it. */
+const listedCodes = async () => ((await (await fetch(`${rooms}/v2/rooms`)).json()).rooms || []).map((r) => r.code);
+
 const a = await openPage({ root, url, width: 1280, height: 720, seed: GAME === 'race' ? [SEED, trackSeed()] : [SEED] });
 let b = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
 let c = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
@@ -351,7 +354,52 @@ try {
   }
   check(`through the hub: its card, then ${G.card}'s card${CLICKS === 2 ? ', then Play' : ''}, ${a.clicks - aHub} clicks, a lobby again`, a.clicks - aHub === 1 + CLICKS
     && la2.shown && la2.phase === 'open' && la2.here === 'friends-lobby-ready', JSON.stringify(la2));
-  const code = la2.code;
+  let code = la2.code;
+
+  /*
+   * WHO JOINS (docs/redesign/SESSIONS.md section 2): the lobby's row,
+   * Public, Friends or Solo. A, alone, picks Friends: a fresh private room,
+   * its invite code shown; Solo: a fresh private room, no code; Public
+   * again: a fresh public room, listed, which B and C join below. Each
+   * choice is remembered for the activity in A's settings, which the card
+   * reads (src/main.js openSession). Three creates: with the card's three
+   * above, the front's six for an address in a minute, so the card is not
+   * pressed again here. The war's row is a fact (its room is campaign
+   * Play's).
+   */
+  const WHO = `(() => {
+    const ui = window.__ui;
+    const it = ui.items().find((x) => x.options && x.options.map((o) => o.value).join() === 'public,friends,solo')
+      || ui.items().find((x) => x.info && x.label === 'Who joins');
+    const r = window.__rooms();
+    return it ? {
+      value: it.current || it.value, choice: Boolean(it.options), here: (ui.items()[ui.cursor] || {}).action || null,
+      code: r.code, public: r.public, codeRow: ui.items().some((x) => x.action === 'friends-copy'),
+      remembered: (JSON.parse(localStorage.getItem('webfpv.settings.v3') || '{}').sessionVisibility || {})[${JSON.stringify(GAME)}] || null,
+    } : null;
+  })()`;
+  const pickWho = async (v) => {
+    const was = await a.evaluate('window.__rooms().code');
+    await a.evaluate(`(() => { window.__ui.items().find((x) => x.options && x.options.map((o) => o.value).join() === 'public,friends,solo').pick(${JSON.stringify(v)}); return true; })()`);
+    await a.until(`window.__rooms().code !== ${JSON.stringify(was)} && window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
+    await a.sleep(800);
+    return a.evaluate(WHO);
+  };
+  const who0 = await a.evaluate(WHO);
+  if (GAME === 'war') {
+    check('the briefing says who joins, a fact: Public', who0 && !who0.choice && who0.value === 'Public', JSON.stringify(who0));
+  } else {
+    check('the lobby\'s Who joins row, a choice, Public, Ready still under the cursor', who0 && who0.choice && who0.value === 'public' && who0.public === true && who0.here === 'friends-lobby-ready', JSON.stringify(who0));
+    const friends = await pickWho('friends');
+    check('Friends: a fresh private room, its invite code on the lobby, remembered', friends && friends.code !== who0.code && friends.public === false && friends.codeRow && friends.remembered === 'friends', JSON.stringify(friends));
+    const solo = await pickWho('solo');
+    check('Solo: a fresh private room, no code shown, remembered', solo && solo.code !== friends.code && solo.public === false && !solo.codeRow && solo.remembered === 'solo', JSON.stringify(solo));
+    check('neither room is on the browser\'s list', !(await listedCodes()).some((c) => c === friends.code || c === solo.code));
+    const pub = await pickWho('public');
+    check('Public: a fresh public room again, remembered', pub && pub.code !== solo.code && pub.public === true && !pub.codeRow && pub.remembered === 'public', JSON.stringify(pub));
+    await shot(a, '1-a-who-joins');
+    code = pub.code;
+  }
 
   /* The war lobby's Campaign row: its screen, and Escape is the lobby again. */
   if (GAME === 'war') {
