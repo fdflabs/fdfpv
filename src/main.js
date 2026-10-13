@@ -8219,16 +8219,19 @@ export async function boot({
   }
   /*
    * A room match's debrief (src/game/debrief.js fromRoom) from the room's
-   * order: rows of { seat, place, points? }. The replay is offered only
-   * when this pilot's own flight is what ended here (mode 'results'); a
-   * pilot who was on a room screen has no flight of theirs to replay.
+   * order: rows of { seat, place, points? }. The replay and the
+   * aircraft's condition are offered only when this pilot's own flight is
+   * what ended here (mode 'results'); a pilot who was on a room screen has
+   * no flight of theirs to replay or to judge.
    */
   function roomDebrief(activity, rows, seat, final) {
     const me = rows.find((row) => row.seat === seat) || null;
+    const flew = mode === 'results';
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
     return fromRoom({
       activity,
       aircraft: runAirframe,
-      fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+      fixedWing,
       place: me ? me.place : null,
       of: rows.length,
       final,
@@ -8236,7 +8239,8 @@ export async function boot({
       flightMs: runAirMs,
       totalS: aircraftSecondsNow(),
       route: runRoute.snapshot(),
-      replay: mode === 'results' ? replayState(crashCam ? crashCam.span() : null, false) : null,
+      replay: flew ? replayState(crashCam ? crashCam.span() : null, false) : null,
+      condition: flew ? conditionOf(crashFlags, fixedWing) : null,
     });
   }
   /*

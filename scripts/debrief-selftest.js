@@ -102,6 +102,9 @@ const ok = { ok: true, why: null };
   const free = { aircraft: '5inch', summary: { total: 0, tricks: 0, unique: 0, crashes: 0, timed: false, durationMs: 0 }, flightMs: 1, totalS: 1, replay: ok };
   check('condition: freestyle carries each word', CONDITIONS.every((c) => fromFree({ ...free, condition: c }).condition === c));
   check('condition: freestyle without one has none', fromFree(free).condition === null);
+  const room = { activity: 'tag', aircraft: 'whoop65', place: 2, of: 3, final: true, flightMs: 1, totalS: 1, replay: ok };
+  check('condition: a room carries each word', CONDITIONS.every((c) => fromRoom({ ...room, condition: c }).condition === c));
+  check('condition: a room pilot who did not fly has none', fromRoom(room).condition === null);
   let threw = false;
   try {
     fromRace({ ...base, condition: 'worn' });

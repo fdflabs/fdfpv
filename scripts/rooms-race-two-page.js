@@ -265,13 +265,18 @@ try {
     const dts = [...document.querySelectorAll('.results-facts dt')].map((n) => n.textContent);
     const dds = [...document.querySelectorAll('.results-facts dd')].map((n) => n.textContent);
     const place = dds[dts.indexOf('Place')] ?? null;
+    const condition = dds[dts.indexOf('Aircraft')] ?? null;
+    const hud = window.__crash().condition;
     const items = window.__ui.items().map((it) => it.action);
-    return JSON.stringify({ dts, place, replay: items.indexOf('watchreplay'), flyOn: items.indexOf('restart'), items });
+    return JSON.stringify({ dts, place, condition, hud, replay: items.indexOf('watchreplay'), flyOn: items.indexOf('restart'), items });
   })()`;
   const da = JSON.parse(await a.evaluate(DEBRIEF));
   const db = JSON.parse(await b.evaluate(DEBRIEF));
   check('A\'s debrief: first of two, with its time in the air', da.place === '1 of 2' && da.dts.includes('In the air'), JSON.stringify(da));
   check('B\'s debrief: second of two', db.place === '2 of 2', JSON.stringify(db));
+  const word = { operational: 'Operational', impaired: 'Impaired', destroyed: 'Destroyed' };
+  check('each debrief names its own aircraft\'s condition, the HUD\'s word', [da, db].every((d) => d.condition != null && d.condition === word[d.hud]),
+    `A ${da.condition} (${da.hud}) B ${db.condition} (${db.hud})`);
   check('the replay sits right under Fly on, on both', da.flyOn >= 0 && da.replay === da.flyOn + 1 && db.flyOn >= 0 && db.replay === db.flyOn + 1,
     `A ${da.items.join(',')} B ${db.items.join(',')}`);
   await shot(a, '4-a-results');

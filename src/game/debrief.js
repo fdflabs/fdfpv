@@ -217,7 +217,7 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
  * others says neither won nor lost. points: this pilot's points where the
  * game counts them, else null.
  */
-export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, points = null, flightMs, totalS, route = null, replay }) {
+export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, points = null, flightMs, totalS, route = null, replay, condition = null }) {
   let kind = 'complete';
   if (final && place != null) {
     kind = place === 1 ? 'won' : 'lost';
@@ -234,6 +234,7 @@ export function fromRoom({ activity, aircraft, fixedWing = false, place, of, fin
     aircraft,
     fixedWing,
     result: { kind, landed: null },
+    condition: conditionWord(condition),
     route,
     time: { flightMs, runMs: null },
     accuracy,
