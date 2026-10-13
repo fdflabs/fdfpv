@@ -115,6 +115,13 @@ const QUIET_WAVES = new Set(['jammer']);
 /* An item's entry that is a line, not a pause (a number, seconds). */
 const isLine = (id) => typeof id === 'string';
 
+/* A line of assets/audio/war/lines.json as its one line caption in
+ * `lang` (English when the language has none), '' for no line. */
+export function captionOf(line, lang) {
+  const text = line && (line[lang] ?? line.en);
+  return typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : '';
+}
+
 /* A voice file or a track, resolved against this module so a shell
  * mounted under a path still finds it. */
 export function warVoiceUrl(lang, id, ext) {

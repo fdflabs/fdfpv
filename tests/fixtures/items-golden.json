@@ -4118,6 +4118,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -4475,6 +4559,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -4815,6 +4983,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -5181,6 +5433,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -5533,6 +5869,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -5895,6 +6315,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -6252,6 +6756,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -6596,6 +7184,90 @@
          "fov": 75
         },
         "cameraFov": 75
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -6958,6 +7630,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -7315,6 +8071,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -7667,6 +8507,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -8173,6 +9097,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -8524,6 +9490,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -9241,6 +10233,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -9592,6 +10626,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -10309,6 +11369,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -10660,6 +11762,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -11377,6 +12505,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -11728,6 +12898,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -12437,6 +13633,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -12788,6 +14026,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -13673,6 +14937,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "70%",
@@ -14024,6 +15330,32 @@
       "flip()": {
        "settings": {
         "sound": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -14737,6 +16069,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -15088,6 +16462,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -15781,6 +17181,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:menu-size",
+     "label": "Menu size",
+     "value": "100%",
+     "note": "Larger type and rows in every menu. The flight HUD keeps its size.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:render-scale",
      "label": "Render scale",
      "value": "Native",
@@ -16132,6 +17574,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:radio-subtitles",
+     "label": "Radio subtitles",
+     "value": "On",
+     "note": "Crest Control's lines as one line captions in the war and the ops missions, with the sound on or off. The films keep their own.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -29225,6 +30693,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -29582,6 +31134,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -29922,6 +31558,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -30288,6 +32008,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -30640,6 +32444,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -31002,6 +32890,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -31359,6 +33331,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -31703,6 +33759,90 @@
          "fov": 75
         },
         "cameraFov": 75
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -32065,6 +34205,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -32422,6 +34646,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -32774,6 +35082,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -33280,6 +35672,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -33631,6 +36065,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -34348,6 +36808,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -34699,6 +37201,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -35416,6 +37944,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -35767,6 +38337,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -36484,6 +39080,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -36835,6 +39473,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -37544,6 +40208,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -37895,6 +40601,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -38780,6 +41512,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "70%",
@@ -39131,6 +41905,32 @@
       "flip()": {
        "settings": {
         "sound": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -39844,6 +42644,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -40195,6 +43037,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }
@@ -40888,6 +43756,48 @@
      "drives": {}
     },
     {
+     "id": "pilot:tama-o-de-los-men-s",
+     "label": "Tamaño de los menús",
+     "value": "100%",
+     "note": "Letra y filas más grandes en todos los menús. El HUD de vuelo mantiene su tamaño.",
+     "current": 100,
+     "options": [
+      {
+       "value": 100,
+       "label": "100%"
+      },
+      {
+       "value": 115,
+       "label": "115%"
+      },
+      {
+       "value": 130,
+       "label": "130%"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "uiScale": 115
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "uiScale": 130
+       }
+      },
+      "pick(\"115\")": {
+       "settings": {
+        "uiScale": 115
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:escala-de-renderizado",
      "label": "Escala de renderizado",
      "value": "Nativo",
@@ -41239,6 +44149,32 @@
       "flip()": {
        "settings": {
         "sound": false
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:subt-tulos-de-radio",
+     "label": "Subtítulos de radio",
+     "value": "On",
+     "note": "Las líneas de Crest Control como subtítulos de una línea en la guerra y en las misiones de operaciones, con o sin sonido. Las películas tienen los suyos.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "subtitles": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "subtitles": false
        }
       }
      }

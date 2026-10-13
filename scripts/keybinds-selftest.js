@@ -47,16 +47,16 @@ check('every key is itself, on any aircraft', codes.every((c) => translate(none,
 check('and with no profile field at all', codes.every((c) => translate(undefined, 'cub1400', c) === c));
 
 console.log('a binding for every aircraft');
-let r = bind(none, 'reset', 'KeyN');
-check('reset moves to N', r.ok && same(r.binds.all, { reset: 'KeyN' }), JSON.stringify(r));
+let r = bind(none, 'reset', 'Comma');
+check('reset moves to comma', r.ok && same(r.binds.all, { reset: 'Comma' }), JSON.stringify(r));
 let b = r.binds;
-check('N now resets', translate(b, 'timber1500', 'KeyN') === 'KeyR');
+check('comma now resets', translate(b, 'timber1500', 'Comma') === 'KeyR');
 check('R no longer does', translate(b, 'timber1500', 'KeyR') === null);
 check('other keys are untouched', translate(b, null, 'KeyX') === 'KeyX' && translate(b, null, 'KeyW') === 'KeyW');
-check('the label reads N', keyLabel(effectiveKeys(b).reset) === 'N' && keyLabel('Digit7') === '7');
+check('the label reads ,', keyLabel(effectiveKeys(b).reset) === ',' && keyLabel('Digit7') === '7');
 
 console.log('conflicts');
-r = bind(b, 'unstick', 'KeyN');
+r = bind(b, 'unstick', 'Comma');
 check('a key another action holds is refused, naming it', !r.ok && r.reason === 'taken' && r.other === 'reset', JSON.stringify(r));
 r = bind(b, 'unstick', 'KeyR');
 check('a default key freed by a move can be taken', r.ok && translate(r.binds, null, 'KeyR') === 'KeyX' && translate(r.binds, null, 'KeyX') === null);
@@ -69,14 +69,14 @@ for (const k of ['KeyW', 'Escape', 'Tab', 'Space', 'KeyJ', 'ArrowUp', 'F8']) {
 check('a key that is no key is refused', !bind(b, 'reset', 'MetaLeft').ok);
 
 console.log('a binding for one aircraft');
-r = bind(none, 'chute', 'KeyN', 'bramor2300');
-check('the Bramor pulls its chute on N', r.ok && translate(r.binds, 'bramor2300', 'KeyN') === 'KeyP' && translate(r.binds, 'bramor2300', 'KeyP') === null);
-check('every other aircraft is as it was', translate(r.binds, 'timber1500', 'KeyN') === 'KeyN' && translate(r.binds, 'timber1500', 'KeyP') === 'KeyP');
+r = bind(none, 'chute', 'Comma', 'bramor2300');
+check('the Bramor pulls its chute on comma', r.ok && translate(r.binds, 'bramor2300', 'Comma') === 'KeyP' && translate(r.binds, 'bramor2300', 'KeyP') === null);
+check('every other aircraft is as it was', translate(r.binds, 'timber1500', 'Comma') === 'Comma' && translate(r.binds, 'timber1500', 'KeyP') === 'KeyP');
 check('it is marked as the aircraft\'s own', boundForAircraft(r.binds, 'bramor2300', 'chute') && !boundForAircraft(r.binds, 'timber1500', 'chute'));
 const own = r.binds;
-r = bind(own, 'reset', 'KeyN');
+r = bind(own, 'reset', 'Comma');
 check('an every-aircraft move onto a key an aircraft uses is refused', !r.ok && r.other === 'chute');
-r = bind(b, 'smoke', 'KeyN', 'extra3d1308');
+r = bind(b, 'smoke', 'Comma', 'extra3d1308');
 check('an aircraft move onto the every-aircraft key of another action is refused', !r.ok && r.other === 'reset');
 check('reserved for an aircraft too', !bind(b, 'reset', 'KeyK', 'extra3d1308').ok);
 r = bind(b, 'reset', 'KeyV', 'extra3d1308');
@@ -85,8 +85,8 @@ r = bind(b, 'reset', 'KeyB', 'extra3d1308');
 check('B is reserved (the builder)', !r.ok);
 r = bind(b, 'reset', 'Digit9', 'extra3d1308');
 check('an aircraft may move an every-aircraft binding again', r.ok && translate(r.binds, 'extra3d1308', 'Digit9') === 'KeyR'
-  && translate(r.binds, 'extra3d1308', 'KeyN') === 'KeyN' && translate(r.binds, 'extra3d1308', 'KeyR') === null
-  && translate(r.binds, 'cub1400', 'KeyN') === 'KeyR');
+  && translate(r.binds, 'extra3d1308', 'Comma') === 'Comma' && translate(r.binds, 'extra3d1308', 'KeyR') === null
+  && translate(r.binds, 'cub1400', 'Comma') === 'KeyR');
 
 console.log('reset to defaults');
 /* Digit1 is the foot key's own default, so flaps moves to Digit3. */
@@ -98,11 +98,24 @@ check('one action back on one aircraft, which then follows every aircraft', !bac
 check('binding the default key is the same as a reset', same(bind(b, 'reset', 'KeyR').binds, emptyKeybinds()));
 check('reset all is the empty value', same(normaliseKeybinds(emptyKeybinds()), { v: 1, all: {}, by: {} }));
 
+console.log('N is push to talk');
+r = bind(none, 'reset', 'KeyN');
+check('N is refused as reserved', !r.ok && r.reason === 'reserved');
+{
+  const warned = [];
+  const was = console.warn;
+  console.warn = (m) => warned.push(m);
+  const kept = normaliseKeybinds({ all: { reset: 'KeyN', flip: 'Digit5' }, by: { bramor: { chute: 'KeyN' } } });
+  console.warn = was;
+  check('a saved binding on N is dropped on load, the rest kept, with a warning',
+    same(kept, { v: 1, all: { flip: 'Digit5' }, by: {} }) && warned.length === 1 && /N is push to talk/.test(warned[0]), JSON.stringify({ kept, warned }));
+}
+
 console.log('stored and synced');
 check('an old profile with no field reads as none', same(normaliseKeybinds(undefined), emptyKeybinds()) && same(normaliseKeybinds(null), emptyKeybinds()));
-check('junk reads entry by entry', same(normaliseKeybinds({ v: 9, all: { reset: 'KeyN', nope: 'KeyM', flip: 'KeyW', gear: 3 }, by: { 'Bad Id': { chute: 'KeyN' }, bramor: { chute: 'Digit3' } } }),
-  { v: 1, all: { reset: 'KeyN' }, by: { bramor: { chute: 'Digit3' } } }));
-check('a stored clash keeps the first', same(normaliseKeybinds({ all: { reset: 'KeyN', unstick: 'KeyN' } }).all, { reset: 'KeyN' }));
+check('junk reads entry by entry', same(normaliseKeybinds({ v: 9, all: { reset: 'Comma', nope: 'KeyM', flip: 'KeyW', gear: 3 }, by: { 'Bad Id': { chute: 'Comma' }, bramor: { chute: 'Digit3' } } }),
+  { v: 1, all: { reset: 'Comma' }, by: { bramor: { chute: 'Digit3' } } }));
+check('a stored clash keeps the first', same(normaliseKeybinds({ all: { reset: 'Comma', unstick: 'Comma' } }).all, { reset: 'Comma' }));
 check('a stored default key is dropped (it is no move)', same(normaliseKeybinds({ all: { reset: 'KeyR' } }).all, {}));
 check('keybinds is a synced section, whole', SYNCED_SECTIONS.keybinds === 'whole' && same(pickSynced({ keybinds: b, graphics: 'low' }), { keybinds: b }));
 check('padbinds is a synced section, whole', SYNCED_SECTIONS.padbinds === 'whole'
@@ -128,19 +141,19 @@ check('unset: R arrives as R', same(heard, [['KeyR', false]]) && im.keys.size ==
 let flying = true;
 im.translateKey = (code) => (flying ? translate(b, 'timber1500', code) : code);
 heard.length = 0;
-im.keyDown(ev('KeyN'));
-check('in flight N arrives as R and is held as R', same(heard, [['KeyR', false]]) && im.keys.has('KeyR') && !im.keys.has('KeyN'));
+im.keyDown(ev('Comma'));
+check('in flight comma arrives as R and is held as R', same(heard, [['KeyR', false]]) && im.keys.has('KeyR') && !im.keys.has('Comma'));
 flying = false;
-im.keyDown(ev('KeyN', true));
+im.keyDown(ev('Comma', true));
 check('its repeat stays R after flight ends', same(heard.at(-1), ['KeyR', true]));
-im.keyUp(ev('KeyN'));
+im.keyUp(ev('Comma'));
 check('its release lets go of R', !im.keys.has('KeyR'));
 flying = true;
 heard.length = 0;
 im.keyDown(ev('KeyR'));
 check('the moved default key arrives as nothing', heard.length === 0 && im.keys.size === 0);
 im.keyUp(ev('KeyR'));
-im.keyDown({ code: 'KeyN', repeat: false, target: { tagName: 'INPUT' }, preventDefault() {} });
+im.keyDown({ code: 'Comma', repeat: false, target: { tagName: 'INPUT' }, preventDefault() {} });
 check('a text field gets its keys untranslated (and only Escape reaches onKey)', heard.length === 0);
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);

@@ -18,14 +18,15 @@ every aircraft. Everything is in English and Spanish.
 
 Refused, with the reason on the page:
 
-- a key another action already has where both apply ("N is already
+- a key another action already has where both apply ("7 is already
   Reset. Move that one first."), including an every-aircraft key that an
   aircraft's own binding would collide with;
 - a key the game reads in flight for something not in the table (the
   stick keys W A S D Z Q E and the arrows, Shift, Ctrl, Escape, Tab, the
   brackets, Space, Enter, Backspace, the backquote, the avionics and
   camera ball keys H J K I U Y M Period Equal Minus PageUp PageDown, the
-  builder's B and V, F3, F8).
+  builder's B and V, push to talk's N, F3, F8). A profile saved before N
+  was reserved loses a binding on N when it loads (console.warn).
 
 ## How it works
 
@@ -72,6 +73,13 @@ actions on one button, and the buttons the shell reads for something else
 are refused (Start pauses, Back enters the builder, the shoulders step the
 aircraft swap, the d-pad, the right trigger and the stick clicks fly the
 camera ball).
+
+The camera ball zooms in on the right trigger and out on A. The left
+trigger is push to talk only (it was the ball's zoom out too, so talking
+in ball view zoomed the lens). A is the one standard button no action
+holds by default, so it stays choosable: an action the pilot binds to A
+takes it, and the ball then zooms out on the keys (- or Page Down) and
+its touch buttons only.
 
 In flight a pad button bound to an action with a key arrives as that key
 (`InputManager.pollPadKeys`: held in `input.keys` while the button is,

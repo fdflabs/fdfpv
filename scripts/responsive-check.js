@@ -5,6 +5,7 @@
  * gap, or repeated long gaps fail.
  *
  *     node scripts/responsive-check.js      (npm run lint:responsive)
+ *     npm run lint:responsive -- --ui-scale 130
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -70,10 +71,15 @@ const MAX_GAP_MS = 1600;
 const LONG_GAP_MS = 500;
 const MAX_LONG_GAPS = 2;
 
+/* --ui-scale 130 runs the same rooms with the menus at that size
+ * (Settings > Screen > Menu size): a larger menu must not cost frames. */
+const UI_SCALE = process.argv.includes('--ui-scale') ? Number(process.argv[process.argv.indexOf('--ui-scale') + 1]) : 100;
+
 const seed = `try {
   const s = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}');
   s.graphics = 'low';
   s.graphicsAuto = false;
+  s.uiScale = ${UI_SCALE};
   localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
 } catch (e) {}`;
 
@@ -117,6 +123,10 @@ async function measure(room) {
   try {
     await page.until('window.__shellReady === true', 90000);
     await page.until('!!window.__ui', 10000);
+    const scale = await page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--ui-scale') || '1'");
+    if (Math.abs(Number(scale) - UI_SCALE / 100) > 1e-9) {
+      throw new Error(`menus at ${scale}, asked for ${UI_SCALE} percent`);
+    }
     await page.evaluate(startDriving(room));
     /* A fixed window on purpose: this measures behaviour over time, it is
      * not waiting for a state. */

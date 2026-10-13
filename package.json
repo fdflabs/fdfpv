@@ -469,6 +469,8 @@
     "water:render": "node scripts/water-render.js",
     "input:selftest": "node scripts/input-selftest.js",
     "padprofiles:selftest": "node scripts/padprofiles-selftest.js",
+    "comfort:selftest": "node scripts/comfort-selftest.js",
+    "uiscale:check": "node scripts/uiscale-check.js",
     "touchsticks:selftest": "node scripts/touchsticks-selftest.js",
     "input:trace": "node scripts/input-trace-selftest.js",
     "stickmode:selftest": "node scripts/stickmode-selftest.js",

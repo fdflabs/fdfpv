@@ -57,6 +57,7 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { bodyPosToModel, simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
+import { chaseLagMs, shakeScale } from './render/comfort.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
@@ -176,7 +177,7 @@ import { createWarMarkers } from './ui/warmarkers.js';
 import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
-import { BRIEF_LINES, DEBRIEF_LINES, createWarCalls } from './render/warradio.js';
+import { BRIEF_LINES, DEBRIEF_LINES, captionOf, createWarCalls } from './render/warradio.js';
 import {
   createNudger as createWarNudger, ground as warGround, headingOf as warHeadingOf, nudgeOf as warNudgeOf, threatOf as warThreatOf,
 } from './share/war/nudge.js';
@@ -770,7 +771,8 @@ export async function boot({
    * Page Up and Page Down) the lens's zoom, K the sensor's digital zoom,
    * J the sensor's mode, U locks the ball on the ground under the cross
    * or frees it (B is the track builder's), Space captures. A standard pad: the D-pad slews, the
-   * triggers zoom, L3 captures, R3 locks. A mouse: the right button drags
+   * right trigger zooms in and A out (the left trigger is push to talk),
+   * L3 captures, R3 locks. A mouse: the right button drags
    * the picture, the wheel zooms (with Shift while the mouse flies).
    *
    * In an ops match every screen reports its camera to the room two a
@@ -1124,7 +1126,9 @@ export async function boot({
     return {
       pan: Number(at('right')) - Number(at('left')),
       tilt: Number(at('up')) - Number(at('down')),
-      zoom: input.padValue('rt') - input.padValue('lt'),
+      /* Out on A, not the left trigger, which is push to talk's; A gives
+       * way to a flight action the pilot bound to it (docs/KEYBINDS.md). */
+      zoom: input.padValue('rt') - (input.padActionOn('a') ? 0 : input.padValue('a')),
       capture: at('ls'),
       lock: at('rs'),
     };
@@ -5353,6 +5357,9 @@ export async function boot({
   const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
   let warLineWords = null;
   function warSubtitles(items, prio, hud, now = false) {
+    if (!ui.settings.subtitles) {
+      return;
+    }
     const ids = items.flat().filter((id) => typeof id === 'string' && (prio === 'story' || prio === 'guide' || WAR_SUBTITLED.has(id)));
     if (!ids.length) {
       return;
@@ -5363,8 +5370,7 @@ export async function boot({
     warLineWords.then((words) => {
       const lang = currentLocale();
       for (const id of ids) {
-        const l = words.get(id);
-        const text = l && (l[lang] ?? l.en);
+        const text = captionOf(words.get(id), lang);
         if (text) {
           hud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000), now);
         }
@@ -14378,6 +14384,7 @@ export async function boot({
    * change takes the same guarded resize path a window resize does, so the
    * composer and every prepass target follow; no world is rebuilt. */
   function applyDisplaySettings(s) {
+    document.documentElement.style.setProperty('--ui-scale', String(s.uiScale / 100));
     const userScale = renderScaleOf(s);
     if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
       resizeDirty = true;
@@ -18651,10 +18658,11 @@ export async function boot({
     const shake = lensShake.update(dt, rpmMean / FULL_THROTTLE_RPM);
     decayImpactKick(dt);
     warShakeFrame(dt);
+    const shakeBy = shakeScale(ui.settings.cameraShake);
     qShake.setFromEuler(shakeEuler.set(
-      shake.x + impactKick.x + warShake.x,
-      shake.y + impactKick.y + warShake.y,
-      shake.z + impactKick.z + warShake.z,
+      (shake.x + impactKick.x + warShake.x) * shakeBy,
+      (shake.y + impactKick.y + warShake.y) * shakeBy,
+      (shake.z + impactKick.z + warShake.z) * shakeBy,
       'XYZ',
     ));
     fpvQuat.multiply(qShake);
@@ -18892,7 +18900,7 @@ export async function boot({
     const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
     chaseAim.y = Math.max(chaseAim.y, floor);
     if (chaseValid) {
-      chasePos.lerp(chaseAim, 1 - Math.exp(-dt / 120));
+      chasePos.lerp(chaseAim, 1 - Math.exp(-dt / chaseLagMs(ui.settings.chaseSmooth)));
     } else {
       chasePos.copy(chaseAim);
       chaseValid = true;
@@ -18978,7 +18986,7 @@ export async function boot({
   }
 
   function chaseCamera(dt, nowWall, span) {
-    const k = 1 - Math.exp(-dt / 120);
+    const k = 1 - Math.exp(-dt / chaseLagMs(ui.settings.chaseSmooth));
     const water = craftOnWater();
     const afloat = Boolean(water && water.state[3] > 0);
     chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / (afloat ? 700 : 250)));

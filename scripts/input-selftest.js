@@ -1459,6 +1459,8 @@ heading('phase 20: one action table, read by name from every source');
   binding = { binds: pb.bindButton(pb.bindButton(undefined, 'talk', 'a').binds, 'swap', 'lt').binds, airframe: null, flight: true };
   press('a', true);
   check('talk moved to A reads A', b.im.padAction('talk') && b.im.padActionLabel('talk') === 'A');
+  check('the camera ball asks who holds a button: A is talk now, the right trigger nobody\'s',
+    b.im.padActionOn('a') === 'talk' && b.im.padActionOn('rt') === null);
   press('a', false);
   press('lt', true);
   check('swap moved to the left trigger: the flight swap opens on it', b.im.padSwapButtons().open === true && !b.im.padAction('talk'));

@@ -758,6 +758,13 @@ export class InputManager {
     return effectiveButtons(p && p.binds, p && p.airframe)[id];
   }
 
+  /* The action the pilot's bindings put on button `name`, or null. */
+  padActionOn(name) {
+    const p = this.padBinding ? this.padBinding() : null;
+    const on = effectiveButtons(p && p.binds, p && p.airframe);
+    return Object.keys(on).find((id) => on[id] === name) || null;
+  }
+
   /* Whether action `id`'s button is held on a standard pad. */
   padAction(id) {
     const name = this.padButtonOf(id);

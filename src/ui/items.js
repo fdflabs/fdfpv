@@ -69,6 +69,7 @@ import { formatTime } from './format.js';
 import { EVENT_TIERS } from '../game/economy.js';
 import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
+import { CHASE_SMOOTHING, SHAKE_LEVELS, UI_SCALES } from '../render/comfort.js';
 import {
   AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
@@ -626,6 +627,10 @@ function quadRows(ui, s) {
         keepCamera(s);
       },
     ),
+    choice(str('comfort.shake'), str('comfort.shake_note'), SHAKE_LEVELS, s.cameraShake,
+      (id) => str(`comfort.shake_${id}`), (id) => { s.cameraShake = id; }),
+    choice(str('comfort.chase'), str('comfort.chase_note'), CHASE_SMOOTHING, s.chaseSmooth,
+      (id) => str(`comfort.chase_${id}`), (id) => { s.chaseSmooth = id; }),
     { label: str('ui.flight'), section: true },
     choice(
       str('ui.flight_mode'),
@@ -820,6 +825,7 @@ function screenRows(ui, s) {
   return [
     graphicsRow(s),
     gpu,
+    choice(str('comfort.ui_scale'), str('comfort.ui_scale_note'), UI_SCALES, s.uiScale, (n) => `${n}%`, (n) => { s.uiScale = n; }),
     choice(str('ui.render_scale'), str('ui.fewer_pixels_then_stretched_to_fit'), RENDER_SCALES, s.renderScale, (n) => (n >= 100 ? str('ui.native') : `${n}%`), (n) => { s.renderScale = n; }),
     choice(str('ui.performance_mode'), str('ui.performance_mode_note'), PERF_MODES, s.perfMode, (id) => str(`ui.perf_${id}`), (id) => { s.perfMode = id; }),
     choice(str('ui.frame_cap'), str('ui.caps_how_often_the_world_is'), FPS_CAPS, s.fpsCap, (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`), (n) => { s.fpsCap = n; }),
@@ -842,6 +848,7 @@ function soundRows(s) {
   const tracks = musicIds();
   return [
     toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),
+    toggle(str('comfort.subtitles'), str('comfort.subtitles_note'), Boolean(s.subtitles), (v) => { s.subtitles = Boolean(v); }),
     levelRow(str('ui.volume'), str('ui.overall_level_zero_to_ten'), s, 'volume'),
     levelRow(str('ui.motors_and_engines'), str('ui.the_blade_pass_tone_you_fly'), s, 'motorLevel'),
     levelRow(str('ui.wind'), str('ui.air_over_the_airframe_rises_with'), s, 'windLevel'),

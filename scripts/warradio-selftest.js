@@ -29,7 +29,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, STORY_STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB, BED_FADE_MS,
+  captionOf, createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, STORY_STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB, BED_FADE_MS,
 } from '../src/render/warradio.js';
 import { KINDS } from '../src/share/war/routes.js';
 import { FILMS } from '../src/share/war/films/index.js';
@@ -318,6 +318,23 @@ console.log('a bed asked to stop fades out');
   await new Promise((res) => { setTimeout(res, BED_FADE_MS); });
   check('a track asked for during the fade plays at full level and is never paused by it', !r2.bed.el.paused && r2.bed.el.calls.filter((c) => c === 'pause').length === 0 && Math.abs(r2.bed.el.volume - v2) < 1e-9 && v2 > 0.1,
     JSON.stringify({ v2, el: r2.bed.el }));
+}
+
+console.log('captions (phase 25)');
+{
+  const empty = [];
+  for (const rec of lineRecs) {
+    for (const lang of ['en', 'es']) {
+      const c = captionOf(rec, lang);
+      if (!c || /\n/.test(c)) {
+        empty.push(`${lang}/${rec.id}`);
+      }
+    }
+  }
+  check(`every line has a one line caption in English and Spanish (${lineRecs.length} lines)`, empty.length === 0, empty.slice(0, 5).join(' '));
+  check('a language a line lacks falls back to English', captionOf({ en: 'Copy.' }, 'es') === 'Copy.');
+  check('no line, no caption', captionOf(undefined, 'en') === '' && captionOf({}, 'en') === '');
+  check('a caption is one line however the text was wrapped', captionOf({ en: 'Two\n  lines.' }, 'en') === 'Two lines.');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
