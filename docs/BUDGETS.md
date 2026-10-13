@@ -40,7 +40,11 @@ One row per perf-play scenario (scripts/perf-play.js) per tier:
 
 Each was flown once for 15 s, `--mode=quality` (resolution held at the
 preset's), 1600 by 900, on main's tree at b4b2d9628 plus phase 29,
-2026-10-13 between 12:37 and 13:36 local.
+2026-10-13 between 12:37 and 13:53 local. The `itaipu-stream` and
+`itaipu-war` rows were taken again at 13:50 to 13:53 with Itaipu's flood
+running: until then this script's WebAssembly wrapper kept the flood
+from starting in every run of it (`[flood] could not start`), so the
+first Itaipu numbers had no water simulation in them.
 
 Held, `measured (<= ceiling)`: draw calls and triangles, the most in any
 frame; live textures (the renderer's own count, `renderer.info.memory`:
@@ -75,19 +79,19 @@ and an 8 ms GPU floor (docs/PERF.md, proposed budgets).
 | `swiss-low` | low | 181 (<= 209) | 1.62 (<= 1.87) | 66 (<= 76) | 3.48 (<= 5.3) | 4.8 | 9.5 / 18.2 | 51 %, 31.4 | within |
 | `swiss-low` | medium | 244 (<= 281) | 2.39 (<= 2.75) | 74 (<= 86) | 5.66 (<= 8.5) | 14.4 | 27.9 / 40.5 | 95 %, 24.3 | within |
 | `swiss-low` | high | 350 (<= 403) | 3.77 (<= 4.35) | 86 (<= 99) | 7.13 (<= 10.7) | 8.9 | 14.0 / 23.5 | 58 %, 36.8 | 350 calls > 300; 3.77 M tris > 2.5 M |
-| `itaipu-stream` | low | 129 (<= 149) | 1.80 (<= 2.08) | 66 (<= 76) | 1.74 (<= 2.7) | 4.2 | 10.0 / 21.1 | 22 %, 18.2 | within |
-| `itaipu-stream` | medium | 198 (<= 228) | 3.07 (<= 3.53) | 74 (<= 86) | 2.34 (<= 3.6) | 4.4 | 8.1 / 15.5 | 66 %, 24.5 | within |
-| `itaipu-stream` | high | 253 (<= 291) | 5.63 (<= 6.48) | 85 (<= 98) | 3.90 (<= 5.9) | 10.4 | 19.0 / 28.9 | 98 %, 9.7 | 5.63 M tris > 2.5 M |
+| `itaipu-stream` | low | 129 (<= 149) | 1.80 (<= 2.08) | 67 (<= 78) | 2.02 (<= 3.1) | 7.7 | 26.2 / 66.2 | 100 %, 31.9 | within |
+| `itaipu-stream` | medium | 198 (<= 228) | 3.05 (<= 3.51) | 75 (<= 87) | 2.70 (<= 4.1) | 4.5 | 9.0 / 19.7 | 72 %, 20 | within |
+| `itaipu-stream` | high | 253 (<= 291) | 5.65 (<= 6.50) | 87 (<= 101) | 3.29 (<= 5.0) | 8.7 | 14.1 / 19.2 | 76 %, 15.3 | 5.65 M tris > 2.5 M |
 | `interior-ops` | low | 99 (<= 114) | 0.54 (<= 0.62) | 29 (<= 34) | 1.83 (<= 2.8) | 6.3 | 7.6 / 8.7 | 64 %, 12.1 | within |
 | `interior-ops` | medium | 106 (<= 122) | 0.57 (<= 0.66) | 36 (<= 42) | 1.97 (<= 3.0) | 11.1 | 18.8 / 32.4 | 55 %, 23.4 | within |
 | `interior-ops` | high | 125 (<= 144) | 0.57 (<= 0.67) | 48 (<= 56) | 2.29 (<= 3.5) | 9.1 | 16.4 / 37.5 | 67 %, 7.5 | within |
-| `itaipu-war` | low | 159 (<= 183) | 1.81 (<= 2.09) | 68 (<= 79) | 0.94 (<= 1.5) | 2.9 | 8.0 / 15.1 | 75 %, 9.2 | within |
-| `itaipu-war` | medium | 245 (<= 282) | 2.85 (<= 3.29) | 76 (<= 88) | 1.65 (<= 2.5) | 3.9 | 10.7 / 21.6 | 39 %, 31.2 | within |
-| `itaipu-war` | high | 284 (<= 327) | 2.99 (<= 3.45) | 88 (<= 102) | 1.95 (<= 3.0) | 8.8 | 29.4 / 79.2 | 100 %, 11.7 | 2.99 M tris > 2.5 M |
+| `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.01 (<= 1.6) | 2.6 | 5.4 / 11.6 | 60 %, 23.9 | within |
+| `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.44 (<= 2.2) | 3.9 | 10.5 / 16.0 | 77 %, 15 | within |
+| `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.78 (<= 2.7) | 4.2 | 12.6 / 24.5 | 38 %, 12.8 | 3.03 M tris > 2.5 M |
 
 The rows over the contract are real: at High the menu and the alps draw
 390 to 397 calls, swiss2 350 calls and 3.77 M triangles, Itaipu's town
-5.63 M triangles and the war 2.99 M. The ceilings above hold today's
+5.65 M triangles and the war 3.03 M. The ceilings above hold today's
 cost from growing; they do not say today's cost is within the contract.
 
 Not measured: attackers and peers. The war's attackers are whatever
@@ -102,5 +106,6 @@ measured").
 or `~/.cache/run-check.sh <worktree> perf -- OUT --scenarios=... --preset=... --seconds=15 --mode=quality --budgets`.
 `--budgets` reads this table and fails the run on any held column over
 its ceiling, or on a scenario with no row at the preset. One run per tier
-and per set of scenarios; a set holding Itaipu peaked at 4.3 GB at High
+and per set of scenarios; a set of all three Itaipu and Interior
+scenarios peaked at 4.3 GB at High, Itaipu's two with the flood at 3.8 GB
 (the run-check ceiling for `perf` is 3 GB, so pass `CHECK_MEM=5G`).

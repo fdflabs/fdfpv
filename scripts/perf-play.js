@@ -306,7 +306,11 @@ const INSTRUMENT = /* js */ `(() => {
     for (const [k, v] of Object.entries(instance.exports)) {
       exports[k] = typeof v === 'function' ? wrapExport(v) : v;
     }
-    const shim = { exports };
+    /* An Instance by its prototype, so a caller that tells a compiled
+     * module's result from bytes' by instanceof (src/sim/water/flood.js
+     * loadFlood) still can: as a plain object it read .instance off it,
+     * and Itaipu's flood failed to start under every run of this script. */
+    const shim = Object.setPrototypeOf({ exports }, WebAssembly.Instance.prototype);
     return r instanceof WebAssembly.Instance ? shim : { module: r.module, instance: shim };
   };
 
