@@ -543,28 +543,30 @@ the lobby. Size S. Phase 24.
 
 ## 11. Comfort, audio, graphics (items 40 to 47)
 
-**40. Accessibility fundamentals. PARTIAL.** Present: rates and mouse
-sensitivity, mouse invert, reverse per channel, stick modes 1 to 4,
-field of view and camera angle, angle mode, three HUD styles, subtitles
-in the war films (src/render/warintro.js 549), `prefers-reduced-motion`
-in two places. Missing: key and button remapping (item 20 makes it
-possible), text scaling, in flight subtitles for the war radio (warSay,
-main.js 3337, is audio only), hold or toggle choices (manual flip is hold
-only). **Done:** remapping in phase 7's controller screen; radio lines
-shown as one line captions when a Subtitles setting is on (on by
-default; the lines' text is already in the strings); a UI scale setting
-of 100, 115, 130 percent on the root font size. Check: `war:radio` (local)
-asserts a caption per line; `lint:responsive` (local) at 130 percent.
-Size M. Phase 25 (phase 7 for remapping).
+**40. Accessibility fundamentals. BUILT except hold or toggle choices.**
+Present: rates and mouse sensitivity, mouse invert, reverse per channel,
+stick modes 1 to 4, field of view and camera angle, angle mode, three HUD
+styles, subtitles in the war films (src/render/warintro.js),
+`prefers-reduced-motion` in several places. Key and pad button remapping
+in Settings > Controls (phase 20, docs/KEYBINDS.md). The war radio's
+story, guide, briefing and debrief lines are captions (main.js
+warSubtitles; the calls are the HUD's callouts), now behind a Radio
+subtitles setting, on by default (phase 25). A Menu size of 100, 115 or
+130 percent, as CSS zoom on the menu screens because the sheet sizes type
+in px (phase 25). Missing: hold or toggle choices (manual flip is hold
+only). Checks: `war:radio` (CI) asserts a one line caption per line in
+both languages; `uiscale:check` (local) at 130 percent; `lint:responsive
+-- --ui-scale 130` (local).
 
-**41. Motion sickness controls. PARTIAL.** Field of view (75 to 115,
-src/render/lens.js 79) and angle mode exist. Camera shake is always on
-(lens shake, lens.js 163; impact kick; the war's shake) and chase
-smoothing is a fixed lerp (main.js 15684). Head bob and motion blur do not
-exist, so there is nothing to switch off. **Done:** a Camera shake
-setting (on, reduced, off) scaling the three shakes, and `prefers-reduced-
-motion` defaulting it to reduced; a chase smoothing choice. Check: a
-selftest of the shake scale (pure). Size S. Phase 25.
+**41. Motion sickness controls. BUILT (phase 25).** Field of view (75 to
+115, src/render/lens.js) and angle mode exist. A Camera shake setting (on,
+reduced to a third, off) scales the lens shake, the impact kick and the
+war's shake together where they are applied; on is the default and the
+measured picture, and a pilot whose system asks for reduced motion and
+never chose starts on reduced. Chase smoothing (tight 60 ms, standard
+120 ms as before, smooth 300 ms) sets the chase camera's follow, the
+pilot's and the spectator's. Head bob and motion blur do not exist.
+Check: `comfort:selftest` (CI).
 
 **42. Audio mixer categories. EXISTS.** Master (`volume`), motors, wind,
 music, effects, voice, ambience, other (ui.js 862 to 881), on the buses of
