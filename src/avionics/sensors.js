@@ -33,6 +33,7 @@
 import * as THREE from 'three';
 import { setWeather, setMotorHeat } from '../render/thermal.js';
 import { daytimeNow } from '../share/daytime.js';
+import { devHooks } from '../share/devhooks.js';
 import {
   createSensorView, INSET_SIZES, THERMAL_PALETTES, setThermalPalette,
 } from '../render/sensorview.js';
@@ -420,7 +421,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
   detect();
   /* Harness only: the checks drive the sensor the shell made. */
   if (typeof window !== 'undefined') {
-    window.__sensors = api;
+    devHooks.__sensors = api;
   }
   return api;
 }

@@ -342,6 +342,7 @@ import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
 import { crashRecord } from './share/crashrecord.js';
 import { reportPageErrors } from './share/clientreport.js';
+import { devHooks } from './share/devhooks.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
@@ -746,7 +747,7 @@ export async function boot({
   let avxTruth = AVX_NO_TRUTH;
   let avxFed = false;
   let avxLastT = -1;
-  window.__avionics = {
+  devHooks.__avionics = {
     deny: (what, on) => telemetry.deny(what, on),
     ai: (on) => { avxHud.ai = Boolean(on); },
     /* The TrackManager's snapshot, for a check to read or to seed. */
@@ -2056,7 +2057,7 @@ export async function boot({
   }
 
   const lockV = new THREE.Vector3();
-  window.__ops = {
+  devHooks.__ops = {
     view: () => roomOps.view(),
     seat: () => roomOps.seat(),
     ball: () => (ball ? {
@@ -3508,7 +3509,7 @@ export async function boot({
   /* Decided per frame with `scoring`, consulted every step. */
   let figureCraft = false;
   /* The checks land a trick as a detector would (scripts/callouts-check.js). */
-  window.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
+  devHooks.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
   function scoreCrash() {
     score.crash();
     if (jamScore) {
@@ -4161,8 +4162,8 @@ export async function boot({
     confirm: (o) => ui.askConfirm(o),
   });
   /* Harness only, for scripts/voicechat-two-page.js. */
-  window.__voice = voice;
-  window.__voiceUi = voiceUi;
+  devHooks.__voice = voice;
+  devHooks.__voiceUi = voiceUi;
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
@@ -7342,7 +7343,7 @@ export async function boot({
   /* Harness only: the peer marks as planned this frame, and a role to
    * try one with, for scripts/peermarks-two-page.js. */
   window.__peerMarks = () => peerMarks.summary();
-  window.__peerMarkRole = (seat, role) => peerMarks.setRole(seat, role);
+  devHooks.__peerMarkRole = (seat, role) => peerMarks.setRole(seat, role);
   /* Harness only: the room and what is drawn of it, for
    * scripts/rooms-two-page.js. */
   window.__rooms = () => {
@@ -7462,7 +7463,7 @@ export async function boot({
       said: combatHud.said(),
     };
   };
-  window.__combatStart = (minutes) => roomCombat.start(minutes);
+  devHooks.__combatStart = (minutes) => roomCombat.start(minutes);
   /* Defend Itaipu for the checks (scripts/war-twopage.js --main), the same
    * three the wire module gave it: the war as this page holds it, where
    * every attacker is at a room ms, and the host's start (or 'brief', the
@@ -7522,7 +7523,7 @@ export async function boot({
    * lines on a real room's match), what the map shows now (each target
    * not whole, each district's level), and each live frame's map, logged
    * while switched on. */
-  window.__warHear = (m) => roomWar.onMessage(m);
+  devHooks.__warHear = (m) => roomWar.onMessage(m);
   /* What the structures show now, for the checks: the chunks out, and
    * each piece of rubble where it lies, rounded to the millimetre. */
   function warBroken() {
@@ -7545,7 +7546,7 @@ export async function boot({
     }
     return { targets, levels: it.look.night() ? it.look.night().levels() : null, broken: warBroken() };
   };
-  window.__warMapLog = (on) => {
+  devHooks.__warMapLog = (on) => {
     warMapLog = on ? [] : null;
     return true;
   };
@@ -7553,7 +7554,7 @@ export async function boot({
   /* A swarm's worth of explosions at once, 150 m ahead of the camera, for
    * scripts/war-boom.js: the frame's draw calls and time over 40 frames
    * before and during, and whether the pools held. */
-  window.__warFxBurst = async (n = 10) => {
+  devHooks.__warFxBurst = async (n = 10) => {
     const frames = (k) => new Promise((resolve) => {
       const ms = [];
       let last = performance.now();
@@ -7599,9 +7600,9 @@ export async function boot({
    * host's Watch intro, for the checks. Harness only. */
   window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
   window.__warCutaway = () => warCutaway.state();
-  window.__warCutawayTest = (cue, pip) => warCutaway.request(cue, performance.now(), null, pip);
-  window.__warIntroWatch = () => warIntroWatch();
-  window.__warDo = (op, arg) => {
+  devHooks.__warCutawayTest = (cue, pip) => warCutaway.request(cue, performance.now(), null, pip);
+  devHooks.__warIntroWatch = () => warIntroWatch();
+  devHooks.__warDo = (op, arg) => {
     if (op === 'start') {
       roomWar.start(arg || WAR_MISSION);
     } else if (op === 'brief') {
@@ -7611,11 +7612,11 @@ export async function boot({
     }
     return true;
   };
-  window.__roomJoin = (code) => roomLinkState.join(code);
-  window.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
-  window.__roomSay = (kind, id) => roomSafety.say(kind, id);
-  window.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
-  window.__roomCreate = async (room = {}) => {
+  devHooks.__roomJoin = (code) => roomLinkState.join(code);
+  devHooks.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
+  devHooks.__roomSay = (kind, id) => roomSafety.say(kind, id);
+  devHooks.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
+  devHooks.__roomCreate = async (room = {}) => {
     const code = await roomLinkState.create(room.map || (view ? view.id : worldId()), false, room);
     roomLinkState.join(code);
     return code;
@@ -7963,7 +7964,7 @@ export async function boot({
     },
   });
   ui.onTrainingCard = () => trainingScreen.open();
-  window.__training = trainingScreen;
+  devHooks.__training = trainingScreen;
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
    * Phase 0, the lead's call), on the mission's map, the pilot in the
@@ -7988,7 +7989,7 @@ export async function boot({
     roomLinkState.join(code);
     return code;
   }
-  window.__opsCampaign = interiorScreen;
+  devHooks.__opsCampaign = interiorScreen;
   ui.onTrackChosen = () => {
     if (lobbyGame() !== 'race' || !roomHost(roomLinkState.state().welcome)) {
       return false;
@@ -8014,7 +8015,7 @@ export async function boot({
     }
     return true;
   };
-  window.__campaign = campaign;
+  devHooks.__campaign = campaign;
 
   function roomLeave() {
     roomRaceRetire();
@@ -8486,7 +8487,7 @@ export async function boot({
       error: roomRace.error(),
     };
   };
-  window.__roomRaceDo = (action, laps) => {
+  devHooks.__roomRaceDo = (action, laps) => {
     if (laps) {
       roomRaceLaps = laps;
     }
@@ -8796,7 +8797,7 @@ export async function boot({
     return r ? { name: r.name, points: Math.max(0, Math.round(r.net)) } : null;
   }
   /* The host's start, for the checks (the lobby's Start now sends it too). */
-  window.__roomJamStart = (seconds) => roomJam.start(seconds);
+  devHooks.__roomJamStart = (seconds) => roomJam.start(seconds);
   window.__roomJam = () => {
     const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
     return {
@@ -8996,7 +8997,7 @@ export async function boot({
     }
     return out;
   };
-  window.__roomTagDo = (action, goal) => {
+  devHooks.__roomTagDo = (action, goal) => {
     if (goal != null) {
       roomTagPick = { preset: 'custom', custom: goalOf(goal) };
     }
@@ -12461,7 +12462,7 @@ export async function boot({
   /* n loads laid in a ring about the craft, `falling` of them released
    * now 60 m up, the rest long landed: scripts/hercules-perf.js's field at
    * the cap. */
-  window.__paradropFill = (n, falling = 0) => {
+  devHooks.__paradropFill = (n, falling = 0) => {
     for (let i = 0; i < n; i += 1) {
       const a = i * 2.399963;
       const r = 8 + 0.9 * Math.sqrt(i) * 6;
@@ -12881,7 +12882,7 @@ export async function boot({
   /* The look held at a rain intensity whatever the air, for the haze
    * check's pictures (null lets the air decide again). Harness only. */
   let wetHold = null;
-  window.__wetHold = (w) => {
+  devHooks.__wetHold = (w) => {
     wetHold = w;
   };
   /* One frame drawn now at rain intensity `wet`, read back, for
@@ -12889,7 +12890,7 @@ export async function boot({
    * in one task, so nothing between two calls moves but `wet`. Returns
    * the frame's FNV-1a hash, its mean luma, the luma's standard
    * deviation (its contrast) and a luma thumbnail. Harness only. */
-  window.__wetFrame = (wet) => {
+  devHooks.__wetFrame = (wet) => {
     view.setWet?.(wet);
     if (view.post) {
       view.post.render();
@@ -12926,7 +12927,7 @@ export async function boot({
   window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
-  window.__weather = (preset, seed) => {
+  devHooks.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
     ui.settings.weather = preset;
     soloSeed = seed >>> 0;
@@ -15366,7 +15367,7 @@ export async function boot({
   });
   /* One sync now, resolving to whether it changed anything here, for
    * scripts/account-browser-check.js, which cannot wait out the minute. */
-  window.__accountSync = () => accountUi.sync();
+  devHooks.__accountSync = () => accountUi.sync();
   /* The hangar's visits switch is sent at once rather than within the
    * minute: a friend is waiting at the door (src/ui/hangarwalk.js). */
   ui.onSyncNow = () => accountUi.sync();
@@ -16052,7 +16053,7 @@ export async function boot({
 
   /* Harness: the walk as it stands, and a turn (checks steer with it;
    * the pilot turns with the mouse, a stick or a thumb). */
-  window.__foot = {
+  devHooks.__foot = {
     state: () => ({
       on: walker !== null,
       could: canStepOut(),
@@ -19898,10 +19899,10 @@ export async function boot({
 
   /* Live handles. __race is a getter because a map swap replaces the race
    * object; the others live as long as the page. */
-  window.__ui = ui;
-  window.__input = input;
-  window.__race = () => race;
-  window.__audio = audio;
+  devHooks.__ui = ui;
+  devHooks.__input = input;
+  devHooks.__race = () => race;
+  devHooks.__audio = audio;
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
@@ -19996,7 +19997,7 @@ export async function boot({
   /* Park the camera at (a, b, c) looking at (d, e, f); null hands it back.
    * The optional fov pins the lens too, since otherwise a capture gets the
    * title's lens or the pilot's depending on how fast the machine booted. */
-  window.__setCam = (a, b, c, d, e, f, fov) => {
+  devHooks.__setCam = (a, b, c, d, e, f, fov) => {
     camOverride = a == null ? null : [a, b, c, d, e, f, fov];
   };
 
@@ -20028,7 +20029,7 @@ export async function boot({
    * the clock, which a headless page would take minutes to reach.
    */
   window.__score = () => score.summary();
-  window.__scoreFinish = () => {
+  devHooks.__scoreFinish = () => {
     score.finish();
     endFreestyleRun();
     return score.summary();
@@ -20053,11 +20054,11 @@ export async function boot({
    * world draws a few frames a second, and a probe steering from
    * requestAnimationFrame cannot fly anything at that rate.
    */
-  window.__drawOff = (on = true) => {
+  devHooks.__drawOff = (on = true) => {
     harnessNoDraw = Boolean(on);
     return harnessNoDraw;
   };
-  window.__frameMs = (ms = 0) => {
+  devHooks.__frameMs = (ms = 0) => {
     harnessFrameMs = Math.max(0, Math.min(FRAME_DT_MAX, Number(ms) || 0));
     return harnessFrameMs;
   };
@@ -20218,7 +20219,7 @@ export async function boot({
   window.__celCount = () => celTimeCount();
 
   /* The radio link: switch preset with an id, and read what is in force. */
-  window.__link = (id) => {
+  devHooks.__link = (id) => {
     if (id != null) {
       rcLink.setPreset(id);
       rcLink.reset(rcNextMs);
@@ -20258,7 +20259,7 @@ export async function boot({
     };
   };
   /* Arm a lap from wire base64 as if the board had sent it. */
-  window.__ghostLoad = (b64, name) => {
+  devHooks.__ghostLoad = (b64, name) => {
     const lap = new GhostLap(decodeGhost(ghostFromBase64(b64)), {
       label: str('main.board_lap'),
       name: name || 'Harness',
@@ -20271,12 +20272,12 @@ export async function boot({
     syncGhostRow();
     return { armed: Boolean(ghostLap), durationMs: lap.durationMs, splits: lap.splits.length };
   };
-  window.__ghostPick = (id) => {
+  devHooks.__ghostPick = (id) => {
     pickGhost(String(id));
     return ghostChoice;
   };
   /* Light the OSD's gap readout for 2.8 s without flying two laps. */
-  window.__ghostGapShow = (deltaMs, final) => {
+  devHooks.__ghostGapShow = (deltaMs, final) => {
     ghostGap = { deltaMs: Number(deltaMs), final: Boolean(final), untilWall: performance.now() + 2800 };
     return ghostGap;
   };
@@ -20428,7 +20429,7 @@ export async function boot({
    * hull falls over; __releasePose lets go. The camera is placed at once,
    * so a capture taken before the next frame sees the seat.
    */
-  window.__seatCraft = (kind) => {
+  devHooks.__seatCraft = (kind) => {
     if (!stateCurr) {
       return null;
     }
@@ -20495,7 +20496,7 @@ export async function boot({
    * sweeps think the craft was last frame, for a test that needs the chord
    * between the two to cross something; it defaults to the point itself.
    */
-  window.__placeCraft = (x, y, z, fromX, fromY, fromZ) => {
+  devHooks.__placeCraft = (x, y, z, fromX, fromY, fromZ) => {
     if (!stateCurr) {
       return null;
     }
@@ -20532,7 +20533,7 @@ export async function boot({
     groundPrev.copy(racePrev);
     return window.__craftState();
   };
-  window.__releasePose = () => {
+  devHooks.__releasePose = () => {
     poseLock = false;
     return true;
   };
@@ -20550,7 +20551,7 @@ export async function boot({
   /* The jelly's whacks this run (jellyPass), and whether the seated
    * aircraft meets the soft pieces as jelly. */
   window.__jelly = () => ({ soft: softKindsFor() !== 0, whacks: jellyLog.map((w) => ({ ...w })) });
-  window.__crashThrow = (o) => {
+  devHooks.__crashThrow = (o) => {
     crashCamShowsCraft = o.showCraft !== false;
     /* `fresh` puts the plant back to its first step first, as R does, so
      * the throw starts from the same plant whatever the craft did on the
@@ -20669,8 +20670,8 @@ export async function boot({
   window.__crashWater = () => (view.water || []).map((w) => ({
     kind: w.kind, spawn: w.spawn, surfaceY: w.surfaceY, line: w.line, halfWidth: w.halfWidth,
   }));
-  window.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
-  window.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
+  devHooks.__crashBreak = (part) => simErrorName(sim.e.sim_part_break(part));
+  devHooks.__crashSetDamage = (part, d) => simErrorName(sim.e.sim_part_set_damage(part, d));
   /* Each drawn piece's farthest vertex outside its part's hull box, for a
    * check that no stray triangle rides off with a broken part. */
   window.__wreckAudit = () => wreckRig.audit();
@@ -20724,7 +20725,7 @@ export async function boot({
       'throttle_limit_type', 'throttle_limit_percent',
     ]),
   });
-  window.__setTune = (id) => {
+  devHooks.__setTune = (id) => {
     ui.settings.tune = id;
     applySettings(ui.settings);
   };
@@ -21019,14 +21020,14 @@ export async function boot({
    * does, and reset there: the water is declared again in the new spawn's
    * frame, which is what a check of the waves' frame needs. `y` is the
    * fromY hint a spawn may carry (a seat on a dam's crest). Harness only. */
-  window.__respawn = (x, z, yaw, y) => {
+  devHooks.__respawn = (x, z, yaw, y) => {
     resetCraft({ x, z, yaw, y });
     return true;
   };
   /* Show the map's waves on the title too, so a parked camera
    * (scripts/swiss2-views.js, swiss2-perf.js with --waves) sees the lake
    * as a pilot on it would, stood still at the sim clock where it is. */
-  window.__wavesOn = () => {
+  devHooks.__wavesOn = () => {
     declareWater();
     wavesAtTitle = true;
     return Boolean(view.setWaves);
@@ -21055,7 +21056,7 @@ export async function boot({
   /* An opening in the dam as the war's damage hands one to the map
    * (map.onOpening, docs/FLOOD.md), and the water through every opening
    * this frame (map.waterFlows), for scripts/water-page.js. Harness only. */
-  window.__mapOpening = (o) => {
+  devHooks.__mapOpening = (o) => {
     if (!view || typeof view.onOpening !== 'function') return false;
     view.onOpening(o);
     return true;
@@ -21066,7 +21067,7 @@ export async function boot({
   window.__mapReplayWater = () => (view && view.replayWater ? view.replayWater() : null);
   /* A mission's gate state handed to the map (map.setGateState), for
    * scripts/itaipu-views.js --gates. Harness only. */
-  window.__mapGates = (list) => {
+  devHooks.__mapGates = (list) => {
     if (!view || typeof view.setGateState !== 'function') return false;
     warGatesTo(list);
     return true;
@@ -21086,7 +21087,7 @@ export async function boot({
    * it needs it instead of waiting minutes of slow headless frames for it.
    * Answers the train's offset where the map has one.
    */
-  window.__animTo = (step) => {
+  devHooks.__animTo = (step) => {
     view.updateAnim(step);
     if (!view.stats) {
       return null;
@@ -21109,7 +21110,7 @@ export async function boot({
   };
   /* The live scene graph, which tests/lib/checks.js walks to measure the
    * reference objects against the sizes this project claims. */
-  window.__mapScene = () => view.scene;
+  devHooks.__mapScene = () => view.scene;
   /* THREE itself, for page side measurements (a Box3, a Vector3) that would
    * otherwise load a second three.js whose classes this scene's objects are
    * not instances of. */
@@ -21130,7 +21131,7 @@ export async function boot({
    * sets it for its next sweep (fromY biased as that pass biases it), so
    * a probe's __hit meets what the craft's would. The next frame sets it
    * again from the craft. Harness only. */
-  window.__cover = (x, y, z) => {
+  devHooks.__cover = (x, y, z) => {
     if (view.cover) {
       view.cover(x, z, y - SURFACE_BIAS);
     }
@@ -21180,7 +21181,7 @@ export async function boot({
    * throttle. The override sits at the top of input.poll's ladder, so roll,
    * pitch and yaw stick too, not only the throttle.
    */
-  window.__stick = (roll, pitch, yaw, throttle) => {
+  devHooks.__stick = (roll, pitch, yaw, throttle) => {
     if (roll != null) {
       input.harnessChannels = { roll, pitch, yaw, throttle };
       return { roll, pitch, yaw, throttle };
@@ -21219,11 +21220,11 @@ export async function boot({
   /* A flat canopy at world height `top` over the whole loaded map, so
    * scripts/canopy-check.js can exercise the contact pass's canopy call on a
    * map without a forest of its own. Gone with the next map load. */
-  window.__canopyTop = (top) => {
+  devHooks.__canopyTop = (top) => {
     view.canopyAt = () => top;
   };
   /* Load a world as ?map= would at the title, which ends the title's own. */
-  window.__setMap = (id) => {
+  devHooks.__setMap = (id) => {
     titleWorld = null;
     paintBest();
     ui.settings.map = id;
@@ -21495,7 +21496,7 @@ export async function boot({
   voice.setRecorder(crashCam.voiceSink);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
-  window.__crashCam = {
+  devHooks.__crashCam = {
     stats: () => crashCam.stats(),
     open: () => crashCam.open(),
     live: () => crashCam.live,
