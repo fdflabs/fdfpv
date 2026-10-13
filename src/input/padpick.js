@@ -104,6 +104,9 @@ export class PadRoster {
     this.queued = null;
     this.pick = null;
     this.result = null;
+    /* Set when the chosen device, present a moment ago, is gone; taken
+     * once by InputManager.poll. */
+    this.lost = false;
   }
 
   setChoice(choice) {
@@ -184,6 +187,9 @@ export class PadRoster {
     if (this.match(pads)) {
       this.present = true;
       return;
+    }
+    if (this.present) {
+      this.lost = true;
     }
     if (this.present && pads.length >= 1) {
       this.queued = this.queued || 'missing';

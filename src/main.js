@@ -70,7 +70,7 @@ import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { translate as translateKey, effectiveKeys, keyLabel } from './input/keybinds.js';
-import { PAD_BUTTONS as PB } from './input/padbuttons.js';
+import { bindPad } from './ui/controls.js';
 import { createFootInput } from './input/footinput.js';
 import { SKIP_KINDS as FOOT_SKIP, createWalker, depthInside, findClear, step as stepWalker } from './game/onfoot.js';
 import { BODY_RADIUS, EYE_HEIGHT, STATURE, STEP_UP } from './game/human.js';
@@ -1116,18 +1116,16 @@ export async function boot({
   const ballView = () => ui.settings.wingView === 'ball' && Boolean(ballFor(runAirframe));
 
   function ballPad() {
-    const gp = input.firstGamepad();
-    if (!gp || gp.mapping !== 'standard' || !gp.buttons) {
+    if (!input.standardPad()) {
       return null;
     }
-    const at = (i) => Boolean(gp.buttons[i] && gp.buttons[i].pressed);
-    const val = (i) => (gp.buttons[i] ? gp.buttons[i].value || 0 : 0);
+    const at = (name) => input.padButton(name);
     return {
-      pan: Number(at(PB.right)) - Number(at(PB.left)),
-      tilt: Number(at(PB.up)) - Number(at(PB.down)),
-      zoom: val(PB.rt) - val(PB.lt),
-      capture: at(PB.ls),
-      lock: at(PB.rs),
+      pan: Number(at('right')) - Number(at('left')),
+      tilt: Number(at('up')) - Number(at('down')),
+      zoom: input.padValue('rt') - input.padValue('lt'),
+      capture: at('ls'),
+      lock: at('rs'),
     };
   }
 
@@ -10250,9 +10248,8 @@ export async function boot({
   /* A touch pad's thumb never rests on zero; past this it is a push. */
   const TOUCH_PUSH = 0.08;
 
-  function anyArrowDown() {
-    const k = input.keys;
-    return k.has('ArrowUp') || k.has('ArrowDown') || k.has('ArrowLeft') || k.has('ArrowRight');
+  function pokeKeyHeld() {
+    return input.keyPush('roll') !== 0 || input.keyPush('pitch') !== 0;
   }
 
   /* The crash flag edge clears Betaflight's I-term. A PID left wound up
@@ -10265,7 +10262,7 @@ export async function boot({
 
   /* Whether the pilot is still holding a stick off centre, for recover. */
   function stickOffCentre(roll, pitch) {
-    if (anyArrowDown()) {
+    if (pokeKeyHeld()) {
       return true;
     }
     if (input.isTouchPrimary() && (Math.abs(roll) > TOUCH_PUSH || Math.abs(pitch) > TOUCH_PUSH)) {
@@ -10323,12 +10320,10 @@ export async function boot({
    * both are held.
    */
   const turtleStick = [0, 0];
-  function pushAxis(v, plus, minus) {
-    if (input.keys.has(plus)) {
-      return 1;
-    }
-    if (input.keys.has(minus)) {
-      return -1;
+  function pushAxis(v, channel) {
+    const key = input.keyPush(channel);
+    if (key) {
+      return key;
     }
     if (input.isTouchPrimary() && Math.abs(v) > TOUCH_PUSH) {
       return v > 0 ? 1 : -1;
@@ -10337,8 +10332,8 @@ export async function boot({
   }
   function turtleAxes(roll, pitch) {
     const over = turtleWait || turtleFlip.active;
-    turtleStick[0] = over ? pushAxis(roll, 'ArrowRight', 'ArrowLeft') : roll;
-    turtleStick[1] = over ? pushAxis(pitch, 'ArrowDown', 'ArrowUp') : pitch;
+    turtleStick[0] = over ? pushAxis(roll, 'roll') : roll;
+    turtleStick[1] = over ? pushAxis(pitch, 'pitch') : pitch;
     return turtleStick;
   }
 
@@ -10405,7 +10400,7 @@ export async function boot({
    * release lost behind a menu or a pause still lets the mixer go. */
   function pollManualFlip() {
     const flying = mode === 'flight' && ui.screen === 'flight';
-    setManualFlip(flying && !manualFlipBarred() && input.keys.has('KeyT'));
+    setManualFlip(flying && !manualFlipBarred() && input.actionHeld('flip'));
   }
 
   /*
@@ -15816,9 +15811,8 @@ export async function boot({
   }
 
   function footKeyLabel() {
-    const gp = input.firstGamepad();
-    if (gp && gp.mapping === 'standard') {
-      return str('foot.pad_view');
+    if (input.standardPad()) {
+      return str('foot.pad_view', { button: input.padActionLabel('foot') });
     }
     return keyLabel(effectiveKeys(ui.settings.keybinds, runAirframe).foot);
   }
@@ -16136,6 +16130,7 @@ export async function boot({
   /* The pilot's key bindings (src/input/keybinds.js), in flight only: the
    * menus keep every key as it is. */
   input.translateKey = (code) => (ui.screen === 'flight' ? translateKey(ui.settings.keybinds, runAirframe, code) : code);
+  input.padBinding = () => ({ binds: ui.settings.padbinds, airframe: runAirframe, flight: ui.screen === 'flight' });
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -17580,7 +17575,8 @@ export async function boot({
     if (rcPending.length > 1024) {
       rcPending.splice(0, rcPending.length - 256);
     }
-    if (ui.isModal()) {
+    /* Settings > Controls waiting for a pad button takes the pad first. */
+    if (ui.isModal() && !bindPad(ui, input.padHeld())) {
       ui.pollPad(padNav());
     }
     /* Every way onto the ground is a landing and gets the spawn's throttle
@@ -19479,6 +19475,18 @@ export async function boot({
     /* Read once: guidedPrompt retires the guided flag as a side effect. */
     const guidedText = (ui.guided && !crashflipOn && !turtleRecover && lastUpz >= 0) ? guidedPrompt(race) : '';
     ui.setPadInfo(input.padSummary());
+    /* The flying device went (input.noteDeviceLoss). Solo pauses; a room
+     * cannot stop its world, so it flies on centred sticks and a held
+     * throttle and says so. A picker queued with it opens after this. */
+    if (input.takeDeviceLoss() && mode === 'flight' && ui.screen === 'flight') {
+      if (inRoom()) {
+        flashNotice(str('input.device_lost_room'), 6000);
+      } else {
+        ui.act('pause');
+        ui.show('paused');
+        flashNotice(str('input.device_lost_solo'), 6000);
+      }
+    }
     const queuedPick = input.takePadPickQueue();
     if (queuedPick) {
       openPadPick(queuedPick);

@@ -55,16 +55,46 @@ section (src/share/progressmerge.js). The server keeps a new section only
 once it runs this progressmerge.js: **needs a VM deploy** for the sync;
 until then the bindings stay on the computer that made them.
 
+## Pad buttons (phase 20)
+
+The actions are one table, `src/input/actions.js`: each row has its
+default key (the code the readers compare against) and its default button
+on a pad the browser maps to the W3C standard layout. Every row may take
+a pad button; the rows with no key (Open the replay, X; Push to talk, the
+left trigger; Change aircraft, Y) are moved on the pad only. Stepping out
+is B, held half a second.
+
+Each Controls row shows the key and the button ("R, pad A"). An armed row
+takes the next key or the next standard pad button; Backspace puts both
+defaults back; Reset all clears both. The same rules as the keys
+(`src/input/bindings.js` runs both tables): every aircraft or one, no two
+actions on one button, and the buttons the shell reads for something else
+are refused (Start pauses, Back enters the builder, the shoulders step the
+aircraft swap, the d-pad, the right trigger and the stick clicks fly the
+camera ball).
+
+In flight a pad button bound to an action with a key arrives as that key
+(`InputManager.pollPadKeys`: held in `input.keys` while the button is,
+heard once by `onKey`), so no key reader changed. The pad-only actions and
+stepping out read their button by name (`input.padAction`). A radio's
+switches are never bound or read by name. Off the flight screen no pad
+button stands for a key.
+
+`settings.padbinds`, the shape of `settings.keybinds` with button names
+(`a`, `x`, `lt`) for codes, absent while nothing is moved, synced as a
+`whole` section (needs the same VM deploy as keybinds for the sync).
+
+No module outside `src/input` reads a device: `lint:input` fails first on
+`getGamepads`, `.buttons[` or `.axes[` anywhere else under `src`.
+
 ## What it does not do
 
-- Gamepad and radio buttons. The pad's action buttons are read at fixed
-  indices in several modules (main.js ballPad, src/ui/voiceui.js push to
-  talk, src/input/menus.js, src/input/padpick.js), and padmap.js maps
-  axes only. Moving them needs item 20's action table across those
-  readers first; it overlaps FOUNDATIONS #9 (radio and gamepad profile
-  library), so it is left to that item.
-- Menu keys and the keys in the builder, crash cam and avionics HUD.
-- Two keys for one action.
+- Radio switches as action buttons.
+- Menu keys and buttons, and the keys and buttons in the builder, crash
+  cam and avionics HUD (read through src/input by name, not movable).
+- Two keys, or two buttons, for one action.
+- Exchanging two bound controls in one step: move one to a free control
+  first, as with the keys.
 
 ## Checks
 
@@ -75,7 +105,14 @@ until then the bindings stay on the computer that made them.
 - `npm run keybinds:check` (local, browser): the real Settings page with
   the pointer and keys; a moved Reset resets a flight and R stops; a clash
   is refused naming the action; an aircraft-only binding works on the
-  Timber and not on the Cub; Reset all restores R.
+  Timber and not on the Cub; Reset all restores R. Then a standard pad: the
+  Reset row takes A, A resets a flight, clashes and Start are refused,
+  Reset all clears the pad.
+- `npm run input:selftest` (CI): the table, pad binding rules, a bound
+  button arriving as its key in flight and not elsewhere, the pad-only
+  actions by name, a radio ignored, the turtle's keys per stick mode.
+- `npm run lint:input` (local, browser): the device read grep, and a bound
+  pad button in the real page.
 - Unchanged: keys:golden, settings:golden, actions:golden,
   menucontrols:golden, ways:golden, nav:golden, rows:golden. items:golden
   is re-recorded: the one new row, Controls, on the Settings page.

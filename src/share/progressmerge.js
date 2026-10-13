@@ -124,6 +124,7 @@ export const SYNCED_SECTIONS = {
   tune: 'whole',
   rates: 'whole',
   keybinds: 'whole',
+  padbinds: 'whole',
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
