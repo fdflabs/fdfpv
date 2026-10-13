@@ -96,7 +96,7 @@ export function ratesCurves(rates) {
   const profile = normaliseRates(rates || {});
   const yaw = curve('yaw', str('ui.yaw_axis'), SLATE, [5, 4], profile, 'yaw');
   if (pitchMatchesRoll(profile)) {
-    return [curve('rollpitch', str('ui.roll_pitch'), SAKURA, null, profile, 'roll'), yaw];
+    return [curve('rollpitch', str('ui.roll_and_pitch'), SAKURA, null, profile, 'roll'), yaw];
   }
   return [
     curve('roll', str('ratespanel.roll'), SAKURA, null, profile, 'roll'),
