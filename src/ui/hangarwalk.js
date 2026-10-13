@@ -29,7 +29,7 @@
 import {
   ROOMS, LAYOUTS, tierFor, occupancy, stations, startPose, walk, stationNear,
 } from '../game/hangarroom.js';
-import { levelOf } from '../game/progress.js';
+import { levelOf, milestonesOf } from '../game/progress.js';
 import { bayCount, bayFill, paintChart, unlockedPlanes } from '../game/hangarmine.js';
 import { str } from '../strings/index.js';
 import { customisable, fittedBuild } from './builds.js';
@@ -40,6 +40,7 @@ import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { listClips } from '../replay/store.js';
 import { fetchHangar, fetchWallet, readWallet, signedIn } from '../share/account.js';
 import { hubWays } from './ways.js';
+import { el } from './dom.js';
 
 /*
  * What each station opens, and its prompt's words. A station whose screen
@@ -400,11 +401,20 @@ export const walkMethods = {
    */
   startLineup(action) {
     const id = this.settings.airframe;
-    const flown = flightTotals(this.settings.flightTime).byAirframe[id] || 0;
+    const by = flightTotals(this.settings.flightTime).byAirframe;
+    const flown = by[id] || 0;
     this.walk.lineup = { action, t: 0 };
     this.walkPrompt.hidden = true;
     this.walkLineupName.textContent = airframeById(id).name;
     this.walkLineupFacts.textContent = [sizeText(id), weightText(id), str('walk.lineup_flown', { time: flightTimeText(flown) })].join('  ·  ');
+    /* Its milestones under the card, as the hangar shows them. */
+    const pips = el('div', 'hangar-milestones walk-lineup-milestones');
+    for (const [m, on] of Object.entries(milestonesOf(by, id))) {
+      const pip = el('span', `hangar-milestone${on ? ' on' : ''}`, str(`hangar.milestone.${m}`));
+      pip.dataset.milestone = m;
+      pips.append(pip);
+    }
+    this.walkLineupFacts.append(pips);
     this.walkLineup.hidden = false;
   },
 

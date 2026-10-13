@@ -52,6 +52,7 @@ import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { TIME_NAMES } from '../share/daytime.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
 import { hasKeybinds, normaliseKeybinds } from '../input/keybinds.js';
+import { hasPadbinds, normalisePadbinds } from '../input/padbinds.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { touchWanted } from '../input/touchsticks.js';
@@ -618,6 +619,9 @@ export function loadSettings() {
    * until one is, so a profile that moved none is stored as before. */
   const keybinds = normaliseKeybinds(raw.keybinds);
   if (hasKeybinds(keybinds)) s.keybinds = keybinds;
+  /* And the pad buttons (src/input/padbinds.js), the same way. */
+  const padbinds = normalisePadbinds(raw.padbinds);
+  if (hasPadbinds(padbinds)) s.padbinds = padbinds;
 
   s.airframe = currentAirframeId(s.airframe);
   try {

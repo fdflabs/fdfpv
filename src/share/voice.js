@@ -40,7 +40,7 @@
  * THE MICROPHONE is asked for when voice is turned on and let go when it is
  * turned off or the room is left, with the browser's echo cancellation,
  * noise suppression and automatic gain on. Push to talk, the default, sends
- * the track only while PTT_KEY or the pad's PTT_PAD is held; open mic
+ * the track only while PTT_KEY or the pad's talk button is held; open mic
  * always. Opus is asked for mono at OPUS_BPS with DTX, so a pilot not
  * talking sends almost nothing.
  *
@@ -79,14 +79,11 @@
 import {
   RELAY_NONE, RELAY_TCP, RELAY_UDP, VOICE_LINK_MAX,
 } from './roomwire.js';
-import { PAD_BUTTONS } from '../input/padbuttons.js';
-
-/* The keyboard key and the standard pad button held to talk. Not V: V and
- * the pad's X open the crash replay in flight (src/replay/crashcam.js). The
- * pad's is the left trigger, which nothing in flight reads, and only on a
- * standard pad: a radio reports its switches as buttons, latched. */
+/* The keyboard key held to talk. Not V: V opens the crash replay in
+ * flight (src/replay/crashcam.js). The pad's is the pilot's `talk` binding
+ * (src/input/actions.js, the left trigger by default), on a standard pad
+ * only: a radio reports its switches as buttons, latched. */
 export const PTT_KEY = 'KeyN';
-export const PTT_PAD = PAD_BUTTONS.lt;
 
 /* Public STUN, for finding this pilot's own address. */
 export const STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }];

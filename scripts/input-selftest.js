@@ -1210,12 +1210,12 @@ heading('a standard pad steers the menus four ways');
 heading('the standard pad\'s buttons by name are the W3C numbers, as every reader used them');
 {
   const { PAD_BUTTONS } = await import('../src/input/padbuttons.js');
-  const { PTT_PAD } = await import('../src/share/voice.js');
+  const { ACTION_BY_ID } = await import('../src/input/actions.js');
   /* w3.org/TR/gamepad, Standard Gamepad: buttons[0] bottom face ... [15] d-pad right. */
   const W3C = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'back', 'start', 'ls', 'rs', 'up', 'down', 'left', 'right'];
   check('sixteen names, each at its W3C index', show(Object.keys(PAD_BUTTONS)) === show(W3C)
     && W3C.every((name, i) => PAD_BUTTONS[name] === i), show(PAD_BUTTONS));
-  check('push to talk is still the left trigger, button 6', PTT_PAD === 6);
+  check('push to talk is still the left trigger, button 6', PAD_BUTTONS[ACTION_BY_ID.get('talk').pad] === 6);
   check('the table cannot be changed at run time', Object.isFrozen(PAD_BUTTONS));
 }
 
@@ -1379,6 +1379,205 @@ heading('every device keeps its own calibration, and the one map from before kee
       later.im.map.yaw.axis === 4 && store.getItem(OLD) === null
       && show(maps(store).maps[deviceKey(TX16S)]) === show(V1), store.dump());
   }
+}
+
+heading('phase 20: one action table, read by name from every source');
+{
+  const { ACTIONS } = await import('../src/input/actions.js');
+  const pb = await import('../src/input/padbinds.js');
+  const kb = await import('../src/input/keybinds.js');
+  check('every action is unique and has a key or a pad default',
+    new Set(ACTIONS.map((a) => a.id)).size === ACTIONS.length && ACTIONS.every((a) => a.key || a.pad), show(ACTIONS));
+  check('the keyboard table is the rows with a key, in order, as before',
+    show(kb.ACTIONS.map((a) => a.code)) === show(['KeyR', 'KeyX', 'KeyT', 'KeyL', 'KeyP', 'KeyF', 'KeyG', 'KeyO', 'KeyC', 'Digit1']));
+  check('the pad defaults are the buttons the readers used: replay X, talk LT, swap Y, foot B',
+    show(Object.fromEntries(ACTIONS.filter((a) => a.pad).map((a) => [a.id, a.pad]))) === show({ foot: 'b', replay: 'x', talk: 'lt', swap: 'y' }));
+  check('no pad default is reserved', ACTIONS.every((a) => !a.pad || !pb.PAD_RESERVED.has(a.pad)));
+
+  let r = pb.bindButton(undefined, 'reset', 'a');
+  check('reset takes A', r.ok && show(r.binds.all) === show({ reset: 'a' }));
+  const resetA = r.binds;
+  r = pb.bindButton(resetA, 'flip', 'a');
+  check('a button another action holds is refused, naming it', !r.ok && r.reason === 'taken' && r.other === 'reset');
+  r = pb.bindButton(resetA, 'flip', 'x');
+  check('a default button still in use is refused', !r.ok && r.other === 'replay');
+  for (const name of ['start', 'back', 'lb', 'rb', 'up', 'rt', 'ls', 'rs', 'nope']) {
+    check(`a reserved or unknown button (${name}) is refused`, pb.bindButton(resetA, 'flip', name).reason === 'reserved');
+  }
+  r = pb.bindButton(resetA, 'replay', 'y');
+  check('moving onto the default of another refuses', !r.ok && r.other === 'swap');
+  const onCub = pb.bindButton(resetA, 'swap', 'a', 'cub1400');
+  const ownCub = pb.bindButton(resetA, 'swap', 'rt', 'cub1400');
+  const freeCub = pb.bindButton(undefined, 'swap', 'a', 'cub1400');
+  check('per aircraft, the same rules as the keys', !onCub.ok && onCub.other === 'reset' && ownCub.reason === 'reserved'
+    && freeCub.ok && pb.effectiveButtons(freeCub.binds, 'cub1400').swap === 'a' && pb.effectiveButtons(freeCub.binds, 'extra3d1308').swap === 'y');
+  check('a reset puts the default back', show(pb.resetButton(resetA, 'reset')) === show(pb.emptyPadbinds()));
+  check('binding replay to its own X stores nothing', show(pb.bindButton(undefined, 'replay', 'x').binds) === show(pb.emptyPadbinds()));
+  check('junk reads entry by entry', show(pb.normalisePadbinds({ all: { reset: 'a', flip: 'start', nope: 'b', talk: 'lt' }, by: { 'Bad Id': { gear: 'a' } } }))
+    === show({ v: 1, all: { reset: 'a' }, by: {} }));
+  check('no field, nothing moved', !pb.hasPadbinds(pb.normalisePadbinds(undefined)));
+
+  const pad = gamepad();
+  const b = new Bench(pad);
+  const heard = [];
+  b.im.onKey = (code) => heard.push(code);
+  let binding = { binds: resetA, airframe: 'cub1400', flight: true };
+  b.im.padBinding = () => binding;
+  const press = (name, on) => {
+    pad.buttons[{ a: 0, b: 1, x: 2, y: 3, lt: 6 }[name]] = { pressed: on, value: on ? 1 : 0 };
+    pad.timestamp += 1;
+    b.tick();
+  };
+  press('a', true);
+  check('in flight a bound button arrives as its key: heard once, held', show(heard) === show(['KeyR']) && b.im.keys.has('KeyR') && b.im.actionHeld('reset'));
+  b.tick();
+  check('held, it is not heard again', heard.length === 1);
+  press('a', false);
+  check('released, the key is let go', !b.im.keys.has('KeyR'));
+  binding = { ...binding, flight: false };
+  press('a', true);
+  check('off the flight screen it is nothing', heard.length === 1 && !b.im.keys.has('KeyR'));
+  press('a', false);
+  binding = { ...binding, flight: true };
+  const kbd = (code, down) => (down ? b.im.keyDown({ code, repeat: false, target: null, preventDefault() {} })
+    : b.im.keyUp({ code, target: null }));
+  kbd('KeyR', true);
+  press('a', true);
+  press('a', false);
+  check('the pad let go while the keyboard still holds R: R stays held', b.im.keys.has('KeyR'));
+  kbd('KeyR', false);
+  check('then the key let go: gone', !b.im.keys.has('KeyR'));
+
+  const before = heard.length;
+  for (const [id, name] of [['replay', 'x'], ['talk', 'lt'], ['swap', 'y'], ['foot', 'b']]) {
+    press(name, true);
+    const on = b.im.padAction(id);
+    press(name, false);
+    check(`${id} reads its default ${name.toUpperCase()} by name`, on && !b.im.padAction(id));
+  }
+  check('the pad-only actions and the stepping out do not arrive as keys', heard.length === before && !b.im.keys.has('Digit1'), show(heard));
+  binding = { binds: pb.bindButton(pb.bindButton(undefined, 'talk', 'a').binds, 'swap', 'lt').binds, airframe: null, flight: true };
+  press('a', true);
+  check('talk moved to A reads A', b.im.padAction('talk') && b.im.padActionLabel('talk') === 'A');
+  press('a', false);
+  press('lt', true);
+  check('swap moved to the left trigger: the flight swap opens on it', b.im.padSwapButtons().open === true && !b.im.padAction('talk'));
+  press('lt', false);
+  press('b', true);
+  check('foot reads through the table too', b.im.padFootButton() === true);
+  press('b', false);
+
+  const r2 = radio([0, 0, -1, 0], 17);
+  const rb = new Bench(r2);
+  rb.im.padBinding = () => ({ binds: resetA, airframe: null, flight: true });
+  const rheard = [];
+  rb.im.onKey = (code) => rheard.push(code);
+  r2.buttons[0] = { pressed: true, value: 1 };
+  r2.buttons[2] = { pressed: true, value: 1 };
+  r2.timestamp += 1;
+  rb.tick();
+  check('a radio\'s switches are never actions: nothing heard, replay not pressed', rheard.length === 0 && !rb.im.padAction('replay') && rb.im.standardPad() === null);
+
+  heading('phase 20: the turtle pokes with the keys of the pilot\'s roll and pitch');
+  const kb2 = new Bench(null);
+  const hold = (code) => kb2.im.keyDown({ code, repeat: false, target: null, preventDefault() {} });
+  const free = (code) => kb2.im.keyUp({ code, target: null });
+  hold('ArrowRight');
+  hold('ArrowUp');
+  check('Mode 2: the arrows, right and up as before', kb2.im.keyPush('roll') === 1 && kb2.im.keyPush('pitch') === -1);
+  hold('ArrowLeft');
+  hold('ArrowDown');
+  check('right beats left and down beats up, as before', kb2.im.keyPush('roll') === 1 && kb2.im.keyPush('pitch') === 1);
+  ['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown'].forEach(free);
+  check('nothing held, no push', kb2.im.keyPush('roll') === 0 && kb2.im.keyPush('pitch') === 0);
+  kb2.im.setStickMode(1);
+  hold('ArrowUp');
+  check('Mode 1: the right stick\'s up is throttle, not a pitch poke', kb2.im.keyPush('pitch') === 0);
+  free('ArrowUp');
+  hold('KeyW');
+  check('Mode 1: W is the pitch poke', kb2.im.keyPush('pitch') === -1);
+  free('KeyW');
+}
+
+heading('phase 20: a sweep that never completes names the axis that never moved');
+{
+  /* A radio with a dead fourth channel: the three live axes swept to both
+   * ends, the fourth frozen at rest. */
+  const b = new Bench(radio([0, 0, -1, 0]));
+  b.im.startCalibration();
+  check('the centre settles', b.reach('sweep'));
+  b.sweep([0, 1, 2]);
+  b.run(3000);
+  check('three seconds short: no name yet, the keep going hint', b.view.stuck.length === 0 && /Keep going/.test(b.view.hint), b.view.hint);
+  b.run(6000);
+  const v = b.view;
+  check('past eight seconds: axis 4 is named, as an axis (an unrecognised radio\'s map is a guess)',
+    show(v.stuck) === show([{ axis: 3, channel: null }]) && /axis 4/.test(v.hint) && /stuck/.test(v.hint), `${show(v.stuck)} ${v.hint}`);
+  b.sweep([3]);
+  b.run(1000);
+  check('swept at last: the wizard moves on and the name goes', b.view.step !== 'sweep' && b.view.stuck.length === 0, b.view.step);
+
+  const p = new Bench(gamepad());
+  p.im.startCalibration();
+  p.reach('sweep');
+  p.sweep([1, 2, 3]);
+  p.run(9000);
+  check('a standard pad in Mode 2: the frozen left stick across is named yaw (axis 1)',
+    show(p.view.stuck) === show([{ axis: 0, channel: 'yaw' }]) && /yaw \(axis 1\)/.test(p.view.hint), `${show(p.view.stuck)} ${p.view.hint}`);
+}
+
+heading('phase 20: the flying device goes mid flight');
+{
+  const pad = radio([0, 0, -1, 0]);
+  const list = [pad];
+  const b = new Bench(list);
+  b.im.setPadChoice({ kind: 'pad', id: pad.id, index: 0 });
+  b.run(200);
+  /* AETR: roll 0, pitch 1, throttle 2, yaw 3. */
+  b.set(2, 0.2);
+  b.set(0, 0.6);
+  b.set(3, -0.5);
+  b.run(300);
+  const before = { ...b.im.channels };
+  check('flying on the radio: rolled, yawed, throttle up', before.roll > 0.3 && before.yaw < -0.3 && before.throttle > 0.4, show(before));
+  check('no loss while it is here', b.im.takeDeviceLoss() === false);
+  list.length = 0;
+  b.tick();
+  check('unplugged: the loss is reported once', b.im.takeDeviceLoss() === true && b.im.takeDeviceLoss() === false);
+  b.run(2000);
+  const after = b.im.channels;
+  check('the sticks centre and the throttle holds where the radio left it, for two seconds',
+    after.roll === 0 && after.pitch === 0 && after.yaw === 0 && Math.abs(after.throttle - before.throttle) < 1e-9, show({ before, after }));
+  check('nothing is queued with no device left to pick', b.im.takePadPickQueue() === null);
+
+  /* A pilot who flew the keys' collective before plugging the radio in:
+   * the loss must not hand the throttle back to that collective's spring. */
+  const late = [];
+  const k = new Bench(late);
+  k.im.keyDown({ code: 'KeyW', repeat: false, target: null, preventDefault() {} });
+  k.run(400);
+  k.im.keyUp({ code: 'KeyW', target: null });
+  k.run(100);
+  const radioLate = radio([0, 0, 0.2, 0]);
+  late.push(radioLate);
+  k.run(300);
+  const flying = k.im.channels.throttle;
+  late.length = 0;
+  k.run(2000);
+  check('keys flown before the radio: the throttle still holds after the loss',
+    k.im.takeDeviceLoss() === true && flying > 0.4 && Math.abs(k.im.channels.throttle - flying) < 1e-9, show({ flying, after: k.im.channels.throttle }));
+
+  const two = [radio([0, 0, -1, 0], 0, 'Radio A'), radio([0, 0, -1, 0], 0, 'Radio B')];
+  two[1].index = 1;
+  const t = new Bench(two);
+  t.im.setPadChoice({ kind: 'pad', id: 'Radio A', index: 0 });
+  t.run(200);
+  t.im.takePadPickQueue();
+  two.splice(0, 1);
+  t.tick();
+  check('with another device left: the loss is reported and the picker is queued as missing',
+    t.im.takeDeviceLoss() === true && t.im.takePadPickQueue() === 'missing');
+  check('and the keyboard flies meanwhile, centred', t.im.channels.roll === 0 && t.im.firstGamepad() === null);
 }
 
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);

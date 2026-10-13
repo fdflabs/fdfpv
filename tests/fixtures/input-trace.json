@@ -65,27 +65,27 @@
  },
  "calibration: radio with yaw on axis 4, parked throttle": {
   "rows": 445,
-  "hash": "76a22afec914ffb73cb782ec8e1bc2daed5ba56b813ba6cef1c42f0ab10d1994"
+  "hash": "4fc054071ad1afc83d165fc5c960bb5d9811bbe8825d56a8387924b3cbcc108a"
  },
  "calibration: gamepad with a sprung throttle, reverse and zero": {
   "rows": 445,
-  "hash": "1173e992df62e2beb12252e3cd671f60067be87cd6e5c354f0c783bf8b7ebda8"
+  "hash": "c09d24bfcde0dd85d3a95f3e10adb91f578364f3ab30996fe2b192f2c8ca9092"
  },
  "calibration: no buttons, a spare axis, the menu switch": {
   "rows": 497,
-  "hash": "9a2e0d3c44de642bbecd8fa813d1d3653cd0998872a0d4a0191f3b1530033d0e"
+  "hash": "7de95f3d3612e39b33f934900009b3fcef8e59ce411c4ad3055097897542d79b"
  },
  "calibration: skipping the menu switch, cancelling, no radio": {
   "rows": 457,
-  "hash": "e9f13d1ed06e10c831f076f5a6e3ad398dae26603bdb053849269d6eac05e82c"
+  "hash": "22b26fc060e56e43211e3c8213afe70f97644e5cd3463b8be5c1c4afa90a6dfe"
  },
  "calibration: a sprung throttle held down, a diagonal, a lopsided gimbal": {
   "rows": 289,
-  "hash": "1931810e2cac22a41fd14e6979c7dd521e68543b2eb73fd985681fee4e30e4a9"
+  "hash": "6efc2dfe87081ed7ef931564c8743b7962990299ac423b5c77f23e4903ab1122"
  },
  "calibration: the throttle parks somewhere new after the sweep": {
   "rows": 224,
-  "hash": "a9bdca791095327ced6610341f448731b1e8d6a9e969b1644ba3449e06b4279e"
+  "hash": "862d3f0186475f2c5978cf6c4abf74ba981444d62da5de68c8b73f3d242b9bf5"
  },
  "joystick picker": {
   "rows": 268,
