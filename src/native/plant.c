@@ -2195,6 +2195,14 @@ static const PlantParams *plant_tune_over(const PlantParams *base) {
   const double *t = g_tune;
   g_fw_tune = *base->fw;
   g_fw_tune.cg_shift = base->fw->cg_shift + t[SIM_TUNE_CG_SHIFT];
+  /* The AR631 learns the travel with the rates at their most ("Relearn
+   * Servo Settings" after "travel" changes, the AR631 manual; "Learn
+   * Travel ... after maximizing the rates", the AS3000 manual): the
+   * throws under the tuning, which the tuning's rates take a share of. */
+  const double travel[3] = { base->fw->throw_a, base->fw->throw_e, base->fw->throw_r };
+  for (int i = 0; i < 3; i += 1) {
+    g_fw_tune.as3x_travel[i] = base->fw->as3x_travel[i] > 0.0 ? base->fw->as3x_travel[i] : travel[i];
+  }
   g_fw_tune.throw_a = t[SIM_TUNE_THROW_A];
   g_fw_tune.throw_e = t[SIM_TUNE_THROW_E];
   g_fw_tune.throw_r = t[SIM_TUNE_THROW_R];

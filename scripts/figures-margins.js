@@ -39,6 +39,21 @@
  * not taken; the kr at a speed is the least of the lines'. Like the
  * elevator's, the trim's integral (LINE_KI) is not in the loop measured.
  *
+ * The line hold's ailerons (figureprograms.js LINE_AIL): the wings held
+ * square to the line's plane (lineBank) on personLoop at PERSON's pace,
+ * a look every 100 ms, its 0.25 s of delay and hold and its trim's
+ * integral. Measured on each aircraft at 8 to 30 m/s up and down the
+ * vertical and the 45, on settleLine's flights (the rudder's), the
+ * ailerons swept on a roll hold of their own (AIL_HOLD). Up the lines
+ * the bank per aileron is an integrator to 12 rad/s, 90 to 102 deg
+ * behind. The down lines settle only where idle holds the dive's speed
+ * (of all of them, the Extra's 45 at 30 m/s); elsewhere they speed up,
+ * and their wash is the idle's, weaker than the climb's, so the plant
+ * gain the design takes off the lines that settle is the higher. At
+ * each speed, the highest crossover from 0.8 to 4 rad/s whose loop keeps
+ * the criterion on every line there at the highest plant gain of them,
+ * pointStopDesign's rule; [V, wc, gain] by speed, straight between.
+ *
  * The point's stop (figureprograms.js POINT_STOP): the bank held on the
  * ailerons at a point, a proportional loop at PERSON's pace (a look
  * every 100 ms, its 0.25 s of delay and hold), on each aircraft at its
@@ -102,9 +117,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
-import { must, attitude, responseAt, crossoverFor, hangSticks, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME } from '../tests/lib/wingpilot.js';
+import {
+  must, attitude, responseAt, crossoverFor, hangSticks, leadDesign, PERSON_LEADS, TAU_PERSON, EXTRA_AIRFRAME, CAP_AIRFRAME, SLICK_AIRFRAME,
+} from '../tests/lib/wingpilot.js';
 import { PERSON } from '../tests/lib/personpilot.js';
-import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP, HOVER } from '../tests/lib/figureprograms.js';
+import { EVERY, LINE_GAINS, LINE_PITCH_K, LINE_GM, lineKr, LINE_YAW_KR, KNIFE, KNIFE_LOOP, LEVEL_THROTTLE, SEATED, POINT_STOP, HOVER, LINE_AIL, lineBank } from '../tests/lib/figureprograms.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -284,7 +301,11 @@ export async function levelThrottle(airframe) {
  * not settle at V or the phase does not reach -180 deg by 20 rad/s. */
 export const YAW_SPEEDS = [8, 14, 18, 22, 26, 30];
 export const YAW_LINES = [90, 45, 0, -45];
-function yawPoint(sim, airframe, pitchDeg, V) {
+/* A line held at `pitchDeg` and V by an attitude hold with no delay, the
+ * throttle on the speed, each trim's integral settled over 40 s: its
+ * start and hold for responseAt, or null where the speed does not settle
+ * within a metre a second of V. */
+function settleLine(sim, airframe, pitchDeg, V) {
   const h = pitchDeg * Math.PI / 360;
   const target = [Math.cos(2 * h), 0, Math.sin(2 * h)];
   const trim = { thr: 0.5, p: 0, y: 0 };
@@ -325,6 +346,12 @@ function yawPoint(sim, airframe, pitchDeg, V) {
   }
   if (hi - lo > 1 || Math.abs((hi + lo) / 2 - V) > 1) return null;
   Object.assign(trim, it);
+  return { start, hold };
+}
+function yawPoint(sim, airframe, pitchDeg, V) {
+  const line = settleLine(sim, airframe, pitchDeg, V);
+  if (!line) return null;
+  const { start, hold } = line;
   const kp = LINE_GAINS.kp;
   let prev = null;
   for (let i = 4; i <= 80; i += 2) {
@@ -345,6 +372,76 @@ function yawPoint(sim, airframe, pitchDeg, V) {
     prev = now;
   }
   return null;
+}
+
+export const AIL_LINES = [90, 45, -45, -90];
+/* The roll hold the aileron's sweep is flown on: the line's own (a gain
+ * of 1 on the bank, 0.12 on the rate) nearly cancels the sweep above 6
+ * rad/s, where the response read off it climbs to 13 times its value
+ * and its phase falls through -180 deg within a rad/s, a hold that does
+ * not hold still, not the ailerons'; on this one, or on 0.3 and 0.01,
+ * the response is the same to the digit and a plain integrator to 12
+ * rad/s. */
+const AIL_HOLD = [0.5, 0.03];
+/* The margins of personLoop's loop at crossover wc on plant gain `gain`
+ * (its trim's integral at wc / 4, PERSON's 0.25 s of delay and hold) on
+ * one measured grid, and whether it keeps the criterion: 45 deg, 6 dB,
+ * and above the crossover never back to unity nor past half beyond -180
+ * deg, crossoverFor's. */
+function personMargins(g, wc, gain) {
+  const L = g.map((x) => {
+    const i = wc / (4 * x.w);
+    return { w: x.w, mag: (wc / gain) * x.mag * Math.hypot(1, i), phase: x.phase - x.w * TAU_PERSON - Math.atan(i) };
+  });
+  const cross = L.find((l) => l.w >= wc - 1e-9 && l.mag < 1) ?? L[L.length - 1];
+  const turn = L.find((l) => l.w > cross.w && l.phase <= -Math.PI);
+  const pmDeg = (Math.PI + cross.phase) * 180 / Math.PI;
+  const gmDb = turn ? -DB(turn.mag) : null;
+  const above = L.filter((l) => l.w > cross.w + 1e-9);
+  const meets = pmDeg >= 45 && (gmDb === null || gmDb >= 6) && above.every((l) => l.mag < 1 && (l.phase > -Math.PI || l.mag <= 0.5));
+  return { pmDeg, gmDb, meets };
+}
+/* Each aircraft's aileron design by speed: at each speed, the highest
+ * crossover from 0.8 to 4 rad/s whose loop, on the highest plant gain of
+ * the lines that settle there, keeps the criterion on every one of them,
+ * pointStopDesign's rule; and the worst margins there. */
+export async function lineAileron(airframe) {
+  const sim = await fresh();
+  const out = [];
+  const lines = {};
+  for (const V of YAW_SPEEDS) {
+    const grids = [];
+    for (const pitchDeg of AIL_LINES) {
+      const line = settleLine(sim, airframe, pitchDeg, V);
+      if (!line) {
+        lines[`${pitchDeg} deg ${V} m/s`] = null;
+        continue;
+      }
+      const hold = (st) => {
+        const u = line.hold(st);
+        u[0] = clip(-AIL_HOLD[0] * lineBank(st) - AIL_HOLD[1] * st[11]);
+        return u;
+      };
+      const g = [];
+      for (let i = 2; i <= 60; i += 1) g.push({ w: i / 5, ...responseAt(sim, line.start, hold, i / 5, 0, lineBank) });
+      for (let i = 1; i < g.length; i += 1) g[i].phase = g[i - 1].phase + Math.atan2(Math.sin(g[i].phase - g[i - 1].phase), Math.cos(g[i].phase - g[i - 1].phase));
+      grids.push(g);
+      lines[`${pitchDeg} deg ${V} m/s`] = { gainAt2: Number((g.find((x) => Math.abs(x.w - 2) < 1e-9).mag * 2).toFixed(3)) };
+    }
+    if (!grids.length) continue;
+    let best = null;
+    for (let i = 4; i <= 20; i += 1) {
+      const wc = i / 5;
+      const gain = Math.max(...grids.map((g) => g.find((x) => Math.abs(x.w - wc) < 1e-9).mag * wc));
+      const ms = grids.map((g) => personMargins(g, wc, gain));
+      if (ms.every((m) => m.meets)) {
+        best = { wc, gain: Number(gain.toFixed(3)), pmDeg: Number(Math.min(...ms.map((m) => m.pmDeg)).toFixed(1)),
+          gmDb: Number(Math.min(...ms.map((m) => m.gmDb ?? Infinity)).toFixed(1)) };
+      }
+    }
+    out.push({ V, lines: grids.length, ...(best ?? { wc: null, gain: null }) });
+  }
+  return { airframe, schedule: out, lines };
 }
 
 /* Each aircraft's point stop (see the head): its design and the worst
@@ -536,28 +633,30 @@ export async function knifeLoopPath() {
  * nose's tilt about the body pitch axis on the elevator and about the yaw
  * axis on the rudder, the roll rate on the ailerons, the climb rate on the
  * throttle. Holding the swept flight on the person's own loops instead
- * (their 0.2 s, at HOVER's gains) moves the response by a few per cent:
- * the Extra's rudder 0.72 at -103 deg at 2.4 rad/s against 0.70 at -105,
- * 2026-10-12. A looser hold with no delay lets the flight wander off the
- * hover under the sweep, and its grid jumps, as yawPoint rejects.
+ * (their 0.2 s, at HOVER's gains) moved the response by a few per cent
+ * on the plant of 2026-10-12: the Extra's rudder 0.72 at -103 deg at 2.4
+ * rad/s against 0.70 at -105. A looser hold with no delay lets the
+ * flight wander off the hover under the sweep, and its grid jumps, as
+ * yawPoint rejects.
  *
  * The design is crossoverFor's, the bandwidth criterion's 45 deg and 6 dB
  * on the loop as flown (personLoop's gain, its trim's integral cornered at
  * a quarter of the crossover, the 0.25 s of delay and hold), the highest
  * crossover from 0.8 to 4 rad/s whose loop keeps them and above it never
  * comes back to unity, nor past half beyond -180 deg. The rate loops are
- * flown on a gain. The tilt is a double integrator below 0.6 rad/s, where
- * crossoverFor's check reads its -180 deg as the wrong sense, and from 0.8
- * to 4 rad/s 105 to 156 deg behind, so a gain keeps under 35 deg: the
- * person adds lead (s), from 0 to 0.5 by 0.05, the plant flown being the
- * tilt plus lead times its rate. Where no crossover and lead keep the
- * criterion, the design is the one with the most gain margin at 45 deg of
- * phase (or, where none reaches 45 deg, the most phase), flown and marked
- * short. torque: the roll rate hanging still with
- * the ailerons let go, the mean over 3 to 6 s, E8's.
+ * flown on a gain. The tilt hangs on the hover's own swing below about 1.5
+ * rad/s (the drift the tilt starts, which the jet's force at the disc
+ * turns back), and from 2 to 4 rad/s it is 113 to 148 deg behind, so on a
+ * gain alone the crossover stays at 0.8 to 1.4 rad/s, or short of the
+ * criterion on the CAP's rudder and the Slick: the person adds lead (s),
+ * from 0 to 0.5 by 0.05, the plant flown being the tilt plus lead times
+ * its rate. Where no crossover and lead keep the criterion, the design
+ * is the one with the most gain margin at 45 deg of phase (or, where none
+ * reaches 45 deg, the most phase), flown and marked short. torque: the
+ * roll rate hanging still with the ailerons let go, the mean over 3 to 6
+ * s, E8's.
  */
-const HOVER_LEADS = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
-const PERSON_TAU = (PERSON.delayMs + PERSON.everyMs / 2) / 1000;
+const HOVER_LEADS = PERSON_LEADS;
 function hoverRig(airframe) {
   const stick = SEATED[airframe].hover;
   let iT = stick;
@@ -595,39 +694,6 @@ function hoverGrid(sim, rig, axis, read) {
   for (const x of g) x.phase += shift;
   return g;
 }
-/* The loop as flown at crossover wc with lead on the grid: its margins
- * and whether it keeps the criterion. */
-function leadLoop(g, wc, lead) {
-  const c = g.find((x) => Math.abs(x.w - wc) < 1e-9);
-  const k = 1 / (c.mag * Math.hypot(1, lead * wc));
-  const L = g.map((x) => {
-    const i = wc / (4 * x.w);
-    return { w: x.w, mag: k * x.mag * Math.hypot(1, lead * x.w) * Math.hypot(1, i), phase: x.phase + Math.atan(lead * x.w) - x.w * PERSON_TAU - Math.atan(i) };
-  });
-  const cross = L.find((l) => l.w >= wc - 1e-9 && l.mag < 1) ?? L[L.length - 1];
-  const turn = L.find((l) => l.w > cross.w && l.phase <= -Math.PI);
-  const pmDeg = (Math.PI + cross.phase) * 180 / Math.PI;
-  const gmDb = turn ? -DB(turn.mag) : null;
-  const above = L.filter((l) => l.w > cross.w + 1e-9);
-  const meets = pmDeg >= 45 && (gmDb === null || gmDb >= 6) && above.every((l) => l.mag < 1 && (l.phase > -Math.PI || l.mag <= 0.5));
-  return { wc, gain: Number((c.mag * Math.hypot(1, lead * wc) * wc).toFixed(3)), lead, pmDeg: Number(pmDeg.toFixed(1)), gmDb: gmDb === null ? null : Number(gmDb.toFixed(1)), meets };
-}
-function hoverDesign(g, leads) {
-  let best = null;
-  let fallback = null;
-  for (const lead of leads) {
-    for (let i = 4; i <= 20; i += 1) {
-      const l = leadLoop(g, i / 5, lead);
-      if (l.meets && (!best || l.wc > best.wc || (l.wc === best.wc && l.pmDeg > best.pmDeg))) best = l;
-      const gm = l.gmDb ?? Infinity;
-      const better = !fallback || (l.pmDeg >= 45 ? fallback.pmDeg < 45 || gm > (fallback.gmDb ?? Infinity) : fallback.pmDeg < 45 && l.pmDeg > fallback.pmDeg);
-      if (better) fallback = l;
-    }
-  }
-  const pick = best ?? fallback;
-  const { meets, ...rest } = pick;
-  return { ...rest, short: !best };
-}
 export async function hoverLoops(airframe) {
   const sim = await fresh();
   const rig = hoverRig(airframe);
@@ -639,7 +705,7 @@ export async function hoverLoops(airframe) {
   };
   const out = { airframe };
   for (const [name, [axis, read, leads]] of Object.entries(axes)) {
-    const d = hoverDesign(hoverGrid(sim, rig, axis, read), leads);
+    const d = leadDesign(hoverGrid(sim, rig, axis, read), leads);
     out[name] = name === 'roll' || name === 'climb' ? (({ lead, ...r }) => r)(d) : d;
   }
   rig.start(sim);
@@ -694,10 +760,15 @@ export async function measureMargins() {
   for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
     hovers[name] = await hoverLoops(airframe);
   }
+  const lineAilerons = {};
+  for (const [name, airframe] of [['extra', EXTRA_AIRFRAME], ['cap', CAP_AIRFRAME], ['slick', SLICK_AIRFRAME]]) {
+    lineAilerons[name] = await lineAileron(airframe);
+  }
   return {
     levelThrottle: levelThrottles,
     hover: hovers,
     lineRudder: lineRudders,
+    lineAileron: lineAilerons,
     pointStop: pointStops,
     knife: await knifeLoops(),
     knifeLoop: { path: await knifeLoopPath() },
@@ -742,6 +813,11 @@ export function marginFailures(m) {
   for (const [name, r] of Object.entries(m.lineRudder)) {
     if (JSON.stringify(LINE_YAW_KR[r.airframe]) !== JSON.stringify(r.kr)) out.push(`figureprograms.js LINE_YAW_KR for the ${name} ${JSON.stringify(LINE_YAW_KR[r.airframe])} is not the plant's ${JSON.stringify(r.kr)}`);
   }
+  for (const [name, a] of Object.entries(m.lineAileron)) {
+    const got = a.schedule.map((x) => [x.V, x.wc, x.gain]);
+    if (JSON.stringify(LINE_AIL[a.airframe]) !== JSON.stringify(got)) out.push(`figureprograms.js LINE_AIL for the ${name} ${JSON.stringify(LINE_AIL[a.airframe])} is not the plant's ${JSON.stringify(got)}`);
+    for (const x of a.schedule) if (x.wc === null) out.push(`the line's ailerons on the ${name} at ${x.V} m/s keep the criterion at no crossover`);
+  }
   for (const [name, h] of Object.entries(m.hover)) {
     const pin = HOVER[h.airframe];
     for (const loop of HOVER_AXES) {
@@ -777,6 +853,7 @@ if (main) {
   }
   for (const [name, d] of Object.entries(m.pointStop)) console.log(`point stop, the ${name}: ${d.wc} rad/s on a plant gain of ${d.gain}, PM ${d.pmDeg} deg, GM ${d.gmDb} dB at the worst of eight banks`);
   for (const [name, r] of Object.entries(m.lineRudder)) console.log(`line rudder, the ${name}: kr ${r.kr.map(([v, k]) => `${k} at ${v}`).join(', ')} m/s`);
+  for (const [name, a] of Object.entries(m.lineAileron)) console.log(`line ailerons, the ${name}: ${a.schedule.map((x) => `${x.V} m/s ${x.wc} rad/s on ${x.gain} (PM ${x.pmDeg} deg, GM ${x.gmDb} dB, ${x.lines} lines)`).join('; ')}`);
   for (const [name, l] of Object.entries(m.levelThrottle)) console.log(`level at 22 m/s, the ${name}: throttle ${l.throttle} (settles at ${l.speed} m/s)`);
   for (const name of ['bank', 'elevation', 'heading']) {
     const k = m.knife[name];

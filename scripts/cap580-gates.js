@@ -320,19 +320,19 @@ check: {
     const m = harrier(0);
     /* Damping the rock with the sticks held on it is the Heading's (the
      * AR631's "make the aircraft hold its attitude when control input is
-     * neutral", "defaulted to zero"), and the CAP's measured full Heading
-     * is about nothing: its dampers sit on their margin, so as3x:derive
-     * leaves no Heading under the rule (0.0083, 0.0169, 0.0046). C11b
-     * flies it at that full Heading and records the rock against
-     * Manual's; it judges only the height, not a hold the airframe cannot
-     * have (lead decision 2026-10-12). */
+     * neutral", "defaulted to zero"). C11b flies the CAP at its full
+     * Heading and records the rock against Manual's; it judges only the
+     * height (lead decision 2026-10-12). Since w38-as3x-travel the full
+     * Heading is held by as3x:derive to E11b's kick on this harrier,
+     * and at every tenth of it (as3x:tenths), 0.42 and 0.42 of Manual's
+     * at the full when derived (w38-as3x-partial). */
     must(sim.setHeading([1, 1, 1]), 'sim_wing_set_heading');
     const g = harrier(3);
     must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
     gate('C11', 'harrier: level at 40 deg of alpha', m.v >= t11.vMin && m.v <= t11.vMax && m.d >= t11.dutyMin && m.d <= t11.dutyMax && m.e < 1 && m.worstBank <= t11.maxBankDeg && m.drift <= t11.maxHeightDrift,
       `${m.v.toFixed(2)} m/s at throttle ${m.d.toFixed(3)}, alpha ${m.a.toFixed(1)} deg, elevator stick ${m.e.toFixed(2)}, bank under ${m.worstBank.toFixed(1)} (sd ${m.spread.toFixed(1)}), height within ${m.drift.toFixed(2)} m`,
       `${t11.vMin} to ${t11.vMax} m/s, ${t11.dutyMin} to ${t11.dutyMax}, elevator short of full, bank under ${t11.maxBankDeg}, within ${t11.maxHeightDrift} m`);
-    gate('C11b', 'harrier in AS3X at its full Heading, about none: flown, the rock recorded', g.drift <= t11.maxHeightDrift,
+    gate('C11b', 'harrier in AS3X at its full Heading: flown, the rock recorded', g.drift <= t11.maxHeightDrift,
       `bank sd ${g.spread.toFixed(1)} against Manual's ${m.spread.toFixed(1)}, worst ${g.worstBank.toFixed(1)}, height within ${g.drift.toFixed(2)} m`,
       `within ${t11.maxHeightDrift} m; the rock recorded, not judged`);
   }
@@ -413,25 +413,27 @@ check: {
   }
 
   /* C14: full throttle from standing, the take off sticks of
-   * wingpilot.js; liftoff is the last step on the wheels before 200 ms
-   * clear of them. */
+   * wingpilot.js. Liftoff is where sustained flight begins: the last
+   * step on the wheels, clear of them from then on and climbing, here to
+   * LIFTOFF_CLIMB over the wheels' last height. At
+   * full throttle on its tail the CAP's thrust and the wing in the wash
+   * carry it off the wheels at 7 m/s for a few hundred milliseconds
+   * before it flies (0.36 to 0.64 s, about 4 cm up), which the gate's
+   * earlier 200 ms clear read as the liftoff. */
   {
     const t14 = th.c14_takeoff;
+    const LIFTOFF_CLIMB = 2;
     onStrip();
     for (let ms = 0; ms < 1000; ms += RC_STEP_MS) step(sim, [0, 0, 0, 0]);
     const x0 = sim.readState().state[1];
     let last = null;
-    let off = 0;
     let lof = null;
     for (let ms = 0; ms < 6000 && !lof; ms += RC_STEP_MS) {
       const s = step(sim, [...capTakeoffSticks(sim.readState().state), 1]);
-      const loaded = wheelLoads(sim).some((f) => f > 0);
-      if (loaded) {
-        last = { dist: s[1] - x0, v: speed(s), t: ms / 1000, y: s[2] };
-        off = 0;
-      } else {
-        off += RC_STEP_MS;
-        if (off >= 200) lof = last;
+      if (wheelLoads(sim).some((f) => f > 0)) {
+        last = { dist: s[1] - x0, v: speed(s), t: ms / 1000, y: s[2], z: s[3] };
+      } else if (last && s[3] >= last.z + LIFTOFF_CLIMB) {
+        lof = last;
       }
     }
     gate('C14', 'takes off, tail up, from standing', lof != null && lof.dist >= t14.distMin && lof.dist <= t14.distMax,

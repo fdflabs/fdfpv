@@ -434,6 +434,12 @@ function ratesPage(h, box) {
   table.append(plot);
   box.append(table);
   box.append(el('p', 'tn-caption', str('tuning.curve')));
+  /* An AS3X receiver reads the stick through the rate (plant_wing.c
+   * as3x_channel): under half the travel, E-flite's AS3X note. */
+  const high = throwsFor(T.id, 'high', tierHigh());
+  if (hasHeading(T.id) && throws.some((d, i) => high[i] > 0 && d < 0.5 * high[i])) {
+    box.append(el('p', 'tn-caption', str('tuning.as3x_low_rate')));
+  }
 
   box.append(el('h3', 'hangar-h', str('tuning.expo')));
   SURFACES.forEach((k, i) => {

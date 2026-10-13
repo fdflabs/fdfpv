@@ -22,7 +22,7 @@
 
 /*
  * Allen and Perkins' crossflow coefficient, 1.2 (NACA TR 1048), is a
- * circular cylinder's. The drawn 3D fuselages are rounded boxes,
+ * circular cylinder's. The drawn fuselages are rounded boxes, mostly
  * superellipses |y/w|^e + |z/h|^e = 1 with e 2 to 3.8, deeper than they
  * are wide. Delany and Sorensen, NACA TN 3038 (1953), Table I, at R = 1e5,
  * the drag on the frontal width: the circle 1.0; the ellipse of fineness
@@ -39,48 +39,97 @@
  * give no shape between them. Finer than 1:2 (the thin tail posts) is
  * taken at 1:2's 1.6, a lower bound: Table I's sharp edged 1:2 rectangle
  * is already 2.2.
+ *
+ * Squarer than e 4 (the Kadet's box at e 5) and the drawn rounded
+ * rectangles (the Ugly Stik's, a quarter inch on every corner), Table I's
+ * sharper rectangles, the corner radius over the section's shorter side,
+ * rho (r/b of a square; twice Table I's r/b on the 1:2, whose b is the
+ * long side): 1:2 rho 0.042 2.2, 0.167 1.9; 1:1 rho 0.021 2.0, 0.167 1.2;
+ * 2:1 rho 0.042 1.4, 0.167 0.7. The 1:1's and 2:1's 0.167 are at R 2e5,
+ * Table I's footnote, the rest at 1e5; a sharp cornered section separates
+ * at its corners at either. The 2:1 rectangle at rho 0.5 (0.4) is a
+ * stadium, not a superellipse, and is left out: e 2 there is the 2:1
+ * ellipse's 0.6. Linear in rho between those and on to each fineness's
+ * value at e 4's rho, where the sections above take it: FITTED, so a
+ * section of e 4 or rounder is what it was before the sharper ones came
+ * in (the 1:1's measured 1.0 is at rho 0.333, the join puts it at 0.27).
+ * Sharper than the sharpest measured, that one's.
  */
 const FINENESS = [0.5, 1.0, 2.0];
 const OVER_CIRCLE = [1.6, 1.0, 0.6];
-const E_MAX = 4.0;
+const SHARP = [
+  [[0.042, 2.2], [0.167, 1.9]],
+  [[0.021, 2.0], [0.167, 1.2]],
+  [[0.042, 1.4], [0.167, 0.7]],
+];
+
+/* The corner radius over the side of the rounded square a superellipse
+ * of squareness e matches at 45 deg: 2^(-1/e) = 1 - (2 - sqrt 2) rho. */
+export function cornerOf(e) {
+  if (!(e >= 2)) throw new Error(`crossflow: squareness ${e} is pinched, not a rounded box`);
+  return (1 - 2 ** (-1 / e)) / (2 - Math.SQRT2);
+}
+const RHO_E4 = cornerOf(4.0);
+
+/* One measured fineness's ratio at corner rho. */
+function atFineness(k, rho) {
+  if (rho >= RHO_E4) return OVER_CIRCLE[k];
+  const pts = [...SHARP[k], [RHO_E4, OVER_CIRCLE[k]]];
+  if (rho <= pts[0][0]) return pts[0][1];
+  let i = 0;
+  while (rho > pts[i + 1][0]) i += 1;
+  const u = (rho - pts[i][0]) / (pts[i + 1][0] - pts[i][0]);
+  return pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u;
+}
 
 /* The drag of a section of fineness f (its width along the crossflow over
- * its depth across it) over the circle's. */
-export function sectionRatio(f) {
+ * its depth across it) and corner rho over the circle's; rho left out is
+ * a section of e 4 or rounder. */
+export function sectionRatio(f, rho = RHO_E4) {
   if (!(f > 0 && f <= FINENESS[FINENESS.length - 1])) {
     throw new Error(`crossflow: fineness ${f} is outside TN 3038's, up to 2:1`);
   }
-  if (f <= FINENESS[0]) return OVER_CIRCLE[0];
+  if (!(rho >= 0)) throw new Error(`crossflow: corner ${rho} is not a section's`);
+  if (f <= FINENESS[0]) return atFineness(0, rho);
   let i = 0;
   while (f > FINENESS[i + 1]) i += 1;
   const u = (f - FINENESS[i]) / (FINENESS[i + 1] - FINENESS[i]);
-  return OVER_CIRCLE[i] + (OVER_CIRCLE[i + 1] - OVER_CIRCLE[i]) * u;
+  return atFineness(i, rho) + (atFineness(i + 1, rho) - atFineness(i, rho)) * u;
 }
 
 /*
- * The fuselage's section ratio averaged over its side view, each station
- * weighted by its depth, as the crossflow force is. fuse: the drawn
- * model's rows, [station, half width, top, bottom, e] in metres, blended
- * between rows by smoothstep as the render's fuseAt does.
+ * A fuselage's section ratio averaged over its side view from s0 to s1,
+ * each station weighted by its depth, as the crossflow force is. at(s)
+ * gives the station's depth, fineness and corner.
  */
-export function fuselageRatio(fuse, n = 4000) {
+export function profileRatio(at, s0, s1, n = 4000) {
   let num = 0;
   let den = 0;
-  const s0 = fuse[0][0];
-  const s1 = fuse[fuse.length - 1][0];
   for (let k = 0; k < n; k += 1) {
-    const s = s0 + (s1 - s0) * (k + 0.5) / n;
+    const { depth, f, rho } = at(s0 + (s1 - s0) * (k + 0.5) / n);
+    num += depth * sectionRatio(f, rho);
+    den += depth;
+  }
+  return num / den;
+}
+
+export const smoothstep = (i, u) => u * u * (3 - 2 * u);
+
+/*
+ * The same over a drawn model's superellipse rows, [station, half width,
+ * top, bottom, e], blended between rows as its fuseAt does: blend(i, u)
+ * on row i's segment, smoothstep unless the drawing says otherwise.
+ */
+export function fuselageRatio(fuse, n = 4000, blend = smoothstep) {
+  const at = (s) => {
     let i = 0;
     while (s > fuse[i + 1][0]) i += 1;
     const a = fuse[i];
     const b = fuse[i + 1];
-    const u = (s - a[0]) / (b[0] - a[0]);
-    const t = u * u * (3 - 2 * u);
-    const at = (j) => a[j] + (b[j] - a[j]) * t;
-    if (at(4) > E_MAX) throw new Error(`crossflow: station ${s.toFixed(3)} is squarer than e ${E_MAX}`);
-    const depth = at(2) - at(3);
-    num += depth * sectionRatio((2 * at(1)) / depth);
-    den += depth;
-  }
-  return num / den;
+    const t = blend(i, (s - a[0]) / (b[0] - a[0]));
+    const lerp = (j) => a[j] + (b[j] - a[j]) * t;
+    const depth = lerp(2) - lerp(3);
+    return { depth, f: (2 * lerp(1)) / depth, rho: cornerOf(lerp(4)) };
+  };
+  return profileRatio(at, fuse[0][0], fuse[fuse.length - 1][0], n);
 }

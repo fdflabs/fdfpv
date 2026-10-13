@@ -2342,6 +2342,7 @@ export default {
   "tuning.heading": "Heading de AS3X",
   "tuning.heading_off": "Apagado",
   "tuning.heading_note": "Apagado como viene el receptor. Al subirlo, la palanca centrada mantiene la actitud en que la dejaste, en vez de solo amortiguar los giros. Demasiado lo hace mecerse lento o vibrar las superficies a velocidad. Spektrum desaconseja el heading en el eje de guiñada: obliga a dirigir el avión en cada cambio de rumbo.",
+  "tuning.as3x_low_rate": "Este recorrido deja una superficie por debajo de la mitad de su recorrido, y el receptor AS3X lee la palanca a través de él. E-flite, para sus aviones con AS3X: para que AS3X funcione bien, no bajes los recorridos por debajo del 50%; si quieres menos, cambia la posición de las varillas en el brazo del servo.",
   "tuning.expo": "Expo",
   "tuning.curve": "Palanca a superficie",
   "tuning.trim": "Trim",

@@ -10,9 +10,15 @@
  * printed for what a pilot who turns it up spends. The rule is
  * Spektrum's "the highest setting that will not cause oscillation at any
  * speed" (the AR631 manual), held under the onset by MIL-F-9490D's
- * margin. --plane NAME
- * measures one table and prints it as JSON; --json FILE writes the
- * fleet's numbers.
+ * margin. Each aircraft is flown on its table, as the gates fly it, and
+ * at every rate the tune screen offers whose block is not the table's
+ * (configs/tuning.js RATES, the rest of its stock setup kept): the
+ * receiver's offset is the same surface at every rate (plant_wing.c
+ * as3x_channel), but the conditions are not, since the throws and the
+ * expo move the dive's and the hover's hold and so where they fly.
+ * --plane NAME [--rate RATE] measures one table and prints it as JSON
+ * (null for a rate that is the table); --json FILE writes the fleet's
+ * numbers.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -34,7 +40,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { AS3X, GM_MIN_DB, PM_MIN_DEG, rowOf, receiverOf, margins, measurePlane, revive, fanOut } from './lib/as3xloop.js';
+import { AS3X, GM_MIN_DB, PM_MIN_DEG, RATES, rowOf, receiverOf, margins, measurePlane, revive, fanOut, tuneOf } from './lib/as3xloop.js';
+
+const SETUPS = ['table', ...RATES];
 
 const self = fileURLToPath(import.meta.url);
 const root = dirname(dirname(self));
@@ -43,29 +51,38 @@ const argv = process.argv.slice(2);
 const opt = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
 
 if (opt('--plane')) {
-  process.stdout.write(JSON.stringify(await measurePlane(opt('--plane'), src)));
+  /* A rate whose block is the table's own is the table: null. */
+  const rate = opt('--rate') ?? 'table';
+  const block = rate === 'table' ? null : tuneOf(opt('--plane'), rate);
+  const out = JSON.stringify(rate !== 'table' && !block ? null : await measurePlane(opt('--plane'), src, block));
+  /* A pipe takes the write asynchronously: exit only once it is out. */
+  await new Promise((resolve) => { process.stdout.write(out, resolve); });
   process.exit(0);
 }
 
 const AX = ['roll', 'pitch', 'yaw'];
-const fleet = await fanOut(self, Object.keys(AS3X));
 const rows = [];
 let bad = 0;
 const f = (x, d = 1) => (x === null || !Number.isFinite(x) ? '  none' : x.toFixed(d).padStart(6));
-for (const name of Object.keys(AS3X)) {
-  const m = revive(fleet[name]);
-  const rx = receiverOf(rowOf(src, name));
-  for (const c of m.conds) {
-    for (let axis = 0; axis < 3; axis += 1) {
-      if (!c.resp[axis] || !(rx.k[axis] > 0)) continue;
-      for (const heading of [0, 1]) {
-        const r = margins(c.resp[axis], axis, rx.k[axis], heading * rx.kh[axis], rx.T);
-        const low = r.gmDb < GM_MIN_DB || (r.pmDeg !== null && r.pmDeg < PM_MIN_DEG);
-        /* The gate is the receiver as it ships, Heading zero; the full
-         * Heading's rows are what a pilot who turns it up spends. */
-        if (low && heading === 0) bad += 1;
-        rows.push({ name, cond: c.id, V: c.V, axis: AX[axis], heading, ...r });
-        console.log(`${name.padEnd(18)} ${c.id.padEnd(7)} ${c.V.toFixed(1).padStart(5)} m/s ${AX[axis].padEnd(5)} heading ${heading}  GM ${f(r.gmDb)} dB at ${f(r.w180, 0)} rad/s  PM ${f(r.pmDeg, 0)} deg at ${f(r.wc, 1)} rad/s  peak |S| ${f(r.msDb)} dB${low ? '  UNDER THE MARGIN' : ''}`);
+for (const rate of SETUPS) {
+  const fleet = await fanOut(self, Object.keys(AS3X), ['--rate', rate]);
+  console.log(`\n${rate === 'table' ? 'the table' : `${rate} rate`}`);
+  for (const name of Object.keys(AS3X)) {
+    if (fleet[name] === null) continue;
+    const m = revive(fleet[name]);
+    const rx = receiverOf(rowOf(src, name));
+    for (const c of m.conds) {
+      for (let axis = 0; axis < 3; axis += 1) {
+        if (!c.resp[axis] || !(rx.k[axis] > 0)) continue;
+        for (const heading of [0, 1]) {
+          const r = margins(c.resp[axis], axis, rx.k[axis], heading * rx.kh[axis], rx.T);
+          const low = r.gmDb < GM_MIN_DB || (r.pmDeg !== null && r.pmDeg < PM_MIN_DEG);
+          /* The gate is the receiver as it ships, Heading zero; the full
+           * Heading's rows are what a pilot who turns it up spends. */
+          if (low && heading === 0) bad += 1;
+          rows.push({ name, rate, cond: c.id, V: c.V, axis: AX[axis], heading, ...r });
+          console.log(`${name.padEnd(18)} ${rate.padEnd(4)} ${c.id.padEnd(7)} ${c.V.toFixed(1).padStart(5)} m/s ${AX[axis].padEnd(5)} heading ${heading}  GM ${f(r.gmDb)} dB at ${f(r.w180, 0)} rad/s  PM ${f(r.pmDeg, 0)} deg at ${f(r.wc, 1)} rad/s  peak |S| ${f(r.msDb)} dB${low ? '  UNDER THE MARGIN' : ''}`);
+        }
       }
     }
   }

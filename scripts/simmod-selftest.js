@@ -56,7 +56,11 @@ import * as mod from '../tests/lib/simmod.js';
 import { decodeRec } from '../tests/lib/recfile.js';
 import { transcript } from './lib/transcript.js';
 
-const PINNED = '133996cfd22759215aeceb5936324b10f1f16faaf45d7e7e63b4bf3117e4a7c8';
+/* Re-pinned for w38-fuselage-side: only the Skyhunter's two records moved
+ * (its readState and powerState after its flight), from its pod's
+ * crossflow on its drawn sections and Munk's sin 2 beta; with those two
+ * table values put back the old digest returns. */
+const PINNED = 'cfdf5ff551842b923514f186ddbda3352282f8cc74806b30b383fef7163d70a8';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));

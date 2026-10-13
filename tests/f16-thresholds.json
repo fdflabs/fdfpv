@@ -154,19 +154,19 @@
   "s17_unmoved": {
     "quad": "9fdc42323baad668",
     "wing": "f28565f1e1c87d3d",
-    "sky": "f025098b3e73e796",
-    "cub": "e414025462e90c74",
-    "glider": "0e223d63dcbee9b5",
-    "bramor": "18ff2247d729b5e0",
-    "bramorChute": "9302c46f4449de8b",
+    "sky": "fa8dfc0c627e8b75",
+    "cub": "6a437f195866e4ae",
+    "glider": "43cc05f101aadb14",
+    "bramor": "c803361051a4aeaa",
+    "bramorChute": "e9c3f06101c6a736",
     "slowstick": "5cb4a849ded50cd4",
-    "bombshell": "7ff9f99b7a63f16e",
-    "timber": "a37fb4874100db9a",
-    "timberf": "04d5880268b8b3a4",
-    "kadet": "7bb8fe6d3123c6ed",
-    "p51": "860af69f818a5185",
-    "p51Air": "9a165205bb19ca35",
-    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was. Re-pinned 2026-10-12 (w36-p51-clmax): the P-51's two recorded flights (p51 was 7219c30ebb48a05c, p51-air 4646a1ba51f005db) moved with its stall taken from measured sections, stall_re and stall_round on its own table (docs/P51-STAGE1.md); this aircraft's own recordings are unmoved. Re-pinned 2026-10-12 (w37-flat-fall, the flat fall on its side, plant_wing.c fin_in_wake, the fin's saturated share in its wake loss, the sideslip moments at |cos_b|): bombshell (was 7ff9f99b7a63f16e): on its wheels at walking speed, sideways past 30 deg and the flow from behind; bramorChute (was 9302c46f4449de8b): its chute descent meets the flow from behind the wing, past 90 deg, where the sideslip moments no longer turn over; p51 (was 860af69f818a5185): its spin, 28 to 31 deg of sideslip, where the wing's wake starts to leave the fin; p51air (was 9a165205bb19ca35): its spin, 28 to 31 deg of sideslip, where the wing's wake starts to leave the fin."
+    "bombshell": "d33847f45e22e351",
+    "timber": "2b6b61e3678a8400",
+    "timberf": "e7a56e9fe45385e5",
+    "kadet": "c7105b0ef5df23b3",
+    "p51": "3b16a0716e16cb60",
+    "p51Air": "6632a8dad0d4883c",
+    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was. Re-pinned 2026-10-12 (w36-p51-clmax): the P-51's two recorded flights (p51 was 7219c30ebb48a05c, p51-air 4646a1ba51f005db) moved with its stall taken from measured sections, stall_re and stall_round on its own table (docs/P51-STAGE1.md); this aircraft's own recordings are unmoved. Re-pinned 2026-10-12 (w37-flat-fall, the flat fall on its side, plant_wing.c fin_in_wake, the fin's saturated share in its wake loss, the sideslip moments at |cos_b|): bombshell (was 7ff9f99b7a63f16e): on its wheels at walking speed, sideways past 30 deg and the flow from behind; bramorChute (was 9302c46f4449de8b): its chute descent meets the flow from behind the wing, past 90 deg, where the sideslip moments no longer turn over; p51 (was 860af69f818a5185): its spin, 28 to 31 deg of sideslip, where the wing's wake starts to leave the fin; p51air (was 9a165205bb19ca35): its spin, 28 to 31 deg of sideslip, where the wing's wake starts to leave the fin. Re-pinned 2026-10-13 (w38-fuselage-side): the recordings that fly sideways moved with their fuselage's crossflow drag taken on the drawn sections, not a round body's (side_cda, NACA TN 3038 through scripts/lib/crossflow.js), and with the AS3X gains re-derived on it (as3x:derive) (were f025098b3e73e796, e414025462e90c74, 0e223d63dcbee9b5, 7ff9f99b7a63f16e, a37fb4874100db9a, 04d5880268b8b3a4, 7bb8fe6d3123c6ed, 860af69f818a5185, 9a165205bb19ca35). Re-pinned 2026-10-13 (w38-fuselage-side): every recording moved with the fuselage's share of the weathercock taken on Munk's sin 2 beta (NACA TR 184, plant_wing.c MUNK'S MOMENT) where it was on sin beta, and with the AS3X gains re-derived on it (as3x:derive) (were 3b15092bb6cb4c51, 00ce70ac02986c22, f6a79b1d88ee2f86, 18ff2247d729b5e0, 9302c46f4449de8b, 874eb167a94d12b5, 691ec751e6ad5ad9, d36da3cb550a4ea9, 61e5af9b0da47571, af9d8929b56f30af, e99cc9582d7639f3)."
   },
   "s18_cross_host": {
     "source": "the F-16's recorded take off and flight, state trace hash, Node against headless Chrome"

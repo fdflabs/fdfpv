@@ -45,6 +45,7 @@
 
 import { wingProp } from './lib/propcurve.js';
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -349,6 +350,28 @@ export const ESTIMATES = ${JSON.stringify(out, null, 2).replace(/"([a-z0-9_.-]+)
 `;
   await writeFile(join(root, 'configs/power-estimates.js'), text);
   console.log('wrote configs/power-estimates.js');
+  /* Each aircraft folder carries the same rows (power.estimates,
+   * docs/AIRCRAFT-FOLDER.md, held equal by npm run aircraft:folder): the
+   * object is replaced in place, at its own indent, so nothing else in the
+   * file moves. */
+  for (const id of Object.keys(out)) {
+    const file = join(root, 'aircraft', id, 'aircraft.js');
+    /* The retired 1000 mm wing has no folder (configs/aircraft.js). */
+    if (!existsSync(file)) continue;
+    const src = await readFile(file, 'utf8');
+    const m = /\n( *)"estimates": \{/.exec(src);
+    if (!m) throw new Error(`power-check: aircraft/${id}/aircraft.js has no estimates`);
+    let i = m.index + m[0].length - 1, depth = 0;
+    const from = i;
+    for (; i < src.length; i += 1) {
+      if (src[i] === '{') depth += 1;
+      else if (src[i] === '}' && --depth === 0) break;
+    }
+    const obj = JSON.stringify(out[id], null, 2).replace(/\n/g, `\n${m[1]}`);
+    if (JSON.stringify(JSON.parse(src.slice(from, i + 1))) === JSON.stringify(out[id])) continue;
+    await writeFile(file, src.slice(0, from) + obj + src.slice(i + 1));
+    console.log(`wrote aircraft/${id}/aircraft.js estimates`);
+  }
 }
 
 if (process.argv.includes('--estimates')) {

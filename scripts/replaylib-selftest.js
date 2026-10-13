@@ -76,7 +76,10 @@ const PINNED = {
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
   /* Re-pinned: no built in stall side on any aircraft (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the seated pack and the tail wash on one plant, w36-physics (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': 'e35937de49e117ba6d07cda827d36b7f48316fce92df4b708ea734e622ef4b42',
+  /* Re-pinned: the Skyhunter's pod crossflow on its drawn sections and its
+   * fuselage weathercock on Munk's sin 2 beta, w38-fuselage-side; the
+   * old hash returns with those two values alone put back. */
+  'trace.sky.60.10': 'f5159db55bb62b9d70ee5e20f8cd840b31d32ee2fec53be09712557fbf10be58',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */

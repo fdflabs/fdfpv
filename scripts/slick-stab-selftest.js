@@ -217,14 +217,38 @@ const pullRates = bothModes((mode) => {
   return fly(0, 1, 0, 1.0, 0.5).q;
 });
 check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
+/* Centred after a pull, the pitch rate the aircraft is left with over
+ * RELEASE_S: the peak of its swing back, against the pull (the pull's own
+ * rate at the release is the same in both, the gyro not yet having
+ * acted), and its root mean square, as cap580-stab-selftest.js takes it.
+ * A mean over a short window reads a rate swinging through zero as a
+ * small one whichever way it swings. */
+const RELEASE_S = 0.5;
+function releaseRates() {
+  let peak = 0;
+  let sq = 0;
+  let n = 0;
+  for (let ms = 0; ms < RELEASE_S * 1000; ms += RC_STEP_MS) {
+    must(sim.input((clockMs + ms) / 1000, 0, 0, 0, 1.0), 'input');
+    must(sim.step(RC_STEP_MS), 'step');
+    const q = -sim.readState().state[12];
+    peak = Math.max(peak, -q);
+    sq += q * q;
+    n += 1;
+  }
+  clockMs += RELEASE_S * 1000;
+  return { peak, rms: Math.sqrt(sq / n) };
+}
 const released = bothModes((mode) => {
   throwAt(120, V_PULL);
   fly(0, 0, 0, 1.0, 1);
   mode();
   fly(0, 1, 0, 1.0, 0.3);
-  return Math.abs(fly(0, 0, 0, 1.0, 0.1).q);
+  return releaseRates();
 });
-check('centred after a pull, the pitch rate 0.1 s on is below Manual\'s: it damps', released.as3x < released.manual, `${deg(released.as3x)} against ${deg(released.manual)} deg/s`);
+check(`centred after a pull, the pitch rate over ${RELEASE_S} s is below Manual's, its swing back's peak and its rms: it damps`,
+  released.as3x.peak < released.manual.peak && released.as3x.rms < released.manual.rms,
+  `swing back ${deg(released.as3x.peak)} against ${deg(released.manual.peak)}, rms ${deg(released.as3x.rms)} against ${deg(released.manual.rms)} deg/s`);
 must(sim.e.sim_wing_set_stab(3), 'set as3x');
 throwAt(120, V_PULL);
 fly(0, 0, 0, 1.0, 1);
@@ -334,14 +358,13 @@ for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
   const half = powerOffPull(mode, 0.5, 0);
   halfBank[mode] = half.bank;
   if (mode === 3) {
-    /* The Slick's measured full Heading is about nothing: its dampers sit
-     * on their margin, so as3x:derive leaves no Heading under the rule
-     * (0.0089, 0.0059, 0.0129). The wings are not held; the drop is
-     * judged to the right, as the idling prop's gyroscope and torque have
-     * it, and recorded against Acro's (lead decision 2026-10-12; until
-     * then "held until the air goes, under Acro's", on a Heading that was
-     * a ratio of the damper). */
-    check(`${name}: a half stick pull through the stall at idle, no rudder, its full Heading about none: the drop right, recorded against Acro's`, half.bank > 0, `${deg(half.bank)} deg against Acro's ${deg(halfBank[2])}`);
+    /* The Slick's full Heading is on the yaw alone: as3x:derive's harrier
+     * kick rule leaves it no roll or pitch Heading (w38-as3x-travel). The
+     * wings are not held; the drop is judged to the right, as the idling
+     * prop's gyroscope and torque have it, and recorded against Acro's
+     * (lead decision 2026-10-12; until then "held until the air goes,
+     * under Acro's", on a Heading that was a ratio of the damper). */
+    check(`${name}: a half stick pull through the stall at idle, no rudder, at its full Heading, yaw alone: the drop right, recorded against Acro's`, half.bank > 0, `${deg(half.bank)} deg against Acro's ${deg(halfBank[2])}`);
   } else {
     check(`${name}: a half stick pull through the stall at idle, no rudder: the idling prop's gyroscope and torque drop the right wing`, half.bank * DEG > 3, `${deg(half.bank)} deg`);
   }

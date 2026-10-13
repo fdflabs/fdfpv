@@ -455,16 +455,38 @@ R-474) on each fuselage's side area from its derivation or render model.
   side force is war:legacy's and is not this lane's to move.
 - The floats' own side area is not in the float versions' figure: the
   land fuselage's is, ESTIMATED.
-- The 1.2 is a round body's. The Extra, CAP, Slick (63d1a6073) and the
-  Night Timber (w37-physics-servo) take theirs on their drawn rounded box
-  sections, NACA TN 3038 through `scripts/lib/crossflow.js`. Still on the
-  round body's, with what their drawn FUSE tables give (2026-10-12, not
-  applied: each moves its own gates): the Timber 1.19, Cub 1.40, Tiger
-  Moth 1.48, Radian 1.34, Bombshell 1.52, Hercules 1.02 times it (the
-  Hercules is at 0.78 of its side view, another source). The Kadet's box
-  sections (squareness 5) are past the lib's 4 and need TN 3038's sharper
-  rounded squares; the P-51, F-16 and Ugly Stik draw their fuselages in
-  other forms.
+- The 1.2 is a round body's. Each aircraft whose fuselage is drawn in
+  sections takes its own, NACA TN 3038 Table I through
+  `scripts/lib/crossflow.js`, the section's drag over a round body's
+  averaged over the side view: the Extra 1.30, CAP 1.30, Slick 1.35
+  (63d1a6073), Night Timber 1.32 (w37-physics-servo); and
+  (w38-fuselage-side) the Timber 1.19, Cub 1.40, Tiger Moth 1.48, Radian
+  1.34, Bombshell 1.52, Kadet 1.72 (its square box past squareness 4, on
+  Table I's sharper rectangles), P-51 1.29, Ugly Stik 1.69 (its slab box
+  with the kit's quarter inch corners), Skyhunter 1.16 (its pod) and
+  Hercules 1.02 (Allen and Perkins' 1.2 too, at their eta of 0.65 on 0.85
+  of the side view). Each derive script prints its figure. The floats'
+  tables carry their land fuselage's.
+- Still on the round body's 1.2, ESTIMATED: the F-16, whose drawn body
+  is two half superellipses on a chine with the strakes' edges at its
+  widest line and the intake's duct under it, shapes TN 3038 did not
+  test; and the Bramor, whose pod blends into its delta with no drawn
+  sections of its own.
+- The fuselage's own yaw at a sideslip is Munk's couple (NACA TR 184,
+  1924): (k2 - k1) rho Vol V^2 sin 2 beta / 2, on u v in the body, so it
+  is gone flying sideways and turns over with the flow from behind. Each
+  derivation's fuselage share of cn_beta (-1.3 Vol / (S b), or Nelson's
+  K_N term) is `cn_beta_fus`, taken out of the stability axis terms and
+  put on -u v / V^2 in the body (plant_wing.c, MUNK'S MOMENT): the same
+  at small sideslip, none at 90 deg, where before it stayed whole (the
+  Extra's -0.043 of 0.24) and a share of it went into roll. Every table
+  with a fuselage carries it, the Strikers' from `combat:derive`; the
+  float versions add the floats' (`floats:derive`); the Skyhunter's and
+  the Bramor's pods are their documents' and ESTIMATED. The F-16's
+  measured ratio against alpha (hi_lat) takes it as it takes the rest. A
+  fin lost in a crash leaves the body's WING_BODY_CN_BETA on the same
+  form. The pitch analogue, Munk's u w, is the fuselage's cm_alpha share
+  and is still linear in alpha.
 
 ### The probe, PR 3 to PR 4
 
@@ -996,12 +1018,34 @@ acts at the disc, 0.302 m ahead of the CG (the drawn model), so it damps
 the nose's swing as well as the drift, and it is washed out away from
 the hover by 1 - m, Selig's jet parameter m = V_N / (V_N + w); his
 classic normal force (eq. 4), which he blends with it, is not in this
-plant. The Extra only so far; every other table leaves k_j at zero.
+plant. The Extra, the CAP and the Slick carry it; every other table
+leaves k_j at zero.
 
-Measured: a 2 m/s drift, the attitude held vertical at the hover's
-throttle, is 0.64 m/s a second later along the wing and 0.29 across it,
-against 0.94 and 0.54 without; hover:probe's person-limited pilots
-holding the Extra 10 s, Manual 11 to 59 of 648, AS3X 82 to 169.
+The surfaces in the wash meet what the disc leaves of the crossflow
+(2026-10-13, w38-hover-yaw). N_j is the momentum drag, the mass flow
+through the disc times the crossflow it turns onto the axis, so the air
+that reaches the tail keeps 1 - N_j / (mdot V_T) of the body's sideways
+and normal speeds against the body: k_j hanging still, nothing with way
+on. The fin's and the stabiliser's wash terms take that share; taking
+the whole of it spent the same momentum twice. This is a momentum balance
+on Selig's eqs. 13 to 16, not a step his paper states (his eq. 21 adds
+the local flow and the wash as they are). Measured on the Extra hanging
+still, rudder swept on the zero delay hold: before, the fin in the wash
+turned the nose into the drift the tilt starts, a negative stiffness
+through the drift (-6.9 N m/rad at 1 rad/s, against the jet's +1.5 and
+the inertia's 0.15), and the rudder's tilt per stick sat at 0.55 to 0.70
+from 1 to 4 rad/s; after, it falls as a damped integrator, 6.4 at 1
+rad/s, 2.2 at 2 and 0.92 at 4, 102 to 126 deg behind. The swirl's
+crossflow at the fin is the same at any yaw angle (it is in the body's
+axes) and has no stiffness: 0.001 N m per unit of rudder at 1 to 4
+rad/s. Every hover loop then keeps the bandwidth criterion on all three
+(scripts/figures-margins.js, the hover).
+
+Measured on the plant before the wash's share above: a 2 m/s drift, the
+attitude held vertical at the hover's throttle, is 0.64 m/s a second
+later along the wing and 0.29 across it, against 0.94 and 0.54 without;
+hover:probe's person-limited pilots holding the Extra 10 s, Manual 11 to
+59 of 648, AS3X 82 to 169.
 
 ### Not known: AS3X's heading on this receiver
 
@@ -1118,6 +1162,122 @@ attitude with the sticks centred, as with the real receiver; the hover
 is flown on the sticks, as in Manual but damped. A pilot who wants the
 old hold turns the Heading up and spends margin, as on the real
 receiver. The section above describes the receiver before this.
+
+### The receiver reads the channels, at every rate (w38-as3x-travel)
+
+The manuals separate the travel from the rates. The receiver learns the
+travel: "Relearn Travel and Reverse: Used to re-teach the receiver and
+AS3000 the travel limits and reversing after ... changes are made to
+travel adjust, absolute travel, and servo reversing", and on the
+nose-wheel "Learn Travel ... Press apply after maximizing the rates and
+moving the channel to the extremes" (the AS3000 manual); the AR631 asks
+for "Relearn Servo Settings" after "sub-trim, travel or other setup
+changes". The older AR635 says the same from the other side: "Changing
+the servo total travel from 125% will affect the tuning and performance
+of the AS3X technology. Always mechanically adjust the aircraft
+linkages for less control surface throw", while on a radio without
+travel adjust "If you need to use low rates ... you can do so without
+affecting the performance of the AS3X system". The Extra's manual
+(EFL115500 p. 4): "To ensure AS3X technology functions properly, do not
+lower rate values below 50%. If lower rates are desired, manually
+adjust the position of the pushrods on the servo arm." The AR631's
+troubleshooting lists "Travel or Rates reduced causing reduced servo
+resolution" under oscillation, with the same remedy. None of them says
+the gyro's output is scaled by the rate.
+
+So in mode 3 the gyro's offset is surface per rad/s, the same at every
+rate, and as3x_k and as3x_kh are the gains at the full travel. What the
+rates change is what the receiver reads: the channel, after the
+transmitter's rate and expo, over the travel it learned with the rates
+at their most (plant_wing.c as3x_channel; FixedWingParams.as3x_travel,
+the throws under a tune). Priority and the Heading's asked rate read it,
+so at a low rate, or with expo, a half stick leaves the gyro some of its
+gain where the full rate's half stick left none. as3x_rate is per unit
+of that channel.
+
+as3x:derive measures every aircraft on its table and at every rate the
+tune screen offers, and holds the feel rule (as3x-feel F1) at the stock
+rate and at the high on every table, the factory presets included. The
+Extra's preset scale answered a half stick at its stock low rate 7.6,
+9.0 and 8.1 percent off Manual's (roll, pitch, yaw), over the 7 percent
+the eye can see; its damper goes from 0.0177, 0.0885, 0.0708 to 0.0134,
+0.0671, 0.0537, which answers 5.9, 7.0 and 6.3 percent at low rate and
+0.7, 0.2 and 0.9 at high. The CAP and the Slick, at 60 and 55 percent
+expo, keep about a sixth of theirs. Held only at the stock and the high,
+a pilot on another rate can still see the gyro: as3x-feel prints those
+rates' F1 unjudged, up to 24 percent (the Tiger Moth's pitch at low rate).
+Holding F1 at every rate would cut the dampers further, the P-51's and
+the CAP's to about a third again.
+
+A bigger surface tier raises the high throw above the table's, so its
+channel reads past the learned travel; it is held at the travel. The
+real receiver would relearn the travel after that change, which this
+does not model.
+
+The full Heading on the 3D aircraft (lead decision 2026-10-13). With the
+damper held to F1 at the Extra's stock low rate, the margin rule's full
+Heading (0.083, 2.9395, 0.0808) made extra:gates E11b's harrier kick
+worse than Manual's, 2.62 and 3.34 of it. One axis at a time: roll 1.52
+and 1.80, pitch 0.99 and 0.99, yaw 0.81 and 0.85, pitch and yaw
+together 0.81 and 0.84. A single scale on all three goes to nothing,
+since any roll Heading worsens it (a hundredth gives 1.10). So
+as3x:derive now holds each axis' full Heading on the Extra, the CAP and
+the Slick to E11b's property, as the damper is to F1: the largest scale
+on the margin rule's, per axis, that keeps the kicked rock under
+Manual's with every axis at its full Heading at once, flown on each
+aircraft's own gate harrier (scripts/lib/harrierkick.js) with the JS
+receiver carrying the Heading (as3x-feel F0 checks it at full Heading
+too). The harrier's rock is a roll the pilot is holding, and a roll
+Heading sums the bank those corrections leave and fights them; pitch
+and yaw Heading hold axes the rock only couples into.
+
+On the batch's plant after w38-fuselage-side (abd2b5d7b):
+
+| | Margin rule's Heading | Held | Kicked rock, of Manual's |
+|---|---|---|---|
+| Extra | 0.0837, 0.8927, 0.412 | 0, 0.8927, 0.412 | 0.58 and 0.61 |
+| CAP | 0.3373, 0.2732, 0.7792 | 0, 0.2732, 0.7792 (w38-as3x-partial) | 0.42 and 0.42 |
+| Slick | 0.1208, 0.0639, 0.7848 | 0, 0.0639, 0.7848 | 0.39 and 0.39 |
+
+On the plant before it, the Slick's roll (0.75 of the rule's) and yaw
+each held alone but not together, at any common factor down to a
+twentieth, and it kept the yaw alone.
+
+Every tenth of the Heading too (w38-as3x-partial, lead decision
+2026-10-13, the owner's "small corrections, never change the way the
+plane behaves"). The tune screen sets the Heading in tenths, and on
+4dc533c3b the CAP's roll Heading (0.2867) held the kick only at the
+full: alone, 1.76 and 1.96 of Manual's at a tenth, 2.83 and 2.90 at
+four, 1.03 and 1.11 at nine, 0.50 and 0.81 at the full; the three
+together 1.53 to 1.95 from a tenth to three, 1.10 at seven, 0.94 at
+eight. as3x:derive now takes a scale only if every tenth of it holds,
+the axes together and each alone, so the CAP's roll Heading goes to
+nothing. `npm run as3x:tenths` (in CI, 18 s) flies the plant's mode 3
+at each tenth, the three together and each alone, on the Extra, the
+CAP and the Slick:
+
+| Tenth | Extra, all three | CAP, all three | Slick, all three |
+|---|---|---|---|
+| 0 | 0.99, 0.99 | 0.92, 0.91 | 0.91, 0.90 |
+| 0.1 | 0.96, 0.98 | 0.85, 0.80 | 0.87, 0.85 |
+| 0.2 | 0.88, 0.91 | 0.78, 0.76 | 0.79, 0.78 |
+| 0.3 | 0.82, 0.86 | 0.70, 0.70 | 0.70, 0.70 |
+| 0.4 | 0.76, 0.80 | 0.62, 0.63 | 0.62, 0.62 |
+| 0.5 | 0.72, 0.76 | 0.56, 0.57 | 0.55, 0.55 |
+| 0.6 | 0.68, 0.72 | 0.52, 0.52 | 0.50, 0.50 |
+| 0.7 | 0.64, 0.68 | 0.48, 0.49 | 0.46, 0.46 |
+| 0.8 | 0.62, 0.65 | 0.45, 0.46 | 0.43, 0.43 |
+| 0.9 | 0.60, 0.63 | 0.43, 0.44 | 0.40, 0.41 |
+| 1 | 0.58, 0.61 | 0.42, 0.42 | 0.39, 0.39 |
+
+With roll Heading at zero on all three, the yaw Heading does the work;
+the pitch Heading changes nothing here (the harrier's elevator is held
+past 40 percent stick, where priority fades the gyro out). Mixes of
+different tenths per axis are not flown. On the plant before
+w38-fuselage-side, between a twentieth and a fifth of the Extra's yaw
+Heading the rock was worse than Manual's (1.03 to 1.08); on
+4dc533c3b's every tenth of it is better. Heading defaults to zero, and
+the tune help keeps the AR631's warning against it on the yaw axis.
 
 ## A prop spins up
 
