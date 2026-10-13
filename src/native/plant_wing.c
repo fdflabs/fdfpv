@@ -500,6 +500,40 @@ static double hi_lat_at(const double row[20], double deg) {
 static const double AIL_KEEP_TR419[7] = { 1.0, 0.40, 0.22, 0.108, 0.148, 0.18, 0.18 };
 /* NASA TP-2011 fig. 55a, a rudder over a low stabiliser (below). */
 static const double FIN_KEEP_TP2011[7] = { 1.0, 0.704, 0.46, 0.38, 0.23, 0.08, 0.08 };
+/* How much of the stalled wing's wake reaches the fin, 0 to 1, at the
+ * body's sideways speed v and its speed in the plane of symmetry vxz. The
+ * keep curves above were measured with the flow over the wing toward the
+ * tail at small sideslip (TP-2011, a full scale low wing airplane in the
+ * tunnel, a stalled wing ahead of its fin). In a slip the wake
+ * leaves each wing station along the stream, so what crosses the fin's
+ * station comes from the station l tan(beta) to windward, l the wing's
+ * quarter chord to the stabiliser's (ge_wing, ge_tail). ESTIMATED, the
+ * geometry and no measurement: the whole wake while that station is on
+ * the inner half of the half span, where the chord and its separated wake
+ * are whole, none once it is past the tip, a smoothstep between. Falling
+ * sideways, beta near 90 deg, the wing is edge on to the stream, its
+ * separated chordwise flow is a few percent of the dynamic pressure, and
+ * nothing of it reaches the fin: the fin is a plate in the crossflow and
+ * weathercocks the nose into the fall. Before this the plant judged the
+ * fin blanketed by an "alpha" of 180 deg taken from a chordwise speed of
+ * 0.5 m/s, and the Extra and the CAP fell flat on their sides to the
+ * ground (the owner, 2026-10-12). Exactly 1 inside the measured range,
+ * and on a table without the two quarter chords. */
+static double smoothstep(double a, double b, double x);
+static double fin_in_wake(const FixedWingParams *fw, double v, double vxz) {
+  const double l = fw->ge_wing[0] - fw->ge_tail[0];
+  if (!(fw->ge_tail[0] < 0.0) || !(l > 0.0)) {
+    return 1.0;
+  }
+  const double side = l * sim_fabs(v), half = 0.5 * fw->span * vxz;
+  if (side <= 0.5 * half) {
+    return 1.0;
+  }
+  if (side >= half) {
+    return 0.0;
+  }
+  return 1.0 - smoothstep(0.5, 1.0, side / half);
+}
 
 /* The wing's own lift slope (FixedWingParams.cl_alpha_wing). */
 static double wing_cla(const FixedWingParams *fw) {
@@ -2655,6 +2689,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cydr = fw->cy_dr, cldr = fw->cl_dr, cndr = fw->cn_dr;
   double cl_lin_m = cl_lin, stall_dw = fw->stall_dw;
   double vh = 0.0, vv = 0.0, ae = 0.0, ar = 0.0;
+  /* The fin's share of the sideslip terms as it stands, saturated on its
+   * plate with hi_alpha, whole without. */
+  double rv_fin = 1.0;
   if (fw->hi_alpha) {
     const double dd = fw->tail_deda;
     vh = -fw->slip_cm_a / (fw->tail_at * (1.0 - dd));
@@ -2688,6 +2725,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     cm_de_lin = 0.0;
     const double xv = fw->tail_av * beta_s + ar;
     const double rv = plate_ratio(xv, fw->tail_cn);
+    rv_fin = rv;
     cyb = fw->cy_beta - fw->slip_cy_b * (1.0 - rv);
     clb = fw->cl_beta - fw->slip_cl_b * (1.0 - rv);
     cnb = fw->cn_beta - fw->slip_cn_b * (1.0 - rv);
@@ -2742,9 +2780,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     for (int i = 0; i < 5; i += 1) {
       if (rel > KP[i] && rel <= KP[i + 1]) kk = KK[i] + (KK[i + 1] - KK[i]) * (rel - KP[i]) / (KP[i + 1] - KP[i]);
     }
-    const double fin = 1.0 - fre * (1.0 - ff);
-    clb = add_term(add_term(clb, -fw->cl_beta_wing * sep_w), -fw->cl_beta_fin * (1.0 - fin));
-    cnb = add_term(cnb, -fw->cn_beta_fin * (1.0 - fin));
+    const double fin = 1.0 - fre * fin_in_wake(fw, v, Vxz) * (1.0 - ff);
+    /* The wake takes its share of the fin as the fin stands: saturated on
+     * its plate, rv_fin of its linear share, the wake can take no more
+     * than that. Taking the linear share off a saturated fin left it
+     * pushing the wrong way, 0.2832 (0.31 - 0.92) on the Extra at 90 deg
+     * of sideslip. */
+    clb = add_term(add_term(clb, -fw->cl_beta_wing * sep_w), -fw->cl_beta_fin * rv_fin * (1.0 - fin));
+    cnb = add_term(cnb, -fw->cn_beta_fin * rv_fin * (1.0 - fin));
     cydr *= fin;
     cldr *= fin;
     cndr *= fin;
@@ -3182,8 +3225,27 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   cn_sum = add_term(cn_sum, cndr * delta_r);
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
   const double cn_b = cn_sum * cos_b + cl_sum * sin_b;
-  cl_sum = cl_b;
-  cn_sum = cn_b;
+  /* The sideslip's own moments are mostly the fin's and the dihedral's,
+   * each a surface's normal force against the sideways speed: a plate is
+   * pushed against the speed across it whichever edge leads, so their
+   * moments in the body do not turn over when the flow comes from behind.
+   * The fuselage's share of cn_beta (Munk's, u v in the body) does turn
+   * over, and is folded with them: small (the Extra's -0.043 of 0.24), and
+   * taken on sin(beta) where it belongs on sin(2 beta), its next fix.
+   * The stability axes turned with cos_b do turn them over past 90 deg,
+   * and falling on its side a little tail first (u < 0, the flow past 90
+   * deg) every aircraft turned its nose up away from the fall, the fin
+   * pushing the wrong way, which held the Extra and the CAP falling flat
+   * on their sides at Vxz 0.5 m/s where cos_b snaps to 1 (the owner,
+   * 2026-10-12). Their share is turned at |cos_b| instead, the angle
+   * folded about 90 deg: the same arithmetic with the flow from ahead,
+   * continuous through 90 deg and onto the cos_b of 1 that a flow along
+   * the span takes below 0.5 m/s. The rates' and the controls' terms do
+   * turn over with the flow (a deflected surface met from its trailing
+   * edge pushes the other way), and stay turned with cos_b. */
+  const double back = cos_b < 0.0 ? -2.0 * cos_b : 0.0;
+  cl_sum = add_term(cl_b, back * clb * beta_s);
+  cn_sum = add_term(cn_b, back * cnb * beta_s);
   const double l_aero = qbar * fw->area * fw->span * cl_sum;
   /* Past the stall the wing's lift no longer grows with alpha, and once it
    * falls what is left of it acts well aft of the quarter chord. The
@@ -6689,9 +6751,9 @@ const FixedWingParams FW_SLICK2680 = {
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
   .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0429, 0.1756, 0.533 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.7657, 3.1344, 9.514 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.646, -3.343, -1.611 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0549, 0.2757, 0.533 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.9799, 4.9212, 9.514 }, /* npm run as3x:derive */
+  .as3x_rate = { 2.646, -3.315, -1.529 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
   /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
    * the stick's curve HFE's part throttle dyno against this prop, scaled to
