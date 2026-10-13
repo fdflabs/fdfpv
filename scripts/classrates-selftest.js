@@ -99,6 +99,22 @@ console.log('\nrates that are nobody\'s own travel as before');
   check('the touch screen\'s gentler rates go with the pilot to a plane', same(t.rates, TOUCH_RATE_DEFAULTS) && t.ratesFor === undefined, show(t.rates));
 }
 
+console.log('\non a touch screen, and in the air');
+{
+  navigator.maxTouchPoints = 5;
+  const s = profile('7inch', { rates: QUAD_OWN });
+  seatAirframe(s, 'cub1400');
+  check('a thumb pilot with own quad rates starts a plane on the thumb rates, not 670 deg/s', same(s.rates, TOUCH_RATE_DEFAULTS), show(s.rates.roll));
+  navigator.maxTouchPoints = 0;
+  /* The hot swap (src/main.js hotSwap) seats a copy and assigns it back. */
+  const live = profile('7inch', { rates: RATE_DEFAULTS, ratesFor: { multirotor: QUAD_OWN } });
+  Object.assign(live, seatAirframe({ ...live }, 'bramor2300'));
+  check('a swap that leaves nothing kept clears it on the profile the shell holds', live.ratesFor === undefined, show(live.ratesFor));
+  const air = profile('7inch', { rates: QUAD_OWN });
+  Object.assign(air, seatAirframe({ ...air }, 'cub1400'));
+  check('and one that keeps the quad\'s keeps it there', same(air.ratesFor?.multirotor, QUAD_OWN) && same(air.rates, RATE_DEFAULTS));
+}
+
 console.log('\nthe profile keeps them');
 {
   const s = profile('7inch', { rates: QUAD_OWN });

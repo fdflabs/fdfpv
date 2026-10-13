@@ -493,10 +493,12 @@ const sameRates = (a, b) => JSON.stringify(normaliseRates(a)) === JSON.stringify
  * (PLAN section 2.6): a quad pilot's 800 deg/s rolls are not a Cub's, and
  * every tune, a plane's stabilised modes included, flies s.rates. Leaving
  * a class keeps the pilot's own rates under ratesFor; arriving at one puts
- * its kept rates back, or, after the pilot's own, the new aircraft's
- * stock. Rates that are nobody's own (an aircraft's stock, or the touch
- * screen's defaults) travel as they always have. s.rates stays the one
- * live set every reader uses.
+ * its kept rates back, or, after the pilot's own, a fresh start: the new
+ * aircraft's stock, or on a touch screen the thumb rates, which main.js
+ * offers only once. Rates that are nobody's own (an aircraft's stock, or
+ * the touch screen's defaults) travel as they always have. s.rates stays
+ * the one live set every reader uses. ratesFor is emptied by assignment,
+ * not deleted, because the hot swap seats a copy and assigns it back.
  */
 function swapClassRates(s, from, to) {
   const stock = (af) => ({ ...stockCurves(af), throttleCap: af.rates.throttleCap });
@@ -510,14 +512,14 @@ function swapClassRates(s, from, to) {
   if (kept[to.class]) {
     s.rates = normaliseRates(kept[to.class]);
   } else if (own) {
-    s.rates = normaliseRates(stock(to));
+    s.rates = normaliseRates(touchWanted() ? TOUCH_RATE_DEFAULTS : stock(to));
   } else {
     reseedStockRates(s, from, to);
   }
   if (Object.keys(kept).length) {
     s.ratesFor = kept;
-  } else {
-    delete s.ratesFor;
+  } else if (s.ratesFor !== undefined) {
+    s.ratesFor = undefined;
   }
 }
 
