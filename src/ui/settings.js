@@ -53,6 +53,7 @@ import { TIME_NAMES } from '../share/daytime.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
 import { hasKeybinds, normaliseKeybinds } from '../input/keybinds.js';
 import { hasPadbinds, normalisePadbinds } from '../input/padbinds.js';
+import { CHASE_SMOOTHING, normaliseShake, prefersReducedMotion } from '../render/comfort.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { touchWanted } from '../input/touchsticks.js';
@@ -253,6 +254,10 @@ export const DEFAULTS = {
   live: 'off',
   cameraAngle: CAMERA_ANGLE_DEFAULT,
   cameraFov: CAMERA_FOV_DEFAULT,
+  /* src/render/comfort.js. A missing shake level follows the system's
+   * reduced motion request once, then is stored like any other choice. */
+  cameraShake: 'on',
+  chaseSmooth: 'standard',
   wingView: 'fpv',
   hudStyle: 'osd',
   hudStyleBy: {},
@@ -612,6 +617,8 @@ export function loadSettings() {
   if (s.flightMode !== 'angle') s.flightMode = 'acro';
   if (!WING_VIEWS.includes(s.wingView)) s.wingView = 'fpv';
   s.stickMode = normaliseStickMode(s.stickMode);
+  s.cameraShake = normaliseShake(raw.cameraShake, prefersReducedMotion());
+  if (!CHASE_SMOOTHING.includes(s.chaseSmooth)) s.chaseSmooth = 'standard';
   /* Flight keys the pilot moved (src/input/keybinds.js), synced. Absent
    * until one is, so a profile that moved none is stored as before. */
   const keybinds = normaliseKeybinds(raw.keybinds);

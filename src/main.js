@@ -57,6 +57,7 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { bodyPosToModel, simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
+import { chaseLagMs, shakeScale } from './render/comfort.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
@@ -18538,10 +18539,11 @@ export async function boot({
     const shake = lensShake.update(dt, rpmMean / FULL_THROTTLE_RPM);
     decayImpactKick(dt);
     warShakeFrame(dt);
+    const shakeBy = shakeScale(ui.settings.cameraShake);
     qShake.setFromEuler(shakeEuler.set(
-      shake.x + impactKick.x + warShake.x,
-      shake.y + impactKick.y + warShake.y,
-      shake.z + impactKick.z + warShake.z,
+      (shake.x + impactKick.x + warShake.x) * shakeBy,
+      (shake.y + impactKick.y + warShake.y) * shakeBy,
+      (shake.z + impactKick.z + warShake.z) * shakeBy,
       'XYZ',
     ));
     fpvQuat.multiply(qShake);
@@ -18779,7 +18781,7 @@ export async function boot({
     const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
     chaseAim.y = Math.max(chaseAim.y, floor);
     if (chaseValid) {
-      chasePos.lerp(chaseAim, 1 - Math.exp(-dt / 120));
+      chasePos.lerp(chaseAim, 1 - Math.exp(-dt / chaseLagMs(ui.settings.chaseSmooth)));
     } else {
       chasePos.copy(chaseAim);
       chaseValid = true;
@@ -18865,7 +18867,7 @@ export async function boot({
   }
 
   function chaseCamera(dt, nowWall, span) {
-    const k = 1 - Math.exp(-dt / 120);
+    const k = 1 - Math.exp(-dt / chaseLagMs(ui.settings.chaseSmooth));
     const water = craftOnWater();
     const afloat = Boolean(water && water.state[3] > 0);
     chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / (afloat ? 700 : 250)));

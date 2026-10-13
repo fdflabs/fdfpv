@@ -4118,6 +4118,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -4475,6 +4559,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -4815,6 +4983,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -5181,6 +5433,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -5533,6 +5869,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -5895,6 +6315,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -6252,6 +6756,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -6596,6 +7184,90 @@
          "fov": 75
         },
         "cameraFov": 75
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -6958,6 +7630,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -7315,6 +8071,90 @@
      }
     },
     {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-flight",
      "label": "Flight",
      "section": true,
@@ -7667,6 +8507,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:camera-shake",
+     "label": "Camera shake",
+     "value": "On",
+     "note": "The picture's vibration, a hit's kick and a blast's buzz. Reduced or off for motion sickness; the aircraft flies the same.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "On"
+      },
+      {
+       "value": "reduced",
+       "label": "Reduced"
+      },
+      {
+       "value": "off",
+       "label": "Off"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:chase-smoothing",
+     "label": "Chase smoothing",
+     "value": "Standard",
+     "note": "How far the chase camera lags behind the aircraft. Smooth swings less in hard turns.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Tight"
+      },
+      {
+       "value": "standard",
+       "label": "Standard"
+      },
+      {
+       "value": "smooth",
+       "label": "Smooth"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -29225,6 +30149,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -29582,6 +30590,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -29922,6 +31014,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -30288,6 +31464,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -30640,6 +31900,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -31002,6 +32346,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -31359,6 +32787,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -31703,6 +33215,90 @@
          "fov": 75
         },
         "cameraFov": 75
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }
@@ -32065,6 +33661,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -32422,6 +34102,90 @@
      }
     },
     {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      }
+     }
+    },
+    {
      "id": "quad:s-vuelo",
      "label": "Vuelo",
      "section": true,
@@ -32774,6 +34538,90 @@
          "fov": 95
         },
         "cameraFov": 95
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:vibraci-n-de-c-mara",
+     "label": "Vibración de cámara",
+     "value": "Activada",
+     "note": "La vibración de la imagen, el golpe de un choque y el zumbido de una explosión. Reducida o apagada contra el mareo; la aeronave vuela igual.",
+     "current": "on",
+     "options": [
+      {
+       "value": "on",
+       "label": "Activada"
+      },
+      {
+       "value": "reduced",
+       "label": "Reducida"
+      },
+      {
+       "value": "off",
+       "label": "Apagada"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "cameraShake": "off"
+       }
+      },
+      "pick(\"reduced\")": {
+       "settings": {
+        "cameraShake": "reduced"
+       }
+      }
+     }
+    },
+    {
+     "id": "quad:suavizado-de-persecuci-n",
+     "label": "Suavizado de persecución",
+     "value": "Normal",
+     "note": "Cuánto se retrasa la cámara de persecución detrás de la aeronave. Suave se balancea menos en los giros cerrados.",
+     "current": "standard",
+     "options": [
+      {
+       "value": "tight",
+       "label": "Ajustado"
+      },
+      {
+       "value": "standard",
+       "label": "Normal"
+      },
+      {
+       "value": "smooth",
+       "label": "Suave"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "chaseSmooth": "smooth"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "chaseSmooth": "tight"
+       }
+      },
+      "pick(\"smooth\")": {
+       "settings": {
+        "chaseSmooth": "smooth"
        }
       }
      }

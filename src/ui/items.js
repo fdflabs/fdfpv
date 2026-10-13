@@ -69,6 +69,7 @@ import { formatTime } from './format.js';
 import { EVENT_TIERS } from '../game/economy.js';
 import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
+import { CHASE_SMOOTHING, SHAKE_LEVELS } from '../render/comfort.js';
 import {
   AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
@@ -626,6 +627,10 @@ function quadRows(ui, s) {
         keepCamera(s);
       },
     ),
+    choice(str('comfort.shake'), str('comfort.shake_note'), SHAKE_LEVELS, s.cameraShake,
+      (id) => str(`comfort.shake_${id}`), (id) => { s.cameraShake = id; }),
+    choice(str('comfort.chase'), str('comfort.chase_note'), CHASE_SMOOTHING, s.chaseSmooth,
+      (id) => str(`comfort.chase_${id}`), (id) => { s.chaseSmooth = id; }),
     { label: str('ui.flight'), section: true },
     choice(
       str('ui.flight_mode'),
