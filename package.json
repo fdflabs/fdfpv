@@ -208,6 +208,8 @@
     "world:spawns": "node scripts/world-spawns-check.js",
     "chasearm:selftest": "node scripts/chasearm-selftest.js",
     "chase:walls": "node scripts/chase-walls-check.js",
+    "edges:selftest": "node scripts/edges-selftest.js",
+    "edges:page": "node scripts/edges-page-check.js",
     "hulls:check": "node scripts/hulls-gen.js --check",
     "gen:hulls": "node scripts/hulls-gen.js",
     "midair:harness": "node scripts/midair-harness.js",

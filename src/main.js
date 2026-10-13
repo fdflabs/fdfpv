@@ -140,6 +140,7 @@ import {
   LATE_MS, applyHit, checkHit, hullFor, roomForcesDamage, sideFor,
 } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
+import { WORLD_EDGES, edgeState, edgeStep } from './game/edges.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
@@ -3414,11 +3415,16 @@ export async function boot({
     return fromY != null ? view.height(x, z, fromY) : groundAt(x, z);
   }
 
+  /* Where a reset puts the craft, for the world's edge's bearing home
+   * (edgeFrame). Up here because boot reaches adoptSpawn. */
+  const edgeHome = { x: 0, z: 0 };
   function adoptSpawn() {
     seatRestHeight(airframeById(runAirframe), startsAfloat());
     const sp = runSpawn();
     startX = sp.x;
     startZ = sp.z;
+    edgeHome.x = sp.x;
+    edgeHome.z = sp.z;
     startYaw = sp.yaw;
     startPitch = sp.pitch || 0;
     /* The spawn sits on the ground under it, which on these maps is
@@ -17648,6 +17654,7 @@ export async function boot({
     if (!openFrame(nowWall)) {
       return;
     }
+    edgeFrame();
     readPilot();
     advancePlant();
     composePose();
@@ -17663,6 +17670,43 @@ export async function boot({
     hudFrame();
     bannerFrame();
     closeFrame();
+  }
+
+  /*
+   * THE WORLD'S EDGE (src/game/edges.js): turn back past the world's
+   * square, the start again past twice it, with the R key's own reset, on
+   * last frame's pose as a key between frames would be. A live operation
+   * keeps its own boundary (edge/rooms/ops.js) instead, and a pilot on
+   * foot has left the aircraft where it is. Home is where the reset puts
+   * the craft (runSpawn), taken at each run's start: a clip recovery moves
+   * startX, not the start a reset goes back to.
+   */
+  const worldEdge = edgeState();
+  let edgeBanner = null;
+  /* ms of flight on the wall clock, held in a pause: a parked craft's sim
+   * clock does not run, and a craft landed out there is reset too. */
+  let edgeMs = 0;
+  function edgeFrame() {
+    if (mode === 'paused') {
+      return;
+    }
+    const half = WORLD_EDGES[view.id];
+    if (!half || mode !== 'flight' || walker !== null || roomOps.on() || warSpectating() || roomWatching() || jamWatching()) {
+      worldEdge.since = null;
+      edgeBanner = null;
+      return;
+    }
+    edgeMs += fr.dt;
+    const phase = edgeStep(half, worldEdge, pCurr.x, pCurr.z, edgeHome.x, edgeHome.z, edgeMs);
+    if (phase === 'reset') {
+      edgeBanner = null;
+      reset();
+      return;
+    }
+    edgeBanner = phase === 'in' ? null : [
+      str(phase === 'turn' ? 'edge.turn_back' : 'edge.leaving', { bearing: worldEdge.bearing, km: worldEdge.km.toFixed(1), s: Math.ceil(worldEdge.msLeft / 1000) }),
+      phase === 'turn' ? 'edge' : true,
+    ];
   }
 
   /*
@@ -19762,6 +19806,9 @@ export async function boot({
     }
     if ((turtleWait || turtleRecover || turtleFlip.active) && inFlight) {
       return [turtleBannerText(), true];
+    }
+    if (edgeBanner && inFlight) {
+      return edgeBanner;
     }
     if ((airHoldMs > 0 || raceHoldMs > 0) && !ui.isModal()) {
       return [String(Math.ceil(Math.max(airHoldMs, raceHoldMs) / 1000)), false];
