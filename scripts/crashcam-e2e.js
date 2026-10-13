@@ -20,8 +20,9 @@
  *  3. TAKE OVER at a frame after the wing came off and before the crash:
  *     the plant's state hash after the restore is the one the frame
  *     recorded, and the craft flies on from there.
- *  4. The page reloaded: My clips lists the replay; played, it opens as a
- *     saved clip with its shots and runs.
+ *  4. The page reloaded: My clips lists the replay, its line naming the
+ *     app build that flew it (a local build on this unstamped checkout);
+ *     played, it opens as a saved clip with its shots and runs.
  *  5. Flown past the 30 s window: the journal holds its bounded number of
  *     copies, and the steady state memory and costs are printed.
  *  6. No page errors.
@@ -415,6 +416,8 @@ async function main() {
     await shot(page, 'my-clips');
     const cards = await page.evaluate("document.querySelectorAll('.cc-clip').length");
     check('My clips lists the replay after a reload', cards === 1, `${cards} card`);
+    const line = await page.evaluate("document.querySelector('.cc-clip .cc-clip-meta').textContent");
+    check('its line names the build that flew it, a local build here', line.endsWith(', local build'), line);
     await page.evaluate("document.querySelector('.cc-clip [data-act=play]').click()");
     await page.until(`window.__crashCam.live() && ${H}.view() && !${H}.view().live`, 20000);
     await page.evaluate(`${H}.api.jumpTo(0)`);
