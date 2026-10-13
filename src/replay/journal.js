@@ -120,7 +120,10 @@ export const POINTERS = {
  * changes something. Measured in the shell: see docs/CONTROL-RECORDER.md.
  *
  * Left out too: sim_wing_gear, a reader the shell asks every frame that
- * is not in PURE. And the world, which the shell declares again round the
+ * is not in PURE. The air (sim_set_wind, sim_set_air_vertical) is set
+ * before every step of a flight in weather (src/main.js pushWeather), so
+ * it is the flight's too: logged, it filled the log in about 100 s and
+ * every later clip of the session was cut short of it. And the world, which the shell declares again round the
  * craft about twice a second (a clear, then the trees, wires and solids
  * near it): a clear makes every declaration of its kind before it moot, so
  * once both lie before the oldest stretch kept (no clip can start before
@@ -128,6 +131,7 @@ export const POINTERS = {
  */
 export const STEP_CALLS = new Set([
   'sim_input', 'sim_step', 'sim_set_ground', 'sim_set_ground_material', 'sim_damage_events', 'sim_wing_gear',
+  'sim_set_wind', 'sim_set_air_vertical',
 ]);
 const CLEARS = {
   sim_tree_clear: ['sim_tree_add', 'sim_tree_clump_add'],

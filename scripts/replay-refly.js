@@ -34,6 +34,8 @@
  * after the copy is written (gravity, by the ABI) must show a divergence,
  * and a build with a changed airframe constant must be refused by its id,
  * where its region would otherwise have flown the old plant bit for bit.
+ * Last a windy flight, the air set before every step: it flies back bit
+ * for bit and leaves the setup log as small as a still air one.
  *
  * Exit 0 when the re-fly matches the recording on every row it can fly,
  * 1 when it does not, the clip cannot be flown again or the build is not
@@ -508,6 +510,15 @@ function sticksAt(ms) {
   return [0.3 * tri, -0.1 + 0.05 * tri, 0.1 * tri, 0.7];
 }
 
+/* The air at millisecond ms, as the shell's pushWeather sets it before
+ * every step (src/main.js): a mean that changes every step, gusts and a
+ * rise, plain arithmetic like the sticks. */
+function windAt(ms) {
+  const k = (ms % 3000) / 3000;
+  const tri = k < 0.5 ? 2 * k : 2 - 2 * k;
+  return [4 + 2 * tri, -1.5 + tri, 2, 0.5 * tri - 0.2];
+}
+
 /*
  * The scripted flight through a journaled module, recorded as the crash
  * cam does (src/replay/crashcam.js record): a row every 16 ms with the
@@ -517,7 +528,7 @@ function sticksAt(ms) {
  * inputs and plain setters are both in the calls. Returns the clip as
  * open() cuts it, with its refly.
  */
-async function recordFlight(wasmBytes, configText) {
+async function recordFlight(wasmBytes, configText, windy = false) {
   const plain = await loadSim(wasmBytes);
   const j = createJournal(plain.e, { wasm: wasmBytes });
   const sim = new Sim(j.exports);
@@ -551,6 +562,11 @@ async function recordFlight(wasmBytes, configText) {
       [input.roll, input.pitch, input.yaw, input.throttle] = s;
     }
     sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E);
+    if (windy) {
+      const [vx, vy, gust, up] = windAt(ms);
+      must(sim.e.sim_set_wind(vx, vy, gust), 'sim_set_wind');
+      must(sim.e.sim_set_air_vertical(up), 'sim_set_air_vertical');
+    }
     if (ms % 500 === 0) {
       /* The world declared again round the craft twice a second, as the
        * shell does: a clear, then what is near (three trees, far enough
@@ -767,6 +783,38 @@ async function selftest() {
     old = err.message;
   }
   check(old === 'this clip carries nothing to fly it again with', 'a version 16 clip is refused with a reason', old || 'not refused');
+
+  console.log('7. a windy flight, the air set before every step as the shell sets it');
+  const gusty = await recordFlight(wasmBytes, configText, true);
+  const gustyBack = decodeReplay(encodeReplay({ ...gusty.clip, refly: await packRefly(gusty.clip.refly) }));
+  const windy = await refly(gustyBack, wasmBytes);
+  const ws = windy.cmp.summary;
+  printSummary(ws);
+  check(ws.flown === gusty.clip.n && ws.identical === ws.flown, 'flown again on its build, every row bit for bit',
+    `${ws.identical}/${ws.flown}`);
+  const endW = gusty.clip.plant.subarray((gusty.clip.n - 1) * PLANT_N, gusty.clip.n * PLANT_N);
+  const blown = Math.hypot(endA[0] - endW[0], endA[1] - endW[1], endA[2] - endW[2]);
+  check(blown > 1, 'the wind moved the flight', `${blown.toFixed(2)} m from the still air flight at the end`);
+  /* The air is set every step, so it is the flight, not its setup: in the
+   * setup log it would grow the log by every step and cut it short past
+   * about 100 s of wind, after which no clip of the session could be
+   * flown on another build. */
+  const airCalls = (() => {
+    const u = windy.unpacked.setup;
+    let n = 0;
+    for (let r = 0; r < u.calls.length; r += 3 + u.calls[r + 1] + u.calls[r + 2]) {
+      n += ['sim_set_wind', 'sim_set_air_vertical'].includes(windy.unpacked.names[u.calls[r]]) ? 1 : 0;
+    }
+    return n;
+  })();
+  const WU = gustyBack.refly.setup;
+  check(airCalls === 0 && !WU.overflow, 'the setup log holds none of the per step air',
+    `${airCalls} air calls, ${WU.entries} entries, ${WU.calls * 8} B`);
+  const windSelf = await transplantPair(gustyBack, windy.unpacked, windy.run, wasmBytes, wasmBytes);
+  const wf = windSelf.effect.summary;
+  printPairSummary('self', wf);
+  check(wf.flown > 0 && wf.identical === wf.flown, 'transplanted twice onto the same build, the two windy flights are identical',
+    `${wf.identical}/${wf.flown} rows`);
 
   console.log(failures ? `replay:refly selftest: ${failures} FAILED` : 'replay:refly selftest: all ok');
   process.exit(failures ? 1 : 0);
