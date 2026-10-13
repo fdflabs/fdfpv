@@ -63,17 +63,19 @@ const FLIGHT_MODE_KEYS = { angle: 'ui.angle', stab: 'ui.stabilised', manual: 'ui
 const FLAP_KEYS = ['ui.flaps_up', 'ui.flaps_half', 'ui.flaps_full'];
 const GEAR_KEYS = { up: 'ui.gear_up', down: 'ui.gear_down' };
 
-/* Wording for input.js's calibration steps; the order is CAL_STEPS. */
-const CAL_LABELS = {
-  center: str('ui.cal_centre'),
-  sweep: str('ui.full_range'),
-  throttle: str('ui.throttle'),
-  roll: str('ratespanel.roll'),
-  pitch: str('ui.pitch'),
-  yaw: str('ui.yaw_axis'),
+/* Wording for input.js's calibration steps; the order is CAL_STEPS. Keys,
+ * read when the list is drawn, so the words are the table's at that moment
+ * and not whichever language was current when this module loaded. */
+const CAL_KEYS = {
+  center: 'ui.cal_centre',
+  sweep: 'ui.full_range',
+  throttle: 'ui.throttle',
+  roll: 'ratespanel.roll',
+  pitch: 'ui.pitch',
+  yaw: 'ui.yaw_axis',
   /* Asked only of a radio with no buttons (SELECT_STEP in input.js). */
-  select: str('ui.menu_switch'),
-  confirm: str('input.check'),
+  select: 'ui.menu_switch',
+  confirm: 'input.check',
 };
 
 const NO_CHANNELS = Object.freeze({ roll: 0, pitch: 0, yaw: 0, throttle: 0 });
@@ -661,7 +663,7 @@ export const overlayMethods = {
     const steps = view.steps && view.steps.length ? view.steps : CAL_STEPS;
     this.calList.textContent = '';
     steps.forEach((id, i) => {
-      const item = el('li', null, CAL_LABELS[id] ?? id);
+      const item = el('li', null, CAL_KEYS[id] ? str(CAL_KEYS[id]) : id);
       if (id === view.step) {
         item.className = 'on';
       } else if (i < view.stepIndex) {
