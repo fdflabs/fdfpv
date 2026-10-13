@@ -539,7 +539,7 @@ async function flyRing(page, track) {
   await page.until('window.__ui.carousel.isOpen', 10000);
   await page.tap('Enter');
   await page.until("window.__ui.screen === 'courses'", 20000);
-  const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.course && it.course.track.id === ${JSON.stringify(track.id)})`);
+  const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.track && it.track.track.id === ${JSON.stringify(track.id)})`);
   await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
   await page.until(`window.__ui.cardSubject && window.__ui.cardSubject.endsWith(${JSON.stringify(`:${track.id}`)})`, 5000);
   await choose(page, 'card-fly');
