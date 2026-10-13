@@ -5077,7 +5077,7 @@
     "current": "betaflight-interceptor",
     "id": "pids:tune",
     "label": "Tune",
-    "note": "Everything below belongs to this one, and each tune keeps its own adjustment. Stock is the only tune shipped. Edit one on Firmware bench and save it, and it joins this row as Your edits. Changing it during a run puts the quad back on the start line.",
+    "note": "Everything below belongs to this one, and each tune keeps its own adjustment. Stock is the only tune shipped. Edit one on Firmware bench and save it, and it joins this row as Your edits.",
     "options": [
      {
       "label": "Factory default",
@@ -5526,7 +5526,7 @@
    {
     "i": 13,
     "id": "pids:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -5542,11 +5542,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -7802,7 +7802,7 @@
    {
     "i": 9,
     "id": "quick:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -7818,11 +7818,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -8401,7 +8401,7 @@
    {
     "i": 20,
     "id": "rates:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -8417,11 +8417,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -8946,7 +8946,7 @@
    {
     "i": 1,
     "id": "standings:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -8962,11 +8962,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]

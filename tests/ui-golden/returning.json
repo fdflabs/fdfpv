@@ -8168,7 +8168,7 @@
    {
     "i": 9,
     "id": "quick:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -8184,11 +8184,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -8767,7 +8767,7 @@
    {
     "i": 20,
     "id": "rates:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -8783,11 +8783,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -9312,7 +9312,7 @@
    {
     "i": 1,
     "id": "standings:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -9328,11 +9328,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]

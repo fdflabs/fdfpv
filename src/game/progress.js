@@ -205,7 +205,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, certs: {}, medals: {}, landings: {}, crashes: {}, laps: {}, kills: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, certs: {}, medals: {}, landings: {}, crashes: {}, laps: {}, kills: {}, missionsStarted: {}, missionsCompleted: {}, unlockAll };
 }
 
 /*
@@ -331,14 +331,18 @@ export function medalMap(o) {
  * aircraft), never from the screen, and merged as the higher of two
  * computers (src/share/progressmerge.js). Additive inside the stored
  * version: an older profile reads as none. They pay nothing: no rule
- * gives a landing, a crash, a lap or a kill counted here XP (a lap's XP
- * is awardLap's, docs/ECONOMY.md section 1 lists the milestones that
- * pay). A kill is logged only for a victim the room credited to this
+ * gives a landing, a crash, a lap, a kill or a mission counted here XP
+ * (a lap's XP is awardLap's, a mission's win and stars pay as firsts
+ * from the campaign's record, docs/ECONOMY.md section 1 lists the
+ * milestones that pay). A kill is logged only for a victim the room credited to this
  * pilot (edge/rooms/war.js `credited`, src/share/roomwar.js), so the
- * count never exceeds the room's own.
+ * count never exceeds the room's own. A mission completed is one that
+ * reached a result, won or lost; whether it was won, and its stars, are
+ * the campaign's record (src/game/campaign.js), not counted again here.
  */
 export const COUNTED = Object.freeze({
   landing: 'landings', crash: 'crashes', lap: 'laps', kill: 'kills',
+  mission_start: 'missionsStarted', mission_end: 'missionsCompleted',
 });
 const COUNT_MAX = 1e9;
 

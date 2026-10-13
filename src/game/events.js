@@ -46,12 +46,17 @@
  *                 Progress.roundFinished); a room race this pilot
  *                 finished, game 'race', carries {pilots} too, how many
  *                 were on its grid
- *   mission_end {mission, won, stars}
+ *   mission_start {mission, airframe}
+ *                 a Defend the Paraná war seen begun, with no result yet,
+ *                 in this pilot's room (src/ui/campaign.js observe); The
+ *                 Interior logs none yet, its client has no start hook
+ *   mission_end {mission, won, stars, airframe}
  *                 a mission's result applied to the save
- *                 (src/ui/campaign.js, src/ui/opscampaign.js)
+ *                 (src/ui/campaign.js, src/ui/opscampaign.js); both
+ *                 counted per aircraft like a landing
  *
- * The rest of the vocabulary (objective, stage, hit, joined, left,
- * mission_start, and the war's rounds) is the war's and the rooms', named now so their
+ * The rest of the vocabulary (objective, stage, hit, joined, left, and
+ * the war's rounds) is the war's and the rooms', named now so their
  * producers add rows, not words.
  *
  * RunWatch reads it first: Progress appends gate and lap here and hands

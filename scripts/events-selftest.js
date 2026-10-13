@@ -87,7 +87,9 @@ console.log('typed and append only');
     && throws(() => log.append('hit', 1, { at: Infinity })));
   check('data cannot overwrite the event\'s own fields', throws(() => log.append('gate', 1, { seq: 9 }))
     && throws(() => log.append('gate', 1, { type: 'lap' })));
-  check('a failed append leaves the log as it was', log.events.length === 3);
+  const m = log.append('mission_start', 1600, { mission: 'm1', airframe: 'cub1400' });
+  check('a mission start carries its mission and aircraft as plain values', m.mission === 'm1' && m.airframe === 'cub1400' && Object.isFrozen(m));
+  check('a failed append leaves the log as it was', log.events.length === 4);
   log.end(2000);
   check('the flight ends once, at its sim time', log.ended && log.endSimMs === 2000);
   check('nothing is appended after it ends', throws(() => log.append('crash', 2100)));
@@ -321,6 +323,9 @@ console.log('the shell\'s producers');
     && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
+  const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe \\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));
+  check('a mission start and result carry the seated aircraft and are folded at once',
+    missionLogged('src/ui/campaign.js', 'mission_start') && missionLogged('src/ui/campaign.js', 'mission_end') && missionLogged('src/ui/opscampaign.js', 'mission_end'));
   check('a kill the room credited is logged, one a victim, on the seated aircraft',
     src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills);")
     && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind });"));

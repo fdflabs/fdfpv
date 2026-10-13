@@ -102,10 +102,12 @@ const RELOADS = ['update-reload'];
 const RELOAD_IDS = ['pilot:language', 'pilot:idioma'];
 
 /* Installed once per page: the hooks main.js gave the Ui are swapped for
- * recorders that keep the call and its plain arguments. */
+ * recorders that keep the call and its plain arguments, and the boot's
+ * returnTo is kept for restore() to put back. */
 const HOOK = `(() => {
   const ui = window.__ui;
   window.__goldenCalls = [];
+  window.__goldenReturnTo = ui.returnTo;
   for (const k of Object.keys(ui)) {
     if (!/^on[A-Z]/.test(k) || typeof ui[k] !== 'function') { continue; }
     ui[k] = (...args) => {
@@ -153,6 +155,10 @@ const DUMP = (name, from, noLeads, noiseKeys) => `(async () => {
     for (const [k, v] of JSON.parse(snap)) { localStorage.setItem(k, v); }
     for (const k of Object.keys(ui.settings)) { if (!(k in settings)) { delete ui.settings[k]; } }
     Object.assign(ui.settings, JSON.parse(JSON.stringify(settings)));
+    /* returnTo lives on the Ui, not in storage: a row pressed on an
+     * earlier screen (the pause menu's Rates) would otherwise leave every
+     * later screen's Back leading where that one's did. */
+    ui.returnTo = window.__goldenReturnTo;
   };
   /* A walk resumed after a row reloaded the page picks its entry, leads
    * so far and starting state up from sessionStorage, which survives it. */
@@ -161,6 +167,7 @@ const DUMP = (name, from, noLeads, noiseKeys) => `(async () => {
   let snap;
   let settings;
   if (from === 0) {
+    ui.returnTo = window.__goldenReturnTo;
     try {
       ui.show(name);
       entry.screen = ui.screen;
