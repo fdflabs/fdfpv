@@ -118,6 +118,7 @@ import { str } from '../strings/index.js';
 import { PAD_BUTTONS as PAD } from '../input/padbuttons.js';
 import en from '../strings/en.js';
 import { readPilotName } from '../share/pilot.js';
+import { devHooks } from '../share/devhooks.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { KINDS, TURNED } from '../game/collide.js';
 import { ELEMENTS, KIND } from '../trackbuilder/elements.js';
@@ -2807,7 +2808,7 @@ export function createBuildMode(host) {
 
   /* What scripts/build-check.js reads and drives. Nothing in the product
    * calls it. */
-  window.__build = {
+  devHooks.__build = {
     state: () => ({
       state,
       map: view ? view.id : null,

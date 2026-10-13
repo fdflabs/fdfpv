@@ -337,6 +337,11 @@ const CSP_SEED = `document.addEventListener('securitypolicyviolation', (e) => co
  * `override`: a path the page fetches from its own server mapped to the
  * JavaScript served in its place, so a check can run another version of
  * one module beside this tree's.
+ *
+ * `host`: a name the page is served under in place of 127.0.0.1, which
+ * Chromium resolves to the loopback server and treats as a secure origin,
+ * so a check sees what a pilot on a public host sees (not a local host:
+ * src/share/devhooks.js closes developer mode).
  */
 export async function openPage({
   root,
@@ -348,6 +353,7 @@ export async function openPage({
   args = [],
   account = process.env.SIM_ACCOUNT === '1' ? 'Tester' : null,
   override = {},
+  host = null,
 } = {}) {
   const chrome = findChrome();
   if (!chrome) {
@@ -355,8 +361,10 @@ export async function openPage({
   }
   const signedIn = account ? await signIn(account) : null;
   const server = await startServer(root);
+  const origin = host ? server.origin.replace('127.0.0.1', host) : server.origin;
+  const hostArgs = host ? [`--host-resolver-rules=MAP ${host} 127.0.0.1`, `--unsafely-treat-insecure-origin-as-secure=${origin}`] : [];
   const profile = await mkdtemp(join(tmpdir(), 'sim-page-'));
-  const proc = spawn(chrome, chromeFlags({ width, height, profile, args }));
+  const proc = spawn(chrome, chromeFlags({ width, height, profile, args: [...hostArgs, ...args] }));
   const sweep = () => {
     proc.kill();
     rmSync(profile, RM_RETRIES);
@@ -404,7 +412,7 @@ export async function openPage({
   for (const source of seeds) {
     await call('Page.addScriptToEvaluateOnNewDocument', { source });
   }
-  await call('Page.navigate', { url: `${server.origin}${url}` });
+  await call('Page.navigate', { url: `${origin}${url}` });
 
   /* The expression's value, with a promise awaited. A throw is an error
    * here, not a logged line: every caller is asserting on the answer. */
@@ -500,7 +508,7 @@ export async function openPage({
     sessionId,
     errors,
     warnings,
-    origin: server.origin,
+    origin,
     proc,
     accounts: signedIn?.accounts ?? null,
     account: signedIn?.account ?? null,

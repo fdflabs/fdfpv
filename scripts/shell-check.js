@@ -16,6 +16,11 @@
  * the tuning path, the firmware bench, the radio banner and select hold,
  * the gate cards), is exercised and judged.
  *
+ * Developer mode (src/share/devhooks.js): every window.__ hook in src is
+ * in the hook index and is assigned where the index says, window for one
+ * that only reads and devHooks for one that changes state; and a second
+ * page, served under a public host name, shows no hook that changes state.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -32,14 +37,26 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import {
+  existsSync, readFileSync, readdirSync, writeFileSync,
+} from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
+import { HOOKS, devOpen } from '../src/share/devhooks.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+
+/* A name that is not a local host, resolved to the check's own server, and
+ * what a pilot's Enter on landing.html leaves in the tab, so the public
+ * page boots the game rather than the waitlist (index.html's front door). */
+const PUBLIC_HOST = 'public.test';
+const ENTERED_SEED = "try { sessionStorage.setItem('webfpv.entered', '1'); } catch (e) { /* the waitlist, and the check says so */ }";
+/* Globals of the libraries the page loads, not hooks of ours: three.js
+ * stamps its revision on window. */
+const LIBRARY_GLOBALS = new Set(['__THREE__']);
 const BASELINE_PATH = join(ROOT, 'tests', 'shell-baseline.json');
 
 const SCREENS = [
@@ -1428,6 +1445,82 @@ function judgeConsole(errors, fail, note) {
   }
 }
 
+function sourcesUnder(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const path = join(dir, d.name);
+    if (d.isDirectory()) {
+      return sourcesUnder(path);
+    }
+    return d.name.endsWith('.js') ? [path] : [];
+  });
+}
+
+/* Every hook assignment in src against the index, and every index row
+ * against src, so a hook added or retired without the index fails here. */
+function judgeHookIndex(fail, note) {
+  const index = new Map(HOOKS);
+  const assign = /\b(window|devHooks)\.(__[A-Za-z0-9_]+)\s*=(?!=)/g;
+  const texts = sourcesUnder(join(ROOT, 'src')).map((file) => ({ file, text: readFileSync(file, 'utf8') }));
+  const assigned = new Set();
+  for (const { file, text } of texts) {
+    for (const m of text.matchAll(assign)) {
+      const [, holder, name] = m;
+      const where = `${relative(ROOT, file)}:${text.slice(0, m.index).split('\n').length}`;
+      assigned.add(name);
+      if (!index.has(name)) {
+        fail(`${where}: ${name} is not in the hook index (src/share/devhooks.js HOOKS); give it what it changes, or null if it only reads`);
+      } else if (index.get(name) !== null && holder === 'window') {
+        fail(`${where}: ${name} changes state (${index.get(name)}) and is assigned to window; assign it to devHooks`);
+      } else if (index.get(name) === null && holder === 'devHooks') {
+        fail(`${where}: ${name} only reads by the hook index, but is assigned to devHooks`);
+      }
+    }
+  }
+  /* Not every hook is a plain assignment: orbit.js sets __orbitCached
+   * through Object.assign. Named anywhere but the index will do. */
+  const others = texts.filter(({ file }) => !file.endsWith(join('share', 'devhooks.js')));
+  for (const [name] of HOOKS) {
+    const word = new RegExp(`\\b${name}\\b`);
+    if (!assigned.has(name) && !others.some(({ text }) => word.test(text))) {
+      fail(`hook index: ${name} is defined nowhere in src; take it out of HOOKS`);
+    }
+  }
+  const asked = [['https://example.org/?dev=1', true], ['https://example.org/', false], ['http://localhost:8080/', true], ['http://[::1]:8080/', true]];
+  for (const [url, open] of asked) {
+    if (devOpen(new URL(url)) !== open) {
+      fail(`developer mode at ${url} is ${!open}, should be ${open}`);
+    }
+  }
+  const gated = HOOKS.filter(([, changes]) => changes !== null).length;
+  note(`hook index: ${HOOKS.length} hooks, ${gated} gated, ${assigned.size} assigned in src`);
+}
+
+/* The page under a public host: no hook that changes state, and none the
+ * index does not know. */
+function judgePublicHooks(keys, error, fail, note) {
+  if (!keys) {
+    fail(`public host: the shell never came up at ${PUBLIC_HOST}: ${error}`);
+    return;
+  }
+  const index = new Map(HOOKS);
+  for (const name of keys.filter((k) => !LIBRARY_GLOBALS.has(k))) {
+    if (!index.has(name)) {
+      fail(`public host: ${name} is on window and not in the hook index`);
+    } else if (index.get(name) !== null) {
+      fail(`public host: ${name} is on window and changes state (${index.get(name)})`);
+    }
+  }
+  note(`public host: ${keys.length} window.__ names read off the page`);
+}
+
+/* The gated hooks the local page's __dev.help() lists, against the index. */
+function judgeDevHelp(names, fail) {
+  const gated = HOOKS.filter(([, changes]) => changes !== null).map(([name]) => name);
+  if (!names || names.join() !== gated.join()) {
+    fail(`window.__dev.help() on a local host lists ${names ? names.length : 'nothing'}, the index gates ${gated.length}`);
+  }
+}
+
 function recordBaseline(walk, opts) {
   const screens = Object.fromEntries(SCREENS.map((name) => {
     const w = walk[name] || {};
@@ -1466,9 +1559,23 @@ async function main() {
       screens: SCREENS, tabs: FC_TABS, importKey: IMPORT_KEY,
     });
     results.ids = await runProbe(page, idsProbe, { screens: SCREENS });
+    results.devHelp = await page.evaluate('window.__dev ? window.__dev.help().map((h) => h.name) : null');
     await page.evaluate('window.__ui.show("title")');
   } finally {
     await page.close();
+  }
+
+  const publicPage = await openPage({
+    root: ROOT, width: opts.w, height: opts.h, host: PUBLIC_HOST, seed: [settingsSeed, ENTERED_SEED],
+  });
+  try {
+    await publicPage.until('window.__shellReady === true', 90000);
+    results.publicHooks = await publicPage.evaluate("Object.keys(window).filter((k) => k.startsWith('__'))");
+  } catch (e) {
+    results.publicHooks = null;
+    results.publicError = e.message;
+  } finally {
+    await publicPage.close();
   }
 
   if (opts.record) {
@@ -1487,6 +1594,9 @@ async function main() {
   judgeBehaviour(results.behaviour, fail, note);
   judgeFcTabs(results.fcTabs, fail, fcLines);
   judgeConsole(page.errors, fail, note);
+  judgeHookIndex(fail, note);
+  judgeDevHelp(results.devHelp, fail);
+  judgePublicHooks(results.publicHooks, results.publicError, fail, note);
 
   console.log(`shell check at ${opts.w}x${opts.h}`);
   for (const line of table) {
