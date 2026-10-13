@@ -73,6 +73,7 @@ import { footSection } from './rooms-selftest-foot.js';
 import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
+import { aiRaceSection } from './rooms-selftest-airace.js';
 import {
   emptyRoomSection, gameLobbySection, lobbyReadySection, warLobbySection,
 } from './rooms-selftest-gamelobby.js';
@@ -1999,6 +2000,7 @@ warLobbySection(check);
 gameLobbySection(check);
 lobbyReadySection(check);
 botsSection(check);
+await aiRaceSection(check);
 emptyRoomSection(check);
 sessionSection(check);
 weatherSection(check);
