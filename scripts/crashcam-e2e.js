@@ -59,7 +59,7 @@
  */
 
 import {
-  mkdirSync, mkdtempSync, readFileSync, writeFileSync,
+  mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -638,6 +638,10 @@ async function opponentRace() {
       re.status === 0 && pilot && Boolean(opp) && opp[3] === opp[4] && Number(opp[4]) > 0 && opp[5] === opp[6],
       opp ? `opponent ${opp[3]}/${opp[4]} rows of ${opp[1]} raced, sticks ${opp[5]}/${opp[6]}, exit ${re.status}; ${saved}`
         : `exit ${re.status}: ${(re.stderr || re.stdout).trim().split('\n').slice(-3).join(' | ')}`);
+    /* The saved clip and the re-fly's output stay only with --shots. */
+    if (!shots) {
+      rmSync(dir, { recursive: true });
+    }
     const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource|network:/.test(e));
     check('no page errors in the opponent race', errs.length === 0, errs.slice(0, 3).join(' | '));
   } finally {
