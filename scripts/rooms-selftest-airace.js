@@ -50,6 +50,8 @@ import { FILL_TO } from '../edge/rooms/roombots.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { groundOf } from '../edge/rooms/grounds.js';
 import { Race } from '../src/game/race.js';
+import { aiPilot } from '../src/game/aipilot.js';
+import { START_MS } from '../src/game/aiopponent.js';
 import {
   AI_RACE_AIRFRAME, PYLON_SEGMENTS, RACE_PACES, RIM_SEGMENTS, aiRaceUnavailable, framesOf, kitLoaded, preparedFor,
 } from '../edge/rooms/airace.js';
@@ -441,11 +443,30 @@ async function restoreSection(check) {
   e.say(0, { type: 'race', op: 'start', laps: 1 });
   const race = e.r.race.race;
   const ai = e.bots().map((s) => s.seat);
-  /* What each plant was when the room stored it, to hold the restore to. */
+  /* What each plant was when the room stored it, to hold the restore to;
+   * and each pilot's own memory then (aipilot.js snapshot, through plain
+   * JSON) with every call its live pilot took from there. */
   let atStore = null;
+  const logs = new Map();
+  const latest = new Map();
   e.onStore = (x) => {
     if (x.store === 'bots' && x.value.racers) {
       atStore = new Map([...e.r.bots.racers.racers].map(([seat, rc]) => [seat, { ms: rc.op.ms, state: Float64Array.from(rc.op.state), lapsDone: rc.lapsDone }]));
+      for (const [seat, rc] of e.r.bots.racers.racers) {
+        const { pilot } = rc.op;
+        if (!logs.has(pilot)) {
+          const live = pilot.sticks;
+          const log = { seat, rc };
+          pilot.sticks = (ms, st, gate) => {
+            const out = live(ms, st, gate);
+            log.calls.push({ ms, st: Float64Array.from(st), gate, out: out.slice() });
+            return out;
+          };
+          logs.set(pilot, log);
+        }
+        Object.assign(logs.get(pilot), { snap: JSON.parse(JSON.stringify(pilot.snapshot())), calls: [] });
+        latest.set(seat, logs.get(pilot));
+      }
     }
   };
   const passes = (so, seat) => so.got.filter((m) => m.type === 'event' && m.seat === seat);
@@ -461,7 +482,30 @@ async function restoreSection(check) {
     kept.racers ? `${kept.racers.racers.length} racers, ${(keptBytes / 1024).toFixed(0)} kB stored, build ${kept.racers.build.slice(0, 12)}` : 'none');
   const restoredAt = e.clock + 2000;
   const stored = new Map(e.stored);
+  /* The unbroken race flies on a second past its last store. */
+  e.onStore = null;
+  for (const flyTo = e.clock + 1000; e.clock < flyTo;) {
+    e.tick();
+  }
   e.leave(0);
+  /* A fresh pilot restored from each snapshot, handed what the live one
+   * was handed after it: the same sticks, bit for bit. Negative control: a
+   * fresh pilot not restored. */
+  const logged = ai.map((seat) => latest.get(seat)).filter(Boolean);
+  const replay = (l, restore) => {
+    const p = aiPilot({ line: l.rc.op.line, rates: l.rc.seated.rates, learnt: l.rc.seated.learnt, startMs: START_MS });
+    if (restore) {
+      p.restore(l.snap);
+    }
+    const i = l.calls.findIndex((c) => !p.sticks(c.ms, c.st, c.gate).every((v, j) => Object.is(v, c.out[j])));
+    return i < 0 ? null : l.calls[i].ms - l.calls[0].ms;
+  };
+  check('a pilot\'s snapshot, through plain JSON, restored into a fresh pilot: the same sticks as the live one, every call, bit for bit',
+    logged.length === ai.length && logged.every((l) => l.calls.length >= 250 && replay(l, true) === null),
+    logged.map((l) => `${l.seat}: ${l.calls.length} calls, ${replay(l, true) === null ? 'same' : `differ at +${replay(l, true)} ms`}`).join(', '));
+  check('negative control: a fresh pilot not restored flies other sticks within its eyes\' 200 ms',
+    logged.length === ai.length && logged.every((l) => replay(l, false) !== null && replay(l, false) < 200),
+    logged.map((l) => `${l.seat}: differ at +${replay(l, false)} ms`).join(', '));
 
   const b = room({ stored, clock: restoredAt });
   const br = b.r.race.race;
