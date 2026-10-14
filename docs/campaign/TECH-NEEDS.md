@@ -205,6 +205,29 @@ both deterministic and stored:
 
 `war:grid` gains both cases.
 
+**Status, 14 October (w39-daynight):**
+
+- Restore: **not built**, and left to the grid's lane. `grid.js`
+  `darkFrom` only ever puts a district out, `createGrid` has no restore
+  path, and the room sends no restore event (`edge/rooms` has no
+  `op: 'restore'`). The lights renderer is ready for it: night.js draws
+  each district at whatever level `setPower` hands it, so a grid that
+  brings a district back lights it again (`daytime:ramp` cuts every
+  district at night and gives them back: 36.5 lamp pixels per 10 000,
+  0.3 cut, 37.6 back).
+- Station dark by order: **built**, as a stage field, not a room event.
+  A stage with `stationDark: true` gives its attackers their `err` as if
+  every scout were dead (`edge/rooms/war.js` births), and the view's
+  `stationDark` is the room ms the match first entered such a stage
+  (from its `path`, so it holds to the match's end, over a store and a
+  checkpoint restart). The page puts the dam's own districts (the
+  station bus but the two switchyards, which are the grid's) out from
+  then with `grid.js` `levelAt`'s flicker (`src/share/war/stationdark.js`).
+  M4's twist A is `itaipu-4.js` `STATION_DARK`, flown by `war:stages`
+  both ways, and not yet among the mission's stages: its radio is not
+  voiced (MISSIONS.md M4).
+- `war:grid` is unchanged: `grid.js` was not touched.
+
 ### T1.11 Time of day per mission, and across one
 
 - `time: 'morning'|'day'|'golden'|'night'` on a mission, read at the
@@ -219,6 +242,35 @@ both deterministic and stored:
   debrief film.
 - `prepMs` for any mission that builds night lights at the go, as
   itaipu-4 does.
+
+**Status, 14 October (w39-daynight): built**, without a rebuild.
+
+- A stage carries `daytime: { to, ms }` (a named time, not a `light`
+  track: `to` is one of `daytime.js` TIME_NAMES). `daytime.js`
+  `missionLight` walks the stage graph for the hour each stage starts at
+  (stages that are alternatives must agree, or it throws), and
+  `missionClock` is the room's clock: standing at the mission's time in
+  the lobby with `to` the last hour it reaches, moving from a ramp
+  stage's room ms and stopping at its `to`, standing at the hour reached
+  over the end. `edge/rooms/core.js` tells it (VM rooms deploy).
+- Itaipu builds once for the whole span (`options.toward`) and moves its
+  light with `setLocalTime(hour)` as the clock does (`look/index.js` THE
+  RAMP): sun colour and strength, sky, air, exposure, the meter's
+  target, the night fill, the environment (baked again every 0.05), and
+  night.js's global level (`setNight`, by the sun's height, as
+  photocells switch). The sun's direction is held at the daylight end's,
+  so a ramp's night has its moon where that time's sun stands.
+  `daytime:ramp` holds both ends to the worlds built at each time,
+  number for number.
+- Lights Out: each Reroute twist ramps golden to night over the hold
+  (240 s), so The Dark is at night; the night flag turns 18.57 h, a fifth
+  of the way in. The Long Night: Before Dawn ramps night to the morning
+  over 240 s; the sun clears the night threshold (05:45) 190 s in, and
+  war:stages' ten bot games end between 05:20 and 06:28, six of them
+  before it.
+- `prepMs` was not added to Lights Out: the world is built at the
+  briefing for the whole span, and a countdown 15 s longer moves every
+  recorded legacy game.
 
 ### T1.12 Openings and Contain, in every mission
 
@@ -396,7 +448,7 @@ film ends and the shell's camera returns with no blend.
 | Attackers on routes | all | built (`createAttackers`, `planAgent`) |
 | Standing and flying cast | all | built (`craftBuilderFor`, baked) |
 | Nav lights off per aircraft | M4 | needs a toggle on the baked cast |
-| Night world, towns coming on | M3, M4 | night build built; the ramp is T1.11 |
+| Night world, towns coming on | M3, M4 | built, the ramp too (T1.11) |
 | Thermal look | M4 | the Avionics HUD's thermal, as a full frame grade |
 | Smoke on a structure | M5 | built for hit targets; a film needs to light it without a hit |
 | Spill state | M2 | T1.9 |

@@ -56,7 +56,9 @@ world at its own time (what every world did before clocks). Added to
   lobby's mission's time between matches (so every screen builds the
   mission's world before the briefing, as `warTimeFrame` did from the
   client's lobby); a war started in another room keeps its time over its
-  end and its result, as the client did;
+  end and its result, as the client did. Since 2026-10-14 (TECH-NEEDS
+  T1.11) the mission's light may move across its stages:
+  `missionClock(time, stages, stage, endAt)` (slice 4, below);
 - any other room: the time its host set, `meta.daytime`, a `TIME_NAMES`
   name or null. The room's creator's setting is its time from its start
   (`POST /v2/create { daytime }`); after that the host's
@@ -97,6 +99,28 @@ Everything that acts on the dark reads `daytimeNow()`:
 | war attackers' nav lights | the war's mission time |
 
 `roomwar.js time()` and `night()` lost their last reader and are gone.
+
+## Slice 4: a war mission's light across its stages (2026-10-14)
+
+A stage may carry `daytime: { to, ms }`, a `TIME_NAMES` name and a
+length. The clock gains an optional `to`, an hour after `hour` and less
+than a day on (`clockOf` keeps it, or drops it): where a moving clock
+stops (`hourAt` stops there, and never runs back before `hour`), or the
+last hour a standing one will reach.
+
+| Export | What |
+|---|---|
+| `missionLight(time, stages)` | each stage's starting hour by the stage graph (exits, picks), each ramp's end, the last; throws when two ways into a stage disagree |
+| `missionClock(time, stages, stage, endAt)` | the room's clock: the start standing (`to` the last hour) before any stage; a ramp stage's moving clock from its room ms; standing at the hour reached over the end |
+| `hourAfter(from, name)` | the first hour after `from` that is the name's |
+
+A clock with a `to` builds Itaipu for both ends (`options.toward`,
+`src/main.js timeOptionsOf`), with `setLocalTime`, so `daytimeFrame`
+moves its light as the Interior's, and the world is kept while the
+clock's times stay inside its `timeSpan` (`worldTimeMatches`).
+`?time=A&toward=B` builds one solo, standing at A. A mission with no ramp
+has its named time's clock everywhere, as before. `npm run daytime:ramp`
+(local, GPU) holds both ends of a ramp to the worlds built there.
 
 ## What it does NOT do (yet)
 
