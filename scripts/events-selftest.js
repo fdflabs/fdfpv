@@ -64,8 +64,8 @@ const throws = (fn) => {
 console.log('the vocabulary is COMPLETENESS item 25\'s');
 {
   const want = ['spawned', 'gate', 'lap', 'touch', 'crash', 'landing', 'objective', 'stage', 'kill', 'hit',
-    'round', 'joined', 'left', 'mission_start', 'mission_end'];
-  check('fifteen types, these', show([...EVENT_TYPES].sort()) === show([...want].sort()), EVENT_TYPES.join());
+    'round', 'joined', 'left', 'mission_start', 'mission_end', 'contact'];
+  check('sixteen types, these', show([...EVENT_TYPES].sort()) === show([...want].sort()), EVENT_TYPES.join());
   const doc = readFileSync(join(root, 'docs', 'redesign', 'COMPLETENESS.md'), 'utf8');
   check('each named in the spec', want.every((t) => doc.includes(`\`${t}\``)));
   check('the list cannot be changed at run time', Object.isFrozen(EVENT_TYPES));
@@ -87,7 +87,9 @@ console.log('typed and append only');
     && throws(() => log.append('hit', 1, { at: Infinity })));
   check('data cannot overwrite the event\'s own fields', throws(() => log.append('gate', 1, { seq: 9 }))
     && throws(() => log.append('gate', 1, { type: 'lap' })));
-  check('a failed append leaves the log as it was', log.events.length === 3);
+  const m = log.append('mission_start', 1600, { mission: 'm1', airframe: 'cub1400' });
+  check('a mission start carries its mission and aircraft as plain values', m.mission === 'm1' && m.airframe === 'cub1400' && Object.isFrozen(m));
+  check('a failed append leaves the log as it was', log.events.length === 4);
   log.end(2000);
   check('the flight ends once, at its sim time', log.ended && log.endSimMs === 2000);
   check('nothing is appended after it ends', throws(() => log.append('crash', 2100)));
@@ -308,7 +310,7 @@ console.log('the shell\'s producers');
   check('Progress feeds RunWatch gate and lap from the log, and tells it every touch',
     ui.includes("feedRunWatch(this.watch, this.event('gate'))")
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
-    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal });\n    const done = feedRunWatch(this.watch, lapped);"));
+    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind });\n    const done = feedRunWatch(this.watch, lapped);"));
   check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
   check('and logs a crash and a landing from its tick',
     ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe })"));
@@ -316,14 +318,22 @@ console.log('the shell\'s producers');
   check('a room game\'s end is logged as a round, Streamer Combat and Catch the Ace!',
     src('src/main.js').includes("ui.progress.roundFinished('combat', worldId())") && src('src/main.js').includes("ui.progress.roundFinished('tag', worldId())")
     && ui.includes("this.event('round', { game, world, ...more })"));
-  check('a room race this pilot finished is a round with its grid\'s size, once per race',
+  check('a room race this pilot finished is a round with the people on its grid, its AI pilots not counted, once per race',
     src('src/main.js').includes("const over = roomRace.takeResults();")
-    && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length })"));
+    && src('src/main.js').includes("const people = (over.racers || []).filter((seat) => seat === roomRace.seat() || !roomBot(roomPeers.get(seat) || {}));")
+    && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: people.length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
-  check('a kill the room credited is logged, one a victim, on the seated aircraft',
-    src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills);")
-    && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind });"));
+  const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe \\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));
+  check('a mission start and result carry the seated aircraft and are folded at once',
+    missionLogged('src/ui/campaign.js', 'mission_start') && missionLogged('src/ui/campaign.js', 'mission_end') && missionLogged('src/ui/opscampaign.js', 'mission_end'));
+  check('an Interior match is logged begun when it goes live, its mission and the seated aircraft',
+    /e\.type === 'state' && e\.to === 'live' && INTERIOR\.some\(\(m\) => m\.id === v\.mission\)\) \{[\s\S]{0,600}?ui\.progress\.event\('mission_start', \{ mission: v\.mission, airframe: ui\.progress\.airframe \}\);\n\s*ui\.progress\.foldFlight\(\);/.test(src('src/main.js')));
+  check('a kill the room credited is logged, one a victim, on the seated aircraft, with the war\'s mission',
+    src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills, v.mission ?? null);")
+    && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind, mission });"));
+  check('the avionics camera\'s primary track is told every perception frame, and none without the Avionics HUD',
+    src('src/main.js').includes('ui.progress.contact(heldTrack(tracks.snapshot));') && src('src/main.js').includes("avionicsHud.tick(false, paused, nowWall, null);\n      ui.progress.contact(null);"));
 }
 
 console.log('a kill the room credited, through the client, into the log');
@@ -347,6 +357,35 @@ console.log('a kill the room credited, through the client, into the log');
   check('only this seat\'s credited victims, a pierce\'s too: none for a blast credited nobody, another seat\'s, or a room that did not say',
     show(kills.map((e) => e.simMs)) === show([100, 100, 500]), show(kills));
   check('each carries its aircraft and victim as plain values', kills.every((e) => e.airframe === 'cub1400' && 'victim' in e && Object.isFrozen(e)));
+}
+
+console.log('a contact: the primary track\'s edges, never a frame');
+{
+  /* Progress.contact as src/ui/progress-ui.js writes it (that file needs
+   * the DOM): a held edge for a new primary, a let go for the old one. */
+  const log = new EventLog();
+  let held = null;
+  const contact = (simMs, track) => {
+    if (track === held) {
+      return;
+    }
+    if (held != null) {
+      log.append('contact', simMs, { track: held, held: false });
+    }
+    if (track != null) {
+      log.append('contact', simMs, { track, held: true });
+    }
+    held = track;
+  };
+  const ui = readFileSync(join(root, 'src', 'ui', 'progress-ui.js'), 'utf8');
+  check('the producer is Progress.contact\'s', ui.includes("this.feedLesson(this.event('contact', { track: was, held: false }));")
+    && ui.includes("this.feedLesson(this.event('contact', { track, held: true }));") && ui.includes('if (track === this.heldTrack) {\n      return;'));
+  for (let t = 0; t < 100; t += 1) {
+    contact(t, t < 10 ? null : t < 60 ? 3 : t < 80 ? 5 : null);
+  }
+  const got = log.events.map((e) => `${e.simMs}:${e.track}:${e.held}`);
+  check('a hundred frames, two tracks: four edges, in order', show(got) === show(['10:3:true', '60:3:false', '60:5:true', '80:5:false']), show(got));
+  check('each carries its track and held as plain values', log.events.every((e) => Number.isInteger(e.track) && typeof e.held === 'boolean' && Object.isFrozen(e)));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

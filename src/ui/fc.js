@@ -43,6 +43,7 @@ import { keyNote } from '../fc/keynotes.js';
 import { normaliseRates, RATE_DEFAULTS } from '../../configs/rates.js';
 import { TUNES, tunePath } from '../../configs/registry.js';
 import { str } from '../strings/index.js';
+import { tuneName } from './tunename.js';
 import {
   FEATURES,
   FIELDS,
@@ -613,19 +614,21 @@ export class FcSession {
     rows.push(
       button(str('ui.discard'), 'fc-discard', str('fc.restores_the_dump_that_was_live')),
       button(str('fc.export'), 'fc-export', str('fc.downloads_cli_text_a_4_5')),
-      button(dirty ? str('ui.exit_without_saving') : 'Exit', 'fc-back',
+      button(dirty ? str('ui.exit_without_saving') : str('ui.exit'), 'fc-back',
         str(dirty ? 'fc.leaves_and_restores_the_dump_that' : 'fc.leaves_this_screen_escape_does_the')),
     );
     return rows;
   }
 
+  /* A preset's label is its tune name in the pilot's language, the same
+   * word the Tune row shows. */
   presetRows() {
     const rows = TUNES.map((tune) => ({
-      label: tune.name,
+      label: tuneName(tune.id),
       action: `fc-preset:${tune.id}`,
-      note: str('fc.keep_mine_rates_save_still_required', { note: tune.note }),
+      note: str('fc.keep_mine_rates_save_still_required', { note: str(`tune.note.${tune.id.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`) }),
     }));
-    rows.push(greyRow('firmware-presets', 'Unavailable', str('fc.optional_later_fetch_from_betaflight_firmware')));
+    rows.push(greyRow('firmware-presets', str('fc.unavailable'), str('fc.optional_later_fetch_from_betaflight_firmware')));
     return rows;
   }
 
@@ -640,8 +643,8 @@ export class FcSession {
         /* Read at the press, so a flip always inverts what the shell has. */
         flip: () => this.setLaunchControl(!this.getLaunchControl()),
       },
-      greyRow(str('fc.horizon'), 'Unavailable', str('fc.no_aux_channels_until_they_are')),
-      greyRow(str('fc.gps_rescue'), 'Unavailable', str('fc.no_gps_sensor_in_the_plant')),
+      greyRow(str('fc.horizon'), str('fc.unavailable'), str('fc.no_aux_channels_until_they_are')),
+      greyRow(str('fc.gps_rescue'), str('fc.unavailable'), str('fc.no_gps_sensor_in_the_plant')),
     ];
   }
 
@@ -661,7 +664,7 @@ export class FcSession {
 
   motorRows() {
     if (!this.motorTestAllowed()) {
-      return [greyRow(str('fc.motor_test'), 'Unavailable', str('fc.motor_test_uses_sim_motor_override'))];
+      return [greyRow(str('fc.motor_test'), str('fc.unavailable'), str('fc.motor_test_uses_sim_motor_override'))];
     }
     const percent = (duty) => `${Math.round(duty * 100)} %`;
     const rows = [{
@@ -687,7 +690,7 @@ export class FcSession {
   fieldRows(tab) {
     const fields = this.visibleFields();
     const rows = [];
-    if (tab.grey && fields.length === 0) rows.push(greyRow(tab.label, 'Unavailable', tab.reason));
+    if (tab.grey && fields.length === 0) rows.push(greyRow(tab.label, str('fc.unavailable'), tab.reason));
     const page = this.tab === 'pid' ? this.page : '';
     let open = '';
     for (const field of fields) {

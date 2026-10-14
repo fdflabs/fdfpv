@@ -57,10 +57,10 @@ import { accountsAvailable } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
 import { pageVersion } from './update.js';
-import { lapSlot, readPendingTime, readPostedBest } from '../share/session.js';
+import { lapSlot, readPendingTime, readPostedBest } from '../share/trackseat.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
-  LOCALES, LOCALE_NAMES, currentLocale, hasStr, plural, rememberLocale, str,
+  LOCALES, LOCALE_NAMES, currentLocale, plural, rememberLocale, str,
 } from '../strings/index.js';
 import { customisable } from './builds.js';
 import { flightTimeText } from './carousel.js';
@@ -73,7 +73,8 @@ import {
   AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
-import { VIEW_LABEL, trickLevel } from './trickfilm.js';
+import { trickLevel } from './trickfilm.js';
+import { tuneName } from './tunename.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 import { controllerRows, usingLabel } from './controller.js';
@@ -108,14 +109,12 @@ const creditsRow = () => ({ label: str('ui.credits'), action: 'credits', note: s
 /* The flight feel report's door, where a pilot has just been flying. */
 const feelRow = () => ({ label: str('ui.flight_feel'), action: 'feel', note: str('ui.tell_the_tune_work_how_the') });
 
-/* A tune's mode word (Stabilised, Manual) in the pilot's language. The
- * registry names tunes in English; a name with no key (AS3X, a brand) is
- * shown as it is, and scripts/es-leak-lint.js holds every name to a key or
- * to its list of words Spanish shares. */
-function tuneName(id) {
-  const name = tuneById(id).name;
-  const key = `tune.name.${name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
-  return hasStr(key) ? str(key) : name;
+/* A tune's note in the pilot's language. The registry keeps it in English
+ * as the record; scripts/es-leak-lint.js holds every tune to a key whose
+ * English is that note word for word. */
+function tuneNote(id) {
+  const tune = tuneById(id);
+  return str(`tune.note.${tune.id.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`);
 }
 
 /* The rate system's name: Classic is Betaflight's, the rest are brands. */
@@ -231,13 +230,12 @@ function planeRatesRows(ui, s) {
 /* The tune row: the PIDs room's door, saying when the quad flies something
  * other than the tune's own numbers. */
 function tuneRow(s, midRun) {
-  const tune = tuneById(s.tune);
   const adjusted = pidsAdjusted(s.pids, s.tune);
   return {
     label: str('ui.tune'),
     value: adjusted ? `${tuneName(s.tune)}, ${pidsSummary(s.pids, s.tune).toLowerCase()}` : tuneName(s.tune),
     action: 'pids',
-    note: str('ui.opens_where_the_tune_is_chosen', { note: tune.note, pids: SCREEN_TITLES.pids, v3: midRun ? MID_RUN_WARNING : '' }),
+    note: str('ui.opens_where_the_tune_is_chosen', { note: tuneNote(s.tune), pids: SCREEN_TITLES.pids, v3: midRun ? MID_RUN_WARNING : '' }),
   };
 }
 
@@ -444,15 +442,16 @@ function friendsRows(ui) {
   const inRoom = Boolean(row && row.inRoom);
   const rows = ui.friendsRows ? ui.friendsRows() : [];
   /* Free flight between runs seats the aircraft and the world here too. */
-  const seat = between && ui.mode === 'freestyle' ? ui.roomSeatRows(inRoom) : [];
+  const seat = between && ui.mode === 'freestyle' ? ui.roomSeatRows(row, Boolean(ui.warLobbyOn)) : [];
   /* Everyone's aircraft side by side before a start (src/ui/hangarwalk.js),
    * in a game's lobby too. */
   const lineup = inRoom ? [{ label: str('walk.lineup_room'), action: 'room-lineup', note: str('walk.lineup_room_note'), rowClass: 'row-lineup' }] : [];
   if (ui.warLobbyOn) {
-    /* The war's lobby: its own rows, the aircraft only, and its Leave last. */
+    /* A game's lobby: its own rows, the aircraft and the room's weather,
+     * and its Leave last. */
     const leave = rows.filter((it) => it.action === 'friends-leave');
     const rest = rows.filter((it) => it.action !== 'friends-leave');
-    return [...rest, ...seat.slice(0, 1), ...lineup, ...leave];
+    return [...rest, ...seat, ...lineup, ...leave];
   }
   /* A started game's own row is the primary; Fly on top gives it up. */
   const started = rows.some((it) => it.primary);
@@ -519,8 +518,8 @@ function coursesRows(ui, s) {
   ];
 }
 
-/* Which world a new track is built in; a plane is offered a finished sky
- * course in each as well. */
+/* Which world a new track is built in, and a finished sky course in each,
+ * at the seated aircraft's size (src/builder/course.js casualCourse). */
 function newTrackRows(af) {
   const worlds = MAPS.filter((m) => m.build);
   const empty = worlds.map((m) => ({
@@ -528,11 +527,12 @@ function newTrackRows(af) {
     action: `newtrack:${m.id}`,
     note: str('ui.an_empty_track_in_the_builder', { world: m.name }),
   }));
-  const casual = af.fixedWing ? worlds.map((m) => ({
+  const note = af.fixedWing ? 'ui.casual_sky_course_note' : 'ui.casual_quad_track_note';
+  const casual = worlds.map((m) => ({
     label: str('ui.casual_sky_course_in', { world: m.name }),
     action: `casualtrack:${m.id}`,
-    note: str('ui.casual_sky_course_note', { world: m.name }),
-  })) : [];
+    note: str(note, { world: m.name }),
+  }));
   return [
     { label: str('ui.new_track_in_which_world'), section: true },
     ...empty,
@@ -547,7 +547,7 @@ function trickRows(ui) {
   return ui.trickRows().map((t) => ({
     label: t.name,
     value: `${formatScore(t.points)}`,
-    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: VIEW_LABEL[t.view].replace('seen ', '') }),
+    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: str(`trickfilm.view.${t.view}`) }),
     action: 'noop',
   }));
 }
@@ -1316,7 +1316,7 @@ function pidsRows(ui, s) {
  * comes from. */
 function tunePickRow(s, midRun) {
   const ids = tuneChoices(s.airframe);
-  const door = ids.includes(CUSTOM_TUNE.id) ? '' : str('ui.stock_is_the_only_tune_shipped', { fc: SCREEN_TITLES.fc, name: CUSTOM_TUNE.name });
+  const door = ids.includes(CUSTOM_TUNE.id) ? '' : str('ui.stock_is_the_only_tune_shipped', { fc: SCREEN_TITLES.fc, name: tuneName(CUSTOM_TUNE.id) });
   return {
     ...choice(
       str('ui.tune'),

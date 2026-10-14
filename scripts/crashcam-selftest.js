@@ -83,6 +83,15 @@
  *    still the version before and read back without one, so My clips says
  *    "build unknown"; a trim keeps it; its refusals, a version 18 file
  *    without its build first.
+ * 26. A solo race's AI opponent (src/replay/opponent.js, file version 19):
+ *    the ring keeps its drawn pose, run, clock, stick count and hash a row
+ *    and its 4 ms sticks as flown, across a race opened again; drawn
+ *    between two rows of one run and never blended across two; the version
+ *    19 round trip bit for bit beside the build; the same clip without it
+ *    still the version 18 file, byte for byte; a trim keeps it, and one
+ *    that leaves it no row drops it; My clips says it; its refusals, an
+ *    opponent in a version 18 file and a version 19 file without its
+ *    opponent first.
  *
  * Run: npm run crashcam:selftest
  *
@@ -141,6 +150,9 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, REFUSALS, ReplayFileError } from '../src/replay/file.js';
 import { buildOf } from '../src/replay/editor.js';
+import {
+  OPP, OPP_POSE_N, ROW_N as OPP_ROW_N, STICK_W as OPP_STICK_W, createOpponentRing, opponentAt,
+} from '../src/replay/opponent.js';
 import EN_STRINGS from '../src/strings/en.js';
 import ES_STRINGS from '../src/strings/es.js';
 import {
@@ -2242,7 +2254,7 @@ function animRecord() {
   gateFile(withClock, refused);
   soundFile(withClock, refused);
   voiceFile(withClock, refused);
-  buildFile(sticksFile(withClock, refused), refused);
+  opponentFile(buildFile(sticksFile(withClock, refused), refused), refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -3106,6 +3118,147 @@ function buildFile(sticksClip, refused) {
     threw = err;
   }
   check(threw instanceof Error, 'a build that is not one is refused when written', threw ? threw.message : 'written');
+  return clip;
+}
+
+/*
+ * 26. A solo race's AI opponent (src/replay/opponent.js), saved as file
+ * version 19 beside the build. The opponent here is a stand in with the
+ * AiOpponent's shape (its journal's refly is replay:refly:selftest's).
+ */
+function opponentFile(buildClip, refused) {
+  console.log('26. a solo race\'s AI opponent, drawn as its ghost and saved (version 19)');
+  const v = (b) => new DataView(b).getUint32(4, true);
+  const bytesOf = (b) => Buffer.from(new Uint8Array(b));
+  const n = buildClip.n;
+  const ring = createOpponentRing(n);
+  const racer = () => {
+    const rows = [];
+    return {
+      ms: 0,
+      crashed: false,
+      state: new Float64Array(20),
+      journal: { mark: () => [0, 0] },
+      laps: () => (rows.length > 300 ? [1200.5] : []),
+      fly(ms) {
+        for (; this.ms < ms; this.ms += 1) {
+          if (this.ms % 4 === 0) {
+            const k = rows.length;
+            rows.push([Math.sin(k / 7) * 0.5, Math.cos(k / 9) * 0.25, 0.02 * (k % 5), 0.4 + 0.001 * (k % 100)]);
+          }
+          this.state[1] = this.ms / 100;
+        }
+      },
+      sticks: () => Float32Array.from(rows.flat()),
+    };
+  };
+  const drawn = { position: { x: 0, y: 0, z: 0 }, quaternion: { x: 0, y: 0, z: 0, w: 1 } };
+  const START = 5;
+  const RESTART = Math.floor(n / 2);
+  let op = null;
+  let t0 = 0;
+  const raced = [];
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    if (k === START || k === RESTART) {
+      op = racer();
+      raced.push(op);
+      t0 = buildClip.time[k];
+    }
+    if (!op) {
+      continue;
+    }
+    op.fly(Math.round((buildClip.time[k] - t0) * 1000));
+    drawn.position = { x: k, y: 2, z: -k / 2 };
+    const half = (k % 40) * 0.01;
+    drawn.quaternion = { x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) };
+    ring.write(op, drawn);
+  }
+  const opp = ring.clip(0, n);
+  const rowsOf = (k, f) => opp.rows[k * OPP_ROW_N + f];
+  check(rowsOf(START - 1, OPP.run) === -1 && rowsOf(START, OPP.run) === 0 && rowsOf(RESTART, OPP.run) === 1 && opp.runs.length === 2,
+    'a row before it raced is none, and a race opened again is a second run', JSON.stringify(opp.runs));
+  const flown = Float32Array.from([...raced[0].sticks(), ...raced[1].sticks()]);
+  const inForce = (k) => {
+    const [r, o] = rowsOf(k, OPP.run) === 0 ? [raced[0], 0] : [raced[1], raced[0].sticks().length / OPP_STICK_W];
+    return rowsOf(k, OPP.stick) - o === Math.floor((r === raced[0] ? buildClip.time[k] - buildClip.time[START] : buildClip.time[k] - buildClip.time[RESTART]) * 250 - 1e-9) + 1;
+  };
+  check(same(opp.sticks, flown) && inForce(START + 10) && inForce(RESTART) && inForce(n - 1),
+    'each run\'s 4 ms sticks follow on in one column, each row naming the one in force', `${opp.sticks.length / OPP_STICK_W} stick rows`);
+  check(opp.refly === null, 'a journal with no stretch gives no refly, and the rest is kept');
+  const out = { pos: [0, 0, 0], quat: [0, 0, 0, 1], sticks: null };
+  const mid = START + 3;
+  const blended = opponentAt(opp, mid, 0.5, out) && Math.abs(out.pos[0] - (mid + 0.5)) < 1e-6;
+  const edge = opponentAt(opp, RESTART - 1, 0.5, out) && Math.abs(out.pos[0] - (RESTART - 1)) < 1e-6;
+  check(blended && edge && !opponentAt(opp, 0, 0.5, out), 'drawn between two rows of a run, held at a run\'s last row, not drawn before it raced');
+  const clip = { ...buildClip, opponent: opp };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(v(buf) === 19 && back.build === clip.build && same(back.opponent.rows, opp.rows) && same(back.opponent.pose, opp.pose)
+    && same(back.opponent.sticks, opp.sticks) && JSON.stringify(back.opponent.runs) === JSON.stringify(opp.runs),
+  'saved as version 19 and read back bit for bit beside the build', `${buf.byteLength - encodeReplay(buildClip).byteLength} bytes for the opponent`);
+  check(bytesOf(encodeReplay(back)).equals(bytesOf(buf)), 'written again, the same bytes');
+  const v18 = encodeReplay(buildClip);
+  check(v(v18) === 18 && bytesOf(encodeReplay({ ...back, opponent: null })).equals(bytesOf(v18)),
+    'the same clip without an opponent is the version 18 file, byte for byte');
+  check(!('opponent' in decodeReplay(v18)), 'a version 18 file reads back without one');
+  const t = trimWhole(clip, clip.time[3], clip.time[n - 3]);
+  const tBack = decodeReplay(encodeReplay(t));
+  check(same(tBack.opponent.rows, opp.rows.slice(3 * OPP_ROW_N, (n - 2) * OPP_ROW_N)) && same(tBack.opponent.sticks, opp.sticks),
+    'a trim keeps it, its sticks whole', `${t.n} rows`);
+  const before = trimWhole(clip, 0, clip.time[START - 2]);
+  check(before.opponent === null && v(encodeReplay(before)) === 18, 'a trim to before it raced drops it: version 18');
+  const line = (row, lang) => (lang === 'en' ? EN_STRINGS : ES_STRINGS)[row.opponent ? 'replay.clip_meta_opponent' : 'replay.clip_meta'];
+  check(/AI opponent/.test(line({ opponent: true }, 'en')) && /Rival IA/.test(line({ opponent: true }, 'es')),
+    'My clips says a clip has the AI opponent in it, in English and Spanish', `${line({ opponent: true }, 'en')}; ${line({ opponent: true }, 'es')}`);
+
+  refused(() => reheader(buf, 18), 'an AI opponent in a file that says version 18');
+  refused(() => reheader(v18, 19), 'a version 19 file without its AI opponent');
+  refused(() => reheader(buf, 19, (h) => { delete h.build; }), 'a version 19 file without its build');
+  refused(() => reheader(buf, 19, (h) => { h.opponent.extra = 1; }), 'an opponent with a field this build does not know');
+  refused(() => reheader(buf, 19, (h) => { h.opponent.runs[0].laps = [-1]; }), 'a lap that is not a time');
+  refused(() => reheader(buf, 19, (h) => { h.opponent.sticks += 1; }), 'an opponent whose sticks are not the count its header says');
+  refused(() => buf.slice(0, buf.byteLength - 4), 'a version 19 file cut short of its opponent');
+  const m = opp.sticks.length / OPP_STICK_W;
+  const sticksAtByte = buf.byteLength - m * OPP_STICK_W * 4;
+  const poseAtByte = sticksAtByte - n * OPP_POSE_N * 4;
+  const rowsAtByte = poseAtByte - n * OPP_ROW_N * 4;
+  const poke = (off, set) => () => {
+    const b = buf.slice(0);
+    set(new DataView(b), off);
+    return b;
+  };
+  refused(poke(rowsAtByte + (START * OPP_ROW_N + OPP.run) * 4, (d, o) => d.setInt32(o, 2, true)), 'a row naming a race the file does not have');
+  refused(poke(rowsAtByte + ((START + 1) * OPP_ROW_N + OPP.stick) * 4, (d, o) => d.setInt32(o, m + 1, true)), 'a row naming a stick past its sticks');
+  refused(poke(rowsAtByte + ((RESTART + 1) * OPP_ROW_N + OPP.run) * 4, (d, o) => d.setInt32(o, 0, true)), 'a row going back to an earlier race');
+  refused(poke(poseAtByte + (START * OPP_POSE_N + 1) * 4, (d, o) => d.setFloat32(o, NaN, true)), 'an opponent pose that is not a number');
+  refused(poke(sticksAtByte + 3 * 4, (d, o) => d.setFloat32(o, -0.5, true)), 'a throttle under zero in its sticks');
+  refused(() => {
+    const b = buf.slice(0);
+    const dv = new DataView(b);
+    for (let k = 0; k < n; k += 1) {
+      dv.setInt32(rowsAtByte + (k * OPP_ROW_N + OPP.run) * 4, -1, true);
+    }
+    return b;
+  }, 'an opponent that races in no frame');
+  let threw = null;
+  try {
+    const bare = { ...clip };
+    delete bare.sticks;
+    encodeReplay(bare);
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a clip with an opponent and no sticks is refused when written', threw ? threw.message : 'written');
+  threw = null;
+  try {
+    const bare = { ...clip };
+    delete bare.build;
+    encodeReplay(bare);
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a clip with an opponent and no build is refused when written (HEADER_ONLY: past 18 it has one)', threw ? threw.message : 'written');
 }
 
 ring();

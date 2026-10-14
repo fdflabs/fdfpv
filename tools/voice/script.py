@@ -66,6 +66,11 @@ TU_WORDS = {'tu', 'tus', 'tú', 'te', 'ti', 'contigo', 'mantente', 'pierdes', 'v
 TU_PRETERITE = re.compile(r'(aste|iste)$')
 TU_ALLOWED = {'resiste', 'existe', 'insiste', 'persiste', 'consiste', 'triste', 'chiste', 'desiste'}
 SPANISH_WORD = re.compile(r'[a-záéíóúüñ]+')
+# The stick axes are throttle, roll, pitch and yaw in Spanish too
+# (docs/SPANISH-GLOSSARY.md, settled 2026-10-13). The radio is spoken, so
+# a line that says acelerador is a recording the menus beside it
+# disagree with; scripts/es-leak-lint.js holds the menus to the same list.
+AXIS_WORDS = {'acelerador', 'aceleradores', 'gas', 'alabeo', 'cabeceo', 'guiñada'}
 
 
 def tu_forms(text):
@@ -118,6 +123,9 @@ def load():
         tu = tu_forms(line.get('es', ''))
         if tu:
             faults.append(f'{where}.es: addresses one pilot as tú ({", ".join(tu)}); the squad is ustedes')
+        axis = sorted(AXIS_WORDS.intersection(SPANISH_WORD.findall(line.get('es', '').lower())))
+        if axis:
+            faults.append(f'{where}.es: says {", ".join(axis)}; the stick axes are throttle, roll, pitch, yaw')
         for lang, readings in line.get('heard', {}).items():
             if lang not in LANGS or not isinstance(readings, list) or not all(isinstance(r, str) for r in readings):
                 faults.append(f'{where}.heard.{lang}: must be a list of strings')

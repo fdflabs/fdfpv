@@ -339,6 +339,9 @@ function glowMaterial(uniforms) {
       uMinPx: { value: MIN_PX },
       uHalfH: { value: 450 },
       uTime: { value: 0 },
+      /* The night's own level (setNight): a blinking light has no
+       * district to dim it. */
+      uNight: { value: 1 },
     },
     transparent: true,
     depthWrite: false,
@@ -348,6 +351,7 @@ function glowMaterial(uniforms) {
       uniform float uMinPx;
       uniform float uHalfH;
       uniform float uTime;
+      uniform float uNight;
       attribute float aDistrict;
       attribute float aSize;
       attribute float aBlink;
@@ -357,7 +361,7 @@ function glowMaterial(uniforms) {
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
         gl_Position = projectionMatrix * mv;
         float lv = aBlink > 0.5
-          ? step(0.5, fract(uTime / 1.4 + fract(position.x * 0.013 + position.z * 0.007)))
+          ? step(0.5, fract(uTime / 1.4 + fract(position.x * 0.013 + position.z * 0.007))) * uNight
           : uCityLevel[int(aDistrict + 0.5)];
         float px = aSize * projectionMatrix[1][1] * uHalfH / max(-mv.z, 0.1);
         /* A light smaller than its least pixels is that many pixels,
@@ -642,7 +646,8 @@ function ringCities(ground) {
  * dam.json's powerhouse ({ axis, figures.roofY }); `heights` the look's
  * ground heights uniform ({ texture, grid }), for the windows; `materials`
  * the lit materials not in the scene's graph yet (the terrain's). Returns
- * { group, setPower(levels), stats(), dispose() }; `group` is in `scene`.
+ * { group, setPower(levels), setNight(level), stats(), dispose() };
+ * `group` is in `scene`.
  */
 export function dressNight({
   scene, ground, half, roads, town, substations, powerhouse, heights, materials = [],
@@ -780,6 +785,20 @@ export function dressNight({
     return { light, district: districtOf(p[0], p[2]) };
   });
 
+  /* What the room's grid says (setPower) and how far into the night
+   * (setNight); the shaders read their product. */
+  const power = new Float32Array(DISTRICTS.length).fill(1);
+  let night = 1;
+  const write = () => {
+    const to = uniforms.uCityLevel.value;
+    for (let i = 0; i < DISTRICTS.length; i += 1) {
+      to[i] = power[i] * night;
+    }
+    for (const l of lights) {
+      l.light.intensity = FACE_INTENSITY * to[l.district];
+    }
+  };
+
   /* The sky's glow over the towns: the same levels (sky.js). */
   const sky = scene.getObjectByName('sky');
   if (sky && sky.material.uniforms.uCityOn) {
@@ -812,13 +831,19 @@ export function dressNight({
     /* Each district's level, 0 to 1, grid.js's order (src/main.js, from
      * the room's war state). */
     setPower(levels) {
-      const to = uniforms.uCityLevel.value;
       for (let i = 0; i < DISTRICTS.length; i += 1) {
-        to[i] = levels[i];
+        power[i] = levels[i];
       }
-      for (const l of lights) {
-        l.light.intensity = FACE_INTENSITY * to[l.district];
-      }
+      write();
+    },
+    /* How far into the night the light is, 0 to 1 (look/index.js, from
+     * the sun as the room's clock moves it, TECH-NEEDS T1.11): every
+     * light here at its district's level times this, as a town's lamps
+     * come on with the dusk. 1 for a world built at night. */
+    setNight(level) {
+      night = level;
+      glows.material.uniforms.uNight.value = level;
+      write();
     },
     levels: () => Array.from(uniforms.uCityLevel.value.slice(0, DISTRICTS.length)),
     stats: () => ({ ...counts }),

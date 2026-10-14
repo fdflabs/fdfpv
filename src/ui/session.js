@@ -44,6 +44,7 @@ import { activeCourseSummary } from '../share/summary.js';
 import { str } from '../strings/index.js';
 import { DEFAULTS, saveSettings, seatAirframe } from './settings.js';
 import { choice } from './rows.js';
+import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { el, keyHowtoRows, placeSticks, thrNote } from './widgets.js';
 import { SCREEN_TITLES, Ui, craftItem, seatedFreestyleMap } from './ui.js';
 
@@ -119,7 +120,7 @@ function lobbyBrief(brief) {
 }
 
 function lobbyPilot(p) {
-  const flags = `${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}`;
+  const flags = `${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}${p.ai ? ' ai' : ''}${p.out ? ' out' : ''}`;
   const row = el('div', `war-lobby-pilot${flags}`);
   const who = el('div', 'war-lobby-who');
   who.append(el('span', 'war-lobby-name', p.name));
@@ -128,7 +129,9 @@ function lobbyPilot(p) {
   }
   who.append(el('span', 'war-lobby-craft', p.aircraft));
   /* An AI pilot is never waited for: it flies whatever starts. */
-  row.append(who, el('span', 'war-lobby-flag', str(p.ai ? 'lobby.flag_ai' : (p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting'))));
+  /* One sitting the war out is not waited for either (core.js setup). */
+  const flag = p.ai ? 'lobby.flag_ai' : p.out ? 'lobby.flag_out' : (p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting');
+  row.append(who, el('span', 'war-lobby-flag', str(flag)));
   return row;
 }
 
@@ -174,6 +177,27 @@ function worldRow(s, inRoom) {
     ...choice(str('ui.the_world'), str('friends.world_note'), worlds, world ? world.id : worlds[0], (id) => mapById(id).name, seat),
     pickOnly: true,
   };
+}
+
+/* The room's weather, beside its world: the host's choice, which the
+ * shell tells the room on the settings it is handed (src/main.js
+ * offerRoomWeather) and every pilot flies from their next run; for
+ * everybody else a fact, the room's air as it was last told. None outside
+ * a room, where Settings has the pilot's own. */
+function roomWeatherRows(s, room) {
+  if (!room || !WEATHER_PRESETS.includes(room.weather)) {
+    return [];
+  }
+  const name = (id) => str(`weather.${id}`);
+  if (!room.host) {
+    return [{ label: str('ui.weather'), value: name(room.weather), note: str('weather.room_fixed'), info: true }];
+  }
+  return [{
+    ...choice(str('ui.weather'), str(`weather.${room.weather}_note`), WEATHER_PRESETS, room.weather, name, (id) => {
+      s.weather = id;
+    }),
+    pickOnly: true,
+  }];
 }
 
 /* The tutorial's rows per source, each a [term, what it does]. Every
@@ -341,16 +365,20 @@ export const sessionMethods = {
     drawLobby(this.warLobbyEl, v, status);
   },
 
-  /* The aircraft and the world, on the room screen between runs. In a war
-   * room the aircraft row names what the war will seat (the shell's
+  /* The aircraft, the world and, in a room, its weather, on the room
+   * screen between runs; `room` is the shell's friendsRow, or null. A
+   * game's lobby has no world row: the room flies where it was made. In a
+   * war room the aircraft row names what the war will seat (the shell's
    * craftShown): seating waits for the briefing, and until then
    * settings.airframe is the last flown. */
-  roomSeatRows(inRoom) {
+  roomSeatRows(room, lobby = false) {
     const s = this.settings;
+    const inRoom = Boolean(room && room.inRoom);
     const shown = this.craftShown ? this.craftShown(s) : s.airframe;
     return [
       { ...craftItem(s, null, shown), open: () => this.openCraftRow(false) },
-      worldRow(s, inRoom),
+      ...(lobby ? [] : [worldRow(s, inRoom)]),
+      ...roomWeatherRows(s, inRoom ? room : null),
     ];
   },
 

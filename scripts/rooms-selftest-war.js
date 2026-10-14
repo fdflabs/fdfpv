@@ -865,8 +865,8 @@ export function warSection(check) {
       && k.e.view().result.won && k.e.view().result.stars === 3 && k.e.view().result.credits === 320
       && k.e.view().result.criteria.map((c) => `${c.id}:${c.met}`).join() === 'held:true,noLosses:true,output:true', JSON.stringify(k.e.view().result));
     check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
-    check('itaipu-4 is the drill (mission 1 as it was) at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
-      && !MISSIONS['itaipu-drill'].night && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-drill'].waves);
+    check('itaipu-4, The Long Night, is flown at night on stages of its own, not the drill\'s; the others are not at night', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
+      && !MISSIONS['itaipu-drill'].night && MISSIONS['itaipu-4'].stages[0].id === 'quiet' && MISSIONS['itaipu-4'].waves !== MISSIONS['itaipu-drill'].waves);
     const n = warRoom({ mission: MISSIONS['itaipu-4'], dev: true });
     check('the night raid counts down prepMs longer, so every screen has built its night before the go',
       MISSIONS['itaipu-4'].prepMs >= 10000 && n.view().state === 'countdown' && n.view().goAt === COUNTDOWN_MS + MISSIONS['itaipu-4'].prepMs,
@@ -1109,7 +1109,19 @@ export function warSection(check) {
     const e = warRoom({ mission: m, air: 'interceptor' });
     e.paths[0] = hover([0, Y, 0]);
     e.paths[1] = hover([0, Y, 3000]);
+    /* A watcher's page, as rooms-selftest-watch.js seats one. */
+    const w = { name: 'watcher', address: '10.9.9.200', got: [] };
+    e.apply(e.r.open(w, e.clock));
+    e.apply(e.r.message(w, JSON.stringify({
+      type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
+    }), e.clock, w.address, () => 'f'.repeat(32)));
     e.fly(COUNTDOWN_MS + 3000);
+    const watched = w.got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).map(decodeAgents).filter((b) => b.agents.length);
+    const watchedHunts = w.got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts).filter((b) => b.agents.length);
+    check('a watcher is seated as one, and its page gets the hunter\'s poses (AGENTS) and whom it chases (HUNTS) every tick, flying nothing',
+      e.r.watchers.has(w) && watched.length >= 9 && watched.at(-1).agents[0].kind === KINDS.indexOf('hunter')
+      && watchedHunts.length === watched.length && watchedHunts.at(-1).agents[0].target === 1,
+      `${watched.length} AGENTS, ${watchedHunts.length} HUNTS, target ${watchedHunts.length ? watchedHunts.at(-1).agents[0].target : '-'}`);
     const bin = e.socks[0].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).map(decodeAgents);
     const near = bin.filter((b) => b.agents.length).length;
     const far = e.socks[1].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).length;

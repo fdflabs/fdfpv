@@ -30,8 +30,8 @@
  * 'night', for mission 4, "Night raid"), read from options.time when the
  * map is built (src/maps/itaipu.js buildMap) and from `?time=` in the
  * address (src/main.js loadMap). It never changes after the map is
- * built: night.js's fixtures go up once, in buildMap, once every part is
- * in. The other days move the sun, its colour and strength, the sky
+ * built but in a war mission's ramp (below): night.js's fixtures go up
+ * once, in buildMap, once every part is in. The other days move the sun, its colour and strength, the sky
  * and the air (light.js, sky.js); for whatever draws by the time of day
  * without being handed the look, every one of them is 'day'. What it touches: the sun (dim, cool, standing in for the moon) and
  * the sky (dark and starred, with the towns' glow, sky.js), both
@@ -39,6 +39,12 @@
  * adds and the cities past the map (look/night.js), never the dam's, the
  * town's or the water's own geometry. setPower dims them district by
  * district as the war takes the grid down.
+ *
+ * A WAR MISSION'S LIGHT MOVES (TECH-NEEDS T1.11): built with `toward` as
+ * well (src/main.js, from the room's clock's `to`: src/share/daytime.js
+ * missionClock), the look stands at `time` and setLocalTime(hour) takes
+ * it toward `toward` without a rebuild, as the room's clock moves (THE
+ * RAMP, below).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -64,10 +70,13 @@ import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
 import {
-  sunDirection, sunFor, isNight, timeOf, makeNightAmbient,
+  sunDirection, sunFor, isNight, timeOf, makeNightAmbient, NIGHT_AMBIENT_INTENSITY,
 } from './light.js';
 import { makeLit } from '../../../render/library/lit.js';
-import { skyBackdrop, skyEnvironment, airFor } from './sky.js';
+import {
+  skyBackdrop, skyEnvironment, airFor, bakeEnvironment, skyOf,
+} from './sky.js';
+import { TIME_HOUR, sunSinAt, isNightSun } from '../../../share/daytime.js';
 import {
   groundMaterial, makeTurf, noiseTexture, loadImage, loadSite, loadGroundArrays,
 } from './ground.js';
@@ -136,14 +145,81 @@ function shape(light, half) {
 }
 
 /*
+ * THE RAMP, between two named times one of which is night: dusk into
+ * dark (Lights Out, golden to night) or the dawn (The Long Night, night
+ * to morning). How far along it the light is, `f`, is the sun's: its
+ * sine at the hour (daytime.js sunSinAt, the room's clock's sun) between
+ * its sines at the two times' hours, so the dark holds through the small
+ * hours and the light comes with the sun. At f 0 every number is the
+ * first time's and at 1 the second's, but one: the sun (or the moon)
+ * stands where the daylight time's does all the way, its shadow maps
+ * made once for it (updateShadowFocus), since a light swung across the
+ * sky in mid flight reads as a fault, not an evening. So a ramp's night
+ * has its moon low in the west after Lights Out's sunset, and the dawn's
+ * night its moon where the morning's sun will rise.
+ *
+ * The sun's colour, the sky's zenith and haze and the air's glow are
+ * mixed; its strength and the meter's target in stops (a geometric mix),
+ * as a camera sees the dusk fall; the disc and the stars cross fade; the
+ * sky's own fill at night (light.js) comes up with the dark; and the
+ * environment is baked again each RAMP_ENV_STEP of f, a few times a
+ * ramp. The towns' lights (night.js setNight) are switched by the sun,
+ * not by f: on as it goes under, as street lamps' photocells do (LAMPS_ON).
+ */
+const RAMP_ENV_STEP = 0.05;
+/* The sine of the sun's elevation over which the lamps come on, from
+ * nothing to full: the sun 3 degrees up to 8.6 under, the civil dusk. */
+const LAMPS_ON = [0.05, -0.15];
+
+function rampOf(from, to) {
+  if (isNight(from) === isNight(to)) {
+    throw new Error(`itaipu look: a ramp is between night and a daylight time, got ${from} to ${to}`);
+  }
+  const h0 = TIME_HOUR[from];
+  let h1 = TIME_HOUR[to];
+  while (h1 <= h0) {
+    h1 += 24;
+  }
+  return {
+    from, to, h0, h1, s0: sunSinAt(h0), s1: sunSinAt(h1), day: isNight(from) ? to : from,
+  };
+}
+
+/* The light at f along `ramp`, into `out`. */
+function rampLight(ramp, f, out) {
+  const a = sunFor(ramp.from);
+  const b = sunFor(ramp.to);
+  const sa = skyOf(ramp.from);
+  const sb = skyOf(ramp.to);
+  const lin = (x, y) => x + (y - x) * f;
+  const geo = (x, y) => x * (y / x) ** f;
+  out.sun.lerpColors(a.color, b.color, f);
+  out.irradiance = geo(a.irradiance, b.irradiance);
+  out.zenith.lerpColors(sa.zenith, sb.zenith, f);
+  out.haze.lerpColors(sa.air.haze, sb.air.haze, f);
+  out.mie = lin(sa.air.mie, sb.air.mie);
+  out.exposure = lin(sa.air.exposure, sb.air.exposure);
+  out.key = geo(sa.air.meterKey, sb.air.meterKey);
+  out.contrast = lin(sa.air.contrast, sb.air.contrast);
+  out.disc = lin(sa.disc, sb.disc);
+  out.stars = lin(sa.stars, sb.stars);
+  out.envGain = lin(sa.envGain, sb.envGain);
+  out.ambient = NIGHT_AMBIENT_INTENSITY * lin(sa.stars, sb.stars);
+  return out;
+}
+
+/*
  * Load everything the look needs and make the scene it draws. `base` is
  * the data folder's URL. Returns the stage the map builds into.
  */
 export async function makeLook({
-  renderer, camera, q, base, manifest, time,
+  renderer, camera, q, base, manifest, time, toward = null, hour = null,
 }) {
-  const night = isNight(time);
   const when = timeOf(time);
+  const ramp = toward != null && timeOf(toward) !== when ? rampOf(when, timeOf(toward)) : null;
+  /* A ramp through the night builds the night's fixtures, dark until the
+   * dusk (setLocalTime). */
+  const night = isNight(time) || Boolean(ramp);
   const sunLight = sunFor(time);
   const AIR = airFor(time);
   const owned = [];
@@ -176,11 +252,11 @@ export async function makeLook({
     own(sets[k].arm);
   });
 
-  const sunDir = sunDirection(when);
+  const sunDir = sunDirection(ramp ? ramp.day : when);
   const scene = new THREE.Scene();
   /* For whatever draws by the time of day without being handed the look:
    * the sensor's thermal weather (src/avionics/sensors.js). */
-  scene.userData.timeOfDay = night ? 'night' : 'day';
+  scene.userData.timeOfDay = isNight(when) ? 'night' : 'day';
   scene.userData.climate = 'itaipu';
   scene.background = AIR.haze.clone();
   const sky = skyBackdrop(sunDir, time);
@@ -203,6 +279,15 @@ export async function makeLook({
   if (nightAmbient) {
     scene.add(nightAmbient);
   }
+  /* The ramp's light now (rampLight), what the glare reads each frame
+   * (post.js PhotoPass.glare) and the environment's last bake. */
+  const now = {
+    sun: new THREE.Color(), zenith: new THREE.Color(), haze: new THREE.Color(),
+  };
+  const sunState = { direction: sunDir, color: sunLight.color.clone(), irradiance: sunLight.irradiance };
+  let envF = 0;
+  let post = null;
+  let meter = null;
   const lit = makeLit();
   const noise = own(noiseTexture(aniso));
   const ground = groundMaterial({
@@ -245,6 +330,71 @@ export async function makeLook({
   });
 
   let nightFixtures = null;
+  let rampF = 0;
+
+  /* The ramp's light at f into everything that draws it. */
+  function applyRamp(f) {
+    rampLight(ramp, f, now);
+    for (const l of sun.lights) {
+      l.color.copy(now.sun);
+      l.intensity = now.irradiance;
+    }
+    sunState.color.copy(now.sun);
+    sunState.irradiance = now.irradiance;
+    const su = sky.material.uniforms;
+    su.uSunCol.value.copy(now.sun).multiplyScalar(now.irradiance);
+    su.uZenith.value.copy(now.zenith);
+    su.uHaze.value.copy(now.haze);
+    su.uAirSun.value.copy(now.sun).multiplyScalar(now.mie);
+    su.uDisc.value = now.disc;
+    su.uStars.value = now.stars;
+    scene.background.copy(now.haze);
+    nightAmbient.intensity = now.ambient;
+    if (Math.abs(f - envF) >= RAMP_ENV_STEP || (f !== envF && (f === 0 || f === 1))) {
+      bakeEnvironment(renderer, sky, now.envGain, envTarget);
+      envF = f;
+    }
+    if (post) {
+      const g = post.grade.material.uniforms;
+      g.uSunCol.value.copy(now.sun);
+      g.uHaze.value.copy(now.haze);
+      g.uMie.value = now.mie;
+      g.uExposure.value = now.exposure;
+      g.uKey.value = now.key;
+      g.uContrast.value = now.contrast;
+    }
+    /* The meter's tap takes the air, not the sun's colour, which it
+     * leaves white for every time (post.js MeterPass). */
+    if (meter) {
+      const m = meter.tapMat.uniforms;
+      m.uHaze.value.copy(now.haze);
+      m.uMie.value = now.mie;
+    }
+  }
+
+  /* The hour on the room's clock (src/main.js daytimeFrame): f by the
+   * sun's sine (THE RAMP), the night flag where daytime.js puts night,
+   * and the lamps by the sun. */
+  let lastHour = null;
+  function setLocalTime(h) {
+    lastHour = h;
+    const s = sunSinAt(h);
+    const f = Math.min(1, Math.max(0, (ramp.s0 - s) / (ramp.s0 - ramp.s1)));
+    scene.userData.timeOfDay = isNightSun(s) ? 'night' : 'day';
+    if (nightFixtures) {
+      nightFixtures.setNight(THREE.MathUtils.smoothstep(-s, -LAMPS_ON[0], -LAMPS_ON[1]));
+    }
+    if (f !== rampF) {
+      rampF = f;
+      applyRamp(f);
+    }
+  }
+  const builtHour = ramp ? (Number.isFinite(hour) ? hour : ramp.h0) : null;
+  if (ramp) {
+    rampF = -1;
+    setLocalTime(builtHour);
+  }
+
   return {
     scene,
     sun,
@@ -252,6 +402,11 @@ export async function makeLook({
     lit,
     ground,
     time: when,
+    /* A ramp's: the two times it spans, the hour it was built at, and
+     * the hour's light (THE RAMP); null and absent otherwise. */
+    span: ramp ? [ramp.from, ramp.to] : null,
+    builtHour,
+    ...(ramp ? { setLocalTime } : {}),
     /* Mission 4's own fixtures, once every part is in (itaipu.js, after
      * the parts loop): a no-op by day. See look/night.js. The ground's
      * material is lit too, though no terrain chunk may be in the scene's
@@ -263,6 +418,9 @@ export async function makeLook({
       nightFixtures = dressNight({
         scene, heights, materials: [ground], ...extras,
       });
+      if (ramp) {
+        setLocalTime(lastHour);
+      }
     },
     /* Each power district's level (src/share/war/grid.js), from the
      * room's war: the night's lights dim with them. Nothing by day. */
@@ -329,9 +487,14 @@ export async function makeLook({
     },
     /* The post chain and the photographed craft, onto a built map. */
     compose(shell, map) {
-      const post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, {
+      sunState.at = lit.sun;
+      post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, ramp ? sunState : {
         direction: sunDir, ...sunLight, at: lit.sun,
       }, clouds, AIR);
+      if (ramp) {
+        meter = post.composer.passes.find((p) => p.tapMat) || null;
+        applyRamp(rampF);
+      }
       const d = shell.resize();
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;

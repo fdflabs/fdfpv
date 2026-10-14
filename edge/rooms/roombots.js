@@ -27,10 +27,18 @@
  * means the people here (the host, the cap, an empty room, the votes, the
  * lobby's count, ready).
  *
+ * RACES. In a room made for a race (src/share/modes.js race) the AI
+ * pilots are edge/rooms/airace.js's, on the real plant, not bots.js's:
+ * the room fills once its host's track has a ghost they can chase, they
+ * count as ready on its grid, a person joining before the start takes one's
+ * place, and while a race is on the grid stays as it went off.
+ *
  * WHAT IS KEPT. { store: 'bots', value } on every change of the seats and
  * every STORE_MS of flight: the flight (bots.js save), each AI seat's
- * number and name, and the level. host.js restores it before the people's
- * seats, and core.js restore() puts the AI seats back.
+ * number and name, the level, and in a race on each AI racer's plant and
+ * lap (airace.js save). host.js restores it before the people's seats,
+ * and core.js restore() puts the AI seats back, an AI racer flying on
+ * from its kept plant when its race is still on and this is its build.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -49,6 +57,7 @@
  */
 
 import { BOT_AIRFRAME, BOT_MAPS, Bots, LEVELS } from './bots.js';
+import { AI_RACE_AIRFRAME, AiRace } from './airace.js';
 import {
   NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, decodePose, encodePose,
 } from '../../src/share/roomwire.js';
@@ -109,6 +118,15 @@ export class RoomBots {
     /* seat -> name pick, for the AI seats this room has. */
     this.names = new Map();
     this.storedAt = -Infinity;
+    this.racers = new AiRace();
+    /* airace.js save's, from storage, until the seats are back (reseat). */
+    this.keptRacers = null;
+  }
+
+  /* Whether this room's AI pilots race (airace.js) rather than fly bots.js. */
+  racing() {
+    const mode = modeOfRoom(this.meta.mode);
+    return Boolean(mode && mode.id === 'race');
   }
 
   restore(saved) {
@@ -118,6 +136,7 @@ export class RoomBots {
     this.bots.restore(saved.flight);
     this.level = BOT_LEVELS.includes(saved.level) ? saved.level : defaultLevel(this.meta);
     this.names = new Map((saved.seats ?? []).map((s) => [s.seat, s.name]));
+    this.keptRacers = saved.racers ?? null;
   }
 
   store(roomMs = null) {
@@ -126,27 +145,44 @@ export class RoomBots {
     }
     return {
       store: 'bots',
-      value: { flight: this.bots.save(), level: this.level, seats: [...this.names].map(([seat, name]) => ({ seat, name })) },
+      value: {
+        flight: this.bots.save(), level: this.level, seats: [...this.names].map(([seat, name]) => ({ seat, name })), racers: this.racers.save(),
+      },
     };
   }
 
-  /* The AI seats back in core.seats after a load (core.js restore). */
+  /* The AI seats back in core.seats after a load (core.js restore). An AI
+   * racer whose plant was kept flies on from it (airace.js); one without
+   * is out of a race on, and the room fills again. */
   reseat(core) {
     for (const [seat, name] of this.names) {
       if (this.bots.has(seat)) {
         this.seatRecord(core, seat, name, 0);
+        continue;
+      }
+      const kept = AiRace.kept(this.keptRacers, seat, core);
+      if (kept) {
+        this.racers.add(seat, kept);
+        this.seatRecord(core, seat, name, 0, AI_RACE_AIRFRAME);
+        continue;
+      }
+      this.names.delete(seat);
+      const r = core.race.race;
+      if (r && r.state === 'on' && r.racers.includes(seat) && !r.finish[seat]) {
+        r.out[seat] = 'left';
       }
     }
+    this.keptRacers = null;
   }
 
-  seatRecord(core, seat, name, now) {
+  seatRecord(core, seat, name, now, airframe = BOT_AIRFRAME) {
     const s = {
       seat,
       token: `bot${seat}`,
       name,
       callsign: null,
       account: null,
-      profile: { airframe: BOT_AIRFRAME, map: this.bots.map, figure: 0, livery: null, parts: null },
+      profile: { airframe, map: this.bots.map, figure: 0, livery: null, parts: null },
       joined: now,
       connectedAt: now,
       heardAt: now,
@@ -159,8 +195,8 @@ export class RoomBots {
       bot: true,
     };
     core.seats.set(new BotConn(seat), s);
-    core.referee.seat(seat, BOT_AIRFRAME);
-    core.combat.seat(seat, BOT_AIRFRAME);
+    core.referee.seat(seat, airframe);
+    core.combat.seat(seat, airframe);
     return s;
   }
 
@@ -197,7 +233,16 @@ export class RoomBots {
     if (people.some((s) => (s.level || 0) < BOT_ROOM_LEVEL)) {
       return 0;
     }
-    return Math.max(0, Math.min(FILL_TO, core.meta.cap) - people.length);
+    const room = Math.max(0, Math.min(FILL_TO, core.meta.cap) - people.length);
+    if (!this.racing()) {
+      return room;
+    }
+    const r = core.race.race;
+    if (r && r.state === 'on') {
+      return this.names.size;
+    }
+    const status = this.racers.status(core, this.level);
+    return status === 'ready' ? room : status === 'pending' ? Math.min(this.names.size, room) : 0;
   }
 
   /* Add or take away AI seats to what wanted() says. Returns actions. */
@@ -223,8 +268,12 @@ export class RoomBots {
       }
       const name = this.drawName(core);
       this.names.set(seat, name);
-      this.bots.add(seat, this.level, core.roomMs(now));
-      const s = this.seatRecord(core, seat, name, now);
+      if (this.racing()) {
+        this.racers.add(seat);
+      } else {
+        this.bots.add(seat, this.level, core.roomMs(now));
+      }
+      const s = this.seatRecord(core, seat, name, now, this.racing() ? AI_RACE_AIRFRAME : BOT_AIRFRAME);
       out.push(...core.roster(null, JSON.stringify({
         type: 'join', seat, name, profile: s.profile, host: core.host(), bot: true,
       })));
@@ -251,6 +300,7 @@ export class RoomBots {
   leave(core, seat, now) {
     this.names.delete(seat);
     this.bots.remove(seat);
+    this.racers.remove(seat);
     for (const [conn, s] of core.seats) {
       if (s.bot && s.seat === seat) {
         core.seats.delete(conn);
@@ -292,7 +342,8 @@ export class RoomBots {
   /* Whether AI pilots fly here now, for the room's clock (core.js
    * waiting). */
   flying(core) {
-    return this.names.size > 0 && core.people().length > 0;
+    const waiting = this.names.size > 0 || (this.racing() && this.racers.status(core, this.level) !== null);
+    return waiting && core.people().length > 0;
   }
 
   /*
@@ -326,11 +377,24 @@ export class RoomBots {
   hits(decided, roomMs) {
     for (const h of decided) {
       for (const side of [h.A, h.B]) {
-        if (side.brk > 0 && this.names.has(side.seat)) {
+        if (side.brk > 0 && this.racers.has(side.seat)) {
+          this.racers.crash(side.seat);
+        } else if (side.brk > 0 && this.names.has(side.seat)) {
           this.bots.crash(side.seat, Math.floor(roomMs));
         }
       }
     }
+  }
+
+  /* seat -> { conn, s } of every AI seat here. */
+  aiSeats(core) {
+    const out = new Map();
+    for (const [conn, s] of core.seats) {
+      if (s.bot) {
+        out.set(s.seat, { conn, s });
+      }
+    }
+    return out;
   }
 
   /* The room tick: every AI seat flown to now, its pose handed to the
@@ -340,6 +404,14 @@ export class RoomBots {
       return [];
     }
     const roomNow = Math.floor(core.roomMs(now));
+    if (this.racing()) {
+      const out = [...this.fill(core, now), ...this.racers.tick(core, now, this.level, this.aiSeats(core))];
+      const r = core.race.race;
+      if (r && r.state === 'on' && roomNow - this.storedAt >= STORE_MS) {
+        out.push(this.store(roomNow));
+      }
+      return out;
+    }
     const places = new Map();
     for (const s of core.seats.values()) {
       const p = s.pose ? decodePose(s.pose) : null;

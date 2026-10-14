@@ -40,6 +40,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,8 +50,10 @@ const FILE = join(root, 'tests', 'fixtures', 'items-golden.json');
 const RECORD = process.argv.includes('--record');
 /* --dump takes the language before any screen module loads, as the page
  * does (src/boot.js): rows built from the table at load time, like
- * MID_RUN_WARNING, are only in that language then. The record switches
- * language after loading, so those stay English in its es half. */
+ * MID_RUN_WARNING and the SCREEN_TITLES a note names, are only in that
+ * language then. The record and the compare take each language from its
+ * own --dump for the same reason, since a language switch after loading
+ * would leave those words English in the es half. */
 const DUMP = process.argv.includes('--dump') ? process.argv[process.argv.indexOf('--dump') + 1] : null;
 
 /* ---- the stand-in page ---- */
@@ -137,8 +140,7 @@ if (DUMP) {
 }
 const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS } = await import('../src/ui/settings.js');
-const { useLocale } = await import('../src/strings/index.js');
-const { writeShareImport, writeBind, writePendingTime, writePostedBest } = await import('../src/share/session.js');
+const { writeShareImport, writeBind, writePendingTime, writePostedBest } = await import('../src/share/trackseat.js');
 const { layoutFingerprint } = await import('../src/share/listing.js');
 const { normaliseRates, RATE_DEFAULTS } = await import('../configs/rates.js');
 const { setPidSlider, setPidsExpert, SLIDER_KEYS, PID_AXES, PID_FIELDS } = await import('../configs/pids.js');
@@ -608,24 +610,20 @@ const SCENARIOS = [
 
 /* ---- run ---- */
 
-async function recordAll() {
-  const out = {};
-  for (const locale of DUMP ? [DUMP] : ['en', 'es']) {
-    await useLocale(locale);
-    out[locale] = {};
-    for (const sc of SCENARIOS) {
-      out[locale][sc.name] = recordScenario(sc, locale);
-    }
-  }
-  return out;
-}
-
-const got = await recordAll();
 if (DUMP) {
+  const one = {};
+  for (const sc of SCENARIOS) {
+    one[sc.name] = recordScenario(sc, DUMP);
+  }
   /* Exit only once a pipe has taken it all: exiting at once cuts it short. */
-  process.stdout.write(`${JSON.stringify(got[DUMP])}\n`, () => process.exit(0));
+  process.stdout.write(`${JSON.stringify(one)}\n`, () => process.exit(0));
   await new Promise(() => {});
 }
+
+const dumpOf = (locale) => JSON.parse(execFileSync(process.execPath, [fileURLToPath(import.meta.url), '--dump', locale], {
+  encoding: 'utf8', maxBuffer: 256 * 1024 * 1024,
+}));
+const got = { en: dumpOf('en'), es: dumpOf('es') };
 const text = `${JSON.stringify(got, null, 1)}\n`;
 
 if (RECORD) {

@@ -21,12 +21,18 @@
  */
 
 import {
-  ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, actOf, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
+  ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, actOf, opsCampaignOf, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
   emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, totalStars, unlocked,
 } from '../src/game/campaign.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import EN from '../src/strings/en.js';
+import ES from '../src/strings/es.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../src/share/campaignwar.js';
 import { MISSIONS, PLANNED } from '../src/share/war/missions/index.js';
-import { MISSIONS as OPS_MISSIONS } from '../src/share/ops/missions.js';
+import { MISSIONS as OPS_MISSIONS, checkRows } from '../src/share/ops/missions.js';
+import { ROWS as OPS_ROWS } from '../src/share/ops/rows.js';
 import {
   SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
 } from '../src/share/progressmerge.js';
@@ -227,6 +233,73 @@ check('Mission 1 has its mission file, as development means', Object.hasOwn(OPS_
 check('the cards read Under development on 2 to 5 (the owner\'s words)', INTERIOR.slice(1).every((m) => cardLabel(m) === 'development')
   && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'soon');
 check('the campaign asks the war\'s consent first (armed conflict)', INTERIOR_CAMPAIGN.consent === true);
+/* Each change, made to copies of the ops registry and its rows, must stop
+ * checkRows (src/share/ops/missions.js), which runs at its load. */
+const opsReg = () => Object.fromEntries(Object.entries(OPS_MISSIONS).map(([id, m]) => [id, { ...m }]));
+const opsRows = () => OPS_ROWS.map((r) => ({ ...r }));
+const ROW_CONTROLS = [
+  ['a mission file without a row', (m, r) => { r.splice(r.findIndex((x) => x.id === 'interior-2'), 1); }],
+  ['a mission file whose row is soon', (m, r) => { r.find((x) => x.id === 'interior-3').release = 'soon'; }],
+  ['a mission file whose row is another campaign\'s', (m, r) => { r.find((x) => x.id === 'interior-1').campaign = 'other'; }],
+  ['a row in development without its file', (m) => { delete m['interior-3']; }],
+  ['an available row without its file', (m, r) => { r.find((x) => x.id === 'interior-4').release = 'available'; }],
+];
+for (const [name, change] of ROW_CONTROLS) {
+  const m = opsReg();
+  const r = opsRows();
+  change(m, r);
+  check(`negative control: ${name} is refused`, throws(() => checkRows(m, r)));
+}
+check('the unchanged ops registry and rows are not refused', !throws(() => checkRows(opsReg(), opsRows())));
+/* Each change, made to a copy of the rows, must stop opsCampaignOf. */
+const LIST_CONTROLS = [
+  ['a campaign with no rows', (r) => { r.forEach((x) => { x.campaign = 'other'; }); }],
+  ['an order twice', (r) => { r[2].order = 2; }],
+  ['an order missing', (r) => { r[2].order = 9; }],
+  ['a release unknown', (r) => { r[1].release = 'released'; }],
+  ['a label unknown', (r) => { r[3].label = 'later'; }],
+  ['a mission without its key', (r) => { delete r[0].key; }],
+  ['a mission twice', (r) => { r[4].id = 'interior-1'; }],
+];
+for (const [name, change] of LIST_CONTROLS) {
+  const r = opsRows();
+  change(r);
+  check(`negative control: ${name} is refused`, throws(() => opsCampaignOf('interior', r)));
+}
+check('the unchanged rows are not refused, and are the list', same(opsCampaignOf('interior', opsRows()), INTERIOR));
+{
+  const r = opsRows();
+  r[0].release = 'available';
+  check('a release changed in the row is the list\'s', opsCampaignOf('interior', r)[0].release === 'available');
+}
+check('every row\'s card words are in English and Spanish', INTERIOR.every((m) => [`m.${m.key}`, `m.${m.key}_blurb`]
+  .every((k) => [EN, ES].every((t) => typeof t[`ops.campaign.interior.${k}`] === 'string'))));
+/* campaign.js reaches the browser's settings and the tracks Worker, so its
+ * static imports must never reach the ops registry or a mission's world
+ * (rows.js is the one ops module it reads). A walk of the import graph,
+ * with the registry itself as the negative control. */
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+function closure(entry) {
+  const seen = new Set();
+  const walk = (f) => {
+    if (seen.has(f)) {
+      return;
+    }
+    seen.add(f);
+    for (const [, spec] of readFileSync(f, 'utf8').matchAll(/^\s*(?:import|export)\s(?:[^'"]*?from\s*)?['"](\.[^'"]+)['"]/gm)) {
+      const next = resolve(dirname(f), spec);
+      if (existsSync(next)) {
+        walk(next);
+      }
+    }
+  };
+  walk(resolve(ROOT, entry));
+  return [...seen].map((f) => relative(ROOT, f));
+}
+const heavy = (files) => files.filter((f) => f === 'src/share/ops/missions.js' || f.startsWith('src/share/interior/'));
+const reach = closure('src/game/campaign.js');
+check('campaign.js imports no ops registry and no Interior world', reach.includes('src/share/ops/rows.js') && heavy(reach).length === 0, heavy(reach).join() || `${reach.length} modules`);
+check('negative control: the registry\'s own imports are seen', heavy(closure('src/share/ops/missions.js')).includes('src/share/interior/node.js'));
 {
   const f = applyResult(fresh, 'interior-1', {
     stars: 2, credits: 0, won: true, flags: { M1_SYMBOL_CAPTURED: true, 'bad flag': true, M1_X: 7 },

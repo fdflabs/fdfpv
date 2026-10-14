@@ -37,7 +37,17 @@
  * and a build with a changed airframe constant must be refused by its id,
  * where its region would otherwise have flown the old plant bit for bit.
  * Last a windy flight, the air set before every step: it flies back bit
- * for bit and leaves the setup log as small as a still air one.
+ * for bit and leaves the setup log as small as a still air one. And an AI
+ * opponent raced beside the clip as the page races one (two races, a wall
+ * it meets): saved as version 19, its every row flies back bit for bit and
+ * its kept sticks are the calls its journal made.
+ *
+ * A clip with a solo race's AI opponent (file version 19) carries its own
+ * plant's journal the same way (src/replay/opponent.js): the opponent is
+ * flown again on its own fresh module, every row it raced in hashed
+ * against the hash the row recorded, and the sticks it kept held to the
+ * sim_input calls its journal made (rounded to float32, as they are kept).
+ * Its laps are printed as its own Race closed them, never the pilot's.
  *
  * Exit 0 when the re-fly matches the recording on every row it can fly,
  * 1 when it does not, the clip cannot be flown again or the build is not
@@ -73,6 +83,17 @@ import {
   describeRefly, packRefly, reflyAcross, reflyOf, reflyRun, transplantable, unpackRefly,
 } from '../src/replay/refly.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
+import { OPP, ROW_N as OPP_ROW_N, STICK_W, createOpponentRing } from '../src/replay/opponent.js';
+import { AiOpponent, seatOpponent } from '../src/game/aiopponent.js';
+import { aiBench } from '../tests/lib/aireference.js';
+import { airframeById } from '../configs/airframes.js';
+import { RATE_DEFAULTS } from '../configs/rates.js';
+import { composeConfig } from '../src/fc/dump.js';
+import { raceFromDocument } from '../src/game/verify.js';
+import { GhostLap } from '../src/game/ghost.js';
+import { decodeGhost, encodeGhost } from '../src/share/ghostdata.js';
+import { simQuatToThree, threeDirToSim, threePosToSim } from '../src/render/frame.js';
+import { Colliders, setCraftAirframe } from '../src/game/collide.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -343,6 +364,105 @@ function printPairTable(pair, exact, every) {
 
 /* The clip's own build: the module given if it is that build, else
  * --old, else git. Null with a reason when none can be had. */
+/*
+ * A clip's AI opponent flown again on `wasmBytes` (its build, refused
+ * otherwise), as reflyRun flies the pilot: every row it raced in hashed
+ * against its own recorded hash. Beside that, at each such row the last
+ * sim_input the journal made is held to the stick row the opponent kept
+ * there (f32, as kept). Returns { build, rows, flown, identical, copies,
+ * seeds, sticks: { checked, same, first } }.
+ */
+export async function reflyOpponent(clip, wasmBytes) {
+  const op = clip.opponent;
+  if (!op || !op.refly) {
+    throw new Error('this clip carries no AI opponent to fly again');
+  }
+  const r = await unpackRefly(op.refly);
+  const build = await wasmBuild(wasmBytes);
+  if (r.build !== null && r.build !== build) {
+    const err = new Error(`the opponent was flown on sim.wasm ${r.build}, this module is ${build}`);
+    err.build = r.build;
+    throw err;
+  }
+  const { e } = await loadSim(wasmBytes);
+  /* The module's own exports, sim_input watched: its last call before a
+   * row's mark is the stick in force there. */
+  let last = null;
+  const watched = Object.create(e, {
+    sim_input: {
+      value: (...args) => {
+        last = args;
+        return e.sim_input(...args);
+      },
+    },
+  });
+  const sticks = { checked: 0, same: 0, first: null };
+  const rowHash = (k) => op.rows[k * OPP_ROW_N + OPP.hash] >>> 0;
+  const run = reflyRun(watched, { n: clip.n }, r, {
+    seeded: () => {
+      last = null;
+    },
+    /* Asked right after row k is reached, so `last` is its stick. */
+    hashAt: (k) => {
+      const at = op.rows[k * OPP_ROW_N + OPP.stick];
+      if (at > 0 && last) {
+        const kept = op.sticks.subarray((at - 1) * STICK_W, at * STICK_W);
+        const same = [1, 2, 3, 4].every((i, j) => Math.fround(last[i]) === kept[j]);
+        sticks.checked += 1;
+        sticks.same += same ? 1 : 0;
+        if (!same && sticks.first === null) {
+          sticks.first = k;
+        }
+      }
+      return rowHash(k);
+    },
+  });
+  let raced = 0;
+  for (let k = 0; k < clip.n; k += 1) {
+    raced += op.rows[k * OPP_ROW_N + OPP.run] >= 0 ? 1 : 0;
+  }
+  const flown = run.hashes.filter((h) => h !== null).length;
+  return {
+    build,
+    rows: raced,
+    flown,
+    identical: run.hashes.filter((h) => h === true).length,
+    copies: run.copies,
+    seeds: run.seeds,
+    sticks,
+  };
+}
+
+/* The opponent's part of a re-fly, printed; true when it matches. */
+async function printOpponent(clip, wasmBytes) {
+  const op = clip.opponent;
+  const laps = op.runs.map((x, i) => `race ${i + 1}: ${x.laps.length ? x.laps.map((ms) => (ms / 1000).toFixed(2)).join(', ') : 'no lap'}`
+    + `${x.crashed ? ', crashed' : ''}`).join('; ');
+  console.log(`
+THE AI OPPONENT: ${op.runs.length} race(s) in the clip (${laps}; its own Race's, never the pilot's record), `
+    + `${op.sticks.length / STICK_W} stick rows kept`);
+  if (!op.refly) {
+    console.log('not flown: its plant was seated again before the clip was cut, so its journal is not in the clip');
+    return true;
+  }
+  const d = describeRefly(op.refly, clip.n);
+  console.log(`its refly: build ${d.build ?? 'not named'}, region ${d.region} B, ${d.segs} stretches, ${d.flyable} rows can be flown back to`);
+  let o;
+  try {
+    o = await reflyOpponent(clip, wasmBytes);
+  } catch (err) {
+    console.log(`not flown: ${err.message}`);
+    return false;
+  }
+  console.log(`rows it raced: ${o.rows}, flown again: ${o.flown}, bit for bit: ${o.identical}/${o.flown}; `
+    + `journal copies passed: ${o.copies.checked}, region identical at ${o.copies.same}; `
+    + `kept sticks equal to its sim_input: ${o.sticks.same}/${o.sticks.checked}`
+    + `${o.sticks.first !== null ? ` (first differs at row ${o.sticks.first})` : ''}`);
+  const ok = o.flown > 0 && o.identical === o.flown && o.copies.same === o.copies.checked && o.sticks.same === o.sticks.checked;
+  console.log(ok ? 'MATCH: the opponent flies again bit for bit on its build' : 'DIFFERENT: the opponent\'s re-fly and its recording part');
+  return ok;
+}
+
 function recordedBuild(id, given, oldPath) {
   if (given.id === id) {
     return { bytes: given.bytes, from: given.path };
@@ -428,6 +548,9 @@ async function main(argv) {
   const s = exact.cmp.summary;
   const ok = s.flown > 0 && s.identical === s.flown && s.copies.same === s.copies.checked;
   console.log(ok ? 'MATCH: the clip flies again bit for bit on its build' : 'DIFFERENT: the re-fly and the recording part (above)');
+  /* The opponent's plant is the pilot's build in the page; its own id is
+   * checked all the same. */
+  const oppOk = clip.opponent ? await printOpponent(clip, own.bytes) : true;
   const across = given.id !== exact.build || args.transplant;
   let pair = null;
   if (across) {
@@ -480,7 +603,7 @@ async function main(argv) {
     }));
     console.log(`wrote ${args.json}`);
   }
-  process.exit(ok ? 0 : 1);
+  process.exit(ok && oppOk ? 0 : 1);
 }
 
 /* ---- the self test ---- */
@@ -627,6 +750,108 @@ async function recordFlight(wasmBytes, configText, windy = false) {
   clip.refly = reflyOf(j.exportSpan(from), clip);
   clip.meta.duration = clip.time[clip.n - 1];
   return { clip, stats: j.stats() };
+}
+
+/*
+ * An AI opponent raced beside `clip` as the page races one (src/main.js
+ * opponentFrame, then the crash cam's row): the interceptor seated by
+ * seatOpponent on its own journaled module, racing the reference pilot's
+ * 8 m/s lap of the ring (tests/fixtures/map-track-v4.json) on the clip's
+ * clock, started 62 s before the clip's first row through the gates'
+ * frames, so it closes its first lap (its 38 s, opened about 41 s in, at
+ * the timing gate) inside the clip. Two thirds of the
+ * way the race opens again from scratch (a new AiOpponent on the same
+ * seat, as a reset does), now with a wall before the first gate, so its
+ * journal holds contacts. A crash cam row at each
+ * of the clip's rows. Returns the
+ * clip's opponent as open() cuts it, and what it flew.
+ */
+async function raceOpponent(wasmBytes, clip) {
+  const af = airframeById('interceptor');
+  const tune = composeConfig(readFileSync(join(root, `configs/${af.defaultTune}.diff`), 'utf8'), RATE_DEFAULTS);
+  const course = raceFromDocument(JSON.parse(readFileSync(join(root, 'tests/fixtures/map-track-v4.json'), 'utf8')));
+  const bench = aiBench({ wasm: wasmBytes, af, tune, course, rates: RATE_DEFAULTS });
+  const record = await bench.referenceGhost(await bench.learn(), 8);
+  if (!record) {
+    throw new Error('the reference pilot could not lap the ring');
+  }
+  setCraftAirframe(af.dims);
+  const BAR = 0.05;
+  /* The first gate it flies to, so the second race meets the wall soon. */
+  const wide = bench.referee().gates.find((g) => !g.virtual);
+  const solids = (wall) => {
+    const col = new Colliders();
+    for (const g of bench.referee().gates) {
+      const ap = g.apertures[0];
+      if (g.virtual) continue;
+      const c = [g.x, g.y + ap.centreY, g.z];
+      const corner = (u, v) => c.map((x, k) => x + u * (ap.clearW / 2 + BAR) * [g.ax.x, g.ax.y, g.ax.z][k]
+        + v * (ap.clearH / 2 + BAR) * [g.ay.x, g.ay.y, g.ay.z][k]);
+      const ring = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
+      ring.forEach((a, i) => col.add('gate', ...a, ...ring[(i + 1) % 4], BAR));
+      if (wall && g.idx === wide.idx) {
+        const z = c[2] - g.az.z;
+        col.addBox('wall', c[0] - ap.clearW, c[1] - ap.clearH, z - 0.05, c[0] + ap.clearW, c[1] + ap.clearH, z + 0.05);
+      }
+    }
+    col.build();
+    return col;
+  };
+  const framed = solids(false);
+  const walled = solids(true);
+  let col = framed;
+  const world = {
+    toSim: (x, y, z, out) => threePosToSim(x, y, z, out),
+    dirToSim: (x, y, z, out) => threeDirToSim(x, y, z, out),
+    fromSim: (st, out) => {
+      out.x = -st[2];
+      out.y = st[3];
+      out.z = -st[1];
+      return out;
+    },
+    worldQuat: (st, out) => simQuatToThree(st[7], st[8], st[9], st[10], {
+      set(a, b, c, d) {
+        Object.assign(out, {
+          x: a, y: b, z: c, w: d,
+        });
+        return out;
+      },
+    }),
+    floorHeight: () => -1000,
+    groundNormal: (x, z, y, out) => Object.assign(out, { x: 0, y: 1, z: 0 }),
+    colliders: () => col,
+  };
+  const seated = await seatOpponent(() => loadSim(wasmBytes), {
+    simId: af.simId, tuneText: tune, gravity: af.gravityBase, cellVoltage: 4.2, rates: RATE_DEFAULTS, wasm: wasmBytes,
+  });
+  await seated.journal.named;
+  const lap = () => new GhostLap(decodeGhost(encodeGhost(record)), { label: 'reference' });
+  const make = () => new AiOpponent({
+    seated, lap: lap(), gates: course.gates, trackClass: course.trackClass, world,
+  });
+  const ring = createOpponentRing(clip.n);
+  const drawn = { position: { x: 0, y: 0, z: 0 }, quaternion: { x: 0, y: 0, z: 0, w: 1 } };
+  const half = Math.floor((clip.n * 2) / 3);
+  let op = make();
+  let start = -62000;
+  const races = [op];
+  for (let k = 0; k < clip.n; k += 1) {
+    const now = Math.round(clip.time[k] * 1000);
+    if (k === half) {
+      col = walled;
+      op = make();
+      start = now;
+      races.push(op);
+    }
+    op.stepTo(now - start);
+    world.fromSim(op.state, drawn.position);
+    world.worldQuat(op.state, drawn.quaternion);
+    ring.begin(k);
+    ring.write(op, drawn);
+  }
+  return {
+    opponent: ring.clip(0, clip.n), races, lapMs: record.durationMs, stats: seated.journal.stats(),
+  };
 }
 
 /* A copy of a module with every f64 1.225 (the airframes' sea level air
@@ -836,6 +1061,57 @@ async function selftest() {
   printPairSummary('self', wf);
   check(wf.flown > 0 && wf.identical === wf.flown, 'transplanted twice onto the same build, the two windy flights are identical',
     `${wf.identical}/${wf.flown} rows`);
+
+  console.log('8. an AI opponent raced beside the clip, saved as version 19, flown again');
+  const raced = await raceOpponent(wasmBytes, back18);
+  const opp = raced.opponent;
+  const contacts = raced.races.reduce((x, o) => x + (o.touched || 0), 0);
+  const lapsFlown = raced.races.map((o) => o.laps().length);
+  check(opp.runs.length === 2 && Boolean(opp.refly) && describeRefly(opp.refly, back18.n).flyable === back18.n,
+    'two races in the clip, every row can be flown back to', `${opp.runs.length} races, ${describeRefly(opp.refly, back18.n).flyable}/${back18.n} rows`);
+  check(contacts > 0 && lapsFlown[0] >= 1 && opp.runs[0].laps.length === lapsFlown[0],
+    'it laps the ring, then meets the wall: its laps are kept and contacts are in its journal',
+    `laps ${JSON.stringify(lapsFlown)} of a ${(raced.lapMs / 1000).toFixed(2)} s lap, ${contacts} contacts, ${opp.sticks.length / STICK_W} stick rows`);
+  const v19 = { ...back18, opponent: { ...opp, refly: await packRefly(opp.refly) } };
+  const file19 = encodeReplay(v19);
+  const back19 = decodeReplay(file19);
+  check(new DataView(file19).getUint32(4, true) === 19 && Boolean(back19.opponent && back19.opponent.refly),
+    'saved as version 19 with its opponent and its opponent\'s refly');
+  check(Buffer.from(encodeReplay({ ...back19, opponent: undefined })).equals(Buffer.from(stamped)),
+    'the same clip without its opponent is the version 18 file, byte for byte');
+  const oppBytes = file19.byteLength - stamped.byteLength;
+  const secs = back18.time[back18.n - 1];
+  console.log(`  the opponent adds ${(oppBytes / 1e6).toFixed(3)} MB over ${secs.toFixed(1)} s (${back18.n} rows): `
+    + `refly ${(v19.opponent.refly.packed.byteLength / 1e6).toFixed(3)} MB packed, sticks ${(opp.sticks.byteLength / 1e6).toFixed(3)} MB, `
+    + `rows and pose ${((back18.n * (OPP_ROW_N + 7) * 4) / 1e6).toFixed(3)} MB, marks ${((back18.n * 8) / 1e6).toFixed(3)} MB; `
+    + `the pilot's file without it ${(stamped.byteLength / 1e6).toFixed(3)} MB`);
+  const flewOpp = await reflyOpponent(back19, wasmBytes);
+  check(flewOpp.flown === back18.n && flewOpp.identical === flewOpp.flown, 'every row the opponent raced hashes as recorded',
+    `${flewOpp.identical}/${flewOpp.flown}`);
+  check(flewOpp.copies.checked >= 28 && flewOpp.copies.same === flewOpp.copies.checked, 'its region matches every copy its flight passes',
+    `${flewOpp.copies.same}/${flewOpp.copies.checked}, ${flewOpp.seeds} copies written`);
+  check(flewOpp.sticks.checked > 1500 && flewOpp.sticks.same === flewOpp.sticks.checked, 'its kept sticks are the sim_input calls its journal made',
+    `${flewOpp.sticks.same}/${flewOpp.sticks.checked}`);
+  const bent = decodeReplay(file19);
+  bent.opponent.sticks[(bent.opponent.rows[100 * OPP_ROW_N + OPP.stick] - 1) * STICK_W] += 0.02;
+  const bentRun = await reflyOpponent(bent, wasmBytes);
+  check(bentRun.sticks.same === bentRun.sticks.checked - 1 && bentRun.sticks.first === 100, 'negative control: one kept stick changed is found at its row',
+    `${bentRun.sticks.same}/${bentRun.sticks.checked}, first at row ${bentRun.sticks.first}`);
+  const wrong = decodeReplay(file19);
+  wrong.opponent.rows[200 * OPP_ROW_N + OPP.hash] ^= 1;
+  const wrongRun = await reflyOpponent(wrong, wasmBytes);
+  check(wrongRun.identical === wrongRun.flown - 1, 'negative control: one recorded hash changed is one row that differs',
+    `${wrongRun.identical}/${wrongRun.flown}`);
+  let otherOpp = null;
+  try {
+    await reflyOpponent(back19, other.bytes);
+  } catch (err) {
+    otherOpp = err;
+  }
+  check(Boolean(otherOpp && otherOpp.build === build), 'on another build the opponent is refused by its id', otherOpp ? otherOpp.message : 'not refused');
+  const cut19 = trimClip(back19, 10, 20);
+  const flewCut = await reflyOpponent(decodeReplay(encodeReplay(cut19)), wasmBytes);
+  check(flewCut.identical === cut19.n && flewCut.flown === cut19.n, 'trimmed to 10..20 s it flies again too', `${flewCut.identical}/${cut19.n}`);
 
   console.log(failures ? `replay:refly selftest: ${failures} FAILED` : 'replay:refly selftest: all ok');
   process.exit(failures ? 1 : 0);

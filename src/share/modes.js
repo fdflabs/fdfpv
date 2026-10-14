@@ -59,8 +59,10 @@ export const ROUND_MINUTES = [3, 5];
  *                 game is a host's start in passing
  *   allowSolo     Ready alone starts a round
  *   allowAI       AI pilots fill seats (edge/rooms/roombots.js, docs/
- *                 AI-PILOTS-CONTRACT.md): Catch the Ace first; combat and
- *                 races when the room can fly them there
+ *                 AI-PILOTS-CONTRACT.md): Catch the Ace's, and a race's
+ *                 on the real plant (edge/rooms/airace.js, docs/
+ *                 AI-PILOTS-RACES-CONTRACT.md); combat when the room can
+ *                 fly them there
  *   allowDropIn   a pilot arriving mid round flies in; a race went off a
  *                 grid, so its newcomer waits in the lobby
  *   openEnded     the round has no end: on until the room is empty
@@ -79,6 +81,9 @@ export const ROUND_MINUTES = [3, 5];
  *                 own rule there: only on its map)
  *   onFoot        a landed and stopped pilot may step out and walk
  *                 (docs/ON-FOOT.md); free flight only
+ *   hidden        offered nowhere: no card draws it and home's Continue
+ *                 never holds it (COMPLETENESS 81: one place to hide a
+ *                 row, the author's decision over a flags system)
  */
 export const MODES = [
   {
@@ -91,7 +96,7 @@ export const MODES = [
     minPlayers: 1,
     minElsewhere: 1,
     allowSolo: true,
-    allowAI: false,
+    allowAI: true,
     allowDropIn: false,
     openEnded: false,
     setting: null,
@@ -100,6 +105,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'tag',
@@ -120,6 +126,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'combat',
@@ -140,6 +147,7 @@ export const MODES = [
     straightToLobby: true,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'jam',
@@ -162,6 +170,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'war',
@@ -182,6 +191,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: false,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'free',
@@ -202,6 +212,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: false,
     onFoot: true,
+    hidden: false,
   },
 ];
 

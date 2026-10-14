@@ -59,14 +59,25 @@ indications, nothing"), and First Light has none.
    check, lint:dashes, lint:header, lint:copy; war:legacy unchanged (flight
    untouched).
 
-## 4. Not in this lane, the next PRs
+## 4. Not in this lane, the next PRs (all since built)
+
+Retired 2026-10-14: every item below has landed since (war nudges,
+`nudge.js` and war:nudge; objective cards, warhud.js `objectiveCards` and
+war:cards; the outro film, `films/first-light-outro.js`; warintro:check's
+rows, fixed 2026-10-08 per fdfpv-loop KNOWN-BROKEN.md; Contain and
+`itaipu-1-op`, 2026-10-14). MISSIONS.md 2.1 is where First Light stands
+now; this list stays as the record.
 
 - Nudges for the war: a war reading of `guide.js` (the nearest attacker
   heading for the stage's targets as the target; the war view carries
   contacts openly, so the quiet rule does not bind), the clock and distance
   lines in the act's voices. Needs its own contract.
 - Objective cards on the war HUD (twist objectives shown on `show`).
-- `itaipu-1-op` once the war's Contain (MISSIONS.md 1.9) exists in stages.
+- ~~`itaipu-1-op` once the war's Contain (MISSIONS.md 1.9) exists in
+  stages.~~ Built 2026-10-14 (branch w39-contain): Contain runs in the
+  room (`src/share/war/contain.js`) and `itaipu-1-op` is voiced en and
+  es. What Contain still lacks is MISSIONS.md 1.9 "As built"; where First
+  Light stands now is MISSIONS.md 2.1.
 - An outro film for First Light (INTROS.md has no storyboard for one yet:
   a writing job first).
 - warintro:check's 3 stale rows.

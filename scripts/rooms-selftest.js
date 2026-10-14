@@ -63,16 +63,19 @@ import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { jamSection } from './rooms-selftest-jam.js';
 import { browserSection } from './rooms-selftest-browser.js';
+import { blocksSection } from './rooms-selftest-blocks.js';
 import { scaleSection } from './rooms-selftest-scale.js';
 import { sessionSection } from './rooms-selftest-session.js';
 import { weatherSection } from './rooms-selftest-weather.js';
 import { stockSurfacesSection } from './rooms-selftest-surfaces.js';
 import { visibilitySection } from './rooms-selftest-visibility.js';
+import { setupSection } from './rooms-selftest-setup.js';
 import { dropsSection } from './rooms-selftest-drops.js';
 import { footSection } from './rooms-selftest-foot.js';
 import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
+import { aiRaceSection } from './rooms-selftest-airace.js';
 import {
   emptyRoomSection, gameLobbySection, lobbyReadySection, warLobbySection,
 } from './rooms-selftest-gamelobby.js';
@@ -252,6 +255,16 @@ for (let i = 0; i < 10; i += 1) {
   refusedB += b.got.length - n;
 }
 check(`other text over ${TEXT_PER_S} a second is dropped, counted apart from the clock`, refusedB === TEXT_PER_S, `${refusedB}`);
+now += 1000;
+/* A phrase and a wave after a full second of other text: counted on the
+ * chat allowance alone (edge/rooms/safety.js), so both reach a. */
+for (let i = 0; i < TEXT_PER_S; i += 1) {
+  run(room.message(b, JSON.stringify({ type: 'kick', seat: 1 }), now));
+}
+const heardBefore = texts(a, 'event').length;
+run(room.message(b, JSON.stringify({ type: 'event', kind: 'chat', id: 0 }), now));
+run(room.message(b, JSON.stringify({ type: 'event', kind: 'emote', id: 0 }), now));
+check(`chat and emotes are not counted on the ${TEXT_PER_S} a second of other text`, texts(a, 'event').length - heardBefore === 2, `${texts(a, 'event').length - heardBefore}`);
 now += 1000;
 for (let i = 0; i <= TEXT_CLOSE_PER_S; i += 1) {
   run(room.message(a, JSON.stringify(i % 2 ? { type: 't', c: i } : { type: 'nothing' }), now));
@@ -1999,16 +2012,19 @@ warLobbySection(check);
 gameLobbySection(check);
 lobbyReadySection(check);
 botsSection(check);
+await aiRaceSection(check);
 emptyRoomSection(check);
 sessionSection(check);
 weatherSection(check);
 stockSurfacesSection(check);
 visibilitySection(check);
+setupSection(check);
 dropsSection(check);
 footSection(check);
 watchSection(check);
 watchStateSection(check);
 await browserSection(check);
+await blocksSection(check);
 await scaleSection(check);
 
 /* ---------------------------------------------------------------------

@@ -172,7 +172,7 @@ function row(sim, surfPtr, st) {
  * doubles of this sim's memory. */
 function fly(sim, mode, g, rec = null) {
   start(sim, mode, 0.6);
-  const eye = eyes({ stepMs: MS, delayMs: LAG_S * 1000 });
+  const eye = eyes({ stepMs: MS, delayMs: LAG_S * 1000, backMax: 25 });
   let st = [0, 0, 0, 0.6], base = 0.6, trim = 0, held = 0, worst = 0, roll = 0;
   for (let ms = 0; ms < SECONDS * 1000; ms += MS) {
     const o = read(sim.readState().state);

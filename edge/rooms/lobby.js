@@ -12,6 +12,14 @@
  * game on. The Lobby never sees a pose, a pilot's name or an address.
  * Private rooms never report, so they are never listed.
  *
+ * BLOCKS (COMPLETENESS 60). A line also carries, for the lobby alone, the
+ * account ids of the signed in pilots in the room and the ids they
+ * blocked (core.js hello, from the accounts server). A list or a quick
+ * join asked for by a signed in pilot (front.js joinerOf) leaves out every
+ * room holding a pilot that pilot blocked or who blocked it, the pair
+ * safety.js shut keeps apart inside a room. The ids never leave the
+ * lobby: list() sends none of them, and a guest is left out of nothing.
+ *
  *   GET /v2/rooms          the list (front.js), cached LIST_CACHE_MS
  *   GET /v2/public/<map>   quick join: the busiest listed room of that map
  *                          with a seat, or a new one (front.js)
@@ -78,8 +86,10 @@ const MAP_RE = /^[a-z0-9_]{1,32}$/;
 
 /* What the list shows of a room: its meta, its pilot count, the game on
  * (core.js activity()), empty, when it went empty (host.js), and its
- * watchers (core.js watch), counted apart from n and the cap. */
-export function listingOf(meta, n, activity, emptySince = null, watchers = 0) {
+ * watchers (core.js watch), counted apart from n and the cap. accounts and
+ * blocking are the lobby's own (BLOCKS above): the account ids of the
+ * room's signed in pilots, and every id they blocked. */
+export function listingOf(meta, n, activity, emptySince = null, watchers = 0, accounts = [], blocking = []) {
   return {
     code: meta.code,
     name: meta.name ?? null,
@@ -99,7 +109,19 @@ export function listingOf(meta, n, activity, emptySince = null, watchers = 0) {
     hidden: Boolean(meta.hidden),
     created: meta.epoch,
     emptySince: n > 0 ? null : emptySince,
+    accounts,
+    blocking,
   };
+}
+
+/* Whether a room must not be offered to `joiner`, { account, blocks } of a
+ * signed in pilot or null for a guest: a pilot there is one the joiner
+ * blocked, or blocked the joiner. A line from before blocks has neither. */
+function apart(e, joiner) {
+  if (!joiner) {
+    return false;
+  }
+  return (e.accounts || []).some((id) => joiner.blocks.includes(id)) || (e.blocking || []).includes(joiner.account);
 }
 
 export class LobbyBook {
@@ -146,11 +168,12 @@ export class LobbyBook {
     return true;
   }
 
-  /* People first, then the newest. */
-  list(now) {
+  /* People first, then the newest; for `joiner` (apart), without its
+   * blocked pilots' rooms. */
+  list(now, joiner = null) {
     this.prune(now);
     return Object.values(this.rooms)
-      .filter((e) => this.listed(e, now))
+      .filter((e) => this.listed(e, now) && !apart(e, joiner))
       .sort((a, b) => (b.n - a.n) || (b.created - a.created))
       .slice(0, LIST_MAX)
       .map((e) => ({
@@ -166,9 +189,10 @@ export class LobbyBook {
    * code the caller must make the room for, booked here first so the
    * joiners right behind this one land in it rather than each making
    * their own. null when the map cannot be had, or when there is no room
-   * with a seat and `fresh` is null (the server is busy, front.js).
+   * with a seat and `fresh` is null (the server is busy, front.js). A
+   * room `joiner` must be kept apart from is passed over (apart).
    */
-  quick(map, now, fresh) {
+  quick(map, now, fresh, joiner = null) {
     if (!MAP_RE.test(map)) {
       return null;
     }
@@ -178,7 +202,7 @@ export class LobbyBook {
     for (const e of Object.values(this.rooms)) {
       /* Never into a room made for the war: nobody arrives there without
        * having chosen it (docs/WARFARE-PLAN.md section 9). */
-      if (e.map !== map || e.hidden || e.mode === 'war') {
+      if (e.map !== map || e.hidden || e.mode === 'war' || apart(e, joiner)) {
         continue;
       }
       /* Nor into an empty one, whose last pilots may come back to it. */
@@ -198,7 +222,7 @@ export class LobbyBook {
     /* No pick yet, so not listed until the room made for it reports. */
     this.rooms[fresh] = {
       code: fresh, name: null, pick: null, map, n: 0, cap: PUBLIC_CAP, game: null, state: 'waiting', mode: null,
-      hidden: false, created: now, pending: [now], emptySince: now,
+      hidden: false, created: now, pending: [now], emptySince: now, accounts: [], blocking: [],
     };
     return { code: fresh, fresh: true };
   }
@@ -225,6 +249,10 @@ export class Lobby {
     const url = new URL(request.url);
     const book = await this.book();
     const now = Date.now();
+    /* A signed in pilot's list is its own, made for each ask. */
+    if (url.pathname === '/list' && request.method === 'POST') {
+      return Response.json(book.list(now, (await request.json()).joiner));
+    }
     if (url.pathname === '/list') {
       if (!this.listed || now - this.listed.at >= LIST_CACHE_MS) {
         this.listed = { at: now, body: JSON.stringify(book.list(now)) };
@@ -239,7 +267,7 @@ export class Lobby {
       return new Response('ok');
     }
     if (url.pathname === '/quick') {
-      const got = book.quick(String(body.map), now, body.code);
+      const got = book.quick(String(body.map), now, body.code, body.joiner ?? null);
       await this.ctx.storage.put('rooms', book.rooms);
       return Response.json(got || { code: null });
     }
@@ -272,7 +300,10 @@ export function reportRoom(env, core, now) {
     core.lastListing = null;
     return send(env, listingOf(core.meta, 0, core.activity(now), now));
   }
-  const entry = listingOf(core.meta, core.people().length, core.activity(now), core.emptySince ?? null, core.watchers.size);
+  const people = core.people();
+  const accounts = people.map((s) => s.account).filter((id) => id != null);
+  const blocking = [...new Set(people.flatMap((s) => s.blocks || []))];
+  const entry = listingOf(core.meta, people.length, core.activity(now), core.emptySince ?? null, core.watchers.size, accounts, blocking);
   const key = JSON.stringify(entry);
   if (core.lastListing === key) {
     return null;

@@ -31,7 +31,7 @@
 import { MAPS } from '../maps/registry.js';
 import { activeCourseSummary } from '../share/summary.js';
 import { inspectCourse } from '../share/listing.js';
-import { writePendingTime } from '../share/session.js';
+import { writePendingTime } from '../share/trackseat.js';
 import { formatScore } from '../game/score.js';
 import { str, plural } from '../strings/index.js';
 import { withPosted } from '../game/debrief.js';

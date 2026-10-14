@@ -22,9 +22,11 @@
  *
  *   spawned       a new flight (src/main.js resetCraft, Progress.startFlight)
  *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
- *                 a lap carries {ms, airframe, medal}, the medal it
- *                 reached on a course with medals or null (a lesson
- *                 judges it, src/game/training.js)
+ *                 a lap carries {ms, airframe, medal, kind}, the medal it
+ *                 reached on a course with medals or null and its
+ *                 course's kind, 'casual', 'built' or 'map'
+ *                 (src/game/progress.js courseKind) (a lesson judges
+ *                 both, src/game/training.js)
  *   touch {kind}  the same; a contact the shell reports every step is one
  *                 event per kind per run of contact (see append)
  *   crash {airframe}
@@ -34,24 +36,36 @@
  *                 on the run's aircraft (progression counts landings,
  *                 crashes and laps per aircraft, src/game/progress.js
  *                 foldEvents)
- *   kill {airframe, victim}
+ *   kill {airframe, victim, mission}
  *                 an attacker the war's room credited to this pilot's
  *                 warhead (edge/rooms/war.js dead `credited`, read by
- *                 src/share/roomwar.js), victim its kind; one a victim,
+ *                 src/share/roomwar.js), victim its kind, mission the
+ *                 war's (null when the view had none); one a victim,
  *                 so a blast that took two is two (src/main.js,
  *                 Progress.killed; counted per aircraft like a landing)
+ *   contact {track, held}
+ *                 the avionics camera's primary track seen (held true)
+ *                 or no longer (held false), track its id: one event an
+ *                 edge, never a frame (src/main.js avionicsFrame,
+ *                 Progress.contact; src/game/training.js heldTrack); a
+ *                 lesson times the hold between them
  *   round {game, world}
  *                 a Streamer Combat round or a Catch the Ace! match
  *                 ended by the room with this pilot seated (src/main.js,
  *                 Progress.roundFinished); a room race this pilot
  *                 finished, game 'race', carries {pilots} too, how many
  *                 were on its grid
- *   mission_end {mission, won, stars}
+ *   mission_start {mission, airframe}
+ *                 a Defend the Paraná war seen begun, with no result yet,
+ *                 in this pilot's room (src/ui/campaign.js observe); The
+ *                 Interior logs none yet, its client has no start hook
+ *   mission_end {mission, won, stars, airframe}
  *                 a mission's result applied to the save
- *                 (src/ui/campaign.js, src/ui/opscampaign.js)
+ *                 (src/ui/campaign.js, src/ui/opscampaign.js); both
+ *                 counted per aircraft like a landing
  *
- * The rest of the vocabulary (objective, stage, hit, joined, left,
- * mission_start, and the war's rounds) is the war's and the rooms', named now so their
+ * The rest of the vocabulary (objective, stage, hit, joined, left, and
+ * the war's rounds) is the war's and the rooms', named now so their
  * producers add rows, not words.
  *
  * RunWatch reads it first: Progress appends gate and lap here and hands
@@ -85,7 +99,7 @@
 export const EVENT_TYPES = Object.freeze([
   'spawned', 'gate', 'lap', 'touch', 'crash', 'landing',
   'objective', 'stage', 'kill', 'hit', 'round', 'joined', 'left',
-  'mission_start', 'mission_end',
+  'mission_start', 'mission_end', 'contact',
 ]);
 const KNOWN = new Set(EVENT_TYPES);
 /* Fields an event carries itself; data may not overwrite them. */

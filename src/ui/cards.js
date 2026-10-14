@@ -50,7 +50,7 @@ import { readPilotName } from '../share/pilot.js';
 import { readWallet } from '../share/account.js';
 import {
   readBind, readEditKey, readShareImport, writeShareImport,
-} from '../share/session.js';
+} from '../share/trackseat.js';
 import { currentLocale, str, plural } from '../strings/index.js';
 import { duplicateTrack, toPlain } from '../trackbuilder/model.js';
 import {
@@ -58,7 +58,7 @@ import {
 } from '../trackbuilder/storage.js';
 import { formatDay, formatTime } from './format.js';
 import { paintPilotStats, pilotStats } from './pilotstats.js';
-import { filmFor, trickLevel, VIEW_LABEL } from './trickfilm.js';
+import { filmFor, trickLevel } from './trickfilm.js';
 import { scoreableTricks, trickStatus } from './trickslist.js';
 /* A cycle: ui.js installs this module. These are read only inside methods,
  * after both modules have run, never at this module's top level. */
@@ -487,7 +487,7 @@ export const cardMethods = {
     say(this.trickHow, `${trick.how} ${trick.status.line}`);
     /* The camera's side, said: a roll seen side on looks like a craft not
      * moving at all, so the reader must know which angle they are shown. */
-    say(this.trickView, str('ui.seen_the_pink_nose_is_the', { view: VIEW_LABEL[trick.view].replace('seen ', '') }));
+    say(this.trickView, str('ui.seen_the_pink_nose_is_the', { view: str(`trickfilm.view.${trick.view}`) }));
     this.trickPlayer.show(trick.film);
   },
 
@@ -610,7 +610,7 @@ export const cardMethods = {
 
   /*
    * Seat one of the pilot's own tracks for Play, in the share seat that
-   * every flown track is read from (src/share/session.js writeShareImport).
+   * every flown track is read from (src/share/trackseat.js writeShareImport).
    * One this browser published is seated as its listing, so a lap on it
    * can still go to the board. Returns whether it was seated.
    */

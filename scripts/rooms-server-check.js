@@ -41,6 +41,10 @@
  * the same private room, with its race track, and the purge alarm carried
  * across the restart, and the public room listed again straight after it.
  *
+ * Then src/share/rooms.js itself, with its storage and socket stood in: a
+ * second tab on the same seat token, a reload back into its own seat, and
+ * a quick join asked by a plain GET and joined by code.
+ *
  * A check against a live server makes one private room and leaves it to
  * be purged five minutes after, like any room nobody is in.
  *
@@ -77,7 +81,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import {
-  ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
+  ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, ROOM_LEVEL, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { ABANDON_MS, TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
 import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
@@ -587,8 +591,10 @@ if (pub.open) {
   pww.ws.close(1000);
   check('both say ready: both are told the five seconds', Boolean(counting && await pw.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt === counting.lobby.countdownAt))),
     JSON.stringify(counting && counting.lobby));
-  check('and the room starts the drill\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'briefing'), 9000)
-    && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'briefing'), 2000)));
+  /* The drill is in no act, so no 2030 film: straight to its countdown
+   * (edge/rooms/gamelobby.js briefed). */
+  check('and the room starts the drill for both on its own, straight to its countdown', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'countdown'), 9000)
+    && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'countdown'), 2000)));
   const unwatchedLine = await lineOf((r) => r.watchers === 0);
   check('and with the watcher gone, watchers 0', unwatchedLine && unwatchedLine.watchers === 0 && unwatchedLine.n === 2, JSON.stringify(unwatchedLine));
   pw.say({ type: 'war', op: 'end' });
@@ -617,6 +623,116 @@ function raw(text) {
     sock.on('close', () => resolve(got.split('\r\n')[0]));
     sock.on('error', () => resolve(''));
   });
+}
+
+/*
+ * THE BROWSER'S OWN LINK on a seat a second tab took: src/share/rooms.js
+ * with its storage and socket stood in, the second link saying the
+ * first's seat token, as a tab holding the same token would. The room closes the first
+ * with 4005 (core.js `replaced`); the first stops there, told why, and
+ * never retries to take the seat back (COMPLETENESS 6).
+ */
+{
+  console.log('a seat a second tab took (src/share/rooms.js FINAL)');
+  const kept = () => {
+    const m = new Map();
+    return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
+  };
+  globalThis.window = { location: { search: `?rooms=${origin}`, hostname: 'check.invalid' }, sessionStorage: kept(), localStorage: kept() };
+  globalThis.WebSocket ??= WebSocket;
+  const { createRoomLink } = await import('../src/share/rooms.js');
+  const states = { first: [], second: [] };
+  const hello = () => ({ name: [5, 6, 40], profile: { airframe: 'cub1400', map: 'alps', figure: 1, livery: null, parts: null } });
+  const first = createRoomLink({ onState: (s) => states.first.push(s.phase + (s.reason ? `:${s.reason}` : '')) }, hello);
+  const tabCode = await first.create('alps', false, {});
+  first.join(tabCode);
+  const opened = async (link) => {
+    for (let i = 0; i < 100 && link.state().phase !== 'open'; i += 1) {
+      await sleep(50);
+    }
+    return link.state().phase === 'open';
+  };
+  const firstIn = await opened(first);
+  const second = createRoomLink({ onState: (s) => states.second.push(s.phase + (s.reason ? `:${s.reason}` : '')) }, hello);
+  /* The two links share one storage, as a duplicated tab does, so the
+   * second's join keeps the token for the room it names: the first's. */
+  second.join(tabCode);
+  const secondIn = await opened(second);
+  /* Past the link's first retry (RETRY_MS, 1 s): a retry would be back. */
+  await sleep(2500);
+  check('a second tab with the same seat token takes the seat: the first is told replaced and stays out',
+    firstIn && secondIn && first.state().phase === 'failed' && first.state().reason === 'replaced' && second.state().phase === 'open'
+    && second.state().welcome.seat === first.state().welcome.seat, JSON.stringify(states));
+  check('and never tries again', !states.first.slice(states.first.indexOf('failed:replaced')).some((s) => s.startsWith('connecting')), JSON.stringify(states.first));
+  second.leave();
+
+  /*
+   * A reload: the page and its socket go with no Leave (the browser's
+   * close, 1001), the tab's sessionStorage stays, and the new page joins
+   * the room it names (wantedRoom). Its hello must say the seat's token,
+   * so it is back in its own seat and still the host, not in a third seat
+   * beside its own, held for it (core.js recent). The control: Leave, then
+   * the same room, is a new pilot.
+   */
+  console.log('a reload back into its own seat (src/share/rooms.js join)');
+  const { wantedRoom } = await import('../src/share/rooms.js');
+  const sockets = [];
+  globalThis.WebSocket = class extends WebSocket {
+    constructor(...args) {
+      super(...args);
+      sockets.push(this);
+    }
+  };
+  const page = createRoomLink({}, hello);
+  const reloadCode = await page.create('alps', false, {});
+  page.join(reloadCode);
+  const pageIn = await opened(page);
+  const before = page.state().welcome;
+  const gone = sockets.at(-1);
+  const beside = await seat(`room/${reloadCode}`, { name: [3, 4, 61], level: ROOM_LEVEL });
+  gone.onclose = null;
+  gone.onmessage = null;
+  gone.close(1001);
+  const dropped = await beside.until((x) => x.text('leave').find((m) => m.seat === before.seat));
+  const reloaded = createRoomLink({}, hello);
+  reloaded.join(wantedRoom());
+  const back = await opened(reloaded) && reloaded.state().welcome;
+  check('a reload rejoins with the seat token: its own seat, and still the host',
+    pageIn && Boolean(dropped) && Boolean(back) && back.token === before.token && back.seat === before.seat && back.host === before.seat,
+    JSON.stringify({ beside: beside.welcome && (beside.welcome.seat || beside.welcome), dropped: Boolean(dropped), before: before && { seat: before.seat, host: before.host }, back: back && { seat: back.seat, host: back.host, same: back.token === before.token } }));
+  reloaded.leave();
+  await beside.until((x) => x.text('leave').filter((m) => m.seat === before.seat).length === 2);
+  const anew = createRoomLink({}, hello);
+  anew.join(reloadCode);
+  const fresh = await opened(anew) && anew.state().welcome;
+  check('the control: after Leave the same room seats a new pilot, a new token and not the seat it left',
+    Boolean(fresh) && fresh.token !== before.token && fresh.seat !== before.seat, JSON.stringify(fresh && { seat: fresh.seat }));
+  anew.leave();
+  beside.ws.close(1000);
+
+  /* The link's quick join asks the server for its room with a plain GET,
+   * which carries a signed in pilot's session for the server to leave out
+   * rooms of pilots it blocked (edge/rooms/front.js joinerOf), and then
+   * joins that room by its code. */
+  if (pub.open) {
+    const fetched = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (input, init) => {
+      fetched.push(String(input));
+      return realFetch(input, init);
+    };
+    const quickLink = createRoomLink({}, hello);
+    quickLink.joinPublic('alps');
+    const quickIn = await opened(quickLink);
+    globalThis.fetch = realFetch;
+    const quickCode = quickLink.state().code;
+    check('the link\'s quick join asks for its room with a plain GET, then joins it by its code',
+      quickIn && fetched.some((u) => u.endsWith('/v2/public/alps')) && Boolean(quickCode) && sockets.at(-1).url.endsWith(`/v2/room/${quickCode}`),
+      JSON.stringify({ fetched, url: sockets.at(-1).url, quickCode }));
+    quickLink.leave();
+  }
+  globalThis.WebSocket = WebSocket;
+  delete globalThis.window;
 }
 
 if (server) {

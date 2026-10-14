@@ -80,7 +80,7 @@
     "id": "controller:a-rates",
     "label": "Tasas",
     "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
-    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "value": "Actual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "id": "controller:s-teclado-y-rat-n",
@@ -97,7 +97,7 @@
     "current": false,
     "id": "controller:vuelo-con-rat-n",
     "label": "Vuelo con ratón",
-    "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+    "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
     "on": false,
     "sw": true,
     "value": "No"
@@ -131,7 +131,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "text": "TasasActual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "cls": "row row-nav",
@@ -4326,7 +4326,7 @@
     "action": "roomnew",
     "id": "friends:a-roomnew",
     "label": "Crear una sala",
-    "note": "Ponle nombre y elige pública o privada, el mundo y un juego.",
+    "note": "Ponle nombre y elige quién entra, el mundo y un juego.",
     "primary": false
    },
    {
@@ -5119,7 +5119,7 @@
     "current": "betaflight-interceptor",
     "id": "pids:ajuste-pid",
     "label": "Ajuste PID",
-    "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Your edits.",
+    "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Tus cambios.",
     "options": [
      {
       "label": "De fábrica",
@@ -5288,9 +5288,9 @@
     }
    },
    {
-    "id": "pids:seguimiento-de-cabeceo",
-    "label": "Seguimiento de cabeceo",
-    "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+    "id": "pids:seguimiento-de-pitch",
+    "label": "Seguimiento de pitch",
+    "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
     "num": {
      "cli": 100,
      "spec": {
@@ -5312,9 +5312,9 @@
     }
    },
    {
-    "id": "pids:amortiguaci-n-de-cabeceo",
-    "label": "Amortiguación de cabeceo",
-    "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+    "id": "pids:amortiguaci-n-de-pitch",
+    "label": "Amortiguación de pitch",
+    "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
     "num": {
      "cli": 100,
      "spec": {
@@ -5389,11 +5389,11 @@
    },
    {
     "cls": "row",
-    "text": "Seguimiento de cabeceo%"
+    "text": "Seguimiento de pitch%"
    },
    {
     "cls": "row",
-    "text": "Amortiguación de cabeceo%"
+    "text": "Amortiguación de pitch%"
    },
    {
     "cls": "row row-nav",
@@ -5507,7 +5507,7 @@
    },
    {
     "i": 9,
-    "id": "pids:seguimiento-de-cabeceo",
+    "id": "pids:seguimiento-de-pitch",
     "to": "pids",
     "calls": [
      [
@@ -5518,7 +5518,7 @@
    },
    {
     "i": 10,
-    "id": "pids:amortiguaci-n-de-cabeceo",
+    "id": "pids:amortiguaci-n-de-pitch",
     "to": "pids",
     "calls": [
      [
@@ -7078,7 +7078,7 @@
     "current": "interceptor",
     "id": "quad:aeronave",
     "label": "Aeronave",
-    "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+    "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
     "options": [
      {
       "label": "Seven inch",
@@ -7188,7 +7188,7 @@
     "action": "pids",
     "id": "quad:a-pids",
     "label": "Ajuste PID",
-    "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+    "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
     "value": "De fábrica"
    },
    {
@@ -7316,7 +7316,7 @@
     "id": "quad:a-rates",
     "label": "Tasas",
     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
-    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "value": "Actual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "action": "back",
@@ -7363,7 +7363,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "text": "TasasActual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "cls": "row",
@@ -7598,8 +7598,8 @@
     "action": "rates",
     "id": "quick:a-rates",
     "label": "Tasas",
-    "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
-    "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "note": "Hasta dónde llegan los sticks, y el límite de throttle. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+    "value": "Actual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "action": "feel",
@@ -7679,7 +7679,7 @@
    },
    {
     "cls": "row row-nav",
-    "text": "TasasActual, 670 alabeo y cabeceo, 670 guiñada °/s"
+    "text": "TasasActual, 670 roll y pitch, 670 yaw °/s"
    },
    {
     "cls": "row",
@@ -7840,7 +7840,7 @@
    {
     "i": 9,
     "id": "quick:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -7856,11 +7856,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -7985,8 +7985,8 @@
     }
    },
    {
-    "id": "rates:s-gui-ada",
-    "label": "Guiñada",
+    "id": "rates:s-yaw",
+    "label": "Yaw",
     "section": true
    },
    {
@@ -8047,8 +8047,8 @@
     }
    },
    {
-    "id": "rates:s-acelerador",
-    "label": "Acelerador",
+    "id": "rates:s-throttle",
+    "label": "Throttle",
     "section": true
    },
    {
@@ -8097,9 +8097,9 @@
     "value": "Apagado"
    },
    {
-    "id": "rates:acelerador-medio",
-    "label": "Acelerador medio",
-    "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+    "id": "rates:throttle-medio",
+    "label": "Throttle medio",
+    "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
     "num": {
      "cli": 50,
      "spec": {
@@ -8116,9 +8116,9 @@
     }
    },
    {
-    "id": "rates:expo-de-acelerador",
-    "label": "Expo de acelerador",
-    "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+    "id": "rates:expo-de-throttle",
+    "label": "Expo de throttle",
+    "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
     "num": {
      "cli": 0,
      "spec": {
@@ -8213,11 +8213,11 @@
    },
    {
     "cls": "row",
-    "text": "Acelerador medio▲▼"
+    "text": "Throttle medio▲▼"
    },
    {
     "cls": "row",
-    "text": "Expo de acelerador▲▼"
+    "text": "Expo de throttle▲▼"
    },
    {
     "cls": "row",
@@ -8371,7 +8371,7 @@
    },
    {
     "i": 14,
-    "id": "rates:acelerador-medio",
+    "id": "rates:throttle-medio",
     "to": "rates",
     "calls": [
      [
@@ -8382,7 +8382,7 @@
    },
    {
     "i": 15,
-    "id": "rates:expo-de-acelerador",
+    "id": "rates:expo-de-throttle",
     "to": "rates",
     "calls": [
      [
@@ -8439,7 +8439,7 @@
    {
     "i": 20,
     "id": "rates:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -8455,11 +8455,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -8571,20 +8571,24 @@
    },
    {
     "current": "0",
-    "id": "roomnew:qui-n-puede-entrar",
-    "label": "Quién puede entrar",
-    "note": "Pública: aparece en Salas, hasta dieciséis pilotos, cualquiera puede entrar.",
+    "id": "roomnew:qui-n-entra",
+    "label": "Quién entra",
+    "note": "Solo: nadie. Amigos: a quien le leas el código de invitación. Pública: en la lista, cualquiera entra.",
     "options": [
      {
-      "label": "Todos",
+      "label": "Pública",
       "value": "0"
      },
      {
-      "label": "Amigos con el código",
+      "label": "Amigos",
       "value": "1"
+     },
+     {
+      "label": "Solo",
+      "value": "2"
      }
     ],
-    "value": "Todos"
+    "value": "Pública"
    },
    {
     "current": "1",
@@ -8660,7 +8664,7 @@
    },
    {
     "cls": "row",
-    "text": "Quién puede entrarTodos"
+    "text": "Quién entraPúblicaAmigosSolo"
    },
    {
     "cls": "row",
@@ -8701,7 +8705,7 @@
    },
    {
     "i": 1,
-    "id": "roomnew:qui-n-puede-entrar",
+    "id": "roomnew:qui-n-entra",
     "to": "roomnew",
     "calls": [
      [
@@ -8710,7 +8714,11 @@
      ],
      [
       "onUiSound",
-      "select"
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ]
    },
@@ -8810,7 +8818,7 @@
     "action": "roomnew",
     "id": "rooms:a-roomnew",
     "label": "Crear una sala",
-    "note": "Ponle nombre y elige pública o privada, el mundo y un juego.",
+    "note": "Ponle nombre y elige quién entra, el mundo y un juego.",
     "primary": true
    },
    {
@@ -8984,7 +8992,7 @@
    {
     "i": 1,
     "id": "standings:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -9000,11 +9008,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -9169,231 +9177,231 @@
     "action": "noop",
     "id": "tricks:a-noop",
     "label": "1 Trippy Spin",
-    "note": "Fiable. Bloque básico. Un giro completo o más alrededor de un poste, volado panza arriba. Visto visto desde arriba.",
+    "note": "Fiable. Bloque básico. Un giro completo o más alrededor de un poste, volado panza arriba. Visto desde arriba.",
     "value": "100"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~2",
     "label": "Matty Flip",
-    "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto visto de lado.",
+    "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~3",
     "label": "Anti Matty",
-    "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto visto de lado.",
+    "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto de lado.",
     "value": "250"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~4",
     "label": "Power Matty",
-    "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto de lado.",
     "value": "300"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~5",
     "label": "Matty Roll",
-    "note": "Fiable. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip y un giro completo de roll. Visto visto de lado.",
+    "note": "Fiable. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip y un giro completo de roll. Visto de lado.",
     "value": "425"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~6",
     "label": "Matty 360",
-    "note": "Exigente. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip y un giro completo de yaw spin. Visto visto de lado.",
+    "note": "Exigente. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip y un giro completo de yaw spin. Visto de lado.",
     "value": "425"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~7",
     "label": "Maverick Loop",
-    "note": "Fiable. Principiante. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto visto de lado.",
+    "note": "Fiable. Principiante. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto de lado.",
     "value": "100"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~8",
     "label": "Mavvy Roll",
-    "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto de lado.",
     "value": "250"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~9",
     "label": "Donkey Loop",
-    "note": "Fiable. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip y un giro completo de roll y un giro completo de yaw spin. Visto visto de lado.",
+    "note": "Fiable. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip y un giro completo de roll y un giro completo de yaw spin. Visto de lado.",
     "value": "600"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~10",
     "label": "Eject Roll",
-    "note": "Fiable. Novato. Medio giro de flip, luego un giro completo de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Medio giro de flip, luego un giro completo de roll. Visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~11",
     "label": "Orbit x2",
-    "note": "Fiable. Principiante. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto visto desde arriba.",
+    "note": "Fiable. Principiante. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto desde arriba.",
     "value": "75"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~12",
     "label": "Trippy Spin x2",
-    "note": "Fiable. Avanzado. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto visto desde arriba.",
+    "note": "Fiable. Avanzado. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto desde arriba.",
     "value": "500"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~13",
     "label": "Powerloop",
-    "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto visto de lado.",
+    "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~14",
     "label": "Power Flip",
-    "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto de lado.",
     "value": "350"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~15",
     "label": "Power Roll",
-    "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto visto de lado.",
+    "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto de lado.",
     "value": "450"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~16",
     "label": "Inverted 360 Powerloop",
-    "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto visto de lado.",
+    "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto de lado.",
     "value": "650"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~17",
     "label": "Flip Stall Rewind",
-    "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto visto de lado.",
+    "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto de lado.",
     "value": "275"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~18",
     "label": "360 Stall Rewind",
-    "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto visto desde atrás.",
+    "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto desde atrás.",
     "value": "275"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~19",
     "label": "Split-S",
-    "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto visto de lado.",
+    "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto de lado.",
     "value": "100"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~20",
     "label": "Split Yaw",
-    "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto visto de lado.",
+    "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto de lado.",
     "value": "300"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~21",
     "label": "Yaw Spin",
-    "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto visto desde arriba.",
+    "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto desde arriba.",
     "value": "50"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~22",
     "label": "Flip",
-    "note": "Fiable. Principiante. Un giro completo de flip. Visto visto de lado.",
+    "note": "Fiable. Principiante. Un giro completo de flip. Visto de lado.",
     "value": "50"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~23",
     "label": "Roll",
-    "note": "Fiable. Principiante. Un giro completo de roll. Visto visto desde atrás.",
+    "note": "Fiable. Principiante. Un giro completo de roll. Visto desde atrás.",
     "value": "50"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~24",
     "label": "Invert Rewind",
-    "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto visto de lado.",
+    "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto de lado.",
     "value": "75"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~25",
     "label": "Vanny Roll",
-    "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto visto desde arriba.",
+    "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto desde arriba.",
     "value": "125"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~26",
     "label": "Double Flip",
-    "note": "Fiable. Principiante. Dos giros completos de flip. Visto visto de lado.",
+    "note": "Fiable. Principiante. Dos giros completos de flip. Visto de lado.",
     "value": "150"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~27",
     "label": "Double Roll",
-    "note": "Fiable. Principiante. Dos giros completos de roll. Visto visto desde atrás.",
+    "note": "Fiable. Principiante. Dos giros completos de roll. Visto desde atrás.",
     "value": "150"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~28",
     "label": "Juicy Flick",
-    "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~29",
     "label": "Snapback",
-    "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto visto de lado.",
+    "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~30",
     "label": "Rubik's Cube",
-    "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto de lado.",
     "value": "325"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~31",
     "label": "Cubik's Rube",
-    "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto visto de lado.",
+    "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto de lado.",
     "value": "325"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~32",
     "label": "Inverted Yaw Spin",
-    "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto visto desde arriba.",
+    "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto desde arriba.",
     "value": "400"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~33",
     "label": "Inverted Yaw Tracking",
-    "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto visto desde arriba.",
+    "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto desde arriba.",
     "value": "425"
    }
   ],

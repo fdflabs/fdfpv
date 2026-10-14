@@ -164,7 +164,7 @@ const { settingsDelta, storeView } = await import('../tests/lib/golden-settings.
  * The methods are given a copy taken before any constructor ran. */
 const DEFAULTS = structuredClone(LIVE_DEFAULTS);
 const { ACCOUNT_KEY } = await import('../src/share/pilot.js');
-const { writeShareImport } = await import('../src/share/session.js');
+const { writeShareImport } = await import('../src/share/trackseat.js');
 const { useLocale } = await import('../src/strings/index.js');
 
 const MAP_TRACK = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
@@ -387,6 +387,9 @@ const scenarios = {
         brief: { line: 'Hold the dam.', objectives: ['Reach the wall', 'Mark the gun'], facts: [{ label: 'Where', value: 'Itaipu' }, { label: 'When', value: 'Dawn' }] },
       },
       briefBare: { mission: 'Dam run', pilots: [], countdown: null, deadline: null, last: null, brief: { line: '', objectives: [], facts: [] } },
+      openSeats: {
+        mission: 'Dam run', pilots, countdown: null, deadline: null, last: null, brief: null, open: { seats: '12 open seats', note: 'Anybody can drop in' },
+      },
     };
     for (const screen of ['friends', 'title']) {
       for (const [name, v] of Object.entries(views)) {
@@ -421,7 +424,7 @@ const scenarios = {
         for (const shown of ['none', 'war']) {
           const ui = makeUi(shown === 'war' ? { craftShown: (s) => `war-of-${s.airframe}` } : {});
           Object.assign(ui.settings, patch);
-          const rows = ui.roomSeatRows(inRoom);
+          const rows = ui.roomSeatRows(inRoom ? { inRoom: true } : null);
           const drove = [];
           for (const r of rows) {
             if (r.open) { r.open(); drove.push({ open: ui.calls.splice(0) }); }
@@ -441,6 +444,31 @@ const scenarios = {
           out[`${name}:${inRoom ? 'in' : 'out'}:${shown}`] = { rows: rows.map(item), drove, calls: ui.calls.splice(0) };
         }
       }
+    }
+    /* The room's weather row: the host's choice, a guest's fact, none for
+     * a room that never said its air or said one this build does not know. */
+    const rooms = {
+      host: { inRoom: true, host: true, weather: 'breeze' },
+      guest: { inRoom: true, host: false, weather: 'gusty' },
+      silent: { inRoom: true, host: true, weather: null },
+      unknown: { inRoom: true, host: false, weather: 'hail' },
+    };
+    for (const [name, room] of Object.entries(rooms)) {
+      const ui = makeUi();
+      const rows = ui.roomSeatRows(room);
+      const wx = rows.slice(2);
+      const drove = [];
+      for (const r of wx) {
+        if (r.pick) {
+          r.pick('front');
+          drove.push({ pick: 'front', weather: ui.settings.weather });
+        }
+        if (r.adjust) {
+          r.adjust(1);
+          drove.push({ adjust: 1, weather: ui.settings.weather });
+        }
+      }
+      out[`weather:${name}`] = { rows: wx.map(item), drove, calls: ui.calls.splice(0) };
     }
     return out;
   },

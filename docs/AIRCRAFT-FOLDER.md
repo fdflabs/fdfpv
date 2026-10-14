@@ -150,7 +150,7 @@ planes no kit, livery, tunes or level, and the Cub, the Slow Stick and the Timbe
 - Tune diffs `configs/p51-{stab,acro,manual}.diff`, the builder `src/render/p51craft.js`, camera mount in
   `src/main.js`, per-plane branches in `navlights.js`, `partsfit.js`, `wreck.js`, `floatset.js`.
 - `configs/motors.js`, `motor-estimates.js`, `prop-estimates.js`, `rates.js`, `ratepresets.js`, `hulls.js`,
-  `hullfit.js` (HULL_FIT), `surfaces.js` (SURFACES), `paint.js` rows; `src/share/session.js` id list.
+  `hullfit.js` (HULL_FIT), `surfaces.js` (SURFACES), `paint.js` rows; `src/share/trackseat.js` id list.
   HULL_FIT and SURFACES are physics with derivations in their comments and no folder section: a new
   section needs `SECTIONS`, every folder, the selftest and the physics sources lint's
   `FOLDER_SECTIONS`, or the lint would stop reading those numbers. `configs/combat.js` has no per

@@ -22,11 +22,14 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf, heldTrack } from '../src/game/training.js';
+import { EventLog } from '../src/game/events.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
 import { MEDAL_STEPS, medalFor } from '../src/game/medals.js';
+import { ACT1 } from '../src/game/campaign.js';
+import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
 import { modeById } from '../src/share/modes.js';
 import { MAPS as WEATHER_MAPS, PRESETS as WEATHER } from '../src/game/weather.js';
 import en from '../src/strings/en.js';
@@ -227,6 +230,61 @@ expect('pilot: alone on the grid, then with three', raced([{ game: 'race', pilot
 expect('pilot: a race finished alone', raced([{ game: 'race', world: 'swiss2', pilots: 1 }]), false);
 expect('pilot: a combat round with four', raced([{ game: 'combat', world: 'swiss2' }, { game: 'tag', pilots: 4 }]), false);
 expect('pilot: a laps-only flight', fly('race_pilot', [], { laps: [{ ms: 30000 }] }), false);
+/* Defence (TRAINING.md track 5): judged from the flight's event log
+ * (src/game/events.js), the events made as the shell makes them. */
+{
+  const log = new EventLog();
+  const killOf = (victim, mission) => log.append('kill', 1000, { airframe: 'interceptor', victim, mission });
+  const caught = (kills) => {
+    const w = new LessonWatch(lessonById('defence_intercept'));
+    kills.forEach((k) => w.kill(k));
+    return w.passed;
+  };
+  expect('interception: a Striker the room credited in the practice', caught([killOf('strike', PRACTICE_ID)]), true);
+  expect('interception: a Scout in the practice, then a Striker', caught([killOf('scout', PRACTICE_ID), killOf('strike', PRACTICE_ID)]), true);
+  expect('interception: a Scout in the practice', caught([killOf('scout', PRACTICE_ID)]), false);
+  expect('interception: a Striker in a campaign war round', caught([killOf('strike', 'itaipu-1')]), false);
+  expect('interception: a kill from a view with no mission', caught([killOf('strike', null)]), false);
+  expect('interception: practice and track lessons are flown in the practice', ['defence_intercept', 'defence_track'].every((id) => lessonById(id).mission === PRACTICE_ID), true);
+
+  /* Tracking: contact edges at their simMs, the hold timed on the tick. */
+  const tracked = (edges, untilMs, crashAt = null) => {
+    const w = new LessonWatch(lessonById('defence_track'));
+    const l = new EventLog();
+    const pending = [...edges];
+    for (let t = 0; t <= untilMs; t += FRAME_MS) {
+      while (pending.length && pending[0][0] <= t) {
+        const [at, track, held] = pending.shift();
+        w.contact(l.append('contact', at, { track, held }));
+      }
+      w.tick({ simMs: t, crashed: crashAt != null && t >= crashAt && t < crashAt + FRAME_MS, grounded: false });
+    }
+    return w.passed;
+  };
+  expect('tracking: held 10 s', tracked([[1000, 4, true]], 11100), true);
+  expect('tracking: held 9.9 s', tracked([[1000, 4, true]], 10900), false);
+  expect('tracking: lost at 9 s, held again for 5 s', tracked([[1000, 4, true], [10000, 4, false], [10500, 4, true]], 15500), false);
+  expect('tracking: lost at 9 s, held again for 10 s', tracked([[1000, 4, true], [10000, 4, false], [10500, 4, true]], 20600), true);
+  expect('tracking: another track taking over starts the hold again', tracked([[1000, 4, false], [1000, 7, true], [6000, 4, false], [6000, 9, true]], 15900), false);
+  expect('tracking: another track\'s lost edge does not break this one\'s hold', tracked([[1000, 4, true], [5000, 7, false]], 11100), true);
+  expect('tracking: a crash mid hold starts it again', tracked([[1000, 4, true]], 11100, 6000), false);
+  const snap = (primaryId, tracks) => ({ primaryId, tracks, lost: [] });
+  expect('the held track is the camera\'s primary, seen', heldTrack(snap(3, [{ id: 2, stale: false }, { id: 3, stale: false }])), 3);
+  expect('a stale primary is not held', heldTrack(snap(3, [{ id: 3, stale: true }])), null);
+  expect('no primary, no track held', heldTrack(snap(null, [{ id: 3, stale: false }])), null);
+
+  /* Working together: the mission_end campaign.js logs for Act 1. */
+  const ended = (ends) => {
+    const w = new LessonWatch(lessonById('defence_mission'));
+    const l = new EventLog();
+    ends.forEach((e) => w.missionEnd(l.append('mission_end', 1000, { airframe: 'interceptor', stars: 1, ...e })));
+    return w.passed;
+  };
+  expect('working together: mission 1 won', ended([{ mission: ACT1[0].id, won: true }]), true);
+  expect('working together: mission 1 lost', ended([{ mission: ACT1[0].id, won: false }]), false);
+  expect('working together: mission 2 won', ended([{ mission: ACT1[1].id, won: true }]), false);
+  expect('working together: its mission is Act 1\'s first', lessonById('defence_mission').mission, ACT1[0].id);
+}
 /* A lap under a time: the medal is medals.js's own, from a course's gold. */
 const GOLD = { goldMs: 30000 };
 const lapOn = (ms, medals = GOLD) => ({ ms, medal: medalFor(medals, ms) });
@@ -236,6 +294,23 @@ expect('bronze: slower than bronze, then bronze', fly('race_bronze', [], { laps:
 expect('bronze: a lap at 1.4 times gold', fly('race_bronze', [], { laps: [lapOn(42000)] }), false);
 expect('bronze: a fast lap on a course with no medals', fly('race_bronze', [], { laps: [lapOn(10000, null)] }), false);
 expect('every medal step is a medal', LESSONS.flatMap((l) => l.steps).filter((st) => st.medal !== undefined).every((st) => MEDAL_STEPS.includes(st.medal)), true);
+/* Gates: a clean lap, and only on a casual sky track. */
+expect('gates: a clean casual lap', fly('quad_gates', [], { laps: [{ kind: 'casual' }] }), true);
+expect('gates: a rim, then a clean casual lap', fly('quad_gates', [], { laps: [{ kind: 'casual', rim: true }, { kind: 'casual' }] }), true);
+expect('gates: a casual lap with a rim', fly('quad_gates', [], { laps: [{ kind: 'casual', rim: true }] }), false);
+expect('gates: a clean lap of a built track', fly('quad_gates', [], { laps: [{ kind: 'built' }] }), false);
+expect('gates: a clean lap of the world\'s own track', fly('quad_gates', [], { laps: [{ kind: 'map' }] }), false);
+/* The same from the flight's log, as Progress hands it on: the lap event
+ * carries its course's kind (src/ui/progress-ui.js lap). */
+{
+  const logged = (kind) => {
+    const w = new LessonWatch(lessonById('quad_gates'));
+    w.lap(new EventLog().append('lap', 1000, { ms: 30000, airframe: 'interceptor', medal: null, kind }), null);
+    return w.passed;
+  };
+  expect('gates: a casual lap event from the log', logged('casual'), true);
+  expect('gates: a built lap event from the log', logged('built'), false);
+}
 
 /* The turn sign against the plant's frame (src/render/frame.js: z up, x
  * forward, y left): rotate the nose by the state's quaternion and see

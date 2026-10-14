@@ -23,8 +23,10 @@
  * tests/fixtures/es-leaks.json, and that list may only shrink: a leak not
  * on it fails, and so does an entry that no longer happens, so a fix takes
  * its line off. It is a ratchet, not an excuse list. Every name a tune can
- * have must have a key (tune.name.<word>) or be in SHARED, and every
- * aircraft its description (airframe.blurb.<id>).
+ * have must have a key (tune.name.<word>) or be in SHARED, every tune its
+ * note (tune.note.<id>), and every aircraft its description
+ * (airframe.blurb.<id>). No Spanish string may name a stick axis in
+ * Spanish (acelerador, gas, alabeo, cabeceo, guiñada).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -47,24 +49,31 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AIRFRAMES } from '../configs/airframes.js';
-import { TUNES } from '../configs/registry.js';
+import { CUSTOM_TUNE, TUNES } from '../configs/registry.js';
 import { TRICKS } from '../src/game/tricks-sheet.js';
+import { PATTERNS } from '../src/game/trickdetect.js';
 import en from '../src/strings/en.js';
+import es from '../src/strings/es.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const FILE = join(root, 'tests', 'fixtures', 'es-leaks.json');
 const RECORD = process.argv.includes('--record');
 const STRICT = /^(paused|quick)/;
 const FIELDS = ['label', 'value', 'note'];
-const ENGLISH = /\b(the|and|you|your|with|is|it|of|to|this|that|from|when|here)\b/i;
+/* Letter boundaries, not \b: to \b an accented letter is not a word
+ * character, so "dieciséis" read as an English "is". */
+const ENGLISH = /(?<!\p{L})(the|and|you|your|with|is|it|of|to|this|that|from|when|here)(?!\p{L})/iu;
 
 /* The same word in Spanish, or a name nobody translates. */
 const SHARED = new Set([
   'Acro', 'Manual', 'AS3X', 'SAFE Select', 'KISS', 'Actual', 'Raceflight', 'Quick', 'Expo', 'PID', 'PIDs', 'FPV', 'HUD',
   'GPU', 'Radio', 'Sticks', 'Feedforward', 'D max', 'Hangar', 'Arcade', 'Taranis', 'ELRS 250 Hz', 'ironbow', '60 fps',
+  /* The stick axes, which docs/SPANISH-GLOSSARY.md keeps in English. */
+  'Throttle', 'Roll', 'Pitch', 'Yaw',
   ...AIRFRAMES.flatMap((a) => [a.short, a.name]),
   /* Freestyle trick names are the sport's English jargon in Spanish too. */
   ...TRICKS.map((t) => t.name),
+  ...PATTERNS.map((p) => p.name),
 ]);
 /* A value made only of shared words ("Cub, Acro"), or a duration. */
 const sharedValue = (text) => text.split(', ').every((part) => SHARED.has(part)) || /^\d+ (h|min)( \d+ min)?$/.test(text);
@@ -108,6 +117,17 @@ for (const [name, scene] of Object.entries(english)) {
 
 const names = [...new Set(TUNES.map((t) => t.name))];
 const unkeyed = names.filter((n) => !SHARED.has(n) && en[`tune.name.${n.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`] === undefined);
+/* The Tune row reads tune.note.<id>, whose English is the registry's note
+ * word for word: the registry keeps it as the record, so the two cannot drift. */
+const unnoted = [...TUNES, CUSTOM_TUNE].flatMap((t) => {
+  const key = `tune.note.${t.id.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+  if (en[key] !== t.note) return [`${key}: en ${JSON.stringify(en[key])} is not the registry's note ${JSON.stringify(t.note)}`];
+  return es[key] === undefined ? [`${key}: no es`] : [];
+});
+/* docs/SPANISH-GLOSSARY.md keeps the stick axes English in labels and in
+ * prose alike; these are the words it replaced. */
+const AXIS_WORDS = /(?<!\p{L})(acelerador(es)?|gas|alabeo|cabeceo|guiñada)(?!\p{L})/iu;
+const axisWords = Object.entries(es).filter(([, text]) => AXIS_WORDS.test(text)).map(([key, text]) => `${key}: ${text}`);
 /* The aircraft row reads airframe.blurb.<id>; the page throws on a missing key. */
 const unblurbed = AIRFRAMES.filter((a) => en[`airframe.blurb.${a.id}`] === undefined).map((a) => a.id);
 const found = [...new Set(leaks)].sort();
@@ -141,6 +161,14 @@ for (const n of unkeyed) {
   console.error(`FAIL  tune name "${n}" has no key tune.name.<word> in src/strings and is not in SHARED`);
   bad += 1;
 }
+for (const n of unnoted) {
+  console.error(`FAIL  tune note ${n}`);
+  bad += 1;
+}
+for (const l of axisWords) {
+  console.error(`FAIL  say throttle, roll, pitch or yaw (docs/SPANISH-GLOSSARY.md): ${l}`);
+  bad += 1;
+}
 for (const id of unblurbed) {
   console.error(`FAIL  aircraft "${id}" has no airframe.blurb.${id} in src/strings (en and es)`);
   bad += 1;
@@ -149,4 +177,4 @@ if (bad) {
   console.error(`es-leak-lint: ${bad} problem(s)`);
   process.exit(1);
 }
-console.log(`es-leak-lint: ${STRICT} scenarios clean of ${Object.keys(english).length}; ${known.length} known leaks elsewhere, none new; ${names.length} tune names keyed`);
+console.log(`es-leak-lint: ${STRICT} scenarios clean of ${Object.keys(english).length}; ${known.length} known leaks elsewhere, none new; ${names.length} tune names keyed; ${TUNES.length + 1} tune notes keyed`);

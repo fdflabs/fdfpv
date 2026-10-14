@@ -38,6 +38,7 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { liveryKey, normaliseEntry, paintable } from '../configs/liveries.js';
 import { LAYER_FINISHES, MAX_DECALS, newDecal } from '../configs/paint.js';
+import { hullFor } from '../src/game/midair.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = resolve(process.argv[2] || join(root, 'tmp', 'livery-layers-check'));
@@ -62,9 +63,41 @@ function say(ok, what) {
 const FAMILIES = (process.env.LAYERS_ONLY ? AIRFRAMES.filter((a) => process.env.LAYERS_ONLY.split(',').includes(a.id)) : AIRFRAMES)
   .map((a) => a.id).filter((id, i, all) => paintable(id) && all.findIndex((o) => liveryKey(o) === liveryKey(id)) === i);
 
+/*
+ * A point stood on the skin along its normal, as the paint shop's pick
+ * puts a layer: the outermost face, along n, of the airframe's hull boxes
+ * (src/game/midair.js, the Three.js body frame) over the point. A point
+ * buried in a body reaches no skin, since a layer's box is only half its
+ * height deep: the Hercules's fuselage is 0.33 m wide and 0.35 deep round
+ * the origin, so every layer of a fixed box landed inside it and one face
+ * of four drew. n is one of the three axes the layers below use.
+ */
+function onSkin(id, p, n) {
+  const h = hullFor(id).hull;
+  const k = n[0] !== 0 ? 0 : 1;
+  const sign = n[k];
+  const [c, e] = k === 0 ? [h.cx, h.hx] : [h.cy, h.hy];
+  const across = k === 0 ? [[1, h.cy, h.hy], [2, h.cz, h.hz]] : [[0, h.cx, h.hx], [2, h.cz, h.hz]];
+  let best = null;
+  for (let i = 0; i < h.n; i += 1) {
+    if (!across.every(([j, cc, ee]) => ee[i] > 0 && Math.abs(p[j] - cc[i]) <= ee[i])) {
+      continue;
+    }
+    const face = c[i] + sign * e[i];
+    best = best === null || face * sign > best * sign ? face : best;
+  }
+  if (best === null) {
+    return p;
+  }
+  const q = p.slice();
+  q[k] = best;
+  return q;
+}
+
 /* 32 layers spread over a box a metre and a half across, so every family,
- * from the Kadet to the F-16, has layers landing on it. */
-function layers() {
+ * from the Kadet to the F-16, has layers landing on it, each stood on the
+ * family's skin. */
+function layers(id) {
   const kinds = ['star', 'stripe', 'text', 'num', 'chevron', 'flame', 'roundel', 'bolt'];
   const colours = ['#d52b1e', '#f2c500', '#0038a8', '#f2f2f2'];
   return Array.from({ length: MAX_DECALS }, (_, i) => {
@@ -72,7 +105,7 @@ function layers() {
     const along = ((i >> 2) - 3.5) * 0.09;
     const p = face === 0 ? [along, 0.08, -0.05] : face === 1 ? [0.3 + along * 0.4, -0.04, along] : face === 2 ? [0.04, 0.02, along] : [-0.25 - along * 0.4, 0.06, along];
     const n = face === 1 ? [0, -1, 0] : face === 2 ? [1, 0, 0] : [0, 1, 0];
-    const d = newDecal(kinds[i % kinds.length], p, n, { c: colours[i % 4], c2: '#0e1213' });
+    const d = newDecal(kinds[i % kinds.length], onSkin(id, p, n), n, { c: colours[i % 4], c2: '#0e1213' });
     return {
       ...d, s: d.s * 1.6, x: i % 3 === 0 ? 25 : 0, o: i % 5 === 0 ? 50 : 100,
       fi: LAYER_FINISHES[i % LAYER_FINISHES.length], ...(i === 7 || i === 19 ? { h: true } : {}),
@@ -82,7 +115,7 @@ function layers() {
 
 const liveries = {};
 for (const id of FAMILIES) {
-  liveries[liveryKey(id)] = normaliseEntry(liveryKey(id), { decals: layers() });
+  liveries[liveryKey(id)] = normaliseEntry(liveryKey(id), { decals: layers(id) });
 }
 
 const seed = [`try {

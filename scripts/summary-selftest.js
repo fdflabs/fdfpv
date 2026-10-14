@@ -51,7 +51,7 @@ globalThis.localStorage = {
 
 const { activeCourseSummary } = await import('../src/share/summary.js');
 const { inspectCourse } = await import('../src/share/listing.js');
-const { writeShareImport } = await import('../src/share/session.js');
+const { writeShareImport } = await import('../src/share/trackseat.js');
 
 check('nothing seated: no summary', activeCourseSummary() === null);
 map.set('webfpv.share.import.v1', '{junk');

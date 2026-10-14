@@ -334,8 +334,8 @@ jobs:
       # against a transcript of answers, requests and storage.
       - run: npm run listing:selftest
       # The share seat, edit keys, binds and lap bookkeeping kept in this
-      # browser (src/share/session.js), against a pinned transcript.
-      - run: npm run session:selftest
+      # browser (src/share/trackseat.js), against a pinned transcript.
+      - run: npm run trackseat:selftest
       # The Stage 1 verification checks (tests/lib/checks.js) against a pinned
       # transcript: the real sim over the fixtures for the checks that need no
       # browser, stand ins for the build, the harness and the page runs.
@@ -475,6 +475,20 @@ jobs:
       # counted, and the RC grid follows the module's clock
       # (scripts/config-swap-check.js).
       - run: npm run configswap:check
+      # bug:crash (F8 after a wreck carries the crash, and an error after
+      # it, scripts/bug-crash-check.js) stays a local check: 83 s here on the
+      # software rasteriser (19/19 again 2026-10-14), but on the 2-core
+      # runner the thrown wreck never read wrecked inside 90 s, twice on
+      # release/2026-10-14a. Real-time physics on that runner is not a
+      # product signal. tools/local-ci.sh runs the local-only lines.
+      # local-only: bug:crash
+      # The frame loop frame by frame on a virtual clock against its record
+      # (scripts/loop-golden.js). 95 s locally on the software rasteriser.
+      - run: npm run loop:golden
+      # Two pages in a public room: chat, emotes, mute, report and undo
+      # (scripts/rooms-safety-two-page.js), on a rooms server of its own.
+      # 126 s locally on the software rasteriser.
+      - run: npm run rooms:safety
       # Every screen on five phones and tablets, in English and Spanish:
       # every row reachable, no word cut (scripts/device-check.js). 73 to
       # 126 s locally. On the lightest shard by measured time (shard-3,
@@ -485,6 +499,7 @@ jobs:
       # 2-core runner it ran past 45 min on release/2026-10-13d (its rooms
       # server plus AI fill never read calm), so the lead and the lanes run
       # it before a release instead (2026-10-13).
+      # local-only: modes:card
 
   shard-4:
     runs-on: ubuntu-latest
@@ -673,7 +688,7 @@ jobs:
       # Every start on every world, room seats and stations included, is
       # above ground, dry, clear of solids and facing a way out, with
       # negative controls per world (scripts/world-spawns-check.js). It
-      # boots Itaipu, so it sits by the data checked out above. 55 s
+      # boots Itaipu, so it sits by the data checked out above. about 60 s
       # locally, on the shard with Itaipu's data and the most headroom
       # (608 s, tools/reshard-timings.json).
       - run: npm run world:spawns

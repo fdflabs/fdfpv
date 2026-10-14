@@ -56,6 +56,15 @@
  *             left by exits to the next stage, a seeded twist, or the end
  *             (enterStage, stageStep). A stage's entry is kept as the
  *             match's checkpoint, which a lost match restarts from
+ *   contain   an opening in an intake, a penstock or a gate, in a
+ *             mission with a `contain` (src/share/war/contain.js,
+ *             MISSIONS.md 1.9), starts a closure: its gantry lowers the
+ *             stoplogs for CLOSE_MS, one opening at a time, while the
+ *             stage cannot clear; the first group born after it that can
+ *             reach the crest is turned at the gantry; the gantry hit
+ *             while it closes loses the mission at once (why 'shutdown',
+ *             TECH-NEEDS T1.12). The view shows each closure as a hold
+ *             objective and names the gantries closing (`contain`)
  *   the end   won when the last round ends with the output at or over
  *             floorMw; lost the instant the output is under it. The view's
  *             rack and rackMax are the airframes the match's pilots have
@@ -267,6 +276,9 @@ import {
   attackerCharge, blast, defenderCharge, leafMoved,
 } from '../../src/share/war/damage.js';
 import { openAt } from '../../src/share/war/hoist.js';
+import {
+  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, restartAt, retargetFor, runningAt,
+} from '../../src/share/war/contain.js';
 import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
 import { COUNTDOWN_MS } from './race.js';
@@ -787,9 +799,10 @@ export class RoomWar {
         title: this.stages()[m.stage.idx].title ?? null,
         text: m.stage.text,
         music: m.stage.music,
-        objectives: objectivesView({
+        /* Its own, then a closure's hold on its gantry (contain.js). */
+        objectives: [...objectivesView({
           mission, m, st: m.stage, f: m.f,
-        }),
+        }), ...objectivesOf(m.contain, m.stage.at, m.f)],
         /* What the seed chose for each spawn (stages.js enter). */
         draws: m.stage.due.map((d) => ({
           t: d.t, route: d.route, sector: d.sector, az: d.az, kind: d.kind, born: d.born, skipped: d.skipped ?? false,
@@ -802,6 +815,12 @@ export class RoomWar {
        * openAt; the damage, the map and the flood read it, T1.9). */
       sets: m.sets ?? null,
       gates: this.gates(),
+      /* The room ms the station's lights went out by order (the first
+       * `stationDark` stage this match entered, its path's), dark to the
+       * match's end for every screen (src/main.js), or null. */
+      stationDark: m.path?.find((x) => this.stages().find((y) => y.id === x.id)?.stationDark === true)?.at ?? null,
+      /* The gantries closing an opening, or waiting to (contain.js). */
+      contain: gantriesAt(m.contain, m.f),
       airframes: this.airframes(),
       spent: { ...(m.spent ?? {}) },
       earned: { ...(m.earned ?? {}) },
@@ -891,6 +910,11 @@ export class RoomWar {
    * round, since both start again each round.
    */
   enlist(s) {
+    /* A pilot who has not given the war's consent since the room moved
+     * into it (core.js setup) sits it out. */
+    if ((this.meta.unconsented || []).includes(s.token)) {
+      return;
+    }
     const m = this.match;
     const had = m.players[s.seat];
     if (had && (had.token == null || had.token === s.token)) {
@@ -1166,6 +1190,9 @@ export class RoomWar {
         down: cp.down.slice(),
         downAt: { ...cp.downAt },
         breaches: cp.breaches.map((b) => ({ ...b })),
+        /* An opening still closing when the stage opened closes again
+         * from the go (contain.js restartAt). */
+        contain: restartAt(cp.contain, cp.at, goAt),
         /* What was broken when the stage opened stays broken. */
         wreck: JSON.parse(JSON.stringify(cp.wreck ?? {})),
         damage: (cp.damage ?? []).map((e) => ({ ...e })),
@@ -1396,12 +1423,17 @@ export class RoomWar {
       const t0 = d.t;
       /* While a scout of the last scout wave lives (or got away), the
        * waves fly their routes exactly; once all of them are dead, each
-       * attacker draws its error (section 4.2). */
-      const blind = Boolean(m.scouts) && m.scouts.killed >= m.scouts.n;
+       * attacker draws its error (section 4.2). A stage whose station
+       * lights are out by order (`stationDark`, The Long Night's twist A)
+       * gives its attackers their error as if they were. */
+      const blind = this.stages()[st.idx].stationDark === true || (Boolean(m.scouts) && m.scouts.killed >= m.scouts.n);
       /* Sized by the match's pilots here when it is announced, so one who
        * joins or leaves mid war changes the next wave, never one already
        * told (its n and k ride in the births, and no screen sizes one). */
       const n = waveSize(w, Math.max(1, this.players(core).length));
+      /* The first group born after an opening that can reach the crest is
+       * turned at the gantry closing it (contain.js retargetFor). */
+      const turn = w.target != null ? retargetFor(m.contain, t0) : null;
       for (let k = 0; k < n; k += 1) {
         const id = m.nextAgent;
         m.nextAgent += 1;
@@ -1409,6 +1441,10 @@ export class RoomWar {
         const a = {
           id, kind: slotKind(w, d, k, m.seed, st.entry), route: d.route, t0, k, n, err, target: waveTarget(w, k, m.sets), wave: w.si,
         };
+        if (turn && TURNS.includes(a.kind)) {
+          a.target = turn.gantry;
+          turn.retarget = t0;
+        }
         /* The route turned by the seed's azimuth, and the sector it was
          * drawn from (stages.js enter). */
         if (d.az != null) {
@@ -1547,9 +1583,17 @@ export class RoomWar {
       const judged = this.judge(core, roomNow);
       dirty ||= judged.dirty;
       out.push(...judged.out);
+      const told = this.containTold(core);
+      dirty ||= told.length > 0;
+      out.push(...told);
       const stage = this.stageStep(core, roomNow);
       dirty ||= stage.dirty;
       out.push(...stage.out);
+      /* Again after the stage: a loss in its exit (a lost stage's
+       * attackers through at a gantry) is said too. */
+      const after = this.containTold(core);
+      dirty ||= after.length > 0;
+      out.push(...after);
       const moved = this.leafWatch(core);
       dirty ||= moved.length > 0;
       out.push(...moved);
@@ -1923,6 +1967,9 @@ export class RoomWar {
     if (!target || m.down.includes(id)) {
       return 0;
     }
+    if (GANTRIES[id]) {
+      return this.gantryHit(id, t);
+    }
     m.down.push(id);
     (m.downAt ??= {})[id] = t;
     if (m.stage) {
@@ -1933,6 +1980,26 @@ export class RoomWar {
     m.output = Math.max(0, m.output - mw);
     m.roundMw = (m.roundMw ?? 0) + mw;
     return mw;
+  }
+
+  /* A gantry hit at t (contain.js): while it lowers stoplogs the plant
+   * cannot be made safe, and the mission is lost at once (MISSIONS.md 1.9
+   * point 6). One hit while it closes nothing costs nothing, and it stands
+   * for the next opening. Returns the mw it cost: none. */
+  gantryHit(id, t) {
+    const m = this.match;
+    const x = runningAt(m.contain, id, t);
+    if (!x) {
+      return 0;
+    }
+    x.c.lost = t;
+    m.down.push(id);
+    (m.downAt ??= {})[id] = t;
+    if (m.stage) {
+      note(m.stage, { t, e: 'down', target: id });
+    }
+    this.finish(t, 'lost', 'shutdown');
+    return 0;
   }
 
   /* Every hoist move of the match (stages.js gatesOf): the stages' before
@@ -2061,6 +2128,8 @@ export class RoomWar {
       down: m.down.slice(),
       downAt: { ...(m.downAt ?? {}) },
       breaches: (m.breaches ?? []).map((b) => ({ ...b })),
+      at,
+      contain: JSON.parse(JSON.stringify(m.contain ?? [])),
       wreck: JSON.parse(JSON.stringify(m.wreck ?? {})),
       damage: (m.damage ?? []).map((e) => ({ ...e })),
       cut: (m.cut ?? []).slice(),
@@ -2108,6 +2177,9 @@ export class RoomWar {
     }
     const allowed = here.reduce((sum, seat) => sum + this.allowance(seat), 0);
     const spent = here.reduce((sum, seat) => sum + (m.spent?.[seat] ?? 0), 0);
+    /* A stage cannot clear while a closure is open, and one that was
+     * waiting on it clears when it is held (MISSIONS.md 1.9 point 4). */
+    const held = lastHeld(m.contain, f);
     return {
       mission: this.mission(),
       m,
@@ -2117,8 +2189,8 @@ export class RoomWar {
       pilots,
       spent: allowed > 0 ? spent / allowed : 0,
       allBorn: allBorn(st),
-      cleared: !m.agents.some((a) => a.kind !== 'scout'),
-      lastGone: m.lastGone,
+      cleared: !m.agents.some((a) => a.kind !== 'scout') && !containOpen(m.contain, f),
+      lastGone: held == null ? m.lastGone : Math.max(m.lastGone ?? held, held),
       allOut: here.length > 0 && !here.some((seat) => this.stillFlying(seat, roomNow)),
     };
   }
@@ -2340,6 +2412,25 @@ export class RoomWar {
       return;
     }
     (m.breaches ??= []).push({ target, at: t });
+    /* Contain (contain.js), in a mission that runs it: the gantry serving
+     * the opened structure starts to close it. */
+    const c = this.mission().contain ? closureFor(target, t) : null;
+    if (c) {
+      (m.contain ??= []).push(c);
+    }
+  }
+
+  /* The closures' lines now due (contain.js linesDue), told as a stage's
+   * cues are: the opening, the turn at the gantry, the half, held or lost. */
+  containTold(core) {
+    const m = this.match;
+    const lines = linesDue(m.contain, this.mission().contain?.op ?? null, m.f);
+    if (!lines.length) {
+      return [];
+    }
+    return this.broadcast(core, {
+      type: 'war', op: 'cue', cues: lines.map(({ t, radio }) => ({ radio, at: t, stage: m.stage ? m.stage.id : null })),
+    });
   }
 
   /* A pilot says it is ready for what comes next: a stage's { ready }. */

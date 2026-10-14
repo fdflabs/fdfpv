@@ -93,12 +93,38 @@ From src/share/modes.js (#374), never from a branch on the activity:
 | Free Flight | none (the world row) | yes | yes | never: flying until the room empties |
 | Track Day | the track (My tracks) | yes | no: waits for the next race | race results |
 | Streamer Combat | 3 or 5 minutes | yes, practice | yes | round over, straight to the lobby |
-| Catch the Ace | the goal | yes, practice | yes | match results |
+| Catch the Ace | the goal | yes, AI pilots in a public room | yes | match results |
 | Defend the Paraná | the mission | yes | yes (late join) | the round card |
 
-"Practice" because there are no AI pilots: alone, combat and the Ace are a
-lap of the arena. The lobby says so rather than offering an AI row
-(PILLARS 12).
+A public room of Catch the Ace or Track Day fills with AI pilots to four,
+people and AI together (edge/rooms/roombots.js FILL_TO, src/share/modes.js
+allowAI); each gives its seat to a person who comes, and the host's AI
+pilots row sets their level or turns them off. A private room starts with
+them off. Track Day's AI pilots race a lap (edge/rooms/airace.js). Streamer
+Combat alone is still "practice": it has no AI pilots, so alone it is a
+lap of the arena.
+
+### Pause, leaving and abandon
+
+- **Pause is the pilot's own.** Solo, the plant stops. In a room nothing
+  else stops: the room's clock and its game run on, the others see the
+  pilot as paused (`status: 'paused'`), the room stops repeating the
+  pilot's last pose (edge/rooms/core.js holding), and a war counts a
+  pilot silent for STALE_MS on its last airframe out of play
+  (edge/rooms/war.js stillFlying). Held by `rooms:selftest`.
+- **A drop is not a leave.** A socket lost without a leave keeps its seat
+  for RESEAT_MS (60 s, core.js); a racer back in time is back on the grid,
+  a war player has its airframes.
+- **A newcomer to a running round** flies in where its game's
+  `allowDropIn` says so (a race waits for the next one; the war enlists).
+- **Leaving mid mission** ends nothing for the others: the room keeps the
+  mission and its lost stage (war.js checkpointOf); the leaver keeps the
+  stars already earned; only the round in progress is lost to them.
+- **Abandon.** A round with fewer of its players here than its game's
+  minimum ends after ABANDON_MS (10 s, core.js settleGames), never in an
+  empty room, whose games stand paused for their pilots to come back.
+- **A seat another tab took** (close 4005) is final for the tab that lost
+  it: it says so and never retries (src/share/rooms.js FINAL).
 
 ## 4. Offline and errors
 
@@ -138,3 +164,8 @@ a room, Leave the only way out), `war:card`, `campaign:check`,
 registry). The visibility phase added the Who joins rows to `game:lobby`
 (alone, each a fresh room; with B there, in place), the op to
 `rooms:selftest` (rooms-selftest-visibility.js) and to `rooms:server`.
+2026-10-14 added: the reload-regains-its-seat case in `rooms:server`, the
+blocks section (list and quick join exclusion, guest mute control) and
+the setup section (activity change, war consent given and declined) in
+`rooms:selftest`, the Activity case in `game:lobby`, and `rooms:accounts`
+rows for the Bearer session on the list and quick join.

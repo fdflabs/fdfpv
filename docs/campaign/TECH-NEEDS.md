@@ -146,7 +146,7 @@ New targets (`map.targets` and the mission's MW table):
 | Target | Ids | MW | Source |
 | --- | --- | --- | --- |
 | 500 kV towers | `tower-w-0..`, `tower-e-0..` along the two corridors | the line's share (agree with grid.js: a west corridor tower cuts its district as a wire strike does today) | the spans in `src/share/war/itaipu-wires.js` / OSM; `scripts/war-targets.js` writes them |
-| Emergency gantries | `gantry-intakes` (serves every intake and penstock), `gantry-spillway` (every gate) | 0 (hold targets, not output) | crest structures on their rails by the intakes and over the spillway's piers; each needs a model, a collider and the stoplogs' descent animation (map package) |
+| Emergency gantries | `gantry-intakes` (serves every intake and penstock), `gantry-spillway` (every gate) | 0 (hold targets, not output) | built as war targets for Contain (`src/share/war/contain.js` GANTRIES, 2026-10-14): `gantry-intakes` at the east intake gantry the dam builds, `gantry-spillway` a placeholder over the gate row. Still the map package's: the spillway gantry's model and collider, and the stoplogs' descent animation on both |
 
 `src/render/attackers.js` needs a model for each new kind (the carrier
 and breacher are unmarked grey hulls, bigger than a sea drone);
@@ -205,6 +205,29 @@ both deterministic and stored:
 
 `war:grid` gains both cases.
 
+**Status, 14 October (w39-daynight):**
+
+- Restore: **not built**, and left to the grid's lane. `grid.js`
+  `darkFrom` only ever puts a district out, `createGrid` has no restore
+  path, and the room sends no restore event (`edge/rooms` has no
+  `op: 'restore'`). The lights renderer is ready for it: night.js draws
+  each district at whatever level `setPower` hands it, so a grid that
+  brings a district back lights it again (`daytime:ramp` cuts every
+  district at night and gives them back: 36.5 lamp pixels per 10 000,
+  0.3 cut, 37.6 back).
+- Station dark by order: **built**, as a stage field, not a room event.
+  A stage with `stationDark: true` gives its attackers their `err` as if
+  every scout were dead (`edge/rooms/war.js` births), and the view's
+  `stationDark` is the room ms the match first entered such a stage
+  (from its `path`, so it holds to the match's end, over a store and a
+  checkpoint restart). The page puts the dam's own districts (the
+  station bus but the two switchyards, which are the grid's) out from
+  then with `grid.js` `levelAt`'s flicker (`src/share/war/stationdark.js`).
+  M4's twist A is `itaipu-4.js` `STATION_DARK`, flown by `war:stages`
+  both ways, and not yet among the mission's stages: its radio is not
+  voiced (MISSIONS.md M4).
+- `war:grid` is unchanged: `grid.js` was not touched.
+
 ### T1.11 Time of day per mission, and across one
 
 - `time: 'morning'|'day'|'golden'|'night'` on a mission, read at the
@@ -220,7 +243,53 @@ both deterministic and stored:
 - `prepMs` for any mission that builds night lights at the go, as
   itaipu-4 does.
 
+**Status, 14 October (w39-daynight): built**, without a rebuild.
+
+- A stage carries `daytime: { to, ms }` (a named time, not a `light`
+  track: `to` is one of `daytime.js` TIME_NAMES). `daytime.js`
+  `missionLight` walks the stage graph for the hour each stage starts at
+  (stages that are alternatives must agree, or it throws), and
+  `missionClock` is the room's clock: standing at the mission's time in
+  the lobby with `to` the last hour it reaches, moving from a ramp
+  stage's room ms and stopping at its `to`, standing at the hour reached
+  over the end. `edge/rooms/core.js` tells it (VM rooms deploy).
+- Itaipu builds once for the whole span (`options.toward`) and moves its
+  light with `setLocalTime(hour)` as the clock does (`look/index.js` THE
+  RAMP): sun colour and strength, sky, air, exposure, the meter's
+  target, the night fill, the environment (baked again every 0.05), and
+  night.js's global level (`setNight`, by the sun's height, as
+  photocells switch). The sun's direction is held at the daylight end's,
+  so a ramp's night has its moon where that time's sun stands.
+  `daytime:ramp` holds both ends to the worlds built at each time,
+  number for number.
+- Lights Out: each Reroute twist ramps golden to night over the hold
+  (240 s), so The Dark is at night; the night flag turns 18.57 h, a fifth
+  of the way in. The Long Night: Before Dawn ramps night to the morning
+  over 240 s; the sun clears the night threshold (05:45) 190 s in, and
+  war:stages' ten bot games end between 05:20 and 06:28, six of them
+  before it.
+- `prepMs` was not added to Lights Out: the world is built at the
+  briefing for the whole span, and a countdown 15 s longer moves every
+  recorded legacy game. The edge left: a pilot who joined at The Dark
+  has a world built at night alone, and a restart from Reroute rebuilds
+  it inside the plain countdown. A restart from The Dark, or anything
+  for a pilot who was there from the lobby, rebuilds nothing.
+- Release: the page first or with the VM rooms deploy (DAYTIME-CONTRACT
+  slice 4): an old page on the new server rebuilds Itaipu when The Dark
+  opens.
+- Checks: `daytime:selftest`, `war:stages` (the room tells each stage's
+  clock, ten bot games of each mission), `daytime:ramp` and
+  `daytime:war` (local GPU, not in checks.yml: five and one Itaipu
+  boots).
+
 ### T1.12 Openings and Contain, in every mission
+
+**Built 2026-10-14** (branch w39-contain, `src/share/war/contain.js`; as
+built and what is not, MISSIONS.md 1.9 "As built"). Differences from the
+list below: a mission runs it by its `contain: { op }` (missions 1 to 4;
+not the drill or Training's practice); the retarget is recorded on the
+closure (`m.contain[].retarget`), not in `m.draws`; the zero size opening
+event, the flood draining and the stoplogs' animation are not built.
 
 Decided 2 October: the dam can open in any mission (MISSIONS.md 1.9).
 No per mission flag; the damage model's openings are live everywhere.
@@ -396,7 +465,7 @@ film ends and the shell's camera returns with no blend.
 | Attackers on routes | all | built (`createAttackers`, `planAgent`) |
 | Standing and flying cast | all | built (`craftBuilderFor`, baked) |
 | Nav lights off per aircraft | M4 | needs a toggle on the baked cast |
-| Night world, towns coming on | M3, M4 | night build built; the ramp is T1.11 |
+| Night world, towns coming on | M3, M4 | built, the ramp too (T1.11) |
 | Thermal look | M4 | the Avionics HUD's thermal, as a full frame grade |
 | Smoke on a structure | M5 | built for hit targets; a film needs to light it without a hit |
 | Spill state | M2 | T1.9 |

@@ -107,6 +107,11 @@ export function sessionSection(check) {
     checkProfile({ ...profile, status: 'asleep' }) !== null && !('status' in checkProfile({ ...profile, status: 'asleep' })));
   say(room, b, { type: 'profile', profile: { ...profile, status: 'paused' } });
   check('the others are told a pilot paused', got(c, 'profile').some((m) => m.profile.status === 'paused'));
+  /* The pause rule (docs/redesign/SESSIONS.md, COMPLETENESS 23): a pause
+   * is the pilot's own; in a room nothing else stops. */
+  const seatOf = (sk) => [...room.seats.entries()].find(([conn]) => conn === sk)?.[1];
+  check('the pause stops nothing in the room: the combat round runs on, the pilot still seated, its seat kept',
+    room.combat.on() && Boolean(seatOf(b)) && !got(host, 'leave').some((m) => m.seat === seatOf(b).seat));
 
   /* The level. */
   now += 10;

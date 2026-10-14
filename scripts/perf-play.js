@@ -18,7 +18,7 @@
  * docs/BUDGETS.md (draw calls, triangles, live textures, GPU floor) and
  * exits 1 on a row over its ceiling or a run with no row; that table's
  * rows are title (the menu), alps-low, swiss-low, itaipu-stream,
- * interior-ops and itaipu-war at each of the three presets.
+ * interior-ops, itaipu-war and peers at each of the three presets.
  *
  * Writes OUT_DIR/perf-play.json (every frame's numbers) and prints a table
  * per scenario. OUT_DIR defaults to a folder under the system temp dir; the
@@ -97,8 +97,12 @@
  * itaipu-stream (not in the default list) flies Itaipu flat out across
  * its town for the world streaming round a fast craft.
  *
- * Multi pilot rooms are not flown: a second pilot is a second Chrome, and
- * this measures one browser at a time on purpose (docs/PERF.md).
+ * A full room is drawn, not flown: `peers` seats the page in a private
+ * room of PRIVATE_CAP pilots on a rooms server this run starts, the other
+ * seven being this script on the wire (hello, clock pings, a pose every
+ * 1000 / 30 ms on the room clock, as scripts/perf-peers.js's pilot), each
+ * circling in front of the page's craft, which sits on its pad. Their
+ * browsers are not run: one browser at a time, on purpose (docs/PERF.md).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -122,9 +126,12 @@ import { createServer } from 'node:net';
 import { loadavg, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import WebSocket from 'ws';
 
 import { openPage } from '../tests/lib/page.js';
 import { startRooms } from '../edge/rooms/node.js';
+import { PRIVATE_CAP } from '../edge/rooms/core.js';
+import { FLAG_AIRBORNE, FLAG_QUAD, PROTO, ROOM_LEVEL, WAR_JOIN, encodePose } from '../src/share/roomwire.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { PERF_MODES } from '../src/render/dynres.js';
@@ -507,7 +514,7 @@ const INSTRUMENT = /* js */ `(() => {
         if (seen.has(pass)) { continue; }
         seen.add(pass);
         const name = NAMES[pass.constructor.name] || pass.constructor.name;
-        if (name === 'scene' && !PP.scene) { PP.scene = pass.scene; }
+        if (name === 'scene' && !PP.scene) { PP.scene = pass.scene; PP.camera = pass.camera; }
         const orig = pass.render;
         pass.render = function (...b) { return PP.within(name, () => orig.apply(this, b)); };
       }
@@ -723,6 +730,72 @@ async function climb(page, pilot) {
   await page.sleep(8000);
 }
 
+/* A pilot on the wire, seated in room `code` and clock synced, sending
+ * whatever `path(t)` says at room time t, 30 times a second. */
+async function wirePilot(origin, code, k) {
+  const c = { ws: null, offset: null, bestRtt: Infinity, seq: 0, path: null, timer: null };
+  c.roomNow = () => Date.now() + c.offset;
+  await new Promise((done, fail) => {
+    const ws = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/room/${code}`, { headers: { origin: 'https://fdflabs.github.io' } });
+    c.ws = ws;
+    ws.on('open', () => ws.send(JSON.stringify({
+      type: 'hello', proto: PROTO, build: 'perf-play', level: ROOM_LEVEL, war: WAR_JOIN, name: [3, 5, 40 + k],
+      profile: { airframe: '7inch', map: 'alps', figure: 2, livery: null, parts: null },
+    })));
+    ws.on('message', (data, binary) => {
+      const text = binary ? '' : data.toString();
+      if (!text || text === 'pong') {
+        return;
+      }
+      const m = JSON.parse(text);
+      const wall = Date.now();
+      if (m.type === 'welcome') {
+        c.offset = m.roomMs - wall;
+        done();
+      } else if (m.type === 't' && wall - m.c < c.bestRtt) {
+        c.bestRtt = wall - m.c;
+        c.offset = m.s + c.bestRtt / 2 - wall;
+      } else if (m.type === 'refused') {
+        fail(new Error(`perf-play: wire pilot ${k} refused: ${text}`));
+      }
+    });
+    ws.on('error', fail);
+    setTimeout(() => fail(new Error(`perf-play: no welcome for wire pilot ${k} in 20 s`)), 20000);
+  });
+  for (let i = 0; i < 4; i += 1) {
+    c.ws.send(JSON.stringify({ type: 't', c: Date.now() }));
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  let next = Math.ceil(c.roomNow() / (1000 / 30)) * (1000 / 30);
+  c.timer = setInterval(() => {
+    for (; c.path && next <= c.roomNow(); next += 1000 / 30) {
+      const t = Math.round(next);
+      const f = c.path(t);
+      c.seq = (c.seq + 1) & 0xffff;
+      if (c.ws.readyState === 1) {
+        c.ws.send(encodePose({
+          flags: FLAG_AIRBORNE | FLAG_QUAD, seq: c.seq, t,
+          px: f.p[0], py: f.p[1], pz: f.p[2], qx: 0, qy: Math.sin(f.yaw / 2), qz: 0, qw: Math.cos(f.yaw / 2),
+          vx: f.v[0], vy: f.v[1], vz: f.v[2], wx: 0, wy: f.rate, wz: 0, c0: 900, c1: 900, c2: 900, c3: 900, motor: 900, flaps: 0,
+        }));
+      }
+    }
+  }, 5);
+  return c;
+}
+
+/* A level circle of radius r round (cx, cz) at height y, at speed v,
+ * starting `k` radians round at room time t0. */
+function circlePath(cx, y, cz, r, v, t0, k) {
+  const w = v / r;
+  return (t) => {
+    const a = k + (w * (t - t0)) / 1000;
+    return {
+      p: [cx + r * Math.cos(a), y, cz - r * Math.sin(a)], v: [-v * Math.sin(a), 0, -v * Math.cos(a)], yaw: a, rate: w,
+    };
+  };
+}
+
 const SCENARIOS = {
   /* Defend the Paraná, mission 1, First Light, alone in a private room on
    * a rooms server this run starts. Explosions: whatever the attackers
@@ -752,14 +825,24 @@ const SCENARIOS = {
       await page.until("window.__war().view.state === 'live' && window.__map().id === 'itaipu' && window.__map().ready", 600000);
       await climb(page, PILOT(30, QUAD(-0.3, 0.08)));
     },
+    /* The attackers alive, the most in any second of the window, and the
+     * stage then: a second's sample, since __war() copies the whole war. */
     during: /* js */ `(async (seconds) => {
+      const P = globalThis.__PP;
+      P.war = { alive: 0, stage: null };
+      const sample = setInterval(() => {
+        const w = window.__war();
+        const n = w.drawn.list.length;
+        if (n >= P.war.alive) { P.war = { alive: n, stage: w.view.stage ? w.view.stage.id : null }; }
+      }, 1000);
+      setTimeout(() => clearInterval(sample), seconds * 1000);
       for (let t = 5; t < seconds; t += 10) {
         await new Promise((done) => setTimeout(done, t === 5 ? 5000 : 10000));
         window.__warFxBurst(10);
       }
       return true;
     })`,
-    summary: "(() => { const w = window.__war(); return { state: w.view.state, mission: w.view.mission || null, fx: w.fx, booms: w.log.filter((e) => e.type === 'boom').length }; })()",
+    summary: "(() => { const w = window.__war(); return { state: w.view.state, mission: w.view.mission || null, fx: w.fx, booms: w.log.filter((e) => e.type === 'boom').length, attackers: window.__PP.war }; })()",
   },
   /* The Interior, Mission 1, The Old War, from its card in a private
    * room on a rooms server this run starts (missions in development
@@ -823,6 +906,76 @@ const SCENARIOS = {
       /* No settling wait: the streaming is the point. */
       await page.sleep(1000);
     },
+  },
+  /* A full private room on the alps: the page's 7 inch on its pad and
+   * PRIVATE_CAP - 1 wire pilots in 7 inches circling 30 to 90 m in front
+   * of it, all in the chase camera's view (docs/BUDGETS.md's peers row). */
+  peers: {
+    map: 'alps',
+    airframe: '7inch',
+    async setup() {
+      const dir = await mkdtemp(join(tmpdir(), 'perf-rooms-'));
+      const port = await freePort();
+      const server = await startRooms({ db: join(dir, 'rooms.db'), port });
+      const pilots = [];
+      return {
+        origin: `http://127.0.0.1:${port}`,
+        pilots,
+        url: `/index.html?map=alps&rooms=${encodeURIComponent(`http://127.0.0.1:${port}`)}`,
+        async stop() {
+          for (const c of pilots) {
+            clearInterval(c.timer);
+            c.ws.close();
+          }
+          await server.stop();
+          await rm(dir, { recursive: true, force: true });
+        },
+      };
+    },
+    async start(page, env) {
+      const code = await page.evaluate("window.__roomCreate({ map: 'alps' })");
+      await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
+      await fly(page, 'alps');
+      await page.sleep(2000);
+      /* Ahead is where the chase camera looks, not the craft's nose: placed
+       * off the nose, the room was out of the view in one run of five. */
+      const me = await page.evaluate('(() => { const c = window.__craftState(); const d = window.__PP.camera.getWorldDirection(window.__PP.camera.position.clone()); return { x: c.worldX, y: c.worldY, z: c.worldZ, fx: d.x, fz: d.z }; })()');
+      const n = Math.hypot(me.fx, me.fz) || 1;
+      const fx = me.fx / n;
+      const fz = me.fz / n;
+      for (let k = 1; k < PRIVATE_CAP; k += 1) {
+        const c = await wirePilot(env.origin, code, k);
+        const ahead = 20 + 10 * k;
+        const side = (k % 2 ? -1 : 1) * 4 * k;
+        c.path = circlePath(me.x + fx * ahead - fz * side, me.y + 4 + 2 * k, me.z + fz * ahead + fx * side, 8, 12, c.roomNow(), k);
+        env.pilots.push(c);
+      }
+      await page.until(`window.__rooms().peers.filter((p) => p.drawn).length === ${PRIVATE_CAP - 1}`, 60000);
+      await page.sleep(3000);
+      /* A room off the screen is culled: at Medium 1569 calls with all
+       * seven in view, 300 in a run that had them off the view. */
+      const inView = await page.evaluate(`(() => {
+        const cam = window.__PP.camera;
+        const v = cam.position.clone();
+        return window.__rooms().peers.filter((p) => { v.set(p.at[0], p.at[1], p.at[2]).project(cam); return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1; }).length;
+      })()`);
+      if (inView !== PRIVATE_CAP - 1) {
+        throw new Error(`perf-play: peers: ${inView} of ${PRIVATE_CAP - 1} peers in the camera's view`);
+      }
+    },
+    during: /* js */ `(async (seconds) => {
+      const P = globalThis.__PP;
+      P.peers = { drawn: 0, least: Infinity, inView: Infinity };
+      const v = P.camera.position.clone();
+      const seen = (at) => { v.set(at[0], at[1], at[2]).project(P.camera); return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1; };
+      const sample = setInterval(() => {
+        const ps = window.__rooms().peers.filter((p) => p.drawn);
+        P.peers = { drawn: Math.max(P.peers.drawn, ps.length), least: Math.min(P.peers.least, ps.length), inView: Math.min(P.peers.inView, ps.filter((p) => seen(p.at)).length) };
+      }, 1000);
+      setTimeout(() => clearInterval(sample), seconds * 1000);
+      return true;
+    })`,
+    summary: "(() => ({ drawn: window.__PP.peers, peers: window.__rooms().peers.length }))()",
   },
   /* The menu: the title over the alps, its attract flight, nothing
    * flown (docs/BUDGETS.md's menu row). */
@@ -1307,7 +1460,7 @@ async function runScenario(id) {
     if (quality !== opts.preset) {
       throw new Error(`perf-play: asked for ${opts.preset}, the page has ${quality}`);
     }
-    await sc.start(page);
+    await sc.start(page, env);
     const loadBefore = gpuLoad();
     if (sc.during) {
       page.evaluate(`${sc.during}(${opts.seconds})`).catch(() => {});

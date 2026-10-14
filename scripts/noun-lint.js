@@ -59,6 +59,12 @@ const ALLOWED = [
   /* An ops blurb's "third party" is the legal sense, someone outside the
    * meeting, not a group of pilots. */
   { file: 'src/strings/en.js', text: 'a meeting with a third party' },
+  /* crashcam:e2e drives the shell by its internal screen id, as the
+   * *-check.js harnesses do (they are skipped by name; this one is not). */
+  { file: 'scripts/crashcam-e2e.js', text: "window.__ui.screen === 'courses'" },
+  /* The same harness reads a row's `course` property to find a track
+   * card: a field name in src/ui/items.js, not a word the player sees. */
+  { file: 'scripts/crashcam-e2e.js', text: 'it.course && it.course.track.id' },
 ];
 
 const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', '.loop', 'vendor', 'dist', 'tests', 'tmp']);

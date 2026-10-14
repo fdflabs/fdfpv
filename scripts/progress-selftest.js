@@ -238,13 +238,15 @@ check('not with the engine running', !run(bomb, flight({ power: running })).has(
 
 /*
  * COUNTS PER AIRCRAFT (PROGRESSION.md 5 and 9, COMPLETENESS.md 27):
- * landings, crashes, laps and kills counted from the flight's event log,
- * once each, per aircraft family, merged as the higher of two computers.
+ * landings, crashes, laps, kills and missions started and completed
+ * counted from the flight's event log, once each, per aircraft family,
+ * merged as the higher of two computers.
  */
-console.log('landings, crashes, laps and kills, from the event log');
+console.log('landings, crashes, laps, kills and missions, from the event log');
 {
-  check('counted: landings, crashes, laps and kills', same(COUNTED, {
+  check('counted: landings, crashes, laps, kills, missions started and completed', same(COUNTED, {
     landing: 'landings', crash: 'crashes', lap: 'laps', kill: 'kills',
+    mission_start: 'missionsStarted', mission_end: 'missionsCompleted',
   }));
   const log = new EventLog();
   log.append('spawned', 0);
@@ -292,9 +294,29 @@ console.log('landings, crashes, laps and kills, from the event log');
     same(k.kills, { cub1400: 2, timber1500: 1 }) && countOf(k, 'kill', 'cub1400') === 2 && kf.counted === 4 && kAgain.counted === 0 && k.xp === 0,
     JSON.stringify([k.kills, kf.counted, kAgain.counted]));
   check('a fresh profile has no kills', same(freshProgress().kills, {}));
+  /* A mission is started when its war is seen begun and completed when
+   * its result is applied, won or lost (src/ui/campaign.js,
+   * src/ui/opscampaign.js); the win and the stars are the campaign's. */
+  const ms = freshProgress();
+  const ml = new EventLog();
+  ml.append('spawned', 0);
+  ml.append('mission_start', 1000, { mission: 'm1', airframe: 'cub1400' });
+  ml.append('mission_end', 90000, { mission: 'm1', won: false, stars: 0, airframe: 'cub1400' });
+  ml.append('mission_start', 95000, { mission: 'm1', airframe: 'cub1400' });
+  ml.append('mission_end', 180000, { mission: 'm1', won: true, stars: 2, airframe: 'cub1400' });
+  ml.append('mission_start', 185000, { mission: 'm2', airframe: 'timber1500' });
+  ml.append('mission_end', 190000, { mission: 'm2', won: true, stars: 1, airframe: null });
+  const mf = foldEvents(ms, ml.events);
+  const mAgain = foldEvents(ms, ml.events, mf.at);
+  check('missions count per aircraft like landings: a lost one is completed too, one with no aircraft counts nowhere, a second fold takes nothing',
+    same(ms.missionsStarted, { cub1400: 2, timber1500: 1 }) && same(ms.missionsCompleted, { cub1400: 2 })
+    && countOf(ms, 'mission_end', 'cub1400') === 2 && mf.counted === 5 && mAgain.counted === 0 && ms.xp === 0,
+    JSON.stringify([ms.missionsStarted, ms.missionsCompleted, mf.counted, mAgain.counted]));
+  check('a fresh profile has no missions counted', same(freshProgress().missionsStarted, {}) && same(freshProgress().missionsCompleted, {}));
   check('a count pays no XP', p.xp === 0);
   const older = normaliseProgress({ v: 2, xp: 300, firsts: { a: true } });
-  check('a profile from before the counts reads as none, everything else kept', same(older.landings, {}) && same(older.crashes, {}) && same(older.laps, {}) && same(older.kills, {}) && older.xp === 300);
+  check('a profile from before the counts reads as none, everything else kept', same(older.landings, {}) && same(older.crashes, {}) && same(older.laps, {}) && same(older.kills, {})
+    && same(older.missionsStarted, {}) && same(older.missionsCompleted, {}) && older.xp === 300);
   const families = [...new Set(AIRFRAMES.map((af) => liveryKey(af.id)))];
   const dropped = families.filter((id) => Object.values(COUNTED).some((m) => normaliseProgress({ [m]: { [id]: 1 } })[m][id] !== 1));
   check(`every aircraft family's counts survive a load (${families.length})`, dropped.length === 0, dropped.join());

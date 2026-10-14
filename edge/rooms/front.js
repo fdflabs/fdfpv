@@ -6,12 +6,17 @@
  *                            is "on"; 400 { error: 'name' } for a name the
  *                            shape or the word filter refuses
  *   GET  /v2/room/<CODE>     the room's WebSocket, public or private
- *   GET  /v2/rooms           the room browser's list (edge/rooms/lobby.js)
+ *   GET  /v2/rooms           the room browser's list (edge/rooms/lobby.js),
+ *                            for a signed in pilot (joinerOf) without the
+ *                            rooms of pilots it blocked or who blocked it
  *   GET  /v2/public          { open, cap }: whether public rooms are open
  *   GET  /v2/public/<map>    quick join: a WebSocket into the busiest
  *                            public room of that map with a seat, or a new
  *                            one; ?shard= from a page older than the
- *                            browser is ignored
+ *                            browser is ignored. Asked as a plain GET it
+ *                            answers { code }, the room picked for the
+ *                            pilot (joinerOf) and booked, for the page to
+ *                            join by its code
  *   GET  /v2/admin/health    the server's counters (edge/rooms/health.js),
  *                            with authorization: Bearer ADMIN_SECRET only;
  *                            404 on a platform that keeps none (Cloudflare)
@@ -283,6 +288,26 @@ async function devAccount(request, env, origin) {
   return Response.json({ dev: Boolean(who && who.account !== null && list.has(who.account)) }, { headers });
 }
 
+/*
+ * The pilot asking for the list or a quick join, for the lobby to leave
+ * out rooms it must be kept apart from (lobby.js apart): { account, blocks }
+ * from the session in the authorization: Bearer, read as GET /v2/dev reads
+ * it. null for a guest, a session the accounts server does not know, and
+ * everyone where there are no accounts. Throws while the accounts server
+ * cannot answer, which the caller refuses rather than guess.
+ */
+async function joinerOf(request, env, address) {
+  if (!env.ACCOUNTS_ORIGIN) {
+    return null;
+  }
+  const session = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!session) {
+    return null;
+  }
+  const who = await sessionAccount(session, env, address);
+  return who && who.account !== null ? { account: who.account, blocks: who.blocks } : null;
+}
+
 /* Make the room `code` (host.js init); false when the code was taken. */
 async function makeRoom(env, code, room) {
   const stub = env.ROOMS.get(env.ROOMS.idFromName(`prv:${code}`));
@@ -387,7 +412,14 @@ async function publicRoute(request, env, url, headers) {
     if (!listAllowed(address, Date.now())) {
       return new Response('rate', { status: 429, headers });
     }
-    const list = await (await lobbyStub(env).fetch('https://lobby/list')).text();
+    let joiner;
+    try {
+      joiner = await joinerOf(request, env, address);
+    } catch (e) {
+      return Response.json({ error: 'accounts' }, { status: 503, headers });
+    }
+    const asked = joiner ? { method: 'POST', body: JSON.stringify({ joiner }) } : {};
+    const list = await (await lobbyStub(env).fetch('https://lobby/list', asked)).text();
     /* now: the clock the rooms' emptySince is on (src/share/roomwire.js). */
     return new Response(`{"open":true,"busy":${busy(env)},"now":${Date.now()},"rooms":${list}}`, {
       headers: { ...headers, 'content-type': 'application/json', 'cache-control': 'no-store' },
@@ -397,23 +429,34 @@ async function publicRoute(request, env, url, headers) {
     return Response.json({ open, cap: PUBLIC_CAP, busy: busy(env) }, { headers });
   }
   const m = url.pathname.match(/^\/v2\/public\/([a-z0-9_]{1,32})$/);
-  if (!m || !roomMap(m[1]) || !open || request.headers.get('upgrade') !== 'websocket') {
-    return new Response(open ? 'no such room' : 'public rooms are closed', { status: 404 });
+  /* A socket from a page from before the plain GET, which has no way to
+   * name its pilot before its hello, so its pick leaves out nothing. */
+  const socket = request.headers.get('upgrade') === 'websocket';
+  if (!m || !roomMap(m[1]) || !open || !(socket || request.method === 'GET')) {
+    return new Response(open ? 'no such room' : 'public rooms are closed', { status: 404, headers });
   }
   if (!joinAllowed(address, Date.now())) {
-    return new Response('rate', { status: 429 });
+    return new Response('rate', { status: 429, headers });
+  }
+  let joiner = null;
+  if (!socket) {
+    try {
+      joiner = await joinerOf(request, env, address);
+    } catch (e) {
+      return Response.json({ error: 'accounts' }, { status: 503, headers });
+    }
   }
   /* Busy: a room with a seat, or nothing (no code for a new one). */
   const full = busy(env);
-  const res = await lobbyStub(env).fetch('https://lobby/quick', { method: 'POST', body: JSON.stringify({ map: m[1], code: full ? null : newCode() }) });
+  const res = await lobbyStub(env).fetch('https://lobby/quick', { method: 'POST', body: JSON.stringify({ map: m[1], code: full ? null : newCode(), joiner }) });
   const got = await res.json();
   if (!got.code && full) {
     env.HEALTH.refuse();
   }
   if (!got.code || (got.fresh && !(await makeRoom(env, got.code, { map: m[1], friendly: false, public: true, name: null, mode: null })))) {
-    return new Response('busy', { status: 503 });
+    return new Response('busy', { status: 503, headers });
   }
-  return roomSocket(request, env, got.code);
+  return socket ? roomSocket(request, env, got.code) : Response.json({ code: got.code }, { headers: { ...headers, 'cache-control': 'no-store' } });
 }
 
 export default {

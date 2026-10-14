@@ -4326,7 +4326,7 @@
     "action": "roomnew",
     "id": "friends:a-roomnew",
     "label": "Make a room",
-    "note": "Name it, choose public or private, the world and a game.",
+    "note": "Name it, choose who joins, the world and a game.",
     "primary": false
    },
    {
@@ -8168,7 +8168,7 @@
    {
     "i": 9,
     "id": "quick:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -8184,11 +8184,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -8767,7 +8767,7 @@
    {
     "i": 20,
     "id": "rates:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -8783,11 +8783,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]
@@ -8899,20 +8899,24 @@
    },
    {
     "current": "0",
-    "id": "roomnew:who-can-join",
-    "label": "Who can join",
-    "note": "Public: listed in Rooms, up to sixteen pilots, anybody can join.",
+    "id": "roomnew:who-joins",
+    "label": "Who joins",
+    "note": "Solo: nobody. Friends: whoever you read the invite code to. Public: listed, anybody drops in.",
     "options": [
      {
-      "label": "Everybody",
+      "label": "Public",
       "value": "0"
      },
      {
-      "label": "Friends with the code",
+      "label": "Friends",
       "value": "1"
+     },
+     {
+      "label": "Solo",
+      "value": "2"
      }
     ],
-    "value": "Everybody"
+    "value": "Public"
    },
    {
     "current": "1",
@@ -8988,7 +8992,7 @@
    },
    {
     "cls": "row",
-    "text": "Who can joinEverybody"
+    "text": "Who joinsPublicFriendsSolo"
    },
    {
     "cls": "row",
@@ -9029,7 +9033,7 @@
    },
    {
     "i": 1,
-    "id": "roomnew:who-can-join",
+    "id": "roomnew:who-joins",
     "to": "roomnew",
     "calls": [
      [
@@ -9038,7 +9042,11 @@
      ],
      [
       "onUiSound",
-      "select"
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ]
    },
@@ -9138,7 +9146,7 @@
     "action": "roomnew",
     "id": "rooms:a-roomnew",
     "label": "Make a room",
-    "note": "Name it, choose public or private, the world and a game.",
+    "note": "Name it, choose who joins, the world and a game.",
     "primary": true
    },
    {
@@ -9312,7 +9320,7 @@
    {
     "i": 1,
     "id": "standings:a-back",
-    "to": "paused",
+    "to": "title",
     "calls": [
      [
       "onUiSound",
@@ -9328,11 +9336,11 @@
      ],
      [
       "onScreenChange",
-      "paused"
+      "title"
      ],
      [
       "onAction",
-      "paused",
+      "title",
       "object"
      ]
     ]

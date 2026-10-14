@@ -28,7 +28,8 @@
  * pieces, each grown about its own centre, merged. So a part costs one
  * call a material plus one, not one a bolt. The rotors stay a mesh each
  * because they turn, and the blur discs a mesh each because the shell
- * fades them by motor (src/main.js).
+ * fades them by motor (src/main.js). A peer goes further (mergeFixed): a
+ * material worn in several parts at one offset is one mesh across them.
  *
  * Built in the model frame every builder uses: x right, y up, z aft, front
  * at -z, metres, the bare CG at the origin. Positions written in the
@@ -267,6 +268,228 @@ function kitGroup(kit, name, mats, { shade, ink, inkMat }) {
     group.add(mesh);
   }
   return group;
+}
+
+/*
+ * The fixed parts as one mesh a material (buildCombatDrone's mergeFixed
+ * option): the meshes under `parts` that wear one material and sit at one
+ * offset from the group are joined into one mesh, under the first one's
+ * parent; the rest keep their meshes. The same vertices, bit for bit, at
+ * the same matrices, drawn with the same material object, so the paint
+ * regions, finishes, decals, a map's look and a wreck's cut, which all
+ * work by material or by triangle, see the craft they always did, in
+ * fewer draws.
+ *
+ * Not across offsets: the camera mount and the payload sit off the
+ * group's origin, and a piece moved into the group's frame lands a float
+ * rounding off where the matrices put it (an in page A/B, 2026-10-14: the
+ * 7 inch's steel, straps and wires joined across all three drew up to
+ * 1e-7 off over hundreds of pixels, and flipped an edge pixel by 0.3).
+ *
+ * Invariant: a part only translates from the group, and nothing moves it
+ * after the build.
+ */
+function mergeFixed(group, parts) {
+  const sets = new Map();
+  const offset = new THREE.Vector3();
+  for (const part of parts) {
+    part.traverse((o) => {
+      if (!o.isMesh) {
+        return;
+      }
+      offset.set(0, 0, 0);
+      for (let p = o; p !== group; p = p.parent) {
+        if (p.quaternion.w !== 1 || p.scale.x !== 1 || p.scale.y !== 1 || p.scale.z !== 1) {
+          throw new Error(`combatcraft: ${o.name} turns or scales under the group; mergeFixed only joins parts that translate`);
+        }
+        offset.add(p.position);
+      }
+      const key = `${o.material.uuid} ${offset.x} ${offset.y} ${offset.z}`;
+      if (!sets.has(key)) {
+        sets.set(key, []);
+      }
+      sets.get(key).push(o);
+    });
+  }
+  for (const meshes of sets.values()) {
+    if (meshes.length < 2) {
+      continue;
+    }
+    const first = meshes[0];
+    const home = first.parent;
+    const name = `fixed-${first.name.slice(home.name.length + 1)}`;
+    for (const mesh of meshes) {
+      if (mesh.castShadow !== first.castShadow || !mesh.position.equals(first.position)) {
+        throw new Error(`combatcraft: ${mesh.name} and ${first.name} differ in castShadow or place`);
+      }
+      mesh.removeFromParent();
+    }
+    const mesh = new THREE.Mesh(merged(meshes.map((m) => m.geometry), name), first.material);
+    mesh.name = name;
+    mesh.position.copy(first.position);
+    mesh.castShadow = first.castShadow;
+    home.add(mesh);
+  }
+}
+
+/*
+ * A painted peer's fixed parts as one palette mesh per offset and render
+ * state (src/render/peers.js, after its paint and before its decals and
+ * a map's look): every mesh mergeFixed left at one offset whose material
+ * is a plain cel colour (paletteEntry) joins one mesh whose vertices carry
+ * the entry (celmat.js palette), in material id order, the order three
+ * drew them in, so where two meet at a depth tie the same one wins. The
+ * entries are the materials' colours as painted now, so this runs once
+ * the colours are on and nothing repaints the craft after (a peer is
+ * rebuilt for a new livery, peers.js profileKey). The originals stay in
+ * the livery's table, which reads them, and in the palette material's
+ * userData.paletteOf, from which a map's look tells each entry's finish
+ * (swiss2/craftlook.js).
+ *
+ * Apart: the motors (their thermal kind), anything double sided or
+ * transparent, the ink, the rotors, the discs and the lamps, and each
+ * offset (the 1e-7 float rounding mergeFixed's note gives). A craft with
+ * a region in a finish is left as it is (below).
+ *
+ * Returns how many meshes were joined into how many.
+ */
+const PALETTE_OPTIONS = new Set(['color', 'rim', 'rimColor', 'spec', 'specWidth', 'specColor']);
+const BLACK = new THREE.Color(0, 0, 0);
+const RENDER_STATE = ['side', 'shadowSide', 'transparent', 'opacity', 'alphaTest', 'depthWrite', 'depthTest', 'blending', 'polygonOffset',
+  'polygonOffsetFactor', 'polygonOffsetUnits', 'fog', 'flatShading', 'wireframe', 'colorWrite', 'visible', 'dithering', 'toneMapped'];
+
+function paletteEntry(mat) {
+  if (!mat.userData.cel || mat.userData.finishState || !mat.userData.celKey.startsWith('{') || mat.transparent || mat.side !== THREE.FrontSide) {
+    return null;
+  }
+  const opts = JSON.parse(mat.userData.celKey);
+  if (opts.palette || opts.map || !mat.emissive.equals(BLACK)) {
+    return null;
+  }
+  const entry = {};
+  const shared = {};
+  for (const [k, v] of Object.entries(opts)) {
+    (PALETTE_OPTIONS.has(k) ? entry : shared)[k] = v;
+  }
+  /* The colour as painted, not as built. */
+  entry.color = mat.color.clone();
+  return { entry, shared };
+}
+
+export function paletteFixed(craft) {
+  const { group, combat } = craft;
+  /* A region in a finish keeps its own mesh and draws before every
+   * palette, a newer material, where it drew between the parts it touches:
+   * at a depth tie the other part won (a pack and a brass standoff, 1 px
+   * at 60 m). Joining a finished craft needs the finish per entry. */
+  let finished = false;
+  group.traverse((o) => {
+    finished ||= Boolean(o.isMesh && o.material.userData && o.material.userData.finishState);
+  });
+  if (finished) {
+    return { from: 0, to: 0 };
+  }
+  const parts = [combat.parts.frame, combat.parts.pack, combat.parts.legs, combat.parts.stockAntenna, craft.cameraMount,
+    ...Object.values(combat.parts.accessories), combat.parts.payload].filter(Boolean);
+  /* The order the decals took their targets in (decals.js targetsOf),
+   * and the order a map's look made its materials' twins in, first met
+   * first (swiss2/craftlook.js). */
+  let seq = 0;
+  const firstSeq = new Map();
+  group.traverse((o) => {
+    if (o.isMesh) {
+      o.userData.targetSeq = seq;
+      if (!firstSeq.has(o.material)) {
+        firstSeq.set(o.material, seq);
+      }
+      o.userData.firstSeq = firstSeq.get(o.material);
+      seq += 1;
+    }
+  });
+  const sets = new Map();
+  const offset = new THREE.Vector3();
+  for (const part of parts) {
+    part.traverse((o) => {
+      if (!o.isMesh || Array.isArray(o.material)) {
+        return;
+      }
+      const found = paletteEntry(o.material);
+      if (!found) {
+        return;
+      }
+      offset.set(0, 0, 0);
+      for (let p = o; p !== group; p = p.parent) {
+        if (p.quaternion.w !== 1 || p.scale.x !== 1 || p.scale.y !== 1 || p.scale.z !== 1) {
+          throw new Error(`combatcraft: ${o.name} turns or scales under the group; paletteFixed only joins parts that translate`);
+        }
+        offset.add(p.position);
+      }
+      const key = JSON.stringify([offset.toArray(), found.shared, RENDER_STATE.map((k) => o.material[k]), o.material.defines ?? null,
+        o.material.userData.thermal ?? null, o.castShadow, o.receiveShadow, o.layers.mask, o.renderOrder]);
+      if (!sets.has(key)) {
+        sets.set(key, []);
+      }
+      sets.get(key).push({ mesh: o, ...found });
+    });
+  }
+  let from = 0;
+  let to = 0;
+  for (const members of sets.values()) {
+    if (members.length < 2) {
+      continue;
+    }
+    members.sort((a, b) => a.mesh.material.id - b.mesh.material.id);
+    const first = members[0].mesh;
+    const home = first.parent;
+    const geos = members.map(({ mesh }, i) => {
+      if (!mesh.position.equals(first.position)) {
+        throw new Error(`combatcraft: ${mesh.name} and ${first.name} differ in place`);
+      }
+      const g = mesh.geometry;
+      g.setAttribute('aCelKey', new THREE.BufferAttribute(new Uint8Array(g.attributes.position.count).fill(i), 1));
+      mesh.removeFromParent();
+      return g;
+    });
+    const material = celMaterial({ ...members[0].shared, palette: members.map((m) => m.entry) });
+    for (const k of RENDER_STATE) {
+      material[k] = first.material[k];
+    }
+    if (first.material.userData.thermal) {
+      thermalKind(material, first.material.userData.thermal);
+    }
+    material.userData.paletteOf = members.map((m) => m.mesh.material);
+    const mesh = new THREE.Mesh(merged(geos, 'palette'), material);
+    mesh.name = `palette-${first.name.slice(home.name.length + 1)}`;
+    mesh.userData.paletteSeq = members.map((m) => m.mesh.userData.targetSeq);
+    mesh.userData.paletteFirst = members.map((m) => m.mesh.userData.firstSeq);
+    mesh.position.copy(first.position);
+    mesh.castShadow = first.castShadow;
+    mesh.receiveShadow = first.receiveShadow;
+    mesh.layers.mask = first.layers.mask;
+    mesh.renderOrder = first.renderOrder;
+    home.add(mesh);
+    from += members.length;
+    to += 1;
+  }
+  /* Three draws opaque meshes of one order by material id, so the ink,
+   * made after the craft's materials, drew after every one of them and
+   * took the ties at its silhouette; a palette material is newer still.
+   * The ink is made again after them, so it does. */
+  if (to > 0) {
+    const inks = new Map();
+    group.traverse((o) => {
+      if (o.isMesh && o.material.userData.hullColor !== undefined) {
+        if (!inks.has(o.material)) {
+          inks.set(o.material, o.material.clone());
+        }
+        o.material = inks.get(o.material);
+      }
+    });
+    for (const old of inks.keys()) {
+      old.dispose();
+    }
+  }
+  return { from, to };
 }
 
 /* ------------------------------------------------------------------ */
@@ -1032,7 +1255,12 @@ function packSurfaces(f, pack2At) {
  * the frame does not offer, throws: the shell resolves the pilot's choice before it gets here
  * (docs/COMBAT-DRONES.md section 2), so either is a bug upstream, and a
  * machine quietly drawn without the part would hide it. The other options
- * are every builder's: name, fog, lite, worldScale, measure.
+ * are every builder's: name, fog, lite, worldScale, measure; and
+ * mergeFixed, for a craft drawn and never pointed at, retuned or tilted
+ * (a peer in a room, src/render/peers.js): the parts but the rotors, the
+ * discs and the LEDs joined by material where they share an offset
+ * (mergeFixed above). The hangar, the flown craft and the checks build
+ * without it.
  *
  * Returns what every builder returns ({ group, discs, blades,
  * cameraMount, propSpin, stator }) and `combat`: the answers as built, the
@@ -1191,6 +1419,9 @@ export function buildCombatDrone(opts = {}) {
   const setLights = armLeds(group, f, opts.lights, fog);
   if (setLights) {
     group.userData.setLights = setLights;
+  }
+  if (opts.mergeFixed) {
+    mergeFixed(group, [parts.frame, parts.pack, parts.legs, parts.stockAntenna, cameraMount, ...Object.values(parts.accessories), parts.payload].filter(Boolean));
   }
   const craft = {
     group,

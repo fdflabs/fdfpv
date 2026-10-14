@@ -211,6 +211,8 @@ export class Progress {
     this.folded = 0;
     this.simMs = 0;
     this.wasCrashed = false;
+    /* The avionics camera's primary track as last logged (contact). */
+    this.heldTrack = null;
     this.toasts = [];
     /* Every toast shown, newest last, for a check to read. */
     this.log = [];
@@ -269,6 +271,7 @@ export class Progress {
     this.flight.end(simMs);
     this.flight = new EventLog({ roomNow });
     this.folded = 0;
+    this.heldTrack = null;
     this.flight.append('spawned', simMs);
   }
 
@@ -296,12 +299,47 @@ export class Progress {
   }
 
   /* Attackers the room credited to this pilot's warhead (src/share/roomwar.js
-   * dead `kills`), each a `kill` on the seated aircraft, then folded. */
-  killed(kills) {
+   * dead `kills`) in war mission `mission`, each a `kill` on the seated
+   * aircraft, then folded. */
+  killed(kills, mission = null) {
     for (const k of kills) {
-      this.event('kill', { airframe: this.airframe, victim: k.kind });
+      const kill = this.event('kill', { airframe: this.airframe, victim: k.kind, mission });
+      if (this.lesson) {
+        this.lesson.kill(kill);
+      }
     }
     this.foldFlight();
+    this.lessonNews();
+  }
+
+  /* The avionics camera's primary track this frame (src/game/training.js
+   * heldTrack), or null: a `contact` event on each change only. */
+  contact(track) {
+    if (track === this.heldTrack) {
+      return;
+    }
+    const was = this.heldTrack;
+    this.heldTrack = track;
+    if (was != null) {
+      this.feedLesson(this.event('contact', { track: was, held: false }));
+    }
+    if (track != null) {
+      this.feedLesson(this.event('contact', { track, held: true }));
+    }
+  }
+
+  /* A logged event the lesson reads with no call of its own: a contact,
+   * and a war mission's end, which src/ui/campaign.js logs. */
+  feedLesson(e) {
+    if (!this.lesson || !e) {
+      return;
+    }
+    if (e.type === 'contact') {
+      this.lesson.contact(e);
+    } else if (e.type === 'mission_end') {
+      this.lesson.missionEnd(e);
+    }
+    this.lessonNews();
   }
 
   /* The seated aircraft, for the events counted per aircraft. */
@@ -311,7 +349,11 @@ export class Progress {
 
   /* One event into this flight's log at the last tick's sim time. */
   event(type, data = {}) {
-    return this.flight.append(type, this.simMs, data);
+    const e = this.flight.append(type, this.simMs, data);
+    if (type === 'mission_end') {
+      this.feedLesson(e);
+    }
+    return e;
   }
 
   /*
@@ -403,7 +445,7 @@ export class Progress {
   lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const lapped = this.event('lap', { ms, airframe: this.airframe, medal });
+    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind });
     const done = feedRunWatch(this.watch, lapped);
     this.foldFlight();
     this.save();

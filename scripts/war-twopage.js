@@ -88,8 +88,9 @@ import {
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const MAIN = process.argv.includes('--main');
 /* The mission flown: mission 1 by default, or --mission=id of one that
- * shares its waves (itaipu-4, the night raid, which this then checks is
- * night on both pages, the attackers wearing nav lights). */
+ * is flown at night (itaipu-4, The Long Night, with its own stages since
+ * 2026-10-14; this then checks it is night on both pages, the attackers
+ * wearing nav lights). */
 const missionArg = process.argv.find((a) => a.startsWith('--mission='));
 /* The drill: mission 1 as this check was written against, before First
  * Light made it a story (src/share/war/missions/itaipu-drill.js). */

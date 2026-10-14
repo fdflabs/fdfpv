@@ -213,6 +213,43 @@ anyone below the dam.
 Each mission below adds one line of its own for an opening, so the same
 event lands differently in each.
 
+**As built** (`src/share/war/contain.js`, `edge/rooms/war.js`; checked by
+war:stages' Contain section, 2026-10-14), with what each point became:
+
+- A mission runs Contain by its `contain: { op }`, its own opening line:
+  missions 1 to 4 have it; the drill and Training's practice do not.
+- The gantries are war targets worth 0 MW (`GANTRIES`): `gantry-intakes`
+  at the east intake gantry the dam builds (its survey, t 817.6 on the
+  crest), `gantry-spillway` over the gate row's middle, a placeholder:
+  the map builds no spillway gantry yet (T1.6).
+- Point 3: the first group born after an opening whose kind can reach the
+  crest (Strikers, Loiterers and a decoy among them) turns at the gantry;
+  a swarm up the gorge or a boat keeps its target. A gantry hit while it
+  closes nothing costs nothing.
+- Point 5: nothing is restored, and the stars are capped by the existing
+  `held` criterion (an opening loses its target, so its stage is
+  damaged). The contract's zero size opening event and the flood
+  draining are not built (the flood solver's side, outside the engine):
+  the water keeps running on screen after `contain-held`.
+- Point 6: `why: 'shutdown'` (T1.12); the end banner says so
+  (`war.lost_shutdown`); the lose debrief line is still the output
+  floor's.
+- Point 8: an opening made in the lost stage is undone with it; one made
+  before it closes again from the restart's go, and the next group turns
+  again.
+- Point 4 holds through the `cleared` trigger. Every exit of missions 1
+  to 3 that is not a loss waits on it; The Long Night's do not: Hunters
+  moves on when its groups are gone (the closure runs on into the next
+  stage), and Before Dawn is won when its groups are gone, so M4 can be
+  won with a closure still running.
+- `STING` is not sent: no mission has a music cue path for it yet.
+- M2's spill hold does not pause while the spillway gantry closes a gate
+  (M2, If the face opens): the two run side by side.
+- `contain-river` is DESPACHO's in every mission, as the table says, so
+  in missions 1 and 2 DESPACHO speaks before mission 3 introduces it.
+- A turned group's last leg to the crest is flown by no route check
+  (war:routes flies each spawn's own targets).
+
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
 | contain-breach | `opening` | CREST | urgent | Water through the face. Lowering the stoplogs. Protect the gantry. | Entra agua por la cara. Bajando las ataguías. Protejan la grúa. |
@@ -227,9 +264,9 @@ event lands differently in each.
 | # | id | Title | When | New for the player | Length |
 | --- | --- | --- | --- | --- | --- |
 | 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
-| 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min |
+| 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min (13.1 to 17.4 measured with bot squads when the face opens: 1.9's closures hold a stage up to 2.5 min each) |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
-| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 12 to 16 min |
+| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 15 min |
 | 5 | itaipu-5 | The River Below | Day 2, morning | a new axis; the carrier | 11 to 15 min |
 | 6 | itaipu-6 | The Corridor | Day 2, dusk | towers; spotters; split the squad | 12 to 16 min |
 | 7 | itaipu-7 | Breach | Day 3, before dawn | breachers; the dam opens, or does not | 14 to 20 min |
@@ -244,9 +281,94 @@ mission available, until its 100% correct, then only when storyline,
 videos, etc. of mission 2 is done do you make that available"). Each row
 of `ACT1` carries a `release`: `available` (offered and started),
 `development` (built, shown Under development) or `soon` (only planned,
-shown Coming soon). The room refuses to start anything not `available`
-(`edge/rooms/war.js` start), so a mission is opened by changing its row
-and redeploying the rooms server. Today only First Light is available.
+shown Coming soon). The row is the mission file's own `release`
+(`src/share/war/missions/itaipu-N.js`), which `actOf` reads into `ACT1`
+and `released()` reads per mission. The room refuses to start anything
+not `available` (`edge/rooms/war.js` start), so a mission is opened by
+changing that one field and redeploying the rooms server. No mission is
+available today: First Light went back to `development` on 2026-10-07
+(PR #666, the owner: no narration, under construction until it is as
+finished as The Interior's Mission 1).
+
+### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
+
+What a mission needs to be released, from this file, FIRST-LIGHT-AUDIT.md
+and the owner's bar (as finished as The Interior's Mission 1), and where
+each of 1 to 4 stands (mission 3's column brought up to date 2026-10-14,
+branch w39-mission-3):
+
+| Piece | 1 First Light | 2 The Spillway | 3 | 4 |
+| --- | --- | --- | --- | --- |
+| Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | 4 stages and 3 twists, 4 titles | 5 stages and 2 twists, 5 title keys |
+| Objectives on the HUD, en and es | 7 | 9 | 6 (the reroute a 240 s hold) | 6, and STAND BY over stage 1 |
+| Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | 23 `itaipu-3-*` ids, all voiced; DESPACHO's first lines | 22 story ids and 2 debriefs, all voiced en and es (31 with the guide) |
+| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | 7 `itaipu-4-g-*` |
+| Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | yes | yes |
+| Briefing facts (title, line, first objective, map, aircraft, length, pilots, room) | all (briefing.js) | all | all; length 12 to 15 min, measured | all |
+| Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | `lights-out`, `lights-out-outro` | `long-night`, `long-night-outro` |
+| Win and lose debrief lines | voiced | voiced | voiced, new text (the loss DESPACHO's) | voiced (rewritten to M4) |
+| Seeded sectors and routes | yes; war:routes PASS | yes | yes (NW, LINES, HIGH, N); war:routes PASS | yes; war:routes PASS |
+| Consent before the first war room | `war.consent_*`, en and es (every war mission) | same | same | same |
+| If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's pause during a closure not built | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced |
+
+Mission 3 also lacks what the world does not do yet, so its lines do not
+claim it: districts coming back after the reroute (T1.10) and spotting
+(T1.8). The light falling across the mission (T1.11) is built since
+branch w39-daynight (14 October): see M3's as-built notes for the lines
+that may now say more. Its release stays `development` (the owner's
+gate).
+
+Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
+war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
+war:cards, briefing:selftest, rooms:selftest, voice:check, films:lint and
+films:time green there. Not built in it: twist A (Station dark) and the
+dawn ramp, M4 below. Both are built since branch w39-daynight (14
+October), twist A outside the draw until its radio is voiced. Its
+release stays `development` (the owner's gate).
+
+Checks on the tree above, all green: war:stages 106/0, war:routes PASS,
+war:radio 63/0, war:cards 13/0, briefing:selftest 54/0, campaign:selftest
+80/0, war:harness PASS, war:markers 16/0, war:twopage 25/0, campaign:check
+51/0. game:lobby --game=war is 22/4, and all four are the release gate:
+the room made for First Light stays private, so it is not on the Flight
+Club list and its briefing says Private.
+
+**Contain is built for missions 1 to 4** (branch w39-contain,
+2026-10-14; 1.9 above, `src/share/war/contain.js`): an opening the room
+records (`edge/rooms/war.js` breach) starts a closure on its gantry, held
+as an objective on the HUD and ringed on the radar; the stage waits for
+it; the next group that can reach the crest turns at the gantry; the
+gantry hit while it closes loses the mission (`why: 'shutdown'`); the six
+`contain-*` lines and each mission's `-op` line are voiced en and es. So
+First Light has every piece of this table. What Contain does not have
+yet is listed under 1.9's "As built". The owner's 2026-10-07 flight
+fails (moto, objline, briefing audio cut, thermal look) were The
+Interior's Mission 1, not First Light, and all landed the same day (#632
+to #635).
+
+**The owner's decision, one line:** set `release: 'available'` in
+`src/share/war/missions/itaipu-1.js` (First Light, Contain built) and
+redeploy the rooms server, or keep it held. It
+unlocks public war rooms for mission 1 (`edge/rooms/core.js` setPublic,
+`edge/rooms/front.js` create), so the room is on the Flight Club list and
+friends join from it rather than only by code (the lead's 2026-10-13
+decision: until then they join by code through Friends); game:lobby
+--game=war's four red rows go green; Continue offers the war again
+(`src/ui/actions.js` continueWay); the campaign card's Play works for
+every pilot without `?missions=dev`.
+
+The same commit must move the rows that pin mission 1 as held. Measured
+by flipping the field on this tree and running each check:
+
+| Check | Rows that go red on the flip |
+| --- | --- |
+| campaign:selftest | `scripts/campaign-selftest.js` 66, 69 |
+| rooms:selftest | `scripts/rooms-selftest-war.js` 883 (mission 1 in the held loop, 2 rows); `rooms-selftest-gamelobby.js` 183, 185, 189, 194 (the drill as the first startable mission becomes mission 1); `rooms-selftest-visibility.js` 96 to 100 (point it at mission 2) |
+| game:lobby --game=war | `scripts/game-lobby-check.js` 417, 422 (24/2 on the flip, the four gate rows green) |
+| rooms:server | `scripts/rooms-server-check.js` 530, 533, 537, 598, 602 (95/5) |
+| campaign:check | `scripts/campaign-check.js` 273, 276, 347, 470, 590 (46/5) |
+| not red | dev:accounts, briefing:selftest, war:stages, modes:selftest, actions:golden, war:cards, war:radio |
+| not run on the flip | war:card, war:lobby, war:public (they name mission 1's held state in comments; run them with the flip) |
 
 ---
 
@@ -581,6 +703,48 @@ If the yard was hit, its districts went dark (grid.js, built). When the
 reroute's hold completes, Despacho brings back half of them, the near
 ones last (T1.10): the first time the act shows lights coming back on.
 
+Built 14 October, against the code (war:stages flies it on the room;
+`src/share/war/missions/itaipu-3.js`):
+
+- **The hold is four minutes, not 150 s**, for the Spillway's reason:
+  nothing of the stage reaches the yard sooner than 99 s after its birth
+  (routes.js plans), and at one pilot's pace the swarm arrives 201 to
+  233 s in. A yard already down when Reroute opens cannot fail the hold;
+  DESPACHO then says what is true (`itaipu-3-s3-down`).
+- **Nothing comes back.** T1.10 is not built, so the reroute changes no
+  district and no line says it does; `itaipu-3-s3-back` was not made.
+  When this was written the mission played at `golden` (T1.11's
+  fallback), and stage 4's line says the sun is almost down, not that
+  the towns are lit.
+- **Dusk into dark, built 14 October (w39-daynight).** Each Reroute
+  twist carries `daytime: { to: 'night', ms: HOLD_MS }`: the room's clock
+  runs from the golden hour to night over the four minute hold, without
+  a rebuild (TECH-NEEDS T1.11). The night flag turns about 50 s in (the
+  sun 3 degrees under), the towns' lights come up with the dusk, and The
+  Dark opens at night with the towns lit. A Reroute that ends before
+  its four minutes (a failed hold, cleared early) steps the light from
+  where it had got to straight to night as The Dark opens: a visible
+  step, the price of a clock that is the stage's.
+- **Lines that may now say more (proposed, not changed: a voice build
+  is the mission lane's).** `itaipu-3-s4-dark` could go back to the
+  table's "Lights are on in town." (the towns are lit when The Dark
+  opens). `itaipu-3-s2-clear` ("The light's going.") stays true.
+  `itaipu-3-s3-back` and `itaipu-3-s3-down`'s "stays dark" wait on
+  T1.10, which is still the grid's.
+- **The Dark has a swarm up the gorge onto the west penstocks.** As
+  written above, with nobody flying, the mission was won: the yard and two
+  intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
+  lost in stage 4, and ten good bot games still win, 12.5 to 14.3
+  minutes (estimatedMinutes 12 to 15).
+- **The feint's real Strikers are 1 + 0.5 a pilot**: at 0.75, four good
+  bots lost all three west intakes to them and the mission.
+- **The decoys' share is one mix** (two decoys to a Striker) whatever the
+  pilots; 1 to 1 for one pilot and 3 to 1 for eight need a mix by pilots,
+  which stages.js does not have. No spotters (T1.8).
+- **LINES** is `corridor-west` and `corridor-south`, Strikers 25 to 40 m
+  over the ground along the 500 kV lines into the yard; war:routes counts
+  their crossings, about one in ten of which takes the attacker.
+
 ### The twist (stage 3)
 
 - **A. One real in the pack.** A tight pack of decoys with one real
@@ -651,6 +815,15 @@ and the closure run at the same time.
 | debrief-itaipu-3-win | won | CREST | calm | The yard held. The lights stayed on. Well done. | La subestación resistió. La luz siguió encendida. Bien hecho. |
 | debrief-itaipu-3-lose | lost | DESPACHO | calm | The right bank is dark. We'll get it back. Crest, they're yours. | La margen derecha está a oscuras. La vamos a recuperar. Cresta, son suyos. |
 
+As built, the table above changed where the game cannot make a line
+true, and grew to mission 2's shape: the ids and words are
+`assets/audio/war/lines.json`'s `itaipu-3-*` (23 story lines, 7 guide
+lines `itaipu-3-g-*`), the two debriefs, and the films' `film-itaipu-3-*`
+(INTROS.md 5.3, LIGHTS-OUT-OUTRO.md). The Spanish says redirigir for
+reroute (BIBLE.md's glossary) and the marker's word, atacante; two
+DESPACHO lines name no town or open on the verb, because Whisper could
+not hear "Hernandarias" or a leading "Redirección" in that voice.
+
 ### What the player learns
 
 Do not spend a bird on what you have not looked at; spotters make the
@@ -691,6 +864,61 @@ Aguanten hasta el amanecer."
 | 3 | Hunters | beat 15 s | survive: protect(intakes) | Hunters, 1 + 0.5/pilot, out of the gorge; Strikers from N at `enter+[20,35]` as cover | `cleared` |
 | 4 | The Turn (twist) | beat 15 s | the twist's | A, B or C | `cleared` |
 | 5 | Before Dawn | beat 20 s | protect(all) | convergence on N and WATER and GORGE, with Hunters; dawn rises across it | `cleared` |
+
+Built 14 October, against the code (war:stages flies it on the room):
+
+- **Stages 3 and 5 end on time, not on the Hunters.** A Hunter lives
+  until it is killed (the room steers it home when it has nobody to
+  chase), so on `cleared` a squad that kept away from them never left
+  stage 3: with nobody shooting, the room was still live 30 minutes in.
+  Each now ends when its other groups are gone and its Hunters are down
+  or 150 s have passed.
+- **Twist C's stage waits for the Scout**, as First Light's Eyes: down,
+  gone home or 80 s. Ending on its cover took the Scout with it before a
+  pilot could climb to it. The Scout is the mission's only one, so the
+  room's own rule (a scout alive or gone home, every wave exact; killed,
+  each attacker draws its error) is the twist: war:stages holds it both
+  ways.
+- **Twist A is not built.** Station dark needs a stage field the room's
+  births read (error as if a Scout were dead) and a station lights switch
+  in the night look; neither exists, so the seed draws B or C.
+- **No dawn.** The world is night to the end (T1.11 not built). The lines
+  that would say otherwise are said otherwise: no "sky going grey", and
+  no boat, Scout or bird "with no lights", since every attacker wears its
+  nav lights at night (src/render/attackers.js). lines.json's notes say
+  which.
+- **The dawn, built 14 October (w39-daynight).** Before Dawn carries
+  `daytime: { to: 'morning', ms: 240000 }`: the room's clock runs from
+  22:00 to the morning's 07:47 over four minutes. The light follows the
+  sun, so the first 100 s or so stay full night, the east greys from
+  there, and the sun clears the night threshold (05:45) 190 s in; ten
+  bot games end between 05:20 and 06:28, and the result stands at the
+  hour reached. The world is built at the briefing for both ends; the
+  moon stands where the morning's sun will rise.
+- **Twist A, built 14 October (w39-daynight), not drawn.** `itaipu-4.js`
+  `STATION_DARK`: a stage with `stationDark: true`, whose attackers draw
+  their error as if every scout were dead, and from whose start the
+  dam's own lights (the crest, the powerhouse, the spillway, the dams
+  and the works; not the two switchyards, which are the grid's) go out
+  for every screen to the mission's end. Its groups: Strikers from the
+  north on the middle intakes as cover, a swarm up the gorge on the
+  middle penstocks as the twist (close defence in the dark); objective
+  `war.obj.itaipu_4.station`, en and es. war:stages flies it both ways.
+  It is not among the mission's stages yet because its radio is not
+  voiced and the twist is a trade the squad hears made. To draw it: voice
+  `itaipu-4-ta-turn` (the table's), a `-ta-why` and a guide `-g-dark`, add
+  them as its cues, put the stage in `stages` and `'station-dark'` in
+  Hunters' pick, and record war:legacy's itaipu-4 games again (the
+  bots' loiter point is the middle of every wave's targets, so a stage
+  more moves them).
+- **Lines that may now say more (proposed, not changed).**
+  `itaipu-4-s5-near` ("Not long to sunrise now.") is cued 45 s into
+  Before Dawn, while the ramp is still full night, so it stays right as
+  it is; the table's "sky going grey" would fit a cue some 120 s in.
+  `itaipu-4-tc-why` ("before the dawn") and `debrief-itaipu-4-win`
+  ("Sunrise") stay true.
+- **Length** 11 to 15 minutes: ten good bot games end 11.0 to 14.9
+  minutes after the go.
 
 ### The twist (stage 4)
 

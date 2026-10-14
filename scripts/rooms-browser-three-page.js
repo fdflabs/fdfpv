@@ -210,7 +210,7 @@ try {
   const draft = await a.evaluate(ROWS);
   const pick = (label) => (draft.find((r) => r.label === label) || {}).value;
   check('the draft reads Sky Club, public, the Swiss valley, just fly', pick(en['roombrowser.name']) === NAME
-    && pick(en['roombrowser.kind']) === en['roombrowser.public'] && /Swiss/.test(pick(en['ui.the_world']) || '')
+    && pick(en['lobby.visibility']) === en['lobby.visibility_public'] && /Swiss/.test(pick(en['ui.the_world']) || '')
     && pick(en['roombrowser.game']) === en['roombrowser.mode_none'], JSON.stringify(draft.map((r) => `${r.label}=${r.value}`)));
   await arrowTo(a, 'friends-make');
   await shot(a, '1-make-a-room');

@@ -136,7 +136,10 @@ function mw(n) {
 export function waveCall(agents) {
   const a = agents[0];
   const where = `war.where.${String(a.route).replace(/[^a-z0-9]/g, '_')}`;
-  return plural(`war.call.${a.kind}`, agents.length, { where: where in en ? str(where) : str('war.where.none') });
+  /* A decoy is called as the Striker it looks like (src/ui/warmarkers.js
+   * DECOY_M), as one in a power line is (wireCall). */
+  const kind = a.kind === 'decoy' ? 'strike' : a.kind;
+  return plural(`war.call.${kind}`, agents.length, { where: where in en ? str(where) : str('war.where.none') });
 }
 
 /* The callout for an attacker at its target: hit (with the megawatts it
@@ -144,6 +147,11 @@ export function waveCall(agents) {
 export function hitCall(ev) {
   if (!ev.hit) {
     return str('war.miss');
+  }
+  /* A gantry is worth nothing to the output (src/share/war/contain.js):
+   * its hit is told as itself, not as a target already down. */
+  if (/^gantry-/.test(ev.target)) {
+    return str('war.hit.gantry');
   }
   if (ev.mw === 0) {
     return str('war.hit.down');
@@ -611,6 +619,9 @@ export function createWarHud(nameOf, restart = null) {
   function endText(v) {
     if (v.state === 'won') {
       return str('war.won');
+    }
+    if (v.state === 'lost' && v.why === 'shutdown') {
+      return str('war.lost_shutdown');
     }
     if (v.state === 'lost') {
       /* "7 700 MW" kept on one line: mw()'s thin space is a break, and

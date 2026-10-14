@@ -69,7 +69,10 @@ const seed = [`try {
   const real = WebAssembly.instantiate.bind(WebAssembly);
   WebAssembly.instantiate = async (...args) => {
     const res = await real(...args);
-    const ex = res && res.instance ? res.instance.exports : null;
+    /* instantiate(bytes) answers { module, instance }; instantiate(module),
+     * which tests/lib/simmod.js loadSim calls, answers the Instance. */
+    const bare = res instanceof WebAssembly.Instance;
+    const ex = bare ? res.exports : res && res.instance ? res.instance.exports : null;
     if (!ex || typeof ex.sim_step !== 'function' || T.wrapped) return res;
     T.wrapped = true;
     const out = {};
@@ -92,7 +95,7 @@ const seed = [`try {
       T.stepped = false;
       return code;
     };
-    return { module: res.module, instance: { exports: out } };
+    return bare ? { exports: out } : { module: res.module, instance: { exports: out } };
   };
 })();`];
 

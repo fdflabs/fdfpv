@@ -128,23 +128,168 @@ export function clockOfTime(name) {
 }
 
 /* A clock from the network or the address, or null: anything that is not
- * three finite numbers with the start hour within a day is no clock. */
+ * three finite numbers with the start hour within a day is no clock. A
+ * clock may carry `to` (a war mission's light, below): an hour at or
+ * after `hour`, less than a day on; any other `to` is dropped. */
 export function clockOf(x) {
   if (!x || typeof x !== 'object') {
     return null;
   }
-  const { hour, rate, at } = x;
+  const { hour, rate, at, to } = x;
   if (![hour, rate, at].every(Number.isFinite) || hour < 0 || hour > 24) {
     return null;
   }
-  return Object.freeze({ hour, rate, at });
+  return Number.isFinite(to) && to > hour && to < hour + 24
+    ? Object.freeze({ hour, rate, at, to })
+    : Object.freeze({ hour, rate, at });
 }
 
 /* The local hour on `clock` at room ms `roomMs`: src/share/interior/
  * clock.js localHour's arithmetic, which the selftest holds it to. A
- * standing clock needs no room time. */
+ * standing clock needs no room time. A moving clock with a `to` stops
+ * there, and does not run back before its start. */
 export function hourAt(clock, roomMs) {
-  return clock.rate === 0 ? clock.hour : clock.hour + ((roomMs - clock.at) / 3600000) * clock.rate;
+  if (clock.rate === 0) {
+    return clock.hour;
+  }
+  const h = clock.hour + ((roomMs - clock.at) / 3600000) * clock.rate;
+  return clock.to === undefined ? h : Math.min(Math.max(h, clock.hour), clock.to);
+}
+
+/*
+ * A WAR MISSION'S LIGHT ACROSS ITS STAGES (TECH-NEEDS T1.11). A stage may
+ * carry `daytime: { to, ms }`: from the stage's start (its room ms, the
+ * same on every screen) the clock runs from where the light stood to the
+ * named time `to` over `ms` and stops there. Where the light stood is
+ * where the stages that lead to it (their exits, an exit's `pick` each of
+ * its stages) left it, or the mission's own time for the first: a stage
+ * restarted from its checkpoint starts from the same light. Two ways
+ * into a stage that would leave the light at different hours are a
+ * mission's mistake, and missionLight throws.
+ *
+ * Hours only go forward: a `to` at or before the light's hour is the next
+ * day's (night at 22 into the morning is 22 to 31.78). A clock's `to` is
+ * the last hour the mission reaches from where it stands, so the world
+ * can be built once for every light it will be asked for: standing
+ * before its first ramp (rate 0, `to` the end), moving through a ramp
+ * (`to` that ramp's end, where it stops), standing after the last (no
+ * `to`).
+ */
+
+/* The first hour after `from` that is named time `name`'s. */
+export function hourAfter(from, name) {
+  nightOfTime(name); /* throws on a name outside TIME_NAMES */
+  let h = TIME_HOUR[name];
+  while (h <= from) {
+    h += 24;
+  }
+  return h;
+}
+
+/* The stages an exit list leads to, by index (stages.js exitTo's names). */
+function nextStages(stages, n) {
+  const out = [];
+  for (const x of stages[n].exits ?? [{ to: 'next' }]) {
+    const to = x.to ?? 'next';
+    for (const id of to && typeof to === 'object' ? to.pick : [to]) {
+      if (id === 'next') {
+        out.push(n + 1);
+      } else if (id !== 'won' && id !== 'lost') {
+        out.push(stages.findIndex((st) => st.id === id));
+      }
+    }
+  }
+  return out.filter((i) => i >= 0 && i < stages.length);
+}
+
+/* The hours of a mission's light: `start`, the hour each stage begins at
+ * (`from`, its ramp's start), the hour each ramp ends at (`to`, null for
+ * a stage with no ramp), and `end`, the last. null for a mission with no
+ * time of its own. `time` is the mission's named time (missions/index.js
+ * missionTime), `stages` its stage list (stages.js stagesOf). */
+export function missionLight(time, stages) {
+  if (time == null) {
+    if (stages.some((st) => st.daytime)) {
+      throw new Error('daytime: a stage ramps the light of a mission with no time of its own');
+    }
+    return null;
+  }
+  nightOfTime(time); /* throws on a name outside TIME_NAMES */
+  const from = new Array(stages.length).fill(null);
+  const to = new Array(stages.length).fill(null);
+  from[0] = TIME_HOUR[time];
+  let end = from[0];
+  const todo = [0];
+  while (todo.length) {
+    const n = todo.shift();
+    const d = stages[n].daytime;
+    let h = from[n];
+    if (d) {
+      if (!TIME_NAMES.includes(d.to) || !(d.ms > 0)) {
+        throw new Error(`daytime: stage ${stages[n].id}'s daytime is { to: one of ${TIME_NAMES.join(', ')}, ms > 0 }, got ${JSON.stringify(d)}`);
+      }
+      h = hourAfter(h, d.to);
+      to[n] = h;
+    }
+    end = Math.max(end, h);
+    for (const k of nextStages(stages, n)) {
+      if (from[k] === null) {
+        from[k] = h;
+        todo.push(k);
+      } else if (from[k] !== h) {
+        throw new Error(`daytime: stage ${stages[k].id} is reached at hour ${from[k]} and at ${h}`);
+      }
+    }
+  }
+  return {
+    start: from[0], from, to, end,
+  };
+}
+
+/* The clock with `to` when the light goes further than `hour`, its hours
+ * moved back a day when it starts on the next (clockOf's hour is within
+ * one). */
+function lightClock(hour, rate, at, end) {
+  const back = hour >= 24 ? 24 : 0;
+  return end > hour
+    ? Object.freeze({
+      hour: hour - back, rate, at, to: end - back,
+    })
+    : Object.freeze({ hour: hour - back, rate, at });
+}
+
+/*
+ * The room's clock in a war mission (edge/rooms/core.js daytime): before
+ * any stage (`stage` null: the lobby, the briefing, the countdown) the
+ * mission's start; in stage `stage.n` begun at room ms `stage.at` its
+ * ramp, or the light it stands at (`stage.at` null: not begun yet, a
+ * restart's countdown); over the match's end (`endAt`, room
+ * ms) the hour reached then, standing, so a result banner is not lit
+ * back to where the mission began. null for a mission with no time.
+ */
+export function missionClock(time, stages, stage = null, endAt = null) {
+  const L = missionLight(time, stages);
+  if (!L) {
+    return null;
+  }
+  if (!stage) {
+    return lightClock(L.start, 0, 0, endAt != null ? L.start : L.end);
+  }
+  const n = stage.n;
+  if (L.from[n] === null) {
+    throw new Error(`daytime: stage ${stages[n].id} is reached by no exit`);
+  }
+  const d = stages[n].daytime;
+  if (!d || stage.at == null) {
+    /* Standing, over the end too: a later stage's ramp may be to come. */
+    return lightClock(L.from[n], 0, 0, endAt != null ? L.from[n] : L.end);
+  }
+  const ramp = { hour: L.from[n], rate: ((L.to[n] - L.from[n]) * 3600000) / d.ms, at: stage.at, to: L.to[n] };
+  if (endAt != null) {
+    const here = hourAt(ramp, endAt);
+    return lightClock(here, 0, 0, here);
+  }
+  return lightClock(ramp.hour, ramp.rate, ramp.at, ramp.to);
 }
 
 /* The named time a world that is built once is built at: its clock's

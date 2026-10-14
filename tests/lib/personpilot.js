@@ -43,22 +43,37 @@ export const quant = (x) => clamp(Math.round(x * PERSON.steps) / PERSON.steps);
  * sees now (delayMs old), or back steps before it, for a rate read off
  * two looks. Until then the sticks stay where the flight put them.
  * ms is the time of the last push, from 0; the delay is rounded to whole
- * steps, and a beat that is not one would never come.
+ * steps, and a beat that is not one would never come. backMax is the
+ * furthest back a caller looks: the eyes keep only the newest lag +
+ * backMax + 1 rows, all that can still be seen, and refuse a look past
+ * them. rows() is those rows, oldest first.
  */
-export function eyes({ stepMs, delayMs = PERSON.delayMs, everyMs = PERSON.everyMs }) {
+export function eyes({
+  stepMs, delayMs = PERSON.delayMs, everyMs = PERSON.everyMs, backMax = 0,
+}) {
   if (!(stepMs > 0) || everyMs % stepMs !== 0) throw new Error(`eyes: the hand's ${everyMs} ms is not whole steps of ${stepMs} ms`);
   const lag = Math.round(delayMs / stepMs);
+  const keep = lag + backMax + 1;
   const seen = [];
+  const reach = (back) => {
+    if (back > backMax) throw new Error(`eyes: ${back} steps back, past the ${backMax} they keep`);
+  };
   return {
     lag,
     push(o) {
       seen.push(o);
+      if (seen.length > keep) seen.shift();
     },
     looks(ms, back = 0) {
+      reach(back);
       return seen.length > lag + back && ms % everyMs === 0;
     },
     ago(back = 0) {
+      reach(back);
       return seen[seen.length - 1 - lag - back];
+    },
+    rows() {
+      return seen.slice();
     },
   };
 }

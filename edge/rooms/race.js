@@ -374,11 +374,17 @@ export class RoomRace {
     return core.seats.size ? this.broadcast(core, { type: 'race', race: this.view() }) : [];
   }
 
-  /* A seat said hello: a racer whose socket dropped is back in. */
-  join(core, seat) {
+  /* A seat said hello: a racer whose socket dropped is back in, and a
+   * newcomer joins the grid only when `dropIn` (core.js join, the race's
+   * modes.js allowDropIn, false: it went off a grid, so it waits). */
+  join(core, seat, dropIn = false) {
     const r = this.race;
     if (r && r.state === 'on' && r.out[seat] === 'left') {
       delete r.out[seat];
+      return this.changed(core);
+    }
+    if (r && r.state === 'on' && dropIn && !r.racers.includes(seat)) {
+      r.racers.push(seat);
       return this.changed(core);
     }
     return [];

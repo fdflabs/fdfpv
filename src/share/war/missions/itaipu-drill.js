@@ -8,7 +8,8 @@
  * Striker on the yard 2 s after the go, a swarm at 4 s, a Hunter in round
  * 3, as those checks were written against, and as the record of the games
  * before the stage engine has them (scripts/war-legacy-games.js). Mission
- * 4, the night raid, is it at night until it gets its own design.
+ * 4, The Long Night, had the drill at night until its own stages landed
+ * on 2026-10-14.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *

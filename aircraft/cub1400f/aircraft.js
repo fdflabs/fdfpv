@@ -283,7 +283,7 @@ export default {
     "es": {
       "carousel.note.cub1400f": "El Cub con flotadores: despega del lago y vuelve a posarse en él con el morro arriba.",
       "power.cub.stock": "3536 850 kV, 11 x 7, 3S (de serie)",
-      "airframe.blurb.cub1400f": "El Piper J-3 Cub de 1400 mm sobre flotadores, en 3S. Acelerador a fondo y stick atrás para que planee, rota a velocidad de vuelo y aterrízalo de vuelta en el lago con la nariz arriba. Los timones de agua lo guían en el agua."
+      "airframe.blurb.cub1400f": "El Piper J-3 Cub de 1400 mm sobre flotadores, en 3S. Throttle a fondo y stick atrás para que planee, rota a velocidad de vuelo y aterrízalo de vuelta en el lago con la nariz arriba. Los timones de agua lo guían en el agua."
     }
   }
 };

@@ -39,6 +39,181 @@ It prints a table per run and writes OUT_DIR/perf-play.json with every
 frame. The frames stay out of the repository; the numbers worth keeping
 go here.
 
+## Comparing numbers across the GPU 1 switch
+
+Every number in this file and in docs/BUDGETS.md taken before 2026-10-13
+14:23 is GPU 0's (02:00.0, x16, the owner's desktop card, shared with
+the desktop and with every lane's checks); run-check.sh numbers after it
+are GPU 1's (85:00.0, x4, the checks' card). Both are RTX 3060 Ti on
+driver 595, so a difference between a before and an after taken on
+different cards is the card's load and its link, not the game, until
+shown otherwise. To compare:
+
+- **Same card or no comparison.** Take the after on the before's card:
+  `CHECK_GPU=0 ~/.cache/run-check.sh <worktree> perf -- ...` for a GPU 0
+  baseline, or retake the before on GPU 1 from its commit. Check which
+  card a run drew on: run-check prints `run-check: perf on GPU 0: <why>`
+  when it falls back, and the run's `gpu load` line lists one card
+  (index 0, which is GPU 1 inside the bwrap) on GPU 1 and both on GPU 0.
+- **Draw calls, triangles and live textures do not depend on the card**
+  and compare across the switch as they are: all eighteen BUDGETS rows
+  read the same on GPU 1 as on GPU 0, within 2 calls and 0.04 M.
+- **The GPU floor is the GPU column that travels best,** each segment's
+  tenth percentile, the least of anyone else's work in it, but it still
+  moved: the eighteen rows' floors on GPU 1 (2026-10-13 evening, card 8
+  to 55 % busy, host load 2 to 5) were 0.49 to 0.96 of the GPU 0 floors
+  taken that morning (card 21 to 100 % busy, load 7 to 37), the menu at
+  Low most (0.61 to 0.30 ms) and the menu at Medium the least (0.71 to
+  0.68). That spread is the morning's shared card as much as the cards'
+  difference; no like-for-like run on two quiet cards has been taken, so
+  no factor converts one to the other.
+- **Frame average, p95, the GPU median and the busy share do not
+  compare** across cards, or across hours on GPU 0: they carry whatever
+  else drew on the card. Quote them beside the busy share and host load
+  the run opened with, as BUDGETS does.
+- The BUDGETS GPU floor ceilings are GPU 1's since 2026-10-13 (the
+  measurement x1.15), so `--budgets` on GPU 0 is not a test of the game:
+  a run that fell back is to be retaken on GPU 1.
+
+## The reference machine: Jetson AGX Orin
+
+The BUDGETS rows can also be flown on a second machine, a Jetson AGX
+Orin 64 GB developer kit on the LAN (JetPack 6, L4T R36.5.2,
+power mode MODE_50W, GPU up to 1300 MHz, 12 Arm cores, memory shared
+between CPU and GPU), headless, reached over ssh. It is the reference
+machine the owner's 30 fps floor would be read on (docs/BUDGETS.md,
+Reference machine: Jetson AGX Orin). It has been flown twice, seven rows
+in all, and its GPU wedged after a row in each run (below). One command
+takes the rows again:
+
+    scripts/perf-jetson.sh OUT_DIR [--scenarios=title,alps-low,...] [--presets=low,medium,high] [--seconds=15]
+
+It copies this tree to `~/fdfpv-ref/tree` on the Jetson (`JETSON`,
+default `smallbrain@192.168.100.246`; no .git, no node_modules, `npm ci`
+there when package-lock.json changed), flies each scenario at each
+preset with BUDGETS' settings (`--mode=quality`, 1600 by 900, free
+running, 15 s, one scenario a browser), fetches every
+`perf-play.json` to `OUT_DIR/<preset>-<scenario>/`, and writes
+`OUT_DIR/summary.md`, the table for BUDGETS. Itaipu's data set, which
+lives outside the repository, goes to `~/fdfpv-ref/itaipu-data` from
+`FDFPV_ITAIPU_DATA` (default `~/Desktop/fdfpv-itaipu-data`, the path
+tests/lib/server.js serves); without it the Itaipu rows never leave the
+menu's Alps. A row took 51 to 155 s in the seven taken, most of it the world loading on the Orin's cores,
+plus 15 s after each for the check below.
+It does not pass `--budgets`: the ceilings are the 3060 Ti's, and the
+Orin is measured, not held.
+
+**The card is shared there too.** ComfyUI (port 8188, 13 to 34 GB
+resident) and PAIR's Ollama (11435) live on the Jetson and draw on the
+same GPU. Before each row the script waits for the GPU's own load (the
+nvgpu sysfs `load`) to stay under 10 % with ComfyUI's queue empty for
+10 s, gives up after an hour,
+and writes ComfyUI's queue and Ollama's loaded models before and after
+the row; a row with either busy says BUSY in the summary and is to be
+retaken. nvidia-smi reports no utilisation on Tegra, so the run's own
+`gpu load` line is empty there.
+
+**The wedge, twice.** The first run, 2026-10-13, flew five rows and
+stopped. At
+23:32:38, five seconds after the third row's Chrome closed, the kernel
+logged `ga10b_gr_init_wait_empty: timeout, ctxsw busy: 1` and
+`gk20a_pm_runtime_suspend: failed to power off, err=-11`, every four
+seconds; at 23:33:27, as the fourth row's Chrome drew, `error notifier
+set to 8 for ch 495 owned by chrome`, `Unable to recover GR falcon` and
+`nvgpu_engine_gr_reset: failed to reset gr engine`. That Chrome's GPU
+process sat in `dma_fence_default_wait`, and a later one in
+`nvgpu_runlist_reschedule`, in the kernel, unkillable. ComfyUI's queue
+was empty and Ollama had no model loaded; the faulting channel was this
+run's. That fourth row was `itaipu-stream`, flying the menu's Alps:
+the Itaipu data set was not yet copied over.
+
+The second run, 2026-10-14 after a reboot with no nvgpu error in the
+log, flew `itaipu-stream` and `interior-ops` at Low. `interior-ops`
+wrote its numbers at 00:20:35 and its Chrome closed; at 00:20:38 the
+kernel logged the same `ctxsw busy: 1` and `failed to power off`, every
+four seconds. The script's check stopped the run before another browser
+opened, so no reset failed this time, but the engine stays in that
+state: the next process to open a GPU channel (a ComfyUI job, an Ollama
+load) meets it as the fourth row did, and only a reboot clears it. Two
+runs, two wedges, each a few seconds after a headless Chrome on ANGLE's
+Vulkan closed, on two different worlds: it is not one scene, and
+whether the driver (L4T R36.5.2) or ANGLE's Vulkan teardown is at fault
+is not known. Until a reboot nothing on the Jetson can use its GPU: ComfyUI
+jobs, Ollama there, and so PAIR requests routed to the Jetson, hang.
+After the reboot (the Jetson's notes): `systemctl --user restart
+nvpair-tui`, start ComfyUI (`~/comfy/run-comfyui.sh`) and the brains
+tunnel to it.
+
+So the script reads the kernel's log first and stops before opening a
+browser when any nvgpu error was logged since the Jetson booted (that
+boot had none before the run), and reads it again 15 s after each row,
+stopping on a row that left one. Until the cause is known, run it only
+when the Jetson's other users can take a reboot, and expect one after
+it.
+
+**One time setup**, all under `~/fdfpv-ref` on the Jetson, nothing
+system wide: Node 22 from nodejs.org's linux-arm64 tarball in `node/`
+(the system's is 12), and Playwright's arm64 Chromium in `pw-browsers/`
+(`PLAYWRIGHT_BROWSERS_PATH=~/fdfpv-ref/pw-browsers npx playwright install
+chromium` from the tree). The script stops with a line when either is
+missing.
+
+**Why ANGLE over Vulkan there.** tests/lib/page.js asks for
+`--use-angle=gl`, desktop GL, which needs an X display the headless
+Jetson does not have (`ANGLE Display::initialize error 12289: Could not
+open the default X display`). The script points `SIM_CHROME_BIN` at a
+wrapper, `~/fdfpv-ref/chrome-orin`, that adds `--use-angle=vulkan
+--enable-features=Vulkan` (Chromium takes the last `--use-angle`).
+`--use-angle=gl-egl` makes a WebGL2 context on the Orin for a bare page,
+but its GPU process died as the shell booted, three times in each of
+four boots, and the shell never got a context; with
+`--disable-gpu-rasterization` the shell booted once in five, the GPU
+process dying once or twice in each;
+`--disable-gpu-compositing` booted four of four, but composites on the
+CPU and reads every frame back, a cost no player has. Vulkan booted four
+of four with no crash and keeps timer queries
+(`EXT_disjoint_timer_query_webgl2`). The run checks the renderer before
+it measures and stops on anything but the Orin:
+
+    ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)
+
+The shell's own GPU name (src/render/gpuinfo.js, Settings and
+`window.__gpu.name`) read that string as "Google Inc. (NVIDIA)", the
+vendor, until 2026-10-14; it now unwraps the Vulkan string and says
+"NVIDIA Tegra Orin".
+
+**Desktop GL under Xvfb is software.** The project's own setting,
+`--use-angle=gl`, was tried once more on 2026-10-14 with an X display
+from Xvfb (installed for it, `apt-get install xvfb`, no service): the
+renderer is `ANGLE (Mesa, llvmpipe (LLVM 15.0.7 128 bits), OpenGL 4.5)`,
+Mesa's CPU rasteriser, because Xvfb serves GLX from Mesa and never
+reaches the Orin. No GPU error followed (0 before, 0 after 60 s), and
+no row was flown: a CPU rasteriser's frame time says nothing about a
+GPU's. The Orin's GPU under desktop GL needs Xorg on NVIDIA's driver
+(the Jetson has `libglxserver_nvidia.so`), a display server, which is a
+system change this lane did not make.
+
+So, today, the one path that draws on the Orin headless is ANGLE over
+Vulkan, and it wedged the GPU after a Chrome closed in both runs of
+this script. **The Orin cannot serve as the reference machine until
+that nvgpu fault on Chrome's shutdown is understood.** Its signature,
+from `journalctl -k`, a few seconds after a Chrome closes:
+
+    nvgpu: 17000000.gpu ga10b_gr_init_wait_empty:505 [ERR] timeout, ctxsw busy: 1, gr busy: 0
+    nvgpu: 17000000.gpu gk20a_pm_runtime_suspend:1427 [ERR] failed to power off, err=-11
+
+repeating every four seconds, and on the next GPU channel opened:
+
+    nvgpu: 17000000.gpu nvgpu_set_err_notifier_locked:143 [ERR] error notifier set to 8 for ch 495 owned by chrome
+    nvgpu: 17000000.gpu nvgpu_gr_falcon_load_secure_ctxsw_ucode:718 [ERR] Unable to recover GR falcon
+    nvgpu: 17000000.gpu nvgpu_engine_gr_reset:497 [ERR] failed to reset gr engine
+
+**Comparing.** The Orin's numbers compare with the Orin's, taken with
+the same script, power mode and Chromium; not with the 3060 Ti columns.
+A change of power mode (MODE_MAXN lifts the GPU clock) or of Chromium
+moves every row, so `OUT_DIR/machine.txt` records both with the commit,
+and a retake after a release quotes them.
+
 ## How it is measured
 
 **Real play, not parked views.** scripts/swiss2-perf.js and
@@ -255,11 +430,45 @@ script with no stray browser on the card:
 
 ## Not measured, and why
 
-- **A multi pilot room.** A second pilot is a second Chrome (every
-  existing two pilot check, scripts/war-twopage.js among them, opens two),
-  and a run here is one browser at a time on this shared box. A peer
-  driven from Node over the room socket would make it one browser; that is
-  the next piece of work for this script, not done here.
+- **A multi pilot room, as each pilot's own browser sees it.** What one
+  page pays to draw a full room is measured since 2026-10-14: perf-play's
+  `peers` scenario seats the page in a private room of eight on the alps,
+  the other seven being Node on the room socket, and docs/BUDGETS.md holds
+  it at each tier. What seven more browsers cost the box is not: a run
+  here is one browser at a time on this shared box.
+
+**A full room's draw calls.** A room of seven in view added 1 267
+draw calls to the alps' own at Medium and High (1 573 and 1 586 in all
+against 300 with the seven out of view, docs/BUDGETS.md `peers`): each
+peer's 7 inch was 47 meshes and a name tag, drawn in the scene, the
+sensor inset and the ink prepass (48 each) and the shadow map (37).
+2026-10-14 a peer's combat quad joins a material worn in several parts
+at one offset into one mesh (src/render/combatcraft.js mergeFixed, 47
+meshes to 40): 1 398 at Medium, 1 411 at High, pixels identical.
+Then (branch w39-peer-palette) its fixed parts are joined across
+materials into palette meshes (combatcraft.js paletteFixed, after the
+paint and before the decals and a map's look): one per offset and
+render state, the motors apart for their thermal kind, 40 meshes to 16
+for a stock 7 inch or 10 inch, 48 to 29 for the interceptor. 381 at
+Low, 726 at Medium, 739 at High. That took a palette carrying the
+highlight per entry (celmat.js), a photographed twin per palette in
+the look swiss2, itaipu and the interior share (swiss2/craftlook.js),
+and decals cut per joined part (decals.js), each in its old order: the
+materials' order without a look, the order their twins were made under
+one, the meshes' order for the layers. Pixels: an in page A/B of each
+case joined against not, scene, normal and thermal passes as floats,
+eight views from 0.5 m to 90 m, on the alps and under the three looks:
+identical in every view for the 7 inch stock, coloured with 12 layers,
+coloured with LEDs and glow, the 10 inch stock and the interceptor
+coloured. Still at High about two and a half times the 300 call
+contract. Left a peer: the palettes per offset (the camera head and
+payload sit off the origin, and moving vertices into the group's frame
+lands them a float rounding off), the lens, the inks, four rotors and
+four discs. Not joined: a craft with a region in a finish (finish.js
+wraps that region's material in a shader of its own, which draws before
+any palette, a newer material, where it drew between the parts it
+touches: a pack and a brass standoff swapped 1 px at 60 m); joining it
+needs the finish per palette entry.
 - **GPU 1.** See above.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.

@@ -46,7 +46,7 @@ import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTra
 import { tracksConfigured } from '../share/cloud.js';
 import { MODES, modeById } from '../share/modes.js';
 import { hasFlyableTrack } from '../share/listing.js';
-import { clearShareImport, readShareImport } from '../share/session.js';
+import { clearShareImport, readShareImport } from '../share/trackseat.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { str } from '../strings/index.js';
 import { duplicateTrack, normalize } from '../trackbuilder/model.js';
@@ -876,12 +876,12 @@ export const actionMethods = {
   },
 
   /* The card of the activity whose session this pilot last opened, or
-   * null: none yet, an id this build does not know, or the war while no
+   * null: none yet, an id this build does not know, a hidden one, or the war while no
    * mission of its campaign is released (src/game/campaign.js), since its
    * Play would open nothing a pilot may fly. */
   continueWay() {
     const activity = modeById(this.settings.lastActivity);
-    if (!activity) return null;
+    if (!activity || activity.hidden) return null;
     if (activity.id === 'war' && !ACT1.some((m) => released(m.id))) return null;
     return WAYS.find((w) => w.id === activity.card.way) ?? null;
   },

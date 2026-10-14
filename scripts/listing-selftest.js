@@ -107,7 +107,7 @@ globalThis.fetch = async (url, init = {}) => {
 };
 
 const listing = await import('../src/share/listing.js');
-const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/session.js');
+const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/trackseat.js');
 const { createTrack, createMapTrack, createElement, createSequenceEntry, normalize } = await import('../src/trackbuilder/model.js');
 
 const ISO = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/g;

@@ -56,13 +56,20 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
   beatOf, crossings, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
 } from '../src/share/war/stages.js';
-import { waveTarget } from '../src/share/war/missions/index.js';
+import { missionTime, waveTarget } from '../src/share/war/missions/index.js';
+import { TIME_HOUR, missionClock } from '../src/share/daytime.js';
+import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
+import { STATION_DARK } from '../src/share/war/missions/itaipu-4.js';
+import { STATION_DARK_DISTRICTS, stationOrder } from '../src/share/war/stationdark.js';
+import { DISTRICTS, FLICKER_MS } from '../src/share/war/grid.js';
+import { released } from '../src/game/campaign.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
 import { SPRAY_HIDE_M, inSpray } from '../src/ui/warmarkers.js';
 import { SPAWN, firstDifference, playGame } from './war-legacy-games.js';
 import { runOne } from './war-balance.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
+import { closureFor, restartAt, schedule } from '../src/share/war/contain.js';
 
 let passed = 0;
 let failed = 0;
@@ -228,11 +235,16 @@ console.log('data');
     check(`${m.id}: its stages lint clean, every radio cue is a voice line and every music cue a track`, problems.length === 0 && radio.length === 0 && music.length === 0,
       [...problems, ...radio, ...music].join('; '));
   }
+  /* Contain's lines (src/share/war/contain.js linesDue) and each
+   * mission's own for an opening are voice lines. */
+  const contained = Object.values(MISSIONS).filter((m) => m.contain);
+  const missing = ['contain-breach', 'contain-retarget', 'contain-river', 'contain-half', 'contain-held', 'contain-lost', ...contained.map((m) => m.contain.op)].filter((id) => !lines.has(id));
+  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 4 && missing.length === 0, missing.join(', '));
 }
 
-check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6',
-  roundsOf(MISSIONS['itaipu-1']) === 5 && roundsOf(MISSIONS['itaipu-2']) === 4 && stagesOf(MISSIONS['itaipu-1']).filter((x) => x.round).length === 7,
-  `${roundsOf(MISSIONS['itaipu-1'])} ${roundsOf(MISSIONS['itaipu-2'])}`);
+check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6, Lights Out 4 of its 6',
+  roundsOf(MISSIONS['itaipu-1']) === 5 && roundsOf(MISSIONS['itaipu-2']) === 4 && roundsOf(MISSIONS['itaipu-3']) === 4 && stagesOf(MISSIONS['itaipu-1']).filter((x) => x.round).length === 7,
+  `${roundsOf(MISSIONS['itaipu-1'])} ${roundsOf(MISSIONS['itaipu-2'])} ${roundsOf(MISSIONS['itaipu-3'])}`);
 
 /* ------------------------------------------------------------ triggers */
 
@@ -874,6 +886,140 @@ console.log('the room: ready, a region, a breach');
   check('breach: the room\'s opening ends it', e.view().state === 'won' && e.view().why === 'breach' && e.view().endAt === GO + 9500);
 }
 
+console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
+{
+  /* One stage that waits for an opening, then sends a group after it:
+   * Strikers (turned at the gantry) or a Scout (never turned, no target).
+   * Its targets are the plant's, the gantries among them. */
+  const contain = (kind) => ({
+    ...STORY,
+    id: `contain-${kind}`,
+    targets: MISSIONS['itaipu-1'].targets,
+    output: 14000,
+    floorMw: 7700,
+    contain: { op: 'test-op' },
+    airframes: 1,
+    routes: { n: [[0, 249, -3000], [0, 249, -2200]] },
+    stages: [{
+      id: 'hold',
+      spawns: [{
+        when: { breach: true }, at: 5, kind, n: 1, route: 'n', ...(kind === 'scout' ? {} : { target: 'intake-3' }), group: 'after',
+      }],
+      exits: [{ when: { cleared: true }, to: 'won', why: 'waves' }, {
+        when: { allOut: true }, to: 'lost', why: 'out', clear: 'through',
+      }],
+    }],
+  });
+  const radios = (e) => e.of(0, 'cue').flatMap((m) => m.cues).filter((c) => c.radio).map((c) => [c.radio, c.at - GO]);
+
+  /* Turned at the gantry, which it reaches while the stoplogs go down. */
+  const a = warRoom(contain('strike'));
+  a.fly(GO + 900);
+  a.r.war.breach('intake-3', GO + 1000);
+  a.fly(GO + 80000);
+  const born = a.of(0, 'born').flatMap((m) => m.agents);
+  const lost = a.view();
+  const arrived = a.of(0, 'dead').find((m) => m.target === 'gantry-intakes');
+  check('the first group born after an opening is turned at the gantry serving it', born.length === 1 && born[0].target === 'gantry-intakes' && born[0].t0 === GO + 6000,
+    JSON.stringify(born));
+  check('the gantry hit while it closes loses the mission at once, why shutdown', lost.state === 'lost' && lost.why === 'shutdown' && arrived && Math.abs(lost.endAt - arrived.at) < 1e-3 && lost.output === 14000,
+    `${lost.state} ${lost.why} ${lost.endAt} ${arrived && arrived.at}`);
+  check('the opening, the mission\'s line and the riverbank at the opening, the turn at the birth, the half, the loss at the hit and no hold',
+    JSON.stringify(radios(a).slice(0, 5)) === JSON.stringify([['contain-breach', 1000], ['test-op', 1000], ['contain-river', 1000], ['contain-retarget', 6000], ['contain-half', 61000]])
+    && radios(a).length === 6 && radios(a)[5][0] === 'contain-lost' && Math.abs(radios(a)[5][1] + GO - lost.endAt) < 1e-3,
+    JSON.stringify(radios(a)));
+  const failedObj = lost.stage.objectives.find((o) => o.id === 'contain-intake-3');
+  check('its hold on the gantry shows failed', failedObj && failedObj.state === 'failed' && failedObj.kind === 'hold' && failedObj.text === 'war.obj.contain_intakes' && failedObj.ms === 120000,
+    JSON.stringify(failedObj));
+
+  /* Again from the stage (1.9 point 8): the opening made in it is undone
+   * with the structures, so nothing closes and nothing is ringed. */
+  a.say(0, { type: 'war', op: 'start', mission: 'contain-strike', from: 'checkpoint' });
+  const toldBefore = a.of(0, 'cue').length;
+  a.fly(a.clock + COUNTDOWN_MS + 500);
+  const again = a.view();
+  check('a restart from the stage undoes the opening made in it: no closure, no gantry ringed, nothing said', again.state === 'live' && again.stage.objectives.length === 0
+    && again.contain.length === 0 && a.of(0, 'cue').length === toldBefore, `${again.state} ${JSON.stringify(again.stage.objectives)} ${JSON.stringify(again.contain)}`);
+  /* One made before the stage, still closing when it opened, closes again
+   * from the go, waiting for its gantry as before, and turns the next
+   * group again; its opening is not called twice (contain.js restartAt). */
+  const held = closureFor('intake-1', 1000);
+  held.said.push('breach', 'op', 'river', 'half', 'held');
+  const open = { ...closureFor('intake-2', 50000), retarget: 52000, said: ['breach', 'retarget', 'half'] };
+  const queued = { ...closureFor('penstock-4', 60000), said: ['breach'] };
+  const back = restartAt([held, open, queued], 130000, 300000);
+  check('restartAt: held before the stage kept, the open ones from the go in turn, turned again, their opening not said again',
+    JSON.stringify(back.map((c) => [c.at, c.retarget, c.said.join('+')])) === JSON.stringify([[1000, null, 'breach+op+river+half+held'], [300000, null, 'breach'], [300000, null, 'breach']])
+    && JSON.stringify(schedule(back).map((x) => [x.from, x.until])) === JSON.stringify([[1000, 121000], [300000, 420000], [420000, 540000]]),
+    JSON.stringify(back));
+
+  /* Not turned: the stage waits for the closures, one gantry one at a
+   * time, the spillway's beside it. */
+  const b = warRoom(contain('scout'));
+  b.fly(GO + 900);
+  b.r.war.breach('intake-3', GO + 1000);
+  b.r.war.breach('penstock-5', GO + 2000);
+  b.r.war.breach('gate-2', GO + 3000);
+  b.fly(GO + 130000);
+  const mid = b.view();
+  const objs = Object.fromEntries(mid.stage.objectives.map((o) => [o.id, o]));
+  check('a Scout is never turned', b.of(0, 'born').flatMap((m) => m.agents).every((x) => x.target == null));
+  check('one opening at a time on the intakes\' gantry: the penstock waits for the intake, the gate\'s runs beside them',
+    objs['contain-intake-3'].state === 'done' && objs['contain-penstock-5'].state === 'active' && objs['contain-penstock-5'].heldFrom === GO + 121000
+    && objs['contain-gate-2'].state === 'active' && objs['contain-gate-2'].heldFrom === GO + 3000 && objs['contain-gate-2'].ms === 150000 && objs['contain-gate-2'].text === 'war.obj.contain_spillway',
+    JSON.stringify(mid.stage.objectives));
+  check('the stage cannot clear while one is open', mid.state === 'live' && JSON.stringify(mid.contain) === '["gantry-intakes","gantry-spillway"]', `${mid.state} ${JSON.stringify(mid.contain)}`);
+  b.fly(GO + 250000);
+  const won = b.view();
+  check('it clears when the last is held', won.state === 'won' && won.endAt === GO + 241000, `${won.state} ${won.endAt}`);
+  const said = radios(b);
+  check('each opening called, the mission\'s line once, each half and each hold',
+    JSON.stringify(said.filter(([r]) => r === 'contain-breach').map(([, t]) => t)) === '[1000,2000,3000]' && said.filter(([r]) => r === 'test-op' || r === 'contain-river').length === 2
+    && JSON.stringify(said.filter(([r]) => r === 'contain-half').map(([, t]) => t)) === '[61000,78000,181000]'
+    && JSON.stringify(said.filter(([r]) => r === 'contain-held').map(([, t]) => t)) === '[121000,153000,241000]',
+    JSON.stringify(said));
+
+  /* The squad gone with the turned group alive: the lost stage sends it
+   * through, onto the gantry, and that loss is said too. */
+  const g = warRoom(contain('strike'));
+  g.fly(GO + 900);
+  g.r.war.breach('intake-3', GO + 1000);
+  g.fly(GO + 7000);
+  g.paths[0] = null;
+  g.paths[1] = null;
+  g.fly(GO + 20000);
+  const gone = g.view();
+  const through = g.of(0, 'dead').find((m) => m.target === 'gantry-intakes');
+  check('a lost stage\'s attackers through at the gantry lose the mission, and the loss is said', gone.state === 'lost' && gone.why === 'shutdown' && through
+    && radios(g).some(([r, t]) => r === 'contain-lost' && t === gone.endAt - GO), `${gone.state} ${gone.why} ${JSON.stringify(radios(g))}`);
+
+  /* A store and a restore mid closure change nothing after it. */
+  const once = warRoom(contain('scout'));
+  const twice = warRoom(contain('scout'));
+  for (const x of [once, twice]) {
+    x.fly(GO + 900);
+    x.r.war.breach('intake-3', GO + 1000);
+    x.r.war.breach('penstock-5', GO + 2000);
+  }
+  once.fly(GO + 130000);
+  twice.fly(GO + 70000);
+  twice.r.war.restore(JSON.parse(JSON.stringify(twice.stored)));
+  twice.fly(GO + 130000);
+  check('a store and a restore mid closure change nothing after it', JSON.stringify(told(once)) === JSON.stringify(told(twice)), `${told(once).length} vs ${told(twice).length}`);
+
+  /* A mission with no `contain` and a structure no gantry closes start none. */
+  const c = warRoom({ ...contain('scout'), contain: undefined, id: 'contain-none' });
+  c.fly(GO + 900);
+  c.r.war.breach('intake-3', GO + 1000);
+  const d = warRoom(contain('scout'));
+  d.fly(GO + 900);
+  d.r.war.breach('yard-right', GO + 1000);
+  c.fly(GO + 20000);
+  d.fly(GO + 20000);
+  check('no closure without the mission\'s contain, nor for the yard', c.view().state === 'won' && d.view().state === 'won' && !c.of(0, 'cue').length && !d.of(0, 'cue').length,
+    `${c.view().state} ${d.view().state}`);
+}
+
 console.log('the room: a hold that starts when the pilots reach a place');
 {
   /* The view never runs a trigger: a hold whose start is a region (which
@@ -1141,6 +1287,7 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
       const views = [];
       const cues = [];
       const born = [];
+      const dead = [];
       runOne({
         pilots,
         skill: 'good',
@@ -1158,11 +1305,13 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
             cues.push(...m.cues);
           } else if (m.op === 'born') {
             born.push(...m.agents);
+          } else if (m.op === 'dead') {
+            dead.push(m);
           }
         },
       });
       games.push({
-        pilots, seed, views, cues, born,
+        pilots, seed, views, cues, born, dead,
       });
     }
   }
@@ -1232,10 +1381,34 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
     bad.filter((x) => /objective/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
   /* The length a squad takes (estimatedMinutes, which Operations'
-   * briefing shows), from the go to the end, on these good bots. */
+   * briefing shows), from the go to the end, on these good bots, less
+   * what the face's closures held their stages past their last attacker
+   * (MISSIONS.md 1.9 point 4: a stage waits for its closure), which is
+   * time the mission's pacing does not set: shown on its own line. */
   const [lo, hi] = mission.estimatedMinutes;
-  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
-  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+  const waitOf = (g) => {
+    const end = g.views.at(-1);
+    const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
+    const entries = [];
+    for (const v of g.views) {
+      if (v.stage && entries.at(-1)?.at !== v.stage.at) {
+        entries.push({ at: v.stage.at });
+      }
+    }
+    return entries.reduce((sum, x, k) => {
+      const until = entries[k + 1]?.at ?? end.endAt;
+      const held = g.cues.filter((c) => c.radio === 'contain-held' && c.at >= x.at && c.at <= until).map((c) => c.at);
+      if (!held.length) {
+        return sum;
+      }
+      const gone = g.dead.filter((m) => m.at >= x.at && m.at <= until && m.ids.some((id) => kinds.get(id) !== 'scout')).map((m) => m.at);
+      return sum + Math.max(0, Math.max(...held) - Math.max(x.at, ...gone));
+    }, 0);
+  };
+  const waits = games.map((g) => waitOf(g) / 60000);
+  const minutes = games.map((g, k) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000 - waits[k]);
+  console.log(`    minutes the closures held a stage: ${waits.map((x) => x.toFixed(1)).join(' ')}`);
+  check(`every won game ends ${lo} to ${hi} minutes after the go, the closures' waits apart`, minutes.every((x) => x >= lo && x <= hi),
     minutes.map((x) => x.toFixed(1)).join(' '));
 
   /* Nobody shooting: the headless pass's game, once per twist. The squad
@@ -1295,6 +1468,451 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
   check('it opens on the twist stage drawn before, its hold running again from the go',
     v.stage && v.stage.id === lost.checkpoint.stage && v.stage.objectives[0].heldFrom === v.stage.at,
     JSON.stringify(v.stage && { id: v.stage.id, at: v.stage.at, o: v.stage.objectives[0] }));
+}
+
+/*
+ * The room's clock over a bot game (TECH-NEEDS T1.11): every clock it
+ * told the first bot (the welcome's, then each 'daytime'), in order,
+ * against src/share/daytime.js missionClock along the stages the game
+ * played: the mission's start, each stage's on its entry, the end's. ''
+ * when they agree, else what differs.
+ */
+function lightTold(mission, g) {
+  const time = missionTime(mission);
+  const st = stagesOf(mission);
+  const want = [missionClock(time, st)];
+  let last = null;
+  for (const v of g.views) {
+    if (v.stage && v.stage.id !== last?.id) {
+      last = v.stage;
+      want.push(missionClock(time, st, { n: v.stage.n, at: v.stage.at }));
+    }
+  }
+  want.push(missionClock(time, st, { n: last.n, at: last.at }, g.views.at(-1).endAt));
+  const runs = (xs) => xs.map((x) => JSON.stringify(x)).filter((x, i, a) => i === 0 || x !== a[i - 1]);
+  /* The bots are welcomed into a free room before its war: no clock. */
+  const a = runs(g.clocks[0] === null ? g.clocks.slice(1) : g.clocks);
+  const b = runs(want);
+  return a.join() === b.join() ? '' : `told ${a.join(' ')} want ${b.join(' ')}`;
+}
+
+console.log('Lights Out (itaipu-3), flown on the room by bot squads');
+{
+  /* MISSIONS.md M3 as the room plays it, as the Spillway's above. */
+  const mission = MISSIONS['itaipu-3'];
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const TWIST = {
+    'reroute-pack': ['itaipu-3-ta-turn', 'itaipu-3-ta-why'], 'reroute-feint': ['itaipu-3-tb-turn', 'itaipu-3-tb-why'], 'reroute-wires': ['itaipu-3-tc-turn', 'itaipu-3-tc-why'],
+  };
+  const TWISTS = Object.keys(TWIST);
+  const games = [];
+  for (const pilots of [1, 4]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const views = [];
+      const cues = [];
+      const born = [];
+      const clocks = [];
+      runOne({
+        pilots,
+        skill: 'good',
+        seed,
+        floorBuf,
+        spawn: SPAWN,
+        mission,
+        record: (m, now) => {
+          if (m.type === 'welcome' || m.type === 'daytime') {
+            clocks.push(m.daytime ?? null);
+          }
+          if (m.type !== 'war') {
+            return;
+          }
+          if (m.war) {
+            views.push({ ...m.war, now });
+          } else if (m.op === 'cue') {
+            cues.push(...m.cues);
+          } else if (m.op === 'born') {
+            born.push(...m.agents);
+          }
+        },
+      });
+      games.push({
+        pilots, seed, views, cues, born, clocks,
+      });
+    }
+  }
+  const order = [];
+  const bad = [];
+  const twists = new Set();
+  const holds = [];
+  for (const g of games) {
+    const label = `x${g.pilots} seed ${g.seed}`;
+    const path = [];
+    for (const v of g.views) {
+      if (v.stage && path.at(-1) !== v.stage.id) {
+        path.push(v.stage.id);
+      }
+    }
+    order.push(`${label}: ${path.join(' > ')}`);
+    const twist = path[2];
+    twists.add(twist);
+    const end = g.views.at(-1);
+    if (!(path.length === 4 && path[0] === 'dusk' && path[1] === 'lie' && TWISTS.includes(twist) && path[3] === 'dark')) {
+      bad.push(`${label}: stages ${path.join(',')}`);
+    }
+    if (end.state !== 'won') {
+      bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
+    const want = ['itaipu-3-g-yard', 'itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', 'itaipu-3-s3-despacho', 'itaipu-3-g-reroute', ...TWIST[twist] ?? [],
+      'itaipu-3-s4-dark', 'itaipu-3-s4-all', 'itaipu-3-s4-order', 'itaipu-3-g-dark'];
+    const missing = want.filter((id) => !said.includes(id));
+    if (missing.length) {
+      bad.push(`${label}: never said ${missing.join(',')}`);
+    }
+    const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, ids]) => ids).filter((id) => said.includes(id));
+    if (others.length) {
+      bad.push(`${label}: said another twist's ${others.join(',')}`);
+    }
+    /* The reroute's hold, settled before the stage leaves, its end said
+     * once, the right one: held with the yard standing (done), held with
+     * it already down (down), or failed; and the twist's objective on
+     * the HUD only once the twist is born. */
+    const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const state = inTwist.at(-1)?.stage.objectives.find((o) => o.id === 'reroute')?.state;
+    const yardDown = Boolean(inTwist[0]?.down?.includes('yard-right'));
+    const ends = said.filter((id) => /^itaipu-3-s3-(done|down|failed)$/.test(id));
+    const told = state === 'failed' ? 'itaipu-3-s3-failed' : yardDown ? 'itaipu-3-s3-down' : 'itaipu-3-s3-done';
+    holds.push(`${state}${yardDown ? '(yard down)' : ''}`);
+    if ((state !== 'done' && state !== 'failed') || ends.join() !== told) {
+      bad.push(`${label}: the hold left ${state}, said ${ends.join(',')}`);
+    }
+    const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
+    const twistBorn = g.born.find((a) => a.wave === twistSi);
+    const early = inTwist.filter((v) => twistBorn && v.now < twistBorn.t0 && v.stage.objectives.some((o) => o.id === 'twist'));
+    const shown = inTwist.some((v) => v.stage.objectives.some((o) => o.id === 'twist'));
+    if (!twistBorn || early.length || !shown) {
+      bad.push(`${label}: the twist's objective shown early ${early.length}, ever ${shown}, born ${twistBorn && twistBorn.t0}`);
+    }
+  }
+  console.log(`    ${order.join('\n    ')}`);
+  console.log(`    holds: ${holds.join(' ')}`);
+  check('ten games, 1 and 4 good pilots: Dusk, The Lie, one twist of Reroute, The Dark, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
+    bad.filter((x) => /stages|ended/.test(x)).join(' | '));
+  check('every stage\'s story and guide said: each objective\'s guide line, the scout, the pair, the stream and why, DESPACHO, the twist\'s two lines and no other twist\'s, the dark and its order',
+    bad.filter((x) => /said/.test(x) && !/hold/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold/.test(x)).join(' | '));
+  check('the reroute\'s hold settles, held or failed, before its stage ends, and DESPACHO says which', bad.filter((x) => /hold/.test(x)).length === 0,
+    bad.filter((x) => /hold/.test(x)).join(' | '));
+  check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
+    bad.filter((x) => /objective/.test(x)).join(' | '));
+  check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
+  const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
+  check('the room\'s clock is the mission\'s light (daytime.js missionClock): the golden hour, the ramp into the night told as Reroute opens, the night from The Dark and over the end',
+    lightOff.length === 0 && games.every((g) => g.clocks.some((c) => c && c.rate > 0 && c.to === TIME_HOUR.night)), lightOff.join(' | '));
+  const [lo, hi] = mission.estimatedMinutes;
+  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
+  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+    minutes.map((x) => x.toFixed(1)).join(' '));
+
+  /* Nobody shooting: the yard falls in the first stage and the west
+   * intakes after it, so the output goes under the floor before the end,
+   * and the restart offers the stage it was lost in. */
+  const rooms = [0.15, 0.3, 0.41].map((seed) => {
+    const r = warRoom(mission, { n: 1, seed, dev: true });
+    r.fly(GO + 900000);
+    return r;
+  });
+  const ends = rooms.map((r) => r.view());
+  check('with nobody shooting Lights Out is lost under its floor, and offers the stage it was lost in again',
+    ends.every((x) => x.state === 'lost' && x.why === 'output' && x.checkpoint
+      && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage)),
+    JSON.stringify(ends.map((x) => ({ state: x.state, why: x.why, cp: x.checkpoint }))));
+  const yardFirst = rooms.every((r) => {
+    const hit = r.of(0, 'dead').find((m) => m.hit && m.target === 'yard-right');
+    const stage = r.of(0).map((m) => m.war).filter((w) => w && w.stage && w.stage.at <= (hit?.at ?? -1)).at(-1)?.stage.id;
+    return hit && hit.mw === 2800 && stage === 'dusk';
+  });
+  check('and the yard is its first stage\'s loss, 2 800 MW', yardFirst);
+}
+
+console.log('The Long Night (itaipu-4), flown on the room by bot squads');
+{
+  /* MISSIONS.md M4 as the room plays it, as the Spillway's above. */
+  const mission = MISSIONS['itaipu-4'];
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const TWISTS = ['towns', 'dark-scout'];
+  const TWIST = { towns: ['itaipu-4-tb-turn', 'itaipu-4-tb-why'], 'dark-scout': ['itaipu-4-tc-turn', 'itaipu-4-tc-why'] };
+  check('The Long Night plays 5 rounds of its 6 round stages', roundsOf(mission) === 5 && stagesOf(mission).filter((x) => x.round).length === 6,
+    `${roundsOf(mission)}`);
+  const games = [];
+  for (const pilots of [1, 4]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const views = [];
+      const cues = [];
+      const born = [];
+      const dead = [];
+      const clocks = [];
+      runOne({
+        pilots,
+        skill: 'good',
+        seed,
+        floorBuf,
+        spawn: SPAWN,
+        mission,
+        record: (m, now) => {
+          if (m.type === 'welcome' || m.type === 'daytime') {
+            clocks.push(m.daytime ?? null);
+          }
+          if (m.type !== 'war') {
+            return;
+          }
+          if (m.war) {
+            views.push({ ...m.war, now });
+          } else if (m.op === 'cue') {
+            cues.push(...m.cues);
+          } else if (m.op === 'born') {
+            born.push(...m.agents);
+          } else if (m.op === 'dead') {
+            dead.push(m);
+          }
+        },
+      });
+      games.push({
+        pilots, seed, views, cues, born, clocks, dead,
+      });
+    }
+  }
+  const order = [];
+  const bad = [];
+  const twists = new Set();
+  const scouts = { killed: 0, alive: 0 };
+  for (const g of games) {
+    const label = `x${g.pilots} seed ${g.seed}`;
+    const path = [];
+    for (const v of g.views) {
+      if (v.stage && path.at(-1) !== v.stage.id) {
+        path.push(v.stage.id);
+      }
+    }
+    order.push(`${label}: ${path.join(' > ')}`);
+    const twist = path[3];
+    twists.add(twist);
+    const end = g.views.at(-1);
+    if (!(path.length === 5 && path[0] === 'quiet' && path[1] === 'dark-water' && path[2] === 'hunters' && TWISTS.includes(twist) && path[4] === 'before-dawn')) {
+      bad.push(`${label}: stages ${path.join(',')}`);
+    }
+    if (end.state !== 'won') {
+      bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
+    const want = ['itaipu-4-g-standby', 'itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', 'itaipu-4-g-intakes', 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
+      'itaipu-4-s3-cover', ...TWIST[twist] ?? [], 'itaipu-4-s5-all', 'itaipu-4-s5-order', 'itaipu-4-g-all', 'itaipu-4-s5-near'];
+    const missing = want.filter((id) => !said.includes(id));
+    if (missing.length) {
+      bad.push(`${label}: never said ${missing.join(',')}`);
+    }
+    const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, x]) => x).filter((id) => said.includes(id));
+    if (others.length) {
+      bad.push(`${label}: said another twist's ${others.join(',')}`);
+    }
+    /* The quiet: STAND BY on the HUD and nothing born until the boat, at
+     * least 40 s (paced) after the go; then the boat's objective, and
+     * STAND BY gone. */
+    const quiet = g.views.filter((v) => v.stage && v.stage.id === 'quiet');
+    const first = g.born.reduce((a, b) => (a && a.t0 <= b.t0 ? a : b), null);
+    const goAt = end.goAt;
+    const before = quiet.filter((v) => first && v.now < first.t0 && v.now > goAt + 1000);
+    const after = quiet.filter((v) => first && v.now > first.t0 + 500);
+    if (!first || first.kind !== 'boat' || first.t0 - goAt < 40000
+      || !before.length || !before.every((v) => v.stage.text === 'war.obj.itaipu_4.stand_by' && v.stage.objectives.length === 0)
+      || (after.length && !after.every((v) => v.stage.text == null && v.stage.objectives.some((o) => o.id === 'boat')))) {
+      bad.push(`${label}: the quiet: first born ${first && first.kind} at ${first && first.t0 - goAt}, before ${before.length}, after ${after.length}`);
+    }
+    /* The twist's objective on the HUD once the twist is born, not before. */
+    const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
+    const twistBorn = g.born.filter((a) => a.wave === twistSi);
+    const early = inTwist.filter((v) => twistBorn.length && v.now < twistBorn[0].t0 && v.stage.objectives.some((o) => o.id === 'twist'));
+    const shown = inTwist.some((v) => v.stage.objectives.some((o) => o.id === 'twist'));
+    if (!twistBorn.length || early.length || !shown) {
+      bad.push(`${label}: the twist's objective shown early ${early.length}, ever ${shown}, born ${twistBorn.length && twistBorn[0].t0}`);
+    }
+    /* The scout's rule (edge/rooms/war.js births): the dawn's attackers
+     * fly exactly unless the night's only Scout was killed. */
+    const dawnAt = g.views.find((v) => v.stage && v.stage.id === 'before-dawn')?.stage.at ?? Infinity;
+    const dawn = g.born.filter((a) => a.t0 >= dawnAt && a.kind !== 'hunter');
+    const scoutKilled = twist === 'dark-scout' && twistBorn.some((a) => g.dead.some((d) => d.ids.includes(a.id) && ['boom', 'pierce', 'wire'].includes(d.why)));
+    if (twist === 'dark-scout') {
+      scouts[scoutKilled ? 'killed' : 'alive'] += 1;
+    }
+    if (dawn.length && (scoutKilled ? !dawn.some((a) => a.err !== 0) : !dawn.every((a) => a.err === 0))) {
+      bad.push(`${label}: the scout ${scoutKilled ? 'killed' : 'not killed'}, the dawn's errors ${dawn.map((a) => a.err).join(',')}`);
+    }
+  }
+  console.log(`    ${order.join('\n    ')}`);
+  console.log(`    the twist's scout: killed in ${scouts.killed}, not in ${scouts.alive}`);
+  check('ten games, 1 and 4 good pilots: Quiet, Dark Water, Hunters, one twist of The Turn, Before Dawn, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
+    bad.filter((x) => /stages|ended/.test(x)).join(' | '));
+  check('every stage\'s story and guide said: the stand by, the quiet, the boat, the water and its second bearing, the Loiterer, the Hunters and their cover, the twist\'s two lines and no other twist\'s, the convergence, its order and the dawn near',
+    bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
+  check('the quiet: STAND BY alone on the HUD and nothing born for 40 s or more, then the dark boat and its objective', bad.filter((x) => /quiet/.test(x)).length === 0,
+    bad.filter((x) => /quiet/.test(x)).join(' | '));
+  check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective shown/.test(x)).length === 0,
+    bad.filter((x) => /objective shown/.test(x)).join(' | '));
+  check('over the ten games both twists are met', twists.size === 2, [...twists].join(','));
+  const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
+  check('the room\'s clock is the mission\'s light: night, the dawn ramp told as Before Dawn opens, and over the end the hour it reached',
+    lightOff.length === 0 && games.every((g) => g.clocks.some((c) => c && c.rate > 0 && c.to === TIME_HOUR.morning + 24)), lightOff.join(' | '));
+  check('in the bot games too, Before Dawn flies exactly unless the night\'s Scout was killed', bad.filter((x) => /scout/.test(x)).length === 0,
+    bad.filter((x) => /scout/.test(x)).join(' | '));
+  const [lo, hi] = mission.estimatedMinutes;
+  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
+  console.log(`    minutes from the go to the end: ${minutes.map((x) => x.toFixed(1)).join(' ')}`);
+  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+    minutes.map((x) => x.toFixed(1)).join(' '));
+
+  /* Nobody shooting: the intakes fall stage by stage until the output is
+   * under the floor before the end, and the restart offers the stage it
+   * was lost in. */
+  const rooms = [0.15, 0.3, 0.41].map((seed) => {
+    const r = warRoom(mission, { n: 1, seed, dev: true });
+    r.fly(GO + 1800000);
+    return r;
+  });
+  const ends = rooms.map((r) => r.view());
+  check('with nobody shooting The Long Night is lost, under its floor or its gantry hit while it closed the face (MISSIONS.md 1.9 point 6), and offers the stage it was lost in again',
+    ends.every((x) => x.state === 'lost' && (x.why === 'output' || x.why === 'shutdown') && x.checkpoint
+      && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage)),
+    JSON.stringify(ends.map((x) => ({
+      state: x.state, why: x.why, cp: x.checkpoint, stage: x.stage && x.stage.id, output: x.output,
+    }))));
+
+  /* The scout's rule on the room, both ways, in twist C: a pilot moved
+   * onto the Scout's circle once it is born kills it, and Before Dawn's
+   * attackers then draw their errors; left alone, they fly exactly. With
+   * no floor and no Contain (whose gantry, hit while it closed the face,
+   * would end it first), so a game nobody else defends reaches the dawn. */
+  const unfloored = { ...mission, floorMw: 0, contain: undefined };
+  const scoutRoom = (kill) => {
+    for (const seed of [0.15, 0.3, 0.41, 0.6, 0.8, 0.95]) {
+      const r = warRoom(unfloored, { n: 1, seed, dev: true });
+      r.paths[0] = () => [-4000, Y, 4000];
+      let born = null;
+      for (let t = GO; t < GO + 1800000 && !born; t += 5000) {
+        r.fly(t);
+        const v = r.view();
+        if (v.state === 'won' || v.state === 'lost' || (v.stage && v.stage.id === 'towns')) {
+          break;
+        }
+        born = r.of(0, 'born').flatMap((m) => m.agents).find((a) => a.kind === 'scout');
+      }
+      if (!born) {
+        continue;
+      }
+      if (kill) {
+        const meet = poseAt(planAgent(unfloored, born), born.t0 + 30000).p;
+        r.paths[0] = () => meet;
+      }
+      r.fly(r.clock + 900000);
+      const dawnAt = r.of(0).map((m) => m.war).find((w) => w.stage && w.stage.id === 'before-dawn')?.stage.at;
+      const killed = r.of(0, 'dead').some((m) => m.ids.includes(born.id) && m.why === 'boom');
+      const dawn = r.of(0, 'born').flatMap((m) => m.agents).filter((a) => dawnAt != null && a.t0 >= dawnAt && a.kind !== 'hunter');
+      return {
+        seed, killed, dawn: dawn.length, errs: dawn.filter((a) => a.err !== 0).length,
+      };
+    }
+    return null;
+  };
+  const left = scoutRoom(false);
+  const shot = scoutRoom(true);
+  check('twist C, the Scout left alone: Before Dawn\'s attackers fly exactly', left && !left.killed && left.dawn > 0 && left.errs === 0, JSON.stringify(left));
+  check('twist C, the Scout killed: Before Dawn\'s attackers draw their errors', shot && shot.killed && shot.dawn > 0 && shot.errs > 0, JSON.stringify(shot));
+}
+
+console.log('The Long Night\'s twist A, Station dark, on the room');
+{
+  /* Twist A is not among The Long Night's stages until its radio is
+   * voiced (itaipu-4.js STATION_DARK), so it is flown here as the first
+   * stage of a mission of two (it, then Before Dawn), against twist B the
+   * same way: hovering pilots, the same seed. */
+  const M4 = MISSIONS['itaipu-4'];
+  const of = (id) => (id === STATION_DARK.id ? STATION_DARK : M4.stages.find((x) => x.id === id));
+  const pair = (id) => ({ ...M4, id: `itaipu-4-${id}-test`, stages: [of(id), of('before-dawn')] });
+  const flown = ['station-dark', 'towns'].map((id) => {
+    const mission = pair(id);
+    const e = warRoom(mission, { n: 2, seed: 0.35 });
+    e.fly(GO + 420000);
+    const views = e.of(0).map((m) => m.war);
+    const first = views.find((v) => v.stage && v.stage.n === 0)?.stage;
+    const second = views.find((v) => v.stage && v.stage.n === 1)?.stage;
+    const firstSpawns = stagesOf(mission)[0].spawns.map((w) => w.si);
+    const born = e.of(0, 'born').flatMap((m) => m.agents);
+    return {
+      id,
+      first,
+      second,
+      dark: views.filter((v) => v.stage).map((v) => v.stationDark),
+      inFirst: born.filter((a) => firstSpawns.includes(a.wave)),
+      inSecond: born.filter((a) => !firstSpawns.includes(a.wave)),
+    };
+  });
+  const [a, b] = flown;
+  check('twist A: every attacker of its stage draws its error, no scout dead; twist B\'s fly exact on the same seed',
+    a.inFirst.length > 0 && a.inFirst.every((x) => x.err !== 0) && b.inFirst.length > 0 && b.inFirst.every((x) => x.err === 0),
+    `A ${a.inFirst.map((x) => x.err).join(',')}; B ${b.inFirst.map((x) => x.err).join(',')}`);
+  check('and the stage after it flies exact again: the order is its stage\'s',
+    a.second && a.inSecond.length > 0 && a.inSecond.every((x) => x.err === 0), `${a.second?.id}: ${a.inSecond.map((x) => x.err).join(',')}`);
+  /* The lights switch (stationdark.js), as src/main.js hands the grid's
+   * levels to the map: at the view's stationDark. */
+  const at = a.first?.at ?? 0;
+  const lit = () => new Float32Array(DISTRICTS.length).fill(1);
+  const before = stationOrder(lit(), at, at - 1);
+  const flick = Array.from({ length: Math.round(FLICKER_MS / 50) }, (_, k) => stationOrder(lit(), at, at + 50 * k));
+  const after = stationOrder(lit(), at, at + FLICKER_MS);
+  const none = stationOrder(lit(), null, at + FLICKER_MS);
+  const dam = STATION_DARK_DISTRICTS.map((i) => DISTRICTS[i].id);
+  check(`the switch: the dam's own districts (${dam.join(', ')}) lit before the order, flicker, then dark; the switchyards and towns lit; no order, no change`,
+    dam.length === 8 && !dam.some((id) => /yard$/.test(id))
+    && before.every((x) => x === 1) && STATION_DARK_DISTRICTS.every((i) => after[i] === 0)
+    && STATION_DARK_DISTRICTS.every((i) => flick.some((l) => l[i] > 0) && flick.some((l) => l[i] === 0))
+    && DISTRICTS.every((d, i) => STATION_DARK_DISTRICTS.includes(i) || after[i] === 1) && none.every((x) => x === 1));
+  check('the view says the station went dark at twist A\'s start, and still does after it; twist B\'s says nothing',
+    a.first && a.dark.length > 0 && a.dark.every((x) => x === a.first.at) && b.dark.length > 0 && b.dark.every((x) => x === null),
+    `A ${[...new Set(a.dark)].join(',')} (stage at ${a.first?.at}); B ${[...new Set(b.dark)].join(',')}`);
+}
+
+console.log('the room: the practice (itaipu-practice), one Striker at a time');
+{
+  /* Training's Defence track flies it alone (docs/redesign/TRAINING.md
+   * track 5): one Striker with no target, caught or let go, then the next,
+   * and never a result. */
+  const mission = MISSIONS[PRACTICE_ID];
+  check('the practice is a mission any room may start, in no campaign act', Boolean(mission) && mission.act == null && released(PRACTICE_ID));
+  const e = warRoom(mission, { n: 1 });
+  e.fly(GO + 8000);
+  const first = e.of(0, 'born').flatMap((m) => m.agents);
+  check('one Striker is born 5 s after the go, with no target', first.length === 1 && first[0].kind === 'strike' && first[0].target == null && first[0].t0 === GO + 5000,
+    JSON.stringify(first));
+  const meet = poseAt(planAgent(mission, first[0]), first[0].t0 + 20000).p;
+  e.paths[0] = () => meet;
+  e.fly(GO + 30000);
+  const boom = e.of(0, 'dead').find((m) => m.why === 'boom');
+  check('caught: the room credits its kill to the pilot', boom && boom.by === e.view().scores[0].seat && Array.isArray(boom.credited) && boom.credited.includes(first[0].id),
+    JSON.stringify(boom));
+  e.paths[0] = () => [4000, Y, 4000];
+  e.fly(boom.at + 4000 + 8000);
+  const born = e.of(0, 'born').flatMap((m) => m.agents);
+  const v = e.view();
+  check('the stage goes again after its beat: a second Striker, no result, the output whole', born.length === 2 && born[1].t0 === boom.at + 4000 + 5000
+    && v.state === 'live' && v.stage.id === 'pass' && v.result == null && v.output === mission.output, `${born.map((a) => a.t0)} ${v.state} ${v.output}`);
+  const plan = planAgent(mission, born[1]);
+  e.fly(plan.tEnd + 1000);
+  const gone = e.of(0, 'dead').find((m) => m.ids.includes(born[1].id));
+  check('let go: it leaves at its route\'s end, harmless, and a third comes', gone && gone.why === 'leave' && e.view().output === mission.output
+    && (e.fly(plan.tEnd + 12000), e.of(0, 'born').flatMap((m) => m.agents).length === 3), JSON.stringify(gone));
+  e.say(0, { type: 'war', op: 'end' });
+  e.fly(e.clock + 100);
+  const end = e.view();
+  check('ended by the host: no win, no stars', end.state === 'ended' && end.result && end.result.won === false && end.result.stars === 0, JSON.stringify(end.result));
 }
 
 console.log('legacy: the four missions against their record');

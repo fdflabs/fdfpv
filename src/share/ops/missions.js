@@ -2,7 +2,9 @@
  * missions.js: every ops mission the room can run, by id, and the world
  * (canopy and routes, docs/campaign/interior/CONTRACT-P0.md section 2)
  * each map gives the room. A campaign adds its missions here as data;
- * nothing else in src/share/ops/ names one.
+ * nothing else in src/share/ops/ names one. Each campaign mission's place
+ * on its card is its row in rows.js, which this module imports and holds
+ * to its file at load (checkRows).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -25,8 +27,32 @@ import INTERIOR_2 from '../interior/missions/interior-2.js';
 import INTERIOR_3 from '../interior/missions/interior-3.js';
 import { readWorldBytes } from '../interior/node.js';
 import { makeOpsWorld } from '../interior/ops.js';
+import { ROWS } from './rows.js';
 
 export const MISSIONS = Object.freeze({ 'interior-1': INTERIOR_1, 'interior-2': INTERIOR_2, 'interior-3': INTERIOR_3 });
+
+/*
+ * Throws unless `missions` and `rows` (rows.js) name the same campaign
+ * missions: every mission file with a campaign has a row there, of that
+ * campaign, with a release a file can have, and every row released or in
+ * development has its file. A 'soon' row has none yet; writing it moves
+ * the row's release. So the card (src/game/campaign.js INTERIOR) never
+ * offers what the room cannot start, nor hides what it can.
+ */
+export function checkRows(missions = MISSIONS, rows = ROWS) {
+  for (const m of Object.values(missions).filter((x) => x.campaign != null)) {
+    const row = rows.find((r) => r.id === m.id);
+    if (!row || row.campaign !== m.campaign || row.release === 'soon') {
+      throw new Error(`ops: ${m.id} has a file but no ${m.campaign} row that may fly it in rows.js`);
+    }
+  }
+  for (const row of rows.filter((r) => r.release !== 'soon')) {
+    if (!Object.hasOwn(missions, row.id)) {
+      throw new Error(`ops: rows.js ${row.id} is ${row.release} but has no mission file`);
+    }
+  }
+}
+checkRows();
 
 /* Each map's { canopyBlocks, poseOnRoute, groundAt }, made on first use:
  * the Interior's reads its ground from disk (the room on the VM, the

@@ -31,7 +31,7 @@ a week or more) and its phase (PLAN.md section 5).
 means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
-**Counts over the 83 items with a verdict:** 32 EXISTS, 41 PARTIAL, 7
+**Counts over the 83 items with a verdict:** 33 EXISTS, 40 PARTIAL, 7
 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -171,7 +171,9 @@ others while away, and no AI takes over (none exists). Checks:
 `rooms:selftest` (CI); `rooms:restart`, `rooms:session` (local). One
 finding: close code 4005 (`replaced`, a second tab took the seat) is not
 in the client's `FINAL` map (rooms.js 72), so the replaced tab retries and
-can take the seat back. Fixed in phase 21 (S).
+can take the seat back. **Built (phase 21):** 4005 is final, said as
+`friends.failed_replaced`; `rooms:server` drives the browser's own link
+through it, and without the entry the two links trade the seat.
 
 **7. Join in progress rules. PARTIAL.** Per mode, as the checklist asks:
 `allowDropIn` in src/share/modes.js (race false; tag, combat, war, free
@@ -183,7 +185,10 @@ paper; tag makes a hunter). The table and the behaviour can drift.
 **Done:** the rooms server reads `allowDropIn` where a newcomer arrives
 in a running round, and the race's own rule is that field. Check:
 `rooms:selftest` flips the field in a test registry and sees the
-behaviour follow. Size S. Phase 21.
+behaviour follow. Size S. Phase 21. **Built for the race and the war**
+(core.js join reads it through the room's registry; `rooms:selftest`
+turns each over). Combat, the Ace and the jam keep their own newcomer
+rules, which match their fields today.
 
 **8. Multiplayer authority. PARTIAL.** Decided and mostly server side,
 but written down only in file headers. Server: midair collisions
@@ -200,6 +205,7 @@ what the server checks), and an explicit decision on race passes: keep
 them client scored inside the bounds `passOf` checks (race.js 69), since
 the board already re verifies every published lap (item 59). Check: the
 table names the harness that holds each server row. Size S. Phase 21.
+**Built:** docs/MULTIPLAYER-PLAN.md 4.1, race passes kept client scored.
 
 **9. Deterministic scoring. EXISTS.** Every screen shows the same number,
 because each number has one author. Hits, tags, cuts and kills are judged
@@ -261,7 +267,7 @@ builder's progress; loading.js 29 to 42), a stall notice after 6 s
 rooms server (`roombrowser.unreachable`, `friends.failed_noserver`,
 `friends.failed_lost`, `loading.held_restart`), the board
 (`ui.the_board_is_not_answering_so`; a lap that could not be sent is kept,
-src/share/session.js 273), tracks (`cloud.offline`), assets
+src/share/trackseat.js 273), tracks (`cloud.offline`), assets
 (`main.could_not_be_loaded`, `loading.could_not_start`), the GPU
 (`gpuinfo.the_webgl_context_was_lost_reload`), account sync
 (`account.sync_failed`, `account.unreachable`). A controller disconnect is
@@ -366,8 +372,9 @@ workflow's choice).
 In a room nothing else stops: the room clock and its game run on, the
 pilot shows as paused to the others (`status: 'paused'`, main.js 2150;
 `rooms.away_paused`), the server stops repeating that pilot's pose
-(core.js 178), and the war counts a silent pilot out (war.js 40). No check
-names the rule; phase 21 adds it to `rooms:selftest`.
+(core.js 178), and the war counts a silent pilot out (war.js 40). The
+rule is written in SESSIONS.md (pause, leaving and abandon) and
+`rooms:selftest` holds that a pause stops nothing in the room.
 
 **24. Replay architecture. EXISTS**, ahead of the checklist. The
 recorder keeps per frame columns (sim time, poses, plant, parts, smoke,
@@ -398,7 +405,8 @@ stats.js's beacons. No two consumers read the same stream. **Done:**
 events on the sim clock (and the room clock in a room), with a fixed
 vocabulary (`spawned`, `gate`, `lap`, `touch`, `crash`, `landing`,
 `objective`, `stage`, `kill`, `hit`, `round`, `joined`, `left`,
-`mission_start`, `mission_end`), the room's war ops mapped onto it
+`mission_start`, `mission_end`, and `contact`, the avionics camera's
+primary track held or let go, for Training's Defence track), the room's war ops mapped onto it
 unchanged on the wire. Producers are today's call sites; consumers move
 one per PR: RunWatch first, then the debrief (phase 10), progression
 (phase 11), the replay's events. Deliberately not a pub/sub of
@@ -419,12 +427,17 @@ kills come from what happened. Check: phase 10's results checks, plus
 `events:selftest` folding a debrief. Size M. Phase 10, after 22.
 
 **27. Unified statistics. PARTIAL.** Built (2026-10-13): landings,
-crashes, laps and kills per aircraft, folded from phase 22's log into
-`progress` (src/game/progress.js COUNTED, foldEvents), merged as the
-higher by progressmerge, checked by `progress:selftest` (a stream folded
-twice gives one count). A kill is logged only for a victim the room
-credited (war.js `dead` carries `credited`, `rooms:selftest`). Still
-missing: missions started and completed. What follows
+crashes, laps, kills and missions started and completed per aircraft,
+folded from phase 22's log into `progress` (src/game/progress.js
+COUNTED, foldEvents), merged as the higher by progressmerge, checked by
+`progress:selftest` (a stream folded twice gives one count). A kill is
+logged only for a victim the room credited (war.js `dead` carries
+`credited`, `rooms:selftest`). A mission is started when the client
+sees its war begin and completed when its result is applied, won or
+lost (src/ui/campaign.js observe). Still missing: The Interior's
+mission_start, which needs a call from main.js where an ops match
+begins (opscampaign.js only hears of a match at its debrief), so for
+The Interior completed can exceed started. What follows
 is the gap as first written. stats.js sends three anonymous
 counters to the board (visit, session, flush: laps, flight seconds,
 crashes since the last flush) and keeps none of them (src/share/stats.js
@@ -636,21 +649,27 @@ card 100 % busy, 6.1 ms at 25 %). A pacer check needs a quiet card.
 
 **46. Performance budgets. PARTIAL.** docs/BUDGETS.md is one table:
 the menu (`title`), each world (`alps-low`, `swiss-low`, `itaipu-stream`,
-`interior-ops`) and the war at full load (`itaipu-war`), at Low, Medium
-and High, measured on this box 2026-10-13. Draw calls, triangles, live
-textures and the GPU floor are held at a ceiling set from the
-measurement beside it by `perf -- --budgets` (scripts/perf-play.js,
-local: one run per tier, an Itaipu set peaks at 4.3 GB); frame times
-are written with the card's busy share beside them and never held. At
-High the menu and the alps (390 to 397 calls), swiss2 (350 calls, 3.77
-M triangles), Itaipu's town (5.65 M) and the war (3.03 M) are over the
-written contract of 300 calls and 2.5 M triangles (docs/ITAIPU-PLAN.md
-570, src/render/budget.js 4); the ceilings hold today's cost, not the
-contract. Missing: texture megabytes (three counts textures, not their
-bytes), attackers and peers. **Done:** texture bytes summed off the live
-textures, the war's attacker count and a second pilot (a Node peer on
-the room socket, docs/PERF.md "Not measured") as columns, held the same
-way; the High rows brought under the contract. Size M. Phase 30.
+`interior-ops`), the war at full load (`itaipu-war`) and a full room
+(`peers`: seven more pilots' 7 inches in view, from perf-play on the
+room's wire), at Low, Medium and High, measured on this box 2026-10-13
+and 14. Draw calls, triangles, live textures and the GPU floor are held
+at a ceiling set from the measurement beside it by `perf -- --budgets`
+(scripts/perf-play.js, local: one run per tier, an Itaipu set peaks at
+4.3 GB); frame times are written with the card's busy share beside them
+and never held, and so are the attackers alive in the war's window (1,
+in stage 1, Eyes: the window is early in mission 1, not at its peak) and the peers in view (7). The contract is the main view's at
+High, 300 calls and 2.5 M triangles (4.0 M at Itaipu), the thermal inset
+apart (docs/BUDGETS.md, The contract, 2026-10-13): every world's and
+the war's main view is within it, while a full room is 1 586 calls as a
+whole frame, unsplit, five times it (each peer's craft is 48 meshes);
+the ceilings hold today's cost, not the contract. Texture megabytes are not
+measured and cannot be from here: three's `renderer.info.memory` counts
+textures, WebGL has no query for what one holds on the card, and
+perf-play's upload bytes are a frame's uploads, not what stays
+allocated. The peers' GPU floor moves by half between runs on the shared
+card, so it is held from the highest of three. **Done:** a full room
+under the contract at High (a peer's craft batched), and a war row at
+mission 1's peak stage. Size M. Phase 30.
 
 **47. Object pooling. EXISTS.** Explosions, debris, breakage pieces,
 smoke, attackers and war markers are fixed pools or instanced meshes that
@@ -673,20 +692,33 @@ chunked quadtree LOD (src/maps/terrain/engine.js) over height tiles
 fetched under a byte ceiling (src/maps/terrain/tiles.js). The valley and
 the Alps load whole. Checks: `itaipu:check` (local), `grid:check`.
 
-**50. Spawn safety. PARTIAL.** Every start on every buildable world is
+**50. Spawn safety. EXISTS.** Every start on every buildable world is
 checked: the map's own, spawnFor's answer per kind and `?spawn=` wish,
 each float start, each moved to all eight room seats, and the pilots'
 stations, read off the seated map's height, water and colliders: above
 the ground and not covered, dry (on the water for a float), clear of
 solids, facing a 1 in 4 climb out clear for 150 m, with negative
 controls per world (scripts/world-spawns-check.js, `world:spawns`, CI,
-123 checks in 55 s). It found Itaipu's room stations under the dam
+216 checks in 59 s). It found Itaipu's room stations under the dam
 (200 to 219 m); the crest start now carries its own station line
 (src/maps/itaipu/spawns.js, src/game/slots.js). Itaipu's starts also
 settle undamaged in the plant, its seats and courses too
-(`itaipu:spawns`, local). Missing: race starts of tracks built in the
-valleys (src/builder/course.js startFor, src/game/trackdoc.js). **Done:**
-`world:spawns` reads a seated track's start too. Size S. Phase 30.
+(`itaipu:spawns`, local). Courses too, on every world a track is built
+in (alps, swiss2, Itaipu): each course a world ships (Itaipu's two,
+docs/itaipu-courses; the valleys ship none) and the casual sky track My
+tracks makes there for a plane and for a quad (src/builder/course.js
+casualCourse, from the spawn), its start (startFor) and each gate's
+approach above the ground, clear of solids and inside the playable
+square (src/game/edges.js), with controls per world: a course start
+under the ground, a gate in a solid, a gate past the square. The
+Interior has no float start, so its water control is a ground start on
+Río Sereno (420, 470), where the ground the shell seats on is the
+water; on the channel's bank the plant's water runs 0.8 m under the
+ground, so the control looks for the water at the ground. The Interior
+is no build world (src/maps/registry.js), so it has no courses. Not
+checked: a floatplane's course start, which is the same gate's air
+start (course.js floatStart), and a player's saved track, which is
+judged by the builder's own line (src/builder/line.js) when it is laid.
 
 **51. Camera collision. EXISTS.** The chase camera, a wing's, a
 wreck's and the one behind a watched peer, pulls in along the line to
@@ -777,7 +809,7 @@ a lap with a gate skipped is refused with 422. The arcade flight style is
 kept off the public board (PILLARS 19). Checks: `lap:selftest` (CI);
 `wing:e2e`, `board:live` (local).
 
-**60. Privacy controls. PARTIAL.** Mute per seat, kept through a reseat
+**60. Privacy controls. EXISTS.** Mute per seat, kept through a reseat
 (edge/rooms/safety.js 159); report, with removal for 30 minutes at a
 third of the room (safety.js); kick in private rooms; private rooms with
 a code; chat and emotes from preset lists only (no free text); voice push
@@ -786,7 +818,13 @@ muted pairs (edge/rooms/voice.js 71). Missing: a block that outlasts the
 room (mutes are per seat in memory, src/share/roomsafety.js 9). **Done:**
 a signed in pilot's blocks are stored by account key on the account; a
 blocked pilot is muted on sight and never quick joined into the same
-public room. Check: `rooms:accounts` (CI). Size M. Phase 30.
+public room; since 2026-10-14 the room list and quick join leave out,
+on the server, any room holding a pilot the joiner blocks or who blocks
+the joiner (the page sends its session as a Bearer header; quick join is
+`GET /v2/public/<map>` for a code, then the join; 503 `accounts` when
+the accounts server is down, never an unfiltered guess; a guest mute
+excludes nothing). Checks: `rooms:accounts` (CI), `rooms:selftest`
+blocks section. Size M. Phase 30.
 
 **61. User-generated names. EXISTS.** Guest names are never typed: three
 indices into word lists (`validNamePick`, roomwire.js 156); callsigns
@@ -920,18 +958,19 @@ mission action on the result, Change aircraft from the result. **Done:**
 phase 10's debrief puts Again, Next mission, Change aircraft and Back to
 lobby under the cursor. Size S inside phase 10. Phase 10.
 
-**77. Party persistence. PARTIAL.** The room is the party: its code and
+**77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world
 moves (core.js 937); its host can start another Flight Club game in
-passing (`minElsewhere`, `hostCheck`, core.js 479). But a room's activity
-is fixed at its making (`meta.mode`, edge/rooms/host.js 211; no setter),
-and a war needs a room made for it when public. So a group in Streamer
-Combat who want to defend the Paraná make a new room and share a new
-code. **Done:** the host of a private room can change its activity
-between rounds (`setup { mode }`, the message FLOW-AUDIT.md proposed);
-moving into the war asks each pilot's consent and seats only those who
-give it. Public rooms keep one activity, so the public list stays
-honest. Check: `rooms:server` (CI) and `game:lobby` (local). Size M.
+passing (`minElsewhere`, `hostCheck`, core.js 479). Since 2026-10-14 the
+host of a private room changes its activity between rounds (`setup
+{ mode }`, host only; refused in public rooms, while a round runs, while
+free flight is flying, and for the war off a war mission's world; leaving
+the war drops its match). Moving into the war asks each pilot but the
+host for consent; a pilot who declines stays in the lobby marked SITTING
+OUT with a Join the war row, also after a reload, and is never enlisted
+or waited for. Public rooms keep one activity, so the public list stays
+honest. Checks: `rooms:selftest` setup section (CI), `game:lobby`
+(local, tag/race/combat with the Activity case), `war:twopage`. Size M.
 Phase 27.
 
 ## 18. Structure and words (items 78 to 84)
@@ -941,7 +980,7 @@ account (account.js; `accounts`, tracks-api/migrations/0002), the pilot
 (name and key, pilot.js, identity.js), the room (rooms.js, edge/rooms),
 the mission, the aircraft, the world, the build. Blurred: the party is
 the room (no separate party, item 77); "session" means three things
-(src/share/session.js is the track seat, the account has session tokens,
+(src/share/trackseat.js is the track seat, the account has session tokens,
 and the redesign's session is the room). **Done:** item 83's glossary
 fixes the words; session.js renamed to what it holds in a pure rename PR.
 Size S. Phase 24.
@@ -955,8 +994,8 @@ by a name a pilot typed, deliberately: saved liveries (hangar-paint.js
 936) and board callsigns. Checks: `modes:selftest`, `war:stages`,
 `hulls:check` (CI).
 
-**80. Configuration vs code. BUILT for war missions and the aircraft
-checklist (phase 26, 2026-10-13).** Data: a track (a builder JSON
+**80. Configuration vs code. BUILT for both campaigns' missions and the
+aircraft checklist (phase 26, 2026-10-13).** Data: a track (a builder JSON
 document), mission text (string keys), an activity's art and facts
 (modes.js), a world's entry (registry.js). A war mission's file states
 its campaign place (`act`, `order`, `key`, `free`, `release`) and
@@ -964,11 +1003,15 @@ src/game/campaign.js derives `ACT1` from the registry
 (src/share/war/missions/index.js) with `actOf`, which throws at load on
 an order twice or missing, an impossible release, a missing key or two
 free missions; a mission with no file yet is a row of `PLANNED` beside
-the registry. So a new mission is a file, an import and its strings. The
-Interior's list (`INTERIOR`, campaign.js) is still a hand list: its
-registry, src/share/ops/missions.js, imports interior/node.js, which is
-Node only, and campaign.js reaches the browser (settings.js,
-progressmerge.js). A new aircraft is a folder (docs/AIRCRAFT-FOLDER.md),
+the registry. So a new mission is a file, an import and its strings.
+The Interior's list (`INTERIOR`) is derived the same way by
+`opsCampaignOf` from src/share/ops/rows.js (`campaign`, `order`, `key`,
+`release`, `label`), a module with no import: campaign.js reaches the
+tracks Worker and the browser's settings, and the ops registry
+(src/share/ops/missions.js) would carry the three mission files' worlds,
+films and routes there (28 modules). The registry imports the rows and
+throws at load when a mission file and its row disagree (`checkRows`).
+A new aircraft is a folder (docs/AIRCRAFT-FOLDER.md),
 its plant table generated into the C, a renderer in src/render. The
 aircraft checklist is in scripts/airframes-check.js's header and
 docs/AIRCRAFT-FOLDER.md: name, blurb, facts, size, weight, cameras,
@@ -976,20 +1019,24 @@ class, roles, kit, and the description and note in English and
 Spanish, each with a negative control; a renderer is held by
 src/render/craft.js at load and a hull by `hulls:check`. There is no
 picture field: the picker and the hangar draw the model. Checks:
-`campaign:selftest`, `airframes:check`, `aircraft:folder`, `war:stages`
-(CI).
+`campaign:selftest` (with an import graph walk that fails if
+campaign.js reaches the ops registry), `airframes:check`,
+`aircraft:folder`, `war:stages` (CI).
 
 **81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
 system, decided by the author: one place to hide a row is enough. A war
 mission's gate is its file's `release` (available, development, soon;
-the owner's 2026-10-04 rule), read through campaign.js `released` by the
-rooms server (core.js, front.js, war.js), the campaign list and the
-briefing; kept three valued rather than a `hidden` boolean, because Under
+the owner's 2026-10-04 rule), an Interior mission's is its row's `release` in
+src/share/ops/rows.js, both read through campaign.js `released` by the
+rooms server (core.js, front.js, war.js, ops.js), the campaign lists
+and the war's briefing; kept three valued rather than a `hidden` boolean, because Under
 development and Coming soon are different cards. `inBuild` is gone. An
 upgrade waits on an act (`later: 2`, campaign.js UPGRADES); servers can
-be switched off (`?rooms=off`). **Still to do:** a `hidden` field on the
-mode registry's rows (src/share/modes.js, the sessions lane's), with
-`modes:selftest` (CI) asserting a hidden row reaches no card. Size S.
+be switched off (`?rooms=off`). **Built (w38-sessions):** a `hidden`
+field on the mode registry's rows (src/share/modes.js), false on every
+row today; a hidden row draws no card (src/ui/ways.js gateWays) and is
+never home's Continue, and `modes:selftest` (CI) hides the race in a
+registry of its own and sees Track Day's card go and no other.
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,

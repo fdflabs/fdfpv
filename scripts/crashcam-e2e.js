@@ -26,11 +26,21 @@
  *  5. Flown past the 30 s window: the journal holds its bounded number of
  *     copies, and the steady state memory and costs are printed.
  *  6. No page errors.
+ *  7. An AI opponent race (a second page): the interceptor on the ring of
+ *     tests/fixtures/map-track-v4.json with the Ghost row on AI opponent,
+ *     racing the reference pilot's 8 m/s lap (debrief-race-check.js's
+ *     seeding). The pilot opens the lap and holds while the opponent flies;
+ *     V opens the replay with the opponent drawn as its ghost where the
+ *     race drew it last; saved, it is version 19 and My clips says so; the
+ *     saved file is flown again in Node (npm run replay:refly), the pilot
+ *     and the opponent each bit for bit; what the opponent adds to the
+ *     file is printed. No page errors.
  *
  * With --shots=<dir> it leaves pictures of the editor, the follow shot and
- * My clips there.
+ * My clips there, and the opponent's saved clip. --opponent-only runs 7
+ * alone.
  *
- * Run: node scripts/crashcam-e2e.js [--shots=dir]
+ * Run: node scripts/crashcam-e2e.js [--shots=dir] [--opponent-only]
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -48,13 +58,24 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync,
+} from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { aiBench } from '../tests/lib/aireference.js';
+import { RATE_DEFAULTS } from '../configs/rates.js';
+import { composeConfig } from '../src/fc/dump.js';
+import { raceFromDocument } from '../src/game/verify.js';
+import { encodeGhost, ghostToBase64 } from '../src/share/ghostdata.js';
+import { decodeReplay, encodeReplay } from '../src/replay/file.js';
+import EN from '../src/strings/en.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const shotsArg = process.argv.find((a) => a.startsWith('--shots='));
@@ -468,6 +489,171 @@ async function main() {
     }
     await page.close();
   }
+}
+
+/* ---- 7. an AI opponent race ---- */
+
+const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
+const OPPONENT_PACE = 8;
+
+function ringSeed(track) {
+  const settings = {
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor'),
+    airframeAsked: true,
+    map: 'track',
+    graphics: 'low',
+    graphicsAuto: false,
+    sound: false,
+    fpsCap: 0,
+    laps: 3,
+    feelAsked: true,
+  };
+  return [`try {
+    const s = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}');
+    Object.assign(s, ${JSON.stringify(settings)});
+    localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
+    localStorage.setItem('webfpv.airhint.v2', '1');
+    localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify({ [track.id]: track }))});
+  } catch (e) { /* Storage refused; the run boots on its defaults. */ }`];
+}
+
+async function choose(page, action) {
+  const home = await page.evaluate("window.__ui.items().some((it) => it.action === 'hub-club')");
+  if (action.startsWith('way-') && home) {
+    await choose(page, 'hub-club');
+    await page.until("window.__ui.hub === 'club'", 5000);
+  }
+  const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})`);
+  if (at < 0) {
+    throw new Error(`no row ${action} on ${await page.evaluate('window.__ui.screen')}`);
+  }
+  await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
+}
+
+/* To the ring's launch and into flight, as debrief-race-check.js does. */
+async function flyRing(page, track) {
+  await page.until('!!window.__shellReady', 300000);
+  await page.until('window.__map && window.__map().ready', 400000);
+  await page.until('window.__ui.onGate()', 60000);
+  await choose(page, 'way-race-5inch');
+  await page.until('window.__ui.carousel.isOpen', 10000);
+  await page.tap('Enter');
+  await page.until("window.__ui.screen === 'courses'", 20000);
+  const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.course && it.course.track.id === ${JSON.stringify(track.id)})`);
+  await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
+  await page.until(`window.__ui.cardSubject && window.__ui.cardSubject.endsWith(${JSON.stringify(`:${track.id}`)})`, 5000);
+  await choose(page, 'card-fly');
+  await page.until(`window.__ui.screen === 'launch' && window.__map().ready && window.__race().gates.length === ${track.sequence.length}`, 600000);
+  await choose(page, 'launch-go');
+  await page.evaluate('window.__drawOff(true)');
+  await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
+  await page.until("!/^[123]$/.test(window.__craftState().banner || '')", 30000);
+  await frames(page, 10);
+}
+
+async function opponentRace() {
+  console.log('7. an AI opponent race: drawn in the replay as its ghost, saved as version 19, flown again');
+  const track = JSON.parse(readFileSync(join(root, 'tests/fixtures/map-track-v4.json'), 'utf8'));
+  const af = airframeById('interceptor');
+  const wasm = new Uint8Array(readFileSync(join(root, 'dist/sim.wasm')));
+  const tune = composeConfig(readFileSync(join(root, `configs/${af.defaultTune}.diff`), 'utf8'), RATE_DEFAULTS);
+  const bench = aiBench({ wasm, af, tune, course: raceFromDocument(track), rates: RATE_DEFAULTS });
+  const record = await bench.referenceGhost(await bench.learn(), OPPONENT_PACE);
+  if (!record) {
+    throw new Error(`the reference pilot could not lap the ring at ${OPPONENT_PACE} m/s`);
+  }
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: ringSeed(track) });
+  try {
+    await flyRing(page, track);
+    const G = await page.evaluate(`window.__race().gates.map((g) => ({
+      centre: [g.x, g.y + (g.apertures[0] ? g.apertures[0].centreY : 0), g.z],
+      travel: [g.az.x, g.az.y, g.az.z],
+    }))`);
+    await page.evaluate(`window.__ghostLoad(${JSON.stringify(ghostToBase64(encodeGhost(record)))}, 'Harness')`);
+    const choice = await page.evaluate("window.__ghostPick('ai')");
+    await page.until('window.__ghost().opponent.seated', 60000).catch(() => {});
+    const seated = await page.evaluate('window.__ghost().opponent.seated');
+    check('the Ghost row takes AI opponent and its plant is seated', choice === 'ai' && seated, `${choice}, seated ${seated}`);
+    await frames(page, 30);
+    const g = G[0];
+    const from = g.centre.map((v, i) => v - g.travel[i] * 1.2);
+    const to = g.centre.map((v, i) => v + g.travel[i] * 1.2);
+    await page.evaluate(`window.__placeCraft(${to.join(',')}, ${from.join(',')})`);
+    await frames(page, 3);
+    /* The pilot holds on the ring while the opponent flies 12 s of its
+     * own: from a hover, through the timing gate and on. */
+    await page.until('window.__ghost().opponent.racing', 20000).catch(() => {});
+    await page.until('window.__ghost().opponent.ms > 12000 || window.__ghost().opponent.crashed', 240000).catch(() => {});
+    await page.evaluate('window.__drawOff(false)');
+    await frames(page, 3);
+    const live = await page.evaluate('window.__ghost().opponent');
+    check('the opponent races, drawn', live.racing && live.visible && !live.crashed && live.ms > 12000,
+      `${(live.ms / 1000).toFixed(2)} s flown, next gate ${live.next}, ${live.contacts} contacts`);
+    await page.tap('KeyV');
+    await page.until('window.__crashCam.live()', 10000);
+    await page.evaluate(`${H}.api.jumpTo(1e9)`);
+    await frames(page, 3);
+    const v = await view(page);
+    const gap = v.opponent ? Math.hypot(...v.opponent.pos.map((x, i) => x - live.position[i])) : Infinity;
+    check('the replay draws the opponent as its ghost, at its last row where the race drew it last',
+      Boolean(v.opponent) && v.opponent.visible && gap < 1e-3 && Array.isArray(v.opponent.sticks),
+      v.opponent ? `${gap.toExponential(2)} m from the live ghost, sticks ${JSON.stringify(v.opponent.sticks)}` : 'no opponent');
+    await page.evaluate(`${H}.api.jumpTo(${Math.max(0, v.dur - 6)})`);
+    await frames(page, 3);
+    const earlier = await view(page);
+    check('drawn through the clip, not only at its end', Boolean(earlier.opponent) && earlier.opponent.visible
+      && Math.hypot(...earlier.opponent.pos.map((x, i) => x - v.opponent.pos[i])) > 1,
+    earlier.opponent ? `${Math.hypot(...earlier.opponent.pos.map((x, i) => x - v.opponent.pos[i])).toFixed(1)} m from its last place, 6 s earlier` : 'none');
+    await shot(page, 'opponent-replay');
+    await page.evaluate(`${H}.api.saveReplay('opponent')`);
+    const rows = await page.evaluate(`${H}.api.listClips()`);
+    const row = rows.find((r) => r.name === 'opponent');
+    const bytes = await page.evaluate(`(async () => {
+      const f = await import('/src/replay/store.js');
+      const row = await f.getClip(${JSON.stringify(row ? row.id : '')});
+      const u8 = new Uint8Array(row.bytes);
+      let bin = '';
+      for (let i = 0; i < u8.length; i += 0x8000) {
+        bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+      }
+      return { version: new DataView(row.bytes).getUint32(4, true), b64: btoa(bin) };
+    })()`);
+    check('saved as version 19, its My clips row saying the AI opponent is in it', bytes.version === 19 && row && row.opponent === true
+      && EN['replay.clip_meta_opponent'].endsWith('against the AI opponent'), `version ${bytes.version}, row opponent ${row && row.opponent}`);
+    const dir = shots || mkdtempSync(join(tmpdir(), 'cc-opp-'));
+    const saved = join(dir, 'opponent.fdfreplay');
+    const buf = Buffer.from(bytes.b64, 'base64');
+    writeFileSync(saved, buf);
+    const clip = decodeReplay(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+    const without = encodeReplay({ ...clip, opponent: null });
+    const secs = clip.time[clip.n - 1];
+    console.log(`     size: ${(buf.byteLength / 1e6).toFixed(3)} MB for ${secs.toFixed(1)} s (${clip.n} rows), `
+      + `${((buf.byteLength - without.byteLength) / 1e6).toFixed(3)} MB of it the opponent (${clip.opponent.sticks.length / 4} stick rows, `
+      + `refly ${clip.opponent.refly ? (clip.opponent.refly.packed.byteLength / 1e6).toFixed(3) : '-'} MB packed); without it ${(without.byteLength / 1e6).toFixed(3)} MB`);
+    const re = spawnSync(process.execPath, [join(root, 'scripts', 'replay-refly.js'), saved], { encoding: 'utf8' });
+    writeFileSync(join(dir, 'opponent-refly.txt'), `${re.stdout}${re.stderr}`);
+    const pilot = /MATCH: the clip flies again bit for bit/.test(re.stdout);
+    const opp = /rows it raced: (\d+), flown again: (\d+), bit for bit: (\d+)\/(\d+);[^\n]*kept sticks equal to its sim_input: (\d+)\/(\d+)/.exec(re.stdout);
+    check('flown again in Node (npm run replay:refly): the pilot and the opponent each bit for bit, its sticks its journal\'s',
+      re.status === 0 && pilot && Boolean(opp) && opp[3] === opp[4] && Number(opp[4]) > 0 && opp[5] === opp[6],
+      opp ? `opponent ${opp[3]}/${opp[4]} rows of ${opp[1]} raced, sticks ${opp[5]}/${opp[6]}, exit ${re.status}; ${saved}`
+        : `exit ${re.status}: ${(re.stderr || re.stdout).trim().split('\n').slice(-3).join(' | ')}`);
+    /* The saved clip and the re-fly's output stay only with --shots. */
+    if (!shots) {
+      rmSync(dir, { recursive: true });
+    }
+    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource|network:/.test(e));
+    check('no page errors in the opponent race', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } finally {
+    await page.close();
+  }
+}
+
+async function all() {
+  if (!process.argv.includes('--opponent-only')) {
+    await main();
+  }
+  await opponentRace();
   if (failed) {
     console.log(`crashcam:e2e FAILED (${failed})`);
     process.exit(1);
@@ -475,7 +661,7 @@ async function main() {
   console.log('crashcam:e2e ok');
 }
 
-main().catch((e) => {
+all().catch((e) => {
   console.error(e);
   process.exit(1);
 });

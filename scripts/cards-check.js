@@ -342,7 +342,7 @@ const COURSES_CLOUD = probe(`
 /* Seating: the pilot's own track, one that is gone, another pilot's off the
  * tracks server, and a copy of it opened in the builder. */
 const SEATING = (doc) => probe(`
-  const session = await import('/src/share/session.js');
+  const session = await import('/src/share/trackseat.js');
   ui.show('courses');
   await until(() => !ui.boardLoading);
   out.local = ui.seatLocal('own-swiss');

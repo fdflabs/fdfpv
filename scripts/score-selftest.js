@@ -34,6 +34,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -153,6 +154,35 @@ section('every pattern names a real trick');
     threw = true;
   }
   check('asking the points of an unknown trick throws', threw);
+}
+
+/* ------------------------------------------------------------------ */
+
+section('every pattern scores and is listed in every language');
+{
+  /* The trick tables read the string table when they load, and the page
+   * loads them after taking the pilot's language, so each language runs in
+   * its own process with the language taken first. A trick looked up by a
+   * translated name misses: the Tricks screen drops it and trickPoints
+   * throws on it. */
+  const src = new URL('../src/', import.meta.url).href;
+  const probe = `
+    const { useLocale } = await import('${src}strings/index.js');
+    await useLocale(process.argv[1]);
+    const { trickPoints } = await import('${src}game/tricks.js');
+    const { PATTERNS } = await import('${src}game/trickdetect.js');
+    const { scoreableTricks } = await import('${src}ui/trickslist.js');
+    const failed = PATTERNS.filter((p) => { try { trickPoints(p.name); return false; } catch { return true; } }).map((p) => p.name);
+    console.log(JSON.stringify({ patterns: PATTERNS.length, failed, listed: scoreableTricks().map((t) => t.name) }));`;
+  const run = (locale) => JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', probe, locale], { encoding: 'utf8' }));
+  const en = run('en');
+  for (const locale of ['en', 'es']) {
+    const got = locale === 'en' ? en : run(locale);
+    for (const name of got.failed) note(`${locale}: trickPoints throws on the pattern ${name}`);
+    check(`${locale}: all ${got.patterns} patterns have points (${got.failed.length} fail)`, got.failed.length === 0);
+    check(`${locale}: the Tricks screen lists the same ${en.listed.length} tricks as English (${got.listed.length})`,
+      got.listed.length === en.listed.length && got.listed.every((n) => en.listed.includes(n)));
+  }
 }
 
 /* ------------------------------------------------------------------ */

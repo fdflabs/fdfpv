@@ -568,195 +568,337 @@
     }
    }
   },
-  "brief-itaipu-3-1.en": {
-   "text": "Mission three. They're after the switchyard. Kill it and both banks go dark.",
-   "seconds": 4.905,
+  "contain-breach.en": {
+   "text": "Water through the face. Lowering the stoplogs. Protect the gantry.",
+   "speaker": "crest",
+   "seconds": 4.385,
    "takes": [
     {
      "attempt": 0,
-     "seed": 3036067166,
-     "heard": "Mission 3. They're after the switchyard, kill it and both banks go dark.",
+     "seed": 4270883392,
+     "heard": "Water through the face. Lowering the stop logs. Protect the gantry.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 22311,
-     "sha256": "6ece7e8a6a4bf85b33193623f2cde495e24fd6b7205f7f5f0b27d64e0a410dc9"
+     "bytes": 20063,
+     "sha256": "ee03a8ffacf17e6887d990cfd0bfa62715414659af9f4928c3986ae08cc37248"
     },
     "mp3": {
-     "bytes": 20420,
-     "sha256": "9f82908aaefbbb32963d84331bea44d96e571ff6671cc04b7c8a1dec61699fd0"
+     "bytes": 18308,
+     "sha256": "c34251a5803668921ac5a0a392aa44593a0c21c9b0f08d84ade186aec9a72b53"
     }
    }
   },
-  "brief-itaipu-3-1.es": {
-   "text": "Misión tres. Van por la subestación. Si cae, las dos márgenes quedan a oscuras.",
-   "seconds": 5.825,
+  "contain-breach.es": {
+   "text": "Entra agua por la cara. Bajando las ataguías. Protejan la grúa.",
+   "speaker": "crest",
+   "seconds": 4.105,
    "takes": [
     {
      "attempt": 0,
-     "seed": 3323086419,
-     "heard": "Misión 3. Van por la subestación. Si cae, las dos márgenes quedan a oscuras.",
+     "seed": 1655487248,
+     "heard": "Entra agua por la cara, bajando las ataguías, protejan la grúa,",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 26565,
-     "sha256": "5c10fc9c0303cb87ee86b736ef9b60a7f198634da897f04435b4e81021b65acf"
+     "bytes": 18907,
+     "sha256": "915c39d1478224cec0c15833fb54dc6e6f0f3d727598e439c8c8c45495b52ff0"
     },
     "mp3": {
-     "bytes": 23420,
-     "sha256": "5cb34819d399a95382c4353219339ee61c2a6d7d4b3dd8eb4dc71041176b9afa"
+     "bytes": 17948,
+     "sha256": "eedcfa8162935be0a78ff2498e2a90c670241f19e07f4c9d2bd4f18a1a9506a3"
     }
    }
   },
-  "brief-itaipu-3-2.en": {
-   "text": "Some of those Strikers are decoys. Get close before you spend a bird.",
-   "seconds": 4.095,
+  "contain-half.en": {
+   "text": "Stoplogs halfway down. Keep them off my crane.",
+   "speaker": "taller",
+   "seconds": 3.255,
    "takes": [
     {
      "attempt": 0,
-     "seed": 655136260,
-     "heard": "Some of those strikers or decoys, get close before you spend a bird.",
-     "wer": 0.077,
+     "seed": 981734532,
+     "heard": "Stop logs halfway down. Keep them off my crane.",
+     "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 18755,
-     "sha256": "2d8a776722bba5a295a4c0f05fd9390fbf0583dbd785e3bdb0dac21f0a26b6a6"
+     "bytes": 14802,
+     "sha256": "a8c6462475055d375fbcf99cd38b47f8bf9dd00100a822b50c1194c21079a046"
     },
     "mp3": {
-     "bytes": 16700,
-     "sha256": "b2d63d9593f46c0b3be242b8e9c3a8894cc0f90184a6cfa98efdb708e5f19a28"
+     "bytes": 15620,
+     "sha256": "a199860a093cc0ad4e6deb5d7c466b1e64c5c08843a2fa67e971143f03e8707b"
     }
    }
   },
-  "brief-itaipu-3-2.es": {
-   "text": "Algunos de esos drones de ataque son señuelos. Acérquense antes de gastar un aparato.",
-   "seconds": 5.705,
+  "contain-half.es": {
+   "text": "Las ataguías van por la mitad. Que no lleguen a mi grúa.",
+   "speaker": "taller",
+   "seconds": 3.235,
    "takes": [
     {
      "attempt": 0,
-     "seed": 3637429374,
-     "heard": "Algunos de esos drones de ataque son señuelos. Acérquense antes de gastar un aparato.",
+     "seed": 2074120393,
+     "heard": "Las ataguías van por la mitad. Que no lleguen a mi grúa.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 26062,
-     "sha256": "d8bdf52c2fb960e5614306c73933156ceba1036c2e975e99bd1f9ee52773f2a4"
+     "bytes": 14951,
+     "sha256": "e382e09e60b161254182aee62c800a47bc00db448a3bdf86a42a1239d41f886e"
     },
     "mp3": {
-     "bytes": 24020,
-     "sha256": "decd55c0d20c2808e361c9fc56b6b6fd3cfac95404382fbf825c3779f324a326"
+     "bytes": 16004,
+     "sha256": "56ffb564ac37f604edf0c727db96165128f762217adb4daa5487961308bf77e5"
     }
    }
   },
-  "brief-itaipu-4-1.en": {
-   "text": "Mission four. Night raid on the intakes. You'll see less. So will they.",
-   "seconds": 4.915,
+  "contain-held.en": {
+   "text": "Closed. The face is closed. Back to it.",
+   "speaker": "crest",
+   "seconds": 3.345,
    "takes": [
     {
      "attempt": 0,
-     "seed": 3059627194,
-     "heard": "Mission 4, night raid on the intakes, you'll see less, so will they.",
+     "seed": 1792972179,
+     "heard": "Closed. The face is closed. Back to it.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 22421,
-     "sha256": "7b639856fbfdd07307c1437e6c57e9c0c3bffc4d61c870a1e921ca33db1ee584"
+     "bytes": 15332,
+     "sha256": "49bf13d5080177fb762bc4e85eae46e8f353169132dffd8911226200337c550b"
     },
     "mp3": {
-     "bytes": 19412,
-     "sha256": "d57adc64a97f18b63907790102e6989bdb5c63a79aa317291d083d32d5162f65"
+     "bytes": 13556,
+     "sha256": "dd73932445e701e2ad9ff2d693d20f8652b73860ad029a9c942a88d62647c601"
     }
    }
   },
-  "brief-itaipu-4-1.es": {
-   "text": "Misión cuatro. Ataque nocturno contra las tomas. Van a ver menos. Ellos también.",
-   "seconds": 5.965,
+  "contain-held.es": {
+   "text": "Cerrada. La cara está cerrada. A lo nuestro.",
+   "speaker": "crest",
+   "seconds": 2.875,
    "takes": [
     {
      "attempt": 0,
-     "seed": 1975365867,
-     "heard": "Misión 4. Ataque nocturno contra las tomas. Van a ver menos. Ellos también.",
+     "seed": 1833477198,
+     "heard": "Cerrada. La cara está cerrada. A lo nuestro.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 27138,
-     "sha256": "8f57996e7a201a1a9614fe532425fa33e756d62befe3be811d117f275230fb2b"
+     "bytes": 13326,
+     "sha256": "4de0bd4dadd55d1ddd61de14a1215c276083dd4f24e89256afb5802ce3ee3e0c"
     },
     "mp3": {
-     "bytes": 24596,
-     "sha256": "b109e0adf4693ae8740eeade13f56bd521fb818af6ae0f3cf9acffa4bc66650b"
+     "bytes": 12932,
+     "sha256": "26c1f55aaf2941d631da43627d17221ec51bb4aae4144358e9622ad66a645d84"
     }
    }
   },
-  "brief-itaipu-4-2.en": {
-   "text": "Trust your markers, fly low, and hold the dam until sunrise.",
-   "seconds": 3.805,
+  "contain-lost.en": {
+   "text": "We can't close it. Shutting the plant down. All pilots, pull back to high ground.",
+   "speaker": "crest",
+   "seconds": 4.855,
    "takes": [
     {
      "attempt": 0,
-     "seed": 1738102212,
-     "heard": "Trust your markers, fly low, and hold the dam until sunrise.",
+     "seed": 1553803847,
+     "heard": "We can't close it, shutting the plant down. All pilots pull back to high ground.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 17509,
-     "sha256": "45e7202be17e4e2594888f3623ecc29526883653700b523113ff680cd6d9d713"
+     "bytes": 22151,
+     "sha256": "0827756606ef887d3a262f1dfc52992457abbbd7d3c5f1b20014f3936cffdccf"
     },
     "mp3": {
-     "bytes": 15764,
-     "sha256": "855df2c3d1036d190f8f364e56bbed09d837cfcd3fc16843ada43b376cde96ce"
+     "bytes": 20228,
+     "sha256": "e0a23218238df34ed97a1ee96cfa37e34f7c13d57ea92f1d9dfbf1cfdbdfa7bb"
     }
    }
   },
-  "brief-itaipu-4-2.es": {
-   "text": "Confíen en los marcadores, vuelen bajo y defiendan la represa hasta el amanecer.",
-   "seconds": 5.245,
+  "contain-lost.es": {
+   "text": "No la podemos cerrar. Paramos la central. Todos los pilotos, repliéguense a lo alto.",
+   "speaker": "crest",
+   "seconds": 4.945,
    "takes": [
     {
      "attempt": 0,
-     "seed": 38124581,
-     "heard": "Confíen en los marcadores, vuelen bajo y defiendan la represa hasta el amanecer.",
+     "seed": 2150378328,
+     "heard": "No la podemos cerrar. Paramos la central. Todos los pilotos replieguense a lo alto.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 30
     }
    ],
    "files": {
     "webm": {
-     "bytes": 24071,
-     "sha256": "0b6f6b69e106b52d895aa6720057d37bca7e186e8584d4fd265e2c2856c724aa"
+     "bytes": 22618,
+     "sha256": "5ef122e825677484d95a0288948a1ab9ea6d332c8618ab730da0062520ec6fb4"
     },
     "mp3": {
-     "bytes": 21908,
-     "sha256": "6391c1f9e7feedf03aa63614578994d76ff3db329bcfa1c5ff88baea65566d21"
+     "bytes": 20060,
+     "sha256": "64d0e6c0949491f6ccfe1f1e78d3a54df8ae305bfed35121ee3560c43293f4be"
+    }
+   }
+  },
+  "contain-retarget.en": {
+   "text": "They've seen it. They're turning for the crane.",
+   "speaker": "mirador",
+   "seconds": 2.885,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 505620473,
+     "heard": "They've seen it. They're turning for the crane.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13169,
+     "sha256": "ce88250504ce405e1f681a752e3949ab66c2bee2065fa075866d5ca8b3abd47f"
+    },
+    "mp3": {
+     "bytes": 14612,
+     "sha256": "120ab55ec868dbc9c1eeb3afbadf7d22baa3677ce97f5e7acebd87f175edad0a"
+    }
+   }
+  },
+  "contain-retarget.es": {
+   "text": "Lo vieron. Están girando hacia la grúa.",
+   "speaker": "mirador",
+   "seconds": 2.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3077214059,
+     "heard": "Lo vieron. Están girando hacia la grúa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13332,
+     "sha256": "9fe5d88fcdbf26944d97078788168ba0e87e344dc69345673202e67f2429edac"
+    },
+    "mp3": {
+     "bytes": 13268,
+     "sha256": "48d090000d3c1a2b640340e0985537f59c38a07bbbdeec9b070b102c75c5abce"
+    }
+   }
+  },
+  "contain-river.en": {
+   "text": "The riverbank below was cleared the first night. Nobody is down there. Just close it.",
+   "speaker": "despacho",
+   "seconds": 5.465,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 962449284,
+     "heard": "The riverbank below was cleared the first night. Nobody is down there. Just close it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25066,
+     "sha256": "f58aad6a85df24f127bfa920bff536c8674131d8057e99875ed2acc457adf948"
+    },
+    "mp3": {
+     "bytes": 24740,
+     "sha256": "dea7c6bd14e8cb8496fbbaeeee181b9d4dcac06ea0684f99a70e144597ca87b7"
+    }
+   }
+  },
+  "contain-river.es": {
+   "text": "La ribera de abajo se despejó la primera noche. No hay nadie. Solo ciérrenla.",
+   "speaker": "despacho",
+   "seconds": 4.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2387084951,
+     "heard": "La ribera de abajo se despejó la primera noche. No hay nadie, solo ciervenla.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "cierrenla"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 806441635,
+     "heard": "La bebera de abajo se despejó la primera noche. No hay nadie. Solo ciérrenla.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "ribera"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3052581957,
+     "heard": "La ribera de abajo se despejó la primera noche. No hay nadie. Solo cierrenla.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20503,
+     "sha256": "39e2b7923e6dd8e7fba24f02936f3b91f5164ff9fff8c2b5b4f47227960c04c4"
+    },
+    "mp3": {
+     "bytes": 20540,
+     "sha256": "e741ca987e81dde6ce4f08ea1a67dba0a4b0d6f3b15930d5475d70921951259a"
     }
    }
   },
@@ -969,255 +1111,219 @@
    }
   },
   "debrief-itaipu-3-lose.en": {
-   "text": "The right bank is dark. We'll get it back. Regroup.",
-   "seconds": 3.415,
+   "text": "The right bank is dark. We'll get it back. Crest, they're yours.",
+   "speaker": "despacho",
+   "seconds": 4.245,
    "takes": [
     {
      "attempt": 0,
      "seed": 3097798456,
-     "heard": "The right bank is dark. We'll get it back. Regroup.",
+     "heard": "The right bank is dark. We'll get it back. Crest, they're yours.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 15731,
-     "sha256": "03bb4d0dde81043af623d54fefc14e834b4a94b963b4aee978f83858694f4f59"
+     "bytes": 19529,
+     "sha256": "94ce392c3d0833c8583cdcd987535084ea7ae9fb8a053ead7b0ad2ce355b8f97"
     },
     "mp3": {
-     "bytes": 14180,
-     "sha256": "6c9ac72cee055a6f48ee079e09b2ca3f294d7d3594e1965b8b741c8cdb806807"
+     "bytes": 19148,
+     "sha256": "93be07de8965684e5e5838ebe477eb3564cdce3fa72d99f7a9f3730ff0b74049"
     }
    }
   },
   "debrief-itaipu-3-lose.es": {
-   "text": "La margen derecha está a oscuras. La vamos a recuperar. Reagrúpense.",
-   "seconds": 5.435,
+   "text": "La margen derecha está a oscuras. La vamos a recuperar. Cresta, son suyos.",
+   "speaker": "despacho",
+   "seconds": 4.625,
    "takes": [
     {
      "attempt": 0,
      "seed": 855434061,
-     "heard": "La margen derecha está a oscuras. La vamos a recuperar. Reagrúpense.",
+     "heard": "La margen derecha está a oscuras. La vamos a recuperar. Cresta. Son suyos.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 24800,
-     "sha256": "e3883576a2ae53945d986d6e916284af14aa21ad97e4c57f257d262c43a02da2"
+     "bytes": 21275,
+     "sha256": "6afffe9ecf082ce6e5afd2f22818f5eff27f64d5e5751af2b37e22c051a44582"
     },
     "mp3": {
-     "bytes": 22364,
-     "sha256": "a8d89b0491c608dc718011575fcc58901a59da20154c0f9a070adae75f253b9d"
+     "bytes": 20396,
+     "sha256": "b8ddb101525cdad271c787f05353e85199e48f9e9f2f09037fc6ced32e5b762d"
     }
    }
   },
   "debrief-itaipu-3-win.en": {
-   "text": "The switchyard held. The lights stayed on. Well done.",
-   "seconds": 3.945,
+   "text": "Night's down and the plant's still running. Good flying, both banks.",
+   "speaker": "crest",
+   "seconds": 4.125,
    "takes": [
     {
      "attempt": 0,
      "seed": 2174197138,
-     "heard": "The switch yard held. The light stayed on. Well done.",
-     "wer": 0.333,
-     "extra": 1,
-     "missing": [
-      "switchyard",
-      "lights"
-     ]
+     "heard": "Nights down and the plants still running. Good flying both banks. Both banks.",
+     "wer": 0.182,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
     },
     {
      "attempt": 1,
      "seed": 1681837959,
-     "heard": "The switchyard held, the lights stayed on, well done. Weld.",
-     "wer": 0.111,
-     "extra": 1,
-     "missing": []
-    },
-    {
-     "attempt": 2,
-     "seed": 179279888,
-     "heard": "The switchyard held. The light stayed on. Well done.",
-     "wer": 0.111,
-     "extra": 0,
-     "missing": [
-      "lights"
-     ]
-    },
-    {
-     "attempt": 3,
-     "seed": 2881327597,
-     "heard": "The switch yard held. The light stayed on. Well done.",
-     "wer": 0.333,
-     "extra": 1,
-     "missing": [
-      "switchyard",
-      "lights"
-     ]
-    },
-    {
-     "attempt": 4,
-     "seed": 825304401,
-     "heard": "The switch art held. The light stayed on. Well done.",
-     "wer": 0.333,
-     "extra": 1,
-     "missing": [
-      "switchyard",
-      "lights"
-     ]
-    },
-    {
-     "attempt": 5,
-     "seed": 2047848381,
-     "heard": "The switch art held. The lights stayed on. Well done.",
-     "wer": 0.222,
-     "extra": 1,
-     "missing": [
-      "switchyard"
-     ]
-    },
-    {
-     "attempt": 6,
-     "seed": 2628996687,
-     "heard": "The switchyard held. The lights stayed on. Well done.",
+     "heard": "Nights down and the plants still running, good flying both banks.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 17996,
-     "sha256": "855771466068338c9d856d923f460a719e96689e76bd2f2d8fb3dbac58b8c147"
+     "bytes": 18880,
+     "sha256": "9f1591817cee33ba86400897518a0539ae46c6f263d09a94a1a29ed0d1a7f911"
     },
     "mp3": {
-     "bytes": 16268,
-     "sha256": "1f35173d0b6758a7c95218cc91e1cf32a84d67c5212255d0a5f9addcd6e7e836"
+     "bytes": 17684,
+     "sha256": "8718ad2ac10831e1db3e59ace08380a0d21e82e2941e0e49bd4f5b8c9b59d283"
     }
    }
   },
   "debrief-itaipu-3-win.es": {
-   "text": "La subestación resistió. La luz sigue encendida. Bien hecho.",
-   "seconds": 3.905,
+   "text": "Cayó la noche y la central sigue andando. Buen vuelo, las dos márgenes.",
+   "speaker": "crest",
+   "seconds": 5.155,
    "takes": [
     {
      "attempt": 0,
      "seed": 2950224700,
-     "heard": "La subestación resistió. La luz sigue encendida. Bien hecho.",
+     "heard": "Cayó la noche y la central sigue andando. Buen vuelo, las dos márgenes.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 17974,
-     "sha256": "d934cef82008ad9eef8912bdfe7ad577ce51e45b04c410a41dc87091e09a0a7c"
+     "bytes": 23546,
+     "sha256": "8942fd46a9c0894b7225548d7ccf6ff0b4cd82a5dbb8fd1a382a9ca71755ad65"
     },
     "mp3": {
-     "bytes": 16940,
-     "sha256": "a36cfc4577c60fb09bec8cc196c019245bf50e05542f08671bc087ddb6a8b1b3"
+     "bytes": 21380,
+     "sha256": "426091daba5944de4c07cbfd0a178cf442ea01f17d61729ebbec6108dbd31f0e"
     }
    }
   },
   "debrief-itaipu-4-lose.en": {
-   "text": "They got through in the dark. Pull back. We go again tomorrow night.",
-   "seconds": 4.115,
+   "text": "They got through in the dark. Pull back. We go again tonight.",
+   "speaker": "crest",
+   "seconds": 4.315,
    "takes": [
     {
      "attempt": 0,
      "seed": 3616547457,
-     "heard": "They got through in the dark. Pull back. We go again tomorrow night.",
+     "heard": "They got through in the dark. Pull back. We go again tonight.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 18851,
-     "sha256": "da99751742a22a283da88446ff061c54ed509ade6cba73b2c049bc18c2f67a25"
+     "bytes": 19596,
+     "sha256": "e967719df64d550f300c54925928fbf12b91deb9249c644771d602b97b7b2437"
     },
     "mp3": {
-     "bytes": 17756,
-     "sha256": "e03be210e9b788fb2c33f1d71e40bbbe3636fcff7ede45e418f88b0a4ba682a2"
+     "bytes": 17372,
+     "sha256": "03bcd82550ca8cbc9e91ca7423059c679eb08b60a8b81a9e6e4b9fbb2e194b41"
     }
    }
   },
   "debrief-itaipu-4-lose.es": {
-   "text": "Pasaron en la oscuridad. Repliéguense. Volvemos mañana a la noche.",
-   "seconds": 4.895,
+   "text": "Pasaron en la oscuridad. Repliéguense. Volvemos esta noche.",
+   "speaker": "crest",
+   "seconds": 4.395,
    "takes": [
     {
      "attempt": 0,
      "seed": 758722809,
-     "heard": "pasaron en la oscuridad. Repliéguense, volvemos mañana a la noche.",
+     "heard": "Pasaron en la oscuridad. Repliéguense. Volvemos esta noche.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 22370,
-     "sha256": "1c66462cc29f79eaa554fd060108b00c273eba9cdd96bd96604a7c8586bc8862"
+     "bytes": 20129,
+     "sha256": "1291cbe68790d219b68781c9a723e36172ae347cd2f24fb6bfdf94400c35ea57"
     },
     "mp3": {
-     "bytes": 20180,
-     "sha256": "c3c487b8549d770c2e4becdbf3b71b442d273ab939063151313decd551e6b7f4"
+     "bytes": 17876,
+     "sha256": "a5ce0534f5eafa09e5f7e0fe2e479556eb64f327746aa06066c5ee816f343e51"
     }
    }
   },
   "debrief-itaipu-4-win.en": {
-   "text": "Sunrise, and the dam still stands. That's the whole first act. Good work.",
-   "seconds": 5.275,
+   "text": "Sunrise, and the dam still stands. Get some sleep. They'll be back.",
+   "speaker": "crest",
+   "seconds": 4.915,
    "takes": [
     {
      "attempt": 0,
      "seed": 2071909107,
-     "heard": "sunrise, and the dam still stands. That's the whole first act. Good work.",
+     "heard": "sunrise and the dam still stands get some sleep they'll be back",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 23913,
-     "sha256": "08c486e204305cf6850a4a85392b9a0cefe71a78623fbe80784ef6b6d4ce389e"
+     "bytes": 22408,
+     "sha256": "a28b34dce7b5dbb9848dc7ffc9b9adeddd933a209e15f1f5b18e9f2b7dae4f6f"
     },
     "mp3": {
-     "bytes": 21644,
-     "sha256": "488d694579d3430ecf02024067f856137b9ffa3b8a5c2b627690adb947fdd9dd"
+     "bytes": 20636,
+     "sha256": "dada9c512269db040466093be592dedb93d89e0d04a85dbd5a0b6588df536428"
     }
    }
   },
   "debrief-itaipu-4-win.es": {
-   "text": "Amanece, y la represa sigue en pie. Ese fue el primer acto completo. Buen trabajo.",
-   "seconds": 5.585,
+   "text": "Amanece, y la represa sigue en pie. Duerman un poco. Van a volver.",
+   "speaker": "crest",
+   "seconds": 4.615,
    "takes": [
     {
      "attempt": 0,
      "seed": 494490402,
-     "heard": "Amanece y la represa sigue en pie. Ese fue el primer acto completo. Buen trabajo.",
+     "heard": "Amanece, y la represa sigue en pie, duerman un poco, van a volver.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 25507,
-     "sha256": "eaf7b5923943c3a5e04eea3726c9950306404e97737658b06758cd3a2f699889"
+     "bytes": 21186,
+     "sha256": "6940333cd8a342c39c9fb06b40a0597dd4865398c33f264fcf30170d42c5275e"
     },
     "mp3": {
-     "bytes": 24380,
-     "sha256": "a0dbe96290bbf6a96faebbe159a6ccecf085823318c1020e3a5316cda035c869"
+     "bytes": 20540,
+     "sha256": "b56b6fb8c7dbfadaa30b2bb96fdbb6979505b6e809ef2fc4ec97dfa5b85b871b"
     }
    }
   },
@@ -6820,14 +6926,14 @@
    }
   },
   "int-spot-loud.es": {
-   "text": "A toda potencia tan cerca, los escucharon. Bajen el acelerador al acercarse.",
+   "text": "A toda potencia tan cerca, los escucharon. Bajen el throttle al acercarse.",
    "speaker": "vega",
-   "seconds": 5.105,
+   "seconds": 4.875,
    "takes": [
     {
      "attempt": 0,
      "seed": 1839756625,
-     "heard": "A toda potencia tan cerca, los escucharon, bajen el acelerador al acercarse.",
+     "heard": "A toda potencia tan cerca, los escucharon. Bajen el throttle al acercarse.",
      "wer": 0.0,
      "extra": 0,
      "missing": [],
@@ -6836,12 +6942,12 @@
    ],
    "files": {
     "webm": {
-     "bytes": 23094,
-     "sha256": "6327498857f7883b5f7e6dd96302ee19b92e25b1e74fe09ddfeb31eebda9912d"
+     "bytes": 22029,
+     "sha256": "4b263eafd4d76207f3ae87357664aef5e8ac4b1611956fc2ce9e11598315b47b"
     },
     "mp3": {
-     "bytes": 24956,
-     "sha256": "68438d96af9c6b75961022e0451ff8252f77c0ab33e3393b9f317b1718cc8813"
+     "bytes": 22460,
+     "sha256": "58374c15aa8d7d7ca1c5037ead00125694d97127e1f2a8a46e1c48fe085ff789"
     }
    }
   },
@@ -15588,6 +15694,58 @@
     }
    }
   },
+  "itaipu-1-op.en": {
+   "text": "This face has never let water through where it shouldn't. Close it.",
+   "speaker": "crest",
+   "seconds": 3.915,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 309765392,
+     "heard": "This face has never let water through where it shouldn't. Close it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17892,
+     "sha256": "3a6aed3cbc7160df3fccd0e8f1ed7c689726b65380b795fbf18e8a81a286ca86"
+    },
+    "mp3": {
+     "bytes": 16124,
+     "sha256": "3979a27cf720b140ff7eac71b519fecfc5d0f132692a9773626f015e5caabba6"
+    }
+   }
+  },
+  "itaipu-1-op.es": {
+   "text": "Esta cara nunca dejó pasar agua por donde no debía. Ciérrenla.",
+   "speaker": "crest",
+   "seconds": 4.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1206418193,
+     "heard": "Esta cara nunca dejó pasar agua por donde no debía. ¡Ciérrenla!",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18713,
+     "sha256": "939c4715c11ef1897453d18e015e2366a51badc225be38f565ba289f8efbcb1d"
+    },
+    "mp3": {
+     "bytes": 17708,
+     "sha256": "0ad9f9992106fc38258999e33a4a91f98c5c46beb74e5f039ce61a688801227c"
+    }
+   }
+  },
   "itaipu-1-s0-brief.en": {
    "text": "Pilots of both banks, this is Crest. Something's been circling since before light.",
    "speaker": "crest",
@@ -16625,6 +16783,58 @@
     "mp3": {
      "bytes": 18692,
      "sha256": "1e0375b0331094c8f420e28a5b09dbda5768dff1d7cc0cab21a8bd81fccba35f"
+    }
+   }
+  },
+  "itaipu-2-op.en": {
+   "text": "With the reservoir this high, that won't stop on its own. Stoplogs first, then the spill.",
+   "speaker": "crest",
+   "seconds": 5.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3278151025,
+     "heard": "With the reservoir this high, that won't stop on its own. Stop logs first, then the spill.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27097,
+     "sha256": "f5072b0331d17fb6476f4162e71fb80be83ac480341e22d6d049ee9d8fb07e60"
+    },
+    "mp3": {
+     "bytes": 23444,
+     "sha256": "c00de54cd8324eb82d019bfff632cc2ad5f397bcd0bdb81100b20594ab2a6b3d"
+    }
+   }
+  },
+  "itaipu-2-op.es": {
+   "text": "Con el embalse así de alto, eso no para solo. Primero las ataguías, después el vertido.",
+   "speaker": "crest",
+   "seconds": 5.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2196154683,
+     "heard": "Con el embalse así de alto, eso no para solo. Primero las ataguías, después el vertido.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26125,
+     "sha256": "186ba43a920f32da0f820609ffaa1ceb940587b615ec50ec2fd53f90699d6098"
+    },
+    "mp3": {
+     "bytes": 23540,
+     "sha256": "29b48148475089c8d7c8e88dd4e5a8516a8e8b1f7b99fc31feb80878b5695648"
     }
    }
   },
@@ -17717,6 +17927,1908 @@
     "mp3": {
      "bytes": 14132,
      "sha256": "e79575a823110cd42fd900f38a8b5e3bbdd33ce13db1c776228e60ea735651ec"
+    }
+   }
+  },
+  "itaipu-3-g-dark.en": {
+   "text": "Protect the switchyard and the west intakes. High over the yard, low from the north, and the gorge. The closest to a target first.",
+   "speaker": "crest",
+   "seconds": 7.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4205176959,
+     "heard": "Protect the switch yard and the west intakes, high over the yard, low from the north, and the gorge, the closest to a target first.",
+     "wer": 0.083,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 659509203,
+     "heard": "Protect the switchyard and the west intakes, high over the yard low from the north and the gorge, the closest to a target first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31847,
+     "sha256": "63697cf2f868a536fb6f53801df5b5c0f63eef931f4a0acb456c07b8ee87a61f"
+    },
+    "mp3": {
+     "bytes": 27692,
+     "sha256": "3466c233c17d7bee56054be7aef608b5943f5c6af83847d3afa1c340e606e3f8"
+    }
+   }
+  },
+  "itaipu-3-g-dark.es": {
+   "text": "Protejan la subestación y las tomas del oeste. Arriba sobre la subestación, bajo desde el norte, y el cañón. Primero el más cercano a un blanco.",
+   "speaker": "crest",
+   "seconds": 8.365,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2551192137,
+     "heard": "Protejan la subestación y las tomas del oeste. Arriba sobre la subestación bajo desde el norte y el cañón. Primero el más cercano a un blanco.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 38022,
+     "sha256": "bbba4916dee8eef12c90cc60249f9bf6377445c3b7a7be96ea2714a508a1cd47"
+    },
+    "mp3": {
+     "bytes": 34796,
+     "sha256": "02ec28cbcc749e8cad7e295088c4b10e6b2249d024eabe8174cd364b07d0421d"
+    }
+   }
+  },
+  "itaipu-3-g-feint.en": {
+   "text": "Turn east for the intakes on the upstream face. Leave the decoys over the yard.",
+   "speaker": "crest",
+   "seconds": 4.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3951407433,
+     "heard": "Turn east for the intakes on the upstream face. Leave the decoys over the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22009,
+     "sha256": "0d981b8677547b7afd6f765cd25d70d0c933a960bf1da19cceb536014e4aebce"
+    },
+    "mp3": {
+     "bytes": 19820,
+     "sha256": "efb394e8578da43fae50a26af5f5723ccf78c4681e7fbf5ab5bc5a2a3e77afcb"
+    }
+   }
+  },
+  "itaipu-3-g-feint.es": {
+   "text": "Giren al este hacia las tomas de la cara aguas arriba. Dejen los señuelos sobre la subestación.",
+   "speaker": "crest",
+   "seconds": 5.765,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 70205242,
+     "heard": "Giren al este hacia las tomas de la cara aguas arriba. Dejen los señuelos sobre la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26400,
+     "sha256": "4dfb3ea88421a37814e5ebc469808d3e7de2e1562d81445cb74b074e74806fad"
+    },
+    "mp3": {
+     "bytes": 24524,
+     "sha256": "32e6c9cfc0a58c6e5c611617c753c611dfc374b1ece3adcb78b2a45ff0c75291"
+    }
+   }
+  },
+  "itaipu-3-g-lie.en": {
+   "text": "A decoy is marked Striker until you are close. Get in close and look before you commit.",
+   "speaker": "crest",
+   "seconds": 5.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3449689620,
+     "heard": "A decoy is marked striker until you are close. Get in close and look before you commit.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23633,
+     "sha256": "36cdb90e4c0a59fa757a345b9dcbd16ebfc8ac74a21bf0dc158748b7b64c7bb7"
+    },
+    "mp3": {
+     "bytes": 21116,
+     "sha256": "0081e0aae8bd3098d52beb95a294e195f9b53dc87e94ecbb564ca9039829d8c3"
+    }
+   }
+  },
+  "itaipu-3-g-lie.es": {
+   "text": "Un señuelo está marcado como atacante hasta que están cerca. Acérquense bien y miren antes de lanzarse.",
+   "speaker": "crest",
+   "seconds": 6.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3544243290,
+     "heard": "Un señuelo está marcado como atacante hasta que están cerca. Acérquense bien y miren antes de lanzarse.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27892,
+     "sha256": "31dd1ec2dbfd693fc9bc2ea9ba05fa3352896c03a6e355ed56ae8136d6fe77b7"
+    },
+    "mp3": {
+     "bytes": 25988,
+     "sha256": "4fbeb0d474683abc52dd49cd23f82b51b3c3c7d2b6e120dbf5b63cfda1ebe3b3"
+    }
+   }
+  },
+  "itaipu-3-g-pack.en": {
+   "text": "Fly into the pack. When the markers change, the one still marked Striker is real. Take that one.",
+   "speaker": "crest",
+   "seconds": 5.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1083293283,
+     "heard": "Fly into the pack, when the markers change, the one still marked striker is real, take that one.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23090,
+     "sha256": "c5638b282c94e2399782f239465a1f95881862348b13d1524d2669fca5a40f03"
+    },
+    "mp3": {
+     "bytes": 21116,
+     "sha256": "770cbb251f8d5e7e3250b4d4ff3bd2eed8d914225711f2f7a191d354fa119126"
+    }
+   }
+  },
+  "itaipu-3-g-pack.es": {
+   "text": "Métanse en el grupo. Cuando cambien las marcas, la que sigue diciendo atacante es la real. Derriben esa.",
+   "speaker": "crest",
+   "seconds": 6.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1011403435,
+     "heard": "Métanse en el grupo, cuando cambien las marcas, la que sigue diciendo atacante es la real, deriven esa.",
+     "wer": 0.056,
+     "extra": 0,
+     "missing": [
+      "derriben"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2728389952,
+     "heard": "Métanse en el grupo. Cuando cambien las marcas, la que sigue diciendo atacante es la Greal. Derriben esa.",
+     "wer": 0.056,
+     "extra": 0,
+     "missing": [
+      "real"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1696188858,
+     "heard": "Métanse en el grupo, cuando cambien las marcas, la que sigue diciendo atacante es la real, derriben esa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29408,
+     "sha256": "27353ce1803594514881d74abf34bde6805f0aec7ad7a405160aca8ffdc470d3"
+    },
+    "mp3": {
+     "bytes": 27164,
+     "sha256": "24e0de7a021916df02c41ad8aed81ccfcfa60ea2f2c3d54e030672d50cf90df4"
+    }
+   }
+  },
+  "itaipu-3-g-reroute.en": {
+   "text": "Keep the switchyard standing until Dispatch calls it. Stay between the yard and whatever comes.",
+   "speaker": "crest",
+   "seconds": 5.655,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4200933288,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 8423066,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1216592344,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2833955595,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 3345016288,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 5,
+     "seed": 3266365188,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 6,
+     "seed": 170540134,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 7,
+     "seed": 1052297110,
+     "heard": "Keep the switchyard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25808,
+     "sha256": "64fedf21084404ac721d9d4cac958ca5ddd5e376be0ae60736c723887393052c"
+    },
+    "mp3": {
+     "bytes": 23276,
+     "sha256": "ecbff82cd816fd953a4113e49b2d9eb738f8f97e56461b941c089ac8c8d3e357"
+    }
+   }
+  },
+  "itaipu-3-g-reroute.es": {
+   "text": "Mantengan la subestación en pie hasta que Despacho avise. Quédense entre la subestación y lo que venga.",
+   "speaker": "crest",
+   "seconds": 6.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2164193725,
+     "heard": "Mantengan la subestación en pie hasta que el despacho avise. Quédense entre la subestación y lo que venga.",
+     "wer": 0.059,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2111065034,
+     "heard": "Mantengan la subestación en pie hasta que despacho avise. Quédense entre la subestación y lo que venga.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27579,
+     "sha256": "9ce163ae35e3fac7f33908da669bc54687330add505a742bc2368f64039d836a"
+    },
+    "mp3": {
+     "bytes": 24980,
+     "sha256": "895beef5280850f84f03fdf4257a01d4d5e96c715950535d9b7d4c9e1639d572"
+    }
+   }
+  },
+  "itaipu-3-g-wires.en": {
+   "text": "They come along the lines from the west, low. Meet them over the corridor, above the wires.",
+   "speaker": "crest",
+   "seconds": 4.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3497937364,
+     "heard": "They come along the lines from the west, low, meet them over the corridor above the wires,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21940,
+     "sha256": "ec3195ec6710c7ae74acf4c49e58b5dc1ddf27f5ceade11e5a2c99bf51e40f9e"
+    },
+    "mp3": {
+     "bytes": 20132,
+     "sha256": "e6ab5745c8122b399e73fd924ca39d5f42490d460e3e39e6ad59e3473b6e3878"
+    }
+   }
+  },
+  "itaipu-3-g-wires.es": {
+   "text": "Vienen por las líneas desde el oeste, bajos. Salgan a su encuentro sobre el corredor, por encima de los cables.",
+   "speaker": "crest",
+   "seconds": 7.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3242338827,
+     "heard": "Vienen por las líneas desde el oeste, bajos, salgan a su encuentro sobre el corredor, por encima de los cables.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 33683,
+     "sha256": "c5fd2915d532d90efea2619f6efa392d194b66261d8cede9505359ec3610c8e2"
+    },
+    "mp3": {
+     "bytes": 29948,
+     "sha256": "ce3882e9a831072721038fdf41dea8e0f68a7ec6b8cf4afa4247e06ee737d81a"
+    }
+   }
+  },
+  "itaipu-3-g-yard.en": {
+   "text": "Protect the switchyard on the right bank, west of the dam. Strikers come down the west arm. Fly west and meet them over the shore.",
+   "speaker": "crest",
+   "seconds": 7.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2189919206,
+     "heard": "Protect the switchyard on the right bank, west of the dam, strikers come down the west arm, fly west and meet them over the shore.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 35411,
+     "sha256": "667a146884ce00ca6db9cc6c5e3d34d0c66620361da244027a0385441e96a3c9"
+    },
+    "mp3": {
+     "bytes": 31748,
+     "sha256": "08a2288d2aa049fab68e32c623d94defc6ec4edaa6cd6e435b066037ceb8bebc"
+    }
+   }
+  },
+  "itaipu-3-g-yard.es": {
+   "text": "Protejan la subestación de la margen derecha, al oeste de la represa. Los drones de ataque bajan por el brazo oeste. Vuelen al oeste y salgan a su encuentro sobre la costa.",
+   "speaker": "crest",
+   "seconds": 10.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1623997424,
+     "heard": "Protejan la subestación de la margen derecha al oeste de la represa. Los drones de ataque bajan por el brazo oeste, vuelen al oeste y salgan a su encuentro sobre la costa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 45917,
+     "sha256": "c6182d8320cdece69f6baecad3f523ae6ebae9f6648892934ff8ff01d92d00f9"
+    },
+    "mp3": {
+     "bytes": 41756,
+     "sha256": "2099098c3a45fd2a85890ce79011f98f4acb08196f7ae61352e2bbd016c7d9c9"
+    }
+   }
+  },
+  "itaipu-3-op.en": {
+   "text": "Crest, you've got water through the face and I've got a grid on one leg. Close it, then give me the yard.",
+   "speaker": "despacho",
+   "seconds": 6.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3535723880,
+     "heard": "You've got water through the face, and I've got a grid on one leg. Close it, then give me the yard.",
+     "wer": 0.045,
+     "extra": 0,
+     "missing": [
+      "crest"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1688678688,
+     "heard": "Crest, you've got water through the face and I've got a grid on one leg. Close it, then give me the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30683,
+     "sha256": "ddf773969b1bbee8eae25195df8de55b20c4f5b958b17ab82eece8c76086c2e5"
+    },
+    "mp3": {
+     "bytes": 30188,
+     "sha256": "a85131234c9434d6ceff717554027e2acf4441ff3ee7f3720828ff7ba67f1abd"
+    }
+   }
+  },
+  "itaipu-3-op.es": {
+   "text": "Cresta, ustedes tienen agua por la cara y yo una red con una sola pata. Ciérrenla, y después denme la subestación.",
+   "speaker": "despacho",
+   "seconds": 6.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3181996006,
+     "heard": "Cresta, ustedes tienen agua por la cara y yo una red con una sola pata. Cierrenla y después denme la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31194,
+     "sha256": "5f6042d69f0f0355283db919c939999658d7bc71d18c51aa4d7b09260554e4b2"
+    },
+    "mp3": {
+     "bytes": 30572,
+     "sha256": "a840a41c2f6e47dcd10e3a084d58e4eb7f5cfc1164e9a82391e9cf9c6eed939d"
+    }
+   }
+  },
+  "itaipu-3-s0-brief.en": {
+   "text": "The switchyard is how the right bank gets its light. Tonight it's the most important thing we have.",
+   "speaker": "crest",
+   "seconds": 4.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1053151677,
+     "heard": "The switchyard is how the right bank gets its light. Tonight, it's the most important thing we have.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21705,
+     "sha256": "534eefad95e44550848e5d521f8599fd2ce186b3041df14fb516d73b8223b717"
+    },
+    "mp3": {
+     "bytes": 19700,
+     "sha256": "84c4c0b5212bb20074c1593091ff58f99c990abc0387dfa6c704df0ac22a58c0"
+    }
+   }
+  },
+  "itaipu-3-s0-brief.es": {
+   "text": "La subestación es por donde le llega la luz a la margen derecha. Esta noche es lo más importante que tenemos.",
+   "speaker": "crest",
+   "seconds": 6.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1818543631,
+     "heard": "La subestación es por donde le llega la luz a la margen derecha. Esta noche es lo más importante que tenemos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28892,
+     "sha256": "d66287179f49b054ca28cac55fe81c7f985c669f6e2e4bee7562616b2e3b30f2"
+    },
+    "mp3": {
+     "bytes": 26924,
+     "sha256": "a5459ee18aae90f1e0c2dd359dcfb1f48f5d52a72b13ace70311532e76c74ee7"
+    }
+   }
+  },
+  "itaipu-3-s0-rules.en": {
+   "text": "Some of what's coming is fake. Get close before you spend a bird.",
+   "speaker": "mirador",
+   "seconds": 4.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3795367850,
+     "heard": "Some of what's coming is fake. Get close before you spend a bird.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19529,
+     "sha256": "e15df6bec60db34cc757f3d2412c7d6ada704d16e4da60dec94849a2dece18ff"
+    },
+    "mp3": {
+     "bytes": 19556,
+     "sha256": "1ac5251b4d385b58f4d991e06ddff9b147e39b2ed87322937e2973128a9547d1"
+    }
+   }
+  },
+  "itaipu-3-s0-rules.es": {
+   "text": "Parte de lo que viene es falso. Acérquense antes de gastar un aparato.",
+   "speaker": "mirador",
+   "seconds": 4.375,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4259301519,
+     "heard": "Pártele lo que viene es falso. Acérquense antes de gastar un aparato.",
+     "wer": 0.154,
+     "extra": 0,
+     "missing": [
+      "parte"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2028647587,
+     "heard": "Parte de lo que viene es falso. Acérquense antes de gastar un aparato.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19714,
+     "sha256": "50f45eb3492bc4be272c678cff8ec4f71a7b990749a0875e4424c34556008b99"
+    },
+    "mp3": {
+     "bytes": 19700,
+     "sha256": "8f30776963deb13f8f1d3ae548c88c1df6daca7d4a648c8ecdbcee041a21399d"
+    }
+   }
+  },
+  "itaipu-3-s1-clear.en": {
+   "text": "Yard's still standing. Next time, most of what comes won't be real.",
+   "speaker": "crest",
+   "seconds": 4.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3531429129,
+     "heard": "Yard's still standing. Next time, most of what comes won't be real.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19876,
+     "sha256": "fd6e5e143bb946cda6d46c742717f13592c1fa294cd15241e7a9d45ec206b5a0"
+    },
+    "mp3": {
+     "bytes": 17564,
+     "sha256": "42f7b37ece963e26fed3dd601083eea91500345132089eb0b32e02c498444986"
+    }
+   }
+  },
+  "itaipu-3-s1-clear.es": {
+   "text": "La subestación sigue en pie. La próxima vez, casi nada de lo que venga va a ser real.",
+   "speaker": "crest",
+   "seconds": 6.075,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 870881197,
+     "heard": "La subestación sigue en pie. La próxima vez, casi nada de lo que venga va a ser real.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27652,
+     "sha256": "79a4239cf98e986de89c69c14d1ee09500f81ba1c0817bfb7ea60e16a63707b1"
+    },
+    "mp3": {
+     "bytes": 24620,
+     "sha256": "a897c0f9df4f6af079f429cfa5b5d029cb2e13d6f6d7da8c84597893b4dd34c5"
+    }
+   }
+  },
+  "itaipu-3-s1-eyes.en": {
+   "text": "Something slow over the west arm, circling. It's looking at the yard.",
+   "speaker": "mirador",
+   "seconds": 4.105,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2002262726,
+     "heard": "Something slow over the west arm, circling, it's looking at the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18667,
+     "sha256": "eb346f427ccffcd23b694280d5c9dc3ecabb9bd1c9312107ae5c49d3e429f1f3"
+    },
+    "mp3": {
+     "bytes": 19340,
+     "sha256": "63f6d0a22cae570e02cbb9ef9541289515992e953d956b71c5b7455805796047"
+    }
+   }
+  },
+  "itaipu-3-s1-eyes.es": {
+   "text": "Algo lento sobre el brazo oeste, dando vueltas. Está mirando la subestación.",
+   "speaker": "mirador",
+   "seconds": 4.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1209629310,
+     "heard": "Algo lento sobre el brazo oeste, dando vueltas. Está mirando la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21821,
+     "sha256": "882fafa5dd3eddb1fb5309494d275eff8657f9d99cf474925e462e90278da98f"
+    },
+    "mp3": {
+     "bytes": 20396,
+     "sha256": "320321b3fd423075c6e57be802ec0d265a84823b32e29131b4599896715d76ec"
+    }
+   }
+  },
+  "itaipu-3-s1-pair.en": {
+   "text": "Fast movers, west arm. Same shape. One of them is lying.",
+   "speaker": "mirador",
+   "seconds": 4.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 640512773,
+     "heard": "Fast movers, west arm. Same shape. One of them is lying.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19446,
+     "sha256": "fccda790104e3c0f91cde692b13e6d301f8e5bc7891983a370982fc6ce756024"
+    },
+    "mp3": {
+     "bytes": 19004,
+     "sha256": "7ec0c883dff7f57465a7f7d9a3decd6bd8cc3318fe62ea689ec56075dd3e8357"
+    }
+   }
+  },
+  "itaipu-3-s1-pair.es": {
+   "text": "Rápidos, brazo oeste. Misma forma. Uno de ellos miente.",
+   "speaker": "mirador",
+   "seconds": 4.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3753549300,
+     "heard": "Rápidos, brazo oeste, misma forma, uno de ellos miente.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18552,
+     "sha256": "4429b1f39b72697815db93e1ceb929710e9352b0c2ea105d4ec0db963d3307b1"
+    },
+    "mp3": {
+     "bytes": 17540,
+     "sha256": "4d02931129e0b99e6275326df701c692aa17445d8a56568cb51249aaefa8617c"
+    }
+   }
+  },
+  "itaipu-3-s2-clear.en": {
+   "text": "Scope's clean. The light's going.",
+   "speaker": "mirador",
+   "seconds": 2.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 240187134,
+     "heard": "Scope's clean. The light's going.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10313,
+     "sha256": "f3a201812387c9b01ae8dd4fe30d212eba96a8d04a04c1a536ba598f68b4c1e2"
+    },
+    "mp3": {
+     "bytes": 10748,
+     "sha256": "e11ea2b7f435e5359a8db263e24590e78cd4e3568d70b682d0d2e2ced947cd91"
+    }
+   }
+  },
+  "itaipu-3-s2-clear.es": {
+   "text": "Pantalla limpia. Se está yendo la luz.",
+   "speaker": "mirador",
+   "seconds": 2.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1364644372,
+     "heard": "Pantalla limpia, se está yendo la luz.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 60
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11456,
+     "sha256": "b6f847819e50e55435930c6078f94ae57cd77e632dd79d61cdc6b0953c40e872"
+    },
+    "mp3": {
+     "bytes": 11300,
+     "sha256": "ab231d3a205813cc436cb544fd58bd27f89c25048f29af5e5dae399806bb8ae6"
+    }
+   }
+  },
+  "itaipu-3-s2-stream.en": {
+   "text": "A stream, coming for the yard. Every mark reads Striker.",
+   "speaker": "mirador",
+   "seconds": 4.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2209922005,
+     "heard": "A stream, coming for the yard, every mark reads Stryker.",
+     "wer": 0.1,
+     "extra": 0,
+     "missing": [
+      "striker"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 645818626,
+     "heard": "A stream, coming for the yard. Every mark reads Stryker.",
+     "wer": 0.1,
+     "extra": 0,
+     "missing": [
+      "striker"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 4107094693,
+     "heard": "a stream coming for the yard every mark reads striker",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 30
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20669,
+     "sha256": "49ffd4a6276338bd0431b4fa87ca5a857ddff7d51414d708e45854a582698dc0"
+    },
+    "mp3": {
+     "bytes": 21164,
+     "sha256": "499f60f1b31a2a85d1a939714f6caa228cc19a9fb35727aed18ad385d7b709bb"
+    }
+   }
+  },
+  "itaipu-3-s2-stream.es": {
+   "text": "Una fila de contactos hacia la subestación. Todas las marcas dicen atacante.",
+   "speaker": "mirador",
+   "seconds": 4.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1101359983,
+     "heard": "Una fila de contactos hacia la subestación. Todas las marcas alicen atacante.",
+     "wer": 0.083,
+     "extra": 0,
+     "missing": [
+      "dicen"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3667868865,
+     "heard": "Una fila de contactos hacia la subestación. Todas las marcas dicen atacante.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21692,
+     "sha256": "4902e127f88df5d29a4a396d0f67b4277c62e35562d10e23172872f5c0b40feb"
+    },
+    "mp3": {
+     "bytes": 20276,
+     "sha256": "9a4d97fd1d145939c6114ed83a7cf9b43f87bda5a212e15318cde02ffac3ca63"
+    }
+   }
+  },
+  "itaipu-3-s2-wasted.en": {
+   "text": "That one was cardboard. Don't feed it birds.",
+   "speaker": "taller",
+   "seconds": 3.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1093565091,
+     "heard": "That one was cardboard. Don't feed it birds.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17226,
+     "sha256": "ab99d6ed12246d9f863c4700511ab82a4d0311279b1532054ca5637d6cec2ce7"
+    },
+    "mp3": {
+     "bytes": 17660,
+     "sha256": "b63b2d8a0c0cbc88a19e4eaff5db72340c8d4fe1687882357fb654fb2aa0a538"
+    }
+   }
+  },
+  "itaipu-3-s2-wasted.es": {
+   "text": "Ese era de cartón. No le den aparatos.",
+   "speaker": "taller",
+   "seconds": 2.965,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1949309592,
+     "heard": "Ese era de cartón. No le den aparatos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13579,
+     "sha256": "61d91008fcf5c8c83c97e416897ea1f34e0fa9be6896c28ed0923e371bdcc692"
+    },
+    "mp3": {
+     "bytes": 14372,
+     "sha256": "d187b7cddb56b63e58041847f8bb2785202b9d1f8ccc2536d7a843c6c182693d"
+    }
+   }
+  },
+  "itaipu-3-s2-why.en": {
+   "text": "Most of those are decoys. Close in and look before you spend a bird.",
+   "speaker": "crest",
+   "seconds": 4.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3222564607,
+     "heard": "Most of those are decoys. Close in and look before you spend a bird.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20465,
+     "sha256": "d194eaebbd82864cf4bc34bd50a48cebd3d592ee835ebb19298c945151b390b3"
+    },
+    "mp3": {
+     "bytes": 18020,
+     "sha256": "32acf607e9276153040bbf9995631883eb9db4c3715458e9b624cd883e9b954a"
+    }
+   }
+  },
+  "itaipu-3-s2-why.es": {
+   "text": "La mayoría son señuelos. Acérquense y miren antes de gastar un aparato.",
+   "speaker": "crest",
+   "seconds": 5.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 938591017,
+     "heard": "La mayoría son señuelos. Acérquense y miren antes de gastar un aparato.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23594,
+     "sha256": "1ee8a28a6b779330df6e7f2cb0ab0acbcd169103d6ebd6b96ada7ccd6ef92952"
+    },
+    "mp3": {
+     "bytes": 22052,
+     "sha256": "6a245bf14c0f62c481f4e93a4b4c6f662679f08d3b253059c7db61b6a684a78b"
+    }
+   }
+  },
+  "itaipu-3-s3-despacho.en": {
+   "text": "Crest, Dispatch. Starting the reroute. I need the yard standing until I call it.",
+   "speaker": "despacho",
+   "seconds": 5.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2701332622,
+     "heard": "crest dispatch starting the reroute i need the yard standing until i call it",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26731,
+     "sha256": "a4b51192057ea6df48ea468612ab2912b0da2538f9af3123bfe0fd5a540605e7"
+    },
+    "mp3": {
+     "bytes": 27236,
+     "sha256": "9f4e7b1242127a9a8c7ed23e4d4142cbd3a357aef0fd5ee493d89625e2e984d6"
+    }
+   }
+  },
+  "itaipu-3-s3-despacho.es": {
+   "text": "Cresta, Despacho. Empiezo a redirigir. Necesito la subestación en pie hasta que avise.",
+   "speaker": "despacho",
+   "seconds": 6.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4184814092,
+     "heard": "Cresta, despacho. Empiezo a redirigir. Necesito la subestación en pie hasta que avise.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27649,
+     "sha256": "4e11a1496358ce2bb28f12c0941fa022743a905bc1c30f80341a9b23a1c59f90"
+    },
+    "mp3": {
+     "bytes": 27044,
+     "sha256": "86959f9cb1f54e6fd56f38b912bb3e8afea223c58699a53ede29ff3348fc7e36"
+    }
+   }
+  },
+  "itaipu-3-s3-done.en": {
+   "text": "Reroute complete. The hospitals are off the yard now. Keep it standing anyway.",
+   "speaker": "despacho",
+   "seconds": 5.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3201720309,
+     "heard": "Reroute complete. The hospitals are off the yard now. Keep it standing anyway.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23712,
+     "sha256": "87becbceaf1002c676708bda7876221e97c31965a5589edef0fe7183e1a6fd7d"
+    },
+    "mp3": {
+     "bytes": 23348,
+     "sha256": "51ab39f292d3434cf875a574e16aa832f1927f5d9efb97ce6e874b3968d5efb8"
+    }
+   }
+  },
+  "itaipu-3-s3-done.es": {
+   "text": "Redirección completa. Los hospitales ya no dependen de la subestación. Igual manténganla en pie.",
+   "speaker": "despacho",
+   "seconds": 6.535,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 73696201,
+     "heard": "Redirección completa. Los hospitales ya no dependen de la subestación. Igual, manténganla en pie.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29958,
+     "sha256": "204f00d81954188390b1c553a72b11b8fc710c89087e27c5eec64168038950bb"
+    },
+    "mp3": {
+     "bytes": 28628,
+     "sha256": "fe3da0d2abfca507bc30b103748fb6783904fef3701fe0682fd827796e000442"
+    }
+   }
+  },
+  "itaipu-3-s3-down.en": {
+   "text": "Reroute complete. What went dark stays dark tonight, but nothing else hangs on that yard.",
+   "speaker": "despacho",
+   "seconds": 6.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2594282611,
+     "heard": "Reroute complete. What went dark stays dark tonight, but nothing else hangs on that yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30114,
+     "sha256": "ba4e9322d462b454095878c09ce6fbb3fc9292d5ea1d8845f73cebfcc0e94801"
+    },
+    "mp3": {
+     "bytes": 28628,
+     "sha256": "a27e8e603ca2083f5a78b45d96bc5a8d2840d8faa78ee7f2f2b50051722aa8f5"
+    }
+   }
+  },
+  "itaipu-3-s3-down.es": {
+   "text": "Terminé de redirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación.",
+   "speaker": "despacho",
+   "seconds": 6.775,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1161648190,
+     "heard": "Terminé de redirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 640
+    },
+    {
+     "attempt": 1,
+     "seed": 2999400232,
+     "heard": "Terminé de arbedirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación. No.",
+     "wer": 0.1,
+     "extra": 1,
+     "missing": [
+      "redirigir"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 469496266,
+     "heard": "Terminé de redirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31086,
+     "sha256": "37c3b1e28230b0bdccd12159b08cec7137eb731e92b8904815b788bc1659b7e7"
+    },
+    "mp3": {
+     "bytes": 32300,
+     "sha256": "618a0348a898ecab7bcedbd61f34cd58097af8c37666103abd0e217c38cdef1a"
+    }
+   }
+  },
+  "itaipu-3-s3-failed.en": {
+   "text": "Crest, I lost the yard in the middle of the reroute. The right bank is dark. Keep them off the intakes.",
+   "speaker": "despacho",
+   "seconds": 7.155,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4199154332,
+     "heard": "crest. I lost the yard in the middle of the reroute. The right bank is dark. Keep them off the intakes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 32710,
+     "sha256": "b4e9ec22e0f9df39f23ea0af419f7716bdcb8e662d7249b173b059cb838aa41c"
+    },
+    "mp3": {
+     "bytes": 30788,
+     "sha256": "e00b54367ea4c7525e592548b7e4ee32a29dfdd1b7f3e3ec8d1a678dc401e5ce"
+    }
+   }
+  },
+  "itaipu-3-s3-failed.es": {
+   "text": "Cresta, perdí la subestación en plena redirección. La margen derecha está a oscuras. Que no lleguen a las tomas.",
+   "speaker": "despacho",
+   "seconds": 7.225,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3745838654,
+     "heard": "Cresta, perdí la subestación en plena redirección. La margen derecha está a oscuras. Que no lleguen a las tomas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 33039,
+     "sha256": "31a57cce69789a142d030ccba03bdd2d8395965d392e34b8dea4b10dbc304ca5"
+    },
+    "mp3": {
+     "bytes": 32444,
+     "sha256": "2c96a6e818d7965726b79a73e0fdf82bcfedb161b00933f630060dc94c99a508"
+    }
+   }
+  },
+  "itaipu-3-s3-half.en": {
+   "text": "Halfway. The far towns are moved. Hernandarias is next.",
+   "speaker": "despacho",
+   "seconds": 4.405,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1708038989,
+     "heard": "Halfway. The far towns are moved. Hernandarias is next.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20266,
+     "sha256": "cb95b1f7377df8fb82b8e4f45d3c9bf8b8714ff687d86c48e4602cd37f1ce052"
+    },
+    "mp3": {
+     "bytes": 19940,
+     "sha256": "f17847a9b579548be15e56780e31efdfb7d2a1c2c08e2fa9a7e5214f42a53d42"
+    }
+   }
+  },
+  "itaipu-3-s3-half.es": {
+   "text": "Vamos por la mitad. Los pueblos lejanos ya están. Ahora siguen los de cerca.",
+   "speaker": "despacho",
+   "seconds": 3.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1786807464,
+     "heard": "Vamos por la mitad. Los pueblos lejanos ya están, ahora siguen los de cerca.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18058,
+     "sha256": "8dd5f5313b4582e28b244ffd68b9de7d94c6dd4d3948af5d15f4a08d60669a07"
+    },
+    "mp3": {
+     "bytes": 18140,
+     "sha256": "c8ceaac15c3ecf5132047c75eb13420315d8db0d697a214647f9ab12d1751cdd"
+    }
+   }
+  },
+  "itaipu-3-s4-all.en": {
+   "text": "Loiterers high over the yard. More coming low from the north.",
+   "speaker": "mirador",
+   "seconds": 4.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2462579249,
+     "heard": "Loiterers high over the yard, more coming low from the north,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18247,
+     "sha256": "f89e33feba235068f26a85eb90c051d36f8eba73d5b9e7d6b608d4059b895919"
+    },
+    "mp3": {
+     "bytes": 19172,
+     "sha256": "fc0923e65039b5e05d24d1e6f12cf6a8317abe48b55f745bc994f1315f2c9e8b"
+    }
+   }
+  },
+  "itaipu-3-s4-all.es": {
+   "text": "Merodeadores en altura sobre la subestación. Vienen más, bajos, desde el norte.",
+   "speaker": "mirador",
+   "seconds": 5.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2455066687,
+     "heard": "Merodeadores en altura sobre la subestación. Vienen más bajos desde el norte.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26029,
+     "sha256": "79b41ae7e83025e64b4ce774e1c715b0397548a6fec439d2448e9396ca2ecaab"
+    },
+    "mp3": {
+     "bytes": 24332,
+     "sha256": "ee9f84f3df8d4deb73e96767c0cd763f8ca500b943f3fff38e0be7b571cba475"
+    }
+   }
+  },
+  "itaipu-3-s4-dark.en": {
+   "text": "Sun's almost down. Anything we lose now, they'll see from their kitchens.",
+   "speaker": "crest",
+   "seconds": 4.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3373282177,
+     "heard": "Sun's almost down. Anything we lose now they'll see from their kitchens.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20600,
+     "sha256": "7b4331b28d6f8567fc93acf72310da9725b9b0f06a70eaae7ab4879600ad6779"
+    },
+    "mp3": {
+     "bytes": 19004,
+     "sha256": "9e3de9f61912c90060e4c5f1d19f150be504a9de19a3726b5b5ef0793a0e239e"
+    }
+   }
+  },
+  "itaipu-3-s4-dark.es": {
+   "text": "El sol ya casi se fue. Lo que perdamos ahora se va a ver desde las cocinas.",
+   "speaker": "crest",
+   "seconds": 4.915,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 778930718,
+     "heard": "El sol ya casi se fue. Lo que perdamos ahora se va a ver desde las cocinas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22380,
+     "sha256": "8279cbd82723eb8d28311c5993b3d678823ce284445f608356050f8010386037"
+    },
+    "mp3": {
+     "bytes": 19772,
+     "sha256": "3d5e622e6bc7d8e0b77d6daad7d4b70b51cbaf8e83a7db37cd2a12d93509c0bc"
+    }
+   }
+  },
+  "itaipu-3-s4-order.en": {
+   "text": "Planes on the Loiterers. Quads on the intakes. Nobody chases cardboard.",
+   "speaker": "crest",
+   "seconds": 4.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3446806840,
+     "heard": "Planes on the loiterers. Quads on the intakes. Nobody chases cardboard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22152,
+     "sha256": "292a9ecf5090d0b75f3fe6551d5967a70a102aa9aadbb78c1bf2ae0b530d3ebb"
+    },
+    "mp3": {
+     "bytes": 19892,
+     "sha256": "caebf970448ab616bfe762adc86c226548ba7c74f37a565043164ed8ef198702"
+    }
+   }
+  },
+  "itaipu-3-s4-order.es": {
+   "text": "Aviones a los merodeadores. Cuadricópteros a las tomas. Nadie persigue cartón.",
+   "speaker": "crest",
+   "seconds": 6.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1805886735,
+     "heard": "aviones a los merodeadores, cuadricópteros a las tomas, nadie persigue cartón.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30094,
+     "sha256": "9a38bc9e2199d3b71f09640ac82fcb13772b89099f599f0f6a50d2fd33f6880a"
+    },
+    "mp3": {
+     "bytes": 26684,
+     "sha256": "2b9b2753a7c8a2ad96605859e750c3ccccba94c7fa0ca9b38f947f0bed046377"
+    }
+   }
+  },
+  "itaipu-3-ta-turn.en": {
+   "text": "Tight pack, every mark a Striker. That's too neat. Only one of them is real.",
+   "speaker": "mirador",
+   "seconds": 4.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 581862011,
+     "heard": "tight pack, every mark striker, that's too neat, only one of them is real,",
+     "wer": 0.067,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22436,
+     "sha256": "8a71593956979cfb59ce4d0efdb3be2f03ca21fada644704e6501675306c5c2f"
+    },
+    "mp3": {
+     "bytes": 23012,
+     "sha256": "293119393a0cf8d43d4dddb4c6a9fca369a5135517d42ddf5acad96ef2eae81e"
+    }
+   }
+  },
+  "itaipu-3-ta-turn.es": {
+   "text": "Grupo cerrado, todas las marcas dicen atacante. Demasiado prolijo. Uno solo es real.",
+   "speaker": "mirador",
+   "seconds": 5.915,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1090602882,
+     "heard": "Grupo cerrado. Todas las marcas dicen atacante. Demasiado prolijo. Uno solo es real.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26641,
+     "sha256": "57966765d268b11535453751fb9e16af82fed0b51cf539183e8a71f557ac6197"
+    },
+    "mp3": {
+     "bytes": 24500,
+     "sha256": "2690d1501a35fd1a7bc892314fc31d74585d5f297de29ca0d5fe42448e64f039"
+    }
+   }
+  },
+  "itaipu-3-ta-why.en": {
+   "text": "Don't spend a bird on every mark. Get close, find the real one, take it.",
+   "speaker": "crest",
+   "seconds": 4.235,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1491686017,
+     "heard": "Don't spend a bird on every mark, get close, find the real one, take it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19437,
+     "sha256": "0829cc296c3b9f0826c4a758a0c5329b1b4c1371e04e6f80a1c2f7ffab1546c4"
+    },
+    "mp3": {
+     "bytes": 18428,
+     "sha256": "422d3e0346b479d562206127c71c3ec4c1e2c35a882ecfdc56a457fde59cf7e4"
+    }
+   }
+  },
+  "itaipu-3-ta-why.es": {
+   "text": "No gasten un aparato en cada marca. Acérquense, encuentren el real y derríbenlo.",
+   "speaker": "crest",
+   "seconds": 5.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4235649876,
+     "heard": "No gasten un aparato en cada marca, acérquense, encuentren el real y derríbenlo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25009,
+     "sha256": "22b5ccb10f59c92b674eff277602050729f2a32c960b5b6bf59ebb2c8bbdfcda"
+    },
+    "mp3": {
+     "bytes": 23180,
+     "sha256": "0db723898f9928777a152f6596d0ebe7a39d9d47edd1ae1ab735e27591b59a39"
+    }
+   }
+  },
+  "itaipu-3-tb-turn.en": {
+   "text": "The yard run is noise. Real ones over open water, heading for the west intakes.",
+   "speaker": "mirador",
+   "seconds": 6.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1416349889,
+     "heard": "The yard run is noise, real ones over open water, heading for the west intakes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27604,
+     "sha256": "733c0d4e95d2b210660d499723ce281490f9b89dfcf4d4688c8553915d609951"
+    },
+    "mp3": {
+     "bytes": 26684,
+     "sha256": "148fd8f01976d2348e092293fb371db5bf2b063dc98eeb18ff963516b706e5dc"
+    }
+   }
+  },
+  "itaipu-3-tb-turn.es": {
+   "text": "Lo de la subestación es ruido. Los reales vienen por agua abierta, hacia las tomas del oeste.",
+   "speaker": "mirador",
+   "seconds": 5.535,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2777402558,
+     "heard": "Lo de las subestaciones es ruido. Los reales vienen por agua abierta hacia las tomas del oeste.",
+     "wer": 0.118,
+     "extra": 0,
+     "missing": [
+      "subestacion"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1263531972,
+     "heard": "Lo de las subestaciones es ruido. Los reales vienen por agua abierta hacia las tomas del oeste.",
+     "wer": 0.118,
+     "extra": 0,
+     "missing": [
+      "subestacion"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1274915589,
+     "heard": "Lo de la subestación es ruido. Los leales vienen por agua abierta hacia las tomas del oeste.",
+     "wer": 0.059,
+     "extra": 0,
+     "missing": [
+      "reales"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2787599991,
+     "heard": "Lo de la subestación es ruido. Los reales vienen por agua abierta hacia las tomas del oeste.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24886,
+     "sha256": "8028c2df46c9b3bf88847cfa749939fced04c64746a9c5df1f8510a8cf3c172c"
+    },
+    "mp3": {
+     "bytes": 23780,
+     "sha256": "4b28f2f71f1ce4c70884b79188983a1324617065dd637571004105d90332a277"
+    }
+   }
+  },
+  "itaipu-3-tb-why.en": {
+   "text": "Let the noise go. Somebody get on the intakes, now.",
+   "speaker": "crest",
+   "seconds": 3.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 553288638,
+     "heard": "Let the noise go. Somebody get on the intakes now.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17057,
+     "sha256": "f6c7aec054793a769eb83344912ef443954ab122b6590b69fa83ed4fe779099e"
+    },
+    "mp3": {
+     "bytes": 15452,
+     "sha256": "4be898e8c7ec26811d33befb0534d92d6d6aef6dbd57fd91dbcafa0769496a2d"
+    }
+   }
+  },
+  "itaipu-3-tb-why.es": {
+   "text": "Dejen el ruido. Que alguien vaya a las tomas, ya.",
+   "speaker": "crest",
+   "seconds": 3.105,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3447170323,
+     "heard": "Dejen el ruido, que alguien vaya a las tomas ya.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14409,
+     "sha256": "c919c4cb588609d1bb20aee3d6f3705f43cefe05355e71ff0027ccb2b4721faa"
+    },
+    "mp3": {
+     "bytes": 13484,
+     "sha256": "ec36f3c7b91406310526d6bd486d4ba60e97946aa0a59de37e1ebac274ffecb8"
+    }
+   }
+  },
+  "itaipu-3-tc-turn.en": {
+   "text": "Contacts on the line corridor, low, under the wires.",
+   "speaker": "mirador",
+   "seconds": 3.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2378450251,
+     "heard": "Contacts on the line corridor, low, under the wires.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15838,
+     "sha256": "658adbb61c01788f954e92b15eb0f89e5c047b4cda4b11893d4c4736a6da3411"
+    },
+    "mp3": {
+     "bytes": 17132,
+     "sha256": "bdafcc9792c683e8cc4e7bd31fd7505eb1b4a585346dd6627babfac502bacb0a"
+    }
+   }
+  },
+  "itaipu-3-tc-turn.es": {
+   "text": "Contactos en el corredor de las líneas, bajos, debajo de los cables.",
+   "speaker": "mirador",
+   "seconds": 4.105,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3037529386,
+     "heard": "Contactos en el corredor de las líneas, bajos, debajo de los cables.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18629,
+     "sha256": "9619906713a87a0fb4a04b1cfaf8dd5e703d607e1e93a4e54e041e2a1480e94b"
+    },
+    "mp3": {
+     "bytes": 17924,
+     "sha256": "3512838c98f914c8caf88114d1b59b2eba804dffa72aed56010ece549e0cbcd2"
+    }
+   }
+  },
+  "itaipu-3-tc-why.en": {
+   "text": "Stay above the wires. The lines will take some. Take the rest before the yard.",
+   "speaker": "crest",
+   "seconds": 4.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2283111602,
+     "heard": "Stay above the wires. The lines will take some. Take the rest before the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22374,
+     "sha256": "edb4a1d370347e27e4ef98950bcf60abd5d74230687dbcd8cebeff8af98370eb"
+    },
+    "mp3": {
+     "bytes": 20132,
+     "sha256": "d9da90639d98db72d98205c08a5d9e9cc9bfdbf8617ee37635307fbab6c3357e"
+    }
+   }
+  },
+  "itaipu-3-tc-why.es": {
+   "text": "Quédense por encima de los cables. Las líneas se van a llevar algunos. Derriben el resto antes de la subestación.",
+   "speaker": "crest",
+   "seconds": 6.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2798389630,
+     "heard": "Quédense por encima de los cables. Las líneas se van a llevar algunos. Deriven el resto antes de la subestación.",
+     "wer": 0.05,
+     "extra": 0,
+     "missing": [
+      "derriben"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3841510934,
+     "heard": "Quédense por encima de los cables. Las líneas se van a llevar algunos. Derriben el resto antes de la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30888,
+     "sha256": "162d7530ca6636012b1cb10938b613ae0cb61d16b543bfd43dd1040daeaffd5e"
+    },
+    "mp3": {
+     "bytes": 28220,
+     "sha256": "262378124ec9754a044cc05ff52f77e59b569f0df698bd3a3073d00bf789fc49"
+    }
+   }
+  },
+  "itaipu-4-op.en": {
+   "text": "I can hear it before I can see it. Water, below the face.",
+   "speaker": "mirador",
+   "seconds": 3.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4255383438,
+     "heard": "I can hear it before I can see it. Water below the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18001,
+     "sha256": "6e0842f4ac1cac538056ed95e90ea440c3a2660d3efa89ad4b4b93bc41c4499d"
+    },
+    "mp3": {
+     "bytes": 19196,
+     "sha256": "61886241993921513a849c21d91d1743e86201c08dbc2a38ad04a3b779d338eb"
+    }
+   }
+  },
+  "itaipu-4-op.es": {
+   "text": "Lo escucho antes de verlo. Agua, debajo de la cara.",
+   "speaker": "mirador",
+   "seconds": 3.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 553757987,
+     "heard": "Lo escucho antes de verlo. Agua debajo de la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 40
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15530,
+     "sha256": "5655375847968ef314addbf1941119a56017c845da7870841a3d65104b81981f"
+    },
+    "mp3": {
+     "bytes": 15140,
+     "sha256": "c395468dc0c24502c6a35f44452122fb0d421c6e26bae6480ee4d6b7914d21de"
     }
    }
   },
@@ -25090,6 +27202,399 @@
     }
    }
   },
+  "film-itaipu-3-1.en": {
+   "text": "Everything the right bank makes leaves the dam through this yard.",
+   "speaker": "crest",
+   "seconds": 3.065,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4208068806,
+     "heard": "Everything the right bank makes leads the dam through this yard.",
+     "wer": 0.091,
+     "extra": 0,
+     "missing": [
+      "leaves"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2527362917,
+     "heard": "Everything the right bank makes leaves the dam through this yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14275,
+     "sha256": "757c105055dd67f826599cdb7e4d7084d517e326ed00800abc81a97f9884128d"
+    },
+    "mp3": {
+     "bytes": 13772,
+     "sha256": "2c92dc66817e7aa2102b1839e8a9b77bf65dd22d09eb489d0b8127600c2416f7"
+    }
+   }
+  },
+  "film-itaipu-3-1.es": {
+   "text": "Todo lo que genera la margen derecha sale de la represa por esta subestación.",
+   "speaker": "crest",
+   "seconds": 4.875,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 88031222,
+     "heard": "Todo lo que genera la margen derecha sale de la represa por esta subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22362,
+     "sha256": "acfb545d99af4232760f02df84e4843f1207a0186aafa5d92f3ec4372e071a42"
+    },
+    "mp3": {
+     "bytes": 20420,
+     "sha256": "b0710016c29ec080fbb3480e73d10b5d73ea220ddc3d91eafbb2e46df751eb6b"
+    }
+   }
+  },
+  "film-itaipu-3-2.en": {
+   "text": "Crest, Dispatch. I can reroute it. I need time, and I need that yard standing.",
+   "speaker": "despacho",
+   "seconds": 6.125,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 449003905,
+     "heard": "Crest, dispatch, I can reroute it, I need time and I need that yard standing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28083,
+     "sha256": "d9b1b3a7d9f60a6a6d27a9e96044b58aac1e27507d622b488282950cf26fc229"
+    },
+    "mp3": {
+     "bytes": 28772,
+     "sha256": "bd91f5f58972ce7c5ff7335e85d4f9c0dd3de670893a32ae89725e399503f8a3"
+    }
+   }
+  },
+  "film-itaipu-3-2.es": {
+   "text": "Cresta, Despacho. La puedo redirigir. Necesito tiempo, y necesito esa subestación en pie.",
+   "speaker": "despacho",
+   "seconds": 6.505,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1699147394,
+     "heard": "Cresta, despacho. La puedo redirigir, necesito tiempo y necesito esa subestación en pie.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29730,
+     "sha256": "63a61c44c90af14690826f34865a2c864ff076740d8ba9b2d27a3bfba62be986"
+    },
+    "mp3": {
+     "bytes": 28556,
+     "sha256": "b6e8f6da43fdddebfea19f681006cac18469b6de2096cc832d24ae443f7fd803"
+    }
+   }
+  },
+  "film-itaipu-3-3.en": {
+   "text": "Same shape, same speed. One of them is lying.",
+   "speaker": "mirador",
+   "seconds": 4.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2372449849,
+     "heard": "Same shape, same speed. One of them is lying.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19146,
+     "sha256": "7a41a210602ef04c24d98328f2678616ecf0637d5028696a70040736d9beec5a"
+    },
+    "mp3": {
+     "bytes": 19028,
+     "sha256": "d591e2dd68290f9da3a796074387d571ecaf85d348ac84882ca12044bb91588f"
+    }
+   }
+  },
+  "film-itaipu-3-3.es": {
+   "text": "Misma forma, misma velocidad. Uno de los dos miente.",
+   "speaker": "mirador",
+   "seconds": 3.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2558307939,
+     "heard": "misma forma, misma velocidad, uno de los dos miente,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16982,
+     "sha256": "3b937879e69ee2bc5c4295a007d59c55c02cefab9d43042d54289fc7cab366b2"
+    },
+    "mp3": {
+     "bytes": 15980,
+     "sha256": "2be79567a55ef34d83949319b9cd724c1a81a068c6f7fe4ed251059bcfc882ed"
+    }
+   }
+  },
+  "film-itaipu-3-4.en": {
+   "text": "Get close before you spend a bird.",
+   "speaker": "crest",
+   "seconds": 2.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1937755143,
+     "heard": "Get close before you spend a bird. It's the end of parts.",
+     "wer": 0.714,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3273398767,
+     "heard": "Get close before you spend a bird.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 250
+    },
+    {
+     "attempt": 2,
+     "seed": 4075100404,
+     "heard": "Get close before you spend a bird.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10920,
+     "sha256": "e99f25cfa385167fda25aebbdb8732aaf5e1e16dfb9496a171d8a7295baf57c5"
+    },
+    "mp3": {
+     "bytes": 10196,
+     "sha256": "1d0653f12bce58b9a01a3a9aa6cff418506b4daf9f9ac5caa2d34bb3b7544568"
+    }
+   }
+  },
+  "film-itaipu-3-4.es": {
+   "text": "Acérquense antes de gastar un aparato.",
+   "speaker": "crest",
+   "seconds": 3.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3751432651,
+     "heard": "Acérquense antes de gastar un aparato.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14169,
+     "sha256": "6c462afccb7d4ec91762a540d2bb073f66aca739ce6457bcb79f314409d16f8a"
+    },
+    "mp3": {
+     "bytes": 13652,
+     "sha256": "ce015b83e91991895e0d6d9cf847707a374d4e61fa27863148d2661c4deee668"
+    }
+   }
+  },
+  "film-itaipu-3-o2.en": {
+   "text": "Every bird that came back is on the bench. They'll be ready before full dark.",
+   "speaker": "taller",
+   "seconds": 4.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 986295369,
+     "heard": "Every bird that came back is on the bench, they'll be ready before full dark.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20423,
+     "sha256": "1db135ecaa92ba932e521b94f75725de933c633fd219bc77c91e6be184e27c8a"
+    },
+    "mp3": {
+     "bytes": 21572,
+     "sha256": "0d4b8f513bfc9da5e145d7dd1ce85844a358736fcdbc5764536474912d702220"
+    }
+   }
+  },
+  "film-itaipu-3-o2.es": {
+   "text": "Cada aparato que volvió está en el banco. Van a estar listos antes de que oscurezca del todo.",
+   "speaker": "taller",
+   "seconds": 5.325,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2748450693,
+     "heard": "Cada aparato que volvió está en el banco. Van a estar listos antes de que oscurezca del todo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24224,
+     "sha256": "c5dc3cc484be322dc503a814528c52126487450bc1bf244b8f07db0e35eacb02"
+    },
+    "mp3": {
+     "bytes": 25124,
+     "sha256": "e4760a863edba40f5da47fabc07ff8c8df66de74540abde542e164692c7d173b"
+    }
+   }
+  },
+  "film-itaipu-3-o3.en": {
+   "text": "West arm's quiet. Nothing on the water. That won't last.",
+   "speaker": "mirador",
+   "seconds": 4.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2176934298,
+     "heard": "West arms quiet, nothing on the water. That won't last.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19543,
+     "sha256": "57c0af6368cfffb94d28e4dbf94e2fc2b271b42c4211f534aa29ed0320a916ed"
+    },
+    "mp3": {
+     "bytes": 19052,
+     "sha256": "b35c3e6de0ac7cfdea27c36562186cd528ac3c61f4397bd279a92450f155805d"
+    }
+   }
+  },
+  "film-itaipu-3-o3.es": {
+   "text": "El brazo oeste está tranquilo. Nada sobre el agua. Eso no va a durar.",
+   "speaker": "mirador",
+   "seconds": 4.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2474547455,
+     "heard": "El brazo oeste está tranquilo. Nada sobre el agua. Eso no va a durar.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21020,
+     "sha256": "af0b90509ed9db122d384009a106cd656759ab519519dabe2ebdf48ee7d2e23e"
+    },
+    "mp3": {
+     "bytes": 19748,
+     "sha256": "4d3a97f53a5310bd676a3b94a91381d8fe1873cd14929f7a8d708c11d81189cb"
+    }
+   }
+  },
+  "film-itaipu-3-o4.en": {
+   "text": "They spent today learning where we are. Tonight they come in the dark.",
+   "speaker": "crest",
+   "seconds": 4.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3856565879,
+     "heard": "They spent today learning where we are. Tonight they come in the dark.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19147,
+     "sha256": "a56a0096001c8e7106531327ff79e7748115dc4797b7c9015c1dec4a7ce416d8"
+    },
+    "mp3": {
+     "bytes": 17732,
+     "sha256": "3350b83891558366df8626f02c9208fb7345bc8c6591529bf17625d5242ae578"
+    }
+   }
+  },
+  "film-itaipu-3-o4.es": {
+   "text": "Hoy aprendieron dónde estamos. Esta noche vienen a oscuras.",
+   "speaker": "crest",
+   "seconds": 3.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 514409067,
+     "heard": "Hoy aprendieron dónde estamos. Esta noche vienen a oscuras.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17369,
+     "sha256": "d4ac3ad15d2a22bdcff87018795b06d20f59fa652834b2cf68f2a9bf3946f68a"
+    },
+    "mp3": {
+     "bytes": 15908,
+     "sha256": "8e42337e43a2ceb8142bbcd229c273d79349b22500f3523cad3bd5203c969f0c"
+    }
+   }
+  },
   "film-itaipu-2-o3.es": {
    "text": "El brazo oeste está vacío. Se fueron a mirar otra cosa.",
    "speaker": "mirador",
@@ -25165,6 +27670,2087 @@
     "mp3": {
      "bytes": 21860,
      "sha256": "e5d893114b40d22af8a0076b0c1cee2aa751f4017f746ad2a6ef03e9aba29b2f"
+    }
+   }
+  },
+  "film-itaipu-4-1.en": {
+   "text": "They learned our days. Now they're trying our nights.",
+   "speaker": "crest",
+   "seconds": 3.615,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 158479533,
+     "heard": "They learned our days. Now they're trying our nights.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16578,
+     "sha256": "ea9a4f983b8d9ae88511d10caec687dfcc8dfdc9b773fcfe0cb3f21402777a81"
+    },
+    "mp3": {
+     "bytes": 15620,
+     "sha256": "44e96063b0df5f67cbacd1c0e19a123f3d1374e9be1d31a0dc539880fbda645c"
+    }
+   }
+  },
+  "film-itaipu-4-1.es": {
+   "text": "Aprendieron nuestros días. Ahora prueban nuestras noches.",
+   "speaker": "crest",
+   "seconds": 3.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4052153686,
+     "heard": "Aprendieron nuestros días. Ahora pruébanme estas noches.",
+     "wer": 0.286,
+     "extra": 0,
+     "missing": [
+      "prueban",
+      "nuestras"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1216611924,
+     "heard": "Aprendieron nuestros días. Ahora prueban nuestras noches.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17524,
+     "sha256": "4333f05d21cf025a97d99f54de75cf2b7e366564aa633ba51b502b0c810ca242"
+    },
+    "mp3": {
+     "bytes": 15764,
+     "sha256": "b87639dcefde451db8c8ed906286aff7c44d7ee1814e3e72dd71a03d09f9e3d0"
+    }
+   }
+  },
+  "film-itaipu-4-2.en": {
+   "text": "Birds are on the crest. Tonight you fly by the markers.",
+   "speaker": "taller",
+   "seconds": 3.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2646557522,
+     "heard": "Birds are on the crest. Tonight you fly by the markers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17407,
+     "sha256": "1eb9c039892178430e2fe9b314a035f08dc39d2fb4247853a385592c12f35183"
+    },
+    "mp3": {
+     "bytes": 18068,
+     "sha256": "0530b7ec55a0312bee2644a66e9e20090064ca898602d87ba7eaf073beff4778"
+    }
+   }
+  },
+  "film-itaipu-4-2.es": {
+   "text": "Los aparatos están en la cresta. Esta noche vuelen por los marcadores.",
+   "speaker": "taller",
+   "seconds": 4.725,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3169440851,
+     "heard": "Los aparatos están en la cresta. Esta noche vuelen por los marcadores.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21422,
+     "sha256": "ab7710b40897ea4db0b3ec37ea86eeff7f0819c42cdd18ecc9b1684ef6353f92"
+    },
+    "mp3": {
+     "bytes": 22724,
+     "sha256": "387598a43b89402efd229d522361967d54d43284dc3278007dc0fe09619b1fa6"
+    }
+   }
+  },
+  "film-itaipu-4-3.en": {
+   "text": "Something on the water. Small. Coming slow.",
+   "speaker": "mirador",
+   "seconds": 3.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3569546345,
+     "heard": "Something on the water. Small, coming slow.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 590
+    },
+    {
+     "attempt": 1,
+     "seed": 3167138166,
+     "heard": "Something on the water. Small, coming slow.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16605,
+     "sha256": "9a2f2cd46b10bbc00b1f52983ff1da900b92924232398067153840942ba09d44"
+    },
+    "mp3": {
+     "bytes": 15740,
+     "sha256": "d1f03d929a15de87ed1afed2b27b8868f1d7e5d4ef90116234811ede126e8550"
+    }
+   }
+  },
+  "film-itaipu-4-3.es": {
+   "text": "Algo en el agua. Chico. Viene lento.",
+   "speaker": "mirador",
+   "seconds": 2.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1093312577,
+     "heard": "Algo en el agua. Chico, viene lento. Eh...",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1110518910,
+     "heard": "Algo en el agua. Chico, viene lento.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12312,
+     "sha256": "f77fb769c4a25792b2a9fe5ff29625eb8d5a276e69a12c3c0dc23317a4910bc9"
+    },
+    "mp3": {
+     "bytes": 12164,
+     "sha256": "85736e63a196a70611e82b84f35989d4e2f0dae2d912a232940ad61fe83b2e78"
+    }
+   }
+  },
+  "film-itaipu-4-4.en": {
+   "text": "Fly in pairs. Hold until the sun comes up.",
+   "speaker": "crest",
+   "seconds": 2.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 785712616,
+     "heard": "Fly in pairs, hold until the sun comes up.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 50
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12920,
+     "sha256": "389ed1b9b112f05b23649402f060dd7a91f717a7b00c4a2d3b6665dfeb5b0894"
+    },
+    "mp3": {
+     "bytes": 11732,
+     "sha256": "87b9d579380699028a37cf8df6f5721bd5a96e8940bc4f4de9020bbfedfcf472"
+    }
+   }
+  },
+  "film-itaipu-4-4.es": {
+   "text": "Vuelen de a dos. Aguanten hasta que salga el sol.",
+   "speaker": "crest",
+   "seconds": 3.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3566505682,
+     "heard": "Vuelen de a dos. Aguanten hasta que salga el sol.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 440
+    },
+    {
+     "attempt": 1,
+     "seed": 2505764211,
+     "heard": "Vuelen de a dos. Aguanten hasta que salga el sol.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15449,
+     "sha256": "7b134c4085b7c27a619c801387388dc0b4bb35a5cd8de186e8fe45b0708671a6"
+    },
+    "mp3": {
+     "bytes": 14180,
+     "sha256": "1ad4bd5c62c0d335c8591b77dad0e20b8bf853e354a4bbd084cd994d706dd1ac"
+    }
+   }
+  },
+  "film-itaipu-4-o2.en": {
+   "text": "Birds are home. Most of them.",
+   "speaker": "taller",
+   "seconds": 2.285,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 941065745,
+     "heard": "Birds are home, most of them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 300
+    },
+    {
+     "attempt": 1,
+     "seed": 1936159277,
+     "heard": "Birds are home, most of them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 500
+    },
+    {
+     "attempt": 2,
+     "seed": 1839981282,
+     "heard": "Birds are home, most of them",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10438,
+     "sha256": "9551d47b4780520f94f97a08181205367e68b27e2c17e048991a72ff550f25b0"
+    },
+    "mp3": {
+     "bytes": 11060,
+     "sha256": "4e98f1d5fd345865267294701416818d3ccca2409aeccb8911c7d8d95256aaf1"
+    }
+   }
+  },
+  "film-itaipu-4-o2.es": {
+   "text": "Los aparatos volvieron. Casi todos.",
+   "speaker": "taller",
+   "seconds": 2.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2384332044,
+     "heard": "Los aparatos volvieron. Casi todos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12825,
+     "sha256": "0a3e9732315c8d29248de4d31a8f750e2c14bf1d18cae791b3011501136953af"
+    },
+    "mp3": {
+     "bytes": 13412,
+     "sha256": "abadc11e74e2ba2fcdfe61d27ffbab2ddd86efcc184ef4bf6cdc898a2cfb8afd"
+    }
+   }
+  },
+  "film-itaipu-4-o3.en": {
+   "text": "Scope's clean. First time all night.",
+   "speaker": "mirador",
+   "seconds": 2.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3309210238,
+     "heard": "Scopes clean. First time all night.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11880,
+     "sha256": "e20ab8164e5420b024941fdde3303bb8ff4b90b5a055c83352729e5e8d620f15"
+    },
+    "mp3": {
+     "bytes": 11756,
+     "sha256": "2f628a3efe3801a08044d4b5c3aaeebcaabb3bef459eacb4c9634b9d69f3157c"
+    }
+   }
+  },
+  "film-itaipu-4-o3.es": {
+   "text": "La pantalla está limpia. Primera vez en toda la noche.",
+   "speaker": "mirador",
+   "seconds": 3.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 561968948,
+     "heard": "La pantalla está limpia. Primera vez en toda la noche.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17229,
+     "sha256": "0c1708028b84ce34d8cb1a94368317488b98e39073e3dde65a65276334d732a9"
+    },
+    "mp3": {
+     "bytes": 16508,
+     "sha256": "27c18cf2bf13434b47aca139290d524c8399fd50e2108c787a66a5fe8a740afc"
+    }
+   }
+  },
+  "film-itaipu-4-o4.en": {
+   "text": "Crest, Dispatch. The morning load is coming on. Thank you for the night.",
+   "speaker": "despacho",
+   "seconds": 4.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2991803990,
+     "heard": "Dressed? Dispatch? The morning load is coming on. Thank you for the night.",
+     "wer": 0.077,
+     "extra": 0,
+     "missing": [
+      "crest"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3654581790,
+     "heard": "Pressed. Dispatch. The morning load is coming on. Thank you for the night.",
+     "wer": 0.077,
+     "extra": 0,
+     "missing": [
+      "crest"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 744388984,
+     "heard": "Crest, dispatch. The morning load is coming on. Thank you for the night.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22881,
+     "sha256": "8984d3a72f0ed11224e0c38d6b5f7b9ceec519ccb202e22562c396a9d996af19"
+    },
+    "mp3": {
+     "bytes": 23060,
+     "sha256": "19e39936e4701e4bf9d1d3ed80e8c17233a873ed3f39a379ef80e33175523e51"
+    }
+   }
+  },
+  "film-itaipu-4-o4.es": {
+   "text": "Cresta, Despacho. Ya entra la carga de la mañana. Gracias por la noche.",
+   "speaker": "despacho",
+   "seconds": 4.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1756872335,
+     "heard": "Cresta, despacho. Ya entra la carga de la mañana. Gracias por la noche.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20074,
+     "sha256": "bfd2345f48815997e83972ff2489408b9d5962b3893e5b7e79775f225e33d3ae"
+    },
+    "mp3": {
+     "bytes": 20492,
+     "sha256": "decb9c187bb7ce8707eeb6b5b2b13299ffb037cfd9aea426b02e7244a7b8956e"
+    }
+   }
+  },
+  "itaipu-4-g-all.en": {
+   "text": "Protect the plant. Everything at once. The closest to the dam first, and watch for Hunters.",
+   "speaker": "crest",
+   "seconds": 5.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1805858085,
+     "heard": "Protect the plant. Everything at once. The closest to the dam first and watch for hunters.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27107,
+     "sha256": "61f537093d95cc7ee666fcae6457769312db21112df0f14e476bab5d5573d599"
+    },
+    "mp3": {
+     "bytes": 23780,
+     "sha256": "ddc746843470c51715622f928c98e5827b5350b346f332a953db15dd3dd9623d"
+    }
+   }
+  },
+  "itaipu-4-g-all.es": {
+   "text": "Protejan la central. Todo a la vez. Primero el más cercano a la represa, y cuidado con los cazadores.",
+   "speaker": "crest",
+   "seconds": 6.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 346206494,
+     "heard": "Protejan la central. Todo a la vez, primero el más cercano a la represa y cuidado con los cazadores.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27589,
+     "sha256": "fe5b04bb232d328bbfa56b069a9a60a8224c5d21005cf45d5fdfb7b368d268b5"
+    },
+    "mp3": {
+     "bytes": 25196,
+     "sha256": "793fc42a306301d7f68ab812a979ccaf9cfb8848bab57036e77ec5628c5feef1"
+    }
+   }
+  },
+  "itaipu-4-g-boat.en": {
+   "text": "The boat is low on the water. Fly low, meet it early, and hit it before the face.",
+   "speaker": "crest",
+   "seconds": 5.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3385098050,
+     "heard": "The boat is low on the water, fly low, meet it early, and hit it before the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23011,
+     "sha256": "9cd55a0bf42fe3de49f94e4fde30b80ca1aca16a0690a9ce122f1bd0835dd071"
+    },
+    "mp3": {
+     "bytes": 20060,
+     "sha256": "b4328f6c486fceb8f417d6a1e28320aec730f7b48c6e51fc0a64634d0ec2a9c4"
+    }
+   }
+  },
+  "itaipu-4-g-boat.es": {
+   "text": "La lancha va baja sobre el agua. Vuelen bajo, salgan a su encuentro y péguenle antes de la cara.",
+   "speaker": "crest",
+   "seconds": 6.645,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3758893176,
+     "heard": "La lancha va baja sobre el agua. Vuelen bajo, salgan a su encuentro y péguenle antes de la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30223,
+     "sha256": "70ef5bd1f40d03241c26bdf9b9476c619da4a01c69de44a399d763af4487c87e"
+    },
+    "mp3": {
+     "bytes": 27236,
+     "sha256": "9732d1b063ce551ac3cc5a0b69970d3884f635c0bb8d4001be7a135ea3ef8bd0"
+    }
+   }
+  },
+  "itaipu-4-g-hunters.en": {
+   "text": "The Hunters chase your bird. Fly in pairs. One draws it, the other turns in and takes it.",
+   "speaker": "crest",
+   "seconds": 5.465,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 853333911,
+     "heard": "The hunters chase your bird, fly in pairs. One draws it, the other turns in and takes it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24923,
+     "sha256": "e9d5eac2bc87094eb2f037fa371b96651013c679a4f7efdda1e2c27e5c96d1c6"
+    },
+    "mp3": {
+     "bytes": 21812,
+     "sha256": "a13e0ad34849ed2a22f720780a8e3b4f72f195c48cabbdabdd6f9d4ad83ed56a"
+    }
+   }
+  },
+  "itaipu-4-g-hunters.es": {
+   "text": "Los cazadores persiguen su aparato. Vuelen de a dos. Uno lo atrae, el otro gira y lo derriba.",
+   "speaker": "crest",
+   "seconds": 6.155,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3142257087,
+     "heard": "Los cazadores persiguen su aparato, vuelen de a dos, uno lo atrae, el otro gira y lo derriba.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28113,
+     "sha256": "30b6f2dfa88f84ffc3c4cc036164b486b73c164cac892b6e9369073cb6e235e0"
+    },
+    "mp3": {
+     "bytes": 24980,
+     "sha256": "b7533b0b235f888d6d1dc4df37137063ce5181614e01b20d4f551b8493fe728f"
+    }
+   }
+  },
+  "itaipu-4-g-intakes.en": {
+   "text": "Protect the intakes. Boats come on two bearings. Split up and take one each.",
+   "speaker": "crest",
+   "seconds": 4.615,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 364509192,
+     "heard": "Protect the intakes. Boats come on two bearings. Split up and take one each.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21067,
+     "sha256": "f712f7d8f54b367043961933917162928eff987f38b2b55af8e6ccaf86e8b4a9"
+    },
+    "mp3": {
+     "bytes": 18548,
+     "sha256": "582cf99a556bf829d61ed925b258e18bac6cb0f6eed5a646f134623d0bdb4a7a"
+    }
+   }
+  },
+  "itaipu-4-g-intakes.es": {
+   "text": "Protejan las tomas. Las lanchas vienen por dos lados. Sepárense y tomen una cada uno.",
+   "speaker": "crest",
+   "seconds": 6.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3431235632,
+     "heard": "Protejan las tomas. Las lanchas vienen por dos lados. Sepárense y tomen una cada uno.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29327,
+     "sha256": "43f6fcd54164f6b7bd6b939804f94f8868e4153d27a5413f8e0432217ba46368"
+    },
+    "mp3": {
+     "bytes": 26036,
+     "sha256": "af417b1a26e0b6df44921e1db47097687dcf48905d5a0672d5f71041f68eb7ea"
+    }
+   }
+  },
+  "itaipu-4-g-scout.en": {
+   "text": "The scout circles high over the open water north of the dam. Climb and kill it.",
+   "speaker": "crest",
+   "seconds": 5.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 104410010,
+     "heard": "The scout circles high over the open water north of the dam. Climb and kill it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 70
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26554,
+     "sha256": "493e59650ed9d7198ea3c7e3fc17fa89f616bed995750b5b9289f4e5965b5af9"
+    },
+    "mp3": {
+     "bytes": 23924,
+     "sha256": "0e0593ac6612cd6f924cb6086cc4f6263b8bb6925c2468c7cbb45ee15952359a"
+    }
+   }
+  },
+  "itaipu-4-g-scout.es": {
+   "text": "El explorador da vueltas en altura sobre el agua abierta, al norte de la represa. Suban y derríbenlo.",
+   "speaker": "crest",
+   "seconds": 6.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1178544145,
+     "heard": "El explorador da vueltas en altura sobre el agua abierta, al norte de la represa. Suban y derríbenlo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31011,
+     "sha256": "046f241d9f4510a5db1a0a8644bbd91d5e97a46caa69b77977c374ef4ff1da45"
+    },
+    "mp3": {
+     "bytes": 27644,
+     "sha256": "b5dd422c2c83296e71b1d2a50b66b6413602eac3c382df40bb0ef6da9b19a336"
+    }
+   }
+  },
+  "itaipu-4-g-standby.en": {
+   "text": "Stand by. Spread out over the face and watch the water. Something will come.",
+   "speaker": "crest",
+   "seconds": 5.595,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 19443321,
+     "heard": "Stand by. Spread out over the face and watch the water. Something will come.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25392,
+     "sha256": "9b293002c3992adbf6fb0479ee45cb0010d2a5300eb64bf150fc940c8d6599bf"
+    },
+    "mp3": {
+     "bytes": 22700,
+     "sha256": "43ac21f4fdf183052d245e9752a3557f158e222bce407aba5d1e006b6f118d25"
+    }
+   }
+  },
+  "itaipu-4-g-standby.es": {
+   "text": "En espera. Despliéguense sobre la cara y miren el agua. Algo va a venir.",
+   "speaker": "crest",
+   "seconds": 4.665,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 433866077,
+     "heard": "En espera. Despliéguense sobre la cara y miren el agua. Algo va a venir.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21393,
+     "sha256": "86fb1eebd300a8f3bd70fb6d6ed0b0afadc57f4af5faddffe640a5e838da1817"
+    },
+    "mp3": {
+     "bytes": 19508,
+     "sha256": "6f91b7f71d5c6dd29252e8975cf3e3833fa0a76ac340dce3781695b0c1f0a35a"
+    }
+   }
+  },
+  "itaipu-4-g-yard.en": {
+   "text": "Fly west over the right bank. Stop the Strikers before the switchyard.",
+   "speaker": "crest",
+   "seconds": 4.215,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1289080446,
+     "heard": "fly west over the right bank, stop the strikers before the switchyard,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19286,
+     "sha256": "87e5307f2e56013394a7c6e0c4c45951adf33d805bca2eddc03bc3c89461abe2"
+    },
+    "mp3": {
+     "bytes": 17516,
+     "sha256": "fe6bbdfbd47ed74ef1ed18445c29de3d9e5a74f207e8077f663a6fad0c26a3fe"
+    }
+   }
+  },
+  "itaipu-4-g-yard.es": {
+   "text": "Vuelen al oeste sobre la margen derecha. Paren a los drones de ataque antes de la subestación.",
+   "speaker": "crest",
+   "seconds": 5.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3750276222,
+     "heard": "Vuelen al oeste sobre la margen derecha. Paren a los drones de ataque antes de la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26305,
+     "sha256": "0ee4ea4ef8953ab387e43962637a01d7bda536f2c4f13286ccfee4985a9f2b70"
+    },
+    "mp3": {
+     "bytes": 24044,
+     "sha256": "5cdbbaa30f3d8af34eee5f56e2c9006dd9eceac3fea6419e7ee2b2cb827bf2b5"
+    }
+   }
+  },
+  "itaipu-4-s0-brief.en": {
+   "text": "They'll come in the dark. You'll see less. So will they.",
+   "speaker": "crest",
+   "seconds": 3.565,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1876760617,
+     "heard": "They'll come in the dark, you'll see less, so will they.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16351,
+     "sha256": "94c453fba6fb3ed541bfa2367fb4612aabc935e4cfb593271136db94997b7e1f"
+    },
+    "mp3": {
+     "bytes": 14708,
+     "sha256": "c5f052dd3ea18d0f4a62b5d11c187d184377ac48d54b95c59ca7c49bdaf222d3"
+    }
+   }
+  },
+  "itaipu-4-s0-brief.es": {
+   "text": "Van a venir en la oscuridad. Van a ver menos. Ellos también.",
+   "speaker": "crest",
+   "seconds": 4.375,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1238020588,
+     "heard": "Van a venir en la oscuridad, van a ver menos, ellos también.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20114,
+     "sha256": "f30e05959511a63cda506e23cbce7efb4b197217010bb77bf3bdb4e9e719597e"
+    },
+    "mp3": {
+     "bytes": 18524,
+     "sha256": "83abf8ff93c7aaa054c1d567ab271c61072ee1f7d7f8ae6a610cf523f24bdbc2"
+    }
+   }
+  },
+  "itaipu-4-s0-rules.en": {
+   "text": "Dark out there. Trust the markers over your eyes, and fly in pairs.",
+   "speaker": "taller",
+   "seconds": 4.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4294035922,
+     "heard": "Dark out there, trust the markers over your eyes, and fly in pairs.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21483,
+     "sha256": "6ac4ba2ed874e846c2e134ad0d18faeb37cbd0dffe70c06c442adb6764788831"
+    },
+    "mp3": {
+     "bytes": 22724,
+     "sha256": "f131940a5958e6e8f9a579c1f95f6202c54d8ffa2ac21fd7fb3c3598abf56bed"
+    }
+   }
+  },
+  "itaipu-4-s0-rules.es": {
+   "text": "Afuera está oscuro. Confíen más en los marcadores que en sus ojos, y vuelen de a dos.",
+   "speaker": "taller",
+   "seconds": 6.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 262088767,
+     "heard": "Afuera está oscuro. Confíen más en los marcadores que en sus ojos y vuelen de a dos».",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29186,
+     "sha256": "93b9f6457945cf86b95102ae145676d52a051b7056c82e648e05d122ea5b1ae2"
+    },
+    "mp3": {
+     "bytes": 29084,
+     "sha256": "2c9fa83e2406379552824540b787547ad27dc522d1c4def9909d2efc10dfe919"
+    }
+   }
+  },
+  "itaipu-4-s1-boat.en": {
+   "text": "There. One wake, low on the water, coming for the face.",
+   "speaker": "mirador",
+   "seconds": 4.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1227029938,
+     "heard": "There. One wake, low on the water, coming for the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19101,
+     "sha256": "aee927b2cd6fea2009bf3996fff2a0ef9bca1d67679b476cf3ce883569dce82e"
+    },
+    "mp3": {
+     "bytes": 18140,
+     "sha256": "6657caf5d82e4c76b561df01df3fd43b6a50f780f9eb1ffa963573d97c481ba1"
+    }
+   }
+  },
+  "itaipu-4-s1-boat.es": {
+   "text": "Ahí. Una estela, baja sobre el agua, rumbo a la cara.",
+   "speaker": "mirador",
+   "seconds": 3.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3339913908,
+     "heard": "¡Ay! Una estela, baja sobre el agua, rumbo a la cara.",
+     "wer": 0.091,
+     "extra": 0,
+     "missing": [
+      "ahi"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3190961618,
+     "heard": "Ahí, una estela baja sobre el agua rumbo a la cara,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15892,
+     "sha256": "c8e38896e7a600414283c989d58410511b4421c848ba9eafc615c171f4d19b87"
+    },
+    "mp3": {
+     "bytes": 16196,
+     "sha256": "c29c3c7f042e91e1d38901d5da60e419fd0637cfd51dac17ce12c512b16e5a78"
+    }
+   }
+  },
+  "itaipu-4-s1-down.en": {
+   "text": "Good kill. Stay awake. That was the first.",
+   "speaker": "crest",
+   "seconds": 2.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 244801587,
+     "heard": "Good kill. Stay awake. That was the first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13686,
+     "sha256": "0ed2285b35af7a65e86b4398a8f26597a47e03fa7039b3c8c4a73ed26d415e30"
+    },
+    "mp3": {
+     "bytes": 12692,
+     "sha256": "c05d3a22f45af30d59a92539887a1d4445b9a1325d55349629ffcdfee83dc2ab"
+    }
+   }
+  },
+  "itaipu-4-s1-down.es": {
+   "text": "Uno menos. No se duerman. Ese fue el primero.",
+   "speaker": "crest",
+   "seconds": 3.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 47438953,
+     "heard": "Uno menos. No se duerman. Ese fue el primero.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15375,
+     "sha256": "c5ff39acd174cf40c2de95787abfa0c38ee1d1dd5f387ee5697b06a4baa35ab3"
+    },
+    "mp3": {
+     "bytes": 15380,
+     "sha256": "e9673259459216836f91598b40f4548a70e58844e6d1778f1c65c4f53d5e36e0"
+    }
+   }
+  },
+  "itaipu-4-s1-long.en": {
+   "text": "Quiet nights are the long ones.",
+   "speaker": "taller",
+   "seconds": 2.295,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1151771375,
+     "heard": "Quiet nights are the long ones.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10679,
+     "sha256": "aec40b9ee516aaaf301af7487515ddc1cfc4f0f3d9636d90822198982a3b3ef2"
+    },
+    "mp3": {
+     "bytes": 11204,
+     "sha256": "097c925fcd8520da1778bca8484da6307d183b761916534243c7ddcd868cd927"
+    }
+   }
+  },
+  "itaipu-4-s1-long.es": {
+   "text": "Las noches tranquilas son las más largas.",
+   "speaker": "taller",
+   "seconds": 2.655,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 834099445,
+     "heard": "Las noches tranquilas son las más largas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12313,
+     "sha256": "7b7ab188fbac930fbf61f1895225484c971d3c12baaf3e4569bad468c5f4cc9d"
+    },
+    "mp3": {
+     "bytes": 13484,
+     "sha256": "46e2a8e4f8393ff96df390824b5be9ac64c021889586c3ef272ab859182fe13b"
+    }
+   }
+  },
+  "itaipu-4-s1-quiet.en": {
+   "text": "Nothing on the scope. I don't like it.",
+   "speaker": "mirador",
+   "seconds": 3.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3656035877,
+     "heard": "Nothing on the scope. I don't like it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14333,
+     "sha256": "c33df5de235a87917c42ebc5c89fe1b239147d78758a750ff9305c9504f6291a"
+    },
+    "mp3": {
+     "bytes": 14372,
+     "sha256": "2e42692ea0e1625ee210a128fb2cc13c0b315d0e3821f2b7a91339dc9a5f76ad"
+    }
+   }
+  },
+  "itaipu-4-s1-quiet.es": {
+   "text": "Nada en pantalla. No me gusta.",
+   "speaker": "mirador",
+   "seconds": 2.225,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 507107164,
+     "heard": "Nada en pantalla. No me gusta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10268,
+     "sha256": "6bd3d5849b29ccd8bb98aff2d56ee81d2b2c7bc0f24132176af083b7268f75d6"
+    },
+    "mp3": {
+     "bytes": 10244,
+     "sha256": "b8b938ed21455809adc7248c36d206af1c2aa906dfc3d14714926cd11db51330"
+    }
+   }
+  },
+  "itaipu-4-s2-clear.en": {
+   "text": "Water's quiet again. Bring me what's left of the birds.",
+   "speaker": "taller",
+   "seconds": 3.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1968420706,
+     "heard": "Water's quiet again. Bring me what's left of the birds.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17969,
+     "sha256": "859144abf0b62e08c1702f47b4e75f424927b5d78168e9e1e52bf6f81d05e696"
+    },
+    "mp3": {
+     "bytes": 18668,
+     "sha256": "71011138a9695f4fcf56eb209efd454eb41c0042877e608fe305437c32a3ad69"
+    }
+   }
+  },
+  "itaipu-4-s2-clear.es": {
+   "text": "El agua está tranquila otra vez. Tráiganme lo que quede de los aparatos.",
+   "speaker": "taller",
+   "seconds": 4.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3645166589,
+     "heard": "El agua está tranquila otra vez. Tráiganme lo que quede de los aparatos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22639,
+     "sha256": "ba9306188ff6c6b268ea2bd7bbde7fa7a07101ceddad0322740d932fbe6c861f"
+    },
+    "mp3": {
+     "bytes": 24500,
+     "sha256": "643b4cb03933968daf1721b5c083ef671517545bc7a08a630d27ecc6a68cea2e"
+    }
+   }
+  },
+  "itaipu-4-s2-high.en": {
+   "text": "Loiterer up high. Somebody climb, the rest stay on the water.",
+   "speaker": "crest",
+   "seconds": 4.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1508428352,
+     "heard": "Loiterer up high, somebody climb, the rest stay on the water.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22235,
+     "sha256": "3aad03fce4f387aec58798aeaba455e4b4be09fe135786080805a044076ec1a0"
+    },
+    "mp3": {
+     "bytes": 20972,
+     "sha256": "fbe808ad5fc3d07a38bed43a4ba183710df5fd561a2c7a004dd59981de211b68"
+    }
+   }
+  },
+  "itaipu-4-s2-high.es": {
+   "text": "Un merodeador allá arriba. Que alguien suba, los demás quédense en el agua.",
+   "speaker": "crest",
+   "seconds": 4.045,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2048127374,
+     "heard": "Un merodeador allá arriba, que alguien suba, los demás quédense en el agua.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18733,
+     "sha256": "fc1bb261fb4b9a167a4d24fabdcba1ddb1a0debf6d1b37e0130cbbc3f07398e5"
+    },
+    "mp3": {
+     "bytes": 17876,
+     "sha256": "af3b076d73b9eff16a4948a1d70429f7e7ae61cb481648cbe1826714d921b4d3"
+    }
+   }
+  },
+  "itaipu-4-s2-split.en": {
+   "text": "Second group, another bearing. They're splitting us.",
+   "speaker": "mirador",
+   "seconds": 3.505,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2931297106,
+     "heard": "SECOND GROUP. ANOTHER BEARING. THEY'RE SPLITTING US.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15915,
+     "sha256": "5529fbca635637d120951743a57f572f1d695caed996e0e4c59e039e6ceb524b"
+    },
+    "mp3": {
+     "bytes": 15404,
+     "sha256": "46111b61b9c6f053d671196389053ffe553bf29a3a93bcd9aa494bb8b26e5715"
+    }
+   }
+  },
+  "itaipu-4-s2-split.es": {
+   "text": "Segundo grupo, por otro lado. Nos quieren dividir.",
+   "speaker": "mirador",
+   "seconds": 3.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 419033991,
+     "heard": "Segundo grupo, por otro lado, nos quieren dividir.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15240,
+     "sha256": "3ded134a9eaea93c9e55e85024622fe1eb5aae9528eb14eb5b3716a2d5d37ff7"
+    },
+    "mp3": {
+     "bytes": 14180,
+     "sha256": "6e681523297adf9e563cd376b1be8d68e5a301b06b0023695289612a5b5223c8"
+    }
+   }
+  },
+  "itaipu-4-s2-water.en": {
+   "text": "More on the water. Get down low and meet them early.",
+   "speaker": "crest",
+   "seconds": 3.465,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 462992479,
+     "heard": "More on the water. Get down low and meet them early. Early.",
+     "wer": 0.091,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 886143344,
+     "heard": "More on the water. Get down low and meet them early.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16023,
+     "sha256": "91509072b90724a88e53c5990d1b7d07b707d6ae9994d558f3243fff75aee1f0"
+    },
+    "mp3": {
+     "bytes": 14588,
+     "sha256": "81f609dfe0b78f6bf5f8186fb613bd5bba656f67a2ebd7ac336449073a3ace4f"
+    }
+   }
+  },
+  "itaipu-4-s2-water.es": {
+   "text": "Hay más en el agua. Bajen y salgan a su encuentro temprano.",
+   "speaker": "crest",
+   "seconds": 3.965,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3871534377,
+     "heard": "Hay más en el agua. Bajen y salgan a su encuentro temprano.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18191,
+     "sha256": "719d15b97c9a16f0dd1571e07058b963023f0c0cc436df259ff04441f24bf4f3"
+    },
+    "mp3": {
+     "bytes": 16628,
+     "sha256": "3e4aea7511d602b5f3e91470319672945fa77be5591ca6064eabb7af7420cd56"
+    }
+   }
+  },
+  "itaipu-4-s3-cover.en": {
+   "text": "And Strikers from the north while we're busy.",
+   "speaker": "mirador",
+   "seconds": 2.625,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1298943684,
+     "heard": "and strikers from the north while we're busy.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12085,
+     "sha256": "5aa826f55944905ad345f8bdba83277d0f18526c4295536c4843909585c1da52"
+    },
+    "mp3": {
+     "bytes": 12476,
+     "sha256": "657be6b8cab419164fc7b0e101ab957dc2ecdb15a323ca86c67cdbd52cc6b8eb"
+    }
+   }
+  },
+  "itaipu-4-s3-cover.es": {
+   "text": "Y drones de ataque desde el norte mientras estamos ocupados.",
+   "speaker": "mirador",
+   "seconds": 3.545,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1183672005,
+     "heard": "y drones de ataque desde el norte mientras estamos ocupados.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16152,
+     "sha256": "8969cad9d8fa2846edaa1ed09aa61b19e0ce287b36ebd746055ba93580f071e2"
+    },
+    "mp3": {
+     "bytes": 15980,
+     "sha256": "b8c6328d6cd8365a78106545514583fe0a27fb50b565d625496d6c917f3c1f5e"
+    }
+   }
+  },
+  "itaipu-4-s3-down.en": {
+   "text": "Hunters are down. I'll take that trade.",
+   "speaker": "taller",
+   "seconds": 2.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 52297405,
+     "heard": "Hunters are down, I'll take that trade.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12607,
+     "sha256": "c4a8708f162ad809749dd9f3e6fdf01ee4941e987f9d525ba3d6a300592635cb"
+    },
+    "mp3": {
+     "bytes": 13628,
+     "sha256": "f220690c2f541a205ebf24d8fd9c5f6e3c4f34d0299de997badd26a6ea044efb"
+    }
+   }
+  },
+  "itaipu-4-s3-down.es": {
+   "text": "Cayeron los cazadores. Ese cambio me sirve.",
+   "speaker": "taller",
+   "seconds": 3.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2200266973,
+     "heard": "«Cayeron los cazadores. Ese cambio me sirve».",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15734,
+     "sha256": "a32cacf84516fb0802043899181d9b870cbe17b39f9e394dec67c90126a2aaad"
+    },
+    "mp3": {
+     "bytes": 16556,
+     "sha256": "20dbefa2e9e485452e4314c8dd7283227cfe270466ac8e5d4f0da274c85a8026"
+    }
+   }
+  },
+  "itaipu-4-s3-hunt.en": {
+   "text": "Fast movers out of the gorge. They're not heading for the dam.",
+   "speaker": "mirador",
+   "seconds": 3.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3543677312,
+     "heard": "Fast move is out of the gorge. They're not heading for the dam.",
+     "wer": 0.167,
+     "extra": 1,
+     "missing": [
+      "movers"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 16535449,
+     "heard": "Fast movers out of the gorge. They're not heading for the dam.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15299,
+     "sha256": "ab8845aa5e6d3216c5e22a373fd22e86dea0d803608bf2608d006da426985594"
+    },
+    "mp3": {
+     "bytes": 16340,
+     "sha256": "d7d79809c0a4de49b7755eb373395a02699f08521c974c0021ad2ba9ba11215a"
+    }
+   }
+  },
+  "itaipu-4-s3-hunt.es": {
+   "text": "Rápidos saliendo del cañón. No van hacia la represa.",
+   "speaker": "mirador",
+   "seconds": 3.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2362355411,
+     "heard": "Rápido saliendo del cañón. No van hacia la represa.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "rapidos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3099956657,
+     "heard": "Rápido saliendo del cañón, no van hacia la represa.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "rapidos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 177112246,
+     "heard": "Rápido saliendo del cañón. No van hacia la represa.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "rapidos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 468704232,
+     "heard": "Rápido saliendo del cañón. No van hacia la represa.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "rapidos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 2281336318,
+     "heard": "Rápido saliendo del cañón, no van hacia la represa.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "rapidos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 5,
+     "seed": 4229817831,
+     "heard": "Rápidos, saliendo del cañón. No van hacia la represa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17583,
+     "sha256": "a8e4182c0d8a2d54a9770cc6fe93caf6c5d473b986058d52a5bd9558d7cea7b9"
+    },
+    "mp3": {
+     "bytes": 16748,
+     "sha256": "3f4b469aacffe672a42e516b239e9fdb1e71c2aa094be060756cefbceb6cd486"
+    }
+   }
+  },
+  "itaipu-4-s3-pairs.en": {
+   "text": "Hunters. Pairs. Nobody flies alone tonight.",
+   "speaker": "crest",
+   "seconds": 3.385,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1708858863,
+     "heard": "Hunters. Pears. Nobody flies alone tonight.",
+     "wer": 0.167,
+     "extra": 0,
+     "missing": [
+      "pairs"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1068135031,
+     "heard": "Hunters, pairs, nobody flies alone tonight.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15513,
+     "sha256": "0f0190554d0c6a3e75ad8191b04707647347bf055134d96484209fe24eae7741"
+    },
+    "mp3": {
+     "bytes": 13700,
+     "sha256": "900165e5bf74a6253726ef7be3c048bbbbcf867ec41ce44f6edef7bc31363d98"
+    }
+   }
+  },
+  "itaipu-4-s3-pairs.es": {
+   "text": "Cazadores. De a dos. Esta noche nadie vuela solo.",
+   "speaker": "crest",
+   "seconds": 3.575,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2000738226,
+     "heard": "Cazadores de a dos. Esta noche nadie vuela solo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16537,
+     "sha256": "a52ecde651874040284204bc855e489285f14143bfff31bc68d906b420864737"
+    },
+    "mp3": {
+     "bytes": 15236,
+     "sha256": "32091a032777130e8bbccc75c2729ca8653be88dcac1a09d8f05c7539e1fb4ab"
+    }
+   }
+  },
+  "itaipu-4-s5-all.en": {
+   "text": "Everything at once. The water, the north, the gorge.",
+   "speaker": "mirador",
+   "seconds": 4.005,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 105505251,
+     "heard": "Everything at once. The water, the north, the gorge.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18135,
+     "sha256": "bcf388bd149e2fc264d4da4c02d7377e6a784781238da4bf342b5264207605d7"
+    },
+    "mp3": {
+     "bytes": 17012,
+     "sha256": "64d1ba38cb95de007e1deb14138cc516a9e11c7052430c121c22faf7dbae40fc"
+    }
+   }
+  },
+  "itaipu-4-s5-all.es": {
+   "text": "Todo a la vez. El agua, el norte, el cañón.",
+   "speaker": "mirador",
+   "seconds": 3.385,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 83076702,
+     "heard": "Todo a la vez. El agua, el norte, el cañón.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15433,
+     "sha256": "862ca0b29e94d128e49748ee0e7300174265ba814eb675bdbbea13b5b5f11a3c"
+    },
+    "mp3": {
+     "bytes": 14876,
+     "sha256": "1bb4e0a5de95b99b119af56abef055698f99c3835217dffdfc43275edcf75de4"
+    }
+   }
+  },
+  "itaipu-4-s5-near.en": {
+   "text": "Not long to sunrise now. Almost there.",
+   "speaker": "mirador",
+   "seconds": 3.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2191635935,
+     "heard": "Not long to sunrise now. Almost there.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14020,
+     "sha256": "bb198ffc87d33fb95447c1ce45214eabd1a7234ebb6839d86fb8415d4d090d26"
+    },
+    "mp3": {
+     "bytes": 14468,
+     "sha256": "213d3e90a076e26ce270cb6cd9b40b82bd730910eb378d80c8276d3ac9995737"
+    }
+   }
+  },
+  "itaipu-4-s5-near.es": {
+   "text": "Ya falta poco para el amanecer. Aguanten.",
+   "speaker": "mirador",
+   "seconds": 2.935,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1652297216,
+     "heard": "Ya falta poco para el amanecer. Aguanten.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13480,
+     "sha256": "50e799d7085a3743f28e9e4015ee82c2291bcd00f83c8b5df315aa969f915ac5"
+    },
+    "mp3": {
+     "bytes": 13436,
+     "sha256": "01dcc737017b3339836949e5ecdee1e6316cee1b69476f6020a1834d5833476a"
+    }
+   }
+  },
+  "itaipu-4-s5-order.en": {
+   "text": "Last push before light. Hold the face and stay in pairs.",
+   "speaker": "crest",
+   "seconds": 4.645,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1613147643,
+     "heard": "Last push before light. Hold the face and stay in pairs.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21145,
+     "sha256": "99d9d1d3d745187fd6f38c342f54e9680ef0f8da66e6f12d074bf8a594361c61"
+    },
+    "mp3": {
+     "bytes": 18476,
+     "sha256": "3e9c3a29e934cd319fe3b06c69d8ce3799501d5519a371e8772c28afd491bde0"
+    }
+   }
+  },
+  "itaipu-4-s5-order.es": {
+   "text": "Último empujón antes de la luz. Sostengan la cara y sigan de a dos.",
+   "speaker": "crest",
+   "seconds": 5.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 71866314,
+     "heard": "Último empujón antes de la luz. Sostengan la cara y sigan de a dos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23157,
+     "sha256": "f13f6e504167e7a2016a3f19699fb470698b44f9698a291430fc879b26d83b8d"
+    },
+    "mp3": {
+     "bytes": 21044,
+     "sha256": "4f5715a5946d701925dd52af798fb20f920d4aefe790ec022668adc33dd6c4f2"
+    }
+   }
+  },
+  "itaipu-4-tb-turn.en": {
+   "text": "Crest, the right bank is on one feed tonight. Please keep the yard.",
+   "speaker": "despacho",
+   "seconds": 5.475,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 129723411,
+     "heard": "Crest, the right bank is on one feed tonight. Please keep the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25163,
+     "sha256": "9e6d8c63b925065dff10e1c35f14a17d66a95451e7026e9bf8c3f0e602a8aea6"
+    },
+    "mp3": {
+     "bytes": 24452,
+     "sha256": "705732c714e712beda77a5c337e35d08051a0cf86f88c40bbdec002721a61dfc"
+    }
+   }
+  },
+  "itaipu-4-tb-turn.es": {
+   "text": "Cresta, la margen derecha está con una sola alimentación esta noche. Por favor cuiden la subestación.",
+   "speaker": "despacho",
+   "seconds": 5.855,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 881908360,
+     "heard": "Cresta, la margen derecha está con una sola alimentación esta noche. Por favor cuiden la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26784,
+     "sha256": "825ae36c20053aa7b570476f8db8b05989806a6b1ac138b1efd6810c062019e1"
+    },
+    "mp3": {
+     "bytes": 26756,
+     "sha256": "8a5044ac10a5729dd3064df7feab4629ca3c29303875b6eac778f69b6ea711ea"
+    }
+   }
+  },
+  "itaipu-4-tb-why.en": {
+   "text": "Strikers down the west arm. They're going for the yard.",
+   "speaker": "mirador",
+   "seconds": 3.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 794555207,
+     "heard": "Strikers down the west arm. They're going for the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16258,
+     "sha256": "6a3ab2c50f24de4831621d88e34c5872d4fecec15b09f64cb8c86fa3d4a66ba9"
+    },
+    "mp3": {
+     "bytes": 16052,
+     "sha256": "f0db2366ad4f7843464537e3b1ead3e76bf162044f6d4e8069858ede18d2f546"
+    }
+   }
+  },
+  "itaipu-4-tb-why.es": {
+   "text": "Drones de ataque por el brazo oeste. Van por la subestación.",
+   "speaker": "mirador",
+   "seconds": 3.925,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2400091874,
+     "heard": "Drones de ataque por el brazo oeste. Van por la subetación.",
+     "wer": 0.091,
+     "extra": 0,
+     "missing": [
+      "subestacion"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 106308939,
+     "heard": "Drones de ataque por el brazo oeste. Van por la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17758,
+     "sha256": "68eeecf3c67014389da353a27d83b642f71fc58e467e3d47199975def3e46a3b"
+    },
+    "mp3": {
+     "bytes": 16820,
+     "sha256": "7e303164a193d9ccc5a4f7640cce562feb94f4b4cf3a37b0d6538141a937e3fe"
+    }
+   }
+  },
+  "itaipu-4-tc-down.en": {
+   "text": "Scout's down. Now they're guessing.",
+   "speaker": "crest",
+   "seconds": 2.385,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1794337861,
+     "heard": "Scouts down, now they're guessing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11125,
+     "sha256": "195217c2f61bcb8d197db297b59550387cf6f922d855416319fc021f8cc3b676"
+    },
+    "mp3": {
+     "bytes": 10556,
+     "sha256": "a7b90de605958da81a63900b3027df54b07ddd9253da0b38706bd489192fabd5"
+    }
+   }
+  },
+  "itaipu-4-tc-down.es": {
+   "text": "Cayó el explorador. Ahora adivinan.",
+   "speaker": "crest",
+   "seconds": 2.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 409950558,
+     "heard": "Cayó el explorador, ahora adivinan.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11258,
+     "sha256": "195241ffd1379170037fb369220a8783a606955258b78295d411a3796bbb2321"
+    },
+    "mp3": {
+     "bytes": 10844,
+     "sha256": "ec0ac8cb22681a87bca22eca8b4a99fc0b1da82a5cb8464d2272b71261ff44fd"
+    }
+   }
+  },
+  "itaipu-4-tc-turn.en": {
+   "text": "Something circling slow over the islands. That's a scout.",
+   "speaker": "mirador",
+   "seconds": 4.295,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2603906637,
+     "heard": "Something circling slow over the island. That's a scout.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "islands"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 4216996418,
+     "heard": "Something's circling slow over the islands. That's a scout.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "something"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1270331492,
+     "heard": "Something circling slow over the islands. That's a scout.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19482,
+     "sha256": "da20a2580508252721bf9980e4d959a9753be1e0cdec505d94c2c37c6f939873"
+    },
+    "mp3": {
+     "bytes": 19172,
+     "sha256": "9685f649f4829d8f62ebd4d6489de7275da81f128ed624d9d9f9dd1f72eb1e4d"
+    }
+   }
+  },
+  "itaipu-4-tc-turn.es": {
+   "text": "Algo da vueltas lentas sobre las islas. Es un explorador.",
+   "speaker": "mirador",
+   "seconds": 3.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1992686629,
+     "heard": "Algo da vueltas lentas sobre las islas. Es un explorador.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18131,
+     "sha256": "7d9e9fd3a73eebfca0e2e4a42b01458e9bd383f75fb385456fc1914a0ea2d163"
+    },
+    "mp3": {
+     "bytes": 17276,
+     "sha256": "5d407eeed503518305589e93dabe55925b6c9f2d80379526193577d3f7f33128"
+    }
+   }
+  },
+  "itaipu-4-tc-why.en": {
+   "text": "While it watches, they aim true. Take it down before the dawn.",
+   "speaker": "crest",
+   "seconds": 4.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2554849177,
+     "heard": "While it watches, they aim true, take it down before the dawn.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19813,
+     "sha256": "da6bc4419323ea10ba9eb5f27a827162bff4b9c18f770da87bf22bf4bc8bcfa8"
+    },
+    "mp3": {
+     "bytes": 18452,
+     "sha256": "98ef1b03fa05d1f38798db51955b8cf99c84082ca8f6fc80be05a0d700a49287"
+    }
+   }
+  },
+  "itaipu-4-tc-why.es": {
+   "text": "Mientras mire, apuntan bien. Derríbenlo antes del amanecer.",
+   "speaker": "crest",
+   "seconds": 4.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1842597301,
+     "heard": "Mientras mire, apuntan bien. Derríbenlo antes del amanecer.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21567,
+     "sha256": "3b3da339036a11807d39e54598a02dafc0964709a15ac0bcd13ee1c5aa59568a"
+    },
+    "mp3": {
+     "bytes": 19244,
+     "sha256": "7b78c0d51b3d7ca65801671b379397622859743bde9b5b4052c60f88fd5db96f"
     }
    }
   }

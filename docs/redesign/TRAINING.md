@@ -176,12 +176,20 @@ inputs and the flight's event log, each with a near miss that fails.
   time it was earned), synced, merged as the union at the earlier time.
   A stored one is never taken back, so a track is listed in `CERTS` only
   once every lesson this document gives it exists: Fixed wing, Glider,
-  Multirotor and Racing. Defence waits on the stage engine. First
-  flight has none.
-- **Gates** (track 3) is not built: the tree's casual sky tracks are
-  offered only to a fixed wing (src/ui/items.js `newTrackRows`), so a
-  quad has no casual course to fly. Casual sky tracks for quads are a
-  product gap. Multirotor's certification is its other four lessons.
+  Multirotor, Racing and Defence. First flight has none.
+- **Gates** (`quad_gates`, track 3): one clean lap of a casual sky
+  track, between the acro hover and Precision. A lap closes only after
+  every gate in order, so a lap is every gate; clean is no rim touched.
+  It counts only on a casual sky track: the lap event in the flight's log
+  carries its course's kind (src/game/progress.js `courseKind`), and a
+  lap of a built track or of the world's own does not pass it. Like
+  Precision it names no aircraft or assist. A quad has a casual sky
+  track since 2026-10-14 (src/ui/items.js `newTrackRows` offers one to
+  every aircraft, src/builder/course.js `CASUAL.quad`): eight 2.5 m
+  hoops, 45 m apart, 10 m over the ground; the spacing is derived from
+  the AI pilot's harness, the oval no tighter than the level turn its
+  reference line holds at 13 m/s. Multirotor's certification is its five
+  lessons.
 - **Sticks** (`first_sticks`): each stick held at each end of its
   travel for 1 s, any order: roll, pitch and yaw at 95 percent either
   way, the throttle at 95 percent and at 5 percent. 95 percent and 1 s
@@ -249,6 +257,39 @@ inputs and the flight's event log, each with a near miss that fails.
   The Radian opens at level 5, and a glider lesson seats it at any
   level: training gates nothing (section 4), so the lesson does not
   wait on the level.
+- **Defence** (track 5, branch w39-defence), in the war's aircraft, which
+  the room seats, each lesson's Fly asking the war's consent first:
+  - *The practice* the first two fly is a war mission of its own
+    (src/share/war/missions/itaipu-practice.js), on the stage engine:
+    one Striker with no target on a pass of about 4 km over the
+    reservoir, its one stage going again (caught, gone, or the pilot out
+    of airframes), so it is never won or lost, earns no stars and pays
+    nothing on the campaign (it is in no act); the host ends it. "Slow"
+    is the route's length: a kind's speed is the engine's (routes.js
+    KIND, 26.6 m/s for every Striker). It runs in a solo room the page
+    makes for it (src/main.js warEnter, the code marked solo), which
+    leaves the war's remembered Who joins as it was. With no rooms
+    server the lesson says so and does not fly.
+  - *Interception* (`defence_intercept`): a `kill` event, victim
+    `strike`, in the practice. The kill event carries the war's mission
+    for this, so a Striker downed in a campaign round does not count
+    (section 3: "the stage engine's own spawn, no war round").
+  - *Tracking a target* (`defence_track`): the avionics camera's
+    primary track (src/avionics/tracks.js `primaryId`, not stale) held
+    10 s unbroken, timed between `contact` events, the edges the shell
+    logs as the primary changes; another track taking over, or a crash,
+    starts it again. Known limits: the tracks run only while the
+    Avionics HUD is up (the combat aircraft start on it; the HUD style
+    is not a lesson setting), and any primary counts, since the tracker
+    never knows what a track is; in the practice the Striker is the only
+    thing to track.
+  - *Working together* (`defence_mission`): Act 1's first mission
+    (campaign.js ACT1, First Light) won, with any number of pilots, from
+    the `mission_end` src/ui/campaign.js logs. First Light is held at
+    release 'development' (the owner, 2026-10-07), so outside a
+    developer's room this lesson, and with it the certification, waits
+    for its release: until then its Fly says the mission is not open
+    and makes no room.
 - **A lesson's settings go back when it ends.** Flying a lesson seats
   its aircraft, tune, flight mode and weather in the pilot's stored
   settings; what they were before the first lesson is kept (under

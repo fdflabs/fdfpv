@@ -370,7 +370,8 @@ export class RoomCombat {
     if (chain && rec.links > 0) {
       rec.paper.push(got.t, rec.links + 1, chain.x);
     }
-    out.push(...core.others(conn, relayStreamer(s.seat, trimStreamer(bytes, live ? rec.owed : 0))));
+    /* The watchers too: a watcher's page draws every pilot's paper. */
+    out.push(...core.roster(conn, relayStreamer(s.seat, trimStreamer(bytes, live ? rec.owed : 0))));
     const cuts = this.judgeAll(core, now, s.seat);
     /* A tear: everyone's lists and scoreboards say so. */
     if (!cuts.length && tore) {

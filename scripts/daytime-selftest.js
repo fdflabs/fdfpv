@@ -41,8 +41,9 @@ import { fileURLToPath } from 'node:url';
 
 import {
   TIME_NAMES, SUN_OF, NIGHT_SIN, isNightSun, nightOfTime, TIME_HOUR, sunSinAt, timeOfHour, clockOfTime, clockOf, hourAt,
-  timeOfClock, publishDaytime, daytimeNow,
+  timeOfClock, publishDaytime, daytimeNow, missionLight, missionClock,
 } from '../src/share/daytime.js';
+import { stagesOf } from '../src/share/war/stages.js';
 import { sunAt } from '../src/maps/interior/sun.js';
 import { MISSIONS, missionTime } from '../src/share/war/missions/index.js';
 import { M1_CLOCK, localHour, sunsetMs } from '../src/share/interior/clock.js';
@@ -174,6 +175,89 @@ check('clockOf keeps a clock and refuses what is not one',
   && [null, undefined, 'night', 22, {}, { hour: '22', rate: 0, at: 0 }, { hour: 22, rate: 0 }, { hour: -1, rate: 0, at: 0 },
     { hour: 25, rate: 0, at: 0 }, { hour: NaN, rate: 0, at: 0 }, { hour: 1, rate: Infinity, at: 0 }].every((x) => clockOf(x) === null));
 
+// A war mission's light across its stages (missionLight, missionClock).
+check('clockOf keeps a `to` after the hour and within a day, and drops any other',
+  same(clockOf({ hour: 17, rate: 60, at: 5, to: 22 }), { hour: 17, rate: 60, at: 5, to: 22 })
+  && [17, 16, 41, NaN, '22'].every((to) => same(clockOf({ hour: 17, rate: 60, at: 5, to }), { hour: 17, rate: 60, at: 5 })));
+{
+  const c = clockOf({ hour: 17, rate: 3600, at: 1000, to: 22 });
+  check('a moving clock with a `to` stops there, and does not run back before its start',
+    hourAt(c, 1000) === 17 && hourAt(c, 1000 + 2000) === 19 && hourAt(c, 1000 + 60000) === 22 && hourAt(c, 0) === 17);
+}
+{
+  /* Every mission with no ramp: its clocks are the named time's, standing,
+   * in the lobby, in every stage and over the end, as before ramps. */
+  const plain = Object.values(MISSIONS).filter((m) => !stagesOf(m).some((st) => st.daytime));
+  const bad = plain.filter((m) => {
+    const st = stagesOf(m);
+    const want = clockOfTime(missionTime(m));
+    return !same(missionClock(missionTime(m), st), want)
+      || st.some((_, n) => !same(missionClock(missionTime(m), st, { n, at: 5000 }), want) || !same(missionClock(missionTime(m), st, { n, at: 5000 }, 99000), want));
+  });
+  check(`a mission with no ramp keeps its named time's clock everywhere (${plain.map((m) => m.id).join(', ')})`, plain.length >= 4 && bad.length === 0, bad.map((m) => m.id).join());
+}
+{
+  const m3 = MISSIONS['itaipu-3'];
+  const st = stagesOf(m3);
+  const L = missionLight(missionTime(m3), st);
+  const reroutes = st.map((s, n) => n).filter((n) => st[n].id.startsWith('reroute'));
+  const dark = st.findIndex((s) => s.id === 'dark');
+  check('Lights Out: every Reroute twist ramps the golden hour into the night, and The Dark stands at night',
+    reroutes.length === 3 && reroutes.every((n) => L.from[n] === TIME_HOUR.golden && L.to[n] === TIME_HOUR.night)
+    && L.from[dark] === TIME_HOUR.night && L.to[dark] === null && L.end === TIME_HOUR.night, JSON.stringify(L));
+  const lobby = missionClock(missionTime(m3), st);
+  check('its lobby stands at the golden hour and says the night is to come',
+    same(lobby, { hour: TIME_HOUR.golden, rate: 0, at: 0, to: TIME_HOUR.night }) && timeOfClock(lobby) === 'golden');
+  const n = reroutes[0];
+  const ms = st[n].daytime.ms;
+  const c = missionClock(missionTime(m3), st, { n, at: 50000 });
+  check('in Reroute the clock moves from the stage\'s start and reaches the night as the ramp ends',
+    c.at === 50000 && c.rate > 0 && c.to === TIME_HOUR.night && hourAt(c, 50000) === TIME_HOUR.golden
+    && Math.abs(hourAt(c, 50000 + ms) - TIME_HOUR.night) < 1e-9 && hourAt(c, 50000 + 2 * ms) === TIME_HOUR.night, JSON.stringify(c));
+  const flip = [...Array(101).keys()].find((k) => timeOfHour(hourAt(c, 50000 + (ms * k) / 100)) === 'night');
+  check(`and turns night (NIGHT_SIN) ${flip} hundredths of the way in, under a quarter`, flip > 0 && flip < 25);
+  const ended = missionClock(missionTime(m3), st, { n, at: 50000 }, 50000 + ms / 2);
+  check('a match ended mid ramp stands at the hour it reached, with nothing to come',
+    same(ended, { hour: hourAt(c, 50000 + ms / 2), rate: 0, at: 0 }));
+  check('a restart from The Dark counts down at night', same(missionClock(missionTime(m3), st, { n: dark, at: null }), clockOfTime('night')));
+  check('a restart from Reroute counts down at the golden hour, the night still to come',
+    same(missionClock(missionTime(m3), st, { n, at: null }), lobby));
+}
+{
+  const m4 = MISSIONS['itaipu-4'];
+  const st = stagesOf(m4);
+  const n = st.findIndex((s) => s.id === 'before-dawn');
+  const c = missionClock(missionTime(m4), st, { n, at: 0 });
+  const ms = st[n].daytime.ms;
+  check('The Long Night: night until Before Dawn, which ramps to the next morning',
+    st.slice(0, n).every((_, k) => missionClock(missionTime(m4), st, { n: k, at: 0 }).hour === TIME_HOUR.night)
+    && c.hour === TIME_HOUR.night && c.to === TIME_HOUR.morning + 24 && timeOfHour(hourAt(c, ms)) === 'morning', JSON.stringify(c));
+  const ended = missionClock(missionTime(m4), st, { n, at: 0 }, ms);
+  check('its end after the dawn stands in the morning, its hour within a day', Math.abs(ended.hour - TIME_HOUR.morning) < 1e-9 && ended.rate === 0 && ended.to === undefined && same(clockOf(ended), ended), JSON.stringify(ended));
+}
+{
+  const throws = (f) => {
+    try {
+      f();
+    } catch {
+      return true;
+    }
+    return false;
+  };
+  const twoWays = [
+    { id: 'a', exits: [{ to: { pick: ['b', 'c'] } }] },
+    { id: 'b', daytime: { to: 'night', ms: 1000 }, exits: [{ to: 'd' }] },
+    { id: 'c', exits: [{ to: 'd' }] },
+    { id: 'd', exits: [{ to: 'won' }] },
+  ];
+  check('missionLight throws on two ways into a stage at different hours, a bad daytime, or a ramp with no time',
+    throws(() => missionLight('golden', twoWays))
+    && throws(() => missionLight('golden', [{ id: 'a', daytime: { to: 'dusk', ms: 1000 } }]))
+    && throws(() => missionLight('golden', [{ id: 'a', daytime: { to: 'night', ms: 0 } }]))
+    && throws(() => missionLight(null, [{ id: 'a', daytime: { to: 'night', ms: 1000 } }]))
+    && !throws(() => missionLight('golden', twoWays.map((x) => (x.id === 'c' ? { ...x, daytime: { to: 'night', ms: 5 } } : x)))));
+}
+
 // The frame's one daytime.
 publishDaytime(true, 'day');
 check('a night flag publishes night, whatever the world was built at', daytimeNow().night === true && daytimeNow().time === 'night');
@@ -257,15 +341,19 @@ const lastClock = (so) => {
   const room = new RoomCore(meta, { devMissions: true });
   const host = sock('host');
   hello(room, host, { war: 9 });
+  /* Its clock stands at the night and carries the dawn its last stage
+   * ramps to (missionClock). */
+  const nightClock = missionClock(missionTime(night), stagesOf(night));
   check(`a war room's lobby is at its mission's time (${night.id}, night), not its host's`,
-    same(got(host, 'welcome')[0].daytime, clockOfTime('night')), JSON.stringify(got(host, 'welcome')[0].daytime));
+    nightClock.hour === TIME_HOUR.night && nightClock.rate === 0
+    && same(got(host, 'welcome')[0].daytime, nightClock), JSON.stringify(got(host, 'welcome')[0].daytime));
   const day = Object.values(MISSIONS).find((m) => missionTime(m) == null && m.map === 'itaipu' && room.war.startable(m.id, room));
   say(room, host, { type: 'lobby', op: 'mission', mission: day.id });
   check(`the lobby's mission picked (${day.id}, no time of its own): each world's own, told`, room.meta.mission === day.id && lastClock(host) === null,
     JSON.stringify(lastClock(host)));
   say(room, host, { type: 'lobby', op: 'mission', mission: night.id });
   say(room, host, { type: 'war', op: 'start', mission: night.id });
-  check('a war on is at its mission\'s time', room.war.on() && same(room.daytime(), clockOfTime('night')) && same(lastClock(host), clockOfTime('night')));
+  check('a war on is at its mission\'s time', room.war.on() && same(room.daytime(), nightClock) && same(lastClock(host), nightClock));
 }
 {
   /* A war started in a free room keeps its time over its end, and the
@@ -280,7 +368,7 @@ const lastClock = (so) => {
   const on = lastClock(host);
   say(room, host, { type: 'war', op: 'end' });
   check(`a war in a free room is at its mission's time (${night.id}), and stays so over its end`,
-    same(on, clockOfTime('night')) && !room.war.on() && same(lastClock(host), clockOfTime('night')), `${JSON.stringify(on)} then ${JSON.stringify(lastClock(host))}`);
+    same(on, missionClock(missionTime(night), stagesOf(night))) && !room.war.on() && same(lastClock(host), clockOfTime('night')), `${JSON.stringify(on)} then ${JSON.stringify(lastClock(host))}`);
 }
 {
   /* An ops match: its mission's clock, standing until the go, then

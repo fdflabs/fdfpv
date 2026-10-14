@@ -86,7 +86,7 @@ const record = (name, ok, detail) => {
 
 /* A network wait on a service that sleeps must not be reported as one of the stages either side of it. */
 record('the board wait is a named loading stage',
-  loading.includes("board: 'Board'") && boot.includes("'three', 'board', 'sim'") && main.includes("loading.start('board')"),
+  (loading.includes("board: 'Board'") || loading.includes("board: str('loading.stage_board')")) && boot.includes("'three', 'board', 'sim'") && main.includes("loading.start('board')"),
   'stage named in loading.js, planned in boot.js, started in main.js');
 
 /*

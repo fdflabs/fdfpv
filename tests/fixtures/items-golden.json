@@ -2898,6 +2898,27 @@
      "drives": {}
     },
     {
+     "id": "courses:a-casualtrack:alps",
+     "label": "Casual sky track, The Alps",
+     "note": "Eight quad hoops round a loop in the sky over The Alps, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
+     "action": "casualtrack:alps",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:swiss2",
+     "label": "Casual sky track, Swiss valley, photoreal",
+     "note": "Eight quad hoops round a loop in the sky over Swiss valley, photoreal, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
+     "action": "casualtrack:swiss2",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:itaipu",
+     "label": "Casual sky track, Itaipu",
+     "note": "Eight quad hoops round a loop in the sky over Itaipu, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
+     "action": "casualtrack:itaipu",
+     "drives": {}
+    },
+    {
      "id": "courses:a-newtrack-back",
      "label": "Back to the list",
      "action": "newtrack-back",
@@ -27393,17 +27414,17 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
-       "label": "Track Day",
+       "label": "Día de pista",
        "action": "way-race-5inch",
        "key": "race-5inch"
       },
       {
-       "label": "Free Flight",
+       "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
       },
       {
-       "label": "Learn to fly",
+       "label": "Aprender a volar",
        "action": "way-training",
        "key": "training"
       }
@@ -27422,7 +27443,7 @@
      "svg": "<svg 933 chars>",
      "links": [
       {
-       "label": "The Interior",
+       "label": "El Interior",
        "action": "way-interior",
        "key": "interior"
       },
@@ -27495,32 +27516,32 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
-       "label": "Track Day",
+       "label": "Día de pista",
        "action": "way-race-5inch",
        "key": "race-5inch"
       },
       {
-       "label": "Free Flight",
+       "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
       },
       {
-       "label": "Streamer Combat",
+       "label": "Combate de serpentinas",
        "action": "way-combat",
        "key": "combat"
       },
       {
-       "label": "Catch the Ace!",
+       "label": "¡Atrapa al As!",
        "action": "way-ace",
        "key": "ace"
       },
       {
-       "label": "Trick Battle",
+       "label": "Batalla de Trucos",
        "action": "way-jam",
        "key": "jam"
       },
       {
-       "label": "Learn to fly",
+       "label": "Aprender a volar",
        "action": "way-training",
        "key": "training"
       }
@@ -27539,12 +27560,12 @@
      "svg": "<svg 933 chars>",
      "links": [
       {
-       "label": "Defend the Paraná",
+       "label": "Defender el Paraná",
        "action": "way-campaign",
        "key": "campaign"
       },
       {
-       "label": "The Interior",
+       "label": "El Interior",
        "action": "way-interior",
        "key": "interior"
       },
@@ -27614,89 +27635,89 @@
    "items": [
     {
      "id": "title:a-way-race-5inch",
-     "label": "Track Day",
+     "label": "Día de pista",
      "action": "way-race-5inch",
      "card": "race-5inch",
      "art": "assets/gate/race.jpg",
-     "blurb": "Gates against the clock, on your own track or one from the board.",
+     "blurb": "Puertas contra el reloj, en tu propia pista o en una del tablero.",
      "facts": [
-      "Gates",
-      "The clock",
-      "The board"
+      "Puertas",
+      "El reloj",
+      "El tablero"
      ],
      "svg": "<svg 1448 chars>",
      "drives": {}
     },
     {
      "id": "title:a-way-freestyle-wing1000",
-     "label": "Free Flight",
+     "label": "Vuelo Libre",
      "action": "way-freestyle-wing1000",
      "card": "freestyle-wing1000",
      "art": "assets/gate/flight.jpg",
-     "blurb": "Every fixed wing, picked under Plane, free in the Swiss valley.",
+     "blurb": "Todas las alas fijas, a elegir en Avión, libres en el valle suizo.",
      "facts": [
-      "Every plane",
-      "The Swiss valley"
+      "Todos los aviones",
+      "El valle suizo"
      ],
      "svg": "<svg 623 chars>",
      "drives": {}
     },
     {
      "id": "title:a-way-combat",
-     "label": "Streamer Combat",
+     "label": "Combate de serpentinas",
      "action": "way-combat",
      "card": "combat",
      "art": "assets/gate/combat.jpg",
-     "blurb": "Everybody tows a streamer of toilet paper. Cut theirs, keep yours.",
+     "blurb": "Todos arrastran una cinta de papel higiénico. Corta la ajena, cuida la tuya.",
      "facts": [
-      "Cut the paper",
-      "3 or 5 minutes",
-      "Invite code"
+      "Corta el papel",
+      "3 o 5 minutos",
+      "Código de invitación"
      ],
      "svg": "<svg 834 chars>",
      "drives": {}
     },
     {
      "id": "title:a-way-ace",
-     "label": "Catch the Ace!",
+     "label": "¡Atrapa al As!",
      "action": "way-ace",
      "card": "ace",
      "art": "assets/gate/ace.jpg",
-     "blurb": "The Ace wears the crown and scores. Fly into its bubble to take it.",
+     "blurb": "El As lleva la corona y suma puntos. Entra en su burbuja para quitársela.",
      "facts": [
-      "The crown",
-      "Enter its bubble",
-      "Invite code"
+      "La corona",
+      "Entra en su burbuja",
+      "Código de invitación"
      ],
      "svg": "<svg 412 chars>",
      "drives": {}
     },
     {
      "id": "title:a-way-jam",
-     "label": "Trick Battle",
+     "label": "Batalla de Trucos",
      "action": "way-jam",
      "card": "jam",
      "art": "assets/gate/flight.jpg",
-     "blurb": "One spot, one run each while the others watch. Hard tricks, clean landings, no repeats.",
+     "blurb": "Un lugar, una pasada cada uno mientras los demás miran. Trucos difíciles, aterrizajes limpios, sin repetir.",
      "facts": [
-      "45 to 90 second runs",
-      "Best of three rounds",
-      "Invite code"
+      "Pasadas de 45 a 90 segundos",
+      "Al mejor de tres rondas",
+      "Código de invitación"
      ],
      "svg": "<svg 339 chars>",
      "drives": {}
     },
     {
      "id": "title:a-way-training",
-     "label": "Learn to fly",
+     "label": "Aprender a volar",
      "action": "way-training",
      "card": "training",
      "art": "assets/posters/swiss2.jpg",
-     "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+     "blurb": "Lecciones desde el primer despegue hasta ganarle a tu fantasma, paso a paso.",
      "facts": [
-      "Short lessons, in order",
-      "SAFE Select first, then AS3X",
-      "Nothing waits on them"
+      "Lecciones cortas, en orden",
+      "Primero SAFE Select, después AS3X",
+      "Nada depende de ellas"
      ],
      "svg": "<svg 623 chars>",
      "drives": {}
@@ -27723,14 +27744,14 @@
    "items": [
     {
      "id": "title:a-way-interior",
-     "label": "The Interior",
+     "label": "El Interior",
      "action": "way-interior",
      "card": "interior",
-     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "blurb": "Relevan una región tranquila desde el aire. Noten, sigan, registren. Desconocido significa desconocido.",
      "facts": [
-      "Five missions",
-      "Co-op roles, any squad",
-      "Camera ball, quiet HUD"
+      "Cinco misiones",
+      "Roles en cooperativo, cualquier escuadrón",
+      "Torreta, HUD silencioso"
      ],
      "svg": "<svg 559 chars>",
      "drives": {}
@@ -27760,29 +27781,29 @@
    "items": [
     {
      "id": "title:a-way-campaign",
-     "label": "Defend the Paraná",
+     "label": "Defender el Paraná",
      "action": "way-campaign",
      "card": "campaign",
      "art": "assets/posters/itaipu.jpg",
-     "blurb": "Seven missions at Itaipu, three stars each, opened one at a time. Credits buy warheads and more.",
+     "blurb": "Siete misiones en Itaipú, tres estrellas cada una, que se abren de a una. Los créditos compran ojivas y más.",
      "facts": [
-      "Act 1",
-      "7 missions",
-      "Upgrade shop"
+      "Acto 1",
+      "7 misiones",
+      "Tienda de mejoras"
      ],
      "svg": "<svg 933 chars>",
      "drives": {}
     },
     {
      "id": "title:a-way-interior",
-     "label": "The Interior",
+     "label": "El Interior",
      "action": "way-interior",
      "card": "interior",
-     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "blurb": "Relevan una región tranquila desde el aire. Noten, sigan, registren. Desconocido significa desconocido.",
      "facts": [
-      "Five missions",
-      "Co-op roles, any squad",
-      "Camera ball, quiet HUD"
+      "Cinco misiones",
+      "Roles en cooperativo, cualquier escuadrón",
+      "Torreta, HUD silencioso"
      ],
      "svg": "<svg 559 chars>",
      "drives": {}
@@ -27887,17 +27908,17 @@
      "svg": "<svg 623 chars>",
      "links": [
       {
-       "label": "Track Day",
+       "label": "Día de pista",
        "action": "way-race-5inch",
        "key": "race-5inch"
       },
       {
-       "label": "Free Flight",
+       "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
       },
       {
-       "label": "Learn to fly",
+       "label": "Aprender a volar",
        "action": "way-training",
        "key": "training"
       }
@@ -27916,7 +27937,7 @@
      "svg": "<svg 933 chars>",
      "links": [
       {
-       "label": "The Interior",
+       "label": "El Interior",
        "action": "way-interior",
        "key": "interior"
       },
@@ -28324,8 +28345,8 @@
     {
      "id": "title:a-freestyle",
      "label": "El mundo",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Tu quad y el modelo de física están aquí.",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
      "action": "freestyle",
      "drives": {}
     },
@@ -28955,7 +28976,7 @@
      "id": "friends:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -29103,7 +29124,7 @@
     {
      "id": "friends:el-mundo",
      "label": "El mundo",
-     "value": "Swiss valley, photoreal",
+     "value": "Valle suizo, fotorrealista",
      "note": "Esta sala vuela aquí. Sal de ella para volar en otro lugar.",
      "info": true,
      "drives": {}
@@ -29305,7 +29326,7 @@
     {
      "id": "friends:el-mundo",
      "label": "El mundo",
-     "value": "Swiss valley, photoreal",
+     "value": "Valle suizo, fotorrealista",
      "note": "Esta sala vuela aquí. Sal de ella para volar en otro lugar.",
      "info": true,
      "drives": {}
@@ -29370,7 +29391,7 @@
      "id": "friends:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -29648,7 +29669,7 @@
     {
      "id": "courses:a-local:own-1",
      "label": "Barn loop",
-     "note": "Tuya, en The Alps. 6 puertas.",
+     "note": "Tuya, en Los Alpes. 6 puertas.",
      "action": "local:own-1",
      "course": {
       "kind": "local",
@@ -29659,7 +29680,7 @@
     {
      "id": "courses:a-local:own-2",
      "label": "One gate",
-     "note": "Tuya, en Swiss valley, photoreal. 1 puerta.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
      "action": "local:own-2",
      "course": {
       "kind": "local",
@@ -29670,7 +29691,7 @@
     {
      "id": "courses:a-local:own-3",
      "label": "Empty field",
-     "note": "Tuya, en Swiss valley, photoreal. 0 puertas.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
      "action": "local:own-3",
      "course": {
       "kind": "local",
@@ -29681,7 +29702,7 @@
     {
      "id": "courses:a-cloud:cloud-1",
      "label": "Valley run",
-     "note": "En Swiss valley, photoreal, de Bea.",
+     "note": "En Valle suizo, fotorrealista, de Bea.",
      "action": "cloud:cloud-1",
      "course": {
       "kind": "cloud",
@@ -29692,7 +29713,7 @@
     {
      "id": "courses:a-cloud:cloud-2",
      "label": "Nameless",
-     "note": "En Swiss valley, photoreal, de un piloto.",
+     "note": "En Valle suizo, fotorrealista, de un piloto.",
      "action": "cloud:cloud-2",
      "course": {
       "kind": "cloud",
@@ -29714,7 +29735,7 @@
     {
      "id": "courses:a-board:board-1",
      "label": "Hung track",
-     "note": "Colgada en The Alps por Dee. Elegirla te lleva a volarla allí.",
+     "note": "Colgada en Los Alpes por Dee. Elegirla te lleva a volarla allí.",
      "action": "board:board-1",
      "course": {
       "kind": "board",
@@ -29725,7 +29746,7 @@
     {
      "id": "courses:a-board:board-2",
      "label": "No author",
-     "note": "Colgada en The Alps por un piloto. Elegirla te lleva a volarla allí.",
+     "note": "Colgada en Los Alpes por un piloto. Elegirla te lleva a volarla allí.",
      "action": "board:board-2",
      "course": {
       "kind": "board",
@@ -29769,7 +29790,7 @@
     {
      "id": "courses:a-local:own-1",
      "label": "Barn loop",
-     "note": "Tuya, en The Alps. 6 puertas. Muy estrecha para el Piper Cub, así que se vuela con el interceptor.",
+     "note": "Tuya, en Los Alpes. 6 puertas. Muy estrecha para el Piper Cub, así que se vuela con el interceptor.",
      "action": "local:own-1",
      "course": {
       "kind": "local",
@@ -29780,7 +29801,7 @@
     {
      "id": "courses:a-local:own-2",
      "label": "One gate",
-     "note": "Tuya, en Swiss valley, photoreal. 1 puerta.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
      "action": "local:own-2",
      "course": {
       "kind": "local",
@@ -29791,7 +29812,7 @@
     {
      "id": "courses:a-local:own-3",
      "label": "Empty field",
-     "note": "Tuya, en Swiss valley, photoreal. 0 puertas.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
      "action": "local:own-3",
      "course": {
       "kind": "local",
@@ -29802,7 +29823,7 @@
     {
      "id": "courses:a-cloud:cloud-1",
      "label": "Valley run",
-     "note": "En Swiss valley, photoreal, de Bea.",
+     "note": "En Valle suizo, fotorrealista, de Bea.",
      "action": "cloud:cloud-1",
      "course": {
       "kind": "cloud",
@@ -29813,7 +29834,7 @@
     {
      "id": "courses:a-cloud:cloud-2",
      "label": "Nameless",
-     "note": "En Swiss valley, photoreal, de un piloto. Muy estrecha para el Piper Cub, así que se vuela con el interceptor.",
+     "note": "En Valle suizo, fotorrealista, de un piloto. Muy estrecha para el Piper Cub, así que se vuela con el interceptor.",
      "action": "cloud:cloud-2",
      "course": {
       "kind": "cloud",
@@ -29835,7 +29856,7 @@
     {
      "id": "courses:a-board:board-1",
      "label": "Hung track",
-     "note": "Colgada en The Alps por Dee. Elegirla te lleva a volarla allí.",
+     "note": "Colgada en Los Alpes por Dee. Elegirla te lleva a volarla allí.",
      "action": "board:board-1",
      "course": {
       "kind": "board",
@@ -29846,7 +29867,7 @@
     {
      "id": "courses:a-board:board-2",
      "label": "No author",
-     "note": "Colgada en The Alps por un piloto. Elegirla te lleva a volarla allí.",
+     "note": "Colgada en Los Alpes por un piloto. Elegirla te lleva a volarla allí.",
      "action": "board:board-2",
      "course": {
       "kind": "board",
@@ -29883,7 +29904,7 @@
     {
      "id": "courses:a-local:own-1",
      "label": "Barn loop",
-     "note": "Tuya, en The Alps. 6 puertas.",
+     "note": "Tuya, en Los Alpes. 6 puertas.",
      "action": "local:own-1",
      "course": {
       "kind": "local",
@@ -29894,7 +29915,7 @@
     {
      "id": "courses:a-local:own-2",
      "label": "One gate",
-     "note": "Tuya, en Swiss valley, photoreal. 1 puerta.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
      "action": "local:own-2",
      "course": {
       "kind": "local",
@@ -29905,7 +29926,7 @@
     {
      "id": "courses:a-local:own-3",
      "label": "Empty field",
-     "note": "Tuya, en Swiss valley, photoreal. 0 puertas.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
      "action": "local:own-3",
      "course": {
       "kind": "local",
@@ -29922,14 +29943,14 @@
     {
      "id": "courses:a-card-fly",
      "label": "Jugar",
-     "note": "Corre Barn loop en The Alps: las puertas, el reloj de vuelta y tu fantasma.",
+     "note": "Corre Barn loop en Los Alpes: las puertas, el reloj de vuelta y tu fantasma.",
      "action": "card-fly",
      "drives": {}
     },
     {
      "id": "courses:a-card-edit",
      "label": "Editar",
-     "note": "Abre Barn loop en el constructor, en The Alps. B la vuela, Escape vuelve aquí.",
+     "note": "Abre Barn loop en el constructor, en Los Alpes. B la vuela, Escape vuelve aquí.",
      "action": "card-edit",
      "drives": {}
     },
@@ -29969,7 +29990,7 @@
     {
      "id": "courses:a-cloud:cloud-1",
      "label": "Valley run",
-     "note": "En Swiss valley, photoreal, de Bea.",
+     "note": "En Valle suizo, fotorrealista, de Bea.",
      "action": "cloud:cloud-1",
      "course": {
       "kind": "cloud",
@@ -29980,7 +30001,7 @@
     {
      "id": "courses:a-cloud:cloud-2",
      "label": "Nameless",
-     "note": "En Swiss valley, photoreal, de un piloto.",
+     "note": "En Valle suizo, fotorrealista, de un piloto.",
      "action": "cloud:cloud-2",
      "course": {
       "kind": "cloud",
@@ -30008,7 +30029,7 @@
     {
      "id": "courses:a-card-fly",
      "label": "Jugar",
-     "note": "Corre Valley run en Swiss valley, photoreal: las puertas, el reloj de vuelta y tu fantasma.",
+     "note": "Corre Valley run en Valle suizo, fotorrealista: las puertas, el reloj de vuelta y tu fantasma.",
      "action": "card-fly",
      "drives": {}
     },
@@ -30034,7 +30055,7 @@
     {
      "id": "courses:a-cloud:cloud-1",
      "label": "Valley run",
-     "note": "En Swiss valley, photoreal, de Bea.",
+     "note": "En Valle suizo, fotorrealista, de Bea.",
      "action": "cloud:cloud-1",
      "course": {
       "kind": "cloud",
@@ -30045,7 +30066,7 @@
     {
      "id": "courses:a-cloud:cloud-2",
      "label": "Nameless",
-     "note": "En Swiss valley, photoreal, de un piloto.",
+     "note": "En Valle suizo, fotorrealista, de un piloto.",
      "action": "cloud:cloud-2",
      "course": {
       "kind": "cloud",
@@ -30091,7 +30112,7 @@
     {
      "id": "courses:a-board:board-1",
      "label": "Hung track",
-     "note": "Colgada en The Alps por Dee. Elegirla te lleva a volarla allí.",
+     "note": "Colgada en Los Alpes por Dee. Elegirla te lleva a volarla allí.",
      "action": "board:board-1",
      "course": {
       "kind": "board",
@@ -30102,7 +30123,7 @@
     {
      "id": "courses:a-board:board-2",
      "label": "No author",
-     "note": "Colgada en The Alps por un piloto. Elegirla te lleva a volarla allí.",
+     "note": "Colgada en Los Alpes por un piloto. Elegirla te lleva a volarla allí.",
      "action": "board:board-2",
      "course": {
       "kind": "board",
@@ -30159,7 +30180,7 @@
     {
      "id": "courses:a-local:own-1",
      "label": "Barn loop",
-     "note": "Tuya, en The Alps. 6 puertas.",
+     "note": "Tuya, en Los Alpes. 6 puertas.",
      "action": "local:own-1",
      "course": {
       "kind": "local",
@@ -30170,7 +30191,7 @@
     {
      "id": "courses:a-local:own-2",
      "label": "One gate",
-     "note": "Tuya, en Swiss valley, photoreal. 1 puerta.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
      "action": "local:own-2",
      "course": {
       "kind": "local",
@@ -30181,7 +30202,7 @@
     {
      "id": "courses:a-local:own-3",
      "label": "Empty field",
-     "note": "Tuya, en Swiss valley, photoreal. 0 puertas.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
      "action": "local:own-3",
      "course": {
       "kind": "local",
@@ -30218,7 +30239,7 @@
     {
      "id": "courses:a-local:own-1",
      "label": "Barn loop",
-     "note": "Tuya, en The Alps. 6 puertas.",
+     "note": "Tuya, en Los Alpes. 6 puertas.",
      "action": "local:own-1",
      "course": {
       "kind": "local",
@@ -30229,7 +30250,7 @@
     {
      "id": "courses:a-local:own-2",
      "label": "One gate",
-     "note": "Tuya, en Swiss valley, photoreal. 1 puerta.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
      "action": "local:own-2",
      "course": {
       "kind": "local",
@@ -30240,7 +30261,7 @@
     {
      "id": "courses:a-local:own-3",
      "label": "Empty field",
-     "note": "Tuya, en Swiss valley, photoreal. 0 puertas.",
+     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
      "action": "local:own-3",
      "course": {
       "kind": "local",
@@ -30256,23 +30277,44 @@
     },
     {
      "id": "courses:a-newtrack:alps",
-     "label": "The Alps",
-     "note": "Una pista vacía en el constructor, en The Alps. Coloca las puertas, B la vuela, Escape vuelve aquí.",
+     "label": "Los Alpes",
+     "note": "Una pista vacía en el constructor, en Los Alpes. Coloca las puertas, B la vuela, Escape vuelve aquí.",
      "action": "newtrack:alps",
      "drives": {}
     },
     {
      "id": "courses:a-newtrack:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "Una pista vacía en el constructor, en Swiss valley, photoreal. Coloca las puertas, B la vuela, Escape vuelve aquí.",
+     "label": "Valle suizo, fotorrealista",
+     "note": "Una pista vacía en el constructor, en Valle suizo, fotorrealista. Coloca las puertas, B la vuela, Escape vuelve aquí.",
      "action": "newtrack:swiss2",
      "drives": {}
     },
     {
      "id": "courses:a-newtrack:itaipu",
-     "label": "Itaipu",
-     "note": "Una pista vacía en el constructor, en Itaipu. Coloca las puertas, B la vuela, Escape vuelve aquí.",
+     "label": "Itaipú",
+     "note": "Una pista vacía en el constructor, en Itaipú. Coloca las puertas, B la vuela, Escape vuelve aquí.",
      "action": "newtrack:itaipu",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:alps",
+     "label": "Pista casual en el cielo, Los Alpes",
+     "note": "Ocho aros de quad en un circuito en el cielo sobre Los Alpes, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "action": "casualtrack:alps",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:swiss2",
+     "label": "Pista casual en el cielo, Valle suizo, fotorrealista",
+     "note": "Ocho aros de quad en un circuito en el cielo sobre Valle suizo, fotorrealista, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "action": "casualtrack:swiss2",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:itaipu",
+     "label": "Pista casual en el cielo, Itaipú",
+     "note": "Ocho aros de quad en un circuito en el cielo sobre Itaipú, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "action": "casualtrack:itaipu",
      "drives": {}
     },
     {
@@ -30295,43 +30337,43 @@
     },
     {
      "id": "courses:a-newtrack:alps",
-     "label": "The Alps",
-     "note": "Una pista vacía en el constructor, en The Alps. Coloca las puertas, B la vuela, Escape vuelve aquí.",
+     "label": "Los Alpes",
+     "note": "Una pista vacía en el constructor, en Los Alpes. Coloca las puertas, B la vuela, Escape vuelve aquí.",
      "action": "newtrack:alps",
      "drives": {}
     },
     {
      "id": "courses:a-newtrack:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "Una pista vacía en el constructor, en Swiss valley, photoreal. Coloca las puertas, B la vuela, Escape vuelve aquí.",
+     "label": "Valle suizo, fotorrealista",
+     "note": "Una pista vacía en el constructor, en Valle suizo, fotorrealista. Coloca las puertas, B la vuela, Escape vuelve aquí.",
      "action": "newtrack:swiss2",
      "drives": {}
     },
     {
      "id": "courses:a-newtrack:itaipu",
-     "label": "Itaipu",
-     "note": "Una pista vacía en el constructor, en Itaipu. Coloca las puertas, B la vuela, Escape vuelve aquí.",
+     "label": "Itaipú",
+     "note": "Una pista vacía en el constructor, en Itaipú. Coloca las puertas, B la vuela, Escape vuelve aquí.",
      "action": "newtrack:itaipu",
      "drives": {}
     },
     {
      "id": "courses:a-casualtrack:alps",
-     "label": "Pista casual en el cielo, The Alps",
-     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre The Alps, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "label": "Pista casual en el cielo, Los Alpes",
+     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Los Alpes, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
      "action": "casualtrack:alps",
      "drives": {}
     },
     {
      "id": "courses:a-casualtrack:swiss2",
-     "label": "Pista casual en el cielo, Swiss valley, photoreal",
-     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Swiss valley, photoreal, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "label": "Pista casual en el cielo, Valle suizo, fotorrealista",
+     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Valle suizo, fotorrealista, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
      "action": "casualtrack:swiss2",
      "drives": {}
     },
     {
      "id": "courses:a-casualtrack:itaipu",
-     "label": "Pista casual en el cielo, Itaipu",
-     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Itaipu, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "label": "Pista casual en el cielo, Itaipú",
+     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Itaipú, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
      "action": "casualtrack:itaipu",
      "drives": {}
     },
@@ -30351,7 +30393,7 @@
      "id": "tricks:a-noop",
      "label": "1 Trippy Spin",
      "value": "100",
-     "note": "Fiable. Bloque básico. Un giro completo o más alrededor de un poste, volado panza arriba. Visto from above.",
+     "note": "Fiable. Bloque básico. Un giro completo o más alrededor de un poste, volado panza arriba. Visto desde arriba.",
      "action": "noop",
      "drives": {}
     },
@@ -30359,7 +30401,7 @@
      "id": "tricks:a-noop~2",
      "label": "Matty Flip",
      "value": "200",
-     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto from the side.",
+     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30367,7 +30409,7 @@
      "id": "tricks:a-noop~3",
      "label": "Anti Matty",
      "value": "250",
-     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto from the side.",
+     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por encima, llevando un giro completo de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30375,7 +30417,7 @@
      "id": "tricks:a-noop~4",
      "label": "Power Matty",
      "value": "300",
-     "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto from the side.",
+     "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30383,7 +30425,7 @@
      "id": "tricks:a-noop~5",
      "label": "Matty Roll",
      "value": "425",
-     "note": "Fiable. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip y un giro completo de roll. Visto from the side.",
+     "note": "Fiable. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando tres cuartos de giro de flip y un giro completo de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30391,7 +30433,7 @@
      "id": "tricks:a-noop~6",
      "label": "Matty 360",
      "value": "425",
-     "note": "Exigente. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip y un giro completo de yaw spin. Visto from the side.",
+     "note": "Exigente. Avanzado. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de flip y un giro completo de yaw spin. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30399,7 +30441,7 @@
      "id": "tricks:a-noop~7",
      "label": "Maverick Loop",
      "value": "100",
-     "note": "Fiable. Principiante. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto from the side.",
+     "note": "Fiable. Principiante. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30407,7 +30449,7 @@
      "id": "tricks:a-noop~8",
      "label": "Mavvy Roll",
      "value": "250",
-     "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto from the side.",
+     "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30415,215 +30457,215 @@
      "id": "tricks:a-noop~9",
      "label": "Donkey Loop",
      "value": "600",
-     "note": "Fiable. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip y un giro completo de roll y un giro completo de yaw spin. Visto from the side.",
+     "note": "Fiable. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando medio giro de flip y un giro completo de roll y un giro completo de yaw spin. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~10",
-     "label": "Yaw Spin",
-     "value": "50",
-     "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto from above.",
+     "label": "Eject Roll",
+     "value": "200",
+     "note": "Fiable. Novato. Medio giro de flip, luego un giro completo de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~11",
-     "label": "Flip",
-     "value": "50",
-     "note": "Fiable. Principiante. Un giro completo de flip. Visto from the side.",
+     "label": "Orbit x2",
+     "value": "75",
+     "note": "Fiable. Principiante. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto desde arriba.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~12",
-     "label": "Roll",
-     "value": "50",
-     "note": "Fiable. Principiante. Un giro completo de roll. Visto from behind.",
+     "label": "Trippy Spin x2",
+     "value": "500",
+     "note": "Fiable. Avanzado. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto desde arriba.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~13",
-     "label": "Segmented Flips/Rolls",
-     "value": "75",
-     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation otra vez en el mismo sentido, tras una pausa. Visto from the side.",
+     "label": "Powerloop",
+     "value": "200",
+     "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~14",
-     "label": "Invert Rewind",
-     "value": "75",
-     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto from the side.",
+     "label": "Immelmann Turn",
+     "value": "250",
+     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por debajo, llevando medio giro de flip, luego medio giro de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~15",
-     "label": "Vanny Roll",
-     "value": "125",
-     "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto from above.",
+     "label": "Power Flip",
+     "value": "350",
+     "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~16",
-     "label": "Double Flip",
-     "value": "150",
-     "note": "Fiable. Principiante. Dos giros completos de flip. Visto from the side.",
+     "label": "Power Roll",
+     "value": "450",
+     "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~17",
-     "label": "Double Roll",
-     "value": "150",
-     "note": "Fiable. Principiante. Dos giros completos de roll. Visto from behind.",
+     "label": "Inverted 360 Powerloop",
+     "value": "650",
+     "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~18",
-     "label": "Juicy Flick",
-     "value": "200",
-     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto from the side.",
+     "label": "Flip Stall Rewind",
+     "value": "275",
+     "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~19",
-     "label": "Snapback",
-     "value": "200",
-     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto from the side.",
+     "label": "360 Stall Rewind",
+     "value": "275",
+     "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto desde atrás.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~20",
-     "label": "Rubik's Cube",
-     "value": "325",
-     "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto from the side.",
+     "label": "Split-S",
+     "value": "100",
+     "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~21",
-     "label": "Cubik's Rube",
-     "value": "325",
-     "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto from the side.",
+     "label": "Split Yaw",
+     "value": "300",
+     "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~22",
-     "label": "Inverted Yaw Spin",
-     "value": "400",
-     "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto from above.",
+     "label": "Yaw Spin",
+     "value": "50",
+     "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto desde arriba.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~23",
-     "label": "Inverted Yaw Tracking",
-     "value": "425",
-     "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto from above.",
+     "label": "Flip",
+     "value": "50",
+     "note": "Fiable. Principiante. Un giro completo de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~24",
-     "label": "Eject Roll",
-     "value": "200",
-     "note": "Fiable. Novato. Medio giro de flip, luego un giro completo de roll. Visto from the side.",
+     "label": "Roll",
+     "value": "50",
+     "note": "Fiable. Principiante. Un giro completo de roll. Visto desde atrás.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~25",
-     "label": "Orbit x2",
+     "label": "Segmented Flips/Rolls",
      "value": "75",
-     "note": "Fiable. Principiante. Dos giros completos o más alrededor de un poste, con el poste fijo en la pantalla. Visto from above.",
+     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation otra vez en el mismo sentido, tras una pausa. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~26",
-     "label": "Trippy Spin x2",
-     "value": "500",
-     "note": "Fiable. Avanzado. Dos giros completos o más alrededor de un poste, volado panza arriba. Visto from above.",
+     "label": "Invert Rewind",
+     "value": "75",
+     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~27",
-     "label": "Powerloop",
-     "value": "200",
-     "note": "Fiable. Novato. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip. Visto from the side.",
+     "label": "Vanny Roll",
+     "value": "125",
+     "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto desde arriba.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~28",
-     "label": "Immelmann Turn",
-     "value": "250",
-     "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por debajo, llevando medio giro de flip, luego medio giro de roll. Visto from the side.",
+     "label": "Double Flip",
+     "value": "150",
+     "note": "Fiable. Principiante. Dos giros completos de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~29",
-     "label": "Power Flip",
-     "value": "350",
-     "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto from the side.",
+     "label": "Double Roll",
+     "value": "150",
+     "note": "Fiable. Principiante. Dos giros completos de roll. Visto desde atrás.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~30",
-     "label": "Power Roll",
-     "value": "450",
-     "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto from the side.",
+     "label": "Juicy Flick",
+     "value": "200",
+     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~31",
-     "label": "Inverted 360 Powerloop",
-     "value": "650",
-     "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto from the side.",
+     "label": "Snapback",
+     "value": "200",
+     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~32",
-     "label": "Flip Stall Rewind",
-     "value": "275",
-     "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto from the side.",
+     "label": "Rubik's Cube",
+     "value": "325",
+     "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~33",
-     "label": "360 Stall Rewind",
-     "value": "275",
-     "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto from behind.",
+     "label": "Cubik's Rube",
+     "value": "325",
+     "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~34",
-     "label": "Split-S",
-     "value": "100",
-     "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto from the side.",
+     "label": "Inverted Yaw Spin",
+     "value": "400",
+     "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto desde arriba.",
      "action": "noop",
      "drives": {}
     },
     {
      "id": "tricks:a-noop~35",
-     "label": "Split Yaw",
-     "value": "300",
-     "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto from the side.",
+     "label": "Inverted Yaw Tracking",
+     "value": "425",
+     "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto desde arriba.",
      "action": "noop",
      "drives": {}
     }
@@ -30634,32 +30676,32 @@
    "items": [
     {
      "id": "freestyle:a-map:alps",
-     "label": "The Alps",
-     "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
+     "label": "Los Alpes",
+     "note": "Un valle glaciar de seis kilómetros entre crestas nevadas, pinos en las laderas, un pueblo y una pista de prado en el fondo y un lago a sus pies. Sin puertas, sin reloj.",
      "action": "map:alps",
      "map": "alps",
      "drives": {}
     },
     {
      "id": "freestyle:a-map:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock.",
+     "label": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj.",
      "action": "map:swiss2",
      "map": "swiss2",
      "drives": {}
     },
     {
      "id": "freestyle:a-map:itaipu",
-     "label": "Itaipu",
-     "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock.",
+     "label": "Itaipú",
+     "note": "Cuarenta kilómetros de lado alrededor de la represa de Itaipú sobre el Paraná a escala real, de imágenes satelitales y datos de elevación: la represa, el embalse y el río aguas abajo a sus niveles, las ciudades y los bosques. Datos del mapa (c) colaboradores de OpenStreetMap. Sin puertas, sin reloj.",
      "action": "map:itaipu",
      "map": "itaipu",
      "drives": {}
     },
     {
      "id": "freestyle:a-map:interior",
-     "label": "The Interior (in development)",
-     "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock.",
+     "label": "El Interior (en desarrollo)",
+     "note": "En desarrollo: el mapa de la campaña El Interior, dieciséis kilómetros de lado de estancias, sojales, bosque en galería y un río lento; el terreno sale de datos abiertos de elevación y cobertura del suelo, y cada camino, casa y nombre sobre él es inventado. Solo el corredor de la Misión 1. Sin puertas, sin reloj.",
      "action": "map:interior",
      "map": "interior",
      "drives": {}
@@ -30667,22 +30709,22 @@
     {
      "id": "freestyle:puntuaci-n",
      "label": "Puntuación",
-     "value": "Off",
-     "note": "Off: no overlay, no names and no run clock, just the valley and the quad. Free flight: tricks are named and scored as you land them, with no clock and no board, and the run never ends. That is the one to learn a Powerloop in. Scored run: two minutes on the clock, and what you finish with goes to the high score board.",
+     "value": "Apagado",
+     "note": "Apagado: sin superposición, sin nombres y sin reloj de sesión, solo el valle y el quad. Vuelo libre: los trucos se nombran y puntúan a medida que los aterrizas, sin reloj y sin tablero, y la sesión nunca termina. Ese es el indicado para aprender un Powerloop. Sesión puntuada: dos minutos en el reloj, y con lo que termines vas al tablero de puntajes.",
      "pickOnly": true,
      "current": "off",
      "options": [
       {
        "value": "off",
-       "label": "Off"
+       "label": "Apagado"
       },
       {
        "value": "free",
-       "label": "Free flight"
+       "label": "Vuelo libre"
       },
       {
        "value": "scored",
-       "label": "Scored run"
+       "label": "Sesión puntuada"
       }
      ],
      "fns": [
@@ -30944,32 +30986,32 @@
    "items": [
     {
      "id": "freestyle:a-map:alps",
-     "label": "The Alps",
-     "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
+     "label": "Los Alpes",
+     "note": "Un valle glaciar de seis kilómetros entre crestas nevadas, pinos en las laderas, un pueblo y una pista de prado en el fondo y un lago a sus pies. Sin puertas, sin reloj.",
      "action": "map:alps",
      "map": "alps",
      "drives": {}
     },
     {
      "id": "freestyle:a-map:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock.",
+     "label": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj.",
      "action": "map:swiss2",
      "map": "swiss2",
      "drives": {}
     },
     {
      "id": "freestyle:a-map:itaipu",
-     "label": "Itaipu",
-     "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock.",
+     "label": "Itaipú",
+     "note": "Cuarenta kilómetros de lado alrededor de la represa de Itaipú sobre el Paraná a escala real, de imágenes satelitales y datos de elevación: la represa, el embalse y el río aguas abajo a sus niveles, las ciudades y los bosques. Datos del mapa (c) colaboradores de OpenStreetMap. Sin puertas, sin reloj.",
      "action": "map:itaipu",
      "map": "itaipu",
      "drives": {}
     },
     {
      "id": "freestyle:a-map:interior",
-     "label": "The Interior (in development)",
-     "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock.",
+     "label": "El Interior (en desarrollo)",
+     "note": "En desarrollo: el mapa de la campaña El Interior, dieciséis kilómetros de lado de estancias, sojales, bosque en galería y un río lento; el terreno sale de datos abiertos de elevación y cobertura del suelo, y cada camino, casa y nombre sobre él es inventado. Solo el corredor de la Misión 1. Sin puertas, sin reloj.",
      "action": "map:interior",
      "map": "interior",
      "drives": {}
@@ -30977,22 +31019,22 @@
     {
      "id": "freestyle:puntuaci-n",
      "label": "Puntuación",
-     "note": "This is an unfinished feature and it is still being built. The recogniser misses tricks it should name and puts the wrong name on some of the ones it catches, so read it as a work in progress rather than as a verdict on your flying. Off: no overlay, no names and no run clock, just the valley and the quad. Free flight: tricks are named and scored as you land them, with no clock and no board, and the run never ends. That is the one to learn a Powerloop in. Scored run: two minutes on the clock, and what you finish with goes to the high score board.",
+     "note": "Esta es una función sin terminar y todavía se está construyendo. El reconocedor se pierde trucos que debería nombrar y le pone el nombre equivocado a algunos de los que sí reconoce, así que tómalo como un trabajo en curso y no como un veredicto en tu vuelo. Apagado: sin superposición, sin nombres y sin reloj de sesión, solo el valle y el quad. Vuelo libre: los trucos se nombran y puntúan a medida que los aterrizas, sin reloj y sin tablero, y la sesión nunca termina. Ese es el indicado para aprender un Powerloop. Sesión puntuada: dos minutos en el reloj, y con lo que termines vas al tablero de puntajes.",
      "rowClass": "row-warn",
      "pickOnly": true,
      "current": "on",
      "options": [
       {
        "value": "off",
-       "label": "Off"
+       "label": "Apagado"
       },
       {
        "value": "free",
-       "label": "Free flight"
+       "label": "Vuelo libre"
       },
       {
        "value": "scored",
-       "label": "Scored run"
+       "label": "Sesión puntuada"
       }
      ],
      "fns": [
@@ -31262,7 +31304,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -31411,7 +31453,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -31677,8 +31719,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -31703,7 +31745,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -31852,7 +31894,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
      "action": "pids",
      "drives": {}
     },
@@ -32118,8 +32160,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -32144,7 +32186,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica. Toma el relevo donde estás: mismo sitio, mismo rumbo.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica. Toma el relevo donde estás: mismo sitio, mismo rumbo.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -32281,7 +32323,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
      "action": "pids",
      "drives": {}
     },
@@ -32547,8 +32589,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -32573,7 +32615,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -32722,7 +32764,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -32992,8 +33034,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33018,7 +33060,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -33167,7 +33209,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -33433,8 +33475,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33459,7 +33501,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -33656,7 +33698,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -33922,8 +33964,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 400 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 400 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -33948,7 +33990,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -34145,7 +34187,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -34411,8 +34453,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Clásico, 42 alabeo y cabeceo, 42 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Clásico, 42 roll y pitch, 42 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -34437,7 +34479,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -34586,7 +34628,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -34844,8 +34886,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -34870,7 +34912,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -35019,7 +35061,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "De fábrica, master 120%",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "4.5.1 de fábrica en el interceptor: 1500 kV, una LiPo de 1800 mAh. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -35285,8 +35327,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -35311,7 +35353,7 @@
      "id": "quad:aeronave",
      "label": "Aeronave",
      "value": "Interceptor",
-     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de acelerador a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un dron de velocidad de 7 pulgadas en X alargada y 880 gramos, con LiPo 6S y hélices bipala de 9 de paso: el dron más rápido de aquí, hecho para alcanzar un dron de ataque y embestirlo. Medio minuto de throttle a fondo en la batería. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
      "current": "interceptor",
      "options": [
@@ -35460,7 +35502,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "Tus cambios",
-     "note": "The dump you saved on the Flight controller screen, every field of it. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "El dump que guardaste en la pantalla de la controladora de vuelo, con todos sus campos. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -35726,8 +35768,8 @@
     {
      "id": "quad:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controller y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Controlador y se quedan quietos cuando cambias de tune. Cada tipo de aeronave guarda los suyos: los de multirrotor, los de avión, los de ala volante y los de planeador. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -35901,7 +35943,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "Estabilizado",
-     "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "Un gyro sostiene el avión una vez que deja el suelo. El stick de roll pide una inclinación de hasta 60 grados, el de pitch un pitch de hasta 30, con los sticks centrados vuela nivelado, y el timón de dirección se coordina solo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -36343,13 +36385,13 @@
     {
      "id": "pilot:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Sin radio: cada frame llega, exactamente a tiempo. El feedforward y el suavizado de RC leen esa cadencia, así que esto es más nítido que cualquier enlace real.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -36431,7 +36473,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -36445,7 +36487,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -37406,13 +37448,13 @@
     {
      "id": "pilot:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Sin radio: cada frame llega, exactamente a tiempo. El feedforward y el suavizado de RC leen esa cadencia, así que esto es más nítido que cualquier enlace real.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -37494,7 +37536,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -37508,7 +37550,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -38469,13 +38511,13 @@
     {
      "id": "pilot:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Sin radio: cada frame llega, exactamente a tiempo. El feedforward y el suavizado de RC leen esa cadencia, así que esto es más nítido que cualquier enlace real.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -38557,7 +38599,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -38571,7 +38613,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -39532,13 +39574,13 @@
     {
      "id": "pilot:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Sin radio: cada frame llega, exactamente a tiempo. El feedforward y el suavizado de RC leen esa cadencia, así que esto es más nítido que cualquier enlace real.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -39620,7 +39662,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -39634,7 +39676,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -40580,13 +40622,13 @@
     {
      "id": "pilot:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Sin radio: cada frame llega, exactamente a tiempo. El feedforward y el suavizado de RC leen esa cadencia, así que esto es más nítido que cualquier enlace real.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -40668,7 +40710,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -40682,7 +40724,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -41642,7 +41684,7 @@
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -41724,7 +41766,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -41738,7 +41780,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Bajo",
-     "note": "Steam Deck and similar handhelds. Lower internal resolution, no shadow maps and cheaper post. Still uses a GPU if the machine has one. Changing this rebuilds the world.",
+     "note": "Steam Deck y handhelds similares. Menor resolución interna, sin mapas de sombras y posprocesado más barato. Igual usa una GPU si la máquina tiene una. Cambiar esto reconstruye el mundo.",
      "current": "low",
      "options": [
       {
@@ -42695,13 +42737,13 @@
     {
      "id": "pilot:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Sin radio: cada frame llega, exactamente a tiempo. El feedforward y el suavizado de RC leen esa cadencia, así que esto es más nítido que cualquier enlace real.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -42783,7 +42825,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -42797,7 +42839,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -43734,13 +43776,13 @@
     {
      "id": "pilot:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Sin radio: cada frame llega, exactamente a tiempo. El feedforward y el suavizado de RC leen esa cadencia, así que esto es más nítido que cualquier enlace real.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -43822,7 +43864,7 @@
     {
      "id": "pilot:a-quad",
      "label": "Tune, PIDs y el firmware",
-     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Quad. El ángulo de cámara y el modo de vuelo también están ahí.",
+     "note": "Esos pertenecen a la máquina, no a ti, así que están una sala más allá, en Dron. El ángulo de cámara y el modo de vuelo también están ahí.",
      "action": "quad",
      "drives": {}
     },
@@ -43836,7 +43878,7 @@
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -44728,7 +44770,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -44750,7 +44792,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -44874,7 +44916,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -44896,7 +44938,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "Sí",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": true,
      "current": true,
@@ -45019,8 +45061,8 @@
      }
     },
     {
-     "id": "controller:invertir-cabeceo-del-rat-n",
-     "label": "Invertir cabeceo del ratón",
+     "id": "controller:invertir-el-pitch-del-rat-n",
+     "label": "Invertir el pitch del ratón",
      "value": "Sí",
      "note": "Desactivado: empuja el ratón hacia adelante y el morro baja, como un stick. Activado: adelante levanta el morro, como una cámara de juego.",
      "sw": true,
@@ -45048,7 +45090,7 @@
      "id": "controller:stick-del-rat-n",
      "label": "Stick del ratón",
      "value": "Se queda",
-     "note": "Vuelve al centro va bien con un quad en Acro: mover el ratón lo gira y parar mantiene la actitud. Se queda va bien con Angle y con todos los aviones, donde un alabeo o un giro es un stick sostenido; el botón central o Z lo centra. Auto elige vuelve al centro para un quad en Acro y se queda para todo lo demás.",
+     "note": "Vuelve al centro va bien con un quad en Acro: mover el ratón lo gira y parar mantiene la actitud. Se queda va bien con Angle y con todos los aviones, donde un roll o un giro es un stick sostenido; el botón central o Z lo centra. Auto elige vuelve al centro para un quad en Acro y se queda para todo lo demás.",
      "current": "hold",
      "options": [
       {
@@ -45249,7 +45291,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -45271,7 +45313,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45490,7 +45532,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -45512,7 +45554,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45697,7 +45739,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada multirrotor: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -45719,7 +45761,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45865,7 +45907,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -45989,7 +46031,7 @@
     {
      "id": "controller:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
      "note": "Tuyos para cada ala volante: otro tipo de aeronave guarda los suyos, y empieza con los de fábrica hasta que los cambies. Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -46011,7 +46053,7 @@
      "id": "controller:vuelo-con-rat-n",
      "label": "Vuelo con ratón",
      "value": "No",
-     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado alabea y adelante y atrás cabecea. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
+     "note": "La rueda es el throttle y se queda donde la dejas; el ratón es el stick derecho, de lado hace roll y adelante y atrás hace pitch. Los botones izquierdo y derecho hacen yaw, el botón central o Z centra el stick, y todas las teclas siguen funcionando. En vuelo el puntero queda capturado: Escape lo libera y pausa, un clic lo recupera. Activado, vuela en lugar de una radio conectada.",
      "sw": true,
      "on": false,
      "current": false,
@@ -46199,7 +46241,7 @@
     {
      "id": "launch:pista",
      "label": "Pista",
-     "value": "Track",
+     "value": "Pista",
      "note": "Sobre esto se medirá tu tiempo.",
      "info": true,
      "drives": {}
@@ -46208,7 +46250,7 @@
      "id": "launch:a-quad",
      "label": "Dron",
      "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
+     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
     },
@@ -46369,13 +46411,13 @@
     {
      "id": "launch:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -46419,7 +46461,7 @@
     {
      "id": "launch:a-launch-go",
      "label": "Volar",
-     "note": "Tu mejor en Track está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
+     "note": "Tu mejor en Pista está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
      "action": "launch-go",
      "primary": true,
      "drives": {}
@@ -46447,7 +46489,7 @@
      "id": "launch:a-quad",
      "label": "Dron",
      "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
+     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
     },
@@ -46608,13 +46650,13 @@
     {
      "id": "launch:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -46731,7 +46773,7 @@
      "id": "launch:a-quad",
      "label": "Dron",
      "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
+     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
     },
@@ -46898,7 +46940,7 @@
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -46970,7 +47012,7 @@
      "id": "launch:a-quad",
      "label": "Dron",
      "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
+     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
     },
@@ -47131,13 +47173,13 @@
     {
      "id": "launch:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -47200,7 +47242,7 @@
     {
      "id": "launch:pista",
      "label": "Pista",
-     "value": "The Alps",
+     "value": "Los Alpes",
      "note": "Sobre esto se medirá tu tiempo.",
      "info": true,
      "drives": {}
@@ -47209,7 +47251,7 @@
      "id": "launch:a-quad",
      "label": "Avión",
      "value": "Cub, Estabilizado",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
+     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
     },
@@ -47370,13 +47412,13 @@
     {
      "id": "launch:enlace-de-radio",
      "label": "Enlace de radio",
-     "value": "Perfect (no radio)",
+     "value": "Perfecto (sin radio)",
      "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
      "current": "perfect",
      "options": [
       {
        "value": "perfect",
-       "label": "Perfect (no radio)"
+       "label": "Perfecto (sin radio)"
       },
       {
        "value": "elrs500",
@@ -47420,7 +47462,7 @@
     {
      "id": "launch:a-launch-go",
      "label": "Volar",
-     "note": "Tu mejor en The Alps está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Estabilizado. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
+     "note": "Tu mejor en Los Alpes está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Estabilizado. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
      "action": "launch-go",
      "primary": true,
      "drives": {}
@@ -47734,8 +47776,8 @@
     {
      "id": "quick:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -47812,7 +47854,7 @@
      "id": "quick:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -47881,8 +47923,8 @@
     {
      "id": "quick:a-rates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
      "action": "rates",
      "drives": {}
     },
@@ -47959,7 +48001,7 @@
      "id": "quick:gr-ficos",
      "label": "Gráficos",
      "value": "Medio",
-     "note": "A 2020-era laptop with integrated graphics. Shadows at lower resolution and no bloom. Changing this rebuilds the world.",
+     "note": "Una laptop de 2020 con gráficos integrados. Sombras a menor resolución y sin bloom. Cambiar esto reconstruye el mundo.",
      "current": "medium",
      "options": [
       {
@@ -48157,7 +48199,7 @@
      "id": "quick:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -48304,7 +48346,7 @@
      "id": "quick:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "note": "Una PC de 2021 o una laptop potente. El aspecto original: resolución completa, sombras suaves y bloom. Cambiar esto reconstruye el mundo.",
      "current": "high",
      "options": [
       {
@@ -49465,8 +49507,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -49572,8 +49614,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -49644,9 +49686,9 @@
      }
     },
     {
-     "id": "rates:acelerador-medio",
-     "label": "Acelerador medio",
-     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:throttle-medio",
+     "label": "Throttle medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -49679,9 +49721,9 @@
      }
     },
     {
-     "id": "rates:expo-de-acelerador",
-     "label": "Expo de acelerador",
-     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+     "id": "rates:expo-de-throttle",
+     "label": "Expo de throttle",
+     "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -49866,8 +49908,8 @@
      }
     },
     {
-     "id": "rates:s-alabeo",
-     "label": "Alabeo",
+     "id": "rates:s-roll",
+     "label": "Roll",
      "section": true,
      "drives": {}
     },
@@ -49977,8 +50019,8 @@
      }
     },
     {
-     "id": "rates:s-cabeceo",
-     "label": "Cabeceo",
+     "id": "rates:s-pitch",
+     "label": "Pitch",
      "section": true,
      "drives": {}
     },
@@ -50084,8 +50126,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -50191,8 +50233,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -50263,9 +50305,9 @@
      }
     },
     {
-     "id": "rates:acelerador-medio",
-     "label": "Acelerador medio",
-     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 28.9 por ciento del stick con la curva de fábrica.",
+     "id": "rates:throttle-medio",
+     "label": "Throttle medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 28.9 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 40,
       "text": "0.40",
@@ -50298,9 +50340,9 @@
      }
     },
     {
-     "id": "rates:expo-de-acelerador",
-     "label": "Expo de acelerador",
-     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+     "id": "rates:expo-de-throttle",
+     "label": "Expo de throttle",
+     "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 10,
       "text": "0.10",
@@ -50609,8 +50651,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -50716,8 +50758,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -50788,9 +50830,9 @@
      }
     },
     {
-     "id": "rates:acelerador-medio",
-     "label": "Acelerador medio",
-     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:throttle-medio",
+     "label": "Throttle medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -50823,9 +50865,9 @@
      }
     },
     {
-     "id": "rates:expo-de-acelerador",
-     "label": "Expo de acelerador",
-     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+     "id": "rates:expo-de-throttle",
+     "label": "Expo de throttle",
+     "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -51140,8 +51182,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -51247,8 +51289,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -51319,9 +51361,9 @@
      }
     },
     {
-     "id": "rates:acelerador-medio",
-     "label": "Acelerador medio",
-     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:throttle-medio",
+     "label": "Throttle medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -51354,9 +51396,9 @@
      }
     },
     {
-     "id": "rates:expo-de-acelerador",
-     "label": "Expo de acelerador",
-     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+     "id": "rates:expo-de-throttle",
+     "label": "Expo de throttle",
+     "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -51645,8 +51687,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -51752,8 +51794,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -51824,9 +51866,9 @@
      }
     },
     {
-     "id": "rates:acelerador-medio",
-     "label": "Acelerador medio",
-     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:throttle-medio",
+     "label": "Throttle medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -51859,9 +51901,9 @@
      }
     },
     {
-     "id": "rates:expo-de-acelerador",
-     "label": "Expo de acelerador",
-     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+     "id": "rates:expo-de-throttle",
+     "label": "Expo de throttle",
+     "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -52142,8 +52184,8 @@
      }
     },
     {
-     "id": "rates:s-gui-ada",
-     "label": "Guiñada",
+     "id": "rates:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -52249,8 +52291,8 @@
      }
     },
     {
-     "id": "rates:s-acelerador",
-     "label": "Acelerador",
+     "id": "rates:s-throttle",
+     "label": "Throttle",
      "section": true,
      "drives": {}
     },
@@ -52321,9 +52363,9 @@
      }
     },
     {
-     "id": "rates:acelerador-medio",
-     "label": "Acelerador medio",
-     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco acelerador suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
+     "id": "rates:throttle-medio",
+     "label": "Throttle medio",
+     "note": "Donde pivota la curva. 0.50 es el centro de fábrica; los pilotos que flotan con poco throttle suelen bajarlo hacia su punto de flotación para que la expo suavice la parte correcta del recorrido. Este quad hace hover cerca del 24.1 por ciento del stick con la curva de fábrica.",
      "num": {
       "cli": 50,
       "text": "0.50",
@@ -52356,9 +52398,9 @@
      }
     },
     {
-     "id": "rates:expo-de-acelerador",
-     "label": "Expo de acelerador",
-     "note": "Aplana el acelerador alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
+     "id": "rates:expo-de-throttle",
+     "label": "Expo de throttle",
+     "note": "Aplana el throttle alrededor del punto medio y empina los extremos, exactamente el thr_expo del firmware. 0 es la recta de fábrica.",
      "num": {
       "cli": 0,
       "text": "0.00",
@@ -52431,7 +52473,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -52487,7 +52529,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -52543,7 +52585,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -52971,9 +53013,9 @@
      }
     },
     {
-     "id": "pids:seguimiento-de-cabeceo",
-     "label": "Seguimiento de cabeceo",
-     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+     "id": "pids:seguimiento-de-pitch",
+     "label": "Seguimiento de pitch",
+     "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -53025,9 +53067,9 @@
      }
     },
     {
-     "id": "pids:amortiguaci-n-de-cabeceo",
-     "label": "Amortiguación de cabeceo",
-     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+     "id": "pids:amortiguaci-n-de-pitch",
+     "label": "Amortiguación de pitch",
+     "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
      "range": {
       "min": 30,
       "max": 200
@@ -53108,7 +53150,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits. Changing it during a run puts the quad back on the start line.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Tus cambios. Cambiarlo durante una sesión pone el quad de vuelta en la línea de salida.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -53440,9 +53482,9 @@
      }
     },
     {
-     "id": "pids:seguimiento-de-cabeceo",
-     "label": "Seguimiento de cabeceo",
-     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+     "id": "pids:seguimiento-de-pitch",
+     "label": "Seguimiento de pitch",
+     "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -53479,9 +53521,9 @@
      }
     },
     {
-     "id": "pids:amortiguaci-n-de-cabeceo",
-     "label": "Amortiguación de cabeceo",
-     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+     "id": "pids:amortiguaci-n-de-pitch",
+     "label": "Amortiguación de pitch",
+     "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
      "range": {
       "min": 30,
       "max": 200
@@ -53547,7 +53589,7 @@
      "id": "pids:ajuste-pid",
      "label": "Ajuste PID",
      "value": "De fábrica",
-     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
+     "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Banco de firmware y guárdalo, y se suma a esta fila como Tus cambios.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
@@ -53593,8 +53635,8 @@
      }
     },
     {
-     "id": "pids:s-alabeo",
-     "label": "Alabeo",
+     "id": "pids:s-roll",
+     "label": "Roll",
      "section": true,
      "drives": {}
     },
@@ -53774,8 +53816,8 @@
      }
     },
     {
-     "id": "pids:s-cabeceo",
-     "label": "Cabeceo",
+     "id": "pids:s-pitch",
+     "label": "Pitch",
      "section": true,
      "drives": {}
     },
@@ -53955,8 +53997,8 @@
      }
     },
     {
-     "id": "pids:s-gui-ada",
-     "label": "Guiñada",
+     "id": "pids:s-yaw",
+     "label": "Yaw",
      "section": true,
      "drives": {}
     },
@@ -54609,9 +54651,9 @@
      }
     },
     {
-     "id": "pids:seguimiento-de-cabeceo",
-     "label": "Seguimiento de cabeceo",
-     "note": "P e I de cabeceo respecto al alabeo. Un dron es más largo que ancho, así que el cabeceo suele llevar unos pocos por ciento más.",
+     "id": "pids:seguimiento-de-pitch",
+     "label": "Seguimiento de pitch",
+     "note": "P e I de pitch respecto al roll. Un dron es más largo que ancho, así que el pitch suele llevar unos pocos por ciento más.",
      "range": {
       "min": 30,
       "max": 200
@@ -54663,9 +54705,9 @@
      }
     },
     {
-     "id": "pids:amortiguaci-n-de-cabeceo",
-     "label": "Amortiguación de cabeceo",
-     "note": "D de cabeceo respecto al alabeo, por la misma razón que existe el seguimiento de cabeceo.",
+     "id": "pids:amortiguaci-n-de-pitch",
+     "label": "Amortiguación de pitch",
+     "note": "D de pitch respecto al roll, por la misma razón que existe el seguimiento de pitch.",
      "range": {
       "min": 30,
       "max": 200

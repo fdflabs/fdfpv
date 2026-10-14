@@ -20,8 +20,9 @@ being a different attacker, or the pilot getting 100 m nearer it.
 - `src/share/war/nudge.js` (pure, Node): `threatOf(live, targets)`,
   `nudgeOf(threat, here, heading)`, `ground`, `headingOf`, `DIST_BANDS`;
   re-exports `createNudger` from `src/share/ops/guide.js` (not copied).
-- A mission opts in with `nudge: true`. `itaipu-1` and `itaipu-2` do; every other
-  mission, the drill and the legacy games are unchanged.
+- A mission opts in with `nudge: true`. `itaipu-1`, `itaipu-2` and
+  `itaipu-3` do; every other mission, the drill and the legacy games are
+  unchanged.
 - `src/main.js` `warNudgeFrame`, once a second in the war frame, only in
   flight, not under a film or the pause menu.
 - Lines: `war-g-next`, `war-g-clock-1..12`, `war-g-dist-{500,1k,2k,3k,5k,far}`

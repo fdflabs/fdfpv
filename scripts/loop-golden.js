@@ -80,10 +80,19 @@ const onlySc = process.env.LOOP_SC ? process.env.LOOP_SC.split(',') : null;
  * jittery display and a dropped frame.
  */
 const VT_SEED = `(() => {
-  const vt = { now: 0, held: false, cbs: [], frame: 1000 / 60, rng: 0x2545F491 };
+  const vt = { now: 0, held: false, cbs: [], frame: 1000 / 60, rng: 0x2545F491, n: 0 };
   performance.now = () => vt.now;
-  /* The lens shake is the one place the shell draws a random number; a
-   * seeded xorshift32 makes the camera a function of the frames too. */
+  /* The lens shake is the shell's random number every frame; a seeded
+   * xorshift32 makes the camera a function of the frames too. It is
+   * seeded again at every frame from the frame's number in its scenario,
+   * not run on from the scenario's start: Three draws four numbers for
+   * every object it makes (a uuid), and the rock layer builds a chunk's
+   * mesh when the camera comes near one it does not hold, which depends
+   * on what the boot left built. A chunk built in one run and not in
+   * another shifted every shake after it (track/fly, frame 267 on a
+   * software rasteriser). The lens draws first in a frame, so its
+   * numbers no longer depend on what was made in the frames before. */
+  const frameSeed = (k) => ((Math.imul(k ^ 0x2545F491, 0x9E3779B1) ^ (k >>> 16)) >>> 0) || 1;
   Math.random = () => {
     let x = vt.rng;
     x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
@@ -93,6 +102,8 @@ const VT_SEED = `(() => {
   window.requestAnimationFrame = (cb) => { vt.cbs.push(cb); return vt.cbs.length; };
   window.cancelAnimationFrame = () => {};
   const tick = (dt) => {
+    vt.n += 1;
+    vt.rng = frameSeed(vt.n);
     vt.now += dt;
     const cbs = vt.cbs;
     vt.cbs = [];
@@ -103,7 +114,7 @@ const VT_SEED = `(() => {
     hold: () => { vt.held = true; return vt.now; },
     now: () => vt.now,
     advance: (n, dts, each, startAt = 0) => {
-      vt.rng = 0x2545F491;
+      vt.n = 0;
       /* A scenario starts at its own fixed wall time, so nothing that
        * reads the clock itself (a cooldown, a wind phase) depends on how
        * many frames the boot and the placement took. Forward only. */

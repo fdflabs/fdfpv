@@ -90,12 +90,12 @@ import {
   MAP_SCHEMA_VERSION, deserialize, isMapTrack, normalize, serialize, toPlain,
 } from '../src/trackbuilder/model.js';
 import { inspectCourse, layoutFingerprint } from '../src/share/listing.js';
-import { courseSeatKey } from '../src/share/session.js';
+import { courseSeatKey } from '../src/share/trackseat.js';
 import {
   NEAR_POINTS, PASS_POINTS, PLANE_REACH, Race,
 } from '../src/game/race.js';
 import {
-  BUILD_TYPES, CASUAL, CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, HOTBAR_SLOTS, PIECES, PIECE_CATS, RETIRED_HOOPS, WING_FIRST, addGate, casualCourse, chainPose, axesOf,
+  ASPECT, BUILD_TYPES, CASUAL, CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, HOTBAR_SLOTS, PIECES, PIECE_CATS, RETIRED_HOOPS, WING_FIRST, addGate, casualCourse, chainPose, axesOf,
   capsOverlap, createHistory, gateSpec, gizmoAxes, makeStart, newCourse, offeredPiece, openingCentre, openingsOf, orderOf, pieceById, pieceGate, pieceOf, poseOf, qAxis,
   qMul, qRot, raceGatesOf, restoreHotbar,
   readoutFor, removeGate, setOrder, setPose, snapPose, spawnFor, startFor, floatStart, stepOf, turnGate, worldCaps, SPAWN_BACK,
@@ -105,7 +105,8 @@ import {
   HOOP_ROOM, SPAN_ROOM, craftLimits, lineWarnings, misfitGate, openingBlocked, racingLine, speedAt,
 } from '../src/builder/line.js';
 import { postGive } from '../src/game/crashworld.js';
-import { planesFor } from '../src/game/verify.js';
+import { planesFor, raceFromDocument } from '../src/game/verify.js';
+import { aiBench } from '../tests/lib/aireference.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
 import {
   AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
@@ -872,7 +873,7 @@ console.log('sky hoops');
     casual && casual.elements.length === CASUAL.gates && casual.elements.every((e, i) => e.type === (i % 2 ? 'pylonPair' : 'hoop30')));
   const cg = casual ? raceGatesOf(casual) : [];
   check('its pairs stand on the ground and its hoops hang 60 m over it',
-    cg.every((g, i) => (i % 2 ? near(g.position.y, 0, 1e-9) : near(g.centre.y, CASUAL.over, 1e-9))), cg.map((g) => g.centre.y.toFixed(1)).join());
+    cg.every((g, i) => (i % 2 ? near(g.position.y, 0, 1e-9) : near(g.centre.y, CASUAL.plane.over, 1e-9))), cg.map((g) => g.centre.y.toFixed(1)).join());
   check('each is flown towards the next', cg.every((g, i) => {
     const q = cg[(i + 1) % cg.length].centre;
     return (q.x - g.centre.x) * g.axes.travel.x + (q.y - g.centre.y) * g.axes.travel.y + (q.z - g.centre.z) * g.axes.travel.z > 0;
@@ -905,6 +906,50 @@ console.log('sky hoops');
   }).filter(Boolean);
   check(`on rolling hills: ${rolled ? rolled.elements.map((e) => e.type).join() : 'none'}, and no plane gets a warning`,
     rolled && rg.length === CASUAL.gates && rollBad.length === 0, rollBad.join('; '));
+  /* A quad's casual track (course.js CASUAL.quad): the 2.5 m hoop all
+   * round, 10 m over the ground, and an oval no tighter than the level
+   * turn the AI pilot's harness follows the plant round at 13 m/s, the
+   * fastest pace it takes every gate at (aipilot:harness), measured here
+   * on that same reference line. */
+  {
+    const fixture = raceFromDocument(JSON.parse(readFileSync(new URL('../tests/fixtures/map-track-v4.json', import.meta.url), 'utf8')));
+    const line = aiBench({ course: fixture }).referenceLine(13);
+    let proven = Infinity;
+    for (let t = 0; t < line.durationMs; t += 5) {
+      const { v, a } = line.at(t);
+      const flat = Math.hypot(v[0], v[1]);
+      if (Math.abs(Math.atan2(v[2], flat)) < 5 * DEG) {
+        proven = Math.min(proven, flat ** 3 / Math.abs(v[0] * a[1] - v[1] * a[0]));
+      }
+    }
+    const quadAfs = AIRFRAMES.filter((af) => !af.fixedWing);
+    const quadBad = (gates, heightAt) => quadAfs.map((af) => {
+      const c = craftLimits(af);
+      const ws = lineWarnings(gates, racingLine(gates, c, heightAt), c, { heightAt, solidAt: () => false });
+      return ws.length ? `${af.id}: ${ws.map((w) => `${w.code}@${w.gate + 1}`).join(' ')}` : '';
+    }).filter(Boolean);
+    const quad = casualCourse('swiss2', 'Casual', () => 0, { x: 0, z: 0 }, 'quad');
+    const qg = quad ? raceGatesOf(quad) : [];
+    check(`on level ground a quad's casual course is ${CASUAL.gates} gates, all the 2.5 m hoop, 10 m over the ground: ${quad ? quad.elements.map((e) => e.type).join() : 'none'}`,
+      qg.length === CASUAL.gates && quad.elements.every((e) => e.type === 'hoop250') && qg.every((g) => near(g.centre.y, CASUAL.quad.over, 1e-9)),
+      qg.map((g) => g.centre.y.toFixed(2)).join());
+    /* Gate 0 and gate 4 sit at the two ends of the long axis. */
+    const longHalf = qg.length ? Math.hypot(qg[0].centre.x - qg[CASUAL.gates / 2].centre.x, qg[0].centre.z - qg[CASUAL.gates / 2].centre.z) / 2 : 0;
+    const tightest = ASPECT * ASPECT * longHalf;
+    check(`its tightest turn, ${tightest.toFixed(1)} m, is no tighter than the harness line's tightest level turn at 13 m/s, ${proven.toFixed(1)} m`,
+      Number.isFinite(proven) && tightest >= proven);
+    const gaps = qg.map((g, i) => Math.hypot(g.centre.x - qg[(i + 1) % qg.length].centre.x, g.centre.z - qg[(i + 1) % qg.length].centre.z));
+    check(`its hoops about ${CASUAL.quad.spacing} m apart round the oval: ${gaps.map((d) => d.toFixed(1)).join(', ')}`,
+      gaps.every((d) => d > 0.85 * CASUAL.quad.spacing && d <= CASUAL.quad.spacing));
+    const flatBad = quadBad(qg, () => 0);
+    check('and no quad gets a warning on it', flatBad.length === 0, flatBad.join('; '));
+    const qRolled = casualCourse('swiss2', 'Casual', hills, { x: 0, z: 0 }, 'quad');
+    const qrg = qRolled ? raceGatesOf(qRolled) : [];
+    const qRollBad = quadBad(qrg, hills);
+    check('on rolling hills too, and every hoop 10 to 25 m over its own ground', qrg.length === CASUAL.gates && qRollBad.length === 0
+      && qrg.every((g) => g.centre.y - hills(g.centre.x, g.centre.z) >= CASUAL.quad.over - 1e-9 && g.centre.y - hills(g.centre.x, g.centre.z) <= CASUAL.quad.top + 1e-9),
+      `${qRollBad.join('; ')} ${qrg.map((g) => (g.centre.y - hills(g.centre.x, g.centre.z)).toFixed(1)).join()}`);
+  }
   const stale = ['hoop20', 'hoop12', 'hoop30', 'hoop6', 'pylonPair', 'pylon', 'pylonRight', 'wideGate5', 'wideGate3'];
   const mended = restoreHotbar(stale, DEFAULT_WING_HOTBAR);
   check(`the old plane default, stored, comes back as the new default: ${mended.join(' ')}`, mended.join() === DEFAULT_WING_HOTBAR.join()

@@ -28,6 +28,8 @@
 
 import { AIR_START_STALL_MARGIN } from '../../configs/airframes.js';
 import { MEDAL_STEPS } from './medals.js';
+import { ACT1 } from './campaign.js';
+import { PRACTICE_ID } from '../share/war/missions/itaipu-practice.js';
 
 /* What a flight must do before it counts, and how long down and still is a
  * landing: the same as progress.js judges a landing by. */
@@ -64,6 +66,9 @@ const G = 9.81;
  * zoom gives: the Radian trading 15 m/s for its 6.49 m/s stall climbs
  * (15^2 - 6.49^2) / 2g, 9.3 m, with no air rising at all. */
 export const THERMAL_CLIMB_M = 10;
+/* Tracking a target (docs/redesign/TRAINING.md track 5): the avionics
+ * camera's primary track held this long, sim ms. */
+export const TRACK_HOLD_MS = 10000;
 const STICK_ENDS = {
   'roll+': (c) => c.roll >= STICK_END,
   'roll-': (c) => c.roll <= -STICK_END,
@@ -83,19 +88,26 @@ const STICK_ENDS = {
  * THERMAL_CLIMB_M climbed, throttle closed, in rising air; { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
- * clean meaning no rim touched; { ghost: true } a lap faster than the
- * ghost; { medal: 'bronze' } a lap that reaches that medal or a better
- * one on a course with medals (src/game/medals.js); { race: n } a room
+ * clean meaning no rim touched, casual meaning only laps of a casual sky
+ * track count (the lap event's `kind`, progress.js courseKind); { ghost:
+ * true } a lap faster than the ghost; { medal: 'bronze' } a lap that
+ * reaches that medal or a better one on a course with medals
+ * (src/game/medals.js); { race: n } a room
  * race finished with at least n pilots on its grid, this one among them;
  * { hold: ms, low, high, radius } held in a height band (and a circle);
  * { land: true, deadstick: true } a landing after the pack ran low;
  * { land: true, onStrip: true } a landing at rest on its place's strip;
- * { gates: n } n gates or hoops in a row without a touch. `mode` is a
+ * { gates: n } n gates or hoops in a row without a touch;
+ * { kill: kind, mission } an attacker of that kind the war's room credited
+ * to this pilot in that mission; { track: ms } one track held as the
+ * avionics camera's primary, unbroken, that long; { won: mission } that
+ * war mission won, with any number of pilots. `mode` is a
  * quad's flight mode, 'angle' (self levelling) or 'acro'.
  * A crash starts the lesson's steps again. `aid` is the visual aid the
  * lesson draws: 'glide', the glide path to its place's strip, or 'gate',
  * the next gate's direction on the HUD. `room` is the activity
- * (src/share/modes.js) whose lobby a lesson flown with others opens.
+ * (src/share/modes.js) whose lobby a lesson flown with others opens;
+ * `mission` the war mission a Defence lesson's room is made for.
  * `covers` lists the lessons a pass of this one passes too, because it
  * asks all they ask. The words are training.lesson.<id> and
  * training.lesson.<id>_note.
@@ -127,12 +139,21 @@ export const LESSONS = [
     id: 'quad_acro', track: 'multirotor', airframe: 'interceptor', mode: 'acro', place: 'swiss2', covers: ['quad_hover'],
     steps: [{ hold: 15000, low: 1, high: 4, radius: 3 }],
   },
+  { id: 'quad_gates', track: 'multirotor', airframe: null, mode: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: true, casual: true }] },
   { id: 'quad_precision', track: 'multirotor', airframe: null, mode: null, place: null, aid: 'gate', steps: [{ gates: 10 }] },
   { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: false }] },
   { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', covers: ['race_lap'], steps: [{ laps: 1, clean: true }] },
   { id: 'race_bronze', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ medal: 'bronze' }] },
   { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ ghost: true }] },
   { id: 'race_pilot', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', room: 'race', steps: [{ race: 2 }] },
+  /* Defence (TRAINING.md track 5, 9): in the war's aircraft, which the
+   * room seats, behind the war's consent. */
+  {
+    id: 'defence_intercept', track: 'defence', airframe: null, tune: null, place: null, mission: PRACTICE_ID,
+    steps: [{ kill: 'strike', mission: PRACTICE_ID }],
+  },
+  { id: 'defence_track', track: 'defence', airframe: null, tune: null, place: null, mission: PRACTICE_ID, steps: [{ track: TRACK_HOLD_MS }] },
+  { id: 'defence_mission', track: 'defence', airframe: null, tune: null, place: null, mission: ACT1[0].id, steps: [{ won: ACT1[0].id }] },
 ];
 
 /*
@@ -246,17 +267,17 @@ export function restoreSettings(s, held, seat, valid) {
 }
 
 /* The tracks in the order the page lists them. */
-export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'racing'];
+export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'racing', 'defence'];
 
 /*
  * CERTIFICATIONS (PROGRESSION.md 7, the lead 2026-10-13): a track's, earned
  * when every lesson of it is passed, a pass by "I fly already" included,
  * and kept from then on (progress.certs, synced; a merge never drops one).
  * Because a stored one is never taken back, a track is listed only once
- * every lesson TRAINING.md gives it exists here: Defence waits on the
- * stage engine; First flight has none. The words are training.cert.<track>.
+ * every lesson TRAINING.md gives it exists here; First flight has none.
+ * The words are training.cert.<track>.
  */
-export const CERTS = ['wing', 'glider', 'multirotor', 'racing'];
+export const CERTS = ['wing', 'glider', 'multirotor', 'racing', 'defence'];
 
 /* The certifications `passed` (lesson id to its pass time) has earned. */
 export function certsEarned(passed) {
@@ -321,6 +342,13 @@ export function lateralG(prev, curr) {
   return (fx * 2 * (x * y - w * z) + fy * (1 - 2 * (x * x + z * z)) + fz * 2 * (y * z + w * x)) / G;
 }
 
+/* The avionics camera's primary track (src/avionics/tracks.js snapshot)
+ * while it is seen, not coasting stale: its id, else null. */
+export function heldTrack(snapshot) {
+  const v = snapshot && snapshot.primaryId != null ? snapshot.tracks.find((x) => x.id === snapshot.primaryId) : null;
+  return v && !v.stale ? v.id : null;
+}
+
 export function lessonById(id) {
   return LESSONS.find((l) => l.id === id) ?? null;
 }
@@ -372,6 +400,8 @@ export class LessonWatch {
     this.stalled = false;
     this.thermalLow = null;
     this.eight = null;
+    this.trackId = null;
+    this.trackSince = null;
   }
 
   get current() {
@@ -434,6 +464,10 @@ export class LessonWatch {
       this.judgeEight(grounded, heading, bank, slipG);
     } else if (s.thermal) {
       this.judgeThermal(grounded, pos, sticks, airUp);
+    } else if (s.track != null) {
+      if (this.trackSince != null && simMs - this.trackSince >= s.track) {
+        this.advance();
+      }
     } else if (s.airborne != null && !grounded && simMs - this.airSince >= s.airborne) {
       this.advance();
     } else if (s.turn && heading != null) {
@@ -602,10 +636,48 @@ export class LessonWatch {
     return this.passed;
   }
 
+  /* An attacker the room credited to this pilot: its `kill` event
+   * (src/game/events.js), victim its kind, mission the war's. */
+  kill({ victim = null, mission = null } = {}) {
+    const s = this.current;
+    if (s && s.kill && victim === s.kill && mission === s.mission) {
+      this.advance();
+    }
+    return this.passed;
+  }
+
+  /* The avionics camera's primary track held or let go: its `contact`
+   * event, `track` the track's id, `held` which, at the event's simMs.
+   * The hold is timed on tick. */
+  contact({ track = null, held = false, simMs = null } = {}) {
+    const s = this.current;
+    if (!s || s.track == null) {
+      return this.passed;
+    }
+    if (held && Number.isFinite(simMs)) {
+      this.trackId = track;
+      this.trackSince = simMs;
+    } else if (track === this.trackId) {
+      this.trackId = null;
+      this.trackSince = null;
+    }
+    return this.passed;
+  }
+
+  /* A war mission's result applied to the save: its `mission_end` event. */
+  missionEnd({ mission = null, won = false } = {}) {
+    const s = this.current;
+    if (s && s.won && mission === s.won && won === true) {
+      this.advance();
+    }
+    return this.passed;
+  }
+
   /* A lap closed: `lap` its event in the flight's log (src/game/events.js:
-   * its `ms` and the `medal` it reached or null), `ghostMs` the ghost's
-   * lap or null, which the log does not carry. */
-  lap({ ms = null, medal = null } = {}, ghostMs = null) {
+   * its `ms`, the `medal` it reached or null and its course's `kind`,
+   * progress.js courseKind), `ghostMs` the ghost's lap or null, which the
+   * log does not carry. */
+  lap({ ms = null, medal = null, kind = null } = {}, ghostMs = null) {
     const s = this.current;
     if (!s) {
       return this.passed;
@@ -614,7 +686,7 @@ export class LessonWatch {
       this.advance();
     } else if (s.medal && MEDAL_STEPS.indexOf(medal) >= MEDAL_STEPS.indexOf(s.medal)) {
       this.advance();
-    } else if (s.laps && (this.clean || !s.clean)) {
+    } else if (s.laps && (this.clean || !s.clean) && (!s.casual || kind === 'casual')) {
       this.laps += 1;
       if (this.laps >= s.laps) {
         this.advance();

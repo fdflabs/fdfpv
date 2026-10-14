@@ -351,6 +351,18 @@ try {
     row('orbit: the mission\'s own card, its title over "Mission 2"', shot('orbit').titles.includes(EN['war.mission.itaipu_2']), shot('orbit').titles.join(' | '));
     row('the hand-off: the letterbox open by the last frame', shot('orbit').opened > 0.95, shot('orbit').opened.toFixed(3));
   }
+  if (FILM.id === 'lights-out') {
+    row('corridor, yard, town and edge: the lines, the yard and the town, no attacker', ['corridor', 'yard', 'town', 'edge'].every((id) => Object.values(shot(id).drawn).every((n) => !n)),
+      ['corridor', 'yard', 'town', 'edge'].map((id) => JSON.stringify(shot(id).drawn)).join(' '));
+    row('pair: two attackers over the west arm, a Striker and its decoy', (shot('pair').drawn.strike ?? 0) + (shot('pair').drawn.decoy ?? 0) === 2, JSON.stringify(shot('pair').drawn));
+    row('orbit: the mission\'s own card, its title over "Mission 3"', shot('orbit').titles.includes(EN['war.mission.itaipu_3']), shot('orbit').titles.join(' | '));
+    row('the hand-off: the letterbox open by the last frame', shot('orbit').opened > 0.95, shot('orbit').opened.toFixed(3));
+  }
+  if (FILM.id === 'lights-out-outro') {
+    row('outro: no attacker in any shot (the fight is over)', SHOTS.every((x) => Object.values(shot(x.id).drawn).every((n) => !n)), SHOTS.map((x) => JSON.stringify(shot(x.id).drawn)).join(' '));
+    row('rack: the quad home on its pad', shot('rack').cast.includes('q2s'), shot('rack').cast.join(' '));
+    row('lines: no title card while The Long Night is held', shot('lines').titles.length === 0, shot('lines').titles.join(' | '));
+  }
 
   /* The voice: decoded here, as long as the manifest says. */
   const decoded = s.sound ? s.sound.decoded : {};

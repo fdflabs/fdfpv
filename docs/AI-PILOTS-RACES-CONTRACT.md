@@ -10,7 +10,8 @@ src/game/race.js Race, never on the record. The kinematic Zagi of
 edge/rooms/bots.js is retired from this contract: it moves poses, it does not
 fly the plant, and PILLARS 12 says an AI pilot flies the same plant under the
 same rules. Catch the Ace's AI pilots (docs/AI-PILOTS-CONTRACT.md) are not
-changed by this. Nothing below is built yet.
+changed by this. Built by w39-room-ai, 2026-10-13: see "What is built"
+below; the rest of this page is the design it was built to.
 
 ## What the player sees
 
@@ -24,9 +25,12 @@ changed by this. Nothing below is built yet.
 - A race with AI pilots in it posts nothing to the leaderboard for them:
   their times are room results only.
 - They crash as a person's plant crashes: the course's ground and solids
-  (gate frames among them) meet their plant. A crashed AI pilot is reborn
-  on its last gate passed, as a person's R puts them back on the course,
-  and its clock runs on.
+  (gate frames among them) meet their plant. A crashed AI pilot is put
+  back as a person's wreck and R put them back in a room race (src/main.js,
+  src/share/roomrace.js): the lap in flight is voided, it starts again from
+  its own place on the grid, the laps it closed stay closed, and its clock
+  runs on. (w39-room-ai-2, 2026-10-13: this page said "on its last gate
+  passed"; no person is put back there, R puts them on their slot.)
 
 ## Which races
 
@@ -84,6 +88,93 @@ kept), and aipilot:harness, which runs all of it in Node in seconds.
 - **Seats.** roombots.js fills a race room when its game is the race
   (src/share/modes.js race allowAI true), the track is a quad track on a
   ground map, and the host's level is not Off. AI pilots count as ready.
+
+## What is built (w39-room-ai, 2026-10-13)
+
+edge/rooms/airace.js, seated by edge/rooms/roombots.js in a room made for
+a race (src/share/modes.js race allowAI is now true; roombots.js keeps
+bots.js's kinematic Zagi out of races). Decisions taken in building it:
+
+- **The aircraft** is the interceptor (configs/airframes.js
+  DEFAULT_AIRFRAME, the harness's quad), whatever the people fly.
+- **Levels** are the ghost's pace along its own path: Easy 6, Normal 8,
+  Hard 10 m/s (airace.js RACE_PACES, under the pilot's measured 14 m/s
+  ceiling on tests/fixtures/map-track-v4.json). A board lap faster than
+  its level is slowed to it, never sped up.
+- **The ghost** is the board's best quad lap with a ghost on the track
+  when the server has ROOMS_BOARD_ORIGIN (src/share/board.js reads), else
+  the room's reference lap. The harness's reference line runs under a
+  ground standing course (5 m under a dive gate's exit on swiss2), so the
+  room keeps it 0.8 m over the page's ground. Either ghost is proved
+  before it is taken: an AI pilot on the room's ground and gate frames
+  must close two laps behind it. A board lap that fails gives way to the
+  reference; a track neither proves on seats no AI pilot.
+- **The grid**: the AI pilots line up one behind another on the ghost's
+  line, the first 9 s before the timing gate (6 s more than aiopponent.js
+  START_MS: from 3 s out the person was still 1.7 m off the line at the
+  timing gate and lost a lap), the next 1 s behind each.
+- **The solids** are each structure's own geometry as the race carries
+  it (src/builder/course.js structureOf, every opening's `frame`), in the
+  page's capsules (src/render/pylons.js), rebuilt without three.js
+  (airace.js framesOf, w39-room-ai-2): four bars of the frame's tube round
+  a rectangular opening; 24 tubes round a hoop's rim, firm for a quad
+  hoop and soft for a plane's; 4 posts up each pylon cone. Until then a
+  hoop and a single pylon had none and a pylon pair had four phantom bars
+  round its scoring square. A gate's other members (rungs, flag poles)
+  are not solids here.
+- **A crash is a wreck and R** (w39-room-ai-2): the lap in flight voided,
+  back on its grid place on the tick the crash is called (a person presses
+  R when ready), the laps closed kept, its clock running on. The room
+  hears the timing gate again at a lower count, as it does of a person.
+- **A restore mid race** (w39-room-ai-2): while a race is on the room
+  stores, every 5 s with the AI seats (roombots.js STORE_MS), each AI
+  racer's plant region (src/replay/journal.js's, 1.69 MB, deflated to
+  about 135 kB a seat: 414 kB for three, about 7 ms of CPU a seat here),
+  its opponent's flight and lap state, and the dist/sim.wasm build. A room
+  restored from storage while its race is on seats them again and writes
+  each plant back (malloc's bytes left as the new module has them); they
+  fly on from there once the ghost is flown again in the new process, the
+  time between a stall (not caught up). The pilot's own memory is kept
+  beside it (w39-aipilot-resume: src/game/aipilot.js snapshot, its eyes'
+  last 200 ms, loop trims, held sticks and heading: the store of three
+  seats went from 414 kB to 431 kB), so a restored racer flies the
+  sticks the unbroken one would have from its first tick back; a store
+  kept before that (no pilot) sees afresh and holds its sticks for its
+  eyes' 200 ms.
+  A plant from another build is today's: dropped, marked left, refilled.
+- **The VM** needs dist/sim.wasm and tests/lib/{simmod, personpilot,
+  aireference}.js shipped (deploy/vm/deploy.sh, a separate commit) and a
+  rooms deploy; without them the server starts and seats no AI racer.
+
+Checks: rooms:selftest (rooms-selftest-airace.js, the plant in Node) and
+airace:twopage (a person races them in the real shell). The lobby's AI
+pilots row is drawn by src/main.js roomBotRows, wired today only into
+tag's lobby; a race lobby shows it once the race entries there call it,
+with lobby.ai_race_note as its note.
+
+## Cost, measured (2026-10-13, this desktop, Node 22)
+
+Three fresh processes each, in two sittings an hour apart whose numbers
+differ by up to 30 percent with what else the desktop ran (the slower
+second, same code), process CPU (process.cpuUsage, which counts
+V8's compiler and collector threads: on the VM's one core they compete
+for the same core), tests/fixtures/map-track-v4.json stood on the swiss2
+ground at 8 m/s, two laps:
+
+- **Flying**: 3.4 to 4.6 ms of CPU per AI seat per second flown with three
+  seats, 4.2 to 4.4 with one (the room's tick, judge and pose bytes
+  included); a 33 ms room tick with three AI racers took at most 1.4 to
+  4.0 ms. aipilot:harness's opponent alone is 2.0 ms (477 ms for 233 s).
+- **Before the first race on a track and level**: 0.64 to 0.88 s of wall
+  and 1.0 to 1.35 s of CPU to find and prove the ghost, once per process,
+  of which the longest single block of the event loop, the reference lap
+  flown in one loop (tests/lib/aireference.js fly), was 323 to 454 ms:
+  every room in the process stalls that long. The proof flies in 2 s
+  slices and yields between them. Seating a racer's plant after that:
+  1 to 3 ms.
+- **The VM**: one core, slower than this one. Its figure is the lead's
+  to measure before a public room fills with AI racers; at this desktop's
+  rate three AI seats are 1.0 to 1.4 percent of a core.
 
 ## What it does NOT do
 

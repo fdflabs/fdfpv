@@ -100,11 +100,13 @@ export function crossover(tau) {
 function loop(wc, plantGain, dt, { min = -Infinity, max = Infinity, u0 = 0 } = {}) {
   const k = wc / plantGain;
   let trim = u0 / k;
-  return (e) => {
+  const step = (e) => {
     const free = k * (e + trim);
     if (!((free >= max && e > 0) || (free <= min && e < 0))) trim += (e * dt * wc) / 4;
     return clamp(k * (e + trim), min, max);
   };
+  /* The trim, for the pilot's snapshot() and restore(). */
+  return Object.defineProperty(step, 'trim', { get: () => trim, set: (x) => { trim = x; } });
 }
 
 /* The stick, in -1..1, whose rate curve gives `frac` of full stick's rate:
@@ -266,6 +268,24 @@ function gateAim(gate, pos, vel, ghost, horizon, tau) {
   return m.map((x) => -x / Math.max(self.hit, tau));
 }
 
+/* Plain JSON keeps every finite double exactly but not -0 (a stick
+ * rounded to the centre from the left), NaN or the infinities: those go
+ * as strings. */
+function toJson(x) {
+  if (Object.is(x, -0)) return '-0';
+  if (typeof x === 'number' && !Number.isFinite(x)) return String(x);
+  if (Array.isArray(x)) return x.map(toJson);
+  if (x && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, toJson(v)]));
+  return x;
+}
+
+function fromJson(x) {
+  if (typeof x === 'string') return Number(x);
+  if (Array.isArray(x)) return x.map(fromJson);
+  if (x && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, fromJson(v)]));
+  return x;
+}
+
 /*
  * The pilot. opts: line (lineFromGhost's shape), rates (the profile the
  * plant is seated with), learnt (learnSticks' answer), startMs (the line's
@@ -283,7 +303,7 @@ export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, qua
   const wTilt = crossover(tiltTau);
   const wClimb = crossover(climbTau);
   const wLine = wTilt * PERSON.outer;
-  const sight = eyes({ stepMs: AI_STEP_MS, delayMs: person.delayMs, everyMs: person.everyMs });
+  let sight = eyes({ stepMs: AI_STEP_MS, delayMs: person.delayMs, everyMs: person.everyMs });
   /* A tilt of theta accelerates the quad g tan(theta) sideways: g per
    * radian near level, the speed loop's plant. */
   const along = loop(wTilt, G, dt, { min: -TILT_MAX, max: TILT_MAX });
@@ -296,10 +316,43 @@ export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, qua
   const hand = (x) => (quantise ? quant(x) : x);
   let held = [0, 0, 0, learnt.hover];
   let heading = null;
+  const loops = { along, across, climb, turn };
+  /* What a snapshot must have been taken from: the trims are only right
+   * against the gains these make. */
+  const made = { learnt, startMs, delayMs: person.delayMs, everyMs: person.everyMs };
   return {
     wTilt,
     wClimb,
     wLine,
+    /* The pilot's memory as plain JSON: restore() into a pilot made with
+     * the same learnt sticks, start and person flies on from here bit for
+     * bit. Its clock is the ms each sticks() call is handed. */
+    snapshot() {
+      return toJson({
+        made,
+        sight: sight.rows().map((o) => Array.from(o)),
+        trims: Object.fromEntries(Object.entries(loops).map(([name, l]) => [name, l.trim])),
+        held,
+        heading,
+      });
+    },
+    restore(snap) {
+      const k = fromJson(snap);
+      if (JSON.stringify(toJson(made)) !== JSON.stringify(toJson(k.made))) {
+        throw new Error('aiPilot restore: a snapshot of a pilot made with other learnt sticks, start or person');
+      }
+      if (!Array.isArray(k.sight) || k.sight.length > sight.lag + 1) {
+        throw new Error(`aiPilot restore: ${k.sight && k.sight.length} rows of sight, the eyes look ${sight.lag + 1} back`);
+      }
+      if (Object.keys(loops).some((name) => typeof k.trims?.[name] !== 'number') || !Array.isArray(k.held) || k.held.length !== 4) {
+        throw new Error('aiPilot restore: a snapshot without its four trims and four sticks');
+      }
+      sight = eyes({ stepMs: AI_STEP_MS, delayMs: person.delayMs, everyMs: person.everyMs });
+      for (const row of k.sight) sight.push(Float64Array.from(row));
+      for (const [name, l] of Object.entries(loops)) l.trim = k.trims[name];
+      held = k.held.slice();
+      heading = k.heading;
+    },
     sticks(ms, s, gate = null) {
       sight.push(s.slice(0, 11));
       if (!sight.looks(ms)) return held;

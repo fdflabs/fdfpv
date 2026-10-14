@@ -46,6 +46,7 @@ import { PROTO } from '../src/share/roomwire.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
+import { modeById } from '../src/share/modes.js';
 import { createLobbyReady } from '../src/share/roomlobby.js';
 import { FINISH_RESEND_MS } from '../src/share/roomrace.js';
 
@@ -53,11 +54,14 @@ import { FINISH_RESEND_MS } from '../src/share/roomrace.js';
  * `mode` says otherwise. `dev` starts the campaign's missions in
  * development too, as a check's own server does (edge/rooms/war.js). */
 function lobbyRoom({
-  n = 2, mode = 'war', mission = 'itaipu-1', dev = false,
+  n = 2, mode = 'war', mission = 'itaipu-1', dev = false, flip = null,
 } = {}) {
+  /* `flip`: a game id whose allowDropIn this room's registry turns over,
+   * to see the room's behaviour follow the field (COMPLETENESS 7). */
+  const registry = flip ? (id) => (id === flip ? { ...modeById(id), allowDropIn: !modeById(id).allowDropIn } : modeById(id)) : undefined;
   const r = new RoomCore({
     code: 'L0BBY1', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0, public: true, mode, mission,
-  }, { devMissions: dev });
+  }, { devMissions: dev, modeById: registry });
   let tokens = 0;
   const env = { r, socks: [], clock: 0, ticks: 0 };
   env.apply = (actions) => {
@@ -191,8 +195,18 @@ export function warLobbySection(check) {
     stored.ready(0);
     stored.ready(1);
     stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    check('and its lobby starts the drill', stored.war().state === 'briefing' && stored.war().mission === 'itaipu-drill',
+    /* A mission in no act has no story to tell: no 2030 film, straight
+     * to its countdown (gamelobby.js briefed); an act's keeps its
+     * briefing (mission 2's below). */
+    check('and its lobby starts the drill, straight to its countdown: no briefing film', stored.war().state === 'countdown' && stored.war().mission === 'itaipu-drill',
       JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+    const practice = lobbyRoom({ mission: 'itaipu-practice' });
+    practice.at(100);
+    practice.ready(0);
+    practice.ready(1);
+    practice.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('a room set to Training\'s practice starts it the same way, no briefing film', practice.war().state === 'countdown' && practice.war().mission === 'itaipu-practice',
+      JSON.stringify({ state: practice.war().state, mission: practice.war().mission }));
     check('a check\'s own room (dev) made for mission 1 says mission 1', lobbyRoom({ dev: true }).lobby(0).mission === 'itaipu-1');
   }
   {
@@ -445,6 +459,37 @@ export function gameLobbySection(check) {
     check('at their end the race goes off the grid with both on it', race && race.state === 'on' && race.racers.join() === '1,2', JSON.stringify(race));
     e.join(2);
     check('a pilot who comes during it has no lobby and is no racer', !e.r.gameLobby.open(e.r) && !race.racers.includes(3));
+    /* The same race with allowDropIn turned over in the room's registry:
+     * the newcomer is put on the grid, so the field is the rule. */
+    const f = lobbyRoom({ mode: 'race', mission: null, flip: 'race' });
+    f.at(100);
+    f.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-lobby001' }) });
+    f.say(0, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
+    f.say(1, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
+    f.ready(0);
+    f.ready(1);
+    f.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    f.join(2);
+    check('with the race\'s allowDropIn turned over, that pilot is put on the grid', f.r.race.race && f.r.race.race.state === 'on' && f.r.race.race.racers.join() === '1,2,3',
+      JSON.stringify(f.r.race.race && f.r.race.race.racers));
+  }
+  {
+    /* The war drops a newcomer in (allowDropIn true): enlisted. Turned
+     * over, it waits: never a player, told the attackers as a watcher. */
+    const start = (e) => {
+      e.at(100);
+      e.ready(0);
+      e.ready(1);
+      e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+      e.join(2);
+      return e.r.war.players(e.r);
+    };
+    const inWar = start(lobbyRoom({ dev: true }));
+    check('a pilot who comes during a war is enlisted, a player', inWar.includes(3), JSON.stringify(inWar));
+    const flipped = lobbyRoom({ dev: true, flip: 'war' });
+    const outWar = start(flipped);
+    check('with the war\'s allowDropIn turned over, that pilot waits: no player, the war still on',
+      !outWar.includes(3) && outWar.length === 2 && flipped.r.war.on(), JSON.stringify(outWar));
   }
   {
     const e = lobbyRoom({ mode: null });

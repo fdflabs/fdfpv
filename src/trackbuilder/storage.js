@@ -50,7 +50,7 @@
 import {
   isMapTrack, newTrackId, normalize, toPlain, touch,
 } from './model.js';
-import { readJson, writeJson } from '../share/session.js';
+import { readJson, writeJson } from '../share/trackseat.js';
 
 const STORAGE_PREFIX = 'webfpv.trackbuilder';
 const LIBRARY = `${STORAGE_PREFIX}.library.v1`;

@@ -199,8 +199,8 @@ try {
   })()`);
   await a.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); window.__ui.act('roomnew'); return true; })()");
   await a.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
-  const picked = [await pick('Who can join', 'Everybody'), await pick('The world', 'Itaipu'), await pick('Game', 'Defend the Paraná'), await pick('Mission', 'Mission 1')];
-  check('Make a room: Everybody, Itaipu, Defend the Paraná, Mission 1', picked.every(Boolean), JSON.stringify(picked));
+  const picked = [await pick('Who joins', 'Public'), await pick('The world', 'Itaipu'), await pick('Game', 'Defend the Paraná'), await pick('Mission', 'Mission 1')];
+  check('Make a room: Public, Itaipu, Defend the Paraná, Mission 1', picked.every(Boolean), JSON.stringify(picked));
   await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === 'friends-make')); return true; })()");
   await a.tap('Enter');
   await a.until("window.__rooms().phase === 'open' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden", 60000).catch(() => {});
