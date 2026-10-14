@@ -98,7 +98,7 @@ plus 15 s after each for the check below.
 It does not pass `--budgets`: the ceilings are the 3060 Ti's, and the
 Orin is measured, not held.
 
-**The card is shared there too.** ComfyUI (port 8188, about 34 GB
+**The card is shared there too.** ComfyUI (port 8188, 13 to 34 GB
 resident) and PAIR's Ollama (11435) live on the Jetson and draw on the
 same GPU. Before each row the script waits for the GPU's own load (the
 nvgpu sysfs `load`) to stay under 10 % for 10 s, gives up after an hour,
