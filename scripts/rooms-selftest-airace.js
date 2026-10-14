@@ -50,6 +50,8 @@ import { FILL_TO } from '../edge/rooms/roombots.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { groundOf } from '../edge/rooms/grounds.js';
 import { Race } from '../src/game/race.js';
+import { aiPilot } from '../src/game/aipilot.js';
+import { START_MS } from '../src/game/aiopponent.js';
 import {
   AI_RACE_AIRFRAME, PYLON_SEGMENTS, RACE_PACES, RIM_SEGMENTS, aiRaceUnavailable, framesOf, kitLoaded, preparedFor,
 } from '../edge/rooms/airace.js';
@@ -426,10 +428,66 @@ async function rebirthSection(check) {
  * lap every STORE_MS of a race; a second room made from those stores, as
  * a new process makes it, seats the same AI pilots, writes each one's
  * plant back bit for bit, and they fly on to the finish from there, not
- * left. Negative control: the same stores named for another build of
- * dist/sim.wasm are today's restore: the AI pilots are dropped and marked
+ * left. Each pilot's own memory is kept too (aipilot.js snapshot): from
+ * the first tick after the restore its sticks are the ones the unbroken
+ * room's racer flew on with. Negative controls: the same stores without
+ * the pilots' memory fly other sticks from the first tick; named for
+ * another build of dist/sim.wasm, the AI pilots are dropped and marked
  * left in the race.
  */
+/* A restored room's racers watched from the first tick that flies them:
+ * each one's clock, laps and plant then, and every stick its pilot gives
+ * from there. */
+function watchRestored(env) {
+  const racers = env.r.bots.racers;
+  const fly = racers.fly.bind(racers);
+  const first = new Map();
+  const calls = new Map();
+  racers.fly = (core, now, racer, ...rest) => {
+    const seat = [...racers.racers].find(([, rc]) => rc === racer)[0];
+    if (!first.has(seat)) {
+      first.set(seat, { ms: racer.op.ms, state: Float64Array.from(racer.op.state), lapsDone: racer.lapsDone });
+      const log = [];
+      calls.set(seat, log);
+      const { pilot } = racer.op;
+      const live = pilot.sticks;
+      pilot.sticks = (ms, st, gate) => {
+        const out = live(ms, st, gate);
+        log.push({ ms, out: out.slice() });
+        return out;
+      };
+    }
+    return fly(core, now, racer, ...rest);
+  };
+  return { first, calls };
+}
+
+/* Ms after the restore at which a restored racer's sticks first differ
+ * from the unbroken one's at the same clock, or null when every one of
+ * at least 250 (a second) is the same; undefined when they cannot be
+ * held together (not from the same clock). */
+function sticksDiffer(unbroken, restored) {
+  if (!unbroken || !restored || !restored.length || unbroken[0].ms !== restored[0].ms) {
+    return undefined;
+  }
+  const n = Math.min(unbroken.length, restored.length);
+  for (let i = 0; i < n; i += 1) {
+    if (!restored[i].out.every((v, j) => Object.is(v, unbroken[i].out[j])) || restored[i].ms !== unbroken[i].ms) {
+      return restored[i].ms - restored[0].ms;
+    }
+  }
+  return n >= 250 ? null : undefined;
+}
+
+function sticksSaid(log, restored) {
+  const at = sticksDiffer(log && log.calls, restored);
+  const n = Math.min(log ? log.calls.length : 0, restored ? restored.length : 0);
+  if (at === undefined) {
+    return `not held together (${n} calls, from ${log && log.calls[0] ? log.calls[0].ms : '-'} and ${restored && restored[0] ? restored[0].ms : '-'} ms)`;
+  }
+  return at === null ? `${n} calls the same` : `differ at +${at} ms`;
+}
+
 async function restoreSection(check) {
   const e = room();
   e.join(0);
@@ -441,11 +499,30 @@ async function restoreSection(check) {
   e.say(0, { type: 'race', op: 'start', laps: 1 });
   const race = e.r.race.race;
   const ai = e.bots().map((s) => s.seat);
-  /* What each plant was when the room stored it, to hold the restore to. */
+  /* What each plant was when the room stored it, to hold the restore to;
+   * and each pilot's own memory then (aipilot.js snapshot, through plain
+   * JSON) with every call its live pilot took from there. */
   let atStore = null;
+  const logs = new Map();
+  const latest = new Map();
   e.onStore = (x) => {
     if (x.store === 'bots' && x.value.racers) {
       atStore = new Map([...e.r.bots.racers.racers].map(([seat, rc]) => [seat, { ms: rc.op.ms, state: Float64Array.from(rc.op.state), lapsDone: rc.lapsDone }]));
+      for (const [seat, rc] of e.r.bots.racers.racers) {
+        const { pilot } = rc.op;
+        if (!logs.has(pilot)) {
+          const live = pilot.sticks;
+          const log = { seat, rc };
+          pilot.sticks = (ms, st, gate) => {
+            const out = live(ms, st, gate);
+            log.calls.push({ ms, st: Float64Array.from(st), gate, out: out.slice() });
+            return out;
+          };
+          logs.set(pilot, log);
+        }
+        Object.assign(logs.get(pilot), { snap: JSON.parse(JSON.stringify(pilot.snapshot())), calls: [] });
+        latest.set(seat, logs.get(pilot));
+      }
     }
   };
   const passes = (so, seat) => so.got.filter((m) => m.type === 'event' && m.seat === seat);
@@ -461,7 +538,30 @@ async function restoreSection(check) {
     kept.racers ? `${kept.racers.racers.length} racers, ${(keptBytes / 1024).toFixed(0)} kB stored, build ${kept.racers.build.slice(0, 12)}` : 'none');
   const restoredAt = e.clock + 2000;
   const stored = new Map(e.stored);
+  /* The unbroken race flies on a second past its last store. */
+  e.onStore = null;
+  for (const flyTo = e.clock + 1000; e.clock < flyTo;) {
+    e.tick();
+  }
   e.leave(0);
+  /* A fresh pilot restored from each snapshot, handed what the live one
+   * was handed after it: the same sticks, bit for bit. Negative control: a
+   * fresh pilot not restored. */
+  const logged = ai.map((seat) => latest.get(seat)).filter(Boolean);
+  const replay = (l, restore) => {
+    const p = aiPilot({ line: l.rc.op.line, rates: l.rc.seated.rates, learnt: l.rc.seated.learnt, startMs: START_MS });
+    if (restore) {
+      p.restore(l.snap);
+    }
+    const i = l.calls.findIndex((c) => !p.sticks(c.ms, c.st, c.gate).every((v, j) => Object.is(v, c.out[j])));
+    return i < 0 ? null : l.calls[i].ms - l.calls[0].ms;
+  };
+  check('a pilot\'s snapshot, through plain JSON, restored into a fresh pilot: the same sticks as the live one, every call, bit for bit',
+    logged.length === ai.length && logged.every((l) => l.calls.length >= 250 && replay(l, true) === null),
+    logged.map((l) => `${l.seat}: ${l.calls.length} calls, ${replay(l, true) === null ? 'same' : `differ at +${replay(l, true)} ms`}`).join(', '));
+  check('negative control: a fresh pilot not restored flies other sticks within its eyes\' 200 ms',
+    logged.length === ai.length && logged.every((l) => replay(l, false) !== null && replay(l, false) < 200),
+    logged.map((l) => `${l.seat}: differ at +${replay(l, false)} ms`).join(', '));
 
   const b = room({ stored, clock: restoredAt });
   const br = b.r.race.race;
@@ -471,16 +571,7 @@ async function restoreSection(check) {
   b.join(0);
   await preparedFor(b.r.race.track, b.r.meta.map, b.r.bots.racers.paces[b.r.bots.level]).done;
   await b.r.bots.racers.settled();
-  /* The first tick that flies them writes the plants back, then flies. */
-  const fly = b.r.bots.racers.fly.bind(b.r.bots.racers);
-  const first = new Map();
-  b.r.bots.racers.fly = (core, now, racer, ...rest) => {
-    const seat = [...b.r.bots.racers.racers].find(([, rc]) => rc === racer)[0];
-    if (!first.has(seat)) {
-      first.set(seat, { ms: racer.op.ms, state: Float64Array.from(racer.op.state), lapsDone: racer.lapsDone });
-    }
-    return fly(core, now, racer, ...rest);
-  };
+  const { first, calls } = watchRestored(b);
   b.tick();
   const same = ai.every((seat) => {
     const a = atStore.get(seat);
@@ -498,6 +589,34 @@ async function restoreSection(check) {
     ai.every((seat) => br.finish[seat] && br.finish[seat].lap === 1 && !br.out[seat] && after(seat).length > 0),
     ai.map((seat) => `${seat}: ${after(seat).map((m) => m.gate).join('.')} ${br.finish[seat] ? `finish ${br.finish[seat].ms}` : br.out[seat] || 'flying'}`).join(', '));
   b.leave(0);
+  check('the restored racer\'s sticks are the unbroken racer\'s from the first tick after restore, bit for bit',
+    ai.every((seat) => latest.get(seat) && sticksDiffer(latest.get(seat).calls, calls.get(seat)) === null),
+    ai.map((seat) => `${seat}: ${sticksSaid(latest.get(seat), calls.get(seat))}`).join(', '));
+
+  /* Negative control: the same stores without the pilots' memory (as one
+   * kept before it was): the racers fly on, their sticks other than the
+   * unbroken racer's within the eyes' 200 ms. */
+  const blind = new Map(stored);
+  const bv = deserialize(blind.get('bots'));
+  for (const x of bv.racers.racers) {
+    delete x.pilot;
+  }
+  blind.set('bots', serialize(bv));
+  const d = room({ stored: blind, clock: restoredAt });
+  d.join(0);
+  await preparedFor(d.r.race.track, d.r.meta.map, d.r.bots.racers.paces[d.r.bots.level]).done;
+  await d.r.bots.racers.settled();
+  const dw = watchRestored(d);
+  for (let i = 0; i < 20; i += 1) {
+    d.tick();
+  }
+  d.leave(0);
+  check('negative control: restored without the pilot\'s memory, the sticks differ from the unbroken racer\'s within 200 ms',
+    ai.every((seat) => {
+      const at = latest.get(seat) && sticksDiffer(latest.get(seat).calls, dw.calls.get(seat));
+      return at !== null && at !== undefined && at < 200;
+    }),
+    ai.map((seat) => `${seat}: ${sticksSaid(latest.get(seat), dw.calls.get(seat))}`).join(', '));
 
   const other = new Map(stored);
   const value = deserialize(other.get('bots'));
