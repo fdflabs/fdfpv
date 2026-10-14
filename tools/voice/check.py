@@ -6,7 +6,8 @@
 #   python3 tools/voice/check.py --fix        rewrite CREDITS.md's voice table
 #
 # What it holds: lines.json passes script.load() (ids, delivery, notes, no
-# digit spoken, no dashes); CREDITS.md's voice table is the one lines.json
+# digit spoken, no dashes, no Spanish stick axis word but throttle, roll,
+# pitch, yaw); CREDITS.md's voice table is the one lines.json
 # implies; every music file has a credit row; every audio file in the
 # folder is credited and is in manifest.json with the same sha256; every
 # credited file exists; and every take in the manifest was spoken from the
