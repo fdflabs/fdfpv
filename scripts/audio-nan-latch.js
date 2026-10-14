@@ -5,13 +5,18 @@
  *   SIM_GPU=1 npm run audio:latch
  *
  * One headless page, the default map, the audio woken as a pilot's first
- * key wakes it. The master's level is sampled (an AnalyserNode on it) for
- * 4 s; then one frame with a NaN listener and one source with a NaN
- * position go straight to the world's worklet, past WorldAudio, as a bug
- * upstream would send them; then the level is sampled for 6 s more.
+ * key wakes it. A steady tone goes into the master limiter's inlet, where
+ * the menu's music bed went: since the unlicensed music came out
+ * (9b1abd137, #564) the menu has no steady sound, only the world's
+ * traffic, which comes and goes (silent for 2 s at a time, measured), so
+ * the tone stands in for the bed. The master's level is sampled (an
+ * AnalyserNode on it) for 4 s; then one frame with a NaN listener and one
+ * source with a NaN position go straight to the world's worklet, past
+ * WorldAudio, as a bug upstream would send them; then the level is
+ * sampled for 6 s more.
  *
  * What must hold:
- *   - the master is sounding before (the menu's music bed)
+ *   - the master is sounding before (the tone)
  *   - after, every sample is finite and it is sounding again within 1 s
  *   - the context still says running, and no worklet died
  *
@@ -67,6 +72,13 @@ try {
   await page.until('window.__audio && window.__audio.ctx && window.__audio.worldNode', 60000);
   await page.evaluate(`(() => {
     const a = window.__audio;
+    const tone = a.ctx.createOscillator();
+    const toneLevel = a.ctx.createGain();
+    tone.frequency.value = 220;
+    toneLevel.gain.value = 0.03;
+    tone.connect(toneLevel);
+    toneLevel.connect(a.inlet);
+    tone.start();
     const an = a.ctx.createAnalyser();
     an.fftSize = 2048;
     a.master.connect(an);

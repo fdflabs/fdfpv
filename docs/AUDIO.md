@@ -1034,7 +1034,8 @@ limiter (a DynamicsCompressorNode), whose envelope then latches the NaN,
 and the music, the radio and every engine go with it. Reproduced on the
 live build in Chromium (`npm run audio:latch`, one NaN listener posted to
 the world's worklet): the master NaN at every sample for as long as it was
-watched. Both worklets were also left NaN for good by one NaN quantum in
+watched. Since the music came out (9b1abd137) the check plays a steady tone
+into the limiter's inlet, where the bed went, as what must keep sounding. Both worklets were also left NaN for good by one NaN quantum in
 Node (`npm run audio:guard`, on main's worklets: 27 failures).
 
 - **`src/render/worklet-guard.js`**: each processor's work runs through
