@@ -88,6 +88,7 @@
 
 import AT from '../itaipu-targets.js';
 import { withWaves } from '../stages.js';
+import { GANTRIES } from '../contain.js';
 
 const MW = {
   intake: 700, penstock: 700, gate: 350, yard: 2800,
@@ -121,6 +122,9 @@ for (const [id, t] of Object.entries(AT)) {
  * route, its aim point, however deep in the yard's r it already is. */
 const YARD_HIT_M = 40;
 targets['yard-right'].hitR = YARD_HIT_M;
+/* The emergency gantries, worth nothing to the output: what Contain holds
+ * and the Aggressor turns at (contain.js, MISSIONS.md 1.9). */
+Object.assign(targets, GANTRIES);
 
 export const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
 
@@ -177,6 +181,9 @@ export default withWaves({
   /* CREST's nudge to the attacker nearest the targets after no progress
    * (src/share/war/nudge.js, docs/campaign/WAR-NUDGE.md). */
   nudge: true,
+  /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the
+   * mission's own line after the opening is called. */
+  contain: { op: 'itaipu-1-op' },
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sectors: {
