@@ -101,6 +101,7 @@ binary **0xC0 to 0xCF held, none used**, JSON type **`ops`**.
 {
   state,        // 'lobby' | 'briefing' | 'countdown' | 'live' | 'won' | 'lost' | 'ended'
   id,           // the match's number in this room
+  uid,          // the match's id across every room ('o', its wall clock start, the room code, the id: edge/rooms/war.js warUid), which a page pays the result once by
   mission,      // 'interior-1'
   campaign,     // the mission's campaign id, 'interior'
   goAt, briefAt, f, endAt,   // room ms: the go, the briefing's start (or null), the judged frontier, the end
@@ -119,7 +120,7 @@ binary **0xC0 to 0xCF held, none used**, JSON type **`ops`**.
   camp,         // { mark }: the map's id of the shelter carrying the mark ('shelter-1' to '-3'), as the room judges it, or null
   choices,      // { name: value }: the scripted choices made so far ({ tarp: 'moved', dispersal: 'started' })
   opened,       // [item ids]: one-sided items whose `open` has fired, now seen from any side (no 'angle' refusal)
-  result,       // null, or at the end { won, stars, starIds, flags, restarted }
+  result,       // null, or at the end { won, stars, starIds, flags, restarted }; null always to a watcher and to a seat whose pilot did not take part (edge/rooms/ops.js took: seated while the match was on, by token)
   film,         // the briefing's film { id, version } (the mission's `film`), or null
   seen,         // [seats]: the seats here that have seen that film's version
   checkpoint,   // a lost match's stage to play again from: { stage, n, title }, or null

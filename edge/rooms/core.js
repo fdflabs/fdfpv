@@ -207,9 +207,10 @@ function poseAt(bytes) {
 /* The ticks between two sends of a pose at `b` to a seat at `a`. */
 /* A war's or an ops match's view as a watcher is sent it: the result
  * (its stars, its credits, the flags a campaign records) is the seats'
- * alone, and of a war only the seats that flew it (war.js flew), since
- * the page holding one pays it to its pilot and records its debrief
- * (src/ui/campaign.js observe, src/ui/opscampaign.js record). */
+ * alone, only those whose pilot flew the war (war.js flew) or took part
+ * in the ops match (ops.js took), since the page holding one pays it to
+ * its pilot and records its debrief (src/ui/campaign.js observe,
+ * src/ui/opscampaign.js record). */
 export function watchedView(view) {
   return view && view.result != null ? { ...view, result: null } : view;
 }
@@ -1043,7 +1044,7 @@ export class RoomCore {
         ...this.tag.welcome(this),
         ...this.jam.welcome(this),
         ...this.war.welcome(this, s),
-        ...this.ops.welcome(this),
+        ...this.ops.welcome(this, s),
         ...this.gameLobby.welcome(this),
         ...this.bots.welcome(),
       }),

@@ -23,10 +23,11 @@
  *             result set (The Interior's M1_SYMBOL_CAPTURED and the rest,
  *             docs/campaign/interior/MISSIONS.md 1.10), which later
  *             missions and the endings read
- *   wars      the ids of the wars whose result was paid (the room's uid,
- *             edge/rooms/war.js warUid), sorted, the newest PAID_KEEP:
- *             a war is paid once whenever its result is first seen, a
- *             reload at the result card included (payResult)
+ *   wars      the ids of the wars and the ops matches whose result was
+ *             paid (the room's uid, edge/rooms/war.js warUid, ops.js
+ *             view), sorted, the newest PAID_KEEP: a match is paid once
+ *             whenever its result is first seen, a reload at the result
+ *             card included (payResult)
  *
  * CREDITS TO SPEND are earned less what owned cost: spending is not a
  * number of its own but the prices paid, so two computers that bought
@@ -251,18 +252,23 @@ export function emptyCampaign() {
 }
 
 /*
- * The wars paid that are kept. A room keeps only its last match, so a
- * war's result can be seen again only while its room lives and has
- * started no other; a pilot who has flown this many wars since cannot
+ * The wars and ops matches paid that are kept. A room keeps only its last
+ * match of each, so a result can be seen again only while its room lives
+ * and has started no other; a pilot who has flown this many since cannot
  * still be looking at one. Each id is about 30 bytes.
  */
 export const PAID_KEEP = 64;
 const WAR_UID = /^[A-Za-z0-9-]{1,64}$/;
 
-/* A list of war ids, plausible, once each, sorted (the room's ids sort
- * oldest first, warUid), the newest PAID_KEEP. */
+/* A list of war and ops ids, plausible, once each, sorted oldest first
+ * past their kind's letter (warUid: 'w' a war, 'o' an ops match, the
+ * start's time next), the newest PAID_KEEP: sorted whole, every ops id
+ * would sort before every war id and be the first dropped, then paid
+ * again. */
+const order = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const byStart = (a, b) => order(a.slice(1), b.slice(1)) || order(a, b);
 function warList(ids) {
-  return [...new Set(ids.filter((id) => typeof id === 'string' && WAR_UID.test(id)))].sort().slice(-PAID_KEEP);
+  return [...new Set(ids.filter((id) => typeof id === 'string' && WAR_UID.test(id)))].sort(byStart).slice(-PAID_KEEP);
 }
 
 /* A plausible flag: the script's names (M1_SYMBOL_CAPTURED), and a word

@@ -226,6 +226,7 @@ room relays it in a `0x21` batch.
 | `race` | r to c | countdown start time, results |
 | `report`, `kick`, `track` | c to r | a report with a reason id; a host's kick; a host's track |
 | `war` | r to c | the war's view (edge/rooms/war.js view), on every change and in the welcome: its `uid`, the war's id across every room (warUid), and its `result` only to a seat whose pilot flew the war (war.js flew), never to a watcher; a page pays a result once per uid (src/ui/campaign.js) |
+| `ops` | r to c | an ops match's view (edge/rooms/ops.js view, docs/campaign/interior/CONTRACT-P0.md 4.1), on every change and in the welcome: its `uid` (warUid, kind `o`), and its `result` only to a seat whose pilot took part (ops.js took: seated while it was on, by token), never to a watcher; a page pays a result once per uid (src/ui/opscampaign.js) |
 | `fail` | c to r to c | `map` the page could not build; the room relays `{ seat, map }` and counts that seat out of every game until its profile is on the room's world again (edge/rooms/core.js) |
 
 A **profile** is `{ airframe, livery, parts, figure }`. `livery` is the
@@ -299,6 +300,7 @@ One owner per system, so every screen shows the same answer
 | Poses | the pilot's client, sanity checked | speed, the world's limit, an impossible count (safety.js) | `rooms:selftest` |
 | Race gate passes and finishes | the racer's client, trusted inside bounds | a racer of this race, lap, gate and time in range (race.js passOf); a published lap is checked again by geometry (src/game/verify.js checkLap) | `rooms:selftest`, `lap:selftest` |
 | Who flew a war, and so is paid its result | the room (war.js flew, by seat token) | everything: the page pays only a result the room sent it, once per war uid | `rooms:selftest`, `campaign:selftest` |
+| Who took part in an ops match, and so is paid its result | the room (ops.js took, by seat token, kept in the match's `pilots`) | everything: the page pays only a result the room sent it, once per match uid | `rooms:selftest`, `campaign:selftest` |
 | A war airframe lost | the pilot's client, trusted | a player of the match (war.js `lost`) | `war:harness` |
 
 Race passes stay scored by the racer: the room has 30 Hz poses, the
