@@ -63,7 +63,8 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind, lockOf } from './game/progress.js';
-import { STRIPS, applyLesson, bankOf, gateCue, glidePoints, headingOf, heldSettings, lateralG, restoreSettings } from './game/training.js';
+import { STRIPS, applyLesson, bankOf, gateCue, glidePoints, headingOf, heldSettings, heldTrack, lateralG, restoreSettings } from './game/training.js';
+import { PRACTICE_ID } from './share/war/missions/itaipu-practice.js';
 import { createGlidePath } from './render/glidepath.js';
 import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
@@ -6295,7 +6296,7 @@ export async function boot({
        * once, and a crash replay may already be on when the room's word on
        * this pilot's warhead arrives. */
       if (ev.type === 'dead' && ev.kills.length) {
-        ui.progress.killed(ev.kills);
+        ui.progress.killed(ev.kills, v.mission ?? null);
       }
       if (ev.type === 'state' && ev.to === 'live' && audio.warRadio && audio.warRadio.track !== 'intro') {
         audio.setWarBed('combat');
@@ -8124,6 +8125,29 @@ export async function boot({
       applyLesson(s, lesson, seatAirframe);
       const craft = s.airframe;
       ui.progress.startLesson(lesson);
+      /* A Defence lesson flies in a war room, its consent asked first: the
+       * practice in a solo room made for it (warEnter, so the war's own
+       * Who joins stays as the pilot left it), a campaign mission the
+       * campaign's way. The stage engine runs only in a room. */
+      if (lesson.mission) {
+        /* No rooms server, or a campaign mission this pilot may not fly
+         * yet (First Light held in development): said, and the lesson
+         * left, rather than a room whose start the server refuses. */
+        const closed = !(ui.friendsRow && ui.friendsRow()) ? str('training.needs_rooms')
+          : lesson.mission !== PRACTICE_ID && !(campaignRef ? campaignRef.playable() : []).includes(lesson.mission) ? str('training.mission_closed', { mission: str(`campaign.m.${missionKey(lesson.mission)}`) })
+            : null;
+        if (closed) {
+          ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${lesson.id}`), sub: closed });
+          ui.progress.endLesson();
+          return;
+        }
+        const enter = lesson.mission === PRACTICE_ID ? warEnter({ mission: PRACTICE_ID }).then((code) => code && markSolo(code)) : ui.onWarCard('way-war', lesson.mission);
+        enter.catch(() => {
+          roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
+          ui.refreshFriends();
+        });
+        return;
+      }
       /* A lesson flown with other pilots goes in by its activity's lobby,
        * as that activity's card does with a rooms server. */
       if (lesson.room && ui.friendsRow && ui.friendsRow()) {
@@ -17926,6 +17950,7 @@ export async function boot({
     avxTruth = AVX_NO_TRUTH;
     if (!want) {
       avionicsHud.tick(false, paused, nowWall, null);
+      ui.progress.contact(null);
       return;
     }
     const tS = telemetry.state.tS;
@@ -17945,6 +17970,8 @@ export async function boot({
       sensors.update(tS, dtS, avxVideo);
       perception.update(tS, sensors.state, truth, avxOwn, avxEnv);
       tracks.update(tS, perception.detections, avxOwn);
+      /* Training's Tracking a target reads the primary track's edges. */
+      ui.progress.contact(heldTrack(tracks.snapshot));
     }
     hudStateOf(telemetry.state, sensors.state, tracks.snapshot, avxHud.ai, avxHud);
     avionicsHud.tick(true, paused, nowWall, {

@@ -36,12 +36,19 @@
  *                 on the run's aircraft (progression counts landings,
  *                 crashes and laps per aircraft, src/game/progress.js
  *                 foldEvents)
- *   kill {airframe, victim}
+ *   kill {airframe, victim, mission}
  *                 an attacker the war's room credited to this pilot's
  *                 warhead (edge/rooms/war.js dead `credited`, read by
- *                 src/share/roomwar.js), victim its kind; one a victim,
+ *                 src/share/roomwar.js), victim its kind, mission the
+ *                 war's (null when the view had none); one a victim,
  *                 so a blast that took two is two (src/main.js,
  *                 Progress.killed; counted per aircraft like a landing)
+ *   contact {track, held}
+ *                 the avionics camera's primary track seen (held true)
+ *                 or no longer (held false), track its id: one event an
+ *                 edge, never a frame (src/main.js avionicsFrame,
+ *                 Progress.contact; src/game/training.js heldTrack); a
+ *                 lesson times the hold between them
  *   round {game, world}
  *                 a Streamer Combat round or a Catch the Ace! match
  *                 ended by the room with this pilot seated (src/main.js,
@@ -92,7 +99,7 @@
 export const EVENT_TYPES = Object.freeze([
   'spawned', 'gate', 'lap', 'touch', 'crash', 'landing',
   'objective', 'stage', 'kill', 'hit', 'round', 'joined', 'left',
-  'mission_start', 'mission_end',
+  'mission_start', 'mission_end', 'contact',
 ]);
 const KNOWN = new Set(EVENT_TYPES);
 /* Fields an event carries itself; data may not overwrite them. */
