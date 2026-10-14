@@ -97,6 +97,14 @@
  *    restores kept once each, a replay's levels bringing the four towns
  *    back; the version 20 round trip bit for bit; the same clip without
  *    them still the version 18 file, byte for byte; its refusals.
+ * 28. A war's map as the room sends it (src/replay/warrec.js THE ORDER,
+ *    file version 21): the view's order putting the station's lights out
+ *    kept with its match, and a damage event by the attacker's kind; a
+ *    replay putting the station out; the version 21 round trip bit for
+ *    bit, either alone enough for it; the same clip with neither still
+ *    the version 18 file, byte for byte, and case 27's version 20 file
+ *    read and written as it was; its refusals, either in a version 20
+ *    file and a version 21 file with neither, by their messages.
  *
  * Run: npm run crashcam:selftest
  *
@@ -141,6 +149,7 @@ import {
 import { createRoomWar } from '../src/share/roomwar.js';
 import { openAt } from '../src/share/war/hoist.js';
 import { createGrid, DISTRICTS } from '../src/share/war/grid.js';
+import { STATION_DARK_DISTRICTS } from '../src/share/war/stationdark.js';
 import { FIRE_MS, burnAt } from '../src/share/war/world.js';
 import {
   AIR_N, EVENTS_MAX, PEER_ID_BASE, RPM_PER_RAD_S, airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt, trimSound,
@@ -2261,7 +2270,7 @@ function animRecord() {
   voiceFile(withClock, refused);
   const built = buildFile(sticksFile(withClock, refused), refused);
   opponentFile(built, refused);
-  restoreFile(built, refused);
+  roomSentFile(built, restoreFile(built, refused), refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -3323,6 +3332,94 @@ function restoreFile(buildClip, refused) {
     threw = err;
   }
   check(threw instanceof Error, 'a clip with restores and no sticks is refused when written', threw ? threw.message : 'written');
+  return buf;
+}
+
+/*
+ * 28. A war's map as the room sends it (src/replay/warrec.js THE ORDER):
+ * the view's stationDark kept with its match, and a damage event whose
+ * `by` is the attacker's kind (edge/rooms/war.js strike). Either makes
+ * the clip version 21, which a build before it refuses by its version.
+ */
+function roomSentFile(buildClip, v20, refused) {
+  console.log('28. a war\'s map as the room sends it, saved (version 21)');
+  const v = (b) => new DataView(b).getUint32(4, true);
+  const bytesOf = (b) => Buffer.from(new Uint8Array(b));
+  const n = buildClip.n;
+  const room = (k) => 900000 + k * 1000;
+  const ORDER = 4;
+  /* The view names no order (null) until the stage that gives it, as
+   * edge/rooms/war.js view does, and the last frame's null again. */
+  const record = (by, order, restores = null) => {
+    const ring = createWarRing(n);
+    for (let k = 0; k < n; k += 1) {
+      ring.begin(k);
+      ring.world('TEST:4', 'itaipu-3', [], true, room(k), restores, k >= ORDER ? order : null);
+      if (k === 2) {
+        ring.damage({
+          type: 'war', op: 'damage', seq: 0, at: room(2), target: 'yard-right', chunks: [1], fell: [], openings: [], down: false, health: 0.5, p: [0, 200, 0], by, cut: [],
+        });
+      }
+    }
+    ring.world('TEST:4', 'itaipu-3', [], true, room(n - 1), restores, null);
+    return { ring, clip: { ...buildClip, war: ring.clip(0, n) } };
+  };
+  const both = record('defender', room(ORDER));
+  const m = both.clip.war.world[0];
+  check(m.stationDark === room(ORDER) && m.damage.length === 1 && m.damage[0].by === 'defender' && both.ring.stats.damageDropped === 0,
+    'the clip keeps the view\'s order (a later null does not take it back) and the damage event by its kind', JSON.stringify({ stationDark: m.stationDark, by: m.damage[0].by }));
+  const station = STATION_DARK_DISTRICTS[0];
+  const lvl = (k) => worldAt(both.clip.war, n, k, 0, new Map()).levels[station];
+  check(lvl(ORDER - 1) === 1 && lvl(n - 1) === 0, 'a replay has the station lit before the order and out after it', `${DISTRICTS[station].id}: ${lvl(ORDER - 1)} at row ${ORDER - 1}, ${lvl(n - 1)} at row ${n - 1}`);
+  const buf = encodeReplay(both.clip);
+  const back = decodeReplay(buf);
+  check(v(buf) === 21 && JSON.stringify(back.war.world) === JSON.stringify(both.clip.war.world), 'saved as version 21 and comes back as it was');
+  check(bytesOf(encodeReplay(back)).equals(bytesOf(buf)), 'written again, the same bytes');
+  const t = trimWhole(both.clip, both.clip.time[1], both.clip.time[n - 2]);
+  check(t.war.world[0].stationDark === room(ORDER) && v(encodeReplay(t)) === 21, 'a trim keeps the order');
+  const byOnly = encodeReplay(record('defender', null).clip);
+  const orderOnly = encodeReplay(record(0, room(ORDER)).clip);
+  check(v(byOnly) === 21 && v(orderOnly) === 21, 'either alone is version 21', `${v(byOnly)}, ${v(orderOnly)}`);
+  const v18 = encodeReplay(record(0, null).clip);
+  const was = decodeReplay(v18);
+  check(v(v18) === 18 && !('stationDark' in was.war.world[0]) && bytesOf(encodeReplay(was)).equals(bytesOf(v18)),
+    'the same war with a number for by and no order is the version 18 file, read back and written the same');
+  check(v(v20) === 20 && bytesOf(encodeReplay(decodeReplay(v20))).equals(bytesOf(v20)), 'case 27\'s version 20 file reads and writes the same bytes');
+
+  const refusedAs = (mut, why, message) => {
+    let err = null;
+    try {
+      decodeReplay(mut());
+    } catch (e) {
+      err = e;
+    }
+    check(err instanceof ReplayFileError && err.message === message, `refused: ${why}`, err ? err.message : 'it was accepted');
+  };
+  /* With restores, so version 20 holds everything else they have. */
+  const held = [{ at: room(3), districts: ['acaray'] }];
+  const older = 'a war\'s map as the room sends it in a file older than version 21';
+  refusedAs(() => reheader(encodeReplay(record('defender', null, held).clip), 20), 'a damage event by a kind in a file that says version 20', older);
+  refusedAs(() => reheader(encodeReplay(record(0, room(ORDER), held).clip), 20), 'an order in a file that says version 20', older);
+  refusedAs(() => reheader(v18, 21), 'a version 21 file with neither', 'a version 21 file without its war\'s map as the room sends it');
+  let threw = null;
+  try {
+    decodeReplay(reheader(buf, 22));
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof ReplayFileError && threw.reason === 'version', 'a file one version past this build is refused by its version, as a build before this one refuses version 21', threw && threw.message);
+  const war = both.clip.war;
+  refused(() => encodeReplay({ ...both.clip, war: { ...war, world: [{ ...m, damage: [{ ...m.damage[0], by: 'x'.repeat(41) }] }] } }), 'a damage event by a kind over 40 characters');
+  refused(() => encodeReplay({ ...both.clip, war: { ...war, world: [{ ...m, stationDark: 'soon' }] } }), 'an order that is not a room ms');
+  threw = null;
+  try {
+    const bare = { ...both.clip };
+    delete bare.sticks;
+    encodeReplay(bare);
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a clip with an order and no sticks is refused when written', threw ? threw.message : 'written');
 }
 
 ring();

@@ -139,7 +139,7 @@ function client(ring = null) {
       const v = war.view();
       ring.begin(row);
       row += 1;
-      ring.world(war.match(), v.mission, v.down, war.on(), t, v.restores);
+      ring.world(war.match(), v.mission, v.down, war.on(), t, v.restores, v.stationDark);
       for (const ev of evs) {
         if (ev.type === 'dead') {
           ring.dead(ev);
@@ -460,9 +460,9 @@ const differs = (r) => {
 
 /* The Long Night's twist A (src/share/war/missions/itaipu-4.js
  * STATION_DARK, not in the draw yet): the view names the room ms the
- * station's lights went out by order from the stage's entry on. The
- * clip does not record the order yet (warrec.js world), so the case
- * puts it on the replay's match by hand. */
+ * station's lights went out by order from the stage's entry on, and the
+ * recorder keeps it with the match as tapWar does (warrec.js THE
+ * ORDER). */
 const SD_AT = 30000;
 const SD_END = 60000;
 function stationDarkTicks() {
@@ -484,14 +484,14 @@ function stationDarkTicks() {
   check('live, the station\'s own districts are dark once the order\'s flicker is over',
     settled.length > 0 && settled.every((f) => STATION_DARK_DISTRICTS.every((i) => f.levels[i] === 0)),
     STATION_DARK_DISTRICTS.map((i) => DISTRICTS[i].id).join(', '));
-  const bare = differs(r);
-  check('a replay that does not know the order differs from the live frames (the control)', bare.n > 0, `${bare.n} rows differ`);
-  r.war.world[0].stationDark = SD_AT;
-  const caches = new Map();
-  r.frames = r.live.map((f, k) => ({ t: r.war.clock[k], levels: worldAt(r.war, r.live.length, k, 0, caches).levels.slice() }));
+  check('the clip keeps the view\'s order with its match', r.war.world[0].stationDark === SD_AT, String(r.war.world[0].stationDark));
   const d = differs(r);
-  check('knowing it, at every row the replay\'s levels are the live frame\'s, bit for bit, through the order', d.n === 0,
+  check('at every row the recorded clip\'s replay is the live frame\'s, bit for bit, through the order', d.n === 0,
     `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+  const blind = { ...r.war, world: r.war.world.map(({ stationDark, ...m }) => m) };
+  const caches = new Map();
+  const bare = differs({ ...r, frames: r.live.map((f, k) => ({ t: blind.clock[k], levels: worldAt(blind, r.live.length, k, 0, caches).levels.slice() })) });
+  check('the same clip without the order differs from the live frames (the control)', bare.n > 0, `${bare.n} rows differ`);
 }
 
 /* A target lost to what a warhead broke, on an arrival that missed it

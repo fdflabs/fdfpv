@@ -198,6 +198,29 @@ every row it can fly matches.
   and at each row the last sim_input its journal made held to the stick row it kept there. Its laps are printed
   as its Race closed them. Exit 0 only when the pilot and the opponent both match.
 
+### The war's map in a replay (file version 21)
+
+Added 2026-10-14 (w40 replay v21). Two things the room sends were missing from a clip's war map
+(src/replay/warrec.js), so a replay drew the match otherwise than the live screen had:
+
+- **The order putting the station's lights out** (The Long Night's twist A): the war view's `stationDark`, the
+  room ms the dam's own districts went out by order (src/share/war/stationdark.js). crashcam.js tapWar now hands
+  it to the recorder with the restores, and warrec.js world() keeps it on the match, the latest the view named
+  (a null, every match but that twist's, keeps none and never takes one back). world.js matchAt already applied
+  it; now the clip has it to apply.
+- **A damage event by an attacker's kind**: edge/rooms/war.js strike sends `by` as the attacker's kind,
+  'defender' or 'hoist'; damageOk takes a string of up to 40 characters, where clips before held a number or
+  null.
+- **How a version 21 file is told.** A clip is version 21 when a match of its war map has a `stationDark` or a
+  damage event whose `by` is a string, and only then; the reader holds the header to the same rule both ways. So
+  a build before this one refuses such a file by its version ("version 21, this build reads 1 and ... and 20",
+  the screen's reason `version`), never as a damaged file. Its columns are the newest layout's, so it needs the
+  sticks and the animation clock, and its version is past 18's, so it carries the app build. A clip with neither
+  is written as the version before (20 with restores, else 18 and older), byte for byte, and versions 1 to 20
+  are read without them: their replay leaves the station lit. A trim keeps the order.
+- Refused: either in a file older than 21, a version 21 file with neither, an order that is not a room ms, a
+  `by` over 40 characters.
+
 ## Data
 
 One row per 1 ms plant step, in flight (not on the launch stand or a perch). Columns
@@ -250,6 +273,14 @@ Upload anything. Record when the switch is off. Replace the flight log.
   row pressed with a pointer hands over a CSV that parses; a restart keeps the last flight; the viewer's
   Last flight button, pressed with a pointer, shows it.
 - `npm run actions:golden`, `npm run war:legacy`: unchanged.
+- `npm run crashcam:selftest` (section 28): the order and a damage event by a kind recorded as tapWar records
+  them, a later null not taking the order back; a replay with the station lit before the order and out after
+  it; the version 21 round trip bit for bit, either alone enough for it, a trim keeping the order; the same war
+  with neither still the version 18 file and section 27's version 20 file read and written the same bytes; the
+  refusals above by their messages, either in a version 20 file and a version 21 file with neither first.
+- `npm run war:grid`: The Long Night's twist A recorded through the real recorder, the clip keeping the order
+  and its replay the live frames bit for bit at every row; without the order the same clip differs (the
+  control).
 - `npm run crashcam:selftest` (section 26): the opponent's ring (a row before it raced is none, a race opened
   again is a second run, the sticks of both in one column with each row naming the one in force), drawn between
   two rows of a run and never across two, the version 19 round trip bit for bit beside the build, the same clip

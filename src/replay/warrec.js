@@ -66,6 +66,12 @@
  * this build knows (as the live grid takes them), so a replay brings the
  * towns back when the live screen did. A match given none keeps none.
  *
+ * THE ORDER. The room ms the station's lights went out by order (the
+ * view's `stationDark`, The Long Night's twist A, src/share/war/
+ * stationdark.js) is kept with its match, the latest the view named, so
+ * a replay puts the station out when the live screen did. A match whose
+ * view names none (null, every match but that twist's) keeps none.
+ *
  * THE EXPLOSIONS (a warhead's, a kill's, a target hit's: src/main.js
  * warBoomEvent), each where it was drawn and how big, on the room clock,
  * whatever the pilot was doing: flying, a wreck, between lives or on a
@@ -76,8 +82,8 @@
  *
  * A clip's `war` is { agents: [{ mission, a, last }], room (f64[n]),
  * slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
- * world: [{ mission, from, off, hits, cuts, damage, gates?, restores? }],
- * clock (f64[n]) }, or
+ * world: [{ mission, from, off, hits, cuts, damage, gates?, restores?,
+ * stationDark? }], clock (f64[n]) }, or
  * and since version 14 booms: [{ at, p, size }] }, or absent when no war
  * was drawn in it. src/replay/file.js saves it (version 10, 11 with the
  * map, 14 with the explosions); src/replay/warscene.js draws it.
@@ -189,11 +195,11 @@ export function createWarRing(capacity) {
    * Once a frame, before that frame's events: the war the view names
    * (`key`, null for none), its mission, its `down` (the targets hit, as
    * the room says them), whether it is being fought (roomwar.js on()),
-   * the room ms now, and its `restores`. A match first seen starts a new
-   * entry whose snapshot is `down`, each hit at null (this screen did not
-   * hear it).
+   * the room ms now, its `restores` and its `stationDark`. A match first
+   * seen starts a new entry whose snapshot is `down`, each hit at null
+   * (this screen did not hear it).
    */
-  function world(key, mission, down, on, roomMs, restores = null) {
+  function world(key, mission, down, on, roomMs, restores = null, stationDark = null) {
     if (key == null || roomMs == null || !(mission in MISSIONS)) {
       return;
     }
@@ -216,6 +222,9 @@ export function createWarRing(capacity) {
       m.off = roomMs;
     }
     restore(m, restores);
+    if (Number.isFinite(stationDark)) {
+      m.stationDark = stationDark;
+    }
     if (row < 0) {
       return;
     }
@@ -430,6 +439,7 @@ export function createWarRing(capacity) {
         damage: m.damage.filter((d) => d.at <= hi).map((d) => JSON.parse(JSON.stringify(d))),
         ...(m.gates && m.gates.length ? { gates: m.gates.map((g) => ({ ...g })) } : {}),
         ...(restores.length ? { restores } : {}),
+        ...(m.stationDark !== undefined && m.stationDark <= hi ? { stationDark: m.stationDark } : {}),
       };
     });
     const seen = booms.filter((b) => b.at <= hi && b.at > lo - BOOM_LIFE_MS).map((b) => ({ at: b.at, p: b.p.slice(), size: b.size }));
@@ -641,7 +651,7 @@ function checkWorld(world, clock, n) {
   let from = -Infinity;
   for (const m of world) {
     const keys = m && typeof m === 'object' ? Object.keys(m) : [];
-    const want = [...MATCH_KEYS, ...['gates', 'restores'].filter((k) => m && m[k] !== undefined)];
+    const want = [...MATCH_KEYS, ...['gates', 'restores', 'stationDark'].filter((k) => m && m[k] !== undefined)];
     if (keys.length !== want.length || !want.every((k) => keys.includes(k))) {
       throw new Error('a match of the war\'s map is not one');
     }
@@ -668,6 +678,9 @@ function checkWorld(world, clock, n) {
     if (m.restores !== undefined && (!Array.isArray(m.restores) || m.restores.length < 1 || m.restores.length > RESTORES_MAX
       || !m.restores.every(restoreOk))) {
       throw new Error('a restore on the war\'s map is not one');
+    }
+    if (m.stationDark !== undefined && !Number.isFinite(m.stationDark)) {
+      throw new Error('the order putting the station\'s lights out on the war\'s map is not a room ms');
     }
     if (!Array.isArray(m.damage) || m.damage.length > DAMAGE_MAX || !m.damage.every(damageOk)
       || new Set(m.damage.map((d) => d.seq)).size !== m.damage.length) {
