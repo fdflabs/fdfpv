@@ -152,7 +152,7 @@ function lapClause(step) {
 }
 
 function spinClause(step) {
-  const axis = AXIS_NAME[step.axis] || step.axis || 'rotation';
+  const axis = AXIS_NAME[step.axis] || step.axis || str('trickfilm.rotation');
   return str('trickfilm.of', { turnWords: countWords(step.turns), v2: axis }) + qualify(step, SPIN_QUALIFIERS);
 }
 

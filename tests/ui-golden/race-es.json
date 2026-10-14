@@ -9345,14 +9345,14 @@
     "action": "noop",
     "id": "tricks:a-noop~25",
     "label": "Segmented Flips/Rolls",
-    "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation otra vez en el mismo sentido, tras una pausa. Visto de lado.",
+    "note": "Fiable. Principiante. Medio giro de rotación, luego medio giro de rotación otra vez en el mismo sentido, tras una pausa. Visto de lado.",
     "value": "75"
    },
    {
     "action": "noop",
     "id": "tricks:a-noop~26",
     "label": "Invert Rewind",
-    "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto de lado.",
+    "note": "Fiable. Principiante. Medio giro de rotación, luego medio giro de rotación de vuelta en el otro sentido. Visto de lado.",
     "value": "75"
    },
    {

@@ -1131,6 +1131,7 @@ export default {
   "trickfilm.half_a_lap_around": "half a lap around {thing}",
   "trickfilm.of": "{turnWords} of {v2}",
   "trickfilm.or_more_around": "{turnWords} or more around {thing}",
+  "trickfilm.rotation": "rotation",
   "trickfilm.seen_from_above": "seen from above",
   "trickfilm.seen_from_behind": "seen from behind",
   "trickfilm.seen_from_the_side": "seen from the side",
