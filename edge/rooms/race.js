@@ -56,6 +56,7 @@ import { isMapTrack, normalize, toPlain } from '../../src/trackbuilder/model.js'
 import { raceGatesOf } from '../../src/builder/course.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { orderStandings } from '../../src/share/roomrace.js';
+import { sessionOf } from '../../src/share/modes.js';
 
 /* Long enough for a pilot on a menu to be put on the start line and see
  * the numbers before they fly. */
@@ -166,16 +167,22 @@ export class RoomRace {
   }
 
   /* What a welcome carries about the race. */
-  welcome() {
-    return { track: this.track, race: this.view() };
+  welcome(core) {
+    return { track: this.track, race: this.view(core) };
   }
 
   readySeats() {
     return this.track ? [...this.ready].filter(([, id]) => id === this.track.id).map(([seat]) => seat).sort((a, b) => a - b) : [];
   }
 
-  /* The race as every client sees it, or a lobby when there is none. */
-  view() {
+  /* The race as every client sees it, or a lobby when there is none, with
+   * its named state (modes.js sessionOf) as it stands now. */
+  view(core) {
+    const v = this.shown();
+    return { ...v, session: sessionOf('race', v, core.roomNow()) };
+  }
+
+  shown() {
     const ready = this.readySeats();
     const r = this.race;
     if (!r) {
@@ -183,6 +190,8 @@ export class RoomRace {
     }
     return {
       state: r.state,
+      /* Ended by the room for too few racers here (core.js settleGames). */
+      abandoned: Boolean(r.abandoned),
       id: r.id,
       trackId: r.trackId,
       laps: r.laps,
@@ -217,16 +226,17 @@ export class RoomRace {
   }
 
   changed(core) {
-    return [this.store(), ...this.broadcast(core, { type: 'race', race: this.view() })];
+    return [this.store(), ...this.broadcast(core, { type: 'race', race: this.view(core) })];
   }
 
   running(now, core) {
     return this.race && this.race.state === 'on' && core.roomMs(now) >= this.race.goAt;
   }
 
-  end(core) {
+  end(core, abandoned = false) {
     this.race.results = this.standings();
     this.race.state = 'results';
+    this.race.abandoned = abandoned;
     return this.changed(core);
   }
 
@@ -261,7 +271,7 @@ export class RoomRace {
         } else {
           this.ready.delete(s.seat);
         }
-        return this.broadcast(core, { type: 'race', race: this.view() });
+        return this.broadcast(core, { type: 'race', race: this.view(core) });
       }
       case 'start':
         return host && !on ? this.start(core, conn, msg, now) : [];
@@ -294,7 +304,7 @@ export class RoomRace {
     return [
       this.store(),
       ...this.broadcast(core, { type: 'track', track: this.track }),
-      ...this.broadcast(core, { type: 'race', race: this.view() }),
+      ...this.broadcast(core, { type: 'race', race: this.view(core) }),
     ];
   }
 
@@ -351,7 +361,7 @@ export class RoomRace {
     /* A resent finish the room already holds: say the race again, which
      * is the racer's receipt. */
     if (r.finish[s.seat]) {
-      return this.broadcast(core, { type: 'race', race: this.view() });
+      return this.broadcast(core, { type: 'race', race: this.view(core) });
     }
     const p = passOf({ ...msg, gate: 0 }, r.laps);
     if (!p || p.lap !== r.laps) {
@@ -371,7 +381,7 @@ export class RoomRace {
       r.out[seat] = 'left';
       return [...this.changed(core), ...this.maybeEnd(core)];
     }
-    return core.seats.size ? this.broadcast(core, { type: 'race', race: this.view() }) : [];
+    return core.seats.size ? this.broadcast(core, { type: 'race', race: this.view(core) }) : [];
   }
 
   /* A seat whose page could not build the room's world (core.js fail):
@@ -383,7 +393,7 @@ export class RoomRace {
       r.out[seat] = 'retired';
       return [...this.changed(core), ...this.maybeEnd(core)];
     }
-    return this.broadcast(core, { type: 'race', race: this.view() });
+    return this.broadcast(core, { type: 'race', race: this.view(core) });
   }
 
   /* A seat said hello: a racer whose socket dropped is back in, and a

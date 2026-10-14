@@ -126,7 +126,9 @@ import { createLobbyReady } from './share/roomlobby.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import { createJamRun, createRoomJam } from './share/roomjam.js';
 import { jamHudView, jamResultsView, jamTurnShout } from './ui/jamhud.js';
-import { MODES, VISIBILITIES, modeById, modeOfRoom, modeOfWire, visibilityFor, wireMode } from './share/modes.js';
+import {
+  MODES, SESSION_ENDED, SESSION_ON, VISIBILITIES, modeById, modeOfRoom, modeOfWire, sessionOf, visibilityFor, wireMode,
+} from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
 } from './ui/roomtaghud.js';
@@ -4883,9 +4885,10 @@ export async function boot({
    * LOBBY_GAMES: what the lobby does for each activity of the mode
    * registry (src/share/modes.js), by its id ('free' for free flight, a
    * room made for no game); what each activity IS (its setting's key and
-   * values, its consent, whether it ends) is the registry's. on(), whether
-   * a round is on as this screen knows it; ended(), whether the last one
-   * is over; start, the host's Start now action, or null; begin(lobby),
+   * values, its consent, whether it ends) is the registry's. view(), the
+   * game's view as this screen holds it, which lobbySession names
+   * (src/share/modes.js sessionOf: a round on, ended or none); start, the
+   * host's Start now action, or null; begin(lobby),
    * what that Start now sends, or null; setting, the host's row for the
    * room's one setting between rounds (the war's mission, combat's
    * minutes, the Ace's goal): its key on the wire, its choices and its
@@ -4899,8 +4902,7 @@ export async function boot({
    */
   const LOBBY_GAMES = {
     war: {
-      on: () => roomWar.on(),
-      ended: () => ['won', 'lost', 'ended'].includes((roomWar.view() || {}).state),
+      view: () => roomWar.view(),
       start: 'friends-war-start',
       begin: null,
       setting: {
@@ -4922,8 +4924,7 @@ export async function boot({
       },
     },
     combat: {
-      on: () => ['countdown', 'on'].includes(roomCombat.round().state),
-      ended: () => roomCombat.round().state === 'over',
+      view: () => roomCombat.round(),
       start: 'friends-lobby-start',
       begin: (lobby) => roomCombat.start(lobby.minutes),
       setting: {
@@ -4937,8 +4938,7 @@ export async function boot({
       line: (lobby) => str('lobby.combat_line', { n: lobby.minutes }),
     },
     tag: {
-      on: () => roomTag.on(),
-      ended: () => roomTag.view().state === 'results',
+      view: () => roomTag.view(),
       start: 'friends-lobby-start',
       begin: (lobby) => roomTag.start(lobby.goal),
       setting: {
@@ -4952,8 +4952,7 @@ export async function boot({
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
     },
     jam: {
-      on: () => roomJam.on(),
-      ended: () => roomJam.view().state === 'results',
+      view: () => roomJam.view(),
       start: 'friends-lobby-start',
       begin: (lobby) => roomJam.start(lobby.seconds),
       setting: {
@@ -4970,8 +4969,7 @@ export async function boot({
      * pilots in the lobby have it built under the lobby screen, and are on
      * its grid when it goes (edge/rooms/race.js start). */
     race: {
-      on: () => roomRace.race().state === 'on',
-      ended: () => roomRace.race().state === 'results',
+      view: () => roomRace.race(),
       start: 'friends-lobby-start',
       begin: () => roomLinkState.send({ type: 'race', op: 'start', laps: 3 }),
       setting: null,
@@ -4983,8 +4981,7 @@ export async function boot({
     /* Free flight's round is just flying, on from the first start until
      * the room is empty: a pilot who comes then flies straight in. */
     free: {
-      on: () => Boolean(roomLinkState.state().welcome && roomLinkState.state().welcome.lobby && roomLinkState.state().welcome.lobby.live),
-      ended: () => false,
+      view: () => (roomLinkState.state().welcome ? roomLinkState.state().welcome.lobby : null),
       start: null,
       begin: null,
       setting: null,
@@ -5001,6 +4998,14 @@ export async function boot({
       throw new Error(`LOBBY_GAMES and src/share/modes.js disagree: ${odd.join(', ')}`);
     }
   }
+  /* Game `game`'s round as a named session state (src/share/modes.js
+   * sessionOf) on the room clock, and whether one is under way. */
+  function lobbySession(game) {
+    return sessionOf(game, LOBBY_GAMES[game].view(), roomLinkState.roomNow());
+  }
+  function lobbyRoundOn(game) {
+    return SESSION_ON.includes(lobbySession(game));
+  }
   /* The room's game when it has a lobby ('free' for free flight), else
    * null: a room from a server before the lobby has none. */
   function lobbyGame() {
@@ -5012,7 +5017,7 @@ export async function boot({
   function gameLobby() {
     const st = roomLinkState.state();
     const game = lobbyGame();
-    return st.phase === 'open' && game && st.welcome.lobby && !LOBBY_GAMES[game].on() ? st.welcome.lobby : null;
+    return st.phase === 'open' && game && st.welcome.lobby && !lobbyRoundOn(game) ? st.welcome.lobby : null;
   }
   function gameLobbyReady(lobby = gameLobby()) {
     const w = roomLinkState.state().welcome;
@@ -5291,7 +5296,7 @@ export async function boot({
   async function roomWarJoinGate(w) {
     /* Any game room's lobby, by a link or the title's panel, is where its
      * pilot lands; a round on flies them in (roomHotJoin). */
-    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !LOBBY_GAMES[w.mode].on() && !w.watch) {
+    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !lobbyRoundOn(w.mode) && !w.watch) {
       ui.craftGate = false;
       ui.mode = 'freestyle';
       ui.returnTo = 'title';
@@ -6316,7 +6321,8 @@ export async function boot({
    * lobby waits for the build. */
   function lobbySeenFrame(wallMs) {
     const game = lobbyGame();
-    const seen = !game ? null : LOBBY_GAMES[game].on() ? 'on' : LOBBY_GAMES[game].ended() ? 'over' : 'lobby';
+    const session = game ? lobbySession(game) : null;
+    const seen = !game ? null : SESSION_ON.includes(session) ? 'on' : SESSION_ENDED.includes(session) ? 'over' : 'lobby';
     if (seen !== lobbySeen) {
       if (seen === 'over' && lobbySeen === 'on') {
         lobbyBackAt = wallMs + LOBBY_BACK_MS;

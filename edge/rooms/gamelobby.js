@@ -78,7 +78,7 @@
 import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { GOALS, GOAL_MAX, GOAL_MIN } from '../../src/share/roomtag.js';
 import { RUN_SECONDS, RUN_SECONDS_DEFAULT } from '../../src/share/roomjam.js';
-import { MODES, ROUND_MINUTES, modeById, modeOfWire } from '../../src/share/modes.js';
+import { MODES, ROUND_MINUTES, modeById, modeOfWire, sessionOf } from '../../src/share/modes.js';
 
 export const LOBBY_COUNTDOWN_MS = 5000;
 export const LOBBY_DEADLINE_MS = 45000;
@@ -183,7 +183,7 @@ const GAMES = {
   },
   free: {
     set: null,
-    show: (core) => ({ live: core.gameLobby.live }),
+    show: (core) => ({ live: core.gameLobby.live, session: sessionOf('free', { live: core.gameLobby.live }, core.roomNow()) }),
     can: () => true,
     on: (core) => core.gameLobby.live,
     start: (core) => {

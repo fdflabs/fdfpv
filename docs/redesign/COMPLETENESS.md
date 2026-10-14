@@ -150,7 +150,28 @@ Nothing on the wire changes; each game keeps its states. A client whose
 world fails to build reports `status: 'failed'` and the room counts it
 out as it does a silent pilot. Check: `modes:selftest` asserts every
 game's every state maps; `rooms:selftest` adds a load failure. Size M.
-Phase 21. **Load failure built** (2026-10-14, w40-states), as an op and
+Phase 21. **Named states built** (2026-10-14, w40-states), as the
+brief of that lane had them and not the list above: `SESSION_STATES` is
+`lobby`, `countdown`, `live`, `between`, `over`, `abandoned`, the states
+of a game's round; reconnecting, outdated, removed and a load failure are
+a seat's, kept where they are (the 30 s reconnecting mark, close codes,
+the `fail` op below). `GAME_STATES` lists each game's own and
+`sessionOf(id, view, roomNow)` maps them (a race's countdown is its goAt
+on the room clock; an abandon is the room's, settleGames, marked
+`abandoned` on the race, tag, jam, combat and war views). The wire
+changed, additively: each game's view, in the welcome and every
+broadcast, carries `session` as it stands when sent (and the jam's
+`turn`); a client from before passes over both, so ROOM_LEVEL stays 4.
+The lobby screen reads it (src/main.js LOBBY_GAMES view, lobbySession,
+lobbyRoundOn, lobbySeenFrame) in place of each game's own on and ended.
+Not moved onto it yet: the rooms panel's `activity()` and the HUD's own
+branches (the war's briefing film and round result, a race's countdown),
+which read finer states than these. Checks: `modes:selftest` (every
+game's every state maps, each game's mapping), `rooms:selftest` (the
+named states as the room says them, game by game, an abandon among
+them). A race and a jam in a room made for them end on their own before
+ABANDON_MS when their players are all gone, so their abandon is held in
+a room where they were started in passing. **Load failure built** (2026-10-14, w40-states), as an op and
 not a profile status: a client from before throws on a status it has no
 string for (src/main.js roomAwayText, every frame), and passes over a
 message type it does not know. A page whose room world fails to build

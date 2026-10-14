@@ -73,7 +73,7 @@ import {
   BUBBLE_M, CROWNS_SHOWN, GOAL_MAX, GOAL_MIN, POINT_MS, PROTECT_MS, orderScores,
 } from '../../src/share/roomtag.js';
 import { COUNTDOWN_MS } from './race.js';
-import { minPlayersFor } from '../../src/share/modes.js';
+import { minPlayersFor, sessionOf } from '../../src/share/modes.js';
 import { AHEAD_MS } from './referee.js';
 
 /* A seat silent for longer than this (a menu, a tab in the background) is
@@ -189,8 +189,14 @@ export class RoomTag {
     return Boolean(m) && (m.state === 'countdown' || m.state === 'live');
   }
 
-  /* The match as every client sees it: no token, nothing typed. */
+  /* The match as every client sees it, with its named state (modes.js sessionOf) as it stands now. */
   view(core) {
+    const v = this.shown(core);
+    return { ...v, session: sessionOf('tag', v, core.roomNow()) };
+  }
+
+  /* The match as every client sees it: no token, nothing typed. */
+  shown(core) {
     const m = this.match;
     if (!m) {
       return { state: 'lobby' };
@@ -210,6 +216,8 @@ export class RoomTag {
       crowns: m.crowns.slice(-CROWNS_SHOWN),
       winner: m.winner,
       endAt: m.endAt,
+      /* Ended by the room for too few players here (core.js settleGames). */
+      abandoned: Boolean(m.abandoned),
     };
   }
 
@@ -261,11 +269,12 @@ export class RoomTag {
 
   /* Ended before anybody won: by the host, or by the room when too few of
    * its players are left (core.js settleGames). Results as they stand. */
-  abandon(core, now) {
+  abandon(core, now, abandoned = false) {
     if (!this.on()) {
       return [];
     }
     this.finish(Math.min(this.match.f, core.roomMs(now)), null);
+    this.match.abandoned = abandoned;
     return this.changed(core);
   }
 

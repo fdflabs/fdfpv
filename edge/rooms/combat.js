@@ -65,7 +65,7 @@ import {
 } from '../../src/share/roomwire.js';
 import { LATE_MS, Track, hullFor } from '../../src/game/midair.js';
 import { PASS_MS, StreamerTrack, judgeCut } from '../../src/game/cut.js';
-import { ROUND_MINUTES, madeFor } from '../../src/share/modes.js';
+import { ROUND_MINUTES, madeFor, sessionOf } from '../../src/share/modes.js';
 
 /* The owner's fifty metres, in one metre links. */
 export const FULL_LINKS = 50;
@@ -171,12 +171,17 @@ export class RoomCombat {
     }
   }
 
-  view() {
+  /* The round as everybody sees it, with its named state (modes.js
+   * sessionOf) as it stands now. */
+  view(core) {
     const r = this.round;
-    return {
+    const v = {
       type: 'combat',
       round: r.n,
       state: r.state,
+      /* Put away by the room for too few pilots here (core.js
+       * settleGames), until the next round. */
+      abandoned: Boolean(r.abandoned),
       startsAt: r.startsAt,
       endsAt: r.endsAt,
       nextAt: r.nextAt || 0,
@@ -185,11 +190,12 @@ export class RoomCombat {
         seat, points: s.points, cuts: s.cuts, owed: s.owed, links: s.links, runs: s.runs,
       })),
     };
+    return { ...v, session: sessionOf('combat', v, core.roomNow()) };
   }
 
   /* Every change the room announces is also kept. */
   broadcast(core) {
-    return [this.store(), ...core.everyone(JSON.stringify(this.view()))];
+    return [this.store(), ...core.everyone(JSON.stringify(this.view(core)))];
   }
 
   store() {
@@ -216,9 +222,10 @@ export class RoomCombat {
 
   /* The round put away: by the host's stop, or by the room when too few
    * of its pilots are left (core.js settleGames). */
-  stop(core) {
+  stop(core, abandoned = false) {
     this.round.state = 'idle';
     this.round.nextAt = 0;
+    this.round.abandoned = abandoned;
     return this.broadcast(core);
   }
 
@@ -241,6 +248,7 @@ export class RoomCombat {
     }
     r.n += 1;
     r.state = 'countdown';
+    r.abandoned = false;
     r.minutes = minutes;
     r.startsAt = t + COUNTDOWN_MS;
     r.endsAt = r.startsAt + minutes * 60000;
@@ -281,7 +289,7 @@ export class RoomCombat {
 
   /* For a pilot just seated: the round as it stands. */
   join(core, conn) {
-    return this.round.state === 'idle' ? [] : [{ send: conn, data: JSON.stringify(this.view()) }];
+    return this.round.state === 'idle' ? [] : [{ send: conn, data: JSON.stringify(this.view(core)) }];
   }
 
   /* The round's clock: countdown to on, on to over. */

@@ -545,7 +545,7 @@ export function gameLobbySection(check) {
   {
     const e = lobbyRoom({ mode: null });
     const w = e.socks[0].got.find((m) => m.type === 'welcome');
-    check('a free flight room welcomes with its lobby, not flying yet', JSON.stringify(w.lobby) === '{"live":false,"ready":{},"countdownAt":null,"deadlineAt":null}',
+    check('a free flight room welcomes with its lobby, not flying yet', JSON.stringify(w.lobby) === '{"live":false,"session":"lobby","ready":{},"countdownAt":null,"deadlineAt":null}',
       JSON.stringify(w.lobby));
     e.at(100);
     e.ready(0);
@@ -771,5 +771,112 @@ export function loadFailSection(check) {
     check(`${mode === 'tag' ? 'a tag match' : 'a jam'} goes without the failed seat: not one of its players${mode === 'jam' ? ', no turn' : ''}`,
       g.on() && !Object.hasOwn(g.match.players, 3) && !g.players(e.r).includes(3) && (mode !== 'jam' || !g.match.order.includes(3)),
       JSON.stringify(Object.keys(g.match.players)));
+  }
+}
+
+/* The named session states (src/share/modes.js sessionOf, COMPLETENESS 4):
+ * each game's view as the room sends it carries `session`, and a pilot
+ * hears each game pass through them in order, an abandon (every player
+ * counted out, ABANDON_MS) among them. */
+export function sessionStatesSection(check) {
+  console.log('the named session states, as the room says them');
+  /* The named states pilot 0 was told, in order, a repeat once. */
+  const heard = (e, pick) => {
+    const out = [];
+    for (const m of e.socks[0].got) {
+      const v = pick(m);
+      if (v != null && out.at(-1) !== v) {
+        out.push(v);
+      }
+    }
+    return out.join(',');
+  };
+  const view = (type) => (m) => (m.type === 'welcome' || m.type === type ? (m[type] ? m[type].session : null) : null);
+  const go = (e) => {
+    e.ready(0);
+    e.ready(1);
+    e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
+  };
+  /* Every pilot here counted out (a load failure), past ABANDON_MS. */
+  const abandon = (e) => {
+    e.socks.forEach((so, i) => e.say(i, { type: 'fail', map: 'itaipu' }));
+    e.at(e.clock + ABANDON_MS + 200);
+  };
+  {
+    const e = lobbyRoom({ mode: 'tag', mission: null });
+    e.at(100);
+    go(e);
+    e.at(e.r.tag.match.goAt + 100);
+    e.say(0, { type: 'tag', op: 'end' });
+    go(e);
+    e.at(e.r.tag.match.goAt + 100);
+    abandon(e);
+    check('Catch the Ace: lobby, countdown, live, over, then countdown, live, abandoned', heard(e, view('tag')) === 'lobby,countdown,live,over,countdown,live,abandoned',
+      heard(e, view('tag')));
+  }
+  {
+    const e = lobbyRoom({ mode: 'race', mission: null });
+    e.at(100);
+    e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-named001' }) });
+    e.say(0, { type: 'race', op: 'ready', track: 'trk-named001', ready: true });
+    e.say(1, { type: 'race', op: 'ready', track: 'trk-named001', ready: true });
+    go(e);
+    const goAt = e.r.race.race.goAt;
+    e.at(goAt + 100);
+    /* The race says nothing at its go: a pass after it is its next word. */
+    e.say(0, { type: 'race', op: 'retire', race: e.r.race.race.id });
+    e.say(0, { type: 'race', op: 'end' });
+    check('a race: lobby, countdown, live once its go has passed, over', heard(e, view('race')) === 'lobby,countdown,live,over', heard(e, view('race')));
+  }
+  {
+    const e = lobbyRoom({ mode: 'jam', mission: null });
+    e.at(100);
+    go(e);
+    while (e.r.jam.on()) {
+      e.at(e.clock + 1000);
+    }
+    const first = heard(e, view('jam'));
+    check('a jam: lobby, countdown, live, between its rounds, live, over', /^lobby,countdown,live,(between,live,)+over$/.test(first), first);
+  }
+  {
+    /* A jam skips a runner not here, so one with nobody left runs out to
+     * its results; started in passing in a free flight room, where two are
+     * its least, one counted out abandons it. */
+    const e = lobbyRoom({ mode: null });
+    e.at(100);
+    e.say(0, { type: 'jam', op: 'start', seconds: 45 });
+    e.at(e.clock + 100);
+    e.say(1, { type: 'fail', map: 'itaipu' });
+    e.at(e.clock + ABANDON_MS + 200);
+    check('a jam in passing: countdown, live, abandoned when one of its two failed', heard(e, view('jam')) === 'lobby,countdown,live,abandoned', heard(e, view('jam')));
+  }
+  {
+    /* Combat started in passing in a free flight room runs round after
+     * round with results between; two are its least there. */
+    const e = lobbyRoom({ mode: null });
+    e.at(100);
+    e.say(0, { type: 'combat', op: 'start', minutes: ROUND_MINUTES[0] });
+    e.at(e.r.combat.round.endsAt + 200);
+    e.at(e.r.combat.round.nextAt + 200);
+    e.say(1, { type: 'fail', map: 'itaipu' });
+    e.at(e.clock + ABANDON_MS + 200);
+    const combat = (m) => (m.type === 'combat' ? m.session : null);
+    check('combat in passing: countdown, live, between, countdown, abandoned when one of its two failed', heard(e, combat) === 'countdown,live,between,countdown,abandoned', heard(e, combat));
+  }
+  {
+    const e = lobbyRoom({ dev: true });
+    e.at(100);
+    go(e);
+    e.at(e.r.war.match.goAt + 100);
+    abandon(e);
+    const war = heard(e, view('war'));
+    check('the war: lobby, countdown, live, abandoned', /^lobby,countdown,live,(between,live,)*abandoned$/.test(war), war);
+  }
+  {
+    const e = lobbyRoom({ mode: null });
+    const free = (m) => (m.type === 'welcome' || m.type === 'lobby' ? m.lobby && m.lobby.session : null);
+    e.at(100);
+    go(e);
+    check('free flight: its lobby, then live', heard(e, free) === 'lobby,live', heard(e, free));
   }
 }

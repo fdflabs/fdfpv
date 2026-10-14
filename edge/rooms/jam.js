@@ -34,7 +34,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { minPlayersFor } from '../../src/share/modes.js';
+import { minPlayersFor, sessionOf } from '../../src/share/modes.js';
 import {
   ROUNDS, RUN_SECONDS, SLACK_MS, TURN_MS, cleanNumbers, matchWinners, roundOrder, standings,
 } from '../../src/share/roomjam.js';
@@ -82,7 +82,13 @@ export class RoomJam {
     return [...core.seats.values()].filter((t) => m.players[t.seat] === t.token && !core.failed(t)).map((t) => t.seat);
   }
 
+  /* The match as every client sees it, with its named state (modes.js sessionOf) as it stands now. */
   view(core) {
+    const v = this.shown(core);
+    return { ...v, session: sessionOf('jam', v, core.roomNow()) };
+  }
+
+  shown(core) {
     const m = this.match;
     if (!m) {
       return { state: 'lobby' };
@@ -96,6 +102,8 @@ export class RoomJam {
       rounds: ROUNDS,
       round: m.round,
       order: m.order,
+      /* The runner's place in order: a turn's 0 is a round's first. */
+      turn: m.turn,
       runner: m.state === 'results' ? null : m.order[m.turn],
       goAt: m.goAt,
       endAt: m.endAt,
@@ -104,6 +112,8 @@ export class RoomJam {
       wins,
       winners: m.winners,
       gone: seats.filter((seat) => !this.players(core).includes(seat)),
+      /* Ended by the room for too few pilots here (core.js settleGames). */
+      abandoned: Boolean(m.abandoned),
     };
   }
 
@@ -211,7 +221,7 @@ export class RoomJam {
 
   /* Ended by the host, or by the room when too few of its pilots are left
    * (core.js settleGames): the open run closed as it stands, results. */
-  abandon(core, now) {
+  abandon(core, now, abandoned = false) {
     if (!this.on()) {
       return [];
     }
@@ -220,6 +230,7 @@ export class RoomJam {
       this.record(m.order[m.turn], 'ended');
     }
     this.finish();
+    m.abandoned = abandoned;
     return this.changed(core);
   }
 

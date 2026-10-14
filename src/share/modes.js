@@ -274,3 +274,96 @@ export function minPlayersFor(id, roomMode) {
   const m = modeById(id);
   return modeOfWire(roomMode) === id ? m.minPlayers : m.minElsewhere;
 }
+
+/*
+ * NAMED SESSION STATES (COMPLETENESS 4, docs/redesign/SESSIONS.md): the
+ * states every game's round passes through, under one name each, so the
+ * lobby, the HUD and the rooms panel ask one question of every game:
+ *
+ *   lobby      no round: the room's lobby, or none started yet
+ *   countdown  a round started, its go still to come (the war's briefing
+ *              too)
+ *   live       the round flying
+ *   between    a round of a match over and the next to come: a combat
+ *              round's results before the next (not in a room made for
+ *              combat, which goes back to its lobby), a jam's next round's
+ *              first turn, the war's round result
+ *   over       the round or match ended, its results standing
+ *   abandoned  ended by the room because too few of its players were here
+ *              (edge/rooms/core.js settleGames, ABANDON_MS), not by its end
+ *              or its host
+ *
+ * Each game keeps its own states (GAME_STATES, as its view says them,
+ * edge/rooms/<game>.js view(); free flight's is its lobby's `live`) and
+ * sessionOf maps them. A countdown ends at the view's goAt (combat's
+ * startsAt) on the room clock, so the mapping takes the room's time: a
+ * race has no state of its own for its countdown, and the room says
+ * nothing at its go. The room stamps each game's view with `session`, as
+ * it stands when sent; a reader with the room clock maps the view itself.
+ * Combat's abandoned round is idle at once (combat.js stop), so its
+ * abandoned stands until its next round as the others' results do.
+ */
+export const SESSION_STATES = ['lobby', 'countdown', 'live', 'between', 'over', 'abandoned'];
+/* A round under way, and one ended. */
+export const SESSION_ON = ['countdown', 'live', 'between'];
+export const SESSION_ENDED = ['over', 'abandoned'];
+
+export const GAME_STATES = {
+  race: ['lobby', 'on', 'results'],
+  tag: ['lobby', 'countdown', 'live', 'results'],
+  combat: ['idle', 'countdown', 'on', 'over'],
+  jam: ['lobby', 'turn', 'run', 'results'],
+  war: ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'],
+  free: ['lobby', 'live'],
+};
+
+const ended = (v) => (v.abandoned ? 'abandoned' : 'over');
+const GAME_SESSION = {
+  race: {
+    lobby: () => 'lobby', on: (v, t) => (t < v.goAt ? 'countdown' : 'live'), results: ended,
+  },
+  tag: {
+    lobby: () => 'lobby', countdown: () => 'countdown', live: () => 'live', results: ended,
+  },
+  combat: {
+    idle: (v) => (v.abandoned ? 'abandoned' : 'lobby'), countdown: () => 'countdown', on: () => 'live', over: (v) => (v.nextAt > 0 ? 'between' : 'over'),
+  },
+  /* A jam's turn is the wait before a run: its first a countdown, the
+   * first of a later round between rounds, any other the match live. */
+  jam: {
+    lobby: () => 'lobby',
+    turn: (v) => (v.turn !== 0 ? 'live' : v.round === 1 ? 'countdown' : 'between'),
+    run: () => 'live',
+    results: ended,
+  },
+  war: {
+    lobby: () => 'lobby',
+    briefing: () => 'countdown',
+    countdown: () => 'countdown',
+    live: (v) => (v.roundState === 'result' ? 'between' : 'live'),
+    won: () => 'over',
+    lost: () => 'over',
+    ended,
+  },
+  free: { lobby: () => 'lobby', live: () => 'live' },
+};
+
+/* Game `id`'s own state in its view: free flight's from its lobby's. */
+export function gameStateOf(id, view) {
+  if (id === 'free') {
+    return view && view.live ? 'live' : 'lobby';
+  }
+  return view && typeof view.state === 'string' ? view.state : 'lobby';
+}
+
+/* Game `id`'s view as a named session state at room time `roomNow`
+ * (room ms), or null for a state this build does not know (a newer
+ * room's). No view is a lobby. */
+export function sessionOf(id, view, roomNow) {
+  const map = GAME_SESSION[id];
+  const state = gameStateOf(id, view);
+  if (!map || !Object.hasOwn(map, state)) {
+    return null;
+  }
+  return map[state](view || {}, roomNow);
+}

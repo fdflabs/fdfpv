@@ -36,7 +36,8 @@ import { fileURLToPath } from 'node:url';
 
 import en from '../src/strings/en.js';
 import {
-  MAKEABLE, MODES, ROUND_MINUTES, SETUPS, minPlayersFor, modeById, modeOfRoom, modeOfWire, wireMode,
+  GAME_STATES, MAKEABLE, MODES, ROUND_MINUTES, SESSION_ENDED, SESSION_ON, SESSION_STATES, SETUPS, gameStateOf, minPlayersFor, modeById, modeOfRoom, modeOfWire,
+  sessionOf, wireMode,
 } from '../src/share/modes.js';
 import { ROOM_MODES, ROOM_SETUPS } from '../src/share/roomwire.js';
 import { GOALS } from '../src/share/roomtag.js';
@@ -139,6 +140,49 @@ check('free flight is null on the wire', wireMode('free') === null && modeOfWire
 check('a game is its own id on the wire', ['race', 'tag', 'combat', 'war'].every((id) => wireMode(id) === id && modeOfWire(id) === id));
 check('a room\'s mode finds its entry, an unknown one none', modeOfRoom(null) === modeById('free') && modeOfRoom('war') === modeById('war') && modeOfRoom('nope') === null);
 check('\'free\' never reaches a wire list', !ROOM_SETUPS.includes('free') && !ROOM_MODES.includes('free'));
+
+console.log('modes: the named session states');
+check('every activity has its own states listed, and nothing else does', JSON.stringify(Object.keys(GAME_STATES).sort()) === JSON.stringify(MODES.map((m) => m.id).sort()),
+  Object.keys(GAME_STATES).join());
+check('on and ended are named states, apart, with lobby in neither', [...SESSION_ON, ...SESSION_ENDED].every((x) => SESSION_STATES.includes(x))
+  && !SESSION_ON.some((x) => SESSION_ENDED.includes(x)) && !SESSION_ON.includes('lobby') && !SESSION_ENDED.includes('lobby'));
+/* Each game's every state, in each of the views it can take (the clock
+ * before and after a goAt, a round's first turn, a result standing, an
+ * abandon), names one of SESSION_STATES. */
+const variants = [{}, { goAt: 1000 }, { abandoned: true }, { nextAt: 5 }, { roundState: 'result' }, { turn: 0, round: 1 }, { turn: 0, round: 2 }, { turn: 2, round: 1 }];
+for (const id of Object.keys(GAME_STATES)) {
+  const bad = [];
+  for (const state of GAME_STATES[id]) {
+    for (const extra of variants) {
+      const view = id === 'free' ? { live: state === 'live', ...extra } : { state, ...extra };
+      for (const t of [0, 2000]) {
+        const named = sessionOf(id, view, t);
+        if (!SESSION_STATES.includes(named) || gameStateOf(id, view) !== state) {
+          bad.push(`${state}${JSON.stringify(extra)}@${t}:${named}`);
+        }
+      }
+    }
+  }
+  check(`${id}: every one of its states maps to a named state`, !bad.length, bad.slice(0, 4).join(' '));
+}
+const named = (id, view, t = 0) => sessionOf(id, view, t);
+check('no view is a lobby; a state this build does not know names none', named('war', null) === 'lobby' && named('tag', { state: 'overtime' }) === null);
+check('a race: lobby, its countdown to goAt, live, over or abandoned',
+  [named('race', { state: 'lobby' }), named('race', { state: 'on', goAt: 100 }, 50), named('race', { state: 'on', goAt: 100 }, 100), named('race', { state: 'results' }),
+    named('race', { state: 'results', abandoned: true })].join() === 'lobby,countdown,live,over,abandoned');
+check('Catch the Ace: lobby, countdown, live, over or abandoned',
+  ['lobby', 'countdown', 'live', 'results'].map((state) => named('tag', { state })).join() === 'lobby,countdown,live,over' && named('tag', { state: 'results', abandoned: true }) === 'abandoned');
+check('combat: idle is the lobby or an abandon, results with a next round between, without one over',
+  [named('combat', { state: 'idle' }), named('combat', { state: 'idle', abandoned: true }), named('combat', { state: 'countdown' }), named('combat', { state: 'on' }),
+    named('combat', { state: 'over', nextAt: 9 }), named('combat', { state: 'over', nextAt: 0 })].join() === 'lobby,abandoned,countdown,live,between,over');
+check('a jam: its first turn a countdown, a later round\'s first between, the rest live',
+  [named('jam', { state: 'turn', turn: 0, round: 1 }), named('jam', { state: 'run', turn: 0, round: 1 }), named('jam', { state: 'turn', turn: 1, round: 1 }),
+    named('jam', { state: 'turn', turn: 0, round: 2 }), named('jam', { state: 'results' })].join() === 'countdown,live,live,between,over');
+check('the war: its briefing a countdown, a round result between, won and lost over, ended over or abandoned',
+  [named('war', { state: 'briefing' }), named('war', { state: 'countdown' }), named('war', { state: 'live', roundState: 'live' }), named('war', { state: 'live', roundState: 'result' }),
+    named('war', { state: 'won' }), named('war', { state: 'lost' }), named('war', { state: 'ended' }), named('war', { state: 'ended', abandoned: true })].join()
+    === 'countdown,countdown,live,between,over,over,over,abandoned');
+check('free flight: its lobby until it flies, then live, never over', named('free', { live: false }) === 'lobby' && named('free', { live: true }) === 'live');
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);
