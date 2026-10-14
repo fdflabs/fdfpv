@@ -1109,7 +1109,19 @@ export function warSection(check) {
     const e = warRoom({ mission: m, air: 'interceptor' });
     e.paths[0] = hover([0, Y, 0]);
     e.paths[1] = hover([0, Y, 3000]);
+    /* A watcher's page, as rooms-selftest-watch.js seats one. */
+    const w = { name: 'watcher', address: '10.9.9.200', got: [] };
+    e.apply(e.r.open(w, e.clock));
+    e.apply(e.r.message(w, JSON.stringify({
+      type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
+    }), e.clock, w.address, () => 'f'.repeat(32)));
     e.fly(COUNTDOWN_MS + 3000);
+    const watched = w.got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).map(decodeAgents).filter((b) => b.agents.length);
+    const watchedHunts = w.got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts).filter((b) => b.agents.length);
+    check('a watcher is seated as one, and its page gets the hunter\'s poses (AGENTS) and whom it chases (HUNTS) every tick, flying nothing',
+      e.r.watchers.has(w) && watched.length >= 9 && watched.at(-1).agents[0].kind === KINDS.indexOf('hunter')
+      && watchedHunts.length === watched.length && watchedHunts.at(-1).agents[0].target === 1,
+      `${watched.length} AGENTS, ${watchedHunts.length} HUNTS, target ${watchedHunts.length ? watchedHunts.at(-1).agents[0].target : '-'}`);
     const bin = e.socks[0].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).map(decodeAgents);
     const near = bin.filter((b) => b.agents.length).length;
     const far = e.socks[1].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).length;

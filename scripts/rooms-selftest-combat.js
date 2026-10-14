@@ -230,6 +230,13 @@ function roundSection(check) {
   console.log('combat: a cut');
   {
     const r = started();
+    /* A watcher's page: seated as one, it flies nothing. */
+    const w = { name: 'W', got: [] };
+    r.room.open(w, 0);
+    r.room.message(w, JSON.stringify({
+      type: 'hello', proto: PROTO, build: 't', name: [7, 7, 17], profile: { airframe: 'interceptor', map: 'swiss2', figure: 0, livery: null, parts: null }, watch: true,
+    }), 0, '10.9.0.77', newToken).forEach((x) => x.send && x.send.got.push(typeof x.data === 'string' ? JSON.parse(x.data) : x.data));
+    const watchedAt = (from) => w.got.slice(from).filter((m) => m instanceof Uint8Array && m[0] === TYPE_STREAMER_RELAY).map((m) => decodeStreamerRelay(m));
     fly(r, 1, 7600, passAt(7000));
     const ea = texts(r.socks.A, 'event', 'cut');
     const eb = texts(r.socks.B, 'event', 'cut');
@@ -244,10 +251,16 @@ function roundSection(check) {
     const sb = sc.scores.find((x) => x.seat === 2);
     check('the scoreboard on both screens has it', sa.points === POINTS_CUT && sa.cuts === 1 && sb.owed === 19);
     const before = r.socks.A.got.length;
+    const watchedBefore = w.got.length;
     fly(r, 7601, 7800, away);
     const shown = r.socks.A.got.slice(before).filter((m) => m instanceof Uint8Array && m[0] === TYPE_STREAMER_RELAY)
       .map((m) => decodeStreamerRelay(m)).filter((m) => m.seat === 2).map((m) => m.chains[0].n - 1);
     check('B\'s client ignoring the cut still shows everyone the paper the room left', shown.length > 0 && shown.every((n) => n === 19), shown.join(','));
+    const watched = watchedAt(watchedBefore);
+    const watchedB = watched.filter((m) => m.seat === 2).map((m) => m.chains[0].n - 1);
+    check('a watcher\'s page gets every pilot\'s streamer, as the room left it, the same frames a pilot gets',
+      r.room.watchers.has(w) && watchedB.length === shown.length && watchedB.every((n) => n === 19) && watched.some((m) => m.seat === 1),
+      `${watched.length} relays, B's links ${watchedB.join(',')}`);
     fly(r, 7801, 9300, passAt(9000, A_Y - 15));
     check('below the cut there is no paper left to cut', texts(r.socks.A, 'event', 'cut').length === 1);
   }

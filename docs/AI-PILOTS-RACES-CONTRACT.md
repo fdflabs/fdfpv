@@ -25,9 +25,12 @@ below; the rest of this page is the design it was built to.
 - A race with AI pilots in it posts nothing to the leaderboard for them:
   their times are room results only.
 - They crash as a person's plant crashes: the course's ground and solids
-  (gate frames among them) meet their plant. A crashed AI pilot is reborn
-  on its last gate passed, as a person's R puts them back on the course,
-  and its clock runs on.
+  (gate frames among them) meet their plant. A crashed AI pilot is put
+  back as a person's wreck and R put them back in a room race (src/main.js,
+  src/share/roomrace.js): the lap in flight is voided, it starts again from
+  its own place on the grid, the laps it closed stay closed, and its clock
+  runs on. (w39-room-ai-2, 2026-10-13: this page said "on its last gate
+  passed"; no person is put back there, R puts them on their slot.)
 
 ## Which races
 
@@ -110,13 +113,31 @@ bots.js's kinematic Zagi out of races). Decisions taken in building it:
   line, the first 9 s before the timing gate (6 s more than aiopponent.js
   START_MS: from 3 s out the person was still 1.7 m off the line at the
   timing gate and lost a lap), the next 1 s behind each.
-- **The gate frames** are four bars of the built tube round each
-  rectangular opening, as aipilot:harness frames them, not the page's
-  drawn capsules (src/render/scene.js needs three.js). A hoop and a
-  pylon have no frame in the room.
-- **A crash is a retire.** Rebirth on the last gate passed is not built.
-- **A restore mid race** is not built: a room restored from storage drops
-  its AI racers, marks them left in a race on, and fills again.
+- **The solids** are each structure's own geometry as the race carries
+  it (src/builder/course.js structureOf, every opening's `frame`), in the
+  page's capsules (src/render/pylons.js), rebuilt without three.js
+  (airace.js framesOf, w39-room-ai-2): four bars of the frame's tube round
+  a rectangular opening; 24 tubes round a hoop's rim, firm for a quad
+  hoop and soft for a plane's; 4 posts up each pylon cone. Until then a
+  hoop and a single pylon had none and a pylon pair had four phantom bars
+  round its scoring square. A gate's other members (rungs, flag poles)
+  are not solids here.
+- **A crash is a wreck and R** (w39-room-ai-2): the lap in flight voided,
+  back on its grid place on the tick the crash is called (a person presses
+  R when ready), the laps closed kept, its clock running on. The room
+  hears the timing gate again at a lower count, as it does of a person.
+- **A restore mid race** (w39-room-ai-2): while a race is on the room
+  stores, every 5 s with the AI seats (roombots.js STORE_MS), each AI
+  racer's plant region (src/replay/journal.js's, 1.69 MB, deflated to
+  about 135 kB a seat: 414 kB for three, about 7 ms of CPU a seat here),
+  its opponent's flight and lap state, and the dist/sim.wasm build. A room
+  restored from storage while its race is on seats them again and writes
+  each plant back (malloc's bytes left as the new module has them); they
+  fly on from there once the ghost is flown again in the new process, the
+  time between a stall (not caught up). Not kept: the pilot's own memory
+  (src/game/aipilot.js eyes and loop trims, private to that file), so a
+  restored racer sees afresh and holds its sticks for its eyes' 200 ms.
+  A plant from another build is today's: dropped, marked left, refilled.
 - **The VM** needs dist/sim.wasm and tests/lib/{simmod, personpilot,
   aireference}.js shipped (deploy/vm/deploy.sh, a separate commit) and a
   rooms deploy; without them the server starts and seats no AI racer.
