@@ -31,7 +31,7 @@ a week or more) and its phase (PLAN.md section 5).
 means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
-**Counts over the 83 items with a verdict:** 32 EXISTS, 41 PARTIAL, 7
+**Counts over the 83 items with a verdict:** 33 EXISTS, 40 PARTIAL, 7
 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -642,21 +642,27 @@ card 100 % busy, 6.1 ms at 25 %). A pacer check needs a quiet card.
 
 **46. Performance budgets. PARTIAL.** docs/BUDGETS.md is one table:
 the menu (`title`), each world (`alps-low`, `swiss-low`, `itaipu-stream`,
-`interior-ops`) and the war at full load (`itaipu-war`), at Low, Medium
-and High, measured on this box 2026-10-13. Draw calls, triangles, live
-textures and the GPU floor are held at a ceiling set from the
-measurement beside it by `perf -- --budgets` (scripts/perf-play.js,
-local: one run per tier, an Itaipu set peaks at 4.3 GB); frame times
-are written with the card's busy share beside them and never held. At
-High the menu and the alps (390 to 397 calls), swiss2 (350 calls, 3.77
-M triangles), Itaipu's town (5.65 M) and the war (3.03 M) are over the
-written contract of 300 calls and 2.5 M triangles (docs/ITAIPU-PLAN.md
-570, src/render/budget.js 4); the ceilings hold today's cost, not the
-contract. Missing: texture megabytes (three counts textures, not their
-bytes), attackers and peers. **Done:** texture bytes summed off the live
-textures, the war's attacker count and a second pilot (a Node peer on
-the room socket, docs/PERF.md "Not measured") as columns, held the same
-way; the High rows brought under the contract. Size M. Phase 30.
+`interior-ops`), the war at full load (`itaipu-war`) and a full room
+(`peers`: seven more pilots' 7 inches in view, from perf-play on the
+room's wire), at Low, Medium and High, measured on this box 2026-10-13
+and 14. Draw calls, triangles, live textures and the GPU floor are held
+at a ceiling set from the measurement beside it by `perf -- --budgets`
+(scripts/perf-play.js, local: one run per tier, an Itaipu set peaks at
+4.3 GB); frame times are written with the card's busy share beside them
+and never held, and so are the attackers alive in the war's window (1,
+in stage 1, Eyes: the window is early in mission 1, not at its peak) and the peers in view (7). The contract is the main view's at
+High, 300 calls and 2.5 M triangles (4.0 M at Itaipu), the thermal inset
+apart (docs/BUDGETS.md, The contract, 2026-10-13): every world's and
+the war's main view is within it, while a full room is 1 586 calls as a
+whole frame, unsplit, five times it (each peer's craft is 48 meshes);
+the ceilings hold today's cost, not the contract. Texture megabytes are not
+measured and cannot be from here: three's `renderer.info.memory` counts
+textures, WebGL has no query for what one holds on the card, and
+perf-play's upload bytes are a frame's uploads, not what stays
+allocated. The peers' GPU floor moves by half between runs on the shared
+card, so it is held from the highest of three. **Done:** a full room
+under the contract at High (a peer's craft batched), and a war row at
+mission 1's peak stage. Size M. Phase 30.
 
 **47. Object pooling. EXISTS.** Explosions, debris, breakage pieces,
 smoke, attackers and war markers are fixed pools or instanced meshes that
@@ -679,20 +685,33 @@ chunked quadtree LOD (src/maps/terrain/engine.js) over height tiles
 fetched under a byte ceiling (src/maps/terrain/tiles.js). The valley and
 the Alps load whole. Checks: `itaipu:check` (local), `grid:check`.
 
-**50. Spawn safety. PARTIAL.** Every start on every buildable world is
+**50. Spawn safety. EXISTS.** Every start on every buildable world is
 checked: the map's own, spawnFor's answer per kind and `?spawn=` wish,
 each float start, each moved to all eight room seats, and the pilots'
 stations, read off the seated map's height, water and colliders: above
 the ground and not covered, dry (on the water for a float), clear of
 solids, facing a 1 in 4 climb out clear for 150 m, with negative
 controls per world (scripts/world-spawns-check.js, `world:spawns`, CI,
-123 checks in 55 s). It found Itaipu's room stations under the dam
+216 checks in 59 s). It found Itaipu's room stations under the dam
 (200 to 219 m); the crest start now carries its own station line
 (src/maps/itaipu/spawns.js, src/game/slots.js). Itaipu's starts also
 settle undamaged in the plant, its seats and courses too
-(`itaipu:spawns`, local). Missing: race starts of tracks built in the
-valleys (src/builder/course.js startFor, src/game/trackdoc.js). **Done:**
-`world:spawns` reads a seated track's start too. Size S. Phase 30.
+(`itaipu:spawns`, local). Courses too, on every world a track is built
+in (alps, swiss2, Itaipu): each course a world ships (Itaipu's two,
+docs/itaipu-courses; the valleys ship none) and the casual sky track My
+tracks makes there for a plane and for a quad (src/builder/course.js
+casualCourse, from the spawn), its start (startFor) and each gate's
+approach above the ground, clear of solids and inside the playable
+square (src/game/edges.js), with controls per world: a course start
+under the ground, a gate in a solid, a gate past the square. The
+Interior has no float start, so its water control is a ground start on
+Río Sereno (420, 470), where the ground the shell seats on is the
+water; on the channel's bank the plant's water runs 0.8 m under the
+ground, so the control looks for the water at the ground. The Interior
+is no build world (src/maps/registry.js), so it has no courses. Not
+checked: a floatplane's course start, which is the same gate's air
+start (course.js floatStart), and a player's saved track, which is
+judged by the builder's own line (src/builder/line.js) when it is laid.
 
 **51. Camera collision. EXISTS.** The chase camera, a wing's, a
 wreck's and the one behind a watched peer, pulls in along the line to
