@@ -39,7 +39,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { str } from '../strings/index.js';
+import { currentLocale, str } from '../strings/index.js';
 
 const FULL = 2 * Math.PI;
 
@@ -105,7 +105,7 @@ const COUNT_KEY = new Map([
 function countWords(n) {
   const size = Math.abs(n);
   const key = COUNT_KEY.get(size);
-  return key ? str(key) : `${size} turns`;
+  return key ? str(key) : str('trickfilm.n_turns', { n: size.toLocaleString(currentLocale()) });
 }
 
 const AXIS_NAME = { roll: 'roll', pitch: 'flip', yaw: 'yaw spin' };
@@ -140,7 +140,7 @@ function lapClause(step) {
   } else if (step.turns === 1) {
     size = str('trickfilm.a_whole_lap_around', { thing });
   } else {
-    size = `${countWords(step.turns)} around ${thing}`;
+    size = str('trickfilm.around', { turnWords: countWords(step.turns), thing });
   }
   /* rot is the rotation flown on top of the lap; a zero entry is the
    * pattern saying "none of this", not something to mention. */
