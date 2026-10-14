@@ -44,10 +44,13 @@
  * or over the floor, lost the instant it falls under, and a lost mission
  * restarts from the stage it was lost in (war.js, two stars at most).
  *
- * Not built, and not said (MISSIONS.md 2.1): the light falling across
- * the mission (TECH-NEEDS T1.11) and the reroute bringing districts back
- * (T1.10). The mission plays at `golden`, MISSIONS.md's fallback, and a
- * dark district stays dark. Nor the spotters of T1.8, and a decoy group's
+ * THE LIGHT falls across the mission (TECH-NEEDS T1.11): it starts at
+ * the golden hour and Reroute's `daytime` runs the room's clock into the
+ * night over the hold (src/share/daytime.js missionClock).
+ *
+ * Not built, and not said (MISSIONS.md 2.1): the reroute bringing
+ * districts back (T1.10): a dark district stays dark. Nor the spotters
+ * of T1.8, and a decoy group's
  * share is one mix whatever the pilots (MISSIONS.md's 1 to 1 for one
  * pilot and 3 to 1 for eight need a mix by pilots).
  *
@@ -128,6 +131,11 @@ function reroute(id, twist, objective, cues) {
     id,
     round: true,
     title: 'war.stage.itaipu_3.reroute',
+    /* Dusk into dark over the hold (MISSIONS.md M3: the towns' lights
+     * come on in stage 3; src/share/daytime.js missionClock): the room's
+     * clock runs from the golden hour to night across HOLD_MS, so The
+     * Dark opens at night whatever the twist. */
+    daytime: { to: 'night', ms: HOLD_MS },
     spawns: [
       ...twist,
       {
@@ -188,8 +196,8 @@ export default withWaves({
   /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the
    * mission's own line after the opening is called. */
   contain: { op: 'itaipu-3-op' },
-  /* Dusk (MISSIONS.md M3): the light does not fall across the mission
-   * yet (TECH-NEEDS T1.11), so the world is built at its fallback. */
+  /* Dusk (MISSIONS.md M3): the mission starts at the golden hour and
+   * the Reroute's daytime takes it into the night. */
   time: 'golden',
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,

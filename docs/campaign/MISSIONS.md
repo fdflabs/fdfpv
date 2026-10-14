@@ -312,15 +312,19 @@ branch w39-mission-3):
 | If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's pause during a closure not built | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced |
 
 Mission 3 also lacks what the world does not do yet, so its lines do not
-claim it: the light falling across the mission (T1.11; it plays at
-`golden`), districts coming back after the reroute (T1.10), and spotting
-(T1.8). Its release stays `development` (the owner's gate).
+claim it: districts coming back after the reroute (T1.10) and spotting
+(T1.8). The light falling across the mission (T1.11) is built since
+branch w39-daynight (14 October): see M3's as-built notes for the lines
+that may now say more. Its release stays `development` (the owner's
+gate).
 
 Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
 war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
 war:cards, briefing:selftest, rooms:selftest, voice:check, films:lint and
 films:time green there. Not built in it: twist A (Station dark) and the
-dawn ramp, M4 below. Its release stays `development` (the owner's gate).
+dawn ramp, M4 below. Both are built since branch w39-daynight (14
+October), twist A outside the draw until its radio is voiced. Its
+release stays `development` (the owner's gate).
 
 Checks on the tree above, all green: war:stages 106/0, war:routes PASS,
 war:radio 63/0, war:cards 13/0, briefing:selftest 54/0, campaign:selftest
@@ -709,8 +713,24 @@ Built 14 October, against the code (war:stages flies it on the room;
   DESPACHO then says what is true (`itaipu-3-s3-down`).
 - **Nothing comes back.** T1.10 is not built, so the reroute changes no
   district and no line says it does; `itaipu-3-s3-back` was not made.
-  The mission plays at `golden` (T1.11's fallback), and stage 4's line
-  says the sun is almost down, not that the towns are lit.
+  When this was written the mission played at `golden` (T1.11's
+  fallback), and stage 4's line says the sun is almost down, not that
+  the towns are lit.
+- **Dusk into dark, built 14 October (w39-daynight).** Each Reroute
+  twist carries `daytime: { to: 'night', ms: HOLD_MS }`: the room's clock
+  runs from the golden hour to night over the four minute hold, without
+  a rebuild (TECH-NEEDS T1.11). The night flag turns about 50 s in (the
+  sun 3 degrees under), the towns' lights come up with the dusk, and The
+  Dark opens at night with the towns lit. A Reroute that ends before
+  its four minutes (a failed hold, cleared early) steps the light from
+  where it had got to straight to night as The Dark opens: a visible
+  step, the price of a clock that is the stage's.
+- **Lines that may now say more (proposed, not changed: a voice build
+  is the mission lane's).** `itaipu-3-s4-dark` could go back to the
+  table's "Lights are on in town." (the towns are lit when The Dark
+  opens). `itaipu-3-s2-clear` ("The light's going.") stays true.
+  `itaipu-3-s3-back` and `itaipu-3-s3-down`'s "stays dark" wait on
+  T1.10, which is still the grid's.
 - **The Dark has a swarm up the gorge onto the west penstocks.** As
   written above, with nobody flying, the mission was won: the yard and two
   intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
@@ -867,6 +887,36 @@ Built 14 October, against the code (war:stages flies it on the room):
   no boat, Scout or bird "with no lights", since every attacker wears its
   nav lights at night (src/render/attackers.js). lines.json's notes say
   which.
+- **The dawn, built 14 October (w39-daynight).** Before Dawn carries
+  `daytime: { to: 'morning', ms: 240000 }`: the room's clock runs from
+  22:00 to the morning's 07:47 over four minutes. The light follows the
+  sun, so the first 100 s or so stay full night, the east greys from
+  there, and the sun clears the night threshold (05:45) 190 s in; ten
+  bot games end between 05:20 and 06:28, and the result stands at the
+  hour reached. The world is built at the briefing for both ends; the
+  moon stands where the morning's sun will rise.
+- **Twist A, built 14 October (w39-daynight), not drawn.** `itaipu-4.js`
+  `STATION_DARK`: a stage with `stationDark: true`, whose attackers draw
+  their error as if every scout were dead, and from whose start the
+  dam's own lights (the crest, the powerhouse, the spillway, the dams
+  and the works; not the two switchyards, which are the grid's) go out
+  for every screen to the mission's end. Its groups: Strikers from the
+  north on the middle intakes as cover, a swarm up the gorge on the
+  middle penstocks as the twist (close defence in the dark); objective
+  `war.obj.itaipu_4.station`, en and es. war:stages flies it both ways.
+  It is not among the mission's stages yet because its radio is not
+  voiced and the twist is a trade the squad hears made. To draw it: voice
+  `itaipu-4-ta-turn` (the table's), a `-ta-why` and a guide `-g-dark`, add
+  them as its cues, put the stage in `stages` and `'station-dark'` in
+  Hunters' pick, and record war:legacy's itaipu-4 games again (the
+  bots' loiter point is the middle of every wave's targets, so a stage
+  more moves them).
+- **Lines that may now say more (proposed, not changed).**
+  `itaipu-4-s5-near` ("Not long to sunrise now.") is cued 45 s into
+  Before Dawn, while the ramp is still full night, so it stays right as
+  it is; the table's "sky going grey" would fit a cue some 120 s in.
+  `itaipu-4-tc-why` ("before the dawn") and `debrief-itaipu-4-win`
+  ("Sunrise") stay true.
 - **Length** 11 to 15 minutes: ten good bot games end 11.0 to 14.9
   minutes after the go.
 

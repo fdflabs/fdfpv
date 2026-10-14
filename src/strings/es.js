@@ -3878,6 +3878,7 @@ export default {
   "war.obj.itaipu_4.hunters": "Derriben a los cazadores, de a dos",
   "war.obj.itaipu_4.yard": "Que los drones de ataque no lleguen a la subestación",
   "war.obj.itaipu_4.scout": "Derriben al explorador sobre las islas",
+  "war.obj.itaipu_4.station": "Luces apagadas: detengan el enjambre sobre las tuberías forzadas",
   "war.mark.dist_m": "{n} m",
   "war.mark.dist_km": "{n} km",
   "war.mark.in_range": "EN RANGO {n} m",

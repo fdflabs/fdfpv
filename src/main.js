@@ -196,6 +196,7 @@ import {
   ACT1, createCampaignStore, markSeen, released, seenFilm,
 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
+import { stationOrder } from './share/war/stationdark.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
@@ -275,7 +276,7 @@ import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothc
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP } from './render/nighttimbercraft.js';
 import {
-  TIME_NAMES, clockOf, clockOfTime, daytimeNow, hourAt, nightOfTime, publishDaytime, timeOfClock, timeOfHour,
+  TIME_HOUR, TIME_NAMES, clockOf, clockOfTime, daytimeNow, hourAfter, hourAt, nightOfTime, publishDaytime, timeOfClock, timeOfHour,
 } from './share/daytime.js';
 import { CAP_MOUNT_FORWARD, CAP_MOUNT_UP } from './render/capcraft.js';
 import { HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP } from './render/herculescraft.js';
@@ -584,7 +585,10 @@ const FLOOR_WORLD = 'alps';
  * `?hour=` (the Interior's hours) or `?time=` (a src/share/daytime.js
  * TIME_NAMES name: Itaipu's mission 4 "Night raid", morning, noon,
  * golden), else the pilot's Time of day setting, whose 'own' is no clock:
- * each world at its own time. The address is not stored: a link with it
+ * each world at its own time. With `?time=`, `?toward=` (another name)
+ * builds a war mission's moving light standing at the first (Itaipu's
+ * look/index.js THE RAMP), for the checks that move it
+ * (scripts/daytime-ramp-check.js). The address is not stored: a link with it
  * in stays a link into the night, never a standing setting. In a room the
  * room's clock is the clock (gameClock).
  */
@@ -596,7 +600,10 @@ function soloClock(settings) {
   }
   const time = q.get('time');
   if (TIME_NAMES.includes(time)) {
-    return clockOfTime(time);
+    const toward = q.get('toward');
+    return TIME_NAMES.includes(toward)
+      ? clockOf({ ...clockOfTime(time), to: hourAfter(TIME_HOUR[time], toward) })
+      : clockOfTime(time);
   }
   return clockOfTime(chosenTime(settings));
 }
@@ -604,9 +611,16 @@ function soloClock(settings) {
 /* A world's build options for a clock: the named time a world built once
  * is built at (Itaipu's options.time) and the hour a world that moves its
  * sun starts at (the Interior's options.hour), or nothing for each world's
- * own. */
+ * own; and for a clock that will move on to another named time (a war
+ * mission's light, src/share/daytime.js missionClock), that time, which
+ * Itaipu builds its moving light for (options.toward). */
 function timeOptionsOf(clock) {
-  return clock ? { time: timeOfClock(clock), hour: clock.hour } : {};
+  if (!clock) {
+    return {};
+  }
+  const time = timeOfClock(clock);
+  const toward = clock.to === undefined ? time : timeOfHour(clock.to);
+  return toward === time ? { time, hour: clock.hour } : { time, hour: clock.hour, toward };
 }
 
 /* The time a world is built at, by its options: day unless they name one. */
@@ -4518,7 +4532,8 @@ export async function boot({
    * the mission's end and its result, so the banner is not hidden behind
    * a rebuild. Solo, the pilot's setting or the address (soloClock).
    */
-  let clockTime = null;
+  /* The key below for no clock, as before a room names one. */
+  let clockTime = 'null>';
   /* Each switch, its room ms and when the rebuild was done, for checks. */
   const warTimeLog = [];
   function clockTimeFrame() {
@@ -4536,13 +4551,18 @@ export async function boot({
       paintBest();
       syncWorld();
     }
-    const time = timeOfClock(gameClock());
-    if (time === clockTime) {
+    /* The name and where the clock goes from it (timeOptionsOf): a war
+     * mission's light that will move is built for, even when its name is
+     * the world's already. */
+    const want = timeOptionsOf(gameClock());
+    const time = want.time ?? null;
+    const key = `${time}>${want.toward ?? ''}`;
+    if (key === clockTime) {
       return;
     }
-    clockTime = time;
+    clockTime = key;
     const entry = {
-      time, night: nightOfTime(time), at: roomLinkState.roomNow(), state: roomWar.view().state, done: null,
+      time, toward: want.toward ?? null, night: nightOfTime(time), at: roomLinkState.roomNow(), state: roomWar.view().state, done: null,
     };
     warTimeLog.push(entry);
     syncWorld().then(() => {
@@ -5741,7 +5761,8 @@ export async function boot({
         targets[id] = 'smoke';
       }
     }
-    return { targets, levels: warGrid.levels(v, t) };
+    /* The Long Night's twist A: the dam's own lights out by order. */
+    return { targets, levels: stationOrder(warGrid.levels(v, t), v.stationDark, t) };
   }
 
   /* A war this shell has not begun for: at its countdown, or a pilot
@@ -14526,9 +14547,15 @@ export async function boot({
   }
   /* A world that moves its sun (the Interior's setLocalTime) follows the
    * clock every frame (daytimeFrame) and is never rebuilt for it; a world
-   * built once at a named time is rebuilt when the time moves. */
+   * built once at a named time is rebuilt when the time moves; Itaipu
+   * built for a war mission's moving light (its timeSpan, two names) is
+   * kept while the clock's time and where it goes are both in it. */
   function worldTimeMatches() {
-    return typeof view.setLocalTime === 'function' || worldTime === timeOf(worldTimeOptions());
+    const want = worldTimeOptions();
+    if (view.timeSpan) {
+      return view.timeSpan.includes(timeOf(want)) && view.timeSpan.includes(want.toward ?? timeOf(want));
+    }
+    return typeof view.setLocalTime === 'function' || (worldTime === timeOf(want) && want.toward === undefined);
   }
   function syncWorld() {
     if (!worldSync) {

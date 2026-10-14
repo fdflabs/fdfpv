@@ -815,6 +815,10 @@ export class RoomWar {
        * openAt; the damage, the map and the flood read it, T1.9). */
       sets: m.sets ?? null,
       gates: this.gates(),
+      /* The room ms the station's lights went out by order (the first
+       * `stationDark` stage this match entered, its path's), dark to the
+       * match's end for every screen (src/main.js), or null. */
+      stationDark: m.path?.find((x) => this.stages().find((y) => y.id === x.id)?.stationDark === true)?.at ?? null,
       /* The gantries closing an opening, or waiting to (contain.js). */
       contain: gantriesAt(m.contain, m.f),
       airframes: this.airframes(),
@@ -1419,8 +1423,10 @@ export class RoomWar {
       const t0 = d.t;
       /* While a scout of the last scout wave lives (or got away), the
        * waves fly their routes exactly; once all of them are dead, each
-       * attacker draws its error (section 4.2). */
-      const blind = Boolean(m.scouts) && m.scouts.killed >= m.scouts.n;
+       * attacker draws its error (section 4.2). A stage whose station
+       * lights are out by order (`stationDark`, The Long Night's twist A)
+       * gives its attackers their error as if they were. */
+      const blind = this.stages()[st.idx].stationDark === true || (Boolean(m.scouts) && m.scouts.killed >= m.scouts.n);
       /* Sized by the match's pilots here when it is announced, so one who
        * joins or leaves mid war changes the next wave, never one already
        * told (its n and k ride in the births, and no screen sizes one). */

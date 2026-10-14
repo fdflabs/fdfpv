@@ -3873,6 +3873,7 @@ export default {
   "war.obj.itaipu_4.hunters": "Kill the Hunters, in pairs",
   "war.obj.itaipu_4.yard": "Keep the Strikers off the switchyard",
   "war.obj.itaipu_4.scout": "Kill the scout over the islands",
+  "war.obj.itaipu_4.station": "Lights out: stop the swarm on the penstocks",
   "war.mark.dist_m": "{n} m",
   "war.mark.dist_km": "{n} km",
   "war.mark.in_range": "IN RANGE {n} m",

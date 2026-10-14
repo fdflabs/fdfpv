@@ -272,7 +272,7 @@ function lakesOf(bodies, bed) {
   });
 }
 
-async function buildItaipu(shell, progress, q, time) {
+async function buildItaipu(shell, progress, q, time, toward, hour) {
   const renderer = shell.renderer;
   const camera = shell.camera;
   const base = dataBase();
@@ -280,7 +280,7 @@ async function buildItaipu(shell, progress, q, time) {
   progress(0.02, ['imagery', 'data']);
   const [look, data] = await Promise.all([
     makeLook({
-      renderer, camera, q, base, manifest, time,
+      renderer, camera, q, base, manifest, time, toward, hour,
     }),
     readData(base, manifest),
   ]);
@@ -548,6 +548,13 @@ async function buildItaipu(shell, progress, q, time) {
     /* The night raid's lights, district by district (src/share/war/grid.js
      * levels, from the room's war state): nothing by day. */
     setPower: (levels) => look.setPower(levels),
+    /* A war mission's moving light (look/index.js THE RAMP), only on a
+     * world built with `toward`: src/main.js daytimeFrame tells it the
+     * room's hour each frame, and keeps the world while the clock's
+     * times stay inside `timeSpan`. */
+    ...(look.setLocalTime ? {
+      setLocalTime: look.setLocalTime, builtHour: look.builtHour, ownHour: look.builtHour, timeSpan: look.span,
+    } : {}),
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,
@@ -608,7 +615,10 @@ async function buildItaipu(shell, progress, q, time) {
  * mission 4, "Night raid"), or `?time=` in the address, which
  * src/main.js's loadMap folds into options before this is called.
  * Anything else is day: a stray query param must never turn the lights
- * off on a pilot who typed the wrong thing.
+ * off on a pilot who typed the wrong thing. `options.toward`, a second
+ * such name, and `options.hour`, the clock's, build a war mission's
+ * moving light (look/index.js THE RAMP); a toward that is not a name is
+ * none.
  */
 function timeFor(options) {
   const time = options && options.time;
@@ -618,7 +628,9 @@ function timeFor(options) {
 export async function buildMap(shell, onProgress, options) {
   const progress = onProgress ?? (() => {});
   const q = qualityFor(options && options.quality);
-  const map = await buildItaipu(shell, progress, q, timeFor(options));
+  const toward = options && typeof options.toward === 'string' && Object.hasOwn(TIMES, options.toward) ? options.toward : null;
+  const hour = options && Number.isFinite(options.hour) ? options.hour : null;
+  const map = await buildItaipu(shell, progress, q, timeFor(options), toward, hour);
   (await import('./itaipu/war/index.js')).takeYard(map);
   return map.scene.userData.itaipu.look.compose(shell, map);
 }
