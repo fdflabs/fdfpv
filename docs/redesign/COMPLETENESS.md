@@ -398,7 +398,8 @@ stats.js's beacons. No two consumers read the same stream. **Done:**
 events on the sim clock (and the room clock in a room), with a fixed
 vocabulary (`spawned`, `gate`, `lap`, `touch`, `crash`, `landing`,
 `objective`, `stage`, `kill`, `hit`, `round`, `joined`, `left`,
-`mission_start`, `mission_end`), the room's war ops mapped onto it
+`mission_start`, `mission_end`, and `contact`, the avionics camera's
+primary track held or let go, for Training's Defence track), the room's war ops mapped onto it
 unchanged on the wire. Producers are today's call sites; consumers move
 one per PR: RunWatch first, then the debrief (phase 10), progression
 (phase 11), the replay's events. Deliberately not a pub/sub of
