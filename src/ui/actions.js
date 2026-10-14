@@ -46,7 +46,7 @@ import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTra
 import { tracksConfigured } from '../share/cloud.js';
 import { MODES, modeById } from '../share/modes.js';
 import { hasFlyableTrack } from '../share/listing.js';
-import { clearShareImport, readShareImport } from '../share/session.js';
+import { clearShareImport, readShareImport } from '../share/trackseat.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { str } from '../strings/index.js';
 import { duplicateTrack, normalize } from '../trackbuilder/model.js';

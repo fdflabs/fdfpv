@@ -261,7 +261,7 @@ builder's progress; loading.js 29 to 42), a stall notice after 6 s
 rooms server (`roombrowser.unreachable`, `friends.failed_noserver`,
 `friends.failed_lost`, `loading.held_restart`), the board
 (`ui.the_board_is_not_answering_so`; a lap that could not be sent is kept,
-src/share/session.js 273), tracks (`cloud.offline`), assets
+src/share/trackseat.js 273), tracks (`cloud.offline`), assets
 (`main.could_not_be_loaded`, `loading.could_not_start`), the GPU
 (`gpuinfo.the_webgl_context_was_lost_reload`), account sync
 (`account.sync_failed`, `account.unreachable`). A controller disconnect is
@@ -419,12 +419,17 @@ kills come from what happened. Check: phase 10's results checks, plus
 `events:selftest` folding a debrief. Size M. Phase 10, after 22.
 
 **27. Unified statistics. PARTIAL.** Built (2026-10-13): landings,
-crashes, laps and kills per aircraft, folded from phase 22's log into
-`progress` (src/game/progress.js COUNTED, foldEvents), merged as the
-higher by progressmerge, checked by `progress:selftest` (a stream folded
-twice gives one count). A kill is logged only for a victim the room
-credited (war.js `dead` carries `credited`, `rooms:selftest`). Still
-missing: missions started and completed. What follows
+crashes, laps, kills and missions started and completed per aircraft,
+folded from phase 22's log into `progress` (src/game/progress.js
+COUNTED, foldEvents), merged as the higher by progressmerge, checked by
+`progress:selftest` (a stream folded twice gives one count). A kill is
+logged only for a victim the room credited (war.js `dead` carries
+`credited`, `rooms:selftest`). A mission is started when the client
+sees its war begin and completed when its result is applied, won or
+lost (src/ui/campaign.js observe). Still missing: The Interior's
+mission_start, which needs a call from main.js where an ops match
+begins (opscampaign.js only hears of a match at its debrief), so for
+The Interior completed can exceed started. What follows
 is the gap as first written. stats.js sends three anonymous
 counters to the board (visit, session, flush: laps, flight seconds,
 crashes since the last flush) and keeps none of them (src/share/stats.js
@@ -941,7 +946,7 @@ account (account.js; `accounts`, tracks-api/migrations/0002), the pilot
 (name and key, pilot.js, identity.js), the room (rooms.js, edge/rooms),
 the mission, the aircraft, the world, the build. Blurred: the party is
 the room (no separate party, item 77); "session" means three things
-(src/share/session.js is the track seat, the account has session tokens,
+(src/share/trackseat.js is the track seat, the account has session tokens,
 and the redesign's session is the room). **Done:** item 83's glossary
 fixes the words; session.js renamed to what it holds in a pure rename PR.
 Size S. Phase 24.

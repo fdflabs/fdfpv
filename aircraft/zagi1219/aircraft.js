@@ -327,9 +327,9 @@ export default {
       "livery.scheme.zagi1219.combat": "5C combat yellow and black"
     },
     "es": {
-      "carousel.note.zagi1219": "El ala volante de EPP de las laderas y el combate. Lánzala, gírala rápido, toca el cabeceo con suavidad y aterrízala de panza.",
+      "carousel.note.zagi1219": "El ala volante de EPP de las laderas y el combate. Lánzala, gírala rápido, toca el pitch con suavidad y aterrízala de panza.",
       "power.zagi.stock": "Zagi inrunner 3100 kV, hélice propulsora de carbono 5 x 5, 3S (de serie)",
-      "airframe.blurb.zagi1219": "Un Zagi HP de 48 pulgadas en 3S, el ala volante de EPP que enseñó a volar a una generación en la ladera y en combate. Lánzalo fuerte y ve suave con los elevones: alabea rápido y responde al toque más pequeño en cabeceo. Sin timón. Planea lejos y se desliza sobre la panza.",
+      "airframe.blurb.zagi1219": "Un Zagi HP de 48 pulgadas en 3S, el ala volante de EPP que enseñó a volar a una generación en la ladera y en combate. Lánzalo fuerte y ve suave con los elevones: hace roll rápido y responde al toque más pequeño de pitch. Sin timón. Planea lejos y se desliza sobre la panza.",
       "livery.scheme.zagi1219.stock": "Zagi HP naranja",
       "livery.scheme.zagi1219.combat": "5C de combate amarillo y negro"
     }

@@ -5,7 +5,9 @@
  * pressed F8 to report it the crash disappeared". In headless Chromium, on
  * the Swiss valley, with crash damage on:
  *
- *  1. A five inch thrown into the grass wrecks. F8: the form opens, says
+ *  1. The interceptor, the five inch's successor, thrown nose first into
+ *     the grass at 30 m/s wrecks (the five inch's throw, 18 m/s at 40
+ *     degrees, only chips its prop and takes its camera). F8: the form opens, says
  *     the crash goes with the report, and stays on Wrong behaviour, because
  *     a wreck is the game working. The payload Send would post (fetch is
  *     stubbed, nothing reaches a board) carries context.crash.craft with the
@@ -63,7 +65,7 @@ function check(name, ok, detail = '') {
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
   const s = JSON.parse(localStorage.getItem(k) || '{}');
-  Object.assign(s, { airframeAsked: true, map: 'swiss2', graphics: 'low', graphicsAuto: false, crashDamage: true });
+  Object.assign(s, { airframeAsked: true, airframe: 'interceptor', map: 'swiss2', graphics: 'low', graphicsAuto: false, crashDamage: true });
   localStorage.setItem(k, JSON.stringify(s));
   localStorage.setItem('webfpv.airhint.v2', '1');
 } catch (e) { /* Storage refused; the run boots on its defaults. */ }`,
@@ -148,8 +150,11 @@ async function main() {
     console.log('1. a wreck, then F8');
     const pad = await page.evaluate('(() => { const s = window.__craftState(); return { x: s.worldX, z: s.worldZ, g: s.worldY - s.groundClearance }; })()');
     await page.evaluate('window.__stick(0, 0, 0, 0)');
-    await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 25}, z: ${pad.z}, yaw: 0, pitch: -40, vx: 0, vy: -10, vz: -18, showCraft: true }).ok`);
+    await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 25}, z: ${pad.z}, yaw: 0, pitch: -80, vx: 0, vy: -30, vz: 0, showCraft: true }).ok`);
     await page.until('window.__crash().wrecked', WAIT);
+    /* At rest before it is read: a wreck still sliding would move between
+     * this read and F8, and the check below would blame the form. */
+    await page.until('window.__craftState().speed < 0.05', WAIT);
     await frames(page, 10);
     const before = JSON.parse(await page.evaluate(WRECK));
     check('the throw wrecked the quad', before.wrecked && before.flags.length > 0, before.flags.join(' '));
@@ -201,7 +206,10 @@ async function main() {
     }
     await closeForm(page);
 
-    const unexpected = page.errors.filter((e) => !/bug-crash-check/.test(String(e)));
+    /* network: the page's stats events go to the development board
+     * (src/share/board.js, 127.0.0.1:3180), which this check does not
+     * start, so they are refused. */
+    const unexpected = page.errors.filter((e) => !/bug-crash-check/.test(String(e)) && !String(e).startsWith('network:'));
     check('no page errors beyond the two thrown on purpose', unexpected.length === 0, unexpected.slice(0, 3).join(' | '));
   } finally {
     await page.close();

@@ -30,9 +30,13 @@
  *   OBSTACLE_BONUS   [switches, multiplier] rows, cut where the multiplier
  *                    stops changing.
  *
- * Names a pilot reads go through the string table when the module loads: a
- * name or category gets str(key) where src/strings/en.js has a "tricks."
- * key holding exactly that text, and stays a literal where it has none.
+ * A trick's or block's name is a literal in every language: it is the key
+ * the detector (src/game/trickdetect.js), the scorer and the proving runs
+ * look a trick up by, and docs/SPANISH-GLOSSARY.md keeps trick names in the
+ * sport's English. A category or an execution grade a pilot reads goes
+ * through the string table when the module loads: it gets str(key) where
+ * src/strings/en.js has a "tricks." key holding exactly that text, and
+ * stays a literal where it has none.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -153,14 +157,14 @@ const block = (name, points) => ({ name, points });
 out.push(`/* ${sheet.source.title}, "Trick List - Outdoor", ${sheet.outdoorTricks.length} rows. */`);
 out.push('export const TRICKS = [');
 for (const t of sheet.outdoorTricks) {
-  out.push(`  trick(${shown(t.trick)}, ${shown(t.category)}, ${q(t.difficulty)}, ${num(t.points)}),`);
+  out.push(`  trick(${q(t.trick)}, ${shown(t.category)}, ${q(t.difficulty)}, ${num(t.points)}),`);
 }
 out.push('];', '');
 
 out.push(`/* "Custom Trick Building Blocks", ${sheet.buildingBlocks.length} rows. */`);
 out.push('export const BUILDING_BLOCKS = [');
 for (const b of sheet.buildingBlocks) {
-  out.push(`  block(${shown(b.trick)}, ${num(b.points)}),`);
+  out.push(`  block(${q(b.trick)}, ${num(b.points)}),`);
 }
 out.push('];', '');
 

@@ -223,7 +223,7 @@ Extra in every file it touched (configs/airframes.js, registry.js TUNES
 and its three `nighttimber-*.diff`, tuning.js, power.js,
 power-estimates.js, prop-estimates.js, hulls.js, liveries.js,
 hangar-parts.js, kits.js, src/render/craft.js, src/main.js mounts,
-src/share/session.js, strings en and es, the goldens re-recorded only for
+src/share/trackseat.js, strings en and es, the goldens re-recorded only for
 its rows).
 
 ## 5. The lights (PR 3)

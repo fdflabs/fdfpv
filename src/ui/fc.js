@@ -623,7 +623,7 @@ export class FcSession {
     const rows = TUNES.map((tune) => ({
       label: tune.name,
       action: `fc-preset:${tune.id}`,
-      note: str('fc.keep_mine_rates_save_still_required', { note: tune.note }),
+      note: str('fc.keep_mine_rates_save_still_required', { note: str(`tune.note.${tune.id.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`) }),
     }));
     rows.push(greyRow('firmware-presets', 'Unavailable', str('fc.optional_later_fetch_from_betaflight_firmware')));
     return rows;

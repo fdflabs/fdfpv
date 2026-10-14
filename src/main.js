@@ -222,7 +222,7 @@ import {
   lapSlot,
   writePostedBest,
   writeShareImport,
-} from './share/session.js';
+} from './share/trackseat.js';
 import { isMapTrack } from './trackbuilder/model.js';
 import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';

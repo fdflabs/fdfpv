@@ -113,6 +113,9 @@ const WANT_KINDS = arg('kinds', null);
 /* Fly these at every kind named, whatever the kind flies by default. */
 const FLY = arg('fly', null);
 const SPEED = 14;
+/* Degrees under the slab's pitch the bus shelter's skim is held at (the
+ * flat roof's ramp, below). */
+const SKIM_NOSE = 2;
 /* Slow the page's CPU this many times (CDP Emulation.setCPUThrottlingRate),
  * so its frames are long and uneven, as on a loaded machine: the shell
  * steps the plant per frame, and a wall must hold however long the frame.
@@ -339,9 +342,16 @@ const PLAN = (scn, R) => `(() => {
      * pitched roof is, the craft met the slab's front edge head on at 14
      * m/s, not its top. A pilot skims one: over the edge with the centre
      * 0.15 m above the top, settling to 0.06 m, the Skyhunter's pod
-     * resting on a roof, over its middle. */
+     * resting on a roof, over its middle, its nose SKIM_NOSE under the
+     * slab's pitch. FITTED, not sourced: held at the slab's pitch, the
+     * descent's 3 degrees more of incidence float it 0.16 m over the slab
+     * and it never touches (since 3904a4b23's wash share, 7 mm higher
+     * than before, when it touched by a few millimetres); 1 and 2
+     * degrees under both touch and fly on unbroken, 3 (level) and more
+     * put the pod down hard enough to knock the camera. 2 is the middle
+     * of what touches without a break on this plant. */
     const hi = T(R.hw) + 0.15, lo = T(0) + 0.06;
-    lx = R.hw; y = hi; back = 5; climb = -Math.atan((hi - lo) / R.hw) / d2r; attitude = pitch;
+    lx = R.hw; y = hi; back = 5; climb = -Math.atan((hi - lo) / R.hw) / d2r; attitude = pitch - ${SKIM_NOSE};
   } else if (scn === 'ramp' && ((R.kind || 'house') === 'house' || pitch < 8 || R.hw >= 3.5)) {
     /* Level with the roof's plane, the way a pilot meets a ramp (on a
      * roof as near flat as the bus shelter's, a skim onto it), on any

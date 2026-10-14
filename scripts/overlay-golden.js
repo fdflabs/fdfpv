@@ -152,9 +152,9 @@ function take(node) {
 const { Ui } = await import('../src/ui/ui.js');
 const { el, makeGimbal, makeWeightSlider } = await import('../src/ui/widgets.js');
 const { DEFAULTS, SETTINGS_KEY, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK } = await import('../src/ui/settings.js');
-const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/session.js');
+const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/trackseat.js');
 const { MAPS } = await import('../src/maps/registry.js');
-const { useLocale } = await import('../src/strings/index.js');
+const { currentLocale, useLocale } = await import('../src/strings/index.js');
 const { StickRef } = await import('../src/ui/stickref.js');
 const { COLUMNS } = await import('../src/share/controlrec.js');
 
@@ -575,6 +575,18 @@ async function snapshot() {
     out.calNoAxes = call(ui, 'setCalAxes', [{ i: 0, v: 0 }]);
     ui.calPrompt = null;
     out.calNoPrompt = call(ui, 'setCalibration', { stepIndex: 0 });
+  });
+
+  /* The step list drawn, the language switched under it, and drawn again
+   * with the same view: the words must be the new language's, since the
+   * page draws the list long after this module loaded. */
+  out.calSwitch = await scenario(async (ui, step) => {
+    const was = currentLocale();
+    const view = { stepIndex: 2, stepCount: 8, step: 'throttle', title: 'Throttle', prompt: 'p', hint: 'h', axes: [] };
+    call(ui, 'setCalibration', view); step(`drawn in ${was}`, { list: ui.calList });
+    await useLocale(was === 'en' ? 'es' : 'en');
+    call(ui, 'setCalibration', view); step(`drawn again in ${currentLocale()}`, { list: ui.calList });
+    await useLocale(was);
   });
 
   out.stickMode = await scenario((ui, step) => {

@@ -47,49 +47,66 @@ running: until then this script's WebAssembly wrapper kept the flood
 from starting in every run of it (`[flood] could not start`), so the
 first Itaipu numbers had no water simulation in them.
 
+The GPU columns (floor, median, frame average and 95th percentile, card
+busy and host load) were retaken on GPU 1 on 2026-10-13 between 20:37
+and 21:01 local, on batch/2026-10-14 at 53b54b250, through run-check.sh
+(each run's nvidia-smi saw one card, so none fell back to GPU 0), the
+same run settings, each row flown twice and the run that opened on the
+quieter card kept (the lower busy share, then the lower frame average).
+The two runs' floors agreed within 0.05 ms on every row. Draw calls,
+triangles and live textures were read again in the same runs and did
+not move past their ceilings: calls within 2 of the table, triangles
+within 0.04 M (alps-low 1.28 and 2.40 M against 1.26 and 2.37,
+swiss-low at High 348 calls and 3.81 M against 350 and 3.77), textures
+equal, so those columns are left as they were measured.
+
 Held, `measured (<= ceiling)`: draw calls and triangles, the most in any
 frame; live textures (the renderer's own count, `renderer.info.memory`:
 three counts textures, not their bytes, so no texture megabytes are
 written); the GPU floor (each GPU segment's tenth percentile, summed:
 the frame's own GPU cost with the least of anyone else's in it). Calls,
-triangles and textures are held at the measurement plus 15 %; the GPU
-floor at half again or 0.5 ms more, whichever is larger, because the card
-is shared.
+triangles and textures are held at the measurement plus 15 %, and so is
+the GPU floor since it was taken on GPU 1, rounded up at the second
+decimal, with the date of the measurement beside it. Until then the floor
+was held at half again or 0.5 ms more, because GPU 0 is the owner's
+desktop card; GPU 1 carries only the checks, one at a time per lane.
 
 Written, never held: the GPU median and the frame's average and 95th
-percentile. **These frame times are contaminated.** Six lanes' headless
-browsers shared GPU 0 while they were taken (its busy share, sampled as
-each run opened, is beside them) on a host at load average 7 to 37 of 20
-threads; alps-low at Low read 49 ms a frame with the card 100 % busy
-where an earlier run with it 25 % busy read 6.1. docs/PERF.md's rule
-applies: a frame time is only a baseline taken on a quiet card. Retake
-this column on one before reading it as the game's.
+percentile, with GPU 1's busy share sampled as the run opened (8 to
+55 %; this run's own previous scenario is in it) and the host's load
+average beside them. The first table's frame times, taken on GPU 0 while
+six lanes' headless browsers shared it at load average 7 to 37, were
+contaminated (alps-low at Low read 49 ms a frame with the card 100 %
+busy) and are replaced; docs/PERF.md's rule still applies: a frame time
+is only a baseline taken on a quiet card, and a number from before the
+switch is GPU 0's (docs/PERF.md, Comparing numbers across the GPU 1
+switch).
 
 Over the written contract is at High only, where the contract is
 written: the main view's 300 calls and 2.5 M triangles (4.0 M at Itaipu)
 and the inset's 110 calls and 1.9 M (The contract, below), and an 8 ms
 GPU floor (docs/PERF.md, proposed budgets).
 
-| Row | Tier | Draw calls | Triangles, M | Live textures | GPU floor, ms | GPU median, ms | Frame avg / p95, ms | GPU 0 busy, host load | Over the written contract |
+| Row | Tier | Draw calls | Triangles, M | Live textures | GPU floor, ms | GPU median, ms | Frame avg / p95, ms | GPU 1 busy, host load | Over the written contract |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `title` | low | 118 (<= 136) | 0.68 (<= 0.78) | 5 (<= 6) | 0.61 (<= 1.2) | 1.0 | 1.8 / 4.0 | 38 %, 24 | within |
-| `title` | medium | 275 (<= 317) | 1.65 (<= 1.91) | 7 (<= 9) | 0.71 (<= 1.3) | 2.9 | 5.1 / 12.7 | 99 %, 27.7 | within |
-| `title` | high | 288 (<= 332) | 1.65 (<= 1.91) | 18 (<= 21) | 1.39 (<= 2.1) | 3.0 | 4.7 / 9.3 | 24 %, 34.2 | within |
-| `alps-low` | low | 167 (<= 193) | 1.26 (<= 1.46) | 9 (<= 11) | 1.08 (<= 1.7) | 8.1 | 49.3 / 74.4 | 100 %, 26.8 | within |
-| `alps-low` | medium | 280 (<= 322) | 2.37 (<= 2.73) | 11 (<= 13) | 1.18 (<= 1.8) | 2.5 | 11.2 / 17.9 | 84 %, 26.8 | within |
-| `alps-low` | high | 293 (<= 337) | 2.37 (<= 2.73) | 22 (<= 26) | 1.33 (<= 2.0) | 2.2 | 5.9 / 12.4 | 21 %, 30.8 | within |
-| `swiss-low` | low | 181 (<= 209) | 1.62 (<= 1.87) | 66 (<= 76) | 3.48 (<= 5.3) | 4.8 | 9.5 / 18.2 | 51 %, 31.4 | within |
-| `swiss-low` | medium | 244 (<= 281) | 2.39 (<= 2.75) | 74 (<= 86) | 5.66 (<= 8.5) | 14.4 | 27.9 / 40.5 | 95 %, 24.3 | within |
-| `swiss-low` | high | 350 (<= 403) | 3.77 (<= 4.35) | 86 (<= 99) | 7.13 (<= 10.7) | 8.9 | 14.0 / 23.5 | 58 %, 36.8 | within: main view 242 calls, 2.41 M; inset 106, 1.40 M |
-| `itaipu-stream` | low | 129 (<= 149) | 1.80 (<= 2.08) | 67 (<= 78) | 2.02 (<= 3.1) | 7.7 | 26.2 / 66.2 | 100 %, 31.9 | within |
-| `itaipu-stream` | medium | 198 (<= 228) | 3.05 (<= 3.51) | 75 (<= 87) | 2.70 (<= 4.1) | 4.5 | 9.0 / 19.7 | 72 %, 20 | within |
-| `itaipu-stream` | high | 253 (<= 291) | 5.65 (<= 6.50) | 87 (<= 101) | 3.29 (<= 5.0) | 8.7 | 14.1 / 19.2 | 76 %, 15.3 | within: main view 156 calls, 3.83 M (<= 4.0 M); inset 97, 1.87 M |
-| `interior-ops` | low | 99 (<= 114) | 0.54 (<= 0.62) | 29 (<= 34) | 1.83 (<= 2.8) | 6.3 | 7.6 / 8.7 | 64 %, 12.1 | within |
-| `interior-ops` | medium | 106 (<= 122) | 0.57 (<= 0.66) | 36 (<= 42) | 1.97 (<= 3.0) | 11.1 | 18.8 / 32.4 | 55 %, 23.4 | within |
-| `interior-ops` | high | 125 (<= 144) | 0.57 (<= 0.67) | 48 (<= 56) | 2.29 (<= 3.5) | 9.1 | 16.4 / 37.5 | 67 %, 7.5 | within |
-| `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.01 (<= 1.6) | 2.6 | 5.4 / 11.6 | 60 %, 23.9 | within |
-| `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.44 (<= 2.2) | 3.9 | 10.5 / 16.0 | 77 %, 15 | within |
-| `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.78 (<= 2.7) | 4.2 | 12.6 / 24.5 | 38 %, 12.8 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M |
+| `title` | low | 118 (<= 136) | 0.68 (<= 0.78) | 5 (<= 6) | 0.30 (<= 0.35) 2026-10-13 | 0.3 | 0.7 / 1.3 | 8 %, 2.2 | within |
+| `title` | medium | 275 (<= 317) | 1.65 (<= 1.91) | 7 (<= 9) | 0.68 (<= 0.79) 2026-10-13 | 1.0 | 1.3 / 1.9 | 11 %, 2.4 | within |
+| `title` | high | 288 (<= 332) | 1.65 (<= 1.91) | 18 (<= 21) | 0.80 (<= 0.92) 2026-10-13 | 1.1 | 1.4 / 2.1 | 18 %, 2.2 | within |
+| `alps-low` | low | 167 (<= 193) | 1.26 (<= 1.46) | 9 (<= 11) | 0.69 (<= 0.80) 2026-10-13 | 0.8 | 1.8 / 3.2 | 23 %, 2.5 | within |
+| `alps-low` | medium | 280 (<= 322) | 2.37 (<= 2.73) | 11 (<= 13) | 1.09 (<= 1.26) 2026-10-13 | 1.3 | 2.5 / 4.1 | 23 %, 2.3 | within |
+| `alps-low` | high | 293 (<= 337) | 2.37 (<= 2.73) | 22 (<= 26) | 1.21 (<= 1.40) 2026-10-13 | 1.5 | 2.7 / 4.6 | 23 %, 2.3 | within |
+| `swiss-low` | low | 181 (<= 209) | 1.62 (<= 1.87) | 66 (<= 76) | 3.00 (<= 3.45) 2026-10-13 | 3.3 | 4.8 / 8.2 | 37 %, 2.4 | within |
+| `swiss-low` | medium | 244 (<= 281) | 2.39 (<= 2.75) | 74 (<= 86) | 4.72 (<= 5.43) 2026-10-13 | 5.3 | 7.1 / 11.9 | 41 %, 2.4 | within |
+| `swiss-low` | high | 350 (<= 403) | 3.77 (<= 4.35) | 86 (<= 99) | 6.75 (<= 7.77) 2026-10-13 | 7.5 | 9.7 / 11.7 | 55 %, 2.4 | within: main view 242 calls, 2.41 M; inset 106, 1.40 M |
+| `itaipu-stream` | low | 129 (<= 149) | 1.80 (<= 2.08) | 67 (<= 78) | 1.51 (<= 1.74) 2026-10-13 | 2.9 | 4.4 / 8.5 | 28 %, 3.8 | within |
+| `itaipu-stream` | medium | 198 (<= 228) | 3.05 (<= 3.51) | 75 (<= 87) | 2.15 (<= 2.48) 2026-10-13 | 3.7 | 5.8 / 10.7 | 24 %, 3.8 | within |
+| `itaipu-stream` | high | 253 (<= 291) | 5.65 (<= 6.50) | 87 (<= 101) | 3.07 (<= 3.54) 2026-10-13 | 5.1 | 7.1 / 12.0 | 30 %, 4.8 | within: main view 156 calls, 3.83 M (<= 4.0 M); inset 97, 1.87 M |
+| `interior-ops` | low | 99 (<= 114) | 0.54 (<= 0.62) | 29 (<= 34) | 1.44 (<= 1.66) 2026-10-13 | 5.8 | 7.1 / 8.4 | 26 %, 3.8 | within |
+| `interior-ops` | medium | 106 (<= 122) | 0.57 (<= 0.66) | 36 (<= 42) | 1.66 (<= 1.91) 2026-10-13 | 5.2 | 6.7 / 7.3 | 36 %, 1.9 | within |
+| `interior-ops` | high | 125 (<= 144) | 0.57 (<= 0.67) | 48 (<= 56) | 1.97 (<= 2.27) 2026-10-13 | 5.9 | 7.1 / 7.7 | 34 %, 2.4 | within |
+| `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 0.91 (<= 1.05) 2026-10-13 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within |
+| `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.35 (<= 1.56) 2026-10-13 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within |
+| `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.67 (<= 1.93) 2026-10-13 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M |
 
 The draw calls of `title` and `alps-low` at every tier were retaken on
 2026-10-13 after the Alps' draws were merged (branch w38-perf: the
@@ -97,7 +114,8 @@ village's plain colours one palette mesh, the road, lane and stream
 ribbons by material, the boulders one instanced mesh a band, the flowers
 one palette instanced mesh), the same run settings, and their ceilings
 moved down to them; at High the menu went from 397 to 288 and alps-low
-from 390 to 293. Their other columns are the first run's.
+from 390 to 293. Their triangles and textures are the first run's,
+their GPU columns GPU 1's.
 
 The ceilings above hold today's whole frame cost from growing; whether
 a row is within the contract is the last column, read against the
@@ -179,6 +197,7 @@ run-check.sh draws a SIM_GPU check on the second card, GPU 1 (PCI
 owner, since 2026-10-13 (a bwrap that leaves only GPU 1's device, from
 14:23; it falls back to GPU 0 when GPU 1 is absent or short of memory).
 Numbers taken before then are GPU 0's: pass `CHECK_GPU=0` to compare
-with them on the same card. Every GPU floor ceiling in the table was set
-on GPU 0, a shared card, so the column is to be re-based on a GPU 1 run
-of all eighteen rows before it is read as a ceiling for GPU 1.
+with them on the same card. The GPU floor ceilings were re-based on a
+GPU 1 run of all eighteen rows on 2026-10-13 (above), so a run that fell
+back to GPU 0 is held to GPU 1's ceilings; read run-check's `on GPU 0`
+line before reading a floor failure as a regression.

@@ -400,10 +400,10 @@ export default {
       "livery.scheme.tigermoth1803.raf_silver": "RAF post war silver, yellow trainer bands"
     },
     "es": {
-      "carousel.note.tigermoth1803": "El entrenador de de Havilland de los años 30, un biplano a escala. Lento y noble, pero sus alerones lo guiñan al revés: vuélalo con el timón de dirección.",
+      "carousel.note.tigermoth1803": "El entrenador de de Havilland de los años 30, un biplano a escala. Lento y noble, pero sus alerones le dan yaw al revés: vuélalo con el timón de dirección.",
       "power.tigermoth.stock": "O.S. 61FX de dos tiempos, 12 x 6 (de serie)",
       "power.tigermoth.fs91": "O.S. FS-91 II Surpass de cuatro tiempos, 14 x 7",
-      "airframe.blurb.tigermoth1803": "El Tiger Moth de Great Planes, 71 pulgadas de biplano de Havilland DH.82A a escala en amarillo Cub con capó negro, con un dos tiempos O.S. .61. El entrenador de los años treinta: lento y noble, su ala de arriba entra en pérdida primero y la nariz cae, pero sus alerones en el ala de abajo lo guiñan hacia el lado contrario, y cada viraje pide el timón con ellos.",
+      "airframe.blurb.tigermoth1803": "El Tiger Moth de Great Planes, 71 pulgadas de biplano de Havilland DH.82A a escala en amarillo Cub con capó negro, con un dos tiempos O.S. .61. El entrenador de los años treinta: lento y noble, su ala de arriba entra en pérdida primero y la nariz cae, pero sus alerones en el ala de abajo le dan yaw hacia el lado contrario, y cada viraje pide el timón con ellos.",
       "livery.scheme.tigermoth1803.stock": "Amarillo Cub de Great Planes, capó negro",
       "livery.scheme.tigermoth1803.raf_silver": "Plata de la RAF de posguerra, bandas amarillas de entrenador"
     }

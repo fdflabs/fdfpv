@@ -233,7 +233,7 @@
          ],
          "kids": [
           {
-           "t": "Acelerador"
+           "t": "Throttle"
           }
          ]
         },
@@ -4583,7 +4583,7 @@
                ],
                "kids": [
                 {
-                 "t": "Alabeo"
+                 "t": "Roll"
                 }
                ]
               }
@@ -4621,7 +4621,7 @@
                ],
                "kids": [
                 {
-                 "t": "Cabeceo"
+                 "t": "Pitch"
                 }
                ]
               }
@@ -4659,7 +4659,7 @@
                ],
                "kids": [
                 {
-                 "t": "Guiñada"
+                 "t": "Yaw"
                 }
                ]
               }
@@ -4689,7 +4689,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Alabeo"
+                 "t": "Roll"
                 }
                ]
               },
@@ -4717,7 +4717,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Cabeceo"
+                 "t": "Pitch"
                 }
                ]
               },
@@ -4745,7 +4745,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Guiñada"
+                 "t": "Yaw"
                 }
                ]
               },
@@ -9191,7 +9191,7 @@
          ],
          "kids": [
           {
-           "t": "Acelerador"
+           "t": "Throttle"
           }
          ]
         },
@@ -13541,7 +13541,7 @@
                ],
                "kids": [
                 {
-                 "t": "Alabeo"
+                 "t": "Roll"
                 }
                ]
               }
@@ -13579,7 +13579,7 @@
                ],
                "kids": [
                 {
-                 "t": "Cabeceo"
+                 "t": "Pitch"
                 }
                ]
               }
@@ -13617,7 +13617,7 @@
                ],
                "kids": [
                 {
-                 "t": "Guiñada"
+                 "t": "Yaw"
                 }
                ]
               }
@@ -13647,7 +13647,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Alabeo"
+                 "t": "Roll"
                 }
                ]
               },
@@ -13675,7 +13675,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Cabeceo"
+                 "t": "Pitch"
                 }
                ]
               },
@@ -13703,7 +13703,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Guiñada"
+                 "t": "Yaw"
                 }
                ]
               },

@@ -1,10 +1,10 @@
 /*
  * rooms-safety-two-page.js: Phase 5's check in the real shell, two
- * headless pages against a running rooms Worker with public rooms open
- * (docs/MULTIPLAYER-PLAN.md section 9). By hand:
+ * headless pages on a rooms server of its own (tests/lib/roomsserver.js,
+ * public rooms open), or the one named (docs/MULTIPLAYER-PLAN.md
+ * section 9):
  *
- *   npx wrangler dev --config edge/rooms/wrangler.toml --port 8851 --var PUBLIC_ROOMS:on
- *   node scripts/rooms-safety-two-page.js http://127.0.0.1:8851 [outdir]
+ *   node scripts/rooms-safety-two-page.js [rooms-url] [outdir]
  *
  * Page A is in English and flies a Cub, page B in Spanish and flies a
  * P-51. Neither has a code: both press "Join a public room" on the Swiss
@@ -42,9 +42,9 @@ import { airframeById } from '../configs/airframes.js';
 import { CHAT_PRESETS, EMOTES } from '../src/share/roomwire.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rooms = process.argv[2] || 'http://127.0.0.1:8851';
 const outDir = process.argv[3] || join(root, 'build', 'rooms-safety');
 
 let failed = 0;
@@ -85,6 +85,8 @@ async function shot(page, name) {
 }
 
 const heard = (page) => page.evaluate('window.__rooms().heard');
+const server = await roomsServer(process.argv[2], 'rooms-safety');
+const rooms = server.url;
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 const nice = CHAT_PRESETS.indexOf('nice_flying');
 const hello = CHAT_PRESETS.indexOf('hello');
@@ -219,6 +221,7 @@ try {
 } finally {
   await a.close();
   await b.close();
+  await server.stop();
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

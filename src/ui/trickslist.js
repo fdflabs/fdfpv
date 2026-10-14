@@ -62,7 +62,7 @@ export function trickStatus(t) {
   if (landed >= runs) {
     return {
       tag: str('ui.reliable'),
-      line: str('ui.scored_on_all_test_flights_across', { runs }) + str('ui.angles_and_three_degrees_of_overshoot'),
+      line: str('ui.scored_on_all_test_flights_across', { runs }),
     };
   }
   return {
