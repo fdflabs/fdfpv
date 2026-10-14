@@ -95,7 +95,7 @@ function lint(mission) {
   if (ids.size !== stages.length) {
     out.push('two stages share an id');
   }
-  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'held', 'visited', 'all', 'any'];
+  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'held', 'visited', 'contained', 'all', 'any'];
   /* A target spec's ids: a working set's every target it may draw. */
   const targetsOf = (spec, where) => {
     if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
@@ -731,6 +731,30 @@ function warRoom(mission, { n = 2, seed = 0.25, dev = false } = {}) {
   return env;
 }
 
+/* How long the face's closures held a bot game's stages past their last
+ * attacker, ms (MISSIONS.md 1.9 point 4: a stage waits for its closure),
+ * time a mission's pacing does not set: its estimatedMinutes leave it
+ * out. */
+function closureWait(g) {
+  const end = g.views.at(-1);
+  const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
+  const entries = [];
+  for (const v of g.views) {
+    if (v.stage && entries.at(-1)?.at !== v.stage.at) {
+      entries.push({ at: v.stage.at });
+    }
+  }
+  return entries.reduce((sum, x, k) => {
+    const until = entries[k + 1]?.at ?? end.endAt;
+    const held = g.cues.filter((c) => c.radio === 'contain-held' && c.at >= x.at && c.at <= until).map((c) => c.at);
+    if (!held.length) {
+      return sum;
+    }
+    const gone = g.dead.filter((m) => m.at >= x.at && m.at <= until && m.ids.some((id) => kinds.get(id) !== 'scout')).map((m) => m.at);
+    return sum + Math.max(0, Math.max(...held) - Math.max(x.at, ...gone));
+  }, 0);
+}
+
 /* What client i was told of the war, as text: the game, message for
  * message. */
 const told = (env, i = 0) => env.socks[i].got.filter((m) => m && m.type === 'war').map((m) => JSON.stringify(m));
@@ -1014,6 +1038,49 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   d.fly(GO + 20000);
   check('no closure without the mission\'s contain, nor for the yard', c.view().state === 'won' && d.view().state === 'won' && !c.of(0, 'cue').length && !d.of(0, 'cue').length,
     `${c.view().state} ${d.view().state}`);
+}
+
+console.log('the room: The Long Night\'s exits wait for a closure too (MISSIONS.md 1.9 point 4)');
+{
+  /* Hunters and Before Dawn end on their groups gone, not `cleared`, so
+   * each holds its own exit for a closure ({ contained: true }). Each is
+   * played from its own entry, M4's stage as written with the stages it
+   * exits to, no floor (the squad far off, everything gets through); a
+   * gate opened a minute in closes 150 s later, after HUNT_S, and the
+   * same stage with no Contain leaves before that. */
+  const m4 = MISSIONS['itaipu-4'];
+  const from = (id, contain) => {
+    const stages = stagesOf(m4);
+    const i = stages.findIndex((x) => x.id === id);
+    return {
+      ...m4, id: `m4-${id}-${contain ? 'contain' : 'plain'}`, floorMw: 0, contain: contain ? m4.contain : undefined, stages: stages.slice(i),
+    };
+  };
+  const play = (id, contain) => {
+    const e = warRoom(from(id, contain));
+    while (e.view().state !== 'live') {
+      e.fly(e.clock + 500);
+    }
+    const go = e.view().goAt;
+    e.fly(go + 900);
+    e.r.war.breach('gate-3', go + 60000);
+    e.fly(go + 600000);
+    const left = e.r.war.log.find((x) => x.what === 'stage' && x.stage === id);
+    const held = e.of(0, 'cue').flatMap((m) => m.cues).filter((c) => c.radio === 'contain-held').map((c) => c.at);
+    return {
+      e, left: left && { ...left, t: left.t - go }, held: held.map((t) => t - go),
+    };
+  };
+  for (const id of ['hunters', 'before-dawn']) {
+    const c = play(id, true);
+    const p = play(id, false);
+    const last = c.held.length ? Math.max(...c.held) : null;
+    check(`${id}: under a closure its exit waits for the last hold, and without one leaves before the gate's (${p.left && p.left.t} ms, ${c.left && c.left.t} ms)`,
+      c.left && p.left && c.held.includes(210000) && c.left.t === last && p.left.t < 210000 && c.left.exit === 0 && p.left.exit === 0,
+      `${JSON.stringify(c.left)} ${JSON.stringify(p.left)} ${JSON.stringify(c.held)}`);
+  }
+  const dawn = play('before-dawn', true).e.view();
+  check('before-dawn: the mission is won only at the hold', dawn.state === 'won' && dawn.why === 'waves', `${dawn.state} ${dawn.why}`);
 }
 
 console.log('the room: a hold that starts when the pilots reach a place');
@@ -1382,26 +1449,7 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
    * (MISSIONS.md 1.9 point 4: a stage waits for its closure), which is
    * time the mission's pacing does not set: shown on its own line. */
   const [lo, hi] = mission.estimatedMinutes;
-  const waitOf = (g) => {
-    const end = g.views.at(-1);
-    const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
-    const entries = [];
-    for (const v of g.views) {
-      if (v.stage && entries.at(-1)?.at !== v.stage.at) {
-        entries.push({ at: v.stage.at });
-      }
-    }
-    return entries.reduce((sum, x, k) => {
-      const until = entries[k + 1]?.at ?? end.endAt;
-      const held = g.cues.filter((c) => c.radio === 'contain-held' && c.at >= x.at && c.at <= until).map((c) => c.at);
-      if (!held.length) {
-        return sum;
-      }
-      const gone = g.dead.filter((m) => m.at >= x.at && m.at <= until && m.ids.some((id) => kinds.get(id) !== 'scout')).map((m) => m.at);
-      return sum + Math.max(0, Math.max(...held) - Math.max(x.at, ...gone));
-    }, 0);
-  };
-  const waits = games.map((g) => waitOf(g) / 60000);
+  const waits = games.map((g) => closureWait(g) / 60000);
   const minutes = games.map((g, k) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000 - waits[k]);
   console.log(`    minutes the closures held a stage: ${waits.map((x) => x.toFixed(1)).join(' ')}`);
   check(`every won game ends ${lo} to ${hi} minutes after the go, the closures' waits apart`, minutes.every((x) => x >= lo && x <= hi),
@@ -1720,10 +1768,14 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   check('over the ten games both twists are met', twists.size === 2, [...twists].join(','));
   check('in the bot games too, Before Dawn flies exactly unless the night\'s Scout was killed', bad.filter((x) => /scout/.test(x)).length === 0,
     bad.filter((x) => /scout/.test(x)).join(' | '));
+  /* As the Spillway's, the closures' waits apart: Hunters and Before
+   * Dawn wait for a closure too ({ contained: true }). */
   const [lo, hi] = mission.estimatedMinutes;
-  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
-  console.log(`    minutes from the go to the end: ${minutes.map((x) => x.toFixed(1)).join(' ')}`);
-  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+  const waits = games.map((g) => closureWait(g) / 60000);
+  const minutes = games.map((g, k) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000 - waits[k]);
+  console.log(`    minutes from the go to the end: ${games.map((g) => ((g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000).toFixed(1)).join(' ')}`);
+  console.log(`    minutes the closures held a stage: ${waits.map((x) => x.toFixed(1)).join(' ')}`);
+  check(`every won game ends ${lo} to ${hi} minutes after the go, the closures' waits apart`, minutes.every((x) => x >= lo && x <= hi),
     minutes.map((x) => x.toFixed(1)).join(' '));
 
   /* Nobody shooting: the intakes fall stage by stage until the output is

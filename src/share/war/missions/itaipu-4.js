@@ -259,9 +259,10 @@ export default withWaves({
        * HUNT_S have passed. A Hunter lives until it is killed (warhunt.js
        * steers it home when it has nobody to chase), so a stage that
        * waited for every one of them to die would never end for a squad
-       * that kept away from them. */
+       * that kept away from them. Not while the face is closing
+       * (MISSIONS.md 1.9 point 4): it waits for the closure's hold. */
       exits: exits({
-        all: [{ gone: { group: 'cover' } }, { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] }],
+        all: [{ gone: { group: 'cover' } }, { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] }, { contained: true }],
       }, { pick: ['towns', 'dark-scout'] }, BEAT(15, 15)),
     },
     {
@@ -347,11 +348,13 @@ export default withWaves({
       ],
       /* The last: lost or held, the mission is won if the output is still
        * over the floor when it ends (as First Light's). Its Hunters, as
-       * stage 3's, end it when they are down or HUNT_S have passed. */
+       * stage 3's, end it when they are down or HUNT_S have passed, and
+       * a closure running holds it as stage 3's. */
       exits: exits({
         all: [
           ...['boats', 'high', 'face', 'swarm'].map((group) => ({ gone: { group } })),
           { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] },
+          { contained: true },
         ],
       }, 'won', 0, 'waves'),
     },

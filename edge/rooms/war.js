@@ -2186,6 +2186,11 @@ export class RoomWar {
       cleared: !m.agents.some((a) => a.kind !== 'scout') && !containOpen(m.contain, f),
       lastGone: held == null ? m.lastGone : Math.max(m.lastGone ?? held, held),
       allOut: here.length > 0 && !here.some((seat) => this.stillFlying(seat, roomNow)),
+      /* { contained: true }: no closure open, since the last was held
+       * (or the entry): an exit that is not a loss waits on it where it
+       * does not wait on `cleared` (The Long Night's, which end on their
+       * groups gone). */
+      trigger: (trig) => (trig.contained ? (containOpen(m.contain, f) ? null : Math.max(st.at, held ?? st.at)) : undefined),
     };
   }
 
