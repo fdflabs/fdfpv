@@ -229,7 +229,7 @@ event lands differently in each.
 | 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
 | 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
-| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 12 to 16 min |
+| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 15 min |
 | 5 | itaipu-5 | The River Below | Day 2, morning | a new axis; the carrier | 11 to 15 min |
 | 6 | itaipu-6 | The Corridor | Day 2, dusk | towers; spotters; split the squad | 12 to 16 min |
 | 7 | itaipu-7 | Breach | Day 3, before dawn | breachers; the dam opens, or does not | 14 to 20 min |
@@ -262,15 +262,15 @@ branch w39-mission-3):
 
 | Piece | 1 First Light | 2 The Spillway | 3 | 4 |
 | --- | --- | --- | --- | --- |
-| Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | 4 stages and 3 twists, 4 titles | old rounds, no titles |
-| Objectives on the HUD, en and es | 7 | 9 | 6 (the reroute a 240 s hold) | none |
-| Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | 23 `itaipu-3-*` ids, all voiced; DESPACHO's first lines | the old 2 brief and 2 debrief lines |
-| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | none |
-| Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | yes | no |
+| Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | 4 stages and 3 twists, 4 titles | 5 stages and 2 twists, 5 title keys |
+| Objectives on the HUD, en and es | 7 | 9 | 6 (the reroute a 240 s hold) | 6, and STAND BY over stage 1 |
+| Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | 23 `itaipu-3-*` ids, all voiced; DESPACHO's first lines | 22 story ids and 2 debriefs, all voiced en and es (31 with the guide) |
+| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | 7 `itaipu-4-g-*` |
+| Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | yes | yes |
 | Briefing facts (title, line, first objective, map, aircraft, length, pilots, room) | all (briefing.js) | all | all; length 12 to 15 min, measured | all |
-| Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | `lights-out`, `lights-out-outro` | none |
-| Win and lose debrief lines | voiced | voiced | voiced, new text (the loss DESPACHO's) | voiced (old ids) |
-| Seeded sectors and routes | yes; war:routes PASS | yes | yes (NW, LINES, HIGH, N); war:routes PASS | the drill's |
+| Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | `lights-out`, `lights-out-outro` | `long-night`, `long-night-outro` |
+| Win and lose debrief lines | voiced | voiced | voiced, new text (the loss DESPACHO's) | voiced (rewritten to M4) |
+| Seeded sectors and routes | yes; war:routes PASS | yes | yes (NW, LINES, HIGH, N); war:routes PASS | yes; war:routes PASS |
 | Consent before the first war room | `war.consent_*`, en and es (every war mission) | same | same | same |
 | If the face opens (1.9 Contain) and the `-op` line | not built: see below | not built | not built | not built |
 
@@ -278,6 +278,12 @@ Mission 3 also lacks what the world does not do yet, so its lines do not
 claim it: the light falling across the mission (T1.11; it plays at
 `golden`), districts coming back after the reroute (T1.10), and spotting
 (T1.8). Its release stays `development` (the owner's gate).
+
+Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
+war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
+war:cards, briefing:selftest, rooms:selftest, voice:check, films:lint and
+films:time green there. Not built in it: twist A (Station dark) and the
+dawn ramp, M4 below. Its release stays `development` (the owner's gate).
 
 Checks on the tree above, all green: war:stages 106/0, war:routes PASS,
 war:radio 63/0, war:cards 13/0, briefing:selftest 54/0, campaign:selftest
@@ -798,6 +804,31 @@ Aguanten hasta el amanecer."
 | 3 | Hunters | beat 15 s | survive: protect(intakes) | Hunters, 1 + 0.5/pilot, out of the gorge; Strikers from N at `enter+[20,35]` as cover | `cleared` |
 | 4 | The Turn (twist) | beat 15 s | the twist's | A, B or C | `cleared` |
 | 5 | Before Dawn | beat 20 s | protect(all) | convergence on N and WATER and GORGE, with Hunters; dawn rises across it | `cleared` |
+
+Built 14 October, against the code (war:stages flies it on the room):
+
+- **Stages 3 and 5 end on time, not on the Hunters.** A Hunter lives
+  until it is killed (the room steers it home when it has nobody to
+  chase), so on `cleared` a squad that kept away from them never left
+  stage 3: with nobody shooting, the room was still live 30 minutes in.
+  Each now ends when its other groups are gone and its Hunters are down
+  or 150 s have passed.
+- **Twist C's stage waits for the Scout**, as First Light's Eyes: down,
+  gone home or 80 s. Ending on its cover took the Scout with it before a
+  pilot could climb to it. The Scout is the mission's only one, so the
+  room's own rule (a scout alive or gone home, every wave exact; killed,
+  each attacker draws its error) is the twist: war:stages holds it both
+  ways.
+- **Twist A is not built.** Station dark needs a stage field the room's
+  births read (error as if a Scout were dead) and a station lights switch
+  in the night look; neither exists, so the seed draws B or C.
+- **No dawn.** The world is night to the end (T1.11 not built). The lines
+  that would say otherwise are said otherwise: no "sky going grey", and
+  no boat, Scout or bird "with no lights", since every attacker wears its
+  nav lights at night (src/render/attackers.js). lines.json's notes say
+  which.
+- **Length** 11 to 15 minutes: ten good bot games end 11.0 to 14.9
+  minutes after the go.
 
 ### The twist (stage 4)
 
