@@ -399,8 +399,6 @@
     "slick:record": "node scripts/wing-record.js slick",
     "slick:derive": "node scripts/slick-derive.js",
     "slick:figures": "node scripts/figures-plant-check.js --plane slick",
-    "stab:hold": "node scripts/stab-hold-derive.js --check",
-    "stab:straight": "node scripts/stab-straight-derive.js --check",
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "servo:derive": "node scripts/servo-derive.js --check",
     "as3x:margins": "node scripts/as3x-margins.js --check",
