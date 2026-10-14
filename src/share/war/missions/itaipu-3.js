@@ -135,6 +135,14 @@ function reroute(id, twist, objective, cues) {
       id: 'twist', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { leaked: 1, group: 'twist' }, ...objective,
     }],
     cues: [
+      { at: 1, radio: 'itaipu-3-s3-despacho' },
+      { when: { held: 'reroute', f: 0.5 }, radio: 'itaipu-3-s3-half' },
+      /* Held with the yard standing, or held with it already down (it
+       * fell before the stage, so nothing could fail the hold): nothing
+       * comes back on (TECH-NEEDS T1.10), and the second line says so. */
+      { when: { objective: 'reroute', is: 'done' }, skip: { destroyed: YARD }, radio: 'itaipu-3-s3-done' },
+      { when: { all: [{ objective: 'reroute', is: 'done' }, { destroyed: YARD }] }, radio: 'itaipu-3-s3-down' },
+      { when: { objective: 'reroute', is: 'failed' }, radio: 'itaipu-3-s3-failed' },
       ...cues,
       STAGE_LOST,
     ],
@@ -165,6 +173,7 @@ export default withWaves({
   floorMw: 9700,
   starMw: 12600,
   airframes: 4,
+  radio: { brief: ['itaipu-3-s0-brief', 'itaipu-3-s0-rules'], win: 'debrief-itaipu-3-win', lose: 'debrief-itaipu-3-lose' },
   /* Dusk (MISSIONS.md M3): the light does not fall across the mission
    * yet (TECH-NEEDS T1.11), so the world is built at its fallback. */
   time: 'golden',
@@ -194,6 +203,9 @@ export default withWaves({
       ],
       objectives: [{ id: 'yard', text: 'war.obj.protect_yard', kind: 'protect' }],
       cues: [
+        { when: { born: { group: 'eyes' } }, at: 3, radio: 'itaipu-3-s1-eyes' },
+        { when: { born: { group: 'pair' } }, at: 2, radio: 'itaipu-3-s1-pair' },
+        { when: { cleared: true }, radio: 'itaipu-3-s1-clear' },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'lie', BEAT(12, 12)),
@@ -212,6 +224,10 @@ export default withWaves({
       ],
       objectives: [{ id: 'yard', text: 'war.obj.protect_yard', kind: 'protect' }],
       cues: [
+        { when: { born: { group: 'stream' } }, at: 2, radio: 'itaipu-3-s2-stream' },
+        { when: { born: { group: 'stream' } }, at: 6, radio: 'itaipu-3-s2-why' },
+        { when: { killed: 1, kind: 'decoy' }, radio: 'itaipu-3-s2-wasted' },
+        { when: { cleared: true }, radio: 'itaipu-3-s2-clear' },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, { pick: ['reroute-pack', 'reroute-feint', 'reroute-wires'] }, BEAT(15, 15)),
@@ -223,7 +239,10 @@ export default withWaves({
       {
         when: { born: { group: 'pack' } }, at: [1, 3], kind: 'strike', n: 1, per: 0, route: 'reservoir-west', target: YARD, spread: 40, group: 'twist',
       },
-    ], { text: 'war.obj.itaipu_3.pack' }, []),
+    ], { text: 'war.obj.itaipu_3.pack' }, [
+      { when: { born: { group: 'pack' } }, at: 3, radio: 'itaipu-3-ta-turn' },
+      { when: { born: { group: 'pack' } }, at: 7, radio: 'itaipu-3-ta-why' },
+    ]),
     reroute('reroute-feint', [
       {
         at: [20, 40], kind: 'decoy', n: 3, per: 1, route: { sector: 'NW' }, target: YARD, spread: 60, group: 'noise',
@@ -231,12 +250,18 @@ export default withWaves({
       {
         at: [25, 45], kind: 'strike', n: 1, per: 0.5, route: { sector: 'N' }, target: INTAKES_WEST, spread: 30, group: 'twist',
       },
-    ], { text: 'war.obj.itaipu_3.feint' }, []),
+    ], { text: 'war.obj.itaipu_3.feint' }, [
+      { when: { born: { group: 'twist' } }, radio: 'itaipu-3-tb-turn' },
+      { when: { born: { group: 'twist' } }, at: 4, radio: 'itaipu-3-tb-why' },
+    ]),
     reroute('reroute-wires', [
       {
         at: [20, 40], kind: 'strike', n: 2, per: 0.75, route: 'corridor-west', target: YARD, spread: 25, group: 'twist',
       },
-    ], { text: 'war.obj.itaipu_3.wires' }, []),
+    ], { text: 'war.obj.itaipu_3.wires' }, [
+      { when: { born: { group: 'twist' } }, at: 2, radio: 'itaipu-3-tc-turn' },
+      { when: { born: { group: 'twist' } }, at: 6, radio: 'itaipu-3-tc-why' },
+    ]),
     {
       id: 'dark',
       round: true,
@@ -253,7 +278,11 @@ export default withWaves({
         },
       ],
       objectives: [{ id: 'dark', text: 'war.obj.itaipu_3.dark', kind: 'protect' }],
-      cues: [],
+      cues: [
+        { at: 1, radio: 'itaipu-3-s4-dark' },
+        { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-3-s4-all' },
+        { when: { born: { group: 'high' } }, at: 6, radio: 'itaipu-3-s4-order' },
+      ],
       exits: exits({ cleared: true }, 'won', 0, 'waves'),
     },
   ],

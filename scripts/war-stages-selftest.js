@@ -1304,11 +1304,15 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
   /* MISSIONS.md M3 as the room plays it, as the Spillway's above. */
   const mission = MISSIONS['itaipu-3'];
   const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
-  const TWISTS = ['reroute-pack', 'reroute-feint', 'reroute-wires'];
+  const TWIST = {
+    'reroute-pack': ['itaipu-3-ta-turn', 'itaipu-3-ta-why'], 'reroute-feint': ['itaipu-3-tb-turn', 'itaipu-3-tb-why'], 'reroute-wires': ['itaipu-3-tc-turn', 'itaipu-3-tc-why'],
+  };
+  const TWISTS = Object.keys(TWIST);
   const games = [];
   for (const pilots of [1, 4]) {
     for (const seed of [1, 2, 3, 4, 5]) {
       const views = [];
+      const cues = [];
       const born = [];
       runOne({
         pilots,
@@ -1323,13 +1327,15 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
           }
           if (m.war) {
             views.push({ ...m.war, now });
+          } else if (m.op === 'cue') {
+            cues.push(...m.cues);
           } else if (m.op === 'born') {
             born.push(...m.agents);
           }
         },
       });
       games.push({
-        pilots, seed, views, born,
+        pilots, seed, views, cues, born,
       });
     }
   }
@@ -1355,13 +1361,28 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     if (end.state !== 'won') {
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
-    /* The reroute's hold, settled before the stage leaves, and the
-     * twist's objective on the HUD only once the twist is born. */
+    const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
+    const want = ['itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', 'itaipu-3-s3-despacho', ...TWIST[twist] ?? [], 'itaipu-3-s4-dark', 'itaipu-3-s4-all', 'itaipu-3-s4-order'];
+    const missing = want.filter((id) => !said.includes(id));
+    if (missing.length) {
+      bad.push(`${label}: never said ${missing.join(',')}`);
+    }
+    const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, ids]) => ids).filter((id) => said.includes(id));
+    if (others.length) {
+      bad.push(`${label}: said another twist's ${others.join(',')}`);
+    }
+    /* The reroute's hold, settled before the stage leaves, its end said
+     * once, the right one: held with the yard standing (done), held with
+     * it already down (down), or failed; and the twist's objective on
+     * the HUD only once the twist is born. */
     const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
     const state = inTwist.at(-1)?.stage.objectives.find((o) => o.id === 'reroute')?.state;
-    holds.push(state);
-    if (state !== 'done' && state !== 'failed') {
-      bad.push(`${label}: the hold left ${state}`);
+    const yardDown = Boolean(inTwist[0]?.down?.includes('yard-right'));
+    const ends = said.filter((id) => /^itaipu-3-s3-(done|down|failed)$/.test(id));
+    const told = state === 'failed' ? 'itaipu-3-s3-failed' : yardDown ? 'itaipu-3-s3-down' : 'itaipu-3-s3-done';
+    holds.push(`${state}${yardDown ? '(yard down)' : ''}`);
+    if ((state !== 'done' && state !== 'failed') || ends.join() !== told) {
+      bad.push(`${label}: the hold left ${state}, said ${ends.join(',')}`);
     }
     const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
     const twistBorn = g.born.find((a) => a.wave === twistSi);
@@ -1375,7 +1396,9 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
   console.log(`    holds: ${holds.join(' ')}`);
   check('ten games, 1 and 4 good pilots: Dusk, The Lie, one twist of Reroute, The Dark, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
     bad.filter((x) => /stages|ended/.test(x)).join(' | '));
-  check('the reroute\'s hold settles, held or failed, before its stage ends', bad.filter((x) => /hold/.test(x)).length === 0,
+  check('every stage\'s story said: the scout, the pair, the stream and why, DESPACHO, the twist\'s two lines and no other twist\'s, the dark and its order',
+    bad.filter((x) => /said/.test(x) && !/hold/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold/.test(x)).join(' | '));
+  check('the reroute\'s hold settles, held or failed, before its stage ends, and DESPACHO says which', bad.filter((x) => /hold/.test(x)).length === 0,
     bad.filter((x) => /hold/.test(x)).join(' | '));
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
     bad.filter((x) => /objective/.test(x)).join(' | '));
