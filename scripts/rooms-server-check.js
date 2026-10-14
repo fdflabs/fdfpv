@@ -587,8 +587,10 @@ if (pub.open) {
   pww.ws.close(1000);
   check('both say ready: both are told the five seconds', Boolean(counting && await pw.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt === counting.lobby.countdownAt))),
     JSON.stringify(counting && counting.lobby));
-  check('and the room starts the drill\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'briefing'), 9000)
-    && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'briefing'), 2000)));
+  /* The drill is in no act, so no 2030 film: straight to its countdown
+   * (edge/rooms/gamelobby.js briefed). */
+  check('and the room starts the drill for both on its own, straight to its countdown', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'countdown'), 9000)
+    && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'countdown'), 2000)));
   const unwatchedLine = await lineOf((r) => r.watchers === 0);
   check('and with the watcher gone, watchers 0', unwatchedLine && unwatchedLine.watchers === 0 && unwatchedLine.n === 2, JSON.stringify(unwatchedLine));
   pw.say({ type: 'war', op: 'end' });
