@@ -1307,7 +1307,15 @@ const TARGETS = `(async () => {
       }
       return [(col.fax[best] + col.fbx[best]) / 2, (col.fay[best] + col.fby[best]) / 2, (col.faz[best] + col.fbz[best]) / 2];
     };
-    T.push({ name: 'Friendship Bridge arch rib', at: nearest(1.1), dir: perp(along), expect: 'stopped' });
+    /* The rib is flown into from outside the bridge, inwards. The two ribs
+     * are 9 m apart (bridge.js RIB_OFF), so flown across from the other
+     * one a throw D before the target (9 m at 45 m/s, 14 at 70) starts
+     * inside the other rib or crosses it first: along that line the
+     * colliders' gap is 0 from 8 to 10 m before the target. */
+    const rib = nearest(1.1);
+    const out = perp(along);
+    const inwards = (rib[0] - cx) * out[0] + (rib[2] - cz) * out[2] > 0 ? out.map((q) => -q) : out;
+    T.push({ name: 'Friendship Bridge arch rib', at: rib, dir: inwards, expect: 'stopped' });
     T.push({ name: 'Friendship Bridge column', at: nearest(0.7), dir: perp(along), expect: 'stopped' });
   }
   return JSON.stringify(T);
