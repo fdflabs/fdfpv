@@ -205,16 +205,28 @@ both deterministic and stored:
 
 `war:grid` gains both cases.
 
-**Status, 14 October (w39-daynight):**
+**Status, 14 October (w39-daynight; the restore w40-grid-restore):**
 
-- Restore: **not built**, and left to the grid's lane. `grid.js`
-  `darkFrom` only ever puts a district out, `createGrid` has no restore
-  path, and the room sends no restore event (`edge/rooms` has no
-  `op: 'restore'`). The lights renderer is ready for it: night.js draws
-  each district at whatever level `setPower` hands it, so a grid that
-  brings a district back lights it again (`daytime:ramp` cuts every
-  district at night and gives them back: 36.5 lamp pixels per 10 000,
-  0.3 cut, 37.6 back).
+- Restore: **built**, as a view field, not a room op. A hold objective
+  with `restore: [district ids]` (M3's reroute, `itaipu-3.js`
+  `REROUTED`) feeds those town districts round the switchyard from the
+  room ms it is done (`edge/rooms/war.js` stageStep, the moment its line
+  is cued, not the stage's exit, which also waits on the sky being
+  clear). It is kept on the stage's `path` entry, so a store and a
+  checkpoint restart from a later stage keep it, and the view's
+  `restores` is `[{ at, districts }]`. `grid.js` `changesFrom` keeps a
+  list of changes a district (out, back, out again), `levelOf` reads it:
+  a fed town is no longer put out by the yard, so if it was dark it comes
+  back, in the order named, `CASCADE_MS` (700 ms) apart, each over
+  `FLICKER_MS` (1 800 ms) of the hit's flicker played backwards. A unit
+  lost later still sheds it by its `keep`, and a struck line still cuts
+  it. `darkFrom` is unchanged for its callers. No restore when the hold
+  fails. M6's islanding can use the same field. night.js needed no
+  change: `daytime:ramp` hands the map the grid's own levels for the yard
+  down and then the restore, the four drawn at full level and the other
+  four out, 29.0 lamp pixels per 10 000 to 35.4. Not built: the replay
+  (`src/share/war/world.js` `matchAt`) reads `darkFrom`, so a replayed
+  Lights Out keeps the restored towns dark.
 - Station dark by order: **built**, as a stage field, not a room event.
   A stage with `stationDark: true` gives its attackers their `err` as if
   every scout were dead (`edge/rooms/war.js` births), and the view's
@@ -226,7 +238,11 @@ both deterministic and stored:
   M4's twist A is `itaipu-4.js` `STATION_DARK`, flown by `war:stages`
   both ways, and not yet among the mission's stages: its radio is not
   voiced (MISSIONS.md M4).
-- `war:grid` is unchanged: `grid.js` was not touched.
+- `war:grid` gains the restore (the four back after the reroute, in
+  order, flickering, bit for bit on two screens, a late joiner agreeing,
+  a later unit loss shedding one again), its negative control (a failed
+  reroute brings nothing back) and a reroute held before the yard falls
+  (the four never flicker). `war:stages` flies it on the room.
 
 ### T1.11 Time of day per mission, and across one
 

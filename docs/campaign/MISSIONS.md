@@ -312,8 +312,9 @@ branch w39-mission-3):
 | If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's pause during a closure not built | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced |
 
 Mission 3 also lacks what the world does not do yet, so its lines do not
-claim it: districts coming back after the reroute (T1.10) and spotting
-(T1.8). The light falling across the mission (T1.11) is built since
+claim it: spotting (T1.8). Districts coming back after the reroute
+(T1.10) are built since branch w40-grid-restore; one voiced line
+(`itaipu-3-s3-down`) now says otherwise, see M3's as-built notes. The light falling across the mission (T1.11) is built since
 branch w39-daynight (14 October): see M3's as-built notes for the lines
 that may now say more. Its release stays `development` (the owner's
 gate).
@@ -711,11 +712,22 @@ Built 14 October, against the code (war:stages flies it on the room;
   (routes.js plans), and at one pilot's pace the swarm arrives 201 to
   233 s in. A yard already down when Reroute opens cannot fail the hold;
   DESPACHO then says what is true (`itaipu-3-s3-down`).
-- **Nothing comes back.** T1.10 is not built, so the reroute changes no
-  district and no line says it does; `itaipu-3-s3-back` was not made.
-  When this was written the mission played at `golden` (T1.11's
-  fallback), and stage 4's line says the sun is almost down, not that
-  the towns are lit.
+- **The lights come back, built 14 October (w40-grid-restore, T1.10).**
+  The reroute's hold, once done, feeds four of the right bank's towns
+  round the yard (`itaipu-3.js` `REROUTED`): the half of the eight the
+  yard puts out that the side keeps longest (`grid.js` keep 0.55 and
+  under), so Hernandarias is among them, far from the dam first, the
+  near one last: Ciudad del Este, Hernandarias' far district, Acaray,
+  Hernandarias' south. A yard already down: they come back 700 ms apart,
+  each flickering back over 1.8 s, from the hold's end. A yard standing:
+  nothing changes on screen, and a hit on it in The Dark puts out only
+  the other four. A failed hold restores nothing. The yard's own lights
+  stay out.
+- **A voiced line is now untrue (blocks the release, not the merge).**
+  `itaipu-3-s3-down`, cued when the hold is done with the yard already
+  down, says "What went dark stays dark tonight". It still plays, since
+  voice builds are paused: its replacement is `itaipu-3-s3-back`
+  (proposed below, not recorded), cued in its place.
 - **Dusk into dark, built 14 October (w39-daynight).** Each Reroute
   twist carries `daytime: { to: 'night', ms: HOLD_MS }`: the room's clock
   runs from the golden hour to night over the four minute hold, without
@@ -729,8 +741,12 @@ Built 14 October, against the code (war:stages flies it on the room;
   is the mission lane's).** `itaipu-3-s4-dark` could go back to the
   table's "Lights are on in town." (the towns are lit when The Dark
   opens). `itaipu-3-s2-clear` ("The light's going.") stays true.
-  `itaipu-3-s3-back` and `itaipu-3-s3-down`'s "stays dark" wait on
-  T1.10, which is still the grid's.
+  `itaipu-3-s3-back` replaces `itaipu-3-s3-down` (same cue: the hold
+  done with the yard down), now that T1.10 brings half the right bank
+  back: EN "Reroute complete. Bringing half the right bank back up.
+  Hernandarias last." ES "Terminé de redirigir. Vuelvo a encender la
+  mitad de la margen derecha. Los de cerca, al final." (the Spanish opens
+  on the verb and names no town, for the reasons the table's notes give).
 - **The Dark has a swarm up the gorge onto the west penstocks.** As
   written above, with nobody flying, the mission was won: the yard and two
   intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
@@ -777,7 +793,7 @@ gantries (twist C); interceptors on the stream.
 ### Set pieces
 
 The towns lighting up at stage 4; a district flickering out if the yard
-is hit (built); the lights coming back after the reroute.
+is hit (built); the lights coming back after the reroute (built, T1.10).
 
 ### Music
 
