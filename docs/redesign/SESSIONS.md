@@ -164,3 +164,8 @@ a room, Leave the only way out), `war:card`, `campaign:check`,
 registry). The visibility phase added the Who joins rows to `game:lobby`
 (alone, each a fresh room; with B there, in place), the op to
 `rooms:selftest` (rooms-selftest-visibility.js) and to `rooms:server`.
+2026-10-14 added: the reload-regains-its-seat case in `rooms:server`, the
+blocks section (list and quick join exclusion, guest mute control) and
+the setup section (activity change, war consent given and declined) in
+`rooms:selftest`, the Activity case in `game:lobby`, and `rooms:accounts`
+rows for the Bearer session on the list and quick join.

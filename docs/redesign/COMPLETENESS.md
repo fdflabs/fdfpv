@@ -809,7 +809,7 @@ a lap with a gate skipped is refused with 422. The arcade flight style is
 kept off the public board (PILLARS 19). Checks: `lap:selftest` (CI);
 `wing:e2e`, `board:live` (local).
 
-**60. Privacy controls. PARTIAL.** Mute per seat, kept through a reseat
+**60. Privacy controls. EXISTS.** Mute per seat, kept through a reseat
 (edge/rooms/safety.js 159); report, with removal for 30 minutes at a
 third of the room (safety.js); kick in private rooms; private rooms with
 a code; chat and emotes from preset lists only (no free text); voice push
@@ -818,7 +818,13 @@ muted pairs (edge/rooms/voice.js 71). Missing: a block that outlasts the
 room (mutes are per seat in memory, src/share/roomsafety.js 9). **Done:**
 a signed in pilot's blocks are stored by account key on the account; a
 blocked pilot is muted on sight and never quick joined into the same
-public room. Check: `rooms:accounts` (CI). Size M. Phase 30.
+public room; since 2026-10-14 the room list and quick join leave out,
+on the server, any room holding a pilot the joiner blocks or who blocks
+the joiner (the page sends its session as a Bearer header; quick join is
+`GET /v2/public/<map>` for a code, then the join; 503 `accounts` when
+the accounts server is down, never an unfiltered guess; a guest mute
+excludes nothing). Checks: `rooms:accounts` (CI), `rooms:selftest`
+blocks section. Size M. Phase 30.
 
 **61. User-generated names. EXISTS.** Guest names are never typed: three
 indices into word lists (`validNamePick`, roomwire.js 156); callsigns
@@ -952,18 +958,19 @@ mission action on the result, Change aircraft from the result. **Done:**
 phase 10's debrief puts Again, Next mission, Change aircraft and Back to
 lobby under the cursor. Size S inside phase 10. Phase 10.
 
-**77. Party persistence. PARTIAL.** The room is the party: its code and
+**77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world
 moves (core.js 937); its host can start another Flight Club game in
-passing (`minElsewhere`, `hostCheck`, core.js 479). But a room's activity
-is fixed at its making (`meta.mode`, edge/rooms/host.js 211; no setter),
-and a war needs a room made for it when public. So a group in Streamer
-Combat who want to defend the Paraná make a new room and share a new
-code. **Done:** the host of a private room can change its activity
-between rounds (`setup { mode }`, the message FLOW-AUDIT.md proposed);
-moving into the war asks each pilot's consent and seats only those who
-give it. Public rooms keep one activity, so the public list stays
-honest. Check: `rooms:server` (CI) and `game:lobby` (local). Size M.
+passing (`minElsewhere`, `hostCheck`, core.js 479). Since 2026-10-14 the
+host of a private room changes its activity between rounds (`setup
+{ mode }`, host only; refused in public rooms, while a round runs, while
+free flight is flying, and for the war off a war mission's world; leaving
+the war drops its match). Moving into the war asks each pilot but the
+host for consent; a pilot who declines stays in the lobby marked SITTING
+OUT with a Join the war row, also after a reload, and is never enlisted
+or waited for. Public rooms keep one activity, so the public list stays
+honest. Checks: `rooms:selftest` setup section (CI), `game:lobby`
+(local, tag/race/combat with the Activity case), `war:twopage`. Size M.
 Phase 27.
 
 ## 18. Structure and words (items 78 to 84)
