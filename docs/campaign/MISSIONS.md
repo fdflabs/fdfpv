@@ -237,6 +237,11 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 - Point 8: an opening made in the lost stage is undone with it; one made
   before it closes again from the restart's go, and the next group turns
   again.
+- Point 4 holds through the `cleared` trigger. Every exit of missions 1
+  to 3 that is not a loss waits on it; The Long Night's do not: Hunters
+  moves on when its groups are gone (the closure runs on into the next
+  stage), and Before Dawn is won when its groups are gone, so M4 can be
+  won with a closure still running.
 - `STING` is not sent: no mission has a music cue path for it yet.
 - M2's spill hold does not pause while the spillway gantry closes a gate
   (M2, If the face opens): the two run side by side.
