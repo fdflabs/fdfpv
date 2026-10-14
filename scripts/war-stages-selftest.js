@@ -231,6 +231,11 @@ console.log('data');
     check(`${m.id}: its stages lint clean, every radio cue is a voice line and every music cue a track`, problems.length === 0 && radio.length === 0 && music.length === 0,
       [...problems, ...radio, ...music].join('; '));
   }
+  /* Contain's lines (src/share/war/contain.js linesDue) and each
+   * mission's own for an opening are voice lines. */
+  const contained = Object.values(MISSIONS).filter((m) => m.contain);
+  const missing = ['contain-breach', 'contain-retarget', 'contain-river', 'contain-half', 'contain-held', 'contain-lost', ...contained.map((m) => m.contain.op)].filter((id) => !lines.has(id));
+  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 4 && missing.length === 0, missing.join(', '));
 }
 
 check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6, Lights Out 4 of its 6',

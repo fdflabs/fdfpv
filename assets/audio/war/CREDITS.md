@@ -128,6 +128,16 @@ the text they are spoken from.
 | beat-rack | `voice/en/beat-rack.webm`, `voice/en/beat-rack.mp3`, `voice/es/beat-rack.webm`, `voice/es/beat-rack.mp3` |
 | beat-rack-2 | `voice/en/beat-rack-2.webm`, `voice/en/beat-rack-2.mp3`, `voice/es/beat-rack-2.webm`, `voice/es/beat-rack-2.mp3` |
 | stage-lost | `voice/en/stage-lost.webm`, `voice/en/stage-lost.mp3`, `voice/es/stage-lost.webm`, `voice/es/stage-lost.mp3` |
+| contain-breach | `voice/en/contain-breach.webm`, `voice/en/contain-breach.mp3`, `voice/es/contain-breach.webm`, `voice/es/contain-breach.mp3` |
+| contain-retarget | `voice/en/contain-retarget.webm`, `voice/en/contain-retarget.mp3`, `voice/es/contain-retarget.webm`, `voice/es/contain-retarget.mp3` |
+| contain-river | `voice/en/contain-river.webm`, `voice/en/contain-river.mp3`, `voice/es/contain-river.webm`, `voice/es/contain-river.mp3` |
+| contain-half | `voice/en/contain-half.webm`, `voice/en/contain-half.mp3`, `voice/es/contain-half.webm`, `voice/es/contain-half.mp3` |
+| contain-held | `voice/en/contain-held.webm`, `voice/en/contain-held.mp3`, `voice/es/contain-held.webm`, `voice/es/contain-held.mp3` |
+| contain-lost | `voice/en/contain-lost.webm`, `voice/en/contain-lost.mp3`, `voice/es/contain-lost.webm`, `voice/es/contain-lost.mp3` |
+| itaipu-1-op | `voice/en/itaipu-1-op.webm`, `voice/en/itaipu-1-op.mp3`, `voice/es/itaipu-1-op.webm`, `voice/es/itaipu-1-op.mp3` |
+| itaipu-2-op | `voice/en/itaipu-2-op.webm`, `voice/en/itaipu-2-op.mp3`, `voice/es/itaipu-2-op.webm`, `voice/es/itaipu-2-op.mp3` |
+| itaipu-3-op | `voice/en/itaipu-3-op.webm`, `voice/en/itaipu-3-op.mp3`, `voice/es/itaipu-3-op.webm`, `voice/es/itaipu-3-op.mp3` |
+| itaipu-4-op | `voice/en/itaipu-4-op.webm`, `voice/en/itaipu-4-op.mp3`, `voice/es/itaipu-4-op.webm`, `voice/es/itaipu-4-op.mp3` |
 | film-itaipu-1-1 | `voice/en/film-itaipu-1-1.webm`, `voice/en/film-itaipu-1-1.mp3`, `voice/es/film-itaipu-1-1.webm`, `voice/es/film-itaipu-1-1.mp3` |
 | film-itaipu-1-2 | `voice/en/film-itaipu-1-2.webm`, `voice/en/film-itaipu-1-2.mp3`, `voice/es/film-itaipu-1-2.webm`, `voice/es/film-itaipu-1-2.mp3` |
 | film-itaipu-1-3 | `voice/en/film-itaipu-1-3.webm`, `voice/en/film-itaipu-1-3.mp3`, `voice/es/film-itaipu-1-3.webm`, `voice/es/film-itaipu-1-3.mp3` |

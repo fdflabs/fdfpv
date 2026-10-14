@@ -568,6 +568,340 @@
     }
    }
   },
+  "contain-breach.en": {
+   "text": "Water through the face. Lowering the stoplogs. Protect the gantry.",
+   "speaker": "crest",
+   "seconds": 4.385,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4270883392,
+     "heard": "Water through the face. Lowering the stop logs. Protect the gantry.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20063,
+     "sha256": "ee03a8ffacf17e6887d990cfd0bfa62715414659af9f4928c3986ae08cc37248"
+    },
+    "mp3": {
+     "bytes": 18308,
+     "sha256": "c34251a5803668921ac5a0a392aa44593a0c21c9b0f08d84ade186aec9a72b53"
+    }
+   }
+  },
+  "contain-breach.es": {
+   "text": "Entra agua por la cara. Bajando las ataguías. Protejan la grúa.",
+   "speaker": "crest",
+   "seconds": 4.105,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1655487248,
+     "heard": "Entra agua por la cara, bajando las ataguías, protejan la grúa,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18907,
+     "sha256": "915c39d1478224cec0c15833fb54dc6e6f0f3d727598e439c8c8c45495b52ff0"
+    },
+    "mp3": {
+     "bytes": 17948,
+     "sha256": "eedcfa8162935be0a78ff2498e2a90c670241f19e07f4c9d2bd4f18a1a9506a3"
+    }
+   }
+  },
+  "contain-half.en": {
+   "text": "Stoplogs halfway down. Keep them off my crane.",
+   "speaker": "taller",
+   "seconds": 3.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 981734532,
+     "heard": "Stop logs halfway down. Keep them off my crane.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14802,
+     "sha256": "a8c6462475055d375fbcf99cd38b47f8bf9dd00100a822b50c1194c21079a046"
+    },
+    "mp3": {
+     "bytes": 15620,
+     "sha256": "a199860a093cc0ad4e6deb5d7c466b1e64c5c08843a2fa67e971143f03e8707b"
+    }
+   }
+  },
+  "contain-half.es": {
+   "text": "Las ataguías van por la mitad. Que no lleguen a mi grúa.",
+   "speaker": "taller",
+   "seconds": 3.235,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2074120393,
+     "heard": "Las ataguías van por la mitad. Que no lleguen a mi grúa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14951,
+     "sha256": "e382e09e60b161254182aee62c800a47bc00db448a3bdf86a42a1239d41f886e"
+    },
+    "mp3": {
+     "bytes": 16004,
+     "sha256": "56ffb564ac37f604edf0c727db96165128f762217adb4daa5487961308bf77e5"
+    }
+   }
+  },
+  "contain-held.en": {
+   "text": "Closed. The face is closed. Back to it.",
+   "speaker": "crest",
+   "seconds": 3.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1792972179,
+     "heard": "Closed. The face is closed. Back to it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15332,
+     "sha256": "49bf13d5080177fb762bc4e85eae46e8f353169132dffd8911226200337c550b"
+    },
+    "mp3": {
+     "bytes": 13556,
+     "sha256": "dd73932445e701e2ad9ff2d693d20f8652b73860ad029a9c942a88d62647c601"
+    }
+   }
+  },
+  "contain-held.es": {
+   "text": "Cerrada. La cara está cerrada. A lo nuestro.",
+   "speaker": "crest",
+   "seconds": 2.875,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1833477198,
+     "heard": "Cerrada. La cara está cerrada. A lo nuestro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13326,
+     "sha256": "4de0bd4dadd55d1ddd61de14a1215c276083dd4f24e89256afb5802ce3ee3e0c"
+    },
+    "mp3": {
+     "bytes": 12932,
+     "sha256": "26c1f55aaf2941d631da43627d17221ec51bb4aae4144358e9622ad66a645d84"
+    }
+   }
+  },
+  "contain-lost.en": {
+   "text": "We can't close it. Shutting the plant down. All pilots, pull back to high ground.",
+   "speaker": "crest",
+   "seconds": 4.855,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1553803847,
+     "heard": "We can't close it, shutting the plant down. All pilots pull back to high ground.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22151,
+     "sha256": "0827756606ef887d3a262f1dfc52992457abbbd7d3c5f1b20014f3936cffdccf"
+    },
+    "mp3": {
+     "bytes": 20228,
+     "sha256": "e0a23218238df34ed97a1ee96cfa37e34f7c13d57ea92f1d9dfbf1cfdbdfa7bb"
+    }
+   }
+  },
+  "contain-lost.es": {
+   "text": "No la podemos cerrar. Paramos la central. Todos los pilotos, repliéguense a lo alto.",
+   "speaker": "crest",
+   "seconds": 4.945,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2150378328,
+     "heard": "No la podemos cerrar. Paramos la central. Todos los pilotos replieguense a lo alto.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 30
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22618,
+     "sha256": "5ef122e825677484d95a0288948a1ab9ea6d332c8618ab730da0062520ec6fb4"
+    },
+    "mp3": {
+     "bytes": 20060,
+     "sha256": "64d0e6c0949491f6ccfe1f1e78d3a54df8ae305bfed35121ee3560c43293f4be"
+    }
+   }
+  },
+  "contain-retarget.en": {
+   "text": "They've seen it. They're turning for the crane.",
+   "speaker": "mirador",
+   "seconds": 2.885,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 505620473,
+     "heard": "They've seen it. They're turning for the crane.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13169,
+     "sha256": "ce88250504ce405e1f681a752e3949ab66c2bee2065fa075866d5ca8b3abd47f"
+    },
+    "mp3": {
+     "bytes": 14612,
+     "sha256": "120ab55ec868dbc9c1eeb3afbadf7d22baa3677ce97f5e7acebd87f175edad0a"
+    }
+   }
+  },
+  "contain-retarget.es": {
+   "text": "Lo vieron. Están girando hacia la grúa.",
+   "speaker": "mirador",
+   "seconds": 2.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3077214059,
+     "heard": "Lo vieron. Están girando hacia la grúa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13332,
+     "sha256": "9fe5d88fcdbf26944d97078788168ba0e87e344dc69345673202e67f2429edac"
+    },
+    "mp3": {
+     "bytes": 13268,
+     "sha256": "48d090000d3c1a2b640340e0985537f59c38a07bbbdeec9b070b102c75c5abce"
+    }
+   }
+  },
+  "contain-river.en": {
+   "text": "The riverbank below was cleared the first night. Nobody is down there. Just close it.",
+   "speaker": "despacho",
+   "seconds": 5.465,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 962449284,
+     "heard": "The riverbank below was cleared the first night. Nobody is down there. Just close it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25066,
+     "sha256": "f58aad6a85df24f127bfa920bff536c8674131d8057e99875ed2acc457adf948"
+    },
+    "mp3": {
+     "bytes": 24740,
+     "sha256": "dea7c6bd14e8cb8496fbbaeeee181b9d4dcac06ea0684f99a70e144597ca87b7"
+    }
+   }
+  },
+  "contain-river.es": {
+   "text": "La ribera de abajo se despejó la primera noche. No hay nadie. Solo ciérrenla.",
+   "speaker": "despacho",
+   "seconds": 4.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2387084951,
+     "heard": "La ribera de abajo se despejó la primera noche. No hay nadie, solo ciervenla.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "cierrenla"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 806441635,
+     "heard": "La bebera de abajo se despejó la primera noche. No hay nadie. Solo ciérrenla.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "ribera"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3052581957,
+     "heard": "La ribera de abajo se despejó la primera noche. No hay nadie. Solo cierrenla.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20503,
+     "sha256": "39e2b7923e6dd8e7fba24f02936f3b91f5164ff9fff8c2b5b4f47227960c04c4"
+    },
+    "mp3": {
+     "bytes": 20540,
+     "sha256": "e741ca987e81dde6ce4f08ea1a67dba0a4b0d6f3b15930d5475d70921951259a"
+    }
+   }
+  },
   "debrief-itaipu-1-lose.en": {
    "text": "Too many got through. We go again.",
    "speaker": "crest",
@@ -15360,6 +15694,58 @@
     }
    }
   },
+  "itaipu-1-op.en": {
+   "text": "This face has never let water through where it shouldn't. Close it.",
+   "speaker": "crest",
+   "seconds": 3.915,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 309765392,
+     "heard": "This face has never let water through where it shouldn't. Close it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17892,
+     "sha256": "3a6aed3cbc7160df3fccd0e8f1ed7c689726b65380b795fbf18e8a81a286ca86"
+    },
+    "mp3": {
+     "bytes": 16124,
+     "sha256": "3979a27cf720b140ff7eac71b519fecfc5d0f132692a9773626f015e5caabba6"
+    }
+   }
+  },
+  "itaipu-1-op.es": {
+   "text": "Esta cara nunca dejó pasar agua por donde no debía. Ciérrenla.",
+   "speaker": "crest",
+   "seconds": 4.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1206418193,
+     "heard": "Esta cara nunca dejó pasar agua por donde no debía. ¡Ciérrenla!",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18713,
+     "sha256": "939c4715c11ef1897453d18e015e2366a51badc225be38f565ba289f8efbcb1d"
+    },
+    "mp3": {
+     "bytes": 17708,
+     "sha256": "0ad9f9992106fc38258999e33a4a91f98c5c46beb74e5f039ce61a688801227c"
+    }
+   }
+  },
   "itaipu-1-s0-brief.en": {
    "text": "Pilots of both banks, this is Crest. Something's been circling since before light.",
    "speaker": "crest",
@@ -16397,6 +16783,58 @@
     "mp3": {
      "bytes": 18692,
      "sha256": "1e0375b0331094c8f420e28a5b09dbda5768dff1d7cc0cab21a8bd81fccba35f"
+    }
+   }
+  },
+  "itaipu-2-op.en": {
+   "text": "With the reservoir this high, that won't stop on its own. Stoplogs first, then the spill.",
+   "speaker": "crest",
+   "seconds": 5.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3278151025,
+     "heard": "With the reservoir this high, that won't stop on its own. Stop logs first, then the spill.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27097,
+     "sha256": "f5072b0331d17fb6476f4162e71fb80be83ac480341e22d6d049ee9d8fb07e60"
+    },
+    "mp3": {
+     "bytes": 23444,
+     "sha256": "c00de54cd8324eb82d019bfff632cc2ad5f397bcd0bdb81100b20594ab2a6b3d"
+    }
+   }
+  },
+  "itaipu-2-op.es": {
+   "text": "Con el embalse así de alto, eso no para solo. Primero las ataguías, después el vertido.",
+   "speaker": "crest",
+   "seconds": 5.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2196154683,
+     "heard": "Con el embalse así de alto, eso no para solo. Primero las ataguías, después el vertido.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26125,
+     "sha256": "186ba43a920f32da0f820609ffaa1ceb940587b615ec50ec2fd53f90699d6098"
+    },
+    "mp3": {
+     "bytes": 23540,
+     "sha256": "29b48148475089c8d7c8e88dd4e5a8516a8e8b1f7b99fc31feb80878b5695648"
     }
    }
   },
@@ -17975,6 +18413,69 @@
     }
    }
   },
+  "itaipu-3-op.en": {
+   "text": "Crest, you've got water through the face and I've got a grid on one leg. Close it, then give me the yard.",
+   "speaker": "despacho",
+   "seconds": 6.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3535723880,
+     "heard": "You've got water through the face, and I've got a grid on one leg. Close it, then give me the yard.",
+     "wer": 0.045,
+     "extra": 0,
+     "missing": [
+      "crest"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1688678688,
+     "heard": "Crest, you've got water through the face and I've got a grid on one leg. Close it, then give me the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30683,
+     "sha256": "ddf773969b1bbee8eae25195df8de55b20c4f5b958b17ab82eece8c76086c2e5"
+    },
+    "mp3": {
+     "bytes": 30188,
+     "sha256": "a85131234c9434d6ceff717554027e2acf4441ff3ee7f3720828ff7ba67f1abd"
+    }
+   }
+  },
+  "itaipu-3-op.es": {
+   "text": "Cresta, ustedes tienen agua por la cara y yo una red con una sola pata. Ciérrenla, y después denme la subestación.",
+   "speaker": "despacho",
+   "seconds": 6.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3181996006,
+     "heard": "Cresta, ustedes tienen agua por la cara y yo una red con una sola pata. Cierrenla y después denme la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31194,
+     "sha256": "5f6042d69f0f0355283db919c939999658d7bc71d18c51aa4d7b09260554e4b2"
+    },
+    "mp3": {
+     "bytes": 30572,
+     "sha256": "a840a41c2f6e47dcd10e3a084d58e4eb7f5cfc1164e9a82391e9cf9c6eed939d"
+    }
+   }
+  },
   "itaipu-3-s0-brief.en": {
    "text": "The switchyard is how the right bank gets its light. Tonight it's the most important thing we have.",
    "speaker": "crest",
@@ -19276,6 +19777,58 @@
     "mp3": {
      "bytes": 28220,
      "sha256": "262378124ec9754a044cc05ff52f77e59b569f0df698bd3a3073d00bf789fc49"
+    }
+   }
+  },
+  "itaipu-4-op.en": {
+   "text": "I can hear it before I can see it. Water, below the face.",
+   "speaker": "mirador",
+   "seconds": 3.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4255383438,
+     "heard": "I can hear it before I can see it. Water below the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18001,
+     "sha256": "6e0842f4ac1cac538056ed95e90ea440c3a2660d3efa89ad4b4b93bc41c4499d"
+    },
+    "mp3": {
+     "bytes": 19196,
+     "sha256": "61886241993921513a849c21d91d1743e86201c08dbc2a38ad04a3b779d338eb"
+    }
+   }
+  },
+  "itaipu-4-op.es": {
+   "text": "Lo escucho antes de verlo. Agua, debajo de la cara.",
+   "speaker": "mirador",
+   "seconds": 3.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 553757987,
+     "heard": "Lo escucho antes de verlo. Agua debajo de la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 40
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15530,
+     "sha256": "5655375847968ef314addbf1941119a56017c845da7870841a3d65104b81981f"
+    },
+    "mp3": {
+     "bytes": 15140,
+     "sha256": "c395468dc0c24502c6a35f44452122fb0d421c6e26bae6480ee4d6b7914d21de"
     }
    }
   },
