@@ -819,7 +819,10 @@ hunt. It is off in offline renders, which are not real time and must
 hear the same samples every run. Its hot path is a check row
 (`--check`, a budget no machine meets): it sheds to the last step, the
 full war is still heard within 0.2 LU of full detail (the explosions
-carry it), clean, at 0.07 s a second against 0.10. Every bar of `--check` passes: each kind at 16 m within 1 LU, each
+carry it), clean, and renders fewer voices than at full detail (the
+voices and ambience voices summed over quanta, 27763 against 92018: a
+count, since a timing on a shared host is decided by its load; the cost,
+0.05 s a second against 0.09, is printed and not a bar). Every bar of `--check` passes: each kind at 16 m within 1 LU, each
 pass -30 to -20 LUFS with short term at most -18 and momentary at most
 -14, a near explosion at most -12, true peak at most -1 dBTP, no non
 finite or subnormal sample, at most 35 percent of the A weighted power in
