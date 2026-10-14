@@ -62,6 +62,7 @@
  */
 
 import { MISSIONS, PLANNED } from '../share/war/missions/index.js';
+import { ROWS as OPS_ROWS } from '../share/ops/rows.js';
 
 /* The releases a mission with a file may state; a planned one, with none,
  * is 'soon'. */
@@ -121,23 +122,52 @@ export function released(id, dev = false) {
  * flown in order, its missions the room's ops missions
  * (src/share/ops/missions.js). The same gate as Act 1: Mission 1 is
  * 'development' until it is 100 % and the owner has flown it, then
- * 'available' here and nowhere else; Mission 2 has its mission file and
- * is held the same way; 3 to 5 have none yet, so
- * 'soon' in the gate's meaning, and `label` is the word the card shows
- * instead of the release's own: the owner asked for Under development
- * on all four (PLAN.md section 3; TECH-NEEDS.md F6 records the choice).
- * No credits and no shop: platforms unlock by mission. `consent`: the
- * campaign shows armed conflict, so its card asks the war's consent
- * first (PLAN.md section 9 A; the screen is VIEW's to build).
+ * 'available' in its row and nowhere else. Its list is derived from the
+ * rows (src/share/ops/rows.js, which documents the fields and imports
+ * nothing, so this file never carries the mission files' worlds; the
+ * registry holds each row to its file at load). No credits and no shop:
+ * platforms unlock by mission. `consent`: the campaign shows armed
+ * conflict, so its card asks the war's consent first (PLAN.md section 9
+ * A; the screen is VIEW's to build).
  */
 export const INTERIOR_CAMPAIGN = Object.freeze({ id: 'interior', consent: true });
-export const INTERIOR = [
-  { id: 'interior-1', key: 'oldwar', release: 'development' },
-  { id: 'interior-2', key: 'forest', release: 'development' },
-  { id: 'interior-3', key: 'nomansland', release: 'development' },
-  { id: 'interior-4', key: 'otherwar', release: 'soon', label: 'development' },
-  { id: 'interior-5', key: 'lastcolumn', release: 'soon', label: 'development' },
-];
+
+const OPS_RELEASES = ['available', 'development', 'soon'];
+
+/*
+ * Ops campaign `campaign`'s list, in the order it is flown, as
+ * { id, key, release } and the row's `label` where it has one. A list
+ * that does not add up (no row, an order twice or missing, a mission
+ * twice, a release or label unknown, a missing key) throws at load, as
+ * actOf does.
+ */
+export function opsCampaignOf(campaign, rows = OPS_ROWS) {
+  const list = rows.filter((m) => m.campaign === campaign).sort((x, y) => x.order - y.order);
+  if (!list.length) {
+    throw new Error(`campaign: no ops rows for ${campaign}`);
+  }
+  list.forEach((m, i) => {
+    if (m.order !== i + 1) {
+      throw new Error(`campaign: ${campaign} has ${m.id} at order ${m.order} where ${i + 1} belongs`);
+    }
+    if (typeof m.key !== 'string' || !m.key) {
+      throw new Error(`campaign: ${m.id} has no key`);
+    }
+    if (!OPS_RELEASES.includes(m.release) || (m.label !== undefined && !OPS_RELEASES.includes(m.label))) {
+      throw new Error(`campaign: ${m.id} release ${JSON.stringify(m.release)} or label ${JSON.stringify(m.label)} is not one of ${OPS_RELEASES}`);
+    }
+  });
+  if (new Set(list.map((m) => m.id)).size !== list.length) {
+    throw new Error(`campaign: ${campaign} names a mission twice`);
+  }
+  return list.map(({
+    id, key, release, label,
+  }) => ({
+    id, key, release, ...(label === undefined ? {} : { label }),
+  }));
+}
+
+export const INTERIOR = opsCampaignOf(INTERIOR_CAMPAIGN.id);
 
 /* The word a mission's card shows: its label, else its release. */
 export function cardLabel(m) {

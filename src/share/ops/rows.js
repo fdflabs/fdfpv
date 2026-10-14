@@ -17,9 +17,9 @@
  *             so nothing to fly. A mission is made available here and
  *             nowhere else.
  *   label     the word the card shows instead of the release's own
- *             (cardLabel): the owner asked for Under development on 4 and
+ *             (cardLabel): the owner asked for Under development on 2 to
  *             5 of The Interior (docs/campaign/interior/PLAN.md section 3,
- *             TECH-NEEDS.md F6)
+ *             TECH-NEEDS.md F6), which 2 and 3 show by their release
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
