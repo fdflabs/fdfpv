@@ -37,9 +37,21 @@
  * when the yard is. Station service lights go out everywhere only when
  * every unit is lost.
  *
- * Nothing comes back: the room never restores a target within a match
- * (war.js take), so a district dark stays dark until the next match, whose
- * view has another id and an empty `down`.
+ * WHAT COMES BACK. The room never restores a target within a match
+ * (war.js take), so a loss holds to the match's end, and a district dark
+ * for any other reason stays dark until the next match, whose view has
+ * another id and an empty `down`. What can change is the grid round the
+ * yard: a restore (the view's `restores`, [{ at, districts }], a hold
+ * that reroutes, edge/rooms/war.js, MISSIONS.md M3) feeds the town
+ * districts it names round the switchyard from its room ms on, so the
+ * yard's loss no longer puts them out: their side's capacity is its live
+ * units whether the yard stands or not. Those of them dark then come back
+ * in the order named, CASCADE_MS apart, each over FLICKER_MS, the hit's
+ * own flicker played backwards (TECH-NEEDS T1.10: "over the same cascade
+ * and flicker the hit used, in reverse"). A unit lost later still sheds
+ * them by their `keep`, and a struck line still cuts them. A district's
+ * history is therefore a list of changes (changesFrom), so a moment
+ * before the restore still reads what it read then.
  *
  * THE CASCADE. The districts one hit puts out go one after another, the
  * strike's own first, then the towns in the order their side sheds them,
@@ -188,28 +200,49 @@ export function unitOf(target) {
 }
 
 /*
- * When each district goes out: a Float64Array of room ms, the start of
- * its flicker (Infinity: lit; -Infinity: out since before this screen
- * heard). `hits` is [{ target, at }] (at may be -Infinity), `cuts` [{ at,
- * x, z }] struck lines. Hits are taken in order of at; the districts one
- * moment puts out are staggered CASCADE_MS apart, the strike's own first.
+ * Each district's changes: an Array, a district, of [{ at, on }] in order
+ * of at, each the start of a flicker out (on false; at -Infinity: out
+ * since before this screen heard) or back (on true). `hits` is [{ target,
+ * at }] (at may be -Infinity), `cuts` [{ at, x, z }] struck lines,
+ * `restores` [{ at, districts: [id] }] (WHAT COMES BACK). Steps are taken
+ * in order of at; the districts one moment puts out are staggered
+ * CASCADE_MS apart, the strike's own first, and the ones a restore brings
+ * back the same, in the order it names them.
  */
-export function darkFrom(hits, cuts = []) {
-  const out = new Float64Array(DISTRICTS.length).fill(Infinity);
+export function changesFrom(hits, cuts = [], restores = []) {
+  const changes = DISTRICTS.map(() => []);
   const steps = [
     ...hits.map((h) => ({ at: h.at, target: h.target })),
     ...cuts.map((c) => ({ at: c.at, cut: districtOf(c.x, c.z, isTown) })),
+    ...restores.map((r) => ({ at: r.at, feed: r.districts.map(districtIndex) })),
   ].sort((a, b) => a.at - b.at);
   const lost = new Array(UNITS).fill(false);
   let yard = false;
   let gate = false;
   const cut = new Set();
+  /* Town district -> its place in the restore that fed it round the yard. */
+  const fed = new Map();
+  const dark = new Array(DISTRICTS.length).fill(false);
+  /* A change starts no earlier than the one before it, so each list stays
+   * in order even when a restore lands inside the cascade it undoes. */
+  const push = (i, at, on) => {
+    const prev = changes[i].at(-1);
+    changes[i].push({ at: prev && prev.at > at ? prev.at : at, on });
+  };
   for (let s = 0; s < steps.length;) {
     const at = steps[s].at;
     for (; s < steps.length && steps[s].at === at; s += 1) {
       const st = steps[s];
       if (st.cut !== undefined) {
         cut.add(st.cut);
+        continue;
+      }
+      if (st.feed) {
+        st.feed.forEach((i, k) => {
+          if (isTown(DISTRICTS[i]) && !fed.has(i)) {
+            fed.set(i, k);
+          }
+        });
         continue;
       }
       const u = unitOf(st.target);
@@ -228,38 +261,53 @@ export function darkFrom(hits, cuts = []) {
       }
       return k;
     };
+    /* A side's capacity from its live units; the yard, which carries the
+     * right bank's out, is taken off below for the towns it still feeds. */
     const cap = {
-      py: yard ? 0 : live(0, SIDE_UNITS) / SIDE_UNITS,
+      py: live(0, SIDE_UNITS) / SIDE_UNITS,
       br: live(SIDE_UNITS, SIDE_UNITS) / SIDE_UNITS,
     };
     const allLost = live(0, UNITS) === 0;
     /* What is out after this moment and was not before it: the station's
-     * first, then each side's towns in the order they shed. */
+     * first, then each side's towns in the order they shed; and what a
+     * restore gave back. Nothing but a restore turns a district on: every
+     * other input only ever adds a loss. */
     const fresh = [];
+    const back = [];
     DISTRICTS.forEach((d, i) => {
-      if (out[i] !== Infinity) {
-        return;
-      }
-      let dark;
+      let off;
       if (d.bus === 'station') {
-        dark = allLost
+        off = allLost
           || (d.units && live(d.units[0], d.units[1]) < d.units[1])
           || (d.gates && gate)
           || (d.yard && yard);
       } else {
-        dark = cut.has(i) || cap[d.bus] < d.keep - 1e-9;
+        off = cut.has(i) || cap[d.bus] < d.keep - 1e-9 || (d.bus === 'py' && yard && !fed.has(i));
       }
-      if (dark) {
+      if (off && !dark[i]) {
         fresh.push(i);
+      } else if (!off && dark[i]) {
+        back.push(i);
       }
+      dark[i] = off;
     });
     const order = (i) => (DISTRICTS[i].bus === 'station' ? 2 : DISTRICTS[i].keep);
     fresh.sort((a, b) => order(b) - order(a) || a - b);
-    fresh.forEach((i, rank) => {
-      out[i] = at + rank * CASCADE_MS;
-    });
+    fresh.forEach((i, rank) => push(i, at + rank * CASCADE_MS, false));
+    back.sort((a, b) => fed.get(a) - fed.get(b));
+    back.forEach((i, rank) => push(i, at + rank * CASCADE_MS, true));
   }
-  return out;
+  return changes;
+}
+
+/*
+ * When each district first goes out: a Float64Array of room ms, the start
+ * of its flicker (Infinity: lit; -Infinity: out since before this screen
+ * heard), changesFrom's first change for hits and struck lines alone,
+ * which only ever put a district out.
+ */
+export function darkFrom(hits, cuts = []) {
+  return Float64Array.from(changesFrom(hits, cuts), (c) => (c.length ? c[0].at : Infinity));
 }
 
 /* A 32 bit hash of three integers, the same in every engine. */
@@ -299,10 +347,33 @@ export function levelAt(from, i, t) {
 }
 
 /*
+ * District i's brightness at room ms t from its changes (changesFrom): 1
+ * before the first, levelAt's flicker out from an off, and from an on the
+ * same flicker played backwards, FLICKER_MS of it, then 1.
+ */
+export function levelOf(changes, i, t) {
+  let c = null;
+  for (const x of changes) {
+    if (!(t >= x.at)) {
+      break;
+    }
+    c = x;
+  }
+  if (!c) {
+    return 1;
+  }
+  if (!c.on) {
+    return levelAt(c.at, i, t);
+  }
+  const since = t - c.at;
+  return since >= FLICKER_MS ? 1 : levelAt(c.at, i, c.at + FLICKER_MS - since);
+}
+
+/*
  * The client's tracker: hear() every event roomwar.js gives the shell,
  * then levels(view, t) each frame. Remembers the room ms of each hit and
  * each struck line for the match the view names, and forgets them when
- * the view names another.
+ * the view names another; the restores are the view's own.
  */
 export function createGrid() {
   let match = null;
@@ -310,6 +381,7 @@ export function createGrid() {
   let heard = new Map();
   let cuts = [];
   let key = '';
+  let changes = changesFrom([]);
   let from = darkFrom([]);
   const levels = new Float32Array(DISTRICTS.length).fill(1);
 
@@ -319,9 +391,15 @@ export function createGrid() {
       heard = new Map();
       cuts = [];
       key = '';
+      changes = changesFrom([]);
       from = darkFrom([]);
     }
   };
+  /* The view's restores, those naming only districts this build knows: a
+   * room newer than the page may name one it does not, and a page that
+   * cannot place a restore draws the lights it would have without it. */
+  const restoresOf = (view) => (view && Array.isArray(view.restores) ? view.restores : [])
+    .filter((r) => Number.isFinite(r?.at) && Array.isArray(r.districts) && r.districts.every((id) => INDEX.has(id)));
 
   return {
     /* The shell's events from roomWar.takeEvents(), oldest first. */
@@ -357,33 +435,47 @@ export function createGrid() {
        * (src/replay/warrec.js) puts them out at the same frame. */
       const down = view && Array.isArray(view.down) ? view.down : [];
       const ids = [...down, ...[...heard.keys()].filter((t) => !down.includes(t))];
-      const k = `${ids.join(',')}|${heard.size}|${cuts.length}`;
+      const restores = restoresOf(view);
+      const k = `${ids.join(',')}|${heard.size}|${cuts.length}|${restores.map((r) => `${r.at}:${r.districts.join('+')}`).join(';')}`;
       if (k !== key) {
         key = k;
         const hits = ids.map((target) => ({ target, at: heard.has(target) ? heard.get(target) : -Infinity }));
+        changes = changesFrom(hits, cuts, restores);
         from = darkFrom(hits, cuts);
       }
       return from;
     },
+    /* Each district's changes (changesFrom) for this view. */
+    changes(view) {
+      this.from(view);
+      return changes;
+    },
     /* Every district's level at room ms t, a Float32Array the caller
      * reads and does not keep (it is refilled on the next call). */
     levels(view, t) {
-      const f = this.from(view);
-      for (let i = 0; i < f.length; i += 1) {
-        levels[i] = levelAt(f[i], i, t);
+      const c = this.changes(view);
+      for (let i = 0; i < c.length; i += 1) {
+        levels[i] = levelOf(c[i], i, t);
       }
       return levels;
     },
     /* For the checks: each district 'lit', 'flicker' or 'dark' at t. */
     state(view, t) {
-      const f = this.from(view);
+      const c = this.changes(view);
       const out = {};
       DISTRICTS.forEach((d, i) => {
-        let s = 'flicker';
-        if (f[i] === -Infinity || t - f[i] >= FLICKER_MS) {
+        let last = null;
+        for (const x of c[i]) {
+          if (!(t >= x.at)) {
+            break;
+          }
+          last = x;
+        }
+        let s = 'lit';
+        if (last && last.at === -Infinity) {
           s = 'dark';
-        } else if (!(t >= f[i])) {
-          s = 'lit';
+        } else if (last) {
+          s = t - last.at < FLICKER_MS ? 'flicker' : last.on ? 'lit' : 'dark';
         }
         out[d.id] = s;
       });

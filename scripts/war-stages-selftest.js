@@ -1586,6 +1586,18 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     if ((state !== 'done' && state !== 'failed') || ends.join() !== told) {
       bad.push(`${label}: the hold left ${state}, said ${ends.join(',')}`);
     }
+    /* The reroute's restore (TECH-NEEDS T1.10, grid.js WHAT COMES BACK):
+     * a hold that is done feeds its districts round the yard from the room
+     * ms it held, told while the stage still runs and in every view after;
+     * a failed one, nothing. */
+    const hold = stagesOf(mission).find((x) => x.id === twist)?.objectives.find((o) => o.id === 'reroute');
+    const restoreWant = state === 'done' && hold ? JSON.stringify([{ at: inTwist[0].stage.at + hold.ms, districts: hold.restore }]) : '[]';
+    const told3 = g.views.map((v) => JSON.stringify(v.restores));
+    const firstTold = g.views.find((v) => JSON.stringify(v.restores) === restoreWant);
+    if (told3.at(-1) !== restoreWant || told3.some((x) => x !== '[]' && x !== restoreWant)
+      || (restoreWant !== '[]' && firstTold?.stage?.id !== twist)) {
+      bad.push(`${label}: the restore told ${[...new Set(told3)].join(' then ')}, want ${restoreWant} from the hold's end in ${twist}`);
+    }
     const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
     const twistBorn = g.born.find((a) => a.wave === twistSi);
     const early = inTwist.filter((v) => twistBorn && v.now < twistBorn.t0 && v.stage.objectives.some((o) => o.id === 'twist'));
@@ -1602,6 +1614,8 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     bad.filter((x) => /said/.test(x) && !/hold/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold/.test(x)).join(' | '));
   check('the reroute\'s hold settles, held or failed, before its stage ends, and DESPACHO says which', bad.filter((x) => /hold/.test(x)).length === 0,
     bad.filter((x) => /hold/.test(x)).join(' | '));
+  check('a hold that is done restores its four towns from the room ms it held, told in its own stage and every view after; a failed one restores nothing',
+    bad.filter((x) => /restore/.test(x)).length === 0, bad.filter((x) => /restore/.test(x)).join(' | '));
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
     bad.filter((x) => /objective/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
@@ -1632,6 +1646,41 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     return hit && hit.mw === 2800 && stage === 'dusk';
   });
   check('and the yard is its first stage\'s loss, 2 800 MW', yardFirst);
+
+  /* The yard down before Reroute opens, so its hold cannot fail: the
+   * restore comes at the hold's end, and a restart from a stage after it
+   * keeps it (the stage's path entry, which the checkpoint copies). */
+  const hold = stagesOf(mission).find((x) => x.id === 'reroute-pack').objectives.find((o) => o.id === 'reroute');
+  const downHeld = rooms.map((r) => {
+    const views = r.of(0).map((m) => m.war);
+    const rr = views.find((v) => v.stage && /^reroute-/.test(v.stage.id))?.stage;
+    const done = views.some((v) => v.stage?.id === rr?.id && v.stage.objectives.some((o) => o.id === 'reroute' && o.state === 'done'));
+    const want = rr && done ? [{ at: rr.at + hold.ms, districts: hold.restore }] : [];
+    const end = r.view();
+    const told = r.of(0).length;
+    r.say(0, { type: 'war', op: 'start', mission: mission.id, from: 'checkpoint' });
+    const again = r.of(0).slice(told).map((m) => m.war)[0];
+    const keep = end.checkpoint && end.checkpoint.stage === 'dark' ? want : [];
+    return {
+      reroute: rr?.id, done, cp: end.checkpoint?.stage, restores: end.restores, want, again: again?.restores, keep,
+    };
+  });
+  check('the yard down before Reroute: a reroute held restores the four, and a restart from The Dark keeps them (from Reroute, not)',
+    downHeld.some((x) => x.done) && downHeld.every((x) => JSON.stringify(x.restores) === JSON.stringify(x.want)
+      && JSON.stringify(x.again) === JSON.stringify(x.keep)),
+    JSON.stringify(downHeld));
+
+  /* The negative control: Reroute first, the yard standing, nobody
+   * shooting. The twist's Strikers hit the yard inside the hold, which
+   * fails, and nothing is restored. */
+  const failRoom = warRoom({ ...mission, id: 'itaipu-3-failhold-test', stages: [mission.stages.find((x) => x.id === 'reroute-wires'), mission.stages.find((x) => x.id === 'dark')] },
+    { n: 1, seed: 0.3 });
+  failRoom.fly(GO + 420000);
+  const failViews = failRoom.of(0).map((m) => m.war);
+  const failState = failViews.filter((v) => v.stage?.id === 'reroute-wires').at(-1)?.stage.objectives.find((o) => o.id === 'reroute')?.state;
+  check('a reroute that fails (the yard hit inside the hold) restores nothing',
+    failState === 'failed' && failViews.every((v) => Array.isArray(v.restores) && v.restores.length === 0),
+    `hold ${failState}, restores told ${[...new Set(failViews.map((v) => JSON.stringify(v.restores)))].join(' ')}`);
 }
 
 console.log('The Long Night (itaipu-4), flown on the room by bot squads');

@@ -27,6 +27,23 @@
  *            A once A's cascade is over
  *   reset    a new match (another view id) lights everything again
  *
+ * and a second sequence, Lights Out's reroute (MISSIONS.md M3, TECH-NEEDS
+ * T1.10): the yard hit, then the view's restore of four right bank towns
+ * (as itaipu-3.js's reroute names them, far first), then five west
+ * units lost one by one:
+ *
+ *   restore  the four come back after the restore and the yard's other
+ *            districts stay dark; each comes back CASCADE_MS after the
+ *            one before it, in the order named, flickering (both on and
+ *            off) for FLICKER_MS before it is lit; A and B agree bit for
+ *            bit; the restore changes no earlier moment; a screen that
+ *            joins after it has the same lit; a unit lost later sheds a
+ *            fed town by its keep (Ciudad del Este at half the side)
+ *   control  the same sequence without the restore (a failed reroute,
+ *            which the room records nothing for) brings nothing back
+ *   before   a restore before the yard is hit keeps the four lit through
+ *            the hit, the yard's other districts going out as before
+ *
  *   node scripts/war-grid-check.js
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -230,6 +247,135 @@ console.log('reset: the next match');
   A.c.deliver([{ type: 'war', war: { state: 'live', id: 'm-night-2', mission: 'itaipu-4', down: [] } }]);
   const lv = A.c.frame(END + 1000);
   check('every district lit again', lv.every((v) => v === 1), `${lv.filter((v) => v !== 1).length} not lit`);
+}
+
+/* Lights Out's reroute (MISSIONS.md M3). */
+const RESTORED = ['ciudad-del-este', 'hernandarias-far', 'acaray', 'hernandarias-s'];
+const UNFED = PY_TOWNS.filter((id) => !RESTORED.includes(id));
+const R_MATCH = 'm-dusk-1';
+const rview = (down, restores) => ({
+  type: 'war',
+  war: {
+    state: 'live', id: R_MATCH, mission: 'itaipu-3', goAt: 0, output: 14000, floor: 9700, down, restores,
+  },
+});
+const BACK_AT = 60000;
+const R_END = 150000;
+/* The ticks of a match whose yard falls at `yardAt` and whose reroute
+ * holds at `holdAt` (null: it fails, and the room records no restore). */
+function reroute(yardAt, holdAt) {
+  const restores = (t) => (holdAt != null && t >= holdAt ? [{ at: holdAt, districts: RESTORED }] : []);
+  const ticks = [];
+  let down = [];
+  const events = [{ t: yardAt, target: 'yard-right' }, ...[0, 1, 2, 3, 4].map((u) => ({ t: 90000 + 10000 * u, target: `intake-${u}` }))];
+  for (const t of [0, yardAt, ...(holdAt != null ? [holdAt] : []), ...events.slice(1).map((e) => e.t)].sort((a, b) => a - b)) {
+    const hit = events.find((e) => e.t === t);
+    if (hit) {
+      down = [...down, hit.target];
+    }
+    ticks.push({ t, msgs: [rview(down, restores(t)), ...(hit ? [dead(t, hit.target, true)] : [])] });
+  }
+  return ticks;
+}
+function runTicks(ticks, lag, step, swap, end) {
+  const c = client();
+  const inbox = ticks.map((k) => ({ t: k.t + lag, msgs: swap ? [...k.msgs].reverse() : k.msgs }));
+  const frames = [];
+  let t = 0;
+  let k = 0;
+  while (t < end) {
+    while (inbox.length && inbox[0].t <= t) {
+      c.deliver(inbox.shift().msgs);
+    }
+    frames.push({ t, levels: c.frame(t) });
+    t += step(k);
+    k += 1;
+  }
+  return { frames, c };
+}
+const darkAt = (c, t) => {
+  const s = c.state(t);
+  return Object.keys(s).filter((id) => s[id] === 'dark').sort();
+};
+const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+
+console.log('restore: the yard hit, the reroute holds, four towns come back');
+{
+  const ticks = reroute(10000, BACK_AT);
+  const RA = runTicks(ticks, 0, () => 16, false, R_END);
+  const RB = runTicks(ticks, 230, (k) => jitter[k % jitter.length], true, R_END);
+  const settled = BACK_AT + RESTORED.length * CASCADE_MS + FLICKER_MS;
+  const before = darkAt(RA.c, BACK_AT - 1);
+  check('before the restore the yard and every right bank town are dark', same(before, ['yard', ...PY_TOWNS]), `dark ${before.join(', ')}`);
+  const after = darkAt(RA.c, settled);
+  check(`after it the four are lit (${RESTORED.join(', ')}), the yard and the other four dark`, same(after, ['yard', ...UNFED]), `dark ${after.join(', ')}`);
+  const changes = RA.c.grid.changes(RA.c.war.view());
+  const starts = RESTORED.map((id) => changes[districtIndex(id)].find((x) => x.on)?.at);
+  check('each comes back CASCADE_MS after the one before, in the order named, from the restore',
+    starts.every((at, k) => at === BACK_AT + k * CASCADE_MS), `starts ${starts.join(', ')}`);
+  for (const id of RESTORED) {
+    const i = districtIndex(id);
+    const f = changes[i].find((x) => x.on).at;
+    const seen = RA.frames.filter((fr) => fr.t >= f && fr.t < f + FLICKER_MS).map((fr) => fr.levels[i]);
+    const on = seen.filter((v) => v > 0).length;
+    const off = seen.filter((v) => v === 0).length;
+    const dim = RA.frames.filter((fr) => fr.t < f && fr.t > f - 1000).every((fr) => fr.levels[i] === 0);
+    const lit = RA.frames.filter((fr) => fr.t >= f + FLICKER_MS && fr.t < 100000).every((fr) => fr.levels[i] === 1);
+    /* The hit's flicker played backwards: rarer near the start, as the
+     * hit's is near its end. */
+    const half = (lo, hi) => seen.slice(Math.floor(lo * seen.length), Math.floor(hi * seen.length)).filter((v) => v > 0).length;
+    check(`${id} dark, flickers back, then lit`, dim && on > 0 && off > 0 && lit && half(0, 0.5) < half(0.5, 1),
+      `${on} frames on and ${off} off over its ${FLICKER_MS} ms, ${half(0, 0.5)} on in the first half and ${half(0.5, 1)} in the second`);
+  }
+  const heardBy = (t) => ticks.every((k) => k.t > t || k.t + 230 <= t);
+  let compared = 0;
+  let differ = 0;
+  for (const fb of RB.frames) {
+    if (!heardBy(fb.t)) {
+      continue;
+    }
+    compared += 1;
+    const la = RA.c.grid.levels(RA.c.war.view(), fb.t);
+    differ += la.some((v, i) => v !== fb.levels[i]) ? 1 : 0;
+  }
+  check('A and B the same levels, bit for bit, through the restore', compared > 2000 && differ === 0, `${compared} of B's frames compared, ${differ} differ`);
+  let back = 0;
+  for (const fa of RA.frames) {
+    const now = RA.c.grid.levels(RA.c.war.view(), fa.t);
+    back += now.some((v, i) => v !== fa.levels[i]) ? 1 : 0;
+  }
+  check('the restore and the later losses never change what an earlier moment showed', back === 0, `${back} of ${RA.frames.length} frames changed`);
+  const C = client();
+  C.war.onWelcome({ seat: 3, war: ticks.find((k) => k.t === BACK_AT).msgs[0].war });
+  C.frame(settled);
+  check('a screen that joins after the restore has the same districts dark', same(darkAt(C, settled), darkAt(RA.c, settled)),
+    `C ${darkAt(C, settled).join(', ')}`);
+  /* Five west units lost (90 to 130 s): the side at 0.5, under Ciudad del
+   * Este's keep of 0.55, over the other three's; the first quarter of the
+   * dam's own lights with them (its units 0 to 4). */
+  const shed = darkAt(RA.c, R_END - 1);
+  check('a unit lost after the restore sheds a fed town by its keep: Ciudad del Este at half the side, the other three lit',
+    same(shed, ['yard', ...UNFED, 'ciudad-del-este', 'dam-0']), `dark ${shed.join(', ')}`);
+}
+
+console.log('control: the reroute fails, nothing comes back');
+{
+  const ticks = reroute(10000, null);
+  const RA = runTicks(ticks, 0, () => 16, false, R_END);
+  const at = [BACK_AT + RESTORED.length * CASCADE_MS + FLICKER_MS, R_END - 1].map((t) => darkAt(RA.c, t));
+  check('the yard and every right bank town stay dark to the end (the dam\'s first quarter too, once its units go)',
+    same(at[0], ['yard', ...PY_TOWNS]) && same(at[1], ['yard', ...PY_TOWNS, 'dam-0']), at.map((d) => d.join(' ')).join(' | '));
+  check('and no district ever comes back on', RA.c.grid.changes(RA.c.war.view()).every((c) => c.every((x) => !x.on)));
+}
+
+console.log('before: a reroute that held before the yard was hit');
+{
+  const ticks = reroute(70000, 20000);
+  const RA = runTicks(ticks, 0, () => 16, false, 90000);
+  const d = darkAt(RA.c, 70000 + 10 * CASCADE_MS + FLICKER_MS);
+  check('the four stay lit through the hit, the yard and the other four go out', same(d, ['yard', ...UNFED]), `dark ${d.join(', ')}`);
+  const flick = RESTORED.filter((id) => RA.frames.some((fr) => fr.levels[districtIndex(id)] !== 1));
+  check('and never so much as flicker', flick.length === 0, flick.join(', '));
 }
 
 if (failed) {

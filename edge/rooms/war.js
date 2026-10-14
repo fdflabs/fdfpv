@@ -819,6 +819,10 @@ export class RoomWar {
        * `stationDark` stage this match entered, its path's), dark to the
        * match's end for every screen (src/main.js), or null. */
       stationDark: m.path?.find((x) => this.stages().find((y) => y.id === x.id)?.stationDark === true)?.at ?? null,
+      /* The grid rerouted round the yard (src/share/war/grid.js WHAT
+       * COMES BACK): [{ at, districts }], a restoring hold's, from the
+       * stages' path entries, so a checkpoint and a store keep them. */
+      restores: (m.path ?? []).flatMap((x) => x.restores ?? []).map(({ at, districts }) => ({ at, districts: districts.slice() })),
       /* The gantries closing an opening, or waiting to (contain.js). */
       contain: gantriesAt(m.contain, m.f),
       airframes: this.airframes(),
@@ -2224,6 +2228,18 @@ export class RoomWar {
     const objWas = JSON.stringify(st.obj);
     objectives(ctx);
     let dirty = JSON.stringify(st.obj) !== objWas;
+    /* A hold that reroutes (an objective's `restore`, TECH-NEEDS T1.10)
+     * feeds its districts round the yard from the room ms it held, the
+     * moment its line is cued, not the stage's exit, which waits on the
+     * sky being clear too. Kept on the stage's own path entry, the last
+     * (enterStage pushes it). */
+    const entry = m.path?.at(-1);
+    for (const o of this.stages()[st.idx].objectives ?? []) {
+      if (entry && o.restore && st.obj[o.id]?.state === 'done' && !(entry.restores ?? []).some((r) => r.id === o.id)) {
+        (entry.restores ??= []).push({ id: o.id, at: st.obj[o.id].t, districts: o.restore.slice() });
+        dirty = true;
+      }
+    }
     const cues = dueCues(ctx);
     if (cues.length) {
       dirty = true;
