@@ -146,7 +146,7 @@ New targets (`map.targets` and the mission's MW table):
 | Target | Ids | MW | Source |
 | --- | --- | --- | --- |
 | 500 kV towers | `tower-w-0..`, `tower-e-0..` along the two corridors | the line's share (agree with grid.js: a west corridor tower cuts its district as a wire strike does today) | the spans in `src/share/war/itaipu-wires.js` / OSM; `scripts/war-targets.js` writes them |
-| Emergency gantries | `gantry-intakes` (serves every intake and penstock), `gantry-spillway` (every gate) | 0 (hold targets, not output) | built as war targets for Contain (`src/share/war/contain.js` GANTRIES, 2026-10-14): `gantry-intakes` at the east intake gantry the dam builds, `gantry-spillway` a placeholder over the gate row. Still the map package's: the spillway gantry's model and collider, and the stoplogs' descent animation on both |
+| Emergency gantries | `gantry-intakes` (serves every intake and penstock), `gantry-spillway` (every gate) | 0 (hold targets, not output) | built as war targets for Contain (`src/share/war/contain.js` GANTRIES, 2026-10-14): `gantry-intakes` at the east intake gantry the dam builds, `gantry-spillway` at the spillway gantry the dam builds over the bridge deck's middle pier (model and collider, w39-contain-2), both held to the map by war:targets. Still the map package's: the stoplogs' descent animation on both |
 
 `src/render/attackers.js` needs a model for each new kind (the carrier
 and breacher are unmarked grey hulls, bigger than a sea drone);
@@ -227,7 +227,9 @@ built and what is not, MISSIONS.md 1.9 "As built"). Differences from the
 list below: a mission runs it by its `contain: { op }` (missions 1 to 4;
 not the drill or Training's practice); the retarget is recorded on the
 closure (`m.contain[].retarget`), not in `m.draws`; the zero size opening
-event, the flood draining and the stoplogs' animation are not built.
+event is sent at the hold and the flood shuts a gate's hole (w39-contain-2;
+intakes and penstocks have no place in the flood yet); the stoplogs'
+animation is not built.
 
 Decided 2 October: the dam can open in any mission (MISSIONS.md 1.9).
 No per mission flag; the damage model's openings are live everywhere.
