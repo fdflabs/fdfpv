@@ -225,6 +225,13 @@ the text they are spoken from.
 | itaipu-4-s5-all | `voice/en/itaipu-4-s5-all.webm`, `voice/en/itaipu-4-s5-all.mp3`, `voice/es/itaipu-4-s5-all.webm`, `voice/es/itaipu-4-s5-all.mp3` |
 | itaipu-4-s5-order | `voice/en/itaipu-4-s5-order.webm`, `voice/en/itaipu-4-s5-order.mp3`, `voice/es/itaipu-4-s5-order.webm`, `voice/es/itaipu-4-s5-order.mp3` |
 | itaipu-4-s5-near | `voice/en/itaipu-4-s5-near.webm`, `voice/en/itaipu-4-s5-near.mp3`, `voice/es/itaipu-4-s5-near.webm`, `voice/es/itaipu-4-s5-near.mp3` |
+| itaipu-4-g-standby | `voice/en/itaipu-4-g-standby.webm`, `voice/en/itaipu-4-g-standby.mp3`, `voice/es/itaipu-4-g-standby.webm`, `voice/es/itaipu-4-g-standby.mp3` |
+| itaipu-4-g-boat | `voice/en/itaipu-4-g-boat.webm`, `voice/en/itaipu-4-g-boat.mp3`, `voice/es/itaipu-4-g-boat.webm`, `voice/es/itaipu-4-g-boat.mp3` |
+| itaipu-4-g-intakes | `voice/en/itaipu-4-g-intakes.webm`, `voice/en/itaipu-4-g-intakes.mp3`, `voice/es/itaipu-4-g-intakes.webm`, `voice/es/itaipu-4-g-intakes.mp3` |
+| itaipu-4-g-hunters | `voice/en/itaipu-4-g-hunters.webm`, `voice/en/itaipu-4-g-hunters.mp3`, `voice/es/itaipu-4-g-hunters.webm`, `voice/es/itaipu-4-g-hunters.mp3` |
+| itaipu-4-g-yard | `voice/en/itaipu-4-g-yard.webm`, `voice/en/itaipu-4-g-yard.mp3`, `voice/es/itaipu-4-g-yard.webm`, `voice/es/itaipu-4-g-yard.mp3` |
+| itaipu-4-g-scout | `voice/en/itaipu-4-g-scout.webm`, `voice/en/itaipu-4-g-scout.mp3`, `voice/es/itaipu-4-g-scout.webm`, `voice/es/itaipu-4-g-scout.mp3` |
+| itaipu-4-g-all | `voice/en/itaipu-4-g-all.webm`, `voice/en/itaipu-4-g-all.mp3`, `voice/es/itaipu-4-g-all.webm`, `voice/es/itaipu-4-g-all.mp3` |
 | war-g-next | `voice/en/war-g-next.webm`, `voice/en/war-g-next.mp3`, `voice/es/war-g-next.webm`, `voice/es/war-g-next.mp3` |
 | war-g-clock-1 | `voice/en/war-g-clock-1.webm`, `voice/en/war-g-clock-1.mp3`, `voice/es/war-g-clock-1.webm`, `voice/es/war-g-clock-1.mp3` |
 | war-g-clock-2 | `voice/en/war-g-clock-2.webm`, `voice/en/war-g-clock-2.mp3`, `voice/es/war-g-clock-2.webm`, `voice/es/war-g-clock-2.mp3` |

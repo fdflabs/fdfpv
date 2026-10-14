@@ -25080,6 +25080,370 @@
     }
    }
   },
+  "itaipu-4-g-all.en": {
+   "text": "Protect the plant. Everything at once. The closest to the dam first, and watch for Hunters.",
+   "speaker": "crest",
+   "seconds": 5.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1805858085,
+     "heard": "Protect the plant. Everything at once. The closest to the dam first and watch for hunters.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27107,
+     "sha256": "61f537093d95cc7ee666fcae6457769312db21112df0f14e476bab5d5573d599"
+    },
+    "mp3": {
+     "bytes": 23780,
+     "sha256": "ddc746843470c51715622f928c98e5827b5350b346f332a953db15dd3dd9623d"
+    }
+   }
+  },
+  "itaipu-4-g-all.es": {
+   "text": "Protejan la central. Todo a la vez. Primero el más cercano a la represa, y cuidado con los cazadores.",
+   "speaker": "crest",
+   "seconds": 6.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 346206494,
+     "heard": "Protejan la central. Todo a la vez, primero el más cercano a la represa y cuidado con los cazadores.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27589,
+     "sha256": "fe5b04bb232d328bbfa56b069a9a60a8224c5d21005cf45d5fdfb7b368d268b5"
+    },
+    "mp3": {
+     "bytes": 25196,
+     "sha256": "793fc42a306301d7f68ab812a979ccaf9cfb8848bab57036e77ec5628c5feef1"
+    }
+   }
+  },
+  "itaipu-4-g-boat.en": {
+   "text": "The boat is low on the water. Fly low, meet it early, and hit it before the face.",
+   "speaker": "crest",
+   "seconds": 5.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3385098050,
+     "heard": "The boat is low on the water, fly low, meet it early, and hit it before the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23011,
+     "sha256": "9cd55a0bf42fe3de49f94e4fde30b80ca1aca16a0690a9ce122f1bd0835dd071"
+    },
+    "mp3": {
+     "bytes": 20060,
+     "sha256": "b4328f6c486fceb8f417d6a1e28320aec730f7b48c6e51fc0a64634d0ec2a9c4"
+    }
+   }
+  },
+  "itaipu-4-g-boat.es": {
+   "text": "La lancha va baja sobre el agua. Vuelen bajo, salgan a su encuentro y péguenle antes de la cara.",
+   "speaker": "crest",
+   "seconds": 6.645,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3758893176,
+     "heard": "La lancha va baja sobre el agua. Vuelen bajo, salgan a su encuentro y péguenle antes de la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30223,
+     "sha256": "70ef5bd1f40d03241c26bdf9b9476c619da4a01c69de44a399d763af4487c87e"
+    },
+    "mp3": {
+     "bytes": 27236,
+     "sha256": "9732d1b063ce551ac3cc5a0b69970d3884f635c0bb8d4001be7a135ea3ef8bd0"
+    }
+   }
+  },
+  "itaipu-4-g-hunters.en": {
+   "text": "The Hunters chase your bird. Fly in pairs. One draws it, the other turns in and takes it.",
+   "speaker": "crest",
+   "seconds": 5.465,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 853333911,
+     "heard": "The hunters chase your bird, fly in pairs. One draws it, the other turns in and takes it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24923,
+     "sha256": "e9d5eac2bc87094eb2f037fa371b96651013c679a4f7efdda1e2c27e5c96d1c6"
+    },
+    "mp3": {
+     "bytes": 21812,
+     "sha256": "a13e0ad34849ed2a22f720780a8e3b4f72f195c48cabbdabdd6f9d4ad83ed56a"
+    }
+   }
+  },
+  "itaipu-4-g-hunters.es": {
+   "text": "Los cazadores persiguen su aparato. Vuelen de a dos. Uno lo atrae, el otro gira y lo derriba.",
+   "speaker": "crest",
+   "seconds": 6.155,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3142257087,
+     "heard": "Los cazadores persiguen su aparato, vuelen de a dos, uno lo atrae, el otro gira y lo derriba.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28113,
+     "sha256": "30b6f2dfa88f84ffc3c4cc036164b486b73c164cac892b6e9369073cb6e235e0"
+    },
+    "mp3": {
+     "bytes": 24980,
+     "sha256": "b7533b0b235f888d6d1dc4df37137063ce5181614e01b20d4f551b8493fe728f"
+    }
+   }
+  },
+  "itaipu-4-g-intakes.en": {
+   "text": "Protect the intakes. Boats come on two bearings. Split up and take one each.",
+   "speaker": "crest",
+   "seconds": 4.615,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 364509192,
+     "heard": "Protect the intakes. Boats come on two bearings. Split up and take one each.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21067,
+     "sha256": "f712f7d8f54b367043961933917162928eff987f38b2b55af8e6ccaf86e8b4a9"
+    },
+    "mp3": {
+     "bytes": 18548,
+     "sha256": "582cf99a556bf829d61ed925b258e18bac6cb0f6eed5a646f134623d0bdb4a7a"
+    }
+   }
+  },
+  "itaipu-4-g-intakes.es": {
+   "text": "Protejan las tomas. Las lanchas vienen por dos lados. Sepárense y tomen una cada uno.",
+   "speaker": "crest",
+   "seconds": 6.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3431235632,
+     "heard": "Protejan las tomas. Las lanchas vienen por dos lados. Sepárense y tomen una cada uno.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29327,
+     "sha256": "43f6fcd54164f6b7bd6b939804f94f8868e4153d27a5413f8e0432217ba46368"
+    },
+    "mp3": {
+     "bytes": 26036,
+     "sha256": "af417b1a26e0b6df44921e1db47097687dcf48905d5a0672d5f71041f68eb7ea"
+    }
+   }
+  },
+  "itaipu-4-g-scout.en": {
+   "text": "The scout circles high over the open water north of the dam. Climb and kill it.",
+   "speaker": "crest",
+   "seconds": 5.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 104410010,
+     "heard": "The scout circles high over the open water north of the dam. Climb and kill it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 70
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26554,
+     "sha256": "493e59650ed9d7198ea3c7e3fc17fa89f616bed995750b5b9289f4e5965b5af9"
+    },
+    "mp3": {
+     "bytes": 23924,
+     "sha256": "0e0593ac6612cd6f924cb6086cc4f6263b8bb6925c2468c7cbb45ee15952359a"
+    }
+   }
+  },
+  "itaipu-4-g-scout.es": {
+   "text": "El explorador da vueltas en altura sobre el agua abierta, al norte de la represa. Suban y derríbenlo.",
+   "speaker": "crest",
+   "seconds": 6.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1178544145,
+     "heard": "El explorador da vueltas en altura sobre el agua abierta, al norte de la represa. Suban y derríbenlo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31011,
+     "sha256": "046f241d9f4510a5db1a0a8644bbd91d5e97a46caa69b77977c374ef4ff1da45"
+    },
+    "mp3": {
+     "bytes": 27644,
+     "sha256": "b5dd422c2c83296e71b1d2a50b66b6413602eac3c382df40bb0ef6da9b19a336"
+    }
+   }
+  },
+  "itaipu-4-g-standby.en": {
+   "text": "Stand by. Spread out over the face and watch the water. Something will come.",
+   "speaker": "crest",
+   "seconds": 5.595,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 19443321,
+     "heard": "Stand by. Spread out over the face and watch the water. Something will come.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25392,
+     "sha256": "9b293002c3992adbf6fb0479ee45cb0010d2a5300eb64bf150fc940c8d6599bf"
+    },
+    "mp3": {
+     "bytes": 22700,
+     "sha256": "43ac21f4fdf183052d245e9752a3557f158e222bce407aba5d1e006b6f118d25"
+    }
+   }
+  },
+  "itaipu-4-g-standby.es": {
+   "text": "En espera. Despliéguense sobre la cara y miren el agua. Algo va a venir.",
+   "speaker": "crest",
+   "seconds": 4.665,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 433866077,
+     "heard": "En espera. Despliéguense sobre la cara y miren el agua. Algo va a venir.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21393,
+     "sha256": "86fb1eebd300a8f3bd70fb6d6ed0b0afadc57f4af5faddffe640a5e838da1817"
+    },
+    "mp3": {
+     "bytes": 19508,
+     "sha256": "6f91b7f71d5c6dd29252e8975cf3e3833fa0a76ac340dce3781695b0c1f0a35a"
+    }
+   }
+  },
+  "itaipu-4-g-yard.en": {
+   "text": "Fly west over the right bank. Stop the Strikers before the switchyard.",
+   "speaker": "crest",
+   "seconds": 4.215,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1289080446,
+     "heard": "fly west over the right bank, stop the strikers before the switchyard,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19286,
+     "sha256": "87e5307f2e56013394a7c6e0c4c45951adf33d805bca2eddc03bc3c89461abe2"
+    },
+    "mp3": {
+     "bytes": 17516,
+     "sha256": "fe6bbdfbd47ed74ef1ed18445c29de3d9e5a74f207e8077f663a6fad0c26a3fe"
+    }
+   }
+  },
+  "itaipu-4-g-yard.es": {
+   "text": "Vuelen al oeste sobre la margen derecha. Paren a los drones de ataque antes de la subestación.",
+   "speaker": "crest",
+   "seconds": 5.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3750276222,
+     "heard": "Vuelen al oeste sobre la margen derecha. Paren a los drones de ataque antes de la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26305,
+     "sha256": "0ee4ea4ef8953ab387e43962637a01d7bda536f2c4f13286ccfee4985a9f2b70"
+    },
+    "mp3": {
+     "bytes": 24044,
+     "sha256": "5cdbbaa30f3d8af34eee5f56e2c9006dd9eceac3fea6419e7ee2b2cb827bf2b5"
+    }
+   }
+  },
   "itaipu-4-s0-brief.en": {
    "text": "They'll come in the dark. You'll see less. So will they.",
    "speaker": "crest",

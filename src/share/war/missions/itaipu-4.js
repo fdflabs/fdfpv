@@ -52,7 +52,9 @@
  * show, a boat or a Scout with no lights and every bird's nav lights off
  * (every attacker wears its own at night, src/render/attackers.js), the
  * sky going grey (no dawn ramp), so they are said otherwise (lines.json
- * notes).
+ * notes). The `itaipu-4-g-*` cues are the guide, as First Light's
+ * (docs/campaign/FIRST-LIGHT-AUDIT.md): CREST saying plainly what to do,
+ * after the story line it follows, dropped once its objective settles.
  *
  * THE DIALS (MISSIONS.md 1.4), as First Light's: each group's sector and
  * route in it, its time in a window, the twist. `pace` stretches every
@@ -153,6 +155,8 @@ export default withWaves({
    * time it ended 0.3 s after the go and seated both pilots 1.7 s into
    * the war. */
   prepMs: 15000,
+  /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
+  nudge: true,
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sectors: {
@@ -180,10 +184,12 @@ export default withWaves({
       }],
       cues: [
         { at: 0, text: 'war.obj.itaipu_4.stand_by' },
+        { at: 0, radio: 'itaipu-4-g-standby' },
         { at: 20, radio: 'itaipu-4-s1-quiet' },
         { at: 34, radio: 'itaipu-4-s1-long', skip: { born: { group: 'boat' } } },
         { when: { born: { group: 'boat' } }, text: null },
         { when: { born: { group: 'boat' } }, at: 3, radio: 'itaipu-4-s1-boat' },
+        { when: { born: { group: 'boat' } }, at: 7, radio: 'itaipu-4-g-boat', skip: { any: [{ down: { group: 'boat' } }, { leaked: 1, group: 'boat' }] } },
         { when: { down: { group: 'boat' } }, radio: 'itaipu-4-s1-down' },
         STAGE_LOST,
       ],
@@ -207,6 +213,7 @@ export default withWaves({
       objectives: [{ id: 'intakes', text: 'war.obj.protect_intakes', kind: 'protect' }],
       cues: [
         { at: 1, radio: 'itaipu-4-s2-water' },
+        { at: 2, radio: 'itaipu-4-g-intakes' },
         { when: { born: { group: 'boats-2' } }, at: 2, radio: 'itaipu-4-s2-split' },
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-4-s2-high' },
         { when: { cleared: true }, radio: 'itaipu-4-s2-clear' },
@@ -235,6 +242,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'hunters' } }, radio: 'itaipu-4-s3-hunt' },
         { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-4-s3-pairs' },
+        { when: { born: { group: 'hunters' } }, at: 8, radio: 'itaipu-4-g-hunters', skip: { down: { group: 'hunters' } } },
         { when: { born: { group: 'cover' } }, at: 2, radio: 'itaipu-4-s3-cover' },
         { when: { down: { group: 'hunters' } }, radio: 'itaipu-4-s3-down' },
         STAGE_LOST,
@@ -266,6 +274,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'twist' } }, radio: 'itaipu-4-tb-turn' },
         { when: { born: { group: 'twist' } }, at: 6, radio: 'itaipu-4-tb-why' },
+        { when: { born: { group: 'twist' } }, at: 10, radio: 'itaipu-4-g-yard', skip: { down: { group: 'twist' } } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'before-dawn', BEAT(20, 20)),
@@ -288,6 +297,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'twist' } }, at: 3, radio: 'itaipu-4-tc-turn' },
         { when: { born: { group: 'twist' } }, at: 7, radio: 'itaipu-4-tc-why' },
+        { when: { born: { group: 'twist' } }, at: 11, radio: 'itaipu-4-g-scout', skip: { any: [{ down: { group: 'twist' } }, { left: 1, group: 'twist' }] } },
         { when: { down: { group: 'twist' } }, radio: 'itaipu-4-tc-down' },
         STAGE_LOST,
       ],
@@ -324,6 +334,7 @@ export default withWaves({
       cues: [
         { when: { born: {} }, radio: 'itaipu-4-s5-all' },
         { when: { born: {} }, at: 4, radio: 'itaipu-4-s5-order' },
+        { when: { born: {} }, at: 8, radio: 'itaipu-4-g-all' },
         { at: 45, radio: 'itaipu-4-s5-near' },
       ],
       /* The last: lost or held, the mission is won if the output is still

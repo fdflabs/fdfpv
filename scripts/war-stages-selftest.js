@@ -1365,8 +1365,8 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
     const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
-    const want = ['itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
-      'itaipu-4-s3-cover', ...TWIST[twist] ?? [], 'itaipu-4-s5-all', 'itaipu-4-s5-order', 'itaipu-4-s5-near'];
+    const want = ['itaipu-4-g-standby', 'itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', 'itaipu-4-g-intakes', 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
+      'itaipu-4-s3-cover', ...TWIST[twist] ?? [], 'itaipu-4-s5-all', 'itaipu-4-s5-order', 'itaipu-4-g-all', 'itaipu-4-s5-near'];
     const missing = want.filter((id) => !said.includes(id));
     if (missing.length) {
       bad.push(`${label}: never said ${missing.join(',')}`);
@@ -1413,7 +1413,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   console.log(`    the twist's scout: killed in ${scouts.killed}, not in ${scouts.alive}`);
   check('ten games, 1 and 4 good pilots: Quiet, Dark Water, Hunters, one twist of The Turn, Before Dawn, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
     bad.filter((x) => /stages|ended/.test(x)).join(' | '));
-  check('every stage\'s story said: the quiet, the boat, the water and its second bearing, the Loiterer, the Hunters and their cover, the twist\'s two lines and no other twist\'s, the convergence, its order and the dawn near',
+  check('every stage\'s story and guide said: the stand by, the quiet, the boat, the water and its second bearing, the Loiterer, the Hunters and their cover, the twist\'s two lines and no other twist\'s, the convergence, its order and the dawn near',
     bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
   check('the quiet: STAND BY alone on the HUD and nothing born for 40 s or more, then the dark boat and its objective', bad.filter((x) => /quiet/.test(x)).length === 0,
     bad.filter((x) => /quiet/.test(x)).join(' | '));
