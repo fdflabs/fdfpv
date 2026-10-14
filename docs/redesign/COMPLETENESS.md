@@ -1006,9 +1006,11 @@ rooms server (core.js, front.js, war.js, ops.js), the campaign lists
 and the war's briefing; kept three valued rather than a `hidden` boolean, because Under
 development and Coming soon are different cards. `inBuild` is gone. An
 upgrade waits on an act (`later: 2`, campaign.js UPGRADES); servers can
-be switched off (`?rooms=off`). **Still to do:** a `hidden` field on the
-mode registry's rows (src/share/modes.js, the sessions lane's), with
-`modes:selftest` (CI) asserting a hidden row reaches no card. Size S.
+be switched off (`?rooms=off`). **Built (w38-sessions):** a `hidden`
+field on the mode registry's rows (src/share/modes.js), false on every
+row today; a hidden row draws no card (src/ui/ways.js gateWays) and is
+never home's Continue, and `modes:selftest` (CI) hides the race in a
+registry of its own and sees Track Day's card go and no other.
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,

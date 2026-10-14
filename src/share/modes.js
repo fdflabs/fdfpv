@@ -81,6 +81,9 @@ export const ROUND_MINUTES = [3, 5];
  *                 own rule there: only on its map)
  *   onFoot        a landed and stopped pilot may step out and walk
  *                 (docs/ON-FOOT.md); free flight only
+ *   hidden        offered nowhere: no card draws it and home's Continue
+ *                 never holds it (COMPLETENESS 81: one place to hide a
+ *                 row, the author's decision over a flags system)
  */
 export const MODES = [
   {
@@ -102,6 +105,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'tag',
@@ -122,6 +126,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'combat',
@@ -142,6 +147,7 @@ export const MODES = [
     straightToLobby: true,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'jam',
@@ -164,6 +170,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: true,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'war',
@@ -184,6 +191,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: false,
     onFoot: false,
+    hidden: false,
   },
   {
     id: 'free',
@@ -204,6 +212,7 @@ export const MODES = [
     straightToLobby: false,
     makeable: false,
     onFoot: true,
+    hidden: false,
   },
 ];
 

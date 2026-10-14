@@ -224,8 +224,11 @@ export const WAYS = [
   },
 ].map((way) => ({ ...way, action: `way-${way.id}` }));
 
-/* The cards the title draws. */
-export const GATE_WAYS = WAYS.filter((way) => way.gate !== false);
+/* The cards the title draws from `ways`: none of a mode `modes` hides. */
+export function gateWays(ways, modes) {
+  return ways.filter((way) => way.gate !== false && !modes.some((m) => m.hidden && m.card.way === way.id));
+}
+export const GATE_WAYS = gateWays(WAYS, MODES);
 
 /* The title's three hubs; a card belongs to the hub of its category. */
 export const HUBS = [
