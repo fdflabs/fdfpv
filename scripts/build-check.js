@@ -6,7 +6,7 @@
  *     SIM_GPU=1 node scripts/build-check.js [OUT_DIR] --perf
  *
  * --only runs one part on its own page: proof, pieces, line, wing, plane,
- * hoops, hoopsbramor or casual.
+ * hoops, hoopsbramor, casual or casualquad.
  *
  * The builder is a creative mode (src/builder/buildmode.js) and every edit
  * here is made the way a pilot makes it, with mouse and key events over
@@ -125,7 +125,7 @@ import {
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airStartSpeed, airframeById } from '../configs/airframes.js';
 import {
-  DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, PIECES, RETIRED_HOOPS, addGate, newCourse, openingsOf, qAxis, raceGatesOf,
+  CASUAL, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, HOOP_TYPES, PIECES, RETIRED_HOOPS, addGate, newCourse, openingsOf, qAxis, raceGatesOf,
 } from '../src/builder/course.js';
 import { ELEMENTS } from '../src/trackbuilder/elements.js';
 import { normalize, toPlain } from '../src/trackbuilder/model.js';
@@ -2018,34 +2018,41 @@ async function hoopStage(craft, { place = true } = {}) {
 
 
 /*
- * 19. THE CASUAL SKY COURSE: with a plane seated, My tracks' New track
- * offers it for each world (and with a quad seated it does not); one click
- * lays eight big gates round a wide oval over the world, 400 m apart along
- * it, 30 m hoops 60 to 150 m over the ground and, where the ground takes
- * one, the air race's pylon pair standing on it, and flies it. No warning
- * for the seated plane, and a lap flown wide on purpose, through the
- * openings near their edges and past them outside, closes and is scored.
+ * 19. THE CASUAL SKY COURSE: My tracks' New track offers it for each world
+ * at the seated aircraft's size (src/builder/course.js CASUAL), and one
+ * click lays it and flies it. A plane's: eight big gates round a wide oval
+ * over the world, 400 m apart along it, 30 m hoops 60 to 150 m over the
+ * ground and, where the ground takes one, the air race's pylon pair
+ * standing on it. A quad's: eight 2.5 m hoops 45 m apart, 10 to 25 m over
+ * the ground. No warning for the seated aircraft, and a lap closes: a
+ * plane's scored and flown wide on purpose, through the openings near their
+ * edges and past them outside (race.js PLANE_REACH), a quad's through
+ * each opening at 80 percent of its radius, since a quad's pass counts
+ * only inside it, and unscored, as every quad race is.
  */
 async function casualStage(craft) {
   console.log(`the casual sky course on ${opts.map}, the ${craft}`);
   const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${opts.map}`, seed: seedFor(null, craft) });
   const af = airframeById(craft);
+  const size = CASUAL[af.fixedWing ? 'plane' : 'quad'];
+  const hoopType = size.types[0];
+  const other = af.fixedWing ? 'interceptor' : 'cub1400';
   try {
     await page.until('!!window.__shellReady', 240000);
     await page.until(`window.__map && window.__map().id === ${JSON.stringify(opts.map)} && window.__map().ready`, 300000);
     await page.evaluate("window.__ui.act('mytracks'), window.__ui.act('newtrack'), true");
-    const rows = async () => page.evaluate('window.__ui.items().filter((r) => r.action).map((r) => ({ label: r.label, action: r.action }))');
+    const rows = async () => page.evaluate('window.__ui.items().filter((r) => r.action).map((r) => ({ label: r.label, action: r.action, note: r.note }))');
     const offered = await rows();
     const mine = offered.find((r) => r.action === `casualtrack:${opts.map}`);
     say(Boolean(mine), `New track offers the ${af.short} a casual sky course: ${offered.filter((r) => /^casualtrack:/.test(r.action)).map((r) => r.label).join('; ')}`);
-    const quadRows = await page.evaluate(`(() => {
+    const otherNote = await page.evaluate(`(() => {
       const was = window.__ui.settings.airframe;
-      window.__ui.settings.airframe = 'interceptor';
-      const got = window.__ui.items().filter((r) => /^casualtrack:/.test(r.action || '')).length;
+      window.__ui.settings.airframe = ${JSON.stringify(other)};
+      const got = window.__ui.items().find((r) => r.action === ${JSON.stringify(`casualtrack:${opts.map}`)});
       window.__ui.settings.airframe = was;
-      return got;
+      return got ? got.note : null;
     })()`);
-    say(quadRows === 0, `and a quad is not offered one (${quadRows} rows)`);
+    say(Boolean(mine) && Boolean(otherNote) && otherNote !== mine.note, `and the ${airframeById(other).short} is offered its own: ${JSON.stringify(otherNote)}`);
     await page.until('!!window.__build', 60000);
     await page.evaluate(`window.__ui.act(${JSON.stringify(`casualtrack:${opts.map}`)}), true`);
     await page.until(`${B('.state')} === 'testing' && window.__craftState().mode === 'flight'`, 180000);
@@ -2060,42 +2067,49 @@ async function casualStage(craft) {
     }
     const gaps = G.map((g, i) => vDist(g.centre, G[(i + 1) % G.length].centre));
     const pairs = G.filter(isPair).length;
-    say(G.length === 8 && typeOf(G[0]) === 'hoop30' && G.every((g) => (isPair(g) ? !g.round : g.round && g.clearW === 30)) && pairs > 0,
-      `one click flies ${G.length} gates, ${pairs} of them the air race's pylon pair: ${G.map((g) => (isPair(g) ? 'pair' : `${g.clearW} m hoop`)).join(', ')}`);
-    say(gaps.every((d) => d > 330 && d < 420), `about 400 m apart round the oval: ${gaps.map((d) => d.toFixed(0)).join(', ')} m`);
+    const hoopW = ELEMENTS[hoopType].dims.clearW;
+    say(G.length === CASUAL.gates && typeOf(G[0]) === hoopType && G.every((g) => (isPair(g) ? !g.round : g.round && g.clearW === hoopW))
+      && (pairs > 0) === size.types.includes('pylonPair'),
+    `one click flies ${G.length} gates, ${pairs} of them the air race's pylon pair: ${G.map((g) => (isPair(g) ? 'pair' : `${g.clearW} m hoop`)).join(', ')}`);
+    say(gaps.every((d) => d > 0.825 * size.spacing && d < 1.05 * size.spacing), `about ${size.spacing} m apart round the oval: ${gaps.map((d) => d.toFixed(0)).join(', ')} m`);
     const pairMid = ELEMENTS.pylonPair.dims.clearH / 2;
-    say(G.every((g, i) => (isPair(g) ? heights[i] >= pairMid - 2.1 && heights[i] <= pairMid + 0.1 : heights[i] >= 59.9 && heights[i] <= 150.1)),
-      `the hoops 60 to 150 m over the ground, the pairs standing on it: ${heights.map((h) => h.toFixed(0)).join(', ')} m`);
+    say(G.every((g, i) => (isPair(g) ? heights[i] >= pairMid - 2.1 && heights[i] <= pairMid + 0.1 : heights[i] >= size.over - 0.1 && heights[i] <= size.top + 0.1)),
+      `the hoops ${size.over} to ${size.top} m over the ground${size.types.includes('pylonPair') ? ', the pairs standing on it' : ''}: ${heights.map((h) => h.toFixed(0)).join(', ')} m`);
     say(G.every((g, i) => vDot(g.travel, vAdd(G[(i + 1) % G.length].centre, g.centre, -1)) > 0), 'each flown towards the next');
     const warns = st.warnings.filter((w) => ['small', 'close', 'blocked', 'clips', 'backwards'].includes(w.code));
     say(warns.length === 0, `no warning for the ${af.short}: ${warns.map((w) => `${w.code}@${w.gate + 1}`).join(' ') || 'none'}`);
     say(st.doc.name === 'Casual sky track', `named ${JSON.stringify(st.doc.name)}`);
     await frames(page, 3);
-    await shot(page, `19-${opts.map}-casual-start`);
+    await shot(page, `19-${opts.map}-casual-${af.fixedWing ? 'plane' : 'quad'}-start`);
     /*
-     * A lap flown wide on purpose (src/game/race.js PLANE_REACH): round the
-     * eight hoops and back through the first, in order, each thrown through
-     * well off its centre or right outside it: through the disc at 80
-     * percent of its radius, then past its rim by 15 m, by turns. Every
-     * one counts, the lap closes, and it is scored.
+     * Round the eight gates and back through the first, in order. A plane
+     * throws each well off its centre or right outside it, by turns:
+     * through the disc at 80 percent of its radius, then past its rim by
+     * 15 m. A quad throws each at 80 percent of its radius, from 2 m back
+     * at 13 m/s, the fastest pace the AI pilot's harness takes every gate
+     * at (CASUAL.quad).
      */
-    const cruise = airStartSpeed(af);
+    const speed = af.fixedWing ? airStartSpeed(af) : 13;
+    const back = af.fixedWing ? 12 : 2;
     await page.evaluate('window.__race().next = 0, true');
     const calls = [];
     for (let k = 0; k <= G.length; k += 1) {
       const i = k % G.length;
       const g = G[i];
-      const rim = isPair(g) ? 2 * ELEMENTS.pylonPair.dims.baseRadius : 2 * ELEMENTS.hoop30.dims.tubeR;
-      const out = k % 2 === 0 ? 0.8 * (g.clearW / 2) : g.clearW / 2 + rim + 15;
-      const r = await throwAt(page, vAdd(g.centre, vCross(g.up, g.travel), out), g.travel, cruise, 12);
+      const rim = isPair(g) ? 2 * ELEMENTS.pylonPair.dims.baseRadius : 2 * ELEMENTS[hoopType].dims.tubeR;
+      const out = k % 2 === 0 || !af.fixedWing ? 0.8 * (g.clearW / 2) : g.clearW / 2 + rim + 15;
+      const r = await throwAt(page, vAdd(g.centre, vCross(g.up, g.travel), out), g.travel, speed, back);
       const race = await page.evaluate('({ next: window.__race().next, call: window.__race().call, flash: window.__race().flashText(performance.now()) })');
-      calls.push(r.next === (i + 1) % G.length && race.call ? `${race.call.code} ${race.call.points}`
+      /* A quad's race is not scored (race.js reach is a plane's), so it
+       * makes no call: the gate taken is the count. */
+      const took = r.next === (i + 1) % G.length && (race.call || !af.fixedWing);
+      calls.push(took ? (race.call ? `${race.call.code} ${race.call.points}` : 'through')
         : `missed at ${i + 1} (${r.flown.toFixed(1)} s flown, ${r.mode}${r.crashed ? ', crashed' : ''}, ${r.whacks.length} whacks, next ${r.next}, ${JSON.stringify(race.flash)})`);
     }
     const run = await page.evaluate('({ lap: window.__race().lap, log: window.__race().log, run: window.__race().runScore, flash: window.__race().flashText(performance.now()) })');
-    say(calls.every((c) => !/missed/.test(c)), `round the lap wide on purpose, every gate counts: ${calls.join(', ')}`);
-    say(run.lap === 1 && Number.isFinite(run.log[0].score) && run.log[0].score > 0,
-      `and the lap closes, scored: ${run.log.map((l) => `lap ${l.n} ${(l.ms / 1000).toFixed(1)} s, ${l.score} points`).join('; ')}; the run ${run.run}`);
+    say(calls.every((c) => !/missed/.test(c)), `round the lap, every gate counts: ${calls.join(', ')}`);
+    say(run.lap === 1 && Number.isFinite(run.log[0].ms) && (!af.fixedWing || (Number.isFinite(run.log[0].score) && run.log[0].score > 0)),
+      `and the lap closes${af.fixedWing ? ', scored' : ''}: ${run.log.map((l) => `lap ${l.n} ${(l.ms / 1000).toFixed(1)} s${l.score === undefined ? '' : `, ${l.score} points`}`).join('; ')}; the run ${run.run}`);
     const osd = await page.evaluate('window.__fpvOsd ? window.__fpvOsd().values : null');
     console.log(`    the OSD's score row: ${osd ? JSON.stringify(osd.cue) : 'no OSD'}; the banner: ${JSON.stringify(run.flash)}`);
     const errs = pageErrors(page);
@@ -2562,6 +2576,7 @@ if (opts.perf) {
   await stage('hoops', () => hoopStage('cub1400'));
   await stage('hoopsbramor', () => hoopStage('bramor2300', { place: false }));
   await stage('casual', () => casualStage('cub1400'));
+  await stage('casualquad', () => casualStage('interceptor'));
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall hold');
 process.exit(failed ? 1 : 0);

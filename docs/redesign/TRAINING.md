@@ -178,10 +178,19 @@ inputs and the flight's event log, each with a near miss that fails.
   once every lesson this document gives it exists: Fixed wing, Glider,
   Multirotor and Racing. Defence waits on the stage engine. First
   flight has none.
-- **Gates** (track 3) is not built: the tree's casual sky tracks are
-  offered only to a fixed wing (src/ui/items.js `newTrackRows`), so a
-  quad has no casual course to fly. Casual sky tracks for quads are a
-  product gap. Multirotor's certification is its other four lessons.
+- **Gates** (`quad_gates`, track 3): one clean lap of a casual sky
+  track, between the acro hover and Precision. A lap closes only after
+  every gate in order, so a lap is every gate; clean is no rim touched.
+  It counts only on a casual sky track: the lap event in the flight's log
+  carries its course's kind (src/game/progress.js `courseKind`), and a
+  lap of a built track or of the world's own does not pass it. Like
+  Precision it names no aircraft or assist. A quad has a casual sky
+  track since 2026-10-14 (src/ui/items.js `newTrackRows` offers one to
+  every aircraft, src/builder/course.js `CASUAL.quad`): eight 2.5 m
+  hoops, 45 m apart, 10 m over the ground; the spacing is derived from
+  the AI pilot's harness, the oval no tighter than the level turn its
+  reference line holds at 13 m/s. Multirotor's certification is its five
+  lessons.
 - **Sticks** (`first_sticks`): each stick held at each end of its
   travel for 1 s, any order: roll, pitch and yaw at 95 percent either
   way, the throttle at 95 percent and at 5 percent. 95 percent and 1 s

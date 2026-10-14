@@ -310,7 +310,7 @@ console.log('the shell\'s producers');
   check('Progress feeds RunWatch gate and lap from the log, and tells it every touch',
     ui.includes("feedRunWatch(this.watch, this.event('gate'))")
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
-    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal });\n    const done = feedRunWatch(this.watch, lapped);"));
+    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind });\n    const done = feedRunWatch(this.watch, lapped);"));
   check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
   check('and logs a crash and a landing from its tick',
     ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe })"));
