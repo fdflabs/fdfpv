@@ -15,14 +15,15 @@
 # Not --budgets: those ceilings are the 3060 Ti's, and the Orin is held
 # to no ceiling, only measured.
 #
-# The Orin shares its GPU with whatever else runs there (ComfyUI, Ollama).
-# Before each row the script waits until the GPU's own load
+# The Orin shares its GPU with whatever else runs there (ComfyUI,
+# Ollama). Before each row the script waits until the GPU's own load
 # (the nvgpu sysfs `load`, per mille) has stayed under IDLE_MAX for
-# IDLE_SECONDS, and gives up after WAIT_MINUTES. nvidia-smi reports no
-# utilisation on Tegra, so perf-play's "gpu load" is empty there. The
-# load gives no owner, and a ComfyUI job or an Ollama model may start
-# mid row, so each row also records ComfyUI's queue and Ollama's loaded
-# models before and after it; a row with either busy is marked.
+# IDLE_SECONDS with ComfyUI's queue empty, and gives up after
+# WAIT_MINUTES. nvidia-smi reports no utilisation on Tegra, so
+# perf-play's "gpu load" is empty there. The load gives no owner, and a
+# ComfyUI job or an Ollama model may start mid row, so each row also
+# records ComfyUI's queue and Ollama's loaded models before and after
+# it; a row with either busy is marked.
 #
 # One time setup on the Jetson, all under ~/fdfpv-ref (docs/PERF.md,
 # The reference machine): Node 22 in node/, Playwright's arm64 Chromium
@@ -94,7 +95,7 @@ others() {
 gpu_errors() {
   journalctl -k -b --no-pager | grep -E "nvgpu.*\[ERR\]" | tail -5 || true
 }
-export PATH=$R/node/bin:$PATH TMPDIR=$R/tmp SIM_GPU=1 SIM_CHROME_BIN=$R/chrome-orin
+export PATH=$R/node/bin:$PATH TMPDIR=$R/tmp SIM_GPU=1 SIM_CHROME_BIN=$R/chrome-orin FDFPV_ITAIPU_DATA=$R/itaipu-data
 mkdir -p "$TMPDIR"
 EOF
 
@@ -127,6 +128,15 @@ HTML
 mkdir -p "$R/tree"
 '
 rsync -a --delete --exclude=/.git --exclude=/node_modules --exclude=/tmp --exclude=/vendor ./ "$JETSON:fdfpv-ref/tree/"
+# Itaipu's data set lives outside the repository (tests/lib/server.js);
+# without it the Itaipu rows fly the Alps the menu fell back to and never
+# start.
+itaipu_data=${FDFPV_ITAIPU_DATA:-$HOME/Desktop/fdfpv-itaipu-data}
+if [[ ! -f "$itaipu_data/manifest.json" ]]; then
+  echo "perf-jetson: no Itaipu data set at $itaipu_data (set FDFPV_ITAIPU_DATA)" >&2
+  exit 1
+fi
+rsync -a --delete "$itaipu_data/" "$JETSON:fdfpv-ref/itaipu-data/"
 remote "$REMOTE_ENV"'
 cd "$R/tree"
 stamp=$(sha256sum package-lock.json | cut -c1-64)
@@ -166,9 +176,9 @@ for preset in "${preset_list[@]}"; do
       idle_max='"$IDLE_MAX"' idle_seconds='"$IDLE_SECONDS"' wait_minutes='"$WAIT_MINUTES"'
       deadline=$(( $(date +%s) + wait_minutes * 60 )) quiet=0
       while (( quiet < idle_seconds )); do
-        if (( $(cat $LOAD) <= idle_max )); then quiet=$((quiet + 1)); else quiet=0; fi
+        if (( $(cat $LOAD) <= idle_max )) && [[ "$(others)" == "comfyui 0 "* ]]; then quiet=$((quiet + 1)); else quiet=0; fi
         if (( $(date +%s) > deadline )); then
-          echo "perf-jetson: $row: the GPU did not go quiet in $wait_minutes min (load $(cat $LOAD) per mille)" >&2
+          echo "perf-jetson: $row: the GPU did not go quiet in $wait_minutes min (load $(cat $LOAD) per mille, $(others))" >&2
           exit 1
         fi
         sleep 1

@@ -77,12 +77,14 @@ shown otherwise. To compare:
 
 ## The reference machine: Jetson AGX Orin
 
-The BUDGETS rows can also be flown on a second machine, a Jetson AGX Orin 64 GB developer kit on the LAN (JetPack 6, L4T R36.5.2,
+The BUDGETS rows can also be flown on a second machine, a Jetson AGX
+Orin 64 GB developer kit on the LAN (JetPack 6, L4T R36.5.2,
 power mode MODE_50W, GPU up to 1300 MHz, 12 Arm cores, memory shared
 between CPU and GPU), headless, reached over ssh. It is the reference
 machine the owner's 30 fps floor would be read on (docs/BUDGETS.md,
-Reference machine: Jetson AGX Orin). It was first flown 2026-10-13: five
-rows, then its GPU wedged (below). One command takes the rows again:
+Reference machine: Jetson AGX Orin). It has been flown twice, seven rows
+in all, and its GPU wedged after a row in each run (below). One command
+takes the rows again:
 
     scripts/perf-jetson.sh OUT_DIR [--scenarios=title,alps-low,...] [--presets=low,medium,high] [--seconds=15]
 
@@ -92,8 +94,11 @@ there when package-lock.json changed), flies each scenario at each
 preset with BUDGETS' settings (`--mode=quality`, 1600 by 900, free
 running, 15 s, one scenario a browser), fetches every
 `perf-play.json` to `OUT_DIR/<preset>-<scenario>/`, and writes
-`OUT_DIR/summary.md`, the table for BUDGETS. A row took 51 to 100 s
-in the five taken, most of it the world loading on the Orin's cores,
+`OUT_DIR/summary.md`, the table for BUDGETS. Itaipu's data set, which
+lives outside the repository, goes to `~/fdfpv-ref/itaipu-data` from
+`FDFPV_ITAIPU_DATA` (default `~/Desktop/fdfpv-itaipu-data`, the path
+tests/lib/server.js serves); without it the Itaipu rows never leave the
+menu's Alps. A row took 51 to 155 s in the seven taken, most of it the world loading on the Orin's cores,
 plus 15 s after each for the check below.
 It does not pass `--budgets`: the ceilings are the 3060 Ti's, and the
 Orin is measured, not held.
@@ -101,13 +106,15 @@ Orin is measured, not held.
 **The card is shared there too.** ComfyUI (port 8188, 13 to 34 GB
 resident) and PAIR's Ollama (11435) live on the Jetson and draw on the
 same GPU. Before each row the script waits for the GPU's own load (the
-nvgpu sysfs `load`) to stay under 10 % for 10 s, gives up after an hour,
+nvgpu sysfs `load`) to stay under 10 % with ComfyUI's queue empty for
+10 s, gives up after an hour,
 and writes ComfyUI's queue and Ollama's loaded models before and after
 the row; a row with either busy says BUSY in the summary and is to be
 retaken. nvidia-smi reports no utilisation on Tegra, so the run's own
 `gpu load` line is empty there.
 
-**The wedge, 2026-10-13.** The first run flew five rows and stopped. At
+**The wedge, twice.** The first run, 2026-10-13, flew five rows and
+stopped. At
 23:32:38, five seconds after the third row's Chrome closed, the kernel
 logged `ga10b_gr_init_wait_empty: timeout, ctxsw busy: 1` and
 `gk20a_pm_runtime_suspend: failed to power off, err=-11`, every four
@@ -117,8 +124,21 @@ set to 8 for ch 495 owned by chrome`, `Unable to recover GR falcon` and
 process sat in `dma_fence_default_wait`, and a later one in
 `nvgpu_runlist_reschedule`, in the kernel, unkillable. ComfyUI's queue
 was empty and Ollama had no model loaded; the faulting channel was this
-run's. Whether ANGLE's Vulkan teardown caused it or found it is not
-known. Until a reboot nothing on the Jetson can use its GPU: ComfyUI
+run's. That fourth row was `itaipu-stream`, flying the menu's Alps:
+the Itaipu data set was not yet copied over.
+
+The second run, 2026-10-14 after a reboot with no nvgpu error in the
+log, flew `itaipu-stream` and `interior-ops` at Low. `interior-ops`
+wrote its numbers at 00:20:35 and its Chrome closed; at 00:20:38 the
+kernel logged the same `ctxsw busy: 1` and `failed to power off`, every
+four seconds. The script's check stopped the run before another browser
+opened, so no reset failed this time, but the engine stays in that
+state: the next process to open a GPU channel (a ComfyUI job, an Ollama
+load) meets it as the fourth row did, and only a reboot clears it. Two
+runs, two wedges, each a few seconds after a headless Chrome on ANGLE's
+Vulkan closed, on two different worlds: it is not one scene, and
+whether the driver (L4T R36.5.2) or ANGLE's Vulkan teardown is at fault
+is not known. Until a reboot nothing on the Jetson can use its GPU: ComfyUI
 jobs, Ollama there, and so PAIR requests routed to the Jetson, hang.
 After the reboot (the Jetson's notes): `systemctl --user restart
 nvpair-tui`, start ComfyUI (`~/comfy/run-comfyui.sh`) and the brains
@@ -128,7 +148,8 @@ So the script reads the kernel's log first and stops before opening a
 browser when any nvgpu error was logged since the Jetson booted (that
 boot had none before the run), and reads it again 15 s after each row,
 stopping on a row that left one. Until the cause is known, run it only
-when the Jetson's other users can take a reboot.
+when the Jetson's other users can take a reboot, and expect one after
+it.
 
 **One time setup**, all under `~/fdfpv-ref` on the Jetson, nothing
 system wide: Node 22 from nodejs.org's linux-arm64 tarball in `node/`
