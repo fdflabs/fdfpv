@@ -215,23 +215,33 @@ for Testing 156.0.8078.4 on ANGLE over Vulkan:
 
 scripts/perf-jetson.sh takes the rows (docs/PERF.md, The reference
 machine), with the table's own run settings: 15 s, `--mode=quality`,
-1600 by 900, free running, one scenario a browser, on batch/2026-10-14
-at f0c06cbb6, 2026-10-13 between 23:25 and 23:33 local.
+1600 by 900, free running, one scenario a browser.
 
-**5 of the 18 rows, and the run stopped.** As the fourth row
-(`itaipu-stream` at Low) opened, the Orin's graphics engine wedged and
-failed its reset, and only a reboot brings it back (docs/PERF.md, The
-reference machine, for what the kernel logged). The five rows below were
-written before the kernel's first error (the last at 23:32:33, the first
-error at 23:32:38). The Interior, Itaipu streaming and the war are not
-measured, so no tier is proposed here yet.
+**7 of the 18 rows; the Orin's GPU wedges under this run.** Twice, a
+few seconds after a row's Chrome closed, the kernel logged the same
+graphics engine hang (docs/PERF.md, The reference machine):
+
+- 2026-10-13, batch/2026-10-14 at f0c06cbb6: five rows from 23:25 to
+  23:32:33; the hang from 23:32:38, after `swiss-low` at Low; the next
+  row's Chrome then failed the engine's reset, and only a reboot
+  brought it back.
+- 2026-10-14, after that reboot, batch/2026-10-14 at 2012053f6:
+  `itaipu-stream` and `interior-ops` at Low, the second written at
+  00:20:35; the hang from 00:20:38, after `interior-ops`. The script's
+  check stopped the run there, before another browser opened. Not
+  retried.
+
+Every row below was written before its run's first kernel error. Not
+measured: `title` at Medium; `alps-low` at Medium and High; `swiss-low`
+at Medium; `itaipu-stream` and `interior-ops` at Medium and High;
+`itaipu-war` at every tier.
 
 "Holds 30 fps" here is the 95th percentile frame at most 33.3 ms in the
 15 s flight, and 60 fps at most 16.7 ms; the fps the average gives is
-beside it. GPU load is the nvgpu's own share as the row opened, with
-ComfyUI's queue and Ollama's models checked for the Low rows (all idle;
-the two High rows were taken before that check existed, the queue empty
-when the run began).
+beside it. GPU load is the nvgpu's own share as the row opened, and
+ComfyUI's queue and Ollama's models were idle before and after every
+Low row (the two High rows were taken before that check existed, the
+queue empty when the run began).
 
 | Row on the Orin | Tier | Frame avg / p95, ms | fps at avg / p95 | GPU median / floor, ms | Draw calls, triangles M | GPU load before | 30 fps | 60 fps |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -240,39 +250,56 @@ when the run began).
 | `alps-low`, Orin | low | 10.1 / 14.4 | 99 / 69 | 5.5 / 3.2 | 167, 1.28 | 0 % | holds | holds |
 | `swiss-low`, Orin | low | 22.1 / 39.9 | 45 / 25 | 15.0 / 10.4 | 181, 1.62 | 0 % | no | no |
 | `swiss-low`, Orin | high | 34.8 / 52.4 | 29 / 19 | 27.6 / 20.8 | 348, 3.78 | 0 % | no | no |
+| `itaipu-stream`, Orin | low | 17.2 / 27.4 | 58 / 36 | 11.2 / 5.1 | 129, 1.80 | 0 % | holds | no |
+| `interior-ops`, Orin | low | 41.1 / 47.4 | 24 / 21 | 31.2 / 10.4 | 99, 0.54 | 0 % | no | no |
 
-Not measured: `title` at Medium; `alps-low` at Medium and High;
-`swiss-low` at Medium; `itaipu-stream`, `interior-ops` and `itaipu-war`
-at every tier.
+What the seven say. Draw calls and triangles are within 4 calls and
+0.13 M of the 3060 Ti rows (the same scene); the time is not. The
+Orin's Arm cores are as much the limit as its GPU:
 
-What the five say. Draw calls and triangles are within 4 calls and
-0.13 M of the 3060 Ti rows (the same scene); the time is not. The Orin is held back on both
-sides: in swiss-low at High the main thread spends 15.5 ms a frame in
-three.js handing WebGL its draws and 11.5 ms in the rest of the shell's
-frame (on the 3060 Ti box the whole frame is 9.7 ms), and the GPU's
-median is 27.6 ms. The menu holds 60 at both tiers measured, the Alps
-hold 60 at Low, and the Swiss valley holds 30 at no tier measured by
-the 95th percentile: at Low its average is 45 fps but one frame in
-twenty is over 39.9 ms (54 frames over 33.3 ms in 15 s).
+- `interior-ops` at Low spends 33.3 ms of every frame in the shell's
+  own frame work (input, the map, the mission, the HUD), 4.8 ms in
+  three.js; every one of its 367 frames was over 33.3 ms. On the
+  3060 Ti box the whole frame is 7.1 ms.
+- `swiss-low` at High: 15.5 ms in three.js and 11.5 ms in the rest of
+  the shell's frame, with the GPU's median at 27.6 ms (9.7 ms a frame
+  on the 3060 Ti box).
+- `itaipu-stream` at Low: 6.1 ms shell, 7.0 ms three.js, GPU median
+  11.2 ms; 23 of 872 frames over 33.3 ms.
 
 ### The owner's decision, proposed words
 
-The floor is not proposed until the eighteen rows are in. The five
-already show that the decision has two parts, and the first decides the
-second:
+Per world, the lowest tier measured, average and 95th percentile:
 
-1. **Which number "holds 30 fps" means.** Either "the 95th percentile
-   frame of a 15 s perf-play flight is at most 33.3 ms" (what a pilot
-   feels as stutter) or "the average frame is at most 33.3 ms" (what a
-   frame counter shows). By the first, swiss-low misses 30 fps at Low
-   today; by the second it holds 30 at Low (45 fps) and misses at High
-   (29 fps).
-2. **The tier and the machine.** Proposed words, the tier left open:
-   "The reference machine is a Jetson AGX Orin 64 GB at MODE_50W,
-   flown headless by scripts/perf-jetson.sh. Every world holds 30 fps,
-   by <the number from 1>, at <Low | Medium | High> on it; a release
-   that drops a world under it at that tier does not ship."
+| World | Tier | Average | p95 | Holds 30 by average | Holds 30 by p95 |
+| --- | --- | --- | --- | --- | --- |
+| the menu (`title`) | low | 198 fps | 154 fps | yes | yes |
+| the Alps (`alps-low`) | low | 99 fps | 69 fps | yes | yes |
+| the Swiss valley (`swiss-low`) | low | 45 fps | 25 fps | yes | no |
+| Itaipu (`itaipu-stream`) | low | 58 fps | 36 fps | yes | yes |
+| the Interior (`interior-ops`) | low | 24 fps | 21 fps | no | no |
+| the war (`itaipu-war`) | | not measured | not measured | | |
 
-To finish the table: reboot the Jetson (its owner's call; the
-reboot steps are in docs/PERF.md), then
-`scripts/perf-jetson.sh OUT_DIR` and copy `OUT_DIR/summary.md` here.
+**No tier holds 30 fps in every world on this machine today.** The
+Interior misses it at Low by both numbers, and on the main thread, so
+no lower GPU tier would rescue it. A floor set on the Orin at MODE_50W
+fails the day it is set. The decision has two parts:
+
+1. **Which number "holds 30 fps" means.** "The 95th percentile frame of
+   a 15 s perf-play flight is at most 33.3 ms" (what a pilot feels as
+   stutter), or "the average frame is at most 33.3 ms" (what a frame
+   counter shows). By the average, four of five measured worlds hold 30
+   at Low; by the 95th percentile, three.
+2. **The tier and the machine.** Proposed words: "The reference machine
+   is a Jetson AGX Orin 64 GB at MODE_50W, flown headless by
+   scripts/perf-jetson.sh. Every world holds 30 fps, by <the number from
+   1>, at Low on it; until the Interior and the Swiss valley do, the
+   floor is a target and not a release gate." Low is the only tier
+   worth naming: nothing measured at High holds 30 except the menu.
+
+Two things weigh against naming the Orin at all: its GPU wedged twice in
+two runs under headless Chrome on Vulkan (its other work stops until a
+reboot), and an Arm board with 12 cores and shared memory is not the
+"2020 era laptop with integrated graphics" Medium names. A machine that
+can be flown after every release without a reboot is the precondition
+for a floor read on it.
