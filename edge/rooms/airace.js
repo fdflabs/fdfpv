@@ -28,11 +28,16 @@
  *
  * THE WORLD. The ground under it is the page's (grounds.js groundOf), its
  * slope sampled as src/main.js sampleGroundNormal does; the solids are the
- * gate frames, four bars of the built tube (src/game/track.js
- * BUILT_FRAME_TUBE_OD) round each rectangular opening, as aipilot:harness
- * frames them. The page's own frame capsules come from src/render/scene.js,
- * which needs three.js, so these are the opening's frame and not the
- * drawn gate's every member; a hoop and a pylon have none here.
+ * course's structures, each built from its own geometry as the race
+ * carries it (src/builder/course.js structureOf, every opening's `frame`),
+ * in the page's capsules where the page has them (src/render/pylons.js):
+ * four bars of the frame's tube round a rectangular opening, as
+ * aipilot:harness frames them; a hoop's rim as RIM_SEGMENTS straight
+ * tubes round its circle, firm ('gate') for a quad hoop and soft ('hoop')
+ * for a plane's; a pylon's cone as PYLON_SEGMENTS posts up its axis, each
+ * the cone's radius at its middle. The page builds these with three.js,
+ * which a server has not got, so the numbers are repeated here. A gate's
+ * every other member (a ladder's rungs, a flag pole) is not a solid here.
  *
  * THE GRID. AI pilot k (in the order seated) chases the same ghost k
  * GRID_MS behind, so the AI pilots line up one behind another on the line
@@ -100,6 +105,8 @@ import { RATE_DEFAULTS } from '../../configs/rates.js';
 import { composeConfig } from '../../src/fc/dump.js';
 import { raceFromDocument } from '../../src/game/verify.js';
 import { GhostLap } from '../../src/game/ghost.js';
+import { Race } from '../../src/game/race.js';
+import { ELEMENTS } from '../../src/trackbuilder/elements.js';
 import { Colliders, setCraftAirframe } from '../../src/game/collide.js';
 import { BUILT_FRAME_TUBE_OD } from '../../src/game/track.js';
 import { decodeGhost, encodeGhost, ghostFromBase64 } from '../../src/share/ghostdata.js';
@@ -204,20 +211,63 @@ function hashOf(track) {
 const PREPARED = new Map();
 const PREPARED_MAX = 64;
 
-function frames(course) {
-  const r = BUILT_FRAME_TUBE_OD / 2;
+/* src/render/pylons.js RIM_SEGMENTS and PYLON_SEGMENTS: the page's own
+ * capsule counts for a hoop's rim and a pylon's cone. */
+export const RIM_SEGMENTS = 24;
+export const PYLON_SEGMENTS = 4;
+
+/* One cone of a pylon (course.js structureOf's { x, y0, h, r0, r1 }, in
+ * its opening's frame) as the page's posts, src/render/pylons.js cone(). */
+function conePosts(at, c, add) {
+  const step = c.h / PYLON_SEGMENTS;
+  for (let k = 0; k < PYLON_SEGMENTS; k += 1) {
+    const r = c.r0 + ((c.r1 - c.r0) * (k + 0.5)) / PYLON_SEGMENTS;
+    add('pylon', at(c.x, c.y0 + k * step), at(c.x, c.y0 + (k + 1) * step), r);
+  }
+}
+
+/* The course's solids: every race gate's structure from its opening's
+ * `frame` (src/game/race.js structureGap reads the same). A gate placed
+ * once per lap is one structure, so a gate flown twice is framed once. */
+export function framesOf(course) {
   const col = new Colliders();
-  const referee = kit.aiBench({ wasm: kit.wasm, af, tune: kit.tune, course, rates: RATE_DEFAULTS }).referee();
-  for (const g of referee.gates) {
-    const ap = g.apertures[0];
-    if (g.virtual || ap.round) {
-      continue;
+  const add = (kind, a, b, r) => col.add(kind, ...a, ...b, r);
+  const done = new Set();
+  for (const g of new Race(course.gates, course.trackClass).gates) {
+    for (const ap of g.apertures) {
+      const id = JSON.stringify([g.x, g.y, g.z, ap.centreY, ap.frame]);
+      if (done.has(id)) {
+        continue;
+      }
+      done.add(id);
+      /* A point (u across, v up) of the opening's own frame, in the scene. */
+      const at = (u, v) => [
+        g.x + u * g.ax.x + v * g.ay.x, g.y + ap.centreY + u * g.ax.y + v * g.ay.y, g.z + u * g.ax.z + v * g.ay.z,
+      ];
+      const f = ap.frame ?? { kind: 'box', hw: ap.clearW / 2 + BUILT_FRAME_TUBE_OD, hh: ap.clearH / 2 + BUILT_FRAME_TUBE_OD };
+      if (f.kind === 'ring') {
+        /* f.r is the rim's outside, the opening's half plus two tube
+         * radii (course.js structureOf): the tube's centre runs one radius
+         * in, src/render/pylons.js Rc. */
+        const t = (f.r - ap.clearW / 2) / 2;
+        const rc = f.r - t;
+        const kind = ELEMENTS[g.kindName] && ELEMENTS[g.kindName].plane ? 'hoop' : 'gate';
+        for (let k = 0; k < RIM_SEGMENTS; k += 1) {
+          const a0 = (2 * Math.PI * k) / RIM_SEGMENTS;
+          const a1 = (2 * Math.PI * (k + 1)) / RIM_SEGMENTS;
+          add(kind, at(rc * Math.cos(a0), rc * Math.sin(a0)), at(rc * Math.cos(a1), rc * Math.sin(a1)), t);
+        }
+      } else if (f.kind === 'cones') {
+        f.cones.forEach((c) => conePosts(at, c, add));
+      } else if (f.kind === 'cone') {
+        conePosts(at, f.cone, add);
+      } else {
+        /* The tube's centre half its width inside the frame's outside. */
+        const r = (f.hw - ap.clearW / 2) / 2;
+        const ring = [at(-(f.hw - r), -(f.hh - r)), at(f.hw - r, -(f.hh - r)), at(f.hw - r, f.hh - r), at(-(f.hw - r), f.hh - r)];
+        ring.forEach((a, i) => add('gate', a, ring[(i + 1) % 4], r));
+      }
     }
-    const c = [g.x, g.y + ap.centreY, g.z];
-    const corner = (u, v) => c.map((x, k) => x + u * (ap.clearW / 2 + r) * [g.ax.x, g.ax.y, g.ax.z][k]
-      + v * (ap.clearH / 2 + r) * [g.ay.x, g.ay.y, g.ay.z][k]);
-    const ring = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
-    ring.forEach((a, i) => col.add('gate', ...a, ...ring[(i + 1) % 4], r));
   }
   col.build();
   return col;
@@ -309,7 +359,7 @@ async function boardGhost(track, origin) {
 async function prepare(entry, track, pace, groundAt, origin) {
   const t0 = performance.now();
   const course = raceFromDocument(track.doc);
-  const colliders = frames(course);
+  const colliders = framesOf(course);
   const bench = kit.aiBench({ wasm: kit.wasm, af, tune: kit.tune, course, rates: RATE_DEFAULTS });
   kit.learnt ??= await bench.learn();
   const { learnt } = kit;

@@ -113,10 +113,15 @@ bots.js's kinematic Zagi out of races). Decisions taken in building it:
   line, the first 9 s before the timing gate (6 s more than aiopponent.js
   START_MS: from 3 s out the person was still 1.7 m off the line at the
   timing gate and lost a lap), the next 1 s behind each.
-- **The gate frames** are four bars of the built tube round each
-  rectangular opening, as aipilot:harness frames them, not the page's
-  drawn capsules (src/render/scene.js needs three.js). A hoop and a
-  pylon have no frame in the room.
+- **The solids** are each structure's own geometry as the race carries
+  it (src/builder/course.js structureOf, every opening's `frame`), in the
+  page's capsules (src/render/pylons.js), rebuilt without three.js
+  (airace.js framesOf, w39-room-ai-2): four bars of the frame's tube round
+  a rectangular opening; 24 tubes round a hoop's rim, firm for a quad
+  hoop and soft for a plane's; 4 posts up each pylon cone. Until then a
+  hoop and a single pylon had none and a pylon pair had four phantom bars
+  round its scoring square. A gate's other members (rungs, flag poles)
+  are not solids here.
 - **A crash is a wreck and R** (w39-room-ai-2): the lap in flight voided,
   back on its grid place on the tick the crash is called (a person presses
   R when ready), the laps closed kept, its clock running on. The room

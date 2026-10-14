@@ -14,7 +14,8 @@
  * one they can follow, slowed to the level's pace, else the room's
  * reference (boardSection). Off takes them away, the last person leaving
  * takes them all and empties the room. A crash is a wreck and R, never a
- * retire (rebirthSection). Negative controls: a pace the
+ * retire (rebirthSection). The solids are each structure's own: frame
+ * bars, hoop rims, pylon posts (framesSection). Negative controls: a pace the
  * reference cannot lap (16 m/s on this track, aipilot:harness) seats
  * none, and a room made for tag never gets one.
  *
@@ -49,8 +50,10 @@ import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { groundOf } from '../edge/rooms/grounds.js';
 import { Race } from '../src/game/race.js';
 import {
-  AI_RACE_AIRFRAME, RACE_PACES, aiRaceUnavailable, kitLoaded, preparedFor,
+  AI_RACE_AIRFRAME, PYLON_SEGMENTS, RACE_PACES, RIM_SEGMENTS, aiRaceUnavailable, framesOf, kitLoaded, preparedFor,
 } from '../edge/rooms/airace.js';
+import { addGate, newCourse } from '../src/builder/course.js';
+import { raceFromDocument } from '../src/game/verify.js';
 import {
   FLAG_QUAD, PROTO, ROOM_LEVEL, TYPE_BATCH, decodeBatch,
 } from '../src/share/roomwire.js';
@@ -250,6 +253,7 @@ export async function aiRaceSection(check) {
     check('negative control: a pace the reference cannot lap (16 m/s) gives no ghost and no AI pilot',
       entry.state === 'none' && e.bots().length === 0, `ghost ${entry.state}, ${e.bots().length} AI seats`);
   }
+  framesSection(check);
   await rebirthSection(check);
   await boardSection(check);
   {
@@ -261,6 +265,64 @@ export async function aiRaceSection(check) {
     }
     check('a room not made for a race seats no AI racer for a track', e.r.bots.racers.racers.size === 0);
   }
+}
+
+/*
+ * The solids an AI pilot meets, from each structure's own geometry: a
+ * course of a gate, a quad hoop, a pylon pair, a single pylon and a plane
+ * hoop, each 30 m on down the scene's -z, flown through along -z. A line
+ * through a rim, a cone or a frame bar meets a solid of the page's kind;
+ * one through an opening meets none. Negative controls: the pair's
+ * scoring square's top edge, where the old builder put a bar and nothing
+ * stands, and the air beside the pair.
+ */
+function framesSection(check) {
+  const doc = newCourse('swiss2', 'frames');
+  const q = {
+    x: 0, y: 0, z: 0, w: 1,
+  };
+  ['gate', 'hoop175', 'pylonPair', 'pylon', 'hoop30'].forEach((type, i) => addGate(doc, type, { x: 0, y: 0, z: -30 * i }, q));
+  const course = raceFromDocument(doc);
+  const col = framesOf(course);
+  const at = (i, x, y) => {
+    const solid = col.hit(x, y, -30 * i + 3, x, y, -30 * i - 3);
+    return solid < 0 ? 'none' : col.kindName(solid);
+  };
+  const ap = course.gates.map((g) => g.apertures[0]);
+  /* A rim's tube centre, one tube radius inside its outside (f.r). */
+  const rim = (i) => {
+    const f = ap[i].frame;
+    return f.r - (f.r - ap[i].clearW / 2) / 2;
+  };
+  const pair = ap[2].frame.cones[0];
+  const seen = {
+    gateBar: at(0, 0, ap[0].centreY + ap[0].frame.hh - 0.01),
+    gateOpening: at(0, 0, ap[0].centreY),
+    quadRim: at(1, 0, ap[1].centreY + rim(1)),
+    quadRimSide: at(1, rim(1), ap[1].centreY),
+    quadOpening: at(1, 0, ap[1].centreY),
+    pairCone: at(2, pair.x, 2),
+    pairOpening: at(2, 0, ap[2].centreY),
+    pairSquareTop: at(2, 0, ap[2].centreY + ap[2].clearH / 2),
+    besidePair: at(2, 3 * pair.x, 2),
+    pylonPost: at(3, 0, 20),
+    pylonOpening: at(3, course.gates[3].x, ap[3].centreY),
+    planeRim: at(4, 0, ap[4].centreY - rim(4)),
+    planeOpening: at(4, 0, ap[4].centreY),
+  };
+  const { byKind } = col.stats();
+  const kinds = (k) => byKind[k];
+  const detail = JSON.stringify(seen);
+  check(`a quad hoop's rim is ${RIM_SEGMENTS} firm tubes and a plane hoop's ${RIM_SEGMENTS} soft ones, and a line through either rim meets it`,
+    kinds('hoop') === RIM_SEGMENTS && seen.quadRim === 'gate' && seen.quadRimSide === 'gate' && seen.planeRim === 'hoop', `${kinds('hoop')} soft; ${detail}`);
+  check(`a pylon is ${PYLON_SEGMENTS} posts up its cone and a pair two such cones, and a line through either cone meets a pylon`,
+    kinds('pylon') === 3 * PYLON_SEGMENTS && seen.pairCone === 'pylon' && seen.pylonPost === 'pylon', `${kinds('pylon')} posts; ${detail}`);
+  check('a rectangular gate keeps its four bars: a line through its top bar meets a gate',
+    kinds('gate') === 4 + RIM_SEGMENTS && seen.gateBar === 'gate', `${kinds('gate')} firm; ${detail}`);
+  check('a line through every opening meets nothing',
+    ['gateOpening', 'quadOpening', 'pairOpening', 'pylonOpening', 'planeOpening'].every((k) => seen[k] === 'none'), detail);
+  check('negative control: nothing stands at the top of a pylon pair\'s scoring square, nor in the air beside it',
+    seen.pairSquareTop === 'none' && seen.besidePair === 'none', detail);
 }
 
 /*
