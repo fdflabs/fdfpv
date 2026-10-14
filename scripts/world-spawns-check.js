@@ -24,11 +24,31 @@
  * over the seat, climbing RISE metres a metre, stays over the ground and
  * FACE_CLEAR_M from every solid out to FACE_M ahead.
  *
+ * COURSES. Every course the world ships (docs/itaipu-courses/*.json, by
+ * their `map`) and the casual sky track My tracks makes in it for a plane
+ * and for a quad (src/builder/course.js casualCourse, from the world's
+ * spawn and on its own heights, as src/builder/buildmode.js open makes
+ * it), on every world a track can be built in (registry `build`): the
+ * start a test flight or a race takes (course.js startFor) and each gate's
+ * approach, the straight run in along its line of travel from where a
+ * start behind it would park (spawnBack) to its opening's centre. A
+ * course's ground start is judged as a ground start, less the facing line
+ * (it faces its own start gate, which is no solid here); an air start is
+ * the rule's own half opening over whatever is under it, and CLEAR_M
+ * from every solid; an approach APPROACH_ROOM_M over whatever is under it
+ * and FACE_CLEAR_M from every solid at each APPROACH_STEP_M, or the
+ * opening's half height where that is less; and all of
+ * it inside the world's playable square (src/game/edges.js WORLD_EDGES),
+ * past which the boundary rule turns a pilot back. Floats are not judged
+ * here: a float start is the same gate's lift, an air start.
+ *
  * NEGATIVE CONTROLS, per world, through the same probe and the same judge:
  * a start in the air under the ground, a start inside the nearest solid
  * found round the map's own, one standing FACE_STAND_M short of a solid
  * and facing it, and a ground start on a float start's water. Each must
  * fail for the reason it was built to fail, or the check proves nothing.
+ * And per world with a course: a course's air start under the ground, a
+ * gate in a solid and a gate past the playable square.
  *
  * Exits 1 on any failure.
  *
@@ -48,17 +68,26 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { dirname } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { MAPS } from '../src/maps/registry.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from '../src/game/slots.js';
+import { WORLD_EDGES } from '../src/game/edges.js';
 import { FIND_SOLIDS, SEARCH_M } from './lib/solids.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const WORLDS = MAPS.filter((m) => m.load).map((m) => m.id);
 const maps = process.argv.slice(2).length ? process.argv.slice(2) : WORLDS;
+const BUILD = new Set(MAPS.filter((m) => m.build).map((m) => m.id));
+/* The courses the worlds ship, by world. */
+const SHIPPED = {};
+for (const file of (await readdir(join(root, 'docs', 'itaipu-courses'))).filter((f) => f.endsWith('.json')).sort()) {
+  const doc = JSON.parse(await readFile(join(root, 'docs', 'itaipu-courses', file), 'utf8'));
+  (SHIPPED[doc.map] ||= []).push(doc);
+}
 
 /* m: what a seat must have clear round a point a metre over it; the
  * room row's own spacing is 8 m (slots.js), so 2 m is a craft's span and
@@ -82,6 +111,17 @@ const WET_M = 0.5;
 const COVER_M = 0.05;
 /* m: how far short of a solid the facing control stands. */
 const FACE_STAND_M = 15;
+/* m: a gate's approach is sampled this often, and keeps this much room
+ * over whatever is under it and from every solid, or the opening's half
+ * height where that is less: a five inch gate on a roof is flown at its
+ * centre, 0.76 m over the deck it stands on, and what fits through it
+ * fits there. */
+const APPROACH_STEP_M = 5;
+const APPROACH_ROOM_M = 1;
+/* m: how far into the ground the course start control is put. */
+const UNDER_M = 5;
+/* m: how far past the playable square the edge control's gate is hung. */
+const PAST_EDGE_M = 50;
 
 let failed = 0;
 let passed = 0;
@@ -182,6 +222,152 @@ function describe(kind, f) {
   return `${over}, ${wet}, ${f.floor == null ? 'nothing' : `${f1(f.floor)} m`} from a metre up and ${f.gap == null ? 'nothing' : `${f1(f.gap)} m`} from ${1 + CLEAR_M} m up to a solid${face}`;
 }
 
+/*
+ * The courses of a world, worked out in the page on its own heights:
+ * each shipped document and the casual track for a plane and a quad, as
+ * { label, start, gates }, a gate's opening centre, its line of travel,
+ * the half height of its opening and how far back a start behind it
+ * parks (course.js spawnBack, the field's 7.5 m or the opening's width);
+ * a casual track the world has no oval for comes back with none set.
+ */
+const COURSES = `(async (map, shipped) => {
+  const c = await import('/src/builder/course.js');
+  const from = window.__spawnStarts()[0].start;
+  const h = (x, z) => window.__heightAt(x, z);
+  const list = shipped.map((doc) => ({ label: doc.name, doc }));
+  for (const kind of ['plane', 'quad']) {
+    list.push({ label: 'casual ' + kind, doc: c.casualCourse(map, 'Casual', h, from, kind) });
+  }
+  return list.map(({ label, doc }) => {
+    if (!doc) { return { label, none: true }; }
+    const gates = c.raceGatesOf(doc);
+    return {
+      label,
+      start: c.startFor(gates, h),
+      gates: gates.map((g) => ({
+        x: g.centre.x, y: g.centre.y, z: g.centre.z, t: { x: g.axes.travel.x, y: g.axes.travel.y, z: g.axes.travel.z },
+        half: g.aperture.clearH / 2, back: Math.max(c.SPAWN_BACK, g.aperture.clearW),
+      })),
+    };
+  });
+})`;
+
+/* At each point in the air: top, the highest surface under it, and gap,
+ * the nearest solid within reach (null: none). */
+const AIR_PROBE = `((pts) => pts.map((p) => {
+  const g = window.__nearSolid(p.x, p.y, p.z, ${CLEAR_M} + 2);
+  return { top: window.__heightAt(p.x, p.z), gap: g == null ? null : g };
+}))`;
+
+/* Why a point a course flies through, `room` over whatever is under it
+ * and `clear` from every solid, is not one: 'ground', 'solid' and 'edge'
+ * (outside the world's playable square). */
+function FLOWN(map, p, f, room, clear) {
+  const why = [];
+  if (!(p.y - f.top >= room - COVER_M)) {
+    why.push('ground');
+  }
+  if (f.gap != null && !(f.gap > clear)) {
+    why.push('solid');
+  }
+  if (!(Math.max(Math.abs(p.x), Math.abs(p.z)) <= WORLD_EDGES[map])) {
+    why.push('edge');
+  }
+  return why;
+}
+
+/* A gate's approach, the points from spawnBack before its opening to
+ * its centre along its line of travel. */
+function approachOf(g) {
+  const out = [];
+  for (let d = g.back; d > -APPROACH_STEP_M / 2; d -= APPROACH_STEP_M) {
+    const k = Math.max(0, d);
+    out.push({ x: g.x - g.t.x * k, y: g.y - g.t.y * k, z: g.z - g.t.z * k });
+  }
+  return out;
+}
+
+/* The worst reasons along a list of points, and where. */
+async function judgeFlown(page, map, pts, room, clear) {
+  const facts = await page.evaluate(`${AIR_PROBE}(${JSON.stringify(pts)})`);
+  let worst = { why: [], room: Infinity, gap: Infinity, out: 0 };
+  facts.forEach((f, k) => {
+    const why = FLOWN(map, pts[k], f, room, clear);
+    worst = {
+      why: [...new Set([...worst.why, ...why])],
+      room: Math.min(worst.room, pts[k].y - f.top),
+      gap: Math.min(worst.gap, f.gap == null ? Infinity : f.gap),
+      out: Math.max(worst.out, Math.max(Math.abs(pts[k].x), Math.abs(pts[k].z))),
+    };
+  });
+  return worst;
+}
+
+function flownDetail(map, w) {
+  return `${w.why.length ? `refused for ${w.why.join(', ')}; ` : ''}least ${f1(w.room)} m over the ground, ${Number.isFinite(w.gap) ? `${f1(w.gap)} m` : 'nothing'} to a solid, ${f1(w.out)} m out of ${WORLD_EDGES[map]}`;
+}
+
+/* A course's start: a ground start as a map's, less the facing line, and
+ * inside the square; an air start FLOWN at half its gate's opening. */
+async function judgeStart(page, map, start, half) {
+  if (start.air) {
+    const w = await judgeFlown(page, map, [{ x: start.x, y: start.air.y, z: start.z }], half, CLEAR_M);
+    return { why: w.why, detail: `air, ${flownDetail(map, w)}` };
+  }
+  const [f] = await page.evaluate(`${PROBE}([${JSON.stringify(start)}])`);
+  const why = START('ground', f).filter((w) => w !== 'facing');
+  const out = Math.max(Math.abs(start.x), Math.abs(start.z));
+  if (!(out <= WORLD_EDGES[map])) {
+    why.push('edge');
+  }
+  return { why, detail: `ground, ${describe('stand', f)}, ${f1(out)} m out of ${WORLD_EDGES[map]}` };
+}
+
+/* Every course of the world, its start and each gate's approach; returns
+ * the first course with gates, for the controls. */
+async function courses(page, map) {
+  const list = await page.evaluate(`${COURSES}(${JSON.stringify(map)}, ${JSON.stringify(SHIPPED[map] || [])})`);
+  for (const course of list) {
+    if (course.none) {
+      console.log(`  note  ${map} ${course.label}: no oval fits round the spawn, so My tracks makes none (build.casual_none)`);
+      continue;
+    }
+    check(`${map} ${course.label}: a start`, course.start != null && course.gates.length > 0, `${course.gates.length} gates`);
+    if (!course.start) {
+      continue;
+    }
+    const s = await judgeStart(page, map, course.start, course.gates[0].half);
+    check(`${map} ${course.label} start (${f1(course.start.x)}, ${f1(course.start.z)})`, s.why.length === 0, s.detail);
+    for (const [k, g] of course.gates.entries()) {
+      const w = await judgeFlown(page, map, approachOf(g), Math.min(APPROACH_ROOM_M, g.half), Math.min(FACE_CLEAR_M, g.half));
+      check(`${map} ${course.label} gate ${k + 1} approach (${f1(g.x)}, ${f1(g.y)}, ${f1(g.z)})`, w.why.length === 0, flownDetail(map, w));
+    }
+  }
+  return list.find((c) => !c.none && c.start && c.gates.length);
+}
+
+/* A course's start under the ground, a gate in a solid, a gate past the
+ * playable square: each through the same judges, refused for its own
+ * reason. */
+async function courseControls(page, map, course, hit) {
+  const g = course.gates[0];
+  const [at] = await page.evaluate(`${AIR_PROBE}([${JSON.stringify({ x: course.start.x, y: 0, z: course.start.z })}])`);
+  const under = await judgeStart(page, map, { x: course.start.x, z: course.start.z, yaw: course.start.yaw, air: { y: at.top - UNDER_M } }, g.half);
+  check(`${map} control, ${course.label}'s start ${UNDER_M} m under the ground: refused for ground`, under.why.includes('ground'), under.detail);
+  if (hit) {
+    /* A metre over the ground, where FIND_SOLIDS found the solid. */
+    const [h] = await page.evaluate(`((p) => [window.__surface(p.x, p.z, window.__surface(p.x, p.z, -1000))])(${JSON.stringify(hit)})`);
+    const inside = { ...g, x: hit.x, y: h + 1, z: hit.z };
+    const w = await judgeFlown(page, map, approachOf(inside).slice(-1), APPROACH_ROOM_M, FACE_CLEAR_M);
+    check(`${map} control, ${course.label}'s gate 1 in a solid at (${f1(hit.x)}, ${f1(hit.z)}): refused for solid`, w.why.includes('solid'), flownDetail(map, w));
+  }
+  const ex = WORLD_EDGES[map] + PAST_EDGE_M;
+  const [far] = await page.evaluate(`${AIR_PROBE}([${JSON.stringify({ x: ex, y: 0, z: g.z })}])`);
+  const past = { ...g, x: ex, y: far.top + 50 };
+  const w = await judgeFlown(page, map, approachOf(past).slice(-1), APPROACH_ROOM_M, FACE_CLEAR_M);
+  check(`${map} control, ${course.label}'s gate 1 ${PAST_EDGE_M} m past the playable square: refused for edge`, w.why.includes('edge'), flownDetail(map, w));
+}
+
 async function worldStarts(page, map) {
   const listed = await page.evaluate('window.__spawnStarts()');
   const seen = new Set();
@@ -250,6 +436,7 @@ async function controls(page, map, home, wet) {
     const why = START(kind, facts[j]);
     check(`${map} control, ${name}: refused for ${want}`, why.includes(want), `refused for ${why.join(', ') || 'nothing'}; ${describe(kind, facts[j])}`);
   });
+  return hits[0] || null;
 }
 
 for (const map of maps) {
@@ -276,7 +463,17 @@ for (const map of maps) {
       check(`${map} ${o.label} (${o.kind} at ${f1(o.start.x)}, ${f1(o.start.z)})`, why.length === 0,
         `${why.length ? `refused for ${why.join(', ')}; ` : ''}${describe(o.kind, facts[k])}`);
     });
-    await controls(page, map, home, wet);
+    const hit = await controls(page, map, home, wet);
+    if (BUILD.has(map)) {
+      const course = await courses(page, map);
+      if (course) {
+        await courseControls(page, map, course, hit);
+      } else {
+        check(`${map} control: a course with a start to stand the course controls on`, false, 'none');
+      }
+    } else {
+      console.log(`  note  ${map} is not a world a track is built in (src/maps/registry.js build), so no courses`);
+    }
     const errs = page.errors.filter((e) => !e.startsWith('network:'));
     check(`${map}: no page error`, errs.length === 0, errs.slice(0, 2).join(' | '));
   } finally {
