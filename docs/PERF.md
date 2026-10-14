@@ -430,11 +430,21 @@ script with no stray browser on the card:
 
 ## Not measured, and why
 
-- **A multi pilot room.** A second pilot is a second Chrome (every
-  existing two pilot check, scripts/war-twopage.js among them, opens two),
-  and a run here is one browser at a time on this shared box. A peer
-  driven from Node over the room socket would make it one browser; that is
-  the next piece of work for this script, not done here.
+- **A multi pilot room, as each pilot's own browser sees it.** What one
+  page pays to draw a full room is measured since 2026-10-14: perf-play's
+  `peers` scenario seats the page in a private room of eight on the alps,
+  the other seven being Node on the room socket, and docs/BUDGETS.md holds
+  it at each tier. What seven more browsers cost the box is not: a run
+  here is one browser at a time on this shared box.
+
+**Open: a full room's draw calls.** Each peer's 7 inch is 48 meshes, and
+a room of seven in view adds about 1 250 draw calls to the alps' own at
+Medium and High (1 573 and 1 586 in all against 300 with the seven out
+of view, docs/BUDGETS.md `peers`): five times the main view's 300 call
+contract at High on its own. About four passes of 336 meshes, which fits
+the scene, the shadow maps and the thermal inset each drawing every
+mesh, though the passes were not split. Batching a peer's craft
+(src/render/peers.js, src/render/craft.js) is the work; not done.
 - **GPU 1.** See above.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.

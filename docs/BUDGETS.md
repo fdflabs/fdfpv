@@ -114,9 +114,9 @@ GPU floor (docs/PERF.md, proposed budgets).
 | `interior-ops` | low | 99 (<= 114) | 0.54 (<= 0.62) | 29 (<= 34) | 1.44 (<= 1.66) 2026-10-13 | 5.8 | 7.1 / 8.4 | 26 %, 3.8 | within | none |
 | `interior-ops` | medium | 106 (<= 122) | 0.57 (<= 0.66) | 36 (<= 42) | 1.66 (<= 1.91) 2026-10-13 | 5.2 | 6.7 / 7.3 | 36 %, 1.9 | within | none |
 | `interior-ops` | high | 125 (<= 144) | 0.57 (<= 0.67) | 48 (<= 56) | 1.97 (<= 2.27) 2026-10-13 | 5.9 | 7.1 / 7.7 | 34 %, 2.4 | within | none |
-| `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 0.91 (<= 1.05) 2026-10-13 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
-| `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.35 (<= 1.56) 2026-10-13 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
-| `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.67 (<= 1.93) 2026-10-13 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
+| `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.14 (<= 1.31) 2026-10-14 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
+| `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.46 (<= 1.69) 2026-10-14 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
+| `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.74 (<= 2.01) 2026-10-14 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
 | `peers` | low | 815 (<= 938) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
 | `peers` | medium | 1573 (<= 1809) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
 | `peers` | high | 1586 (<= 1824) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 1586 calls, the whole frame against the main view's 300 (not split) | 7 peers |
@@ -213,6 +213,16 @@ whole frame ceilings are left as they are. The split above is the
 measurement each contract figure was checked against; the column "Over
 the written contract" reads each High row against it, and its main view figures
 are that table's.
+
+The `itaipu-war` GPU floors were re-based on 2026-10-14. With the
+attackers read added, Low read 1.06 ms against its 1.05 ceiling (0.91
+measured 2026-10-13), and the read was tested at Low, GPU 1 at 28 to 36 %
+busy, 01:25 to 01:31: without it 1.13 and 1.06 ms, with it 1.12 and
+1.14, the same within the card's noise, so the read stays and the rows
+take the row's own rule from runs with it in: Low 1.14 (the quieter of
+those two), Medium 1.46 and High 1.74 (01:08 and 01:10, 33 and 35 %
+busy), each held 15 % over. Their other columns are 2026-10-13's: calls,
+triangles and textures read the same.
 
 Attackers and peers, the last column, are written and never held: they
 are the load a row was measured under, not a cost. The war's figure is
