@@ -496,6 +496,10 @@ jobs:
       # 2-core runner it ran past 45 min on release/2026-10-13d (its rooms
       # server plus AI fill never read calm), so the lead and the lanes run
       # it before a release instead (2026-10-13).
+      # replay:world (a match's map replayed against the live frames) stays
+      # local too: 169 s on 20 cores and a GPU here, 66 s of it fixed waits
+      # on the room clock, and it boots Itaipu, whose data this shard does
+      # not check out (2026-10-14).
 
   shard-4:
     runs-on: ubuntu-latest
