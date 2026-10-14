@@ -28,7 +28,8 @@
  *            construction until it is as finished); the owner's own
  *            account still flies it (DEV_ACCOUNTS, devHost).
  *
- * The drill has no act, so no campaign offers it.
+ * The drill has no act, so no campaign offers it, nor the practice
+ * (itaipu-practice.js), Training's one Striker at a time.
  *
  * A wave is { at, kind, n, per, route, target, spread }: n attackers for
  * one pilot and `per` more for each pilot after the first (waveSize), all
@@ -59,14 +60,16 @@ import itaipu2 from './itaipu-2.js';
 import itaipu3 from './itaipu-3.js';
 import itaipu4 from './itaipu-4.js';
 import drill from './itaipu-drill.js';
+import practice from './itaipu-practice.js';
 import { idsOf } from '../stages.js';
 import { WAR_AIRFRAMES } from '../../../../configs/airframes.js';
 
 /* Act 1 of the campaign, Defend the Paraná, in order, and after it the
- * drill (itaipu-drill.js), which no campaign offers. Each flown only in
+ * drill (itaipu-drill.js) and the practice (itaipu-practice.js), which no
+ * campaign offers. Each flown only in
  * the war's aircraft (`aircraft`, configs/airframes.js WAR_AIRFRAMES):
  * the room refuses any other (edge/rooms/war.js flies). */
-export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, drill]
+export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, drill, practice]
   .map((m) => [m.id, { ...m, aircraft: WAR_AIRFRAMES }])));
 
 /* Act missions that are only planned: no file yet, so nothing to fly,

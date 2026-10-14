@@ -13,8 +13,18 @@
  * card ends the lesson. Gates passes on a casual sky track's lap, judged
  * from the lap event in the flight's log, and not on a built track's. A
  * lap lesson's pass is stored with its time and
- * the page says Passed, also after a reload. No page error. Pictures in
- * outdir.
+ * the page says Passed, also after a reload. A Defence lesson with no
+ * rooms server says so and makes no room. No page error.
+ *
+ * Then Defence on a second page, against a local edge/rooms/node.js this
+ * check starts and stops itself (never the VM), no war consent stored:
+ * Fly on Interception asks the war's consent; Continue makes a solo room
+ * on Itaipu for the practice (itaipu-practice), the pilot's remembered
+ * Who joins for the war untouched, the lesson held; the practice started
+ * there goes live on its one stage, a Striker born. Working together,
+ * First Light being held in development, says so and makes no room. No
+ * page error.
+ * Pictures in outdir.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -34,10 +44,13 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/settings.js';
+import { tmpdir } from 'node:os';
 import { LESSONS } from '../src/game/training.js';
+import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
+import { startRooms } from '../edge/rooms/node.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || join(root, 'build', 'training-check');
@@ -98,7 +111,7 @@ try {
     };
   })()`);
   check('the Learn to fly card opens the lessons page, every lesson under its track', listed
-    && listed.lessons.join() === LESSONS.map((l) => l.id).join() && listed.tracks.join() === 'First flight,Fixed wing,Glider,Multirotor,Racing', JSON.stringify(listed));
+    && listed.lessons.join() === LESSONS.map((l) => l.id).join() && listed.tracks.join() === 'First flight,Fixed wing,Glider,Multirotor,Racing,Defence', JSON.stringify(listed));
   check('nothing on it is locked: every lesson has Fly', listed && listed.plays === LESSONS.length, JSON.stringify(listed));
   await shot(page, 'lessons');
 
@@ -257,6 +270,15 @@ try {
   await page.until("!!document.querySelector('.training-box')", 15000).catch(() => {});
   const after = await tag();
   check('and still after a reload', after && after[0] === 'passed', JSON.stringify(after));
+
+  /* DEFENCE WITH NO ROOMS SERVER: said, and no room. */
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000);
+  await click(page, '[data-lesson="defence_intercept"] .campaign-play');
+  await page.sleep(500);
+  const alone = await page.evaluate("({ toasts: window.__ui.progress.log.map((t) => t.sub || ''), phase: window.__rooms().phase })");
+  check('Fly on a Defence lesson with no rooms server says it needs one and makes no room',
+    alone.toasts.includes('The Defence lessons fly in a war room, and no rooms server answers here.') && alone.phase === 'idle', JSON.stringify({ ...alone, toasts: alone.toasts.slice(-2) }));
 } catch (e) {
   check(`the run finished`, false, e.stack || String(e));
 }
@@ -265,5 +287,79 @@ try {
 const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e));
 check(`no page error (plus ${page.errors.length - errs.length} refused connections to an absent local board)`, errs.length === 0, errs.slice(0, 3).join(' | '));
 await page.close();
+
+/* DEFENCE: the practice in a solo war room, on a local rooms server. */
+const dir = await mkdtemp(join(tmpdir(), 'training-defence-'));
+const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0 });
+const rooms = `http://127.0.0.1:${server.port}`;
+const warSeed = [`try {
+  const k = ${JSON.stringify(SETTINGS_KEY)};
+  const s = JSON.parse(localStorage.getItem(k) || '{}');
+  if (!s.defenceSeeded) {
+    Object.assign(s, { map: 'swiss2', graphics: 'low', graphicsAuto: false, airframeAsked: true, fpsCap: 0, defenceSeeded: true,
+      sessionVisibility: { ...(s.sessionVisibility || {}), war: 'friends' } });
+    delete s.warConsent;
+    localStorage.setItem(k, JSON.stringify(s));
+  }
+  localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
+  localStorage.setItem('webfpv.airhint.v2', '1');
+} catch (e) { /* storage refused */ }`];
+const war = await openPage({ root, width: 1280, height: 720, url: `/index.html?dev=1&rooms=${encodeURIComponent(rooms)}`, seed: warSeed });
+try {
+  await war.until('!!window.__shellReady && !!window.__training', 300000);
+  await war.until('window.__map && window.__map().ready', 400000);
+  await war.evaluate('(window.__training.open(), true)');
+  await war.until("!!document.querySelector('.training-box')", 15000);
+  await click(war, '[data-lesson="defence_intercept"] .campaign-play');
+  await war.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !d.querySelector('.training-box') && !!d.querySelector('h2'); })()", 15000).catch(() => {});
+  const asked = await war.evaluate("(() => { const d = document.querySelector('.name-dialog'); return { open: Boolean(d && !d.hidden), title: d && d.querySelector('h2') ? d.querySelector('h2').textContent : null, phase: window.__rooms().phase }; })()");
+  check('Fly on Interception asks the war\'s consent first, no room yet', asked.open && asked.title === 'Defend the Paraná' && asked.phase === 'idle', JSON.stringify(asked));
+  await shot(war, 'defence-consent');
+  await war.sleep(700);
+  await war.tap('Enter');
+  await war.until("window.__rooms().phase === 'open' && window.__rooms().mode === 'war'", 60000).catch(() => {});
+  const room = await war.evaluate(`(() => {
+    const r = window.__rooms();
+    let solo = null;
+    try { solo = sessionStorage.getItem('fdfpv.roomSolo'); } catch (e) { /* none */ }
+    const p = window.__ui.progress;
+    return {
+      phase: r.phase, mode: r.mode, public: r.public, code: r.code, solo, mission: r.lobby ? r.lobby.mission : null,
+      consent: window.__ui.settings.warConsent === true, kept: window.__ui.settings.sessionVisibility.war,
+      lesson: p.lesson ? p.lesson.lesson.id : null, map: window.__ui.settings.map,
+    };
+  })()`);
+  check('Continue makes a private war room on Itaipu for the practice, the consent stored',
+    room.phase === 'open' && room.mode === 'war' && room.public === false && room.mission === PRACTICE_ID && room.consent && room.map === 'itaipu', JSON.stringify(room));
+  check('a solo room: its code kept hidden as Solo\'s, the war\'s own Who joins left as it was', room.code && room.solo === room.code && room.kept === 'friends', JSON.stringify(room));
+  check('and the lesson is held', room.lesson === 'defence_intercept', String(room.lesson));
+  await war.until('window.__map && window.__map().ready && window.__map().id === "itaipu"', 600000).catch(() => {});
+  await war.evaluate(`window.__warDo('start', ${JSON.stringify(PRACTICE_ID)})`);
+  await war.until("window.__war().view.state === 'live'", 120000).catch(() => {});
+  await war.until('window.__war().view.alive > 0', 30000).catch(() => {});
+  const live = await war.evaluate("(() => { const v = window.__war().view; return { state: v.state, mission: v.mission, stage: v.stage ? v.stage.id : null, alive: v.alive, result: v.result ?? null }; })()");
+  check('the practice started there goes live on its one stage, a Striker in the air, no result',
+    live.state === 'live' && live.mission === PRACTICE_ID && live.stage === 'pass' && live.alive === 1 && live.result === null, JSON.stringify(live));
+  await shot(war, 'defence-live');
+
+  /* Working together while First Light is held in development: said, no
+   * new room, the lesson left. */
+  await war.evaluate("window.__ui.show('title'); true");
+  await war.sleep(300);
+  await war.evaluate('(window.__training.open(), true)');
+  await war.until("!!document.querySelector('.training-box')", 15000);
+  await click(war, '[data-lesson="defence_mission"] .campaign-play');
+  await war.sleep(800);
+  const closed = await war.evaluate("({ sub: (window.__ui.progress.log.at(-1) || {}).sub || '', code: window.__rooms().code, lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null })");
+  check('Working together while First Light is in development says it is not open, makes no room and holds no lesson',
+    closed.sub === 'First Light is not open yet: this lesson opens with it.' && closed.code === room.code && closed.lesson === null, JSON.stringify(closed));
+} catch (e) {
+  check('the Defence run finished', false, e.stack || String(e));
+}
+const warErrs = war.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e) && !e.startsWith('network:'));
+check('no page error on the Defence page', warErrs.length === 0, warErrs.slice(0, 3).join(' | '));
+await war.close();
+await server.stop();
+await rm(dir, { recursive: true, force: true });
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);

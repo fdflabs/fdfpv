@@ -244,9 +244,75 @@ mission available, until its 100% correct, then only when storyline,
 videos, etc. of mission 2 is done do you make that available"). Each row
 of `ACT1` carries a `release`: `available` (offered and started),
 `development` (built, shown Under development) or `soon` (only planned,
-shown Coming soon). The room refuses to start anything not `available`
-(`edge/rooms/war.js` start), so a mission is opened by changing its row
-and redeploying the rooms server. Today only First Light is available.
+shown Coming soon). The row is the mission file's own `release`
+(`src/share/war/missions/itaipu-N.js`), which `actOf` reads into `ACT1`
+and `released()` reads per mission. The room refuses to start anything
+not `available` (`edge/rooms/war.js` start), so a mission is opened by
+changing that one field and redeploying the rooms server. No mission is
+available today: First Light went back to `development` on 2026-10-07
+(PR #666, the owner: no narration, under construction until it is as
+finished as The Interior's Mission 1).
+
+### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
+
+What a mission needs to be released, from this file, FIRST-LIGHT-AUDIT.md
+and the owner's bar (as finished as The Interior's Mission 1), and where
+each of 1 to 4 stands:
+
+| Piece | 1 First Light | 2 The Spillway | 3 | 4 |
+| --- | --- | --- | --- | --- |
+| Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | old rounds, no titles | old rounds, no titles |
+| Objectives on the HUD, en and es | 7 | 9 | none | none |
+| Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | the old 2 brief and 2 debrief lines (warradio.js derives them) | the old 2 brief and 2 debrief lines |
+| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | none | none |
+| Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | no | no |
+| Briefing facts (title, line, first objective, map, aircraft, length, pilots, room) | all (briefing.js) | all | all, from the old fields | all |
+| Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | none | none |
+| Win and lose debrief lines | voiced | voiced | voiced (old ids) | voiced (old ids) |
+| Seeded sectors and routes | yes; war:routes PASS | yes | fixed routes | the drill's |
+| Consent before the first war room | `war.consent_*`, en and es (every war mission) | same | same | same |
+| If the face opens (1.9 Contain) and the `-op` line | not built: see below | not built | not built | not built |
+
+Checks on the tree above, all green: war:stages 106/0, war:routes PASS,
+war:radio 63/0, war:cards 13/0, briefing:selftest 54/0, campaign:selftest
+80/0, war:harness PASS, war:markers 16/0, war:twopage 25/0, campaign:check
+51/0. game:lobby --game=war is 22/4, and all four are the release gate:
+the room made for First Light stays private, so it is not on the Flight
+Club list and its briefing says Private.
+
+**Mission 1 has every piece but Contain.** The room records a breach
+(`edge/rooms/war.js` breach, the `breach` trigger in stages.js), but no
+closure objective, gantry retarget or `contain-*` line exists, so
+`itaipu-1-op` has nothing true to say yet ("Close it." with nothing to
+close). That is engine work for every mission at once (T1.6), not a line
+to add to First Light, and an opening today costs its target's megawatts
+like any hit. The owner's 2026-10-07 flight fails (moto, objline, briefing
+audio cut, thermal look) were The Interior's Mission 1, not First Light,
+and all landed the same day (#632 to #635).
+
+**The owner's decision, one line:** set `release: 'available'` in
+`src/share/war/missions/itaipu-1.js` (First Light without Contain) and
+redeploy the rooms server, or keep it held until Contain is built. It
+unlocks public war rooms for mission 1 (`edge/rooms/core.js` setPublic,
+`edge/rooms/front.js` create), so the room is on the Flight Club list and
+friends join from it rather than only by code (the lead's 2026-10-13
+decision: until then they join by code through Friends); game:lobby
+--game=war's four red rows go green; Continue offers the war again
+(`src/ui/actions.js` continueWay); the campaign card's Play works for
+every pilot without `?missions=dev`.
+
+The same commit must move the rows that pin mission 1 as held. Measured
+by flipping the field on this tree and running each check:
+
+| Check | Rows that go red on the flip |
+| --- | --- |
+| campaign:selftest | `scripts/campaign-selftest.js` 66, 69 |
+| rooms:selftest | `scripts/rooms-selftest-war.js` 883 (mission 1 in the held loop, 2 rows); `rooms-selftest-gamelobby.js` 183, 185, 189, 194 (the drill as the first startable mission becomes mission 1); `rooms-selftest-visibility.js` 96 to 100 (point it at mission 2) |
+| game:lobby --game=war | `scripts/game-lobby-check.js` 417, 422 (24/2 on the flip, the four gate rows green) |
+| rooms:server | `scripts/rooms-server-check.js` 530, 533, 537, 598, 602 (95/5) |
+| campaign:check | `scripts/campaign-check.js` 273, 276, 347, 470, 590 (46/5) |
+| not red | dev:accounts, briefing:selftest, war:stages, modes:selftest, actions:golden, war:cards, war:radio |
+| not run on the flip | war:card, war:lobby, war:public (they name mission 1's held state in comments; run them with the flip) |
 
 ---
 
