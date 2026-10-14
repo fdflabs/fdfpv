@@ -96,6 +96,19 @@ const AIRFRAME = 'timber1500';
 const TUNE = 'timber-stab';
 /* A little over the Timber's 7.2 m/s clean stall (configs/airframes.js). */
 const LAND_SPEED = 8.5;
+/* The landing's roll out, flown as the manual's three point landing is
+ * (docs/TIMBER-STAGE1.md T12): full up stick once a wheel carries load,
+ * which holds the tail down. Centred sticks let it rise in ground effect
+ * and the taildragger swing when it comes down (docs/CUB-STAGE1.md),
+ * which no pilot leaves it to. */
+const LAND_ROLLOUT = [0, 1, 0, 0];
+/* Plant seconds to rest, derived: timber-derive.js's landing() (three
+ * points, flaps up, slats, its CL 0.824 and CD 0.207 there) from
+ * LAND_SPEED on concrete at the low end of Marchman's "Concrete, asphalt
+ * 0.02 - 0.05" (docs/CRASH-REFERENCES.md R-ROLLING): 17.8 s and 46.7 m to
+ * rest, 15.4 s to 0.5 m/s; at the plant's 0.032 (0.4 of the grass 0.08),
+ * 13.5 s. The window is that slowest rest, rounded up. */
+const LAND_REST_S = 18;
 
 const failures = [];
 const fail = (m) => {
@@ -333,26 +346,40 @@ const TARGETS = `(() => {
   return out;
 })()`;
 
-/* One flight: throw, release, sample until `ms` of the page's clock. */
-async function fly(page, plan, ms, stick = [0, 0, 0, 0]) {
+/* One flight: throw, release, sample until `ms` of the page's clock, or
+ * with `plant` until `ms` of the plant's own clock (a loaded machine runs
+ * fewer plant steps a wall second; capped at four times `ms` of the
+ * page's). With `rollout`, the sticks become it on the first step a
+ * wheel carries load. */
+async function fly(page, plan, ms, stick = [0, 0, 0, 0], { plant = false, rollout = null } = {}) {
   await page.evaluate(`window.__crashThrow(${JSON.stringify({ ...plan, hold: true, fresh: true })})`);
   await page.evaluate(`window.__stick(${stick.join(',')})`);
   await page.sleep(300);
-  const before = JSON.parse(await page.evaluate('JSON.stringify({ c: window.__crash(), g: window.__ground() })'));
+  const before = JSON.parse(await page.evaluate('JSON.stringify({ c: window.__crash(), g: window.__ground(), t: window.__craftState().simS })'));
   await page.evaluate('window.__releasePose()');
   const log = [];
   const t0 = Date.now();
-  while (Date.now() - t0 < ms) {
-    log.push(JSON.parse(await page.evaluate(`JSON.stringify((() => {
+  let rolling = false;
+  for (;;) {
+    const r = JSON.parse(await page.evaluate(`JSON.stringify((() => {
       const s = window.__craftState();
       const c = window.__crash();
       const k = window.__contacts();
       return {
         x: s.worldX, y: s.worldY, z: s.worldZ, speed: s.speed, hit: s.lastHitKind, hitIndex: s.lastHitIndex,
         wrecked: c.wrecked, events: c.events, flags: c.flagNames.join('|'), contacts: window.__ground().contactSteps,
-        ground: window.__surface(s.worldX, s.worldZ, s.worldY - 0.4), obstacle: k.obstacle.length, landed: s.landed,
+        ground: window.__surface(s.worldX, s.worldZ, s.worldY - 0.4), obstacle: k.obstacle.length, landed: s.landed, t: s.simS,
       };
-    })())`)));
+    })())`));
+    log.push(r);
+    if (rollout && !rolling && r.contacts > before.g.contactSteps) {
+      rolling = true;
+      await page.evaluate(`window.__stick(${rollout.join(',')})`);
+    }
+    const wall = Date.now() - t0;
+    if (plant ? (r.t - before.t) * 1000 >= ms || wall >= 4 * ms : wall >= ms) {
+      break;
+    }
     await page.sleep(40);
   }
   const events = JSON.parse(await page.evaluate('JSON.stringify(window.__crashLog())'));
@@ -602,7 +629,7 @@ async function main() {
         const plan = {
           x: site.x, y: site.y + gear.restHeight + 0.4, z: site.z, yaw: yawOf(site.dir), pitch: (gear.restPitch * 180) / Math.PI, vx: site.dir[0] * v, vy: -0.5, vz: site.dir[1] * v,
         };
-        const { before, log, events } = await fly(page, plan, 14000);
+        const { before, log, events } = await fly(page, plan, LAND_REST_S * 1000, [0, 0, 0, 0], { plant: true, rollout: LAND_ROLLOUT });
         if (process.argv.includes('--verbose')) {
           console.log(JSON.stringify(events));
         }
