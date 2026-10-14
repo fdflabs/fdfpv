@@ -24,6 +24,9 @@ Verdicts:
 - **N/A**: not applicable, or decided otherwise; the decision is cited
   (CLAUDE.md, docs/PILLARS.md, PLAN.md section 6, or the architecture
   that makes the question moot).
+- **DECIDED**: the item asked for a product decision, not a build; the
+  decision is logged with its date, who made it, and the evidence from
+  the tree it rests on.
 
 Each PARTIAL and MISSING item ends with **Done**: what done means here,
 the check that would prove it, its size (S a day or less, M a few days, L
@@ -35,7 +38,7 @@ workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
 in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
-PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
+PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
 the owner since): no jamming, signal loss or radio breakup (rule 1);
@@ -1076,12 +1079,49 @@ before" (src/share/account.js 2); a guest's progress lives in the browser;
 a guest's room name is three picked words. Checks: `rooms:accounts`,
 `test:tracks` (CI).
 
-**74. Local multiplayer decision. MISSING**, as a decision. Online rooms
-only: one pilot per page (input.js reads one pad), no split screen. LAN
-works by accident: the rooms server runs anywhere
-(edge/rooms/node.js) and `?rooms=` points a page at it (rooms.js 26), with
-no discovery. **Done:** an owner decision (section 19), written into
-PILLARS 5.
+**74. Local multiplayer decision. DECIDED (2026-10-14, the lead, round 7
+w43-content): no split screen; local play is two devices in one Friends
+room.** Written into docs/PILLARS.md section 5 with the how-to. The
+evidence, from the tree and one measurement:
+
+- *Two plants in one page already run.* The solo race's AI opponent is a
+  second dist/sim.wasm on its own plant beside the pilot's
+  (src/game/aiopponent.js header, `seatOpponent` from src/main.js
+  `pickOpponent`), and the launch stand is the precedent. So the plant is
+  not what stops split screen.
+- *Input is one pilot per page.* src/input/padpick.js picks one pad as the
+  pilot's (two or more plugged in open the picker, which keeps one); the
+  mouse is one pointer lock on one canvas (src/main.js
+  `requestPointerLock`); the keyboard is one. A second pilot on one page
+  needs a second input owner through every reader of the action map
+  (item 20), the HUD, the pause menus and the radio.
+- *A second camera costs a second frame.* Measured on GPU 1, 2026-10-14:
+  scripts/perf-play.js at High, `--mode=quality`, `swiss-low` (the 7 inch
+  with its IR inset), 15 s, against a scratch copy of it (not committed)
+  that draws the composer's frame a second time, as a second full view
+  would. One view: frame avg 12.4 ms (p95 15.7), GPU avg 8.85 ms (floor
+  6.78), 298 draw calls and 3.51 M triangles a frame. Drawn twice: frame
+  avg 25.2 ms (p95 30.3), GPU avg 18.4 ms (floor 13.0), 512 calls and
+  5.71 M triangles. 80 fps became 40; 592 of 596 frames missed 60 Hz.
+  A split screen draws each view at half the pixels, which saves fill but
+  not the draw calls and triangles, and the main view's contract is 300
+  calls and 2.5 M triangles at High (docs/BUDGETS.md, 2026-10-13): two
+  main views are about twice it. The IR inset is the scene drawn a
+  second time already, and it is held to 480 by 270 and 110 calls for
+  that reason.
+- *Two devices already work.* A Friends room seats up to eight by its
+  six letter code (`friends.create`, `friends.join`); the seat token is
+  per tab (src/share/rooms.js, sessionStorage), so each device is its
+  own pilot. LAN without the internet is possible in the tree and not
+  checked end to end: the rooms server runs on any machine
+  (edge/rooms/node.js) and `?rooms=http://host:port` points each page
+  at it (src/share/rooms.js `roomsOrigin`), with the game served from a
+  LAN machine too, since an https page may not open an http server's
+  socket. No discovery, by this decision.
+
+Revisit when a pilot asks for couch play and the budget has room for a
+second main view. Checks that hold the parts: `rooms:selftest` (CI),
+`rooms:twopage` (local), `perf --budgets` (local).
 
 **75. Spectator join. BUILT (phase 17).** Built (472c2316b, then
 2026-10-13 w38-watch, w38-watch-state, w38-watch-war): a watch seat in any room
@@ -1269,20 +1309,15 @@ Then phase 28 (dev tools), phase 30 (blocks, device table) and phase 31
 
 Only what is genuinely the owner's; each has a recommendation.
 
-1. **Local multiplayer (item 74).** Online rooms only, LAN through a
-   self hosted rooms server, or split screen and two pilots on one PC?
-   *Recommend:* online rooms, plus a documented LAN path (the rooms
-   server already runs on any machine). Split screen doubles the render
-   cost the budget (item 46) is spent on.
-2. **More analytics (item 63).** stats.js promises three anonymous
+1. **More analytics (item 63).** stats.js promises three anonymous
    events. Adding which activity and how many missions start, finish and
    are abandoned changes that promise. *Recommend:* yes, as day counts
    only, no new identifier, and privacy.html updated in the same PR.
-3. **Errors sent unasked (item 64).** Today an error leaves the browser
+2. **Errors sent unasked (item 64).** Today an error leaves the browser
    only inside a bug report the pilot files. *Recommend:* send the error
    message, file, line and build (no screen, no name) automatically,
    counted per day like stats; privacy.html updated.
-4. **Item 84**, held for discussion as the owner asked.
+3. **Item 84**, held for discussion as the owner asked.
 
 Decided by the author (cheap, reversible, each a line to change):
 controller loss pauses solo and centres the sticks in a room (item 18,
@@ -1290,4 +1325,6 @@ not Betaflight's failsafe, because of standing rule 1); no developer
 console, a documented hook index instead (35); no flags system, a
 `hidden` field (81); signed war results deferred until an economy has a
 price (62); Operations solo stays online (11); a private room may change
-activity, a public one may not (77).
+activity, a public one may not (77). Decided by the lead, 2026-10-14
+(round 7): no split screen, local play is two devices in one Friends
+room, LAN through a self hosted rooms server (74, with its measurement).
