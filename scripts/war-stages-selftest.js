@@ -232,9 +232,9 @@ console.log('data');
   }
 }
 
-check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6',
-  roundsOf(MISSIONS['itaipu-1']) === 5 && roundsOf(MISSIONS['itaipu-2']) === 4 && stagesOf(MISSIONS['itaipu-1']).filter((x) => x.round).length === 7,
-  `${roundsOf(MISSIONS['itaipu-1'])} ${roundsOf(MISSIONS['itaipu-2'])}`);
+check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6, Lights Out 4 of its 6',
+  roundsOf(MISSIONS['itaipu-1']) === 5 && roundsOf(MISSIONS['itaipu-2']) === 4 && roundsOf(MISSIONS['itaipu-3']) === 4 && stagesOf(MISSIONS['itaipu-1']).filter((x) => x.round).length === 7,
+  `${roundsOf(MISSIONS['itaipu-1'])} ${roundsOf(MISSIONS['itaipu-2'])} ${roundsOf(MISSIONS['itaipu-3'])}`);
 
 /* ------------------------------------------------------------ triggers */
 
@@ -1297,6 +1297,113 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
   check('it opens on the twist stage drawn before, its hold running again from the go',
     v.stage && v.stage.id === lost.checkpoint.stage && v.stage.objectives[0].heldFrom === v.stage.at,
     JSON.stringify(v.stage && { id: v.stage.id, at: v.stage.at, o: v.stage.objectives[0] }));
+}
+
+console.log('Lights Out (itaipu-3), flown on the room by bot squads');
+{
+  /* MISSIONS.md M3 as the room plays it, as the Spillway's above. */
+  const mission = MISSIONS['itaipu-3'];
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const TWISTS = ['reroute-pack', 'reroute-feint', 'reroute-wires'];
+  const games = [];
+  for (const pilots of [1, 4]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const views = [];
+      const born = [];
+      runOne({
+        pilots,
+        skill: 'good',
+        seed,
+        floorBuf,
+        spawn: SPAWN,
+        mission,
+        record: (m, now) => {
+          if (m.type !== 'war') {
+            return;
+          }
+          if (m.war) {
+            views.push({ ...m.war, now });
+          } else if (m.op === 'born') {
+            born.push(...m.agents);
+          }
+        },
+      });
+      games.push({
+        pilots, seed, views, born,
+      });
+    }
+  }
+  const order = [];
+  const bad = [];
+  const twists = new Set();
+  const holds = [];
+  for (const g of games) {
+    const label = `x${g.pilots} seed ${g.seed}`;
+    const path = [];
+    for (const v of g.views) {
+      if (v.stage && path.at(-1) !== v.stage.id) {
+        path.push(v.stage.id);
+      }
+    }
+    order.push(`${label}: ${path.join(' > ')}`);
+    const twist = path[2];
+    twists.add(twist);
+    const end = g.views.at(-1);
+    if (!(path.length === 4 && path[0] === 'dusk' && path[1] === 'lie' && TWISTS.includes(twist) && path[3] === 'dark')) {
+      bad.push(`${label}: stages ${path.join(',')}`);
+    }
+    if (end.state !== 'won') {
+      bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    /* The reroute's hold, settled before the stage leaves, and the
+     * twist's objective on the HUD only once the twist is born. */
+    const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const state = inTwist.at(-1)?.stage.objectives.find((o) => o.id === 'reroute')?.state;
+    holds.push(state);
+    if (state !== 'done' && state !== 'failed') {
+      bad.push(`${label}: the hold left ${state}`);
+    }
+    const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
+    const twistBorn = g.born.find((a) => a.wave === twistSi);
+    const early = inTwist.filter((v) => twistBorn && v.now < twistBorn.t0 && v.stage.objectives.some((o) => o.id === 'twist'));
+    const shown = inTwist.some((v) => v.stage.objectives.some((o) => o.id === 'twist'));
+    if (!twistBorn || early.length || !shown) {
+      bad.push(`${label}: the twist's objective shown early ${early.length}, ever ${shown}, born ${twistBorn && twistBorn.t0}`);
+    }
+  }
+  console.log(`    ${order.join('\n    ')}`);
+  console.log(`    holds: ${holds.join(' ')}`);
+  check('ten games, 1 and 4 good pilots: Dusk, The Lie, one twist of Reroute, The Dark, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
+    bad.filter((x) => /stages|ended/.test(x)).join(' | '));
+  check('the reroute\'s hold settles, held or failed, before its stage ends', bad.filter((x) => /hold/.test(x)).length === 0,
+    bad.filter((x) => /hold/.test(x)).join(' | '));
+  check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
+    bad.filter((x) => /objective/.test(x)).join(' | '));
+  check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
+  const [lo, hi] = mission.estimatedMinutes;
+  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
+  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+    minutes.map((x) => x.toFixed(1)).join(' '));
+
+  /* Nobody shooting: the yard falls in the first stage and the west
+   * intakes after it, so the output goes under the floor before the end,
+   * and the restart offers the stage it was lost in. */
+  const rooms = [0.15, 0.3, 0.41].map((seed) => {
+    const r = warRoom(mission, { n: 1, seed, dev: true });
+    r.fly(GO + 900000);
+    return r;
+  });
+  const ends = rooms.map((r) => r.view());
+  check('with nobody shooting Lights Out is lost under its floor, and offers the stage it was lost in again',
+    ends.every((x) => x.state === 'lost' && x.why === 'output' && x.checkpoint
+      && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage)),
+    JSON.stringify(ends.map((x) => ({ state: x.state, why: x.why, cp: x.checkpoint }))));
+  const yardFirst = rooms.every((r) => {
+    const hit = r.of(0, 'dead').find((m) => m.hit && m.target === 'yard-right');
+    const stage = r.of(0).map((m) => m.war).filter((w) => w && w.stage && w.stage.at <= (hit?.at ?? -1)).at(-1)?.stage.id;
+    return hit && hit.mw === 2800 && stage === 'dusk';
+  });
+  check('and the yard is its first stage\'s loss, 2 800 MW', yardFirst);
 }
 
 console.log('the room: the practice (itaipu-practice), one Striker at a time');
