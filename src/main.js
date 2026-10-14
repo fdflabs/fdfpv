@@ -126,7 +126,9 @@ import { createLobbyReady } from './share/roomlobby.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import { createJamRun, createRoomJam } from './share/roomjam.js';
 import { jamHudView, jamResultsView, jamTurnShout } from './ui/jamhud.js';
-import { MODES, VISIBILITIES, modeById, modeOfRoom, modeOfWire, visibilityFor, wireMode } from './share/modes.js';
+import {
+  MODES, SESSION_ENDED, SESSION_ON, VISIBILITIES, modeById, modeOfRoom, modeOfWire, sessionOf, visibilityFor, wireMode,
+} from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
 } from './ui/roomtaghud.js';
@@ -4041,6 +4043,7 @@ export async function boot({
       roomPeersClear();
       for (const p of w.peers) {
         roomPeerJoin(p.seat, p.name, p.profile);
+        roomPeers.get(p.seat).failed = typeof p.failed === 'string' ? p.failed : null;
       }
       roomSlot = w.seat - 1;
       roomSafety.welcomed();
@@ -4130,6 +4133,16 @@ export async function boot({
       }
       if (m.type === 'drop') {
         roomDropArrived(m);
+        return;
+      }
+      /* A pilot whose page could not build the room's world, or map null
+       * when it stands on it again (edge/rooms/core.js fail). */
+      if (m.type === 'fail') {
+        const peer = roomPeers.get(m.seat);
+        if (peer) {
+          peer.failed = typeof m.map === 'string' ? m.map : null;
+          ui.refreshFriends();
+        }
         return;
       }
       if (m.type === 'drops' && Array.isArray(m.list)) {
@@ -4872,9 +4885,10 @@ export async function boot({
    * LOBBY_GAMES: what the lobby does for each activity of the mode
    * registry (src/share/modes.js), by its id ('free' for free flight, a
    * room made for no game); what each activity IS (its setting's key and
-   * values, its consent, whether it ends) is the registry's. on(), whether
-   * a round is on as this screen knows it; ended(), whether the last one
-   * is over; start, the host's Start now action, or null; begin(lobby),
+   * values, its consent, whether it ends) is the registry's. view(), the
+   * game's view as this screen holds it, which lobbySession names
+   * (src/share/modes.js sessionOf: a round on, ended or none); start, the
+   * host's Start now action, or null; begin(lobby),
    * what that Start now sends, or null; setting, the host's row for the
    * room's one setting between rounds (the war's mission, combat's
    * minutes, the Ace's goal): its key on the wire, its choices and its
@@ -4888,8 +4902,7 @@ export async function boot({
    */
   const LOBBY_GAMES = {
     war: {
-      on: () => roomWar.on(),
-      ended: () => ['won', 'lost', 'ended'].includes((roomWar.view() || {}).state),
+      view: () => roomWar.view(),
       start: 'friends-war-start',
       begin: null,
       setting: {
@@ -4911,8 +4924,7 @@ export async function boot({
       },
     },
     combat: {
-      on: () => ['countdown', 'on'].includes(roomCombat.round().state),
-      ended: () => roomCombat.round().state === 'over',
+      view: () => roomCombat.round(),
       start: 'friends-lobby-start',
       begin: (lobby) => roomCombat.start(lobby.minutes),
       setting: {
@@ -4926,8 +4938,7 @@ export async function boot({
       line: (lobby) => str('lobby.combat_line', { n: lobby.minutes }),
     },
     tag: {
-      on: () => roomTag.on(),
-      ended: () => roomTag.view().state === 'results',
+      view: () => roomTag.view(),
       start: 'friends-lobby-start',
       begin: (lobby) => roomTag.start(lobby.goal),
       setting: {
@@ -4941,8 +4952,7 @@ export async function boot({
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
     },
     jam: {
-      on: () => roomJam.on(),
-      ended: () => roomJam.view().state === 'results',
+      view: () => roomJam.view(),
       start: 'friends-lobby-start',
       begin: (lobby) => roomJam.start(lobby.seconds),
       setting: {
@@ -4959,8 +4969,7 @@ export async function boot({
      * pilots in the lobby have it built under the lobby screen, and are on
      * its grid when it goes (edge/rooms/race.js start). */
     race: {
-      on: () => roomRace.race().state === 'on',
-      ended: () => roomRace.race().state === 'results',
+      view: () => roomRace.race(),
       start: 'friends-lobby-start',
       begin: () => roomLinkState.send({ type: 'race', op: 'start', laps: 3 }),
       setting: null,
@@ -4972,8 +4981,7 @@ export async function boot({
     /* Free flight's round is just flying, on from the first start until
      * the room is empty: a pilot who comes then flies straight in. */
     free: {
-      on: () => Boolean(roomLinkState.state().welcome && roomLinkState.state().welcome.lobby && roomLinkState.state().welcome.lobby.live),
-      ended: () => false,
+      view: () => (roomLinkState.state().welcome ? roomLinkState.state().welcome.lobby : null),
       start: null,
       begin: null,
       setting: null,
@@ -4990,6 +4998,14 @@ export async function boot({
       throw new Error(`LOBBY_GAMES and src/share/modes.js disagree: ${odd.join(', ')}`);
     }
   }
+  /* Game `game`'s round as a named session state (src/share/modes.js
+   * sessionOf) on the room clock, and whether one is under way. */
+  function lobbySession(game) {
+    return sessionOf(game, LOBBY_GAMES[game].view(), roomLinkState.roomNow());
+  }
+  function lobbyRoundOn(game) {
+    return SESSION_ON.includes(lobbySession(game));
+  }
   /* The room's game when it has a lobby ('free' for free flight), else
    * null: a room from a server before the lobby has none. */
   function lobbyGame() {
@@ -5001,7 +5017,7 @@ export async function boot({
   function gameLobby() {
     const st = roomLinkState.state();
     const game = lobbyGame();
-    return st.phase === 'open' && game && st.welcome.lobby && !LOBBY_GAMES[game].on() ? st.welcome.lobby : null;
+    return st.phase === 'open' && game && st.welcome.lobby && !lobbyRoundOn(game) ? st.welcome.lobby : null;
   }
   function gameLobbyReady(lobby = gameLobby()) {
     const w = roomLinkState.state().welcome;
@@ -5280,7 +5296,7 @@ export async function boot({
   async function roomWarJoinGate(w) {
     /* Any game room's lobby, by a link or the title's panel, is where its
      * pilot lands; a round on flies them in (roomHotJoin). */
-    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !LOBBY_GAMES[w.mode].on() && !w.watch) {
+    if (Object.hasOwn(LOBBY_GAMES, w.mode) && w.lobby && ui.screen === 'title' && !lobbyRoundOn(w.mode) && !w.watch) {
       ui.craftGate = false;
       ui.mode = 'freestyle';
       ui.returnTo = 'title';
@@ -6305,7 +6321,8 @@ export async function boot({
    * lobby waits for the build. */
   function lobbySeenFrame(wallMs) {
     const game = lobbyGame();
-    const seen = !game ? null : LOBBY_GAMES[game].on() ? 'on' : LOBBY_GAMES[game].ended() ? 'over' : 'lobby';
+    const session = game ? lobbySession(game) : null;
+    const seen = !game ? null : SESSION_ON.includes(session) ? 'on' : SESSION_ENDED.includes(session) ? 'over' : 'lobby';
     if (seen !== lobbySeen) {
       if (seen === 'over' && lobbySeen === 'on') {
         lobbyBackAt = wallMs + LOBBY_BACK_MS;
@@ -6883,6 +6900,10 @@ export async function boot({
   /* { why, fly, restart } while this pilot is owed a move: fly, into the
    * air at the end; restart, from the slot even when already flying. */
   let roomSummon = null;
+  /* The room's world when this page could not build it (roomWorldFailed):
+   * not summoned to again until the room's world changes or a welcome
+   * comes, and the room told (edge/rooms/core.js fail). */
+  let roomFailedWorld = null;
   /* The target this pilot was last summoned to, 'world|track id'. */
   let roomSeenTarget = null;
   /* What the host asked the room to take: { map, track, at }. */
@@ -6944,6 +6965,7 @@ export async function boot({
    * #187 kept a pilot on a track of their own: that is a session of one. */
   function roomSessionWelcome(w) {
     const target = roomTarget(w);
+    roomFailedWorld = null;
     roomSeenTarget = roomTargetKey(target);
     roomAsked = { map: null, track: null, at: 0 };
     if (!roomInPlace(target) && MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
@@ -6954,6 +6976,22 @@ export async function boot({
     roomCall(w.watch ? 'watch' : 'join');
   }
 
+  /* This page could not build world `id`. When that is the room's world:
+   * the room is told, which counts this seat out of its round
+   * (edge/rooms/core.js fail), it is not summoned to again
+   * (roomFailedWorld), and the pilot's line says so, returned; else null. */
+  function roomWorldFailed(id) {
+    const st = roomLinkState.state();
+    if (st.phase !== 'open' || !st.welcome || st.welcome.map !== id) {
+      return null;
+    }
+    roomFailedWorld = id;
+    roomSummon = null;
+    roomLinkState.sendFail(id);
+    roomNote = str('rooms.load_failed', { world: mapById(id).name });
+    return roomNote;
+  }
+
   /*
    * A seat this pilot chose that is not the room's. The host's is asked of
    * the room (a world, a track), and put back if the room has not taken it
@@ -6962,7 +7000,8 @@ export async function boot({
    * and whose tracks are not flown as the room's until they are seated.
    */
   function roomDrift(w, wallMs) {
-    if (roomSummon || swapInFlight || !mapReady || (build && build.active && !build.racing) || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+    if (roomSummon || swapInFlight || !mapReady || (build && build.active && !build.racing) || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')
+      || roomFailedWorld === w.map) {
       return;
     }
     const world = seatWorld();
@@ -7013,6 +7052,9 @@ export async function boot({
     if (key !== roomSeenTarget) {
       const moved = roomSeenTarget != null && roomSeenTarget.split('|')[0] !== target.world;
       roomSeenTarget = key;
+      if (moved) {
+        roomFailedWorld = null;
+      }
       roomAsked = { map: null, track: null, at: 0 };
       if (moved && !roomHost(w)) {
         roomSay(str('rooms.world_moved', { world: mapById(target.world).name }));
@@ -7046,6 +7088,11 @@ export async function boot({
     if (!MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
       /* A world this build does not have (a newer build's room): nothing
        * to seat, and the others name this pilot as elsewhere. */
+      roomSummon = null;
+      return;
+    }
+    /* One this page could not build: not tried again until it changes. */
+    if (roomFailedWorld === target.world) {
       roomSummon = null;
       return;
     }
@@ -7347,6 +7394,10 @@ export async function boot({
    * this page does not have (a newer build's) is named as another world. */
   function roomAwayText(peer) {
     const name = roomName(peer.name);
+    const w = roomLinkState.state().welcome;
+    if (peer.failed && w && peer.failed === w.map) {
+      return str('rooms.away_failed', { name });
+    }
     /* The reason the pilot's own page gave, when it gave one: a pilot
      * loading a world still names the one they are leaving. */
     const status = peer.profile && peer.profile.status;
@@ -14656,6 +14707,7 @@ export async function boot({
        * settings put back to it, rather than leaving no world at all. The
        * title's own world is not the pilot's seat and never written there. */
       console.error(e);
+      const roomText = roomWorldFailed(wantId);
       if (!titleWorld) {
         ui.settings.map = before.id;
       }
@@ -14665,7 +14717,7 @@ export async function boot({
         worldTime = timeOf({});
         loading.start('frame');
         adoptLoadedView(keepPlace, stayMode, stayScreen);
-        notice = { text: str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + 4200 };
+        notice = { text: roomText ?? str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + (roomText ? 8000 : 4200) };
       } catch (e2) {
         console.error(e2);
         loading.fail(str('ui.could_not_be_loaded', { name: entry.name, v2: e.message ?? e }));

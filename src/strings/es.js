@@ -3161,6 +3161,8 @@ export default {
   "rooms.away_hangar": "{name} está en la sala pero no vuela: en el hangar",
   "rooms.in_hangar": "{name}: en el hangar",
   "rooms.away_reconnecting": "{name} está en la sala pero no vuela: reconectando",
+  "rooms.away_failed": "{name} está en la sala pero no vuela: su dispositivo no pudo cargar este mundo",
+  "rooms.load_failed": "{world} no cargó en este dispositivo, así que no participas en las rondas de esta sala. Recarga para intentarlo de nuevo.",
   "rooms.fly_prompt": "Tus amigos están volando. Pulsa Volar.",
   "rooms.fly_button": "Volar",
   "rooms.alone": "Estás solo en la sala {code}. Comprueba que tus amigos tengan este código.",

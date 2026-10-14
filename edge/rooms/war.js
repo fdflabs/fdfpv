@@ -266,7 +266,7 @@ import {
   RESULT_MS, allBorn, arm, beatOf, crossings, draw, drawSets, dueCues, dueSpawns, enter, exitDue, failedAny, gatesOf, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind, worthOf,
   stagesOf, target as exitTarget, wavesOf,
 } from '../../src/share/war/stages.js';
-import { madeFor, modeById } from '../../src/share/modes.js';
+import { madeFor, modeById, sessionOf } from '../../src/share/modes.js';
 import { released } from '../../src/game/campaign.js';
 import { wireStrike } from '../../src/share/war/wires.js';
 import { contactAt } from '../../src/share/war/contact.js';
@@ -744,7 +744,14 @@ export class RoomWar {
     return Boolean(m) && (m.state === 'briefing' || m.state === 'countdown' || m.state === 'live');
   }
 
+  /* The match as every client sees it, with its named state (modes.js
+   * sessionOf) as it stands now. */
   view(core) {
+    const v = this.shown(core);
+    return { ...v, session: sessionOf('war', v, core.roomNow()) };
+  }
+
+  shown(core) {
     const m = this.match;
     if (!m) {
       return { state: 'lobby' };
@@ -835,6 +842,8 @@ export class RoomWar {
         seat: Number(seat), kills: p.kills, assists: p.assists, mw: p.mw, gone: !here.has(Number(seat)),
       })).sort((a, b) => b.kills - a.kills || b.mw - a.mw || a.seat - b.seat),
       why: m.why,
+      /* Ended by the room for too few players here (core.js settleGames). */
+      abandoned: Boolean(m.abandoned),
       endAt: m.endAt,
       result: m.state === 'won' || m.state === 'lost' || m.state === 'ended' ? resultOf(mission, m) : null,
       /* A lost match's stage to play again from, and a match that is such
@@ -985,7 +994,7 @@ export class RoomWar {
       return [];
     }
     return [...core.seats.values()]
-      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token))
+      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token) && !core.failed(t))
       .map((t) => t.seat);
   }
 
@@ -1087,11 +1096,12 @@ export class RoomWar {
     return this.match ? this.changed(core) : [];
   }
 
-  abandon(core, now) {
+  abandon(core, now, abandoned = false) {
     if (!this.on()) {
       return [];
     }
     this.finish(Math.min(this.match.f, core.roomMs(now)), 'ended', 'end');
+    this.match.abandoned = abandoned;
     return this.changed(core);
   }
 
@@ -1215,8 +1225,12 @@ export class RoomWar {
         restarted: cp.id,
       });
     }
+    /* A pilot whose page could not build the world (core.js fail) is
+     * not enlisted: it waits for the next match. */
     for (const t of core.seats.values()) {
-      this.enlist(t);
+      if (!core.failed(t)) {
+        this.enlist(t);
+      }
     }
     /* The working sets (stages.js drawSets), drawn as the match starts
      * so its film shows the same as its stages, for the pilots enlisted;
@@ -1264,7 +1278,7 @@ export class RoomWar {
    * world at the mission's time, so its film can start with no lead. */
   worldsUp(core, mission) {
     const time = timeOfMission(mission);
-    return [...core.seats.values()].every((t) => {
+    return [...core.seats.values()].filter((t) => !core.failed(t)).every((t) => {
       const w = this.worlds.get(t.seat);
       return w && w.token === t.token && w.map === mission.map && w.time === time;
     });

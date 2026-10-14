@@ -77,7 +77,7 @@ import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
 import { aiRaceSection } from './rooms-selftest-airace.js';
 import {
-  emptyRoomSection, gameLobbySection, lobbyReadySection, warLobbySection,
+  emptyRoomSection, gameLobbySection, loadFailSection, lobbyReadySection, sessionStatesSection, warLobbySection,
 } from './rooms-selftest-gamelobby.js';
 import { RoomTag } from '../edge/rooms/tag.js';
 import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
@@ -2014,6 +2014,8 @@ lobbyReadySection(check);
 botsSection(check);
 await aiRaceSection(check);
 emptyRoomSection(check);
+loadFailSection(check);
+sessionStatesSection(check);
 sessionSection(check);
 weatherSection(check);
 stockSurfacesSection(check);

@@ -65,7 +65,7 @@ import {
 } from '../../src/share/roomwire.js';
 import { LATE_MS, Track, hullFor } from '../../src/game/midair.js';
 import { PASS_MS, StreamerTrack, judgeCut } from '../../src/game/cut.js';
-import { ROUND_MINUTES, madeFor } from '../../src/share/modes.js';
+import { ROUND_MINUTES, madeFor, sessionOf } from '../../src/share/modes.js';
 
 /* The owner's fifty metres, in one metre links. */
 export const FULL_LINKS = 50;
@@ -123,6 +123,11 @@ export class RoomCombat {
     this.meta = meta;
     this.round = { n: 0, state: 'idle', startsAt: 0, endsAt: 0, minutes: 0 };
     this.seats = new Map(); /* seat -> record, below */
+    /* Seats that came while a round was on and its game takes no
+     * newcomer (modes.js allowDropIn, core.js join): no record, so no
+     * paper, no score and no cut, until the next round begins. Memory
+     * only: after a restart they fly in. */
+    this.late = new Set();
     this.pairs = new Map(); /* 'cutter>victim' -> frontier, room ms */
     this.nextId = 1;
     /* For the checks: every cut this room has decided. */
@@ -144,6 +149,9 @@ export class RoomCombat {
 
   /* A seat's airframe, on its hello, its profile and a restore. */
   seat(seat, airframe) {
+    if (this.late.has(seat)) {
+      return;
+    }
     const r = this.record(seat);
     if (r.airframe !== airframe) {
       r.airframe = airframe;
@@ -154,6 +162,7 @@ export class RoomCombat {
 
   leave(seat) {
     this.seats.delete(seat);
+    this.late.delete(seat);
     for (const key of [...this.pairs.keys()]) {
       const [a, b] = key.split('>').map(Number);
       if (a === seat || b === seat) {
@@ -162,12 +171,17 @@ export class RoomCombat {
     }
   }
 
-  view() {
+  /* The round as everybody sees it, with its named state (modes.js
+   * sessionOf) as it stands now. */
+  view(core) {
     const r = this.round;
-    return {
+    const v = {
       type: 'combat',
       round: r.n,
       state: r.state,
+      /* Put away by the room for too few pilots here (core.js
+       * settleGames), until the next round. */
+      abandoned: Boolean(r.abandoned),
       startsAt: r.startsAt,
       endsAt: r.endsAt,
       nextAt: r.nextAt || 0,
@@ -176,11 +190,12 @@ export class RoomCombat {
         seat, points: s.points, cuts: s.cuts, owed: s.owed, links: s.links, runs: s.runs,
       })),
     };
+    return { ...v, session: sessionOf('combat', v, core.roomNow()) };
   }
 
   /* Every change the room announces is also kept. */
   broadcast(core) {
-    return [this.store(), ...core.everyone(JSON.stringify(this.view()))];
+    return [this.store(), ...core.everyone(JSON.stringify(this.view(core)))];
   }
 
   store() {
@@ -207,9 +222,10 @@ export class RoomCombat {
 
   /* The round put away: by the host's stop, or by the room when too few
    * of its pilots are left (core.js settleGames). */
-  stop(core) {
+  stop(core, abandoned = false) {
     this.round.state = 'idle';
     this.round.nextAt = 0;
+    this.round.abandoned = abandoned;
     return this.broadcast(core);
   }
 
@@ -219,12 +235,20 @@ export class RoomCombat {
     return this.round.state === 'over' && this.round.nextAt > 0;
   }
 
-  /* A new round of `minutes`: counting down from now, fresh paper for all. */
+  /* A new round of `minutes`: counting down from now, fresh paper for all,
+   * the pilots who waited the last one out among them. */
   begin(core, now, minutes) {
     const r = this.round;
     const t = core.roomMs(now);
+    this.late.clear();
+    for (const s of core.seats.values()) {
+      if (!this.seats.has(s.seat)) {
+        this.seat(s.seat, s.profile.airframe);
+      }
+    }
     r.n += 1;
     r.state = 'countdown';
+    r.abandoned = false;
     r.minutes = minutes;
     r.startsAt = t + COUNTDOWN_MS;
     r.endsAt = r.startsAt + minutes * 60000;
@@ -253,9 +277,19 @@ export class RoomCombat {
     return this.round.state === 'countdown' || this.round.state === 'on';
   }
 
+  /* A pilot just seated: a record, paper and all, unless a round is on
+   * and `dropIn` (core.js join, modes.js allowDropIn) is false and the
+   * seat is not already one of the round's. */
+  arrive(seat, airframe, dropIn) {
+    if (this.on() && !dropIn && !this.seats.has(seat)) {
+      this.late.add(seat);
+    }
+    this.seat(seat, airframe);
+  }
+
   /* For a pilot just seated: the round as it stands. */
   join(core, conn) {
-    return this.round.state === 'idle' ? [] : [{ send: conn, data: JSON.stringify(this.view()) }];
+    return this.round.state === 'idle' ? [] : [{ send: conn, data: JSON.stringify(this.view(core)) }];
   }
 
   /* The round's clock: countdown to on, on to over. */
@@ -383,7 +417,9 @@ export class RoomCombat {
   /* A POSE from seat s (its relayed bytes, flags as the room set them). */
   pose(core, s, now) {
     const out = this.advance(core, now);
-    if (this.round.state === 'idle') {
+    /* A pilot whose page could not build the room's world (core.js fail)
+     * flies another: its poses cut nothing here. */
+    if (this.round.state === 'idle' || core.failed(s)) {
       return out;
     }
     const rec = this.record(s.seat);

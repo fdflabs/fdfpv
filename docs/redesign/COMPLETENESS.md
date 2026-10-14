@@ -150,7 +150,41 @@ Nothing on the wire changes; each game keeps its states. A client whose
 world fails to build reports `status: 'failed'` and the room counts it
 out as it does a silent pilot. Check: `modes:selftest` asserts every
 game's every state maps; `rooms:selftest` adds a load failure. Size M.
-Phase 21.
+Phase 21. **Named states built** (2026-10-14, w40-states), as the
+brief of that lane had them and not the list above: `SESSION_STATES` is
+`lobby`, `countdown`, `live`, `between`, `over`, `abandoned`, the states
+of a game's round; reconnecting, outdated, removed and a load failure are
+a seat's, kept where they are (the 30 s reconnecting mark, close codes,
+the `fail` op below). `GAME_STATES` lists each game's own and
+`sessionOf(id, view, roomNow)` maps them (a race's countdown is its goAt
+on the room clock; an abandon is the room's, settleGames, marked
+`abandoned` on the race, tag, jam, combat and war views). The wire
+changed, additively: each game's view, in the welcome and every
+broadcast, carries `session` as it stands when sent (and the jam's
+`turn`); a client from before passes over both, so ROOM_LEVEL stays 4.
+The lobby screen reads it (src/main.js LOBBY_GAMES view, lobbySession,
+lobbyRoundOn, lobbySeenFrame) in place of each game's own on and ended.
+Not moved onto it yet: the rooms panel's `activity()` and the HUD's own
+branches (the war's briefing film and round result, a race's countdown),
+which read finer states than these. Checks: `modes:selftest` (every
+game's every state maps, each game's mapping), `rooms:selftest` (the
+named states as the room says them, game by game, an abandon among
+them). A race and a jam in a room made for them end on their own before
+ABANDON_MS when their players are all gone, so their abandon is held in
+a room where they were started in passing. **Load failure built** (2026-10-14, w40-states), as an op and
+not a profile status: a client from before throws on a status it has no
+string for (src/main.js roomAwayText, every frame), and passes over a
+message type it does not know. A page whose room world fails to build
+(src/main.js syncWorldNow, roomWorldFailed) sends `{ type: 'fail', map }`,
+stops being summoned to it and says so (`rooms.load_failed`); the room
+(core.js fail, failed()) counts the seat out of every game: not on a
+race's grid (a racer retired), not a tag or jam player, not enlisted in
+a war nor waited for by its briefing, no cuts in combat, not in the
+lobby's flags, and not present for ABANDON_MS; the others are told
+`{ type: 'fail', seat, map }` (`rooms.away_failed`), map null when its
+profile stands on the room's world again. `rooms:selftest` (a load
+failure counted out). No browser case: a bad `?map=` fails at boot
+before any socket, and nothing cheap forces an in room build to fail.
 
 **5. Host migration. N/A.** Rooms are server authoritative: one RoomCore
 is "the only owner of the room's state" (edge/rooms/core.js 21), so there
@@ -185,10 +219,11 @@ paper; tag makes a hunter). The table and the behaviour can drift.
 **Done:** the rooms server reads `allowDropIn` where a newcomer arrives
 in a running round, and the race's own rule is that field. Check:
 `rooms:selftest` flips the field in a test registry and sees the
-behaviour follow. Size S. Phase 21. **Built for the race and the war**
-(core.js join reads it through the room's registry; `rooms:selftest`
-turns each over). Combat, the Ace and the jam keep their own newcomer
-rules, which match their fields today.
+behaviour follow. Size S. Phase 21. **Built for every game**: core.js
+join reads it through the room's registry and hands it to each game (the
+race's grid, the war's enlist, combat's paper, the Ace's hunters, the
+jam's turns); `rooms:selftest` turns each over, and a newcomer that
+waits a round out has no paper, no hunt and no turn until the next.
 
 **8. Multiplayer authority. PARTIAL.** Decided and mostly server side,
 but written down only in file headers. Server: midair collisions

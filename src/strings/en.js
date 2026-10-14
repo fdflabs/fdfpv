@@ -3156,6 +3156,8 @@ export default {
   "rooms.away_hangar": "{name} is here but not flying: in the hangar",
   "rooms.in_hangar": "{name}: in the hangar",
   "rooms.away_reconnecting": "{name} is here but not flying: reconnecting",
+  "rooms.away_failed": "{name} is here but not flying: their device could not load this world",
+  "rooms.load_failed": "{world} would not load on this device, so you sit out this room's rounds. Reload to try again.",
   "rooms.fly_prompt": "Your friends are flying. Press Fly.",
   "rooms.fly_button": "Fly",
   "rooms.alone": "You are alone in room {code}. Check your friends have this code.",

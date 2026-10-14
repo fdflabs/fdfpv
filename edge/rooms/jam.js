@@ -34,7 +34,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { minPlayersFor } from '../../src/share/modes.js';
+import { minPlayersFor, sessionOf } from '../../src/share/modes.js';
 import {
   ROUNDS, RUN_SECONDS, SLACK_MS, TURN_MS, cleanNumbers, matchWinners, roundOrder, standings,
 } from '../../src/share/roomjam.js';
@@ -79,10 +79,16 @@ export class RoomJam {
     if (!m) {
       return [];
     }
-    return [...core.seats.values()].filter((t) => m.players[t.seat] === t.token).map((t) => t.seat);
+    return [...core.seats.values()].filter((t) => m.players[t.seat] === t.token && !core.failed(t)).map((t) => t.seat);
   }
 
+  /* The match as every client sees it, with its named state (modes.js sessionOf) as it stands now. */
   view(core) {
+    const v = this.shown(core);
+    return { ...v, session: sessionOf('jam', v, core.roomNow()) };
+  }
+
+  shown(core) {
     const m = this.match;
     if (!m) {
       return { state: 'lobby' };
@@ -96,6 +102,8 @@ export class RoomJam {
       rounds: ROUNDS,
       round: m.round,
       order: m.order,
+      /* The runner's place in order: a turn's 0 is a round's first. */
+      turn: m.turn,
       runner: m.state === 'results' ? null : m.order[m.turn],
       goAt: m.goAt,
       endAt: m.endAt,
@@ -104,6 +112,8 @@ export class RoomJam {
       wins,
       winners: m.winners,
       gone: seats.filter((seat) => !this.players(core).includes(seat)),
+      /* Ended by the room for too few pilots here (core.js settleGames). */
+      abandoned: Boolean(m.abandoned),
     };
   }
 
@@ -139,6 +149,20 @@ export class RoomJam {
     return [];
   }
 
+  /* A pilot just seated during a match: one of its pilots when `dropIn`
+   * (core.js join, modes.js allowDropIn), its turn last in this round's
+   * order. A seat a pilot of the match held keeps that pilot's runs, so a
+   * newcomer in it waits. */
+  join(core, s, dropIn) {
+    const m = this.match;
+    if (!this.on() || !dropIn || Object.hasOwn(m.players, s.seat)) {
+      return [];
+    }
+    m.players[s.seat] = s.token;
+    m.order.push(s.seat);
+    return this.changed(core);
+  }
+
   start(core, conn, msg, now) {
     if (core.game()) {
       return this.error(conn, 'busy');
@@ -151,7 +175,9 @@ export class RoomJam {
     }
     const players = {};
     for (const t of core.seats.values()) {
-      players[t.seat] = t.token;
+      if (!core.failed(t)) {
+        players[t.seat] = t.token;
+      }
     }
     const goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     this.match = {
@@ -195,7 +221,7 @@ export class RoomJam {
 
   /* Ended by the host, or by the room when too few of its pilots are left
    * (core.js settleGames): the open run closed as it stands, results. */
-  abandon(core, now) {
+  abandon(core, now, abandoned = false) {
     if (!this.on()) {
       return [];
     }
@@ -204,6 +230,7 @@ export class RoomJam {
       this.record(m.order[m.turn], 'ended');
     }
     this.finish();
+    m.abandoned = abandoned;
     return this.changed(core);
   }
 

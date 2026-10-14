@@ -73,7 +73,7 @@ import {
   BUBBLE_M, CROWNS_SHOWN, GOAL_MAX, GOAL_MIN, POINT_MS, PROTECT_MS, orderScores,
 } from '../../src/share/roomtag.js';
 import { COUNTDOWN_MS } from './race.js';
-import { minPlayersFor } from '../../src/share/modes.js';
+import { minPlayersFor, sessionOf } from '../../src/share/modes.js';
 import { AHEAD_MS } from './referee.js';
 
 /* A seat silent for longer than this (a menu, a tab in the background) is
@@ -165,6 +165,10 @@ export class RoomTag {
     this.drops = [];
     this.sentPoints = -1;
     this.storedPoints = 0;
+    /* Seats that came while a match was on and the Ace takes no newcomer
+     * (modes.js allowDropIn, core.js join): their poses are not kept, so
+     * they neither hunt nor are drawn, until the next match. Memory. */
+    this.late = new Set();
   }
 
   restore(saved) {
@@ -185,8 +189,14 @@ export class RoomTag {
     return Boolean(m) && (m.state === 'countdown' || m.state === 'live');
   }
 
-  /* The match as every client sees it: no token, nothing typed. */
+  /* The match as every client sees it, with its named state (modes.js sessionOf) as it stands now. */
   view(core) {
+    const v = this.shown(core);
+    return { ...v, session: sessionOf('tag', v, core.roomNow()) };
+  }
+
+  /* The match as every client sees it: no token, nothing typed. */
+  shown(core) {
     const m = this.match;
     if (!m) {
       return { state: 'lobby' };
@@ -206,6 +216,8 @@ export class RoomTag {
       crowns: m.crowns.slice(-CROWNS_SHOWN),
       winner: m.winner,
       endAt: m.endAt,
+      /* Ended by the room for too few players here (core.js settleGames). */
+      abandoned: Boolean(m.abandoned),
     };
   }
 
@@ -251,18 +263,30 @@ export class RoomTag {
       return [];
     }
     return [...core.seats.values()]
-      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token))
+      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token) && !core.failed(t))
       .map((t) => t.seat);
   }
 
   /* Ended before anybody won: by the host, or by the room when too few of
    * its players are left (core.js settleGames). Results as they stand. */
-  abandon(core, now) {
+  abandon(core, now, abandoned = false) {
     if (!this.on()) {
       return [];
     }
     this.finish(Math.min(this.match.f, core.roomMs(now)), null);
+    this.match.abandoned = abandoned;
     return this.changed(core);
+  }
+
+  /* A pilot just seated: a newcomer to a match on waits it out unless
+   * `dropIn`; one of the match's players (its seat and token) is back. */
+  join(core, s, dropIn) {
+    this.late.delete(s.seat);
+    const p = this.match && this.match.players[s.seat];
+    if (this.on() && !dropIn && !(p && (p.token == null || p.token === s.token))) {
+      this.late.add(s.seat);
+    }
+    return [];
   }
 
   start(core, conn, msg, now) {
@@ -281,7 +305,9 @@ export class RoomTag {
     const goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     const players = {};
     for (const t of core.seats.values()) {
-      players[t.seat] = { ms: 0, token: t.token };
+      if (!core.failed(t)) {
+        players[t.seat] = { ms: 0, token: t.token };
+      }
     }
     this.match = {
       id: this.nextId,
@@ -300,6 +326,7 @@ export class RoomTag {
     this.nextId += 1;
     this.log = [];
     this.drops = [];
+    this.late.clear();
     return this.changed(core);
   }
 
@@ -311,6 +338,9 @@ export class RoomTag {
   pose(core, s, bytes, now) {
     if (!this.on()) {
       return [];
+    }
+    if (this.late.has(s.seat)) {
+      return this.advance(core, now);
     }
     const roomNow = core.roomMs(now);
     const p = decodePose(bytes);
@@ -442,7 +472,7 @@ export class RoomTag {
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
       const here = this.flying(core).map((f) => f.seat);
-      const pool = here.length ? here : [...core.seats.values()].map((s) => s.seat).sort((a, b) => a - b);
+      const pool = here.length ? here : [...core.seats.values()].map((s) => s.seat).filter((seat) => !this.late.has(seat)).sort((a, b) => a - b);
       const first = this.draw(pool);
       if (first == null) {
         this.finish(m.goAt, null);
