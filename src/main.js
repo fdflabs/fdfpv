@@ -6492,7 +6492,7 @@ export async function boot({
     /* A spectator's markers are the watched teammate's: its distances,
      * and a Hunter on it framed, but not said as on this pilot. */
     const watched = warWatch();
-    warMarkers.setNamed(v.sets);
+    warMarkers.setNamed(v.sets, v.contain);
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
     warDebug.update(roomWar.live() ? roomWar.debugAt(now) : null, now, roomWar.mission(), warSeatAt);
     if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched), spilling(v.gates, now)) && !watched) {

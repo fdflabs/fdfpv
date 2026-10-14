@@ -179,8 +179,9 @@ export function createWarMarkers(camera, view) {
 
   /* The Avionics HUD's boxes this paint, { x, y, r, tag } (setClaims). */
   let claims = null;
-  /* The targets the mission names (its working sets: the view's `sets`),
-   * ringed on the radar (setNamed). */
+  /* The targets the mission names (its working sets: the view's `sets`,
+   * and the gantries holding a closure: its `contain`), ringed on the
+   * radar (setNamed). */
   let named = [];
   let hid = 0;
   /* Per attacker, in list order. */
@@ -968,9 +969,11 @@ export function createWarMarkers(camera, view) {
     claims = list;
   }
 
-  /* The view's working sets ({ name: [ids] }, or null for none). */
-  function setNamed(sets) {
-    named = sets ? Object.values(sets).flat() : [];
+  /* The view's working sets ({ name: [ids] }, or null for none), and the
+   * gantries closing an opening (the view's `contain`, src/share/war/
+   * contain.js), which the squad holds while they do. */
+  function setNamed(sets, contain = null) {
+    named = [...(sets ? Object.values(sets).flat() : []), ...(contain ?? [])];
   }
 
   return {
