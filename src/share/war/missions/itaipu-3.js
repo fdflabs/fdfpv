@@ -51,6 +51,11 @@
  * share is one mix whatever the pilots (MISSIONS.md's 1 to 1 for one
  * pilot and 3 to 1 for eight need a mix by pilots).
  *
+ * The `itaipu-3-g-*` cues are the guide (as First Light's and the
+ * Spillway's): CREST saying plainly what to do, after the story line it
+ * follows, at each objective's start; a twist's is skipped once its group
+ * is down.
+ *
  * THE ROUTES, y up, scene metres (-z is north); the yard's middle is at
  * (-2146, -432), 2.7 km west of the squad's seats on the crest road:
  *   reservoir-west, west-arm-low     Strikers 30 m over the reservoir's
@@ -136,6 +141,7 @@ function reroute(id, twist, objective, cues) {
     }],
     cues: [
       { at: 1, radio: 'itaipu-3-s3-despacho' },
+      { at: 2, radio: 'itaipu-3-g-reroute' },
       { when: { held: 'reroute', f: 0.5 }, radio: 'itaipu-3-s3-half' },
       /* Held with the yard standing, or held with it already down (it
        * fell before the stage, so nothing could fail the hold): nothing
@@ -174,6 +180,8 @@ export default withWaves({
   starMw: 12600,
   airframes: 4,
   radio: { brief: ['itaipu-3-s0-brief', 'itaipu-3-s0-rules'], win: 'debrief-itaipu-3-win', lose: 'debrief-itaipu-3-lose' },
+  /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
+  nudge: true,
   /* Dusk (MISSIONS.md M3): the light does not fall across the mission
    * yet (TECH-NEEDS T1.11), so the world is built at its fallback. */
   time: 'golden',
@@ -203,6 +211,7 @@ export default withWaves({
       ],
       objectives: [{ id: 'yard', text: 'war.obj.protect_yard', kind: 'protect' }],
       cues: [
+        { at: 0, radio: 'itaipu-3-g-yard' },
         { when: { born: { group: 'eyes' } }, at: 3, radio: 'itaipu-3-s1-eyes' },
         { when: { born: { group: 'pair' } }, at: 2, radio: 'itaipu-3-s1-pair' },
         { when: { cleared: true }, radio: 'itaipu-3-s1-clear' },
@@ -226,6 +235,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'stream' } }, at: 2, radio: 'itaipu-3-s2-stream' },
         { when: { born: { group: 'stream' } }, at: 6, radio: 'itaipu-3-s2-why' },
+        { when: { born: { group: 'stream' } }, at: 10, radio: 'itaipu-3-g-lie', skip: { gone: { group: 'stream' } } },
         { when: { killed: 1, kind: 'decoy' }, radio: 'itaipu-3-s2-wasted' },
         { when: { cleared: true }, radio: 'itaipu-3-s2-clear' },
         STAGE_LOST,
@@ -242,6 +252,7 @@ export default withWaves({
     ], { text: 'war.obj.itaipu_3.pack' }, [
       { when: { born: { group: 'pack' } }, at: 3, radio: 'itaipu-3-ta-turn' },
       { when: { born: { group: 'pack' } }, at: 7, radio: 'itaipu-3-ta-why' },
+      { when: { born: { group: 'pack' } }, at: 11, radio: 'itaipu-3-g-pack', skip: { down: { group: 'twist' } } },
     ]),
     reroute('reroute-feint', [
       {
@@ -253,6 +264,7 @@ export default withWaves({
     ], { text: 'war.obj.itaipu_3.feint' }, [
       { when: { born: { group: 'twist' } }, radio: 'itaipu-3-tb-turn' },
       { when: { born: { group: 'twist' } }, at: 4, radio: 'itaipu-3-tb-why' },
+      { when: { born: { group: 'twist' } }, at: 8, radio: 'itaipu-3-g-feint', skip: { down: { group: 'twist' } } },
     ]),
     reroute('reroute-wires', [
       {
@@ -261,6 +273,7 @@ export default withWaves({
     ], { text: 'war.obj.itaipu_3.wires' }, [
       { when: { born: { group: 'twist' } }, at: 2, radio: 'itaipu-3-tc-turn' },
       { when: { born: { group: 'twist' } }, at: 6, radio: 'itaipu-3-tc-why' },
+      { when: { born: { group: 'twist' } }, at: 10, radio: 'itaipu-3-g-wires', skip: { down: { group: 'twist' } } },
     ]),
     {
       id: 'dark',
@@ -282,6 +295,7 @@ export default withWaves({
         { at: 1, radio: 'itaipu-3-s4-dark' },
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-3-s4-all' },
         { when: { born: { group: 'high' } }, at: 6, radio: 'itaipu-3-s4-order' },
+        { when: { born: { group: 'high' } }, at: 10, radio: 'itaipu-3-g-dark' },
       ],
       exits: exits({ cleared: true }, 'won', 0, 'waves'),
     },

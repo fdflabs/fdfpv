@@ -17580,6 +17580,489 @@
     }
    }
   },
+  "itaipu-3-g-dark.en": {
+   "text": "Protect the switchyard and the west intakes. High over the yard, low from the north, and the gorge. The closest to a target first.",
+   "speaker": "crest",
+   "seconds": 7.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4205176959,
+     "heard": "Protect the switch yard and the west intakes, high over the yard, low from the north, and the gorge, the closest to a target first.",
+     "wer": 0.083,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 659509203,
+     "heard": "Protect the switchyard and the west intakes, high over the yard low from the north and the gorge, the closest to a target first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31847,
+     "sha256": "63697cf2f868a536fb6f53801df5b5c0f63eef931f4a0acb456c07b8ee87a61f"
+    },
+    "mp3": {
+     "bytes": 27692,
+     "sha256": "3466c233c17d7bee56054be7aef608b5943f5c6af83847d3afa1c340e606e3f8"
+    }
+   }
+  },
+  "itaipu-3-g-dark.es": {
+   "text": "Protejan la subestación y las tomas del oeste. Arriba sobre la subestación, bajo desde el norte, y el cañón. Primero el más cercano a un blanco.",
+   "speaker": "crest",
+   "seconds": 8.365,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2551192137,
+     "heard": "Protejan la subestación y las tomas del oeste. Arriba sobre la subestación bajo desde el norte y el cañón. Primero el más cercano a un blanco.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 38022,
+     "sha256": "bbba4916dee8eef12c90cc60249f9bf6377445c3b7a7be96ea2714a508a1cd47"
+    },
+    "mp3": {
+     "bytes": 34796,
+     "sha256": "02ec28cbcc749e8cad7e295088c4b10e6b2249d024eabe8174cd364b07d0421d"
+    }
+   }
+  },
+  "itaipu-3-g-feint.en": {
+   "text": "Turn east for the intakes on the upstream face. Leave the decoys over the yard.",
+   "speaker": "crest",
+   "seconds": 4.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3951407433,
+     "heard": "Turn east for the intakes on the upstream face. Leave the decoys over the yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22009,
+     "sha256": "0d981b8677547b7afd6f765cd25d70d0c933a960bf1da19cceb536014e4aebce"
+    },
+    "mp3": {
+     "bytes": 19820,
+     "sha256": "efb394e8578da43fae50a26af5f5723ccf78c4681e7fbf5ab5bc5a2a3e77afcb"
+    }
+   }
+  },
+  "itaipu-3-g-feint.es": {
+   "text": "Giren al este hacia las tomas de la cara aguas arriba. Dejen los señuelos sobre la subestación.",
+   "speaker": "crest",
+   "seconds": 5.765,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 70205242,
+     "heard": "Giren al este hacia las tomas de la cara aguas arriba. Dejen los señuelos sobre la subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26400,
+     "sha256": "4dfb3ea88421a37814e5ebc469808d3e7de2e1562d81445cb74b074e74806fad"
+    },
+    "mp3": {
+     "bytes": 24524,
+     "sha256": "32e6c9cfc0a58c6e5c611617c753c611dfc374b1ece3adcb78b2a45ff0c75291"
+    }
+   }
+  },
+  "itaipu-3-g-lie.en": {
+   "text": "A decoy is marked Striker until you are close. Get in close and look before you commit.",
+   "speaker": "crest",
+   "seconds": 5.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3449689620,
+     "heard": "A decoy is marked striker until you are close. Get in close and look before you commit.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23633,
+     "sha256": "36cdb90e4c0a59fa757a345b9dcbd16ebfc8ac74a21bf0dc158748b7b64c7bb7"
+    },
+    "mp3": {
+     "bytes": 21116,
+     "sha256": "0081e0aae8bd3098d52beb95a294e195f9b53dc87e94ecbb564ca9039829d8c3"
+    }
+   }
+  },
+  "itaipu-3-g-lie.es": {
+   "text": "Un señuelo está marcado como atacante hasta que están cerca. Acérquense bien y miren antes de lanzarse.",
+   "speaker": "crest",
+   "seconds": 6.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3544243290,
+     "heard": "Un señuelo está marcado como atacante hasta que están cerca. Acérquense bien y miren antes de lanzarse.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27892,
+     "sha256": "31dd1ec2dbfd693fc9bc2ea9ba05fa3352896c03a6e355ed56ae8136d6fe77b7"
+    },
+    "mp3": {
+     "bytes": 25988,
+     "sha256": "4fbeb0d474683abc52dd49cd23f82b51b3c3c7d2b6e120dbf5b63cfda1ebe3b3"
+    }
+   }
+  },
+  "itaipu-3-g-pack.en": {
+   "text": "Fly into the pack. When the markers change, the one still marked Striker is real. Take that one.",
+   "speaker": "crest",
+   "seconds": 5.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1083293283,
+     "heard": "Fly into the pack, when the markers change, the one still marked striker is real, take that one.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23090,
+     "sha256": "c5638b282c94e2399782f239465a1f95881862348b13d1524d2669fca5a40f03"
+    },
+    "mp3": {
+     "bytes": 21116,
+     "sha256": "770cbb251f8d5e7e3250b4d4ff3bd2eed8d914225711f2f7a191d354fa119126"
+    }
+   }
+  },
+  "itaipu-3-g-pack.es": {
+   "text": "Métanse en el grupo. Cuando cambien las marcas, la que sigue diciendo atacante es la real. Derriben esa.",
+   "speaker": "crest",
+   "seconds": 6.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1011403435,
+     "heard": "Métanse en el grupo, cuando cambien las marcas, la que sigue diciendo atacante es la real, deriven esa.",
+     "wer": 0.056,
+     "extra": 0,
+     "missing": [
+      "derriben"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2728389952,
+     "heard": "Métanse en el grupo. Cuando cambien las marcas, la que sigue diciendo atacante es la Greal. Derriben esa.",
+     "wer": 0.056,
+     "extra": 0,
+     "missing": [
+      "real"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1696188858,
+     "heard": "Métanse en el grupo, cuando cambien las marcas, la que sigue diciendo atacante es la real, derriben esa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29408,
+     "sha256": "27353ce1803594514881d74abf34bde6805f0aec7ad7a405160aca8ffdc470d3"
+    },
+    "mp3": {
+     "bytes": 27164,
+     "sha256": "24e0de7a021916df02c41ad8aed81ccfcfa60ea2f2c3d54e030672d50cf90df4"
+    }
+   }
+  },
+  "itaipu-3-g-reroute.en": {
+   "text": "Keep the switchyard standing until Dispatch calls it. Stay between the yard and whatever comes.",
+   "speaker": "crest",
+   "seconds": 5.655,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4200933288,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 8423066,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1216592344,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2833955595,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 3345016288,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 5,
+     "seed": 3266365188,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 6,
+     "seed": 170540134,
+     "heard": "Keep the switch yard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 7,
+     "seed": 1052297110,
+     "heard": "Keep the switchyard standing until dispatch calls it. Stay between the yard and whatever comes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25808,
+     "sha256": "64fedf21084404ac721d9d4cac958ca5ddd5e376be0ae60736c723887393052c"
+    },
+    "mp3": {
+     "bytes": 23276,
+     "sha256": "ecbff82cd816fd953a4113e49b2d9eb738f8f97e56461b941c089ac8c8d3e357"
+    }
+   }
+  },
+  "itaipu-3-g-reroute.es": {
+   "text": "Mantengan la subestación en pie hasta que Despacho avise. Quédense entre la subestación y lo que venga.",
+   "speaker": "crest",
+   "seconds": 6.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2164193725,
+     "heard": "Mantengan la subestación en pie hasta que el despacho avise. Quédense entre la subestación y lo que venga.",
+     "wer": 0.059,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2111065034,
+     "heard": "Mantengan la subestación en pie hasta que despacho avise. Quédense entre la subestación y lo que venga.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27579,
+     "sha256": "9ce163ae35e3fac7f33908da669bc54687330add505a742bc2368f64039d836a"
+    },
+    "mp3": {
+     "bytes": 24980,
+     "sha256": "895beef5280850f84f03fdf4257a01d4d5e96c715950535d9b7d4c9e1639d572"
+    }
+   }
+  },
+  "itaipu-3-g-wires.en": {
+   "text": "They come along the lines from the west, low. Meet them over the corridor, above the wires.",
+   "speaker": "crest",
+   "seconds": 4.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3497937364,
+     "heard": "They come along the lines from the west, low, meet them over the corridor above the wires,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21940,
+     "sha256": "ec3195ec6710c7ae74acf4c49e58b5dc1ddf27f5ceade11e5a2c99bf51e40f9e"
+    },
+    "mp3": {
+     "bytes": 20132,
+     "sha256": "e6ab5745c8122b399e73fd924ca39d5f42490d460e3e39e6ad59e3473b6e3878"
+    }
+   }
+  },
+  "itaipu-3-g-wires.es": {
+   "text": "Vienen por las líneas desde el oeste, bajos. Salgan a su encuentro sobre el corredor, por encima de los cables.",
+   "speaker": "crest",
+   "seconds": 7.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3242338827,
+     "heard": "Vienen por las líneas desde el oeste, bajos, salgan a su encuentro sobre el corredor, por encima de los cables.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 33683,
+     "sha256": "c5fd2915d532d90efea2619f6efa392d194b66261d8cede9505359ec3610c8e2"
+    },
+    "mp3": {
+     "bytes": 29948,
+     "sha256": "ce3882e9a831072721038fdf41dea8e0f68a7ec6b8cf4afa4247e06ee737d81a"
+    }
+   }
+  },
+  "itaipu-3-g-yard.en": {
+   "text": "Protect the switchyard on the right bank, west of the dam. Strikers come down the west arm. Fly west and meet them over the shore.",
+   "speaker": "crest",
+   "seconds": 7.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2189919206,
+     "heard": "Protect the switchyard on the right bank, west of the dam, strikers come down the west arm, fly west and meet them over the shore.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 35411,
+     "sha256": "667a146884ce00ca6db9cc6c5e3d34d0c66620361da244027a0385441e96a3c9"
+    },
+    "mp3": {
+     "bytes": 31748,
+     "sha256": "08a2288d2aa049fab68e32c623d94defc6ec4edaa6cd6e435b066037ceb8bebc"
+    }
+   }
+  },
+  "itaipu-3-g-yard.es": {
+   "text": "Protejan la subestación de la margen derecha, al oeste de la represa. Los drones de ataque bajan por el brazo oeste. Vuelen al oeste y salgan a su encuentro sobre la costa.",
+   "speaker": "crest",
+   "seconds": 10.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1623997424,
+     "heard": "Protejan la subestación de la margen derecha al oeste de la represa. Los drones de ataque bajan por el brazo oeste, vuelen al oeste y salgan a su encuentro sobre la costa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 45917,
+     "sha256": "c6182d8320cdece69f6baecad3f523ae6ebae9f6648892934ff8ff01d92d00f9"
+    },
+    "mp3": {
+     "bytes": 41756,
+     "sha256": "2099098c3a45fd2a85890ce79011f98f4acb08196f7ae61352e2bbd016c7d9c9"
+    }
+   }
+  },
   "itaipu-3-s0-brief.en": {
    "text": "The switchyard is how the right bank gets its light. Tonight it's the most important thing we have.",
    "speaker": "crest",

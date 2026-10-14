@@ -1362,7 +1362,8 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
     const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
-    const want = ['itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', 'itaipu-3-s3-despacho', ...TWIST[twist] ?? [], 'itaipu-3-s4-dark', 'itaipu-3-s4-all', 'itaipu-3-s4-order'];
+    const want = ['itaipu-3-g-yard', 'itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', 'itaipu-3-s3-despacho', 'itaipu-3-g-reroute', ...TWIST[twist] ?? [],
+      'itaipu-3-s4-dark', 'itaipu-3-s4-all', 'itaipu-3-s4-order', 'itaipu-3-g-dark'];
     const missing = want.filter((id) => !said.includes(id));
     if (missing.length) {
       bad.push(`${label}: never said ${missing.join(',')}`);
@@ -1396,7 +1397,7 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
   console.log(`    holds: ${holds.join(' ')}`);
   check('ten games, 1 and 4 good pilots: Dusk, The Lie, one twist of Reroute, The Dark, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
     bad.filter((x) => /stages|ended/.test(x)).join(' | '));
-  check('every stage\'s story said: the scout, the pair, the stream and why, DESPACHO, the twist\'s two lines and no other twist\'s, the dark and its order',
+  check('every stage\'s story and guide said: each objective\'s guide line, the scout, the pair, the stream and why, DESPACHO, the twist\'s two lines and no other twist\'s, the dark and its order',
     bad.filter((x) => /said/.test(x) && !/hold/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold/.test(x)).join(' | '));
   check('the reroute\'s hold settles, held or failed, before its stage ends, and DESPACHO says which', bad.filter((x) => /hold/.test(x)).length === 0,
     bad.filter((x) => /hold/.test(x)).join(' | '));
