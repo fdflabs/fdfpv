@@ -960,8 +960,8 @@ by a name a pilot typed, deliberately: saved liveries (hangar-paint.js
 936) and board callsigns. Checks: `modes:selftest`, `war:stages`,
 `hulls:check` (CI).
 
-**80. Configuration vs code. BUILT for war missions and the aircraft
-checklist (phase 26, 2026-10-13).** Data: a track (a builder JSON
+**80. Configuration vs code. BUILT for both campaigns' missions and the
+aircraft checklist (phase 26, 2026-10-13).** Data: a track (a builder JSON
 document), mission text (string keys), an activity's art and facts
 (modes.js), a world's entry (registry.js). A war mission's file states
 its campaign place (`act`, `order`, `key`, `free`, `release`) and
@@ -969,11 +969,15 @@ src/game/campaign.js derives `ACT1` from the registry
 (src/share/war/missions/index.js) with `actOf`, which throws at load on
 an order twice or missing, an impossible release, a missing key or two
 free missions; a mission with no file yet is a row of `PLANNED` beside
-the registry. So a new mission is a file, an import and its strings. The
-Interior's list (`INTERIOR`, campaign.js) is still a hand list: its
-registry, src/share/ops/missions.js, imports interior/node.js, which is
-Node only, and campaign.js reaches the browser (settings.js,
-progressmerge.js). A new aircraft is a folder (docs/AIRCRAFT-FOLDER.md),
+the registry. So a new mission is a file, an import and its strings.
+The Interior's list (`INTERIOR`) is derived the same way by
+`opsCampaignOf` from src/share/ops/rows.js (`campaign`, `order`, `key`,
+`release`, `label`), a module with no import: campaign.js reaches the
+tracks Worker and the browser's settings, and the ops registry
+(src/share/ops/missions.js) would carry the three mission files' worlds,
+films and routes there (28 modules). The registry imports the rows and
+throws at load when a mission file and its row disagree (`checkRows`).
+A new aircraft is a folder (docs/AIRCRAFT-FOLDER.md),
 its plant table generated into the C, a renderer in src/render. The
 aircraft checklist is in scripts/airframes-check.js's header and
 docs/AIRCRAFT-FOLDER.md: name, blurb, facts, size, weight, cameras,
@@ -981,15 +985,17 @@ class, roles, kit, and the description and note in English and
 Spanish, each with a negative control; a renderer is held by
 src/render/craft.js at load and a hull by `hulls:check`. There is no
 picture field: the picker and the hangar draw the model. Checks:
-`campaign:selftest`, `airframes:check`, `aircraft:folder`, `war:stages`
-(CI).
+`campaign:selftest` (with an import graph walk that fails if
+campaign.js reaches the ops registry), `airframes:check`,
+`aircraft:folder`, `war:stages` (CI).
 
 **81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
 system, decided by the author: one place to hide a row is enough. A war
 mission's gate is its file's `release` (available, development, soon;
-the owner's 2026-10-04 rule), read through campaign.js `released` by the
-rooms server (core.js, front.js, war.js), the campaign list and the
-briefing; kept three valued rather than a `hidden` boolean, because Under
+the owner's 2026-10-04 rule), an Interior mission's its row's in
+src/share/ops/rows.js, both read through campaign.js `released` by the
+rooms server (core.js, front.js, war.js, ops.js), the campaign lists
+and the war's briefing; kept three valued rather than a `hidden` boolean, because Under
 development and Coming soon are different cards. `inBuild` is gone. An
 upgrade waits on an act (`later: 2`, campaign.js UPGRADES); servers can
 be switched off (`?rooms=off`). **Still to do:** a `hidden` field on the
