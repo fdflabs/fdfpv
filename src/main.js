@@ -196,6 +196,7 @@ import {
   ACT1, createCampaignStore, markSeen, released, seenFilm,
 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
+import { stationOrder } from './share/war/stationdark.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
@@ -5754,7 +5755,8 @@ export async function boot({
         targets[id] = 'smoke';
       }
     }
-    return { targets, levels: warGrid.levels(v, t) };
+    /* The Long Night's twist A: the dam's own lights out by order. */
+    return { targets, levels: stationOrder(warGrid.levels(v, t), v.stationDark, t) };
   }
 
   /* A war this shell has not begun for: at its countdown, or a pilot

@@ -39,10 +39,9 @@
  * or over the floor, lost the instant it falls under, and a lost mission
  * restarts from the stage it was lost in (war.js, two stars at most).
  *
- * NOT BUILT, so not here: MISSIONS.md's twist A (Station dark: the crest's
- * floodlights off by order, and the stage's groups given their error as if
- * a Scout were dead) needs a stage field the room's births read and a
- * station lights switch in the night look, neither of which exists.
+ * TWIST A (Station dark: the crest's floodlights off by order, and the
+ * stage's groups given their error as if a Scout were dead) is built,
+ * STATION_DARK below, but not among the stages until its radio is voiced.
  *
  * THE DAWN rises across stage 5 (TECH-NEEDS T1.11): Before Dawn's
  * `daytime` runs the room's clock from the night to the morning
@@ -133,6 +132,43 @@ const HUNT_S = 150;
  * one in the first light; the sunrise itself is the outro film's. A
  * choice, not a measurement. */
 const DAWN_MS = 240000;
+
+/*
+ * Twist A, Station dark (MISSIONS.md M4): CREST has the dam's own
+ * floodlights put out to take the attackers' aim, so this stage's
+ * attackers draw their error as if every scout were dead
+ * (`stationDark`, edge/rooms/war.js births) and the dam goes dark
+ * for everyone from the stage's start to the mission's end (the
+ * view's stationDark, src/main.js). A swarm up the gorge onto the
+ * penstocks, close defence in the dark, under Strikers from the north.
+ * NOT IN THE DRAW YET: its radio (itaipu-4-ta-turn, -ta-why and the
+ * guide's -g-dark, MISSIONS.md M4 Radio) is not voiced, and a trade
+ * the squad does not hear made is not the twist MISSIONS.md wrote;
+ * once the lines are, it goes into `stages` and 'station-dark' into
+ * Hunters' pick, and war:legacy's recorded games of this mission are
+ * taken again (the bots loiter at the middle of every wave's targets,
+ * scripts/war-balance.js damOf, so a stage more moves them). Until then
+ * war:stages flies it (scripts/war-stages-selftest.js).
+ */
+export const STATION_DARK = {
+  id: 'station-dark',
+  round: true,
+  title: 'war.stage.itaipu_4.turn',
+  stationDark: true,
+  spawns: [
+    {
+      at: [6, 12], kind: 'strike', n: 2, per: 0.75, route: { sector: 'N' }, target: INTAKES_MID, spread: 30, group: 'cover',
+    },
+    {
+      at: [14, 22], kind: 'fpv', n: 3, per: 1, route: { sector: 'GORGE' }, target: ids('penstock', [4, 5, 6, 7, 8, 9, 10]), spread: 10, group: 'twist',
+    },
+  ],
+  objectives: [{
+    id: 'twist', text: 'war.obj.itaipu_4.station', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { leaked: 1, group: 'twist' },
+  }],
+  cues: [STAGE_LOST],
+  exits: exits({ cleared: true }, 'before-dawn', BEAT(20, 20)),
+};
 
 export default withWaves({
   id: 'itaipu-4',

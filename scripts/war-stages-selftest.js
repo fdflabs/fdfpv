@@ -59,6 +59,9 @@ import {
 import { missionTime, waveTarget } from '../src/share/war/missions/index.js';
 import { TIME_HOUR, missionClock } from '../src/share/daytime.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
+import { STATION_DARK } from '../src/share/war/missions/itaipu-4.js';
+import { STATION_DARK_DISTRICTS, stationOrder } from '../src/share/war/stationdark.js';
+import { DISTRICTS, FLICKER_MS } from '../src/share/war/grid.js';
 import { released } from '../src/game/campaign.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
 import { SPRAY_HIDE_M, inSpray } from '../src/ui/warmarkers.js';
@@ -1655,6 +1658,58 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   const shot = scoutRoom(true);
   check('twist C, the Scout left alone: Before Dawn\'s attackers fly exactly', left && !left.killed && left.dawn > 0 && left.errs === 0, JSON.stringify(left));
   check('twist C, the Scout killed: Before Dawn\'s attackers draw their errors', shot && shot.killed && shot.dawn > 0 && shot.errs > 0, JSON.stringify(shot));
+}
+
+console.log('The Long Night\'s twist A, Station dark, on the room');
+{
+  /* Twist A is not among The Long Night's stages until its radio is
+   * voiced (itaipu-4.js STATION_DARK), so it is flown here as the first
+   * stage of a mission of two (it, then Before Dawn), against twist B the
+   * same way: hovering pilots, the same seed. */
+  const M4 = MISSIONS['itaipu-4'];
+  const of = (id) => (id === STATION_DARK.id ? STATION_DARK : M4.stages.find((x) => x.id === id));
+  const pair = (id) => ({ ...M4, id: `itaipu-4-${id}-test`, stages: [of(id), of('before-dawn')] });
+  const flown = ['station-dark', 'towns'].map((id) => {
+    const mission = pair(id);
+    const e = warRoom(mission, { n: 2, seed: 0.35 });
+    e.fly(GO + 420000);
+    const views = e.of(0).map((m) => m.war);
+    const first = views.find((v) => v.stage && v.stage.n === 0)?.stage;
+    const second = views.find((v) => v.stage && v.stage.n === 1)?.stage;
+    const firstSpawns = stagesOf(mission)[0].spawns.map((w) => w.si);
+    const born = e.of(0, 'born').flatMap((m) => m.agents);
+    return {
+      id,
+      first,
+      second,
+      dark: views.filter((v) => v.stage).map((v) => v.stationDark),
+      inFirst: born.filter((a) => firstSpawns.includes(a.wave)),
+      inSecond: born.filter((a) => !firstSpawns.includes(a.wave)),
+    };
+  });
+  const [a, b] = flown;
+  check('twist A: every attacker of its stage draws its error, no scout dead; twist B\'s fly exact on the same seed',
+    a.inFirst.length > 0 && a.inFirst.every((x) => x.err !== 0) && b.inFirst.length > 0 && b.inFirst.every((x) => x.err === 0),
+    `A ${a.inFirst.map((x) => x.err).join(',')}; B ${b.inFirst.map((x) => x.err).join(',')}`);
+  check('and the stage after it flies exact again: the order is its stage\'s',
+    a.second && a.inSecond.length > 0 && a.inSecond.every((x) => x.err === 0), `${a.second?.id}: ${a.inSecond.map((x) => x.err).join(',')}`);
+  /* The lights switch (stationdark.js), as src/main.js hands the grid's
+   * levels to the map: at the view's stationDark. */
+  const at = a.first?.at ?? 0;
+  const lit = () => new Float32Array(DISTRICTS.length).fill(1);
+  const before = stationOrder(lit(), at, at - 1);
+  const flick = Array.from({ length: Math.round(FLICKER_MS / 50) }, (_, k) => stationOrder(lit(), at, at + 50 * k));
+  const after = stationOrder(lit(), at, at + FLICKER_MS);
+  const none = stationOrder(lit(), null, at + FLICKER_MS);
+  const dam = STATION_DARK_DISTRICTS.map((i) => DISTRICTS[i].id);
+  check(`the switch: the dam's own districts (${dam.join(', ')}) lit before the order, flicker, then dark; the switchyards and towns lit; no order, no change`,
+    dam.length === 8 && !dam.some((id) => /yard$/.test(id))
+    && before.every((x) => x === 1) && STATION_DARK_DISTRICTS.every((i) => after[i] === 0)
+    && STATION_DARK_DISTRICTS.every((i) => flick.some((l) => l[i] > 0) && flick.some((l) => l[i] === 0))
+    && DISTRICTS.every((d, i) => STATION_DARK_DISTRICTS.includes(i) || after[i] === 1) && none.every((x) => x === 1));
+  check('the view says the station went dark at twist A\'s start, and still does after it; twist B\'s says nothing',
+    a.first && a.dark.length > 0 && a.dark.every((x) => x === a.first.at) && b.dark.length > 0 && b.dark.every((x) => x === null),
+    `A ${[...new Set(a.dark)].join(',')} (stage at ${a.first?.at}); B ${[...new Set(b.dark)].join(',')}`);
 }
 
 console.log('the room: the practice (itaipu-practice), one Striker at a time');
