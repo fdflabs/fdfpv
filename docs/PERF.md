@@ -437,14 +437,21 @@ script with no stray browser on the card:
   it at each tier. What seven more browsers cost the box is not: a run
   here is one browser at a time on this shared box.
 
-**Open: a full room's draw calls.** Each peer's 7 inch is 48 meshes, and
-a room of seven in view adds about 1 250 draw calls to the alps' own at
-Medium and High (1 573 and 1 586 in all against 300 with the seven out
-of view, docs/BUDGETS.md `peers`): five times the main view's 300 call
-contract at High on its own. About four passes of 336 meshes, which fits
-the scene, the shadow maps and the thermal inset each drawing every
-mesh, though the passes were not split. Batching a peer's craft
-(src/render/peers.js, src/render/craft.js) is the work; not done.
+**Open: a full room's draw calls.** A room of seven in view added 1 267
+draw calls to the alps' own at Medium and High (1 573 and 1 586 in all
+against 300 with the seven out of view, docs/BUDGETS.md `peers`): each
+peer's 7 inch was 47 meshes and a name tag, drawn in the scene, the
+sensor inset and the ink prepass (48 each) and the shadow map (37).
+2026-10-14 a peer's combat quad joins a material worn in several parts
+at one offset into one mesh (src/render/combatcraft.js mergeFixed, 47
+meshes to 40): 1 398 at Medium, 1 411 at High, pixels identical. Still
+almost five times the 300 call contract at High. What is left a peer:
+one mesh per material per part (the frame alone is 15 materials), the
+camera head and payload apart at their offsets, four rotors and four
+discs. Joining across materials needs a palette that carries the
+specular too and survives a map's look (swiss2/craftlook.js makes a
+twin per cel material) and the decals' targets; joining across offsets
+moved vertices a float rounding (1e-7, edge pixels flipped). Not done.
 - **GPU 1.** See above.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.
