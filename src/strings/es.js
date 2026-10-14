@@ -2108,6 +2108,7 @@ export default {
   "ui.an_empty_track_in_the_builder": "Una pista vacía en el constructor, en {world}. Coloca las puertas, B la vuela, Escape vuelve aquí.",
   "ui.casual_sky_course_in": "Pista casual en el cielo, {world}",
   "ui.casual_sky_course_note": "Ocho aros grandes en un circuito amplio en el cielo sobre {world}, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
+  "ui.casual_quad_track_note": "Ocho aros de quad en un circuito en el cielo sobre {world}, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
   "ui.new_track": "Pista nueva",
   "ui.build_one_choose_the_world_then": "Construye una: elige el mundo y luego coloca las puertas donde quieras.",
   "ui.my_tracks": "Mis pistas",

@@ -2898,6 +2898,27 @@
      "drives": {}
     },
     {
+     "id": "courses:a-casualtrack:alps",
+     "label": "Casual sky track, The Alps",
+     "note": "Eight quad hoops round a loop in the sky over The Alps, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
+     "action": "casualtrack:alps",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:swiss2",
+     "label": "Casual sky track, Swiss valley, photoreal",
+     "note": "Eight quad hoops round a loop in the sky over Swiss valley, photoreal, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
+     "action": "casualtrack:swiss2",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:itaipu",
+     "label": "Casual sky track, Itaipu",
+     "note": "Eight quad hoops round a loop in the sky over Itaipu, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
+     "action": "casualtrack:itaipu",
+     "drives": {}
+    },
+    {
      "id": "courses:a-newtrack-back",
      "label": "Back to the list",
      "action": "newtrack-back",
@@ -30273,6 +30294,27 @@
      "label": "Itaipú",
      "note": "Una pista vacía en el constructor, en Itaipú. Coloca las puertas, B la vuela, Escape vuelve aquí.",
      "action": "newtrack:itaipu",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:alps",
+     "label": "Pista casual en el cielo, Los Alpes",
+     "note": "Ocho aros de quad en un circuito en el cielo sobre Los Alpes, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "action": "casualtrack:alps",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:swiss2",
+     "label": "Pista casual en el cielo, Valle suizo, fotorrealista",
+     "note": "Ocho aros de quad en un circuito en el cielo sobre Valle suizo, fotorrealista, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "action": "casualtrack:swiss2",
+     "drives": {}
+    },
+    {
+     "id": "courses:a-casualtrack:itaipu",
+     "label": "Pista casual en el cielo, Itaipú",
+     "note": "Ocho aros de quad en un circuito en el cielo sobre Itaipú, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
+     "action": "casualtrack:itaipu",
      "drives": {}
     },
     {

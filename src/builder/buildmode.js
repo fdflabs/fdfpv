@@ -2122,7 +2122,7 @@ export function createBuildMode(host) {
     let track = next ? normalize(next).doc : null;
     if (opts.casual) {
       const v = host.view();
-      track = casualCourse(v.id, str('build.casual_name'), host.heightAt, v.spawn);
+      track = casualCourse(v.id, str('build.casual_name'), host.heightAt, v.spawn, airframeById(ui.settings.airframe).fixedWing ? 'plane' : 'quad');
     }
     enter(track);
     fromMenu = true;

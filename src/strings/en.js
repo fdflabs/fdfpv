@@ -2103,6 +2103,7 @@ export default {
   "ui.an_empty_track_in_the_builder": "An empty track in the builder, in {world}. Place the gates, B flies it, Escape comes back here.",
   "ui.casual_sky_course_in": "Casual sky track, {world}",
   "ui.casual_sky_course_note": "Eight big hoops round a wide loop in the sky over {world}, 400 m apart. One click and you are flying it: you do not have to be good at this.",
+  "ui.casual_quad_track_note": "Eight quad hoops round a loop in the sky over {world}, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
   "ui.new_track": "New track",
   "ui.build_one_choose_the_world_then": "Build one: choose the world, then place the gates where you want them.",
   "ui.my_tracks": "My tracks",

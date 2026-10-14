@@ -926,13 +926,14 @@ export function chainPose(from, forward, distance, turn, centreY, grid = false) 
 }
 
 /*
- * THE CASUAL SKY TRACK, the one click starter My tracks offers a plane
- * (src/ui/ui.js): CASUAL.gates big gates round a wide oval, CASUAL.spacing
+ * THE CASUAL SKY TRACK, the one click starter My tracks offers
+ * (src/ui/items.js newTrackRows): a plane's is CASUAL.gates big gates
+ * round a wide oval, CASUAL.plane.spacing
  * apart, flown round it counter clockwise from above. The owner's words:
  * "even a very small child can complete the courses", and then
  * "reintroduce the large air gates like Red Bull Air Race, not only
- * hoops". So by turns a 30 m hoop, hung CASUAL.over metres over the
- * highest ground on its way to the next and never more than CASUAL.top
+ * hoops". So by turns a 30 m hoop, hung CASUAL.plane.over metres over the
+ * highest ground on its way to the next and never more than CASUAL.plane.top
  * over its own, and the air race's pylon pair, standing on the ground,
  * starting with a hoop. A pair goes only where the ground will take it:
  * the ground across it, cone to cone, within CASUAL.level from its lowest
@@ -944,6 +945,27 @@ export function chainPose(from, forward, distance, turn, centreY, grid = false) 
  * climb out clear the ground. Where the ground will not, that slot is a
  * hoop too.
  *
+ * A quad's (`kind` 'quad') is the same oval at a quad's size, the quad
+ * row of CASUAL: the 2.5 m hoop (elements.js hoop250), all hoops, since
+ * the pair is a plane's 45 m gate. Not the 1.75 m one: the builder's own
+ * rule (line.js HOOP_ROOM, a disc three spans across) calls it small for
+ * the 10 inch, 0.67 m across, and the 2.5 m one fits every quad. Each
+ * hangs 10 m over the highest ground on its way, the height the
+ * Multirotor track's own lesson teaches a quad to hold (training.js
+ * quad_throttle, 9 to 11 m), and never more than 25 m over its own, the
+ * plane's 150 to 60 in the same proportion. The spacing is from the
+ * oval's tightest turn: on semi axes a and ASPECT a that is ASPECT^2 a,
+ * at the ends of the long axis, and it must be no tighter than a turn a
+ * quad is proven to fly. The AI pilot's harness (scripts/aipilot-
+ * harness.js) follows the plant through every gate of tests/fixtures/
+ * map-track-v4.json at 13 m/s and no faster (14 m/s is its ceiling, the
+ * first pace it does not follow); the reference line it follows there
+ * (tests/lib/aireference.js) turns at 23.5 m at its tightest where it is
+ * level, measured on the line 2026-10-13. 8 gates s apart on an oval of
+ * perimeter 5.105 a (ASPECT 0.6) give a = 8 s / 5.105, so 0.36 a >= 23.5
+ * m wants s >= 41.7 m: 45 m, on the hoop chain's 5 m notch (CHAIN.quad).
+ * build:selftest measures the line again and holds the oval to it.
+ *
  * Where: of ovals centred within CASUAL.reach of `from` (the world's
  * spawn), at four turns and on a grid, the one whose ground is flattest
  * under its path and whose hoops all fit the height rule. Flattest first,
@@ -954,12 +976,15 @@ export function chainPose(from, forward, distance, turn, centreY, grid = false) 
  * map's. Returns a new map track, or null where no oval fits.
  */
 /* The casual oval's short axis over its long one. */
-const ASPECT = 0.6;
+export const ASPECT = 0.6;
 export const CASUAL = {
-  gates: 8, spacing: 400, over: 60, top: 150, reach: 1600, step: 200, types: ['hoop30', 'pylonPair'], level: 2, clear: 8, rise: 30,
+  gates: 8, reach: 1600, step: 200, level: 2, clear: 8, rise: 30,
+  plane: { spacing: 400, over: 60, top: 150, types: ['hoop30', 'pylonPair'] },
+  quad: { spacing: 45, over: 10, top: 25, types: ['hoop250'] },
 };
 
-export function casualCourse(mapId, name, heightAt, from) {
+export function casualCourse(mapId, name, heightAt, from, kind = 'plane') {
+  const size = CASUAL[kind];
   /* The parameter of each gate on an oval of semi axes 1 and ASPECT, at
    * equal steps of its length, and that length, from a fine polyline. */
   const M = 720;
@@ -977,13 +1002,13 @@ export function casualCourse(mapId, name, heightAt, from) {
     }
     us.push(((2 * Math.PI) / M) * (j + (want - len[j]) / (len[j + 1] - len[j])));
   }
-  const a = (CASUAL.gates * CASUAL.spacing) / len[M];
+  const a = (CASUAL.gates * size.spacing) / len[M];
   let best = null;
   for (let cx = from.x - CASUAL.reach; cx <= from.x + CASUAL.reach; cx += CASUAL.step) {
     for (let cz = from.z - CASUAL.reach; cz <= from.z + CASUAL.reach; cz += CASUAL.step) {
       for (let k = 0; k < 4; k += 1) {
         const turn = (k * Math.PI) / 4;
-        const plan = casualPlan(cx, cz, a, turn, us, heightAt);
+        const plan = casualPlan(cx, cz, a, turn, us, heightAt, size);
         if (plan && (!best || plan.relief < best.relief)) {
           best = plan;
         }
@@ -1005,9 +1030,9 @@ const PAIR_HALF = ELEMENTS.pylonPair.dims.clearW / 2 + ELEMENTS.pylonPair.dims.b
 
 /* The gates round one oval, { type, x, base, z, tx, tz } each with the
  * height of its base and its level heading, or null when the ground will
- * not let every hoop hang between CASUAL.over and CASUAL.top over its own
+ * not let every hoop hang between `size`.over and `size`.top over its own
  * ground. `relief` is the ground's rise under the whole path. */
-function casualPlan(cx, cz, a, turn, us, heightAt) {
+function casualPlan(cx, cz, a, turn, us, heightAt, size) {
   const n = us.length;
   const b = ASPECT * a;
   const c = Math.cos(turn);
@@ -1042,7 +1067,7 @@ function casualPlan(cx, cz, a, turn, us, heightAt) {
     }
     return out;
   };
-  const hoopCentreY = openingsOf({ type: CASUAL.types[0], dims: ELEMENTS[CASUAL.types[0]].dims })[0].centreY;
+  const hoopCentreY = openingsOf({ type: size.types[0], dims: ELEMENTS[size.types[0]].dims })[0].centreY;
   const gates = [];
   for (let i = 0; i < n; i += 1) {
     const u = us[i];
@@ -1055,7 +1080,7 @@ function casualPlan(cx, cz, a, turn, us, heightAt) {
     const tz = dx * sn + dz * c;
     const tl = Math.hypot(tx, tz);
     const t = { x: tx / tl, z: tz / tl };
-    const type = CASUAL.types[i % CASUAL.types.length];
+    const type = size.types[i % size.types.length];
     if (type === 'pylonPair') {
       /* The ground across the line from cone to cone, on its lowest. */
       const across = [];
@@ -1072,12 +1097,12 @@ function casualPlan(cx, cz, a, turn, us, heightAt) {
       }
     }
     /* A hoop: over the highest ground from half way back to half way on. */
-    const y = Math.max(...around(i, SUB / 2)) + CASUAL.over;
-    if (y - own > CASUAL.top) {
+    const y = Math.max(...around(i, SUB / 2)) + size.over;
+    if (y - own > size.top) {
       return null;
     }
     gates.push({
-      type: CASUAL.types[0], x: p.x, base: y - hoopCentreY, z: p.z, tx: t.x, tz: t.z,
+      type: size.types[0], x: p.x, base: y - hoopCentreY, z: p.z, tx: t.x, tz: t.z,
     });
   }
   return { gates, relief: hi - lo };

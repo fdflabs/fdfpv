@@ -526,8 +526,8 @@ function coursesRows(ui, s) {
   ];
 }
 
-/* Which world a new track is built in; a plane is offered a finished sky
- * course in each as well. */
+/* Which world a new track is built in, and a finished sky course in each,
+ * at the seated aircraft's size (src/builder/course.js casualCourse). */
 function newTrackRows(af) {
   const worlds = MAPS.filter((m) => m.build);
   const empty = worlds.map((m) => ({
@@ -535,11 +535,12 @@ function newTrackRows(af) {
     action: `newtrack:${m.id}`,
     note: str('ui.an_empty_track_in_the_builder', { world: m.name }),
   }));
-  const casual = af.fixedWing ? worlds.map((m) => ({
+  const note = af.fixedWing ? 'ui.casual_sky_course_note' : 'ui.casual_quad_track_note';
+  const casual = worlds.map((m) => ({
     label: str('ui.casual_sky_course_in', { world: m.name }),
     action: `casualtrack:${m.id}`,
-    note: str('ui.casual_sky_course_note', { world: m.name }),
-  })) : [];
+    note: str(note, { world: m.name }),
+  }));
   return [
     { label: str('ui.new_track_in_which_world'), section: true },
     ...empty,
