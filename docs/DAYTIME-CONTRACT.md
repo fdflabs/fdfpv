@@ -120,7 +120,16 @@ moves its light as the Interior's, and the world is kept while the
 clock's times stay inside its `timeSpan` (`worldTimeMatches`).
 `?time=A&toward=B` builds one solo, standing at A. A mission with no ramp
 has its named time's clock everywhere, as before. `npm run daytime:ramp`
-(local, GPU) holds both ends of a ramp to the worlds built there.
+(local, GPU) holds both ends of a ramp to the worlds built there;
+`npm run daytime:war` (local, GPU) flies Lights Out's ramp on a room.
+
+**Release order for slice 4: the page first, or with the VM.** An old
+page on the new server drops the clock's `to`, builds Itaipu at the
+golden hour as before, and rebuilds it mid mission when The Dark's
+standing night clock arrives (and The Long Night's end, if it stands
+in the morning). A new page on the old server is told the mission's one
+time, as before: no ramp, nothing worse. Both missions are
+`development`, so only developer rooms meet the gap.
 
 ## What it does NOT do (yet)
 

@@ -270,7 +270,17 @@ both deterministic and stored:
   before it.
 - `prepMs` was not added to Lights Out: the world is built at the
   briefing for the whole span, and a countdown 15 s longer moves every
-  recorded legacy game.
+  recorded legacy game. The edge left: a pilot who joined at The Dark
+  has a world built at night alone, and a restart from Reroute rebuilds
+  it inside the plain countdown. A restart from The Dark, or anything
+  for a pilot who was there from the lobby, rebuilds nothing.
+- Release: the page first or with the VM rooms deploy (DAYTIME-CONTRACT
+  slice 4): an old page on the new server rebuilds Itaipu when The Dark
+  opens.
+- Checks: `daytime:selftest`, `war:stages` (the room tells each stage's
+  clock, ten bot games of each mission), `daytime:ramp` and
+  `daytime:war` (local GPU, not in checks.yml: five and one Itaipu
+  boots).
 
 ### T1.12 Openings and Contain, in every mission
 
