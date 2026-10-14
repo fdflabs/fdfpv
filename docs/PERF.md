@@ -437,21 +437,38 @@ script with no stray browser on the card:
   it at each tier. What seven more browsers cost the box is not: a run
   here is one browser at a time on this shared box.
 
-**Open: a full room's draw calls.** A room of seven in view added 1 267
+**A full room's draw calls.** A room of seven in view added 1 267
 draw calls to the alps' own at Medium and High (1 573 and 1 586 in all
 against 300 with the seven out of view, docs/BUDGETS.md `peers`): each
 peer's 7 inch was 47 meshes and a name tag, drawn in the scene, the
 sensor inset and the ink prepass (48 each) and the shadow map (37).
 2026-10-14 a peer's combat quad joins a material worn in several parts
 at one offset into one mesh (src/render/combatcraft.js mergeFixed, 47
-meshes to 40): 1 398 at Medium, 1 411 at High, pixels identical. Still
-almost five times the 300 call contract at High. What is left a peer:
-one mesh per material per part (the frame alone is 15 materials), the
-camera head and payload apart at their offsets, four rotors and four
-discs. Joining across materials needs a palette that carries the
-specular too and survives a map's look (swiss2/craftlook.js makes a
-twin per cel material) and the decals' targets; joining across offsets
-moved vertices a float rounding (1e-7, edge pixels flipped). Not done.
+meshes to 40): 1 398 at Medium, 1 411 at High, pixels identical.
+Then (branch w39-peer-palette) its fixed parts are joined across
+materials into palette meshes (combatcraft.js paletteFixed, after the
+paint and before the decals and a map's look): one per offset and
+render state, the motors apart for their thermal kind, 40 meshes to 16
+for a stock 7 inch or 10 inch, 48 to 29 for the interceptor. 381 at
+Low, 726 at Medium, 739 at High. That took a palette carrying the
+highlight per entry (celmat.js), a photographed twin per palette in
+the look swiss2, itaipu and the interior share (swiss2/craftlook.js),
+and decals cut per joined part (decals.js), each in its old order: the
+materials' order without a look, the order their twins were made under
+one, the meshes' order for the layers. Pixels: an in page A/B of each
+case joined against not, scene, normal and thermal passes as floats,
+eight views from 0.5 m to 90 m, on the alps and under the three looks:
+identical in every view for the 7 inch stock, coloured with 12 layers,
+coloured with LEDs and glow, the 10 inch stock and the interceptor
+coloured. Still at High about two and a half times the 300 call
+contract. Left a peer: the palettes per offset (the camera head and
+payload sit off the origin, and moving vertices into the group's frame
+lands them a float rounding off), the lens, the inks, four rotors and
+four discs. Not joined: a craft with a region in a finish (finish.js
+wraps that region's material in a shader of its own, which draws before
+any palette, a newer material, where it drew between the parts it
+touches: a pack and a brass standoff swapped 1 px at 60 m); joining it
+needs the finish per palette entry.
 - **GPU 1.** See above.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.

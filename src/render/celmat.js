@@ -191,38 +191,50 @@ const after = (include, lines) => `#include <${include}>\n${lines}`;
  * compiles the source it always did. The entry is looked up per vertex and
  * passed flat: a flat varying is the provoking vertex's value, bit for
  * bit, where an interpolated one could land an ulp off. The rim's colour
- * and strength take the uniforms' names by define, so RIM_AND_SPECULAR
- * reads them unchanged.
+ * and strength and the highlight's colour, strength and width take the
+ * uniforms' names by define, so RIM_AND_SPECULAR reads them unchanged.
+ * The highlight's width rides in the paint's fourth component.
  */
 function paletteChunks(entries) {
   if (!entries) {
     return { vertexPars: '', vertex: '', fragmentPars: '', fragment: '', uniforms: null };
   }
   const n = entries.length;
-  const paint = new Float32Array(n * 3);
+  const paint = new Float32Array(n * 4);
   const rim = new Float32Array(n * 4);
+  const spec = new Float32Array(n * 4);
   entries.forEach((e, i) => {
-    new THREE.Color(e.color ?? 0xffffff).toArray(paint, i * 3);
+    new THREE.Color(e.color ?? 0xffffff).toArray(paint, i * 4);
+    paint[i * 4 + 3] = e.specWidth ?? 0.01;
     new THREE.Color(e.rimColor ?? 0x9ec8ff).toArray(rim, i * 4);
     rim[i * 4 + 3] = e.rim ?? 0.32;
+    new THREE.Color(e.specColor ?? 0xffffff).toArray(spec, i * 4);
+    spec[i * 4 + 3] = e.spec ?? 0.0;
   });
   return {
     vertexPars: `
          attribute float aCelKey;
-         uniform vec3 uCelPaint[${n}];
+         uniform vec4 uCelPaint[${n}];
          uniform vec4 uCelRim[${n}];
-         flat varying vec3 vCelPaint;
-         flat varying vec4 vCelRim;`,
+         uniform vec4 uCelSpec[${n}];
+         flat varying vec4 vCelPaint;
+         flat varying vec4 vCelRim;
+         flat varying vec4 vCelSpec;`,
     vertex: `
          vCelPaint = uCelPaint[int(aCelKey)];
-         vCelRim = uCelRim[int(aCelKey)];`,
+         vCelRim = uCelRim[int(aCelKey)];
+         vCelSpec = uCelSpec[int(aCelKey)];`,
     fragmentPars: `
-         flat varying vec3 vCelPaint;
+         flat varying vec4 vCelPaint;
          flat varying vec4 vCelRim;
+         flat varying vec4 vCelSpec;
          #define uRimColor vCelRim.rgb
-         #define uRimStrength vCelRim.a`,
-    fragment: 'diffuseColor.rgb *= vCelPaint;',
-    uniforms: { uCelPaint: { value: paint }, uCelRim: { value: rim } },
+         #define uRimStrength vCelRim.a
+         #define uSpecColor vCelSpec.rgb
+         #define uSpecStrength vCelSpec.a
+         #define uSpecWidth vCelPaint.a`,
+    fragment: 'diffuseColor.rgb *= vCelPaint.rgb;',
+    uniforms: { uCelPaint: { value: paint }, uCelRim: { value: rim }, uCelSpec: { value: spec } },
   };
 }
 
@@ -233,10 +245,10 @@ function paletteChunks(entries) {
  * spec, specWidth, specColor, cloudShadow (0..1), cloth (amplitude), key,
  * palette.
  *
- * palette is a list of { color, rim, rimColor } that stand in for color,
- * rim and rimColor per vertex: a geometry's aCelKey attribute picks the
- * entry, so surfaces that differed only in those three draw as one mesh
- * (kit.js bakeAll). The entry reaches the fragment through flat varyings
+ * palette is a list of { color, rim, rimColor, spec, specWidth, specColor }
+ * that stand in for those six options per vertex: a geometry's aCelKey
+ * attribute picks the entry, so surfaces that differed only in them draw
+ * as one mesh (kit.js bakeAll). The entry reaches the fragment through flat varyings
  * and multiplies a white diffuse, so each surface's values are the bits
  * its own material's uniforms held: the same pixels in one draw.
  *

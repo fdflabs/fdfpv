@@ -218,7 +218,7 @@ function targetsOf(craft) {
       }
     }
     home = home ?? new THREE.Matrix4();
-    out.push({
+    const target = {
       mesh: o,
       home: o.parent,
       matrix: m,
@@ -226,9 +226,43 @@ function targetsOf(craft) {
       toHome: home.clone().invert(),
       normalHome: new THREE.Matrix3().setFromMatrix4(home).transpose(),
       twoSided: mats.some((x) => x.side === THREE.DoubleSide),
-    });
+      /* As it is now: a map's look may draw a palette's entries in
+       * another order (swiss2/craftlook.js) before the layers are cut. */
+      geometry: o.geometry,
+      from: 0,
+      to: o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count,
+      seq: o.userData.targetSeq,
+    };
+    out.push(...entriesOf(target));
   });
-  return out;
+  /* A craft whose parts were joined (combatcraft.js paletteFixed) has its
+   * targets put back in the order the meshes had before, so every layer
+   * lands in the meshes and order it did. */
+  return out.some((t) => t.seq !== undefined) ? out.sort((a, b) => a.seq - b.seq) : out;
+}
+
+/*
+ * A palette mesh (combatcraft.js paletteFixed) as one target a part it
+ * joined: each entry's run of triangles, in the order its own mesh had,
+ * so a layer is drawn as one mesh per part per finish, as it was before
+ * the parts were joined, and not one mesh across them whose layers
+ * would blend in another order where they cross. Any other mesh is one
+ * target.
+ */
+function entriesOf(target) {
+  const seqs = target.mesh.userData.paletteSeq;
+  if (!seqs) {
+    return [target];
+  }
+  const keys = target.geometry.attributes.aCelKey.array;
+  return seqs.map((seq, k) => {
+    const from = keys.indexOf(k);
+    const to = keys.lastIndexOf(k) + 1;
+    if (from < 0 || from % 3 || to % 3 || keys.subarray(from, to).some((v) => v !== k)) {
+      throw new Error(`decals: ${target.mesh.name}'s entry ${k} is not one run of whole triangles`);
+    }
+    return { ...target, from, to, seq };
+  });
 }
 
 /* A target's triangles in the group frame, nine numbers each, and their
@@ -239,15 +273,15 @@ function trianglesOf(target) {
   if (target.tri) {
     return target.tri;
   }
-  const geo = target.mesh.geometry;
+  const geo = target.geometry;
   const pos = geo.attributes.position;
   const index = geo.index;
-  const count = index ? index.count : pos.count;
+  const count = target.to - target.from;
   const tri = new Float64Array(Math.floor(count / 3) * 9);
   const lo = [Infinity, Infinity, Infinity];
   const hi = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < tri.length / 3; i += 1) {
-    vt.fromBufferAttribute(pos, index ? index.getX(i) : i).applyMatrix4(target.matrix);
+    vt.fromBufferAttribute(pos, index ? index.getX(target.from + i) : target.from + i).applyMatrix4(target.matrix);
     tri[3 * i] = vt.x;
     tri[3 * i + 1] = vt.y;
     tri[3 * i + 2] = vt.z;
@@ -439,15 +473,15 @@ function covered(cover, box, x, y, z) {
  * `cover` is coverOf the box, for the pieces other skin hides.
  */
 function project(box, target, uv, flip, cover) {
-  const geo = target.mesh.geometry;
+  const geo = target.geometry;
   const pos = geo.attributes.position;
   const nor = geo.attributes.normal;
   const index = geo.index;
-  const count = index ? index.count : pos.count;
+  const count = target.to - target.from;
   const pa = [];
   const na = [];
   const ta = [];
-  const at = (i) => (index ? index.getX(i) : i);
+  const at = (i) => (index ? index.getX(target.from + i) : target.from + i);
   const ns = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   const ps = [va, vb, vc];
   const lift = box.n.clone().multiplyScalar(DECAL_LIFT);

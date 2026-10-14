@@ -43,6 +43,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { paletteFixed } from './combatcraft.js';
 import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
 import { cancelDecals, dressDecalsLater, readDecals } from './decals.js';
@@ -168,9 +169,15 @@ export function buildPeerCraft(profile, look = null) {
      * (dressDecalsLater), so a full livery joining is no long frame. */
     dressLivery(craft, id, { ...paint, decals: [] });
     addNavLights(craft, paint.lights);
-    if (paint.decals.length) {
-      dressDecalsLater(craft, paint.decals);
-    }
+  }
+  /* A combat quad's fixed parts as a few palette meshes, in the colours
+   * just put on and before the layers take their targets
+   * (src/render/combatcraft.js paletteFixed). */
+  if (craft.combat) {
+    paletteFixed(craft);
+  }
+  if (paint && paint.decals.length) {
+    dressDecalsLater(craft, paint.decals);
   }
   let smoke = null;
   if (PROPS[id]) {
