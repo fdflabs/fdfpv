@@ -41,7 +41,7 @@ music crates, the war radio's voice lines and the war's two music tracks.
 | Binaural focus tone | `attach` l.803 | the Focus setting (off by default) | two sines, 1000 and 1006 Hz | 0.15 x setting | 5 |
 | Music bed | `src/render/music.js` `attach` l.225 | always, menus and flight | recorded: 16 titles in `assets/music`, Opus in WebM with an mp3 fallback, one `MediaElementSource` | flight `MUSIC_BUS` 0.60 x setting, menu `MENU_BUS` 0.20; ducked by cues | 4 |
 | War music | `src/render/warradio.js` `music()` l.342 | the war's countdown and fight | recorded: 2 tracks, `assets/audio/war/music` | an `HTMLAudioElement` BESIDE the graph: `el.volume` = master x music x 0.5 or 0.22 | 0 |
-| War radio voice | `warradio.js` `say()` l.288 | `main.js` l.3080, war events | recorded (generated TTS): 108 lines a language, en and es | `el.volume` = master; ducks motors and wind to 0.55; ducked 10 dB under voice chat | 0 |
+| War radio voice | `warradio.js` `say()` l.288 | `main.js` l.3080, war events | recorded (generated TTS): 425 lines a language, en and es | `el.volume` = master; ducks motors and wind to 0.55; ducked 10 dB under voice chat | 0 |
 | Voice chat | `src/share/voice.js` | push to talk | WebRTC, its own AudioContext | distance law 30 to 400 m, floor 0.3 | its own graph |
 | Replay and movie sound | `src/replay/crashcam.js` `sound()`, `src/replay/soundtrack.js` | replay and export | a second `MotorAudio` | as live | its own |
 
