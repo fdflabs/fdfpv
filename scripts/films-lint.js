@@ -82,7 +82,9 @@ const PASS_M = 2;
 const FILM_MIN_S = 30;
 const FILM_MAX_S = 75;
 const CAMERAS = new Set(['dolly', 'crane', 'orbit', 'handheld', 'drone', 'telephoto']);
-const GRADES = new Set(['dawn', 'steel', 'warm', 'warm-grad', 'night']);
+/* Dusk is The Interior's landing grade (warintro.js GRADES); Lights Out,
+ * the act's dusk mission, is graded with it too (INTROS.md 5.3). */
+const GRADES = new Set(['dawn', 'steel', 'warm', 'warm-grad', 'night', 'dusk']);
 const OUTS = new Set(['cut', 'smash', 'match', 'dip', 'dissolve', 'handoff']);
 
 /* The ground for a cast member standing on it, in Node: the crest's deck
@@ -407,7 +409,7 @@ for (const m of Object.values(MISSIONS)) {
  *            filmMs) is its intro's length
  */
 const INTERIOR_CAMERAS = new Set([...CAMERAS, 'board']);
-const INTERIOR_GRADES = new Set([...GRADES, 'archive', 'room', 'air', 'dusk']);
+const INTERIOR_GRADES = new Set([...GRADES, 'archive', 'room', 'air']);
 const WORLD_STEP_MS = 100;
 const CLEAR_M = 1;
 /* The room set's walls, local metres from its floor's centre, a little in
