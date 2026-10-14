@@ -801,22 +801,49 @@ export function skyBackdrop(sunDir, time) {
  * map's scene. Returns the PMREM target; the caller owns it.
  */
 export function skyEnvironment(renderer, sky, time) {
+  return bakeEnvironment(renderer, sky, envGainOf(time));
+}
+
+/* The share of the backdrop the environment is drawn at, for a time. */
+function envGainOf(time) {
+  return timeOf(time) === 'golden' ? ENV_GAIN_LOW_SUN : ENV_GAIN;
+}
+
+/* skyEnvironment at `gain`, into `target` (a PMREM target this made
+ * before, so every material that holds its texture sees the new light)
+ * or a new one. */
+export function bakeEnvironment(renderer, sky, gain, target = null) {
   const cube = new THREE.WebGLCubeRenderTarget(ENV_PX, { type: THREE.HalfFloatType });
   const eye = new THREE.CubeCamera(1, 4000, cube);
   eye.position.copy(ENV_AT);
   eye.updateMatrixWorld();
   const scene = new THREE.Scene();
+  const parent = sky.parent;
   scene.add(sky);
   const disc = sky.material.uniforms.uDisc.value;
   sky.material.uniforms.uDisc.value = 0;
-  sky.material.uniforms.uGain.value = timeOf(time) === 'golden' ? ENV_GAIN_LOW_SUN : ENV_GAIN;
+  sky.material.uniforms.uGain.value = gain;
   eye.update(renderer, scene);
   sky.material.uniforms.uDisc.value = disc;
   sky.material.uniforms.uGain.value = 1;
   scene.remove(sky);
+  if (parent) {
+    parent.add(sky);
+  }
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const target = pmrem.fromCubemap(cube.texture);
+  const out = pmrem.fromCubemap(cube.texture, target);
   pmrem.dispose();
   cube.dispose();
-  return target;
+  return out;
+}
+
+/* A named time's sky as numbers (look/index.js, which moves the light
+ * between two of them in a war mission, TECH-NEEDS T1.11): the zenith,
+ * the air, the sun's disc and the stars (1 or 0), the environment's
+ * gain. Shared, never written. */
+export function skyOf(time) {
+  const t = timeOf(time);
+  return {
+    zenith: ZENITHS[t], air: airFor(t), disc: isNight(t) ? 0 : 1, stars: isNight(t) ? 1 : 0, envGain: envGainOf(t),
+  };
 }

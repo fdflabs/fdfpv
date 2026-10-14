@@ -175,7 +175,10 @@ export function hourAt(clock, roomMs) {
  * (`to` that ramp's end, where it stops), standing after the last (no
  * `to`).
  */
-function forward(from, name) {
+
+/* The first hour after `from` that is named time `name`'s. */
+export function hourAfter(from, name) {
+  nightOfTime(name); /* throws on a name outside TIME_NAMES */
   let h = TIME_HOUR[name];
   while (h <= from) {
     h += 24;
@@ -225,7 +228,7 @@ export function missionLight(time, stages) {
       if (!TIME_NAMES.includes(d.to) || !(d.ms > 0)) {
         throw new Error(`daytime: stage ${stages[n].id}'s daytime is { to: one of ${TIME_NAMES.join(', ')}, ms > 0 }, got ${JSON.stringify(d)}`);
       }
-      h = forward(h, d.to);
+      h = hourAfter(h, d.to);
       to[n] = h;
     }
     end = Math.max(end, h);

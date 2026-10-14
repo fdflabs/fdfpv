@@ -275,7 +275,7 @@ import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothc
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { NIGHTTIMBER_MOUNT_FORWARD, NIGHTTIMBER_MOUNT_UP } from './render/nighttimbercraft.js';
 import {
-  TIME_NAMES, clockOf, clockOfTime, daytimeNow, hourAt, nightOfTime, publishDaytime, timeOfClock, timeOfHour,
+  TIME_HOUR, TIME_NAMES, clockOf, clockOfTime, daytimeNow, hourAfter, hourAt, nightOfTime, publishDaytime, timeOfClock, timeOfHour,
 } from './share/daytime.js';
 import { CAP_MOUNT_FORWARD, CAP_MOUNT_UP } from './render/capcraft.js';
 import { HERCULES_MOUNT_FORWARD, HERCULES_MOUNT_UP } from './render/herculescraft.js';
@@ -584,7 +584,10 @@ const FLOOR_WORLD = 'alps';
  * `?hour=` (the Interior's hours) or `?time=` (a src/share/daytime.js
  * TIME_NAMES name: Itaipu's mission 4 "Night raid", morning, noon,
  * golden), else the pilot's Time of day setting, whose 'own' is no clock:
- * each world at its own time. The address is not stored: a link with it
+ * each world at its own time. With `?time=`, `?toward=` (another name)
+ * builds a war mission's moving light standing at the first (Itaipu's
+ * look/index.js THE RAMP), for the checks that move it
+ * (scripts/daytime-ramp-check.js). The address is not stored: a link with it
  * in stays a link into the night, never a standing setting. In a room the
  * room's clock is the clock (gameClock).
  */
@@ -596,7 +599,10 @@ function soloClock(settings) {
   }
   const time = q.get('time');
   if (TIME_NAMES.includes(time)) {
-    return clockOfTime(time);
+    const toward = q.get('toward');
+    return TIME_NAMES.includes(toward)
+      ? clockOf({ ...clockOfTime(time), to: hourAfter(TIME_HOUR[time], toward) })
+      : clockOfTime(time);
   }
   return clockOfTime(chosenTime(settings));
 }
@@ -604,9 +610,16 @@ function soloClock(settings) {
 /* A world's build options for a clock: the named time a world built once
  * is built at (Itaipu's options.time) and the hour a world that moves its
  * sun starts at (the Interior's options.hour), or nothing for each world's
- * own. */
+ * own; and for a clock that will move on to another named time (a war
+ * mission's light, src/share/daytime.js missionClock), that time, which
+ * Itaipu builds its moving light for (options.toward). */
 function timeOptionsOf(clock) {
-  return clock ? { time: timeOfClock(clock), hour: clock.hour } : {};
+  if (!clock) {
+    return {};
+  }
+  const time = timeOfClock(clock);
+  const toward = clock.to === undefined ? time : timeOfHour(clock.to);
+  return toward === time ? { time, hour: clock.hour } : { time, hour: clock.hour, toward };
 }
 
 /* The time a world is built at, by its options: day unless they name one. */
@@ -14526,9 +14539,15 @@ export async function boot({
   }
   /* A world that moves its sun (the Interior's setLocalTime) follows the
    * clock every frame (daytimeFrame) and is never rebuilt for it; a world
-   * built once at a named time is rebuilt when the time moves. */
+   * built once at a named time is rebuilt when the time moves; Itaipu
+   * built for a war mission's moving light (its timeSpan, two names) is
+   * kept while the clock's time and where it goes are both in it. */
   function worldTimeMatches() {
-    return typeof view.setLocalTime === 'function' || worldTime === timeOf(worldTimeOptions());
+    const want = worldTimeOptions();
+    if (view.timeSpan) {
+      return view.timeSpan.includes(timeOf(want)) && view.timeSpan.includes(want.toward ?? timeOf(want));
+    }
+    return typeof view.setLocalTime === 'function' || (worldTime === timeOf(want) && want.toward === undefined);
   }
   function syncWorld() {
     if (!worldSync) {
