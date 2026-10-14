@@ -5205,7 +5205,7 @@ export async function boot({
   /*
    * THE WAY IN FROM A ROOM SCREEN: Make a room's Make (`room` its draft:
    * map, mode, who, name, mission) and a public room's host making a war
-   * room for friends (warFromPublic). A room of its own through the one
+   * room for friends (warFromPublic), and Training's practice room. A room of its own through the one
    * way in (openSession), the war's consent first; ui.roomGame leads the
    * room with its game, here and, by the host's profile, for whoever
    * joins. Resolves its code, or null when the pilot said Back to the
@@ -5215,7 +5215,9 @@ export async function boot({
     if (modeOfRoom(room.mode)?.consent && !(await warConsented())) {
       return null;
     }
-    return openSession(null, room.mode, room.map, room.who, { fresh: true, name: room.name ?? null, mission: room.mission ?? null });
+    return openSession(null, room.mode, room.map, room.who, {
+      fresh: true, name: room.name ?? null, mission: room.mission ?? null, remember: room.remember,
+    });
   }
 
   /*
@@ -5309,11 +5311,13 @@ export async function boot({
    * typed name or null for a picked one; its Public is asked of the
    * server as chosen, which refuses a mission in development unless it
    * starts them (a check's own, DEV_MISSIONS), and the form says so.
+   * `room.remember` false leaves the activity's remembered Who joins
+   * alone (Training's practice room, solo whatever the war's choice is).
    * Resolves the room's code; throws what the room server refused.
    */
   async function openSession(card, game, world, visibility, room = {}) {
     const id = modeOfWire(game);
-    if (ui.settings.sessionVisibility[id] !== visibility) {
+    if (room.remember !== false && ui.settings.sessionVisibility[id] !== visibility) {
       ui.settings.sessionVisibility = { ...ui.settings.sessionVisibility, [id]: visibility };
       ui.persistSettings();
     }
@@ -8133,8 +8137,8 @@ export async function boot({
       const craft = s.airframe;
       ui.progress.startLesson(lesson);
       /* A Defence lesson flies in a war room, its consent asked first: the
-       * practice in a solo room made for it (warEnter, so the war's own
-       * Who joins stays as the pilot left it), a campaign mission the
+       * practice in a solo room made for it (roomMade, not remembered, so
+       * the war's own Who joins stays as the pilot left it), a campaign mission the
        * campaign's way. The stage engine runs only in a room. */
       if (lesson.mission) {
         /* No rooms server, or a campaign mission this pilot may not fly
@@ -8148,7 +8152,7 @@ export async function boot({
           ui.progress.endLesson();
           return;
         }
-        const enter = lesson.mission === PRACTICE_ID ? warEnter({ mission: PRACTICE_ID }).then((code) => code && markSolo(code)) : ui.onWarCard('way-war', lesson.mission);
+        const enter = lesson.mission === PRACTICE_ID ? roomMade({ map: WAR_MAP, mode: 'war', who: 'solo', mission: PRACTICE_ID, remember: false }) : ui.onWarCard('way-war', lesson.mission);
         enter.catch(() => {
           roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
           ui.refreshFriends();
