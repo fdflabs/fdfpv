@@ -68,7 +68,7 @@ function memoryStorage() {
 }
 
 /* A socket as host.js sees one, keeping what it was sent. */
-function conn(address) {
+export function conn(address) {
   return {
     address,
     got: [],

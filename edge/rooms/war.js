@@ -891,6 +891,11 @@ export class RoomWar {
    * round, since both start again each round.
    */
   enlist(s) {
+    /* A pilot who has not given the war's consent since the room moved
+     * into it (core.js setup) sits it out. */
+    if ((this.meta.unconsented || []).includes(s.token)) {
+      return;
+    }
     const m = this.match;
     const had = m.players[s.seat];
     if (had && (had.token == null || had.token === s.token)) {

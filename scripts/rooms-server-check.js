@@ -41,6 +41,10 @@
  * the same private room, with its race track, and the purge alarm carried
  * across the restart, and the public room listed again straight after it.
  *
+ * Then src/share/rooms.js itself, with its storage and socket stood in: a
+ * second tab on the same seat token, a reload back into its own seat, and
+ * a quick join asked by a plain GET and joined by code.
+ *
  * A check against a live server makes one private room and leaves it to
  * be purged five minutes after, like any room nobody is in.
  *
@@ -77,7 +81,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import {
-  ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
+  ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, ROOM_LEVEL, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { ABANDON_MS, TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
 import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
@@ -650,11 +654,9 @@ function raw(text) {
   };
   const firstIn = await opened(first);
   const second = createRoomLink({ onState: (s) => states.second.push(s.phase + (s.reason ? `:${s.reason}` : '')) }, hello);
-  /* A join forgets the token a link held for another room, so the token
-   * is put back before the socket opens: the second link says the first's. */
-  const token = window.sessionStorage.getItem('fdfpv.roomToken');
+  /* The two links share one storage, as a duplicated tab does, so the
+   * second's join keeps the token for the room it names: the first's. */
   second.join(tabCode);
-  window.sessionStorage.setItem('fdfpv.roomToken', token);
   const secondIn = await opened(second);
   /* Past the link's first retry (RETRY_MS, 1 s): a retry would be back. */
   await sleep(2500);
@@ -663,6 +665,73 @@ function raw(text) {
     && second.state().welcome.seat === first.state().welcome.seat, JSON.stringify(states));
   check('and never tries again', !states.first.slice(states.first.indexOf('failed:replaced')).some((s) => s.startsWith('connecting')), JSON.stringify(states.first));
   second.leave();
+
+  /*
+   * A reload: the page and its socket go with no Leave (the browser's
+   * close, 1001), the tab's sessionStorage stays, and the new page joins
+   * the room it names (wantedRoom). Its hello must say the seat's token,
+   * so it is back in its own seat and still the host, not in a third seat
+   * beside its own, held for it (core.js recent). The control: Leave, then
+   * the same room, is a new pilot.
+   */
+  console.log('a reload back into its own seat (src/share/rooms.js join)');
+  const { wantedRoom } = await import('../src/share/rooms.js');
+  const sockets = [];
+  globalThis.WebSocket = class extends WebSocket {
+    constructor(...args) {
+      super(...args);
+      sockets.push(this);
+    }
+  };
+  const page = createRoomLink({}, hello);
+  const reloadCode = await page.create('alps', false, {});
+  page.join(reloadCode);
+  const pageIn = await opened(page);
+  const before = page.state().welcome;
+  const gone = sockets.at(-1);
+  const beside = await seat(`room/${reloadCode}`, { name: [3, 4, 61], level: ROOM_LEVEL });
+  gone.onclose = null;
+  gone.onmessage = null;
+  gone.close(1001);
+  const dropped = await beside.until((x) => x.text('leave').find((m) => m.seat === before.seat));
+  const reloaded = createRoomLink({}, hello);
+  reloaded.join(wantedRoom());
+  const back = await opened(reloaded) && reloaded.state().welcome;
+  check('a reload rejoins with the seat token: its own seat, and still the host',
+    pageIn && Boolean(dropped) && Boolean(back) && back.token === before.token && back.seat === before.seat && back.host === before.seat,
+    JSON.stringify({ beside: beside.welcome && (beside.welcome.seat || beside.welcome), dropped: Boolean(dropped), before: before && { seat: before.seat, host: before.host }, back: back && { seat: back.seat, host: back.host, same: back.token === before.token } }));
+  reloaded.leave();
+  await beside.until((x) => x.text('leave').filter((m) => m.seat === before.seat).length === 2);
+  const anew = createRoomLink({}, hello);
+  anew.join(reloadCode);
+  const fresh = await opened(anew) && anew.state().welcome;
+  check('the control: after Leave the same room seats a new pilot, a new token and not the seat it left',
+    Boolean(fresh) && fresh.token !== before.token && fresh.seat !== before.seat, JSON.stringify(fresh && { seat: fresh.seat }));
+  anew.leave();
+  beside.ws.close(1000);
+
+  /* The link's quick join asks the server for its room with a plain GET,
+   * which carries a signed in pilot's session for the server to leave out
+   * rooms of pilots it blocked (edge/rooms/front.js joinerOf), and then
+   * joins that room by its code. */
+  if (pub.open) {
+    const fetched = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (input, init) => {
+      fetched.push(String(input));
+      return realFetch(input, init);
+    };
+    const quickLink = createRoomLink({}, hello);
+    quickLink.joinPublic('alps');
+    const quickIn = await opened(quickLink);
+    globalThis.fetch = realFetch;
+    const quickCode = quickLink.state().code;
+    check('the link\'s quick join asks for its room with a plain GET, then joins it by its code',
+      quickIn && fetched.some((u) => u.endsWith('/v2/public/alps')) && Boolean(quickCode) && sockets.at(-1).url.endsWith(`/v2/room/${quickCode}`),
+      JSON.stringify({ fetched, url: sockets.at(-1).url, quickCode }));
+    quickLink.leave();
+  }
+  globalThis.WebSocket = WebSocket;
   delete globalThis.window;
 }
 

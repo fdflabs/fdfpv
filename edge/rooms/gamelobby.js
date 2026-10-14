@@ -49,9 +49,12 @@
  * { op: 'goal', goal } in a tag room. What it is told: { type: 'lobby',
  * lobby } whenever the lobby changes, and `lobby` in the welcome:
  *
- *   { mission | minutes | goal | track | live, ready: { [seat]: true }, countdownAt, deadlineAt }
+ *   { mission | minutes | goal | track | live, ready: { [seat]: true }, countdownAt, deadlineAt, out? }
  *
- * the two times on the room clock (ms), or null. A build from before this
+ * the two times on the room clock (ms), or null; out, only while there
+ * are any, the seats sitting out the war: in a room its host moved into
+ * the war (core.js setup), the pilots who have not given its consent,
+ * never waited for and never ready. A build from before this
  * passes over the type. The flags and times are the room's memory only: a
  * restart of the rooms server starts them again with nobody ready.
  *
@@ -225,12 +228,22 @@ export class RoomGameLobby {
 
   view(core) {
     const g = this.game(core);
+    const out = this.out(core);
     return {
       ...g.show(core),
       ready: Object.fromEntries([...this.ready].map((seat) => [seat, true])),
       countdownAt: this.countdownAt,
       deadlineAt: this.deadlineAt,
+      /* The pilots sitting out the war (core.js setup), when there are any. */
+      ...(out.size ? { out: Object.fromEntries([...out].map((seat) => [seat, true])) } : {}),
     };
+  }
+
+  /* The seats of the people here who have not given the war's consent
+   * since the room moved into it (core.js setup): never asked to be ready. */
+  out(core) {
+    const tokens = core.meta.unconsented || [];
+    return new Set(core.people().filter((s) => tokens.includes(s.token)).map((s) => s.seat));
   }
 
   welcome(core) {
@@ -258,8 +271,10 @@ export class RoomGameLobby {
    * may start or stop the five seconds; a join only keeps them as they
    * are. */
   settle(core, now, arm) {
-    /* The people: an AI pilot is never asked to be ready. */
-    const here = new Set(core.people().map((s) => s.seat));
+    /* The people: an AI pilot is never asked to be ready, nor a pilot
+     * sitting the war out. */
+    const out = this.out(core);
+    const here = new Set(core.people().map((s) => s.seat).filter((seat) => !out.has(seat)));
     for (const seat of this.ready) {
       if (!here.has(seat)) {
         this.ready.delete(seat);
@@ -288,7 +303,7 @@ export class RoomGameLobby {
       return [];
     }
     if (msg.op === 'ready' && typeof msg.ready === 'boolean') {
-      if (msg.ready === this.ready.has(s.seat)) {
+      if (msg.ready === this.ready.has(s.seat) || this.out(core).has(s.seat)) {
         return [];
       }
       if (msg.ready) {

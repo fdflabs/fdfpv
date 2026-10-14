@@ -54,7 +54,7 @@ import { RoomTag } from './tag.js';
 import { RoomJam } from './jam.js';
 import { RoomSafety } from './safety.js';
 import {
-  TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
+  ROOM_SETUPS, TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
 } from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
 import { released } from '../../src/game/campaign.js';
@@ -1008,6 +1008,8 @@ export class RoomCore {
         stockSurfaces: Boolean(this.meta.stockSurfaces),
         /* The host may change public in place (setPublic). */
         publicInPlace: true,
+        /* And, in a private room, its activity between rounds (setup). */
+        setupInPlace: true,
         daytime: this.daytimeWelcome(),
         /* How many watch, as at this join: no news follows a watcher's
          * coming or going (watch). */
@@ -1145,6 +1147,9 @@ export class RoomCore {
     }
     if (msg.type === 'public') {
       return this.setPublic(conn, s, msg);
+    }
+    if (msg.type === 'setup') {
+      return this.setup(conn, s, msg, now);
     }
     if (msg.type === 'daytime') {
       return this.setDaytime(conn, s, msg);
@@ -1357,6 +1362,91 @@ export class RoomCore {
       return [{ send: conn, data: told }];
     }
     return [{ store: 'meta', value: this.meta }, ...this.roster(null, told)];
+  }
+
+  /*
+   * The host of a private room changes its activity between rounds
+   * (COMPLETENESS 77, docs/redesign/SESSIONS.md section 3): { type:
+   * 'setup', mode }, a ROOM_SETUPS id or null for free flight. The room
+   * keeps its code, pilots, world and host; its lobby starts again with
+   * nobody ready and the new game's setting, and everybody is told
+   * { type: 'setup', mode, mission, lobby }. Refused in a public room,
+   * which keeps the activity the list shows ('setup_public'), while a
+   * round runs (its game's id, or 'setup_flying' for free flight's,
+   * which runs until the room empties), and the war off a war mission's
+   * world ('war_map'). Leaving the war drops its last match, whose
+   * mission, lost stage and time of day belong to no other game.
+   *
+   * THE WAR'S CONSENT, per pilot: moving into the war, every person here
+   * but the host (whose page asked before sending this) is on
+   * meta.unconsented, by seat token, kept with the meta so a restart
+   * keeps it. Such a pilot is never one of the war's players (war.js
+   * enlist) and is not waited for in the lobby (gamelobby.js), until
+   * their page says { type: 'setup', consent: true }; one who declines
+   * says nothing and sits the war out in the lobby. A pilot who comes
+   * later is asked by their page as they join, as in any war room.
+   */
+  setup(conn, s, msg, now) {
+    if (msg.consent === true) {
+      return this.consent(conn, s, now);
+    }
+    const mode = msg.mode ?? null;
+    if (mode !== null && !ROOM_SETUPS.includes(mode)) {
+      return [];
+    }
+    const refuse = (why) => [{ send: conn, data: JSON.stringify({ type: 'refused', why }) }];
+    if (s.seat !== this.host()) {
+      return refuse('host');
+    }
+    if (this.meta.public) {
+      return refuse('setup_public');
+    }
+    const game = this.game();
+    if (game) {
+      return refuse(game);
+    }
+    if (this.gameLobby.live) {
+      return refuse('setup_flying');
+    }
+    const war = mode === 'war';
+    if (war && !Object.values(MISSIONS).some((m) => m.map === this.meta.map)) {
+      return refuse('war_map');
+    }
+    if (mode === (this.meta.mode ?? null)) {
+      return [];
+    }
+    const out = [];
+    if (this.meta.mode === 'war') {
+      this.war.match = null;
+      this.meta.mission = null;
+      out.push(...this.war.changed(this));
+    }
+    this.meta.mode = mode;
+    this.meta.unconsented = war ? this.people().filter((t) => t.seat !== s.seat).map((t) => t.token) : [];
+    this.gameLobby.clear();
+    if (!modeOfRoom(mode)?.allowAI) {
+      out.push(...this.bots.clear(this, now));
+    }
+    return [
+      { store: 'meta', value: this.meta },
+      ...out,
+      ...this.everyone(JSON.stringify({ type: 'setup', mode, mission: war ? warMission(this) : null, lobby: this.gameLobby.view(this) })),
+    ];
+  }
+
+  /* A pilot's page said yes to the war's consent (setup): one of its
+   * players from now, at once when one is on (war.js join). */
+  consent(conn, s, now) {
+    const left = (this.meta.unconsented || []).filter((token) => token !== s.token);
+    if (left.length === (this.meta.unconsented || []).length) {
+      return [];
+    }
+    this.meta.unconsented = left;
+    /* Waited for from now: the five seconds stop until they say ready. */
+    if (this.gameLobby.open(this)) {
+      this.gameLobby.settle(this, now, true);
+    }
+    return [{ store: 'meta', value: this.meta }, ...this.war.join(this, conn), ...this.gameLobby.changed(this)];
   }
 
   /*

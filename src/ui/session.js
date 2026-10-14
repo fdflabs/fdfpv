@@ -120,7 +120,7 @@ function lobbyBrief(brief) {
 }
 
 function lobbyPilot(p) {
-  const flags = `${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}${p.ai ? ' ai' : ''}`;
+  const flags = `${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}${p.ai ? ' ai' : ''}${p.out ? ' out' : ''}`;
   const row = el('div', `war-lobby-pilot${flags}`);
   const who = el('div', 'war-lobby-who');
   who.append(el('span', 'war-lobby-name', p.name));
@@ -129,7 +129,9 @@ function lobbyPilot(p) {
   }
   who.append(el('span', 'war-lobby-craft', p.aircraft));
   /* An AI pilot is never waited for: it flies whatever starts. */
-  row.append(who, el('span', 'war-lobby-flag', str(p.ai ? 'lobby.flag_ai' : (p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting'))));
+  /* One sitting the war out is not waited for either (core.js setup). */
+  const flag = p.ai ? 'lobby.flag_ai' : p.out ? 'lobby.flag_out' : (p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting');
+  row.append(who, el('span', 'war-lobby-flag', str(flag)));
   return row;
 }
 

@@ -39,6 +39,7 @@ import {
   EMPTY_CLOSE_MS, LIST_EVERY_MS, ROOM_SETUPS, normaliseCode, normaliseRoomName, validNamePick,
 } from './roomwire.js';
 import { roomsOrigin } from './rooms.js';
+import { readAccount } from './pilot.js';
 
 const ID_RE = /^[a-z0-9_]{1,32}$/;
 const STATES = ['waiting', 'countdown', 'on'];
@@ -115,7 +116,13 @@ export function createRoomList(onChange = () => {}) {
       return;
     }
     try {
-      const res = await fetch(`${origin}/v2/rooms`, { cache: 'no-store' });
+      /* A signed in pilot's session, as GET /v2/dev sends it: the server
+       * leaves out the rooms of pilots it blocked or who blocked it
+       * (edge/rooms/front.js joinerOf). */
+      const account = readAccount();
+      const res = await fetch(`${origin}/v2/rooms`, {
+        headers: account && account.session ? { authorization: `Bearer ${account.session}` } : {}, cache: 'no-store',
+      });
       if (!res.ok) {
         throw new Error(`http ${res.status}`);
       }

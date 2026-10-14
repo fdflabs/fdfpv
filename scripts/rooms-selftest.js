@@ -63,11 +63,13 @@ import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { jamSection } from './rooms-selftest-jam.js';
 import { browserSection } from './rooms-selftest-browser.js';
+import { blocksSection } from './rooms-selftest-blocks.js';
 import { scaleSection } from './rooms-selftest-scale.js';
 import { sessionSection } from './rooms-selftest-session.js';
 import { weatherSection } from './rooms-selftest-weather.js';
 import { stockSurfacesSection } from './rooms-selftest-surfaces.js';
 import { visibilitySection } from './rooms-selftest-visibility.js';
+import { setupSection } from './rooms-selftest-setup.js';
 import { dropsSection } from './rooms-selftest-drops.js';
 import { footSection } from './rooms-selftest-foot.js';
 import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
@@ -2016,11 +2018,13 @@ sessionSection(check);
 weatherSection(check);
 stockSurfacesSection(check);
 visibilitySection(check);
+setupSection(check);
 dropsSection(check);
 footSection(check);
 watchSection(check);
 watchStateSection(check);
 await browserSection(check);
+await blocksSection(check);
 await scaleSection(check);
 
 /* ---------------------------------------------------------------------

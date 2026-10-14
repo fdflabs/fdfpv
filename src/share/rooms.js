@@ -294,6 +294,7 @@ export function devAccount() {
  * onProfile(seat, profile), onBatch(batch), onState(state),
  * onRoom() when the room's name changed (reports took it away),
  * onHit(hit) (the referee's mid air contact, src/game/midair.js),
+ * onSetup() when the host changed the room's activity (welcome.mode),
  * onHost(seat) when the room's host changes,
  * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
  * binary message but a batch, and onMessage(message) for every other text
@@ -318,6 +319,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   /* A quick join asks for a public room by map, not code (edge/rooms/front.js);
    * once the room answers, its code is this tab's and a reconnect uses it. */
   let publicMap = null;
+  /* The room the server picked for that quick join (pickPublic), or null
+   * while there is none and the socket asks by map. */
+  let picked = null;
   /* Joined to watch (edge/rooms/core.js watch): the hello asks for no
    * seat, and nothing this tab flies is sent. */
   let watching = false;
@@ -362,7 +366,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     }
     let socket;
     try {
-      const path = publicMap ? `public/${publicMap}` : `room/${code}`;
+      const path = publicMap ? (picked ? `room/${picked}` : `public/${publicMap}`) : `room/${code}`;
       socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/${path}`);
     } catch (e) {
       setPhase('failed', 'noserver');
@@ -441,6 +445,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         if (publicMap) {
           code = normaliseCode(m.code);
           publicMap = null;
+          picked = null;
           fullRetried = false;
         }
         write('session', ROOM_KEY, code);
@@ -515,6 +520,15 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.lobby = m.lobby;
         }
         handlers.onLobby?.();
+      } else if (m.type === 'setup') {
+        /* The host changed the room's activity between rounds (edge/rooms/
+         * core.js setup): the room is the new game's, in its lobby. */
+        if (welcome && (m.mode === null || typeof m.mode === 'string')) {
+          welcome.mode = m.mode;
+          welcome.mission = m.mission ?? null;
+          welcome.lobby = m.lobby;
+        }
+        handlers.onSetup?.();
       } else if (m.type === 'public') {
         /* The host changed who joins in place (edge/rooms/core.js
          * setPublic). */
@@ -557,7 +571,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         setPhase('connecting', 'retrying');
         retry = setTimeout(() => {
           retry = null;
-          open();
+          openPublic();
         }, 1000);
         return;
       }
@@ -590,9 +604,47 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     write('session', TOKEN_KEY, null);
   }
 
+  /*
+   * A quick join: the room the server picks for this pilot, asked with a
+   * plain GET that carries the signed in pilot's session, as /v2/dev does,
+   * so the pick leaves out rooms of pilots it blocked or who blocked it
+   * (edge/rooms/front.js joinerOf), then joined by its code. A server from
+   * before, or one that cannot answer, gives no code, and the socket asks
+   * by map as it always did, meeting the same refusal there (busy, rate).
+   * The one answer not gone past is the accounts server down: that pick
+   * would leave out nothing, which is the guess the server refused.
+   */
+  function openPublic() {
+    const map = publicMap;
+    const origin = roomsOrigin();
+    const account = readAccount();
+    const ask = origin && typeof fetch === 'function'
+      ? fetch(`${origin}/v2/public/${map}`, { headers: account && account.session ? { authorization: `Bearer ${account.session}` } : {}, cache: 'no-store' })
+        .then(async (res) => {
+          const body = await res.json().catch(() => ({}));
+          return res.ok ? { code: normaliseCode(body.code) } : { code: null, refused: body.error === 'accounts' ? 'accounts' : null };
+        })
+        .catch(() => ({ code: null }))
+      : Promise.resolve({ code: null });
+    ask.then((got) => {
+      /* Left, or moved on, while it was asked. */
+      if (publicMap !== map || ws || retry) {
+        return;
+      }
+      if (got.refused) {
+        publicMap = null;
+        setPhase('failed', got.refused);
+        return;
+      }
+      picked = got.code;
+      open();
+    });
+  }
+
   function leave() {
     code = null;
     publicMap = null;
+    picked = null;
     fullRetried = false;
     welcome = null;
     restarting = false;
@@ -655,11 +707,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         return;
       }
       if (next !== code) {
+        /* A token belongs to one room: the one this tab was in keeps it,
+         * so a reload is back in its own seat. Read before leave(), which
+         * forgets both. */
+        const token = normaliseCode(read('session', ROOM_KEY)) === next ? read('session', TOKEN_KEY) : null;
         leave();
-        /* A token belongs to one room. */
-        if (normaliseCode(read('session', ROOM_KEY)) !== next) {
-          write('session', TOKEN_KEY, null);
-        }
+        write('session', TOKEN_KEY, token);
       }
       if (ws || retry) {
         return;
@@ -680,7 +733,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       publicMap = map;
       watching = false;
       attempt = 0;
-      open();
+      setPhase('connecting');
+      openPublic();
     },
     leave,
     state() {
