@@ -178,8 +178,9 @@ it measures and stops on anything but the Orin:
     ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)
 
 The shell's own GPU name (src/render/gpuinfo.js, Settings and
-`window.__gpu.name`) reads that string as "Google Inc. (NVIDIA)", the
-vendor, not the chip.
+`window.__gpu.name`) read that string as "Google Inc. (NVIDIA)", the
+vendor, until 2026-10-14; it now unwraps the Vulkan string and says
+"NVIDIA Tegra Orin".
 
 **Desktop GL under Xvfb is software.** The project's own setting,
 `--use-angle=gl`, was tried once more on 2026-10-14 with an X display

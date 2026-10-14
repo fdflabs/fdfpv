@@ -223,8 +223,9 @@ for (const id of scenarios.split(',')) {
     const after = readFileSync(join(dir, 'after.txt'), 'utf8').trim().split(' ');
     const busy = (o) => (o[1] !== '0' || o[3] !== '0' ? 'BUSY' : 'idle');
     const gpu = s.pace.gpu || '';
-    // The shell's own name for the GPU (src/render/gpuinfo.js) reads
-    // ANGLE's Vulkan renderer string as "Google Inc. (NVIDIA)".
+    // The shell's own name for the GPU (src/render/gpuinfo.js) unwraps
+    // ANGLE's Vulkan renderer string to "NVIDIA Tegra Orin" (before
+    // 2026-10-14 it read "Google Inc. (NVIDIA)"); both pass the guard.
     if (!/NVIDIA/.test(gpu) || /SwiftShader|llvmpipe/i.test(gpu)) {
       throw new Error(`perf-jetson: ${preset}-${id} drew on "${gpu}", not the Orin`);
     }
