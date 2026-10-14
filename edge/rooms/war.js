@@ -62,9 +62,9 @@
  *             stoplogs for CLOSE_MS, one opening at a time, while the
  *             stage cannot clear; the first group born after it that can
  *             reach the crest is turned at the gantry; the gantry hit
- *             while it closes loses the mission at once (why 'contain').
- *             The view shows each closure as a hold objective and names
- *             the gantries closing (`contain`)
+ *             while it closes loses the mission at once (why 'shutdown',
+ *             TECH-NEEDS T1.12). The view shows each closure as a hold
+ *             objective and names the gantries closing (`contain`)
  *   the end   won when the last round ends with the output at or over
  *             floorMw; lost the instant the output is under it. The view's
  *             rack and rackMax are the airframes the match's pilots have
@@ -1992,7 +1992,7 @@ export class RoomWar {
     if (m.stage) {
       note(m.stage, { t, e: 'down', target: id });
     }
-    this.finish(t, 'lost', 'contain');
+    this.finish(t, 'lost', 'shutdown');
     return 0;
   }
 

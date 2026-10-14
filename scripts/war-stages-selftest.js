@@ -913,7 +913,7 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   const arrived = a.of(0, 'dead').find((m) => m.target === 'gantry-intakes');
   check('the first group born after an opening is turned at the gantry serving it', born.length === 1 && born[0].target === 'gantry-intakes' && born[0].t0 === GO + 6000,
     JSON.stringify(born));
-  check('the gantry hit while it closes loses the mission at once, why contain', lost.state === 'lost' && lost.why === 'contain' && arrived && Math.abs(lost.endAt - arrived.at) < 1e-3 && lost.output === 14000,
+  check('the gantry hit while it closes loses the mission at once, why shutdown', lost.state === 'lost' && lost.why === 'shutdown' && arrived && Math.abs(lost.endAt - arrived.at) < 1e-3 && lost.output === 14000,
     `${lost.state} ${lost.why} ${lost.endAt} ${arrived && arrived.at}`);
   check('the opening, the mission\'s line and the riverbank at the opening, the turn at the birth, the half, the loss at the hit and no hold',
     JSON.stringify(radios(a).slice(0, 5)) === JSON.stringify([['contain-breach', 1000], ['test-op', 1000], ['contain-river', 1000], ['contain-retarget', 6000], ['contain-half', 61000]])
@@ -981,7 +981,7 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   g.fly(GO + 20000);
   const gone = g.view();
   const through = g.of(0, 'dead').find((m) => m.target === 'gantry-intakes');
-  check('a lost stage\'s attackers through at the gantry lose the mission, and the loss is said', gone.state === 'lost' && gone.why === 'contain' && through
+  check('a lost stage\'s attackers through at the gantry lose the mission, and the loss is said', gone.state === 'lost' && gone.why === 'shutdown' && through
     && radios(g).some(([r, t]) => r === 'contain-lost' && t === gone.endAt - GO), `${gone.state} ${gone.why} ${JSON.stringify(radios(g))}`);
 
   /* A store and a restore mid closure change nothing after it. */
@@ -1731,7 +1731,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   });
   const ends = rooms.map((r) => r.view());
   check('with nobody shooting The Long Night is lost, under its floor or its gantry hit while it closed the face (MISSIONS.md 1.9 point 6), and offers the stage it was lost in again',
-    ends.every((x) => x.state === 'lost' && (x.why === 'output' || x.why === 'contain') && x.checkpoint
+    ends.every((x) => x.state === 'lost' && (x.why === 'output' || x.why === 'shutdown') && x.checkpoint
       && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage)),
     JSON.stringify(ends.map((x) => ({
       state: x.state, why: x.why, cp: x.checkpoint, stage: x.stage && x.stage.id, output: x.output,

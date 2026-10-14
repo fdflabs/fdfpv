@@ -3645,7 +3645,7 @@ export default {
   "war.hud_watch": "Watching",
   "war.won": "ITAIPU HOLDS",
   "war.lost_output": "ITAIPU IS DARK\nOUTPUT UNDER {floor} MW",
-  "war.lost_contain": "ITAIPU IS SHUT DOWN\nTHE FACE WAS NOT CLOSED",
+  "war.lost_shutdown": "ITAIPU IS SHUT DOWN\nTHE FACE WAS NOT CLOSED",
   "war.ended": "MISSION ENDED",
   "war.miss": "IMPACT OFF TARGET",
   "war.hit.intake": "INTAKE {n} HIT: -{mw} MW",

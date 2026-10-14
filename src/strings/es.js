@@ -3650,7 +3650,7 @@ export default {
   "war.hud_watch": "Mirando",
   "war.won": "ITAIPÚ RESISTE",
   "war.lost_output": "ITAIPÚ A OSCURAS\nGENERACIÓN BAJO {floor} MW",
-  "war.lost_contain": "ITAIPÚ PARADA\nLA CARA NO SE CERRÓ",
+  "war.lost_shutdown": "ITAIPÚ PARADA\nLA CARA NO SE CERRÓ",
   "war.ended": "MISIÓN TERMINADA",
   "war.miss": "IMPACTO FUERA DEL BLANCO",
   "war.hit.intake": "TOMA {n} ALCANZADA: -{mw} MW",
