@@ -28,11 +28,16 @@
  *
  * THE WORLD. The ground under it is the page's (grounds.js groundOf), its
  * slope sampled as src/main.js sampleGroundNormal does; the solids are the
- * gate frames, four bars of the built tube (src/game/track.js
- * BUILT_FRAME_TUBE_OD) round each rectangular opening, as aipilot:harness
- * frames them. The page's own frame capsules come from src/render/scene.js,
- * which needs three.js, so these are the opening's frame and not the
- * drawn gate's every member; a hoop and a pylon have none here.
+ * course's structures, each built from its own geometry as the race
+ * carries it (src/builder/course.js structureOf, every opening's `frame`),
+ * in the page's capsules where the page has them (src/render/pylons.js):
+ * four bars of the frame's tube round a rectangular opening, as
+ * aipilot:harness frames them; a hoop's rim as RIM_SEGMENTS straight
+ * tubes round its circle, firm ('gate') for a quad hoop and soft ('hoop')
+ * for a plane's; a pylon's cone as PYLON_SEGMENTS posts up its axis, each
+ * the cone's radius at its middle. The page builds these with three.js,
+ * which a server has not got, so the numbers are repeated here. A gate's
+ * every other member (a ladder's rungs, a flag pole) is not a solid here.
  *
  * THE GRID. AI pilot k (in the order seated) chases the same ghost k
  * GRID_MS behind, so the AI pilots line up one behind another on the line
@@ -48,16 +53,37 @@
  * sends for its own (src/share/roomrace.js pass), handed to the room's
  * race (edge/rooms/race.js) as that seat's: { type: 'event', kind, race,
  * lap, gate, t, points: 0 }, and the last lap's close { type: 'race', op:
- * 'finish', ... }. A crash (aiopponent.js: upside down on the ground for a
- * second, or a part broken in a mid air) is a retire. Its pose goes out
- * every tick as a pilot's POSE bytes, through core.js judge.
+ * 'finish', ... }. Its pose goes out every tick as a pilot's POSE bytes,
+ * through core.js judge.
+ *
+ * A CRASH (aiopponent.js: upside down on the ground for a second, or a
+ * part broken in a mid air) is a person's wreck and R in a room race
+ * (src/main.js, src/share/roomrace.js): the lap in flight is over, the
+ * aircraft goes back to its own place on the grid, the laps already flown
+ * stay flown, and its clock runs on. The person presses R when they are
+ * ready; the AI pilot is put back on the tick its crash is called. The
+ * room hears what it hears of a person: nothing at the wreck, then a pass
+ * of the timing gate at a lower count than the last, which edge/rooms/
+ * race.js takes as a lap a wreck voided.
  *
  * NEVER ON THE RECORD. Its Race's record write is a no-op (aiopponent.js),
  * and the room posts nothing to any board.
  *
- * NOT YET (the contract): reborn on its last gate after a crash, a
- * restore mid race flying on from the kept plant state. A room restored from storage drops its AI racers
- * (roombots.js reseat) and fills again.
+ * KEPT (save, roombots.js store): while a race is on, every racer's plant
+ * as journal.js keeps one (the region between the stack and the heap,
+ * which is the whole plant, deflated: about 100 kB a seat), its
+ * opponent's flight and its Race's lap state, with the module's build.
+ * A room restored mid race (a restart, a drain past its cap) seats each
+ * one again on a plant of its own, that region written in (malloc's own
+ * bytes left as the new module has them, src/replay/refly.js's rule),
+ * and it flies on from there once its ghost is flown again in this
+ * process. The room's clock ran on meanwhile: what it missed is a stall
+ * (THE CLOCK), not caught up. What is not kept is the pilot's own memory
+ * (src/game/aipilot.js: its eyes' last 200 ms and its loops' trims),
+ * which that file keeps to itself: the restored racer sees afresh, holds
+ * its sticks for its eyes' delay, and closes on its line again. A kept
+ * plant from another build, or none, is today's: the AI seat is dropped,
+ * marked left, and the room fills again.
  *
  * LOADED LATE. aiopponent.js and the reference read tests/lib (the plant's
  * loader) and dist/sim.wasm, which a server without them does not have:
@@ -91,12 +117,15 @@ import { RATE_DEFAULTS } from '../../configs/rates.js';
 import { composeConfig } from '../../src/fc/dump.js';
 import { raceFromDocument } from '../../src/game/verify.js';
 import { GhostLap } from '../../src/game/ghost.js';
+import { Race } from '../../src/game/race.js';
+import { ELEMENTS } from '../../src/trackbuilder/elements.js';
 import { Colliders, setCraftAirframe } from '../../src/game/collide.js';
 import { BUILT_FRAME_TUBE_OD } from '../../src/game/track.js';
 import { decodeGhost, encodeGhost, ghostFromBase64 } from '../../src/share/ghostdata.js';
 import { fetchGhost, fetchTrackTimes } from '../../src/share/board.js';
 import { simQuatToThree, threeDirToSim, threePosToSim } from '../../src/render/frame.js';
 import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, encodePose } from '../../src/share/roomwire.js';
+import { allocatorSpans, wasmBuild } from '../../src/replay/journal.js';
 
 /* The quad every AI racer flies. */
 export const AI_RACE_AIRFRAME = DEFAULT_AIRFRAME;
@@ -145,6 +174,7 @@ export const kitLoaded = (async () => {
     if (!fs) {
       throw new Error('no filesystem');
     }
+    const zlib = process.getBuiltinModule('node:zlib');
     const [opponent, pilot, reference, simmod] = await Promise.all([
       import('../../src/game/aiopponent.js'),
       import('../../src/game/aipilot.js'),
@@ -156,8 +186,11 @@ export const kitLoaded = (async () => {
     /* The hull the sweep uses is the module's one craft: the only one this
      * process sweeps. */
     setCraftAirframe(af.dims);
+    /* The module's name (journal.js wasmBuild): a kept plant flies on only
+     * on the build that kept it. */
+    const build = await wasmBuild(wasm);
     Object.assign(kit, {
-      ready: true, why: null, wasm, tune, ...opponent, aiPilot: pilot.aiPilot, ...reference, loadSim: simmod.loadSim,
+      ready: true, why: null, wasm, tune, build, zlib, ...opponent, aiPilot: pilot.aiPilot, ...reference, loadSim: simmod.loadSim,
     });
   } catch (e) {
     kit.why = String(e && e.message ? e.message : e);
@@ -195,20 +228,63 @@ function hashOf(track) {
 const PREPARED = new Map();
 const PREPARED_MAX = 64;
 
-function frames(course) {
-  const r = BUILT_FRAME_TUBE_OD / 2;
+/* src/render/pylons.js RIM_SEGMENTS and PYLON_SEGMENTS: the page's own
+ * capsule counts for a hoop's rim and a pylon's cone. */
+export const RIM_SEGMENTS = 24;
+export const PYLON_SEGMENTS = 4;
+
+/* One cone of a pylon (course.js structureOf's { x, y0, h, r0, r1 }, in
+ * its opening's frame) as the page's posts, src/render/pylons.js cone(). */
+function conePosts(at, c, add) {
+  const step = c.h / PYLON_SEGMENTS;
+  for (let k = 0; k < PYLON_SEGMENTS; k += 1) {
+    const r = c.r0 + ((c.r1 - c.r0) * (k + 0.5)) / PYLON_SEGMENTS;
+    add('pylon', at(c.x, c.y0 + k * step), at(c.x, c.y0 + (k + 1) * step), r);
+  }
+}
+
+/* The course's solids: every race gate's structure from its opening's
+ * `frame` (src/game/race.js structureGap reads the same). A gate placed
+ * once per lap is one structure, so a gate flown twice is framed once. */
+export function framesOf(course) {
   const col = new Colliders();
-  const referee = kit.aiBench({ wasm: kit.wasm, af, tune: kit.tune, course, rates: RATE_DEFAULTS }).referee();
-  for (const g of referee.gates) {
-    const ap = g.apertures[0];
-    if (g.virtual || ap.round) {
-      continue;
+  const add = (kind, a, b, r) => col.add(kind, ...a, ...b, r);
+  const done = new Set();
+  for (const g of new Race(course.gates, course.trackClass).gates) {
+    for (const ap of g.apertures) {
+      const id = JSON.stringify([g.x, g.y, g.z, ap.centreY, ap.frame]);
+      if (done.has(id)) {
+        continue;
+      }
+      done.add(id);
+      /* A point (u across, v up) of the opening's own frame, in the scene. */
+      const at = (u, v) => [
+        g.x + u * g.ax.x + v * g.ay.x, g.y + ap.centreY + u * g.ax.y + v * g.ay.y, g.z + u * g.ax.z + v * g.ay.z,
+      ];
+      const f = ap.frame ?? { kind: 'box', hw: ap.clearW / 2 + BUILT_FRAME_TUBE_OD, hh: ap.clearH / 2 + BUILT_FRAME_TUBE_OD };
+      if (f.kind === 'ring') {
+        /* f.r is the rim's outside, the opening's half plus two tube
+         * radii (course.js structureOf): the tube's centre runs one radius
+         * in, src/render/pylons.js Rc. */
+        const t = (f.r - ap.clearW / 2) / 2;
+        const rc = f.r - t;
+        const kind = ELEMENTS[g.kindName] && ELEMENTS[g.kindName].plane ? 'hoop' : 'gate';
+        for (let k = 0; k < RIM_SEGMENTS; k += 1) {
+          const a0 = (2 * Math.PI * k) / RIM_SEGMENTS;
+          const a1 = (2 * Math.PI * (k + 1)) / RIM_SEGMENTS;
+          add(kind, at(rc * Math.cos(a0), rc * Math.sin(a0)), at(rc * Math.cos(a1), rc * Math.sin(a1)), t);
+        }
+      } else if (f.kind === 'cones') {
+        f.cones.forEach((c) => conePosts(at, c, add));
+      } else if (f.kind === 'cone') {
+        conePosts(at, f.cone, add);
+      } else {
+        /* The tube's centre half its width inside the frame's outside. */
+        const r = (f.hw - ap.clearW / 2) / 2;
+        const ring = [at(-(f.hw - r), -(f.hh - r)), at(f.hw - r, -(f.hh - r)), at(f.hw - r, f.hh - r), at(-(f.hw - r), f.hh - r)];
+        ring.forEach((a, i) => add('gate', a, ring[(i + 1) % 4], r));
+      }
     }
-    const c = [g.x, g.y + ap.centreY, g.z];
-    const corner = (u, v) => c.map((x, k) => x + u * (ap.clearW / 2 + r) * [g.ax.x, g.ax.y, g.ax.z][k]
-      + v * (ap.clearH / 2 + r) * [g.ay.x, g.ay.y, g.ay.z][k]);
-    const ring = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
-    ring.forEach((a, i) => col.add('gate', ...a, ...ring[(i + 1) % 4], r));
   }
   col.build();
   return col;
@@ -300,7 +376,7 @@ async function boardGhost(track, origin) {
 async function prepare(entry, track, pace, groundAt, origin) {
   const t0 = performance.now();
   const course = raceFromDocument(track.doc);
-  const colliders = frames(course);
+  const colliders = framesOf(course);
   const bench = kit.aiBench({ wasm: kit.wasm, af, tune: kit.tune, course, rates: RATE_DEFAULTS });
   kit.learnt ??= await bench.learn();
   const { learnt } = kit;
@@ -469,6 +545,12 @@ function poseOf(sim, st, t, seq, crashed) {
   };
 }
 
+/* What an opponent and its Race are, past their plant, when kept: what
+ * aiopponent.js stepTo and race.js reset() move. */
+const OP_KEPT = ['ms', 'crashed', 'downMs', 'held', 'prev', 'sweepFrom', 'normal'];
+const RACE_KEPT = ['next', 'lap', 'lapStartMs', 'lastLapMs', 'prevSimMs', 'banner', 'splits', 'lastSplits', 'log', 'laps',
+  'lapPoints', 'lastLapScore', 'runScore', 'call', 'leaving', 'recordAtStart'];
+
 /*
  * One AI racer: its seated plant (async, from add) and, once that is
  * there, an AiOpponent for what the room is doing: `lobby:<ghost>` holding
@@ -484,10 +566,74 @@ class Racer {
     this.lapsDone = 0;
     this.said = false;
     this.flownTo = 0;
+    /* The race's ms at which this.op's clock read zero: its passes are
+     * times since the race's go on its own clock, across its rebirths. */
+    this.bornMs = 0;
   }
 
-  /* A fresh opponent on the ghost, back at its grid place. */
+  /* A fresh opponent on the ghost for what the room is doing, nothing
+   * flown or scored. */
   build(entry, key) {
+    this.key = key;
+    this.lapsDone = 0;
+    this.said = false;
+    this.flownTo = 0;
+    this.place(entry, 0);
+  }
+
+  /* A crash: back on its grid place as a person's R puts them on their
+   * slot, at race ms `bornMs`, the laps it closed kept. */
+  reborn(entry) {
+    this.place(entry, this.bornMs + this.op.ms);
+  }
+
+  /* Where it is, for the room's storage. */
+  save() {
+    const op = this.op;
+    const { lo, hi } = this.seated.journal.region;
+    const mem = new Uint8Array(this.seated.sim.e.memory.buffer, lo, hi - lo);
+    return {
+      slot: this.slot,
+      key: this.key,
+      lapsDone: this.lapsDone,
+      said: this.said,
+      flownTo: this.flownTo,
+      bornMs: this.bornMs,
+      op: Object.fromEntries(OP_KEPT.map((k) => [k, structuredClone(op[k])])),
+      race: Object.fromEntries(RACE_KEPT.map((k) => [k, structuredClone(op.race[k])])),
+      region: kit.zlib.deflateRawSync(mem, { level: 1 }),
+    };
+  }
+
+  /* A kept racer (save) flying on: an opponent on the same ghost with the
+   * kept plant written into its module. */
+  resume(entry, key, kept) {
+    this.key = key;
+    this.lapsDone = kept.lapsDone;
+    this.said = kept.said;
+    this.flownTo = kept.flownTo;
+    this.place(entry, kept.bornMs);
+    const { sim, journal } = this.seated;
+    const region = kit.zlib.inflateRawSync(kept.region);
+    if (region.length !== journal.region.hi - journal.region.lo) {
+      throw new Error(`a kept plant of ${region.length} bytes, this module's is ${journal.region.hi - journal.region.lo}`);
+    }
+    /* malloc's bookkeeping is in the region too, and it is this module's. */
+    const spans = allocatorSpans(sim.e, journal.region);
+    const mem = new Uint8Array(sim.e.memory.buffer, journal.region.lo, region.length);
+    const live = spans.map(([a, z]) => mem.slice(a, z));
+    mem.set(region);
+    spans.forEach(([a], i) => mem.set(live[i], a));
+    Object.assign(this.op, kept.op);
+    Object.assign(this.op.race, kept.race);
+    this.op.state = sim.readState().state;
+    this.op.prevState = this.op.state;
+  }
+
+  /* An opponent at its grid place, its clock zero at race ms `bornMs`. */
+  place(entry, bornMs) {
+    this.bornMs = bornMs;
+    this.passes = [];
     this.op = new kit.AiOpponent({
       seated: this.seated,
       lap: behind(entry.lap, GRID_LEAD_MS + this.slot * GRID_MS),
@@ -495,11 +641,6 @@ class Racer {
       trackClass: entry.course.trackClass,
       world: worldOf(this.ground, entry.colliders),
     });
-    this.key = key;
-    this.passes = [];
-    this.lapsDone = 0;
-    this.said = false;
-    this.flownTo = 0;
     /* Every pass its Race scores, with the lap's state as it leaves it:
      * what src/main.js roomRacePass reads of the page's own race. */
     const race = this.op.race;
@@ -511,7 +652,7 @@ class Racer {
         lapDone: race.laps.length > before,
         gate: race.lapStartMs != null ? race.splits.length + 1 : 0,
         hoop: Boolean(race.gates[passed].apertures[0].round),
-        t: crossMs,
+        t: this.bornMs + crossMs,
       });
       return passed;
     };
@@ -542,14 +683,16 @@ export class AiRace {
     return entry.state === 'none' ? null : entry.state;
   }
 
-  /* A seat for an AI racer; its plant is seated as soon as it can be. */
-  add(seat) {
+  /* A seat for an AI racer; its plant is seated as soon as it can be.
+   * `kept`, a racer save() kept, flies on from there (restore). */
+  add(seat, kept = null) {
     const used = new Set([...this.racers.values()].map((r) => r.slot));
-    let slot = 0;
-    while (used.has(slot)) {
+    let slot = kept ? kept.slot : 0;
+    while (!kept && used.has(slot)) {
       slot += 1;
     }
     const racer = new Racer(slot);
+    racer.kept = kept;
     this.racers.set(seat, racer);
     racer.ready = seatPlant().then((seated) => {
       racer.seated = seated;
@@ -570,6 +713,28 @@ export class AiRace {
   /* Settled when every racer's plant is seated: for the checks. */
   settled() {
     return Promise.all([...this.racers.values()].map((r) => r.ready));
+  }
+
+  /*
+   * What the room keeps of its racers in a race on (roombots.js store), or
+   * null when there is nothing to fly on from: no race flying, or a
+   * module with no name.
+   */
+  save() {
+    const flying = [...this.racers].filter(([, r]) => r.op && r.key && r.key.startsWith('race:'));
+    if (!kit.ready || !kit.build || !flying.length) {
+      return null;
+    }
+    return { build: kit.build, racers: flying.map(([seat, r]) => ({ seat, ...r.save() })) };
+  }
+
+  /* The racer `seat` a restored room's store kept, when this process can
+   * fly it on: the race it was in is still on, and the plant is this
+   * build's. Null otherwise. */
+  static kept(saved, seat, core) {
+    const r = core.race.race;
+    const kept = saved && kit.ready && saved.build === kit.build ? saved.racers.find((x) => x.seat === seat) : null;
+    return kept && r && r.state === 'on' && kept.key.startsWith(`race:${r.id}:`) && r.racers.includes(seat) ? kept : null;
   }
 
   /* A mid air broke a part of it (roombots.js hits). */
@@ -604,15 +769,18 @@ export class AiRace {
       racer.ground = ground;
       const racing = r && r.state === 'on' && r.racers.includes(seat);
       const key = racing ? `race:${r.id}:${entry.key}` : `lobby:${entry.key}`;
-      if (racer.key !== key) {
+      if (racer.key !== key && racer.kept && racer.kept.key === key) {
+        racer.resume(entry, key, racer.kept);
+      } else if (racer.key !== key) {
         racer.build(entry, key);
       }
+      racer.kept = null;
       if (!racing) {
         out.push(...core.race.message(core, at.conn, at.s, {
           type: 'race', op: 'ready', track: track.id, ready: true,
         }, now));
       } else if (roomNow >= r.goAt) {
-        out.push(...this.fly(core, now, racer, r, roomNow, at));
+        out.push(...this.fly(core, now, racer, r, roomNow, at, entry));
       }
       at.s.seq = (at.s.seq + 1) & 0xffff;
       const pose = poseOf(racer.op.sim, racer.op.state, Math.floor(roomNow), at.s.seq, racer.op.crashed);
@@ -624,7 +792,7 @@ export class AiRace {
   /* Flies on to the room's now and says what it scored. Past its finish
    * it flies on round the line until the race's results, as a person
    * does, and what it scores there is not news. */
-  fly(core, now, racer, r, roomNow, at) {
+  fly(core, now, racer, r, roomNow, at, entry) {
     const op = racer.op;
     const out = [];
     const since = racer.flownTo || r.goAt;
@@ -648,8 +816,7 @@ export class AiRace {
       }
     }
     if (op.crashed && !racer.said) {
-      racer.said = true;
-      out.push(...core.race.message(core, at.conn, at.s, { type: 'race', op: 'retire', race: r.id }, now));
+      racer.reborn(entry);
     }
     return out;
   }

@@ -5,14 +5,17 @@
  * race on the Swiss valley, one person in it, the host loads
  * tests/fixtures/map-track-v4.json; the room flies its reference lap, and
  * AI pilots fill the grid, marked as AI, in the interceptor, ready; a
- * second person takes one's place before the start. The race starts: each AI pilot's passes reach the room as a racer's own, in
+ * second person takes one's place before the start. The race starts:
+ * each AI pilot's passes reach the room as a racer's own, in
  * order, every gate of every lap, and its finish closes the last lap; the
  * results order them with the person's. Its poses are a quad's and stay
  * over the page's ground. Hard swaps the ghost for a faster one under the
  * same AI pilots. The board's best lap is their ghost when the board has
  * one they can follow, slowed to the level's pace, else the room's
  * reference (boardSection). Off takes them away, the last person leaving
- * takes them all and empties the room. Negative controls: a pace the
+ * takes them all and empties the room. A crash is a wreck and R, never a
+ * retire (rebirthSection). The solids are each structure's own: frame
+ * bars, hoop rims, pylon posts (framesSection). Negative controls: a pace the
  * reference cannot lap (16 m/s on this track, aipilot:harness) seats
  * none, and a room made for tag never gets one.
  *
@@ -37,6 +40,7 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { deserialize, serialize } from 'node:v8';
 import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,8 +51,10 @@ import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { groundOf } from '../edge/rooms/grounds.js';
 import { Race } from '../src/game/race.js';
 import {
-  AI_RACE_AIRFRAME, RACE_PACES, aiRaceUnavailable, kitLoaded, preparedFor,
+  AI_RACE_AIRFRAME, PYLON_SEGMENTS, RACE_PACES, RIM_SEGMENTS, aiRaceUnavailable, framesOf, kitLoaded, preparedFor,
 } from '../edge/rooms/airace.js';
+import { addGate, newCourse } from '../src/builder/course.js';
+import { raceFromDocument } from '../src/game/verify.js';
 import {
   FLAG_QUAD, PROTO, ROOM_LEVEL, TYPE_BATCH, decodeBatch,
 } from '../src/share/roomwire.js';
@@ -65,14 +71,25 @@ for (const el of TRACK.elements) {
 }
 const LAPS = 2;
 
-/* A room made for `mode` on swiss2, as host.js init makes one. */
-function room({ mode = 'race', open = true } = {}) {
+/* A room made for `mode` on swiss2, as host.js init makes one; with
+ * `stored`, host.js load's: every key a { store } wrote, through the
+ * SQLite file's v8 bytes (edge/rooms/node.js Store), restored before the
+ * seats, and no socket left. */
+function room({
+  mode = 'race', open = true, stored = null, clock = 0,
+} = {}) {
   const r = new RoomCore({
     code: 'A1RACE', cap: 8, friendly: false, map: 'swiss2', epoch: 0, public: open, mode, name: null, pick: [1, 1], mission: null, hidden: false,
   });
+  if (stored) {
+    for (const [key, value] of stored) {
+      r[key].restore(deserialize(value));
+    }
+    r.restore([]);
+  }
   let tokens = 0;
   const env = {
-    r, socks: [], clock: 0, empty: 0,
+    r, socks: [], clock, empty: 0, stored: new Map(), onStore: null,
   };
   env.apply = (actions) => {
     for (const x of actions) {
@@ -81,6 +98,12 @@ function room({ mode = 'race', open = true } = {}) {
       }
       if (x.empty) {
         env.empty += 1;
+      }
+      if (x.store) {
+        env.stored.set(x.store, serialize(x.value));
+        if (env.onStore) {
+          env.onStore(x);
+        }
       }
     }
   };
@@ -248,6 +271,9 @@ export async function aiRaceSection(check) {
     check('negative control: a pace the reference cannot lap (16 m/s) gives no ghost and no AI pilot',
       entry.state === 'none' && e.bots().length === 0, `ghost ${entry.state}, ${e.bots().length} AI seats`);
   }
+  framesSection(check);
+  await rebirthSection(check);
+  await restoreSection(check);
   await boardSection(check);
   {
     const e = room({ mode: 'free' });
@@ -258,6 +284,229 @@ export async function aiRaceSection(check) {
     }
     check('a room not made for a race seats no AI racer for a track', e.r.bots.racers.racers.size === 0);
   }
+}
+
+/*
+ * The solids an AI pilot meets, from each structure's own geometry: a
+ * course of a gate, a quad hoop, a pylon pair, a single pylon and a plane
+ * hoop, each 30 m on down the scene's -z, flown through along -z. A line
+ * through a rim, a cone or a frame bar meets a solid of the page's kind;
+ * one through an opening meets none. Negative controls: the pair's
+ * scoring square's top edge, where the old builder put a bar and nothing
+ * stands, and the air beside the pair.
+ */
+function framesSection(check) {
+  const doc = newCourse('swiss2', 'frames');
+  const q = {
+    x: 0, y: 0, z: 0, w: 1,
+  };
+  ['gate', 'hoop175', 'pylonPair', 'pylon', 'hoop30'].forEach((type, i) => addGate(doc, type, { x: 0, y: 0, z: -30 * i }, q));
+  const course = raceFromDocument(doc);
+  const col = framesOf(course);
+  const at = (i, x, y) => {
+    const solid = col.hit(x, y, -30 * i + 3, x, y, -30 * i - 3);
+    return solid < 0 ? 'none' : col.kindName(solid);
+  };
+  const ap = course.gates.map((g) => g.apertures[0]);
+  /* A rim's tube centre, one tube radius inside its outside (f.r). */
+  const rim = (i) => {
+    const f = ap[i].frame;
+    return f.r - (f.r - ap[i].clearW / 2) / 2;
+  };
+  const pair = ap[2].frame.cones[0];
+  const seen = {
+    gateBar: at(0, 0, ap[0].centreY + ap[0].frame.hh - 0.01),
+    gateOpening: at(0, 0, ap[0].centreY),
+    quadRim: at(1, 0, ap[1].centreY + rim(1)),
+    quadRimSide: at(1, rim(1), ap[1].centreY),
+    quadOpening: at(1, 0, ap[1].centreY),
+    pairCone: at(2, pair.x, 2),
+    pairOpening: at(2, 0, ap[2].centreY),
+    pairSquareTop: at(2, 0, ap[2].centreY + ap[2].clearH / 2),
+    besidePair: at(2, 3 * pair.x, 2),
+    pylonPost: at(3, 0, 20),
+    pylonOpening: at(3, course.gates[3].x, ap[3].centreY),
+    planeRim: at(4, 0, ap[4].centreY - rim(4)),
+    planeOpening: at(4, 0, ap[4].centreY),
+  };
+  const { byKind } = col.stats();
+  const kinds = (k) => byKind[k];
+  const detail = JSON.stringify(seen);
+  check(`a quad hoop's rim is ${RIM_SEGMENTS} firm tubes and a plane hoop's ${RIM_SEGMENTS} soft ones, and a line through either rim meets it`,
+    kinds('hoop') === RIM_SEGMENTS && seen.quadRim === 'gate' && seen.quadRimSide === 'gate' && seen.planeRim === 'hoop', `${kinds('hoop')} soft; ${detail}`);
+  check(`a pylon is ${PYLON_SEGMENTS} posts up its cone and a pair two such cones, and a line through either cone meets a pylon`,
+    kinds('pylon') === 3 * PYLON_SEGMENTS && seen.pairCone === 'pylon' && seen.pylonPost === 'pylon', `${kinds('pylon')} posts; ${detail}`);
+  check('a rectangular gate keeps its four bars: a line through its top bar meets a gate',
+    kinds('gate') === 4 + RIM_SEGMENTS && seen.gateBar === 'gate', `${kinds('gate')} firm; ${detail}`);
+  check('a line through every opening meets nothing',
+    ['gateOpening', 'quadOpening', 'pairOpening', 'pylonOpening', 'planeOpening'].every((k) => seen[k] === 'none'), detail);
+  check('negative control: nothing stands at the top of a pylon pair\'s scoring square, nor in the air beside it',
+    seen.pairSquareTop === 'none' && seen.besidePair === 'none', detail);
+}
+
+/*
+ * A crash is a person's wreck and R: an AI pilot that a mid air breaks
+ * (roombots.js hits, the referee's path) on its first lap is not retired:
+ * its lap in flight is voided, it is back on its grid place, its clock
+ * runs on, and it finishes. Negative controls: the AI pilots that never
+ * crashed pass every gate once, in order, and a crash after its finish
+ * changes nothing.
+ */
+async function rebirthSection(check) {
+  const e = room();
+  e.join(0);
+  e.say(0, { type: 'track', doc: TRACK });
+  const entry = await settle(e);
+  e.say(0, {
+    type: 'race', op: 'ready', track: e.r.race.track.id, ready: true,
+  });
+  e.say(0, { type: 'race', op: 'start', laps: 1 });
+  const race = e.r.race.race;
+  const ai = e.bots().map((s) => s.seat);
+  const [hit, ...others] = ai;
+  const racer = e.r.bots.racers.racers.get(hit);
+  const gates = e.r.race.track.gates;
+  const passes = (seat) => e.socks[0].got.filter((m) => m.type === 'event' && m.seat === seat);
+  const breakIt = (seat) => e.r.bots.hits([{ A: { seat, brk: 1 }, B: { seat: 0, brk: 0 } }], e.r.roomMs(e.clock));
+  const endAt = e.clock + COUNTDOWN_MS + 3 * entry.lap.durationMs + 30000;
+  let crashedAt = null;
+  let grid = null;
+  let after = null;
+  while (e.clock < endAt && race.state === 'on') {
+    e.tick();
+    if (crashedAt === null && passes(hit).length >= 3) {
+      const before = racer.op;
+      breakIt(hit);
+      crashedAt = e.r.roomMs(e.clock) - race.goAt;
+      e.tick();
+      /* Reborn where a fresh opponent on its line starts: its grid place. */
+      const fresh = racer.op;
+      grid = {
+        replaced: fresh !== before, bornMs: racer.bornMs, opMs: fresh.ms, laps: racer.lapsDone,
+      };
+    }
+    if (race.finish[hit] && after === null) {
+      after = { ...race.finish[hit], clock: e.clock };
+      breakIt(hit);
+    }
+    /* The person crosses last, once the broken finisher has lain a while. */
+    if (after && e.clock - after.clock > 2000 && !race.finish[e.r.seats.get(e.socks[0]).seat] && ai.every((seat) => race.finish[seat] || race.out[seat])) {
+      const last = Math.max(...ai.map((seat) => (race.finish[seat] ? race.finish[seat].ms : 0)));
+      e.say(0, {
+        type: 'race', op: 'finish', race: race.id, ms: last + 1000, lap: 1, points: 0,
+      });
+    }
+  }
+  const mine = passes(hit).map((m) => `${m.lap}:${m.gate}@${m.t}`);
+  const ts = passes(hit).map((m) => m.t);
+  const voided = passes(hit).findIndex((m, i, all) => i > 0 && m.gate < all[i - 1].gate);
+  check('an AI pilot broken in a mid air on its first lap is not retired: it is put back on its grid place, its clock running on',
+    crashedAt !== null && grid && grid.replaced && grid.laps === 0 && grid.bornMs >= crashedAt - 2 * TICK_MS && grid.opMs <= 2 * TICK_MS && !race.out[hit],
+    `broken at race ${crashedAt} ms; ${JSON.stringify(grid)}; out ${race.out[hit] || 'no'}`);
+  check('the room hears its lap voided as a person\'s: the timing gate again at a lower count, later, then every gate of the lap',
+    voided > 0 && passes(hit)[voided].gate === 1 && passes(hit)[voided].lap === 0
+    && ts.every((t, i) => i === 0 || t > ts[i - 1])
+    && passes(hit).slice(voided).map((m) => m.gate).join() === Array.from({ length: gates }, (_, i) => i + 1).join(),
+    mine.join(' '));
+  check('and it finishes the race, after the AI pilots that flew clean', after && after.lap === 1 && race.state === 'results'
+    && others.every((seat) => race.finish[seat] && race.finish[seat].ms < after.ms),
+    ai.map((seat) => `${seat}: ${race.finish[seat] ? race.finish[seat].ms : race.out[seat] || 'flying'}`).join(', '));
+  check('negative control: the AI pilots that never crashed pass each gate once, in order',
+    others.every((seat) => passes(seat).map((m) => m.gate).join() === Array.from({ length: gates }, (_, i) => i + 1).join()),
+    others.map((seat) => passes(seat).map((m) => m.gate).join('.')).join(' | '));
+  check('negative control: a crash after its finish changes nothing: the finish stands and nothing more is said',
+    after && race.finish[hit] && race.finish[hit].ms === after.ms && !race.out[hit] && passes(hit).every((m) => m.t <= after.ms),
+    `finish ${after ? after.ms : '-'} -> ${race.finish[hit] ? race.finish[hit].ms : '-'}`);
+  e.leave(0);
+}
+
+/*
+ * A restore mid race (a restart, or a drain past its cap: host.js load
+ * from what the room stored): the room stores each AI racer's plant and
+ * lap every STORE_MS of a race; a second room made from those stores, as
+ * a new process makes it, seats the same AI pilots, writes each one's
+ * plant back bit for bit, and they fly on to the finish from there, not
+ * left. Negative control: the same stores named for another build of
+ * dist/sim.wasm are today's restore: the AI pilots are dropped and marked
+ * left in the race.
+ */
+async function restoreSection(check) {
+  const e = room();
+  e.join(0);
+  e.say(0, { type: 'track', doc: TRACK });
+  const entry = await settle(e);
+  e.say(0, {
+    type: 'race', op: 'ready', track: e.r.race.track.id, ready: true,
+  });
+  e.say(0, { type: 'race', op: 'start', laps: 1 });
+  const race = e.r.race.race;
+  const ai = e.bots().map((s) => s.seat);
+  /* What each plant was when the room stored it, to hold the restore to. */
+  let atStore = null;
+  e.onStore = (x) => {
+    if (x.store === 'bots' && x.value.racers) {
+      atStore = new Map([...e.r.bots.racers.racers].map(([seat, rc]) => [seat, { ms: rc.op.ms, state: Float64Array.from(rc.op.state), lapsDone: rc.lapsDone }]));
+    }
+  };
+  const passes = (so, seat) => so.got.filter((m) => m.type === 'event' && m.seat === seat);
+  /* Mid lap: every AI pilot past its timing gate and a stored plant. */
+  const endAt = e.clock + COUNTDOWN_MS + 2 * entry.lap.durationMs;
+  while (e.clock < endAt && !(atStore && ai.every((seat) => passes(e.socks[0], seat).length >= 3))) {
+    e.tick();
+  }
+  const kept = deserialize(e.stored.get('bots'));
+  const keptBytes = e.stored.get('bots').length;
+  check('in a race on the room stores every AI racer\'s plant with its lap, named for this build',
+    Boolean(kept.racers && kept.racers.build && kept.racers.racers.length === ai.length && atStore),
+    kept.racers ? `${kept.racers.racers.length} racers, ${(keptBytes / 1024).toFixed(0)} kB stored, build ${kept.racers.build.slice(0, 12)}` : 'none');
+  const restoredAt = e.clock + 2000;
+  const stored = new Map(e.stored);
+  e.leave(0);
+
+  const b = room({ stored, clock: restoredAt });
+  const br = b.r.race.race;
+  check('restored mid race, the room seats the same AI pilots and none is out of the race',
+    br && br.state === 'on' && ai.every((seat) => b.r.bots.racers.has(seat) && b.bots().some((s) => s.seat === seat) && !br.out[seat]),
+    br ? `AI ${b.bots().map((s) => s.seat).join(',')}, out ${JSON.stringify(br.out)}` : 'no race');
+  b.join(0);
+  await preparedFor(b.r.race.track, b.r.meta.map, b.r.bots.racers.paces[b.r.bots.level]).done;
+  await b.r.bots.racers.settled();
+  /* The first tick that flies them writes the plants back, then flies. */
+  const fly = b.r.bots.racers.fly.bind(b.r.bots.racers);
+  const first = new Map();
+  b.r.bots.racers.fly = (core, now, racer, ...rest) => {
+    const seat = [...b.r.bots.racers.racers].find(([, rc]) => rc === racer)[0];
+    if (!first.has(seat)) {
+      first.set(seat, { ms: racer.op.ms, state: Float64Array.from(racer.op.state), lapsDone: racer.lapsDone });
+    }
+    return fly(core, now, racer, ...rest);
+  };
+  b.tick();
+  const same = ai.every((seat) => {
+    const a = atStore.get(seat);
+    const f = first.get(seat);
+    return a && f && a.ms === f.ms && a.lapsDone === f.lapsDone && a.state.every((v, i) => Object.is(v, f.state[i]));
+  });
+  check('each AI racer flies on from its kept plant: the same clock, laps and plant state, bit for bit',
+    same, ai.map((seat) => `${seat}: ${atStore.get(seat) ? atStore.get(seat).ms : '-'} -> ${first.get(seat) ? first.get(seat).ms : '-'} ms`).join(', '));
+  const finishBy = b.clock + 2 * entry.lap.durationMs + 20000;
+  while (b.clock < finishBy && !ai.every((seat) => br.finish[seat] || br.out[seat])) {
+    b.tick();
+  }
+  const after = (seat) => passes(b.socks[0], seat);
+  check('and they finish the race from there, passing on through the gates after the kept one',
+    ai.every((seat) => br.finish[seat] && br.finish[seat].lap === 1 && !br.out[seat] && after(seat).length > 0),
+    ai.map((seat) => `${seat}: ${after(seat).map((m) => m.gate).join('.')} ${br.finish[seat] ? `finish ${br.finish[seat].ms}` : br.out[seat] || 'flying'}`).join(', '));
+  b.leave(0);
+
+  const other = new Map(stored);
+  const value = deserialize(other.get('bots'));
+  value.racers.build = 'another build';
+  other.set('bots', serialize(value));
+  const c = room({ stored: other, clock: restoredAt });
+  const cr = c.r.race.race;
+  check('negative control: a plant kept by another build is not written in: the AI pilots are dropped and marked left',
+    c.bots().length === 0 && ai.every((seat) => cr.out[seat] === 'left'), `AI ${c.bots().length}, out ${JSON.stringify(cr.out)}`);
 }
 
 /*
