@@ -117,9 +117,9 @@ GPU floor (docs/PERF.md, proposed budgets).
 | `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.14 (<= 1.31) 2026-10-14 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.46 (<= 1.69) 2026-10-14 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.74 (<= 2.01) 2026-10-14 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
-| `peers` | low | 717 (<= 825) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
-| `peers` | medium | 1398 (<= 1608) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
-| `peers` | high | 1411 (<= 1623) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 1411 calls, the whole frame against the main view's 300 (not split) | 7 peers |
+| `peers` | low | 381 (<= 438) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
+| `peers` | medium | 726 (<= 835) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
+| `peers` | high | 739 (<= 850) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 739 calls, the whole frame against the main view's 300 (not split) | 7 peers |
 
 The draw calls of `title` and `alps-low` at every tier were retaken on
 2026-10-13 after the Alps' draws were merged (branch w38-perf: the
@@ -158,9 +158,20 @@ w39-peers-perf: a material worn in several parts at one offset is one
 mesh, 47 meshes to 40), on GPU 1 through run-check.sh, the same run
 settings, each tier three times: 717 at Low, 1 398 at Medium, 1 411 at
 High in every run, and their ceilings moved down to 1.15 times that.
-Their other columns are the first runs'. At High a full room is still
-almost five times the main view's 300 calls on its own: the rest is the
-parts' own materials (one call each) and the four rotors and discs.
+Their other columns are the first runs'.
+
+And again 2026-10-14 between 05:09 and 05:23 local after a peer's
+fixed parts were joined into palette meshes (branch w39-peer-palette,
+src/render/combatcraft.js paletteFixed: a stock 7 inch 40 meshes to
+16), on GPU 1 through run-check.sh with `--budgets`, the same run
+settings, each tier three times: 381 at Low, 726 at Medium, 739 at High
+in every run (max of the run; averages 378, 716, 729), triangles and
+textures unchanged, and the ceilings moved down to 1.15 times that.
+The row's seven peers send no livery, so these are stock peers; a peer
+wearing a finish keeps its meshes (docs/PERF.md). At High a full room
+is still about two and a half times the main view's 300 calls: what is
+left a peer is a palette mesh per offset and render state,
+the lens, the inks, four rotors and four discs.
 
 The ceilings above hold today's whole frame cost from growing; whether
 a row is within the contract is the column "Over the written
