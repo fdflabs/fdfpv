@@ -126,7 +126,7 @@ import { createLobbyReady } from './share/roomlobby.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import { createJamRun, createRoomJam } from './share/roomjam.js';
 import { jamHudView, jamResultsView, jamTurnShout } from './ui/jamhud.js';
-import { MODES, VISIBILITIES, modeById, modeOfRoom, modeOfWire, visibilityFor } from './share/modes.js';
+import { MODES, VISIBILITIES, modeById, modeOfRoom, modeOfWire, visibilityFor, wireMode } from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
 } from './ui/roomtaghud.js';
@@ -4083,6 +4083,7 @@ export async function boot({
     },
     onRoom: () => ui.refreshFriends(),
     onLobby: () => ui.refreshFriends(),
+    onSetup: () => roomSetup(),
     onWorld: () => ui.refreshFriends(),
     onWeather: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
@@ -4990,7 +4991,7 @@ export async function boot({
   const lobbyReady = createLobbyReady((obj) => roomLinkState.send(obj));
   function gameLobbyToggle() {
     const lobby = gameLobby();
-    if (lobby && !roomLinkState.state().welcome.watch) {
+    if (lobby && !roomLinkState.state().welcome.watch && !sitsOut()) {
       /* A press before the room listed the last one turns that one. */
       const was = lobbyReady.pending() ?? gameLobbyReady(lobby);
       lobbyReady.set(!was, lobby, roomLinkState.state().welcome.seat, performance.now());
@@ -5012,9 +5013,12 @@ export async function boot({
     /* The watch seat is never asked to be ready (edge/rooms/gamelobby.js
      * counts the people). */
     const watching = Boolean(roomLinkState.state().welcome.watch);
-    const rows = [...(watching ? [] : [{
-      label: str(readyLabel), note: str(readyNote), action: 'friends-lobby-ready', primary: true,
-    }]), ...lobbyInviteRows(), ...lobbyVisibilityRows(host)];
+    /* A pilot sitting the war out (sitsOut) is never asked to be ready:
+     * its first row is the way back in. */
+    const first = sitsOut()
+      ? { label: str('lobby.take_part'), note: str('lobby.take_part_note'), action: 'friends-setup-consent', primary: true }
+      : { label: str(readyLabel), note: str(readyNote), action: 'friends-lobby-ready', primary: true };
+    const rows = [...(watching ? [] : [first]), ...lobbyInviteRows(), ...lobbyVisibilityRows(host), ...lobbySetupRows(host)];
     rows.push(...game.rows(host));
     if (host && game.start) {
       rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: game.start });
@@ -5065,6 +5069,8 @@ export async function boot({
          * only the war's aircraft may be. */
         aircraft: airframeById(seat === w.seat ? (game === 'war' ? warCraftOf(ui.settings) : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
+        /* Sitting the war out (edge/rooms/core.js setup). */
+        out: Boolean(lobby.out && lobby.out[seat]),
         /* An AI pilot (src/share/rooms.js shownName). */
         ai: seat !== w.seat && Boolean(roomPeers.get(seat).name.bot),
         host: seat === w.host,
@@ -5260,6 +5266,12 @@ export async function boot({
       ui.returnTo = 'title';
       ui.show('friends');
     }
+    /* Here before the host moved the room into the war: asked as one
+     * sitting it out, whose no stays (warSetupConsent). */
+    if (sitsOut()) {
+      warSetupConsent();
+      return;
+    }
     if (!modeOfRoom(w.mode)?.consent || ui.settings.warConsent || warJoinAsking) {
       return;
     }
@@ -5416,6 +5428,69 @@ export async function boot({
         });
       }
     })];
+  }
+
+  /*
+   * THE ROOM'S ACTIVITY, changed by the host of a private room between
+   * rounds (edge/rooms/core.js setup, COMPLETENESS 77): the lobby's
+   * Activity row, offered where the welcome's setupInPlace says the room
+   * takes it. The war only where it may run (warFits), and the host's own
+   * consent first. A public room keeps the activity it is listed for.
+   */
+  function lobbySetupRows(host) {
+    const w = roomLinkState.state().welcome;
+    if (!host || !w || w.public || w.setupInPlace !== true) {
+      return [];
+    }
+    const offered = MODES.map((m) => m.id).filter((id) => id !== 'war' || warFits(w));
+    return [choice(str('lobby.activity'), str('lobby.activity_note'), offered, modeOfWire(w.mode), (id) => str(GAME_CARDS[id]), async (id) => {
+      if (id === modeOfWire(w.mode) || (modeOfRoom(wireMode(id))?.consent && !(await warConsented()))) {
+        return;
+      }
+      roomLinkState.send({ type: 'setup', mode: wireMode(id) });
+    })];
+  }
+
+  /* Whether this pilot sits the war out: in the room's lobby's `out`, a
+   * pilot who was here when the host moved the room into the war and has
+   * not given its consent since (edge/rooms/core.js setup). */
+  function sitsOut() {
+    const w = roomLinkState.state().welcome;
+    return Boolean(w && w.lobby && w.lobby.out && w.lobby.out[w.seat]);
+  }
+
+  /* The host changed the room's activity: the lobby is the new game's,
+   * led by its card, and into the war this pilot is asked its consent. */
+  function roomSetup() {
+    const w = roomLinkState.state().welcome;
+    if (w) {
+      ui.roomGame = w.mode ?? null;
+    }
+    if (w && ui.lobbyCard) {
+      ui.lobbyCard = `way-${modeById(modeOfWire(w.mode)).card.way}`;
+    }
+    ui.refreshFriends();
+    warSetupConsent();
+  }
+
+  /* The war's consent for a pilot sitting it out: given before (once per
+   * profile), said at once; else asked, and a no keeps the pilot in the
+   * lobby, sitting the war out, never out of the room (a joiner's no is
+   * roomWarJoinGate's, which leaves). */
+  let warSetupAsking = false;
+  async function warSetupConsent() {
+    if (!sitsOut() || warSetupAsking) {
+      return;
+    }
+    warSetupAsking = true;
+    try {
+      if (await warConsented()) {
+        roomLinkState.send({ type: 'setup', consent: true });
+      }
+    } finally {
+      warSetupAsking = false;
+    }
+    ui.refreshFriends();
   }
 
   /*
@@ -5782,8 +5857,9 @@ export async function boot({
       audio.setWarBed(v.state === 'countdown' ? 'intro' : staged);
     }
     const w = roomLinkState.state().welcome;
-    /* The watch seat is not put in the air: it watches from where it is. */
-    if (roomWar.watcher()) {
+    /* The watch seat is not put in the air: it watches from where it is.
+     * Nor is a pilot sitting the war out: it stays in the lobby. */
+    if (roomWar.watcher() || sitsOut()) {
       return;
     }
     if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
@@ -8336,6 +8412,10 @@ export async function boot({
   ui.onFriends = async (action) => {
     if (action === 'friends-lobby-ready') {
       gameLobbyToggle();
+      return;
+    }
+    if (action === 'friends-setup-consent') {
+      warSetupConsent();
       return;
     }
     /* The host's Start now in a combat, an Ace or a race lobby: the round

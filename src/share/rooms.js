@@ -294,6 +294,7 @@ export function devAccount() {
  * onProfile(seat, profile), onBatch(batch), onState(state),
  * onRoom() when the room's name changed (reports took it away),
  * onHit(hit) (the referee's mid air contact, src/game/midair.js),
+ * onSetup() when the host changed the room's activity (welcome.mode),
  * onHost(seat) when the room's host changes,
  * onEvent(event) for an event, onReported(seat), onBinary(bytes) for any
  * binary message but a batch, and onMessage(message) for every other text
@@ -519,6 +520,15 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.lobby = m.lobby;
         }
         handlers.onLobby?.();
+      } else if (m.type === 'setup') {
+        /* The host changed the room's activity between rounds (edge/rooms/
+         * core.js setup): the room is the new game's, in its lobby. */
+        if (welcome && (m.mode === null || typeof m.mode === 'string')) {
+          welcome.mode = m.mode;
+          welcome.mission = m.mission ?? null;
+          welcome.lobby = m.lobby;
+        }
+        handlers.onSetup?.();
       } else if (m.type === 'public') {
         /* The host changed who joins in place (edge/rooms/core.js
          * setPublic). */

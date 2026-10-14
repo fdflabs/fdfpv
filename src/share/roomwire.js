@@ -74,8 +74,14 @@ export const PROTO = 2;
  * while every person in it is at 3 or above (edge/rooms/roombots.js), and
  * a tab below closes with CLOSE.update by the rule above, so no screen ever
  * shows an AI pilot as a person.
+ *
+ * 4: the host of a private room may change its activity between rounds
+ * (edge/rooms/core.js setup, { type: 'setup' }), which moves every page
+ * in it to the new game's lobby and asks the war's consent of each pilot
+ * when the new game is the war. A page below would stay in the old
+ * game's lobby and never be asked.
  */
-export const ROOM_LEVEL = 3;
+export const ROOM_LEVEL = 4;
 
 /*
  * A hello's `war`: this build asks the war's consent (docs/WARFARE-PLAN.md

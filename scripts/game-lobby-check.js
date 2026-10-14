@@ -24,7 +24,9 @@
  *
  *   B clicks the same card, one click, and lands in A's lobby, each in the
  *   other's pilots. With B there (not the war), A's Who joins changes the
- *   room in place: Friends, off the list, B shown the code; Public again.
+ *   room in place: Friends, off the list, B shown the code; in it, A's
+ *   Activity row moves the room to another game and back, B's lobby
+ *   following; Public again.
  *   Both ready: the round on both. Its end: both back in the lobby, nobody
  *   ready.
  *
@@ -663,6 +665,28 @@ try {
         before.offered && before.public === true && /\b14\b/.test(before.open || '') && shut.code === code && shut.public === false && bCode && /\b6\b/.test(shut.open || ''),
         JSON.stringify({ before, shut, bCode }));
       check('and it is off the browser\'s list', !(await listedCodes()).includes(code));
+      /* THE ACTIVITY (edge/rooms/core.js setup, COMPLETENESS 77): in the
+       * private room only its host has the row, without the war off the
+       * war's world; A moves the room to another game and back, and B's
+       * lobby follows each time without a click. */
+      const ACT = "(() => { const it = window.__ui.items().find((x) => x.label === 'Activity'); return it ? { value: it.current, options: it.options.map((o) => o.value) } : null; })()";
+      const other = GAME === 'race' ? 'combat' : 'race';
+      const actA = await a.evaluate(ACT);
+      const actB = await b.evaluate(ACT);
+      const pickAct = (v) => a.evaluate(`(() => { window.__ui.items().find((x) => x.label === 'Activity').pick(${JSON.stringify(v)}); return true; })()`);
+      await pickAct(other);
+      await b.until(`window.__rooms().mode === ${JSON.stringify(other)} && ${IN_LOBBY}`, 15000).catch(() => {});
+      await b.sleep(800);
+      const moved = await b.evaluate(LOBBY);
+      check(`A's Activity row (B has none, and the war is not offered off its world): A picks ${other}, and B's lobby is ${other}'s, in the same room, without a click`,
+        Boolean(actA) && actA.value === GAME && actA.options.includes(other) && !actA.options.includes('war') && actB === null
+        && moved.mode === other && moved.code === code && moved.shown && moved.title === 'LOBBY' && people(moved.pilots).length === 2,
+        JSON.stringify({ actA, actB, moved: { mode: moved.mode, code: moved.code, shown: moved.shown, line: moved.line } }));
+      await pickAct(GAME);
+      await b.until(`window.__rooms().mode === ${JSON.stringify(GAME)} && ${IN_LOBBY}`, 15000).catch(() => {});
+      await b.sleep(800);
+      const home = await b.evaluate(LOBBY);
+      check(`and back to ${GAME}: B's lobby is ${GAME}'s again`, home.mode === GAME && home.code === code && home.shown, JSON.stringify({ mode: home.mode, line: home.line }));
       await pickHere('public');
       await b.until('window.__rooms().public === true', 15000).catch(() => {});
       await a.until('window.__rooms().public === true', 15000).catch(() => {});
