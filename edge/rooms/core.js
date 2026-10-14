@@ -1484,15 +1484,17 @@ export class RoomCore {
     if (this.war.on()) {
       return warClock(this.war.mission(), this.war.match);
     }
-    if (this.meta.mode === 'war') {
-      const id = warMission(this);
-      return id ? missionClock(missionTime(MISSIONS[id]), stagesOf(MISSIONS[id])) : null;
-    }
-    /* A war started in another room keeps its time over its end and its
-     * result, so the banner, and a briefing straight after, are not held
-     * behind two rebuilds. */
-    if (this.war.match) {
+    /* A war keeps its time over its end and its result, the hour its
+     * light had reached (so the banner is not lit back to where the
+     * mission began, nor held behind a rebuild), until a war room's
+     * lobby picks another mission; a war started in another room keeps
+     * it as long as it stands. */
+    const id = this.meta.mode === 'war' ? warMission(this) : null;
+    if (this.war.match && (this.meta.mode !== 'war' || this.war.match.mission === id)) {
       return warClock(this.war.mission(), this.war.match);
+    }
+    if (this.meta.mode === 'war') {
+      return id ? missionClock(missionTime(MISSIONS[id]), stagesOf(MISSIONS[id])) : null;
     }
     return clockOfTime(this.meta.daytime ?? null);
   }

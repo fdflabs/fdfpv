@@ -276,6 +276,9 @@ export function missionClock(time, stages, stage = null, endAt = null) {
     return lightClock(L.start, 0, 0, endAt != null ? L.start : L.end);
   }
   const n = stage.n;
+  if (L.from[n] === null) {
+    throw new Error(`daytime: stage ${stages[n].id} is reached by no exit`);
+  }
   const d = stages[n].daytime;
   if (!d || stage.at == null) {
     /* Standing, over the end too: a later stage's ramp may be to come. */

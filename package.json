@@ -625,6 +625,7 @@
     "daytime:frame": "node scripts/daytime-frame-check.js",
     "daytime:room": "node scripts/daytime-room-check.js",
     "daytime:ramp": "node scripts/daytime-ramp-check.js",
+    "daytime:war": "node scripts/daytime-war-check.js",
     "briefing:selftest": "node scripts/briefing-selftest.js",
     "sky:smooth": "node scripts/sky-smooth-check.js",
     "kits:selftest": "node scripts/kits-selftest.js",

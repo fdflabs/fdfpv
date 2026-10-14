@@ -4532,7 +4532,8 @@ export async function boot({
    * the mission's end and its result, so the banner is not hidden behind
    * a rebuild. Solo, the pilot's setting or the address (soloClock).
    */
-  let clockTime = null;
+  /* The key below for no clock, as before a room names one. */
+  let clockTime = 'null>';
   /* Each switch, its room ms and when the rebuild was done, for checks. */
   const warTimeLog = [];
   function clockTimeFrame() {
@@ -4550,13 +4551,18 @@ export async function boot({
       paintBest();
       syncWorld();
     }
-    const time = timeOfClock(gameClock());
-    if (time === clockTime) {
+    /* The name and where the clock goes from it (timeOptionsOf): a war
+     * mission's light that will move is built for, even when its name is
+     * the world's already. */
+    const want = timeOptionsOf(gameClock());
+    const time = want.time ?? null;
+    const key = `${time}>${want.toward ?? ''}`;
+    if (key === clockTime) {
       return;
     }
-    clockTime = time;
+    clockTime = key;
     const entry = {
-      time, night: nightOfTime(time), at: roomLinkState.roomNow(), state: roomWar.view().state, done: null,
+      time, toward: want.toward ?? null, night: nightOfTime(time), at: roomLinkState.roomNow(), state: roomWar.view().state, done: null,
     };
     warTimeLog.push(entry);
     syncWorld().then(() => {
