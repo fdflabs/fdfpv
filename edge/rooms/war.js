@@ -277,7 +277,7 @@ import {
 } from '../../src/share/war/damage.js';
 import { openAt } from '../../src/share/war/hoist.js';
 import {
-  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, restartAt, retargetFor, runningAt,
+  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, pausesOf, restartAt, retargetFor, runningAt,
 } from '../../src/share/war/contain.js';
 import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
@@ -801,7 +801,7 @@ export class RoomWar {
         music: m.stage.music,
         /* Its own, then a closure's hold on its gantry (contain.js). */
         objectives: [...objectivesView({
-          mission, m, st: m.stage, f: m.f,
+          mission, m, st: m.stage, f: m.f, pauses: (gantry) => pausesOf(m.contain, gantry),
         }), ...objectivesOf(m.contain, m.stage.at, m.f)],
         /* What the seed chose for each spawn (stages.js enter). */
         draws: m.stage.due.map((d) => ({
@@ -2190,6 +2190,8 @@ export class RoomWar {
        * (or the entry): an exit that is not a loss waits on it where it
        * does not wait on `cleared` (The Long Night's, which end on their
        * groups gone). */
+      /* A hold's pause (stages.js): the gantry it names closing. */
+      pauses: (gantry) => pausesOf(m.contain, gantry),
       trigger: (trig) => (trig.contained ? (containOpen(m.contain, f) ? null : Math.max(st.at, held ?? st.at)) : undefined),
     };
   }

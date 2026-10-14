@@ -198,6 +198,14 @@ export function objectivesOf(list, stageAt, f) {
   });
 }
 
+/* The room ms windows gantry `gantry` lowers stoplogs in, [[from,
+ * until]], one after another: a hold paused by it (stages.js `pause`,
+ * MISSIONS.md M2: the spill's hold while the spillway's gantry closes a
+ * gate). A closure lost loses the mission, so it pauses nothing. */
+export function pausesOf(list, gantry) {
+  return schedule(list).filter((x) => x.c.gantry === gantry && x.c.lost == null).map((x) => [x.from, x.until]);
+}
+
 /* The gantries closing or waiting to at f, for the radar's ring. */
 export function gantriesAt(list, f) {
   return [...new Set(schedule(list).filter((x) => x.c.at <= f && f < x.until && x.c.lost == null).map((x) => x.c.gantry))];

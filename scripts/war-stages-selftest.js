@@ -1083,6 +1083,49 @@ console.log('the room: The Long Night\'s exits wait for a closure too (MISSIONS.
   check('before-dawn: the mission is won only at the hold', dawn.state === 'won' && dawn.why === 'waves', `${dawn.state} ${dawn.why}`);
 }
 
+console.log('the room: the Spillway\'s hold pauses while the spillway\'s gantry closes a gate (MISSIONS.md M2, If the face opens)');
+{
+  /* Open the Gates as written, from its entry, with nobody born (so its
+   * hold is never failed by a hit), a gate opened 30 s in: its closure
+   * runs 30 to 180 s, so the 240 s hold is done at 390 s, its half at
+   * 270 s; the screen is told it paused (no heldFrom) and from when it
+   * counts again. An intake's closure pauses nothing. */
+  const m2 = MISSIONS['itaipu-2'];
+  const stages = stagesOf(m2);
+  const i = stages.findIndex((x) => x.id === 'open-spray');
+  const play = (target, times) => {
+    const e = warRoom({
+      ...m2, id: `m2-pause-${target}`, floorMw: 0, stages: [{ ...stages[i], spawns: [] }, ...stages.slice(i + 1)],
+    });
+    while (e.view().state !== 'live') {
+      e.fly(e.clock + 500);
+    }
+    const go = e.view().goAt;
+    e.fly(go + 900);
+    e.r.war.breach(target, go + 30000);
+    const spill = (t) => {
+      e.fly(go + t);
+      const o = e.view().stage.objectives.find((x) => x.id === 'spill');
+      return {
+        state: o.state, heldMs: o.heldMs, heldFrom: o.heldFrom == null ? null : o.heldFrom - go,
+      };
+    };
+    const at = times.map(spill);
+    const half = e.of(0, 'cue').flatMap((m) => m.cues).find((c) => c.radio === 'itaipu-2-s3-half');
+    return { at, half: half && half.at - go };
+  };
+  const gate = play('gate-3', [100000, 200000, 389000, 391000]);
+  const [paused, running, before, done] = gate.at;
+  check('paused, the hold is told by how long it held and no heldFrom; running again, from when it would have begun',
+    paused.state === 'active' && paused.heldFrom === null && paused.heldMs === 30000 && running.heldMs > 30000 && running.heldFrom === 150000,
+    JSON.stringify([paused, running]));
+  check('held 150 s late: active at 389 s, done at 391 s, its half said at 270 s', before.state === 'active' && done.state === 'done' && gate.half === 270000,
+    JSON.stringify([before, done, gate.half]));
+  const intake = play('intake-3', [241000]);
+  check('an intake\'s closure does not pause it: done by 241 s, its half at 120 s', intake.at[0].state === 'done' && intake.half === 120000,
+    JSON.stringify([intake.at[0], intake.half]));
+}
+
 console.log('the room: a hold that starts when the pilots reach a place');
 {
   /* The view never runs a trigger: a hold whose start is a region (which

@@ -50,8 +50,11 @@
  *               triggers, and the first to fire settles it ('done' or
  *               'failed'). With ms it is a hold: done ms after `from` fires
  *               (the entry without one), unless it failed first; the view
- *               shows how long it has been held. A count ({ killed },
- *               { leaked }, { hit }, { destroyed }) shows how far it has
+ *               shows how long it has been held. With pause (a name
+ *               ctx.pauses answers with room ms windows: war.js, a
+ *               gantry closing the face) its clock stands still in
+ *               them. A count ({ killed }, { leaked }, { hit },
+ *               { destroyed }) shows how far it has
  *               got. With show (a trigger) it is not in the view, and is
  *               neither done nor failed, until that fires: a twist's own
  *               objective, which would give the twist away from the entry
@@ -588,7 +591,7 @@ export function fired(trig, ctx) {
     if (o?.from == null) {
       return null;
     }
-    const t = o.from + Math.round(def.ms * trig.f);
+    const t = holdEnd(o.from, Math.round(def.ms * trig.f), pausesOf(def, ctx));
     return t <= f && !(o.state === 'failed' && o.t <= t) ? t : null;
   }
   if (trig.visited != null) {
@@ -644,6 +647,39 @@ function holdFrom(o, ctx) {
   return o.from ? fired(o.from, ctx) : ctx.st.at;
 }
 
+/* A hold's pauses: [[from, until]] room ms windows its clock stands still
+ * in (an objective's `pause`, which ctx.pauses answers: war.js, a closure
+ * on that gantry), sorted and apart; none without one. */
+function pausesOf(o, ctx) {
+  return o.pause && ctx.pauses ? ctx.pauses(o.pause).slice().sort((a, b) => a[0] - b[0]) : [];
+}
+
+/* How long a hold begun at `from` has held by t, its pauses left out. */
+function heldBy(from, t, pauses) {
+  let ms = t - from;
+  for (const [a, b] of pauses) {
+    ms -= Math.max(0, Math.min(b, t) - Math.max(a, from));
+  }
+  return Math.max(0, ms);
+}
+
+/* When a hold begun at `from` has held `ms`, its pauses waited out. */
+function holdEnd(from, ms, pauses) {
+  let t = from;
+  let left = ms;
+  for (const [a, b] of pauses) {
+    if (b <= t) {
+      continue;
+    }
+    if (a >= t + left) {
+      break;
+    }
+    left -= Math.max(0, a - t);
+    t = b;
+  }
+  return t + left;
+}
+
 /* Settle the stage's objectives that have now done or failed. A hold's
  * start is kept once it fires (st.obj[id] { state: 'active', from }), so
  * the view reads it and never runs a trigger. */
@@ -667,7 +703,7 @@ export function objectives(ctx) {
       if (from != null && had?.from == null) {
         st.obj[o.id] = { ...had, state: 'active', from };
       }
-      const t = from == null ? null : from + o.ms;
+      const t = from == null ? null : holdEnd(from, o.ms, pausesOf(o, ctx));
       done = t != null && t <= ctx.f ? t : null;
     }
     const fail = o.fail ? fired(o.fail, ctx) : null;
@@ -709,12 +745,18 @@ export function objectivesView(ctx) {
        * objectives() kept it), so a screen counts it on its own clock
        * between the room's views; a settled one by how long it was held. */
       const from = st.obj[o.id]?.from ?? null;
+      const pauses = pausesOf(o, ctx);
       out.ms = o.ms;
       if (state === 'active') {
-        out.heldFrom = from;
-        out.heldMs = from == null ? 0 : Math.max(0, Math.min(o.ms, ctx.f - from));
+        /* Paused, it is told by how long it has held (a screen counts
+         * nothing on); running again, from when it would have begun
+         * without its pauses. */
+        const held = from == null ? 0 : Math.min(o.ms, heldBy(from, ctx.f, pauses));
+        const paused = pauses.some(([a, b]) => a <= ctx.f && ctx.f < b);
+        out.heldFrom = from == null || paused ? null : ctx.f - held;
+        out.heldMs = held;
       } else {
-        out.heldMs = state === 'done' ? o.ms : from == null ? 0 : Math.max(0, Math.min(o.ms, st.obj[o.id].t - from));
+        out.heldMs = state === 'done' ? o.ms : from == null ? 0 : Math.min(o.ms, heldBy(from, st.obj[o.id].t, pauses));
       }
     }
     return out;
