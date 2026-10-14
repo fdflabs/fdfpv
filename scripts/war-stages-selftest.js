@@ -1027,6 +1027,26 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   twice.fly(GO + 130000);
   check('a store and a restore mid closure change nothing after it', JSON.stringify(told(once)) === JSON.stringify(told(twice)), `${told(once).length} vs ${told(twice).length}`);
 
+  /* Held, an opening the room recorded with a hole is told again at zero
+   * size at the hold (1.9 point 5): an op 'damage' by the stoplogs, kept
+   * with the match's damage, which a late joiner is sent (war.js join);
+   * the mission is won at that hold, so no pilot can join after it. */
+  const z = warRoom(contain('scout'));
+  z.fly(GO + 900);
+  const hole = {
+    id: 'gate-2', target: 'gate-2', kind: 'gate', at: GO + 3000, sill: [-1000, 212, -1010], width_m: 4, height_m: 3, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+  };
+  z.r.war.match.wreck['gate-2'] = { gone: [], open: hole };
+  z.r.war.breach('gate-2', GO + 3000);
+  z.fly(GO + 160000);
+  const shut = z.of(0, 'damage').filter((m) => m.by === 'stoplogs');
+  const kept = z.r.war.match.damage.filter((e) => e.by === 'stoplogs');
+  check('held, the opening is told again at zero size at the hold, by the stoplogs, and kept with the match\'s damage for a late joiner',
+    shut.length === 1 && shut[0].at === GO + 153000 && shut[0].openings.length === 1 && shut[0].openings[0].id === 'gate-2' && shut[0].openings[0].width_m === 0 && shut[0].openings[0].height_m === 0
+    && shut[0].openings[0].at === GO + 153000 && shut[0].chunks.length === 0 && kept.length === 1 && kept[0].seq === shut[0].seq
+    && z.r.war.match.wreck['gate-2'].shut === GO + 153000,
+    JSON.stringify([shut, kept.length]));
+
   /* A mission with no `contain` and a structure no gantry closes start none. */
   const c = warRoom({ ...contain('scout'), contain: undefined, id: 'contain-none' });
   c.fly(GO + 900);

@@ -203,6 +203,17 @@ export function objectivesOf(list, stageAt, f) {
   });
 }
 
+/* The closures held by f whose opening has not been told shut yet, each
+ * marked told ('shut' in its said, which a restart clears for one it
+ * opens again): the room sends each one's opening again at zero size at
+ * its hold (1.9 point 5, war.js containShut). */
+export function shutDue(list, f) {
+  return schedule(list).filter((x) => x.until <= f && x.c.lost == null && !x.c.said.includes('shut')).map((x) => {
+    x.c.said.push('shut');
+    return x;
+  });
+}
+
 /* The room ms windows gantry `gantry` lowers stoplogs in, [[from,
  * until]], one after another: a hold paused by it (stages.js `pause`,
  * MISSIONS.md M2: the spill's hold while the spillway's gantry closes a
