@@ -4041,6 +4041,7 @@ export async function boot({
       roomPeersClear();
       for (const p of w.peers) {
         roomPeerJoin(p.seat, p.name, p.profile);
+        roomPeers.get(p.seat).failed = typeof p.failed === 'string' ? p.failed : null;
       }
       roomSlot = w.seat - 1;
       roomSafety.welcomed();
@@ -4130,6 +4131,16 @@ export async function boot({
       }
       if (m.type === 'drop') {
         roomDropArrived(m);
+        return;
+      }
+      /* A pilot whose page could not build the room's world, or map null
+       * when it stands on it again (edge/rooms/core.js fail). */
+      if (m.type === 'fail') {
+        const peer = roomPeers.get(m.seat);
+        if (peer) {
+          peer.failed = typeof m.map === 'string' ? m.map : null;
+          ui.refreshFriends();
+        }
         return;
       }
       if (m.type === 'drops' && Array.isArray(m.list)) {
@@ -6883,6 +6894,10 @@ export async function boot({
   /* { why, fly, restart } while this pilot is owed a move: fly, into the
    * air at the end; restart, from the slot even when already flying. */
   let roomSummon = null;
+  /* The room's world when this page could not build it (roomWorldFailed):
+   * not summoned to again until the room's world changes or a welcome
+   * comes, and the room told (edge/rooms/core.js fail). */
+  let roomFailedWorld = null;
   /* The target this pilot was last summoned to, 'world|track id'. */
   let roomSeenTarget = null;
   /* What the host asked the room to take: { map, track, at }. */
@@ -6944,6 +6959,7 @@ export async function boot({
    * #187 kept a pilot on a track of their own: that is a session of one. */
   function roomSessionWelcome(w) {
     const target = roomTarget(w);
+    roomFailedWorld = null;
     roomSeenTarget = roomTargetKey(target);
     roomAsked = { map: null, track: null, at: 0 };
     if (!roomInPlace(target) && MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
@@ -6954,6 +6970,22 @@ export async function boot({
     roomCall(w.watch ? 'watch' : 'join');
   }
 
+  /* This page could not build world `id`. When that is the room's world:
+   * the room is told, which counts this seat out of its round
+   * (edge/rooms/core.js fail), it is not summoned to again
+   * (roomFailedWorld), and the pilot's line says so, returned; else null. */
+  function roomWorldFailed(id) {
+    const st = roomLinkState.state();
+    if (st.phase !== 'open' || !st.welcome || st.welcome.map !== id) {
+      return null;
+    }
+    roomFailedWorld = id;
+    roomSummon = null;
+    roomLinkState.sendFail(id);
+    roomNote = str('rooms.load_failed', { world: mapById(id).name });
+    return roomNote;
+  }
+
   /*
    * A seat this pilot chose that is not the room's. The host's is asked of
    * the room (a world, a track), and put back if the room has not taken it
@@ -6962,7 +6994,8 @@ export async function boot({
    * and whose tracks are not flown as the room's until they are seated.
    */
   function roomDrift(w, wallMs) {
-    if (roomSummon || swapInFlight || !mapReady || (build && build.active && !build.racing) || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+    if (roomSummon || swapInFlight || !mapReady || (build && build.active && !build.racing) || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')
+      || roomFailedWorld === w.map) {
       return;
     }
     const world = seatWorld();
@@ -7013,6 +7046,9 @@ export async function boot({
     if (key !== roomSeenTarget) {
       const moved = roomSeenTarget != null && roomSeenTarget.split('|')[0] !== target.world;
       roomSeenTarget = key;
+      if (moved) {
+        roomFailedWorld = null;
+      }
       roomAsked = { map: null, track: null, at: 0 };
       if (moved && !roomHost(w)) {
         roomSay(str('rooms.world_moved', { world: mapById(target.world).name }));
@@ -7046,6 +7082,11 @@ export async function boot({
     if (!MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
       /* A world this build does not have (a newer build's room): nothing
        * to seat, and the others name this pilot as elsewhere. */
+      roomSummon = null;
+      return;
+    }
+    /* One this page could not build: not tried again until it changes. */
+    if (roomFailedWorld === target.world) {
       roomSummon = null;
       return;
     }
@@ -7347,6 +7388,10 @@ export async function boot({
    * this page does not have (a newer build's) is named as another world. */
   function roomAwayText(peer) {
     const name = roomName(peer.name);
+    const w = roomLinkState.state().welcome;
+    if (peer.failed && w && peer.failed === w.map) {
+      return str('rooms.away_failed', { name });
+    }
     /* The reason the pilot's own page gave, when it gave one: a pilot
      * loading a world still names the one they are leaving. */
     const status = peer.profile && peer.profile.status;
@@ -14656,6 +14701,7 @@ export async function boot({
        * settings put back to it, rather than leaving no world at all. The
        * title's own world is not the pilot's seat and never written there. */
       console.error(e);
+      const roomText = roomWorldFailed(wantId);
       if (!titleWorld) {
         ui.settings.map = before.id;
       }
@@ -14665,7 +14711,7 @@ export async function boot({
         worldTime = timeOf({});
         loading.start('frame');
         adoptLoadedView(keepPlace, stayMode, stayScreen);
-        notice = { text: str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + 4200 };
+        notice = { text: roomText ?? str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + (roomText ? 8000 : 4200) };
       } catch (e2) {
         console.error(e2);
         loading.fail(str('ui.could_not_be_loaded', { name: entry.name, v2: e.message ?? e }));

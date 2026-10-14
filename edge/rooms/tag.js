@@ -255,7 +255,7 @@ export class RoomTag {
       return [];
     }
     return [...core.seats.values()]
-      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token))
+      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token) && !core.failed(t))
       .map((t) => t.seat);
   }
 
@@ -296,7 +296,9 @@ export class RoomTag {
     const goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     const players = {};
     for (const t of core.seats.values()) {
-      players[t.seat] = { ms: 0, token: t.token };
+      if (!core.failed(t)) {
+        players[t.seat] = { ms: 0, token: t.token };
+      }
     }
     this.match = {
       id: this.nextId,

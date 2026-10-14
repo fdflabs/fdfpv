@@ -981,7 +981,7 @@ export class RoomWar {
       return [];
     }
     return [...core.seats.values()]
-      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token))
+      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token) && !core.failed(t))
       .map((t) => t.seat);
   }
 
@@ -1211,8 +1211,12 @@ export class RoomWar {
         restarted: cp.id,
       });
     }
+    /* A pilot whose page could not build the world (core.js fail) is
+     * not enlisted: it waits for the next match. */
     for (const t of core.seats.values()) {
-      this.enlist(t);
+      if (!core.failed(t)) {
+        this.enlist(t);
+      }
     }
     /* The working sets (stages.js drawSets), drawn as the match starts
      * so its film shows the same as its stages, for the pilots enlisted;
@@ -1260,7 +1264,7 @@ export class RoomWar {
    * world at the mission's time, so its film can start with no lead. */
   worldsUp(core, mission) {
     const time = timeOfMission(mission);
-    return [...core.seats.values()].every((t) => {
+    return [...core.seats.values()].filter((t) => !core.failed(t)).every((t) => {
       const w = this.worlds.get(t.seat);
       return w && w.token === t.token && w.map === mission.map && w.time === time;
     });

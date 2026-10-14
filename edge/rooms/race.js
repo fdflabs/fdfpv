@@ -299,7 +299,7 @@ export class RoomRace {
   }
 
   start(core, conn, msg, now) {
-    const racers = this.readySeats().filter((seat) => [...core.seats.values()].some((t) => t.seat === seat));
+    const racers = this.readySeats().filter((seat) => [...core.seats.values()].some((t) => t.seat === seat && !core.failed(t)));
     if (!this.track || !racers.length) {
       return [{ send: conn, data: JSON.stringify({ type: 'race', error: 'none_ready' }) }];
     }
@@ -372,6 +372,18 @@ export class RoomRace {
       return [...this.changed(core), ...this.maybeEnd(core)];
     }
     return core.seats.size ? this.broadcast(core, { type: 'race', race: this.view() }) : [];
+  }
+
+  /* A seat whose page could not build the room's world (core.js fail):
+   * off the grid, and a racer in a race on retired from it. */
+  fail(core, seat) {
+    this.ready.delete(seat);
+    const r = this.race;
+    if (r && r.state === 'on' && r.racers.includes(seat) && !r.finish[seat] && !r.out[seat]) {
+      r.out[seat] = 'retired';
+      return [...this.changed(core), ...this.maybeEnd(core)];
+    }
+    return this.broadcast(core, { type: 'race', race: this.view() });
   }
 
   /* A seat said hello: a racer whose socket dropped is back in, and a

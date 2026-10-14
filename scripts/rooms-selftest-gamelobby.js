@@ -699,3 +699,77 @@ export function lobbyReadySection(check) {
     check('nor a page with no lobby open (a round on clears every flag)', sent.length === 0 && lr2.pending() === null);
   }
 }
+
+/* A load failure (COMPLETENESS 4, docs/redesign/SESSIONS.md): a page that
+ * could not build the room's world says { type: 'fail', map }, and the
+ * room counts that seat out of its round in every game, keeps it out of
+ * the lobby's flags, and tells the others, until its profile stands on
+ * the room's world again. */
+export function loadFailSection(check) {
+  console.log('a load failure counted out');
+  const fail = (e, i, map = 'itaipu') => e.say(i, { type: 'fail', map });
+  const told = (e, i) => e.socks[i].got.filter((m) => m.type === 'fail').at(-1);
+  {
+    const e = lobbyRoom({ n: 3, dev: true });
+    fail(e, 2, 'swiss2');
+    check('a failure on a world that is not the room\'s is passed over', !told(e, 0) && !e.r.failed([...e.r.seats.values()][2]));
+    fail(e, 2);
+    check('the room\'s world: everybody is told the seat, the failing page too', told(e, 0) && told(e, 0).seat === 3 && told(e, 0).map === 'itaipu' && told(e, 2) && told(e, 2).seat === 3,
+      JSON.stringify(told(e, 0)));
+    e.join(3);
+    const w = e.socks[3].got.find((m) => m.type === 'welcome');
+    check('a pilot who comes later is welcomed with that seat marked', w.peers.find((p) => p.seat === 3).failed === 'itaipu' && !w.peers.find((p) => p.seat === 1).failed,
+      JSON.stringify(w.peers.map((p) => [p.seat, p.failed ?? null])));
+    e.leave(3);
+    e.at(100);
+    e.ready(2);
+    check('its ready is passed over', !e.lobby(0).ready['3'], JSON.stringify(e.lobby(0)));
+    e.ready(0);
+    e.ready(1);
+    check('the other two ready are all of the lobby: the five seconds, the failed seat not waited for',
+      e.lobby(0).countdownAt === 100 + LOBBY_COUNTDOWN_MS, JSON.stringify(e.lobby(0)));
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('the war goes without it: two players, the failed seat not enlisted', e.r.war.on() && e.r.war.players(e.r).join() === '1,2'
+      && !Object.hasOwn(e.r.war.match.players, 3), JSON.stringify(Object.keys(e.r.war.match.players)));
+    e.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null, status: 'loading' } });
+    check('loading the world again is not standing on it', e.r.failed([...e.r.seats.values()][2]));
+    e.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
+    check('its profile on the room\'s world: counted in again, and everybody told map null', !e.r.failed([...e.r.seats.values()][2]) && told(e, 0).seat === 3 && told(e, 0).map === null,
+      JSON.stringify(told(e, 0)));
+  }
+  {
+    /* Every pilot here failed: nobody to play the round, which the room
+     * abandons as it does a round its players left. */
+    const e = lobbyRoom({ mode: 'combat', mission: null, n: 1 });
+    e.at(100);
+    e.ready(0);
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    fail(e, 0);
+    e.at(e.clock + ABANDON_MS + 200);
+    check('a combat round whose one pilot failed is ended after ABANDON_MS', !e.r.combat.on() && e.r.combat.round.state === 'idle', e.r.combat.round.state);
+  }
+  {
+    const e = lobbyRoom({ mode: 'race', mission: null });
+    e.at(100);
+    e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-fail0001' }) });
+    e.say(0, { type: 'race', op: 'ready', track: 'trk-fail0001', ready: true });
+    e.say(1, { type: 'race', op: 'ready', track: 'trk-fail0001', ready: true });
+    e.say(0, { type: 'race', op: 'start', laps: 3 });
+    fail(e, 1);
+    const r = e.r.race.race;
+    check('a racer whose page fails mid race is retired from it, the race on', r.state === 'on' && r.out[2] === 'retired' && !e.r.race.readySeats().includes(2),
+      JSON.stringify(r.out));
+  }
+  for (const mode of ['tag', 'jam']) {
+    const e = lobbyRoom({ mode, mission: null, n: 3 });
+    fail(e, 2);
+    e.at(100);
+    e.ready(0);
+    e.ready(1);
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    const g = e.r[mode];
+    check(`${mode === 'tag' ? 'a tag match' : 'a jam'} goes without the failed seat: not one of its players${mode === 'jam' ? ', no turn' : ''}`,
+      g.on() && !Object.hasOwn(g.match.players, 3) && !g.players(e.r).includes(3) && (mode !== 'jam' || !g.match.order.includes(3)),
+      JSON.stringify(Object.keys(g.match.players)));
+  }
+}

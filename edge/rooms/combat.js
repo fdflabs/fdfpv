@@ -409,7 +409,9 @@ export class RoomCombat {
   /* A POSE from seat s (its relayed bytes, flags as the room set them). */
   pose(core, s, now) {
     const out = this.advance(core, now);
-    if (this.round.state === 'idle') {
+    /* A pilot whose page could not build the room's world (core.js fail)
+     * flies another: its poses cut nothing here. */
+    if (this.round.state === 'idle' || core.failed(s)) {
       return out;
     }
     const rec = this.record(s.seat);

@@ -123,6 +123,11 @@ lap of the arena.
 - **Abandon.** A round with fewer of its players here than its game's
   minimum ends after ABANDON_MS (10 s, core.js settleGames), never in an
   empty room, whose games stand paused for their pilots to come back.
+- **A world that will not load.** A page that cannot build the room's
+  world tells the room (`{ type: 'fail', map }`, edge/rooms/core.js
+  fail) and is not summoned to it again; the room counts the seat out of
+  every game and the lobby's flags until its profile stands on the world
+  again, and the others see why it is not flying. Held by `rooms:selftest`.
 - **A seat another tab took** (close 4005) is final for the tab that lost
   it: it says so and never retries (src/share/rooms.js FINAL).
 

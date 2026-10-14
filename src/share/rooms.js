@@ -775,6 +775,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     sendWorld(map) {
       sendText({ type: 'world', map });
     },
+    /* This page could not build world `map`, the room's (edge/rooms/core.js
+     * fail): the room counts this seat out of its round. */
+    sendFail(map) {
+      sendText({ type: 'fail', map });
+    },
     /* The host sets the room's air (edge/rooms/core.js weather). */
     sendWeather(preset) {
       sendText({ type: 'weather', preset });

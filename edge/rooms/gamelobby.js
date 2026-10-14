@@ -273,9 +273,10 @@ export class RoomGameLobby {
    * are. */
   settle(core, now, arm) {
     /* The people: an AI pilot is never asked to be ready, nor a pilot
-     * sitting the war out. */
+     * sitting the war out, nor one whose page could not build the room's
+     * world (core.js fail). */
     const out = this.out(core);
-    const here = new Set(core.people().map((s) => s.seat).filter((seat) => !out.has(seat)));
+    const here = new Set(core.people().filter((s) => !out.has(s.seat) && !core.failed(s)).map((s) => s.seat));
     for (const seat of this.ready) {
       if (!here.has(seat)) {
         this.ready.delete(seat);
@@ -304,7 +305,7 @@ export class RoomGameLobby {
       return [];
     }
     if (msg.op === 'ready' && typeof msg.ready === 'boolean') {
-      if (msg.ready === this.ready.has(s.seat) || this.out(core).has(s.seat)) {
+      if (msg.ready === this.ready.has(s.seat) || this.out(core).has(s.seat) || core.failed(s)) {
         return [];
       }
       if (msg.ready) {

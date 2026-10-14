@@ -494,8 +494,14 @@ export class RoomCore {
     ];
   }
 
+  /* Whether seat record t said its page could not build the room's world
+   * (fail): counted out of every game until its profile is on it. */
+  failed(t) {
+    return t.failed != null && t.failed === this.meta.map;
+  }
+
   present(players) {
-    const here = new Set([...this.seats.values()].map((t) => t.seat));
+    const here = new Set([...this.seats.values()].filter((t) => !this.failed(t)).map((t) => t.seat));
     return players.filter((seat) => here.has(seat)).length;
   }
 
@@ -691,6 +697,7 @@ export class RoomCore {
       if (conn !== except) {
         out.push({
           seat: s.seat, name: s.name, profile: s.profile, ...(s.callsign ? { callsign: s.callsign } : {}), ...(s.bot ? { bot: true } : {}),
+          ...(this.failed(s) ? { failed: s.failed } : {}),
         });
       }
     }
@@ -1136,7 +1143,11 @@ export class RoomCore {
       return [
         { attach: conn, value: this.attachmentOf(s) },
         ...this.roster(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
+        ...this.standing(s, now),
       ];
+    }
+    if (msg.type === 'fail') {
+      return this.fail(s, msg, now);
     }
     if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
       return EVENTS[msg.kind](this, conn, s, msg, now);
@@ -1675,6 +1686,41 @@ export class RoomCore {
     out.push(...this.daytimeNews());
     this.ticking = owed || this.waiting();
     return this.ticking ? [...out, { tick: true }] : out;
+  }
+
+  /*
+   * A LOAD FAILURE (COMPLETENESS 4, docs/redesign/SESSIONS.md): { type:
+   * 'fail', map }, this pilot's page could not build world `map`
+   * (src/main.js syncWorldNow). The room's own world only; any other is
+   * passed over. The seat is counted out of the round as a silent pilot
+   * is, by every game (failed(): present(), each game's players), and
+   * kept out of the lobby's flags; the others are told { type: 'fail',
+   * seat, map }, and map null when the seat's profile is on the room's
+   * world again (standing). Memory only, on the seat: a reconnect is a
+   * new try. A message type a build from before passes over.
+   */
+  fail(s, msg, now) {
+    if (msg.map !== this.meta.map || this.failed(s)) {
+      return [];
+    }
+    s.failed = msg.map;
+    return [
+      ...this.everyone(JSON.stringify({ type: 'fail', seat: s.seat, map: s.failed })),
+      ...this.race.fail(this, s.seat),
+      /* Out of the lobby's flags as a leaver is. */
+      ...this.gameLobby.leave(this, s.seat, now),
+      ...this.settle(now),
+    ];
+  }
+
+  /* A failed seat whose profile stands on the room's world again, not
+   * loading: counted in from now, and the others told. */
+  standing(s, now) {
+    if (!this.failed(s) || s.profile.map !== this.meta.map || s.profile.status === 'loading') {
+      return [];
+    }
+    s.failed = null;
+    return [...this.everyone(JSON.stringify({ type: 'fail', seat: s.seat, map: null })), ...this.settle(now)];
   }
 
   /* code is the socket's close code when the adapter has it. Anything but

@@ -150,7 +150,20 @@ Nothing on the wire changes; each game keeps its states. A client whose
 world fails to build reports `status: 'failed'` and the room counts it
 out as it does a silent pilot. Check: `modes:selftest` asserts every
 game's every state maps; `rooms:selftest` adds a load failure. Size M.
-Phase 21.
+Phase 21. **Load failure built** (2026-10-14, w40-states), as an op and
+not a profile status: a client from before throws on a status it has no
+string for (src/main.js roomAwayText, every frame), and passes over a
+message type it does not know. A page whose room world fails to build
+(src/main.js syncWorldNow, roomWorldFailed) sends `{ type: 'fail', map }`,
+stops being summoned to it and says so (`rooms.load_failed`); the room
+(core.js fail, failed()) counts the seat out of every game: not on a
+race's grid (a racer retired), not a tag or jam player, not enlisted in
+a war nor waited for by its briefing, no cuts in combat, not in the
+lobby's flags, and not present for ABANDON_MS; the others are told
+`{ type: 'fail', seat, map }` (`rooms.away_failed`), map null when its
+profile stands on the room's world again. `rooms:selftest` (a load
+failure counted out). No browser case: a bad `?map=` fails at boot
+before any socket, and nothing cheap forces an in room build to fail.
 
 **5. Host migration. N/A.** Rooms are server authoritative: one RoomCore
 is "the only owner of the room's state" (edge/rooms/core.js 21), so there

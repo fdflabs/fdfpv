@@ -79,7 +79,7 @@ export class RoomJam {
     if (!m) {
       return [];
     }
-    return [...core.seats.values()].filter((t) => m.players[t.seat] === t.token).map((t) => t.seat);
+    return [...core.seats.values()].filter((t) => m.players[t.seat] === t.token && !core.failed(t)).map((t) => t.seat);
   }
 
   view(core) {
@@ -165,7 +165,9 @@ export class RoomJam {
     }
     const players = {};
     for (const t of core.seats.values()) {
-      players[t.seat] = t.token;
+      if (!core.failed(t)) {
+        players[t.seat] = t.token;
+      }
     }
     const goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     this.match = {
