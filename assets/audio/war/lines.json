@@ -768,7 +768,7 @@
       "es": "Pasaron justo encima de ellos. Desvíense y orbiten amplio." },
     { "id": "int-spot-loud", "group": "interior", "speaker": "vega", "delivery": "calm", "notes": "Interior, after int-spot-seen: the advice when the aircraft was at full power close by. Teaching, no blame.",
       "en": "Full power that close, they heard you. Throttle back on the approach.",
-      "es": "A toda potencia tan cerca, los escucharon. Bajen el acelerador al acercarse." },
+      "es": "A toda potencia tan cerca, los escucharon. Bajen el throttle al acercarse." },
     { "id": "int-take-role", "group": "interior", "speaker": "ferrer", "delivery": "calm", "notes": "Interior, every mission: to a pilot who took a free role. A handing over.",
       "en": "Feed's yours.",
       "es": "La señal es de ustedes." },

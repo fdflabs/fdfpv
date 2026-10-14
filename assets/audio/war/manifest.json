@@ -6820,14 +6820,14 @@
    }
   },
   "int-spot-loud.es": {
-   "text": "A toda potencia tan cerca, los escucharon. Bajen el acelerador al acercarse.",
+   "text": "A toda potencia tan cerca, los escucharon. Bajen el throttle al acercarse.",
    "speaker": "vega",
-   "seconds": 5.105,
+   "seconds": 4.875,
    "takes": [
     {
      "attempt": 0,
      "seed": 1839756625,
-     "heard": "A toda potencia tan cerca, los escucharon, bajen el acelerador al acercarse.",
+     "heard": "A toda potencia tan cerca, los escucharon. Bajen el throttle al acercarse.",
      "wer": 0.0,
      "extra": 0,
      "missing": [],
@@ -6836,12 +6836,12 @@
    ],
    "files": {
     "webm": {
-     "bytes": 23094,
-     "sha256": "6327498857f7883b5f7e6dd96302ee19b92e25b1e74fe09ddfeb31eebda9912d"
+     "bytes": 22029,
+     "sha256": "4b263eafd4d76207f3ae87357664aef5e8ac4b1611956fc2ce9e11598315b47b"
     },
     "mp3": {
-     "bytes": 24956,
-     "sha256": "68438d96af9c6b75961022e0451ff8252f77c0ab33e3393b9f317b1718cc8813"
+     "bytes": 22460,
+     "sha256": "58374c15aa8d7d7ca1c5037ead00125694d97127e1f2a8a46e1c48fe085ff789"
     }
    }
   },
