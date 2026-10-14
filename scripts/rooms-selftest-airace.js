@@ -5,14 +5,16 @@
  * race on the Swiss valley, one person in it, the host loads
  * tests/fixtures/map-track-v4.json; the room flies its reference lap, and
  * AI pilots fill the grid, marked as AI, in the interceptor, ready; a
- * second person takes one's place before the start. The race starts: each AI pilot's passes reach the room as a racer's own, in
+ * second person takes one's place before the start. The race starts:
+ * each AI pilot's passes reach the room as a racer's own, in
  * order, every gate of every lap, and its finish closes the last lap; the
  * results order them with the person's. Its poses are a quad's and stay
  * over the page's ground. Hard swaps the ghost for a faster one under the
  * same AI pilots. The board's best lap is their ghost when the board has
  * one they can follow, slowed to the level's pace, else the room's
  * reference (boardSection). Off takes them away, the last person leaving
- * takes them all and empties the room. Negative controls: a pace the
+ * takes them all and empties the room. A crash is a wreck and R, never a
+ * retire (rebirthSection). Negative controls: a pace the
  * reference cannot lap (16 m/s on this track, aipilot:harness) seats
  * none, and a room made for tag never gets one.
  *
@@ -248,6 +250,7 @@ export async function aiRaceSection(check) {
     check('negative control: a pace the reference cannot lap (16 m/s) gives no ghost and no AI pilot',
       entry.state === 'none' && e.bots().length === 0, `ghost ${entry.state}, ${e.bots().length} AI seats`);
   }
+  await rebirthSection(check);
   await boardSection(check);
   {
     const e = room({ mode: 'free' });
@@ -258,6 +261,82 @@ export async function aiRaceSection(check) {
     }
     check('a room not made for a race seats no AI racer for a track', e.r.bots.racers.racers.size === 0);
   }
+}
+
+/*
+ * A crash is a person's wreck and R: an AI pilot that a mid air breaks
+ * (roombots.js hits, the referee's path) on its first lap is not retired:
+ * its lap in flight is voided, it is back on its grid place, its clock
+ * runs on, and it finishes. Negative controls: the AI pilots that never
+ * crashed pass every gate once, in order, and a crash after its finish
+ * changes nothing.
+ */
+async function rebirthSection(check) {
+  const e = room();
+  e.join(0);
+  e.say(0, { type: 'track', doc: TRACK });
+  const entry = await settle(e);
+  e.say(0, {
+    type: 'race', op: 'ready', track: e.r.race.track.id, ready: true,
+  });
+  e.say(0, { type: 'race', op: 'start', laps: 1 });
+  const race = e.r.race.race;
+  const ai = e.bots().map((s) => s.seat);
+  const [hit, ...others] = ai;
+  const racer = e.r.bots.racers.racers.get(hit);
+  const gates = e.r.race.track.gates;
+  const passes = (seat) => e.socks[0].got.filter((m) => m.type === 'event' && m.seat === seat);
+  const breakIt = (seat) => e.r.bots.hits([{ A: { seat, brk: 1 }, B: { seat: 0, brk: 0 } }], e.r.roomMs(e.clock));
+  const endAt = e.clock + COUNTDOWN_MS + 3 * entry.lap.durationMs + 30000;
+  let crashedAt = null;
+  let grid = null;
+  let after = null;
+  while (e.clock < endAt && race.state === 'on') {
+    e.tick();
+    if (crashedAt === null && passes(hit).length >= 3) {
+      const before = racer.op;
+      breakIt(hit);
+      crashedAt = e.r.roomMs(e.clock) - race.goAt;
+      e.tick();
+      /* Reborn where a fresh opponent on its line starts: its grid place. */
+      const fresh = racer.op;
+      grid = {
+        replaced: fresh !== before, bornMs: racer.bornMs, opMs: fresh.ms, laps: racer.lapsDone,
+      };
+    }
+    if (race.finish[hit] && after === null) {
+      after = { ...race.finish[hit], clock: e.clock };
+      breakIt(hit);
+    }
+    /* The person crosses last, once the broken finisher has lain a while. */
+    if (after && e.clock - after.clock > 2000 && !race.finish[e.r.seats.get(e.socks[0]).seat] && ai.every((seat) => race.finish[seat] || race.out[seat])) {
+      const last = Math.max(...ai.map((seat) => (race.finish[seat] ? race.finish[seat].ms : 0)));
+      e.say(0, {
+        type: 'race', op: 'finish', race: race.id, ms: last + 1000, lap: 1, points: 0,
+      });
+    }
+  }
+  const mine = passes(hit).map((m) => `${m.lap}:${m.gate}@${m.t}`);
+  const ts = passes(hit).map((m) => m.t);
+  const voided = passes(hit).findIndex((m, i, all) => i > 0 && m.gate < all[i - 1].gate);
+  check('an AI pilot broken in a mid air on its first lap is not retired: it is put back on its grid place, its clock running on',
+    crashedAt !== null && grid && grid.replaced && grid.laps === 0 && grid.bornMs >= crashedAt - 2 * TICK_MS && grid.opMs <= 2 * TICK_MS && !race.out[hit],
+    `broken at race ${crashedAt} ms; ${JSON.stringify(grid)}; out ${race.out[hit] || 'no'}`);
+  check('the room hears its lap voided as a person\'s: the timing gate again at a lower count, later, then every gate of the lap',
+    voided > 0 && passes(hit)[voided].gate === 1 && passes(hit)[voided].lap === 0
+    && ts.every((t, i) => i === 0 || t > ts[i - 1])
+    && passes(hit).slice(voided).map((m) => m.gate).join() === Array.from({ length: gates }, (_, i) => i + 1).join(),
+    mine.join(' '));
+  check('and it finishes the race, after the AI pilots that flew clean', after && after.lap === 1 && race.state === 'results'
+    && others.every((seat) => race.finish[seat] && race.finish[seat].ms < after.ms),
+    ai.map((seat) => `${seat}: ${race.finish[seat] ? race.finish[seat].ms : race.out[seat] || 'flying'}`).join(', '));
+  check('negative control: the AI pilots that never crashed pass each gate once, in order',
+    others.every((seat) => passes(seat).map((m) => m.gate).join() === Array.from({ length: gates }, (_, i) => i + 1).join()),
+    others.map((seat) => passes(seat).map((m) => m.gate).join('.')).join(' | '));
+  check('negative control: a crash after its finish changes nothing: the finish stands and nothing more is said',
+    after && race.finish[hit] && race.finish[hit].ms === after.ms && !race.out[hit] && passes(hit).every((m) => m.t <= after.ms),
+    `finish ${after ? after.ms : '-'} -> ${race.finish[hit] ? race.finish[hit].ms : '-'}`);
+  e.leave(0);
 }
 
 /*

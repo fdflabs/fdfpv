@@ -48,15 +48,24 @@
  * sends for its own (src/share/roomrace.js pass), handed to the room's
  * race (edge/rooms/race.js) as that seat's: { type: 'event', kind, race,
  * lap, gate, t, points: 0 }, and the last lap's close { type: 'race', op:
- * 'finish', ... }. A crash (aiopponent.js: upside down on the ground for a
- * second, or a part broken in a mid air) is a retire. Its pose goes out
- * every tick as a pilot's POSE bytes, through core.js judge.
+ * 'finish', ... }. Its pose goes out every tick as a pilot's POSE bytes,
+ * through core.js judge.
+ *
+ * A CRASH (aiopponent.js: upside down on the ground for a second, or a
+ * part broken in a mid air) is a person's wreck and R in a room race
+ * (src/main.js, src/share/roomrace.js): the lap in flight is over, the
+ * aircraft goes back to its own place on the grid, the laps already flown
+ * stay flown, and its clock runs on. The person presses R when they are
+ * ready; the AI pilot is put back on the tick its crash is called. The
+ * room hears what it hears of a person: nothing at the wreck, then a pass
+ * of the timing gate at a lower count than the last, which edge/rooms/
+ * race.js takes as a lap a wreck voided.
  *
  * NEVER ON THE RECORD. Its Race's record write is a no-op (aiopponent.js),
  * and the room posts nothing to any board.
  *
- * NOT YET (the contract): reborn on its last gate after a crash, a
- * restore mid race flying on from the kept plant state. A room restored from storage drops its AI racers
+ * NOT YET (the contract): a restore mid race flying on from the kept
+ * plant state. A room restored from storage drops its AI racers
  * (roombots.js reseat) and fills again.
  *
  * LOADED LATE. aiopponent.js and the reference read tests/lib (the plant's
@@ -484,10 +493,31 @@ class Racer {
     this.lapsDone = 0;
     this.said = false;
     this.flownTo = 0;
+    /* The race's ms at which this.op's clock read zero: its passes are
+     * times since the race's go on its own clock, across its rebirths. */
+    this.bornMs = 0;
   }
 
-  /* A fresh opponent on the ghost, back at its grid place. */
+  /* A fresh opponent on the ghost for what the room is doing, nothing
+   * flown or scored. */
   build(entry, key) {
+    this.key = key;
+    this.lapsDone = 0;
+    this.said = false;
+    this.flownTo = 0;
+    this.place(entry, 0);
+  }
+
+  /* A crash: back on its grid place as a person's R puts them on their
+   * slot, at race ms `bornMs`, the laps it closed kept. */
+  reborn(entry) {
+    this.place(entry, this.bornMs + this.op.ms);
+  }
+
+  /* An opponent at its grid place, its clock zero at race ms `bornMs`. */
+  place(entry, bornMs) {
+    this.bornMs = bornMs;
+    this.passes = [];
     this.op = new kit.AiOpponent({
       seated: this.seated,
       lap: behind(entry.lap, GRID_LEAD_MS + this.slot * GRID_MS),
@@ -495,11 +525,6 @@ class Racer {
       trackClass: entry.course.trackClass,
       world: worldOf(this.ground, entry.colliders),
     });
-    this.key = key;
-    this.passes = [];
-    this.lapsDone = 0;
-    this.said = false;
-    this.flownTo = 0;
     /* Every pass its Race scores, with the lap's state as it leaves it:
      * what src/main.js roomRacePass reads of the page's own race. */
     const race = this.op.race;
@@ -511,7 +536,7 @@ class Racer {
         lapDone: race.laps.length > before,
         gate: race.lapStartMs != null ? race.splits.length + 1 : 0,
         hoop: Boolean(race.gates[passed].apertures[0].round),
-        t: crossMs,
+        t: this.bornMs + crossMs,
       });
       return passed;
     };
@@ -612,7 +637,7 @@ export class AiRace {
           type: 'race', op: 'ready', track: track.id, ready: true,
         }, now));
       } else if (roomNow >= r.goAt) {
-        out.push(...this.fly(core, now, racer, r, roomNow, at));
+        out.push(...this.fly(core, now, racer, r, roomNow, at, entry));
       }
       at.s.seq = (at.s.seq + 1) & 0xffff;
       const pose = poseOf(racer.op.sim, racer.op.state, Math.floor(roomNow), at.s.seq, racer.op.crashed);
@@ -624,7 +649,7 @@ export class AiRace {
   /* Flies on to the room's now and says what it scored. Past its finish
    * it flies on round the line until the race's results, as a person
    * does, and what it scores there is not news. */
-  fly(core, now, racer, r, roomNow, at) {
+  fly(core, now, racer, r, roomNow, at, entry) {
     const op = racer.op;
     const out = [];
     const since = racer.flownTo || r.goAt;
@@ -648,8 +673,7 @@ export class AiRace {
       }
     }
     if (op.crashed && !racer.said) {
-      racer.said = true;
-      out.push(...core.race.message(core, at.conn, at.s, { type: 'race', op: 'retire', race: r.id }, now));
+      racer.reborn(entry);
     }
     return out;
   }
