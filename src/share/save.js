@@ -63,10 +63,12 @@
  *   this module     the version, the backups and the quarantine, once per
  *                   boot (openSave, called from src/boot.js)
  *
- * Known gap (COMPLETENESS.md item 2): a war mission's stars and credits
- * are applied only while the client watched the room before its result
- * appeared, so a reload at the result card loses them. Closing it changes
- * what a pilot is paid and is not done here.
+ * A WAR'S RESULT is a campaign save point whoever's page sees it first:
+ * the room sends it to every seat that flew the war, with the war's uid
+ * (edge/rooms/war.js flew, warUid), and the page pays it once per uid,
+ * kept in the campaign's `wars` (src/game/campaign.js payResult), so a
+ * reload, a reconnect or a late join into the result card is paid and
+ * paid once (COMPLETENESS.md item 2).
  *
  * Boot imports this before anything heavy, so it imports only modules
  * that import nothing. The key names are written out as boot.js writes

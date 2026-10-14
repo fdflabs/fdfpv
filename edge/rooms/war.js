@@ -153,10 +153,14 @@
  * else is refused 'world'.
  *
  * What the room sends, to everybody, its watchers too (core.js watch;
- * their view's result null, core.js watchedView):
+ * their view's result null, core.js watchedView, and so is that of a
+ * seat that did not fly the war, flew):
  *
  *   { type: 'war', war }                      the view (view()), on every
- *                                             change and in each welcome
+ *                                             change and in each welcome;
+ *                                             its uid the war's id across
+ *                                             every room (warUid), which a
+ *                                             page pays a result once by
  *   { type: 'war', op: 'born', agents }       [{ id, kind, route, t0, k,
  *                                             n, err, target, wire?,
  *                                             meet? }], routes.js
@@ -286,7 +290,7 @@ import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
 import { POSE_MAX_SPEED } from './safety.js';
 import { Hunters, loadHeight } from './warhunt.js';
-import { HERE_MS, interestEvery } from './core.js';
+import { HERE_MS, interestEvery, watchedView } from './core.js';
 
 export { MISSIONS, RESULT_MS };
 
@@ -362,6 +366,19 @@ export function resultOf(mission, m) {
     won, stars, credits: 100 * stars + 10 * kills, criteria,
   };
 }
+/*
+ * A war's id across every room, the one a page pays its result once by
+ * (src/game/campaign.js payResult): match ids count from 1 in each room
+ * and a code is used again, so the wall clock ms the match started is in
+ * it (m.startedAt; the room's birth, meta.epoch, for a match stored
+ * before it had one). Fixed width, so ids sort by when the war started:
+ * a page keeps the newest it paid (PAID_KEEP) by sorting them, and never
+ * reads one apart.
+ */
+export function warUid(meta, m) {
+  return `w${String(m.startedAt ?? meta.epoch ?? 0).padStart(13, '0')}-${meta.code ?? ''}-${String(m.id).padStart(6, '0')}`;
+}
+
 /* The most stars a mission restarted from its lost stage can earn. */
 export const RESTART_STARS = 2;
 
@@ -561,8 +578,8 @@ export class RoomWar {
     this.meta = meta;
     this.devMissions = options.devMissions === true;
     /*
-     * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
-     *   'won'|'lost'|'ended', briefAt (the room ms a briefing's film
+     * { id, startedAt (wall clock ms, warUid), mission, seed, goAt,
+     *   state: 'briefing'|'countdown'|'live'|'won'|'lost'|'ended', briefAt (the room ms a briefing's film
      *   starts, WORLD_LEAD_MS after the briefing for a mission with a time
      *   of its own unless every pilot's world already stands, worldsUp;
      *   or null), why, f, wave (the next to be born), output,
@@ -767,6 +784,7 @@ export class RoomWar {
     return {
       state: m.state,
       id: m.id,
+      uid: warUid(this.meta, m),
       mission: m.mission,
       goAt: m.goAt,
       briefAt: m.briefAt ?? null,
@@ -859,8 +877,27 @@ export class RoomWar {
     };
   }
 
-  welcome(core) {
-    return { war: this.view(core) };
+  /* s: the seat welcomed; its view carries the result only if it flew
+   * the war (flew), as changed() sends it. */
+  welcome(core, s) {
+    const v = this.view(core);
+    return { war: this.flew(s) ? v : watchedView(v) };
+  }
+
+  /*
+   * Whether seat s's pilot flew the match: enlisted in it at any point,
+   * by token, its entry at a seat or put away (a pilot who left, or came
+   * back after the end, which enlists nobody). A watcher, a pilot who sat
+   * it out unconsented and one who first came after the end did not.
+   * The war's result is paid to these seats' pages and no others
+   * (src/ui/campaign.js observe).
+   */
+  flew(s) {
+    const m = this.match;
+    if (!m || !s || !s.token) {
+      return false;
+    }
+    return Object.values(m.players).some((p) => p.token === s.token) || Object.hasOwn(m.away ?? {}, s.token);
   }
 
   /* Every seat and every watcher (core.js watch): a watcher draws the
@@ -869,9 +906,10 @@ export class RoomWar {
     return core.everyone(JSON.stringify(msg));
   }
 
-  /* The view, a watcher's with no result (core.js viewed). */
+  /* The view, with no result for a watcher or a seat that did not fly
+   * the war (core.js viewed, flew). */
   changed(core) {
-    return [this.store(), ...core.viewed('war', this.view(core))];
+    return [this.store(), ...core.viewed('war', this.view(core), (s) => this.flew(s))];
   }
 
   error(conn, error) {
@@ -1161,6 +1199,7 @@ export class RoomWar {
     const goAt = (briefAt ?? Math.ceil(core.roomMs(now))) + (briefAt == null ? 0 : briefingMs(mission)) + COUNTDOWN_MS + (mission.prepMs ?? 0);
     this.match = {
       id: this.nextId,
+      startedAt: now,
       mission: mission.id,
       seed: Math.floor(this.random() * 4294967296) >>> 0,
       goAt,

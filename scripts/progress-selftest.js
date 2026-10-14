@@ -33,6 +33,7 @@ import {
 import { AIRFRAMES } from '../configs/airframes.js';
 import { POWER } from '../configs/power.js';
 import { EventLog } from '../src/game/events.js';
+import { emptyCampaign, payResult } from '../src/game/campaign.js';
 import { mergeBlobs } from '../src/share/progressmerge.js';
 import { PROPS } from '../configs/hangar-parts.js';
 import { liveryKey, schemesFor } from '../configs/liveries.js';
@@ -108,6 +109,21 @@ const reloaded = normaliseProgress(JSON.parse(JSON.stringify(seededV1)));
 check('a reload of the paid profile pays nothing', awardFirsts(reloaded, { campaign: warVet, seconds: flown }).length === 0);
 const third = awardFirsts(reloaded, { campaign: { missions: { 'itaipu-1': { stars: 3, won: true } } }, seconds: flown });
 check('a better result pays only what is new', same(third.filter((e) => e.type === 'first').map((e) => e.key), ['mission:itaipu-1:star3']));
+{
+  /* A war's result paid by the room's id for it (src/game/campaign.js
+   * payResult): seen twice, across a reload, its firsts are paid once. */
+  const uid = 'w1760000000000-W4RR00-000001';
+  const r = { won: true, stars: 2, credits: 220 };
+  const seenOnce = payResult(emptyCampaign(), uid, 'itaipu-1', r);
+  const seenAgain = payResult(JSON.parse(JSON.stringify(seenOnce)), uid, 'itaipu-1', r);
+  const p = freshProgress();
+  const first = awardFirsts(p, { campaign: seenOnce, seconds: {} }).filter((e) => e.type === 'first').map((e) => e.key).sort();
+  const xp = p.xp;
+  check('a war paid by its id: its win and stars are firsts once, and the same war seen again after a reload pays no XP',
+    same(first, ['mission:itaipu-1:star1', 'mission:itaipu-1:star2', 'mission:itaipu-1:win'])
+    && awardFirsts(normaliseProgress(JSON.parse(JSON.stringify(p))), { campaign: seenAgain, seconds: {} }).length === 0
+    && seenAgain.earned === seenOnce.earned && xp === FIRST_XP.win + 2 * FIRST_XP.star, `${first.join()} ${xp}`);
+}
 check('an unknown mission or aircraft pays nothing: the list is finite', firstsOf({ campaign: { missions: { 'my-own-1': { won: true, stars: 3 } } }, seconds: { notaplane: 1e6 } }).length === 0);
 const everything = firstsOf({
   campaign: { missions: Object.fromEntries([...Array(12)].map((_, i) => [i < 7 ? `itaipu-${i + 1}` : `interior-${i - 6}`, { won: true, stars: 99 }])) },

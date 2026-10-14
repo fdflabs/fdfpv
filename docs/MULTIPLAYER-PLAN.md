@@ -225,6 +225,7 @@ room relays it in a `0x21` batch.
 | `hit` | r to c | the referee's mid air contact (section 6) |
 | `race` | r to c | countdown start time, results |
 | `report`, `kick`, `track` | c to r | a report with a reason id; a host's kick; a host's track |
+| `war` | r to c | the war's view (edge/rooms/war.js view), on every change and in the welcome: its `uid`, the war's id across every room (warUid), and its `result` only to a seat whose pilot flew the war (war.js flew), never to a watcher; a page pays a result once per uid (src/ui/campaign.js) |
 | `fail` | c to r to c | `map` the page could not build; the room relays `{ seat, map }` and counts that seat out of every game until its profile is on the room's world again (edge/rooms/core.js) |
 
 A **profile** is `{ airframe, livery, parts, figure }`. `livery` is the
@@ -297,6 +298,7 @@ One owner per system, so every screen shows the same answer
 | Trick Battle scores | the runner's client (src/game/score.js), trusted | only from the runner, inside its run; whole, in range, never going down (jam.js) | `jam:selftest` |
 | Poses | the pilot's client, sanity checked | speed, the world's limit, an impossible count (safety.js) | `rooms:selftest` |
 | Race gate passes and finishes | the racer's client, trusted inside bounds | a racer of this race, lap, gate and time in range (race.js passOf); a published lap is checked again by geometry (src/game/verify.js checkLap) | `rooms:selftest`, `lap:selftest` |
+| Who flew a war, and so is paid its result | the room (war.js flew, by seat token) | everything: the page pays only a result the room sent it, once per war uid | `rooms:selftest`, `campaign:selftest` |
 | A war airframe lost | the pilot's client, trusted | a player of the match (war.js `lost`) | `war:harness` |
 
 Race passes stay scored by the racer: the room has 30 Hz poses, the

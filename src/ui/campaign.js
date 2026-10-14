@@ -19,9 +19,14 @@
  *                mission; a loadout the room would take is said before
  *                the go; a result the room gives is recorded, once.
  *
- * A RESULT IS RECORDED ONCE, and only for a war this page watched go
- * undecided: a war first seen already decided (a reload after the end) is
- * one this pilot has already been paid for, or never flew.
+ * A RESULT IS RECORDED ONCE PER WAR, by the room's id for it (the view's
+ * uid, edge/rooms/war.js warUid), kept in the save (src/game/campaign.js
+ * payResult), so a reload, a reconnect or a late join into the result
+ * card pays a war this page never saw begin, and pays it once. The room
+ * decides who is paid: it sends the result only to the seats that flew
+ * the war (war.js flew), never to a watcher or a seat that sat it out.
+ * A room from before uid is paid as it always was: only for a war this
+ * page watched go undecided, remembered in memory.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -41,7 +46,7 @@
 
 import {
   ACT1, MAX_STARS, UPGRADES, applyResult, buy, cannotBuy, createCampaignStore, credits, equip, gateOpen, loadoutOf,
-  released, starsOf, totalStars, unlocked,
+  paidWar, payResult, released, starsOf, totalStars, unlocked,
 } from '../game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../share/campaignwar.js';
 import { str } from '../strings/index.js';
@@ -111,7 +116,9 @@ export function createCampaignScreen({
   /* The mission Play chose: { mission, code (the room made for it) },
    * or null. */
   let pending = null;
-  /* `${code}:${war id}` -> whether its result is already accounted for. */
+  /* `${code}:${war id}` -> whether its result is already accounted for,
+   * which only a room from before uid needs; seen at all, for
+   * mission_start. */
   const watched = new Map();
   /* The last loadout said, as `${code}:${war id}:${json}`, so a room that
    * clamps it to something else is not told again four times a second. */
@@ -357,28 +364,47 @@ export function createCampaignScreen({
     return true;
   }
 
+  /* Pays this pilot result `res` of the war in view `v`, mission index
+   * `i`: once per uid when the room gives one (in the save), else as
+   * `applyResult`, the caller having seen it undecided. */
+  function pay(v, i, res) {
+    if (i < 0 || (v.uid && paidWar(cur(), v.uid))) {
+      return;
+    }
+    last = str(res.won ? 'campaign.result_won' : 'campaign.result_lost', { n: i + 1, stars: res.stars, credits: res.credits });
+    commit((s) => (v.uid ? payResult(s, v.uid, v.mission, res) : applyResult(s, v.mission, res)));
+    ui.progress.event('mission_end', { mission: v.mission, won: res.won === true, stars: res.stars, airframe: ui.progress.airframe });
+    ui.progress.foldFlight();
+  }
+
   function observe(v, code) {
     if (!v || v.id == null) {
       return;
     }
     const key = `${code}:${v.id}`;
     const res = resultOf(v);
-    if (!watched.has(key)) {
+    const i = ACT1.findIndex((m) => m.id === v.mission);
+    const first = !watched.has(key);
+    if (first) {
       watched.set(key, res !== null);
       /* Seen begun, the same vantage its mission_end is seen from (so a
        * pilot who did not press start counts it too); a reload mid war
        * sees it begin again. Not a war first seen over (won, lost, or
        * ended without a result, edge/rooms/war.js). */
-      if (!res && RUNNING.has(v.state) && ACT1.some((m) => m.id === v.mission)) {
+      if (!res && RUNNING.has(v.state) && i >= 0) {
         ui.progress.event('mission_start', { mission: v.mission, airframe: ui.progress.airframe });
         ui.progress.foldFlight();
       }
+    }
+    if (v.uid) {
+      if (res) {
+        pay(v, i, res);
+      }
       return;
     }
-    if (watched.get(key)) {
+    if (first || watched.get(key)) {
       return;
     }
-    const i = ACT1.findIndex((m) => m.id === v.mission);
     /* A room without results (main before the war's Act 1) ends a
      * mission won or lost with none: say quietly that stars are coming,
      * pay nothing, and keep watching in case the result follows. */
@@ -391,13 +417,7 @@ export function createCampaignScreen({
       return;
     }
     watched.set(key, true);
-    if (i < 0) {
-      return;
-    }
-    last = str(res.won ? 'campaign.result_won' : 'campaign.result_lost', { n: i + 1, stars: res.stars, credits: res.credits });
-    commit((s) => applyResult(s, v.mission, res));
-    ui.progress.event('mission_end', { mission: v.mission, won: res.won === true, stars: res.stars, airframe: ui.progress.airframe });
-    ui.progress.foldFlight();
+    pay(v, i, res);
   }
 
   /* Forgets Play's mission once the pilot is in another room than the

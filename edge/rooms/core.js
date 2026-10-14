@@ -207,8 +207,9 @@ function poseAt(bytes) {
 /* The ticks between two sends of a pose at `b` to a seat at `a`. */
 /* A war's or an ops match's view as a watcher is sent it: the result
  * (its stars, its credits, the flags a campaign records) is the seats'
- * alone, since the page holding one pays it to its pilot and records
- * its debrief (src/ui/campaign.js observe, src/ui/opscampaign.js record). */
+ * alone, and of a war only the seats that flew it (war.js flew), since
+ * the page holding one pays it to its pilot and records its debrief
+ * (src/ui/campaign.js observe, src/ui/opscampaign.js record). */
 export function watchedView(view) {
   return view && view.result != null ? { ...view, result: null } : view;
 }
@@ -737,12 +738,16 @@ export class RoomCore {
     return this.roster(null, data);
   }
 
-  /* The war's and the ops' view, { type, [type]: view }: every seat the
-   * whole of it, every watcher the same with no result (watchedView). */
-  viewed(type, view) {
+  /* The war's and the ops' view, { type, [type]: view }: every seat that
+   * `paid(seat)` says may hold it the whole of it, every other seat and
+   * every watcher the same with no result (watchedView). */
+  viewed(type, view, paid = () => true) {
     const data = JSON.stringify({ type, [type]: view });
     const seen = JSON.stringify({ type, [type]: watchedView(view) });
-    return [...[...this.seats.keys()].map((conn) => ({ send: conn, data })), ...[...this.watchers.keys()].map((conn) => ({ send: conn, data: seen }))];
+    return [
+      ...[...this.seats].map(([conn, s]) => ({ send: conn, data: paid(s) ? data : seen })),
+      ...[...this.watchers.keys()].map((conn) => ({ send: conn, data: seen })),
+    ];
   }
 
   attachmentOf(s) {
@@ -1037,7 +1042,7 @@ export class RoomCore {
         ...this.race.welcome(this),
         ...this.tag.welcome(this),
         ...this.jam.welcome(this),
-        ...this.war.welcome(this),
+        ...this.war.welcome(this, s),
         ...this.ops.welcome(this),
         ...this.gameLobby.welcome(this),
         ...this.bots.welcome(),
