@@ -6188,6 +6188,25 @@ export async function boot({
   function gameLobbyFrame(wallMs) {
     const st = roomLinkState.state();
     lobbyReady.frame(gameLobby(), st.phase === 'open' && st.welcome ? st.welcome.seat : null, wallMs);
+    lobbySeenFrame(wallMs);
+    if (lobbyBackAt != null && wallMs >= lobbyBackAt) {
+      lobbyBackAt = null;
+      if (gameLobby() && (mode === 'flight' || mode === 'paused')) {
+        ui.returnTo = 'title';
+        ui.show('friends');
+        ui.onAction('title');
+      } else if (gameLobby() && ui.screen === 'results') {
+        ui.show('friends');
+      }
+    }
+    lobbyPanelFrame(wallMs);
+  }
+  /* Whether the room's round is on, over or in its lobby, and its end.
+   * Also mid world build (openFrame), when nothing else runs: a round
+   * that went and ended while a world was built (the room's start puts
+   * every pilot in its world) is still an end, and the way back to the
+   * lobby waits for the build. */
+  function lobbySeenFrame(wallMs) {
     const game = lobbyGame();
     const seen = !game ? null : LOBBY_GAMES[game].on() ? 'on' : LOBBY_GAMES[game].ended() ? 'over' : 'lobby';
     if (seen !== lobbySeen) {
@@ -6201,17 +6220,6 @@ export async function boot({
       }
       lobbySeen = seen;
     }
-    if (lobbyBackAt != null && wallMs >= lobbyBackAt) {
-      lobbyBackAt = null;
-      if (gameLobby() && (mode === 'flight' || mode === 'paused')) {
-        ui.returnTo = 'title';
-        ui.show('friends');
-        ui.onAction('title');
-      } else if (gameLobby() && ui.screen === 'results') {
-        ui.show('friends');
-      }
-    }
-    lobbyPanelFrame(wallMs);
   }
   /* The lobby's panel, five times a second; also mid world build (a
    * mission's time of day rebuilds it as its briefing begins, frameBody),
@@ -18168,6 +18176,7 @@ export async function boot({
     applyResizeIfDirty();
     if (!mapReady) {
       prevWall = nowWall;
+      lobbySeenFrame(nowWall);
       lobbyPanelFrame(nowWall);
       return false;
     }
