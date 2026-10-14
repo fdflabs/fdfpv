@@ -42,7 +42,7 @@
 import { keyNote } from '../fc/keynotes.js';
 import { normaliseRates, RATE_DEFAULTS } from '../../configs/rates.js';
 import { TUNES, tunePath } from '../../configs/registry.js';
-import { str } from '../strings/index.js';
+import { hasStr, str } from '../strings/index.js';
 import {
   FEATURES,
   FIELDS,
@@ -619,9 +619,13 @@ export class FcSession {
     return rows;
   }
 
+  /* A preset's label is its tune name in the pilot's language, by the rule
+   * tuneName() in items.js keeps for the Tune row: tune.name.<word> when
+   * the word has a key, the registry's name when Spanish shares it. */
   presetRows() {
+    const nameKey = (tune) => `tune.name.${tune.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
     const rows = TUNES.map((tune) => ({
-      label: tune.name,
+      label: hasStr(nameKey(tune)) ? str(nameKey(tune)) : tune.name,
       action: `fc-preset:${tune.id}`,
       note: str('fc.keep_mine_rates_save_still_required', { note: str(`tune.note.${tune.id.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`) }),
     }));
