@@ -3576,7 +3576,7 @@
        ],
        "kids": [
         {
-         "t": "Join a room from the list, or make your own and name it: public so everybody can find it, or private for up to eight friends with its code. Everybody sees everybody's aircraft, in their own paint."
+         "t": "Join a room from the list, or make your own and name it: Public so everybody can find it, Friends for up to eight who have its code, or Solo for you alone. Everybody sees everybody's aircraft, in their own paint."
         }
        ]
       },
@@ -12534,7 +12534,7 @@
        ],
        "kids": [
         {
-         "t": "Join a room from the list, or make your own and name it: public so everybody can find it, or private for up to eight friends with its code. Everybody sees everybody's aircraft, in their own paint."
+         "t": "Join a room from the list, or make your own and name it: Public so everybody can find it, Friends for up to eight who have its code, or Solo for you alone. Everybody sees everybody's aircraft, in their own paint."
         }
        ]
       },
