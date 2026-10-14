@@ -93,12 +93,16 @@ From src/share/modes.js (#374), never from a branch on the activity:
 | Free Flight | none (the world row) | yes | yes | never: flying until the room empties |
 | Track Day | the track (My tracks) | yes | no: waits for the next race | race results |
 | Streamer Combat | 3 or 5 minutes | yes, practice | yes | round over, straight to the lobby |
-| Catch the Ace | the goal | yes, practice | yes | match results |
+| Catch the Ace | the goal | yes, AI pilots in a public room | yes | match results |
 | Defend the Paraná | the mission | yes | yes (late join) | the round card |
 
-"Practice" because there are no AI pilots: alone, combat and the Ace are a
-lap of the arena. The lobby says so rather than offering an AI row
-(PILLARS 12).
+A public room of Catch the Ace or Track Day fills with AI pilots to four,
+people and AI together (edge/rooms/roombots.js FILL_TO, src/share/modes.js
+allowAI); each gives its seat to a person who comes, and the host's AI
+pilots row sets their level or turns them off. A private room starts with
+them off. Track Day's AI pilots race a lap (edge/rooms/airace.js). Streamer
+Combat alone is still "practice": it has no AI pilots, so alone it is a
+lap of the arena.
 
 ## 4. Offline and errors
 

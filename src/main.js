@@ -1407,6 +1407,13 @@ export async function boot({
         if (e.title) {
           opsHud.stageEntered(opsSay(e.title));
         }
+      } else if (e.type === 'state' && e.to === 'live') {
+        /* The match begun, as this page sees it go live (edge/rooms/ops.js
+         * countdown to live), the same vantage its mission_end is recorded
+         * from (src/ui/opscampaign.js record); a reload mid match sees it
+         * begin again, as the war's does (src/ui/campaign.js observe). */
+        ui.progress.event('mission_start', { mission: v.mission, airframe: ui.progress.airframe });
+        ui.progress.foldFlight();
       } else if (e.type === 'state' && ['won', 'lost', 'ended'].includes(e.to)) {
         /* Ended by the host too: the squad's captures so far are its
          * record. A win has its outro first (opsFilmFrame), and the
@@ -4933,9 +4940,9 @@ export async function boot({
       start: 'friends-lobby-start',
       begin: () => roomLinkState.send({ type: 'race', op: 'start', laps: 3 }),
       setting: null,
-      rows: (host) => (host ? [{
+      rows: (host) => [...(host ? [{
         label: str('lobby.track'), value: roomRace.track() ? roomRace.track().name : str('lobby.track_none'), note: str('lobby.track_note'), action: 'friends-lobby-track',
-      }] : []),
+      }] : []), ...roomBotRows(host)],
       line: () => (roomRace.track() ? str('lobby.race_line', { name: roomRace.track().name }) : str('lobby.race_none')),
     },
     /* Free flight's round is just flying, on from the first start until
@@ -7955,7 +7962,7 @@ export async function boot({
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
-        tag: [...(game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host)), ...roomBotRows(host)],
+        tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
         combat: combatRows(host, w, game === 'combat'),
         jam: jamRows(host, w, game === 'jam'),
         war: warRows(host, w),
@@ -7973,7 +7980,9 @@ export async function boot({
         /* Who starts the games, for everybody else: without it a pilot
          * who is not the host sees rows that do nothing and no reason. */
         ...(w && !host ? [{ label: str('friends.host_starts', { name: roomSeatName(w.host) }), info: true }] : []),
-        ...order.flatMap((g) => blocks[g]),
+        /* The AI pilots row follows the block of the game the room was
+         * made for, once: the row is the room's, not each game's. */
+        ...order.flatMap((g) => (w && g === w.mode ? [...blocks[g], ...roomBotRows(host)] : blocks[g])),
         { label: str('roomrace.room_section'), section: true },
       ];
       const rows = [
@@ -8490,12 +8499,15 @@ export async function boot({
     raceHoldWas = raceHoldMs;
     /* A race this pilot finished, once per race: a round in the flight's
      * log with how many were on the grid, which the lesson Racing a pilot
-     * judges (src/game/training.js). A race's grid is people only (no AI
-     * pilots race, src/share/modes.js allowAI). */
+     * judges (src/game/training.js): people only, since the room's AI
+     * pilots race too (edge/rooms/airace.js) and a lesson about racing a
+     * pilot is not passed against them. A racer gone from the room is
+     * counted as the person it was. */
     const over = roomRace.takeResults();
     const finished = over && (over.standings || []).find((r) => r.seat === roomRace.seat() && r.ms != null);
     if (finished) {
-      ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length });
+      const people = (over.racers || []).filter((seat) => seat === roomRace.seat() || !roomBot(roomPeers.get(seat) || {}));
+      ui.progress.roundFinished('race', worldId(), { pilots: people.length });
     }
     /* Four times a second is plenty for an order that moves a gate at a
      * time, and it keeps the names' lookups off every frame. */
@@ -9107,11 +9119,13 @@ export async function boot({
     if (!host) {
       return [{ label: str('lobby.ai_pilots'), value, note: str('lobby.ai_pilots_guest_note'), info: true }];
     }
+    /* A race's AI pilots chase a lap, so the level says whose. */
+    const note = str(w.mode === 'race' ? 'lobby.ai_race_note' : 'lobby.ai_pilots_note');
     const set = (level) => roomLinkState.send({ type: 'bots', level });
     return [{
       label: str('lobby.ai_pilots'),
       value,
-      note: str('lobby.ai_pilots_note'),
+      note,
       current: w.bots,
       options: BOT_LEVELS.map((l) => ({ value: l, label: str(`lobby.ai_level.${l}`) })),
       pick: set,
@@ -13883,7 +13897,7 @@ export async function boot({
   let lastSwap = null;
   /*
    * THE WORLD A RUN THAT HAS CHANGED AIRCRAFT KEEPS. The seats are one per
-   * track class (src/share/session.js), so the moment the aircraft moves
+   * track class (src/share/trackseat.js), so the moment the aircraft moves
    * class, every read of "the seated track" answers for the new one and the
    * world no longer matches the settings: the next applySettings, a volume
    * nudge on the pause menu, would rebuild the world and drop the pilot on

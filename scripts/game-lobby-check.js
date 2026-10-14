@@ -487,6 +487,15 @@ try {
     const lt = await a.evaluate(LOBBY);
     check('Play on it: back in the lobby, the room\'s track A\'s', lt.shown && /Lobby ring/.test(lt.line)
       && (await a.evaluate('(window.__roomRace().track || {}).id')) === TRACK_ID, JSON.stringify({ line: lt.line, screen: lt.screen }));
+    /* With a track the public room's grid fills with AI pilots
+     * (edge/rooms/airace.js), and the host's AI pilots row says what they
+     * race against. */
+    await a.until(`document.querySelectorAll('.war-lobby-pilot.ai').length === ${FILL_TO - 1}`, 60000).catch(() => {});
+    const grid = await a.evaluate(LOBBY);
+    const aiRow = await a.evaluate("(() => { const all = window.__ui.items().filter((x) => x.label === 'AI pilots'); const it = all[0]; return it ? { n: all.length, note: it.note, choice: Boolean(it.options) } : null; })()");
+    check(`and its grid fills with AI pilots, ${FILL_TO} in all, the host's AI pilots row (one) a choice that says they race a lap`,
+      grid.pilots.filter((p) => p.ai).length === FILL_TO - 1 && people(grid.pilots).length === 1 && aiRow && aiRow.n === 1 && aiRow.choice && /lap/.test(aiRow.note),
+      JSON.stringify({ pilots: grid.pilots, aiRow }));
     await a.until('window.__roomRace().ready', 120000).catch(() => {});
   }
 
