@@ -165,7 +165,7 @@ export default Object.freeze({
   'int-g-next': { en: 1.51, es: 1.3 },
   'int-g-search': { en: 1.13, es: 1.2 },
   'int-lost-aircraft': { en: 2.875, es: 2.285 },
-  'int-spot-loud': { en: 3.925, es: 5.105 },
+  'int-spot-loud': { en: 3.925, es: 4.875 },
   'int-spot-low': { en: 3.335, es: 3.845 },
   'int-spot-over': { en: 3.245, es: 3.955 },
   'int-spot-seen': { en: 1.295, es: 1.135 },
