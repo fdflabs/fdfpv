@@ -18,8 +18,17 @@ this lane ships one section of it and the check named there.
   ruling, 2026-10-13: the lower of the Flight Club activity firsts, a
   course's first lap at 40 and a lesson at 60; the tokens the lower of
   the two 40 XP firsts, a first flight at 10 and a star at 30;
-  reversible until a grant is paid). A new best score pays nothing yet:
-  no rule gives the `bests` shape a value.
+  reversible until a grant is paid).
+- **Bests** (PROGRESSION.md section 3.1, the lead's rule of 2026-10-14):
+  a personal record the game already measures, per activity and place: a
+  lap and a solo run of N laps per course and aircraft class (lower ms,
+  margin 10 ms), a Streamer Combat round and a Catch the Ace! match per
+  world (higher points, margin one point). Set only from the event log of
+  a finished, valid run. The first best on a key pays 40 XP, a gain of the
+  margin or more pays 20 XP, matching it pays nothing (`BEST_XP`,
+  src/game/progress.js). XP only, never tokens: built courses make the
+  list unbounded, so bests stay out of the finite list tokens are paid
+  from. Training and the war are left out (section 3.1 says why).
 - **Tokens** (es: *Fichas*), the hangar's soft currency, shown beside the
   level in the Hangar. Earned two ways only:
   1. **firsts**: the same finite list of firsts that pay XP (a challenge, a
