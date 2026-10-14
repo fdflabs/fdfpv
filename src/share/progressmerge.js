@@ -31,7 +31,8 @@
  *              on; lessons passed and certifications are the union at
  *              the earlier time; medals per course the better of the two;
  *              landings, crashes, laps and kills per aircraft the
- *              higher of the two; the
+ *              higher of the two; bests per key the better of the two,
+ *              lower or higher by the key's kind (progress.js BESTS); the
  *              version is the newer of the two.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
@@ -96,7 +97,7 @@
 
 import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
-import { COUNTED } from '../game/progress.js';
+import { COUNTED, bestKind, bestsMap, betterBest } from '../game/progress.js';
 import { CLASSES, retiredAirframe } from '../../configs/airframes.js';
 import { tiersShape } from '../../configs/surfaces.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
@@ -348,6 +349,14 @@ function mergeProgress(a, b) {
         out[map][k] = n;
       }
     }
+  }
+  /* Bests (progress.js BESTS): per key the better value of the two, so a
+   * merge never invents a record and never loses one. */
+  const ba = bestsMap(a.bests);
+  const bb = bestsMap(b.bests);
+  out.bests = {};
+  for (const k of [...new Set([...Object.keys(ba), ...Object.keys(bb)])].sort()) {
+    out.bests[k] = betterBest(bestKind(k), ba[k], bb[k]) ? ba[k] : bb[k];
   }
   out.unlockAll = a.unlockAll === true || b.unlockAll === true;
   /* Lessons passed and certifications earned: every one either side

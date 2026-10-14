@@ -213,6 +213,17 @@ async function run(lang, track) {
     say(Boolean(f) && f.clear, `the facts cover none of the hero, the laps or the menu: ${f && f.box}`);
     const want = ['debrief.air_time', 'debrief.distance', 'debrief.top', 'debrief.clean_laps', 'debrief.condition', 'debrief.track_record', 'debrief.aircraft_time'].map((k) => t[k]);
     say(f && JSON.stringify(f.dts) === JSON.stringify(want), `its lines in order: ${f && f.dts.join(' | ')}`);
+    /* Every gate was reached by __placeCraft, a developer hook: each
+     * placement starts a new flight in the event log, so no lap or run of
+     * this ring is a best (docs/redesign/PROGRESSION.md 3.1), though its
+     * laps are logged with their course and their place in the run. */
+    const dev = await page.evaluate(`(() => {
+      const p = window.__ui.progress;
+      const laps = p.flight.events.filter((e) => e.type === 'lap');
+      return { bests: Object.keys(window.__ui.settings.progress.bests || {}).length, shown: p.runBests().length, lap: laps.length ? laps[laps.length - 1] : null, want: window.__ui.settings.laps };
+    })()`);
+    say(dev.bests === 0 && dev.shown === 0 && Boolean(dev.lap) && typeof dev.lap.course === 'string' && dev.lap.n === dev.want && dev.lap.of === dev.want && f && !f.dts.includes(t['debrief.best_lap']),
+      `a run flown by placing the craft sets no best and shows no New best line: ${JSON.stringify(dev)}`);
     say(f && f.dds[0] !== '0:00' && /^\d+:\d\d$/.test(f.dds[0]), `time in the air counted: ${f && f.dds[0]}`);
     say(f && f.dds[3] === t['debrief.n_of'].replace('{n}', '3').replace('{of}', '3'), `clean laps: ${f && f.dds[3]}`);
     const hud = await page.evaluate('window.__crash().condition');

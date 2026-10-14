@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardBests, awardChallenge, awardFirsts, awardLap, awardMedal, bestKind, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
@@ -42,6 +42,7 @@ import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
+import { formatTime } from './format.js';
 
 /* How long a toast stays up, ms, and how many are on screen at once. */
 const TOAST_MS = 3600;
@@ -64,6 +65,18 @@ export function itemName(it) {
     return str(it.name.key, it.name.vars);
   }
   return it.id;
+}
+
+/* A best's words: the lap or the run with its time, or the points. */
+export function bestTitle(best) {
+  const kind = bestKind(best.key);
+  if (kind === 'lap') {
+    return str('progress.best_lap', { time: formatTime(best.now) });
+  }
+  if (kind === 'run') {
+    return str('progress.best_run', { n: Number(best.key.split(':')[1]), time: formatTime(best.now) });
+  }
+  return str('progress.best_score', { n: number(best.now) });
 }
 
 function kindWord(kind) {
@@ -209,6 +222,10 @@ export class Progress {
     this.flight = new EventLog();
     /* How far into this flight's log progress has counted. */
     this.folded = 0;
+    /* The bests this run set (progress.js awardBest's `best` events), for
+     * its debrief to say (runBests); a new run (the sim clock back to its
+     * start, src/main.js reset) forgets them. */
+    this.bests = [];
     this.simMs = 0;
     this.wasCrashed = false;
     /* The avionics camera's primary track as last logged (contact). */
@@ -267,6 +284,9 @@ export class Progress {
   /* A new flight from the spawn at sim time `simMs`; `roomNow` the room
    * clock while in a room. The last flight's log ends here. */
   startFlight(simMs, roomNow = null) {
+    if (simMs <= 0 || simMs < this.simMs) {
+      this.bests = [];
+    }
     this.simMs = simMs;
     this.flight.end(simMs);
     this.flight = new EventLog({ roomNow });
@@ -276,19 +296,43 @@ export class Progress {
   }
 
   /* This flight's events not yet folded into progress, folded
-   * (progress.js foldEvents) and stored when any was. */
+   * (progress.js foldEvents), their bests awarded (awardBests), and
+   * stored when any was. */
   foldFlight() {
-    const { at, counted } = foldEvents(this.state, this.flight.events, this.folded);
+    const from = this.folded;
+    const { at, counted } = foldEvents(this.state, this.flight.events, from);
+    const won = awardBests(this.state, this.flight.events, from);
     this.folded = at;
-    if (counted) {
+    if (counted || won.length) {
       this.save();
     }
+    /* One award a best: its toast says that best alone. */
+    let award = [];
+    for (const e of won) {
+      if (e.type === 'best') {
+        this.show(award);
+        this.bests.push(e);
+        award = [];
+      }
+      award.push(e);
+    }
+    this.show(award);
+  }
+
+  /* The bests this run set, for its debrief (src/game/debrief.js
+   * withBests), which may be drawn more than once. */
+  runBests() {
+    return this.bests.slice();
   }
 
   /* A Streamer Combat round or a Catch the Ace! match this pilot had a
    * seat in, ended by the room, on world `world` (src/main.js): logged,
-   * folded, and its first paid now rather than at the next flight time. */
+   * folded, and its first paid now rather than at the next flight time.
+   * `more.points` is this pilot's in the room's final standings, which a
+   * best is read from; a best of this game's last round is forgotten
+   * first, so a debrief says only this round's. */
   roundFinished(game, world, more = {}) {
+    this.bests = this.bests.filter((b) => bestKind(b.key) !== game);
     const round = this.event('round', { game, world, ...more });
     this.foldFlight();
     this.checkFirsts();
@@ -441,11 +485,13 @@ export class Progress {
 
   /* A lap closed on `course`, { key, kind }; `ms` its time, `ghostMs`
    * the ghost's it was flown against, and `medal` the one it reached on a
-   * course with medals (src/game/medals.js), each null when there is none. */
-  lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
+   * course with medals (src/game/medals.js), each null when there is none;
+   * `n` and `of` the lap's place in a solo run and the run's laps, null in
+   * a room, so a run's best is read from the log (progress.js bestsOf). */
+  lap(course, { ms = null, ghostMs = null, medal = null, n = null, of = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind });
+    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });
     const done = feedRunWatch(this.watch, lapped);
     this.foldFlight();
     this.save();
@@ -524,6 +570,7 @@ export class Progress {
     const ch = events.find((e) => e.type === 'challenge');
     const firsts = events.filter((e) => e.type === 'first');
     const medal = events.find((e) => e.type === 'medal');
+    const best = events.find((e) => e.type === 'best' && e.xp > 0);
     const levels = events.filter((e) => e.type === 'level');
     const up = levels.length ? levels[levels.length - 1].level : 0;
     const info = levelInfo(this.state.xp);
@@ -533,6 +580,15 @@ export class Progress {
         icon: '\u25CF',
         kicker: str('progress.toast_medal'),
         title: str(`medal.${medal.medal}`),
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (best) {
+      this.toast({
+        cls: `best${up ? ' level' : ''}`,
+        icon: up ? String(up) : '\u2191',
+        kicker: up ? str('progress.toast_best_level', { n: up }) : str('progress.toast_best'),
+        title: bestTitle(best),
         xp: xp ? xp.xp : 0,
         frac: info.frac,
       });

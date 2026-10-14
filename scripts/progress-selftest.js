@@ -26,6 +26,7 @@
 import {
   CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
   FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, everyFirst, firstsOf,
+  BESTS, BEST_MARGIN, BEST_XP, awardBest, awardBests, bestsOf,
   COUNTED, PLAYED_GAMES, WORLDS, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
 } from '../src/game/progress.js';
@@ -364,6 +365,134 @@ console.log('room games: a first per game and world');
   const blob = (played) => ({ v: 1, data: { progress: { ...freshProgress(), played } }, stamps: {} });
   check('two computers merge played as the union', same(mergeBlobs(blob({ 'tag:alps': true }), blob({ 'combat:itaipu': true })).data.progress.played, { 'combat:itaipu': true, 'tag:alps': true }));
   check('Unlock all is untouched by a room game first', (() => { const q = freshProgress(true); awardFirsts(q, { played: { 'tag:alps': true } }); return q.unlockAll === true && q.xp === FIRST_XP.game; })());
+}
+
+/*
+ * BESTS (PROGRESSION.md section 3, the lead's decision of 2026-10-14):
+ * per activity and place, set only from a finished, valid run's log, XP
+ * once for the first and a smaller amount for a real improvement.
+ */
+console.log('bests: a personal record per activity and place');
+{
+  const xpOf = (events) => events.filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0);
+  const lapLog = (laps, { start = 0, of = null, course = 'track:t1', airframe = 'timber1500' } = {}) => {
+    const log = new EventLog();
+    log.append('spawned', start);
+    let t = start + 5000;
+    laps.forEach((ms, i) => {
+      t += ms;
+      log.append('lap', t, { ms, airframe, medal: null, kind: 'built', course, n: i + 1, of });
+    });
+    return log;
+  };
+  check('every kind has a direction and a margin', Object.keys(BESTS).every((k) => ['lower', 'higher'].includes(BESTS[k]) && BEST_MARGIN[k] > 0)
+    && same(Object.keys(BESTS).sort(), Object.keys(BEST_MARGIN).sort()));
+  check('a time\'s margin is the clock\'s hundredth, a score\'s one point', BEST_MARGIN.lap === 10 && BEST_MARGIN.run === 10 && BEST_MARGIN.combat === 1 && BEST_MARGIN.tag === 1);
+  check('a better best pays less than the first', BEST_XP.improved > 0 && BEST_XP.improved < BEST_XP.set);
+  check('a fresh profile has no bests', same(freshProgress().bests, {}));
+
+  /* Track Day: a lap per course and aircraft class, lower is better. */
+  const p = freshProgress();
+  const first = awardBests(p, lapLog([42000]).events);
+  check('lap: the first lap on a course sets its best for the class and pays BEST_XP.set',
+    same(p.bests, { 'lap:plane:track:t1': 42000 }) && xpOf(first) === BEST_XP.set && first[0].before === null, JSON.stringify(p.bests));
+  const fold = awardBests(p, lapLog([42000]).events);
+  check('lap: matching it pays nothing and sets nothing', fold.length === 0 && p.bests['lap:plane:track:t1'] === 42000);
+  const slower = awardBests(p, lapLog([43000]).events);
+  check('lap: a slower lap pays nothing and keeps the best', slower.length === 0 && p.bests['lap:plane:track:t1'] === 42000);
+  const creep = awardBests(p, lapLog([41995]).events);
+  check('lap: better by under the margin is kept and pays nothing', creep.length === 1 && creep[0].xp === 0 && xpOf(creep) === 0
+    && p.bests['lap:plane:track:t1'] === 41995, JSON.stringify(creep));
+  const xpBefore = p.xp;
+  const real = awardBests(p, lapLog([41985]).events);
+  check('lap: better by the margin pays BEST_XP.improved, the old value with it',
+    xpOf(real) === BEST_XP.improved && p.xp === xpBefore + BEST_XP.improved && real[0].before === 41995 && real[0].now === 41985, JSON.stringify(real));
+  check('lap: another class on the same course is its own best', xpOf(awardBests(p, lapLog([30000], { airframe: 'interceptor' }).events)) === BEST_XP.set
+    && p.bests['lap:multirotor:track:t1'] === 30000);
+  check('lap: another course is its own best', xpOf(awardBests(p, lapLog([50000], { course: 'track:t2' }).events)) === BEST_XP.set);
+
+  /* A reset mid lap (resetCraft starts a new log; so does a developer
+   * hook putting the craft somewhere): the lap began before this log. */
+  const reset = new EventLog();
+  reset.append('spawned', 100000);
+  reset.append('lap', 101000, { ms: 9000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t3', n: 1, of: null });
+  check('reset: a lap longer than its flight so far is no best', bestsOf(reset.events).length === 0);
+  const placed = new EventLog();
+  placed.append('spawned', 0);
+  placed.append('lap', 40000, { ms: 40000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t3', n: 1, of: null });
+  check('reset: a lap the length of its whole flight is one (the start is in this log)', bestsOf(placed.events).length === 1);
+  const unlogged = new EventLog();
+  unlogged.append('lap', 40000, { ms: 1000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t3', n: 1, of: null });
+  check('reset: a log that does not say where its flight began proves nothing', bestsOf(unlogged.events).length === 0);
+  check('lap: no course, no aircraft or no time is no best',
+    bestsOf(lapLog([40000], { course: null }).events).length === 0 && bestsOf(lapLog([40000], { airframe: null }).events).length === 0);
+
+  /* A solo run: every lap of it closed in one log. */
+  const r = freshProgress();
+  const run = awardBests(r, lapLog([40000, 39000, 41000], { of: 3 }).events);
+  check('run: three laps of a three lap run set the run\'s best, their sum', r.bests['run:3:plane:track:t1'] === 120000, JSON.stringify(r.bests));
+  check('run: and pays BEST_XP.set once for it, besides the lap\'s', run.filter((e) => e.type === 'best' && e.key.startsWith('run:')).length === 1
+    && xpOf(run) === BEST_XP.set + BEST_XP.set + BEST_XP.improved, `${xpOf(run)}`);
+  const recovered = lapLog([39000, 38000], { of: 3 });
+  recovered.events.forEach((e, i) => { if (i > 0) { recovered.events[i] = { ...e, n: e.n + 1 }; } });
+  check('run: a run whose first lap closed in an earlier log (a recovery) is no run best',
+    !bestsOf(recovered.events).some((b) => b.key.startsWith('run:')));
+  check('run: a room\'s laps (no `of`) make no run best', !bestsOf(lapLog([40000, 39000, 41000]).events).some((b) => b.key.startsWith('run:')));
+  check('run: a run under its laps is none yet', !bestsOf(lapLog([40000, 39000], { of: 3 }).events).some((b) => b.key.startsWith('run:')));
+  const better = awardBests(r, lapLog([39000, 39000, 39000], { of: 3 }).events).filter((e) => e.type === 'best' && e.key.startsWith('run:'));
+  check('run: a faster run by the margin pays the improvement', better.length === 1 && better[0].xp === BEST_XP.improved && better[0].before === 120000);
+
+  /* Streamer Combat and Catch the Ace!: a round's points per world. */
+  const g = freshProgress();
+  const round = (game, world, points) => { const log = new EventLog(); log.append('round', 1, { game, world, points }); return log.events; };
+  check('combat: a round\'s points set its world\'s best and pay BEST_XP.set', xpOf(awardBests(g, round('combat', 'alps', 300))) === BEST_XP.set && g.bests['combat:alps'] === 300);
+  check('combat: the same score again pays nothing', awardBests(g, round('combat', 'alps', 300)).length === 0);
+  check('combat: a lower score pays nothing', awardBests(g, round('combat', 'alps', 299)).length === 0 && g.bests['combat:alps'] === 300);
+  check('combat: one point more is a real gain and pays BEST_XP.improved', xpOf(awardBests(g, round('combat', 'alps', 301))) === BEST_XP.improved && g.bests['combat:alps'] === 301);
+  check('tag: higher is better, per world', xpOf(awardBests(g, round('tag', 'itaipu', 5))) === BEST_XP.set && xpOf(awardBests(g, round('tag', 'swiss2', 2))) === BEST_XP.set
+    && xpOf(awardBests(g, round('tag', 'itaipu', 7))) === BEST_XP.improved && same([g.bests['tag:itaipu'], g.bests['tag:swiss2']], [7, 2]));
+  check('rounds: no points, nought, an unknown game or world is no best',
+    bestsOf(round('combat', 'alps', 0)).length === 0 && bestsOf(round('jam', 'alps', 50)).length === 0
+    && bestsOf(round('combat', 'atlantis', 50)).length === 0 && bestsOf([{ type: 'round', game: 'tag', world: 'alps', seq: 0, simMs: 0 }]).length === 0);
+
+  /* Folding from where the last fold stopped finds nothing twice. */
+  const f = freshProgress();
+  const log = lapLog([40000], { of: 2 });
+  const once = awardBests(f, log.events, 0);
+  log.append('lap', 90000, { ms: 39000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t1', n: 2, of: 2 });
+  const twice = awardBests(f, log.events, 2);
+  check('a fold from the last one takes only the new laps', once.filter((e) => e.type === 'best').length === 1
+    && same(twice.filter((e) => e.type === 'best').map((e) => e.key), ['lap:plane:track:t1', 'run:2:plane:track:t1']), JSON.stringify(twice.map((e) => e.key)));
+  check('awardBest refuses an unknown kind or a junk value', awardBest(freshProgress(), 'jam:alps', 5).length === 0
+    && awardBest(freshProgress(), 'lap:plane:x', 1.5).length === 0 && awardBest(freshProgress(), 'lap:plane:x', -3).length === 0);
+  check('bests are not firsts: none is on the finite list the tokens are paid from', !everyFirst().some((x) => /^(lap|run|combat|tag):/.test(x.key)));
+  check('Unlock all is untouched by a best', (() => { const q = freshProgress(true); awardBests(q, round('tag', 'alps', 3)); return q.unlockAll === true && q.bests['tag:alps'] === 3; })());
+
+  /* Stored, and the save's migration: additive inside v2, no step. */
+  const v2 = { v: 2, xp: 640, firsts: { 'game:tag:alps': true }, courses: { 'track:t1': true } };
+  const loaded = normaliseProgress(v2);
+  check('migration: a v2 profile from before bests reads as none, everything else kept, no version step',
+    same(loaded.bests, {}) && loaded.xp === 640 && loaded.v === PROGRESS_VERSION && PROGRESS_VERSION === 2 && same(loaded.firsts, v2.firsts), JSON.stringify(loaded));
+  check('migration: a v1 profile walks up and reads bests as none', same(normaliseProgress({ xp: 50 }).bests, {}) && normaliseProgress({ xp: 50 }).v === PROGRESS_VERSION);
+  const junk = normaliseProgress({ bests: { 'lap:plane:t': 40000, 'run:3:plane:t': 120000.5, 'jam:alps': 4, 'combat:alps': 0, 'tag:alps': '9', [`lap:${'x'.repeat(200)}`]: 5 } });
+  check('stored bests keep known kinds with whole positive values; junk is dropped', same(junk.bests, { 'lap:plane:t': 40000 }), JSON.stringify(junk.bests));
+  check('and survive a round trip', same(normaliseProgress(JSON.parse(JSON.stringify(p))).bests, p.bests));
+
+  /* Sync: per key the better of the two, by the key's direction. */
+  const blob = (bests) => ({ v: 1, data: { progress: { ...freshProgress(), bests } }, stamps: {} });
+  const da = { 'lap:plane:t': 41000, 'combat:alps': 200, 'tag:alps': 4 };
+  const db = { 'lap:plane:t': 42000, 'combat:alps': 250, 'run:3:plane:t': 130000 };
+  const m1 = mergeBlobs(blob(da), blob(db)).data.progress.bests;
+  const m2 = mergeBlobs(blob(db), blob(da)).data.progress.bests;
+  check('sync: the lower time and the higher score win, either way round, a key on one side kept',
+    same(m1, { 'combat:alps': 250, 'lap:plane:t': 41000, 'run:3:plane:t': 130000, 'tag:alps': 4 }) && same(m1, m2), JSON.stringify(m1));
+  check('sync: a merge never invents a record', Object.entries(m1).every(([k, v]) => v === da[k] || v === db[k]));
+  /* Flight Club's pilot numbers (src/ui/pilotstats.js, docs/PILOT-STATS.md). */
+  const { pilotStats } = await import('../src/ui/pilotstats.js');
+  const shown = pilotStats({ progress: { xp: 0, bests: { ...da, ...db, 'combat:itaipu': 400, 'jam:alps': 9 } } }).bests;
+  check('pilot stats: Track Day counts its lap and run bests, Streamer Combat shows its highest round', same(shown, { race: 2, combat: 400 }), JSON.stringify(shown));
+  check('pilot stats: a pilot with none shows none', same(pilotStats({}).bests, { race: 0, combat: 0 }));
+  check('sync: a side from before bests loses nothing the other has', same(mergeBlobs(blob(undefined), blob(da)).data.progress.bests, Object.fromEntries(Object.entries(da).sort())));
 }
 
 console.log('certifications (src/game/training.js CERTS)');

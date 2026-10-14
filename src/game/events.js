@@ -20,13 +20,17 @@
  *
  * PRODUCERS today, each a line at a call site that already existed:
  *
- *   spawned       a new flight (src/main.js resetCraft, Progress.startFlight)
+ *   spawned       a new flight (src/main.js resetCraft, Progress.startFlight),
+ *                 and the craft put somewhere by a developer hook
+ *                 (__placeCraft): a lap across either is no best
  *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
- *                 a lap carries {ms, airframe, medal, kind}, the medal it
- *                 reached on a course with medals or null and its
- *                 course's kind, 'casual', 'built' or 'map'
+ *                 a lap carries {ms, airframe, medal, kind, course, n,
+ *                 of}, the medal it reached on a course with medals or
+ *                 null, its course's kind, 'casual', 'built' or 'map'
  *                 (src/game/progress.js courseKind) (a lesson judges
- *                 both, src/game/training.js)
+ *                 both, src/game/training.js), its course's key, and its
+ *                 place in a solo run of `of` laps (null in a room): the
+ *                 bests are read from these (progress.js bestsOf)
  *   touch {kind}  the same; a contact the shell reports every step is one
  *                 event per kind per run of contact (see append)
  *   crash {airframe}
@@ -52,7 +56,8 @@
  *   round {game, world}
  *                 a Streamer Combat round or a Catch the Ace! match
  *                 ended by the room with this pilot seated (src/main.js,
- *                 Progress.roundFinished); a room race this pilot
+ *                 Progress.roundFinished), with {points}, this pilot's in
+ *                 the room's final standings; a room race this pilot
  *                 finished, game 'race', carries {pilots} too, how many
  *                 were on its grid
  *   mission_start {mission, airframe}

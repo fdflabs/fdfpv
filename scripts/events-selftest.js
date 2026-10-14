@@ -310,13 +310,17 @@ console.log('the shell\'s producers');
   check('Progress feeds RunWatch gate and lap from the log, and tells it every touch',
     ui.includes("feedRunWatch(this.watch, this.event('gate'))")
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
-    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind });\n    const done = feedRunWatch(this.watch, lapped);"));
+    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });\n    const done = feedRunWatch(this.watch, lapped);"));
   check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
   check('and logs a crash and a landing from its tick',
     ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe })"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
-  check('a room game\'s end is logged as a round, Streamer Combat and Catch the Ace!',
-    src('src/main.js').includes("ui.progress.roundFinished('combat', worldId())") && src('src/main.js').includes("ui.progress.roundFinished('tag', worldId())")
+  check('so does a developer hook putting the craft somewhere, so no lap across it is a best',
+    /devHooks\.__placeCraft = [\s\S]{0,1600}?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
+  check('a lap carries its course and its place in a solo run',
+    src('src/main.js').includes("n: race.lap,\n          of: roomRun() ? null : runLaps,"));
+  check('a room game\'s end is logged as a round, Streamer Combat and Catch the Ace!, with this pilot\'s points',
+    src('src/main.js').includes("ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points })") && src('src/main.js').includes("ui.progress.roundFinished('tag', worldId(), { points: mine.points })")
     && ui.includes("this.event('round', { game, world, ...more })"));
   check('a room race this pilot finished is a round with the people on its grid, its AI pilots not counted, once per race',
     src('src/main.js').includes("const over = roomRace.takeResults();")

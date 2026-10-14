@@ -25,7 +25,9 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
+import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withBests, withPosted } from '../src/game/debrief.js';
+import { factLines } from '../src/ui/factlines.js';
+import { useLocale } from '../src/strings/index.js';
 
 let failed = 0;
 function check(name, ok, detail = '') {
@@ -186,6 +188,42 @@ const ok = { ok: true, why: null };
   const l = fromOps({ won: false, ended: false, items: [], stars: { got: 0, of: 0 }, flight });
   check('ops: lost, no items or stars, no lines', l.result.kind === 'lost' && l.accuracy.length === 0);
   check('ops: ended', fromOps({ won: false, ended: true, items: [], stars: null, flight }).result.kind === 'ended');
+}
+
+/* The bests a run set (src/game/progress.js awardBest, PROGRESSION.md
+ * section 3): a "New best" line each, the old value and the new. */
+{
+  const race = fromRace({ aircraft: 'timber1500', log: [{ n: 1, ms: 41000 }], recordAtStart: 42000, flightMs: 60000, totalS: 100, replay: ok });
+  const bests = [
+    { type: 'best', key: 'lap:plane:track:t1', now: 41500, before: 42000, xp: 20 },
+    { type: 'best', key: 'lap:plane:track:t1', now: 41000, before: 41500, xp: 0 },
+    { type: 'best', key: 'run:1:plane:track:t1', now: 41000, before: null, xp: 40 },
+    { type: 'best', key: 'tag:alps', now: 5, before: null, xp: 40 },
+  ];
+  const d = withBests(race, bests);
+  check('bests: a race shows its lap and run bests first, a tag best is not its', d.records.length === race.records.length + 2
+    && d.records[0].what === 'debrief.best_lap' && d.records[1].what === 'debrief.best_run' && d.records[2].what === 'debrief.track_record', JSON.stringify(d.records.map((r) => r.what)));
+  check('bests: a key bettered twice in a run is one line, from the best held before it to the last', d.records[0].before === 42000 && d.records[0].now === 41000 && d.records[0].improved === true);
+  check('bests: a first best has no old value', d.records[1].before === null && d.records[1].now === 41000);
+  check('bests: none set leaves the record as it was', withBests(race, []) === race && withBests(race, null) === race);
+  check('bests: pure, the record it was given is unchanged', race.records[0].what === 'debrief.track_record');
+  const tag = withBests(fromRoom({ activity: 'tag', aircraft: 'cub1400', place: 1, of: 2, final: true, points: 5, flightMs: 1, totalS: 1, replay: ok }), bests);
+  check('bests: a tag match shows its points best only', tag.records.length === 2 && tag.records[0].what === 'debrief.best_score' && tag.records[0].kind === 'tag' && tag.records[0].now === 5);
+  check('bests: a room race shows its lap best, never a run (a room has no solo run)', withBests({ ...race, activity: 'roomrace' }, bests).records.filter((r) => r.kind).map((r) => r.kind).join() === 'lap');
+  check('bests: JSON safe', JSON.stringify(JSON.parse(JSON.stringify(d))) === JSON.stringify(d));
+  for (const [lang, label, scoreLabel, first, beat] of [['en', 'New best lap', 'New best score', '41.00, your first', '41.00, was 42.00'], ['es', 'Nueva mejor vuelta', 'Nueva mejor puntuación', '41.00, tu primera marca', '41.00, antes 42.00']]) {
+    await useLocale(lang);
+    const lines = factLines(d);
+    const row = lines.find((l) => l[0] === label);
+    check(`bests: the "New best" row in ${lang}, old and new, a gain`, Boolean(row) && row[1] === beat && row[2] === 'gain', JSON.stringify(row));
+    const fresh = factLines(withBests(race, [{ key: 'lap:plane:track:t9', now: 41000, before: null }])).find((l) => l[0] === label);
+    check(`bests: a first best in ${lang}`, Boolean(fresh) && fresh[1] === first, JSON.stringify(fresh));
+    const score = factLines(tag).find((l) => l[0] === scoreLabel);
+    const was = factLines(withBests(tag, [{ key: 'tag:alps', now: 7, before: 5 }])).find((l) => l[0] === scoreLabel);
+    check(`bests: a score best in ${lang} is points, not a time`, Boolean(score) && score[1] === first.replace('41.00', '5') && score[2] === 'gain'
+      && Boolean(was) && was[1] === beat.replace('41.00', '7').replace('42.00', '5'), JSON.stringify([score, was]));
+  }
+  await useLocale('en');
 }
 
 /* The replay row and the fallback next list. */

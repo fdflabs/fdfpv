@@ -205,7 +205,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, certs: {}, medals: {}, landings: {}, crashes: {}, laps: {}, kills: {}, missionsStarted: {}, missionsCompleted: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, certs: {}, medals: {}, landings: {}, crashes: {}, laps: {}, kills: {}, missionsStarted: {}, missionsCompleted: {}, bests: {}, unlockAll };
 }
 
 /*
@@ -303,6 +303,9 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     certs: passes(p.certs),
     medals: medalMap(p.medals),
     ...Object.fromEntries(Object.values(COUNTED).map((k) => [k, countMap(p[k])])),
+    /* Additive inside the stored version, as medals and the counts are:
+     * an older profile reads as none, and its next valid run sets them. */
+    bests: bestsMap(p.bests),
     unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,
   };
 }
@@ -390,6 +393,144 @@ export function foldEvents(progress, events, from = 0) {
 export function countOf(progress, type, airframe) {
   const map = progress && isRecord(progress[COUNTED[type]]) ? progress[COUNTED[type]] : {};
   return map[liveryKey(airframe)] || 0;
+}
+
+/*
+ * BESTS (PROGRESSION.md section 3, the lead's decision of 2026-10-14): a
+ * personal record the game already measures with a clear better
+ * direction, per activity and per place, kept in `bests` as key to value:
+ *
+ *   lap:<class>:<course>         a lap's time, ms, lower is better
+ *   run:<laps>:<class>:<course>  a solo run of <laps> laps, ms, lower
+ *   combat:<world>, tag:<world>  a Streamer Combat round's or a Catch
+ *                                the Ace! match's points, higher
+ *
+ * <class> is the aircraft's (configs/airframes.js CLASSES), <course> the
+ * lap's course key (src/main.js progressCourse). Set only from a flight's
+ * event log (src/game/events.js), never from the screen, and only from a
+ * finished, valid run: a lap whose time is longer than its flight's log
+ * began a reset ago (resetCraft, and a developer hook putting the craft
+ * somewhere, both start a new log) is not one, and a run counts only when
+ * every one of its laps closed inside one log. The room ends a round and
+ * its points are the room's (edge/rooms), so a round is valid as logged.
+ *
+ * The first best on a key pays BEST_XP.set once; a later one pays
+ * BEST_XP.improved when it beats the held best by BEST_MARGIN or more, so
+ * matching it, or creeping under the margin, pays nothing (the better
+ * value is still kept: a record is a record). The margin is the
+ * resolution the pilot reads it at: a time shows in hundredths
+ * (src/ui/format.js formatTime), so 10 ms is the least gain the clock
+ * shows; points are counted, never measured, so one point is real. The
+ * amounts sit on the firsts' scale, a lane call the lead may tune.
+ *
+ * Bests pay XP only, never tokens: built courses make the list unbounded,
+ * so they stay out of firstsOf (src/game/economy.js pays from that list).
+ */
+export const BESTS = Object.freeze({ lap: 'lower', run: 'lower', combat: 'higher', tag: 'higher' });
+export const BEST_MARGIN = Object.freeze({ lap: 10, run: 10, combat: 1, tag: 1 });
+export const BEST_XP = Object.freeze({ set: 40, improved: 20 });
+const BEST_KEY_MAX = 160;
+const BEST_VALUE_MAX = 1e9;
+
+export function bestKind(key) {
+  const kind = typeof key === 'string' ? key.split(':')[0] : '';
+  return Object.hasOwn(BESTS, kind) ? kind : null;
+}
+
+/* Whether `a` is better than `b` on a key of `kind`; anything beats none. */
+export function betterBest(kind, a, b) {
+  if (!Number.isFinite(b)) {
+    return Number.isFinite(a);
+  }
+  return BESTS[kind] === 'lower' ? a < b : a > b;
+}
+
+/* A stored bests map made safe: known kinds, whole positive values. */
+export function bestsMap(o) {
+  const out = {};
+  if (!isRecord(o)) {
+    return out;
+  }
+  for (const [k, v] of Object.entries(o).slice(0, 2000)) {
+    if (k.length <= BEST_KEY_MAX && bestKind(k) && Number.isInteger(v) && v > 0 && v <= BEST_VALUE_MAX) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+/* The aircraft class a lap is filed under, or null for no aircraft. */
+function classOf(airframe) {
+  return typeof airframe === 'string' && airframe ? airframeById(airframe).class ?? null : null;
+}
+
+/*
+ * The bests a flight's log shows from the event at `from` on: [{ key,
+ * value }], in log order. The whole log is read for the context (where
+ * the flight began, a run's earlier laps), so folding again from where
+ * the last fold stopped finds nothing twice.
+ */
+export function bestsOf(events, from = 0) {
+  const out = [];
+  const start = events.length && events[0].type === 'spawned' ? events[0].simMs : null;
+  for (let i = from; i < events.length; i += 1) {
+    const e = events[i];
+    if (e.type === 'round' && PLAYED_GAMES.includes(e.game) && WORLDS.includes(e.world) && Number.isInteger(e.points) && e.points > 0) {
+      out.push({ key: `${e.game}:${e.world}`, value: e.points });
+      continue;
+    }
+    const cls = e.type === 'lap' ? classOf(e.airframe) : null;
+    if (!cls || typeof e.course !== 'string' || !e.course || !Number.isFinite(e.ms) || e.ms <= 0 || start == null || e.ms > e.simMs - start) {
+      continue;
+    }
+    out.push({ key: `lap:${cls}:${e.course}`, value: Math.round(e.ms) });
+    const run = runOf(events, i, start);
+    if (run != null) {
+      out.push({ key: `run:${e.of}:${cls}:${e.course}`, value: Math.round(run) });
+    }
+  }
+  return out;
+}
+
+/* The run the lap at `i` closes, its time in ms, or null: the lap is the
+ * run's last (`n` of `of`) and its every lap, 1 to `of`, closed in this
+ * log in order on the same course and aircraft. */
+function runOf(events, i, start) {
+  const last = events[i];
+  if (!Number.isInteger(last.of) || last.of < 1 || last.n !== last.of) {
+    return null;
+  }
+  const laps = events.slice(0, i + 1).filter((e) => e.type === 'lap').slice(-last.of);
+  const whole = laps.length === last.of && laps.every((e, k) => e.n === k + 1 && e.of === last.of
+    && e.course === last.course && e.airframe === last.airframe && Number.isFinite(e.ms) && e.ms > 0);
+  return whole && laps[0].ms <= laps[0].simMs - start ? laps.reduce((sum, e) => sum + e.ms, 0) : null;
+}
+
+/*
+ * A best measured: kept when it is better than the held one, and its XP
+ * when it is the first on the key or beats the held one by the margin.
+ * Returns [] when it is no better, else a { type: 'best', key, now,
+ * before, xp } event and the XP's events.
+ */
+export function awardBest(progress, key, value) {
+  const kind = bestKind(key);
+  progress.bests ??= {};
+  const before = Object.hasOwn(progress.bests, key) ? progress.bests[key] : null;
+  if (!kind || !Number.isInteger(value) || value <= 0 || !betterBest(kind, value, before)) {
+    return [];
+  }
+  progress.bests[key] = Math.min(BEST_VALUE_MAX, value);
+  let xp = BEST_XP.set;
+  if (before != null) {
+    xp = Math.abs(before - value) >= BEST_MARGIN[kind] ? BEST_XP.improved : 0;
+  }
+  const best = { type: 'best', key, now: value, before, xp };
+  return xp ? [best, ...addXp(progress, xp, { kind: 'best', key })] : [best];
+}
+
+/* Every best a log shows from `from` on, awarded in log order. */
+export function awardBests(progress, events, from = 0) {
+  return bestsOf(events, from).flatMap((b) => awardBest(progress, b.key, b.value));
 }
 
 /* Other modules' items: registerUnlockables([{ kind, id, airframe, level, name }]). */

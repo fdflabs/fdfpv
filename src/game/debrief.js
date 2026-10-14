@@ -293,6 +293,35 @@ export function withPosted(d, posted) {
   return { ...d, records: [line, ...d.records.filter((r) => r.what !== 'debrief.run_best')] };
 }
 
+/*
+ * The bests a run set (src/game/progress.js awardBest's `best` events,
+ * src/ui/progress-ui.js runBests) as record lines, first on the list: a
+ * lap's and a run's on a race's debrief, a round's points on its game's.
+ * A best of another activity's kind is not this screen's to say. Each
+ * line is { what, kind, now, before, improved: true }, `before` null for
+ * the first on its key. Pure: a new record.
+ */
+const BEST_LINES = { lap: 'debrief.best_lap', run: 'debrief.best_run', combat: 'debrief.best_score', tag: 'debrief.best_score' };
+const BESTS_FOR = { race: ['lap', 'run'], roomrace: ['lap'], combat: ['combat'], tag: ['tag'] };
+
+export function withBests(d, bests) {
+  const kinds = BESTS_FOR[d.activity] ?? [];
+  /* A key bettered twice in one run (a lap, then a faster one) is one
+   * line: the best held before the run and the last one set. */
+  const byKey = new Map();
+  for (const b of bests || []) {
+    const kind = typeof b.key === 'string' ? b.key.split(':')[0] : null;
+    if (!kinds.includes(kind) || !Number.isFinite(b.now)) {
+      continue;
+    }
+    const held = byKey.get(b.key);
+    const before = held ? held.before : Number.isFinite(b.before) ? b.before : null;
+    byKey.set(b.key, { what: BEST_LINES[kind], kind, now: b.now, before, improved: true });
+  }
+  const lines = [...byKey.values()];
+  return lines.length ? { ...d, records: [...lines, ...d.records] } : d;
+}
+
 export function fromFree({ aircraft, fixedWing = false, summary, flightMs, totalS, route = null, replay, landed = null, posted = null, condition = null }) {
   const scored = summary.timed !== false;
   const kind = summary.tricks > 0 ? 'complete' : 'ended';

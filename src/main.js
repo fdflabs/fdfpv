@@ -86,7 +86,7 @@ import { TrickDetector } from './game/trickdetect.js';
 import { FigureDetector } from './game/figuredetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
-import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
+import { createRoute, fromFree, fromRace, fromRoom, replayState, withBests } from './game/debrief.js';
 import { formatRunClock, lengthText } from './ui/format.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { AiOpponent, seatOpponent } from './game/aiopponent.js';
@@ -4365,7 +4365,7 @@ export async function boot({
          * panel) goes up into it; one flying already flies on. */
         roomCall('game');
       } else if (n.state === 'over' && roomCombat.mine() && mode !== 'replay') {
-        ui.progress.roundFinished('combat', worldId());
+        ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points });
       } else if (n.state === 'countdown') {
         /* A round's countdown is the time to take off in, so every pilot
          * in the room goes up with it, from wherever they are (roomCall).
@@ -8760,7 +8760,7 @@ export async function boot({
     const me = rows.find((row) => row.seat === seat) || null;
     const flew = mode === 'results';
     const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
-    return fromRoom({
+    return withBests(fromRoom({
       activity,
       aircraft: runAirframe,
       fixedWing,
@@ -8773,7 +8773,7 @@ export async function boot({
       route: runRoute.snapshot(),
       replay: flew ? replayState(crashCam ? crashCam.span() : null, false) : null,
       condition: flew ? conditionOf(crashFlags, fixedWing) : null,
-    });
+    }), ui.progress.runBests());
   }
   /*
    * The debrief on a card shown in flight (the war's round, a combat
@@ -9093,7 +9093,7 @@ export async function boot({
     const mine = done && roomTag.standings().find((row) => row.seat === roomTag.seat());
     if (mine) {
       recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
-      ui.progress.roundFinished('tag', worldId());
+      ui.progress.roundFinished('tag', worldId(), { points: mine.points });
     }
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
@@ -19160,6 +19160,8 @@ export async function boot({
           ms: race.laps[race.laps.length - 1],
           ghostMs: ghostChased ? ghostChased.durationMs : null,
           medal: medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing),
+          n: race.lap,
+          of: roomRun() ? null : runLaps,
         });
       }
     }
@@ -19186,7 +19188,7 @@ export async function boot({
     poseLock = false;
     paintBest();
     if (!roomRun()) {
-      ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), fromRace({
+      ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), withBests(fromRace({
         aircraft: runAirframe,
         fixedWing: Boolean(airframeById(runAirframe).fixedWing),
         log: race.log,
@@ -19196,7 +19198,7 @@ export async function boot({
         route: runRoute.snapshot(),
         replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
         condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
-      }));
+      }), ui.progress.runBests()));
       return;
     }
     roomShowResults();
@@ -21283,6 +21285,9 @@ export async function boot({
     acc = 0;
     stateCurr = readState();
     statePrev = stateCurr;
+    /* Put, not flown: a new flight in the event log, so no lap or run
+     * across the placement is a best (src/game/progress.js bestsOf). */
+    ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
     drawPlantPose();
     if (fromX == null) {
       racePrev.copy(pCurr);

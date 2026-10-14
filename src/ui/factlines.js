@@ -40,6 +40,12 @@ function recordText(r) {
   if (r.what === 'debrief.aircraft_time') {
     return hoursText(r.now);
   }
+  /* A best this run set (src/game/debrief.js withBests): the new value
+   * and the one it replaced. */
+  if (r.kind) {
+    const value = r.kind === 'lap' || r.kind === 'run' ? formatTime : (n) => String(n);
+    return r.before == null ? str('debrief.best_first', { now: value(r.now) }) : str('debrief.best_beat', { now: value(r.now), before: value(r.before) });
+  }
   if (r.what === 'debrief.run_best' && r.improved) {
     return str('debrief.board_best_new', { now: formatScore(r.now) });
   }

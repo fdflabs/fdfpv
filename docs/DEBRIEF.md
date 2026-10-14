@@ -29,6 +29,10 @@ seven facts in the same order, under the activity's own head:
    stored by race.js), the run score against the pilot's best posted one,
    and the aircraft's total flight time after this flight (#392,
    src/share/flighttime.js). "Improved" or "still stands", with the delta.
+   First among them, a "New best" line for each best the run set
+   (docs/redesign/PROGRESSION.md 3.1, src/game/debrief.js withBests): a
+   lap's and a run's on a race, a lap's on a room race, a match's points
+   on Catch the Ace!, each with the new value and the one it replaced.
 7. **Next action.** Under the cursor: Fly again first; then Watch the
    replay; then the activity's next (Next mission, Change aircraft, Back to
    the lobby); Title last. Enter takes the highlighted one, Escape goes
@@ -77,7 +81,7 @@ normalises its inputs; one renderer reads the record.
   route: { points: [[x, z], ...] (<= 240), distanceM, topM, marks: [[x, z], ...] } | null,
   time: { flightMs, runMs|null },
   accuracy: [{ what: string key, n, of }],
-  records: [{ what: string key, now, before, improved: bool|null }],
+  records: [{ what: string key, now, before, improved: bool|null, kind? }],
   replay: { ok: bool, why: string key|null },
   next: [action ids, in order],
 }
