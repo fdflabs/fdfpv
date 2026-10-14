@@ -119,7 +119,7 @@ function lobbyBrief(brief) {
 }
 
 function lobbyPilot(p) {
-  const flags = `${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}`;
+  const flags = `${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}${p.ai ? ' ai' : ''}`;
   const row = el('div', `war-lobby-pilot${flags}`);
   const who = el('div', 'war-lobby-who');
   who.append(el('span', 'war-lobby-name', p.name));

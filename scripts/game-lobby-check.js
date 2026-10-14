@@ -81,6 +81,8 @@ import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { ACT1 } from '../src/game/campaign.js';
+import { modeById } from '../src/share/modes.js';
+import { FILL_TO } from '../edge/rooms/roombots.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=combat').slice('--game='.length);
@@ -187,7 +189,7 @@ const LOBBY = `(() => {
     line: box ? (box.querySelector('.war-lobby-mission') || {}).textContent || '' : '',
     status: box ? (box.querySelector('.war-lobby-status') || {}).textContent || '' : '',
     pilots: box ? [...box.querySelectorAll('.war-lobby-pilot')].map((p) => ({
-      name: p.querySelector('.war-lobby-name').textContent, ready: p.classList.contains('ready'),
+      name: p.querySelector('.war-lobby-name').textContent, ready: p.classList.contains('ready'), ai: p.classList.contains('ai'),
     })) : [],
     rows: ui.items().map((it) => it.action || it.label),
     here: here.action || here.label || null,
@@ -195,6 +197,12 @@ const LOBBY = `(() => {
     phase: r.phase, code: r.code, public: r.public, name: r.name, mode: r.mode,
   };
 })()`;
+/* The people in a lobby, and in A's peers: a public room of a game that
+ * allows AI pilots (Catch the Ace, src/share/modes.js allowAI) is filled
+ * with them to FILL_TO (edge/rooms/roombots.js), so a row about who came
+ * and went counts people, and the fill has a row of its own. */
+const people = (pilots) => pilots.filter((p) => !p.ai);
+const PEERS = 'window.__rooms().peers.filter((p) => !p.bot).length';
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
 const FLYING = "window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'";
 /* Into a private room the way a friend gets in, from Flight Club: All
@@ -297,6 +305,16 @@ try {
     a.clicks - aBefore === CLICKS && la.shown && la.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   await shot(a, '1-a-lobby');
+  /* A public room of a game that allows AI pilots fills with them, A one
+   * of FILL_TO (edge/rooms/roombots.js); every other game's is A alone.
+   * A race's AI pilots wait for the room's track, which a lobby just made
+   * has none of yet (roombots.js wanted, edge/rooms/airace.js status). */
+  const fill = modeById(GAME).allowAI && GAME !== 'race' ? FILL_TO - 1 : 0;
+  await a.until(`document.querySelectorAll('.war-lobby-pilot.ai').length === ${fill}`, 20000).catch(() => {});
+  const filled = await a.evaluate(LOBBY);
+  const alone = GAME === 'race' ? 'and A is the lobby\'s one pilot: a race\'s AI pilots wait for its track' : 'and A is the lobby\'s one pilot, no AI pilots (the game allows none)';
+  check(fill ? `the public room fills with AI pilots: A and ${fill} more, ${FILL_TO} in all` : alone,
+    people(filled.pilots).length === 1 && filled.pilots.filter((p) => p.ai).length === fill, JSON.stringify(filled.pilots));
 
   /* THE WAR'S LOBBY IS OPERATIONS' BRIEFING (src/ui/briefing.js): the
    * mission's line, what to do first where the mission has stages, the
@@ -485,7 +503,7 @@ try {
     endRound(code);
     await a.until(IN_LOBBY, 30000).catch(() => {});
     const back = await a.evaluate(LOBBY);
-    check('its end puts A back in the lobby, not ready', back.shown && back.flying !== 'flight' && back.pilots.length === 1 && !back.pilots[0].ready,
+    check('its end puts A back in the lobby, not ready', back.shown && back.flying !== 'flight' && people(back.pilots).length === 1 && people(back.pilots).every((p) => !p.ready),
       JSON.stringify({ screen: back.screen, shown: back.shown, flying: back.flying }));
   }
 
@@ -528,12 +546,12 @@ try {
       && (await b.evaluate('window.__rooms().code')) === code && await b.evaluate(FLYING), await b.evaluate('window.__ui.screen'));
   } else {
     await b.until(IN_LOBBY, 30000).catch(() => {});
-    await a.until('window.__rooms().peers.length === 1', 15000).catch(() => {});
+    await a.until(`${PEERS} === 1`, 15000).catch(() => {});
     await b.sleep(800);
     const [a2, b2] = await Promise.all([a, b].map((p) => p.evaluate(LOBBY)));
     const bWay = B_CLICKS === 3 ? 'Flight Club, All rooms, then Join with A\'s code' : 'Flight Club, then A\'s room on its panel';
     check(`B: ${GAME === 'war' ? bWay : 'one click on the same card'} (${b.clicks - bBefore}) and B is in A's lobby, each in the other's pilots`,
-      b.clicks - bBefore === B_CLICKS && b2.code === code && b2.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && b2.shown && a2.pilots.length === 2 && b2.pilots.length === 2 && b2.flying !== 'flight', JSON.stringify({ a: a2.pilots, b: b2.pilots, code: b2.code }));
+      b.clicks - bBefore === B_CLICKS && b2.code === code && b2.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && b2.shown && people(a2.pilots).length === 2 && people(b2.pilots).length === 2 && b2.flying !== 'flight', JSON.stringify({ a: a2.pilots, b: b2.pilots, code: b2.code }));
     await shot(b, '2-b-lobby');
 
     /* WHO JOINS IN PLACE (edge/rooms/core.js setPublic): with B here, A's
@@ -596,9 +614,9 @@ try {
       await b.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === 'friends-watch')); return true; })()");
       await b.tap('Enter');
       await b.until(`window.__rooms().phase === 'open' && window.__rooms().watch && window.__rooms().code === ${JSON.stringify(code)}`, 30000).catch(() => {});
-      await a.until('window.__rooms().peers.length === 0', 15000).catch(() => {});
+      await a.until(`${PEERS} === 0`, 15000).catch(() => {});
       const bw = await b.evaluate("({ code: window.__rooms().code, watch: window.__rooms().watch, seat: window.__rooms().seat, screen: window.__ui.screen })");
-      const aPeers = await a.evaluate('window.__rooms().peers.length');
+      const aPeers = await a.evaluate(PEERS);
       check('B\'s Watch instead in the lobby: B is in the same room on its watch seat, and gone from A\'s pilots', bw.code === code && bw.watch && bw.seat === 0 && aPeers === 0,
         JSON.stringify({ ...bw, aPeers }));
       /* And back to flying: Escape, Leave the room, the card's one click is A's lobby again. */
@@ -606,7 +624,7 @@ try {
       await b.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 15000).catch(() => {});
       await b.click(cardSel);
       await b.until(`window.__rooms().code === ${JSON.stringify(code)} && !window.__rooms().watch && ${IN_LOBBY}`, 60000).catch(() => {});
-      await a.until('window.__rooms().peers.length === 1', 15000).catch(() => {});
+      await a.until(`${PEERS} === 1`, 15000).catch(() => {});
       check('then Escape and the card: B is a pilot in A\'s lobby again', await b.evaluate(`window.__rooms().code === ${JSON.stringify(code)} && !window.__rooms().watch && ${IN_LOBBY}`));
     }
 
@@ -670,7 +688,7 @@ try {
     bErrors = b.errors.slice();
     await b.close();
     b = null;
-    await a.until('window.__rooms().peers.length === 1', 15000).catch(() => {});
+    await a.until(`${PEERS} === 1`, 15000).catch(() => {});
     d = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
     await d.until('window.__shellReady === true', 300000);
     await d.until('window.__ui.onGate() && window.__ui.hub === null', 60000).catch(() => {});
@@ -690,7 +708,7 @@ try {
     /* The world's tiles stream in after the flight starts. */
     await d.sleep(5000);
     const seen = await d.evaluate('window.__rooms()');
-    const pilots = await a.evaluate('window.__rooms().peers.length');
+    const pilots = await a.evaluate(PEERS);
     check(`D: Flight Club, then Watch (${d.clicks - dBefore} clicks): in the room on its watch seat, seat 0, the camera on a pilot within 30 m`,
       d.clicks - dBefore === 2 && seen.code === code && seen.watch && seen.seat === 0 && seen.watching !== null && seen.watchGap < 30,
       JSON.stringify({ code: seen.code, watch: seen.watch, seat: seen.seat, watching: seen.watching, gap: seen.watchGap }));

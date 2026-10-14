@@ -412,16 +412,17 @@ try {
   const worlds = await page.evaluate(`${row('The world')}.options.map((o) => o.label)`);
   const itaipu = worlds.find((x) => x.startsWith('Itaipu'));
   await pick('The world', itaipu);
-  const kinds = await page.evaluate(`${row('Who can join')}.options.map((o) => o.label)`);
-  const pub = kinds.find((k) => !/code/i.test(k));
-  const priv = kinds.find((k) => /code/i.test(k));
-  await pick('Who can join', pub);
+  const kinds = await page.evaluate(`${row('Who joins')}.options.map((o) => o.label)`);
+  check('Make a room\'s Who joins is the session\'s: Public, Friends, Solo', kinds.join() === 'Public,Friends,Solo', kinds.join());
+  const pub = 'Public';
+  const priv = 'Friends';
+  await pick('Who joins', pub);
   check('public on Itaipu: Defend the Paraná offered', (await games()).includes('Defend the Paraná'), (await games()).join());
   await pick('Game', 'Defend the Paraná');
   check('and with it a Mission row, mission 1', (await page.evaluate(`(${row('Mission')} || {}).value || null`)) === 'Mission 1',
     String(await page.evaluate(`(${row('Mission')} || {}).value || null`)));
   await pick('Game', 'Just fly');
-  await pick('Who can join', priv);
+  await pick('Who joins', priv);
   await pick('The world', worlds.find((x) => x !== itaipu));
   check('private on another world: none', !(await games()).includes('Defend the Paraná'), (await games()).join());
   await pick('The world', itaipu);

@@ -387,6 +387,9 @@ const scenarios = {
         brief: { line: 'Hold the dam.', objectives: ['Reach the wall', 'Mark the gun'], facts: [{ label: 'Where', value: 'Itaipu' }, { label: 'When', value: 'Dawn' }] },
       },
       briefBare: { mission: 'Dam run', pilots: [], countdown: null, deadline: null, last: null, brief: { line: '', objectives: [], facts: [] } },
+      openSeats: {
+        mission: 'Dam run', pilots, countdown: null, deadline: null, last: null, brief: null, open: { seats: '12 open seats', note: 'Anybody can drop in' },
+      },
     };
     for (const screen of ['friends', 'title']) {
       for (const [name, v] of Object.entries(views)) {

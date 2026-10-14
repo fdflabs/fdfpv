@@ -4244,7 +4244,7 @@ export async function boot({
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
     ui, link: roomLinkState, roomName, here: () => seatWorld(), preset: () => ui.roomGame || null,
-    war: (room) => warEnter(room),
+    makeRoom: (room) => roomMade(room),
     pilots: () => roomPeers.size + 1,
     missions: () => (campaignRef ? campaignRef.playable() : []),
     missionNumber: (id) => Math.max(1, missionNumber(id)),
@@ -4780,7 +4780,7 @@ export async function boot({
   let campaignRef = null;
 
   /* The host's row, where the war may run: a private room on the Itaipu
-   * map. A public room there gets warPublicRows instead. The title's card and Make a room reach it through warEnter. A
+   * map. A public room there gets warPublicRows instead. The title's card and Make a room reach it through openSession. A
    * room made for the war leads with its start row, as the other games'
    * cards lead with theirs. */
   function warRows(host, w) {
@@ -5133,7 +5133,7 @@ export async function boot({
 
   async function warFromPublic() {
     try {
-      if (!(await warEnter())) {
+      if (!(await roomMade({ map: WAR_MAP, mode: 'war', who: 'friends' }))) {
         return;
       }
       warInviteCode = roomLinkState.state().code;
@@ -5179,7 +5179,7 @@ export async function boot({
   }
 
   /* The start row's press. Consent first, whoever's room this is: a
-   * room made by hand never went through warEnter's (FLOW-AUDIT.md D6).
+   * room made by hand never went through roomMade's (FLOW-AUDIT.md D6).
    * Then the mission campaign Play chose for this room, else mission 1:
    * after its loss from the stage it was lost in, as Deploy does (the
    * owner, 2 Oct: "a lost mission restarts from the lost stage, max 2
@@ -5195,30 +5195,19 @@ export async function boot({
   }
 
   /*
-   * THE WAY IN FROM A ROOM SCREEN: Make a room's Game row (`room.name`,
-   * the typed name or null) and a public room's host making a private war
-   * room (warFromPublic). The cards go through openSession. Consent first,
-   * then a room on the Itaipu map made for the war (mode 'war') and
-   * `room.mission`, public when `room.public`, with this pilot as host,
-   * seated there, on the room screen with the war's start row under the
-   * cursor; ui.roomGame is what leads the room with it, here and, by the
-   * host's profile, for whoever joins. Resolves its code, or null when the
-   * pilot said Back; throws what the room server refused.
+   * THE WAY IN FROM A ROOM SCREEN: Make a room's Make (`room` its draft:
+   * map, mode, who, name, mission) and a public room's host making a war
+   * room for friends (warFromPublic). A room of its own through the one
+   * way in (openSession), the war's consent first; ui.roomGame leads the
+   * room with its game, here and, by the host's profile, for whoever
+   * joins. Resolves its code, or null when the pilot said Back to the
+   * consent; throws what the room server refused.
    */
-  async function warEnter(room = {}) {
-    if (!(await warConsented())) {
+  async function roomMade(room) {
+    if (modeOfRoom(room.mode)?.consent && !(await warConsented())) {
       return null;
     }
-    const code = await roomLinkState.create(WAR_MAP, false, {
-      name: room.name ?? null, mode: 'war', mission: room.mission ?? WAR_MISSION, public: room.public === true,
-    });
-    if (ui.settings.map !== WAR_MAP) {
-      ui.seatMap(WAR_MAP, { stay: true });
-    }
-    ui.roomGame = 'war';
-    ui.show('friends');
-    roomLinkState.join(code);
-    return code;
+    return openSession(null, room.mode, room.map, room.who, { fresh: true, name: room.name ?? null, mission: room.mission ?? null });
   }
 
   /*
@@ -5307,8 +5296,12 @@ export async function boot({
    * the server makes a private room for one in development, which only a
    * DEV_ACCOUNTS host then starts (edge/rooms/front.js create). `room.back`
    * is where the room's Back goes after the cards (the campaign's page),
-   * null for the cards. Resolves the room's code; throws what the room
-   * server refused.
+   * null for the cards. Make a room comes the same way with no card,
+   * `room.fresh` (its own room, never a quick join) and `room.name`, the
+   * typed name or null for a picked one; its Public is asked of the
+   * server as chosen, which refuses a mission in development unless it
+   * starts them (a check's own, DEV_MISSIONS), and the form says so.
+   * Resolves the room's code; throws what the room server refused.
    */
   async function openSession(card, game, world, visibility, room = {}) {
     const id = modeOfWire(game);
@@ -5317,9 +5310,9 @@ export async function boot({
       ui.persistSettings();
     }
     const mission = id === 'war' ? room.mission ?? WAR_MISSION : null;
-    const open = visibility === 'public' && (mission === null || released(mission));
-    const found = open && mission === null ? await roomBrowser.bestRoom(game, world) : null;
-    const name = normaliseRoomName(str(`lobby.room_name_${id}`, { name: roomName(ownName()) })) || null;
+    const open = visibility === 'public' && (mission === null || room.fresh === true || released(mission));
+    const found = open && mission === null && !room.fresh ? await roomBrowser.bestRoom(game, world) : null;
+    const name = room.name !== undefined ? room.name : normaliseRoomName(str(`lobby.room_name_${id}`, { name: roomName(ownName()) })) || null;
     const code = found || await roomLinkState.create(world, false, {
       name, mode: game, mission, public: open, daytime: chosenTime(ui.settings),
     });
@@ -5327,10 +5320,14 @@ export async function boot({
     if (ui.settings.map !== world) {
       ui.seatMap(world, { stay: true });
     }
-    ui.act(card);
-    ui.lobbyCard = card;
-    lobbyCardCode = code;
-    lobbyCardBack = room.back ?? null;
+    if (card) {
+      ui.act(card);
+      ui.lobbyCard = card;
+      lobbyCardCode = code;
+      lobbyCardBack = room.back ?? null;
+    } else {
+      ui.roomGame = game;
+    }
     if (ui.screen !== 'friends') {
       ui.returnTo = 'title';
       ui.show('friends');
@@ -7518,6 +7515,7 @@ export async function boot({
       peers: [...roomPeers.values()].map((p) => ({
         seat: p.seat,
         name: roomName(p.name),
+        bot: roomBot(p),
         muted: roomSafety.isMuted(p.seat),
         label: p.rig ? p.rig.label() : null,
         airframe: p.profile.airframe,
