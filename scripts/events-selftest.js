@@ -318,14 +318,17 @@ console.log('the shell\'s producers');
   check('a room game\'s end is logged as a round, Streamer Combat and Catch the Ace!',
     src('src/main.js').includes("ui.progress.roundFinished('combat', worldId())") && src('src/main.js').includes("ui.progress.roundFinished('tag', worldId())")
     && ui.includes("this.event('round', { game, world, ...more })"));
-  check('a room race this pilot finished is a round with its grid\'s size, once per race',
+  check('a room race this pilot finished is a round with the people on its grid, its AI pilots not counted, once per race',
     src('src/main.js').includes("const over = roomRace.takeResults();")
-    && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: (over.racers || []).length })"));
+    && src('src/main.js').includes("const people = (over.racers || []).filter((seat) => seat === roomRace.seat() || !roomBot(roomPeers.get(seat) || {}));")
+    && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: people.length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
   const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe \\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));
   check('a mission start and result carry the seated aircraft and are folded at once',
     missionLogged('src/ui/campaign.js', 'mission_start') && missionLogged('src/ui/campaign.js', 'mission_end') && missionLogged('src/ui/opscampaign.js', 'mission_end'));
+  check('an Interior match is logged begun when it goes live, its mission and the seated aircraft',
+    /e\.type === 'state' && e\.to === 'live' && INTERIOR\.some\(\(m\) => m\.id === v\.mission\)\) \{[\s\S]{0,600}?ui\.progress\.event\('mission_start', \{ mission: v\.mission, airframe: ui\.progress\.airframe \}\);\n\s*ui\.progress\.foldFlight\(\);/.test(src('src/main.js')));
   check('a kill the room credited is logged, one a victim, on the seated aircraft, with the war\'s mission',
     src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills, v.mission ?? null);")
     && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind, mission });"));

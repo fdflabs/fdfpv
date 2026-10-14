@@ -278,6 +278,30 @@ the room orders the results. Laps in a room are not board times: posting
 one to the board still goes through the existing signed, ghost checked
 path.
 
+### 4.1 Who decides what
+
+One owner per system, so every screen shows the same answer
+(docs/redesign/COMPLETENESS.md 8). The room is one RoomCore
+(edge/rooms/core.js), which runs one event at a time.
+
+| System | Owner | What the room checks | Held by |
+| --- | --- | --- | --- |
+| Seats, host, lobby, which game runs, its rounds | the room (core.js, gamelobby.js) | everything: it is the only copy | `rooms:selftest`, `rooms:server` |
+| The room clock and every timer on it | the room (core.js roomMs, src/share/roomclock.js) | everything | `rooms:selftest` |
+| Mid air collisions | the room (referee.js) | pairs on a millisecond frontier of sample stamps | `midair:harness` |
+| Streamer Combat cuts and points | the room (combat.js) | everything | `combat:harness` |
+| Catch the Ace tags | the room (tag.js) | everything | `tag:harness` |
+| The war: attackers, warheads, damage, stages, output, results | the room (war.js) | everything | `war:harness` |
+| Trick Battle runs: who runs and when | the room (jam.js) | turns on its clock | `jam:selftest` |
+| Trick Battle scores | the runner's client (src/game/score.js), trusted | only from the runner, inside its run; whole, in range, never going down (jam.js) | `jam:selftest` |
+| Poses | the pilot's client, sanity checked | speed, the world's limit, an impossible count (safety.js) | `rooms:selftest` |
+| Race gate passes and finishes | the racer's client, trusted inside bounds | a racer of this race, lap, gate and time in range (race.js passOf); a published lap is checked again by geometry (src/game/verify.js checkLap) | `rooms:selftest`, `lap:selftest` |
+| A war airframe lost | the pilot's client, trusted | a player of the match (war.js `lost`) | `war:harness` |
+
+Race passes stay scored by the racer: the room has 30 Hz poses, the
+racer every physics step, and the board already checks every published
+lap again (COMPLETENESS 59).
+
 ## 5. Bandwidth
 
 Transport overhead per WebSocket message is taken as 6 bytes of client

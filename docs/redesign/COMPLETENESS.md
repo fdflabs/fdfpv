@@ -171,7 +171,9 @@ others while away, and no AI takes over (none exists). Checks:
 `rooms:selftest` (CI); `rooms:restart`, `rooms:session` (local). One
 finding: close code 4005 (`replaced`, a second tab took the seat) is not
 in the client's `FINAL` map (rooms.js 72), so the replaced tab retries and
-can take the seat back. Fixed in phase 21 (S).
+can take the seat back. **Built (phase 21):** 4005 is final, said as
+`friends.failed_replaced`; `rooms:server` drives the browser's own link
+through it, and without the entry the two links trade the seat.
 
 **7. Join in progress rules. PARTIAL.** Per mode, as the checklist asks:
 `allowDropIn` in src/share/modes.js (race false; tag, combat, war, free
@@ -183,7 +185,10 @@ paper; tag makes a hunter). The table and the behaviour can drift.
 **Done:** the rooms server reads `allowDropIn` where a newcomer arrives
 in a running round, and the race's own rule is that field. Check:
 `rooms:selftest` flips the field in a test registry and sees the
-behaviour follow. Size S. Phase 21.
+behaviour follow. Size S. Phase 21. **Built for the race and the war**
+(core.js join reads it through the room's registry; `rooms:selftest`
+turns each over). Combat, the Ace and the jam keep their own newcomer
+rules, which match their fields today.
 
 **8. Multiplayer authority. PARTIAL.** Decided and mostly server side,
 but written down only in file headers. Server: midair collisions
@@ -200,6 +205,7 @@ what the server checks), and an explicit decision on race passes: keep
 them client scored inside the bounds `passOf` checks (race.js 69), since
 the board already re verifies every published lap (item 59). Check: the
 table names the harness that holds each server row. Size S. Phase 21.
+**Built:** docs/MULTIPLAYER-PLAN.md 4.1, race passes kept client scored.
 
 **9. Deterministic scoring. EXISTS.** Every screen shows the same number,
 because each number has one author. Hits, tags, cuts and kills are judged
@@ -366,8 +372,9 @@ workflow's choice).
 In a room nothing else stops: the room clock and its game run on, the
 pilot shows as paused to the others (`status: 'paused'`, main.js 2150;
 `rooms.away_paused`), the server stops repeating that pilot's pose
-(core.js 178), and the war counts a silent pilot out (war.js 40). No check
-names the rule; phase 21 adds it to `rooms:selftest`.
+(core.js 178), and the war counts a silent pilot out (war.js 40). The
+rule is written in SESSIONS.md (pause, leaving and abandon) and
+`rooms:selftest` holds that a pause stops nothing in the room.
 
 **24. Replay architecture. EXISTS**, ahead of the checklist. The
 recorder keeps per frame columns (sim time, poses, plant, parts, smoke,
@@ -1018,9 +1025,11 @@ rooms server (core.js, front.js, war.js, ops.js), the campaign lists
 and the war's briefing; kept three valued rather than a `hidden` boolean, because Under
 development and Coming soon are different cards. `inBuild` is gone. An
 upgrade waits on an act (`later: 2`, campaign.js UPGRADES); servers can
-be switched off (`?rooms=off`). **Still to do:** a `hidden` field on the
-mode registry's rows (src/share/modes.js, the sessions lane's), with
-`modes:selftest` (CI) asserting a hidden row reaches no card. Size S.
+be switched off (`?rooms=off`). **Built (w38-sessions):** a `hidden`
+field on the mode registry's rows (src/share/modes.js), false on every
+row today; a hidden row draws no card (src/ui/ways.js gateWays) and is
+never home's Continue, and `modes:selftest` (CI) hides the race in a
+registry of its own and sees Track Day's card go and no other.
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,

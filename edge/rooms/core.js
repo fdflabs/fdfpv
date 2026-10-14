@@ -304,6 +304,9 @@ export class RoomCore {
     /* The accounts whose rooms start missions in development (devHost). */
     this.devAccounts = options.devAccounts ?? new Set();
     this.devMissions = options.devMissions === true;
+    /* The mode registry's entry by id (src/share/modes.js modeById); a
+     * check's own registry stands in to see a field's behaviour follow it. */
+    this.modeById = options.modeById ?? modeById;
     /* Whether this server lists public rooms at all (env.PUBLIC_ROOMS), so
      * a private room may become one (setPublic). */
     this.publicRooms = options.publicRooms === true;
@@ -1024,10 +1027,16 @@ export class RoomCore {
     })));
     actions.push(...wrecks.wrecksFor(this, conn));
     actions.push(...this.drops.join(conn));
-    actions.push(...this.race.join(this, seat));
+    /* A newcomer to a running round flies in where its game allows it
+     * (modes.js allowDropIn): the race takes it onto its grid, the war
+     * enlists it. Elsewhere it waits for the next round, a war's told the
+     * attackers as a watcher is. A racer back from a drop is always back. */
+    const running = this.game();
+    const dropIn = running === null || running === 'ops' || this.modeById(running).allowDropIn;
+    actions.push(...this.race.join(this, seat, dropIn));
     this.combat.seat(seat, profile.airframe);
     actions.push(...this.combat.join(this, conn));
-    actions.push(...this.war.join(this, conn));
+    actions.push(...(dropIn ? this.war.join(this, conn) : this.war.watch(conn)));
     actions.push(...this.ops.join(this, conn, now));
     actions.push(...this.gameLobby.join(this, now));
     actions.push(...this.settle(now));

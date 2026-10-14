@@ -587,8 +587,10 @@ if (pub.open) {
   pww.ws.close(1000);
   check('both say ready: both are told the five seconds', Boolean(counting && await pw.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt === counting.lobby.countdownAt))),
     JSON.stringify(counting && counting.lobby));
-  check('and the room starts the drill\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'briefing'), 9000)
-    && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'briefing'), 2000)));
+  /* The drill is in no act, so no 2030 film: straight to its countdown
+   * (edge/rooms/gamelobby.js briefed). */
+  check('and the room starts the drill for both on its own, straight to its countdown', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'countdown'), 9000)
+    && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'countdown'), 2000)));
   const unwatchedLine = await lineOf((r) => r.watchers === 0);
   check('and with the watcher gone, watchers 0', unwatchedLine && unwatchedLine.watchers === 0 && unwatchedLine.n === 2, JSON.stringify(unwatchedLine));
   pw.say({ type: 'war', op: 'end' });
@@ -617,6 +619,51 @@ function raw(text) {
     sock.on('close', () => resolve(got.split('\r\n')[0]));
     sock.on('error', () => resolve(''));
   });
+}
+
+/*
+ * THE BROWSER'S OWN LINK on a seat a second tab took: src/share/rooms.js
+ * with its storage and socket stood in, the second link saying the
+ * first's seat token, as a tab holding the same token would. The room closes the first
+ * with 4005 (core.js `replaced`); the first stops there, told why, and
+ * never retries to take the seat back (COMPLETENESS 6).
+ */
+{
+  console.log('a seat a second tab took (src/share/rooms.js FINAL)');
+  const kept = () => {
+    const m = new Map();
+    return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
+  };
+  globalThis.window = { location: { search: `?rooms=${origin}`, hostname: 'check.invalid' }, sessionStorage: kept(), localStorage: kept() };
+  globalThis.WebSocket ??= WebSocket;
+  const { createRoomLink } = await import('../src/share/rooms.js');
+  const states = { first: [], second: [] };
+  const hello = () => ({ name: [5, 6, 40], profile: { airframe: 'cub1400', map: 'alps', figure: 1, livery: null, parts: null } });
+  const first = createRoomLink({ onState: (s) => states.first.push(s.phase + (s.reason ? `:${s.reason}` : '')) }, hello);
+  const tabCode = await first.create('alps', false, {});
+  first.join(tabCode);
+  const opened = async (link) => {
+    for (let i = 0; i < 100 && link.state().phase !== 'open'; i += 1) {
+      await sleep(50);
+    }
+    return link.state().phase === 'open';
+  };
+  const firstIn = await opened(first);
+  const second = createRoomLink({ onState: (s) => states.second.push(s.phase + (s.reason ? `:${s.reason}` : '')) }, hello);
+  /* A join forgets the token a link held for another room, so the token
+   * is put back before the socket opens: the second link says the first's. */
+  const token = window.sessionStorage.getItem('fdfpv.roomToken');
+  second.join(tabCode);
+  window.sessionStorage.setItem('fdfpv.roomToken', token);
+  const secondIn = await opened(second);
+  /* Past the link's first retry (RETRY_MS, 1 s): a retry would be back. */
+  await sleep(2500);
+  check('a second tab with the same seat token takes the seat: the first is told replaced and stays out',
+    firstIn && secondIn && first.state().phase === 'failed' && first.state().reason === 'replaced' && second.state().phase === 'open'
+    && second.state().welcome.seat === first.state().welcome.seat, JSON.stringify(states));
+  check('and never tries again', !states.first.slice(states.first.indexOf('failed:replaced')).some((s) => s.startsWith('connecting')), JSON.stringify(states.first));
+  second.leave();
+  delete globalThis.window;
 }
 
 if (server) {

@@ -442,15 +442,16 @@ function friendsRows(ui) {
   const inRoom = Boolean(row && row.inRoom);
   const rows = ui.friendsRows ? ui.friendsRows() : [];
   /* Free flight between runs seats the aircraft and the world here too. */
-  const seat = between && ui.mode === 'freestyle' ? ui.roomSeatRows(inRoom) : [];
+  const seat = between && ui.mode === 'freestyle' ? ui.roomSeatRows(row, Boolean(ui.warLobbyOn)) : [];
   /* Everyone's aircraft side by side before a start (src/ui/hangarwalk.js),
    * in a game's lobby too. */
   const lineup = inRoom ? [{ label: str('walk.lineup_room'), action: 'room-lineup', note: str('walk.lineup_room_note'), rowClass: 'row-lineup' }] : [];
   if (ui.warLobbyOn) {
-    /* The war's lobby: its own rows, the aircraft only, and its Leave last. */
+    /* A game's lobby: its own rows, the aircraft and the room's weather,
+     * and its Leave last. */
     const leave = rows.filter((it) => it.action === 'friends-leave');
     const rest = rows.filter((it) => it.action !== 'friends-leave');
-    return [...rest, ...seat.slice(0, 1), ...lineup, ...leave];
+    return [...rest, ...seat, ...lineup, ...leave];
   }
   /* A started game's own row is the primary; Fly on top gives it up. */
   const started = rows.some((it) => it.primary);
