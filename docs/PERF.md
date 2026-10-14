@@ -75,6 +75,97 @@ shown otherwise. To compare:
   measurement x1.15), so `--budgets` on GPU 0 is not a test of the game:
   a run that fell back is to be retaken on GPU 1.
 
+## The reference machine: Jetson AGX Orin
+
+The BUDGETS rows can also be flown on a second machine, a Jetson AGX Orin 64 GB developer kit on the LAN (JetPack 6, L4T R36.5.2,
+power mode MODE_50W, GPU up to 1300 MHz, 12 Arm cores, memory shared
+between CPU and GPU), headless, reached over ssh. It is the reference
+machine the owner's 30 fps floor would be read on (docs/BUDGETS.md,
+Reference machine: Jetson AGX Orin). It was first flown 2026-10-13: five
+rows, then its GPU wedged (below). One command takes the rows again:
+
+    scripts/perf-jetson.sh OUT_DIR [--scenarios=title,alps-low,...] [--presets=low,medium,high] [--seconds=15]
+
+It copies this tree to `~/fdfpv-ref/tree` on the Jetson (`JETSON`,
+default `smallbrain@192.168.100.246`; no .git, no node_modules, `npm ci`
+there when package-lock.json changed), flies each scenario at each
+preset with BUDGETS' settings (`--mode=quality`, 1600 by 900, free
+running, 15 s, one scenario a browser), fetches every
+`perf-play.json` to `OUT_DIR/<preset>-<scenario>/`, and writes
+`OUT_DIR/summary.md`, the table for BUDGETS. A row took 51 to 100 s
+in the five taken, most of it the world loading on the Orin's cores,
+plus 15 s after each for the check below.
+It does not pass `--budgets`: the ceilings are the 3060 Ti's, and the
+Orin is measured, not held.
+
+**The card is shared there too.** ComfyUI (port 8188, 13 to 34 GB
+resident) and PAIR's Ollama (11435) live on the Jetson and draw on the
+same GPU. Before each row the script waits for the GPU's own load (the
+nvgpu sysfs `load`) to stay under 10 % for 10 s, gives up after an hour,
+and writes ComfyUI's queue and Ollama's loaded models before and after
+the row; a row with either busy says BUSY in the summary and is to be
+retaken. nvidia-smi reports no utilisation on Tegra, so the run's own
+`gpu load` line is empty there.
+
+**The wedge, 2026-10-13.** The first run flew five rows and stopped. At
+23:32:38, five seconds after the third row's Chrome closed, the kernel
+logged `ga10b_gr_init_wait_empty: timeout, ctxsw busy: 1` and
+`gk20a_pm_runtime_suspend: failed to power off, err=-11`, every four
+seconds; at 23:33:27, as the fourth row's Chrome drew, `error notifier
+set to 8 for ch 495 owned by chrome`, `Unable to recover GR falcon` and
+`nvgpu_engine_gr_reset: failed to reset gr engine`. That Chrome's GPU
+process sat in `dma_fence_default_wait`, and a later one in
+`nvgpu_runlist_reschedule`, in the kernel, unkillable. ComfyUI's queue
+was empty and Ollama had no model loaded; the faulting channel was this
+run's. Whether ANGLE's Vulkan teardown caused it or found it is not
+known. Until a reboot nothing on the Jetson can use its GPU: ComfyUI
+jobs, Ollama there, and so PAIR requests routed to the Jetson, hang.
+After the reboot (the Jetson's notes): `systemctl --user restart
+nvpair-tui`, start ComfyUI (`~/comfy/run-comfyui.sh`) and the brains
+tunnel to it.
+
+So the script reads the kernel's log first and stops before opening a
+browser when any nvgpu error was logged since the Jetson booted (that
+boot had none before the run), and reads it again 15 s after each row,
+stopping on a row that left one. Until the cause is known, run it only
+when the Jetson's other users can take a reboot.
+
+**One time setup**, all under `~/fdfpv-ref` on the Jetson, nothing
+system wide: Node 22 from nodejs.org's linux-arm64 tarball in `node/`
+(the system's is 12), and Playwright's arm64 Chromium in `pw-browsers/`
+(`PLAYWRIGHT_BROWSERS_PATH=~/fdfpv-ref/pw-browsers npx playwright install
+chromium` from the tree). The script stops with a line when either is
+missing.
+
+**Why ANGLE over Vulkan there.** tests/lib/page.js asks for
+`--use-angle=gl`, desktop GL, which needs an X display the headless
+Jetson does not have (`ANGLE Display::initialize error 12289: Could not
+open the default X display`). The script points `SIM_CHROME_BIN` at a
+wrapper, `~/fdfpv-ref/chrome-orin`, that adds `--use-angle=vulkan
+--enable-features=Vulkan` (Chromium takes the last `--use-angle`).
+`--use-angle=gl-egl` makes a WebGL2 context on the Orin for a bare page,
+but its GPU process died as the shell booted, three times in each of
+four boots, and the shell never got a context; with
+`--disable-gpu-rasterization` the shell booted once in five, the GPU
+process dying once or twice in each;
+`--disable-gpu-compositing` booted four of four, but composites on the
+CPU and reads every frame back, a cost no player has. Vulkan booted four
+of four with no crash and keeps timer queries
+(`EXT_disjoint_timer_query_webgl2`). The run checks the renderer before
+it measures and stops on anything but the Orin:
+
+    ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)
+
+The shell's own GPU name (src/render/gpuinfo.js, Settings and
+`window.__gpu.name`) reads that string as "Google Inc. (NVIDIA)", the
+vendor, not the chip.
+
+**Comparing.** The Orin's numbers compare with the Orin's, taken with
+the same script, power mode and Chromium; not with the 3060 Ti columns.
+A change of power mode (MODE_MAXN lifts the GPU clock) or of Chromium
+moves every row, so `OUT_DIR/machine.txt` records both with the commit,
+and a retake after a release quotes them.
+
 ## How it is measured
 
 **Real play, not parked views.** scripts/swiss2-perf.js and
