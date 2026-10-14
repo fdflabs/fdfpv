@@ -42,9 +42,11 @@
  * NOT BUILT, so not here: MISSIONS.md's twist A (Station dark: the crest's
  * floodlights off by order, and the stage's groups given their error as if
  * a Scout were dead) needs a stage field the room's births read and a
- * station lights switch in the night look, neither of which exists; and
- * the dawn rising across stage 5 (TECH-NEEDS T1.11), so the mission is
- * night to its end.
+ * station lights switch in the night look, neither of which exists.
+ *
+ * THE DAWN rises across stage 5 (TECH-NEEDS T1.11): Before Dawn's
+ * `daytime` runs the room's clock from the night to the morning
+ * (src/share/daytime.js missionClock).
  *
  * THE RADIO is the stages' cues (MISSIONS.md M4 Radio: CREST, MIRADOR,
  * TALLER, DESPACHO), the countdown's two lines and the debriefs
@@ -124,6 +126,13 @@ const STAGE_LOST = { when: { allOut: true }, radio: 'stage-lost' };
  * the soonest (born 20 s in, then 125 to 136 s of flight on the N
  * routes, routes.js plans). */
 const HUNT_S = 150;
+/* The dawn's ramp, ms: night at 22:00 to the morning's 07:47 (daytime.js
+ * TIME_HOUR). The sun clears NIGHT_SIN about four fifths of the way in,
+ * 190 s after Before Dawn opens, so a stage that runs its Hunters' HUNT_S
+ * and the flights after it ends in the grey before sunrise and a long
+ * one in the first light; the sunrise itself is the outro film's. A
+ * choice, not a measurement. */
+const DAWN_MS = 240000;
 
 export default withWaves({
   id: 'itaipu-4',
@@ -318,6 +327,10 @@ export default withWaves({
       id: 'before-dawn',
       round: true,
       title: 'war.stage.itaipu_4.before_dawn',
+      /* Dawn across the last stage (MISSIONS.md M4; src/share/daytime.js
+       * missionClock): the room's clock runs from the night to the
+       * morning over DAWN_MS. */
+      daytime: { to: 'morning', ms: DAWN_MS },
       spawns: [
         {
           at: [2, 6], kind: 'boat', n: 2, per: 1, route: { sector: 'WATER' }, target: [...INTAKES_WEST, ...INTAKES_MID], spread: 15, group: 'boats',

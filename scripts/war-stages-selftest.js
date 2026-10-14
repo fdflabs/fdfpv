@@ -56,7 +56,8 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
   beatOf, crossings, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
 } from '../src/share/war/stages.js';
-import { waveTarget } from '../src/share/war/missions/index.js';
+import { missionTime, waveTarget } from '../src/share/war/missions/index.js';
+import { TIME_HOUR, missionClock } from '../src/share/daytime.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
 import { released } from '../src/game/campaign.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
@@ -1299,6 +1300,32 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
     JSON.stringify(v.stage && { id: v.stage.id, at: v.stage.at, o: v.stage.objectives[0] }));
 }
 
+/*
+ * The room's clock over a bot game (TECH-NEEDS T1.11): every clock it
+ * told the first bot (the welcome's, then each 'daytime'), in order,
+ * against src/share/daytime.js missionClock along the stages the game
+ * played: the mission's start, each stage's on its entry, the end's. ''
+ * when they agree, else what differs.
+ */
+function lightTold(mission, g) {
+  const time = missionTime(mission);
+  const st = stagesOf(mission);
+  const want = [missionClock(time, st)];
+  let last = null;
+  for (const v of g.views) {
+    if (v.stage && v.stage.id !== last?.id) {
+      last = v.stage;
+      want.push(missionClock(time, st, { n: v.stage.n, at: v.stage.at }));
+    }
+  }
+  want.push(missionClock(time, st, { n: last.n, at: last.at }, g.views.at(-1).endAt));
+  const runs = (xs) => xs.map((x) => JSON.stringify(x)).filter((x, i, a) => i === 0 || x !== a[i - 1]);
+  /* The bots are welcomed into a free room before its war: no clock. */
+  const a = runs(g.clocks[0] === null ? g.clocks.slice(1) : g.clocks);
+  const b = runs(want);
+  return a.join() === b.join() ? '' : `told ${a.join(' ')} want ${b.join(' ')}`;
+}
+
 console.log('Lights Out (itaipu-3), flown on the room by bot squads');
 {
   /* MISSIONS.md M3 as the room plays it, as the Spillway's above. */
@@ -1314,6 +1341,7 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
       const views = [];
       const cues = [];
       const born = [];
+      const clocks = [];
       runOne({
         pilots,
         skill: 'good',
@@ -1322,6 +1350,9 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
         spawn: SPAWN,
         mission,
         record: (m, now) => {
+          if (m.type === 'welcome' || m.type === 'daytime') {
+            clocks.push(m.daytime ?? null);
+          }
           if (m.type !== 'war') {
             return;
           }
@@ -1335,7 +1366,7 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
         },
       });
       games.push({
-        pilots, seed, views, cues, born,
+        pilots, seed, views, cues, born, clocks,
       });
     }
   }
@@ -1404,6 +1435,9 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
     bad.filter((x) => /objective/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
+  const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
+  check('the room\'s clock is the mission\'s light (daytime.js missionClock): the golden hour, the ramp into the night told as Reroute opens, the night from The Dark and over the end',
+    lightOff.length === 0 && games.every((g) => g.clocks.some((c) => c && c.rate > 0 && c.to === TIME_HOUR.night)), lightOff.join(' | '));
   const [lo, hi] = mission.estimatedMinutes;
   const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
   check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
@@ -1446,6 +1480,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
       const cues = [];
       const born = [];
       const dead = [];
+      const clocks = [];
       runOne({
         pilots,
         skill: 'good',
@@ -1454,6 +1489,9 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
         spawn: SPAWN,
         mission,
         record: (m, now) => {
+          if (m.type === 'welcome' || m.type === 'daytime') {
+            clocks.push(m.daytime ?? null);
+          }
           if (m.type !== 'war') {
             return;
           }
@@ -1469,7 +1507,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
         },
       });
       games.push({
-        pilots, seed, views, cues, born, dead,
+        pilots, seed, views, cues, born, clocks, dead,
       });
     }
   }
@@ -1551,6 +1589,9 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective shown/.test(x)).length === 0,
     bad.filter((x) => /objective shown/.test(x)).join(' | '));
   check('over the ten games both twists are met', twists.size === 2, [...twists].join(','));
+  const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
+  check('the room\'s clock is the mission\'s light: night, the dawn ramp told as Before Dawn opens, and over the end the hour it reached',
+    lightOff.length === 0 && games.every((g) => g.clocks.some((c) => c && c.rate > 0 && c.to === TIME_HOUR.morning + 24)), lightOff.join(' | '));
   check('in the bot games too, Before Dawn flies exactly unless the night\'s Scout was killed', bad.filter((x) => /scout/.test(x)).length === 0,
     bad.filter((x) => /scout/.test(x)).join(' | '));
   const [lo, hi] = mission.estimatedMinutes;

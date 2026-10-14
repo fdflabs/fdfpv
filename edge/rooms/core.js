@@ -64,8 +64,9 @@ import { RoomWar } from './war.js';
 import { RoomDrops } from './drops.js';
 import { RoomOps } from './ops.js';
 import { RoomGameLobby, warMission } from './gamelobby.js';
-import { TIME_NAMES, clockOfTime } from '../../src/share/daytime.js';
+import { TIME_NAMES, clockOfTime, missionClock } from '../../src/share/daytime.js';
 import { MISSIONS, missionTime } from '../../src/share/war/missions/index.js';
+import { stagesOf } from '../../src/share/war/stages.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
 import { RoomBots } from './roombots.js';
 import { onFoot } from './foot.js';
@@ -1468,18 +1469,30 @@ export class RoomCore {
       const goAt = this.ops.match.goAt;
       return c ? { hour: c.startHour, rate: goAt == null ? 0 : c.rate, at: goAt ?? 0 } : null;
     }
+    /* A war's light moves across its stages (daytime.js missionClock):
+     * the stage under way's; before the go, standing where the stage it
+     * starts from begins (a restart's checkpoint, else the first). */
+    const warClock = (mission, m) => {
+      let stage = null;
+      if (m.stage) {
+        stage = { n: m.stage.idx, at: m.stage.at };
+      } else if (m.from != null) {
+        stage = { n: m.from, at: null };
+      }
+      return missionClock(missionTime(mission), stagesOf(mission), stage, m.endAt ?? null);
+    };
     if (this.war.on()) {
-      return clockOfTime(missionTime(this.war.mission()));
+      return warClock(this.war.mission(), this.war.match);
     }
     if (this.meta.mode === 'war') {
       const id = warMission(this);
-      return clockOfTime(id ? missionTime(MISSIONS[id]) : null);
+      return id ? missionClock(missionTime(MISSIONS[id]), stagesOf(MISSIONS[id])) : null;
     }
     /* A war started in another room keeps its time over its end and its
      * result, so the banner, and a briefing straight after, are not held
      * behind two rebuilds. */
     if (this.war.match) {
-      return clockOfTime(missionTime(this.war.mission()));
+      return warClock(this.war.mission(), this.war.match);
     }
     return clockOfTime(this.meta.daytime ?? null);
   }
