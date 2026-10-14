@@ -65,7 +65,7 @@ export function burnAt(at, t) {
  * restores the view's (grid.js WHAT COMES BACK), absent for none, so its
  * lights come back as the live screen's did, and stationDark the view's
  * order putting the station's lights out (stationdark.js), absent for
- * none (the recorder does not keep it yet).
+ * none (clip v21 keeps it, warrec.js world()).
  * `damage` the match's damage events in the order heard. At room ms t:
  * { targets: { id: state } of every target not 'ok', levels: a
  * Float32Array a district, damage: the events by t, openings: every
