@@ -54,7 +54,9 @@
  * Operations. Escape from that briefing is out of the room and on the
  * page again, and Escape on the page is the cards. B comes into A's war
  * by the rooms panel, Flight Club then the room, two clicks, onto the
- * same briefing, since Play makes a room of its own.
+ * same briefing, since Play makes a room of its own. While mission 1 is
+ * in development the room is a Friends room no panel lists, and B and C
+ * come in by its code (WAR_HELD).
  *
  * Every click a page makes is counted (tests/lib/page.js click), and the
  * rows say how many it took.
@@ -234,11 +236,13 @@ const SEED = `(() => {
 const dir = mkdtempSync(join(tmpdir(), 'game-lobby-'));
 const { startRooms } = await import('../edge/rooms/node.js');
 /* The war: devMissions, and the page's ?missions=dev, since its mission 1
- * is in development (held since 2026-10-07; src/game/campaign.js
+ * is in development (held since 2026-10-07, e6481c40a; src/game/campaign.js
  * released). Its room is then private, the one kind the server makes for
- * a mission in development, so its public and rooms panel rows fail
- * until a mission is released again: they say what the war's card no
- * longer does. */
+ * a mission in development (6e84e9619), so while WAR_HELD the rows expect
+ * a Friends room no panel lists, joined by its code, as campaign:check's
+ * do; once mission 1 is released they expect a public room on the panels
+ * again. */
+const WAR_HELD = GAME === 'war' && ACT1[0].release === 'development';
 const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: GAME === 'war' });
 const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`${GAME}: a card, one click into its lobby, rooms at ${rooms}`);
@@ -324,8 +328,8 @@ try {
   if (GAME === 'war') {
     check(`the war's link opens the campaign's page first: its ${ACT1.length} missions with their stars, mission 1 playable, no room yet`, pageOk(pageA), JSON.stringify(pageA));
   }
-  check(`A: ${CLICKS === 1 ? 'one click on its link on home' : 'its link on home, then Play'} (${a.clicks - aBefore}) and A is in the LOBBY of a public room made for ${GAME}, named for A, Ready under the cursor`,
-    a.clicks - aBefore === CLICKS && la.shown && la.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
+  check(`A: ${CLICKS === 1 ? 'one click on its link on home' : 'its link on home, then Play'} (${a.clicks - aBefore}) and A is in the LOBBY of a ${WAR_HELD ? 'Friends room (mission 1 in development)' : 'public room'} made for ${GAME}, named for A, Ready under the cursor`,
+    a.clicks - aBefore === CLICKS && la.shown && la.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && la.public === !WAR_HELD && la.mode === (GAME === 'free' ? null : GAME)
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   await shot(a, '1-a-lobby');
   /* The room's Weather row, the host's choice, in every lobby flown in a
@@ -365,7 +369,7 @@ try {
     })()`);
     check('the war\'s lobby is the briefing: the line, the first objective, where, aircraft, length, pilots and room, Deploy, no difficulty',
       brief.title === 'BRIEFING' && brief.line.length > 0 && brief.first.length > 0 && brief.facts.join() === 'Where,Aircraft,Length,Pilots,Room'
-      && brief.values.every((x) => x.length > 0) && /Public/.test(brief.values[4]) && brief.ready === 'Deploy' && !brief.difficulty, JSON.stringify(brief));
+      && brief.values.every((x) => x.length > 0) && (WAR_HELD ? /Friends/ : /Public/).test(brief.values[4]) && brief.ready === 'Deploy' && !brief.difficulty, JSON.stringify(brief));
   }
 
   /* ESCAPE: the cards, out of the room, this card under the cursor; for
@@ -584,11 +588,11 @@ try {
       }
       return Boolean(row);
     })()`);
-    /* Red while every mission is in development: A's room is private, so
-     * no panel lists it (see the server's note above). B then comes in by
-     * its invite code, All rooms and Join with a code, so the rows after
-     * this still run rather than dying on a missing row. */
-    check('A\'s war room is on B\'s Flight Club panel', listed, `no row ${bChip}`);
+    /* While WAR_HELD A's room is private, so no panel lists it (see the
+     * server's note above), and B comes in by its invite code, All rooms
+     * and Join with a code. */
+    check(WAR_HELD ? 'A\'s war room, private while mission 1 is in development, is not on B\'s Flight Club panel' : 'A\'s war room is on B\'s Flight Club panel',
+      listed === !WAR_HELD, listed ? `row ${bChip}` : `no row ${bChip}`);
     if (listed) {
       await b.click('[data-check="here"]');
     } else {
@@ -755,10 +759,13 @@ try {
   await c.until("window.__ui.hub === 'club'", 10000).catch(() => {});
   await c.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(chip)} && /flying/.test(it.value || ''))`, 30000).catch(() => {});
   const listed = await c.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(chip)}) || null)`);
-  check(`C's title panel lists the room as ${G.chip}, its pilots flying (racing), not in a lobby`, listed && listed.value.startsWith(G.chip) && /\d+ flying/.test(listed.value)
-    && !/lobby/.test(listed.value), JSON.stringify(listed && { value: listed.value, join: listed.join }));
-  /* The war's room is private while its missions are in development:
-   * the row above fails, and C comes in by the code, so the rest runs. */
+  if (WAR_HELD) {
+    check('C\'s title panel does not list the room, private while mission 1 is in development', !listed, JSON.stringify(listed && { value: listed.value, join: listed.join }));
+  } else {
+    check(`C's title panel lists the room as ${G.chip}, its pilots flying (racing), not in a lobby`, listed && listed.value.startsWith(G.chip) && /\d+ flying/.test(listed.value)
+      && !/lobby/.test(listed.value), JSON.stringify(listed && { value: listed.value, join: listed.join }));
+  }
+  /* While WAR_HELD C comes in by the code. */
   const cListed = await c.evaluate(`(() => {
     const ui = window.__ui;
     const row = ui.titleRoomEls.find((e) => ui.items()[e.i].action === ${JSON.stringify(chip)});
