@@ -992,7 +992,7 @@ campaign.js reaches the ops registry), `airframes:check`,
 **81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
 system, decided by the author: one place to hide a row is enough. A war
 mission's gate is its file's `release` (available, development, soon;
-the owner's 2026-10-04 rule), an Interior mission's its row's in
+the owner's 2026-10-04 rule), an Interior mission's is its row's `release` in
 src/share/ops/rows.js, both read through campaign.js `released` by the
 rooms server (core.js, front.js, war.js, ops.js), the campaign lists
 and the war's briefing; kept three valued rather than a `hidden` boolean, because Under
