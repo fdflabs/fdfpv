@@ -3,7 +3,7 @@
  * (docs/ITAIPU-PLAN.md section 14, row D).
  *
  * In headless Chromium, the Itaipu map built by the shell with a Timber
- * seated and the run's crash damage on:
+ * seated on SAFE Select (TUNE) and the run's crash damage on:
  *
  *   count      the dam's solids, at most 15 000 (section 6's budget);
  *   figures    every row of section 6's table dam.json carries a figure
@@ -90,6 +90,10 @@ const TARGET_IDS = [
 const WATERLINE_STEP = 2;
 const WATERLINE_OFF = 0.5;
 const AIRFRAME = 'timber1500';
+/* SAFE Select, the Timber's tune whose centred sticks fly level: since
+ * 702e8a0ee its AS3X is a rate damper that holds no attitude, so on it a
+ * Timber flown at the face with the sticks centred climbs over it. */
+const TUNE = 'timber-stab';
 /* A little over the Timber's 7.2 m/s clean stall (configs/airframes.js). */
 const LAND_SPEED = 8.5;
 
@@ -102,7 +106,7 @@ const fail = (m) => {
 function seed() {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME),
-    airframeAsked: true, map: 'itaipu', graphics: 'low', graphicsAuto: false, crashDamage: true, sound: false,
+    tune: TUNE, airframeAsked: true, map: 'itaipu', graphics: 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};

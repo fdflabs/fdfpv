@@ -172,8 +172,10 @@ export function buildPeerCraft(profile, look = null) {
   }
   /* A combat quad's fixed parts as a few palette meshes, in the colours
    * and finishes just put on and before the layers take their targets
-   * (src/render/combatcraft.js paletteFixed). */
-  if (craft.combat) {
+   * (src/render/combatcraft.js paletteFixed). The Striker carries a
+   * combat block too, but its parts are its own and its surfaces move,
+   * so only a buildCombatDrone craft, the one with a frame, is joined. */
+  if (craft.combat && craft.combat.frame) {
     paletteFixed(craft);
   }
   if (paint && paint.decals.length) {
