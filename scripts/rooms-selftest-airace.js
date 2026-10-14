@@ -40,6 +40,7 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { deserialize, serialize } from 'node:v8';
 import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -70,14 +71,25 @@ for (const el of TRACK.elements) {
 }
 const LAPS = 2;
 
-/* A room made for `mode` on swiss2, as host.js init makes one. */
-function room({ mode = 'race', open = true } = {}) {
+/* A room made for `mode` on swiss2, as host.js init makes one; with
+ * `stored`, host.js load's: every key a { store } wrote, through the
+ * SQLite file's v8 bytes (edge/rooms/node.js Store), restored before the
+ * seats, and no socket left. */
+function room({
+  mode = 'race', open = true, stored = null, clock = 0,
+} = {}) {
   const r = new RoomCore({
     code: 'A1RACE', cap: 8, friendly: false, map: 'swiss2', epoch: 0, public: open, mode, name: null, pick: [1, 1], mission: null, hidden: false,
   });
+  if (stored) {
+    for (const [key, value] of stored) {
+      r[key].restore(deserialize(value));
+    }
+    r.restore([]);
+  }
   let tokens = 0;
   const env = {
-    r, socks: [], clock: 0, empty: 0,
+    r, socks: [], clock, empty: 0, stored: new Map(), onStore: null,
   };
   env.apply = (actions) => {
     for (const x of actions) {
@@ -86,6 +98,12 @@ function room({ mode = 'race', open = true } = {}) {
       }
       if (x.empty) {
         env.empty += 1;
+      }
+      if (x.store) {
+        env.stored.set(x.store, serialize(x.value));
+        if (env.onStore) {
+          env.onStore(x);
+        }
       }
     }
   };
@@ -255,6 +273,7 @@ export async function aiRaceSection(check) {
   }
   framesSection(check);
   await rebirthSection(check);
+  await restoreSection(check);
   await boardSection(check);
   {
     const e = room({ mode: 'free' });
@@ -399,6 +418,95 @@ async function rebirthSection(check) {
     after && race.finish[hit] && race.finish[hit].ms === after.ms && !race.out[hit] && passes(hit).every((m) => m.t <= after.ms),
     `finish ${after ? after.ms : '-'} -> ${race.finish[hit] ? race.finish[hit].ms : '-'}`);
   e.leave(0);
+}
+
+/*
+ * A restore mid race (a restart, or a drain past its cap: host.js load
+ * from what the room stored): the room stores each AI racer's plant and
+ * lap every STORE_MS of a race; a second room made from those stores, as
+ * a new process makes it, seats the same AI pilots, writes each one's
+ * plant back bit for bit, and they fly on to the finish from there, not
+ * left. Negative control: the same stores named for another build of
+ * dist/sim.wasm are today's restore: the AI pilots are dropped and marked
+ * left in the race.
+ */
+async function restoreSection(check) {
+  const e = room();
+  e.join(0);
+  e.say(0, { type: 'track', doc: TRACK });
+  const entry = await settle(e);
+  e.say(0, {
+    type: 'race', op: 'ready', track: e.r.race.track.id, ready: true,
+  });
+  e.say(0, { type: 'race', op: 'start', laps: 1 });
+  const race = e.r.race.race;
+  const ai = e.bots().map((s) => s.seat);
+  /* What each plant was when the room stored it, to hold the restore to. */
+  let atStore = null;
+  e.onStore = (x) => {
+    if (x.store === 'bots' && x.value.racers) {
+      atStore = new Map([...e.r.bots.racers.racers].map(([seat, rc]) => [seat, { ms: rc.op.ms, state: Float64Array.from(rc.op.state), lapsDone: rc.lapsDone }]));
+    }
+  };
+  const passes = (so, seat) => so.got.filter((m) => m.type === 'event' && m.seat === seat);
+  /* Mid lap: every AI pilot past its timing gate and a stored plant. */
+  const endAt = e.clock + COUNTDOWN_MS + 2 * entry.lap.durationMs;
+  while (e.clock < endAt && !(atStore && ai.every((seat) => passes(e.socks[0], seat).length >= 3))) {
+    e.tick();
+  }
+  const kept = deserialize(e.stored.get('bots'));
+  const keptBytes = e.stored.get('bots').length;
+  check('in a race on the room stores every AI racer\'s plant with its lap, named for this build',
+    Boolean(kept.racers && kept.racers.build && kept.racers.racers.length === ai.length && atStore),
+    kept.racers ? `${kept.racers.racers.length} racers, ${(keptBytes / 1024).toFixed(0)} kB stored, build ${kept.racers.build.slice(0, 12)}` : 'none');
+  const restoredAt = e.clock + 2000;
+  const stored = new Map(e.stored);
+  e.leave(0);
+
+  const b = room({ stored, clock: restoredAt });
+  const br = b.r.race.race;
+  check('restored mid race, the room seats the same AI pilots and none is out of the race',
+    br && br.state === 'on' && ai.every((seat) => b.r.bots.racers.has(seat) && b.bots().some((s) => s.seat === seat) && !br.out[seat]),
+    br ? `AI ${b.bots().map((s) => s.seat).join(',')}, out ${JSON.stringify(br.out)}` : 'no race');
+  b.join(0);
+  await preparedFor(b.r.race.track, b.r.meta.map, b.r.bots.racers.paces[b.r.bots.level]).done;
+  await b.r.bots.racers.settled();
+  /* The first tick that flies them writes the plants back, then flies. */
+  const fly = b.r.bots.racers.fly.bind(b.r.bots.racers);
+  const first = new Map();
+  b.r.bots.racers.fly = (core, now, racer, ...rest) => {
+    const seat = [...b.r.bots.racers.racers].find(([, rc]) => rc === racer)[0];
+    if (!first.has(seat)) {
+      first.set(seat, { ms: racer.op.ms, state: Float64Array.from(racer.op.state), lapsDone: racer.lapsDone });
+    }
+    return fly(core, now, racer, ...rest);
+  };
+  b.tick();
+  const same = ai.every((seat) => {
+    const a = atStore.get(seat);
+    const f = first.get(seat);
+    return a && f && a.ms === f.ms && a.lapsDone === f.lapsDone && a.state.every((v, i) => Object.is(v, f.state[i]));
+  });
+  check('each AI racer flies on from its kept plant: the same clock, laps and plant state, bit for bit',
+    same, ai.map((seat) => `${seat}: ${atStore.get(seat) ? atStore.get(seat).ms : '-'} -> ${first.get(seat) ? first.get(seat).ms : '-'} ms`).join(', '));
+  const finishBy = b.clock + 2 * entry.lap.durationMs + 20000;
+  while (b.clock < finishBy && !ai.every((seat) => br.finish[seat] || br.out[seat])) {
+    b.tick();
+  }
+  const after = (seat) => passes(b.socks[0], seat);
+  check('and they finish the race from there, passing on through the gates after the kept one',
+    ai.every((seat) => br.finish[seat] && br.finish[seat].lap === 1 && !br.out[seat] && after(seat).length > 0),
+    ai.map((seat) => `${seat}: ${after(seat).map((m) => m.gate).join('.')} ${br.finish[seat] ? `finish ${br.finish[seat].ms}` : br.out[seat] || 'flying'}`).join(', '));
+  b.leave(0);
+
+  const other = new Map(stored);
+  const value = deserialize(other.get('bots'));
+  value.racers.build = 'another build';
+  other.set('bots', serialize(value));
+  const c = room({ stored: other, clock: restoredAt });
+  const cr = c.r.race.race;
+  check('negative control: a plant kept by another build is not written in: the AI pilots are dropped and marked left',
+    c.bots().length === 0 && ai.every((seat) => cr.out[seat] === 'left'), `AI ${c.bots().length}, out ${JSON.stringify(cr.out)}`);
 }
 
 /*

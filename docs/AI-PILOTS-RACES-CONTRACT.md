@@ -126,8 +126,18 @@ bots.js's kinematic Zagi out of races). Decisions taken in building it:
   back on its grid place on the tick the crash is called (a person presses
   R when ready), the laps closed kept, its clock running on. The room
   hears the timing gate again at a lower count, as it does of a person.
-- **A restore mid race** is not built: a room restored from storage drops
-  its AI racers, marks them left in a race on, and fills again.
+- **A restore mid race** (w39-room-ai-2): while a race is on the room
+  stores, every 5 s with the AI seats (roombots.js STORE_MS), each AI
+  racer's plant region (src/replay/journal.js's, 1.69 MB, deflated to
+  about 135 kB a seat: 414 kB for three, about 7 ms of CPU a seat here),
+  its opponent's flight and lap state, and the dist/sim.wasm build. A room
+  restored from storage while its race is on seats them again and writes
+  each plant back (malloc's bytes left as the new module has them); they
+  fly on from there once the ghost is flown again in the new process, the
+  time between a stall (not caught up). Not kept: the pilot's own memory
+  (src/game/aipilot.js eyes and loop trims, private to that file), so a
+  restored racer sees afresh and holds its sticks for its eyes' 200 ms.
+  A plant from another build is today's: dropped, marked left, refilled.
 - **The VM** needs dist/sim.wasm and tests/lib/{simmod, personpilot,
   aireference}.js shipped (deploy/vm/deploy.sh, a separate commit) and a
   rooms deploy; without them the server starts and seats no AI racer.

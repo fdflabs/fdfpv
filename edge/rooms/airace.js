@@ -69,9 +69,21 @@
  * NEVER ON THE RECORD. Its Race's record write is a no-op (aiopponent.js),
  * and the room posts nothing to any board.
  *
- * NOT YET (the contract): a restore mid race flying on from the kept
- * plant state. A room restored from storage drops its AI racers
- * (roombots.js reseat) and fills again.
+ * KEPT (save, roombots.js store): while a race is on, every racer's plant
+ * as journal.js keeps one (the region between the stack and the heap,
+ * which is the whole plant, deflated: about 100 kB a seat), its
+ * opponent's flight and its Race's lap state, with the module's build.
+ * A room restored mid race (a restart, a drain past its cap) seats each
+ * one again on a plant of its own, that region written in (malloc's own
+ * bytes left as the new module has them, src/replay/refly.js's rule),
+ * and it flies on from there once its ghost is flown again in this
+ * process. The room's clock ran on meanwhile: what it missed is a stall
+ * (THE CLOCK), not caught up. What is not kept is the pilot's own memory
+ * (src/game/aipilot.js: its eyes' last 200 ms and its loops' trims),
+ * which that file keeps to itself: the restored racer sees afresh, holds
+ * its sticks for its eyes' delay, and closes on its line again. A kept
+ * plant from another build, or none, is today's: the AI seat is dropped,
+ * marked left, and the room fills again.
  *
  * LOADED LATE. aiopponent.js and the reference read tests/lib (the plant's
  * loader) and dist/sim.wasm, which a server without them does not have:
@@ -113,6 +125,7 @@ import { decodeGhost, encodeGhost, ghostFromBase64 } from '../../src/share/ghost
 import { fetchGhost, fetchTrackTimes } from '../../src/share/board.js';
 import { simQuatToThree, threeDirToSim, threePosToSim } from '../../src/render/frame.js';
 import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, encodePose } from '../../src/share/roomwire.js';
+import { allocatorSpans, wasmBuild } from '../../src/replay/journal.js';
 
 /* The quad every AI racer flies. */
 export const AI_RACE_AIRFRAME = DEFAULT_AIRFRAME;
@@ -161,6 +174,7 @@ export const kitLoaded = (async () => {
     if (!fs) {
       throw new Error('no filesystem');
     }
+    const zlib = process.getBuiltinModule('node:zlib');
     const [opponent, pilot, reference, simmod] = await Promise.all([
       import('../../src/game/aiopponent.js'),
       import('../../src/game/aipilot.js'),
@@ -172,8 +186,11 @@ export const kitLoaded = (async () => {
     /* The hull the sweep uses is the module's one craft: the only one this
      * process sweeps. */
     setCraftAirframe(af.dims);
+    /* The module's name (journal.js wasmBuild): a kept plant flies on only
+     * on the build that kept it. */
+    const build = await wasmBuild(wasm);
     Object.assign(kit, {
-      ready: true, why: null, wasm, tune, ...opponent, aiPilot: pilot.aiPilot, ...reference, loadSim: simmod.loadSim,
+      ready: true, why: null, wasm, tune, build, zlib, ...opponent, aiPilot: pilot.aiPilot, ...reference, loadSim: simmod.loadSim,
     });
   } catch (e) {
     kit.why = String(e && e.message ? e.message : e);
@@ -528,6 +545,12 @@ function poseOf(sim, st, t, seq, crashed) {
   };
 }
 
+/* What an opponent and its Race are, past their plant, when kept: what
+ * aiopponent.js stepTo and race.js reset() move. */
+const OP_KEPT = ['ms', 'crashed', 'downMs', 'held', 'prev', 'sweepFrom', 'normal'];
+const RACE_KEPT = ['next', 'lap', 'lapStartMs', 'lastLapMs', 'prevSimMs', 'banner', 'splits', 'lastSplits', 'log', 'laps',
+  'lapPoints', 'lastLapScore', 'runScore', 'call', 'leaving', 'recordAtStart'];
+
 /*
  * One AI racer: its seated plant (async, from add) and, once that is
  * there, an AiOpponent for what the room is doing: `lobby:<ghost>` holding
@@ -562,6 +585,49 @@ class Racer {
    * slot, at race ms `bornMs`, the laps it closed kept. */
   reborn(entry) {
     this.place(entry, this.bornMs + this.op.ms);
+  }
+
+  /* Where it is, for the room's storage. */
+  save() {
+    const op = this.op;
+    const { lo, hi } = this.seated.journal.region;
+    const mem = new Uint8Array(this.seated.sim.e.memory.buffer, lo, hi - lo);
+    return {
+      slot: this.slot,
+      key: this.key,
+      lapsDone: this.lapsDone,
+      said: this.said,
+      flownTo: this.flownTo,
+      bornMs: this.bornMs,
+      op: Object.fromEntries(OP_KEPT.map((k) => [k, structuredClone(op[k])])),
+      race: Object.fromEntries(RACE_KEPT.map((k) => [k, structuredClone(op.race[k])])),
+      region: kit.zlib.deflateRawSync(mem, { level: 1 }),
+    };
+  }
+
+  /* A kept racer (save) flying on: an opponent on the same ghost with the
+   * kept plant written into its module. */
+  resume(entry, key, kept) {
+    this.key = key;
+    this.lapsDone = kept.lapsDone;
+    this.said = kept.said;
+    this.flownTo = kept.flownTo;
+    this.place(entry, kept.bornMs);
+    const { sim, journal } = this.seated;
+    const region = kit.zlib.inflateRawSync(kept.region);
+    if (region.length !== journal.region.hi - journal.region.lo) {
+      throw new Error(`a kept plant of ${region.length} bytes, this module's is ${journal.region.hi - journal.region.lo}`);
+    }
+    /* malloc's bookkeeping is in the region too, and it is this module's. */
+    const spans = allocatorSpans(sim.e, journal.region);
+    const mem = new Uint8Array(sim.e.memory.buffer, journal.region.lo, region.length);
+    const live = spans.map(([a, z]) => mem.slice(a, z));
+    mem.set(region);
+    spans.forEach(([a], i) => mem.set(live[i], a));
+    Object.assign(this.op, kept.op);
+    Object.assign(this.op.race, kept.race);
+    this.op.state = sim.readState().state;
+    this.op.prevState = this.op.state;
   }
 
   /* An opponent at its grid place, its clock zero at race ms `bornMs`. */
@@ -617,14 +683,16 @@ export class AiRace {
     return entry.state === 'none' ? null : entry.state;
   }
 
-  /* A seat for an AI racer; its plant is seated as soon as it can be. */
-  add(seat) {
+  /* A seat for an AI racer; its plant is seated as soon as it can be.
+   * `kept`, a racer save() kept, flies on from there (restore). */
+  add(seat, kept = null) {
     const used = new Set([...this.racers.values()].map((r) => r.slot));
-    let slot = 0;
-    while (used.has(slot)) {
+    let slot = kept ? kept.slot : 0;
+    while (!kept && used.has(slot)) {
       slot += 1;
     }
     const racer = new Racer(slot);
+    racer.kept = kept;
     this.racers.set(seat, racer);
     racer.ready = seatPlant().then((seated) => {
       racer.seated = seated;
@@ -645,6 +713,28 @@ export class AiRace {
   /* Settled when every racer's plant is seated: for the checks. */
   settled() {
     return Promise.all([...this.racers.values()].map((r) => r.ready));
+  }
+
+  /*
+   * What the room keeps of its racers in a race on (roombots.js store), or
+   * null when there is nothing to fly on from: no race flying, or a
+   * module with no name.
+   */
+  save() {
+    const flying = [...this.racers].filter(([, r]) => r.op && r.key && r.key.startsWith('race:'));
+    if (!kit.ready || !kit.build || !flying.length) {
+      return null;
+    }
+    return { build: kit.build, racers: flying.map(([seat, r]) => ({ seat, ...r.save() })) };
+  }
+
+  /* The racer `seat` a restored room's store kept, when this process can
+   * fly it on: the race it was in is still on, and the plant is this
+   * build's. Null otherwise. */
+  static kept(saved, seat, core) {
+    const r = core.race.race;
+    const kept = saved && kit.ready && saved.build === kit.build ? saved.racers.find((x) => x.seat === seat) : null;
+    return kept && r && r.state === 'on' && kept.key.startsWith(`race:${r.id}:`) && r.racers.includes(seat) ? kept : null;
   }
 
   /* A mid air broke a part of it (roombots.js hits). */
@@ -679,9 +769,12 @@ export class AiRace {
       racer.ground = ground;
       const racing = r && r.state === 'on' && r.racers.includes(seat);
       const key = racing ? `race:${r.id}:${entry.key}` : `lobby:${entry.key}`;
-      if (racer.key !== key) {
+      if (racer.key !== key && racer.kept && racer.kept.key === key) {
+        racer.resume(entry, key, racer.kept);
+      } else if (racer.key !== key) {
         racer.build(entry, key);
       }
+      racer.kept = null;
       if (!racing) {
         out.push(...core.race.message(core, at.conn, at.s, {
           type: 'race', op: 'ready', track: track.id, ready: true,
