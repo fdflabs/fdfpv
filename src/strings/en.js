@@ -3142,6 +3142,7 @@ export default {
   "friends.failed_noserver": "Rooms cannot be reached from this page.",
   "friends.failed_rate": "Too many tries. Wait a minute and try again.",
   "friends.failed_bad": "The room did not accept this pilot.",
+  "friends.failed_replaced": "You are in this room in another tab, so this one left it.",
   "friends.other_world": "This room flies in {world}, so you are seated there.",
   "rooms.away_idle": "{name} is here but not flying",
   "rooms.away_world": "{name} is flying in {world}",

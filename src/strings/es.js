@@ -3147,6 +3147,7 @@ export default {
   "friends.failed_noserver": "Desde esta página no se puede llegar a las salas.",
   "friends.failed_rate": "Demasiados intentos. Espera un minuto y vuelve a probar.",
   "friends.failed_bad": "La sala no aceptó a este piloto.",
+  "friends.failed_replaced": "Estás en esta sala en otra pestaña, así que esta salió.",
   "friends.other_world": "Esta sala vuela en {world}, así que estás allí.",
   "rooms.away_idle": "{name} está en la sala pero no vuela",
   "rooms.away_world": "{name} vuela en {world}",

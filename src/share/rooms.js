@@ -76,6 +76,9 @@ const FINAL = new Map([
   [CLOSE.nosuch, 'nosuch'],
   [CLOSE.bad, 'bad'],
   [CLOSE.rate, 'rate'],
+  /* A second tab took this seat with the same token: retrying would take
+   * it back, and the two tabs would trade it forever. */
+  [CLOSE.replaced, 'replaced'],
   [CLOSE_REMOVED, 'removed'],
   [CLOSE_SIGNIN, 'signin'],
   [CLOSE_ACCOUNTS, 'accounts'],
