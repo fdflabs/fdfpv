@@ -505,7 +505,9 @@ PILLARS section 42's: what is in flight lands first, then the first five
 minutes (the controller and training), then the end of every flight (the
 debrief), then reasons to come back (progression), then the world (wind,
 AI). The foundations of phases 19 to 31 come first where a later phase
-builds on them (the note under the table). Status as of 2026-10-03.
+builds on them (the note under the table). The Status column is kept
+row by row as each phase lands (2026-10-14); a row's own dates say when
+its work landed.
 
 | # | What ships | Checks it rewrites or adds | Status |
 | --- | --- | --- | --- |

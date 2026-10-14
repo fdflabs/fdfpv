@@ -1,8 +1,10 @@
 # Completeness: the owner's 84 item checklist, against the code
 
-**Status: PROPOSAL for the owner's review** (2026-10-03). Written against
-`main` at 1c64b964 (after #370), with open PR #386 (Flight Club first on
-home) read but not assumed merged.
+**Status: LEDGER, kept to the tree** (2026-10-14). First written
+2026-10-03 as a proposal for the owner's review, against `main` at
+1c64b964 (after #370); since then each phase that builds an item sets its
+verdict here and brings its body to the tree, and the counts below are
+2026-10-14's.
 
 The owner handed in a "Development Completeness Checklist" (84 items and
 five closing priorities) and asked that it be worked into the things we
@@ -96,13 +98,20 @@ generations 0 to 2, a retired airframe, a seat on the 5 inch) and asserts
 the migrated result and that migrating twice is a no op. Size L. Phase
 19.
 
-**2. Autosave rules. PARTIAL.** Writes happen on change, not on exit:
-`saveSettings` (ui.js 1342) at 18 sites; progress on a lap, a challenge,
-Unlock all and a first sight (src/ui/progress-ui.js 225 to 437); the
-campaign on its commit (src/ui/campaign.js 117); calibration when the
-mapping is accepted (input.js 1158); builds on edit; best laps on a new
-best (src/game/race.js 755). There is no `beforeunload` save and none is
-needed. The war's result closed the gap (2026-10-15 batch,
+**2. Autosave rules. PARTIAL.** The table of save points is
+src/share/save.js's header (SAVE POINTS), each with its trigger and its
+file: writes happen on change, never on exit, with no `beforeunload` save
+and none needed. The settings blob on every settings change
+(`saveSettings`, src/ui/settings.js, through `Ui.persistSettings`), and
+with it progression (a lap, a challenge, Unlock all, a first sight, a
+landing or a crash counted, src/ui/progress-ui.js) and the campaign (a
+commit of `createCampaignStore`, src/game/campaign.js); the controllers
+on a calibration accepted or a pad chosen (src/input/stickstore.js);
+builds on save, rename or delete (src/ui/builds.js); a best lap on a new
+best (src/game/race.js); the name and the language (src/share/pilot.js,
+src/share/sharedkeys.js); the version, backups and quarantine once per
+boot (`openSave`, src/boot.js). `save:selftest` (CI) holds the keys to
+their modules, not each trigger. The war's result closed the gap (2026-10-15 batch,
 w41-warpay): the room sends a war's result only to the seats whose pilot
 flew it (enlisted at any point, a late joiner too, by seat token: war.js
 `flew`), never to a watcher or a seat that sat it out, in every view and
@@ -121,24 +130,26 @@ the save (built). Not built: `save:selftest` asserting each trigger
 writes; `campaign:check` (local) adding a reload during the result card.
 Phase 19.
 
-**3. Recovery from corrupted saves. PARTIAL.** Every read is wrapped:
-`loadSettings` falls back to `{}` on bad JSON (ui.js 1029), checks each
-value's type against `DEFAULTS` and that list values are still on their
-lists; `normaliseProgress`, `cleanCampaign`, `normaliseBuilds` clean their
-sections; pilot.js 40, input.js 347 and 1136, builds.js 278 are wrapped
-too. Missing: a backup (bad JSON today silently becomes the defaults and
-the next save overwrites the evidence), a migration chain (item 1), and
-reset controls: there is no "Reset settings" that keeps progress nor
-"Reset progress" that keeps settings; only per plane "Reset to stock"
-(`hangar.reset`) and account deletion (src/share/account.js 288). No
-check feeds a broken blob in. **Done:** `save.js` keeps the last blob
-that parsed and validated as `.prev` beside each key it owns; an
-unreadable blob is kept as `.corrupt`, the `.prev` is loaded, and the
-pilot is told once; two rows in Settings, Reset settings and Reset
-progress, each behind `askConfirm`, each clearing only its half. Check:
-`save:selftest` with truncated JSON, wrong types and an empty string,
-asserting progress survives a settings reset and the reverse. Size M.
-Phase 19.
+**3. Recovery from corrupted saves. PARTIAL.** Every read is still
+wrapped by its own reader (`loadSettings`, `normaliseProgress`,
+`cleanCampaign`, `normaliseBuilds` and the rest), and under them, once
+per boot before any reader runs, src/share/save.js `openSave` keeps each
+JSON blob that reads well as `<key>.prev` and copies one that does not
+to `<key>.corrupt`, putting its `.prev` back when there is one (BACKUP
+AND QUARANTINE in its header); the migration chain is item 1's. Settings
+has a Saved data section with Reset settings and Reset progress
+(src/ui/items.js), each behind a confirm (src/ui/actions.js `askReset`)
+and each clearing only its half (save.js `resetSettings`,
+`resetProgress`); Reset progress is offered signed out only, since the
+account's merge grows only. Held by `save:selftest` (CI): truncated JSON,
+an empty string, null, an array and a string each quarantined and
+restored, no backup leaving the reader's fallback as it was, a broken
+backup not put back, and each reset keeping the other half. Missing: the
+pilot is not told. A quarantine or a refused step is a `logWarn('save',
+...)` line (src/boot.js `openStorage`), in the bug report's ring and the
+console, never on screen. **Done:** the pilot told once, in words, when a
+blob was quarantined (restored or not), en and es; check: a `save` case
+that boots with a broken blob and reads the notice. Size S. Phase 19.
 
 ## 2. Sessions and multiplayer (items 4 to 11)
 
@@ -356,8 +367,14 @@ reverse, tracks endpoints, and says when the radio unplugs mid wizard. A
 sweep eight seconds short of full travel now names every axis that never
 moved, as a channel when the device's map is vouched for ("yaw (axis 1)")
 and as an axis otherwise (`stuckAxes`, src/input/calibrate.js). The dead
-zone is still hard coded 0.012. Check: `input:selftest` (CI) with a frozen
-axis on a radio and on a standard pad.
+zone is per device since phase 7: 0 to 15 percent on roll, pitch and yaw
+(src/input/padmap.js `DEAD_ZONES`, `normaliseFeel`), on top of the fixed
+0.012 deadband that keeps a resting gimbal from creeping, kept beside the
+device's calibration (src/input/stickstore.js) and set on the Controller
+screen (src/ui/controller.js `feelRows`). Checks: `input:selftest` (CI)
+with a frozen axis on a radio and on a standard pad, and a dead zone kept
+per device across a reload; `controller:check` (local) sets one with the
+arrow key and reads it stored with the device.
 
 **18. Controller loss failsafe. BUILT (phase 20).** The roster reports
 the flying device's loss once (`takeDeviceLoss`, src/input/input.js); the
@@ -719,9 +736,14 @@ and never held, and so are the attackers alive in the war's window (1,
 in stage 1, Eyes: the window is early in mission 1, not at its peak) and the peers in view (7). The contract is the main view's at
 High, 300 calls and 2.5 M triangles (4.0 M at Itaipu), the thermal inset
 apart (docs/BUDGETS.md, The contract, 2026-10-13): every world's and
-the war's main view is within it, while a full room is 1 586 calls as a
-whole frame, unsplit, five times it (each peer's craft is 48 meshes);
-the ceilings hold today's cost, not the contract. Texture megabytes are not
+the war's main view is within it, while a full room is 739 calls as a
+whole frame at High, unsplit, about two and a half times it: a stock
+peer's fixed parts are joined into palette meshes (src/render/combatcraft.js
+`paletteFixed`, 40 meshes to 16) and a peer wearing a finish joins the
+same way, and what is left is a palette mesh per offset and render state,
+the lens, the inks, four rotors and four discs (docs/BUDGETS.md, the
+`peers` rows, retaken 2026-10-14); the ceilings hold today's cost, not
+the contract. Texture megabytes are not
 measured and cannot be from here: three's `renderer.info.memory` counts
 textures, WebGL has no query for what one holds on the card, and
 perf-play's upload bytes are a frame's uploads, not what stays
