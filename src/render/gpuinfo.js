@@ -85,6 +85,17 @@ function angleRenderer(text) {
   return middle || parts[0];
 }
 
+/*
+ * ANGLE over Vulkan puts the chip inside the API version, as in
+ * "Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7))". The
+ * version rule below strips "Vulkan" to the next comma, which takes the
+ * chip with it, so the chip comes out of its parentheses first.
+ */
+function vulkanDevice(text) {
+  const wrapped = /^Vulkan [0-9.]+ \(([\s\S]*)\)$/i.exec(text);
+  return wrapped ? wrapped[1] : text;
+}
+
 /* Driver and API decoration that says nothing about the chip, stripped in
  * this order: Metal's prefix, PCI ids, D3D shader models, GL and Vulkan
  * version strings, D3D driver versions. */
@@ -100,17 +111,18 @@ const DECORATION = [
   /\s*D3D1[12][-0-9.]*/gi,
 ];
 
-/* Mesa names the chip and then a parenthesised driver soup; a generation
- * tag in parentheses such as (KBL GT2) is worth keeping, the soup is not. */
-const DRIVER_SOUP = /llvm|drm|radeonsi|navi|vangogh|pci/i;
+/* Mesa names the chip and then a parenthesised driver soup, and Tegra's
+ * Vulkan driver adds (nvgpu); a generation tag in parentheses such as
+ * (KBL GT2) is worth keeping, the soup is not. */
+const DRIVER_SOUP = /llvm|drm|radeonsi|navi|vangogh|pci|nvgpu/i;
 
 export function tidyGpuName(raw) {
   if (!raw) {
     return '';
   }
   const text = String(raw).trim();
-  const inner = angleRenderer(text);
-  let name = DECORATION.reduce((s, noise) => s.replace(noise, ''), inner || text)
+  const inner = vulkanDevice(angleRenderer(text) || text);
+  let name = DECORATION.reduce((s, noise) => s.replace(noise, ''), inner)
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^(NVIDIA|AMD|Intel|Apple|Qualcomm)\s+\1\s+/i, '$1 ');

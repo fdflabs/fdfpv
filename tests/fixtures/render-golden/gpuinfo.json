@@ -69,6 +69,10 @@
    false
   ],
   [
+   "ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)",
+   false
+  ],
+  [
    "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
    false
   ],
@@ -82,6 +86,10 @@
   ],
   [
    "ANGLE (Google, SwiftShader Device (Subzero), SwiftShader driver)",
+   false
+  ],
+  [
+   "ANGLE (Mesa, Vulkan 1.3.255 (llvmpipe (LLVM 15.0.7, 256 bits) (0x10005)), lavapipe driver)",
    false
   ],
   [
@@ -970,13 +978,25 @@
    "raw": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
    "integrated": false,
    "vendor": "Google Inc. (Google)",
-   "name": "Google Inc. (Google)",
-   "display": "Software (Google Inc. (Google))",
+   "name": "SwiftShader Device (Subzero)",
+   "display": "Software (SwiftShader Device (Subzero))",
    "software": true,
    "usable": true,
    "webgl2": true,
    "hidden": false,
    "note": "WebGL 2 is running on the CPU, not a GPU (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)). Headless Chrome does this. Low is the preset that will run. Nothing is uploaded."
+  },
+  "vulkan": {
+   "raw": "ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)",
+   "integrated": false,
+   "vendor": "Google Inc. (NVIDIA)",
+   "name": "NVIDIA Tegra Orin",
+   "display": "NVIDIA Tegra Orin",
+   "software": false,
+   "usable": true,
+   "webgl2": true,
+   "hidden": false,
+   "note": "NVIDIA Tegra Orin. WebGL 2 is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
   },
   "softwareBare": {
    "raw": "SwiftShader",
@@ -1204,7 +1224,11 @@
   ],
   [
    "ANGLE (NVIDIA, Vulkan 1.3.242 (NVIDIA NVIDIA GeForce RTX 3080 (0x00002206)), NVIDIA)",
-   ""
+   "NVIDIA GeForce RTX 3080"
+  ],
+  [
+   "ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)",
+   "NVIDIA Tegra Orin"
   ],
   [
    "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
@@ -1216,11 +1240,15 @@
   ],
   [
    "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
-   ""
+   "SwiftShader Device (Subzero)"
   ],
   [
    "ANGLE (Google, SwiftShader Device (Subzero), SwiftShader driver)",
    "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Mesa, Vulkan 1.3.255 (llvmpipe (LLVM 15.0.7, 256 bits) (0x10005)), lavapipe driver)",
+   "llvmpipe"
   ],
   [
    "ANGLE (Mesa, llvmpipe (LLVM 15.0.7, 256 bits), OpenGL 4.5)",
@@ -1428,7 +1456,7 @@
   ],
   [
    "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) UHD Graphics 770 (0x00005678)), Intel driver)",
-   ""
+   "Intel(R) UHD Graphics 770"
   ],
   [
    "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) UHD Graphics 770, Unspecified Version)",
@@ -1480,7 +1508,7 @@
   ],
   [
    "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) Iris(R) Xe Graphics (0x00005678)), Intel driver)",
-   ""
+   "Intel(R) Iris(R) Xe Graphics"
   ],
   [
    "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(R) Xe Graphics, Unspecified Version)",
@@ -1532,7 +1560,7 @@
   ],
   [
    "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) Arc(TM) A380 Graphics (0x00005678)), Intel driver)",
-   ""
+   "Intel(R) Arc(TM) A380 Graphics"
   ],
   [
    "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Arc(TM) A380 Graphics, Unspecified Version)",
@@ -1584,7 +1612,7 @@
   ],
   [
    "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon(TM) Graphics (0x00005678)), AMD driver)",
-   ""
+   "AMD Radeon(TM) Graphics"
   ],
   [
    "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon(TM) Graphics, Unspecified Version)",
@@ -1636,7 +1664,7 @@
   ],
   [
    "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon RX 6700 XT (0x00005678)), AMD driver)",
-   ""
+   "AMD Radeon RX 6700 XT"
   ],
   [
    "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon RX 6700 XT, Unspecified Version)",
@@ -1688,7 +1716,7 @@
   ],
   [
    "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon Vega 11 Graphics (0x00005678)), AMD driver)",
-   ""
+   "AMD Radeon Vega 11 Graphics"
   ],
   [
    "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon Vega 11 Graphics, Unspecified Version)",
@@ -1740,7 +1768,7 @@
   ],
   [
    "ANGLE (NVIDIA, Vulkan 1.3.260 (NVIDIA GeForce RTX 2070 SUPER (0x00005678)), NVIDIA driver)",
-   ""
+   "NVIDIA GeForce RTX 2070 SUPER"
   ],
   [
    "ANGLE (NVIDIA, ANGLE Metal Renderer: NVIDIA GeForce RTX 2070 SUPER, Unspecified Version)",
@@ -1792,7 +1820,7 @@
   ],
   [
    "ANGLE (NVIDIA, Vulkan 1.3.260 (NVIDIA GeForce MX350 (0x00005678)), NVIDIA driver)",
-   ""
+   "NVIDIA GeForce MX350"
   ],
   [
    "ANGLE (NVIDIA, ANGLE Metal Renderer: NVIDIA GeForce MX350, Unspecified Version)",
@@ -1844,7 +1872,7 @@
   ],
   [
    "ANGLE (Apple, Vulkan 1.3.260 (Apple M2 Max (0x00005678)), Apple driver)",
-   ""
+   "Apple M2 Max"
   ],
   [
    "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)",
@@ -1896,7 +1924,7 @@
   ],
   [
    "ANGLE (Qualcomm, Vulkan 1.3.260 (Adreno (TM) 730 (0x00005678)), Qualcomm driver)",
-   ""
+   "Adreno (TM) 730"
   ],
   [
    "ANGLE (Qualcomm, ANGLE Metal Renderer: Adreno (TM) 730, Unspecified Version)",
@@ -1948,7 +1976,7 @@
   ],
   [
    "ANGLE (ARM, Vulkan 1.3.260 (Mali-G610 MC6 (0x00005678)), ARM driver)",
-   ""
+   "Mali-G610 MC6"
   ],
   [
    "ANGLE (ARM, ANGLE Metal Renderer: Mali-G610 MC6, Unspecified Version)",
@@ -2000,7 +2028,7 @@
   ],
   [
    "ANGLE (Google, Vulkan 1.3.260 (SwiftShader Device (Subzero) (0x00005678)), Google driver)",
-   ""
+   "SwiftShader Device (Subzero)"
   ],
   [
    "ANGLE (Google, ANGLE Metal Renderer: SwiftShader Device (Subzero), Unspecified Version)",
