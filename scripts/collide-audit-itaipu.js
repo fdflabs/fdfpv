@@ -1722,8 +1722,11 @@ async function damRegions() {
   const [nx, nz] = unit(c0, c1);
   const a = [nz, -nx];
   const out = [
+    /* From 260 m down, as the crests': the spillway's gantry stands 30 m
+     * over the bridge (dam/index.js), and a ray begun inside its house
+     * read the house as an invisible wall. */
     {
-      name: 'spillway gates, piers, hoists and bridge', o: c0, a, t: [-186, 186], s: [-16, 46], y: [196, 240], top: 250, step: 1, ystep: 0.5, along: 1, across: 1,
+      name: 'spillway gates, piers, hoists and bridge', o: c0, a, t: [-186, 186], s: [-16, 46], y: [196, 240], top: 260, step: 1, ystep: 0.5, along: 1, across: 1,
     },
     {
       name: 'spillway chute', o: c0, a, t: [-186, 186], s: [46, 490], y: [100, 230], top: 240, step: 2, ystep: 2, along: 10, across: 0,
