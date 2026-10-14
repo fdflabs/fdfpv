@@ -28,7 +28,6 @@ import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
 import { MEDAL_STEPS, medalFor } from '../src/game/medals.js';
-import { EventLog } from '../src/game/events.js';
 import { ACT1 } from '../src/game/campaign.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
 import { modeById } from '../src/share/modes.js';
