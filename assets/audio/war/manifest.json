@@ -27120,6 +27120,449 @@
     }
    }
   },
+  "film-itaipu-4-1.en": {
+   "text": "They learned our days. Now they're trying our nights.",
+   "speaker": "crest",
+   "seconds": 3.615,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 158479533,
+     "heard": "They learned our days. Now they're trying our nights.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16578,
+     "sha256": "ea9a4f983b8d9ae88511d10caec687dfcc8dfdc9b773fcfe0cb3f21402777a81"
+    },
+    "mp3": {
+     "bytes": 15620,
+     "sha256": "44e96063b0df5f67cbacd1c0e19a123f3d1374e9be1d31a0dc539880fbda645c"
+    }
+   }
+  },
+  "film-itaipu-4-1.es": {
+   "text": "Aprendieron nuestros días. Ahora prueban nuestras noches.",
+   "speaker": "crest",
+   "seconds": 3.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4052153686,
+     "heard": "Aprendieron nuestros días. Ahora pruébanme estas noches.",
+     "wer": 0.286,
+     "extra": 0,
+     "missing": [
+      "prueban",
+      "nuestras"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1216611924,
+     "heard": "Aprendieron nuestros días. Ahora prueban nuestras noches.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17524,
+     "sha256": "4333f05d21cf025a97d99f54de75cf2b7e366564aa633ba51b502b0c810ca242"
+    },
+    "mp3": {
+     "bytes": 15764,
+     "sha256": "b87639dcefde451db8c8ed906286aff7c44d7ee1814e3e72dd71a03d09f9e3d0"
+    }
+   }
+  },
+  "film-itaipu-4-2.en": {
+   "text": "Birds are on the crest. Tonight you fly by the markers.",
+   "speaker": "taller",
+   "seconds": 3.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2646557522,
+     "heard": "Birds are on the crest. Tonight you fly by the markers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17407,
+     "sha256": "1eb9c039892178430e2fe9b314a035f08dc39d2fb4247853a385592c12f35183"
+    },
+    "mp3": {
+     "bytes": 18068,
+     "sha256": "0530b7ec55a0312bee2644a66e9e20090064ca898602d87ba7eaf073beff4778"
+    }
+   }
+  },
+  "film-itaipu-4-2.es": {
+   "text": "Los aparatos están en la cresta. Esta noche vuelen por los marcadores.",
+   "speaker": "taller",
+   "seconds": 4.725,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3169440851,
+     "heard": "Los aparatos están en la cresta. Esta noche vuelen por los marcadores.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21422,
+     "sha256": "ab7710b40897ea4db0b3ec37ea86eeff7f0819c42cdd18ecc9b1684ef6353f92"
+    },
+    "mp3": {
+     "bytes": 22724,
+     "sha256": "387598a43b89402efd229d522361967d54d43284dc3278007dc0fe09619b1fa6"
+    }
+   }
+  },
+  "film-itaipu-4-3.en": {
+   "text": "Something on the water. Small. Coming slow.",
+   "speaker": "mirador",
+   "seconds": 3.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3569546345,
+     "heard": "Something on the water. Small, coming slow.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 590
+    },
+    {
+     "attempt": 1,
+     "seed": 3167138166,
+     "heard": "Something on the water. Small, coming slow.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16605,
+     "sha256": "9a2f2cd46b10bbc00b1f52983ff1da900b92924232398067153840942ba09d44"
+    },
+    "mp3": {
+     "bytes": 15740,
+     "sha256": "d1f03d929a15de87ed1afed2b27b8868f1d7e5d4ef90116234811ede126e8550"
+    }
+   }
+  },
+  "film-itaipu-4-3.es": {
+   "text": "Algo en el agua. Chico. Viene lento.",
+   "speaker": "mirador",
+   "seconds": 2.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1093312577,
+     "heard": "Algo en el agua. Chico, viene lento. Eh...",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1110518910,
+     "heard": "Algo en el agua. Chico, viene lento.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12312,
+     "sha256": "f77fb769c4a25792b2a9fe5ff29625eb8d5a276e69a12c3c0dc23317a4910bc9"
+    },
+    "mp3": {
+     "bytes": 12164,
+     "sha256": "85736e63a196a70611e82b84f35989d4e2f0dae2d912a232940ad61fe83b2e78"
+    }
+   }
+  },
+  "film-itaipu-4-4.en": {
+   "text": "Fly in pairs. Hold until the sun comes up.",
+   "speaker": "crest",
+   "seconds": 2.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 785712616,
+     "heard": "Fly in pairs, hold until the sun comes up.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 50
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12920,
+     "sha256": "389ed1b9b112f05b23649402f060dd7a91f717a7b00c4a2d3b6665dfeb5b0894"
+    },
+    "mp3": {
+     "bytes": 11732,
+     "sha256": "87b9d579380699028a37cf8df6f5721bd5a96e8940bc4f4de9020bbfedfcf472"
+    }
+   }
+  },
+  "film-itaipu-4-4.es": {
+   "text": "Vuelen de a dos. Aguanten hasta que salga el sol.",
+   "speaker": "crest",
+   "seconds": 3.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3566505682,
+     "heard": "Vuelen de a dos. Aguanten hasta que salga el sol.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 440
+    },
+    {
+     "attempt": 1,
+     "seed": 2505764211,
+     "heard": "Vuelen de a dos. Aguanten hasta que salga el sol.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15449,
+     "sha256": "7b134c4085b7c27a619c801387388dc0b4bb35a5cd8de186e8fe45b0708671a6"
+    },
+    "mp3": {
+     "bytes": 14180,
+     "sha256": "1ad4bd5c62c0d335c8591b77dad0e20b8bf853e354a4bbd084cd994d706dd1ac"
+    }
+   }
+  },
+  "film-itaipu-4-o2.en": {
+   "text": "Birds are home. Most of them.",
+   "speaker": "taller",
+   "seconds": 2.285,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 941065745,
+     "heard": "Birds are home, most of them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 300
+    },
+    {
+     "attempt": 1,
+     "seed": 1936159277,
+     "heard": "Birds are home, most of them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 500
+    },
+    {
+     "attempt": 2,
+     "seed": 1839981282,
+     "heard": "Birds are home, most of them",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10438,
+     "sha256": "9551d47b4780520f94f97a08181205367e68b27e2c17e048991a72ff550f25b0"
+    },
+    "mp3": {
+     "bytes": 11060,
+     "sha256": "4e98f1d5fd345865267294701416818d3ccca2409aeccb8911c7d8d95256aaf1"
+    }
+   }
+  },
+  "film-itaipu-4-o2.es": {
+   "text": "Los aparatos volvieron. Casi todos.",
+   "speaker": "taller",
+   "seconds": 2.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2384332044,
+     "heard": "Los aparatos volvieron. Casi todos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12825,
+     "sha256": "0a3e9732315c8d29248de4d31a8f750e2c14bf1d18cae791b3011501136953af"
+    },
+    "mp3": {
+     "bytes": 13412,
+     "sha256": "abadc11e74e2ba2fcdfe61d27ffbab2ddd86efcc184ef4bf6cdc898a2cfb8afd"
+    }
+   }
+  },
+  "film-itaipu-4-o3.en": {
+   "text": "Scope's clean. First time all night.",
+   "speaker": "mirador",
+   "seconds": 2.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3309210238,
+     "heard": "Scopes clean. First time all night.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11880,
+     "sha256": "e20ab8164e5420b024941fdde3303bb8ff4b90b5a055c83352729e5e8d620f15"
+    },
+    "mp3": {
+     "bytes": 11756,
+     "sha256": "2f628a3efe3801a08044d4b5c3aaeebcaabb3bef459eacb4c9634b9d69f3157c"
+    }
+   }
+  },
+  "film-itaipu-4-o3.es": {
+   "text": "La pantalla está limpia. Primera vez en toda la noche.",
+   "speaker": "mirador",
+   "seconds": 3.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 561968948,
+     "heard": "La pantalla está limpia. Primera vez en toda la noche.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17229,
+     "sha256": "0c1708028b84ce34d8cb1a94368317488b98e39073e3dde65a65276334d732a9"
+    },
+    "mp3": {
+     "bytes": 16508,
+     "sha256": "27c18cf2bf13434b47aca139290d524c8399fd50e2108c787a66a5fe8a740afc"
+    }
+   }
+  },
+  "film-itaipu-4-o4.en": {
+   "text": "Crest, Dispatch. The morning load is coming on. Thank you for the night.",
+   "speaker": "despacho",
+   "seconds": 4.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2991803990,
+     "heard": "Dressed? Dispatch? The morning load is coming on. Thank you for the night.",
+     "wer": 0.077,
+     "extra": 0,
+     "missing": [
+      "crest"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3654581790,
+     "heard": "Pressed. Dispatch. The morning load is coming on. Thank you for the night.",
+     "wer": 0.077,
+     "extra": 0,
+     "missing": [
+      "crest"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 744388984,
+     "heard": "Crest, dispatch. The morning load is coming on. Thank you for the night.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22881,
+     "sha256": "8984d3a72f0ed11224e0c38d6b5f7b9ceec519ccb202e22562c396a9d996af19"
+    },
+    "mp3": {
+     "bytes": 23060,
+     "sha256": "19e39936e4701e4bf9d1d3ed80e8c17233a873ed3f39a379ef80e33175523e51"
+    }
+   }
+  },
+  "film-itaipu-4-o4.es": {
+   "text": "Cresta, Despacho. Ya entra la carga de la mañana. Gracias por la noche.",
+   "speaker": "despacho",
+   "seconds": 4.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1756872335,
+     "heard": "Cresta, despacho. Ya entra la carga de la mañana. Gracias por la noche.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20074,
+     "sha256": "bfd2345f48815997e83972ff2489408b9d5962b3893e5b7e79775f225e33d3ae"
+    },
+    "mp3": {
+     "bytes": 20492,
+     "sha256": "decb9c187bb7ce8707eeb6b5b2b13299ffb037cfd9aea426b02e7244a7b8956e"
+    }
+   }
+  },
   "itaipu-4-g-all.en": {
    "text": "Protect the plant. Everything at once. The closest to the dam first, and watch for Hunters.",
    "speaker": "crest",

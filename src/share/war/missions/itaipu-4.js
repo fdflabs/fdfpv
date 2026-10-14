@@ -52,9 +52,11 @@
  * show, a boat or a Scout with no lights and every bird's nav lights off
  * (every attacker wears its own at night, src/render/attackers.js), the
  * sky going grey (no dawn ramp), so they are said otherwise (lines.json
- * notes). The `itaipu-4-g-*` cues are the guide, as First Light's
- * (docs/campaign/FIRST-LIGHT-AUDIT.md): CREST saying plainly what to do,
- * after the story line it follows, dropped once its objective settles.
+ * notes). The film is films/long-night.js, and a win ends on
+ * films/long-night-outro.js. The `itaipu-4-g-*` cues are the guide, as
+ * First Light's (docs/campaign/FIRST-LIGHT-AUDIT.md): CREST saying
+ * plainly what to do, after the story line it follows, dropped once its
+ * objective settles.
  *
  * THE DIALS (MISSIONS.md 1.4), as First Light's: each group's sector and
  * route in it, its time in a window, the twist. `pace` stretches every
@@ -146,6 +148,9 @@ export default withWaves({
   airframes: 4,
   night: true,
   radio: { brief: ['itaipu-4-s0-brief', 'itaipu-4-s0-rules'], win: 'debrief-itaipu-4-win', lose: 'debrief-itaipu-4-lose' },
+  film: 'long-night',
+  /* The film a win ends on (films/long-night-outro.js). */
+  outro: 'long-night-outro',
   /* The countdown's extra length (war.js start). A briefing builds every
    * screen's night world before its film (WORLD_LEAD_MS); a start with no
    * film, a restart from a stage among them, builds it in the countdown,
