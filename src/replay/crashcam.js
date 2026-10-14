@@ -654,7 +654,7 @@ export function createCrashCam(host) {
     war.takeEvents = () => {
       const evs = take();
       const v = war.view();
-      warRing.world(war.match(), v.mission, v.down, war.on(), clock());
+      warRing.world(war.match(), v.mission, v.down, war.on(), clock(), v.restores);
       for (const ev of evs) {
         if (ev.type === 'born') {
           warRing.born(v.mission, ev.agents);

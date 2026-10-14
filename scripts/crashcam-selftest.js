@@ -92,6 +92,11 @@
  *    that leaves it no row drops it; My clips says it; its refusals, an
  *    opponent in a version 18 file and a version 19 file without its
  *    opponent first.
+ * 27. The lights a held reroute brought back, with the war's map (src/
+ *    replay/warrec.js WHAT COMES BACK, file version 20): the view's
+ *    restores kept once each, a replay's levels bringing the four towns
+ *    back; the version 20 round trip bit for bit; the same clip without
+ *    them still the version 18 file, byte for byte; its refusals.
  *
  * Run: npm run crashcam:selftest
  *
@@ -135,7 +140,7 @@ import {
 } from '../src/replay/warrec.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { openAt } from '../src/share/war/hoist.js';
-import { createGrid } from '../src/share/war/grid.js';
+import { createGrid, DISTRICTS } from '../src/share/war/grid.js';
 import { FIRE_MS, burnAt } from '../src/share/war/world.js';
 import {
   AIR_N, EVENTS_MAX, PEER_ID_BASE, RPM_PER_RAD_S, airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt, trimSound,
@@ -2254,7 +2259,9 @@ function animRecord() {
   gateFile(withClock, refused);
   soundFile(withClock, refused);
   voiceFile(withClock, refused);
-  opponentFile(buildFile(sticksFile(withClock, refused), refused), refused);
+  const built = buildFile(sticksFile(withClock, refused), refused);
+  opponentFile(built, refused);
+  restoreFile(built, refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -3259,6 +3266,63 @@ function opponentFile(buildClip, refused) {
     threw = err;
   }
   check(threw instanceof Error, 'a clip with an opponent and no build is refused when written (HEADER_ONLY: past 18 it has one)', threw ? threw.message : 'written');
+}
+
+/*
+ * 27. The lights a held reroute brought back (src/replay/warrec.js WHAT
+ * COMES BACK), kept with the war's map as the view sends them: every
+ * frame the whole list. Saved as version 20 beside the build.
+ */
+function restoreFile(buildClip, refused) {
+  console.log('27. the lights a held reroute brought back, with the war\'s map, saved (version 20)');
+  const v = (b) => new DataView(b).getUint32(4, true);
+  const bytesOf = (b) => Buffer.from(new Uint8Array(b));
+  const n = buildClip.n;
+  const ring = createWarRing(n);
+  const room = (k) => 700000 + k * 1000;
+  const YARD = 3;
+  const HOLD = 20;
+  const towns = ['ciudad-del-este', 'hernandarias-far', 'acaray', 'hernandarias-s'];
+  const held = [{ at: room(HOLD), districts: towns }];
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    ring.world('TEST:3', 'itaipu-3', k > YARD ? ['yard-right'] : [], true, room(k), k >= HOLD ? held : []);
+    if (k === YARD) {
+      ring.dead({ ids: [], at: room(YARD), why: 'arrive', target: 'yard-right', hit: true });
+    }
+  }
+  /* One the build does not know is left out, as the live grid leaves it. */
+  ring.world('TEST:3', 'itaipu-3', ['yard-right'], true, room(n - 1), [...held, { at: room(n - 1), districts: ['atlantis'] }]);
+  const war = ring.clip(0, n);
+  const m = war.world[0];
+  check(JSON.stringify(m.restores) === JSON.stringify(held), 'the clip keeps the restore once, and none a district it does not know', JSON.stringify(m.restores));
+  const lvl = (k, id) => worldAt(war, n, k, 0, new Map()).levels[DISTRICTS.findIndex((d) => d.id === id)];
+  const last = n - 1;
+  const settled = room(HOLD) + towns.length * 700 + 1800;
+  check(room(last) >= settled && towns.every((id) => lvl(HOLD - 1, id) === 0 && lvl(last, id) === 1) && lvl(last, 'hernandarias-w') === 0,
+    'a replay has the four dark before the restore and lit once it settled, an unfed town still dark',
+    `rows ${HOLD - 1} and ${last}`);
+  const clip = { ...buildClip, war };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(v(buf) === 20 && JSON.stringify(back.war.world) === JSON.stringify(war.world), 'saved as version 20 and comes back as it was');
+  check(bytesOf(encodeReplay(back)).equals(bytesOf(buf)), 'written again, the same bytes');
+  const none = { ...clip, war: { ...war, world: war.world.map((x) => { const y = { ...x }; delete y.restores; return y; }) } };
+  const v18 = encodeReplay(none);
+  check(v(v18) === 18 && !('restores' in decodeReplay(v18).war.world[0]), 'the same war without restores is the version 18 file, read back without them');
+  refused(() => reheader(buf, 19), 'a war\'s restores in a file that says version 19');
+  refused(() => reheader(v18, 20), 'a version 20 file without its war\'s restores');
+  refused(() => encodeReplay({ ...clip, war: { ...war, world: [{ ...m, restores: [{ at: 1, districts: ['atlantis'] }] }] } }), 'a restore naming a district this build does not know');
+  refused(() => encodeReplay({ ...clip, war: { ...war, world: [{ ...m, restores: [] }] } }), 'an empty list of restores');
+  let threw = null;
+  try {
+    const bare = { ...clip };
+    delete bare.sticks;
+    encodeReplay(bare);
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a clip with restores and no sticks is refused when written', threw ? threw.message : 'written');
 }
 
 ring();

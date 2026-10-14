@@ -37,7 +37,7 @@
  * every struck line with its room ms and place, and every damage event
  * (src/render/breakage.js: what a warhead broke off a structure, the
  * power lines that fell with it, the openings for the water) as the room
- * sent it. Nothing comes back within
+ * sent it. No target comes back within
  * a match, so the snapshot and the journal after it are one list. PER
  * ROW, the room ms the frame drew the map at (NaN where no match was
  * known: the map untouched). A replay at row k draws matchAt of the match
@@ -60,6 +60,12 @@
  * and steps its water to the same state on its own clock. A match given
  * none keeps none (Free Flight's spillway).
  *
+ * WHAT COMES BACK. The lights a held reroute feeds again (the view's
+ * `restores`, [{ at, districts }], src/share/war/grid.js WHAT COMES BACK)
+ * are kept with their match, every one once, those naming only districts
+ * this build knows (as the live grid takes them), so a replay brings the
+ * towns back when the live screen did. A match given none keeps none.
+ *
  * THE EXPLOSIONS (a warhead's, a kill's, a target hit's: src/main.js
  * warBoomEvent), each where it was drawn and how big, on the room clock,
  * whatever the pilot was doing: flying, a wreck, between lives or on a
@@ -70,7 +76,8 @@
  *
  * A clip's `war` is { agents: [{ mission, a, last }], room (f64[n]),
  * slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
- * world: [{ mission, from, off, hits, cuts, damage }], clock (f64[n]) }, or
+ * world: [{ mission, from, off, hits, cuts, damage, gates?, restores? }],
+ * clock (f64[n]) }, or
  * and since version 14 booms: [{ at, p, size }] }, or absent when no war
  * was drawn in it. src/replay/file.js saves it (version 10, 11 with the
  * map, 14 with the explosions); src/replay/warscene.js draws it.
@@ -96,6 +103,7 @@
 import { KINDS, planAgent, poseAt } from '../share/war/routes.js';
 import { MISSIONS } from '../share/war/missions/index.js';
 import { matchAt, untouched } from '../share/war/world.js';
+import { DISTRICTS } from '../share/war/grid.js';
 
 /* Hunters drawn in one row, at most (a mission has a handful). */
 export const HUNTERS_MAX = 8;
@@ -122,6 +130,12 @@ const MATCH_KEYS = ['mission', 'from', 'off', 'hits', 'cuts', 'damage'];
  * of times. */
 export const GATES_MAX = 256;
 const GATE_RE = /^gate-\d{1,2}$/;
+/* A match's restores, at most; a mission holds a reroute a few times. */
+export const RESTORES_MAX = 16;
+const DISTRICT_IDS = new Set(DISTRICTS.map((d) => d.id));
+const restoreOk = (r) => r && typeof r === 'object' && Object.keys(r).length === 2 && Number.isFinite(r.at)
+  && Array.isArray(r.districts) && r.districts.length >= 1 && r.districts.length <= DISTRICTS.length
+  && r.districts.every((id) => DISTRICT_IDS.has(id));
 const gateOk = (e) => e && typeof e === 'object' && Object.keys(e).length === 3 && typeof e.gate === 'string' && GATE_RE.test(e.gate)
   && Number.isFinite(e.at) && Number.isFinite(e.open_m) && e.open_m >= 0 && e.open_m <= 30;
 /* Explosions held, and how long one is seen after it goes off: past
@@ -152,7 +166,7 @@ export function createWarRing(capacity) {
   /* The explosions drawn, on the room clock, oldest first. */
   const booms = [];
   const stats = {
-    dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0, gatesDropped: 0,
+    dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0, gatesDropped: 0, restoresDropped: 0,
   };
 
   function alloc() {
@@ -175,10 +189,11 @@ export function createWarRing(capacity) {
    * Once a frame, before that frame's events: the war the view names
    * (`key`, null for none), its mission, its `down` (the targets hit, as
    * the room says them), whether it is being fought (roomwar.js on()),
-   * and the room ms now. A match first seen starts a new entry whose
-   * snapshot is `down`, each hit at null (this screen did not hear it).
+   * the room ms now, and its `restores`. A match first seen starts a new
+   * entry whose snapshot is `down`, each hit at null (this screen did not
+   * hear it).
    */
-  function world(key, mission, down, on, roomMs) {
+  function world(key, mission, down, on, roomMs, restores = null) {
     if (key == null || roomMs == null || !(mission in MISSIONS)) {
       return;
     }
@@ -200,6 +215,7 @@ export function createWarRing(capacity) {
     } else if (m.on && m.off === null) {
       m.off = roomMs;
     }
+    restore(m, restores);
     if (row < 0) {
       return;
     }
@@ -221,6 +237,24 @@ export function createWarRing(capacity) {
       return;
     }
     m.hits.push({ target, at });
+  }
+
+  /* The view's restores into match m: each not already kept. */
+  function restore(m, list) {
+    if (!Array.isArray(list)) {
+      return;
+    }
+    for (const x of list) {
+      const r = { at: x?.at, districts: Array.isArray(x?.districts) ? x.districts.slice() : null };
+      if (!restoreOk(r) || (m.restores ?? []).some((y) => y.at === r.at && y.districts.join() === r.districts.join())) {
+        continue;
+      }
+      if ((m.restores ?? []).length >= RESTORES_MAX) {
+        stats.restoresDropped += 1;
+        continue;
+      }
+      (m.restores ??= []).push(r);
+    }
   }
 
   /* Births the room sent, of mission `mission` (its id). */
@@ -385,15 +419,19 @@ export function createWarRing(capacity) {
         a = i;
       }
     }
-    const list = matches.slice(a).filter((m) => m.from <= hi).map((m) => ({
-      mission: m.mission,
-      from: m.from,
-      off: m.off !== null && m.off <= hi ? m.off : null,
-      hits: m.hits.filter((h) => h.at === null || h.at <= hi).map((h) => ({ ...h })),
-      cuts: m.cuts.filter((x) => x.at <= hi).map((x) => ({ ...x })),
-      damage: m.damage.filter((d) => d.at <= hi).map((d) => JSON.parse(JSON.stringify(d))),
-      ...(m.gates && m.gates.length ? { gates: m.gates.map((g) => ({ ...g })) } : {}),
-    }));
+    const list = matches.slice(a).filter((m) => m.from <= hi).map((m) => {
+      const restores = (m.restores ?? []).filter((r) => r.at <= hi).map(copyRestore);
+      return {
+        mission: m.mission,
+        from: m.from,
+        off: m.off !== null && m.off <= hi ? m.off : null,
+        hits: m.hits.filter((h) => h.at === null || h.at <= hi).map((h) => ({ ...h })),
+        cuts: m.cuts.filter((x) => x.at <= hi).map((x) => ({ ...x })),
+        damage: m.damage.filter((d) => d.at <= hi).map((d) => JSON.parse(JSON.stringify(d))),
+        ...(m.gates && m.gates.length ? { gates: m.gates.map((g) => ({ ...g })) } : {}),
+        ...(restores.length ? { restores } : {}),
+      };
+    });
     const seen = booms.filter((b) => b.at <= hi && b.at > lo - BOOM_LIFE_MS).map((b) => ({ at: b.at, p: b.p.slice(), size: b.size }));
     return { world: list, clock: c, ...(seen.length ? { booms: seen } : {}) };
   }
@@ -458,6 +496,8 @@ export function createWarRing(capacity) {
   };
 }
 
+const copyRestore = (r) => ({ at: r.at, districts: r.districts.slice() });
+
 /* Rows [a, b] of a clip's war, as trimClip cuts the rest. */
 export function trimWar(war, a, b) {
   const n = b - a + 1;
@@ -470,6 +510,7 @@ export function trimWar(war, a, b) {
       world: war.world.map((m) => ({
         ...m, hits: m.hits.map((h) => ({ ...h })), cuts: m.cuts.map((x) => ({ ...x })), damage: JSON.parse(JSON.stringify(m.damage)),
         ...(m.gates ? { gates: m.gates.map((g) => ({ ...g })) } : {}),
+        ...(m.restores ? { restores: m.restores.map(copyRestore) } : {}),
       })),
       clock: war.clock.slice(a, b + 1),
     } : {}),
@@ -598,7 +639,7 @@ function checkWorld(world, clock, n) {
   let from = -Infinity;
   for (const m of world) {
     const keys = m && typeof m === 'object' ? Object.keys(m) : [];
-    const want = m && m.gates !== undefined ? [...MATCH_KEYS, 'gates'] : MATCH_KEYS;
+    const want = [...MATCH_KEYS, ...['gates', 'restores'].filter((k) => m && m[k] !== undefined)];
     if (keys.length !== want.length || !want.every((k) => keys.includes(k))) {
       throw new Error('a match of the war\'s map is not one');
     }
@@ -621,6 +662,10 @@ function checkWorld(world, clock, n) {
     }
     if (m.gates !== undefined && (!Array.isArray(m.gates) || m.gates.length < 1 || m.gates.length > GATES_MAX || !m.gates.every(gateOk))) {
       throw new Error('a gate entry on the war\'s map is not one');
+    }
+    if (m.restores !== undefined && (!Array.isArray(m.restores) || m.restores.length < 1 || m.restores.length > RESTORES_MAX
+      || !m.restores.every(restoreOk))) {
+      throw new Error('a restore on the war\'s map is not one');
     }
     if (!Array.isArray(m.damage) || m.damage.length > DAMAGE_MAX || !m.damage.every(damageOk)
       || new Set(m.damage.map((d) => d.seq)).size !== m.damage.length) {

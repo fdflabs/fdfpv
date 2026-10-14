@@ -43,6 +43,12 @@
  *            which the room records nothing for) brings nothing back
  *   before   a restore before the yard is hit keeps the four lit through
  *            the hit, the yard's other districts going out as before
+ *   replay   A's frames recorded as the crash cam records them (src/
+ *            replay/warrec.js, fed the view and the deaths as src/replay/
+ *            crashcam.js tapWar feeds it) and replayed (worldAt, src/
+ *            share/war/world.js matchAt): at every row the replay's
+ *            levels are the live frame's, bit for bit, so the four come
+ *            back in the order named; the failed reroute's replay too
  *
  *   node scripts/war-grid-check.js
  *
@@ -63,6 +69,7 @@
  */
 
 import { createRoomWar } from '../src/share/roomwar.js';
+import { checkWar, createWarRing, worldAt } from '../src/replay/warrec.js';
 import {
   createGrid, DISTRICTS, CASCADE_MS, FLICKER_MS, districtIndex,
 } from '../src/share/war/grid.js';
@@ -117,10 +124,29 @@ const EXPECT = [
   { at: END - 1, dark: ['dam-0', 'spillway', 'dam-2', 'vila-c', 'yard', ...PY_TOWNS, 'foz-north'] },
 ];
 
-function client() {
+/* `ring`, a warrec.js ring of a row a frame, records each frame as the
+ * crash cam does: the view and the room ms when the shell takes the
+ * events, then each death. */
+function client(ring = null) {
   const war = createRoomWar(() => {});
   const grid = createGrid();
   war.onWelcome({ seat: 1, war: { state: 'lobby' } });
+  let row = 0;
+  const take = (t) => {
+    const evs = war.takeEvents();
+    if (ring) {
+      const v = war.view();
+      ring.begin(row);
+      row += 1;
+      ring.world(war.match(), v.mission, v.down, war.on(), t, v.restores);
+      for (const ev of evs) {
+        if (ev.type === 'dead') {
+          ring.dead(ev);
+        }
+      }
+    }
+    return evs;
+  };
   return {
     war,
     grid,
@@ -132,7 +158,7 @@ function client() {
     /* One frame of the shell at room ms t: its events heard, then the
      * levels read (src/main.js roomWarFrame). */
     frame(t) {
-      grid.hear(war.takeEvents(), war.view());
+      grid.hear(take(t), war.view());
       return grid.levels(war.view(), t).slice();
     },
     state(t) {
@@ -277,8 +303,8 @@ function reroute(yardAt, holdAt) {
   }
   return ticks;
 }
-function runTicks(ticks, lag, step, swap, end) {
-  const c = client();
+function runTicks(ticks, lag, step, swap, end, ring = null) {
+  const c = client(ring);
   const inbox = ticks.map((k) => ({ t: k.t + lag, msgs: swap ? [...k.msgs].reverse() : k.msgs }));
   const frames = [];
   let t = 0;
@@ -376,6 +402,56 @@ console.log('before: a reroute that held before the yard was hit');
   check('the four stay lit through the hit, the yard and the other four go out', same(d, ['yard', ...UNFED]), `dark ${d.join(', ')}`);
   const flick = RESTORED.filter((id) => RA.frames.some((fr) => fr.levels[districtIndex(id)] !== 1));
   check('and never so much as flicker', flick.length === 0, flick.join(', '));
+}
+
+console.log('replay: the crash cam\'s replay of the match, against its live frames');
+/* A's frames recorded and replayed; the rows, their room ms and levels. */
+function replayed(ticks, end) {
+  const rows = Math.ceil(end / 16);
+  const ring = createWarRing(rows);
+  const live = runTicks(ticks, 0, () => 16, false, end, ring);
+  const war = ring.clip(0, live.frames.length);
+  checkWar(war, live.frames.length);
+  const caches = new Map();
+  const frames = live.frames.map((f, k) => ({ t: war.clock[k], levels: worldAt(war, live.frames.length, k, 0, caches).levels.slice() }));
+  return { live: live.frames, war, frames };
+}
+const differs = (r) => {
+  let n = 0;
+  let first = '';
+  r.frames.forEach((f, k) => {
+    const l = r.live[k];
+    const i = f.t === l.t ? f.levels.findIndex((v, j) => v !== l.levels[j]) : 0;
+    if (f.t !== l.t || i >= 0) {
+      n += 1;
+      first ||= `row ${k} at ${l.t}: ${DISTRICTS[i].id} replay ${f.levels[i]}, live ${l.levels[i]}`;
+    }
+  });
+  return { n, first };
+};
+{
+  const r = replayed(reroute(10000, BACK_AT), R_END);
+  const kept = r.war.world[0].restores;
+  check('the clip keeps the view\'s restore, once', JSON.stringify(kept) === JSON.stringify([{ at: BACK_AT, districts: RESTORED }]), JSON.stringify(kept));
+  const d = differs(r);
+  check('at every row the replay\'s levels are the live frame\'s, bit for bit, through the restore and the later losses', d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+  /* The room ms each comes back at in the replay: its first row lit to
+   * stay after the restore. */
+  const lit = RESTORED.map((id) => {
+    const i = districtIndex(id);
+    const k = r.frames.findIndex((f, j) => f.t >= BACK_AT && r.frames.slice(j).every((g) => g.t >= 100000 || g.levels[i] > 0));
+    return k < 0 ? null : r.frames[k].t;
+  });
+  const dark = RESTORED.every((id) => r.frames.filter((f) => f.t > 10000 + 10 * CASCADE_MS + FLICKER_MS && f.t < BACK_AT).every((f) => f.levels[districtIndex(id)] === 0));
+  check('in the replay the four are dark until the restore and come back in the order named', dark && lit.every((t, k) => t !== null && (k === 0 || t > lit[k - 1])),
+    lit.map((t, k) => `${RESTORED[k]} ${t}`).join(', '));
+}
+{
+  const r = replayed(reroute(10000, null), R_END);
+  const d = differs(r);
+  check('the failed reroute\'s replay keeps none and is its live frames, bit for bit', !('restores' in r.war.world[0]) && d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
 }
 
 if (failed) {

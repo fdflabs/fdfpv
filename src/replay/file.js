@@ -181,6 +181,15 @@
  * of its own). A clip without an opponent is written as the version
  * before, byte for byte, and versions 1 to 18 are read without one.
  *
+ * Version 20 keeps the lights a held reroute brought back with the war's
+ * map (src/replay/warrec.js WHAT COMES BACK): a match of the war header's
+ * `world` may hold `restores`, [{ at, districts }], the view's own. Its
+ * columns are the newest layout's, so it needs the sticks and the
+ * animation clock, and its version is past 18's, so it has the build. A
+ * clip whose matches hold none is written as the version before, byte for
+ * byte, and versions 1 to 19 are read without them: their replay keeps
+ * the restored towns dark.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -227,7 +236,9 @@ import {
   OPP_POSE_N, ROW_N as OPP_ROW_N, STICK_W as OPP_STICK_W, checkOpponent,
 } from './opponent.js';
 
-export const FILE_VERSION = 19;
+export const FILE_VERSION = 20;
+/* A clip with a war's restores on its map. */
+const RESTORES_VERSION = 20;
 /* A clip with a solo race's AI opponent in it. */
 const OPPONENT_VERSION = 19;
 /* A clip that flies again and does not name its app build. */
@@ -266,7 +277,7 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 /* The deploy stamp's own characters (scripts/stamp-version.js), which
  * names a commit in 12 of them. */
 const BUILD_RE = /^[A-Za-z0-9._-]{1,40}$/;
@@ -300,6 +311,12 @@ function versionFor(clip) {
 
 /* The lowest version whose columns hold what a clip has. */
 function layoutVersion(clip) {
+  if (clip.war && clip.war.world && clip.war.world.some((m) => m.restores)) {
+    if (!clip.sticks || !clip.anim) {
+      throw new Error('a clip with a war\'s restores and no sticks or no animation clock');
+    }
+    return RESTORES_VERSION;
+  }
   if (clip.opponent) {
     if (!clip.sticks || !clip.anim) {
       throw new Error('a clip with its AI opponent and no sticks or no animation clock');
@@ -980,6 +997,13 @@ export function decodeReplay(buf, known = null) {
   }
   if (version === 15 && !gated) {
     throw new ReplayFileError('a version 15 file without its war\'s gate state');
+  }
+  const restored = mapped && Array.isArray(header.war.world) && header.war.world.some((m) => m && typeof m === 'object' && m.restores !== undefined);
+  if (version < RESTORES_VERSION && restored) {
+    throw new ReplayFileError(`a war's restores in a file older than version ${RESTORES_VERSION}`);
+  }
+  if (version === RESTORES_VERSION && !restored) {
+    throw new ReplayFileError(`a version ${RESTORES_VERSION} file without its war's restores`);
   }
   if (version < 16 && header.sticks !== undefined) {
     throw new ReplayFileError('sticks in a file older than version 16');
