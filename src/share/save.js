@@ -45,8 +45,9 @@
  * blob, is held under the account's 512 kB (tracks-api/limits.js
  * PROGRESS_MAX_CHARS), well inside an origin's storage.
  *
- * SAVE POINTS. Writes happen on change, never on exit, and there is no
- * beforeunload save and none is needed:
+ * SAVE POINTS. Writes happen on change, and there is no beforeunload
+ * save. The one write at exit is flight time's last seconds, since the
+ * clock holds up to ten seconds before it commits:
  *
  *   settings blob   saveSettings (src/ui/settings.js), through
  *                   Ui.persistSettings, on every settings change, and so:
@@ -54,14 +55,24 @@
  *                   landing or a crash counted (src/ui/progress-ui.js)
  *   campaign        a commit of the campaign store (createCampaignStore,
  *                   src/game/campaign.js), a film seen, a result applied
- *   controllers     a calibration accepted, a pad chosen
+ *   flight time     every ten seconds held in flight, when a flight
+ *                   stops, at a respawn, and when the page is hidden or
+ *                   left (commitFlightTime and pageLeaving, src/main.js)
+ *   voice           a voice chat choice (writePrefs, src/ui/voiceui.js)
+ *   controllers     a calibration accepted or forgotten, a pad chosen
  *                   (src/input/stickstore.js)
- *   aircraft        a build saved, renamed or deleted (src/ui/builds.js)
- *   records         a new best lap (src/game/race.js)
+ *   aircraft        a build saved, renamed or deleted (Ui.storeBuild and
+ *                   Ui.removeBuild, src/ui/ui.js, into src/ui/builds.js)
+ *   records         a new best lap, never an equal or slower one
+ *                   (src/game/race.js), a better one from the account
+ *                   (keepRecords, src/share/records.js)
  *   player          the name set (src/share/pilot.js), the language
  *                   chosen (src/share/sharedkeys.js)
  *   this module     the version, the backups and the quarantine, once per
  *                   boot (openSave, called from src/boot.js)
+ *
+ * scripts/save-selftest.js runs each row's trigger and holds it to its
+ * key, and each reader to writing nothing.
  *
  * A WAR'S RESULT is a campaign save point whoever's page sees it first:
  * the room sends it to every seat that flew the war, with the war's uid

@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
+in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -98,9 +98,27 @@ generations 0 to 2, a retired airframe, a seat on the 5 inch) and asserts
 the migrated result and that migrating twice is a no op. Size L. Phase
 19.
 
-**2. Autosave rules. PARTIAL.** The table of save points is
+**2. Autosave rules. BUILT (phase 19).** Built (2026-10-15 batch,
+w43-saves): `save:selftest` (CI) runs each row of save.js's SAVE POINTS
+table as the game calls it, on a store of its own, and holds it to the
+key it writes: a settings change through `Ui.persistSettings`, Unlock
+all, a challenge (twice writes once), a landing counted, a campaign
+commit, a calibration accepted and forgotten, a pad chosen and set back
+to automatic, a build saved, renamed and deleted through the Ui, a new
+best lap and a first lap, a better record from the account, the name,
+the language; and each reader, a slower or equal lap, a refused name, a
+refused rename, a flight with nothing to count, a second ask for firsts
+and a second `openSave` to writing nothing. Every key of the envelope
+must have a save point there, so a new key without one fails. The
+shell's own calls (flight time, `src/main.js` commitFlightTime and
+pageLeaving; the voice prefs, voiceui.js writePrefs) are held by their
+source. Stale, and corrected: the table said "never on exit", but
+flight time's last held seconds are written when the page is hidden or
+left (`pagehide`), as they must be; there is still no `beforeunload`
+save, and the check says so. What follows is the item as it was. The
+table of save points is
 src/share/save.js's header (SAVE POINTS), each with its trigger and its
-file: writes happen on change, never on exit, with no `beforeunload` save
+file: writes happen on change, with no `beforeunload` save
 and none needed. The settings blob on every settings change
 (`saveSettings`, src/ui/settings.js, through `Ui.persistSettings`), and
 with it progression (a lap, a challenge, Unlock all, a first sight, a
@@ -134,9 +152,10 @@ called while a result shows, so a reload at the debrief is paid).
 Held by `rooms:selftest` and `campaign:selftest`.
 **Done:** a table of save points in `save.js`'s header, each with its
 trigger (built), and the war's result paid once per war by an id kept in
-the save (built). Not built: `save:selftest` asserting each trigger
-writes; `campaign:check` (local) adding a reload during the result card.
-Phase 19.
+the save (built), and `save:selftest` asserting each trigger writes
+(built). Not added: `campaign:check` (local) reloading during the result
+card; its Node half is `campaign:selftest`'s (paid once across a
+reload), and The Interior's is `interior:coop`'s. Phase 19.
 
 **3. Recovery from corrupted saves. PARTIAL.** Every read is still
 wrapped by its own reader (`loadSettings`, `normaliseProgress`,
