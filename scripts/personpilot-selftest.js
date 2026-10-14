@@ -45,7 +45,9 @@ function check(name, ok, detail = '') {
  * fall on the beat and only there once the eyes are full, and the first
  * look is the first step that has seen enough. Returns what broke, or ''. */
 function eyesBroken(make, { stepMs, everyMs, delayMs = PERSON.delayMs, back = 0 }) {
-  const eye = make({ stepMs, everyMs, delayMs });
+  const eye = make({
+    stepMs, everyMs, delayMs, backMax: back,
+  });
   const lag = Math.round(delayMs / stepMs);
   const first = (lag + back) * stepMs;
   for (let ms = 0; ms <= 2000; ms += stepMs) {
@@ -84,7 +86,7 @@ for (const c of [{ stepMs: 4, everyMs: 100 }, { stepMs: 2, everyMs: 50 }, { step
  * puts a beat on that step, so the early look is seen. */
 check('the eyes see 200 ms late looking every step', eyesBroken(eyes, { stepMs: 4, everyMs: 4 }) === '');
 const late = (o) => {
-  const e = eyes(o);
+  const e = eyes({ ...o, backMax: o.backMax + 1 });
   return { ...e, ago: (back = 0) => e.ago(back + 1) };
 };
 const eager = (o) => {
@@ -93,6 +95,17 @@ const eager = (o) => {
 };
 check('negative control: eyes a step late are caught', eyesBroken(late, { stepMs: 4, everyMs: 100 }) !== '');
 check('negative control: eyes that look before the delay are caught', eyesBroken(eager, { stepMs: 4, everyMs: 4 }) !== '');
+{
+  /* A race's eyes take 250 rows a second: they keep only what the delay
+   * and the furthest look back can still see, and refuse a look past it. */
+  const eye = eyes({ stepMs: 4, backMax: 25 });
+  for (let ms = 0; ms <= 60000; ms += 4) eye.push({ ms });
+  const rows = eye.rows();
+  let past = false;
+  try { eye.ago(26); } catch { past = true; }
+  check('the eyes keep the newest lag + backMax + 1 rows and refuse a look past them',
+    rows.length === eye.lag + 26 && rows[0].ms === 60000 - (eye.lag + 25) * 4 && past, `${rows.length} rows kept, from ${rows[0].ms} ms`);
+}
 let threw = false;
 try { eyes({ stepMs: 4, everyMs: 50 }); } catch { threw = true; }
 check('a beat that is not whole steps is refused', threw);

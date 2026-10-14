@@ -316,9 +316,6 @@ export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, qua
   const hand = (x) => (quantise ? quant(x) : x);
   let held = [0, 0, 0, learnt.hover];
   let heading = null;
-  /* The rows the eyes can still look at (the newest sight.lag + 1; the
-   * eyes keep every row they were handed, out of reach), for snapshot(). */
-  const recent = [];
   const loops = { along, across, climb, turn };
   /* What a snapshot must have been taken from: the trims are only right
    * against the gains these make. */
@@ -333,7 +330,7 @@ export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, qua
     snapshot() {
       return toJson({
         made,
-        sight: recent.map((o) => Array.from(o)),
+        sight: sight.rows().map((o) => Array.from(o)),
         trims: Object.fromEntries(Object.entries(loops).map(([name, l]) => [name, l.trim])),
         held,
         heading,
@@ -351,21 +348,13 @@ export function aiPilot({ line, rates, learnt, startMs = 0, person = PERSON, qua
         throw new Error('aiPilot restore: a snapshot without its four trims and four sticks');
       }
       sight = eyes({ stepMs: AI_STEP_MS, delayMs: person.delayMs, everyMs: person.everyMs });
-      recent.length = 0;
-      for (const row of k.sight) {
-        const o = Float64Array.from(row);
-        sight.push(o);
-        recent.push(o);
-      }
+      for (const row of k.sight) sight.push(Float64Array.from(row));
       for (const [name, l] of Object.entries(loops)) l.trim = k.trims[name];
       held = k.held.slice();
       heading = k.heading;
     },
     sticks(ms, s, gate = null) {
-      const row = s.slice(0, 11);
-      sight.push(row);
-      recent.push(row);
-      if (recent.length > sight.lag + 1) recent.shift();
+      sight.push(s.slice(0, 11));
       if (!sight.looks(ms)) return held;
       const seen = sight.ago();
       const tSeen = startMs + ms - person.delayMs;
