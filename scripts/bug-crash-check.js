@@ -43,6 +43,7 @@ import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
+import { CRASH_RECENT_MS } from '../src/share/crashrecord.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -171,7 +172,10 @@ async function main() {
     check('with its kind, what broke and what it hit',
       craft && ['wreck', 'ground'].includes(craft.kind) && craft.flags.length > 0 && craft.hits.length > 0 && craft.hits[0].surface,
       JSON.stringify(craft));
-    check('and how long before F8 it was', craft && craft.ageS >= 0 && craft.ageS < 120, craft && String(craft.ageS));
+    /* The record keeps a crash for CRASH_RECENT_MS (300 s); the bound is
+     * the product's, not a guess at the runner's pace: on GitHub's 2-core
+     * runner the wreck alone took 155 s (release/2026-10-14a). */
+    check('and how long before F8 it was', craft && craft.ageS >= 0 && craft.ageS * 1000 < CRASH_RECENT_MS, craft && String(craft.ageS));
     check('with no error attached, because none happened', posted && !(posted.context.crash && posted.context.crash.errors) && !posted.context.fault);
     if (posted) {
       fits('the crash report', posted.context);
