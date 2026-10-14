@@ -355,9 +355,10 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
       const m = /^gate-(\d+)$/.exec(o && o.target ? o.target : '');
       const g = m ? Number(m[1]) : -1;
       const sill = o && Array.isArray(o.sill) ? o.sill : null;
-      /* An opening told again at zero size is shut: its closure held
-       * (edge/rooms/war.js containShut). */
-      const shut = opened.has(o.id) && o.width_m === 0 && o.height_m === 0;
+      /* An opening told at zero size is shut: its closure held, or a hole
+       * behind stoplogs moved with its leaf (edge/rooms/war.js
+       * containShut, stoplogged). */
+      const shut = o.width_m === 0 && o.height_m === 0;
       if (o.kind !== 'gate' || !(g >= 0 && g < bed.gates.length) || !sill || (!shut && !(o.width_m > 0 && o.height_m > 0))) {
         unplaced.add(o.id);
         return false;
