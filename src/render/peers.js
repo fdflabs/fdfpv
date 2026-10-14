@@ -171,7 +171,7 @@ export function buildPeerCraft(profile, look = null) {
     addNavLights(craft, paint.lights);
   }
   /* A combat quad's fixed parts as a few palette meshes, in the colours
-   * just put on and before the layers take their targets
+   * and finishes just put on and before the layers take their targets
    * (src/render/combatcraft.js paletteFixed). */
   if (craft.combat) {
     paletteFixed(craft);
