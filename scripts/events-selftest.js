@@ -328,7 +328,7 @@ console.log('the shell\'s producers');
   check('a mission start and result carry the seated aircraft and are folded at once',
     missionLogged('src/ui/campaign.js', 'mission_start') && missionLogged('src/ui/campaign.js', 'mission_end') && missionLogged('src/ui/opscampaign.js', 'mission_end'));
   check('an Interior match is logged begun when it goes live, its mission and the seated aircraft',
-    /e\.type === 'state' && e\.to === 'live'\) \{[\s\S]{0,600}?ui\.progress\.event\('mission_start', \{ mission: v\.mission, airframe: ui\.progress\.airframe \}\);\n\s*ui\.progress\.foldFlight\(\);/.test(src('src/main.js')));
+    /e\.type === 'state' && e\.to === 'live' && INTERIOR\.some\(\(m\) => m\.id === v\.mission\)\) \{[\s\S]{0,600}?ui\.progress\.event\('mission_start', \{ mission: v\.mission, airframe: ui\.progress\.airframe \}\);\n\s*ui\.progress\.foldFlight\(\);/.test(src('src/main.js')));
   check('a kill the room credited is logged, one a victim, on the seated aircraft, with the war\'s mission',
     src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills, v.mission ?? null);")
     && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind, mission });"));

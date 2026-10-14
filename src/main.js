@@ -1408,11 +1408,12 @@ export async function boot({
         if (e.title) {
           opsHud.stageEntered(opsSay(e.title));
         }
-      } else if (e.type === 'state' && e.to === 'live') {
-        /* The match begun, as this page sees it go live (edge/rooms/ops.js
-         * countdown to live), the same vantage its mission_end is recorded
-         * from (src/ui/opscampaign.js record); a reload mid match sees it
-         * begin again, as the war's does (src/ui/campaign.js observe). */
+      } else if (e.type === 'state' && e.to === 'live' && INTERIOR.some((m) => m.id === v.mission)) {
+        /* The match of one of the campaign's missions begun, as this page
+         * sees it go live (edge/rooms/ops.js countdown to live), the same
+         * vantage and list its mission_end is recorded from
+         * (src/ui/opscampaign.js record); a reload mid match sees it begin
+         * again, as the war's does (src/ui/campaign.js observe). */
         ui.progress.event('mission_start', { mission: v.mission, airframe: ui.progress.airframe });
         ui.progress.foldFlight();
       } else if (e.type === 'state' && ['won', 'lost', 'ended'].includes(e.to)) {
@@ -4806,7 +4807,7 @@ export async function boot({
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on() && v.state !== 'briefing') {
       return [head, ...warInviteRows(), {
-        label: str('war.start', { n: campaignRef ? campaignRef.selectedNumber(missionNumber(roomMission())) : missionNumber(roomMission()) }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
+        label: warStartLabel(), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
         primary: ui.roomGame === 'war' || w.mode === 'war',
       }, ...warFreshRows(), { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
     }
@@ -5091,6 +5092,16 @@ export async function boot({
   /* Act 1's key of mission `id`, which must be one of Act 1's. */
   function missionKey(id) {
     return ACT1.find((x) => x.id === id).key;
+  }
+
+  /* The start row's words: the mission Play chose, else the room's, by
+   * number in an act and by its own title in none (the drill, Training's
+   * practice). */
+  function warStartLabel() {
+    const id = roomMission();
+    const n = ACT1.some((m) => m.id === id) ? missionNumber(id) : null;
+    const chosen = campaignRef ? campaignRef.selectedNumber(n) : n;
+    return chosen != null ? str('war.start', { n: chosen }) : str('war.start_own', { name: str(WAR_MISSIONS[id].title) });
   }
 
   /* The war lobby's line for mission `id`: an act's mission by its number

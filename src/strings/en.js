@@ -3855,6 +3855,7 @@ export default {
   "war.where.gorge": "UP THE GORGE",
   "war.card": "Defend the Paraná",
   "war.start": "Start mission {n}",
+  "war.start_own": "Start the {name}",
   "war.row_note": "Co-op, for this room: waves of attack drones come for the dam, and every aircraft carries a warhead. One flight, one kill.",
   "war.stop": "End the mission",
   "war.stop_note": "Ends it for everybody in the room.",

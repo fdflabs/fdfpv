@@ -91,9 +91,10 @@ function warFits(core, id) {
 }
 
 /* Whether mission `id` starts with its film's briefing: a mission in a
- * campaign act does, one in none (its file states no `act`) does not. */
-export function briefed(id) {
-  return MISSIONS[id].act != null;
+ * campaign act does, one in none (its file states no `act`) does not.
+ * No mission (none the room may start) has none, and war.js refuses it. */
+function briefed(id) {
+  return id != null && MISSIONS[id].act != null;
 }
 
 /* The war's mission: the room's own, else the first on its map it may

@@ -3860,6 +3860,7 @@ export default {
   "war.where.gorge": "SUBIENDO POR EL CAÑÓN",
   "war.card": "Defender el Paraná",
   "war.start": "Empezar la misión {n}",
+  "war.start_own": "Empezar: {name}",
   "war.row_note": "Cooperativo, para esta sala: oleadas de drones de ataque vienen por la represa, y cada aparato lleva una ojiva. Un vuelo, un derribo.",
   "war.stop": "Terminar la misión",
   "war.stop_note": "La termina para todos en la sala.",
