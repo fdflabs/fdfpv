@@ -148,6 +148,11 @@ export function hitCall(ev) {
   if (!ev.hit) {
     return str('war.miss');
   }
+  /* A gantry is worth nothing to the output (src/share/war/contain.js):
+   * its hit is told as itself, not as a target already down. */
+  if (/^gantry-/.test(ev.target)) {
+    return str('war.hit.gantry');
+  }
   if (ev.mw === 0) {
     return str('war.hit.down');
   }
@@ -614,6 +619,9 @@ export function createWarHud(nameOf, restart = null) {
   function endText(v) {
     if (v.state === 'won') {
       return str('war.won');
+    }
+    if (v.state === 'lost' && v.why === 'shutdown') {
+      return str('war.lost_shutdown');
     }
     if (v.state === 'lost') {
       /* "7 700 MW" kept on one line: mw()'s thin space is a break, and

@@ -193,6 +193,9 @@ export default withWaves({
   outro: 'lights-out-outro',
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
+  /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the
+   * mission's own line after the opening is called. */
+  contain: { op: 'itaipu-3-op' },
   /* Dusk (MISSIONS.md M3): the mission starts at the golden hour and
    * the Reroute's daytime takes it into the night. */
   time: 'golden',

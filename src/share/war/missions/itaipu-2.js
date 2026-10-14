@@ -184,6 +184,9 @@ export default withWaves({
   outro: 'spillway-outro',
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
+  /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the
+   * mission's own line after the opening is called. */
+  contain: { op: 'itaipu-2-op' },
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sets: { working: { from: GATES, n: { 1: 3, 4: 4 } } },

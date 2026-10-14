@@ -213,6 +213,43 @@ anyone below the dam.
 Each mission below adds one line of its own for an opening, so the same
 event lands differently in each.
 
+**As built** (`src/share/war/contain.js`, `edge/rooms/war.js`; checked by
+war:stages' Contain section, 2026-10-14), with what each point became:
+
+- A mission runs Contain by its `contain: { op }`, its own opening line:
+  missions 1 to 4 have it; the drill and Training's practice do not.
+- The gantries are war targets worth 0 MW (`GANTRIES`): `gantry-intakes`
+  at the east intake gantry the dam builds (its survey, t 817.6 on the
+  crest), `gantry-spillway` over the gate row's middle, a placeholder:
+  the map builds no spillway gantry yet (T1.6).
+- Point 3: the first group born after an opening whose kind can reach the
+  crest (Strikers, Loiterers and a decoy among them) turns at the gantry;
+  a swarm up the gorge or a boat keeps its target. A gantry hit while it
+  closes nothing costs nothing.
+- Point 5: nothing is restored, and the stars are capped by the existing
+  `held` criterion (an opening loses its target, so its stage is
+  damaged). The contract's zero size opening event and the flood
+  draining are not built (the flood solver's side, outside the engine):
+  the water keeps running on screen after `contain-held`.
+- Point 6: `why: 'shutdown'` (T1.12); the end banner says so
+  (`war.lost_shutdown`); the lose debrief line is still the output
+  floor's.
+- Point 8: an opening made in the lost stage is undone with it; one made
+  before it closes again from the restart's go, and the next group turns
+  again.
+- Point 4 holds through the `cleared` trigger. Every exit of missions 1
+  to 3 that is not a loss waits on it; The Long Night's do not: Hunters
+  moves on when its groups are gone (the closure runs on into the next
+  stage), and Before Dawn is won when its groups are gone, so M4 can be
+  won with a closure still running.
+- `STING` is not sent: no mission has a music cue path for it yet.
+- M2's spill hold does not pause while the spillway gantry closes a gate
+  (M2, If the face opens): the two run side by side.
+- `contain-river` is DESPACHO's in every mission, as the table says, so
+  in missions 1 and 2 DESPACHO speaks before mission 3 introduces it.
+- A turned group's last leg to the crest is flown by no route check
+  (war:routes flies each spawn's own targets).
+
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
 | contain-breach | `opening` | CREST | urgent | Water through the face. Lowering the stoplogs. Protect the gantry. | Entra agua por la cara. Bajando las ataguías. Protejan la grúa. |
@@ -227,7 +264,7 @@ event lands differently in each.
 | # | id | Title | When | New for the player | Length |
 | --- | --- | --- | --- | --- | --- |
 | 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
-| 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min |
+| 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min (13.1 to 17.4 measured with bot squads when the face opens: 1.9's closures hold a stage up to 2.5 min each) |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
 | 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 15 min |
 | 5 | itaipu-5 | The River Below | Day 2, morning | a new axis; the carrier | 11 to 15 min |
@@ -272,7 +309,7 @@ branch w39-mission-3):
 | Win and lose debrief lines | voiced | voiced | voiced, new text (the loss DESPACHO's) | voiced (rewritten to M4) |
 | Seeded sectors and routes | yes; war:routes PASS | yes | yes (NW, LINES, HIGH, N); war:routes PASS | yes; war:routes PASS |
 | Consent before the first war room | `war.consent_*`, en and es (every war mission) | same | same | same |
-| If the face opens (1.9 Contain) and the `-op` line | not built: see below | not built | not built | not built |
+| If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's pause during a closure not built | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced |
 
 Mission 3 also lacks what the world does not do yet, so its lines do not
 claim it: districts coming back after the reroute (T1.10) and spotting
@@ -296,19 +333,22 @@ war:radio 63/0, war:cards 13/0, briefing:selftest 54/0, campaign:selftest
 the room made for First Light stays private, so it is not on the Flight
 Club list and its briefing says Private.
 
-**Mission 1 has every piece but Contain.** The room records a breach
-(`edge/rooms/war.js` breach, the `breach` trigger in stages.js), but no
-closure objective, gantry retarget or `contain-*` line exists, so
-`itaipu-1-op` has nothing true to say yet ("Close it." with nothing to
-close). That is engine work for every mission at once (T1.6), not a line
-to add to First Light, and an opening today costs its target's megawatts
-like any hit. The owner's 2026-10-07 flight fails (moto, objline, briefing
-audio cut, thermal look) were The Interior's Mission 1, not First Light,
-and all landed the same day (#632 to #635).
+**Contain is built for missions 1 to 4** (branch w39-contain,
+2026-10-14; 1.9 above, `src/share/war/contain.js`): an opening the room
+records (`edge/rooms/war.js` breach) starts a closure on its gantry, held
+as an objective on the HUD and ringed on the radar; the stage waits for
+it; the next group that can reach the crest turns at the gantry; the
+gantry hit while it closes loses the mission (`why: 'shutdown'`); the six
+`contain-*` lines and each mission's `-op` line are voiced en and es. So
+First Light has every piece of this table. What Contain does not have
+yet is listed under 1.9's "As built". The owner's 2026-10-07 flight
+fails (moto, objline, briefing audio cut, thermal look) were The
+Interior's Mission 1, not First Light, and all landed the same day (#632
+to #635).
 
 **The owner's decision, one line:** set `release: 'available'` in
-`src/share/war/missions/itaipu-1.js` (First Light without Contain) and
-redeploy the rooms server, or keep it held until Contain is built. It
+`src/share/war/missions/itaipu-1.js` (First Light, Contain built) and
+redeploy the rooms server, or keep it held. It
 unlocks public war rooms for mission 1 (`edge/rooms/core.js` setPublic,
 `edge/rooms/front.js` create), so the room is on the Flight Club list and
 friends join from it rather than only by code (the lead's 2026-10-13
