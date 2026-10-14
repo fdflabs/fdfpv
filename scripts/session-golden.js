@@ -424,7 +424,7 @@ const scenarios = {
         for (const shown of ['none', 'war']) {
           const ui = makeUi(shown === 'war' ? { craftShown: (s) => `war-of-${s.airframe}` } : {});
           Object.assign(ui.settings, patch);
-          const rows = ui.roomSeatRows(inRoom);
+          const rows = ui.roomSeatRows(inRoom ? { inRoom: true } : null);
           const drove = [];
           for (const r of rows) {
             if (r.open) { r.open(); drove.push({ open: ui.calls.splice(0) }); }
@@ -444,6 +444,31 @@ const scenarios = {
           out[`${name}:${inRoom ? 'in' : 'out'}:${shown}`] = { rows: rows.map(item), drove, calls: ui.calls.splice(0) };
         }
       }
+    }
+    /* The room's weather row: the host's choice, a guest's fact, none for
+     * a room that never said its air or said one this build does not know. */
+    const rooms = {
+      host: { inRoom: true, host: true, weather: 'breeze' },
+      guest: { inRoom: true, host: false, weather: 'gusty' },
+      silent: { inRoom: true, host: true, weather: null },
+      unknown: { inRoom: true, host: false, weather: 'hail' },
+    };
+    for (const [name, room] of Object.entries(rooms)) {
+      const ui = makeUi();
+      const rows = ui.roomSeatRows(room);
+      const wx = rows.slice(2);
+      const drove = [];
+      for (const r of wx) {
+        if (r.pick) {
+          r.pick('front');
+          drove.push({ pick: 'front', weather: ui.settings.weather });
+        }
+        if (r.adjust) {
+          r.adjust(1);
+          drove.push({ adjust: 1, weather: ui.settings.weather });
+        }
+      }
+      out[`weather:${name}`] = { rows: wx.map(item), drove, calls: ui.calls.splice(0) };
     }
     return out;
   },

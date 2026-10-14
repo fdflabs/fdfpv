@@ -4083,6 +4083,7 @@ export async function boot({
     onRoom: () => ui.refreshFriends(),
     onLobby: () => ui.refreshFriends(),
     onWorld: () => ui.refreshFriends(),
+    onWeather: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
       if (peer) {
@@ -7826,6 +7827,11 @@ export async function boot({
           : str('friends.row_in', { code: st.code, n: here.n }), here.bots),
         note: str('friends.row_in_note'),
         inRoom: true,
+        /* The room's air (edge/rooms/core.js weather) and whether this
+         * pilot sets it, for the room screen's Weather row; none in a war
+         * room, whose missions fly still air (seatWeather). */
+        host: roomHost(st.welcome),
+        weather: st.welcome && st.welcome.weather && st.welcome.mode !== 'war' ? st.welcome.weather.preset : null,
       };
     }
     if (st.phase === 'connecting') {

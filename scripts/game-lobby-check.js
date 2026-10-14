@@ -604,6 +604,34 @@ try {
       b.clicks - bBefore === B_CLICKS && b2.code === code && b2.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && b2.shown && people(a2.pilots).length === 2 && people(b2.pilots).length === 2 && b2.flying !== 'flight', JSON.stringify({ a: a2.pilots, b: b2.pilots, code: b2.code }));
     await shot(b, '2-b-lobby');
 
+    /* THE ROOM'S WEATHER in the lobby, after the aircraft: the host's a
+     * choice, which is the room's air at once (main.js offerRoomWeather),
+     * and B's a fact that follows it on the room's word (rooms.js
+     * onWeather). A war room has none: its missions fly still air. */
+    const WX_ROW = "window.__ui.items().some((x) => x.label === 'Weather')";
+    if (GAME === 'war') {
+      check('the war\'s briefing has no Weather row: its missions fly still air', !(await a.evaluate(WX_ROW)) && !(await b.evaluate(WX_ROW)));
+    } else {
+      /* `drawn`: the row on the screen, not just the list the screen is
+       * drawn from, so the room's word has to redraw it. */
+      const WX = `(() => {
+        const it = window.__ui.items().find((x) => x.label === 'Weather');
+        const row = [...document.querySelectorAll('.screen-friends .row')].find((r) => (r.querySelector('.row-label') || {}).textContent === 'Weather');
+        const drawn = row ? (row.querySelector('.row-value') || {}).textContent || null : null;
+        return it ? { value: it.value, drawn, choice: Boolean(it.options), info: Boolean(it.info), note: it.note } : null;
+      })()`;
+      const [aw, bw] = [await a.evaluate(WX), await b.evaluate(WX)];
+      check('the room\'s Weather row: the host\'s a choice, B\'s a fact saying the host chooses it, both the room\'s Calm',
+        aw && aw.choice && bw && bw.info && !bw.choice && aw.value === 'Calm' && bw.drawn === 'Calm' && /host chooses/.test(bw.note), JSON.stringify({ a: aw, b: bw }));
+      const wxPick = (p, v) => p.evaluate(`(() => { window.__ui.setCursor(window.__ui.items().findIndex((x) => x.label === 'Weather')); window.__ui.pick(${JSON.stringify(v)}); return true; })()`);
+      await wxPick(a, 'gusty');
+      await b.until(`(${WX} || {}).drawn === 'Gusty'`, 15000).catch(() => {});
+      const [ag, bg] = [await a.evaluate(WX), await b.evaluate(WX)];
+      check('A picks Gusty: the room\'s air, and B\'s row says Gusty without a click', ag && ag.value === 'Gusty' && bg && bg.value === 'Gusty' && bg.drawn === 'Gusty', JSON.stringify({ a: ag, b: bg }));
+      await wxPick(a, 'calm');
+      await b.until(`(${WX} || {}).drawn === 'Calm'`, 15000).catch(() => {});
+    }
+
     /* WHO JOINS IN PLACE (edge/rooms/core.js setPublic): with B here, A's
      * row offers Public and Friends and changes the room it is in. Friends:
      * the same code, B told, its invite code on B's lobby, off the

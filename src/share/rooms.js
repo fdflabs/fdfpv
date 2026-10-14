@@ -287,7 +287,8 @@ export function devAccount() {
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat, dropped), dropped when the socket went without a leave
  * and the pilot may be back, onWorld(map) when the host moved the room to
- * another world, onProfile(seat, profile), onBatch(batch), onState(state),
+ * another world, onWeather() when the host set the room's air,
+ * onProfile(seat, profile), onBatch(batch), onState(state),
  * onRoom() when the room's name changed (reports took it away),
  * onHit(hit) (the referee's mid air contact, src/game/midair.js),
  * onHost(seat) when the room's host changes,
@@ -493,6 +494,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         if (welcome && typeof m.preset === 'string' && Number.isInteger(m.seed)) {
           welcome.weather = { preset: m.preset, seed: m.seed };
         }
+        handlers.onWeather?.();
       } else if (m.type === 'stockSurfaces') {
         /* The host set the room to stock control surfaces, or back
          * (edge/rooms/core.js stockSurfaces). */
