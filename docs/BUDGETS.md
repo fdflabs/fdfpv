@@ -297,9 +297,18 @@ fails the day it is set. The decision has two parts:
    floor is a target and not a release gate." Low is the only tier
    worth naming: nothing measured at High holds 30 except the menu.
 
-Two things weigh against naming the Orin at all: its GPU wedged twice in
-two runs under headless Chrome on Vulkan (its other work stops until a
-reboot), and an Arm board with 12 cores and shared memory is not the
+**The Orin cannot serve as the reference machine until the nvgpu fault
+on Chrome's shutdown is understood** (2026-10-14). Headless, the one
+path that draws on its GPU is ANGLE over Vulkan, and the GPU wedged
+after a Chrome closed in both runs of it (`ga10b_gr_init_wait_empty:
+timeout, ctxsw busy: 1` and `gk20a_pm_runtime_suspend: failed to power
+off, err=-11` every four seconds, then `nvgpu_engine_gr_reset: failed to
+reset gr engine` on the next channel; docs/PERF.md, The reference
+machine); desktop GL under Xvfb draws on Mesa's llvmpipe, not the Orin.
+The seven rows above stand as measurements; no more are taken on it.
+
+Two more things weigh against naming the Orin: its other work (ComfyUI,
+Ollama) stops until a reboot whenever it wedges, and an Arm board with 12 cores and shared memory is not the
 "2020 era laptop with integrated graphics" Medium names. A machine that
 can be flown after every release without a reboot is the precondition
 for a floor read on it.

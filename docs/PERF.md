@@ -181,6 +181,32 @@ The shell's own GPU name (src/render/gpuinfo.js, Settings and
 `window.__gpu.name`) reads that string as "Google Inc. (NVIDIA)", the
 vendor, not the chip.
 
+**Desktop GL under Xvfb is software.** The project's own setting,
+`--use-angle=gl`, was tried once more on 2026-10-14 with an X display
+from Xvfb (installed for it, `apt-get install xvfb`, no service): the
+renderer is `ANGLE (Mesa, llvmpipe (LLVM 15.0.7 128 bits), OpenGL 4.5)`,
+Mesa's CPU rasteriser, because Xvfb serves GLX from Mesa and never
+reaches the Orin. No GPU error followed (0 before, 0 after 60 s), and
+no row was flown: a CPU rasteriser's frame time says nothing about a
+GPU's. The Orin's GPU under desktop GL needs Xorg on NVIDIA's driver
+(the Jetson has `libglxserver_nvidia.so`), a display server, which is a
+system change this lane did not make.
+
+So, today, the one path that draws on the Orin headless is ANGLE over
+Vulkan, and it wedged the GPU after a Chrome closed in both runs of
+this script. **The Orin cannot serve as the reference machine until
+that nvgpu fault on Chrome's shutdown is understood.** Its signature,
+from `journalctl -k`, a few seconds after a Chrome closes:
+
+    nvgpu: 17000000.gpu ga10b_gr_init_wait_empty:505 [ERR] timeout, ctxsw busy: 1, gr busy: 0
+    nvgpu: 17000000.gpu gk20a_pm_runtime_suspend:1427 [ERR] failed to power off, err=-11
+
+repeating every four seconds, and on the next GPU channel opened:
+
+    nvgpu: 17000000.gpu nvgpu_set_err_notifier_locked:143 [ERR] error notifier set to 8 for ch 495 owned by chrome
+    nvgpu: 17000000.gpu nvgpu_gr_falcon_load_secure_ctxsw_ucode:718 [ERR] Unable to recover GR falcon
+    nvgpu: 17000000.gpu nvgpu_engine_gr_reset:497 [ERR] failed to reset gr engine
+
 **Comparing.** The Orin's numbers compare with the Orin's, taken with
 the same script, power mode and Chromium; not with the 3060 Ti columns.
 A change of power mode (MODE_MAXN lifts the GPU clock) or of Chromium
