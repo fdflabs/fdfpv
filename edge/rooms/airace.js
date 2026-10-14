@@ -78,12 +78,14 @@
  * bytes left as the new module has them, src/replay/refly.js's rule),
  * and it flies on from there once its ghost is flown again in this
  * process. The room's clock ran on meanwhile: what it missed is a stall
- * (THE CLOCK), not caught up. What is not kept is the pilot's own memory
- * (src/game/aipilot.js: its eyes' last 200 ms and its loops' trims),
- * which that file keeps to itself: the restored racer sees afresh, holds
- * its sticks for its eyes' delay, and closes on its line again. A kept
- * plant from another build, or none, is today's: the AI seat is dropped,
- * marked left, and the room fills again.
+ * (THE CLOCK), not caught up. The pilot's own memory is kept beside its
+ * plant (src/game/aipilot.js snapshot: its eyes' last 200 ms, its loops'
+ * trims, its sticks held), so the restored racer's sticks are the ones
+ * the unbroken racer would have flown from its first tick back; a store
+ * kept before that (no pilot) flies on with a pilot that sees afresh and
+ * holds its sticks for its eyes' delay. A kept plant from another build,
+ * or none, is today's: the AI seat is dropped, marked left, and the room
+ * fills again.
  *
  * LOADED LATE. aiopponent.js and the reference read tests/lib (the plant's
  * loader) and dist/sim.wasm, which a server without them does not have:
@@ -601,6 +603,7 @@ class Racer {
       bornMs: this.bornMs,
       op: Object.fromEntries(OP_KEPT.map((k) => [k, structuredClone(op[k])])),
       race: Object.fromEntries(RACE_KEPT.map((k) => [k, structuredClone(op.race[k])])),
+      pilot: op.pilot.snapshot(),
       region: kit.zlib.deflateRawSync(mem, { level: 1 }),
     };
   }
@@ -628,6 +631,11 @@ class Racer {
     Object.assign(this.op.race, kept.race);
     this.op.state = sim.readState().state;
     this.op.prevState = this.op.state;
+    /* A store from before the pilot was kept (no `pilot`) flies on with a
+     * pilot that sees afresh. */
+    if (kept.pilot) {
+      this.op.pilot.restore(kept.pilot);
+    }
   }
 
   /* An opponent at its grid place, its clock zero at race ms `bornMs`. */
