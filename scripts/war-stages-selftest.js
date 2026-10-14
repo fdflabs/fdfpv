@@ -1305,12 +1305,14 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   const mission = MISSIONS['itaipu-4'];
   const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
   const TWISTS = ['towns', 'dark-scout'];
+  const TWIST = { towns: ['itaipu-4-tb-turn', 'itaipu-4-tb-why'], 'dark-scout': ['itaipu-4-tc-turn', 'itaipu-4-tc-why'] };
   check('The Long Night plays 5 rounds of its 6 round stages', roundsOf(mission) === 5 && stagesOf(mission).filter((x) => x.round).length === 6,
     `${roundsOf(mission)}`);
   const games = [];
   for (const pilots of [1, 4]) {
     for (const seed of [1, 2, 3, 4, 5]) {
       const views = [];
+      const cues = [];
       const born = [];
       const dead = [];
       runOne({
@@ -1326,6 +1328,8 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
           }
           if (m.war) {
             views.push({ ...m.war, now });
+          } else if (m.op === 'cue') {
+            cues.push(...m.cues);
           } else if (m.op === 'born') {
             born.push(...m.agents);
           } else if (m.op === 'dead') {
@@ -1334,7 +1338,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
         },
       });
       games.push({
-        pilots, seed, views, born, dead,
+        pilots, seed, views, cues, born, dead,
       });
     }
   }
@@ -1359,6 +1363,17 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
     }
     if (end.state !== 'won') {
       bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
+    const want = ['itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
+      'itaipu-4-s3-cover', ...TWIST[twist] ?? [], 'itaipu-4-s5-all', 'itaipu-4-s5-order', 'itaipu-4-s5-near'];
+    const missing = want.filter((id) => !said.includes(id));
+    if (missing.length) {
+      bad.push(`${label}: never said ${missing.join(',')}`);
+    }
+    const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, x]) => x).filter((id) => said.includes(id));
+    if (others.length) {
+      bad.push(`${label}: said another twist's ${others.join(',')}`);
     }
     /* The quiet: STAND BY on the HUD and nothing born until the boat, at
      * least 40 s (paced) after the go; then the boat's objective, and
@@ -1398,6 +1413,8 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   console.log(`    the twist's scout: killed in ${scouts.killed}, not in ${scouts.alive}`);
   check('ten games, 1 and 4 good pilots: Quiet, Dark Water, Hunters, one twist of The Turn, Before Dawn, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
     bad.filter((x) => /stages|ended/.test(x)).join(' | '));
+  check('every stage\'s story said: the quiet, the boat, the water and its second bearing, the Loiterer, the Hunters and their cover, the twist\'s two lines and no other twist\'s, the convergence, its order and the dawn near',
+    bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
   check('the quiet: STAND BY alone on the HUD and nothing born for 40 s or more, then the dark boat and its objective', bad.filter((x) => /quiet/.test(x)).length === 0,
     bad.filter((x) => /quiet/.test(x)).join(' | '));
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective shown/.test(x)).length === 0,

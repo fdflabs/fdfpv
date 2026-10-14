@@ -46,6 +46,14 @@
  * the dawn rising across stage 5 (TECH-NEEDS T1.11), so the mission is
  * night to its end.
  *
+ * THE RADIO is the stages' cues (MISSIONS.md M4 Radio: CREST, MIRADOR,
+ * TALLER, DESPACHO), the countdown's two lines and the debriefs
+ * (`radio`). Four of MISSIONS.md's lines say what the night here does not
+ * show, a boat or a Scout with no lights and every bird's nav lights off
+ * (every attacker wears its own at night, src/render/attackers.js), the
+ * sky going grey (no dawn ramp), so they are said otherwise (lines.json
+ * notes).
+ *
  * THE DIALS (MISSIONS.md 1.4), as First Light's: each group's sector and
  * route in it, its time in a window, the twist. `pace` stretches every
  * time for a small squad (MISSIONS.md 1.6), `adapt` weights the bearings
@@ -135,7 +143,7 @@ export default withWaves({
   starMw: 11200,
   airframes: 4,
   night: true,
-  radio: { brief: ['brief-itaipu-4-1', 'brief-itaipu-4-2'], win: 'debrief-itaipu-4-win', lose: 'debrief-itaipu-4-lose' },
+  radio: { brief: ['itaipu-4-s0-brief', 'itaipu-4-s0-rules'], win: 'debrief-itaipu-4-win', lose: 'debrief-itaipu-4-lose' },
   /* The countdown's extra length (war.js start). A briefing builds every
    * screen's night world before its film (WORLD_LEAD_MS); a start with no
    * film, a restart from a stage among them, builds it in the countdown,
@@ -172,7 +180,11 @@ export default withWaves({
       }],
       cues: [
         { at: 0, text: 'war.obj.itaipu_4.stand_by' },
+        { at: 20, radio: 'itaipu-4-s1-quiet' },
+        { at: 34, radio: 'itaipu-4-s1-long', skip: { born: { group: 'boat' } } },
         { when: { born: { group: 'boat' } }, text: null },
+        { when: { born: { group: 'boat' } }, at: 3, radio: 'itaipu-4-s1-boat' },
+        { when: { down: { group: 'boat' } }, radio: 'itaipu-4-s1-down' },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'dark-water', BEAT(10, 10)),
@@ -193,7 +205,13 @@ export default withWaves({
         },
       ],
       objectives: [{ id: 'intakes', text: 'war.obj.protect_intakes', kind: 'protect' }],
-      cues: [STAGE_LOST],
+      cues: [
+        { at: 1, radio: 'itaipu-4-s2-water' },
+        { when: { born: { group: 'boats-2' } }, at: 2, radio: 'itaipu-4-s2-split' },
+        { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-4-s2-high' },
+        { when: { cleared: true }, radio: 'itaipu-4-s2-clear' },
+        STAGE_LOST,
+      ],
       exits: exits({ cleared: true }, 'hunters', BEAT(15, 15)),
     },
     {
@@ -214,7 +232,13 @@ export default withWaves({
           id: 'hunters', text: 'war.obj.itaipu_4.hunters', kind: 'kill', show: { born: { group: 'hunters' } }, done: { down: { group: 'hunters' } },
         },
       ],
-      cues: [STAGE_LOST],
+      cues: [
+        { when: { born: { group: 'hunters' } }, radio: 'itaipu-4-s3-hunt' },
+        { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-4-s3-pairs' },
+        { when: { born: { group: 'cover' } }, at: 2, radio: 'itaipu-4-s3-cover' },
+        { when: { down: { group: 'hunters' } }, radio: 'itaipu-4-s3-down' },
+        STAGE_LOST,
+      ],
       /* Survive: over when the cover is gone and the Hunters are down or
        * HUNT_S have passed. A Hunter lives until it is killed (warhunt.js
        * steers it home when it has nobody to chase), so a stage that
@@ -239,7 +263,11 @@ export default withWaves({
       objectives: [{
         id: 'twist', text: 'war.obj.itaipu_4.yard', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { leaked: 1, group: 'twist' },
       }],
-      cues: [STAGE_LOST],
+      cues: [
+        { when: { born: { group: 'twist' } }, radio: 'itaipu-4-tb-turn' },
+        { when: { born: { group: 'twist' } }, at: 6, radio: 'itaipu-4-tb-why' },
+        STAGE_LOST,
+      ],
       exits: exits({ cleared: true }, 'before-dawn', BEAT(20, 20)),
     },
     {
@@ -257,7 +285,12 @@ export default withWaves({
       objectives: [{
         id: 'twist', text: 'war.obj.itaipu_4.scout', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { left: 1, group: 'twist' },
       }],
-      cues: [STAGE_LOST],
+      cues: [
+        { when: { born: { group: 'twist' } }, at: 3, radio: 'itaipu-4-tc-turn' },
+        { when: { born: { group: 'twist' } }, at: 7, radio: 'itaipu-4-tc-why' },
+        { when: { down: { group: 'twist' } }, radio: 'itaipu-4-tc-down' },
+        STAGE_LOST,
+      ],
       /* Over, as First Light's Eyes, when the Scout is killed, gone home
        * or 80 s have passed, and nothing else is left: a stage that ended
        * with its cover would take the Scout with it before a pilot could
@@ -288,7 +321,11 @@ export default withWaves({
         },
       ],
       objectives: [{ id: 'all', text: 'war.obj.protect_all', kind: 'protect' }],
-      cues: [],
+      cues: [
+        { when: { born: {} }, radio: 'itaipu-4-s5-all' },
+        { when: { born: {} }, at: 4, radio: 'itaipu-4-s5-order' },
+        { at: 45, radio: 'itaipu-4-s5-near' },
+      ],
       /* The last: lost or held, the mission is won if the output is still
        * over the floor when it ends (as First Light's). Its Hunters, as
        * stage 3's, end it when they are down or HUNT_S have passed. */
