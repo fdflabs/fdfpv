@@ -39,6 +39,7 @@
  */
 
 import { DISTRICTS, changesFrom, levelOf } from './grid.js';
+import { stationOrder } from './stationdark.js';
 
 /* A hit target burns this long, room ms, then smokes. */
 export const FIRE_MS = 20000;
@@ -62,7 +63,9 @@ export function burnAt(at, t) {
  * of it, off the room ms the war stopped being fought (the targets are
  * whole again on screen from then, src/main.js warFinish) or null, the
  * restores the view's (grid.js WHAT COMES BACK), absent for none, so its
- * lights come back as the live screen's did.
+ * lights come back as the live screen's did, and stationDark the view's
+ * order putting the station's lights out (stationdark.js), absent for
+ * none (the recorder does not keep it yet).
  * `damage` the match's damage events in the order heard. At room ms t:
  * { targets: { id: state } of every target not 'ok', levels: a
  * Float32Array a district, damage: the events by t, openings: every
@@ -104,6 +107,7 @@ export function matchAt(m, t, cache) {
   for (let i = 0; i < DISTRICTS.length; i += 1) {
     cache.levels[i] = levelOf(cache.changes[i], i, t);
   }
+  stationOrder(cache.levels, m.stationDark ?? null, t);
   /* The match's gate state, whole (hoist.js places each entry). */
   return {
     targets, levels: cache.levels, damage, openings: cache.openings, gates: m.gates && m.gates.length ? m.gates : null,

@@ -73,6 +73,7 @@ import { checkWar, createWarRing, worldAt } from '../src/replay/warrec.js';
 import {
   createGrid, DISTRICTS, CASCADE_MS, FLICKER_MS, districtIndex,
 } from '../src/share/war/grid.js';
+import { STATION_DARK_DISTRICTS, stationOrder } from '../src/share/war/stationdark.js';
 
 let failed = 0;
 const check = (name, ok, detail = '') => {
@@ -156,10 +157,11 @@ function client(ring = null) {
       }
     },
     /* One frame of the shell at room ms t: its events heard, then the
-     * levels read (src/main.js roomWarFrame). */
+     * levels read (src/main.js roomWarFrame), under the view's order to
+     * put the station's lights out (warLiveWorld). */
     frame(t) {
       grid.hear(take(t), war.view());
-      return grid.levels(war.view(), t).slice();
+      return stationOrder(grid.levels(war.view(), t).slice(), war.view().stationDark, t);
     },
     state(t) {
       return grid.state(war.view(), t);
@@ -451,6 +453,42 @@ const differs = (r) => {
   const r = replayed(reroute(10000, null), R_END);
   const d = differs(r);
   check('the failed reroute\'s replay keeps none and is its live frames, bit for bit', !('restores' in r.war.world[0]) && d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+}
+
+/* The Long Night's twist A (src/share/war/missions/itaipu-4.js
+ * STATION_DARK, not in the draw yet): the view names the room ms the
+ * station's lights went out by order from the stage's entry on. The
+ * clip does not record the order yet (warrec.js world), so the case
+ * puts it on the replay's match by hand. */
+const SD_AT = 30000;
+const SD_END = 60000;
+function stationDarkTicks() {
+  const sview = (down, stationDark) => ({
+    type: 'war',
+    war: {
+      state: 'live', id: 'm-night-sd', mission: 'itaipu-4', goAt: 0, output: 14000, floor: 7700, down, stationDark,
+    },
+  });
+  return [
+    { t: 0, msgs: [sview([], null)] },
+    { t: 10000, msgs: [sview(['intake-14'], null), dead(10000, 'intake-14', true)] },
+    { t: SD_AT, msgs: [sview(['intake-14'], SD_AT)] },
+  ];
+}
+{
+  const r = replayed(stationDarkTicks(), SD_END);
+  const settled = r.live.filter((f) => f.t >= SD_AT + FLICKER_MS);
+  check('live, the station\'s own districts are dark once the order\'s flicker is over',
+    settled.length > 0 && settled.every((f) => STATION_DARK_DISTRICTS.every((i) => f.levels[i] === 0)),
+    STATION_DARK_DISTRICTS.map((i) => DISTRICTS[i].id).join(', '));
+  const bare = differs(r);
+  check('a replay that does not know the order differs from the live frames (the control)', bare.n > 0, `${bare.n} rows differ`);
+  r.war.world[0].stationDark = SD_AT;
+  const caches = new Map();
+  r.frames = r.live.map((f, k) => ({ t: r.war.clock[k], levels: worldAt(r.war, r.live.length, k, 0, caches).levels.slice() }));
+  const d = differs(r);
+  check('knowing it, at every row the replay\'s levels are the live frame\'s, bit for bit, through the order', d.n === 0,
     `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
 }
 
