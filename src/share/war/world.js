@@ -76,8 +76,11 @@ export function burnAt(at, t) {
  */
 export function matchAt(m, t, cache) {
   if (!cache.changes) {
+    /* A target lost to what broke goes out from its damage event, as a
+     * hit does (grid.js createGrid hear). */
+    const lost = m.damage.filter((d) => d.down === true).map((d) => ({ target: d.target, at: d.at }));
     cache.changes = changesFrom(
-      m.hits.map((h) => ({ target: h.target, at: h.at === null ? -Infinity : h.at })),
+      [...m.hits.map((h) => ({ target: h.target, at: h.at === null ? -Infinity : h.at })), ...lost],
       m.cuts,
       m.restores ?? [],
     );

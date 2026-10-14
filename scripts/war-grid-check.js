@@ -522,6 +522,12 @@ function lostTicks() {
   const kept = ring.clip(0, n).world[0].damage;
   check('the clip keeps the room\'s damage event as the room sends it (by the attacker\'s kind)', ring.stats.damageDropped === 0 && kept.length === 1 && kept[0].by === 'strike',
     `${kept.length} kept, ${ring.stats.damageDropped} dropped`);
+  const r = replayed(lostTicks(), LOST_END);
+  const out = DISTRICTS.filter((x, i) => r.live.at(-1).levels[i] === 0).map((x) => x.id);
+  check('live, the lost intake\'s districts go out from the damage event alone', out.length > 0, `dark ${out.join(', ')}`);
+  const d = differs(r);
+  check('at every row the replay\'s levels are the live frame\'s, bit for bit, the loss read from the damage event', d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
 }
 
 if (failed) {
