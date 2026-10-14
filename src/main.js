@@ -922,6 +922,17 @@ export async function boot({
     });
     interiorScreen.record(match, v);
   }
+  /* A result the room sent this seat, paid once per match uid as it
+   * arrives, though this page never saw the end and has no world up (a
+   * reload or a reconnect at the debrief): the room sends it only to a
+   * pilot who took part (edge/rooms/ops.js took), so no consent or seat
+   * is asked here. A room from before uid pays from the debrief alone. */
+  function opsPaid() {
+    const v = roomOps.view();
+    if (v.uid && v.result && !roomOps.watcher()) {
+      interiorScreen.record(roomOps.match(), v);
+    }
+  }
   /* The room's host seat: the link's, which follows a host change, else
    * the welcome's as the ops client heard it. */
   const opsHost = () => roomLinkState.state().welcome?.host ?? roomOps.hostSeat();
@@ -4039,6 +4050,7 @@ export async function boot({
       roomJam.onWelcome(w);
       roomWar.onWelcome(w);
       roomOps.onWelcome(w);
+      opsPaid();
       lobbyReady.clear();
       roomPeersClear();
       for (const p of w.peers) {
@@ -4155,6 +4167,7 @@ export async function boot({
         return;
       }
       if (roomOps.onMessage(m)) {
+        opsPaid();
         ui.refreshFriends();
         return;
       }

@@ -15,7 +15,15 @@
  * no shop: platforms unlock by mission.
  *
  * It also records a finished match's result into the synced campaign
- * progress (applyResult: stars and the script's flags), once per match.
+ * progress (applyResult: stars and the script's flags), once per match:
+ * by the room's id for it (the view's uid, edge/rooms/ops.js), kept in
+ * the save (src/game/campaign.js payResult), so a reload, a reconnect or
+ * a late join into the debrief pays a match this page never saw end, and
+ * pays it once. The room decides who is paid: it sends the result only to
+ * the seats whose pilot took part (ops.js took), never to a watcher or a
+ * pilot first seated after the end. A room from before uid is paid as it
+ * always was: once per match key, remembered in memory, and only from the
+ * debrief a page saw the end of.
  *
  * Campaign agnostic: the campaign is a list of { id, key, release, label }
  * and its words are string keys under `ops.campaign.<campaign>`.
@@ -37,7 +45,7 @@
  */
 
 import {
-  MAX_STARS, applyResult, cardLabel, createCampaignStore, released, starsOf,
+  MAX_STARS, applyResult, cardLabel, createCampaignStore, paidWar, payResult, released, starsOf,
 } from '../game/campaign.js';
 import { str } from '../strings/index.js';
 
@@ -95,7 +103,10 @@ export function createOpsCampaignScreen({
   const cur = () => store.load();
   const k = (rest) => `ops.campaign.${campaign.id}.${rest}`;
   let isOpen = false;
-  /* Matches whose result is in the progress already. */
+  /* Matches whose result is in the progress already, by uid (or key, a
+   * room from before uid): the save holds the uids, this spares a look
+   * at it on every ops message (src/main.js opsPaid calls record on each
+   * while a result shows). */
   const recorded = new Set();
 
   function close() {
@@ -178,16 +189,22 @@ export function createOpsCampaignScreen({
     },
     close,
     isOpen: () => isOpen && !ui.nameDialog.hidden,
-    /* A finished match of one of this campaign's missions, once: its
-     * stars and flags into the synced progress. */
+    /* A finished match of one of this campaign's missions, once per uid
+     * (key, the room's code and match id, for a room from before uid):
+     * its stars and flags into the synced progress. */
     record(key, view) {
-      if (recorded.has(key) || !view || !view.result || !missions.some((m) => m.id === view.mission)) {
+      const id = view?.uid || key;
+      if (recorded.has(id) || !view || !view.result || !missions.some((m) => m.id === view.mission)) {
         return;
       }
-      recorded.add(key);
-      store.save(applyResult(cur(), view.mission, {
+      recorded.add(id);
+      if (view.uid && paidWar(cur(), view.uid)) {
+        return;
+      }
+      const res = {
         won: view.result.won === true, stars: view.result.stars ?? 0, credits: 0, flags: view.result.flags ?? {},
-      }));
+      };
+      store.save(view.uid ? payResult(cur(), view.uid, view.mission, res) : applyResult(cur(), view.mission, res));
       ui.progress.event('mission_end', { mission: view.mission, won: view.result.won === true, stars: Number.isFinite(view.result.stars) ? view.result.stars : 0, airframe: ui.progress.airframe });
       ui.progress.foldFlight();
     },

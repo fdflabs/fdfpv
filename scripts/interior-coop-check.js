@@ -25,6 +25,10 @@
  *     stays on B's device)
  *   - C joins by the same link and says Back to the consent: out of the
  *     room to the title, nothing stored
+ *   - the match's result is paid once per its uid (src/ui/opscampaign.js
+ *     record): A and B each keep it; B reloaded at the end, back on its
+ *     token, keeps it once; B reloaded with no campaign saved (a page that
+ *     sees only the end) is paid it from the welcome
  *   - no page errors on any page; pictures outside the repository
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -205,6 +209,9 @@ try {
   check('C, asked and saying Back, leaves the room for the title, nothing stored, the room back to two pilots', cAsked && cOut.phase === 'idle' && cOut.screen === 'title' && !cOut.consent && seatsNow === 2,
     JSON.stringify({ cAsked, cOut, seatsNow }));
   const cErrs = errsOf(C.errors);
+  /* C is done: its page let go, so B's reloads below fit the check's
+   * memory. */
+  await C.evaluate("(location.href = 'about:blank', true)").catch(() => {});
 
   /* The host ends the match: A's debrief. */
   await A.evaluate("(window.__ops.end ? window.__ops.end() : null, true)");
@@ -213,6 +220,32 @@ try {
   const f = d.frames.find((x) => x.id === 'bridge');
   check('A\'s debrief shows the bridge as the squad\'s capture, credited to B, no picture', d.open && f && f.kind === 'squad' && f.seat === seats.b && !f.image, JSON.stringify(f));
   await shotA('coop-a-debrief.png');
+
+  /* Paid once per match uid, a reload at the end included. */
+  const uid = await A.evaluate('window.__ops.view().uid');
+  const PAID = "((window.__ui.settings.campaign && window.__ui.settings.campaign.wars) || [])";
+  await B.until(`${PAID}.includes(${JSON.stringify(uid)})`, 20000).catch(() => {});
+  const paid = { a: await A.evaluate(PAID), b: await B.evaluate(PAID) };
+  check('the ended match is paid once on both pilots\' pages, kept by its uid', /^o\d{13}-/.test(uid ?? '')
+    && paid.a.filter((x) => x === uid).length === 1 && paid.b.filter((x) => x === uid).length === 1, JSON.stringify({ uid, paid }));
+  const BACK = async () => {
+    await B.evaluate('(location.reload(), true)');
+    await B.sleep(1000);
+    await B.until('!!window.__shellReady', 300000);
+    await B.until(CONSENT, 180000).catch(() => {});
+    await B.sleep(700);
+    await B.evaluate("(document.querySelector('.name-dialog .name-dialog-row button.on') && document.querySelector('.name-dialog .name-dialog-row button.on').click(), true)");
+    await B.until(`window.__ops.view().uid === ${JSON.stringify(uid)}`, 60000).catch(() => {});
+    await B.sleep(2000);
+    return B.evaluate(`({ seat: window.__ops.seat(), uid: window.__ops.view().uid, result: window.__ops.view().result != null, paid: ${PAID}, stars: window.__ui.settings.campaign && window.__ui.settings.campaign.missions['interior-1'] })`);
+  };
+  const again = await BACK();
+  check('B reloaded at the end is back on its seat with the result, and the match is still paid once', again.seat === seats.b && again.uid === uid && again.result
+    && again.paid.filter((x) => x === uid).length === 1, JSON.stringify(again));
+  await B.evaluate('(delete window.__ui.settings.campaign, window.__ui.persistSettings(), true)');
+  const fresh = await BACK();
+  check('B reloaded with no campaign saved, seeing only the end, is paid it from the welcome', fresh.seat === seats.b && fresh.result
+    && fresh.paid.filter((x) => x === uid).length === 1 && fresh.stars != null, JSON.stringify(fresh));
   const errs = [...errsOf(A.errors).map((e) => `A ${e}`), ...errsOf(B.errors).map((e) => `B ${e}`), ...cErrs.map((e) => `C ${e}`)];
   check('no page errors on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

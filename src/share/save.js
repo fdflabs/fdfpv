@@ -68,7 +68,10 @@
  * (edge/rooms/war.js flew, warUid), and the page pays it once per uid,
  * kept in the campaign's `wars` (src/game/campaign.js payResult), so a
  * reload, a reconnect or a late join into the result card is paid and
- * paid once (COMPLETENESS.md item 2).
+ * paid once (COMPLETENESS.md item 2). AN OPS MATCH'S RESULT (The
+ * Interior's) is the same: sent to every seat whose pilot took part
+ * (edge/rooms/ops.js took, the view's uid), paid once per uid in the
+ * same list (src/ui/opscampaign.js record).
  *
  * Boot imports this before anything heavy, so it imports only modules
  * that import nothing. The key names are written out as boot.js writes

@@ -372,11 +372,13 @@ export function resultOf(mission, m) {
  * and a code is used again, so the wall clock ms the match started is in
  * it (m.startedAt; the room's birth, meta.epoch, for a match stored
  * before it had one). Fixed width, so ids sort by when the war started:
- * a page keeps the newest it paid (PAID_KEEP) by sorting them, and never
- * reads one apart.
+ * a page keeps the newest it paid (PAID_KEEP) by sorting them past the
+ * first letter, and never reads one apart. kind: that letter, 'w' a war's,
+ * 'o' an ops match's (ops.js view), whose ids count apart from the war's
+ * in the same room, so the two never meet in one save's list.
  */
-export function warUid(meta, m) {
-  return `w${String(m.startedAt ?? meta.epoch ?? 0).padStart(13, '0')}-${meta.code ?? ''}-${String(m.id).padStart(6, '0')}`;
+export function warUid(meta, m, kind = 'w') {
+  return `${kind}${String(m.startedAt ?? meta.epoch ?? 0).padStart(13, '0')}-${meta.code ?? ''}-${String(m.id).padStart(6, '0')}`;
 }
 
 /* The most stars a mission restarted from its lost stage can earn. */

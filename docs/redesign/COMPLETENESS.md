@@ -114,7 +114,15 @@ src/ui/campaign.js `observe`), so a reload, a reconnect or a late join
 into the result card is paid, and paid once. A room from before uid is
 paid as before. Held by `rooms:selftest` (who is sent the result),
 `campaign:selftest` (paid once across a reload, an end seen alone pays)
-and `progress:selftest` (its firsts once).
+and `progress:selftest` (its firsts once). An ops match's result (The
+Interior's stars and flags) follows the same rule (2026-10-15 batch,
+w41-opspay): the room sends it only to the seats whose pilot took part
+(seated while it was on at any point, by token, kept in the match's
+`pilots`: ops.js `took`), with the match's `uid` (warUid, kind `o`); the
+page pays it once per uid in the same `wars` list, which keeps the
+newest by start time whatever the kind (src/ui/opscampaign.js `record`,
+called while a result shows, so a reload at the debrief is paid).
+Held by `rooms:selftest` and `campaign:selftest`.
 **Done:** a table of save points in `save.js`'s header, each with its
 trigger (built), and the war's result paid once per war by an id kept in
 the save (built). Not built: `save:selftest` asserting each trigger

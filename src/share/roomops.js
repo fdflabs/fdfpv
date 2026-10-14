@@ -86,8 +86,11 @@ export function createRoomOps(send) {
     }
   }
 
-  /* The watch seat's view never holds a result: the debrief records the
-   * campaign for whoever holds one (src/ui/opscampaign.js record). */
+  /* The watch seat's view never holds a result: the campaign pays it,
+   * once per uid, to whoever holds one (src/ui/opscampaign.js record);
+   * the room sends it none (core.js watchedView), nor to a seat whose
+   * pilot did not take part (edge/rooms/ops.js took), and a room from
+   * before might. */
   const held = (v) => (seat === WATCH_SEAT && v && v.result != null ? { ...v, result: null } : v);
 
   function adopt(next) {
