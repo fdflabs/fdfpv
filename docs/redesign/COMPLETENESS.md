@@ -185,10 +185,11 @@ paper; tag makes a hunter). The table and the behaviour can drift.
 **Done:** the rooms server reads `allowDropIn` where a newcomer arrives
 in a running round, and the race's own rule is that field. Check:
 `rooms:selftest` flips the field in a test registry and sees the
-behaviour follow. Size S. Phase 21. **Built for the race and the war**
-(core.js join reads it through the room's registry; `rooms:selftest`
-turns each over). Combat, the Ace and the jam keep their own newcomer
-rules, which match their fields today.
+behaviour follow. Size S. Phase 21. **Built for every game**: core.js
+join reads it through the room's registry and hands it to each game (the
+race's grid, the war's enlist, combat's paper, the Ace's hunters, the
+jam's turns); `rooms:selftest` turns each over, and a newcomer that
+waits a round out has no paper, no hunt and no turn until the next.
 
 **8. Multiplayer authority. PARTIAL.** Decided and mostly server side,
 but written down only in file headers. Server: midair collisions

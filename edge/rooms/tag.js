@@ -165,6 +165,10 @@ export class RoomTag {
     this.drops = [];
     this.sentPoints = -1;
     this.storedPoints = 0;
+    /* Seats that came while a match was on and the Ace takes no newcomer
+     * (modes.js allowDropIn, core.js join): their poses are not kept, so
+     * they neither hunt nor are drawn, until the next match. Memory. */
+    this.late = new Set();
   }
 
   restore(saved) {
@@ -265,6 +269,17 @@ export class RoomTag {
     return this.changed(core);
   }
 
+  /* A pilot just seated: a newcomer to a match on waits it out unless
+   * `dropIn`; one of the match's players (its seat and token) is back. */
+  join(core, s, dropIn) {
+    this.late.delete(s.seat);
+    const p = this.match && this.match.players[s.seat];
+    if (this.on() && !dropIn && !(p && (p.token == null || p.token === s.token))) {
+      this.late.add(s.seat);
+    }
+    return [];
+  }
+
   start(core, conn, msg, now) {
     const game = core.game();
     if (game) {
@@ -300,6 +315,7 @@ export class RoomTag {
     this.nextId += 1;
     this.log = [];
     this.drops = [];
+    this.late.clear();
     return this.changed(core);
   }
 
@@ -311,6 +327,9 @@ export class RoomTag {
   pose(core, s, bytes, now) {
     if (!this.on()) {
       return [];
+    }
+    if (this.late.has(s.seat)) {
+      return this.advance(core, now);
     }
     const roomNow = core.roomMs(now);
     const p = decodePose(bytes);
@@ -442,7 +461,7 @@ export class RoomTag {
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
       const here = this.flying(core).map((f) => f.seat);
-      const pool = here.length ? here : [...core.seats.values()].map((s) => s.seat).sort((a, b) => a - b);
+      const pool = here.length ? here : [...core.seats.values()].map((s) => s.seat).filter((seat) => !this.late.has(seat)).sort((a, b) => a - b);
       const first = this.draw(pool);
       if (first == null) {
         this.finish(m.goAt, null);

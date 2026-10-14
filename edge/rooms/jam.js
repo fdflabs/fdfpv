@@ -139,6 +139,20 @@ export class RoomJam {
     return [];
   }
 
+  /* A pilot just seated during a match: one of its pilots when `dropIn`
+   * (core.js join, modes.js allowDropIn), its turn last in this round's
+   * order. A seat a pilot of the match held keeps that pilot's runs, so a
+   * newcomer in it waits. */
+  join(core, s, dropIn) {
+    const m = this.match;
+    if (!this.on() || !dropIn || Object.hasOwn(m.players, s.seat)) {
+      return [];
+    }
+    m.players[s.seat] = s.token;
+    m.order.push(s.seat);
+    return this.changed(core);
+  }
+
   start(core, conn, msg, now) {
     if (core.game()) {
       return this.error(conn, 'busy');

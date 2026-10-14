@@ -123,6 +123,11 @@ export class RoomCombat {
     this.meta = meta;
     this.round = { n: 0, state: 'idle', startsAt: 0, endsAt: 0, minutes: 0 };
     this.seats = new Map(); /* seat -> record, below */
+    /* Seats that came while a round was on and its game takes no
+     * newcomer (modes.js allowDropIn, core.js join): no record, so no
+     * paper, no score and no cut, until the next round begins. Memory
+     * only: after a restart they fly in. */
+    this.late = new Set();
     this.pairs = new Map(); /* 'cutter>victim' -> frontier, room ms */
     this.nextId = 1;
     /* For the checks: every cut this room has decided. */
@@ -144,6 +149,9 @@ export class RoomCombat {
 
   /* A seat's airframe, on its hello, its profile and a restore. */
   seat(seat, airframe) {
+    if (this.late.has(seat)) {
+      return;
+    }
     const r = this.record(seat);
     if (r.airframe !== airframe) {
       r.airframe = airframe;
@@ -154,6 +162,7 @@ export class RoomCombat {
 
   leave(seat) {
     this.seats.delete(seat);
+    this.late.delete(seat);
     for (const key of [...this.pairs.keys()]) {
       const [a, b] = key.split('>').map(Number);
       if (a === seat || b === seat) {
@@ -219,10 +228,17 @@ export class RoomCombat {
     return this.round.state === 'over' && this.round.nextAt > 0;
   }
 
-  /* A new round of `minutes`: counting down from now, fresh paper for all. */
+  /* A new round of `minutes`: counting down from now, fresh paper for all,
+   * the pilots who waited the last one out among them. */
   begin(core, now, minutes) {
     const r = this.round;
     const t = core.roomMs(now);
+    this.late.clear();
+    for (const s of core.seats.values()) {
+      if (!this.seats.has(s.seat)) {
+        this.seat(s.seat, s.profile.airframe);
+      }
+    }
     r.n += 1;
     r.state = 'countdown';
     r.minutes = minutes;
@@ -251,6 +267,16 @@ export class RoomCombat {
   /* Whether a round is out: counting down or on. */
   on() {
     return this.round.state === 'countdown' || this.round.state === 'on';
+  }
+
+  /* A pilot just seated: a record, paper and all, unless a round is on
+   * and `dropIn` (core.js join, modes.js allowDropIn) is false and the
+   * seat is not already one of the round's. */
+  arrive(seat, airframe, dropIn) {
+    if (this.on() && !dropIn && !this.seats.has(seat)) {
+      this.late.add(seat);
+    }
+    this.seat(seat, airframe);
   }
 
   /* For a pilot just seated: the round as it stands. */

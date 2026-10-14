@@ -28,11 +28,12 @@
  * screen): until then the flags are kept and no time runs, and the times
  * are settled again when a pilot comes onto the grid (core.js).
  *
- * A round on has no lobby: a pilot who joins then is in it (war.js late
- * join; combat.js seat() gives a newcomer paper; tag.js pose() makes a
- * newcomer a hunter; free flight is just flying). A race on is the one
- * that cannot be joined: it went off a grid, and its racers were the ones
- * on it. When the round starts every flag is cleared, so its end finds the
+ * A round on has no lobby: a pilot who joins then is in it where its
+ * game's allowDropIn (src/share/modes.js, read by core.js join) says so
+ * (war.js late join; combat.js arrive() gives a newcomer paper; tag.js
+ * makes a newcomer a hunter; free flight is just flying). A race on and a
+ * jam on cannot be joined: a race went off a grid, and its racers were the
+ * ones on it; a jam's turns were set at its start. When the round starts every flag is cleared, so its end finds the
  * room back in the lobby with nobody ready. Free flight has no end: its
  * round is on from its first start until the room is empty.
  *

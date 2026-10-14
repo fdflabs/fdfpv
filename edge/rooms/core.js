@@ -1031,14 +1031,18 @@ export class RoomCore {
     actions.push(...wrecks.wrecksFor(this, conn));
     actions.push(...this.drops.join(conn));
     /* A newcomer to a running round flies in where its game allows it
-     * (modes.js allowDropIn): the race takes it onto its grid, the war
-     * enlists it. Elsewhere it waits for the next round, a war's told the
-     * attackers as a watcher is. A racer back from a drop is always back. */
+     * (modes.js allowDropIn), every game reading the one field: the race
+     * takes it onto its grid, the war enlists it, combat gives it paper,
+     * the Ace makes it a hunter, the jam adds it to the turns. Elsewhere it
+     * waits for the next round, a war's told the attackers as a watcher
+     * is. A player back from a drop is always back. */
     const running = this.game();
     const dropIn = running === null || running === 'ops' || this.modeById(running).allowDropIn;
     actions.push(...this.race.join(this, seat, dropIn));
-    this.combat.seat(seat, profile.airframe);
+    this.combat.arrive(seat, profile.airframe, dropIn);
     actions.push(...this.combat.join(this, conn));
+    actions.push(...this.tag.join(this, s, dropIn));
+    actions.push(...this.jam.join(this, s, dropIn));
     actions.push(...(dropIn ? this.war.join(this, conn) : this.war.watch(conn)));
     actions.push(...this.ops.join(this, conn, now));
     actions.push(...this.gameLobby.join(this, now));

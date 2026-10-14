@@ -42,7 +42,7 @@ import { ROUND_MINUTES } from '../edge/rooms/combat.js';
 import { GOALS } from '../src/share/roomtag.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
-import { PROTO } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, PROTO, encodePose } from '../src/share/roomwire.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
@@ -97,6 +97,14 @@ function lobbyRoom({
     }
   };
   env.leave = (i) => env.apply(r.close(env.socks[i], env.clock));
+  /* One pose from pilot i, airborne over the strip, on the room clock. */
+  env.fly = (i) => {
+    const t = Math.floor(r.roomMs(env.clock));
+    env.apply(r.message(env.socks[i], encodePose({
+      flags: FLAG_AIRBORNE, seq: t & 0xffff, t, px: 10 * i, py: 50, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1,
+      vx: 0, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 900, flaps: 0,
+    }), env.clock, env.socks[i].address));
+  };
   /* Pilot i back on a new socket with the seat token it was given. */
   env.rejoin = (i) => {
     const was = env.socks[i].got.find((m) => m && m.type === 'welcome');
@@ -490,6 +498,49 @@ export function gameLobbySection(check) {
     const outWar = start(flipped);
     check('with the war\'s allowDropIn turned over, that pilot waits: no player, the war still on',
       !outWar.includes(3) && outWar.length === 2 && flipped.r.war.on(), JSON.stringify(outWar));
+  }
+  {
+    /* Combat, the Ace and the jam read the same field (COMPLETENESS 7):
+     * each game's newcomer, then the same with the field turned over. */
+    const begun = (e) => {
+      e.at(100);
+      e.ready(0);
+      e.ready(1);
+      e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+      e.join(2);
+      return e;
+    };
+    const combat = begun(lobbyRoom({ mode: 'combat', mission: null, flip: 'combat' }));
+    check('with combat\'s allowDropIn turned over, a pilot who comes mid round has no paper and is no player',
+      combat.r.combat.on() && !combat.r.combat.seats.has(3) && !combat.r.combat.players().includes(3), JSON.stringify([...combat.r.combat.seats.keys()]));
+    combat.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 2, livery: null, parts: null } });
+    check('nor after a change of aircraft', !combat.r.combat.seats.has(3));
+    combat.at(combat.r.combat.round.endsAt + 200);
+    combat.ready(0);
+    combat.ready(1);
+    combat.ready(2);
+    combat.at(combat.clock + LOBBY_COUNTDOWN_MS + 100);
+    check('and in the next round it has its paper like the others', combat.r.combat.round.n === 2 && combat.r.combat.seats.has(3)
+      && combat.r.combat.seats.get(3).owed === combat.r.combat.seats.get(1).owed, JSON.stringify({ n: combat.r.combat.round.n, seats: [...combat.r.combat.seats.keys()] }));
+
+    const tag = begun(lobbyRoom({ mode: 'tag', mission: null }));
+    tag.at(tag.r.tag.match.goAt + 100);
+    tag.fly(2);
+    check('a pilot who comes during a tag match and flies is one of its hunters', Object.hasOwn(tag.r.tag.match.players, 3), JSON.stringify(Object.keys(tag.r.tag.match.players)));
+    const tagOut = begun(lobbyRoom({ mode: 'tag', mission: null, flip: 'tag' }));
+    tagOut.at(tagOut.r.tag.match.goAt + 100);
+    tagOut.fly(2);
+    check('with the Ace\'s allowDropIn turned over, that pilot flies but is no hunter and not drawn',
+      tagOut.r.tag.on() && !Object.hasOwn(tagOut.r.tag.match.players, 3) && !tagOut.r.tag.flying(tagOut.r).some((f) => f.seat === 3),
+      JSON.stringify(Object.keys(tagOut.r.tag.match.players)));
+
+    const jam = begun(lobbyRoom({ mode: 'jam', mission: null }));
+    check('a pilot who comes during a jam watches it out: no turn', jam.r.jam.on() && !Object.hasOwn(jam.r.jam.match.players, 3) && !jam.r.jam.match.order.includes(3),
+      JSON.stringify(jam.r.jam.match.order));
+    const jamIn = begun(lobbyRoom({ mode: 'jam', mission: null, flip: 'jam' }));
+    check('with the jam\'s allowDropIn turned over, that pilot is one of its pilots, its turn last this round',
+      jamIn.r.jam.on() && jamIn.r.jam.players(jamIn.r).includes(3) && jamIn.r.jam.match.order.at(-1) === 3 && jamIn.socks[0].got.filter((m) => m.type === 'jam').at(-1).jam.order.includes(3),
+      JSON.stringify(jamIn.r.jam.match.order));
   }
   {
     const e = lobbyRoom({ mode: null });
