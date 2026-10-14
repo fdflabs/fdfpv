@@ -157,8 +157,11 @@ export function buildPeerCraft(profile, look = null) {
   /* And their control surface tiers (configs/surfaces.js), which ride in
    * their parts and so in profileKey. */
   const surfaces = surfaceGrowth(id, profile.parts && profile.parts.surfaces);
+  /* mergeFixed: a combat quad's parts that never move on a peer drawn as
+   * one mesh a material (src/render/combatcraft.js); the other builders
+   * have no such option and draw as they always did. */
   const craft = craftBuilderFor(id)({
-    name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined, surfaces: surfaces ?? undefined,
+    name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined, surfaces: surfaces ?? undefined, mergeFixed: true,
   });
   if (paint) {
     /* The colours at once, the layers over the next frames
