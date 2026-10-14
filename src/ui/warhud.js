@@ -136,7 +136,10 @@ function mw(n) {
 export function waveCall(agents) {
   const a = agents[0];
   const where = `war.where.${String(a.route).replace(/[^a-z0-9]/g, '_')}`;
-  return plural(`war.call.${a.kind}`, agents.length, { where: where in en ? str(where) : str('war.where.none') });
+  /* A decoy is called as the Striker it looks like (src/ui/warmarkers.js
+   * DECOY_M), as one in a power line is (wireCall). */
+  const kind = a.kind === 'decoy' ? 'strike' : a.kind;
+  return plural(`war.call.${kind}`, agents.length, { where: where in en ? str(where) : str('war.where.none') });
 }
 
 /* The callout for an attacker at its target: hit (with the megawatts it
