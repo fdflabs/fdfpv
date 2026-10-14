@@ -4583,6 +4583,7 @@ export default {
   "training.lesson.defence_mission": "Working together",
   "training.lesson.defence_mission_note": "Win First Light, mission 1 of Defend the Paraná, with other pilots or alone.",
   "training.needs_rooms": "The Defence lessons fly in a war room, and no rooms server answers here.",
+  "training.mission_closed": "{mission} is not open yet: this lesson opens with it.",
   "training.toast_cert": "Certification earned",
   "training.cert.multirotor": "Multirotor",
   "training.cert.racing": "Racing",

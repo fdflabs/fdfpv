@@ -279,7 +279,8 @@ inputs and the flight's event log, each with a near miss that fails.
     the `mission_end` src/ui/campaign.js logs. First Light is held at
     release 'development' (the owner, 2026-10-07), so outside a
     developer's room this lesson, and with it the certification, waits
-    for its release.
+    for its release: until then its Fly says the mission is not open
+    and makes no room.
 - **A lesson's settings go back when it ends.** Flying a lesson seats
   its aircraft, tune, flight mode and weather in the pilot's stored
   settings; what they were before the first lesson is kept (under

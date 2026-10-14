@@ -19,7 +19,9 @@
  * Fly on Interception asks the war's consent; Continue makes a solo room
  * on Itaipu for the practice (itaipu-practice), the pilot's remembered
  * Who joins for the war untouched, the lesson held; the practice started
- * there goes live on its one stage, a Striker born. No page error.
+ * there goes live on its one stage, a Striker born. Working together,
+ * First Light being held in development, says so and makes no room. No
+ * page error.
  * Pictures in outdir.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -316,6 +318,18 @@ try {
   check('the practice started there goes live on its one stage, a Striker in the air, no result',
     live.state === 'live' && live.mission === PRACTICE_ID && live.stage === 'pass' && live.alive === 1 && live.result === null, JSON.stringify(live));
   await shot(war, 'defence-live');
+
+  /* Working together while First Light is held in development: said, no
+   * new room, the lesson left. */
+  await war.evaluate("window.__ui.show('title'); true");
+  await war.sleep(300);
+  await war.evaluate('(window.__training.open(), true)');
+  await war.until("!!document.querySelector('.training-box')", 15000);
+  await click(war, '[data-lesson="defence_mission"] .campaign-play');
+  await war.sleep(800);
+  const closed = await war.evaluate("({ sub: (window.__ui.progress.log.at(-1) || {}).sub || '', code: window.__rooms().code, lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null })");
+  check('Working together while First Light is in development says it is not open, makes no room and holds no lesson',
+    closed.sub === 'First Light is not open yet: this lesson opens with it.' && closed.code === room.code && closed.lesson === null, JSON.stringify(closed));
 } catch (e) {
   check('the Defence run finished', false, e.stack || String(e));
 }

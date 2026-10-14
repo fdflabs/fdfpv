@@ -4588,6 +4588,7 @@ export default {
   "training.lesson.defence_mission": "Trabajo en equipo",
   "training.lesson.defence_mission_note": "Gana Primera luz, la misión 1 de Defender el Paraná, con otros pilotos o solo.",
   "training.needs_rooms": "Las lecciones de Defensa se vuelan en una sala de guerra, y aquí no responde ningún servidor de salas.",
+  "training.mission_closed": "{mission} aún no está abierta: esta lección se abre con ella.",
   "training.toast_cert": "Certificación obtenida",
   "training.cert.multirotor": "Multirotor",
   "training.cert.racing": "Carreras",

@@ -8130,8 +8130,15 @@ export async function boot({
        * Who joins stays as the pilot left it), a campaign mission the
        * campaign's way. The stage engine runs only in a room. */
       if (lesson.mission) {
-        if (!(ui.friendsRow && ui.friendsRow())) {
-          ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${lesson.id}`), sub: str('training.needs_rooms') });
+        /* No rooms server, or a campaign mission this pilot may not fly
+         * yet (First Light held in development): said, and the lesson
+         * left, rather than a room whose start the server refuses. */
+        const closed = !(ui.friendsRow && ui.friendsRow()) ? str('training.needs_rooms')
+          : lesson.mission !== PRACTICE_ID && !(campaignRef ? campaignRef.playable() : []).includes(lesson.mission) ? str('training.mission_closed', { mission: str(`campaign.m.${missionKey(lesson.mission)}`) })
+            : null;
+        if (closed) {
+          ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${lesson.id}`), sub: closed });
+          ui.progress.endLesson();
           return;
         }
         const enter = lesson.mission === PRACTICE_ID ? warEnter({ mission: PRACTICE_ID }).then((code) => code && markSolo(code)) : ui.onWarCard('way-war', lesson.mission);
