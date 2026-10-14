@@ -55,6 +55,7 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS, waveSize } from '../src/share/war/missions/index.js';
 import { idsMayBe } from '../src/share/war/stages.js';
+import { GANTRIES } from '../src/share/war/contain.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(root, 'src', 'share', 'war', 'itaipu-targets.js');
@@ -293,7 +294,13 @@ async function readMap() {
     const wires = await page.evaluate('JSON.stringify(window.__mapScene().userData.itaipu.parts.town.town.wires)');
     const chunks = await page.evaluate(`JSON.stringify(Object.assign({}, ...Object.values(window.__mapScene().userData.itaipu.parts)
       .map((p) => p.structures ?? {})))`);
-    return { targets: JSON.parse(json), wires: JSON.parse(wires), chunks: JSON.parse(chunks) };
+    const sites = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+      const s = window.__mapScene().userData.itaipu.parts.dam.survey().sites;
+      return { intakes: s.intakeGantries, spillway: s.spillwayGantry };
+    })())`));
+    return {
+      targets: JSON.parse(json), wires: JSON.parse(wires), chunks: JSON.parse(chunks), sites,
+    };
   } finally {
     await page.close();
   }
@@ -301,7 +308,21 @@ async function readMap() {
 
 async function main() {
   const check = process.argv.includes('--check');
-  const { targets, wires, chunks } = await readMap();
+  const { targets, wires, chunks, sites } = await readMap();
+  /* The gantries Contain holds (src/share/war/contain.js GANTRIES), written
+   * by hand there: each in plan where the dam builds it, to the
+   * millimetre. The intakes' is the east one (the last of the survey's). */
+  const built = { 'gantry-intakes': sites.intakes && sites.intakes.at(-1), 'gantry-spillway': sites.spillway };
+  for (const [id, g] of Object.entries(built)) {
+    const at = GANTRIES[id].at;
+    const off = g ? Math.hypot(g.x - at[0], g.z - at[2]) : Infinity;
+    if (!(off <= 0.001)) {
+      console.error(`FAIL, ${id} in contain.js stands ${off.toFixed(3)} m from the gantry the map builds (${g ? `${mm(g.x)}, ${mm(g.z)}` : 'none'})`);
+      process.exitCode = 1;
+    } else {
+      console.log(`PASS, ${id} in contain.js stands on the gantry the map builds (${mm(g.x)}, ${mm(g.z)})`);
+    }
+  }
   const missing = IDS.filter((id) => !targets[id]);
   if (missing.length) {
     throw new Error(`the built map has no ${missing.join(', ')}`);

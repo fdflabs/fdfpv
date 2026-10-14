@@ -273,11 +273,11 @@ import { contactAt } from '../../src/share/war/contact.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
 import {
-  attackerCharge, blast, defenderCharge, leafMoved,
+  attackerCharge, blast, defenderCharge, healthOf, leafMoved,
 } from '../../src/share/war/damage.js';
 import { openAt } from '../../src/share/war/hoist.js';
 import {
-  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, restartAt, retargetFor, runningAt,
+  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, pausesOf, restartAt, retargetFor, runningAt, shutDue,
 } from '../../src/share/war/contain.js';
 import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
@@ -808,7 +808,7 @@ export class RoomWar {
         music: m.stage.music,
         /* Its own, then a closure's hold on its gantry (contain.js). */
         objectives: [...objectivesView({
-          mission, m, st: m.stage, f: m.f,
+          mission, m, st: m.stage, f: m.f, pauses: (gantry) => pausesOf(m.contain, gantry),
         }), ...objectivesOf(m.contain, m.stage.at, m.f)],
         /* What the seed chose for each spawn (stages.js enter). */
         draws: m.stage.due.map((d) => ({
@@ -1612,6 +1612,9 @@ export class RoomWar {
       const after = this.containTold(core);
       dirty ||= after.length > 0;
       out.push(...after);
+      const shut = this.containShut(core);
+      dirty ||= shut.length > 0;
+      out.push(...shut);
       const moved = this.leafWatch(core);
       dirty ||= moved.length > 0;
       out.push(...moved);
@@ -2045,6 +2048,10 @@ export class RoomWar {
     const out = [];
     const turnOf = (id) => this.leafTurnAt(structures[id], id, t);
     for (const r of blast(structures, m.wreck, at, w, mm(t), turnOf)) {
+      /* Its stoplogs down (containShut): a hole torn now passes no water. */
+      if (m.wreck[r.target]?.shut != null) {
+        r.openings = [];
+      }
       /* Where its leaf stood when its holes were last told. */
       if (r.openings.length && structures[r.target].frame.hinge) {
         m.wreck[r.target].leafOpen = this.gateOpen(structures[r.target], r.target, t);
@@ -2105,7 +2112,7 @@ export class RoomWar {
     const t = m.f;
     for (const [id, st] of Object.entries(m.wreck)) {
       const s = structures[id];
-      if (!s || !s.frame.hinge || !st.open || st.leafOpen == null) {
+      if (!s || !s.frame.hinge || !st.open || st.leafOpen == null || st.shut != null) {
         continue;
       }
       const o = this.gateOpen(s, id, t);
@@ -2210,6 +2217,13 @@ export class RoomWar {
       cleared: !m.agents.some((a) => a.kind !== 'scout') && !containOpen(m.contain, f),
       lastGone: held == null ? m.lastGone : Math.max(m.lastGone ?? held, held),
       allOut: here.length > 0 && !here.some((seat) => this.stillFlying(seat, roomNow)),
+      /* { contained: true }: no closure open, since the last was held
+       * (or the entry): an exit that is not a loss waits on it where it
+       * does not wait on `cleared` (The Long Night's, which end on their
+       * groups gone). */
+      /* A hold's pause (stages.js): the gantry it names closing. */
+      pauses: (gantry) => pausesOf(m.contain, gantry),
+      trigger: (trig) => (trig.contained ? (containOpen(m.contain, f) ? null : Math.max(st.at, held ?? st.at)) : undefined),
     };
   }
 
@@ -2448,6 +2462,44 @@ export class RoomWar {
     if (c) {
       (m.contain ??= []).push(c);
     }
+  }
+
+  /*
+   * Each closure held by now has its opening told again at zero size, at
+   * its hold (MISSIONS.md 1.9 point 5, contain.js shutDue): an op 'damage'
+   * with no chunks, kept with the match's damage for a late joiner, which
+   * the flood takes as the hole shut (src/maps/itaipu/water/flood.js).
+   * The stoplogs stay down, so the target's later holes pass no water
+   * (strike, leafWatch). An opening the room recorded with no hole (a
+   * breach without damage) sends nothing.
+   */
+  containShut(core) {
+    const m = this.match;
+    const structures = STRUCTURES[this.mission().map];
+    const out = [];
+    for (const x of shutDue(m.contain, m.f)) {
+      const st = m.wreck?.[x.c.target];
+      if (!st || !st.open) {
+        continue;
+      }
+      st.shut = x.until;
+      const e = {
+        seq: m.damage.length,
+        target: x.c.target,
+        at: x.until,
+        chunks: [],
+        fell: [],
+        openings: [{ ...st.open, at: x.until, width_m: 0, height_m: 0 }],
+        down: false,
+        health: structures?.[x.c.target] ? healthOf(structures[x.c.target], st) : null,
+        cut: [],
+        p: null,
+        by: 'stoplogs',
+      };
+      m.damage.push(e);
+      out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
+    }
+    return out;
   }
 
   /* The closures' lines now due (contain.js linesDue), told as a stage's

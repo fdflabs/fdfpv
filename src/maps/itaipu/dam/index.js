@@ -3061,6 +3061,26 @@ export async function buildPart(ctx) {
       /* The bridge's hoist, a machinery house on the upstream edge
        * (aerial-spill-2 photograph), over no road lane a quad needs. */
       crane(C, 132, 146, d0 - 0.2, d0 + 3.4, CREST_Y, CREST_Y + 3, CREST_Y + 11, TONE.craneOrange);
+      /* The spillway's emergency gantry (MISSIONS.md 1.9, TECH-NEEDS
+       * T1.6: gantry-spillway, which lowers the stoplogs into a gate's bay
+       * upstream of its leaf): a portal crane astride the deck, its legs
+       * on the deck's two edges, parked over the middle pier (pierU[7],
+       * u 0, between gate-6 and gate-7). AN ESTIMATE: no photograph here
+       * shows Itaipu's spillway gantry, so it takes the intake gantries'
+       * span, height and paint (INTAKE_CRANE). Its sills are solid as its
+       * legs and house are: a quad along the road under it meets them. */
+      {
+        const IC = INTAKE_CRANE;
+        const yL = CREST_Y + IC.legTop;
+        crane(C, -IC.half, IC.half, d0, d1, CREST_Y, yL, CREST_Y + IC.houseTop, TONE.craneViolet);
+        for (const u of [-IC.half, IC.half - 1.4]) {
+          prismBoxes(plan(u, u + 1.4, d0, d1), yL - 1.6, () => yL + SKIN, C.a, true);
+        }
+        const [x, z] = C.at(0, (d0 + d1) / 2);
+        /* Where it stands (contain.js GANTRIES, held to it by war:targets):
+         * its middle in world metres. */
+        sites.spillwayGantry = { x, z, y: CREST_Y };
+      }
       const m = C.at(0, 0);
       sites.spillwayBridge = {
         x: m[0], z: m[1], y: CREST_Y, dir: C.a,

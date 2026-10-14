@@ -460,6 +460,20 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
   await settle(empty);
   check('an empty clip in a war gets the starting water of its own', empty.stats(clip).fork === 'origin' && empty.stats(clip).origin === null && empty.flood() !== fl);
 
+  /* The closure held (MISSIONS.md 1.9 point 5, edge/rooms/war.js
+   * containShut): the same opening told again at zero size shuts it. The
+   * notch's cells stand again, the gate passes its lip's band alone and
+   * the sound has nothing of it. */
+  const shutAt = end + 2000;
+  live.open({ ...opening(shutAt, 212.83), width_m: 0, height_m: 0 });
+  catchUp(live, shutAt + 5000);
+  const bs = fl.f.bed();
+  const standing = gate.wall.filter((c) => bs[c.k] !== fl.bed.b[c.k]);
+  const lipBand = fl.bands(3);
+  check('a closure held: the opening told again at zero size shuts the hole, its cells stand again, the gate passes its lip alone, no sound of it',
+    fl.holes().length === 0 && standing.length === 0 && lipBand.length === 1 && Math.abs(lipBand[0][1] - lipBand[0][0] - fl.lips()[3]) < 1e-9 && !live.flows().some((w) => w.id === 'gate-3'),
+    `${fl.holes().length} holes, ${standing.length} cells still cut, bands ${JSON.stringify(lipBand)}, flows ${live.flows().map((w) => w.id).join(',') || 'none'}`);
+
   live.setGates(null);
   await settle(live);
   st = live.stats();

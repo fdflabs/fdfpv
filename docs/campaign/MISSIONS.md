@@ -220,33 +220,45 @@ war:stages' Contain section, 2026-10-14), with what each point became:
   missions 1 to 4 have it; the drill and Training's practice do not.
 - The gantries are war targets worth 0 MW (`GANTRIES`): `gantry-intakes`
   at the east intake gantry the dam builds (its survey, t 817.6 on the
-  crest), `gantry-spillway` over the gate row's middle, a placeholder:
-  the map builds no spillway gantry yet (T1.6).
+  crest), `gantry-spillway` at the spillway gantry the dam builds astride
+  the bridge deck over the middle pier, between gate-6 and gate-7 (the
+  dam's `crane()` at the intake gantries' span, height and paint: an
+  estimate, no photograph here shows Itaipu's). war:targets holds both to
+  the built map's survey, to the millimetre (w39-contain-2). The
+  stoplogs' descent is not drawn.
 - Point 3: the first group born after an opening whose kind can reach the
   crest (Strikers, Loiterers and a decoy among them) turns at the gantry;
   a swarm up the gorge or a boat keeps its target. A gantry hit while it
   closes nothing costs nothing.
 - Point 5: nothing is restored, and the stars are capped by the existing
   `held` criterion (an opening loses its target, so its stage is
-  damaged). The contract's zero size opening event and the flood
-  draining are not built (the flood solver's side, outside the engine):
-  the water keeps running on screen after `contain-held`.
+  damaged). At the hold the room tells the opening again at zero size
+  (an op 'damage' by `stoplogs`, kept for a late joiner), and the flood
+  shuts a gate's hole: its link passes the leaf's lip alone and a notch's
+  cells stand again (`src/maps/itaipu/water/flood.js`). The stoplogs stay
+  down, so a hole torn there later passes nothing. An intake's or a
+  penstock's opening has no place in the flood yet (it is counted, not
+  dropped), so there is no water of theirs to stop.
 - Point 6: `why: 'shutdown'` (T1.12); the end banner says so
   (`war.lost_shutdown`); the lose debrief line is still the output
   floor's.
 - Point 8: an opening made in the lost stage is undone with it; one made
   before it closes again from the restart's go, and the next group turns
   again.
-- Point 4 holds through the `cleared` trigger. Every exit of missions 1
-  to 3 that is not a loss waits on it; The Long Night's do not: Hunters
-  moves on when its groups are gone (the closure runs on into the next
-  stage), and Before Dawn is won when its groups are gone, so M4 can be
-  won with a closure still running.
+- Point 4 holds through the `cleared` trigger in missions 1 to 3, and in
+  The Long Night's Hunters and Before Dawn, which end on their groups
+  gone, through `{ contained: true }` (no closure open; war.js's stage
+  hook): every exit that is not a loss waits for the closure.
 - `STING` is not sent: no mission has a music cue path for it yet.
-- M2's spill hold does not pause while the spillway gantry closes a gate
-  (M2, If the face opens): the two run side by side.
+- M2's spill hold pauses while the spillway gantry closes a gate (M2, If
+  the face opens; the objective's `pause`, stages.js): its clock stands,
+  the HUD shows the time held standing, and its half and its end move by
+  the pause. The spill's hoists keep opening through it. An intake's
+  closure pauses nothing.
 - `contain-river` is DESPACHO's in every mission, as the table says, so
-  in missions 1 and 2 DESPACHO speaks before mission 3 introduces it.
+  in missions 1 and 2 DESPACHO speaks before mission 3 introduces it. A
+  CREST variant for missions 1 and 2 is proposed below
+  (`contain-river-crest`), text only: not voiced and not wired.
 - A turned group's last leg to the crest is flown by no route check
   (war:routes flies each spawn's own targets).
 
@@ -255,6 +267,7 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 | contain-breach | `opening` | CREST | urgent | Water through the face. Lowering the stoplogs. Protect the gantry. | Entra agua por la cara. Bajando las ataguías. Protejan la grúa. |
 | contain-retarget | the first group born after an opening | MIRADOR | urgent | They've seen it. They're turning for the crane. | Lo vieron. Están girando hacia la grúa. |
 | contain-river | after contain-breach | DESPACHO | calm | The riverbank below was cleared the first night. Nobody is down there. Just close it. | La ribera de abajo se despejó la primera noche. No hay nadie. Solo ciérrenla. |
+| contain-river-crest | after contain-breach, missions 1 and 2 (proposed) | CREST | calm | Nobody's below us. The riverbank was cleared the first night. Just close it. | No hay nadie abajo. La ribera se despejó la primera noche. Solo ciérrenla. |
 | contain-half | the closure at half | TALLER | firm | Stoplogs halfway down. Keep them off my crane. | Las ataguías van por la mitad. Que no lleguen a mi grúa. |
 | contain-held | closure `held` | CREST | calm | Closed. The face is closed. Back to it. | Cerrada. La cara está cerrada. A lo nuestro. |
 | contain-lost | gantry hit while open | CREST | calm | We can't close it. Shutting the plant down. All pilots, pull back to high ground. | No la podemos cerrar. Paramos la central. Todos los pilotos, repliéguense a lo alto. |
@@ -309,7 +322,7 @@ branch w39-mission-3):
 | Win and lose debrief lines | voiced | voiced | voiced, new text (the loss DESPACHO's) | voiced (rewritten to M4) |
 | Seeded sectors and routes | yes; war:routes PASS | yes | yes (NW, LINES, HIGH, N); war:routes PASS | yes; war:routes PASS |
 | Consent before the first war room | `war.consent_*`, en and es (every war mission) | same | same | same |
-| If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's pause during a closure not built | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced |
+| If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's hold pauses during a closure | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced; Hunters and Before Dawn wait for a closure |
 
 Mission 3 also lacks what the world does not do yet, so its lines do not
 claim it: spotting (T1.8). Districts coming back after the reroute

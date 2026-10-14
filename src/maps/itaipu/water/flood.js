@@ -15,7 +15,9 @@
  * at, sill, width_m, height_m, normal }. A gate's opening replaces its
  * link's bands with the hole: from the sill up height_m, width_m wide,
  * at OPENING_CD; a gate standing open has the band under its lip at
- * GATE_CD. Intakes and penstocks come in the extend phase.
+ * GATE_CD. The same opening told again at zero size is shut (its
+ * closure held, MISSIONS.md 1.9): the hole passes nothing, the leaf's
+ * lip runs on. Intakes and penstocks come in the extend phase.
  *
  * Every number here is from a source named beside it; water is never
  * scaled.
@@ -267,6 +269,13 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
           if (Math.abs(c.u - was.across) <= was.width / 2) b[c.k] = bed.b[c.k];
         }
       }
+      if (!(width > 0 && height > 0)) {
+        /* Shut (a closure held: the stoplogs down in its bay upstream of
+         * the leaf, MISSIONS.md 1.9 point 5): no hole passes water. */
+        holes[g] = null;
+        f.linkBands(links[g], bandsOf(g));
+        return { gate, sky: false, cut: 0 };
+      }
       holes[g] = {
         sill, width, height, across, sky,
       };
@@ -346,9 +355,17 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
       const m = /^gate-(\d+)$/.exec(o && o.target ? o.target : '');
       const g = m ? Number(m[1]) : -1;
       const sill = o && Array.isArray(o.sill) ? o.sill : null;
-      if (o.kind !== 'gate' || !(g >= 0 && g < bed.gates.length) || !sill || !(o.width_m > 0) || !(o.height_m > 0)) {
+      /* An opening told again at zero size is shut: its closure held
+       * (edge/rooms/war.js containShut). */
+      const shut = opened.has(o.id) && o.width_m === 0 && o.height_m === 0;
+      if (o.kind !== 'gate' || !(g >= 0 && g < bed.gates.length) || !sill || (!shut && !(o.width_m > 0 && o.height_m > 0))) {
         unplaced.add(o.id);
         return false;
+      }
+      if (shut) {
+        this.openGate(g, { sill: sill[1], width: 0, height: 0 });
+        opened.delete(o.id);
+        return true;
       }
       const gate = bed.gates[g];
       const [u] = bed.frame.local(sill[0], sill[2]);
