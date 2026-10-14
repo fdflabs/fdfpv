@@ -41,6 +41,10 @@
  * the same private room, with its race track, and the purge alarm carried
  * across the restart, and the public room listed again straight after it.
  *
+ * Then src/share/rooms.js itself, with its storage and socket stood in: a
+ * second tab on the same seat token, a reload back into its own seat, and
+ * a quick join asked by a plain GET and joined by code.
+ *
  * A check against a live server makes one private room and leaves it to
  * be purged five minutes after, like any room nobody is in.
  *
@@ -705,6 +709,28 @@ function raw(text) {
     Boolean(fresh) && fresh.token !== before.token && fresh.seat !== before.seat, JSON.stringify(fresh && { seat: fresh.seat }));
   anew.leave();
   beside.ws.close(1000);
+
+  /* The link's quick join asks the server for its room with a plain GET,
+   * which carries a signed in pilot's session for the server to leave out
+   * rooms of pilots it blocked (edge/rooms/front.js joinerOf), and then
+   * joins that room by its code. */
+  if (pub.open) {
+    const fetched = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (input, init) => {
+      fetched.push(String(input));
+      return realFetch(input, init);
+    };
+    const quickLink = createRoomLink({}, hello);
+    quickLink.joinPublic('alps');
+    const quickIn = await opened(quickLink);
+    globalThis.fetch = realFetch;
+    const quickCode = quickLink.state().code;
+    check('the link\'s quick join asks for its room with a plain GET, then joins it by its code',
+      quickIn && fetched.some((u) => u.endsWith('/v2/public/alps')) && Boolean(quickCode) && sockets.at(-1).url.endsWith(`/v2/room/${quickCode}`),
+      JSON.stringify({ fetched, url: sockets.at(-1).url, quickCode }));
+    quickLink.leave();
+  }
   globalThis.WebSocket = WebSocket;
   delete globalThis.window;
 }

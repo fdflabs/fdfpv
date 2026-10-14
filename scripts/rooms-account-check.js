@@ -21,7 +21,8 @@
  * account keeps the blocked pilot's chat and voice from the blocker in
  * every room after, whoever joins first and from whichever computer, and
  * a renamed pilot stays blocked; an unblock ends it at the next join. The
- * negative controls: a mute set in a room, by a signed in pilot or by a
+ * room browser and the quick join leave out a room holding a pilot the
+ * asker blocked, for the asker alone. The negative controls: a mute set in a room, by a signed in pilot or by a
  * guest on a rooms server with no accounts, dies with that room.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -302,6 +303,34 @@ console.log('blocks that outlast a room');
   check('and the next join hears them again', h.witnessed && h.chat && h.voice, JSON.stringify(h));
   leave(room);
   await api('PUT', '/api/account/callsign', { callsign: 'Iceman' }, other);
+
+  /* The room browser and the quick join, decided on the rooms server from
+   * the session the page sends as authorization (edge/rooms/front.js
+   * joinerOf): a public room holding Iceman is neither listed to Goose,
+   * who blocked him, nor picked for Goose's quick join, and is for Viper. */
+  r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: true }, session);
+  const icemanRoom = await makeRoom({ map: 'swiss2', public: true }, nextAddress());
+  const icemanIn = await seat(icemanRoom, { ...NEW, name: [6, 7, 61], session: other });
+  const asking = (sess) => ({ origin: PAGE, 'cf-connecting-ip': nextAddress(), ...(sess ? { authorization: `Bearer ${sess}` } : {}) });
+  const listFor = async (sess) => {
+    const res = await fetch(`${roomsOrigin}/v2/rooms`, { headers: asking(sess) });
+    return res.ok ? (await res.json()).rooms.map((x) => x.code) : [];
+  };
+  let viperList = [];
+  for (let i = 0; i < 20 && !viperList.includes(icemanRoom); i += 1) {
+    await sleep(100);
+    viperList = await listFor(viper);
+  }
+  check('Viper\'s list, and a guest\'s, show the public room Iceman is in', viperList.includes(icemanRoom) && (await listFor(null)).includes(icemanRoom),
+    JSON.stringify(viperList));
+  check('Goose\'s, who blocked him, leaves it out', !(await listFor(session)).includes(icemanRoom));
+  const pick = async (sess) => (await (await fetch(`${roomsOrigin}/v2/public/swiss2`, { headers: asking(sess) })).json()).code;
+  const goosePick = await pick(session);
+  check('Goose\'s quick join is handed another room', typeof goosePick === 'string' && goosePick !== icemanRoom, goosePick);
+  check('Viper\'s is handed Iceman\'s', await pick(viper) === icemanRoom);
+  r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: false }, session);
+  check('unblocked, Goose\'s next list shows it again', r.status === 200 && (await listFor(session)).includes(icemanRoom));
+  icemanIn.ws.close(1000);
 
   /* A guest's mute, where there are no accounts (do.js, a local server):
    * nothing outlives the room. */

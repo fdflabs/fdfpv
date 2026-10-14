@@ -63,6 +63,7 @@ import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { jamSection } from './rooms-selftest-jam.js';
 import { browserSection } from './rooms-selftest-browser.js';
+import { blocksSection } from './rooms-selftest-blocks.js';
 import { scaleSection } from './rooms-selftest-scale.js';
 import { sessionSection } from './rooms-selftest-session.js';
 import { weatherSection } from './rooms-selftest-weather.js';
@@ -2021,6 +2022,7 @@ footSection(check);
 watchSection(check);
 watchStateSection(check);
 await browserSection(check);
+await blocksSection(check);
 await scaleSection(check);
 
 /* ---------------------------------------------------------------------

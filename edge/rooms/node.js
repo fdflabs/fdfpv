@@ -730,6 +730,9 @@ export async function startRooms({
           [PEER_HEADER]: '1',
           'cf-connecting-ip': request.headers.get('cf-connecting-ip') || '',
           ...(request.headers.get('origin') ? { origin: request.headers.get('origin') } : {}),
+          /* The pilot's session, so the peer leaves out the same rooms
+           * (front.js joinerOf). */
+          ...(request.headers.get('authorization') ? { authorization: request.headers.get('authorization') } : {}),
         },
         signal: AbortSignal.timeout(PEER_LIST_MS),
       });
