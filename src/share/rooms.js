@@ -655,11 +655,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         return;
       }
       if (next !== code) {
+        /* A token belongs to one room: the one this tab was in keeps it,
+         * so a reload is back in its own seat. Read before leave(), which
+         * forgets both. */
+        const token = normaliseCode(read('session', ROOM_KEY)) === next ? read('session', TOKEN_KEY) : null;
         leave();
-        /* A token belongs to one room. */
-        if (normaliseCode(read('session', ROOM_KEY)) !== next) {
-          write('session', TOKEN_KEY, null);
-        }
+        write('session', TOKEN_KEY, token);
       }
       if (ws || retry) {
         return;
