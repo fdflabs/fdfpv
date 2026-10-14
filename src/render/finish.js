@@ -45,6 +45,12 @@
  * through: its film glow (filmmat.js) goes to 0 and comes back with the
  * kit's finish.
  *
+ * A PALETTE (a peer's joined parts, src/render/combatcraft.js
+ * paletteFixed) wears its entries' finishes in one program: the same
+ * chunk, each number it reads looked up by the vertex's entry from
+ * uniforms the palette's materials' finishes fill (finishPalette), an
+ * entry whose material wears none at the identity.
+ *
  * swiss2 draws the craft physically based (src/maps/swiss2/craftlook.js)
  * and reads the finish from mat.userData.paintFinish for its twin.
  *
@@ -218,9 +224,9 @@ const FINISH_HELPERS = /* glsl */ `
 const FINISH_CHUNK = /* glsl */ `
   {
     /* The light the surface had: the lit colour over the paint's. */
-    vec3 finShade = gl_FragColor.rgb / max(diffuse, vec3(0.04));
+    vec3 finShade = gl_FragColor.rgb / max(FIN_PAINT, vec3(0.04));
     vec3 finBase = gl_FragColor.rgb;
-    vec3 finPaint = diffuse;
+    vec3 finPaint = FIN_PAINT;
     /* The underside: a face looking down in the aircraft's own frame
      * takes the region's under colour, a hard line as a painter's mask
      * leaves, a little under the side so a fuselage's flank stays top. */
@@ -294,11 +300,63 @@ const FINISH_CHUNK = /* glsl */ `
   }
 `;
 
+/* The finish's numbers as one material's uniforms. */
+const SCALAR_PARS = /* glsl */ `
+         uniform float uFinDiffuse;
+         uniform float uFinEnv;
+         uniform float uFinTint;
+         uniform float uFinSpec;
+         uniform float uFinWidth;
+         uniform vec3 uFinSpecDir;
+         uniform float uFinCarbon;
+         uniform float uFinAlu;
+         uniform float uFinGold;
+         uniform float uFinFlake;
+         uniform float uFinBrush;
+         uniform float uFinWear;
+         uniform float uFinUnder;
+         uniform vec3 uFinUnderCol;
+         uniform float uFinPat;
+         uniform vec3 uFinPatCol;
+         #define FIN_PAINT diffuse`;
+
+/* The same names as a palette entry's (entryValues), picked by the entry
+ * the vertex passed flat, so each surface reads the bits its own
+ * material's uniforms held. A palette's diffuse is white, its paint the
+ * entry's (celmat.js). */
+const ENTRY_VEC4S = 5;
+const palettePars = (n) => /* glsl */ `
+         uniform vec4 uFinEntry[${n * ENTRY_VEC4S}];
+         uniform vec3 uFinSpecDir;
+         flat varying float vFinKey;
+         #define FIN_E(i) uFinEntry[int(vFinKey) * ${ENTRY_VEC4S} + i]
+         #define uFinDiffuse FIN_E(0).x
+         #define uFinEnv FIN_E(0).y
+         #define uFinTint FIN_E(0).z
+         #define uFinSpec FIN_E(0).w
+         #define uFinWidth FIN_E(1).x
+         #define uFinWear FIN_E(1).y
+         #define uFinUnder FIN_E(1).z
+         #define uFinPat FIN_E(1).w
+         #define uFinCarbon FIN_E(2).x
+         #define uFinAlu FIN_E(2).y
+         #define uFinGold FIN_E(2).z
+         #define uFinFlake FIN_E(2).w
+         #define uFinUnderCol FIN_E(3).xyz
+         #define uFinBrush FIN_E(3).w
+         #define uFinPatCol FIN_E(4).xyz
+         #define FIN_PAINT vCelPaint.rgb`;
+
 /* A material's finish uniforms, made once and kept: the wrapper puts these
  * very objects into every compile of it, so a later write reaches the
- * program without a recompile. */
-function wrap(mat) {
-  const u = {
+ * program without a recompile. `palette`, { n, data, framed }, makes it a palette
+ * material's (finishPalette), whose rim and highlight are its entries'. */
+function wrap(mat, palette = null) {
+  const u = palette ? {
+    uFinEntry: { value: palette.data },
+    uFinSpecDir: { value: null },
+    uFinCraft: { value: new THREE.Matrix4() },
+  } : {
     uFinDiffuse: { value: 1 },
     uFinEnv: { value: 0 },
     uFinTint: { value: 0 },
@@ -319,7 +377,9 @@ function wrap(mat) {
     uFinPat: { value: 0 },
     uFinPatCol: { value: new THREE.Color() },
   };
-  const state = { u, rim: null, spec: null, finish: 'kit' };
+  const state = palette ? { u, framed: () => palette.framed } : {
+    u, rim: null, spec: null, finish: 'kit', framed: () => u.uFinUnder.value > 0.5 || u.uFinPat.value > 0.5,
+  };
   const base = mat.onBeforeCompile;
   const baseKey = mat.customProgramCacheKey.bind(mat);
   mat.onBeforeCompile = (shader, renderer) => {
@@ -327,7 +387,9 @@ function wrap(mat) {
     if (!shader.uniforms.uRimStrength || !shader.uniforms.uSpecStrength) {
       throw new Error('finish: the material is not a cel one, it has no rim or highlight to take over');
     }
-    if (state.rim === null) {
+    if (palette) {
+      u.uFinSpecDir.value = shader.uniforms.uSpecDir.value;
+    } else if (state.rim === null) {
       state.rim = shader.uniforms.uRimStrength.value;
       state.spec = shader.uniforms.uSpecStrength.value;
       u.uFinSpecDir.value = shader.uniforms.uSpecDir.value;
@@ -335,27 +397,12 @@ function wrap(mat) {
     }
     Object.assign(shader.uniforms, u);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\n${FINISH_VARYINGS}\nuniform mat4 uFinCraft;`)
-      .replace('#include <begin_vertex>', `#include <begin_vertex>\n${FINISH_VERTEX}`);
+      .replace('#include <common>', `#include <common>\n${FINISH_VARYINGS}\nuniform mat4 uFinCraft;${palette ? '\nflat varying float vFinKey;' : ''}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\n${FINISH_VERTEX}${palette ? '\nvFinKey = aCelKey;' : ''}`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
          ${FINISH_VARYINGS}
-         uniform float uFinDiffuse;
-         uniform float uFinEnv;
-         uniform float uFinTint;
-         uniform float uFinSpec;
-         uniform float uFinWidth;
-         uniform vec3 uFinSpecDir;
-         uniform float uFinCarbon;
-         uniform float uFinAlu;
-         uniform float uFinGold;
-         uniform float uFinFlake;
-         uniform float uFinBrush;
-         uniform float uFinWear;
-         uniform float uFinUnder;
-         uniform vec3 uFinUnderCol;
-         uniform float uFinPat;
-         uniform vec3 uFinPatCol;
+         ${palette ? palettePars(palette.n) : SCALAR_PARS}
          ${FINISH_HELPERS}`)
       .replace('#include <dithering_fragment>', `#include <dithering_fragment>
         /* Paint, so not in a thermal frame, whose temperature the output
@@ -471,18 +518,79 @@ function hookCraftFrame(craft) {
   }
   craft.group.userData.finishHooked = true;
   craft.group.traverse((o) => {
-    if (!o.isMesh) {
-      return;
+    if (o.isMesh) {
+      hookMesh(craft, o);
     }
-    const before = o.onBeforeRender;
-    o.onBeforeRender = function onBeforeRender(renderer, scene, camera, geometry, material, group) {
-      before.call(this, renderer, scene, camera, geometry, material, group);
-      const state = material && material.userData.finishState;
-      if (state && (state.u.uFinUnder.value > 0.5 || state.u.uFinPat.value > 0.5)) {
-        state.u.uFinCraft.value.copy(craft.group.matrixWorld).invert();
-      }
-    };
   });
+}
+
+function hookMesh(craft, mesh) {
+  const before = mesh.onBeforeRender;
+  mesh.onBeforeRender = function onBeforeRender(renderer, scene, camera, geometry, material, group) {
+    before.call(this, renderer, scene, camera, geometry, material, group);
+    const state = material && material.userData.finishState;
+    if (state && state.framed()) {
+      state.u.uFinCraft.value.copy(craft.group.matrixWorld).invert();
+    }
+  };
+}
+
+/* celmat.js's rim strength for a material made without opts.rim, which a
+ * palette entry without one also falls back to (paletteChunks). */
+const CEL_RIM = 0.32;
+
+/*
+ * A palette entry (celmat.js) for a material that may wear a finish: its
+ * rim and highlight strengths as the finish takes them over (apply). From
+ * the finish's table, not the uniforms, which apply() leaves unwritten
+ * until the material's first compile.
+ */
+export function finishedEntry(mat, entry) {
+  const state = mat.userData.finishState;
+  if (!state) {
+    return entry;
+  }
+  const f = FINISH[state.finish] ?? FINISH.kit;
+  return { ...entry, rim: (entry.rim ?? CEL_RIM) * f.rim, spec: (entry.spec ?? 0) * f.cel };
+}
+
+/* One entry's finish, ENTRY_VEC4S vec4s in palettePars' layout: what
+ * apply() and dressFinish write to a material's uniforms, the identity for
+ * a material that wears none. */
+function entryValues(mat) {
+  const state = mat.userData.finishState;
+  const f = FINISH[state ? state.finish : 'kit'] ?? FINISH.kit;
+  const u = state ? state.u : null;
+  const under = u ? u.uFinUnderCol.value.toArray() : [0, 0, 0];
+  const pattern = u ? u.uFinPatCol.value.toArray() : [0, 0, 0];
+  return [
+    f.diffuse, f.env, f.tint, f.spec,
+    f.width, u ? u.uFinWear.value : 0, u ? u.uFinUnder.value : 0, u ? u.uFinPat.value : 0,
+    f.carbon ?? 0, f.alu ?? 0, f.gold ?? 0, f.flake ?? 0,
+    ...under, f.brush ?? 0,
+    ...pattern, 0,
+  ];
+}
+
+/*
+ * A palette mesh of a craft's joined parts (combatcraft.js paletteFixed)
+ * in the finishes of `mats`, the materials its entries stand in for, in
+ * entry order, as dressFinish left them; their rim and highlight are
+ * already in the entries (finishedEntry). Nothing when none wears a
+ * finish, so a stock palette keeps its program. Once: a peer is rebuilt
+ * for a new livery and nothing redresses it.
+ */
+export function finishPalette(craft, mesh, mats) {
+  if (!mats.some((m) => m.userData.finishState)) {
+    return;
+  }
+  const data = new Float32Array(mats.length * ENTRY_VEC4S * 4);
+  mats.forEach((m, i) => data.set(entryValues(m), i * ENTRY_VEC4S * 4));
+  const framed = mats.some((m) => m.userData.finishState && m.userData.finishState.framed());
+  mesh.material.userData.finishState = wrap(mesh.material, { n: mats.length, data, framed });
+  if (craft.group.userData.finishHooked) {
+    hookMesh(craft, mesh);
+  }
 }
 
 /* The wear a craft's paint shows now, 0 to 1, for a check. */

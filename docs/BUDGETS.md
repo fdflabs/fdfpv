@@ -167,8 +167,11 @@ src/render/combatcraft.js paletteFixed: a stock 7 inch 40 meshes to
 settings, each tier three times: 381 at Low, 726 at Medium, 739 at High
 in every run (max of the run; averages 378, 716, 729), triangles and
 textures unchanged, and the ceilings moved down to 1.15 times that.
-The row's seven peers send no livery, so these are stock peers; a peer
-wearing a finish keeps its meshes (docs/PERF.md). At High a full room
+The row's seven peers send no livery, so these are stock peers. Since
+2026-10-15 (branch w40-perf-finish) a peer wearing a finish joins as a
+stock one does, its finish per palette entry: the row flown at High with
+the seven in a finished livery (a local patch) drew 1 411 calls before
+and 739 after, the stock row's (docs/PERF.md). At High a full room
 is still about two and a half times the main view's 300 calls: what is
 left a peer is a palette mesh per offset and render state,
 the lens, the inks, four rotors and four discs.

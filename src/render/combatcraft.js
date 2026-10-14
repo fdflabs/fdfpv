@@ -60,6 +60,7 @@ import { PROP_SPIN } from './craftpose.js';
 import { paintRegions } from './livery.js';
 import { paintHook } from './combatpaint.js';
 import { thermalKind } from './thermal.js';
+import { finishPalette, finishedEntry } from './finish.js';
 import { ledLevel } from './kitlights.js';
 
 /*
@@ -344,12 +345,13 @@ function mergeFixed(group, parts) {
  * rebuilt for a new livery, peers.js profileKey). The originals stay in
  * the livery's table, which reads them, and in the palette material's
  * userData.paletteOf, from which a map's look tells each entry's finish
- * (swiss2/craftlook.js).
+ * (swiss2/craftlook.js). A region in a finish (finish.js) is an entry
+ * like any other, its finish carried per entry (finishPalette), so it
+ * still draws between the parts it drew between.
  *
  * Apart: the motors (their thermal kind), anything double sided or
  * transparent, the ink, the rotors, the discs and the lamps, and each
- * offset (the 1e-7 float rounding mergeFixed's note gives). A craft with
- * a region in a finish is left as it is (below).
+ * offset (the 1e-7 float rounding mergeFixed's note gives).
  *
  * Returns how many meshes were joined into how many.
  */
@@ -359,7 +361,7 @@ const RENDER_STATE = ['side', 'shadowSide', 'transparent', 'opacity', 'alphaTest
   'polygonOffsetFactor', 'polygonOffsetUnits', 'fog', 'flatShading', 'wireframe', 'colorWrite', 'visible', 'dithering', 'toneMapped'];
 
 function paletteEntry(mat) {
-  if (!mat.userData.cel || mat.userData.finishState || !mat.userData.celKey.startsWith('{') || mat.transparent || mat.side !== THREE.FrontSide) {
+  if (!mat.userData.cel || !mat.userData.celKey.startsWith('{') || mat.transparent || mat.side !== THREE.FrontSide) {
     return null;
   }
   const opts = JSON.parse(mat.userData.celKey);
@@ -373,22 +375,11 @@ function paletteEntry(mat) {
   }
   /* The colour as painted, not as built. */
   entry.color = mat.color.clone();
-  return { entry, shared };
+  return { entry: finishedEntry(mat, entry), shared };
 }
 
 export function paletteFixed(craft) {
   const { group, combat } = craft;
-  /* A region in a finish keeps its own mesh and draws before every
-   * palette, a newer material, where it drew between the parts it touches:
-   * at a depth tie the other part won (a pack and a brass standoff, 1 px
-   * at 60 m). Joining a finished craft needs the finish per entry. */
-  let finished = false;
-  group.traverse((o) => {
-    finished ||= Boolean(o.isMesh && o.material.userData && o.material.userData.finishState);
-  });
-  if (finished) {
-    return { from: 0, to: 0 };
-  }
   const parts = [combat.parts.frame, combat.parts.pack, combat.parts.legs, combat.parts.stockAntenna, craft.cameraMount,
     ...Object.values(combat.parts.accessories), combat.parts.payload].filter(Boolean);
   /* The order the decals took their targets in (decals.js targetsOf),
@@ -467,6 +458,7 @@ export function paletteFixed(craft) {
     mesh.receiveShadow = first.receiveShadow;
     mesh.layers.mask = first.layers.mask;
     mesh.renderOrder = first.renderOrder;
+    finishPalette(craft, mesh, material.userData.paletteOf);
     home.add(mesh);
     from += members.length;
     to += 1;

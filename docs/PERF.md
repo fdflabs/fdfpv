@@ -464,11 +464,27 @@ coloured. Still at High about two and a half times the 300 call
 contract. Left a peer: the palettes per offset (the camera head and
 payload sit off the origin, and moving vertices into the group's frame
 lands them a float rounding off), the lens, the inks, four rotors and
-four discs. Not joined: a craft with a region in a finish (finish.js
-wraps that region's material in a shader of its own, which draws before
-any palette, a newer material, where it drew between the parts it
-touches: a pack and a brass standoff swapped 1 px at 60 m); joining it
-needs the finish per palette entry.
+four discs. Until 2026-10-15 a craft with a region in a finish (or any
+wear, an underside or a pattern) was not joined at all, 40 meshes: the
+finish wraps that region's material in a shader of its own, which drew
+before any palette, a newer material, where it drew between the parts it
+touches (a pack and a brass standoff swapped 1 px at 60 m). Since
+branch w40-perf-finish the finish rides per palette entry
+(finish.js finishPalette: each number the finish chunk reads looked up
+by the vertex's entry, the identity for an entry in no finish), so a
+finished peer joins as a stock one does, 40 meshes to 16. Pixels: an in
+page A/B (tmp/, not committed) of the same peer joined against not, scene,
+normal and thermal passes as floats, A B A B, eight views 0.5 m to 90 m,
+and once under the swiss2 look: 0 pixels different in eight cases that
+wear the twelve finishes between them, wear 0.3 to 0.8, undersides, all
+four patterns and two layers, on the 7 inch, the 10 inch and the
+interceptor; a control (every finish against none) differed by 5 447 px
+at 1 m. perf-play `peers` at High with the seven wire pilots sent a
+finished livery (gloss, chrome, matte, wear 40; a local patch, not a
+row), two runs a tree on GPU 1: 1 411 calls before, 739 after, the stock
+room's; frame mean 10.96 and 8.46 ms to 6.54 and 6.43, render submit
+9.07 and 7.02 ms to 4.77 and 4.59, GPU median 5.92 and 4.35 ms to 2.90
+and 2.72.
 - **GPU 1.** See above.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.
