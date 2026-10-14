@@ -143,6 +143,8 @@ function client(ring = null) {
       for (const ev of evs) {
         if (ev.type === 'dead') {
           ring.dead(ev);
+        } else if (ev.type === 'damage') {
+          ring.damage(ev);
         }
       }
     }
@@ -490,6 +492,36 @@ function stationDarkTicks() {
   const d = differs(r);
   check('knowing it, at every row the replay\'s levels are the live frame\'s, bit for bit, through the order', d.n === 0,
     `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+}
+
+/* A target lost to what a warhead broke, on an arrival that missed it
+ * (edge/rooms/war.js strike: its `down` is the blast's, not the aim's):
+ * the room's damage event as it sends it, `by` the attacker's kind. */
+const LOST_AT = 10000;
+const LOST_END = 30000;
+function lostTicks() {
+  const lview = (down) => ({
+    type: 'war',
+    war: {
+      state: 'live', id: 'm-night-lost', mission: 'itaipu-4', goAt: 0, output: 14000, floor: 7700, down,
+    },
+  });
+  return [
+    { t: 0, msgs: [lview([])] },
+    {
+      t: LOST_AT,
+      msgs: [lview(['intake-14']), dead(LOST_AT, 'intake-14', false), {
+        type: 'war', op: 'damage', seq: 0, at: LOST_AT, target: 'intake-14', chunks: [0, 1], fell: [1], openings: [], down: true, health: 0, p: [0, 200, 0], by: 'strike', cut: [],
+      }],
+    },
+  ];
+}
+{
+  const ring = createWarRing(Math.ceil(LOST_END / 16));
+  const n = runTicks(lostTicks(), 0, () => 16, false, LOST_END, ring).frames.length;
+  const kept = ring.clip(0, n).world[0].damage;
+  check('the clip keeps the room\'s damage event as the room sends it (by the attacker\'s kind)', ring.stats.damageDropped === 0 && kept.length === 1 && kept[0].by === 'strike',
+    `${kept.length} kept, ${ring.stats.damageDropped} dropped`);
 }
 
 if (failed) {

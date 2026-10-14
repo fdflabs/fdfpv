@@ -619,7 +619,9 @@ const isClock = (x) => x === null || Number.isFinite(x);
 const isIndexList = (a) => Array.isArray(a) && a.length <= 4096 && a.every((i) => Number.isInteger(i) && i >= 0);
 
 /* One damage event as a clip keeps it: the room's fields, of their kinds
- * (src/share/roomwar.js), and not more than DAMAGE_BYTES. */
+ * (src/share/roomwar.js), and not more than DAMAGE_BYTES. `by` is what
+ * the room sends (edge/rooms/war.js strike: the attacker's kind,
+ * 'defender' or 'hoist'); a number or null is kept as clips have it. */
 function damageOk(d) {
   if (!d || typeof d !== 'object' || Object.keys(d).length !== DAMAGE_KEYS.length || !DAMAGE_KEYS.every((k) => k in d)) {
     return false;
@@ -627,7 +629,7 @@ function damageOk(d) {
   return Number.isInteger(d.seq) && d.seq >= 0 && Number.isFinite(d.at) && typeof d.target === 'string' && d.target.length <= 40
     && isIndexList(d.chunks) && isIndexList(d.fell) && Array.isArray(d.openings) && d.openings.every((o) => o && typeof o === 'object')
     && (d.p === null || (Array.isArray(d.p) && d.p.length === 3 && d.p.every(Number.isFinite)))
-    && (d.by === null || Number.isInteger(d.by)) && Array.isArray(d.cut)
+    && (d.by === null || Number.isInteger(d.by) || (typeof d.by === 'string' && d.by.length <= 40)) && Array.isArray(d.cut)
     && JSON.stringify(d).length <= DAMAGE_BYTES;
 }
 

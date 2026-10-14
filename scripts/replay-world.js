@@ -191,7 +191,7 @@ try {
   const torn6 = gate6.chunks.map((c, i) => i).filter((i) => gate6.chunks[i].r).slice(0, 4);
   const opening6 = openingOf('gate-6', gate6, gate6.chunks.map((c, i) => torn6.includes(i)), 0);
   const originAt = await hear({
-    type: 'war', op: 'damage', seq: 899, at: 0, target: 'gate-6', chunks: torn6, fell: [], openings: [opening6], down: false, health: 0.8, p: gate6.chunks[torn6[0]].c, by: 0, cut: [],
+    type: 'war', op: 'damage', seq: 899, at: 0, target: 'gate-6', chunks: torn6, fell: [], openings: [opening6], down: false, health: 0.8, p: gate6.chunks[torn6[0]].c, by: 'strike', cut: [],
   });
   await a.sleep(45000);
   let t = await now();
@@ -231,7 +231,7 @@ try {
   const torn = gate.chunks.map((c, i) => i).filter((i) => gate.chunks[i].r).slice(0, 4);
   const opening = openingOf('gate-4', gate, gate.chunks.map((c, i) => torn.includes(i)), t);
   const breachAt = await hear({
-    type: 'war', op: 'damage', seq: 900, at: 0, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 0, cut: [],
+    type: 'war', op: 'damage', seq: 900, at: 0, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 'strike', cut: [],
   });
   /* Long enough for the water to pass several snapshot steps (host.js). */
   await a.sleep(6000);
