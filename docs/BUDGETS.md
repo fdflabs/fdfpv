@@ -37,7 +37,13 @@ One row per perf-play scenario (scripts/perf-play.js) per tier:
   streaming round it;
 - `interior-ops`: the Interior's Mission 1 in the air, quiet HUD up;
 - `itaipu-war`: the war at full load, Defend the Paraná mission 1, a
-  burst of ten explosions every ten seconds.
+  burst of ten explosions every ten seconds;
+- `peers`: a full private room on the alps, the page's 7 inch on its pad
+  and seven more pilots' 7 inches circling 30 to 90 m in front of it, all
+  seven in the chase camera's view (the run stops if not). The seven are
+  perf-play on the room's wire (hello, clock pings, a pose 30 times a
+  second), not seven browsers, so the row is what drawing a room costs
+  one page.
 
 Each was flown once for 15 s, `--mode=quality` (resolution held at the
 preset's), 1600 by 900, on main's tree at b4b2d9628 plus phase 29,
@@ -63,7 +69,11 @@ equal, so those columns are left as they were measured.
 Held, `measured (<= ceiling)`: draw calls and triangles, the most in any
 frame; live textures (the renderer's own count, `renderer.info.memory`:
 three counts textures, not their bytes, so no texture megabytes are
-written); the GPU floor (each GPU segment's tenth percentile, summed:
+written: WebGL has no query for what a texture holds on the card, three
+keeps no byte count, and perf-play's own `uploads` line is the bytes
+handed to the card in a frame, not what stays allocated, with texStorage
+counted 0, so texture megabytes stop at the count); the GPU floor (each
+GPU segment's tenth percentile, summed:
 the frame's own GPU cost with the least of anyone else's in it). Calls,
 triangles and textures are held at the measurement plus 15 %, and so is
 the GPU floor since it was taken on GPU 1, rounded up at the second
@@ -87,26 +97,29 @@ written: the main view's 300 calls and 2.5 M triangles (4.0 M at Itaipu)
 and the inset's 110 calls and 1.9 M (The contract, below), and an 8 ms
 GPU floor (docs/PERF.md, proposed budgets).
 
-| Row | Tier | Draw calls | Triangles, M | Live textures | GPU floor, ms | GPU median, ms | Frame avg / p95, ms | GPU 1 busy, host load | Over the written contract |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `title` | low | 118 (<= 136) | 0.68 (<= 0.78) | 5 (<= 6) | 0.30 (<= 0.35) 2026-10-13 | 0.3 | 0.7 / 1.3 | 8 %, 2.2 | within |
-| `title` | medium | 275 (<= 317) | 1.65 (<= 1.91) | 7 (<= 9) | 0.68 (<= 0.79) 2026-10-13 | 1.0 | 1.3 / 1.9 | 11 %, 2.4 | within |
-| `title` | high | 288 (<= 332) | 1.65 (<= 1.91) | 18 (<= 21) | 0.80 (<= 0.92) 2026-10-13 | 1.1 | 1.4 / 2.1 | 18 %, 2.2 | within |
-| `alps-low` | low | 167 (<= 193) | 1.26 (<= 1.46) | 9 (<= 11) | 0.69 (<= 0.80) 2026-10-13 | 0.8 | 1.8 / 3.2 | 23 %, 2.5 | within |
-| `alps-low` | medium | 280 (<= 322) | 2.37 (<= 2.73) | 11 (<= 13) | 1.09 (<= 1.26) 2026-10-13 | 1.3 | 2.5 / 4.1 | 23 %, 2.3 | within |
-| `alps-low` | high | 293 (<= 337) | 2.37 (<= 2.73) | 22 (<= 26) | 1.21 (<= 1.40) 2026-10-13 | 1.5 | 2.7 / 4.6 | 23 %, 2.3 | within |
-| `swiss-low` | low | 181 (<= 209) | 1.62 (<= 1.87) | 66 (<= 76) | 3.00 (<= 3.45) 2026-10-13 | 3.3 | 4.8 / 8.2 | 37 %, 2.4 | within |
-| `swiss-low` | medium | 244 (<= 281) | 2.39 (<= 2.75) | 74 (<= 86) | 4.72 (<= 5.43) 2026-10-13 | 5.3 | 7.1 / 11.9 | 41 %, 2.4 | within |
-| `swiss-low` | high | 350 (<= 403) | 3.77 (<= 4.35) | 86 (<= 99) | 6.75 (<= 7.77) 2026-10-13 | 7.5 | 9.7 / 11.7 | 55 %, 2.4 | within: main view 242 calls, 2.41 M; inset 106, 1.40 M |
-| `itaipu-stream` | low | 129 (<= 149) | 1.80 (<= 2.08) | 67 (<= 78) | 1.51 (<= 1.74) 2026-10-13 | 2.9 | 4.4 / 8.5 | 28 %, 3.8 | within |
-| `itaipu-stream` | medium | 198 (<= 228) | 3.05 (<= 3.51) | 75 (<= 87) | 2.15 (<= 2.48) 2026-10-13 | 3.7 | 5.8 / 10.7 | 24 %, 3.8 | within |
-| `itaipu-stream` | high | 253 (<= 291) | 5.65 (<= 6.50) | 87 (<= 101) | 3.07 (<= 3.54) 2026-10-13 | 5.1 | 7.1 / 12.0 | 30 %, 4.8 | within: main view 156 calls, 3.83 M (<= 4.0 M); inset 97, 1.87 M |
-| `interior-ops` | low | 99 (<= 114) | 0.54 (<= 0.62) | 29 (<= 34) | 1.44 (<= 1.66) 2026-10-13 | 5.8 | 7.1 / 8.4 | 26 %, 3.8 | within |
-| `interior-ops` | medium | 106 (<= 122) | 0.57 (<= 0.66) | 36 (<= 42) | 1.66 (<= 1.91) 2026-10-13 | 5.2 | 6.7 / 7.3 | 36 %, 1.9 | within |
-| `interior-ops` | high | 125 (<= 144) | 0.57 (<= 0.67) | 48 (<= 56) | 1.97 (<= 2.27) 2026-10-13 | 5.9 | 7.1 / 7.7 | 34 %, 2.4 | within |
-| `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 0.91 (<= 1.05) 2026-10-13 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within |
-| `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.35 (<= 1.56) 2026-10-13 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within |
-| `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.67 (<= 1.93) 2026-10-13 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M |
+| Row | Tier | Draw calls | Triangles, M | Live textures | GPU floor, ms | GPU median, ms | Frame avg / p95, ms | GPU 1 busy, host load | Over the written contract | Attackers alive, peers in view |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `title` | low | 118 (<= 136) | 0.68 (<= 0.78) | 5 (<= 6) | 0.30 (<= 0.35) 2026-10-13 | 0.3 | 0.7 / 1.3 | 8 %, 2.2 | within | none |
+| `title` | medium | 275 (<= 317) | 1.65 (<= 1.91) | 7 (<= 9) | 0.68 (<= 0.79) 2026-10-13 | 1.0 | 1.3 / 1.9 | 11 %, 2.4 | within | none |
+| `title` | high | 288 (<= 332) | 1.65 (<= 1.91) | 18 (<= 21) | 0.80 (<= 0.92) 2026-10-13 | 1.1 | 1.4 / 2.1 | 18 %, 2.2 | within | none |
+| `alps-low` | low | 167 (<= 193) | 1.26 (<= 1.46) | 9 (<= 11) | 0.69 (<= 0.80) 2026-10-13 | 0.8 | 1.8 / 3.2 | 23 %, 2.5 | within | none |
+| `alps-low` | medium | 280 (<= 322) | 2.37 (<= 2.73) | 11 (<= 13) | 1.09 (<= 1.26) 2026-10-13 | 1.3 | 2.5 / 4.1 | 23 %, 2.3 | within | none |
+| `alps-low` | high | 293 (<= 337) | 2.37 (<= 2.73) | 22 (<= 26) | 1.21 (<= 1.40) 2026-10-13 | 1.5 | 2.7 / 4.6 | 23 %, 2.3 | within | none |
+| `swiss-low` | low | 181 (<= 209) | 1.62 (<= 1.87) | 66 (<= 76) | 3.00 (<= 3.45) 2026-10-13 | 3.3 | 4.8 / 8.2 | 37 %, 2.4 | within | none |
+| `swiss-low` | medium | 244 (<= 281) | 2.39 (<= 2.75) | 74 (<= 86) | 4.72 (<= 5.43) 2026-10-13 | 5.3 | 7.1 / 11.9 | 41 %, 2.4 | within | none |
+| `swiss-low` | high | 350 (<= 403) | 3.77 (<= 4.35) | 86 (<= 99) | 6.75 (<= 7.77) 2026-10-13 | 7.5 | 9.7 / 11.7 | 55 %, 2.4 | within: main view 242 calls, 2.41 M; inset 106, 1.40 M | none |
+| `itaipu-stream` | low | 129 (<= 149) | 1.80 (<= 2.08) | 67 (<= 78) | 1.51 (<= 1.74) 2026-10-13 | 2.9 | 4.4 / 8.5 | 28 %, 3.8 | within | none |
+| `itaipu-stream` | medium | 198 (<= 228) | 3.05 (<= 3.51) | 75 (<= 87) | 2.15 (<= 2.48) 2026-10-13 | 3.7 | 5.8 / 10.7 | 24 %, 3.8 | within | none |
+| `itaipu-stream` | high | 253 (<= 291) | 5.65 (<= 6.50) | 87 (<= 101) | 3.07 (<= 3.54) 2026-10-13 | 5.1 | 7.1 / 12.0 | 30 %, 4.8 | within: main view 156 calls, 3.83 M (<= 4.0 M); inset 97, 1.87 M | none |
+| `interior-ops` | low | 99 (<= 114) | 0.54 (<= 0.62) | 29 (<= 34) | 1.44 (<= 1.66) 2026-10-13 | 5.8 | 7.1 / 8.4 | 26 %, 3.8 | within | none |
+| `interior-ops` | medium | 106 (<= 122) | 0.57 (<= 0.66) | 36 (<= 42) | 1.66 (<= 1.91) 2026-10-13 | 5.2 | 6.7 / 7.3 | 36 %, 1.9 | within | none |
+| `interior-ops` | high | 125 (<= 144) | 0.57 (<= 0.67) | 48 (<= 56) | 1.97 (<= 2.27) 2026-10-13 | 5.9 | 7.1 / 7.7 | 34 %, 2.4 | within | none |
+| `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.14 (<= 1.31) 2026-10-14 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
+| `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.46 (<= 1.69) 2026-10-14 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
+| `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.74 (<= 2.01) 2026-10-14 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
+| `peers` | low | 815 (<= 938) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
+| `peers` | medium | 1573 (<= 1809) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
+| `peers` | high | 1586 (<= 1824) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 1586 calls, the whole frame against the main view's 300 (not split) | 7 peers |
 
 The draw calls of `title` and `alps-low` at every tier were retaken on
 2026-10-13 after the Alps' draws were merged (branch w38-perf: the
@@ -117,9 +130,33 @@ moved down to them; at High the menu went from 397 to 288 and alps-low
 from 390 to 293. Their triangles and textures are the first run's,
 their GPU columns GPU 1's.
 
+The `peers` rows were flown 2026-10-14 between 01:01 and 01:05 local on
+GPU 1, through run-check.sh, on batch/2026-10-14 at ae46f1dc3 plus this
+row's perf-play, the same run settings, each tier three times (twice,
+then once more with `--budgets` beside itaipu-war, 01:06 to 01:10); the
+draw calls, triangles and textures of the three were equal. The GPU
+floor was not: 1.02 to 1.46 ms at Low, 1.99 to 2.99 at Medium, 1.97 to
+2.90 at High, on GPU 1 at 18 to 59 % busy, and the quieter card did not
+give the lower floor. A ceiling from the quietest run, as the other rows
+have, failed the next run (Medium 2.99 against 2.29), so the peers
+floors are written at the highest of the three and held 15 % over it;
+their GPU median and frame times are the quietest run's. Held so, all
+three tiers passed again at 01:14 to 01:20 with GPU 1 under 50 % busy;
+two Low runs while another lane's check held GPU 1 at 100 % read 8.43
+and 2.35 ms, which says what a floor on a full card is worth.
+
+A room is the dearest row in draw calls. Each peer's 7 inch is 48
+meshes (336 visible for the seven, counted in the scene at Medium), and
+the room adds about 1 250 calls to the alps' own at Medium and High:
+about four passes of 336, which fits the scene, the shadow maps and the
+inset each drawing every mesh, though the passes were not split. Three
+runs that had the seven off the view drew 300 to 319. So at High a full
+room is five times the main view's 300 calls on its own; batching a
+peer's meshes is the work that brings it under, and is not in this row.
+
 The ceilings above hold today's whole frame cost from growing; whether
-a row is within the contract is the last column, read against the
-contract below.
+a row is within the contract is the column "Over the written
+contract", read against the contract below.
 
 ### What the flight rows count
 
@@ -173,14 +210,30 @@ together, in the table above: splitting it into a main view and an
 inset column is a new pair of held columns on all eighteen rows, every
 row retaken to set their ceilings, which is not a cheap change, so the
 whole frame ceilings are left as they are. The split above is the
-measurement each contract figure was checked against; the last column
-reads each High row against the contract, and its main view figures
+measurement each contract figure was checked against; the column "Over
+the written contract" reads each High row against it, and its main view figures
 are that table's.
 
-Not measured: attackers and peers. The war's attackers are whatever
-mission 1 sends in its first 25 s, and a second pilot is a second
-browser, which this box runs one at a time (docs/PERF.md, "Not
-measured").
+The `itaipu-war` GPU floors were re-based on 2026-10-14. With the
+attackers read added, Low read 1.06 ms against its 1.05 ceiling (0.91
+measured 2026-10-13), and the read was tested at Low, GPU 1 at 28 to 36 %
+busy, 01:25 to 01:31: without it 1.13 and 1.06 ms, with it 1.12 and
+1.14, the same within the card's noise, so the read stays and the rows
+take the row's own rule from runs with it in: Low 1.14 (the quieter of
+those two), Medium 1.46 and High 1.74 (01:08 and 01:10, 33 and 35 %
+busy), each held 15 % over. Their other columns are 2026-10-13's: calls,
+triangles and textures read the same.
+
+Attackers and peers, the last column, are written and never held: they
+are the load a row was measured under, not a cost. The war's figure is
+the most attackers alive in any second of its 15 s window and the stage
+then (perf-play samples `__war()` once a second): 1, in mission 1's
+first stage, Eyes (a Scout, and a Striker 25 to 40 s in), at every
+tier on 2026-10-14, so it is not the mission's peak (First Light, stage
+5); a row at that stage is a war row
+of its own, flown through the room's developer skip. The peers' figure
+is how many of the seven were drawn in the camera's view in every
+second.
 
 ## The check
 

@@ -41,11 +41,12 @@ const CPU_RASTERISER = /swiftshader|llvmpipe|softpipe|lavapipe|microsoft basic r
 /*
  * Chips that share memory with the CPU, by name, since the name is all a
  * browser reveals. Medium is sized for a 2020 laptop iGPU (quality.js), so
- * a detected High on one of these comes down a step. Apple Silicon is left
- * out on purpose: an M series GPU holds the authored look. The words are
- * bounded so a discrete part sharing one ("Radeon RX 7900", "Arc A770")
- * does not match. A name is a heuristic, which is why it only ever lowers
- * a detected preset, never one the pilot chose.
+ * a detected High on one of these comes down a step. NVIDIA's Tegra parts
+ * (the Jetson Orin among them) share memory with the CPU too.
+ * Apple Silicon is left out on purpose: an M series GPU holds the authored
+ * look. The words are bounded so a discrete part sharing one ("Radeon RX
+ * 7900", "Arc A770") does not match. A name is a heuristic, which is why
+ * it only ever lowers a detected preset, never one the pilot chose.
  */
 const SHARED_MEMORY_CHIPS = new RegExp([
   /intel\b[^,)]*\b(hd|uhd|iris|xe)\b/,
@@ -57,6 +58,7 @@ const SHARED_MEMORY_CHIPS = new RegExp([
   /\badreno\b/,
   /\bpowervr\b/,
   /\bvideocore\b/,
+  /\btegra\b/,
 ].map((part) => part.source).join('|'), 'i');
 
 /* True when the renderer string names an integrated GPU. The shell lowers

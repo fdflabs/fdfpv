@@ -70,7 +70,7 @@
   ],
   [
    "ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)",
-   false
+   true
   ],
   [
    "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
@@ -988,7 +988,7 @@
   },
   "vulkan": {
    "raw": "ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)",
-   "integrated": false,
+   "integrated": true,
    "vendor": "Google Inc. (NVIDIA)",
    "name": "NVIDIA Tegra Orin",
    "display": "NVIDIA Tegra Orin",

@@ -44,7 +44,7 @@ import { ROOM_MODES, ROOM_NAME_REPORT, normaliseRoomName } from '../share/roomwi
 import { closesInMin, createRoomList } from '../share/roomlist.js';
 import { MAPS, mapById } from '../maps/registry.js';
 import { plural, str } from '../strings/index.js';
-import { chosenTime } from './settings.js';
+import { VISIBILITIES, modeOfWire, visibilityFor } from '../share/modes.js';
 
 const ROOM_ACTION = 'friends-room-';
 /* The watch seat's way into a listed room (docs/FLIGHTCLUB-PROGRESSION.md
@@ -84,15 +84,16 @@ const FLAT_PHONE = '(max-height: 520px)';
  * ui: the menu (show, askForm, refreshFriends); link: the room socket
  * (src/share/rooms.js); roomName(pick): a picker name in this pilot's
  * language; here(): the world this pilot is in; preset(): the game a
- * title card set up, or null; war(room): the shell's way into Defend
- * Itaipu (src/main.js DEFEND ITAIPU), which asks its consent question and
- * makes the room itself, resolving its code once it has; pilots(): how
+ * title card set up, or null; makeRoom(room): the shell's way into a room
+ * of the form's own (src/main.js roomMade), which asks the war's consent
+ * question and makes the room itself, resolving its code once it has, or
+ * null for a Back; pilots(): how
  * many are in the room this pilot is in, them included; missions(): the
  * war missions this pilot may start, in order; missionNumber(id): a
  * mission's number.
  */
 export function createRoomBrowser({
-  ui, link, roomName, here, preset = () => null, war = null, pilots = () => 1, missions = () => [], missionNumber = () => 1,
+  ui, link, roomName, here, makeRoom, preset = () => null, pilots = () => 1, missions = () => [], missionNumber = () => 1,
 }) {
   /*
    * WHERE THE CURSOR LANDS. Rooms opened before its list has ever arrived
@@ -150,13 +151,19 @@ export function createRoomBrowser({
    * DEFEND ITAIPU ON THE GAME ROW, for a room on the Itaipu map, public or
    * private since the owner opened it (2026-10-01, docs/WARFARE-PLAN.md
    * section 9), with the mission it starts with. The shell makes the room
-   * (war: its consent first), set up for the war and that mission.
+   * (`makeRoom`, src/main.js roomMade: the war's consent first, then the one
+   * way into a session), set up for the war and that mission.
    */
-  const warFits = (d) => Boolean(war) && d.map === 'itaipu';
+  const warFits = (d) => d.map === 'itaipu';
 
+  /* Who joins (src/share/modes.js VISIBILITIES), the pilot's last choice
+   * for the game the form starts on; never Public while public rooms are
+   * closed. */
   function fresh() {
     const w = worlds();
-    return { name: null, public: list.open() !== false, map: w.includes(here()) ? here() : w[0], mode: preset() };
+    const mode = preset();
+    const who = visibilityFor(ui.settings, modeOfWire(mode));
+    return { name: null, who: who === 'public' && list.open() === false ? 'friends' : who, map: w.includes(here()) ? here() : w[0], mode };
   }
 
   /* A room's name as this pilot reads it: typed, or picked. */
@@ -234,7 +241,7 @@ export function createRoomBrowser({
     return [
       { label: str('roombrowser.here_section'), section: true },
       {
-        label: w.public ? title(w) : str('roombrowser.here_private', { code: st.code }),
+        label: title(w),
         value: plural('count.pilots', pilots()),
         note: str('roombrowser.here_note'),
         action: 'friends-here',
@@ -315,11 +322,11 @@ export function createRoomBrowser({
   function newRows() {
     draft ??= fresh();
     const open = list.open() !== false;
-    if (!open) {
-      draft.public = false;
+    if (!open && draft.who === 'public') {
+      draft.who = 'friends';
     }
-    /* A draft that stops fitting the war, made public or moved to another
-     * world, drops it rather than keeping a game it cannot run. */
+    /* A draft that stops fitting the war, moved to another world, drops
+     * it rather than keeping a game it cannot run. */
     if (draft.mode === 'war' && !warFits(draft)) {
       draft.mode = null;
     }
@@ -330,12 +337,10 @@ export function createRoomBrowser({
         note: str('roombrowser.name_note'),
         action: 'friends-roomname',
       },
-      open
-        ? choiceRow(str('roombrowser.kind'), str(draft.public ? 'roombrowser.public_note' : 'roombrowser.private_note'),
-          [true, false], draft.public, (v) => str(v ? 'roombrowser.public' : 'roombrowser.private'), (v) => {
-            draft.public = v;
-          })
-        : { label: str('roombrowser.kind'), value: str('roombrowser.private'), note: str('roombrowser.closed_note'), info: true },
+      choiceRow(str('lobby.visibility'), str(open ? 'lobby.visibility_note' : 'roombrowser.closed_note'),
+        VISIBILITIES.filter((v) => open || v !== 'public'), draft.who, (v) => str(`lobby.visibility_${v}`), (v) => {
+          draft.who = v;
+        }),
       choiceRow(str('ui.the_world'), str('roombrowser.world_note'), worlds(), draft.map, (id) => mapById(id).name, (id) => {
         draft.map = id;
       }),
@@ -351,7 +356,7 @@ export function createRoomBrowser({
         : []),
       {
         label: str(busy ? 'roombrowser.making' : 'roombrowser.make'),
-        note: error || str(draft.public ? (list.busy() ? 'roombrowser.busy' : 'roombrowser.make_public_note') : 'roombrowser.make_private_note'),
+        note: error || str(draft.who === 'public' && list.busy() ? 'roombrowser.busy' : `roombrowser.make_${draft.who}_note`),
         action: 'friends-make',
         primary: true,
       },
@@ -396,23 +401,13 @@ export function createRoomBrowser({
     error = null;
     ui.refreshFriends();
     try {
-      if (draft.mode === 'war') {
-        /* False: the pilot said Back to the consent question, and the
-         * form stays as it was. */
-        const mission = missions().includes(draft.mission) ? draft.mission : null;
-        const code = await war({ name: draft.name, public: draft.public, mission });
-        if (code) {
-          joined = draft.public ? code : null;
-          draft = null;
-        }
-      } else {
-        const code = await link.create(draft.map, false, {
-          public: draft.public, name: draft.name, mode: draft.mode, daytime: chosenTime(ui.settings),
-        });
-        joined = draft.public ? code : null;
+      /* Null: the pilot said Back to the war's consent, and the form stays
+       * as it was. */
+      const mission = draft.mode === 'war' && missions().includes(draft.mission) ? draft.mission : null;
+      const code = await makeRoom({ ...draft, mission });
+      if (code) {
+        joined = draft.who === 'public' ? code : null;
         draft = null;
-        link.join(code);
-        ui.show('friends');
       }
     } catch (e) {
       const why = { name: 'roombrowser.bad_name', busy: 'roombrowser.busy', signin: 'friends.failed_signin' }[e.message];

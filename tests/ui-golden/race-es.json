@@ -4326,7 +4326,7 @@
     "action": "roomnew",
     "id": "friends:a-roomnew",
     "label": "Crear una sala",
-    "note": "Ponle nombre y elige pública o privada, el mundo y un juego.",
+    "note": "Ponle nombre y elige quién entra, el mundo y un juego.",
     "primary": false
    },
    {
@@ -8571,20 +8571,24 @@
    },
    {
     "current": "0",
-    "id": "roomnew:qui-n-puede-entrar",
-    "label": "Quién puede entrar",
-    "note": "Pública: aparece en Salas, hasta dieciséis pilotos, cualquiera puede entrar.",
+    "id": "roomnew:qui-n-entra",
+    "label": "Quién entra",
+    "note": "Solo: nadie. Amigos: a quien le leas el código de invitación. Pública: en la lista, cualquiera entra.",
     "options": [
      {
-      "label": "Todos",
+      "label": "Pública",
       "value": "0"
      },
      {
-      "label": "Amigos con el código",
+      "label": "Amigos",
       "value": "1"
+     },
+     {
+      "label": "Solo",
+      "value": "2"
      }
     ],
-    "value": "Todos"
+    "value": "Pública"
    },
    {
     "current": "1",
@@ -8660,7 +8664,7 @@
    },
    {
     "cls": "row",
-    "text": "Quién puede entrarTodos"
+    "text": "Quién entraPúblicaAmigosSolo"
    },
    {
     "cls": "row",
@@ -8701,7 +8705,7 @@
    },
    {
     "i": 1,
-    "id": "roomnew:qui-n-puede-entrar",
+    "id": "roomnew:qui-n-entra",
     "to": "roomnew",
     "calls": [
      [
@@ -8710,7 +8714,11 @@
      ],
      [
       "onUiSound",
-      "select"
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ]
    },
@@ -8810,7 +8818,7 @@
     "action": "roomnew",
     "id": "rooms:a-roomnew",
     "label": "Crear una sala",
-    "note": "Ponle nombre y elige pública o privada, el mundo y un juego.",
+    "note": "Ponle nombre y elige quién entra, el mundo y un juego.",
     "primary": true
    },
    {

@@ -257,21 +257,27 @@ finished as The Interior's Mission 1).
 
 What a mission needs to be released, from this file, FIRST-LIGHT-AUDIT.md
 and the owner's bar (as finished as The Interior's Mission 1), and where
-each of 1 to 4 stands:
+each of 1 to 4 stands (mission 3's column brought up to date 2026-10-14,
+branch w39-mission-3):
 
 | Piece | 1 First Light | 2 The Spillway | 3 | 4 |
 | --- | --- | --- | --- | --- |
-| Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | old rounds, no titles | old rounds, no titles |
-| Objectives on the HUD, en and es | 7 | 9 | none | none |
-| Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | the old 2 brief and 2 debrief lines (warradio.js derives them) | the old 2 brief and 2 debrief lines |
-| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | none | none |
-| Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | no | no |
-| Briefing facts (title, line, first objective, map, aircraft, length, pilots, room) | all (briefing.js) | all | all, from the old fields | all |
-| Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | none | none |
-| Win and lose debrief lines | voiced | voiced | voiced (old ids) | voiced (old ids) |
-| Seeded sectors and routes | yes; war:routes PASS | yes | fixed routes | the drill's |
+| Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | 4 stages and 3 twists, 4 titles | old rounds, no titles |
+| Objectives on the HUD, en and es | 7 | 9 | 6 (the reroute a 240 s hold) | none |
+| Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | 23 `itaipu-3-*` ids, all voiced; DESPACHO's first lines | the old 2 brief and 2 debrief lines |
+| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | none |
+| Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | yes | no |
+| Briefing facts (title, line, first objective, map, aircraft, length, pilots, room) | all (briefing.js) | all | all; length 12 to 15 min, measured | all |
+| Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | `lights-out`, `lights-out-outro` | none |
+| Win and lose debrief lines | voiced | voiced | voiced, new text (the loss DESPACHO's) | voiced (old ids) |
+| Seeded sectors and routes | yes; war:routes PASS | yes | yes (NW, LINES, HIGH, N); war:routes PASS | the drill's |
 | Consent before the first war room | `war.consent_*`, en and es (every war mission) | same | same | same |
 | If the face opens (1.9 Contain) and the `-op` line | not built: see below | not built | not built | not built |
+
+Mission 3 also lacks what the world does not do yet, so its lines do not
+claim it: the light falling across the mission (T1.11; it plays at
+`golden`), districts coming back after the reroute (T1.10), and spotting
+(T1.8). Its release stays `development` (the owner's gate).
 
 Checks on the tree above, all green: war:stages 106/0, war:routes PASS,
 war:radio 63/0, war:cards 13/0, briefing:selftest 54/0, campaign:selftest
@@ -647,6 +653,32 @@ If the yard was hit, its districts went dark (grid.js, built). When the
 reroute's hold completes, Despacho brings back half of them, the near
 ones last (T1.10): the first time the act shows lights coming back on.
 
+Built 14 October, against the code (war:stages flies it on the room;
+`src/share/war/missions/itaipu-3.js`):
+
+- **The hold is four minutes, not 150 s**, for the Spillway's reason:
+  nothing of the stage reaches the yard sooner than 99 s after its birth
+  (routes.js plans), and at one pilot's pace the swarm arrives 201 to
+  233 s in. A yard already down when Reroute opens cannot fail the hold;
+  DESPACHO then says what is true (`itaipu-3-s3-down`).
+- **Nothing comes back.** T1.10 is not built, so the reroute changes no
+  district and no line says it does; `itaipu-3-s3-back` was not made.
+  The mission plays at `golden` (T1.11's fallback), and stage 4's line
+  says the sun is almost down, not that the towns are lit.
+- **The Dark has a swarm up the gorge onto the west penstocks.** As
+  written above, with nobody flying, the mission was won: the yard and two
+  intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
+  lost in stage 4, and ten good bot games still win, 12.5 to 14.3
+  minutes (estimatedMinutes 12 to 15).
+- **The feint's real Strikers are 1 + 0.5 a pilot**: at 0.75, four good
+  bots lost all three west intakes to them and the mission.
+- **The decoys' share is one mix** (two decoys to a Striker) whatever the
+  pilots; 1 to 1 for one pilot and 3 to 1 for eight need a mix by pilots,
+  which stages.js does not have. No spotters (T1.8).
+- **LINES** is `corridor-west` and `corridor-south`, Strikers 25 to 40 m
+  over the ground along the 500 kV lines into the yard; war:routes counts
+  their crossings, about one in ten of which takes the attacker.
+
 ### The twist (stage 3)
 
 - **A. One real in the pack.** A tight pack of decoys with one real
@@ -716,6 +748,15 @@ and the closure run at the same time.
 | itaipu-3-s4-dark | stage 4 opens | CREST | calm | Lights are on in town. Anything we lose now, they'll see from their kitchens. | Se encendieron las luces del pueblo. Lo que perdamos ahora se va a ver desde las cocinas. |
 | debrief-itaipu-3-win | won | CREST | calm | The yard held. The lights stayed on. Well done. | La subestación resistió. La luz siguió encendida. Bien hecho. |
 | debrief-itaipu-3-lose | lost | DESPACHO | calm | The right bank is dark. We'll get it back. Crest, they're yours. | La margen derecha está a oscuras. La vamos a recuperar. Cresta, son suyos. |
+
+As built, the table above changed where the game cannot make a line
+true, and grew to mission 2's shape: the ids and words are
+`assets/audio/war/lines.json`'s `itaipu-3-*` (23 story lines, 7 guide
+lines `itaipu-3-g-*`), the two debriefs, and the films' `film-itaipu-3-*`
+(INTROS.md 5.3, LIGHTS-OUT-OUTRO.md). The Spanish says redirigir for
+reroute (BIBLE.md's glossary) and the marker's word, atacante; two
+DESPACHO lines name no town or open on the verb, because Whisper could
+not hear "Hernandarias" or a leading "Redirección" in that voice.
 
 ### What the player learns
 

@@ -289,6 +289,17 @@ false. **Grade:** golden into blue. **Music:** a slow tick. **Length:**
 | 5 | 7 | telephoto | 400 | the west arm, two shapes low | the same, closer | two Strikers, identical, one a decoy (the mission's stage 1 pair) | lin | film-itaipu-3-3 | two engines, one slightly off | cut |
 | 6 | 15 | orbit | 24 | over the yard at 120 m | the same, quarter turn, the town lit beyond | the squad's aircraft on the right bank's road below, the yard, the lit town; title "LIGHTS OUT" | io | film-itaipu-3-4 | music up | hand-off |
 
+As built (src/share/war/films/lights-out.js, version 1, 58.5 s with its
+preload; graded `dusk`, The Interior's landing grade): no GRID insert,
+which no film camera draws (the film has MIRADOR's scope and the
+Interior's BOARD), so DESPACHO's line plays over Hernandarias on a 135 mm
+lens from over the right bank (shot 3, `town`), and shot 4 (`edge`)
+crosses the edge of town in the late light: the light does not change
+inside a film or a mission (TECH-NEEDS T1.11), so no street lights come
+on. Shot 1 stands 900 m off the first tower so the line stacks up the
+frame. Shot 6 has no aircraft on the road; it is the yard, the town
+beyond and the card. The outro is LIGHTS-OUT-OUTRO.md.
+
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
 | film-itaipu-3-1 | shot 2, lead 2.0 s, target 4.0 s | CREST | calm | Everything the right bank makes leaves the dam through this yard. | Todo lo que genera la margen derecha sale de la represa por esta subestación. |

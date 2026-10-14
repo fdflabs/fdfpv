@@ -11,7 +11,7 @@
  *
  * Page A, 1280 by 720: home is three hubs, and Flight Club's six cards
  * (NAMES below) have no Fly with friends among them. Flight Club's rooms panel's Make a
- * room, one click, then private (Friends with the code) and
+ * room, one click, then Friends (its code shown) and
  * Make the room: A is in the room's lobby, free flight, its invite code
  * there to read out, Ready under the cursor. R: A flies, in the room.
  *
@@ -157,16 +157,16 @@ try {
   await a.click('.gate-room-make');
   await a.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
   check(`one click on the panel's Make a room (${a.clicks - aClicks}) opens Make a room`, a.clicks - aClicks === 1 && await a.evaluate("window.__ui.screen === 'roomnew'"));
-  check('the cursor reaches Who can join', await arrowTo(a, 'Who can join'));
+  check('the cursor reaches Who joins', await arrowTo(a, 'Who joins'));
   await a.tap('ArrowRight');
   await a.sleep(150);
-  check('Right on it makes the room private', await a.evaluate("window.__ui.items()[window.__ui.cursor].value === 'Friends with the code'"));
+  check('Right on it makes the room Friends', await a.evaluate("window.__ui.items()[window.__ui.cursor].value === 'Friends'"));
   check('the cursor reaches Make the room', await arrowTo(a, 'friends-make'));
   await a.tap('Enter');
   await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 30000).catch(() => {});
   await a.sleep(800);
   const room = await a.evaluate('window.__rooms()');
-  const rows = await a.evaluate("window.__ui.items().map((it) => ({ action: it.action || null, label: it.label }))");
+  const rows = await a.evaluate("window.__ui.items().map((it) => ({ action: it.action || null, label: it.label, ...(it.action === 'friends-make' ? { note: it.note } : {}) }))");
   check('A is in the private room\'s lobby, free flight', room.phase === 'open' && room.public === false && room.mode === null
     && /Free flight/.test(await a.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || ''")), JSON.stringify({ code: room.code, public: room.public, mode: room.mode }));
   check('its invite code there to read out, Ready under the cursor', rows.some((r) => r.action === 'friends-copy' && r.label === `Invite code: ${room.code}`)

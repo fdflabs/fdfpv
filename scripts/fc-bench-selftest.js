@@ -50,6 +50,7 @@ import { TABS } from '../src/fc/catalog.js';
 import { cliMap } from '../src/fc/dump.js';
 import { TUNES } from '../configs/registry.js';
 import { transcript } from './lib/transcript.js';
+import { useLocale } from '../src/strings/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DUMP_PATH = join(root, 'tests/fixtures/fc-bench-dump.txt');
@@ -645,4 +646,10 @@ for (const q of [
   globalThis.URL = realURL;
 }
 
-t.finish('src/ui/fc.js', 'b0c1baf9587f04461c1b606f99294a4c74e485fa25870248ee628bd0a7cf13bf');
+// The preset rows in Spanish: a tune name with a tune.name.<word> key reads
+// through it, as the Tune row does, and the rest stay as Spanish shares them.
+await useLocale('es');
+t.rec('es presetRows', () => norm(new FC.FcSession().presetRows()));
+await useLocale('en');
+
+t.finish('src/ui/fc.js', '187326abc620f977fae444fdf0e24b381e4bcb449e97cf1b9d9304b13219b0c9');

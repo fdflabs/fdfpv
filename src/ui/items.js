@@ -60,7 +60,7 @@ import { pageVersion } from './update.js';
 import { lapSlot, readPendingTime, readPostedBest } from '../share/trackseat.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
-  LOCALES, LOCALE_NAMES, currentLocale, hasStr, plural, rememberLocale, str,
+  LOCALES, LOCALE_NAMES, currentLocale, plural, rememberLocale, str,
 } from '../strings/index.js';
 import { customisable } from './builds.js';
 import { flightTimeText } from './carousel.js';
@@ -74,6 +74,7 @@ import {
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
 import { trickLevel } from './trickfilm.js';
+import { tuneName } from './tunename.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 import { controllerRows, usingLabel } from './controller.js';
@@ -107,16 +108,6 @@ const creditsRow = () => ({ label: str('ui.credits'), action: 'credits', note: s
 
 /* The flight feel report's door, where a pilot has just been flying. */
 const feelRow = () => ({ label: str('ui.flight_feel'), action: 'feel', note: str('ui.tell_the_tune_work_how_the') });
-
-/* A tune's mode word (Stabilised, Manual) in the pilot's language. The
- * registry names tunes in English; a name with no key (AS3X, a brand) is
- * shown as it is, and scripts/es-leak-lint.js holds every name to a key or
- * to its list of words Spanish shares. */
-function tuneName(id) {
-  const name = tuneById(id).name;
-  const key = `tune.name.${name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
-  return hasStr(key) ? str(key) : name;
-}
 
 /* A tune's note in the pilot's language. The registry keeps it in English
  * as the record; scripts/es-leak-lint.js holds every tune to a key whose
@@ -451,15 +442,16 @@ function friendsRows(ui) {
   const inRoom = Boolean(row && row.inRoom);
   const rows = ui.friendsRows ? ui.friendsRows() : [];
   /* Free flight between runs seats the aircraft and the world here too. */
-  const seat = between && ui.mode === 'freestyle' ? ui.roomSeatRows(inRoom) : [];
+  const seat = between && ui.mode === 'freestyle' ? ui.roomSeatRows(row, Boolean(ui.warLobbyOn)) : [];
   /* Everyone's aircraft side by side before a start (src/ui/hangarwalk.js),
    * in a game's lobby too. */
   const lineup = inRoom ? [{ label: str('walk.lineup_room'), action: 'room-lineup', note: str('walk.lineup_room_note'), rowClass: 'row-lineup' }] : [];
   if (ui.warLobbyOn) {
-    /* The war's lobby: its own rows, the aircraft only, and its Leave last. */
+    /* A game's lobby: its own rows, the aircraft and the room's weather,
+     * and its Leave last. */
     const leave = rows.filter((it) => it.action === 'friends-leave');
     const rest = rows.filter((it) => it.action !== 'friends-leave');
-    return [...rest, ...seat.slice(0, 1), ...lineup, ...leave];
+    return [...rest, ...seat, ...lineup, ...leave];
   }
   /* A started game's own row is the primary; Fly on top gives it up. */
   const started = rows.some((it) => it.primary);
