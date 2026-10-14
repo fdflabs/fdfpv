@@ -47,6 +47,9 @@
  * found round the map's own, one standing FACE_STAND_M short of a solid
  * and facing it, and a ground start on a float start's water. Each must
  * fail for the reason it was built to fail, or the check proves nothing.
+ * A world with no float start has its water control where its water is
+ * the ground the shell seats on (the Interior's Río Sereno), when it has
+ * any.
  * And per world with a course: a course's air start under the ground, a
  * gate in a solid and a gate past the playable square.
  *
@@ -122,6 +125,10 @@ const APPROACH_ROOM_M = 1;
 const UNDER_M = 5;
 /* m: how far past the playable square the edge control's gate is hung. */
 const PAST_EDGE_M = 50;
+/* m: the water control's search round the map's start, where the world
+ * has no float start, out to SEARCH_M on this grid: a river is tens of
+ * metres across and kilometres long, and a grid crossing it lands in it. */
+const WET_STEP_M = 20;
 
 let failed = 0;
 let passed = 0;
@@ -398,6 +405,26 @@ async function worldStarts(page, map) {
 }
 
 
+/* The nearest point to `h` whose ground is the water's surface, on a
+ * widening square of WET_STEP_M, or null within SEARCH_M. A river's water
+ * runs on under its banks (a channel is wider than the drawn river), so
+ * the water is read where the ground the shell seats on is the water. */
+const WET_SEARCH = `((h) => {
+  const wet = (x, z) => {
+    const w = window.__waterSample(x, z);
+    if (!w || w.shell == null || !Number.isFinite(w.shell)) { return false; }
+    return window.__surface(x, z, window.__surface(x, z, -1000)) - w.shell <= ${COVER_M};
+  };
+  for (let r = 0; r <= ${SEARCH_M}; r += ${WET_STEP_M}) {
+    for (let x = -r; x <= r; x += ${WET_STEP_M}) {
+      for (let z = -r; z <= r; z += ${WET_STEP_M}) {
+        if (Math.max(Math.abs(x), Math.abs(z)) === r && wet(h.x + x, h.z + z)) { return { x: h.x + x, z: h.z + z }; }
+      }
+    }
+  }
+  return null;
+})`;
+
 async function controls(page, map, home, wet) {
   const cases = [];
   const [under] = await page.evaluate(`${PROBE}([${JSON.stringify(home)}])`);
@@ -429,7 +456,12 @@ async function controls(page, map, home, wet) {
   if (wet) {
     cases.push(['a ground start on the floats\' water', { x: wet.start.x, z: wet.start.z, yaw: wet.start.yaw }, 'ground', 'water']);
   } else {
-    console.log(`  note  ${map} has no float start, so no water control`);
+    const river = await page.evaluate(`${WET_SEARCH}(${JSON.stringify(home)})`);
+    if (river) {
+      cases.push([`a ground start on the water at (${f1(river.x)}, ${f1(river.z)}), no float start here`, { x: river.x, z: river.z, yaw: 0 }, 'ground', 'water']);
+    } else {
+      console.log(`  note  ${map} has no float start and no water within ${SEARCH_M} m of its start, so no water control`);
+    }
   }
   const facts = await page.evaluate(`${PROBE}(${JSON.stringify(cases.map((c) => c[1]))})`);
   cases.forEach(([name, , kind, want], j) => {
