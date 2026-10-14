@@ -15,14 +15,15 @@
 # Not --budgets: those ceilings are the 3060 Ti's, and the Orin is held
 # to no ceiling, only measured.
 #
-# The Orin shares its GPU with whatever else runs there (ComfyUI, Ollama).
-# Before each row the script waits until the GPU's own load
+# The Orin shares its GPU with whatever else runs there (ComfyUI,
+# Ollama). Before each row the script waits until the GPU's own load
 # (the nvgpu sysfs `load`, per mille) has stayed under IDLE_MAX for
 # IDLE_SECONDS with ComfyUI's queue empty, and gives up after
 # WAIT_MINUTES. nvidia-smi reports no utilisation on Tegra, so
-# perf-play's "gpu load" is empty there. The load gives no owner, and a ComfyUI job or an Ollama model may start
-# mid row, so each row also records ComfyUI's queue and Ollama's loaded
-# models before and after it; a row with either busy is marked.
+# perf-play's "gpu load" is empty there. The load gives no owner, and a
+# ComfyUI job or an Ollama model may start mid row, so each row also
+# records ComfyUI's queue and Ollama's loaded models before and after
+# it; a row with either busy is marked.
 #
 # One time setup on the Jetson, all under ~/fdfpv-ref (docs/PERF.md,
 # The reference machine): Node 22 in node/, Playwright's arm64 Chromium
